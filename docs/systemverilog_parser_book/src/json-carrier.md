@@ -72,6 +72,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `module_or_generate_item_declaration` (5 branches) | per-branch typed | Kind labels: `"package_or_generate"` / `"genvar"` / `"clocking"` / `"default_clocking"` (with `name`) / `"default_disable_iff"` (with `expr`). |
 | `non_port_module_item` (8 branches) | per-branch typed | Kind labels: `"generate_region"` / `"module_or_generate"` / `"specify_block"` / `"specparam_declaration"` (with `attributes`) / `"program_declaration"` / `"module_declaration"` / `"interface_declaration"` / `"timeunits_declaration"`. |
 | `continuous_assign` (2 branches) | per-branch typed | Kind labels: `"net"` (with `drive_strength`, `delay`, `assignments`) / `"variable"` (with `delay_control`, `assignments`). |
+| `interface_item` (2 branches) | per-branch `{kind, body}` | Kind labels: `"port_declaration"` / `"non_port_item"`. Mirrors `module_item`. |
+| `interface_or_generate_item` (2 branches) | per-branch `{kind, attributes, body}` | Kind labels: `"module_common_item"` / `"extern_tf_declaration"`. Each carries leading `attribute_instance*` as `attributes`. |
+| `non_port_interface_item` (6 branches) | per-branch typed | Kind labels: `"generate_region"` / `"interface_or_generate"` / `"program_declaration"` / `"modport_declaration"` / `"interface_declaration"` / `"timeunits_declaration"`. |
+| `program_item` (2 branches) | per-branch `{kind, body}` | Kind labels: `"port_declaration"` / `"non_port_item"`. Mirrors `module_item`. |
+| `non_port_program_item` (7 branches) | per-branch typed | Kind labels: `"continuous_assign"` (with `attributes`) / `"module_or_generate_item_declaration"` (with `attributes`) / `"initial_construct"` (with `attributes`) / `"final_construct"` (with `attributes`) / `"concurrent_assertion_item"` (with `attributes`) / `"timeunits_declaration"` / `"program_generate_item"`. First 5 preserve leading `attribute_instance*` prefix; last 2 are bare. |
 
 ## Sub-rules with implicit defaults
 

@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-20 batch: interface + program items dispatch tree typed (5 rules / 19 annotations)
+
+Mirror of SV-Slice-19's module-items batch, applied to the interface and program sub-trees. Every `header.items` and `body.items` field on every typed interface/program declaration now surfaces kind-discriminated dispatch into the actual content — interface and program walks now match the module walk's typed-dispatch level.
+
+```ebnf
+interface_item              -> 2 kinds: port_declaration / non_port_item
+interface_or_generate_item  -> 2 kinds (with attributes): module_common_item / extern_tf_declaration
+non_port_interface_item     -> 6 kinds: generate_region / interface_or_generate / program_declaration / modport_declaration / interface_declaration / timeunits_declaration
+program_item                -> 2 kinds: port_declaration / non_port_item
+non_port_program_item       -> 7 kinds: continuous_assign / module_or_generate_item_declaration / initial_construct / final_construct / concurrent_assertion_item / timeunits_declaration / program_generate_item (first 5 with attributes)
+```
+
+Annotation count: **163** (was 144, +19). Same accept set. Schema stays at `1`. Contract bumped 1.0.19 → 1.0.20. mdBook synced. Gate green ✅. SV calibration parse on `module m; endmodule\n` passes (regenerated parser via ast_pipeline → built parseability_probe with `PGEN_SYSTEMVERILOG_PARSER_PATH` → `parse_full passed`).
+
 ## 2026-05-05 - SV-Slice-19 batch: module-items dispatch tree typed (5 rules / 22 annotations — largest batch yet)
 
 Largest single-slice batch. Every `header.items` and `body.items` field on every typed module/interface/program declaration now surfaces kind-discriminated dispatch into actual content.

@@ -19,6 +19,24 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.20 / Contract 1.0.20 — SV-Slice-20 batch: interface + program items dispatch tree typed (5 rules / 19 annotations)
+
+**What changed:** Mirror of SV-Slice-19's module-items batch, applied to the interface and program sub-trees. Every `header.items` and `body.items` field on every typed interface/program declaration now surfaces kind-discriminated dispatch.
+
+```ebnf
+interface_item              -> 2 kinds: port_declaration / non_port_item
+interface_or_generate_item  -> 2 kinds (with attributes): module_common_item / extern_tf_declaration
+non_port_interface_item     -> 6 kinds: generate_region / interface_or_generate / program_declaration / modport_declaration / interface_declaration / timeunits_declaration
+program_item                -> 2 kinds: port_declaration / non_port_item
+non_port_program_item       -> 7 kinds: continuous_assign / module_or_generate_item_declaration / initial_construct / final_construct / concurrent_assertion_item / timeunits_declaration / program_generate_item (first 5 with attributes)
+```
+
+**Annotation inventory:** 163 entries (was 144). +19 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.20 / Contract 1.0.20 Highlights" with full annotation source + interface/program walker recipes.
+
 ### 1.0.19 / Contract 1.0.19 — SV-Slice-19 batch: module-items dispatch tree typed (5 rules / 22 annotations)
 
 **What changed:** Largest batch yet. Every `header.items` and `body.items` field on every typed module/interface/program declaration now surfaces kind-discriminated dispatch.

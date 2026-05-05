@@ -1364,12 +1364,16 @@ interface_instance_identifier := interface_instance_identifier_sv_2017
 
 interface_instantiation := interface_identifier ( parameter_value_assignment )? hierarchical_instance ( comma hierarchical_instance )* semi
 
-interface_item := port_declaration semi | non_port_interface_item
+interface_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
+                | non_port_interface_item -> {kind: "non_port_item",   body: $1}
 
 interface_nonansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )? interface_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
                          -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
-interface_or_generate_item := attribute_instance* module_common_item | attribute_instance* extern_tf_declaration
+interface_or_generate_item := attribute_instance* module_common_item
+                                  -> {kind: "module_common_item",   attributes: $1, body: $2}
+                            | attribute_instance* extern_tf_declaration
+                                  -> {kind: "extern_tf_declaration", attributes: $1, body: $2}
 
 interface_port_declaration := interface_identifier list_of_interface_identifiers | interface_identifier dot modport_identifier list_of_interface_identifiers
 
@@ -1788,7 +1792,18 @@ non_consecutive_repetition := non_consecutive_repetition_sv_2017
 
 non_integer_type := kw_shortreal_99d69111 | kw_real_c9c64e07 | kw_realtime_91c462ed
 
-non_port_interface_item := generate_region | interface_or_generate_item | program_declaration | modport_declaration | interface_declaration | timeunits_declaration
+non_port_interface_item := generate_region
+                               -> {kind: "generate_region",       body: $1}
+                        | interface_or_generate_item
+                               -> {kind: "interface_or_generate", body: $1}
+                        | program_declaration
+                               -> {kind: "program_declaration",   body: $1}
+                        | modport_declaration
+                               -> {kind: "modport_declaration",   body: $1}
+                        | interface_declaration
+                               -> {kind: "interface_declaration", body: $1}
+                        | timeunits_declaration
+                               -> {kind: "timeunits_declaration", body: $1}
 
 non_port_module_item := generate_region
                             -> {kind: "generate_region",       body: $1}
@@ -1807,7 +1822,20 @@ non_port_module_item := generate_region
                      | timeunits_declaration
                             -> {kind: "timeunits_declaration", body: $1}
 
-non_port_program_item := attribute_instance* continuous_assign | attribute_instance* module_or_generate_item_declaration | attribute_instance* initial_construct | attribute_instance* final_construct | attribute_instance* concurrent_assertion_item | timeunits_declaration | program_generate_item
+non_port_program_item := attribute_instance* continuous_assign
+                             -> {kind: "continuous_assign",                attributes: $1, body: $2}
+                       | attribute_instance* module_or_generate_item_declaration
+                             -> {kind: "module_or_generate_item_declaration", attributes: $1, body: $2}
+                       | attribute_instance* initial_construct
+                             -> {kind: "initial_construct",                attributes: $1, body: $2}
+                       | attribute_instance* final_construct
+                             -> {kind: "final_construct",                  attributes: $1, body: $2}
+                       | attribute_instance* concurrent_assertion_item
+                             -> {kind: "concurrent_assertion_item",        attributes: $1, body: $2}
+                       | timeunits_declaration
+                             -> {kind: "timeunits_declaration",            body: $1}
+                       | program_generate_item
+                             -> {kind: "program_generate_item",            body: $1}
 
 @profiles: ["sv_2017"]
 non_zero_decimal_digit_sv_2017 := kw_n_1_356a192b | kw_n_2_da4b9237 | kw_n_3_77de68da | kw_n_4_1b645389 | kw_n_5_ac3478d6 | kw_n_6_c1dfd96e | kw_n_7_902ba3cd | kw_n_8_fe5dbbce | kw_n_9_0ade7c2c
@@ -2105,7 +2133,8 @@ program_identifier := declaration_identifier
 
 program_instantiation := program_identifier ( parameter_value_assignment )? hierarchical_instance ( comma hierarchical_instance )* semi
 
-program_item := port_declaration semi | non_port_program_item
+program_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
+              | non_port_program_item   -> {kind: "non_port_item",   body: $1}
 
 @sample: "program p(a,b);"
 program_nonansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi

@@ -7,15 +7,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.19`
+  - `1.0.20`
 - Parser release version:
-  - `1.0.19`
+  - `1.0.20`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-05-04`
+  - `2026-05-05`
 - Current grammar family label:
   - `systemverilog`
 - Current stable host profiles:
@@ -35,6 +35,98 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.20 / Contract 1.0.20 Highlights — SV-Slice-20 batch: interface + program items dispatch tree typed (5 rules / 19 annotations)
+
+Mirror of SV-Slice-19's module-items batch, applied to the interface and program sub-trees. Every `header.items` and `body.items` field on every typed interface/program declaration now surfaces kind-discriminated dispatch into the actual content — bringing the interface and program walk paths up to the same level of typed dispatch the module sub-tree reached in SV-Slice-19.
+
+### Annotations
+
+```ebnf
+interface_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
+                | non_port_interface_item -> {kind: "non_port_item",   body: $1}
+
+interface_or_generate_item := attribute_instance* module_common_item    -> {kind: "module_common_item",   attributes: $1, body: $2}
+                            | attribute_instance* extern_tf_declaration -> {kind: "extern_tf_declaration", attributes: $1, body: $2}
+
+non_port_interface_item := generate_region              -> {kind: "generate_region",       body: $1}
+                        | interface_or_generate_item    -> {kind: "interface_or_generate", body: $1}
+                        | program_declaration           -> {kind: "program_declaration",   body: $1}
+                        | modport_declaration           -> {kind: "modport_declaration",   body: $1}
+                        | interface_declaration         -> {kind: "interface_declaration", body: $1}
+                        | timeunits_declaration         -> {kind: "timeunits_declaration", body: $1}
+
+program_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
+              | non_port_program_item   -> {kind: "non_port_item",   body: $1}
+
+non_port_program_item := attribute_instance* continuous_assign                       -> {kind: "continuous_assign",                   attributes: $1, body: $2}
+                       | attribute_instance* module_or_generate_item_declaration     -> {kind: "module_or_generate_item_declaration", attributes: $1, body: $2}
+                       | attribute_instance* initial_construct                       -> {kind: "initial_construct",                   attributes: $1, body: $2}
+                       | attribute_instance* final_construct                         -> {kind: "final_construct",                     attributes: $1, body: $2}
+                       | attribute_instance* concurrent_assertion_item               -> {kind: "concurrent_assertion_item",           attributes: $1, body: $2}
+                       | timeunits_declaration                                       -> {kind: "timeunits_declaration",               body: $1}
+                       | program_generate_item                                       -> {kind: "program_generate_item",               body: $1}
+```
+
+### Consumer dispatch chains
+
+The interface walk path now mirrors the module walk path:
+
+```rust
+// interface_declaration.body.items contains interface_item entries
+for item in interface_decl.items.as_array().unwrap() {
+    match item["kind"].as_str().unwrap() {
+        "port_declaration" => walk_port_decl(&item["body"]),
+        "non_port_item" => {
+            let npi = &item["body"];     // non_port_interface_item shape
+            match npi["kind"].as_str().unwrap() {
+                "generate_region"        => walk_generate(&npi["body"]),
+                "interface_or_generate"  => {
+                    let iog = &npi["body"];   // interface_or_generate_item shape
+                    match iog["kind"].as_str().unwrap() {
+                        "module_common_item" | "extern_tf_declaration" =>
+                            walk_inner(iog["kind"].as_str(), &iog["attributes"], &iog["body"]),
+                    }
+                }
+                "program_declaration" | "modport_declaration" |
+                "interface_declaration" | "timeunits_declaration" =>
+                    walk_decl(npi["kind"].as_str(), &npi["body"]),
+            }
+        }
+    }
+}
+
+// program_declaration.body.items contains program_item entries
+for item in program_decl.items.as_array().unwrap() {
+    match item["kind"].as_str().unwrap() {
+        "port_declaration" => walk_port_decl(&item["body"]),
+        "non_port_item" => {
+            let npi = &item["body"];     // non_port_program_item shape
+            match npi["kind"].as_str().unwrap() {
+                "continuous_assign" | "module_or_generate_item_declaration" |
+                "initial_construct" | "final_construct" | "concurrent_assertion_item" =>
+                    walk_inner(npi["kind"].as_str(), &npi["attributes"], &npi["body"]),
+                "timeunits_declaration" | "program_generate_item" =>
+                    walk_decl(npi["kind"].as_str(), &npi["body"]),
+            }
+        }
+    }
+}
+```
+
+### Annotation inventory
+
+163 entries (was 144). +19 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `package_or_generate_item_declaration` (large Or — referenced by module_or_generate_item_declaration's branch 0; would close the package-items dispatch path).
+- `generate_region`, `generate_block`, `generate_item` (generate sub-tree).
+- `module_common_item` (12-branch Or — referenced by both module_or_generate_item and interface_or_generate_item; would unlock common-item dispatch for both module and interface walks).
 
 ## Release 1.0.19 / Contract 1.0.19 Highlights — SV-Slice-19 batch: module-items dispatch tree typed (5 rules / 22 annotations)
 
