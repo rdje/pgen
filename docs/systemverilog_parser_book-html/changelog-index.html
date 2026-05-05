@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e8ec273e.js";
+            window.path_to_searchindex_js = "searchindex-24292f17.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,17 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1021--contract-1021--sv-slice-21-batch-module_common_item--package_or_generate_item_declaration-typed-4-rules--55-annotations--biggest-batch-yet"><a class="header" href="#1021--contract-1021--sv-slice-21-batch-module_common_item--package_or_generate_item_declaration-typed-4-rules--55-annotations--biggest-batch-yet">1.0.21 / Contract 1.0.21 — SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (4 rules / 55 annotations — biggest batch yet)</a></h3>
+<p><strong>What changed:</strong> Both halves of the cascading walk path that SV-Slice-19/20 set up are now closed: every reachable <code>module_common_item</code> and every reachable <code>package_or_generate_item_declaration</code> discriminates which actual sub-construct was matched.</p>
+<pre><code class="language-ebnf">module_common_item_sv_2017                    -&gt; 13 kinds (module_or_generate_item_declaration / interface_instantiation / program_instantiation / assertion_item / bind_directive / continuous_assign / net_alias / initial_construct / final_construct / always_construct / loop_generate_construct / conditional_generate_construct / elaboration_system_task)
+module_common_item_sv_2023                    -&gt; 13 kinds (same except elaboration_severity_system_task)
+package_or_generate_item_declaration_sv_2017  -&gt; 14 kinds (incl. local_parameter_declaration / parameter_declaration / data_declaration / task_declaration / function_declaration / class_declaration / covergroup_declaration / semi / ...)
+package_or_generate_item_declaration_sv_2023  -&gt; 15 kinds (same plus interface_class_declaration)
+</code></pre>
+<p>The wrapper rules <code>module_common_item := _sv_2017 | _sv_2023</code> and <code>package_or_generate_item_declaration := _sv_2017 | _sv_2023</code> stay un-annotated (transparent profile-routers, same pattern as <code>module_declaration</code> / <code>interface_declaration</code>).</p>
+<p><strong>Annotation inventory:</strong> 218 entries (was 163). +55 in this batch — biggest single-slice contribution.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.21 / Contract 1.0.21 Highlights” with full annotation source + 6-level walker recipe.</p>
 <h3 id="1020--contract-1020--sv-slice-20-batch-interface--program-items-dispatch-tree-typed-5-rules--19-annotations"><a class="header" href="#1020--contract-1020--sv-slice-20-batch-interface--program-items-dispatch-tree-typed-5-rules--19-annotations">1.0.20 / Contract 1.0.20 — SV-Slice-20 batch: interface + program items dispatch tree typed (5 rules / 19 annotations)</a></h3>
 <p><strong>What changed:</strong> Mirror of SV-Slice-19’s module-items batch, applied to the interface and program sub-trees. Every <code>header.items</code> and <code>body.items</code> field on every typed interface/program declaration now surfaces kind-discriminated dispatch.</p>
 <pre><code class="language-ebnf">interface_item              -&gt; 2 kinds: port_declaration / non_port_item

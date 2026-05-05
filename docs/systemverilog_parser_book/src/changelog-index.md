@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.21 / Contract 1.0.21 — SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (4 rules / 55 annotations — biggest batch yet)
+
+**What changed:** Both halves of the cascading walk path that SV-Slice-19/20 set up are now closed: every reachable `module_common_item` and every reachable `package_or_generate_item_declaration` discriminates which actual sub-construct was matched.
+
+```ebnf
+module_common_item_sv_2017                    -> 13 kinds (module_or_generate_item_declaration / interface_instantiation / program_instantiation / assertion_item / bind_directive / continuous_assign / net_alias / initial_construct / final_construct / always_construct / loop_generate_construct / conditional_generate_construct / elaboration_system_task)
+module_common_item_sv_2023                    -> 13 kinds (same except elaboration_severity_system_task)
+package_or_generate_item_declaration_sv_2017  -> 14 kinds (incl. local_parameter_declaration / parameter_declaration / data_declaration / task_declaration / function_declaration / class_declaration / covergroup_declaration / semi / ...)
+package_or_generate_item_declaration_sv_2023  -> 15 kinds (same plus interface_class_declaration)
+```
+
+The wrapper rules `module_common_item := _sv_2017 | _sv_2023` and `package_or_generate_item_declaration := _sv_2017 | _sv_2023` stay un-annotated (transparent profile-routers, same pattern as `module_declaration` / `interface_declaration`).
+
+**Annotation inventory:** 218 entries (was 163). +55 in this batch — biggest single-slice contribution.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.21 / Contract 1.0.21 Highlights" with full annotation source + 6-level walker recipe.
+
 ### 1.0.20 / Contract 1.0.20 — SV-Slice-20 batch: interface + program items dispatch tree typed (5 rules / 19 annotations)
 
 **What changed:** Mirror of SV-Slice-19's module-items batch, applied to the interface and program sub-trees. Every `header.items` and `body.items` field on every typed interface/program declaration now surfaces kind-discriminated dispatch.

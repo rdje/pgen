@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (4 rules / 55 annotations — biggest batch yet)
+
+Both halves of the cascading walk path that SV-Slice-19/20 set up are now closed: every reachable `module_common_item` and every reachable `package_or_generate_item_declaration` discriminates which actual sub-construct was matched.
+
+```ebnf
+module_common_item_sv_2017                    -> 13 kinds (module_or_generate_item_declaration / interface_instantiation / program_instantiation / assertion_item / bind_directive / continuous_assign / net_alias / initial_construct / final_construct / always_construct / loop_generate_construct / conditional_generate_construct / elaboration_system_task)
+module_common_item_sv_2023                    -> 13 kinds (same except elaboration_severity_system_task)
+package_or_generate_item_declaration_sv_2017  -> 14 kinds
+package_or_generate_item_declaration_sv_2023  -> 15 kinds (adds interface_class_declaration)
+```
+
+Wrapper rules `module_common_item := _sv_2017 | _sv_2023` and `package_or_generate_item_declaration := _sv_2017 | _sv_2023` stay un-annotated (transparent profile-routers, same pattern as `module_declaration` / `interface_declaration`).
+
+Annotation count: **218** (was 163, +55 — biggest single-slice contribution). Same accept set. Schema stays at `1`. Contract bumped 1.0.20 → 1.0.21. mdBook synced. Gate green ✅. SV calibration parse on `module m; endmodule\n` passes (regenerated parser via `make focus_systemverilog` → rebuilt parseability_probe → `parse_full passed`).
+
 ## 2026-05-05 - Per-grammar focus mechanism: any parser can be the cargo-test default
 
 `make focus_<grammar>` regenerates the named grammar's parser artifact under `generated/` so that `build.rs` activates the matching `has_generated_<grammar>_parser` cfg, and tests gated on that cfg compile in. Currently wired:

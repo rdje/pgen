@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.20`
+  - `1.0.21`
 - Parser release version:
-  - `1.0.20`
+  - `1.0.21`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,125 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.21 / Contract 1.0.21 Highlights — SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (4 rules / 55 annotations — biggest batch yet)
+
+Biggest single batch by annotation count (55 entries). Both halves of the cascading walk path that SV-Slice-19/20 set up are now closed: every reachable `module_common_item` and every reachable `package_or_generate_item_declaration` discriminates which actual sub-construct was matched.
+
+### Rationale
+
+Per SV-Slice-19/20 dispatch chains:
+- `module_or_generate_item.kind == "module_common_item"` → `module_common_item` shape (was raw envelope until this slice).
+- `module_or_generate_item_declaration.kind == "package_or_generate"` → `package_or_generate_item_declaration` shape (was raw envelope until this slice).
+- Same for `non_port_program_item.kind == "module_or_generate_item_declaration"` (program path).
+
+This slice closes those terminals so consumers can dispatch end-to-end without descending recursive envelopes for these large sub-trees.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+module_common_item_sv_2017 := module_or_generate_item_declaration -> {kind: "module_or_generate_item_declaration", body: $1}
+                            | interface_instantiation             -> {kind: "interface_instantiation",             body: $1}
+                            | program_instantiation               -> {kind: "program_instantiation",               body: $1}
+                            | assertion_item                      -> {kind: "assertion_item",                      body: $1}
+                            | bind_directive                      -> {kind: "bind_directive",                      body: $1}
+                            | continuous_assign                   -> {kind: "continuous_assign",                   body: $1}
+                            | net_alias                           -> {kind: "net_alias",                           body: $1}
+                            | initial_construct                   -> {kind: "initial_construct",                   body: $1}
+                            | final_construct                     -> {kind: "final_construct",                     body: $1}
+                            | always_construct                    -> {kind: "always_construct",                    body: $1}
+                            | loop_generate_construct             -> {kind: "loop_generate_construct",             body: $1}
+                            | conditional_generate_construct      -> {kind: "conditional_generate_construct",      body: $1}
+                            | elaboration_system_task             -> {kind: "elaboration_system_task",             body: $1}
+
+@profiles: ["sv_2023"]
+module_common_item_sv_2023 := /* same 13 branches; last is elaboration_severity_system_task per LRM 2023 */
+
+@profiles: ["sv_2017"]
+package_or_generate_item_declaration_sv_2017 := local_parameter_declaration semi  -> {kind: "local_parameter_declaration",  body: $1}
+                                              | parameter_declaration semi        -> {kind: "parameter_declaration",        body: $1}
+                                              | net_declaration                   -> {kind: "net_declaration",              body: $1}
+                                              | dpi_import_export                 -> {kind: "dpi_import_export",            body: $1}
+                                              | data_declaration                  -> {kind: "data_declaration",             body: $1}
+                                              | task_declaration                  -> {kind: "task_declaration",             body: $1}
+                                              | function_declaration              -> {kind: "function_declaration",         body: $1}
+                                              | checker_declaration               -> {kind: "checker_declaration",          body: $1}
+                                              | extern_constraint_declaration     -> {kind: "extern_constraint_declaration", body: $1}
+                                              | class_declaration                 -> {kind: "class_declaration",            body: $1}
+                                              | class_constructor_declaration     -> {kind: "class_constructor_declaration", body: $1}
+                                              | covergroup_declaration            -> {kind: "covergroup_declaration",       body: $1}
+                                              | assertion_item_declaration        -> {kind: "assertion_item_declaration",   body: $1}
+                                              | semi                              -> {kind: "semi"}
+
+@profiles: ["sv_2023"]
+package_or_generate_item_declaration_sv_2023 := /* same 14 plus interface_class_declaration between class_declaration and class_constructor_declaration (15 kinds total) */
+```
+
+The two leading branches drop trailing `semi` via `body: $1`. The `semi` branch carries no body since it's just a stray `;`.
+
+### Why the wrapper rules stay un-annotated
+
+`module_common_item := module_common_item_sv_2017 | module_common_item_sv_2023` and the `package_or_generate_item_declaration` wrapper stay un-annotated — same pattern as `module_declaration` / `interface_declaration`. They're transparent profile-routers that pass through to the matched profile-typed sub-rule. The kind discriminator lives inside the per-profile sub-rules.
+
+### Consumer dispatch chain — full module path
+
+After this slice, the typed AST exposes 6+ levels of dispatch end-to-end for module contents:
+
+```rust
+// description.body.body.items contains module_item entries
+match item["kind"] {
+  "non_port_item" => match item["body"]["kind"] {
+    "module_or_generate" => {
+      let mog = &item["body"]["body"];
+      match mog["kind"] {
+        "module_common_item" => {
+          let mci = &mog["body"];                  // module_common_item shape
+          match mci["kind"] {
+            "module_or_generate_item_declaration" => {
+              let mogid = &mci["body"];            // module_or_generate_item_declaration shape (typed since SV-Slice-19)
+              match mogid["kind"] {
+                "package_or_generate" => {
+                  let pogid = &mogid["body"];      // package_or_generate_item_declaration shape (typed THIS SLICE)
+                  match pogid["kind"] {
+                    "function_declaration"   => walk_function(&pogid["body"]),
+                    "task_declaration"       => walk_task(&pogid["body"]),
+                    "data_declaration"       => walk_data(&pogid["body"]),
+                    "class_declaration"      => walk_class(&pogid["body"]),
+                    /* ...11 more kinds... */
+                  }
+                }
+                /* ...4 more kinds (genvar, clocking, default_clocking, default_disable_iff)... */
+              }
+            }
+            "always_construct"               => walk_always(&mci["body"]),
+            "initial_construct"              => walk_initial(&mci["body"]),
+            "continuous_assign"              => walk_continuous_assign(&mci["body"]),
+            "loop_generate_construct"        => walk_loop_generate(&mci["body"]),
+            "conditional_generate_construct" => walk_conditional_generate(&mci["body"]),
+            /* ...7 more kinds... */
+          }
+        }
+        /* parameter_override / gate_instantiation / udp_instantiation / module_instantiation */
+      }
+    }
+  }
+}
+```
+
+### Annotation inventory
+
+218 entries (was 163). +55 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `generate_region` / `generate_block` / `generate_item` (close the generate-construct walk).
+- `module_declaration` / `interface_declaration` / `class_declaration` / `program_declaration` profile-tag wrapper rules (currently transparent — could add explicit `kind: "sv_2017"` / `kind: "sv_2023"` discriminators if profile-aware consumers want it; not required since the per-profile sub-rules already differ in field positions).
+- `data_declaration`, `function_declaration`, `task_declaration` (large internal sub-trees that would close `package_or_generate_item_declaration` walk paths another level deeper).
 
 ## Release 1.0.20 / Contract 1.0.20 Highlights — SV-Slice-20 batch: interface + program items dispatch tree typed (5 rules / 19 annotations)
 

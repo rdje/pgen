@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e8ec273e.js";
+            window.path_to_searchindex_js = "searchindex-24292f17.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.22.0</td><td>1.0.21</td><td><strong>SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (biggest batch).</strong> 4 rules / 55 annotations: module_common_item_sv_2017 (13 kinds), module_common_item_sv_2023 (13 kinds — elaboration_severity_system_task instead of elaboration_system_task), package_or_generate_item_declaration_sv_2017 (14 kinds), package_or_generate_item_declaration_sv_2023 (15 kinds — adds interface_class_declaration). Closes the cascading walk path that SV-Slice-19/20 set up: every reachable module_common_item and package_or_generate_item_declaration now discriminates the matched sub-construct. Annotation inventory: 218 entries (was 163).</td></tr>
 <tr><td>0.21.0</td><td>1.0.20</td><td><strong>SV-Slice-20 batch: interface + program items dispatch tree typed.</strong> 5 rules / 19 annotations mirroring SV-Slice-19’s module-items batch onto the interface and program sub-trees: interface_item (2 kinds), interface_or_generate_item (2 kinds), non_port_interface_item (6 kinds), program_item (2 kinds), non_port_program_item (7 kinds). Interface and program walks now match the module walk’s typed-dispatch level. Annotation inventory: 163 entries (was 144).</td></tr>
 <tr><td>0.20.0</td><td>1.0.19</td><td><strong>SV-Slice-19 batch: module-items dispatch tree typed.</strong> Largest single-slice batch (5 rules / 22 annotations): module_item (2 kinds), module_or_generate_item (5 kinds), module_or_generate_item_declaration (5 kinds), non_port_module_item (8 kinds), continuous_assign (2 kinds). Every header/body items field now exposes kind-discriminated dispatch into actual content. Annotation inventory: 144 entries (was 122).</td></tr>
 <tr><td>0.19.0</td><td>1.0.18</td><td><strong>SV-Slice-18 batch: UDP truth-table entries typed.</strong> 3 rules: combinational_entry ({inputs, output}), sequential_entry ({inputs, current_state, next_state}), udp_initial_statement ({name, init_val}). Annotation inventory: 122 entries (was 119).</td></tr>
