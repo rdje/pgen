@@ -20,16 +20,19 @@ endif
 SEMANTIC_ANNOTATION_EBNF = $(GRAMMARS_DIR)/semantic_annotation.ebnf
 RETURN_ANNOTATION_EBNF = $(GRAMMARS_DIR)/return_annotation.ebnf
 REGEX_EBNF = $(GRAMMARS_DIR)/regex.ebnf
+SYSTEMVERILOG_EBNF = $(GRAMMARS_DIR)/systemverilog.ebnf
 
 # Generated JSON files (intermediate)
 SEMANTIC_ANNOTATION_JSON = $(GENERATED_DIR)/semantic_annotation.json
 RETURN_ANNOTATION_JSON = $(GENERATED_DIR)/return_annotation.json
 REGEX_JSON = $(GENERATED_DIR)/regex.json
+SYSTEMVERILOG_JSON = $(GENERATED_DIR)/systemverilog.json
 
 # Generated Rust parser files (final output)
 SEMANTIC_ANNOTATION_PARSER = $(GENERATED_DIR)/semantic_annotation_parser.rs
 RETURN_ANNOTATION_PARSER = $(GENERATED_DIR)/return_annotation_parser.rs
 REGEX_PARSER = $(GENERATED_DIR)/regex_parser.rs
+SYSTEMVERILOG_PARSER = $(GENERATED_DIR)/systemverilog_parser.rs
 
 # Compiled Rust parser executables
 SEMANTIC_ANNOTATION_EXE = $(GENERATED_DIR)/semantic_annotation_parser
@@ -177,6 +180,21 @@ $(REGEX_PARSER): $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
 
+# Generate systemverilog JSON from EBNF (parallel to regex; depends on Rust frontend only)
+$(SYSTEMVERILOG_JSON): $(SYSTEMVERILOG_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating systemverilog JSON from EBNF (Rust frontend)..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_FRONTEND_TO_JSON) $(SYSTEMVERILOG_EBNF) --emit-raw-ast-json $(SYSTEMVERILOG_JSON)
+
+# Generate final systemverilog parser from JSON (parallel to regex_parser).
+# The 47MB output and 30-60s codegen time is why this isn't tracked in git
+# nor wired into the default `cargo test`. Use `make focus_systemverilog`
+# to regen + drop a hint about how to opt-in to SV-gated tests.
+$(SYSTEMVERILOG_PARSER): $(SYSTEMVERILOG_JSON) $(RUST_AST_PIPELINE)
+	@echo "Generating systemverilog parser from JSON..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(SYSTEMVERILOG_JSON) -o $(SYSTEMVERILOG_PARSER)
+
 .PHONY: return_semantic_parsers
 return_semantic_parsers: clean $(SEMANTIC_ANNOTATION_PARSER) $(RETURN_ANNOTATION_PARSER)
 
@@ -214,6 +232,10 @@ help:
 	@echo "  return_annotation_parser    - Complete flow for return annotation parser + tests"
 	@echo "  semantic_annotation_parser  - Complete flow for semantic annotation parser + tests"
 	@echo "  regex_parser               - Complete flow for regex parser + tests"
+	@echo ""
+	@echo "🔬 Focus on a specific parser family for cargo test (per-grammar default-parser switch):"
+	@echo "  focus_regex                - Regen regex parser artifact + activate has_generated_regex_parser cfg"
+	@echo "  focus_systemverilog        - Regen SV parser artifact + activate has_generated_systemverilog_parser cfg"
 	@echo ""
 	@echo "🔗 Convenience Aliases:"
 	@echo "  return_parser              - Alias for return_annotation_parser"
@@ -465,6 +487,49 @@ regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
 	@echo "✅ Generated: $(REGEX_PARSER)"
 	@echo "✅ Regex parser generated successfully!"
+
+# `make focus_<grammar>` — equal first-class status for any parser family.
+#
+# build.rs already supports per-parser cfg activation: when
+# `../generated/<grammar>_parser.rs` exists (or `PGEN_<GRAMMAR>_PARSER_PATH`
+# is set), the matching `has_generated_<grammar>_parser` cfg fires and
+# any test gated on that cfg compiles in.
+#
+# `focus_<grammar>` regenerates the artifact for the named grammar from
+# the current grammar source so subsequent `cargo test --features
+# generated_parsers` invocations exercise that family. The default
+# `cargo test` still skips parsers whose artifact isn't on disk, so
+# focusing one grammar doesn't slow iteration on other grammars.
+#
+# Currently wired: `focus_regex` (regex artifact tracked-in-git but this
+# refreshes from grammar source) and `focus_systemverilog` (~3-5min on
+# first run; the SV parser is ~47MB and not tracked in git).
+.PHONY: focus_regex
+focus_regex: $(REGEX_PARSER)
+	@echo ""
+	@echo "✅ Regex parser artifact ready: $(REGEX_PARSER)"
+	@echo ""
+	@echo "Default cargo test will pick this up automatically."
+	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"
+	@echo ""
+
+.PHONY: focus_systemverilog
+focus_systemverilog: $(SYSTEMVERILOG_PARSER)
+	@echo ""
+	@echo "✅ SystemVerilog parser artifact ready: $(SYSTEMVERILOG_PARSER)"
+	@echo ""
+	@echo "build.rs sets has_generated_systemverilog_parser cfg when the artifact exists."
+	@echo "SV-gated tests now compile in:"
+	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"
+	@echo ""
+	@echo "Quick SV calibration check (rebuild parseability_probe with the SV"
+	@echo "path so SV grammar registers):"
+	@echo "  cd $(RUST_DIR) && cargo build --release --features generated_parsers --bin parseability_probe"
+	@echo "  echo 'module m; endmodule' | $(RUST_DIR)/target/release/parseability_probe --parse-dump-ast-pretty systemverilog /dev/stdin"
+	@echo ""
+	@echo "Full SV slice gate (book gate + manifest cross-check):"
+	@echo "  make systemverilog_parser_book_gate"
+	@echo ""
 
 # Regex parser FULL bootstrap — single-command path for cold clones.
 #

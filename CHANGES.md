@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-05 - Per-grammar focus mechanism: any parser can be the cargo-test default
+
+`make focus_<grammar>` regenerates the named grammar's parser artifact under `generated/` so that `build.rs` activates the matching `has_generated_<grammar>_parser` cfg, and tests gated on that cfg compile in. Currently wired:
+- `focus_regex` — refresh `generated/regex_parser.rs` from `grammars/regex.ebnf`.
+- `focus_systemverilog` — refresh `generated/systemverilog_parser.rs` from `grammars/systemverilog.ebnf` (~3-5 min on first run; ~47MB output, deliberately kept untracked).
+
+Underlying claim: the existing `build.rs` already supports per-parser cfg activation — it scans for `../generated/<grammar>_parser.rs` (or honors `PGEN_<GRAMMAR>_PARSER_PATH`) and toggles the cfg accordingly. Until now the friction was the manual regen step + scattered ad-hoc commands across slices. The focus targets bundle that into one command and document the activation contract in `make help` (under the "🔬 Focus on a specific parser family" section).
+
+No behavior change to existing flows. The default `cargo test --features generated_parsers` continues to skip parsers whose artifact isn't on disk, so focusing one grammar doesn't slow iteration on others.
+
 ## 2026-05-05 - SV-Slice-20 batch: interface + program items dispatch tree typed (5 rules / 19 annotations)
 
 Mirror of SV-Slice-19's module-items batch, applied to the interface and program sub-trees. Every `header.items` and `body.items` field on every typed interface/program declaration now surfaces kind-discriminated dispatch into the actual content — interface and program walks now match the module walk's typed-dispatch level.
