@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-16 batch: port + port_direction + package_import family typed
+
+4 rules / 9 annotations:
+
+```ebnf
+port                       -> 2 kinds: expression / named (dot-form)
+port_direction             -> 4 kinds: input / output / inout / ref
+package_import_declaration -> {items: {first, rest}}
+package_import_item        -> 2 kinds: explicit / wildcard
+```
+
+**DEFERRED:** `ansi_port_declaration` per-branch typing — task #38 (parens-grouped-Or branch-attribution bug) blocks branch 0's typing. Branch 0 starts with `( net_port_header | interface_port_header )?` which causes branch-index renumbering. Tracked as follow-up.
+
+Annotation count: **111** (was 102, +9). Same accept set. Schema stays at `1`. Contract bumped 1.0.15 → 1.0.16. mdBook synced. Gate green ✅.
+
 ## 2026-05-05 - SV-Slice-15 batch: port-list family + small structural rules typed (crossing 100 annotations)
 
 6 rules / 7 annotations. Every `header.ports` field on every typed module/interface/program/UDP declaration now surfaces a typed shape instead of the raw envelope.

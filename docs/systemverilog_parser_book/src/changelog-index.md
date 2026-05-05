@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.16 / Contract 1.0.16 — SV-Slice-16 batch: port + port_direction + package_import family typed
+
+**What changed:** 4 rules / 9 annotations.
+
+```ebnf
+port                       -> 2 kinds: expression / named (dot-form)
+port_direction             -> 4 kinds: input / output / inout / ref
+package_import_declaration -> {items: {first, rest}}
+package_import_item        -> 2 kinds: explicit / wildcard
+```
+
+**DEFERRED:** `ansi_port_declaration` per-branch typing — branch 0 starts with a parens-grouped Or `( net_port_header | interface_port_header )?` which triggers task #38's branch-attribution bug. Tracked as follow-up either via task #38 fix or grammar refactor.
+
+**Annotation inventory:** 111 entries (was 102). +9 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.16 / Contract 1.0.16 Highlights".
+
 ### 1.0.15 / Contract 1.0.15 — SV-Slice-15 batch: port-list family + small structural rules typed
 
 **What changed:** 6 rules / 7 annotations. Every `header.ports` field on every typed module/interface/program/UDP declaration now surfaces a typed shape.

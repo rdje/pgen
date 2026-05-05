@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.15`
+  - `1.0.16`
 - Parser release version:
-  - `1.0.15`
+  - `1.0.16`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,58 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.16 / Contract 1.0.16 Highlights — SV-Slice-16 batch: port + port_direction + package_import family typed
+
+4 rules / 9 annotations.
+
+### Annotations
+
+```ebnf
+port := (port_expression)?
+        -> {kind: "expression", expr: $1}
+     | dot port_identifier lparen (port_expression)? rparen
+        -> {kind: "named", name: $2, expr: $4}
+
+port_direction := kw_input  -> {kind: "input"}
+               | kw_output -> {kind: "output"}
+               | kw_inout  -> {kind: "inout"}
+               | kw_ref    -> {kind: "ref"}
+
+package_import_declaration := kw_import package_import_item (comma package_import_item)* semi
+                            -> {items: {first: $2, rest: $3}}
+
+package_import_item := package_identifier scope_resolution identifier
+                          -> {kind: "explicit", package: $1, name: $3}
+                     | package_identifier scope_resolution star
+                          -> {kind: "wildcard", package: $1}
+```
+
+### Notes
+
+- **`port`** distinguishes positional ports `(expr)` from named-dot ports `.name(expr)`. Empty port placeholders (commas with no expression) flow through the `kind:"expression"` branch with `expr: []`.
+- **`port_direction`** propagates as a typed sub-shape into any rule that references it (e.g., `ansi_port_declaration`'s named_dot branch's `direction:` field — when that rule eventually types).
+- **`package_import_declaration`** wraps the `import a::*, b::c;` statement; consumers iterate `items.first + items.rest` for each import target.
+- **`package_import_item`** discriminates `pkg::*` (wildcard) from `pkg::name` (explicit). Both `package` and `name` are clean identifier strings (inherited from SV-Slice-8).
+
+### DEFERRED: `ansi_port_declaration` per-branch typing — task #38 blocker
+
+Branch 0 (`( net_port_header | interface_port_header )? port_identifier ...`) starts with a parens-grouped Or. PGEN's annotation parser hits the parens-grouped-Or trailing-annotation attribution bug (task #38) — the per-branch annotations register out-of-order (branches 1+2 instead of 0+1+2) and the third branch's annotation is dropped entirely. Same blocker as `comment_only_source_region` from SV-Slice-6 batch. Reverted to un-annotated; tracked as follow-up either via task #38 fix OR grammar refactor extracting the leading parens-Or into a named helper rule.
+
+### Annotation inventory
+
+111 entries (was 102). +9 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `package_or_generate_item_declaration` Or (large — 15+ branches; reaches deep into the SV grammar's declaration tree).
+- `port_expression` per-branch typing.
+- `udp_output_declaration` / `udp_input_declaration` per-branch typing.
+- Grammar refactor or task #38 fix to unblock `ansi_port_declaration`, `comment_only_source_region`, and other parens-grouped-Or rules.
 
 ## Release 1.0.15 / Contract 1.0.15 Highlights — SV-Slice-15 batch: port-list family + small structural rules typed
 

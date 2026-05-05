@@ -1840,8 +1840,12 @@ package_export_declaration := kw_export_51713409 star scope_resolution star semi
 package_identifier := declaration_identifier
 
 package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma package_import_item )* semi
+                            -> {items: {first: $2, rest: $3}}
 
-package_import_item := package_identifier scope_resolution identifier | package_identifier scope_resolution star
+package_import_item := package_identifier scope_resolution identifier
+                          -> {kind: "explicit", package: $1, name: $3}
+                     | package_identifier scope_resolution star
+                          -> {kind: "wildcard", package: $1}
 
 package_item := package_or_generate_item_declaration -> {kind: "declaration",        body: $1}
              | anonymous_program                     -> {kind: "anonymous_program",  body: $1}
@@ -1954,11 +1958,17 @@ pcontrol_terminal := expression
 
 polarity_operator := plus | minus
 
-port := ( port_expression )? | dot port_identifier lparen ( port_expression )? rparen
+port := ( port_expression )?
+        -> {kind: "expression", expr: $1}
+     | dot port_identifier lparen ( port_expression )? rparen
+        -> {kind: "named", name: $2, expr: $4}
 
 port_declaration := attribute_instance* inout_declaration | attribute_instance* input_declaration | attribute_instance* output_declaration | attribute_instance* ref_declaration | attribute_instance* interface_port_declaration
 
-port_direction := kw_input_140f86aa | kw_output_1029d676 | kw_inout_c900aaa9 | kw_ref_69449f99
+port_direction := kw_input_140f86aa  -> {kind: "input"}
+               | kw_output_1029d676 -> {kind: "output"}
+               | kw_inout_c900aaa9  -> {kind: "inout"}
+               | kw_ref_69449f99    -> {kind: "ref"}
 
 port_expression := port_reference | ( port_reference ( comma port_reference )* )*
 

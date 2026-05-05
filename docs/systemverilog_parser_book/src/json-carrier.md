@@ -54,6 +54,10 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `udp_declaration_port_list` | `-> {output, inputs: {first, rest}}` | Parallel shape to udp_port_list but inner sub-rules are full declarations (udp_output_declaration / udp_input_declaration) instead of identifier strings. |
 | `anonymous_program` | `-> {items}` | Drops kw_program/semi/kw_endprogram; surfaces only the items list. Reachable via package_item.kind = "anonymous_program". |
 | `package_export_declaration` (2 branches) | per-branch typed | Kind labels: `"wildcard"` (`export *::*;`, drops content) / `"explicit"` (with items: {first, rest}). |
+| `port` (2 branches) | per-branch typed | Kind labels: `"expression"` (positional port — `expr` may be `[]` for empty placeholder) / `"named"` (`.name(expr)` form — `name` is clean identifier string). |
+| `port_direction` (4 branches) | per-branch `{kind}` | Kind labels: `"input"` / `"output"` / `"inout"` / `"ref"`. |
+| `package_import_declaration` | `-> {items: {first, rest}}` | Drops kw_import/semi; surfaces import items as {first, rest}. |
+| `package_import_item` (2 branches) | per-branch typed | Kind labels: `"explicit"` (`pkg::name` with `package` and `name` as clean identifier strings) / `"wildcard"` (`pkg::*` with only `package`). |
 
 ## Sub-rules with implicit defaults
 
