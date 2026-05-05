@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.29`
+  - `1.0.30`
 - Parser release version:
-  - `1.0.29`
+  - `1.0.30`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,56 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.30 / Contract 1.0.30 Highlights — SV-Slice-30 batch: deferred immediate assertions typed (5 rules / 10 annotations)
+
+Closes the `assertion_item.kind == "deferred_immediate"` walk path. After this slice, both `"concurrent"` (typed in SV-Slice-29) and `"deferred_immediate"` (typed THIS slice) branches of `assertion_item` expose typed dispatch end-to-end.
+
+### Annotations
+
+```ebnf
+deferred_immediate_assertion_item := ( block_identifier colon )? deferred_immediate_assertion_statement
+                                  -> {label: $1, body: $2}
+
+deferred_immediate_assertion_statement := deferred_immediate_assert_statement -> {kind: "assert", body: $1}
+                                        | deferred_immediate_assume_statement -> {kind: "assume", body: $1}
+                                        | deferred_immediate_cover_statement  -> {kind: "cover",  body: $1}
+
+deferred_immediate_assert_statement := kw_assert hash kw_n_0 lparen expression rparen action_block
+                                            -> {kind: "zero_delay", expression: $5, action: $7}
+                                     | kw_assert kw_final lparen expression rparen action_block
+                                            -> {kind: "final",      expression: $4, action: $6}
+
+deferred_immediate_assume_statement := /* same 2 kinds with `kw_assume` instead of `kw_assert` */
+
+deferred_immediate_cover_statement := kw_cover hash kw_n_0 lparen expression rparen statement_or_null
+                                            -> {kind: "zero_delay", expression: $5, statement: $7}
+                                    | kw_cover kw_final lparen expression rparen statement_or_null
+                                            -> {kind: "final",      expression: $4, statement: $6}
+```
+
+### Field semantics
+
+- `deferred_immediate_assertion_item.label`: optional `( block_identifier colon )?` per LRM A.6.10 (parallel to `concurrent_assertion_item.label` from SV-Slice-24). `[]` when absent, `[<block_id, colon>]` when labeled.
+- `deferred_immediate_assert_statement.kind == "zero_delay"`: the `assert #0 (expr) action;` form (LRM 1800-2017 §16.3.1). The `#0` causes assertion evaluation in the Re-NBA region — typical for sampled-value assertions.
+- `deferred_immediate_*_statement.kind == "final"`: the `assert final (expr) action;` form. Evaluates at end-of-simulation.
+- `cover` variant uses `statement` (statement_or_null) instead of `action`, since cover has no pass/fail branching (just records observation).
+
+### Annotation inventory
+
+358 entries (was 348). +10 in this batch (1 deferred_immediate_assertion_item + 3 deferred_immediate_assertion_statement + 2 deferred_immediate_assert + 2 deferred_immediate_assume + 2 deferred_immediate_cover).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `property_spec` / `sequence_expr` internals (close concurrent_assertion property/sequence fields).
+- `action_block` (close assert/assume/expect action fields).
+- `tf_item_declaration` / `function_statement_or_null` / `statement_or_null`.
+- `covergroup_declaration` / `interface_class_declaration` internals.
+- `data_type_or_implicit` / `data_type_or_void`.
 
 ## Release 1.0.29 / Contract 1.0.29 Highlights — SV-Slice-29 batch: concurrent assertion + constraint family typed (16 rules / 28 annotations)
 

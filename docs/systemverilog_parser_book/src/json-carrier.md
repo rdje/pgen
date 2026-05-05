@@ -136,6 +136,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `constraint_prototype_sv_2023` | `-> {qualifier, static_keyword, dynamic_override, name}` | Same as sv_2017 plus dynamic_override. |
 | `constraint_prototype_qualifier` (2 branches) | per-branch `{kind}` (bare) | Kind labels: `"extern"` / `"pure"`. |
 | `constraint_set` (2 branches) | per-branch typed | Kind labels: `"single"` (`{body}` — wraps a single constraint_expression) / `"block"` (`{exprs}` — brace-delimited list of constraint_expressions). |
+| `deferred_immediate_assertion_item` | `-> {label, body}` | `label` is the optional `( block_identifier colon )?` prefix per LRM A.6.10 (parallel to concurrent_assertion_item.label from SV-Slice-24). |
+| `deferred_immediate_assertion_statement` (3 branches) | per-branch `{kind, body}` | Kind labels: `"assert"` / `"assume"` / `"cover"`. |
+| `deferred_immediate_assert_statement` (2 branches) | per-branch typed | Kind labels: `"zero_delay"` (`{expression, action}` — `assert #0 (expr) action_block`; LRM 1800-2017 §16.3.1 Re-NBA evaluation) / `"final"` (`{expression, action}` — `assert final (expr) action_block`; end-of-simulation evaluation). |
+| `deferred_immediate_assume_statement` (2 branches) | per-branch typed | Same 2 kinds and shape as deferred_immediate_assert_statement (with `kw_assume` instead of `kw_assert`). |
+| `deferred_immediate_cover_statement` (2 branches) | per-branch typed | Kind labels: `"zero_delay"` / `"final"` (parallel to assert/assume). Uses `statement` (statement_or_null) instead of `action` since cover has no pass/fail branching. |
 
 ## Sub-rules with implicit defaults
 

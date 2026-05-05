@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-80b7a7a4.js";
+            window.path_to_searchindex_js = "searchindex-a0601c9a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -320,6 +320,11 @@
 <tr><td><code>constraint_prototype_sv_2023</code></td><td><code>-&gt; {qualifier, static_keyword, dynamic_override, name}</code></td><td>Same as sv_2017 plus dynamic_override.</td></tr>
 <tr><td><code>constraint_prototype_qualifier</code> (2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"extern"</code> / <code>"pure"</code>.</td></tr>
 <tr><td><code>constraint_set</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"single"</code> (<code>{body}</code> — wraps a single constraint_expression) / <code>"block"</code> (<code>{exprs}</code> — brace-delimited list of constraint_expressions).</td></tr>
+<tr><td><code>deferred_immediate_assertion_item</code></td><td><code>-&gt; {label, body}</code></td><td><code>label</code> is the optional <code>( block_identifier colon )?</code> prefix per LRM A.6.10 (parallel to concurrent_assertion_item.label from SV-Slice-24).</td></tr>
+<tr><td><code>deferred_immediate_assertion_statement</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"assert"</code> / <code>"assume"</code> / <code>"cover"</code>.</td></tr>
+<tr><td><code>deferred_immediate_assert_statement</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"zero_delay"</code> (<code>{expression, action}</code> — <code>assert #0 (expr) action_block</code>; LRM 1800-2017 §16.3.1 Re-NBA evaluation) / <code>"final"</code> (<code>{expression, action}</code> — <code>assert final (expr) action_block</code>; end-of-simulation evaluation).</td></tr>
+<tr><td><code>deferred_immediate_assume_statement</code> (2 branches)</td><td>per-branch typed</td><td>Same 2 kinds and shape as deferred_immediate_assert_statement (with <code>kw_assume</code> instead of <code>kw_assert</code>).</td></tr>
+<tr><td><code>deferred_immediate_cover_statement</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"zero_delay"</code> / <code>"final"</code> (parallel to assert/assume). Uses <code>statement</code> (statement_or_null) instead of <code>action</code> since cover has no pass/fail branching.</td></tr>
 </tbody>
 </table>
 </div>

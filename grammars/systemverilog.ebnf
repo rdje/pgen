@@ -1046,15 +1046,27 @@ default_clause := kw_default_7505d64a
 
 default_skew := kw_input_140f86aa clocking_skew | kw_output_1029d676 clocking_skew | kw_input_140f86aa clocking_skew kw_output_1029d676 clocking_skew
 
-deferred_immediate_assert_statement := kw_assert_64b5daad hash kw_n_0_b6589fc6 lparen expression rparen action_block | kw_assert_64b5daad kw_final_d594c2cc lparen expression rparen action_block
+deferred_immediate_assert_statement := kw_assert_64b5daad hash kw_n_0_b6589fc6 lparen expression rparen action_block
+                                            -> {kind: "zero_delay", expression: $5, action: $7}
+                                     | kw_assert_64b5daad kw_final_d594c2cc lparen expression rparen action_block
+                                            -> {kind: "final",      expression: $4, action: $6}
 
 deferred_immediate_assertion_item := ( block_identifier colon )? deferred_immediate_assertion_statement
+                                  -> {label: $1, body: $2}
 
-deferred_immediate_assertion_statement := deferred_immediate_assert_statement | deferred_immediate_assume_statement | deferred_immediate_cover_statement
+deferred_immediate_assertion_statement := deferred_immediate_assert_statement -> {kind: "assert", body: $1}
+                                        | deferred_immediate_assume_statement -> {kind: "assume", body: $1}
+                                        | deferred_immediate_cover_statement  -> {kind: "cover",  body: $1}
 
-deferred_immediate_assume_statement := kw_assume_661e458e hash kw_n_0_b6589fc6 lparen expression rparen action_block | kw_assume_661e458e kw_final_d594c2cc lparen expression rparen action_block
+deferred_immediate_assume_statement := kw_assume_661e458e hash kw_n_0_b6589fc6 lparen expression rparen action_block
+                                            -> {kind: "zero_delay", expression: $5, action: $7}
+                                     | kw_assume_661e458e kw_final_d594c2cc lparen expression rparen action_block
+                                            -> {kind: "final",      expression: $4, action: $6}
 
-deferred_immediate_cover_statement := kw_cover_a28100fa hash kw_n_0_b6589fc6 lparen expression rparen statement_or_null | kw_cover_a28100fa kw_final_d594c2cc lparen expression rparen statement_or_null
+deferred_immediate_cover_statement := kw_cover_a28100fa hash kw_n_0_b6589fc6 lparen expression rparen statement_or_null
+                                            -> {kind: "zero_delay", expression: $5, statement: $7}
+                                    | kw_cover_a28100fa kw_final_d594c2cc lparen expression rparen statement_or_null
+                                            -> {kind: "final",      expression: $4, statement: $6}
 
 defparam_assignment := hierarchical_parameter_identifier assign constant_mintypmax_expression
 

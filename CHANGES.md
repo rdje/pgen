@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-30 batch: deferred immediate assertions typed (5 rules / 10 annotations)
+
+Closes the `assertion_item.kind == "deferred_immediate"` walk path. Both branches of `assertion_item` (concurrent + deferred_immediate) now expose typed dispatch end-to-end.
+
+```ebnf
+deferred_immediate_assertion_item      -> {label, body}
+deferred_immediate_assertion_statement -> 3 kinds (assert / assume / cover)
+deferred_immediate_assert_statement    -> 2 kinds (zero_delay / final) {expression, action}
+deferred_immediate_assume_statement    -> 2 kinds (parallel)
+deferred_immediate_cover_statement     -> 2 kinds (uses {expression, statement})
+```
+
+Annotation count: **358** (was 348, +10). Same accept set. Schema stays at `1`. Contract bumped 1.0.29 → 1.0.30. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-29 batch: concurrent assertion + constraint family typed (16 rules / 28 annotations)
 
 Closes the `assertion_item.kind == "concurrent"` walk path and the `class_constraint` walk path.

@@ -19,6 +19,24 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.30 / Contract 1.0.30 — SV-Slice-30 batch: deferred immediate assertions typed (5 rules / 10 annotations)
+
+**What changed:** Closes assertion_item.kind=="deferred_immediate" walk path.
+
+```ebnf
+deferred_immediate_assertion_item      -> {label, body}
+deferred_immediate_assertion_statement -> 3 kinds (assert / assume / cover)
+deferred_immediate_assert_statement    -> 2 kinds (zero_delay / final) {expression, action}
+deferred_immediate_assume_statement    -> 2 kinds (parallel to assert)
+deferred_immediate_cover_statement     -> 2 kinds (parallel; uses {expression, statement})
+```
+
+**Annotation inventory:** 358 entries (was 348). +10 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.30 / Contract 1.0.30 Highlights".
+
 ### 1.0.29 / Contract 1.0.29 — SV-Slice-29 batch: concurrent assertion + constraint family typed (16 rules / 28 annotations)
 
 **What changed:** Closes assertion_item.kind=="concurrent" walk (typed in SV-Slice-24) and class_constraint walk (typed in SV-Slice-27).
