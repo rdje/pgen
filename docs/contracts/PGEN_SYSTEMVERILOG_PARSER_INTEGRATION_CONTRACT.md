@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.16`
+  - `1.0.17`
 - Parser release version:
-  - `1.0.16`
+  - `1.0.17`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,77 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.17 / Contract 1.0.17 Highlights — SV-Slice-17 batch: UDP body sub-tree typed
+
+6 rules / 8 annotations completing UDP declaration internals.
+
+### Annotations
+
+```ebnf
+udp_body := combinational_body -> {kind: "combinational", body: $1}
+         | sequential_body    -> {kind: "sequential",    body: $1}
+
+udp_input_declaration := attribute_instance* kw_input list_of_udp_port_identifiers
+                      -> {attributes: $1, identifiers: $3}
+
+udp_output_declaration := attribute_instance* kw_output port_identifier
+                            -> {kind: "wire", attributes: $1, name: $3}
+                       | attribute_instance* kw_output kw_reg port_identifier (assign constant_expression)?
+                            -> {kind: "reg", attributes: $1, name: $4, default: $5}
+
+combinational_body := kw_table combinational_entry combinational_entry* kw_endtable
+                   -> {entries: {first: $2, rest: $3}}
+
+sequential_body := (udp_initial_statement)? kw_table sequential_entry sequential_entry* kw_endtable
+                -> {initial: $1, entries: {first: $3, rest: $4}}
+
+list_of_udp_port_identifiers := port_identifier (comma port_identifier)*
+                             -> {first: $1, rest: $2}
+```
+
+### UDP declaration internals fully typed end-to-end
+
+Combined with prior slices (UDP top-level rules from SV-Slice-12, port lists from SV-Slice-15), consumers walking a UDP `primitive ... endprimitive` construct get clean typed access at every level:
+
+```rust
+match desc.body.kind {
+    "udp_declaration" => {
+        let udp = &desc.body.body;
+        match udp.kind {
+            "ansi" | "nonansi" | "wildcard" | "extern_*" => {
+                let header = &udp.header;          // {attributes, name, ports}
+                let body = &udp.body;              // {kind, body} — combinational | sequential
+                match body.kind {
+                    "combinational" => {
+                        let entries = &body.body.entries;  // {first, rest}
+                        // walk combinational entries
+                    }
+                    "sequential" => {
+                        let initial = &body.body.initial;  // optional udp_initial_statement
+                        let entries = &body.body.entries;  // {first, rest}
+                        // walk sequential entries
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+### Annotation inventory
+
+119 entries (was 111). +8 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `combinational_entry`, `sequential_entry` (UDP truth-table entry sub-rules).
+- `udp_initial_statement` typing.
+- `package_or_generate_item_declaration` (large Or — 15+ branches).
 
 ## Release 1.0.16 / Contract 1.0.16 Highlights — SV-Slice-16 batch: port + port_direction + package_import family typed
 

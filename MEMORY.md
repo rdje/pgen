@@ -1,6 +1,6 @@
 # MEMORY.md
 
-Last updated: 2026-05-05 (+0200, task: SV-Slice-16-batch-port-port_direction-package_import-typed)
+Last updated: 2026-05-05 (+0200, task: SV-Slice-17-batch-UDP-body-sub-tree-typed-end-to-end)
 
 ## Purpose
 Live session-continuity file for fast crash recovery and AI handoff.
@@ -8,6 +8,9 @@ Live session-continuity file for fast crash recovery and AI handoff.
 Use this file to resume work without replaying full chat history.
 
 ## Current Session Note
+- **SV-Slice-17 batch landed: UDP body sub-tree typed end-to-end.** 6 rules / 8 annotations: udp_body (2 kinds), udp_input_declaration ({attributes, identifiers}), udp_output_declaration (2 kinds: wire/reg), combinational_body ({entries: {first, rest}}), sequential_body ({initial, entries: {first, rest}}), list_of_udp_port_identifiers ({first, rest}). Combined with SV-Slice-12 (UDP top-level) and SV-Slice-15 (port lists), UDP declaration internals are now fully typed end-to-end. Annotation count: 119 (was 111, +8). Same accept set. Contract bumped 1.0.16 → 1.0.17. Schema stays 1. mdBook synced. SV book gate green ✅. **Unpushed commits: 6** (SV-Slice-12 through 17). Continuing per "until none remaining" directive. Next: combinational_entry, sequential_entry, udp_initial_statement, package_or_generate_item_declaration (large Or).
+
+### Earlier session note (kept for context):
 - **SV-Slice-16 batch landed: port + port_direction + package_import family typed.** 4 rules / 9 annotations: port (2 kinds: expression/named), port_direction (4 kinds: input/output/inout/ref), package_import_declaration ({items:{first,rest}}), package_import_item (2 kinds: explicit/wildcard). **DEFERRED**: ansi_port_declaration per-branch typing — task #38 (parens-grouped-Or branch-attribution bug) blocks branch 0's typing because branch 0 starts with `( net_port_header | interface_port_header )?`. Same blocker class as comment_only_source_region from SV-Slice-6 batch. Reverted ansi_port_declaration; tracked as follow-up. Annotation count: 111 (was 102, +9). Same accept set. Contract bumped 1.0.15 → 1.0.16. Schema stays 1. mdBook synced. SV book gate green ✅. **Unpushed commits: 5** (SV-Slice-12 through 16). Continuing per "until none remaining" directive. Next: package_or_generate_item_declaration (large Or — 15+ branches deep into SV grammar), port_expression, udp_output_declaration, udp_input_declaration. Task #38 fix would unblock ansi_port_declaration + comment_only_source_region.
 
 ### Earlier session note (kept for context):

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c8931c0f.js";
+            window.path_to_searchindex_js = "searchindex-840eabef.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -242,6 +242,12 @@
 <tr><td><code>port_direction</code> (4 branches)</td><td>per-branch <code>{kind}</code></td><td>Kind labels: <code>"input"</code> / <code>"output"</code> / <code>"inout"</code> / <code>"ref"</code>.</td></tr>
 <tr><td><code>package_import_declaration</code></td><td><code>-&gt; {items: {first, rest}}</code></td><td>Drops kw_import/semi; surfaces import items as {first, rest}.</td></tr>
 <tr><td><code>package_import_item</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"explicit"</code> (<code>pkg::name</code> with <code>package</code> and <code>name</code> as clean identifier strings) / <code>"wildcard"</code> (<code>pkg::*</code> with only <code>package</code>).</td></tr>
+<tr><td><code>udp_body</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"combinational"</code> / <code>"sequential"</code>.</td></tr>
+<tr><td><code>udp_input_declaration</code></td><td><code>-&gt; {attributes, identifiers}</code></td><td>Drops kw_input. <code>identifiers</code> is the typed list_of_udp_port_identifiers <code>{first, rest}</code>.</td></tr>
+<tr><td><code>udp_output_declaration</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"wire"</code> (no <code>assign</code> clause) / <code>"reg"</code> (with optional default).</td></tr>
+<tr><td><code>combinational_body</code></td><td><code>-&gt; {entries: {first, rest}}</code></td><td>Drops kw_table/kw_endtable. Entries are the truth-table rows.</td></tr>
+<tr><td><code>sequential_body</code></td><td><code>-&gt; {initial, entries: {first, rest}}</code></td><td>Preserves optional initial statement.</td></tr>
+<tr><td><code>list_of_udp_port_identifiers</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array workaround for <code>port_identifier (comma port_identifier)*</code>.</td></tr>
 </tbody>
 </table>
 </div>

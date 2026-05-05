@@ -657,6 +657,7 @@ cmos_switch_instance := ( name_of_instance )? lparen output_terminal comma input
 cmos_switchtype := kw_cmos_aabe63a7 | kw_rcmos_ae4a7a0a
 
 combinational_body := kw_table_c3ee137d combinational_entry combinational_entry* kw_endtable_0b3f3e00
+                   -> {entries: {first: $2, rest: $3}}
 
 combinational_entry := level_input_list colon output_symbol semi
 
@@ -1496,6 +1497,7 @@ list_of_tf_variable_identifiers := port_identifier variable_dimension* ( assign 
 list_of_type_assignments := type_assignment ( !( comma kw_type_d0a3e7f8 ) comma type_assignment )*
 
 list_of_udp_port_identifiers := port_identifier ( comma port_identifier )*
+                             -> {first: $1, rest: $2}
 
 list_of_variable_assignments := variable_assignment ( comma variable_assignment )*
 
@@ -2344,6 +2346,7 @@ sequence_port_item := attribute_instance* ( kw_local_939bb46a ( sequence_lvar_po
 sequence_port_list := sequence_port_item ( comma sequence_port_item )*
 
 sequential_body := ( udp_initial_statement )? kw_table_c3ee137d sequential_entry sequential_entry* kw_endtable_0b3f3e00
+                -> {initial: $1, entries: {first: $3, rest: $4}}
 
 sequential_entry := seq_input_list colon current_state colon next_state semi
 
@@ -2665,7 +2668,8 @@ tzx_path_delay_expression := path_delay_expression
 udp_ansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier lparen udp_declaration_port_list rparen semi
                      -> {attributes: $1, name: $3, ports: $5}
 
-udp_body := combinational_body | sequential_body
+udp_body := combinational_body -> {kind: "combinational", body: $1}
+         | sequential_body    -> {kind: "sequential",    body: $1}
 
 @profiles: ["sv_2017"]
 udp_declaration_sv_2017 := udp_nonansi_declaration udp_port_declaration udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
@@ -2702,6 +2706,7 @@ udp_identifier := identifier
 udp_initial_statement := kw_initial_8ad7d21c output_port_identifier assign init_val semi
 
 udp_input_declaration := attribute_instance* kw_input_140f86aa list_of_udp_port_identifiers
+                      -> {attributes: $1, identifiers: $3}
 
 udp_instance := ( name_of_instance )? lparen output_terminal comma input_terminal ( comma input_terminal )* rparen
 
@@ -2710,7 +2715,10 @@ udp_instantiation := udp_identifier ( drive_strength )? ( delay )? udp_instance 
 udp_nonansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier lparen udp_port_list rparen semi
                         -> {attributes: $1, name: $3, ports: $5}
 
-udp_output_declaration := attribute_instance* kw_output_1029d676 port_identifier | attribute_instance* kw_output_1029d676 kw_reg_e06b9586 port_identifier ( assign constant_expression )?
+udp_output_declaration := attribute_instance* kw_output_1029d676 port_identifier
+                            -> {kind: "wire", attributes: $1, name: $3}
+                       | attribute_instance* kw_output_1029d676 kw_reg_e06b9586 port_identifier ( assign constant_expression )?
+                            -> {kind: "reg", attributes: $1, name: $4, default: $5}
 
 udp_port_declaration := udp_output_declaration semi | udp_input_declaration semi | udp_reg_declaration semi
 

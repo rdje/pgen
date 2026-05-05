@@ -58,6 +58,12 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `port_direction` (4 branches) | per-branch `{kind}` | Kind labels: `"input"` / `"output"` / `"inout"` / `"ref"`. |
 | `package_import_declaration` | `-> {items: {first, rest}}` | Drops kw_import/semi; surfaces import items as {first, rest}. |
 | `package_import_item` (2 branches) | per-branch typed | Kind labels: `"explicit"` (`pkg::name` with `package` and `name` as clean identifier strings) / `"wildcard"` (`pkg::*` with only `package`). |
+| `udp_body` (2 branches) | per-branch `{kind, body}` | Kind labels: `"combinational"` / `"sequential"`. |
+| `udp_input_declaration` | `-> {attributes, identifiers}` | Drops kw_input. `identifiers` is the typed list_of_udp_port_identifiers `{first, rest}`. |
+| `udp_output_declaration` (2 branches) | per-branch typed | Kind labels: `"wire"` (no `assign` clause) / `"reg"` (with optional default). |
+| `combinational_body` | `-> {entries: {first, rest}}` | Drops kw_table/kw_endtable. Entries are the truth-table rows. |
+| `sequential_body` | `-> {initial, entries: {first, rest}}` | Preserves optional initial statement. |
+| `list_of_udp_port_identifiers` | `-> {first, rest}` | Mini-mixed-array workaround for `port_identifier (comma port_identifier)*`. |
 
 ## Sub-rules with implicit defaults
 

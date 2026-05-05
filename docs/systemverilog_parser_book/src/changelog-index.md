@@ -19,6 +19,27 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.17 / Contract 1.0.17 — SV-Slice-17 batch: UDP body sub-tree typed
+
+**What changed:** 6 rules / 8 annotations completing UDP declaration internals.
+
+```ebnf
+udp_body                     -> 2 kinds: combinational/sequential
+udp_input_declaration        -> {attributes, identifiers}
+udp_output_declaration       -> 2 kinds: wire/reg
+combinational_body           -> {entries: {first, rest}}
+sequential_body              -> {initial, entries: {first, rest}}
+list_of_udp_port_identifiers -> {first, rest}
+```
+
+**UDP declaration internals fully typed end-to-end** — combined with prior UDP top-level rules (SV-Slice-12) and port lists (SV-Slice-15), consumers walking a `primitive ... endprimitive` get clean typed access at every level.
+
+**Annotation inventory:** 119 entries (was 111). +8 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.17 / Contract 1.0.17 Highlights" with full UDP walker recipe.
+
 ### 1.0.16 / Contract 1.0.16 — SV-Slice-16 batch: port + port_direction + package_import family typed
 
 **What changed:** 4 rules / 9 annotations.

@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-17 batch: UDP body sub-tree typed (UDP internals fully typed end-to-end)
+
+6 rules / 8 annotations completing UDP declaration internals.
+
+```ebnf
+udp_body                     -> 2 kinds: combinational/sequential
+udp_input_declaration        -> {attributes, identifiers}
+udp_output_declaration       -> 2 kinds: wire/reg
+combinational_body           -> {entries: {first, rest}}
+sequential_body              -> {initial, entries: {first, rest}}
+list_of_udp_port_identifiers -> {first, rest}
+```
+
+Combined with prior UDP top-level rules (SV-Slice-12) and port lists (SV-Slice-15), consumers walking a `primitive ... endprimitive` get clean typed access at every level.
+
+Annotation count: **119** (was 111, +8). Same accept set. Schema stays at `1`. Contract bumped 1.0.16 → 1.0.17. mdBook synced. Gate green ✅.
+
 ## 2026-05-05 - SV-Slice-16 batch: port + port_direction + package_import family typed
 
 4 rules / 9 annotations:
