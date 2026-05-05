@@ -167,6 +167,8 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `case_inside_item_sv_2017` (2 branches) | per-branch typed | Kind labels: `"range_list"` (`{ranges, body}` — ranges is open_range_list) / `"default"` (`{body}`). |
 | `case_inside_item_sv_2023` (2 branches) | per-branch typed | Same kind labels as sv_2017; ranges field uses LRM 2023 `range_list` (simplified naming). |
 | `loop_statement` (6 branches) | per-branch typed | Kind labels: `"forever"` (`{body}`) / `"repeat"` (`{count, body}`) / `"while"` (`{condition, body}`) / `"for"` (`{init, condition, step, body}` — each of init/condition/step is `[]` when omitted) / `"do_while"` (`{body, condition}`) / `"foreach"` (`{array, loop_vars, body}` — body is a typed `statement`, not statement_or_null since bare `;` not allowed). |
+| `conditional_statement` | `-> {unique_priority, condition, then_body, else_body}` | Drops `kw_if` / `lparen` / `rparen` / `kw_else`. `condition` is typed `cond_predicate` (raw envelope still). `then_body` is a typed `statement_or_null`. `else_body` is a typed `conditional_else_branch` (helper rule). The rule preserves a `&kw_else` positive lookahead before consuming `kw_else` — PEG idiom from the source grammar. |
+| `conditional_else_branch` (NEW; 2 branches) | per-branch `{kind, body}` | Kind labels: `"elseif"` (recursive — `body` is itself a typed `conditional_statement`; supports `else if (...) ...` chains) / `"else"` (terminal — `body` is a typed `statement_or_null`). Helper rule extracted from inline `( conditional_statement \| statement_or_null )` to dodge task #38. |
 
 ## Sub-rules with implicit defaults
 

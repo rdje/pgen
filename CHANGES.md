@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-35 batch: conditional_statement typed via helper-rule extraction (1 rule / 1 annotation + 1 new helper rule with 2 annotations)
+
+Closes the SV-Slice-34 DEFERRED `conditional_statement` typing using the helper-rule extraction pattern (third use after if_generate_else_clause and net_strength/net_vector_scalar).
+
+```ebnf
+conditional_statement         -> {unique_priority, condition, then_body, else_body}
+conditional_else_branch (NEW) -> 2 kinds (elseif {body} / else {body})
+```
+
+Annotation count: **457** (was 454, +3). Same accept set. Schema stays at `1`. Contract bumped 1.0.34 → 1.0.35. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-34 batch: case + loop families typed (7 rules / 18 annotations)
 
 Closes case-statement and loop-statement walks (`statement_item.kind == "case"` / `"loop"`).

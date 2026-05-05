@@ -769,7 +769,11 @@ conditional_expression := cond_predicate &question question attribute_instance* 
 conditional_generate_construct := if_generate_construct   -> {kind: "if",   body: $1}
                                 | case_generate_construct -> {kind: "case", body: $1}
 
-conditional_statement := @sample: "if (a) ; else ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null &kw_else_ae050f5b kw_else_ae050f5b ( conditional_statement | statement_or_null )
+conditional_statement := @sample: "if (a) ; else ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null &kw_else_ae050f5b kw_else_ae050f5b conditional_else_branch
+                      -> {unique_priority: $1, condition: $4, then_body: $6, else_body: $9}
+
+conditional_else_branch := conditional_statement -> {kind: "elseif", body: $1}
+                         | statement_or_null     -> {kind: "else",   body: $1}
                        | @sample: "if (a) ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null !kw_else_ae050f5b
 
 config_declaration := kw_config_dfba7aad config_identifier semi ( local_parameter_declaration semi )* design_statement config_rule_statement* kw_endconfig_3fd27f95 ( colon config_identifier )?

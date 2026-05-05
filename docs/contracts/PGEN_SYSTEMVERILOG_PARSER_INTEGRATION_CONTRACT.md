@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.34`
+  - `1.0.35`
 - Parser release version:
-  - `1.0.34`
+  - `1.0.35`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,62 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.35 / Contract 1.0.35 Highlights — SV-Slice-35 batch: conditional_statement typed via helper-rule extraction (1 rule / 1 annotation + 1 new helper rule with 2 annotations)
+
+Closes the SV-Slice-34 DEFERRED `conditional_statement` typing — every reachable `statement_item.kind == "conditional"` now exposes typed dispatch into condition / then-body / else-body. Third use of the helper-rule extraction pattern (after `if_generate_else_clause` from SV-Slice-23 and `net_strength` / `net_vector_scalar` from SV-Slice-26).
+
+### Annotations
+
+```ebnf
+conditional_statement := ( unique_priority )? kw_if lparen cond_predicate rparen statement_or_null &kw_else kw_else conditional_else_branch
+                      -> {unique_priority: $1, condition: $4, then_body: $6, else_body: $9}
+
+conditional_else_branch := conditional_statement -> {kind: "elseif", body: $1}
+                         | statement_or_null     -> {kind: "else",   body: $1}
+```
+
+### Helper-rule extraction rationale
+
+The original `conditional_statement` rule had this trailing parens-Or:
+
+```ebnf
+conditional_statement := ( unique_priority )? kw_if lparen cond_predicate rparen statement_or_null &kw_else kw_else ( conditional_statement | statement_or_null )
+```
+
+The inline `( conditional_statement | statement_or_null )` parens-Or hits task #38 (parens-grouped-Or trailing-annotation attribution bug). Following the established pattern, it was extracted to a named rule:
+
+- `conditional_else_branch.kind == "elseif"` → recursive form, supports `else if (...) ...` chains.
+- `conditional_else_branch.kind == "else"` → terminal else, `body` is a typed `statement_or_null`.
+
+The `&kw_else` positive lookahead is preserved unchanged — it's a PEG idiom from the source grammar asserting the else-branch is required (the else-less form is presumably matched via a different rule or PEG ordered-choice fallback).
+
+### Field semantics
+
+- `conditional_statement.unique_priority`: optional `( unique_priority )?` slot — `[]` for plain `if`, raw envelope (still untyped per slice 34's deferred unique_priority).
+- `conditional_statement.condition`: typed `cond_predicate` envelope (raw — typing deferred to a future slice covering pattern_or_assignment_pattern internals).
+- `conditional_statement.then_body`: typed `statement_or_null` (typed in SV-Slice-31).
+- `conditional_statement.else_body`: typed `conditional_else_branch` (typed THIS slice).
+
+### Annotation inventory
+
+457 entries (was 454). +3 in this batch (1 conditional_statement + 2 conditional_else_branch).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### Grammar surface change
+
+This slice adds one new rule (`conditional_else_branch`) to the public grammar surface — internal refactor of inline parens-Or for annotation purposes, no LRM equivalent. Same accept set.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `procedural_assertion_statement`, `clocking_drive`.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void`.
+- `randsequence_statement` / `randcase_statement`.
+- `procedural_continuous_assignment`, `blocking_assignment` / `nonblocking_assignment` internals.
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.34 / Contract 1.0.34 Highlights — SV-Slice-34 batch: case + loop families typed (7 rules / 18 annotations)
 
