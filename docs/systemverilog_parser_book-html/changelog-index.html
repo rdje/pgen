@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-24292f17.js";
+            window.path_to_searchindex_js = "searchindex-b6ea39d7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,15 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1022--contract-1022--sv-slice-22-batch-generate-sub-tree-typed-3-rules--7-annotations"><a class="header" href="#1022--contract-1022--sv-slice-22-batch-generate-sub-tree-typed-3-rules--7-annotations">1.0.22 / Contract 1.0.22 — SV-Slice-22 batch: generate sub-tree typed (3 rules / 7 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the generate-construct walk path. Every reachable <code>non_port_module_item.kind=='generate_region'</code> exposes typed <code>{items}</code>, every <code>generate_item</code> discriminates which form it carries, and every <code>generate_block</code> (anonymous, labeled, or bare-generate_item passthrough) exposes its name/label/items/end_label.</p>
+<pre><code class="language-ebnf">generate_region -&gt; {items}
+generate_item   -&gt; 3 kinds: module_or_generate_item / interface_or_generate_item / checker_or_generate_item
+generate_block  -&gt; 3 kinds: anonymous {label, items, end_label} / labeled {name, label, items, end_label} / generate_item {body}
+</code></pre>
+<p><strong>Annotation inventory:</strong> 225 entries (was 218). +7 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.22 / Contract 1.0.22 Highlights” with full annotation source + walker recipes for each generate form.</p>
 <h3 id="1021--contract-1021--sv-slice-21-batch-module_common_item--package_or_generate_item_declaration-typed-4-rules--55-annotations--biggest-batch-yet"><a class="header" href="#1021--contract-1021--sv-slice-21-batch-module_common_item--package_or_generate_item_declaration-typed-4-rules--55-annotations--biggest-batch-yet">1.0.21 / Contract 1.0.21 — SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (4 rules / 55 annotations — biggest batch yet)</a></h3>
 <p><strong>What changed:</strong> Both halves of the cascading walk path that SV-Slice-19/20 set up are now closed: every reachable <code>module_common_item</code> and every reachable <code>package_or_generate_item_declaration</code> discriminates which actual sub-construct was matched.</p>
 <pre><code class="language-ebnf">module_common_item_sv_2017                    -&gt; 13 kinds (module_or_generate_item_declaration / interface_instantiation / program_instantiation / assertion_item / bind_directive / continuous_assign / net_alias / initial_construct / final_construct / always_construct / loop_generate_construct / conditional_generate_construct / elaboration_system_task)

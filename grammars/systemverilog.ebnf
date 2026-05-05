@@ -301,7 +301,12 @@ system_tf_identifier := trivia /\$[a-zA-Z0-9_$]+/
 
 // comment_text := trivia /([^*]|\*+[^*\/])*/
 
-generate_block := kw_begin_8cbd0a74 ( colon generate_block_identifier )? generate_item* kw_end_7a92f3d2 ( colon generate_block_identifier )? | generate_block_identifier colon kw_begin_8cbd0a74 ( colon generate_block_identifier )? generate_item* kw_end_7a92f3d2 ( colon generate_block_identifier )? | generate_item
+generate_block := kw_begin_8cbd0a74 ( colon generate_block_identifier )? generate_item* kw_end_7a92f3d2 ( colon generate_block_identifier )?
+                       -> {kind: "anonymous",     label: $2, items: $3, end_label: $5}
+               | generate_block_identifier colon kw_begin_8cbd0a74 ( colon generate_block_identifier )? generate_item* kw_end_7a92f3d2 ( colon generate_block_identifier )?
+                       -> {kind: "labeled",       name: $1, label: $4, items: $5, end_label: $7}
+               | generate_item
+                       -> {kind: "generate_item", body: $1}
 
 trivia := (white_space | line_comment | block_comment)*
 
@@ -1185,9 +1190,12 @@ gate_instantiation := gate_instantiation_sv_2017 | gate_instantiation_sv_2023
 
 generate_block_identifier := identifier
 
-generate_item := module_or_generate_item | interface_or_generate_item | checker_or_generate_item
+generate_item := module_or_generate_item    -> {kind: "module_or_generate_item",    body: $1}
+               | interface_or_generate_item -> {kind: "interface_or_generate_item", body: $1}
+               | checker_or_generate_item   -> {kind: "checker_or_generate_item",   body: $1}
 
 generate_region := kw_generate_9e59d425 generate_item* kw_endgenerate_efb1f00a
+                -> {items: $2}
 
 genvar_declaration := kw_genvar_9cb2eb8a list_of_genvar_identifiers semi
 

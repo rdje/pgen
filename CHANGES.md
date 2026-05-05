@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-22 batch: generate sub-tree typed (3 rules / 7 annotations)
+
+Closes the generate-construct walk path. After this slice, every reachable `non_port_module_item.kind=='generate_region'` exposes typed `{items}`, every `generate_item` discriminates which form it carries, and every `generate_block` (anonymous, labeled, or bare-generate_item passthrough) exposes its name/label/items/end_label.
+
+```ebnf
+generate_region -> {items}
+generate_item   -> 3 kinds: module_or_generate_item / interface_or_generate_item / checker_or_generate_item
+generate_block  -> 3 kinds: anonymous {label, items, end_label} / labeled {name, label, items, end_label} / generate_item {body}
+```
+
+Annotation count: **225** (was 218, +7). Same accept set. Schema stays at `1`. Contract bumped 1.0.21 → 1.0.22. mdBook synced. Gate green ✅. SV calibration parse on `module m; endmodule\n` passes.
+
 ## 2026-05-05 - SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (4 rules / 55 annotations — biggest batch yet)
 
 Both halves of the cascading walk path that SV-Slice-19/20 set up are now closed: every reachable `module_common_item` and every reachable `package_or_generate_item_declaration` discriminates which actual sub-construct was matched.

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.21`
+  - `1.0.22`
 - Parser release version:
-  - `1.0.21`
+  - `1.0.22`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,77 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.22 / Contract 1.0.22 Highlights — SV-Slice-22 batch: generate sub-tree typed (3 rules / 7 annotations)
+
+Closes the generate-construct walk path. After this slice, every reachable `non_port_module_item.kind=='generate_region'` exposes a typed `{items}` shape, every `generate_item` discriminates which form it carries, and every `generate_block` (anonymous, labeled, or bare-generate_item passthrough) exposes its name/label/items/end_label.
+
+### Annotations
+
+```ebnf
+generate_region := kw_generate generate_item* kw_endgenerate
+                -> {items: $2}
+
+generate_item := module_or_generate_item    -> {kind: "module_or_generate_item",    body: $1}
+              | interface_or_generate_item -> {kind: "interface_or_generate_item", body: $1}
+              | checker_or_generate_item   -> {kind: "checker_or_generate_item",   body: $1}
+
+generate_block := kw_begin ( colon generate_block_identifier )? generate_item* kw_end ( colon generate_block_identifier )?
+                       -> {kind: "anonymous",     label: $2, items: $3, end_label: $5}
+              | generate_block_identifier colon kw_begin ( colon generate_block_identifier )? generate_item* kw_end ( colon generate_block_identifier )?
+                       -> {kind: "labeled",       name: $1, label: $4, items: $5, end_label: $7}
+              | generate_item
+                       -> {kind: "generate_item", body: $1}
+```
+
+### Field semantics
+
+- `generate_block.label` (anonymous + labeled forms): the optional `( colon generate_block_identifier )?` immediately after `kw_begin` — the inner block label per LRM A.4.2 (e.g., `begin : foo ... end`).
+- `generate_block.end_label` (anonymous + labeled forms): the optional trailing `( colon generate_block_identifier )?` after `kw_end` (e.g., `end : foo`).
+- `generate_block.name` (labeled form only): the leading block_identifier prefixing the `:` `begin` (e.g., `name : begin ... end`).
+- `generate_block.kind == "generate_item"`: bare generate_item with no `begin`/`end` wrapping; `body` carries the matched generate_item shape directly.
+
+### Consumer dispatch chain
+
+After this slice, the typed AST exposes typed dispatch into generate constructs end-to-end:
+
+```rust
+// non_port_module_item.kind == "generate_region" path
+if npi["kind"] == "generate_region" {
+    let gen_region = &npi["body"];                  // generate_region typed shape (this slice)
+    for item in gen_region["items"].as_array().unwrap() {
+        match item["kind"].as_str().unwrap() {       // generate_item.kind (this slice)
+            "module_or_generate_item" => walk_mog(&item["body"]),
+            "interface_or_generate_item" => walk_iog(&item["body"]),
+            "checker_or_generate_item" => walk_cog(&item["body"]),
+        }
+    }
+}
+```
+
+For generate_block (referenced from loop_generate_construct / conditional_generate_construct internals once those are typed):
+
+```rust
+match gen_block["kind"].as_str().unwrap() {
+    "anonymous" => walk_block_body(gen_block["label"].as_array(), &gen_block["items"], gen_block["end_label"].as_array()),
+    "labeled" => walk_named_block(gen_block["name"].as_str(), gen_block["label"].as_array(), &gen_block["items"], gen_block["end_label"].as_array()),
+    "generate_item" => walk_single_item(&gen_block["body"]),
+}
+```
+
+### Annotation inventory
+
+225 entries (was 218). +7 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `loop_generate_construct` and `conditional_generate_construct` (referenced from `module_common_item.kind` — would close the loop/conditional generate dispatch).
+- `data_declaration`, `function_declaration`, `task_declaration` (close `package_or_generate_item_declaration` walk paths another level deeper).
+- `assertion_item`, `concurrent_assertion_item`, `assertion_item_declaration` (assertion family — referenced from multiple module/program rules).
 
 ## Release 1.0.21 / Contract 1.0.21 Highlights — SV-Slice-21 batch: module_common_item + package_or_generate_item_declaration typed (4 rules / 55 annotations — biggest batch yet)
 
