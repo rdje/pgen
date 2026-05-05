@@ -1673,7 +1673,8 @@ method_identifier := declaration_identifier
 
 method_prototype := task_prototype | function_prototype
 
-method_qualifier := ( kw_pure_afe003f1 )? kw_virtual_af84d91f | class_item_qualifier
+method_qualifier := ( kw_pure_afe003f1 )? kw_virtual_af84d91f -> {kind: "virtual",              pure: $1}
+                  | class_item_qualifier                       -> {kind: "class_item_qualifier", body: $1}
 
 mintypmax_expression := expression | expression colon expression colon expression
 
@@ -2328,7 +2329,8 @@ property_port_item := attribute_instance* ( kw_local_939bb46a ( property_lvar_po
 
 property_port_list := property_port_item ( comma property_port_item )*
 
-property_qualifier := random_qualifier | class_item_qualifier
+property_qualifier := random_qualifier     -> {kind: "random",                body: $1}
+                    | class_item_qualifier  -> {kind: "class_item_qualifier", body: $1}
 
 property_spec := ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lparen expression_or_dist rparen )? property_expr
 
@@ -2413,7 +2415,8 @@ randcase_item := expression colon statement_or_null
 
 randcase_statement := kw_randcase_89bbd045 randcase_item randcase_item* kw_endcase_a27a6786
 
-random_qualifier := kw_rand_52400560 | kw_randc_c870e2bc
+random_qualifier := kw_rand_52400560  -> {kind: "rand"}
+                  | kw_randc_c870e2bc -> {kind: "randc"}
 
 randomize_call := kw_randomize_e3b19624 attribute_instance* ( lparen ( variable_identifier_list | kw_null_2be88ca4 )? rparen )? ( kw_with_8fcd25a3 ( lparen ( identifier_list )? rparen )? constraint_block )?
 

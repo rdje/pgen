@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-05-05 - SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)
+
+Completes SV-Slice-27's class body picture. Every reachable `class_method.qualifiers[]` and `class_property.qualifiers[]` now exposes typed dispatch.
+
+```ebnf
+method_qualifier   -> 2 kinds (virtual {pure} / class_item_qualifier {body})
+property_qualifier -> 2 kinds (random {body} / class_item_qualifier {body})
+random_qualifier   -> 2 kinds (rand / randc — bare {kind})
+```
+
+Annotation count: **320** (was 314, +6). Same accept set. Schema stays at `1`. Contract bumped 1.0.27 → 1.0.28. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-05 - SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)
 
 Closes the class body walk path. Method qualifiers, property kind (decl vs const), method kind (task / function / pure_virtual / extern / constructor / extern_constructor) all now `kind`-discriminated.

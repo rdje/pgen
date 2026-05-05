@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1466c434.js";
+            window.path_to_searchindex_js = "searchindex-74d7752a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -301,6 +301,9 @@
 <tr><td><code>class_constraint</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"prototype"</code> / <code>"declaration"</code>. Reached from <code>class_item.kind == "constraint"</code>.</td></tr>
 <tr><td><code>class_property</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"decl"</code> (<code>{qualifiers, body}</code> — standard form <code>property_qualifier* data_declaration</code>; body is the typed data_declaration shape from SV-Slice-25) / <code>"const"</code> (<code>{qualifiers, data_type, name, init}</code> — kw_const-prefixed form; <code>qualifiers</code> is the typed <code>class_item_qualifier*</code> slot, <code>init</code> is <code>[]</code> when no initializer or <code>[&lt;assign, expr&gt;]</code> when present).</td></tr>
 <tr><td><code>class_method</code> (6 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"task"</code> / <code>"function"</code> (<code>{qualifiers, body}</code> — body is typed task_declaration / function_declaration from SV-Slice-25) / <code>"pure_virtual"</code> (<code>{qualifiers, prototype}</code> — prototype-only, no body; <code>qualifiers</code> is typed <code>class_item_qualifier*</code> slot) / <code>"extern"</code> (<code>{qualifiers, prototype}</code> — prototype-only, kw_extern-prefixed) / <code>"constructor"</code> (<code>{qualifiers, body}</code> — class_constructor_declaration with full body) / <code>"extern_constructor"</code> (<code>{qualifiers, prototype}</code> — extern class new).</td></tr>
+<tr><td><code>method_qualifier</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"virtual"</code> (<code>{pure}</code> — <code>pure</code> is <code>[]</code> for bare virtual, <code>[&lt;kw_pure&gt;]</code> for <code>pure virtual</code>) / <code>"class_item_qualifier"</code> (<code>{body}</code> — body is typed class_item_qualifier shape: static/protected/local). Reached from <code>class_method.qualifiers[]</code>.</td></tr>
+<tr><td><code>property_qualifier</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"random"</code> (body is typed random_qualifier: rand/randc) / <code>"class_item_qualifier"</code> (body is typed class_item_qualifier: static/protected/local). Reached from <code>class_property.qualifiers[]</code>.</td></tr>
+<tr><td><code>random_qualifier</code> (2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"rand"</code> / <code>"randc"</code>. Same bare-<code>{kind}</code> pattern as <code>class_item_qualifier</code>.</td></tr>
 </tbody>
 </table>
 </div>

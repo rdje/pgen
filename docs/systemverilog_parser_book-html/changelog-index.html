@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1466c434.js";
+            window.path_to_searchindex_js = "searchindex-74d7752a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,15 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1028--contract-1028--sv-slice-28-batch-class-qualifiers-typed-3-rules--6-annotations"><a class="header" href="#1028--contract-1028--sv-slice-28-batch-class-qualifiers-typed-3-rules--6-annotations">1.0.28 / Contract 1.0.28 — SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)</a></h3>
+<p><strong>What changed:</strong> Completes SV-Slice-27’s class body picture.</p>
+<pre><code class="language-ebnf">method_qualifier   -&gt; 2 kinds (virtual {pure} / class_item_qualifier {body})
+property_qualifier -&gt; 2 kinds (random {body} / class_item_qualifier {body})
+random_qualifier   -&gt; 2 kinds (rand / randc — bare {kind})
+</code></pre>
+<p><strong>Annotation inventory:</strong> 320 entries (was 314). +6 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.28 / Contract 1.0.28 Highlights”.</p>
 <h3 id="1027--contract-1027--sv-slice-27-batch-class-body-sub-tree-typed-6-rules--30-annotations"><a class="header" href="#1027--contract-1027--sv-slice-27-batch-class-body-sub-tree-typed-6-rules--30-annotations">1.0.27 / Contract 1.0.27 — SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the class body walk path. Method qualifiers, property kind (decl vs const), method kind (task / function / pure_virtual / extern / constructor / extern_constructor) all now <code>kind</code>-discriminated.</p>
 <pre><code class="language-ebnf">class_item_sv_2017     -&gt; 8 kinds (property / method / constraint / class / covergroup / local_parameter / parameter / semi)

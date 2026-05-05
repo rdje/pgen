@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.27`
+  - `1.0.28`
 - Parser release version:
-  - `1.0.27`
+  - `1.0.28`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,45 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.28 / Contract 1.0.28 Highlights — SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)
+
+Completes SV-Slice-27's class body picture. Every reachable `class_method.qualifiers[]` and `class_property.qualifiers[]` now exposes typed dispatch — consumers can iterate qualifier lists and discriminate `virtual` (with optional `pure` flag) vs `class_item_qualifier` (static/protected/local) vs `random` (rand/randc) without raw envelope descent.
+
+### Annotations
+
+```ebnf
+method_qualifier := ( kw_pure )? kw_virtual -> {kind: "virtual",               pure: $1}
+                  | class_item_qualifier    -> {kind: "class_item_qualifier",  body: $1}
+
+property_qualifier := random_qualifier      -> {kind: "random",                body: $1}
+                    | class_item_qualifier  -> {kind: "class_item_qualifier",  body: $1}
+
+random_qualifier := kw_rand   -> {kind: "rand"}
+                  | kw_randc  -> {kind: "randc"}
+```
+
+### Field semantics
+
+- `method_qualifier.kind == "virtual"`: the `pure` field is `[]` for bare `virtual`, `[<kw_pure token>]` for `pure virtual` (LRM-significant for pure-virtual method declarations).
+- `method_qualifier.kind == "class_item_qualifier"` and `property_qualifier.kind == "class_item_qualifier"`: the `body` field is the typed `class_item_qualifier` shape (static / protected / local) from SV-Slice-27.
+- `random_qualifier`: bare `{kind}` shape — each branch matches a single keyword token.
+
+### Annotation inventory
+
+320 entries (was 314). +6 in this batch (2 method_qualifier + 2 property_qualifier + 2 random_qualifier).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `concurrent_assertion_statement` / `deferred_immediate_assertion_item` internals.
+- `tf_item_declaration` / `function_statement_or_null` / `statement_or_null` (function/task body internals).
+- `covergroup_declaration` / `interface_class_declaration` internals.
+- `constraint_declaration` / `constraint_prototype` (close class_constraint body fields).
+- `data_type_or_implicit` / `data_type_or_void` (close data_type fields across many rules).
 
 ## Release 1.0.27 / Contract 1.0.27 Highlights — SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)
 

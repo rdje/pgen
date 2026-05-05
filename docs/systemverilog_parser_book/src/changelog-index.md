@@ -19,6 +19,22 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.28 / Contract 1.0.28 — SV-Slice-28 batch: class qualifiers typed (3 rules / 6 annotations)
+
+**What changed:** Completes SV-Slice-27's class body picture.
+
+```ebnf
+method_qualifier   -> 2 kinds (virtual {pure} / class_item_qualifier {body})
+property_qualifier -> 2 kinds (random {body} / class_item_qualifier {body})
+random_qualifier   -> 2 kinds (rand / randc — bare {kind})
+```
+
+**Annotation inventory:** 320 entries (was 314). +6 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.28 / Contract 1.0.28 Highlights".
+
 ### 1.0.27 / Contract 1.0.27 — SV-Slice-27 batch: class body sub-tree typed (6 rules / 30 annotations)
 
 **What changed:** Closes the class body walk path. Method qualifiers, property kind (decl vs const), method kind (task / function / pure_virtual / extern / constructor / extern_constructor) all now `kind`-discriminated.
