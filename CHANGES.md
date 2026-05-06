@@ -1,4 +1,17 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-48 batch: primary_sv_2023 + constant_primary_sv_2023 typed (2 rules / 31 annotations)
+
+Completes SV-Slice-47 DEFERRED parallel sv_2023 forms. Both sv_2017 and sv_2023 primary expression dispatch is now fully typed end-to-end.
+
+```ebnf
+primary_sv_2023           -> 15 kinds (sv_2017 kinds + LRM 2023's call select extension)
+constant_primary_sv_2023  -> 16 kinds (sv_2017's 15 + empty_array_concat per LRM 2023)
+```
+
+Reuses the 3 helper rules from SV-Slice-47.
+
+Annotation count: **773** (was 742, +31). Same accept set. Schema stays at `1`. Contract bumped 1.0.47 → 1.0.48. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-47 batch: primary_sv_2017 + constant_primary_sv_2017 typed (2 rules / 30 annotations + 3 new helper rules with 6 annotations)
 
 Closes the sv_2017 primary expression dispatch reachable from `expression_operand.kind == "primary"` and `constant_expression_operand.kind == "primary"`.

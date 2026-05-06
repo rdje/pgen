@@ -268,6 +268,8 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `instance_or_class_scope` (NEW; 2 branches) | per-branch typed | Kind labels: `"instance"` (`{handle}`) / `"class_scope"` (`{body}`). Helper rule extracted from inline `( implicit_class_handle dot \| class_scope )?`. |
 | `constant_primary_sv_2017` (15 branches) | per-branch typed | Kind labels: `"literal"` / `"ps_parameter"` (`{name, select}`) / `"specparam"` / `"genvar"` / `"formal_port"` / `"enum"` (`{scope, name}`) / `"multiple_concat"` / `"concat"` / `"function_call"` / `"let"` / `"paren"` / `"cast"` / `"assign_pattern"` / `"type_reference"` / `"null"` (bare). |
 | `enum_id_scope_prefix` (NEW; 2 branches) | per-branch `{kind, body}` | Kind labels: `"package_scope"` / `"class_scope"`. Helper rule extracted from inline `( non_typedef_package_scope \| class_scope )?` in constant_primary_sv_2017's enum branch. |
+| `primary_sv_2023` (15 branches) | per-branch typed | Same 15 kind labels as primary_sv_2017 except `"call"` adds optional `select` field — `{body, select}` (LRM 2023 allows `f()[0]` array-indexed call). Reuses `primary_hier_scope_prefix` and `instance_or_class_scope` helpers. |
+| `constant_primary_sv_2023` (16 branches) | per-branch typed | sv_2017's 15 kinds plus `"empty_array_concat"` (`{body}`) added per LRM 2023; also `"function_call"` adds optional `select` field. Reuses `enum_id_scope_prefix` helper. |
 
 ## Sub-rules with implicit defaults
 

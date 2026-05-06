@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-95bd9a99.js";
+            window.path_to_searchindex_js = "searchindex-4858cfa3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,15 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1048--contract-1048--sv-slice-48-batch-primary_sv_2023--constant_primary_sv_2023-typed-2-rules--31-annotations"><a class="header" href="#1048--contract-1048--sv-slice-48-batch-primary_sv_2023--constant_primary_sv_2023-typed-2-rules--31-annotations">1.0.48 / Contract 1.0.48 — SV-Slice-48 batch: primary_sv_2023 + constant_primary_sv_2023 typed (2 rules / 31 annotations)</a></h3>
+<p><strong>What changed:</strong> Completes the parallel sv_2023 forms. Both sv_2017 and sv_2023 primary expression dispatch fully typed end-to-end.</p>
+<pre><code class="language-ebnf">primary_sv_2023           -&gt; 15 kinds (sv_2017 kinds + LRM 2023's call select extension)
+constant_primary_sv_2023  -&gt; 16 kinds (sv_2017's 15 + empty_array_concat per LRM 2023)
+</code></pre>
+<p>Profile differences from sv_2017: <code>call</code> and <code>function_call</code> add optional <code>select</code> per LRM 2023, and constant_primary adds <code>empty_array_concat</code>. Reuses the 3 helper rules from SV-Slice-47.</p>
+<p><strong>Annotation inventory:</strong> 773 entries (was 742). +31 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.48 / Contract 1.0.48 Highlights”.</p>
 <h3 id="1047--contract-1047--sv-slice-47-batch-primary_sv_2017--constant_primary_sv_2017-typed-2-rules--30-annotations--3-new-helper-rules-with-6-annotations"><a class="header" href="#1047--contract-1047--sv-slice-47-batch-primary_sv_2017--constant_primary_sv_2017-typed-2-rules--30-annotations--3-new-helper-rules-with-6-annotations">1.0.47 / Contract 1.0.47 — SV-Slice-47 batch: primary_sv_2017 + constant_primary_sv_2017 typed (2 rules / 30 annotations + 3 new helper rules with 6 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the sv_2017 primary expression dispatch reachable from expression_operand.kind==“primary” and constant_expression_operand.kind==“primary”.</p>
 <pre><code class="language-ebnf">primary_sv_2017               -&gt; 15 kinds (literal / call / hierarchical / empty_array_concat / multiple_concat / concat / let / paren / cast / assign_pattern / streaming_concat / sequence_method / this / system_dollar / null_class_assign)

@@ -19,6 +19,23 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.48 / Contract 1.0.48 — SV-Slice-48 batch: primary_sv_2023 + constant_primary_sv_2023 typed (2 rules / 31 annotations)
+
+**What changed:** Completes the parallel sv_2023 forms. Both sv_2017 and sv_2023 primary expression dispatch fully typed end-to-end.
+
+```ebnf
+primary_sv_2023           -> 15 kinds (sv_2017 kinds + LRM 2023's call select extension)
+constant_primary_sv_2023  -> 16 kinds (sv_2017's 15 + empty_array_concat per LRM 2023)
+```
+
+Profile differences from sv_2017: `call` and `function_call` add optional `select` per LRM 2023, and constant_primary adds `empty_array_concat`. Reuses the 3 helper rules from SV-Slice-47.
+
+**Annotation inventory:** 773 entries (was 742). +31 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.48 / Contract 1.0.48 Highlights".
+
 ### 1.0.47 / Contract 1.0.47 — SV-Slice-47 batch: primary_sv_2017 + constant_primary_sv_2017 typed (2 rules / 30 annotations + 3 new helper rules with 6 annotations)
 
 **What changed:** Closes the sv_2017 primary expression dispatch reachable from expression_operand.kind=="primary" and constant_expression_operand.kind=="primary".

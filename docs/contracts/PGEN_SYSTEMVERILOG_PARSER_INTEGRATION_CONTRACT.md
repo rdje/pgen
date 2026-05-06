@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.47`
+  - `1.0.48`
 - Parser release version:
-  - `1.0.47`
+  - `1.0.48`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,64 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.48 / Contract 1.0.48 Highlights — SV-Slice-48 batch: primary_sv_2023 + constant_primary_sv_2023 typed (2 rules / 31 annotations)
+
+Completes the SV-Slice-47 DEFERRED parallel sv_2023 forms. After this slice, both sv_2017 and sv_2023 primary expression dispatch is fully typed end-to-end. The 3 helper rules introduced in SV-Slice-47 (`primary_hier_scope_prefix`, `instance_or_class_scope`, `enum_id_scope_prefix`) are now used by both profiles.
+
+### Profile differences from sv_2017
+
+| sv_2017 kind | sv_2023 changes |
+|---|---|
+| `"call"` (no select) | `"call"` adds optional `select` field — LRM 2023 allows `f()[0]` array-indexed call |
+| (15 kinds total) | 15 kinds (same set as sv_2017) |
+| `"function_call"` (constant_primary, no select) | `"function_call"` adds optional `select` field |
+| (15 kinds total) | **16 kinds** — adds `"empty_array_concat"` per LRM 2023 unpacked-array-concat extension |
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2023"]
+primary_sv_2023 := primary_literal                              -> {kind: "literal",            body: $1}
+                 | call_primary ( lbrack range_expression rbrack )?
+                                                                 -> {kind: "call",               body: $1, select: $2}
+                 | ( primary_hier_scope_prefix )? hierarchical_identifier select
+                                                                 -> {kind: "hierarchical",       scope: $1, name: $2, select: $3}
+                 | empty_unpacked_array_concatenation            -> {kind: "empty_array_concat", body: $1}
+                 | multiple_concatenation ( lbrack range_expression rbrack )?
+                                                                 -> {kind: "multiple_concat",    body: $1, select: $2}
+                 | concatenation ( lbrack range_expression rbrack )?
+                                                                 -> {kind: "concat",             body: $1, select: $2}
+                 | let_expression                                -> {kind: "let",                body: $1}
+                 | lparen mintypmax_expression rparen            -> {kind: "paren",              body: $2}
+                 | cast                                          -> {kind: "cast",               body: $1}
+                 | assignment_pattern_expression                 -> {kind: "assign_pattern",     body: $1}
+                 | streaming_concatenation                       -> {kind: "streaming_concat",   body: $1}
+                 | sequence_method_call                          -> {kind: "sequence_method",    body: $1}
+                 | kw_this                                       -> {kind: "this"}
+                 | kw_sv_dollar                                  -> {kind: "system_dollar"}
+                 | kw_null kw_class_qualifier colon assign ( kw_local scope_resolution kw_n_48 )? ( instance_or_class_scope )?
+                                                                 -> {kind: "null_class_assign",  local_n: $5, scope: $6}
+
+@profiles: ["sv_2023"]
+constant_primary_sv_2023 := /* same 15 kinds as sv_2017 plus "empty_array_concat" between formal_port and concat;
+                              "function_call" branch adds optional `select` field */
+```
+
+### Annotation inventory
+
+773 entries (was 742). +31 in this batch (15 primary_sv_2023 + 16 constant_primary_sv_2023).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `attr_spec` deeper internals.
+- `list_of_path_delay_expressions` (6-branch path-delay specifier — non-uniform shape).
+- `unique_priority` (after grammar duplicate-branch fix).
+- `call_primary` / `concatenation` / `multiple_concatenation` internals.
 
 ## Release 1.0.47 / Contract 1.0.47 Highlights — SV-Slice-47 batch: primary_sv_2017 + constant_primary_sv_2017 typed (2 rules / 30 annotations + 3 new helper rules with 6 annotations)
 
