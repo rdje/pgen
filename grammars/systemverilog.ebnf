@@ -1667,15 +1667,23 @@ lifetime := kw_static_a381562a    -> {kind: "static"}
 limit_value := constant_mintypmax_expression
 
 @branch_policy: priority_first
-list_of_arguments := list_of_arguments_ordered | list_of_arguments_named | list_of_arguments_mixed
+list_of_arguments := list_of_arguments_ordered -> {kind: "ordered", body: $1}
+                   | list_of_arguments_named   -> {kind: "named",   body: $1}
+                   | list_of_arguments_mixed   -> {kind: "mixed",   body: $1}
 
 list_of_arguments_mixed := list_of_arguments_mixed_head comma named_argument ( comma named_argument )*
+                        -> {head: $1, named: {first: $3, rest: $4}}
 
-list_of_arguments_mixed_head := expression | ( expression )? comma list_of_arguments_mixed_head
+list_of_arguments_mixed_head := expression
+                                     -> {kind: "single", body: $1}
+                              | ( expression )? comma list_of_arguments_mixed_head
+                                     -> {kind: "chain",  expr: $1, rest: $3}
 
 list_of_arguments_ordered := ( expression )? ( comma ( expression )? )*
+                          -> {first: $1, rest: $2}
 
 list_of_arguments_named := named_argument ( comma named_argument )*
+                        -> {first: $1, rest: $2}
 
 list_of_checker_port_connections := ordered_checker_port_connection ( comma ordered_checker_port_connection )* | named_checker_port_connection ( comma named_checker_port_connection )*
 
@@ -1696,12 +1704,18 @@ list_of_net_decl_assignments := net_decl_assignment ( comma net_decl_assignment 
 list_of_param_assignments := param_assignment ( comma param_assignment )*
 
 @profiles: ["sv_2017"]
-list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma ordered_parameter_assignment )* | named_parameter_assignment ( comma named_parameter_assignment )*
+list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
+                                              -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                       | named_parameter_assignment ( comma named_parameter_assignment )*
+                                              -> {kind: "named",   items: {first: $1, rest: $2}}
 
 list_of_parameter_assignments := list_of_parameter_assignments_sv_2017
 
 @profiles: ["sv_2023"]
-list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( comma ordered_parameter_assignment )* | named_parameter_assignment ( comma named_parameter_assignment )*
+list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
+                                                     -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                              | named_parameter_assignment ( comma named_parameter_assignment )*
+                                                     -> {kind: "named",   items: {first: $1, rest: $2}}
 
 list_of_parameter_value_assignments := list_of_parameter_value_assignments_sv_2023
 
@@ -1982,8 +1996,10 @@ named_checker_port_connection_sv_2023 := attribute_instance* dot formal_port_ide
 named_checker_port_connection := named_checker_port_connection_sv_2017 | named_checker_port_connection_sv_2023
 
 named_parameter_assignment := dot parameter_identifier lparen ( param_expression )? rparen
+                           -> {name: $2, value: $4}
 
 named_argument := dot identifier lparen ( expression )? rparen
+               -> {name: $2, value: $4}
 
 @profiles: ["sv_2017"]
 named_port_connection_sv_2017 := attribute_instance* dot port_identifier ( lparen ( expression )? rparen )? | attribute_instance* dot_star
@@ -2303,9 +2319,11 @@ parameter_port_list := hash lparen mixed_string_parameter_port_list rparen | has
 
 @profiles: ["sv_2017"]
 parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen
+                                   -> {params: $3}
 
 @profiles: ["sv_2023"]
 parameter_value_assignment_sv_2023 := hash lparen ( list_of_parameter_value_assignments )? rparen
+                                   -> {params: $3}
 
 parameter_value_assignment := parameter_value_assignment_sv_2017 | parameter_value_assignment_sv_2023
 

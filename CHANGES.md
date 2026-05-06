@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-43 batch: parameter_value_assignment + arguments family typed (10 rules / 16 annotations — crosses 600-annotation milestone)
+
+Closes the function/task/method-call argument and parameter-instance walks. Every typed parent that exposes `params:` or `args:` field now resolves to typed dispatch. **Crosses the 600-annotation milestone.**
+
+```ebnf
+parameter_value_assignment_sv_2017/2023       -> {params}
+list_of_parameter_assignments_sv_2017         -> 2 kinds (ordered / named)
+list_of_parameter_value_assignments_sv_2023   -> 2 kinds (parallel)
+named_parameter_assignment / named_argument   -> {name, value}
+list_of_arguments                             -> 3 kinds (ordered / named / mixed)
+list_of_arguments_ordered / _named            -> {first, rest}
+list_of_arguments_mixed                       -> {head, named: {first, rest}}
+list_of_arguments_mixed_head                  -> 2 kinds (single / chain)
+```
+
+Annotation count: **604** (was 588, +16). Same accept set. Schema stays at `1`. Contract bumped 1.0.42 → 1.0.43. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)
 
 Closes data_type field structural-content walks. Every kind path through `data_type` (typed in SV-Slice-41) resolves to typed sub-rules.

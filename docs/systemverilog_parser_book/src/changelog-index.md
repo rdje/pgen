@@ -19,6 +19,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.43 / Contract 1.0.43 — SV-Slice-43 batch: parameter_value_assignment + arguments family typed (10 rules / 16 annotations — crosses 600-annotation milestone)
+
+**What changed:** Closes the function/task/method-call argument and parameter-instance walks.
+
+```ebnf
+parameter_value_assignment_sv_2017/2023       -> {params}
+list_of_parameter_assignments_sv_2017         -> 2 kinds (ordered / named)
+list_of_parameter_value_assignments_sv_2023   -> 2 kinds (parallel)
+named_parameter_assignment                    -> {name, value}
+named_argument                                -> {name, value}
+list_of_arguments                             -> 3 kinds (ordered / named / mixed)
+list_of_arguments_ordered                     -> {first, rest}
+list_of_arguments_named                       -> {first, rest}
+list_of_arguments_mixed                       -> {head, named: {first, rest}}
+list_of_arguments_mixed_head                  -> 2 kinds (single / chain — recursive)
+```
+
+**Annotation inventory:** 604 entries (was 588). +16 in this batch — crosses the 600-annotation milestone.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.43 / Contract 1.0.43 Highlights".
+
 ### 1.0.42 / Contract 1.0.42 — SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)
 
 **What changed:** Closes data_type field structural-content walks.

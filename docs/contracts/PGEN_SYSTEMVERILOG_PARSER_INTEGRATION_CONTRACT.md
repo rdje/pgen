@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.42`
+  - `1.0.43`
 - Parser release version:
-  - `1.0.42`
+  - `1.0.43`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,79 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.43 / Contract 1.0.43 Highlights — SV-Slice-43 batch: parameter_value_assignment + arguments family typed (10 rules / 16 annotations — crosses 600-annotation milestone)
+
+Closes the function/task/method-call argument and parameter-instance walks. After this slice, every typed parent that exposes `params:` (e.g., class_type, virtual_interface, instantiations) or `args:` (production_item, rs_production_item, named_argument, subroutine_call) field resolves to typed dispatch. Crosses the **600-annotation milestone**.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen
+                                   -> {params: $3}
+
+@profiles: ["sv_2023"]
+parameter_value_assignment_sv_2023 := hash lparen ( list_of_parameter_value_assignments )? rparen
+                                   -> {params: $3}
+
+@profiles: ["sv_2017"]
+list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
+                                              -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                       | named_parameter_assignment ( comma named_parameter_assignment )*
+                                              -> {kind: "named",   items: {first: $1, rest: $2}}
+
+@profiles: ["sv_2023"]
+list_of_parameter_value_assignments_sv_2023 := /* parallel 2 kinds */
+
+named_parameter_assignment := dot parameter_identifier lparen ( param_expression )? rparen
+                           -> {name: $2, value: $4}
+
+named_argument := dot identifier lparen ( expression )? rparen
+               -> {name: $2, value: $4}
+
+list_of_arguments := list_of_arguments_ordered -> {kind: "ordered", body: $1}
+                   | list_of_arguments_named   -> {kind: "named",   body: $1}
+                   | list_of_arguments_mixed   -> {kind: "mixed",   body: $1}
+
+list_of_arguments_ordered := ( expression )? ( comma ( expression )? )*
+                          -> {first: $1, rest: $2}
+
+list_of_arguments_named := named_argument ( comma named_argument )*
+                        -> {first: $1, rest: $2}
+
+list_of_arguments_mixed := list_of_arguments_mixed_head comma named_argument ( comma named_argument )*
+                        -> {head: $1, named: {first: $3, rest: $4}}
+
+list_of_arguments_mixed_head := expression
+                                     -> {kind: "single", body: $1}
+                              | ( expression )? comma list_of_arguments_mixed_head
+                                     -> {kind: "chain",  expr: $1, rest: $3}
+```
+
+### Field semantics
+
+- `parameter_value_assignment.params`: optional list of parameter assignments. `[]` for `#()`, `[<list_of_parameter_assignments>]` for `#(N=8, M=16)` etc.
+- `list_of_parameter_assignments.kind == "ordered"`: positional `#(8, 16)` form.
+- `list_of_parameter_assignments.kind == "named"`: keyword `#(.N(8), .M(16))` form.
+- `list_of_arguments.kind == "mixed"`: LRM-style argument list mixing positional and trailing named args (e.g., `f(1, 2, .x(3), .y(4))`).
+- `list_of_arguments_mixed_head`: recursive helper allowing arbitrary positional-list prefix before named arguments.
+- `named_argument.value` / `named_parameter_assignment.value`: optional argument expression — `[]` for `.name()` (explicit unconnected port), `[<expression>]` for normal `.name(expr)` form.
+
+### Annotation inventory
+
+604 entries (was 588). +16 in this batch (1 parameter_value_assignment_sv_2017 + 1 parameter_value_assignment_sv_2023 + 2 list_of_parameter_assignments_sv_2017 + 2 list_of_parameter_value_assignments_sv_2023 + 1 named_parameter_assignment + 1 named_argument + 3 list_of_arguments + 1 list_of_arguments_ordered + 1 list_of_arguments_named + 1 list_of_arguments_mixed + 2 list_of_arguments_mixed_head). Crosses the 600-annotation milestone.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `expression`, `cond_predicate`, `pattern` (large but underlie many already-typed rules).
+- `attr_spec` deeper internals.
+- The remaining small list_of_* rules (genvar / interface / net / param / cross / defparam / clocking_decl) — each just `X (comma X)*` patterns; could batch as `{first, rest}` annotations.
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.42 / Contract 1.0.42 Highlights — SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)
 

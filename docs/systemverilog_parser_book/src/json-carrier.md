@@ -227,6 +227,17 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `type_reference_sv_2023` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"data_type_or_incomplete_class"` (LRM 2023 widens the second variant). |
 | `class_type` | `-> {head, params, suffix}` | `head` is the typed `class_type_head` (helper rule). `params` is `[]` or `[<parameter_value_assignment>]`. `suffix` is `*` of `[scope_resolution, class_identifier, [parameter_value_assignment]]` chains for nested class scopes. |
 | `class_type_head` (NEW; 3 branches) | per-branch `{kind, body}` | Kind labels: `"scoped"` / `"class"` / `"interface_class"`. Helper rule extracted from leading 3-way parens-Or in class_type to dodge task #38. |
+| `parameter_value_assignment_sv_2017` | `-> {params: $3}` | Drops `hash`, parens. `params` is `[]` for `#()`, `[<list_of_parameter_assignments shape>]` for non-empty form. |
+| `parameter_value_assignment_sv_2023` | `-> {params: $3}` | Parallel; uses list_of_parameter_value_assignments per LRM 2023 naming. |
+| `list_of_parameter_assignments_sv_2017` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"ordered"` (positional `#(8, 16)`) / `"named"` (keyword `#(.N(8), .M(16))`). |
+| `list_of_parameter_value_assignments_sv_2023` (2 branches) | per-branch `{kind, items: {first, rest}}` | Same kinds as sv_2017. |
+| `named_parameter_assignment` | `-> {name: $2, value: $4}` | Drops `dot` / parens. `value` is `[]` for `.name()`, `[<param_expression>]` for `.name(expr)`. |
+| `named_argument` | `-> {name: $2, value: $4}` | Same shape as named_parameter_assignment. |
+| `list_of_arguments` (3 branches) | per-branch `{kind, body}` | Kind labels: `"ordered"` / `"named"` / `"mixed"` (positional + trailing named, e.g., `f(1, 2, .x(3))`). |
+| `list_of_arguments_ordered` | `-> {first: $1, rest: $2}` | `first` is `[]` for empty arg, `[<expression>]` otherwise. |
+| `list_of_arguments_named` | `-> {first: $1, rest: $2}` | All-named form. |
+| `list_of_arguments_mixed` | `-> {head: $1, named: {first: $3, rest: $4}}` | `head` is the typed `list_of_arguments_mixed_head` (positional prefix). `named` is mini-mixed-array of trailing named arguments. |
+| `list_of_arguments_mixed_head` (2 branches) | per-branch typed | Kind labels: `"single"` (`{body}` — single positional argument) / `"chain"` (`{expr, rest}` — recursive: optional expression followed by comma followed by recursive head). |
 
 ## Sub-rules with implicit defaults
 

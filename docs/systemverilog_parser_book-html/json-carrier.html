@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b63c2897.js";
+            window.path_to_searchindex_js = "searchindex-b3a8bf5d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -411,6 +411,17 @@
 <tr><td><code>type_reference_sv_2023</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"data_type_or_incomplete_class"</code> (LRM 2023 widens the second variant).</td></tr>
 <tr><td><code>class_type</code></td><td><code>-&gt; {head, params, suffix}</code></td><td><code>head</code> is the typed <code>class_type_head</code> (helper rule). <code>params</code> is <code>[]</code> or <code>[&lt;parameter_value_assignment&gt;]</code>. <code>suffix</code> is <code>*</code> of <code>[scope_resolution, class_identifier, [parameter_value_assignment]]</code> chains for nested class scopes.</td></tr>
 <tr><td><code>class_type_head</code> (NEW; 3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"scoped"</code> / <code>"class"</code> / <code>"interface_class"</code>. Helper rule extracted from leading 3-way parens-Or in class_type to dodge task #38.</td></tr>
+<tr><td><code>parameter_value_assignment_sv_2017</code></td><td><code>-&gt; {params: $3}</code></td><td>Drops <code>hash</code>, parens. <code>params</code> is <code>[]</code> for <code>#()</code>, <code>[&lt;list_of_parameter_assignments shape&gt;]</code> for non-empty form.</td></tr>
+<tr><td><code>parameter_value_assignment_sv_2023</code></td><td><code>-&gt; {params: $3}</code></td><td>Parallel; uses list_of_parameter_value_assignments per LRM 2023 naming.</td></tr>
+<tr><td><code>list_of_parameter_assignments_sv_2017</code> (2 branches)</td><td>per-branch <code>{kind, items: {first, rest}}</code></td><td>Kind labels: <code>"ordered"</code> (positional <code>#(8, 16)</code>) / <code>"named"</code> (keyword <code>#(.N(8), .M(16))</code>).</td></tr>
+<tr><td><code>list_of_parameter_value_assignments_sv_2023</code> (2 branches)</td><td>per-branch <code>{kind, items: {first, rest}}</code></td><td>Same kinds as sv_2017.</td></tr>
+<tr><td><code>named_parameter_assignment</code></td><td><code>-&gt; {name: $2, value: $4}</code></td><td>Drops <code>dot</code> / parens. <code>value</code> is <code>[]</code> for <code>.name()</code>, <code>[&lt;param_expression&gt;]</code> for <code>.name(expr)</code>.</td></tr>
+<tr><td><code>named_argument</code></td><td><code>-&gt; {name: $2, value: $4}</code></td><td>Same shape as named_parameter_assignment.</td></tr>
+<tr><td><code>list_of_arguments</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"ordered"</code> / <code>"named"</code> / <code>"mixed"</code> (positional + trailing named, e.g., <code>f(1, 2, .x(3))</code>).</td></tr>
+<tr><td><code>list_of_arguments_ordered</code></td><td><code>-&gt; {first: $1, rest: $2}</code></td><td><code>first</code> is <code>[]</code> for empty arg, <code>[&lt;expression&gt;]</code> otherwise.</td></tr>
+<tr><td><code>list_of_arguments_named</code></td><td><code>-&gt; {first: $1, rest: $2}</code></td><td>All-named form.</td></tr>
+<tr><td><code>list_of_arguments_mixed</code></td><td><code>-&gt; {head: $1, named: {first: $3, rest: $4}}</code></td><td><code>head</code> is the typed <code>list_of_arguments_mixed_head</code> (positional prefix). <code>named</code> is mini-mixed-array of trailing named arguments.</td></tr>
+<tr><td><code>list_of_arguments_mixed_head</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"single"</code> (<code>{body}</code> — single positional argument) / <code>"chain"</code> (<code>{expr, rest}</code> — recursive: optional expression followed by comma followed by recursive head).</td></tr>
 </tbody>
 </table>
 </div>

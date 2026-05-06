@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b63c2897.js";
+            window.path_to_searchindex_js = "searchindex-b3a8bf5d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,22 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1043--contract-1043--sv-slice-43-batch-parameter_value_assignment--arguments-family-typed-10-rules--16-annotations--crosses-600-annotation-milestone"><a class="header" href="#1043--contract-1043--sv-slice-43-batch-parameter_value_assignment--arguments-family-typed-10-rules--16-annotations--crosses-600-annotation-milestone">1.0.43 / Contract 1.0.43 — SV-Slice-43 batch: parameter_value_assignment + arguments family typed (10 rules / 16 annotations — crosses 600-annotation milestone)</a></h3>
+<p><strong>What changed:</strong> Closes the function/task/method-call argument and parameter-instance walks.</p>
+<pre><code class="language-ebnf">parameter_value_assignment_sv_2017/2023       -&gt; {params}
+list_of_parameter_assignments_sv_2017         -&gt; 2 kinds (ordered / named)
+list_of_parameter_value_assignments_sv_2023   -&gt; 2 kinds (parallel)
+named_parameter_assignment                    -&gt; {name, value}
+named_argument                                -&gt; {name, value}
+list_of_arguments                             -&gt; 3 kinds (ordered / named / mixed)
+list_of_arguments_ordered                     -&gt; {first, rest}
+list_of_arguments_named                       -&gt; {first, rest}
+list_of_arguments_mixed                       -&gt; {head, named: {first, rest}}
+list_of_arguments_mixed_head                  -&gt; 2 kinds (single / chain — recursive)
+</code></pre>
+<p><strong>Annotation inventory:</strong> 604 entries (was 588). +16 in this batch — crosses the 600-annotation milestone.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.43 / Contract 1.0.43 Highlights”.</p>
 <h3 id="1042--contract-1042--sv-slice-42-batch-signing--struct_union--enum--type_reference--class_type-internals-typed-9-rules--21-annotations--2-new-helper-rules-with-5-annotations"><a class="header" href="#1042--contract-1042--sv-slice-42-batch-signing--struct_union--enum--type_reference--class_type-internals-typed-9-rules--21-annotations--2-new-helper-rules-with-5-annotations">1.0.42 / Contract 1.0.42 — SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes data_type field structural-content walks.</p>
 <pre><code class="language-ebnf">signing                          -&gt; 2 kinds bare (signed / unsigned)
