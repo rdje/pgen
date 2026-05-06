@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-46 batch: expression family typed (14 rules / 62 annotations — crosses 700-annotation milestone)
+
+Single largest impact slice — `expression`, `constant_expression`, and their operand/operator/literal sub-rules underlie every expression-typed field across the grammar. **Crosses the 700-annotation milestone.**
+
+```ebnf
+expression                       -> 3 kinds (base / inside / conditional)
+expression_base                  -> 3 kinds (tagged_union / operand_chain / paren_op_assign)
+expression_operand               -> 3 kinds (unary / inc_or_dec / primary)
+expression_or_dist               -> {expr, dist}
+constant_expression              -> {first, rest, ternary}
+constant_expression_operand      -> 2 kinds (unary / primary)
+inside_expression_sv_2017/2023   -> {expr, ranges}
+conditional_expression           -> {predicate, attributes, then_expr, else_expr}
+tagged_union_expression_sv_2017/2023 -> {name, value}
+primary_literal                  -> 4 kinds
+binary_operator                  -> 29 kinds bare {kind}
+unary_operator                   -> 11 kinds bare {kind}
+```
+
+Annotation count: **706** (was 644, +62). Same accept set. Schema stays at `1`. Contract bumped 1.0.45 → 1.0.46. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-45 batch: pattern + cond_predicate family typed (6 rules / 18 annotations)
 
 Closes the LRM A.6.7.1 pattern-matching walk path used by case_pattern_item, conditional_statement.condition (via cond_predicate), constraint_expression's various forms, etc.

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.45`
+  - `1.0.46`
 - Parser release version:
-  - `1.0.45`
+  - `1.0.46`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,95 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.46 / Contract 1.0.46 Highlights — SV-Slice-46 batch: expression family typed (14 rules / 62 annotations — crosses 700-annotation milestone)
+
+Single largest impact slice — `expression`, `constant_expression`, and their operand/operator/literal sub-rules underlie **every** expression-typed field across the grammar (every parameter value, port connection, variable initializer, function/task argument, condition, range, case-item value, foreach-loop bound, return value, etc.). Crosses the **700-annotation milestone**.
+
+### Annotations
+
+```ebnf
+expression := expression_base       -> {kind: "base",        body: $1}
+            | inside_expression     -> {kind: "inside",      body: $1}
+            | conditional_expression -> {kind: "conditional", body: $1}
+
+expression_base := tagged_union_expression
+                        -> {kind: "tagged_union",   body: $1}
+                | expression_operand ( binary_operator attribute_instance* expression_operand )*
+                        -> {kind: "operand_chain",  first: $1, rest: $2}
+                | lparen operator_assignment rparen
+                        -> {kind: "paren_op_assign", body: $2}
+
+expression_operand := unary_operator attribute_instance* primary
+                            -> {kind: "unary",      op: $1, attributes: $2, primary: $3}
+                    | inc_or_dec_expression
+                            -> {kind: "inc_or_dec", body: $1}
+                    | primary
+                            -> {kind: "primary",    body: $1}
+
+expression_or_dist := expression ( kw_dist dist_list* )?
+                   -> {expr: $1, dist: $2}
+
+constant_expression := constant_expression_operand ( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?
+                    -> {first: $1, rest: $2, ternary: $3}
+
+constant_expression_operand := unary_operator attribute_instance* constant_primary
+                                    -> {kind: "unary",   op: $1, attributes: $2, primary: $3}
+                             | constant_primary
+                                    -> {kind: "primary", body: $1}
+
+@profiles: ["sv_2017"]
+inside_expression_sv_2017 := expression_base kw_inside open_range_list*
+                          -> {expr: $1, ranges: $3}
+
+@profiles: ["sv_2023"]
+inside_expression_sv_2023 := expression_base kw_inside range_list*
+                          -> {expr: $1, ranges: $3}
+
+conditional_expression := cond_predicate &question question attribute_instance* expression colon expression
+                       -> {predicate: $1, attributes: $4, then_expr: $5, else_expr: $7}
+
+tagged_union_expression_sv_2017 := kw_tagged member_identifier ( expression )?
+                                -> {name: $2, value: $3}
+
+tagged_union_expression_sv_2023 := kw_tagged member_identifier ( primary )?
+                                -> {name: $2, value: $3}
+
+primary_literal := number                  -> {kind: "number",                body: $1}
+                 | time_literal            -> {kind: "time_literal",          body: $1}
+                 | unbased_unsized_literal -> {kind: "unbased_unsized_literal", body: $1}
+                 | string_literal          -> {kind: "string_literal",        body: $1}
+
+binary_operator := /* 29 kinds bare {kind}: plus / minus / star / slash / percent / equal / not_equal / case_equal / case_not_equal / wildcard_equal / wildcard_not_equal / logical_and / logical_or / power / less_than / less_equal / greater_than / greater_equal / bitwise_and / bitwise_or / bitwise_xor / reduction_xnor_alt / reduction_xnor / shift_right / shift_left / arithmetic_shift_right / arithmetic_shift_left / implies / iff_arrow */
+
+unary_operator := /* 11 kinds bare {kind}: plus / minus / bang / tilde / bitwise_and / reduction_nand / bitwise_or / reduction_nor / bitwise_xor / reduction_xnor / reduction_xnor_alt */
+```
+
+### Field semantics
+
+- `expression_base.kind == "operand_chain"`: the standard binary-operator chain `op1 OP op2 OP op3 ...`. `first` is the leading operand, `rest` is the iteration of `[binary_operator, attribute_instance*, operand]` tuples.
+- `expression_base.kind == "paren_op_assign"`: parenthesized operator-assignment expression (e.g., `(a += 1)` as an expression).
+- `expression_operand.kind == "unary"`: `op operand` form with optional inline attributes.
+- `inside_expression`: `expr inside { range_list }` form per LRM A.6.7.1.
+- `conditional_expression`: ternary `? :` form. The `&question` positive lookahead is preserved unchanged from the source grammar.
+- `constant_expression.ternary`: optional `( question attrs constant_expression colon constant_expression )?` slot — `[]` for non-ternary expressions.
+- Operator rules (`binary_operator` / `unary_operator`) use bare `{kind}` shape — each branch is a single keyword token, so the kind label is the only meaningful information. Same pattern as `assignment_operator` / `inc_or_dec_operator` (slice 24) and `class_item_qualifier` (slice 27).
+
+### Annotation inventory
+
+706 entries (was 644). +62 in this batch (3 expression + 3 expression_base + 3 expression_operand + 1 expression_or_dist + 1 constant_expression + 2 constant_expression_operand + 1 inside_expression_sv_2017 + 1 inside_expression_sv_2023 + 1 conditional_expression + 1 tagged_union_expression_sv_2017 + 1 tagged_union_expression_sv_2023 + 4 primary_literal + 29 binary_operator + 11 unary_operator). Crosses the 700-annotation milestone.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `primary_sv_2017/2023` (large but reachable from `expression_operand.kind == "primary"`).
+- `constant_primary` (parallel to primary).
+- `attr_spec` deeper internals.
+- `list_of_path_delay_expressions` (6-branch path-delay specifier — non-uniform shape).
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.45 / Contract 1.0.45 Highlights — SV-Slice-45 batch: pattern + cond_predicate family typed (6 rules / 18 annotations)
 

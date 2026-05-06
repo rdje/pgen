@@ -228,7 +228,35 @@ compiler_directive := trivia /`[^\r\n]*/
 
 comment_only_source_region := white_space* ( line_comment | block_comment ) ( white_space | line_comment | block_comment )*
 
-binary_operator := plus | minus | star | slash | percent | equal | not_equal | case_equal | case_not_equal | wildcard_equal | wildcard_not_equal | logical_and | logical_or | power | less_than | less_equal | greater_than | greater_equal | bitwise_and | bitwise_or | bitwise_xor | reduction_xnor_alt | reduction_xnor | shift_right | shift_left | arithmetic_shift_right | arithmetic_shift_left | implies | iff_arrow
+binary_operator := plus                     -> {kind: "plus"}
+                 | minus                    -> {kind: "minus"}
+                 | star                     -> {kind: "star"}
+                 | slash                    -> {kind: "slash"}
+                 | percent                  -> {kind: "percent"}
+                 | equal                    -> {kind: "equal"}
+                 | not_equal                -> {kind: "not_equal"}
+                 | case_equal               -> {kind: "case_equal"}
+                 | case_not_equal           -> {kind: "case_not_equal"}
+                 | wildcard_equal           -> {kind: "wildcard_equal"}
+                 | wildcard_not_equal       -> {kind: "wildcard_not_equal"}
+                 | logical_and              -> {kind: "logical_and"}
+                 | logical_or               -> {kind: "logical_or"}
+                 | power                    -> {kind: "power"}
+                 | less_than                -> {kind: "less_than"}
+                 | less_equal               -> {kind: "less_equal"}
+                 | greater_than             -> {kind: "greater_than"}
+                 | greater_equal            -> {kind: "greater_equal"}
+                 | bitwise_and              -> {kind: "bitwise_and"}
+                 | bitwise_or               -> {kind: "bitwise_or"}
+                 | bitwise_xor              -> {kind: "bitwise_xor"}
+                 | reduction_xnor_alt       -> {kind: "reduction_xnor_alt"}
+                 | reduction_xnor           -> {kind: "reduction_xnor"}
+                 | shift_right              -> {kind: "shift_right"}
+                 | shift_left               -> {kind: "shift_left"}
+                 | arithmetic_shift_right   -> {kind: "arithmetic_shift_right"}
+                 | arithmetic_shift_left    -> {kind: "arithmetic_shift_left"}
+                 | implies                  -> {kind: "implies"}
+                 | iff_arrow                -> {kind: "iff_arrow"}
 
 assignment_operator := assign                          -> {kind: "assign"}
                      | plus_assign                     -> {kind: "plus_assign"}
@@ -244,15 +272,31 @@ assignment_operator := assign                          -> {kind: "assign"}
                      | arithmetic_shift_left_assign    -> {kind: "arithmetic_shift_left_assign"}
                      | arithmetic_shift_right_assign   -> {kind: "arithmetic_shift_right_assign"}
 
-constant_expression_operand := unary_operator attribute_instance* constant_primary | constant_primary
+constant_expression_operand := unary_operator attribute_instance* constant_primary
+                                    -> {kind: "unary",   op: $1, attributes: $2, primary: $3}
+                             | constant_primary
+                                    -> {kind: "primary", body: $1}
 
 constant_expression := @probe_sample: "1" constant_expression_operand ( binary_operator attribute_instance* constant_expression_operand )* ( question attribute_instance* constant_expression colon constant_expression )?
+                    -> {first: $1, rest: $2, ternary: $3}
 
-expression_operand := unary_operator attribute_instance* primary | inc_or_dec_expression | primary
+expression_operand := unary_operator attribute_instance* primary
+                            -> {kind: "unary",      op: $1, attributes: $2, primary: $3}
+                    | inc_or_dec_expression
+                            -> {kind: "inc_or_dec", body: $1}
+                    | primary
+                            -> {kind: "primary",    body: $1}
 
-expression_base := tagged_union_expression | expression_operand ( binary_operator attribute_instance* expression_operand )* | lparen operator_assignment rparen
+expression_base := tagged_union_expression
+                        -> {kind: "tagged_union",   body: $1}
+                | expression_operand ( binary_operator attribute_instance* expression_operand )*
+                        -> {kind: "operand_chain",  first: $1, rest: $2}
+                | lparen operator_assignment rparen
+                        -> {kind: "paren_op_assign", body: $2}
 
-expression := @probe_sample: "1" expression_base | inside_expression | conditional_expression
+expression := @probe_sample: "1" expression_base -> {kind: "base",        body: $1}
+            | inside_expression                  -> {kind: "inside",      body: $1}
+            | conditional_expression             -> {kind: "conditional", body: $1}
 
 identifier := escaped_identifier | simple_identifier
 
@@ -791,6 +835,7 @@ cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_p
                -> {first: $1, rest: $2}
 
 conditional_expression := cond_predicate &question question attribute_instance* expression colon expression
+                       -> {predicate: $1, attributes: $4, then_expr: $5, else_expr: $7}
 
 conditional_generate_construct := if_generate_construct   -> {kind: "if",   body: $1}
                                 | case_generate_construct -> {kind: "case", body: $1}
@@ -1299,6 +1344,7 @@ expression_or_cond_pattern := expression_base -> {kind: "expression",   body: $1
                             | cond_pattern    -> {kind: "cond_pattern", body: $1}
 
 expression_or_dist := @probe_sample: "1" expression ( kw_dist_02450072 dist_list* )?
+                   -> {expr: $1, dist: $2}
 
 @profiles: ["sv_2017"]
 extern_constraint_declaration_sv_2017 := ( kw_static_a381562a )? kw_constraint_9f454fd4 class_scope constraint_identifier constraint_block
@@ -1511,9 +1557,11 @@ input_terminal := expression
 
 @profiles: ["sv_2017"]
 inside_expression_sv_2017 := expression_base kw_inside_fcc53788 open_range_list*
+                          -> {expr: $1, ranges: $3}
 
 @profiles: ["sv_2023"]
 inside_expression_sv_2023 := expression_base kw_inside_fcc53788 range_list*
+                          -> {expr: $1, ranges: $3}
 
 inside_expression := inside_expression_sv_2017 | inside_expression_sv_2023
 
@@ -2447,7 +2495,10 @@ primary_sv_2023 := primary_literal | call_primary ( lbrack range_expression rbra
 
 primary := primary_sv_2017 | primary_sv_2023
 
-primary_literal := number | time_literal | unbased_unsized_literal | string_literal
+primary_literal := number                  -> {kind: "number",                body: $1}
+                 | time_literal            -> {kind: "time_literal",          body: $1}
+                 | unbased_unsized_literal -> {kind: "unbased_unsized_literal", body: $1}
+                 | string_literal          -> {kind: "string_literal",        body: $1}
 
 procedural_assertion_statement := concurrent_assertion_statement -> {kind: "concurrent",             body: $1}
                                 | immediate_assertion_statement  -> {kind: "immediate",              body: $1}
@@ -3058,9 +3109,11 @@ t_path_delay_expression := path_delay_expression
 
 @profiles: ["sv_2017"]
 tagged_union_expression_sv_2017 := kw_tagged_8e1ec218 member_identifier ( expression )?
+                                -> {name: $2, value: $3}
 
 @profiles: ["sv_2023"]
 tagged_union_expression_sv_2023 := kw_tagged_8e1ec218 member_identifier ( primary )?
+                                -> {name: $2, value: $3}
 
 tagged_union_expression := tagged_union_expression_sv_2017 | tagged_union_expression_sv_2023
 
@@ -3304,7 +3357,17 @@ udp_reg_declaration := attribute_instance* kw_reg_e06b9586 variable_identifier
 
 unary_module_path_operator := bang | tilde | bitwise_and | reduction_nand | bitwise_or | reduction_nor | bitwise_xor | reduction_xnor | reduction_xnor_alt
 
-unary_operator := plus | minus | bang | tilde | bitwise_and | reduction_nand | bitwise_or | reduction_nor | bitwise_xor | reduction_xnor | reduction_xnor_alt
+unary_operator := plus                  -> {kind: "plus"}
+                | minus                 -> {kind: "minus"}
+                | bang                  -> {kind: "bang"}
+                | tilde                 -> {kind: "tilde"}
+                | bitwise_and           -> {kind: "bitwise_and"}
+                | reduction_nand        -> {kind: "reduction_nand"}
+                | bitwise_or            -> {kind: "bitwise_or"}
+                | reduction_nor         -> {kind: "reduction_nor"}
+                | bitwise_xor           -> {kind: "bitwise_xor"}
+                | reduction_xnor        -> {kind: "reduction_xnor"}
+                | reduction_xnor_alt    -> {kind: "reduction_xnor_alt"}
 
 unique_priority := kw_unique_58037c00 | kw_unique_58037c00 | kw_priority_3345867e
 

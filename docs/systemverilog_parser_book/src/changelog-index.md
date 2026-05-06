@@ -19,6 +19,31 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.46 / Contract 1.0.46 — SV-Slice-46 batch: expression family typed (14 rules / 62 annotations — crosses 700-annotation milestone)
+
+**What changed:** Single largest impact slice — `expression`, `constant_expression`, and their operand/operator/literal sub-rules underlie every expression-typed field across the grammar.
+
+```ebnf
+expression                       -> 3 kinds (base / inside / conditional)
+expression_base                  -> 3 kinds (tagged_union / operand_chain / paren_op_assign)
+expression_operand               -> 3 kinds (unary / inc_or_dec / primary)
+expression_or_dist               -> {expr, dist}
+constant_expression              -> {first, rest, ternary}
+constant_expression_operand      -> 2 kinds (unary / primary)
+inside_expression_sv_2017/2023   -> {expr, ranges}
+conditional_expression           -> {predicate, attributes, then_expr, else_expr}
+tagged_union_expression_sv_2017/2023 -> {name, value}
+primary_literal                  -> 4 kinds (number / time_literal / unbased_unsized_literal / string_literal)
+binary_operator                  -> 29 kinds bare {kind}
+unary_operator                   -> 11 kinds bare {kind}
+```
+
+**Annotation inventory:** 706 entries (was 644). +62 in this batch — crosses the 700-annotation milestone.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.46 / Contract 1.0.46 Highlights".
+
 ### 1.0.45 / Contract 1.0.45 — SV-Slice-45 batch: pattern + cond_predicate family typed (6 rules / 18 annotations)
 
 **What changed:** Closes the LRM A.6.7.1 pattern-matching walk path used by case_pattern_item, conditional_statement.condition (via cond_predicate), and constraint_expression's various forms.

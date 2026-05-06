@@ -251,6 +251,18 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `pattern_sv_2017` (6 branches) | per-branch typed | Kind labels: `"variable_capture"` (`{name}` — `.name` form, binds matched value) / `"wildcard"` (`.*`) / `"expression"` (`{body}`) / `"tagged"` (`{name, sub_pattern}` — tagged-union pattern) / `"ordered"` (`{patterns: {first, rest}}` — `'{p1, p2}` positional struct pattern) / `"named"` (`{entries: {first: {name, pattern}, rest}}` — `'{n1: p1, n2: p2}` keyed pattern). |
 | `pattern_sv_2023` (7 branches) | per-branch typed | Same 6 kinds as sv_2017 plus `"parenthesized"` (`{body}` — `(pattern)` form added in LRM 2023 A.6.7.1 grammar expansion). |
 | `assignment_pattern` | `-> {exprs: {first, rest}}` | The `'{expr, expr, ...}` assignment-pattern form (drops tick / braces). Mini-mixed-array on exprs. |
+| `expression` (3 branches) | per-branch `{kind, body}` | Kind labels: `"base"` (typed expression_base) / `"inside"` (typed inside_expression) / `"conditional"` (typed conditional_expression). |
+| `expression_base` (3 branches) | per-branch typed | Kind labels: `"tagged_union"` (`{body}`) / `"operand_chain"` (`{first, rest}` — binary-operator chain) / `"paren_op_assign"` (`{body}`). |
+| `expression_operand` (3 branches) | per-branch typed | Kind labels: `"unary"` (`{op, attributes, primary}`) / `"inc_or_dec"` (`{body}`) / `"primary"` (`{body}`). |
+| `expression_or_dist` | `-> {expr, dist}` | Wraps an expression with optional `dist { ... }` clause for constraint distribution. |
+| `constant_expression` | `-> {first, rest, ternary}` | Binary-op chain with optional `?:` ternary tail. `ternary` is `[]` for non-ternary, `[<? attrs expr : expr>]` for ternary. |
+| `constant_expression_operand` (2 branches) | per-branch typed | Kind labels: `"unary"` (`{op, attributes, primary}`) / `"primary"` (`{body}`). |
+| `inside_expression_sv_2017` / `inside_expression_sv_2023` | `-> {expr, ranges}` | The `expr inside { range_list }` form per LRM A.6.7.1. sv_2017 uses open_range_list; sv_2023 uses range_list. |
+| `conditional_expression` | `-> {predicate, attributes, then_expr, else_expr}` | Ternary `? :` form. The `&question` positive lookahead is preserved unchanged from source grammar. |
+| `tagged_union_expression_sv_2017` / `tagged_union_expression_sv_2023` | `-> {name, value}` | `tagged member_name [value]` form. sv_2023 uses `primary` for value (more restrictive); sv_2017 uses `expression`. |
+| `primary_literal` (4 branches) | per-branch `{kind, body}` | Kind labels: `"number"` / `"time_literal"` / `"unbased_unsized_literal"` (`'0` / `'1` / `'x` / `'z`) / `"string_literal"`. |
+| `binary_operator` (29 branches) | per-branch `{kind}` (bare) | Kind labels: `"plus"` / `"minus"` / `"star"` / `"slash"` / `"percent"` / `"equal"` / `"not_equal"` / `"case_equal"` / `"case_not_equal"` / `"wildcard_equal"` / `"wildcard_not_equal"` / `"logical_and"` / `"logical_or"` / `"power"` / `"less_than"` / `"less_equal"` / `"greater_than"` / `"greater_equal"` / `"bitwise_and"` / `"bitwise_or"` / `"bitwise_xor"` / `"reduction_xnor_alt"` / `"reduction_xnor"` / `"shift_right"` / `"shift_left"` / `"arithmetic_shift_right"` / `"arithmetic_shift_left"` / `"implies"` / `"iff_arrow"`. |
+| `unary_operator` (11 branches) | per-branch `{kind}` (bare) | Kind labels: `"plus"` / `"minus"` / `"bang"` / `"tilde"` / `"bitwise_and"` / `"reduction_nand"` / `"bitwise_or"` / `"reduction_nor"` / `"bitwise_xor"` / `"reduction_xnor"` / `"reduction_xnor_alt"`. |
 
 ## Sub-rules with implicit defaults
 
