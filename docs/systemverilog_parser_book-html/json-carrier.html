@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4858cfa3.js";
+            window.path_to_searchindex_js = "searchindex-648766f6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -454,6 +454,12 @@
 <tr><td><code>enum_id_scope_prefix</code> (NEW; 2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"package_scope"</code> / <code>"class_scope"</code>. Helper rule extracted from inline <code>( non_typedef_package_scope | class_scope )?</code> in constant_primary_sv_2017’s enum branch.</td></tr>
 <tr><td><code>primary_sv_2023</code> (15 branches)</td><td>per-branch typed</td><td>Same 15 kind labels as primary_sv_2017 except <code>"call"</code> adds optional <code>select</code> field — <code>{body, select}</code> (LRM 2023 allows <code>f()[0]</code> array-indexed call). Reuses <code>primary_hier_scope_prefix</code> and <code>instance_or_class_scope</code> helpers.</td></tr>
 <tr><td><code>constant_primary_sv_2023</code> (16 branches)</td><td>per-branch typed</td><td>sv_2017’s 15 kinds plus <code>"empty_array_concat"</code> (<code>{body}</code>) added per LRM 2023; also <code>"function_call"</code> adds optional <code>select</code> field. Reuses <code>enum_id_scope_prefix</code> helper.</td></tr>
+<tr><td><code>attr_spec</code></td><td><code>-&gt; {name, value}</code></td><td>LRM A.9.1 attribute spec: <code>name [= value]</code>. <code>value</code> is <code>[]</code> for bare attribute, <code>[&lt;assign, expr&gt;]</code> when explicit.</td></tr>
+<tr><td><code>cast</code> / <code>constant_cast</code></td><td><code>-&gt; {type, body}</code></td><td>LRM cast form <code>type'(expr)</code>. Drops tick / parens.</td></tr>
+<tr><td><code>concatenation</code> / <code>constant_concatenation</code></td><td><code>-&gt; {first, rest}</code></td><td>LRM <code>{e1, e2, ...}</code>. Mini-mixed-array. Drops braces.</td></tr>
+<tr><td><code>multiple_concatenation</code> / <code>constant_multiple_concatenation</code></td><td><code>-&gt; {count, body}</code></td><td>LRM <code>{N{...}}</code> replication.</td></tr>
+<tr><td><code>streaming_concatenation</code></td><td><code>-&gt; {op, slice_size, body}</code></td><td>LRM A.8.1 <code>&lt;&lt;size{...}&gt;&gt;</code> / <code>&gt;&gt;{...}</code> form. <code>op</code> is <code>&lt;&lt;</code> or <code>&gt;&gt;</code>. <code>slice_size</code> is <code>[]</code> for default-bit-stream.</td></tr>
+<tr><td><code>call_primary</code> (6 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"split_direct_callable_method"</code> / <code>"class_scoped_tf"</code> / <code>"plain_tf"</code> / <code>"tf"</code> / <code>"direct_callable_method"</code> / <code>"system_tf"</code>.</td></tr>
 </tbody>
 </table>
 </div>

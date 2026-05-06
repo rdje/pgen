@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.49 / Contract 1.0.49 — SV-Slice-49 batch: concat / cast / call_primary / attr_spec typed (9 rules / 14 annotations)
+
+**What changed:** Closes the leaf rules used pervasively across primary_sv_2017/2023.
+
+```ebnf
+attr_spec                          -> {name, value}
+cast / constant_cast               -> {type, body}
+concatenation / constant_concatenation -> {first, rest}
+multiple_concatenation / constant_multiple_concatenation -> {count, body}
+streaming_concatenation            -> {op, slice_size, body}
+call_primary                       -> 6 kinds (split_direct_callable_method / class_scoped_tf / plain_tf / tf / direct_callable_method / system_tf)
+```
+
+**Annotation inventory:** 787 entries (was 773). +14 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.49 / Contract 1.0.49 Highlights".
+
 ### 1.0.48 / Contract 1.0.48 — SV-Slice-48 batch: primary_sv_2023 + constant_primary_sv_2023 typed (2 rules / 31 annotations)
 
 **What changed:** Completes the parallel sv_2023 forms. Both sv_2017 and sv_2023 primary expression dispatch fully typed end-to-end.

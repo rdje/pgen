@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-49 batch: concat / cast / call_primary / attr_spec typed (9 rules / 14 annotations)
+
+Closes the leaf rules used pervasively across `primary_sv_2017/2023`. After this slice, primary's `cast` / `concat` / `multiple_concat` / `call` / `assign_pattern` / `attribute_instance` field references all resolve to typed shapes.
+
+```ebnf
+attr_spec                          -> {name, value}
+cast / constant_cast               -> {type, body}
+concatenation / constant_concatenation -> {first, rest}
+multiple_concatenation / constant_multiple_concatenation -> {count, body}
+streaming_concatenation            -> {op, slice_size, body}
+call_primary                       -> 6 kinds
+```
+
+Annotation count: **787** (was 773, +14). Same accept set. Schema stays at `1`. Contract bumped 1.0.48 → 1.0.49. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-48 batch: primary_sv_2023 + constant_primary_sv_2023 typed (2 rules / 31 annotations)
 
 Completes SV-Slice-47 DEFERRED parallel sv_2023 forms. Both sv_2017 and sv_2023 primary expression dispatch is now fully typed end-to-end.

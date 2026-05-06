@@ -445,6 +445,7 @@ assume_property_statement := kw_assume_661e458e kw_property_269fe373 lparen prop
 attr_name := identifier
 
 attr_spec := attr_name ( assign constant_expression )?
+          -> {name: $1, value: $2}
 
 attribute_instance := attr_open attr_spec ( comma attr_spec )* attr_close
                    -> {first: $2, rest: $3}
@@ -608,6 +609,7 @@ case_statement := @sample: "case (a) default: ; endcase" ( unique_priority )? ca
                 | @sample: "case (a) inside [0:1]: ; endcase" ( unique_priority )? kw_case_6406510c lparen case_expression rparen kw_inside_fcc53788 case_inside_item case_inside_item* kw_endcase_a27a6786
 
 cast := casting_type tick lparen expression rparen
+     -> {type: $1, body: $4}
 
 casting_type := simple_type | constant_primary | signing | kw_string_ecb25204 | kw_const_b42f3f6f
 
@@ -816,6 +818,7 @@ combinational_entry := level_input_list colon output_symbol semi
 // comment := one_line_comment | block_comment
 
 concatenation := lbrace expression ( comma expression )* rbrace
+              -> {first: $2, rest: $3}
 
 concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_statement
                                   -> {kind: "statement",             label: $1, body: $2}
@@ -865,8 +868,10 @@ constant_assignment_pattern_expression := assignment_pattern_expression
 constant_bit_select := ( lbrack constant_expression rbrack )*
 
 constant_cast := casting_type tick lparen constant_expression rparen
+              -> {type: $1, body: $4}
 
 constant_concatenation := lbrace constant_expression ( comma constant_expression )* rbrace
+                       -> {first: $2, rest: $3}
 
 constant_function_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call
 
@@ -877,6 +882,7 @@ constant_let_expression := let_expression
 constant_mintypmax_expression := constant_expression | constant_expression colon constant_expression colon constant_expression
 
 constant_multiple_concatenation := lbrace constant_expression constant_concatenation rbrace
+                                -> {count: $2, body: $3}
 
 constant_param_expression := constant_mintypmax_expression | data_type | kw_dollar
 
@@ -1971,7 +1977,12 @@ method_call_receiver := method_call_receiver_sv_2017 | method_call_receiver_sv_2
 method_call_root := method_call_receiver | implicit_class_handle
 
 @branch_policy: priority_first
-call_primary := split_direct_callable_method_call | class_scoped_tf_call_with_args | plain_tf_call_with_args | tf_call_with_args | direct_callable_method_call | system_tf_call
+call_primary := split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
+              | class_scoped_tf_call_with_args     -> {kind: "class_scoped_tf",              body: $1}
+              | plain_tf_call_with_args            -> {kind: "plain_tf",                     body: $1}
+              | tf_call_with_args                  -> {kind: "tf",                           body: $1}
+              | direct_callable_method_call        -> {kind: "direct_callable_method",       body: $1}
+              | system_tf_call                     -> {kind: "system_tf",                    body: $1}
 
 method_identifier := declaration_identifier
 
@@ -2115,6 +2126,7 @@ mos_switch_instance := ( name_of_instance )? lparen output_terminal comma input_
 mos_switchtype := kw_nmos_0c967e00 | kw_pmos_f3d8bd5d | kw_rnmos_de1c9510 | kw_rpmos_7cd80934
 
 multiple_concatenation := lbrace expression concatenation rbrace
+                       -> {count: $2, body: $3}
 
 n_input_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal ( comma input_terminal )* rparen
 
@@ -3139,6 +3151,7 @@ stream_expression := expression ( kw_with_8fcd25a3 ( array_range_expression )? )
 stream_operator := shift_right | shift_left
 
 streaming_concatenation := lbrace stream_operator ( slice_size )? stream_concatenation rbrace
+                        -> {op: $2, slice_size: $3, body: $4}
 
 strength := kw_supply_076df715 | kw_strong_0117691d | kw_pull_c872d556 | kw_weak_1ded3053
 

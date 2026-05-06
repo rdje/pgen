@@ -270,6 +270,12 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `enum_id_scope_prefix` (NEW; 2 branches) | per-branch `{kind, body}` | Kind labels: `"package_scope"` / `"class_scope"`. Helper rule extracted from inline `( non_typedef_package_scope \| class_scope )?` in constant_primary_sv_2017's enum branch. |
 | `primary_sv_2023` (15 branches) | per-branch typed | Same 15 kind labels as primary_sv_2017 except `"call"` adds optional `select` field — `{body, select}` (LRM 2023 allows `f()[0]` array-indexed call). Reuses `primary_hier_scope_prefix` and `instance_or_class_scope` helpers. |
 | `constant_primary_sv_2023` (16 branches) | per-branch typed | sv_2017's 15 kinds plus `"empty_array_concat"` (`{body}`) added per LRM 2023; also `"function_call"` adds optional `select` field. Reuses `enum_id_scope_prefix` helper. |
+| `attr_spec` | `-> {name, value}` | LRM A.9.1 attribute spec: `name [= value]`. `value` is `[]` for bare attribute, `[<assign, expr>]` when explicit. |
+| `cast` / `constant_cast` | `-> {type, body}` | LRM cast form `type'(expr)`. Drops tick / parens. |
+| `concatenation` / `constant_concatenation` | `-> {first, rest}` | LRM `{e1, e2, ...}`. Mini-mixed-array. Drops braces. |
+| `multiple_concatenation` / `constant_multiple_concatenation` | `-> {count, body}` | LRM `{N{...}}` replication. |
+| `streaming_concatenation` | `-> {op, slice_size, body}` | LRM A.8.1 `<<size{...}>>` / `>>{...}` form. `op` is `<<` or `>>`. `slice_size` is `[]` for default-bit-stream. |
+| `call_primary` (6 branches) | per-branch `{kind, body}` | Kind labels: `"split_direct_callable_method"` / `"class_scoped_tf"` / `"plain_tf"` / `"tf"` / `"direct_callable_method"` / `"system_tf"`. |
 
 ## Sub-rules with implicit defaults
 

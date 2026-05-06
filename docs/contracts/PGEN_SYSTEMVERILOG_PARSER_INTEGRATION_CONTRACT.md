@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.48`
+  - `1.0.49`
 - Parser release version:
-  - `1.0.48`
+  - `1.0.49`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,69 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.49 / Contract 1.0.49 Highlights — SV-Slice-49 batch: concat / cast / call_primary / attr_spec typed (9 rules / 14 annotations)
+
+Closes the leaf rules used pervasively across `primary_sv_2017/2023` (typed in SV-Slices 47-48). After this slice, primary's `cast` / `concat` / `multiple_concat` / `call` / `assign_pattern` / `attribute_instance.first` / `.rest` field references all resolve to typed shapes.
+
+### Annotations
+
+```ebnf
+attr_spec := attr_name ( assign constant_expression )?
+          -> {name: $1, value: $2}
+
+cast := casting_type tick lparen expression rparen
+     -> {type: $1, body: $4}
+
+constant_cast := casting_type tick lparen constant_expression rparen
+              -> {type: $1, body: $4}
+
+concatenation := lbrace expression ( comma expression )* rbrace
+              -> {first: $2, rest: $3}
+
+constant_concatenation := lbrace constant_expression ( comma constant_expression )* rbrace
+                       -> {first: $2, rest: $3}
+
+multiple_concatenation := lbrace expression concatenation rbrace
+                       -> {count: $2, body: $3}
+
+constant_multiple_concatenation := lbrace constant_expression constant_concatenation rbrace
+                                -> {count: $2, body: $3}
+
+streaming_concatenation := lbrace stream_operator ( slice_size )? stream_concatenation rbrace
+                        -> {op: $2, slice_size: $3, body: $4}
+
+call_primary := split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
+              | class_scoped_tf_call_with_args     -> {kind: "class_scoped_tf",              body: $1}
+              | plain_tf_call_with_args            -> {kind: "plain_tf",                     body: $1}
+              | tf_call_with_args                  -> {kind: "tf",                           body: $1}
+              | direct_callable_method_call        -> {kind: "direct_callable_method",       body: $1}
+              | system_tf_call                     -> {kind: "system_tf",                    body: $1}
+```
+
+### Field semantics
+
+- `concatenation.first` / `.rest`: mini-mixed-array — `first` is the leading expression in `{...}`, `rest` is the trailing iteration of `[comma, expression]` pairs.
+- `multiple_concatenation.count` / `.body`: `{count{body}}` LRM form — count is the replication factor expression, body is the typed inner concatenation.
+- `streaming_concatenation`: LRM A.8.1 `<<size{...}>>` / `>>{...}` form. `op` is the stream_operator (`<<` or `>>`), `slice_size` is `[]` for default-bit-stream or `[<expr>]` for explicit slice size.
+- `call_primary.kind`: 6-way dispatch over the various call-form variants per LRM A.8.2.
+- `attr_spec`: simple `name [= value]` form per LRM A.9.1 — `value` is `[]` for bare attribute name, `[<assign, expr>]` when explicit value provided.
+
+### Annotation inventory
+
+787 entries (was 773). +14 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `system_tf_call` deeper internals (large 5-branch rule).
+- `casting_type` (referenced from cast/constant_cast .type field).
+- `select` / `constant_select` (used pervasively across primary).
+- `list_of_path_delay_expressions` (6-branch path-delay specifier).
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.48 / Contract 1.0.48 Highlights — SV-Slice-48 batch: primary_sv_2023 + constant_primary_sv_2023 typed (2 rules / 31 annotations)
 
