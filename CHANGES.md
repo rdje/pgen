@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-39 batch: rs_* family typed (17 rules / 31 annotations — crosses 500-annotation milestone)
+
+Closes the random-sequence walk path end-to-end. Every reachable `randsequence_statement` → `production` → `rules.{first,rest}` → `rs_rule` → `rs_production_list` → `rs_prod` → ... resolves through typed shapes. **Crosses the 500-annotation milestone.**
+
+```ebnf
+rs_case                         -> {expr, items: {first, rest}}
+rs_case_item_sv_2017/2023       -> 2 kinds (expr_list / default)
+rs_code_block                   -> {body}
+rs_if_else_sv_2017/2023         -> {condition, then_body, else_body}
+rs_prod_sv_2017/2023            -> 5 kinds (production_item / code_block / if_else / repeat / case)
+rs_production_sv_2023           -> {return_type, name, ports, rules: {first, rest}}
+rs_production_item_sv_2023      -> {name, args}
+rs_production_list_sv_2017/2023 -> 2 kinds (productions / rand_join)
+rs_repeat_sv_2017/2023          -> {count, body}
+rs_rule_sv_2017/2023            -> {productions, weight}
+rs_weight_specification_sv_2023 -> 3 kinds (number / identifier / expression)
+```
+
+Annotation count: **520** (was 489, +31). Same accept set. Schema stays at `1`. Contract bumped 1.0.38 → 1.0.39. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-38 batch: randsequence top-level + production typed (4 rules / 4 annotations)
 
 Closes the last raw-envelope `statement_item` kind. Every framed procedural statement in module/program/function/task bodies now type-discriminates into a structured shape AND every typed body content (productions / production rules) is reachable.

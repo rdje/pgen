@@ -184,6 +184,23 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `randsequence_statement_sv_2023` | `-> {start, productions: {first, rest}}` | Same shape as sv_2017. References `rs_production_identifier` / `rs_production` per LRM 2023 namespacing (the typed shape is identical for consumers). |
 | `production_sv_2017` | `-> {return_type, name, ports, rules: {first, rest}}` | Drops `colon` and trailing `semi`. `return_type` is the optional `data_type_or_void` prefix. `ports` is the optional `( lparen tf_port_list rparen )?` slot. `rules` is mini-mixed-array — each entry in `rest` is a `[bitwise_or_token, rs_rule]` pair (alternative rules separated by `|`). |
 | `production_item_sv_2017` | `-> {name, args}` | `args` is the optional `( lparen list_of_arguments rparen )?` slot — `[]` for plain reference, `[<arg list>]` when invoking with arguments. |
+| `rs_case` | `-> {expr, items: {first, rest}}` | Drops `kw_case` / `kw_endcase` / parens. |
+| `rs_case_item_sv_2017` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: {first, rest}, body}`) / `"default"` (`{body}`). |
+| `rs_case_item_sv_2023` (2 branches) | per-branch typed | Same kinds as sv_2017; uses rs_production_item per LRM 2023 namespacing. |
+| `rs_code_block` | `-> {body}` | Exposes the Quantified iteration of `( data_declaration* statement_or_null* )*` directly — each entry is `[data_declaration*-array, statement_or_null*-array]`. |
+| `rs_if_else_sv_2017` | `-> {condition, then_body, else_body}` | `else_body` is `[]` for if-without-else, `[<production_item>]` when present. |
+| `rs_if_else_sv_2023` | `-> {condition, then_body, else_body}` | Parallel; uses rs_production_item. |
+| `rs_prod_sv_2017` (5 branches) | per-branch `{kind, body}` | Kind labels: `"production_item"` / `"code_block"` / `"if_else"` / `"repeat"` / `"case"`. |
+| `rs_prod_sv_2023` (5 branches) | per-branch `{kind, body}` | Same 5 kinds as sv_2017; first branch is rs_production_item. |
+| `rs_production_sv_2023` | `-> {return_type, name, ports, rules: {first, rest}}` | Parallel to production_sv_2017 from SV-Slice-38. |
+| `rs_production_item_sv_2023` | `-> {name, args}` | Parallel to production_item_sv_2017 from SV-Slice-38. |
+| `rs_production_list_sv_2017` (2 branches) | per-branch typed | Kind labels: `"productions"` (`{items: {first, rest}}` — simple rs_prod sequence) / `"rand_join"` (`{join_count, items: {first, second, rest}}` — `rand join [(expr)] prod1 prod2 [prod3...]`; per LRM A.6.13 at least 2 production_items required). |
+| `rs_production_list_sv_2023` (2 branches) | per-branch typed | Same kinds; rand_join uses rs_production_item. |
+| `rs_repeat_sv_2017` | `-> {count, body}` | Drops kw_repeat / parens. |
+| `rs_repeat_sv_2023` | `-> {count, body}` | Parallel; uses rs_production_item. |
+| `rs_rule_sv_2017` | `-> {productions, weight}` | `weight` is the optional `( colon assign weight_specification ( rs_code_block )? )?` slot — `[]` when production has no explicit weight. |
+| `rs_rule_sv_2023` | `-> {productions, weight}` | Parallel; uses rs_weight_specification per LRM 2023. |
+| `rs_weight_specification_sv_2023` (3 branches) | per-branch `{kind, body}` | Kind labels: `"number"` (integral_number) / `"identifier"` (ps_identifier) / `"expression"` (parenthesized expression). |
 
 ## Sub-rules with implicit defaults
 

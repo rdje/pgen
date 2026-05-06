@@ -19,6 +19,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.39 / Contract 1.0.39 — SV-Slice-39 batch: rs_* family typed (17 rules / 31 annotations — crosses 500-annotation milestone)
+
+**What changed:** Closes the random-sequence walk path end-to-end. After this slice, every reachable randsequence_statement → production → rules.{first,rest} → rs_rule → rs_production_list → rs_prod → ... resolves through typed shapes.
+
+```ebnf
+rs_case                         -> {expr, items: {first, rest}}
+rs_case_item_sv_2017/2023       -> 2 kinds (expr_list / default)
+rs_code_block                   -> {body}
+rs_if_else_sv_2017/2023         -> {condition, then_body, else_body}
+rs_prod_sv_2017/2023            -> 5 kinds (production_item / code_block / if_else / repeat / case)
+rs_production_sv_2023           -> {return_type, name, ports, rules: {first, rest}}
+rs_production_item_sv_2023      -> {name, args}
+rs_production_list_sv_2017/2023 -> 2 kinds (productions / rand_join)
+rs_repeat_sv_2017/2023          -> {count, body}
+rs_rule_sv_2017/2023            -> {productions, weight}
+rs_weight_specification_sv_2023 -> 3 kinds (number / identifier / expression)
+```
+
+**Annotation inventory:** 520 entries (was 489). +31 in this batch — crosses the 500-annotation milestone.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.39 / Contract 1.0.39 Highlights".
+
 ### 1.0.38 / Contract 1.0.38 — SV-Slice-38 batch: randsequence top-level + production typed (4 rules / 4 annotations)
 
 **What changed:** Closes the last raw-envelope statement_item kind.

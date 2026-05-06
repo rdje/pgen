@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1624e33.js";
+            window.path_to_searchindex_js = "searchindex-0a1bc9a3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -368,6 +368,23 @@
 <tr><td><code>randsequence_statement_sv_2023</code></td><td><code>-&gt; {start, productions: {first, rest}}</code></td><td>Same shape as sv_2017. References <code>rs_production_identifier</code> / <code>rs_production</code> per LRM 2023 namespacing (the typed shape is identical for consumers).</td></tr>
 <tr><td><code>production_sv_2017</code></td><td><code>-&gt; {return_type, name, ports, rules: {first, rest}}</code></td><td>Drops <code>colon</code> and trailing <code>semi</code>. <code>return_type</code> is the optional <code>data_type_or_void</code> prefix. <code>ports</code> is the optional <code>( lparen tf_port_list rparen )?</code> slot. <code>rules</code> is mini-mixed-array — each entry in <code>rest</code> is a <code>[bitwise_or_token, rs_rule]</code> pair (alternative rules separated by `</td></tr>
 <tr><td><code>production_item_sv_2017</code></td><td><code>-&gt; {name, args}</code></td><td><code>args</code> is the optional <code>( lparen list_of_arguments rparen )?</code> slot — <code>[]</code> for plain reference, <code>[&lt;arg list&gt;]</code> when invoking with arguments.</td></tr>
+<tr><td><code>rs_case</code></td><td><code>-&gt; {expr, items: {first, rest}}</code></td><td>Drops <code>kw_case</code> / <code>kw_endcase</code> / parens.</td></tr>
+<tr><td><code>rs_case_item_sv_2017</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expr_list"</code> (<code>{exprs: {first, rest}, body}</code>) / <code>"default"</code> (<code>{body}</code>).</td></tr>
+<tr><td><code>rs_case_item_sv_2023</code> (2 branches)</td><td>per-branch typed</td><td>Same kinds as sv_2017; uses rs_production_item per LRM 2023 namespacing.</td></tr>
+<tr><td><code>rs_code_block</code></td><td><code>-&gt; {body}</code></td><td>Exposes the Quantified iteration of <code>( data_declaration* statement_or_null* )*</code> directly — each entry is <code>[data_declaration*-array, statement_or_null*-array]</code>.</td></tr>
+<tr><td><code>rs_if_else_sv_2017</code></td><td><code>-&gt; {condition, then_body, else_body}</code></td><td><code>else_body</code> is <code>[]</code> for if-without-else, <code>[&lt;production_item&gt;]</code> when present.</td></tr>
+<tr><td><code>rs_if_else_sv_2023</code></td><td><code>-&gt; {condition, then_body, else_body}</code></td><td>Parallel; uses rs_production_item.</td></tr>
+<tr><td><code>rs_prod_sv_2017</code> (5 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"production_item"</code> / <code>"code_block"</code> / <code>"if_else"</code> / <code>"repeat"</code> / <code>"case"</code>.</td></tr>
+<tr><td><code>rs_prod_sv_2023</code> (5 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Same 5 kinds as sv_2017; first branch is rs_production_item.</td></tr>
+<tr><td><code>rs_production_sv_2023</code></td><td><code>-&gt; {return_type, name, ports, rules: {first, rest}}</code></td><td>Parallel to production_sv_2017 from SV-Slice-38.</td></tr>
+<tr><td><code>rs_production_item_sv_2023</code></td><td><code>-&gt; {name, args}</code></td><td>Parallel to production_item_sv_2017 from SV-Slice-38.</td></tr>
+<tr><td><code>rs_production_list_sv_2017</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"productions"</code> (<code>{items: {first, rest}}</code> — simple rs_prod sequence) / <code>"rand_join"</code> (<code>{join_count, items: {first, second, rest}}</code> — <code>rand join [(expr)] prod1 prod2 [prod3...]</code>; per LRM A.6.13 at least 2 production_items required).</td></tr>
+<tr><td><code>rs_production_list_sv_2023</code> (2 branches)</td><td>per-branch typed</td><td>Same kinds; rand_join uses rs_production_item.</td></tr>
+<tr><td><code>rs_repeat_sv_2017</code></td><td><code>-&gt; {count, body}</code></td><td>Drops kw_repeat / parens.</td></tr>
+<tr><td><code>rs_repeat_sv_2023</code></td><td><code>-&gt; {count, body}</code></td><td>Parallel; uses rs_production_item.</td></tr>
+<tr><td><code>rs_rule_sv_2017</code></td><td><code>-&gt; {productions, weight}</code></td><td><code>weight</code> is the optional <code>( colon assign weight_specification ( rs_code_block )? )?</code> slot — <code>[]</code> when production has no explicit weight.</td></tr>
+<tr><td><code>rs_rule_sv_2023</code></td><td><code>-&gt; {productions, weight}</code></td><td>Parallel; uses rs_weight_specification per LRM 2023.</td></tr>
+<tr><td><code>rs_weight_specification_sv_2023</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"number"</code> (integral_number) / <code>"identifier"</code> (ps_identifier) / <code>"expression"</code> (parenthesized expression).</td></tr>
 </tbody>
 </table>
 </div>

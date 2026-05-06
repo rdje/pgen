@@ -2583,35 +2583,54 @@ restrict_property_statement := kw_restrict_ee1e5b88 kw_property_269fe373 lparen 
                             -> {spec: $4}
 
 rs_case := kw_case_6406510c lparen case_expression rparen rs_case_item rs_case_item* kw_endcase_a27a6786
+        -> {expr: $3, items: {first: $5, rest: $6}}
 
 @profiles: ["sv_2017"]
-rs_case_item_sv_2017 := case_item_expression ( comma case_item_expression )* colon production_item semi | kw_default_7505d64a ( colon )? production_item semi
+rs_case_item_sv_2017 := case_item_expression ( comma case_item_expression )* colon production_item semi
+                             -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+                      | kw_default_7505d64a ( colon )? production_item semi
+                             -> {kind: "default",   body: $3}
 
 @profiles: ["sv_2023"]
-rs_case_item_sv_2023 := case_item_expression ( comma case_item_expression )* colon rs_production_item semi | kw_default_7505d64a ( colon )? rs_production_item semi
+rs_case_item_sv_2023 := case_item_expression ( comma case_item_expression )* colon rs_production_item semi
+                             -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+                      | kw_default_7505d64a ( colon )? rs_production_item semi
+                             -> {kind: "default",   body: $3}
 
 rs_case_item := rs_case_item_sv_2017 | rs_case_item_sv_2023
 
 rs_code_block := ( data_declaration* statement_or_null* )*
+              -> {body: $1}
 
 @profiles: ["sv_2017"]
 rs_if_else_sv_2017 := kw_if_958f57f5 lparen expression rparen production_item ( kw_else_ae050f5b production_item )?
+                   -> {condition: $3, then_body: $5, else_body: $6}
 
 @profiles: ["sv_2023"]
 rs_if_else_sv_2023 := kw_if_958f57f5 lparen expression rparen rs_production_item ( kw_else_ae050f5b rs_production_item )?
+                   -> {condition: $3, then_body: $5, else_body: $6}
 
 rs_if_else := rs_if_else_sv_2017 | rs_if_else_sv_2023
 
 @profiles: ["sv_2017"]
-rs_prod_sv_2017 := production_item | rs_code_block | rs_if_else | rs_repeat | rs_case
+rs_prod_sv_2017 := production_item -> {kind: "production_item", body: $1}
+                 | rs_code_block   -> {kind: "code_block",      body: $1}
+                 | rs_if_else      -> {kind: "if_else",         body: $1}
+                 | rs_repeat       -> {kind: "repeat",          body: $1}
+                 | rs_case         -> {kind: "case",            body: $1}
 
 @profiles: ["sv_2023"]
-rs_prod_sv_2023 := rs_production_item | rs_code_block | rs_if_else | rs_repeat | rs_case
+rs_prod_sv_2023 := rs_production_item -> {kind: "production_item", body: $1}
+                 | rs_code_block      -> {kind: "code_block",      body: $1}
+                 | rs_if_else         -> {kind: "if_else",         body: $1}
+                 | rs_repeat          -> {kind: "repeat",          body: $1}
+                 | rs_case            -> {kind: "case",            body: $1}
 
 rs_prod := rs_prod_sv_2017 | rs_prod_sv_2023
 
 @profiles: ["sv_2023"]
 rs_production_sv_2023 := ( data_type_or_void )? rs_production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
+                      -> {return_type: $1, name: $2, ports: $3, rules: {first: $5, rest: $6}}
 
 rs_production := rs_production_sv_2023
 
@@ -2622,35 +2641,48 @@ rs_production_identifier := rs_production_identifier_sv_2023
 
 @profiles: ["sv_2023"]
 rs_production_item_sv_2023 := rs_production_identifier ( lparen list_of_arguments rparen )?
+                            -> {name: $1, args: $2}
 
 rs_production_item := rs_production_item_sv_2023
 
 @profiles: ["sv_2017"]
-rs_production_list_sv_2017 := rs_prod rs_prod* | kw_rand_52400560 kw_join_c455b38e ( lparen expression rparen )? production_item production_item production_item*
+rs_production_list_sv_2017 := rs_prod rs_prod*
+                                   -> {kind: "productions", items: {first: $1, rest: $2}}
+                            | kw_rand_52400560 kw_join_c455b38e ( lparen expression rparen )? production_item production_item production_item*
+                                   -> {kind: "rand_join",   join_count: $3, items: {first: $4, second: $5, rest: $6}}
 
 @profiles: ["sv_2023"]
-rs_production_list_sv_2023 := rs_prod rs_prod* | kw_rand_52400560 kw_join_c455b38e ( lparen expression rparen )? rs_production_item rs_production_item rs_production_item*
+rs_production_list_sv_2023 := rs_prod rs_prod*
+                                   -> {kind: "productions", items: {first: $1, rest: $2}}
+                            | kw_rand_52400560 kw_join_c455b38e ( lparen expression rparen )? rs_production_item rs_production_item rs_production_item*
+                                   -> {kind: "rand_join",   join_count: $3, items: {first: $4, second: $5, rest: $6}}
 
 rs_production_list := rs_production_list_sv_2017 | rs_production_list_sv_2023
 
 @profiles: ["sv_2017"]
 rs_repeat_sv_2017 := kw_repeat_c0ac4842 lparen expression rparen production_item
+                  -> {count: $3, body: $5}
 
 @profiles: ["sv_2023"]
 rs_repeat_sv_2023 := kw_repeat_c0ac4842 lparen expression rparen rs_production_item
+                  -> {count: $3, body: $5}
 
 rs_repeat := rs_repeat_sv_2017 | rs_repeat_sv_2023
 
 @profiles: ["sv_2017"]
 rs_rule_sv_2017 := rs_production_list ( colon assign weight_specification ( rs_code_block )? )?
+                -> {productions: $1, weight: $2}
 
 @profiles: ["sv_2023"]
 rs_rule_sv_2023 := rs_production_list ( colon assign rs_weight_specification ( rs_code_block )? )?
+                -> {productions: $1, weight: $2}
 
 rs_rule := rs_rule_sv_2017 | rs_rule_sv_2023
 
 @profiles: ["sv_2023"]
-rs_weight_specification_sv_2023 := integral_number | ps_identifier | lparen expression rparen
+rs_weight_specification_sv_2023 := integral_number          -> {kind: "number",     body: $1}
+                                 | ps_identifier            -> {kind: "identifier", body: $1}
+                                 | lparen expression rparen -> {kind: "expression", body: $2}
 
 rs_weight_specification := rs_weight_specification_sv_2023
 

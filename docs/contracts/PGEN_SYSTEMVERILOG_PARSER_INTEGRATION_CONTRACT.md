@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.38`
+  - `1.0.39`
 - Parser release version:
-  - `1.0.38`
+  - `1.0.39`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,120 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.39 / Contract 1.0.39 Highlights — SV-Slice-39 batch: rs_* family typed (17 rules / 31 annotations — crosses 500-annotation milestone)
+
+Closes the random-sequence walk path end-to-end. Every reachable `randsequence_statement` → `production` → `rules.{first,rest}` → `rs_rule` → `rs_production_list` → `rs_prod` → ... resolves through typed shapes with no raw-envelope intermediate. Crosses the **500-annotation milestone**.
+
+### Annotations
+
+```ebnf
+rs_case := kw_case lparen case_expression rparen rs_case_item rs_case_item* kw_endcase
+        -> {expr: $3, items: {first: $5, rest: $6}}
+
+@profiles: ["sv_2017"]
+rs_case_item_sv_2017 := case_item_expression ( comma case_item_expression )* colon production_item semi
+                             -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+                      | kw_default ( colon )? production_item semi
+                             -> {kind: "default",   body: $3}
+
+@profiles: ["sv_2023"]
+rs_case_item_sv_2023 := /* parallel to sv_2017; uses rs_production_item */
+
+rs_code_block := ( data_declaration* statement_or_null* )*
+              -> {body: $1}
+
+@profiles: ["sv_2017"]
+rs_if_else_sv_2017 := kw_if lparen expression rparen production_item ( kw_else production_item )?
+                   -> {condition: $3, then_body: $5, else_body: $6}
+
+@profiles: ["sv_2023"]
+rs_if_else_sv_2023 := /* parallel; uses rs_production_item */
+
+@profiles: ["sv_2017"]
+rs_prod_sv_2017 := production_item -> {kind: "production_item", body: $1}
+                 | rs_code_block   -> {kind: "code_block",      body: $1}
+                 | rs_if_else      -> {kind: "if_else",         body: $1}
+                 | rs_repeat       -> {kind: "repeat",          body: $1}
+                 | rs_case         -> {kind: "case",            body: $1}
+
+@profiles: ["sv_2023"]
+rs_prod_sv_2023 := /* parallel; first branch is rs_production_item */
+
+@profiles: ["sv_2023"]
+rs_production_sv_2023 := ( data_type_or_void )? rs_production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
+                      -> {return_type: $1, name: $2, ports: $3, rules: {first: $5, rest: $6}}
+
+@profiles: ["sv_2023"]
+rs_production_item_sv_2023 := rs_production_identifier ( lparen list_of_arguments rparen )?
+                            -> {name: $1, args: $2}
+
+@profiles: ["sv_2017"]
+rs_production_list_sv_2017 := rs_prod rs_prod*
+                                   -> {kind: "productions", items: {first: $1, rest: $2}}
+                            | kw_rand kw_join ( lparen expression rparen )? production_item production_item production_item*
+                                   -> {kind: "rand_join",   join_count: $3, items: {first: $4, second: $5, rest: $6}}
+
+@profiles: ["sv_2023"]
+rs_production_list_sv_2023 := /* parallel; rand_join branch uses rs_production_item */
+
+@profiles: ["sv_2017"]
+rs_repeat_sv_2017 := kw_repeat lparen expression rparen production_item
+                  -> {count: $3, body: $5}
+
+@profiles: ["sv_2023"]
+rs_repeat_sv_2023 := /* parallel; uses rs_production_item */
+
+@profiles: ["sv_2017"]
+rs_rule_sv_2017 := rs_production_list ( colon assign weight_specification ( rs_code_block )? )?
+                -> {productions: $1, weight: $2}
+
+@profiles: ["sv_2023"]
+rs_rule_sv_2023 := /* parallel; uses rs_weight_specification */
+
+@profiles: ["sv_2023"]
+rs_weight_specification_sv_2023 := integral_number          -> {kind: "number",     body: $1}
+                                 | ps_identifier            -> {kind: "identifier", body: $1}
+                                 | lparen expression rparen -> {kind: "expression", body: $2}
+```
+
+### Field semantics
+
+- `rs_production_list.kind == "rand_join"`: the LRM `rand join [(expr)] prod1 prod2 [prod3 ...]` form. Per LRM A.6.13, at least 2 production_items are required (which is why the rule has `production_item production_item production_item*` rather than `production_item+`). The `join_count` slot is the optional `( lparen expression rparen )?` join-count specifier.
+- `rs_rule.weight`: optional `( colon assign weight_specification ( rs_code_block )? )?` — `[]` for productions without weight, `[<weight slot>]` when present (e.g., `prod1 := ... := 5`).
+- `rs_code_block`: the body field carries the raw Quantified iteration of `( data_declaration* statement_or_null* )*` — each entry in the iteration is `[data_declaration*-array, statement_or_null*-array]`.
+- `rs_prod.kind`: 5-way discriminator between the production-body forms allowed inside an rs_rule (production_item invocation, embedded code block, if-else, repeat, or nested case).
+
+### Profile difference
+
+The sv_2017 family references `production_item` / `weight_specification` directly; the sv_2023 family uses the namespaced `rs_production_item` / `rs_weight_specification` rules. The typed shapes are identical for consumers walking either profile.
+
+### Annotation inventory
+
+520 entries (was 489). +31 in this batch:
+- 1 rs_case
+- 2 rs_case_item_sv_2017 + 2 rs_case_item_sv_2023
+- 1 rs_code_block
+- 1 rs_if_else_sv_2017 + 1 rs_if_else_sv_2023
+- 5 rs_prod_sv_2017 + 5 rs_prod_sv_2023
+- 1 rs_production_sv_2023
+- 1 rs_production_item_sv_2023
+- 2 rs_production_list_sv_2017 + 2 rs_production_list_sv_2023
+- 1 rs_repeat_sv_2017 + 1 rs_repeat_sv_2023
+- 1 rs_rule_sv_2017 + 1 rs_rule_sv_2023
+- 3 rs_weight_specification_sv_2023
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `simple_immediate_assertion_statement` (close immediate_assertion_statement.kind == "simple").
+- `inc_or_dec_expression` internals.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void` (used pervasively as field types across declarations).
+- `expression`, `cond_predicate`, `pattern` (large but underlie many already-typed rules).
+- `weight_specification` (sv_2017 counterpart of rs_weight_specification_sv_2023 — referenced from rs_rule_sv_2017.weight).
 
 ## Release 1.0.38 / Contract 1.0.38 Highlights — SV-Slice-38 batch: randsequence top-level + production typed (4 rules / 4 annotations)
 
