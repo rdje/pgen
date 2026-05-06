@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.46`
+  - `1.0.47`
 - Parser release version:
-  - `1.0.46`
+  - `1.0.47`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,108 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.47 / Contract 1.0.47 Highlights — SV-Slice-47 batch: primary_sv_2017 + constant_primary_sv_2017 typed (2 rules / 30 annotations + 3 new helper rules with 6 annotations)
+
+Closes the sv_2017 primary expression dispatch reachable from `expression_operand.kind == "primary"` (typed in SV-Slice-46) and `constant_expression_operand.kind == "primary"`. After this slice, every typed expression that resolves to a primary form discriminates the LRM A.8.4 primary kind without raw-envelope walks.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+primary_sv_2017 := primary_literal                               -> {kind: "literal",            body: $1}
+                 | call_primary                                  -> {kind: "call",               body: $1}
+                 | ( primary_hier_scope_prefix )? hierarchical_identifier select
+                                                                 -> {kind: "hierarchical",       scope: $1, name: $2, select: $3}
+                 | empty_unpacked_array_concatenation            -> {kind: "empty_array_concat", body: $1}
+                 | multiple_concatenation ( lbrack range_expression rbrack )?
+                                                                 -> {kind: "multiple_concat",    body: $1, select: $2}
+                 | concatenation ( lbrack range_expression rbrack )?
+                                                                 -> {kind: "concat",             body: $1, select: $2}
+                 | let_expression                                -> {kind: "let",                body: $1}
+                 | lparen mintypmax_expression rparen            -> {kind: "paren",              body: $2}
+                 | cast                                          -> {kind: "cast",               body: $1}
+                 | assignment_pattern_expression                 -> {kind: "assign_pattern",     body: $1}
+                 | streaming_concatenation                       -> {kind: "streaming_concat",   body: $1}
+                 | sequence_method_call                          -> {kind: "sequence_method",    body: $1}
+                 | kw_this                                       -> {kind: "this"}
+                 | kw_sv_dollar                                  -> {kind: "system_dollar"}
+                 | kw_null kw_class_qualifier colon assign ( kw_local scope_resolution kw_n_43 )? ( instance_or_class_scope )?
+                                                                 -> {kind: "null_class_assign",  local_n: $5, scope: $6}
+
+primary_hier_scope_prefix (NEW) := kw_class_qualifier      -> {kind: "class_qualifier", body: $1}
+                                 | non_typedef_package_scope -> {kind: "package_scope",  body: $1}
+
+instance_or_class_scope (NEW) := implicit_class_handle dot -> {kind: "instance",    handle: $1}
+                               | class_scope               -> {kind: "class_scope", body: $1}
+
+@profiles: ["sv_2017"]
+constant_primary_sv_2017 := primary_literal                                  -> {kind: "literal",         body: $1}
+                          | ps_parameter_identifier constant_select          -> {kind: "ps_parameter",    name: $1, select: $2}
+                          | specparam_identifier ( lbrack constant_range_expression rbrack )?
+                                                                              -> {kind: "specparam",       name: $1, select: $2}
+                          | genvar_identifier                                 -> {kind: "genvar",          body: $1}
+                          | formal_port_identifier constant_select            -> {kind: "formal_port",     name: $1, select: $2}
+                          | ( enum_id_scope_prefix )? enum_identifier         -> {kind: "enum",            scope: $1, name: $2}
+                          | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )?
+                                                                              -> {kind: "multiple_concat", body: $1, select: $2}
+                          | constant_concatenation ( lbrack constant_range_expression rbrack )?
+                                                                              -> {kind: "concat",          body: $1, select: $2}
+                          | constant_function_call                            -> {kind: "function_call",   body: $1}
+                          | constant_let_expression                           -> {kind: "let",             body: $1}
+                          | lparen constant_mintypmax_expression rparen       -> {kind: "paren",           body: $2}
+                          | constant_cast                                     -> {kind: "cast",            body: $1}
+                          | constant_assignment_pattern_expression            -> {kind: "assign_pattern",  body: $1}
+                          | type_reference                                    -> {kind: "type_reference",  body: $1}
+                          | kw_null                                           -> {kind: "null"}
+
+enum_id_scope_prefix (NEW) := non_typedef_package_scope -> {kind: "package_scope", body: $1}
+                            | class_scope               -> {kind: "class_scope",   body: $1}
+```
+
+### Helper-rule extraction (7th, 8th, and 9th uses of pattern)
+
+Three new helper rules extracted from inline parens-Or constructs:
+
+| Helper | Extracted from | Inside |
+|---|---|---|
+| `primary_hier_scope_prefix` | `( kw_class_qualifier \| non_typedef_package_scope )?` | primary_sv_2017 hierarchical branch |
+| `instance_or_class_scope` | `( implicit_class_handle dot \| class_scope )?` | primary_sv_2017 null_class_assign branch |
+| `enum_id_scope_prefix` | `( non_typedef_package_scope \| class_scope )?` | constant_primary_sv_2017 enum branch |
+
+Helper-rule extraction pattern is now used in 10 places total:
+1. `if_generate_else_clause` (slice 23)
+2. `net_strength` + `net_vector_scalar` (slice 26)
+3. `conditional_else_branch` (slice 35)
+4. `class_or_package_scope` (slice 37)
+5. `union_modifier` + `class_type_head` (slice 42)
+6. `primary_hier_scope_prefix` + `instance_or_class_scope` + `enum_id_scope_prefix` (slice 47)
+
+### Field semantics
+
+- `primary.kind == "hierarchical"`: standard variable / function / module identifier reference. `scope` is `[]` for plain `name`, `[<class_qualifier>]` for `super::name`/`local::name`, `[<package_scope>]` for `pkg::name`.
+- `primary.kind == "null_class_assign"`: rare LRM construct `null:= [local::N] [scope]` — the optional `local_n` and `scope` slots capture the LRM-specified positional pieces.
+- `constant_primary.kind == "enum"`: optional `pkg::` or `class::` scope prefix before the enum_identifier (matches `pkg::EnumName` / `MyClass::EnumName` per LRM A.8.4).
+- The 4-element kinds (multiple_concat / concat) carry both the body shape and an optional `[range]` post-index per LRM A.8.4.
+
+### Annotation inventory
+
+742 entries (was 706). +36 in this batch (15 primary_sv_2017 + 2 primary_hier_scope_prefix + 2 instance_or_class_scope + 15 constant_primary_sv_2017 + 2 enum_id_scope_prefix).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### DEFERRED
+
+`primary_sv_2023` and `constant_primary_sv_2023` are parallel structures with the same helper rules. Will be applied in a follow-up slice.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `primary_sv_2023` / `constant_primary_sv_2023` (parallel — uses the same 3 helper rules from this slice).
+- `attr_spec` deeper internals.
+- `list_of_path_delay_expressions` (6-branch path-delay specifier).
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.46 / Contract 1.0.46 Highlights — SV-Slice-46 batch: expression family typed (14 rules / 62 annotations — crosses 700-annotation milestone)
 

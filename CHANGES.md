@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-47 batch: primary_sv_2017 + constant_primary_sv_2017 typed (2 rules / 30 annotations + 3 new helper rules with 6 annotations)
+
+Closes the sv_2017 primary expression dispatch reachable from `expression_operand.kind == "primary"` and `constant_expression_operand.kind == "primary"`.
+
+```ebnf
+primary_sv_2017               -> 15 kinds (literal / call / hierarchical / empty_array_concat / multiple_concat / concat / let / paren / cast / assign_pattern / streaming_concat / sequence_method / this / system_dollar / null_class_assign)
+constant_primary_sv_2017      -> 15 kinds (literal / ps_parameter / specparam / genvar / formal_port / enum / multiple_concat / concat / function_call / let / paren / cast / assign_pattern / type_reference / null)
+primary_hier_scope_prefix (NEW) -> 2 kinds (class_qualifier / package_scope)
+instance_or_class_scope (NEW)   -> 2 kinds (instance / class_scope)
+enum_id_scope_prefix (NEW)      -> 2 kinds (package_scope / class_scope)
+```
+
+7th, 8th, 9th uses of helper-rule extraction pattern (now 10 places total). DEFERRED: `primary_sv_2023` and `constant_primary_sv_2023` (parallel — uses same helpers).
+
+Annotation count: **742** (was 706, +36). Same accept set. Schema stays at `1`. Contract bumped 1.0.46 → 1.0.47. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-46 batch: expression family typed (14 rules / 62 annotations — crosses 700-annotation milestone)
 
 Single largest impact slice — `expression`, `constant_expression`, and their operand/operator/literal sub-rules underlie every expression-typed field across the grammar. **Crosses the 700-annotation milestone.**

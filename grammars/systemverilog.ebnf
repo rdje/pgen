@@ -883,7 +883,39 @@ constant_param_expression := constant_mintypmax_expression | data_type | kw_doll
 constant_part_select_range := constant_range | constant_indexed_range
 
 @profiles: ["sv_2017"]
-constant_primary_sv_2017 := primary_literal | ps_parameter_identifier constant_select | specparam_identifier ( lbrack constant_range_expression rbrack )? | genvar_identifier | formal_port_identifier constant_select | ( non_typedef_package_scope | class_scope )? enum_identifier | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )? | constant_concatenation ( lbrack constant_range_expression rbrack )? | constant_function_call | constant_let_expression | lparen constant_mintypmax_expression rparen | constant_cast | constant_assignment_pattern_expression | type_reference | kw_null_2be88ca4
+constant_primary_sv_2017 := primary_literal
+                                  -> {kind: "literal",          body: $1}
+                          | ps_parameter_identifier constant_select
+                                  -> {kind: "ps_parameter",     name: $1, select: $2}
+                          | specparam_identifier ( lbrack constant_range_expression rbrack )?
+                                  -> {kind: "specparam",        name: $1, select: $2}
+                          | genvar_identifier
+                                  -> {kind: "genvar",           body: $1}
+                          | formal_port_identifier constant_select
+                                  -> {kind: "formal_port",      name: $1, select: $2}
+                          | ( enum_id_scope_prefix )? enum_identifier
+                                  -> {kind: "enum",             scope: $1, name: $2}
+                          | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )?
+                                  -> {kind: "multiple_concat",  body: $1, select: $2}
+                          | constant_concatenation ( lbrack constant_range_expression rbrack )?
+                                  -> {kind: "concat",           body: $1, select: $2}
+                          | constant_function_call
+                                  -> {kind: "function_call",    body: $1}
+                          | constant_let_expression
+                                  -> {kind: "let",              body: $1}
+                          | lparen constant_mintypmax_expression rparen
+                                  -> {kind: "paren",            body: $2}
+                          | constant_cast
+                                  -> {kind: "cast",             body: $1}
+                          | constant_assignment_pattern_expression
+                                  -> {kind: "assign_pattern",   body: $1}
+                          | type_reference
+                                  -> {kind: "type_reference",   body: $1}
+                          | kw_null_2be88ca4
+                                  -> {kind: "null"}
+
+enum_id_scope_prefix := non_typedef_package_scope -> {kind: "package_scope", body: $1}
+                      | class_scope               -> {kind: "class_scope",   body: $1}
 
 @profiles: ["sv_2023"]
 constant_primary_sv_2023 := primary_literal | ps_parameter_identifier constant_select | specparam_identifier ( lbrack constant_range_expression rbrack )? | genvar_identifier | formal_port_identifier constant_select | ( non_typedef_package_scope | class_scope )? enum_identifier | empty_unpacked_array_concatenation | constant_concatenation ( lbrack constant_range_expression rbrack )? | constant_multiple_concatenation ( lbrack constant_range_expression rbrack )? | constant_function_call ( lbrack constant_range_expression rbrack )? | constant_let_expression | lparen constant_mintypmax_expression rparen | constant_cast | constant_assignment_pattern_expression | type_reference | kw_null_2be88ca4
@@ -2475,20 +2507,41 @@ port_reference := port_identifier constant_select
 
 @profiles: ["sv_2017"]
 primary_sv_2017 := @probe_sample: "1" primary_literal
+                        -> {kind: "literal",            body: $1}
                  | call_primary
-                 | @probe_sample: "a" ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select
+                        -> {kind: "call",               body: $1}
+                 | @probe_sample: "a" ( primary_hier_scope_prefix )? hierarchical_identifier select
+                        -> {kind: "hierarchical",       scope: $1, name: $2, select: $3}
                  | empty_unpacked_array_concatenation
+                        -> {kind: "empty_array_concat", body: $1}
                  | multiple_concatenation ( lbrack range_expression rbrack )?
+                        -> {kind: "multiple_concat",    body: $1, select: $2}
                  | concatenation ( lbrack range_expression rbrack )?
+                        -> {kind: "concat",             body: $1, select: $2}
                  | let_expression
+                        -> {kind: "let",                body: $1}
                  | lparen mintypmax_expression rparen
+                        -> {kind: "paren",              body: $2}
                  | cast
+                        -> {kind: "cast",               body: $1}
                  | assignment_pattern_expression
+                        -> {kind: "assign_pattern",     body: $1}
                  | streaming_concatenation
+                        -> {kind: "streaming_concat",   body: $1}
                  | sequence_method_call
+                        -> {kind: "sequence_method",    body: $1}
                  | @probe_sample: "this" kw_this_c2543fff
+                        -> {kind: "this"}
                  | kw_sv_dollar_04da59ec
-                 | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
+                        -> {kind: "system_dollar"}
+                 | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( instance_or_class_scope )?
+                        -> {kind: "null_class_assign",  local_n: $5, scope: $6}
+
+primary_hier_scope_prefix := kw_class_qualifier_fa08937d -> {kind: "class_qualifier", body: $1}
+                           | non_typedef_package_scope    -> {kind: "package_scope",   body: $1}
+
+instance_or_class_scope := implicit_class_handle dot -> {kind: "instance",    handle: $1}
+                         | class_scope               -> {kind: "class_scope", body: $1}
 
 @profiles: ["sv_2023"]
 primary_sv_2023 := primary_literal | call_primary ( lbrack range_expression rbrack )? | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier select | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?

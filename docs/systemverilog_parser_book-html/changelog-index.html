@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-62e70ed1.js";
+            window.path_to_searchindex_js = "searchindex-95bd9a99.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,19 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1047--contract-1047--sv-slice-47-batch-primary_sv_2017--constant_primary_sv_2017-typed-2-rules--30-annotations--3-new-helper-rules-with-6-annotations"><a class="header" href="#1047--contract-1047--sv-slice-47-batch-primary_sv_2017--constant_primary_sv_2017-typed-2-rules--30-annotations--3-new-helper-rules-with-6-annotations">1.0.47 / Contract 1.0.47 — SV-Slice-47 batch: primary_sv_2017 + constant_primary_sv_2017 typed (2 rules / 30 annotations + 3 new helper rules with 6 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the sv_2017 primary expression dispatch reachable from expression_operand.kind==“primary” and constant_expression_operand.kind==“primary”.</p>
+<pre><code class="language-ebnf">primary_sv_2017               -&gt; 15 kinds (literal / call / hierarchical / empty_array_concat / multiple_concat / concat / let / paren / cast / assign_pattern / streaming_concat / sequence_method / this / system_dollar / null_class_assign)
+constant_primary_sv_2017      -&gt; 15 kinds (literal / ps_parameter / specparam / genvar / formal_port / enum / multiple_concat / concat / function_call / let / paren / cast / assign_pattern / type_reference / null)
+primary_hier_scope_prefix (NEW) -&gt; 2 kinds (class_qualifier / package_scope)
+instance_or_class_scope (NEW)   -&gt; 2 kinds (instance / class_scope)
+enum_id_scope_prefix (NEW)      -&gt; 2 kinds (package_scope / class_scope)
+</code></pre>
+<p><strong>Helper-rule extraction</strong> (7th, 8th, 9th uses of pattern). Now used in 10 places total.</p>
+<p><strong>DEFERRED:</strong> primary_sv_2023 and constant_primary_sv_2023 (parallel structures — to be applied in a follow-up slice).</p>
+<p><strong>Annotation inventory:</strong> 742 entries (was 706). +36 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.47 / Contract 1.0.47 Highlights”.</p>
 <h3 id="1046--contract-1046--sv-slice-46-batch-expression-family-typed-14-rules--62-annotations--crosses-700-annotation-milestone"><a class="header" href="#1046--contract-1046--sv-slice-46-batch-expression-family-typed-14-rules--62-annotations--crosses-700-annotation-milestone">1.0.46 / Contract 1.0.46 — SV-Slice-46 batch: expression family typed (14 rules / 62 annotations — crosses 700-annotation milestone)</a></h3>
 <p><strong>What changed:</strong> Single largest impact slice — <code>expression</code>, <code>constant_expression</code>, and their operand/operator/literal sub-rules underlie every expression-typed field across the grammar.</p>
 <pre><code class="language-ebnf">expression                       -&gt; 3 kinds (base / inside / conditional)
