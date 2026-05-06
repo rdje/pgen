@@ -19,6 +19,22 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.44 / Contract 1.0.44 — SV-Slice-44 batch: list_of_* family typed (20 rules / 22 annotations)
+
+**What changed:** Uniform mini-mixed-array pattern across the small declaration-list rules. Every list_of_* rule referenced from typed parents now exposes `{first, rest}` shape.
+
+- 12 simple `{first, rest}` rules (clocking_decl_assign / defparam / genvar / net / param / path_inputs / path_outputs / specparam / type / variable, plus 2 variable-assignment forms).
+- 3 `{first: {name, dims}, rest}` rules (interface / port / variable identifiers — with trailing dimension list per item).
+- 2 `{first: {name, dims, init}, rest}` rules (tf_variable / variable_port — with optional initializer per item).
+- 1 `{first, second, rest}` rule (cross_items — LRM requires at least 2).
+- 2 2-kind dispatches (checker_port_connections, port_connections — ordered/named).
+
+**Annotation inventory:** 626 entries (was 604). +22 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.44 / Contract 1.0.44 Highlights".
+
 ### 1.0.43 / Contract 1.0.43 — SV-Slice-43 batch: parameter_value_assignment + arguments family typed (10 rules / 16 annotations — crosses 600-annotation milestone)
 
 **What changed:** Closes the function/task/method-call argument and parameter-instance walks.

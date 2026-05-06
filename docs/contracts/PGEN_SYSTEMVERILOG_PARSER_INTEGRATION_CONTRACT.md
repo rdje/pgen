@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.43`
+  - `1.0.44`
 - Parser release version:
-  - `1.0.43`
+  - `1.0.44`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,92 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.44 / Contract 1.0.44 Highlights — SV-Slice-44 batch: list_of_* family typed (20 rules / 22 annotations)
+
+Uniform mini-mixed-array pattern across the small declaration-list rules. After this slice, every list_of_* rule referenced from typed parents (variable declarations, port declarations, parameter declarations, net declarations, function/task body items, etc.) exposes a typed `{first, rest}` mini-mixed-array shape — no more raw envelopes for declaration-list iterations.
+
+### Annotations
+
+#### Simple `{first, rest}` (12 rules — uniform `X (comma X)*` pattern)
+
+```ebnf
+list_of_clocking_decl_assign       := clocking_decl_assign       (comma clocking_decl_assign)*       -> {first, rest}
+list_of_defparam_assignments       := defparam_assignment        (comma defparam_assignment)*        -> {first, rest}
+list_of_genvar_identifiers         := genvar_identifier          (comma genvar_identifier)*          -> {first, rest}
+list_of_net_assignments            := net_assignment             (comma net_assignment)*             -> {first, rest}
+list_of_net_decl_assignments       := net_decl_assignment        (comma net_decl_assignment)*        -> {first, rest}
+list_of_param_assignments          := param_assignment           (comma param_assignment)*           -> {first, rest}
+list_of_path_inputs                := specify_input_terminal_descriptor  (comma ...)*                -> {first, rest}
+list_of_path_outputs               := specify_output_terminal_descriptor (comma ...)*                -> {first, rest}
+list_of_specparam_assignments      := specparam_assignment       (comma specparam_assignment)*       -> {first, rest}
+list_of_type_assignments           := type_assignment            (!(comma kw_type) comma type_assignment)*  -> {first, rest}
+list_of_variable_assignments       := variable_assignment        (comma variable_assignment)*        -> {first, rest}
+list_of_variable_decl_assignments  := variable_decl_assignment   (comma variable_decl_assignment)*   -> {first, rest}
+```
+
+#### `{first: {name, dims}, rest}` (3 rules with trailing `unpacked_dimension*`)
+
+```ebnf
+list_of_interface_identifiers := interface_identifier unpacked_dimension* (comma interface_identifier unpacked_dimension*)*
+                              -> {first: {name: $1, dims: $2}, rest: $3}
+list_of_port_identifiers      := port_identifier unpacked_dimension* (comma port_identifier unpacked_dimension*)*
+                              -> {first: {name: $1, dims: $2}, rest: $3}
+list_of_variable_identifiers  := variable_identifier variable_dimension* (comma variable_identifier variable_dimension*)*
+                              -> {first: {name: $1, dims: $2}, rest: $3}
+```
+
+#### `{first: {name, dims, init}, rest}` (2 rules with optional initializer)
+
+```ebnf
+list_of_tf_variable_identifiers   := port_identifier variable_dimension* (assign expression)? (comma port_identifier variable_dimension* (assign expression)?)*
+                                  -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
+list_of_variable_port_identifiers := port_identifier variable_dimension* (assign constant_expression)? (comma port_identifier variable_dimension* (assign constant_expression)?)*
+                                  -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
+```
+
+#### `{first, second, rest}` (1 rule — list with 2 required items)
+
+```ebnf
+list_of_cross_items := cross_item comma cross_item (comma cross_item)*
+                    -> {first: $1, second: $3, rest: $4}
+```
+
+#### 2-kind dispatch (2 rules)
+
+```ebnf
+list_of_checker_port_connections := ordered_checker_port_connection (comma ordered_checker_port_connection)*
+                                          -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                  | named_checker_port_connection (comma named_checker_port_connection)*
+                                          -> {kind: "named",   items: {first: $1, rest: $2}}
+
+list_of_port_connections := named_port_connection (comma named_port_connection)*
+                                  -> {kind: "named",   items: {first: $1, rest: $2}}
+                          | ordered_port_connection (comma ordered_port_connection)*
+                                  -> {kind: "ordered", items: {first: $1, rest: $2}}
+```
+
+### Field semantics
+
+- `first` / `rest` (mini-mixed-array): `first` carries the leading required item; `rest` carries the trailing iteration of `[comma, item]` pairs (still raw — annotation-language doesn't support mixed-array spread per memory `feedback_annotation_no_mixed_spread.md`).
+- `{name, dims}` form: groups the per-item LRM-required identifier + optional packed/unpacked-dimension list as a nested object so consumers can iterate `[item.name, item.dims]` without knowing the positional layout.
+- `{name, dims, init}` form: same plus optional `[<assign, expr>]` initializer slot.
+- `list_of_cross_items.first` and `.second` are both required per LRM A.2.11 (cross requires at least 2 cross_items).
+
+### Annotation inventory
+
+626 entries (was 604). +22 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `expression`, `cond_predicate`, `pattern`.
+- `list_of_path_delay_expressions` (6-branch path-delay specifier — non-uniform shape).
+- `attr_spec` deeper internals.
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.43 / Contract 1.0.43 Highlights — SV-Slice-43 batch: parameter_value_assignment + arguments family typed (10 rules / 16 annotations — crosses 600-annotation milestone)
 

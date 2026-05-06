@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-44 batch: list_of_* family typed (20 rules / 22 annotations)
+
+Uniform mini-mixed-array pattern across the small declaration-list rules. Every list_of_* rule referenced from typed parents (variable / port / parameter / net / function / task) now exposes `{first, rest}` shape — no more raw envelopes for declaration-list iterations.
+
+- 12 simple `{first, rest}` rules (clocking_decl_assign / defparam / genvar / net / param / path_inputs / path_outputs / specparam / type / variable assignments / variable_decl_assignments).
+- 3 `{first: {name, dims}, rest}` rules (interface / port / variable identifiers).
+- 2 `{first: {name, dims, init}, rest}` rules (tf_variable / variable_port).
+- 1 `{first, second, rest}` rule (cross_items).
+- 2 2-kind dispatches (checker_port_connections, port_connections).
+
+Annotation count: **626** (was 604, +22). Same accept set. Schema stays at `1`. Contract bumped 1.0.43 → 1.0.44. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-43 batch: parameter_value_assignment + arguments family typed (10 rules / 16 annotations — crosses 600-annotation milestone)
 
 Closes the function/task/method-call argument and parameter-instance walks. Every typed parent that exposes `params:` or `args:` field now resolves to typed dispatch. **Crosses the 600-annotation milestone.**

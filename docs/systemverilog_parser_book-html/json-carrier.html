@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b3a8bf5d.js";
+            window.path_to_searchindex_js = "searchindex-92a25066.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -422,6 +422,13 @@
 <tr><td><code>list_of_arguments_named</code></td><td><code>-&gt; {first: $1, rest: $2}</code></td><td>All-named form.</td></tr>
 <tr><td><code>list_of_arguments_mixed</code></td><td><code>-&gt; {head: $1, named: {first: $3, rest: $4}}</code></td><td><code>head</code> is the typed <code>list_of_arguments_mixed_head</code> (positional prefix). <code>named</code> is mini-mixed-array of trailing named arguments.</td></tr>
 <tr><td><code>list_of_arguments_mixed_head</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"single"</code> (<code>{body}</code> — single positional argument) / <code>"chain"</code> (<code>{expr, rest}</code> — recursive: optional expression followed by comma followed by recursive head).</td></tr>
+<tr><td><code>list_of_clocking_decl_assign</code> / <code>list_of_defparam_assignments</code> / <code>list_of_genvar_identifiers</code> / <code>list_of_net_assignments</code> / <code>list_of_net_decl_assignments</code> / <code>list_of_param_assignments</code> / <code>list_of_path_inputs</code> / <code>list_of_path_outputs</code> / <code>list_of_specparam_assignments</code> / <code>list_of_type_assignments</code> / <code>list_of_variable_assignments</code> / <code>list_of_variable_decl_assignments</code> (12 rules)</td><td><code>-&gt; {first, rest}</code></td><td>Uniform mini-mixed-array. <code>first</code> is the leading required item; <code>rest</code> is the trailing iteration of <code>[comma, item]</code> pairs.</td></tr>
+<tr><td><code>list_of_interface_identifiers</code> / <code>list_of_port_identifiers</code> / <code>list_of_variable_identifiers</code> (3 rules)</td><td><code>-&gt; {first: {name, dims}, rest}</code></td><td>Per-item <code>{name, dims}</code> (identifier + trailing unpacked/variable dimension list per LRM); <code>rest</code> is iteration of comma-prefixed items.</td></tr>
+<tr><td><code>list_of_tf_variable_identifiers</code></td><td><code>-&gt; {first: {name, dims, init}, rest}</code></td><td>Per-item adds <code>init: ( assign expression )?</code> slot.</td></tr>
+<tr><td><code>list_of_variable_port_identifiers</code></td><td><code>-&gt; {first: {name, dims, init}, rest}</code></td><td>Same shape; <code>init</code> is <code>( assign constant_expression )?</code>.</td></tr>
+<tr><td><code>list_of_cross_items</code></td><td><code>-&gt; {first, second, rest}</code></td><td>Cross requires ≥2 items per LRM A.2.11 — <code>first</code> and <code>second</code> are required, <code>rest</code> is the trailing iteration.</td></tr>
+<tr><td><code>list_of_checker_port_connections</code> (2 branches)</td><td>per-branch <code>{kind, items: {first, rest}}</code></td><td>Kind labels: <code>"ordered"</code> / <code>"named"</code>.</td></tr>
+<tr><td><code>list_of_port_connections</code> (2 branches)</td><td>per-branch <code>{kind, items: {first, rest}}</code></td><td>Kind labels: <code>"named"</code> / <code>"ordered"</code>. PEG ordered choice tries named first.</td></tr>
 </tbody>
 </table>
 </div>

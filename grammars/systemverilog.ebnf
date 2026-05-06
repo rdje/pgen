@@ -1685,23 +1685,34 @@ list_of_arguments_ordered := ( expression )? ( comma ( expression )? )*
 list_of_arguments_named := named_argument ( comma named_argument )*
                         -> {first: $1, rest: $2}
 
-list_of_checker_port_connections := ordered_checker_port_connection ( comma ordered_checker_port_connection )* | named_checker_port_connection ( comma named_checker_port_connection )*
+list_of_checker_port_connections := ordered_checker_port_connection ( comma ordered_checker_port_connection )*
+                                          -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                  | named_checker_port_connection ( comma named_checker_port_connection )*
+                                          -> {kind: "named",   items: {first: $1, rest: $2}}
 
 list_of_clocking_decl_assign := clocking_decl_assign ( comma clocking_decl_assign )*
+                             -> {first: $1, rest: $2}
 
 list_of_cross_items := cross_item comma cross_item ( comma cross_item )*
+                    -> {first: $1, second: $3, rest: $4}
 
 list_of_defparam_assignments := defparam_assignment ( comma defparam_assignment )*
+                             -> {first: $1, rest: $2}
 
 list_of_genvar_identifiers := genvar_identifier ( comma genvar_identifier )*
+                           -> {first: $1, rest: $2}
 
 list_of_interface_identifiers := interface_identifier unpacked_dimension* ( comma interface_identifier unpacked_dimension* )*
+                              -> {first: {name: $1, dims: $2}, rest: $3}
 
 list_of_net_assignments := net_assignment ( comma net_assignment )*
+                        -> {first: $1, rest: $2}
 
 list_of_net_decl_assignments := net_decl_assignment ( comma net_decl_assignment )*
+                             -> {first: $1, rest: $2}
 
 list_of_param_assignments := param_assignment ( comma param_assignment )*
+                          -> {first: $1, rest: $2}
 
 @profiles: ["sv_2017"]
 list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
@@ -1730,35 +1741,48 @@ list_of_path_delay_expressions := @probe_sample: "1" t_path_delay_expression
                                 | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma txz_path_delay_expression comma tzx_path_delay_expression
 
 list_of_path_inputs := specify_input_terminal_descriptor ( comma specify_input_terminal_descriptor )*
+                    -> {first: $1, rest: $2}
 
 list_of_path_outputs := specify_output_terminal_descriptor ( comma specify_output_terminal_descriptor )*
+                     -> {first: $1, rest: $2}
 
-list_of_port_connections := named_port_connection ( comma named_port_connection )* | ordered_port_connection ( comma ordered_port_connection )*
+list_of_port_connections := named_port_connection ( comma named_port_connection )*
+                                  -> {kind: "named",   items: {first: $1, rest: $2}}
+                          | ordered_port_connection ( comma ordered_port_connection )*
+                                  -> {kind: "ordered", items: {first: $1, rest: $2}}
 
 list_of_port_declarations := lparen ( attribute_instance* ansi_port_declaration ( comma attribute_instance* ansi_port_declaration )* )? rparen
                           -> $2
 
 list_of_port_identifiers := port_identifier unpacked_dimension* ( comma port_identifier unpacked_dimension* )*
+                         -> {first: {name: $1, dims: $2}, rest: $3}
 
 list_of_ports := lparen port ( comma port )* rparen
               -> {first: $2, rest: $3}
 
 list_of_specparam_assignments := specparam_assignment ( comma specparam_assignment )*
+                              -> {first: $1, rest: $2}
 
 list_of_tf_variable_identifiers := port_identifier variable_dimension* ( assign expression )? ( comma port_identifier variable_dimension* ( assign expression )? )*
+                                -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
 
 list_of_type_assignments := type_assignment ( !( comma kw_type_d0a3e7f8 ) comma type_assignment )*
+                         -> {first: $1, rest: $2}
 
 list_of_udp_port_identifiers := port_identifier ( comma port_identifier )*
                              -> {first: $1, rest: $2}
 
 list_of_variable_assignments := variable_assignment ( comma variable_assignment )*
+                             -> {first: $1, rest: $2}
 
 list_of_variable_decl_assignments := variable_decl_assignment ( comma variable_decl_assignment )*
+                                  -> {first: $1, rest: $2}
 
 list_of_variable_identifiers := variable_identifier variable_dimension* ( comma variable_identifier variable_dimension* )*
+                             -> {first: {name: $1, dims: $2}, rest: $3}
 
 list_of_variable_port_identifiers := port_identifier variable_dimension* ( assign constant_expression )? ( comma port_identifier variable_dimension* ( assign constant_expression )? )*
+                                  -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]

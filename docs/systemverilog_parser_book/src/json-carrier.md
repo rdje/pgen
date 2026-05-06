@@ -238,6 +238,13 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `list_of_arguments_named` | `-> {first: $1, rest: $2}` | All-named form. |
 | `list_of_arguments_mixed` | `-> {head: $1, named: {first: $3, rest: $4}}` | `head` is the typed `list_of_arguments_mixed_head` (positional prefix). `named` is mini-mixed-array of trailing named arguments. |
 | `list_of_arguments_mixed_head` (2 branches) | per-branch typed | Kind labels: `"single"` (`{body}` — single positional argument) / `"chain"` (`{expr, rest}` — recursive: optional expression followed by comma followed by recursive head). |
+| `list_of_clocking_decl_assign` / `list_of_defparam_assignments` / `list_of_genvar_identifiers` / `list_of_net_assignments` / `list_of_net_decl_assignments` / `list_of_param_assignments` / `list_of_path_inputs` / `list_of_path_outputs` / `list_of_specparam_assignments` / `list_of_type_assignments` / `list_of_variable_assignments` / `list_of_variable_decl_assignments` (12 rules) | `-> {first, rest}` | Uniform mini-mixed-array. `first` is the leading required item; `rest` is the trailing iteration of `[comma, item]` pairs. |
+| `list_of_interface_identifiers` / `list_of_port_identifiers` / `list_of_variable_identifiers` (3 rules) | `-> {first: {name, dims}, rest}` | Per-item `{name, dims}` (identifier + trailing unpacked/variable dimension list per LRM); `rest` is iteration of comma-prefixed items. |
+| `list_of_tf_variable_identifiers` | `-> {first: {name, dims, init}, rest}` | Per-item adds `init: ( assign expression )?` slot. |
+| `list_of_variable_port_identifiers` | `-> {first: {name, dims, init}, rest}` | Same shape; `init` is `( assign constant_expression )?`. |
+| `list_of_cross_items` | `-> {first, second, rest}` | Cross requires ≥2 items per LRM A.2.11 — `first` and `second` are required, `rest` is the trailing iteration. |
+| `list_of_checker_port_connections` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"ordered"` / `"named"`. |
+| `list_of_port_connections` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"named"` / `"ordered"`. PEG ordered choice tries named first. |
 
 ## Sub-rules with implicit defaults
 
