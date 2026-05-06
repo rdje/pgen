@@ -378,6 +378,7 @@ assertion_item_declaration := property_declaration -> {kind: "property", body: $
 assertion_variable_declaration := var_data_type list_of_variable_decl_assignments semi
 
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
+                   -> {exprs: {first: $3, rest: $4}}
                     | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
                     | @sample: "'{1: 0}" tick lbrace array_pattern_key colon expression ( comma array_pattern_key colon expression )* rbrace
                     | @sample: "'{2{0, 1}}" tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace
@@ -784,8 +785,10 @@ concurrent_assertion_statement := assert_property_statement   -> {kind: "assert_
                                 | restrict_property_statement -> {kind: "restrict_property", body: $1}
 
 cond_pattern := expression_base kw_matches_9f3e9242 pattern
+             -> {expression: $1, pattern: $3}
 
 cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_pattern )*
+               -> {first: $1, rest: $2}
 
 conditional_expression := cond_predicate &question question attribute_instance* expression colon expression
 
@@ -1292,7 +1295,8 @@ exp := kw_e_58e6b3a4 | kw_E_e0184ade
 expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen action_block
                           -> {spec: $3, action: $5}
 
-expression_or_cond_pattern := expression_base | cond_pattern
+expression_or_cond_pattern := expression_base -> {kind: "expression",   body: $1}
+                            | cond_pattern    -> {kind: "cond_pattern", body: $1}
 
 expression_or_dist := @probe_sample: "1" expression ( kw_dist_02450072 dist_list* )?
 
@@ -2368,10 +2372,34 @@ path_delay_expression := constant_mintypmax_expression
 path_delay_value := list_of_path_delay_expressions | lparen list_of_path_delay_expressions rparen
 
 @profiles: ["sv_2017"]
-pattern_sv_2017 := dot variable_identifier | dot_star | constant_expression | kw_tagged_8e1ec218 member_identifier ( pattern )? | tick lbrace pattern ( comma pattern )* rbrace | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
+pattern_sv_2017 := dot variable_identifier
+                        -> {kind: "variable_capture", name: $2}
+                | dot_star
+                        -> {kind: "wildcard"}
+                | constant_expression
+                        -> {kind: "expression",       body: $1}
+                | kw_tagged_8e1ec218 member_identifier ( pattern )?
+                        -> {kind: "tagged",           name: $2, sub_pattern: $3}
+                | tick lbrace pattern ( comma pattern )* rbrace
+                        -> {kind: "ordered",          patterns: {first: $3, rest: $4}}
+                | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
+                        -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
 
 @profiles: ["sv_2023"]
-pattern_sv_2023 := lparen pattern rparen | dot variable_identifier | dot star | constant_expression | kw_tagged_8e1ec218 member_identifier ( pattern )? | tick lbrace pattern ( comma pattern )* rbrace | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
+pattern_sv_2023 := lparen pattern rparen
+                        -> {kind: "parenthesized",   body: $2}
+                | dot variable_identifier
+                        -> {kind: "variable_capture", name: $2}
+                | dot star
+                        -> {kind: "wildcard"}
+                | constant_expression
+                        -> {kind: "expression",       body: $1}
+                | kw_tagged_8e1ec218 member_identifier ( pattern )?
+                        -> {kind: "tagged",           name: $2, sub_pattern: $3}
+                | tick lbrace pattern ( comma pattern )* rbrace
+                        -> {kind: "ordered",          patterns: {first: $3, rest: $4}}
+                | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
+                        -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
 
 pattern := pattern_sv_2017 | pattern_sv_2023
 

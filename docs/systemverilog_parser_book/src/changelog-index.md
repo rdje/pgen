@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.45 / Contract 1.0.45 — SV-Slice-45 batch: pattern + cond_predicate family typed (6 rules / 18 annotations)
+
+**What changed:** Closes the LRM A.6.7.1 pattern-matching walk path used by case_pattern_item, conditional_statement.condition (via cond_predicate), and constraint_expression's various forms.
+
+```ebnf
+cond_predicate              -> {first, rest}
+cond_pattern                -> {expression, pattern}
+expression_or_cond_pattern  -> 2 kinds (expression / cond_pattern)
+pattern_sv_2017             -> 6 kinds (variable_capture / wildcard / expression / tagged / ordered / named)
+pattern_sv_2023             -> 7 kinds (same 6 + parenthesized per LRM 2023)
+assignment_pattern          -> {exprs: {first, rest}}
+```
+
+**Annotation inventory:** 644 entries (was 626). +18 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.45 / Contract 1.0.45 Highlights".
+
 ### 1.0.44 / Contract 1.0.44 — SV-Slice-44 batch: list_of_* family typed (20 rules / 22 annotations)
 
 **What changed:** Uniform mini-mixed-array pattern across the small declaration-list rules. Every list_of_* rule referenced from typed parents now exposes `{first, rest}` shape.

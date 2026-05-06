@@ -245,6 +245,12 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `list_of_cross_items` | `-> {first, second, rest}` | Cross requires ≥2 items per LRM A.2.11 — `first` and `second` are required, `rest` is the trailing iteration. |
 | `list_of_checker_port_connections` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"ordered"` / `"named"`. |
 | `list_of_port_connections` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"named"` / `"ordered"`. PEG ordered choice tries named first. |
+| `cond_predicate` | `-> {first, rest}` | LRM A.6.7.1 `&&&`-separated chain of expression-or-cond_pattern values used in conditional statement predicates. |
+| `cond_pattern` | `-> {expression, pattern}` | The `expr matches pattern` form used in conditional_statement guards. Drops `kw_matches`. |
+| `expression_or_cond_pattern` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"cond_pattern"`. |
+| `pattern_sv_2017` (6 branches) | per-branch typed | Kind labels: `"variable_capture"` (`{name}` — `.name` form, binds matched value) / `"wildcard"` (`.*`) / `"expression"` (`{body}`) / `"tagged"` (`{name, sub_pattern}` — tagged-union pattern) / `"ordered"` (`{patterns: {first, rest}}` — `'{p1, p2}` positional struct pattern) / `"named"` (`{entries: {first: {name, pattern}, rest}}` — `'{n1: p1, n2: p2}` keyed pattern). |
+| `pattern_sv_2023` (7 branches) | per-branch typed | Same 6 kinds as sv_2017 plus `"parenthesized"` (`{body}` — `(pattern)` form added in LRM 2023 A.6.7.1 grammar expansion). |
+| `assignment_pattern` | `-> {exprs: {first, rest}}` | The `'{expr, expr, ...}` assignment-pattern form (drops tick / braces). Mini-mixed-array on exprs. |
 
 ## Sub-rules with implicit defaults
 

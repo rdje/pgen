@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-45 batch: pattern + cond_predicate family typed (6 rules / 18 annotations)
+
+Closes the LRM A.6.7.1 pattern-matching walk path used by case_pattern_item, conditional_statement.condition (via cond_predicate), constraint_expression's various forms, etc.
+
+```ebnf
+cond_predicate              -> {first, rest}
+cond_pattern                -> {expression, pattern}
+expression_or_cond_pattern  -> 2 kinds (expression / cond_pattern)
+pattern_sv_2017             -> 6 kinds (variable_capture / wildcard / expression / tagged / ordered / named)
+pattern_sv_2023             -> 7 kinds (same 6 + parenthesized per LRM 2023)
+assignment_pattern          -> {exprs: {first, rest}}
+```
+
+Annotation count: **644** (was 626, +18). Same accept set. Schema stays at `1`. Contract bumped 1.0.44 → 1.0.45. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-44 batch: list_of_* family typed (20 rules / 22 annotations)
 
 Uniform mini-mixed-array pattern across the small declaration-list rules. Every list_of_* rule referenced from typed parents (variable / port / parameter / net / function / task) now exposes `{first, rest}` shape — no more raw envelopes for declaration-list iterations.

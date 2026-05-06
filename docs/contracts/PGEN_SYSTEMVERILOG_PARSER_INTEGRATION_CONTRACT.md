@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.44`
+  - `1.0.45`
 - Parser release version:
-  - `1.0.44`
+  - `1.0.45`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,75 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.45 / Contract 1.0.45 Highlights — SV-Slice-45 batch: pattern + cond_predicate family typed (6 rules / 18 annotations)
+
+Closes the LRM A.6.7.1 pattern-matching walk path used by `case_pattern_item`, `conditional_statement.condition` (via `cond_predicate`), constraint_expression's various forms, and randcase items via cond_predicate descent.
+
+### Annotations
+
+```ebnf
+cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_pattern )*
+               -> {first: $1, rest: $2}
+
+cond_pattern := expression_base kw_matches pattern
+             -> {expression: $1, pattern: $3}
+
+expression_or_cond_pattern := expression_base -> {kind: "expression",   body: $1}
+                            | cond_pattern    -> {kind: "cond_pattern", body: $1}
+
+@profiles: ["sv_2017"]
+pattern_sv_2017 := dot variable_identifier
+                        -> {kind: "variable_capture", name: $2}
+                | dot_star
+                        -> {kind: "wildcard"}
+                | constant_expression
+                        -> {kind: "expression",       body: $1}
+                | kw_tagged member_identifier ( pattern )?
+                        -> {kind: "tagged",           name: $2, sub_pattern: $3}
+                | tick lbrace pattern ( comma pattern )* rbrace
+                        -> {kind: "ordered",          patterns: {first: $3, rest: $4}}
+                | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
+                        -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
+
+@profiles: ["sv_2023"]
+pattern_sv_2023 := lparen pattern rparen
+                        -> {kind: "parenthesized",   body: $2}
+                | /* same 6 kinds as sv_2017 (variable_capture / wildcard / expression / tagged / ordered / named) */
+
+assignment_pattern := tick lbrace expression ( comma expression )* rbrace
+                   -> {exprs: {first: $3, rest: $4}}
+```
+
+### Field semantics
+
+- `cond_predicate.first` / `.rest`: the LRM A.6.7.1 `&&&`-separated chain of expression-or-cond_pattern values used in conditional statement predicates and case-pattern guards.
+- `cond_pattern`: the `expr matches pattern` form per LRM A.6.7.1 — used in conditional_statement guards.
+- `pattern.kind == "variable_capture"`: the `.name` capture form (binds the matched value to a new variable).
+- `pattern.kind == "wildcard"`: the `.*` form (matches anything, captures nothing).
+- `pattern.kind == "tagged"`: tagged-union pattern `tagged Name [sub_pattern]` (LRM A.6.7.1 — for tagged-union types from data_type.kind == "struct_union" with tagged modifier).
+- `pattern.kind == "ordered"`: positional struct/array pattern `'{p1, p2, ...}` (mini-mixed-array on patterns).
+- `pattern.kind == "named"`: keyed struct pattern `'{name1: p1, name2: p2, ...}` (mini-mixed-array of `{name, pattern}` entries).
+- `pattern_sv_2023.kind == "parenthesized"`: LRM 2023 expansion that explicitly allows parenthesized patterns (was implicit in sv_2017).
+
+### Profile difference
+
+`pattern_sv_2023` adds an explicit `parenthesized` kind (LRM 2023 A.6.7.1 grammar expansion) but the other 6 kinds are identical to sv_2017. Profile-agnostic walks should accept the additional kind under sv_2023.
+
+### Annotation inventory
+
+644 entries (was 626). +18 in this batch (1 cond_predicate + 1 cond_pattern + 2 expression_or_cond_pattern + 6 pattern_sv_2017 + 7 pattern_sv_2023 + 1 assignment_pattern).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `expression`, `expression_base`, `expression_operand` (the largest single sub-tree — touches every expression-typed field).
+- `attr_spec` deeper internals.
+- `list_of_path_delay_expressions` (6-branch path-delay specifier).
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.44 / Contract 1.0.44 Highlights — SV-Slice-44 batch: list_of_* family typed (20 rules / 22 annotations)
 
