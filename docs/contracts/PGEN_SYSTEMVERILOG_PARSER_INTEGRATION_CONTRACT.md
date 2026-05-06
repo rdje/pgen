@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.40`
+  - `1.0.41`
 - Parser release version:
-  - `1.0.40`
+  - `1.0.41`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,88 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.41 / Contract 1.0.41 Highlights — SV-Slice-41 batch: data_type family typed (8 rules / 36 annotations)
+
+Pervasive impact across the entire grammar. `data_type` fields appear in module/interface/program port declarations, function/task return types, variable declarations, parameter declarations, struct/union members, class properties, function arguments, etc. After this slice, every typed `data_type` field across all typed parent rules (`function_body_declaration.return_type`, `task return`, `variable_decl.data_type`, etc.) discriminates which underlying SV type is in use without requiring envelope walks.
+
+### Annotations
+
+```ebnf
+data_type := integer_vector_type ( signing )? packed_dimension*                 -> {kind: "integer_vector",        base: $1, signing: $2, dims: $3}
+           | integer_atom_type ( signing )?                                      -> {kind: "integer_atom",          base: $1, signing: $2}
+           | non_integer_type                                                    -> {kind: "non_integer",           base: $1}
+           | struct_union ( kw_packed ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
+                                                                                  -> {kind: "struct_union",         header: $1, packed_signing: $2, members: {first: $4, rest: $5}, dims: $7}
+           | kw_enum ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
+                                                                                  -> {kind: "enum",                  base_type: $2, names: {first: $4, rest: $5}, dims: $7}
+           | kw_string                                                            -> {kind: "string"}
+           | kw_chandle                                                           -> {kind: "chandle"}
+           | kw_virtual ( kw_interface )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
+                                                                                  -> {kind: "virtual_interface",     interface_keyword: $2, name: $3, params: $4, modport: $5}
+           | scoped_data_type_identifier                                          -> {kind: "scoped_data_type",      body: $1}
+           | known_unscoped_data_type_identifier                                  -> {kind: "known_unscoped_data_type", body: $1}
+           | class_type                                                           -> {kind: "class_type",            body: $1}
+           | provisional_unscoped_block_class_type                                -> {kind: "provisional_class_type", body: $1}
+           | kw_event                                                             -> {kind: "event"}
+           | ps_covergroup_identifier                                             -> {kind: "covergroup",            body: $1}
+           | type_reference                                                       -> {kind: "type_reference",        body: $1}
+
+data_type_or_implicit := data_type          -> {kind: "data_type",     body: $1}
+                       | implicit_data_type -> {kind: "implicit",       body: $1}
+
+data_type_or_incomplete_class_scoped_type_sv_2023 := data_type                     -> {kind: "data_type",            body: $1}
+                                                   | incomplete_class_scoped_type  -> {kind: "incomplete_class_scoped", body: $1}
+
+data_type_or_void := data_type -> {kind: "data_type", body: $1}
+                   | kw_void   -> {kind: "void"}
+
+implicit_data_type := ( signing )? packed_dimension*
+                   -> {signing: $1, dims: $2}
+
+integer_atom_type := kw_byte     -> {kind: "byte"}
+                   | kw_shortint -> {kind: "shortint"}
+                   | kw_int      -> {kind: "int"}
+                   | kw_longint  -> {kind: "longint"}
+                   | kw_integer  -> {kind: "integer"}
+                   | kw_time     -> {kind: "time"}
+
+integer_vector_type := kw_bit   -> {kind: "bit"}
+                     | kw_logic -> {kind: "logic"}
+                     | kw_reg   -> {kind: "reg"}
+
+non_integer_type := kw_shortreal -> {kind: "shortreal"}
+                  | kw_real      -> {kind: "real"}
+                  | kw_realtime  -> {kind: "realtime"}
+
+integer_type := integer_vector_type -> {kind: "vector", body: $1}
+              | integer_atom_type   -> {kind: "atom",   body: $1}
+```
+
+### Field semantics
+
+- `data_type.kind == "integer_vector"`: scalar / packed-vector types (`bit`, `logic`, `reg`). The `dims` field carries any `packed_dimension*` (e.g., `logic [7:0]`). `signing` is `[]` or a typed signing slot.
+- `data_type.kind == "integer_atom"`: fixed-width arithmetic types (`byte`, `int`, etc.). No dims (atom types aren't vectorizable per LRM A.2.2.1).
+- `data_type.kind == "struct_union"`: `header` carries the typed `struct_union` keyword (struct/union/tagged_union — typed in a future slice). `packed_signing` is `[]` for unpacked struct, `[<kw_packed [signing]>]` for packed. `members` is mini-mixed-array of struct_union_member.
+- `data_type.kind == "enum"`: `base_type` is `[]` for default-int-base, `[<enum_base_type>]` for explicit base. `names` is mini-mixed-array.
+- `data_type.kind == "virtual_interface"`: `interface_keyword` is `[]` for `virtual identifier` form, `[<kw_interface>]` for explicit `virtual interface identifier`. Modport access via the `.modport_identifier` slot.
+- The 6 leaf kinds (string / chandle / event) and the 4 alias-only kinds (scoped_data_type / known_unscoped / class_type / provisional_class_type / covergroup / type_reference) bridge to other typed rules or carry single-token discriminators.
+
+### Annotation inventory
+
+567 entries (was 531). +36 in this batch (15 data_type + 2 data_type_or_implicit + 2 data_type_or_incomplete_class_scoped_type_sv_2023 + 2 data_type_or_void + 1 implicit_data_type + 6 integer_atom_type + 3 integer_vector_type + 3 non_integer_type + 2 integer_type).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `signing` (typed kind discriminator for signed/unsigned).
+- `struct_union` / `struct_union_member` (close struct/union member walk).
+- `enum_base_type` / `enum_name_declaration`.
+- `class_type` internals.
+- `expression`, `cond_predicate`, `pattern`.
 
 ## Release 1.0.40 / Contract 1.0.40 Highlights — SV-Slice-40 batch: simple immediate assertions + inc_or_dec + weight_specification typed (6 rules / 11 annotations)
 

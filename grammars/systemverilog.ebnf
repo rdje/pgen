@@ -1061,29 +1061,47 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
 block_data_type_or_implicit := block_data_type | implicit_data_type
 
 data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimension*
+                  -> {kind: "integer_vector",        base: $1, signing: $2, dims: $3}
            | integer_atom_type ( signing )?
+                  -> {kind: "integer_atom",          base: $1, signing: $2}
            | non_integer_type
+                  -> {kind: "non_integer",           base: $1}
            | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
+                  -> {kind: "struct_union",         header: $1, packed_signing: $2, members: {first: $4, rest: $5}, dims: $7}
            | @sample: "enum { A }" kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
+                  -> {kind: "enum",                  base_type: $2, names: {first: $4, rest: $5}, dims: $7}
            | kw_string_ecb25204
+                  -> {kind: "string"}
            | kw_chandle_34401c13
+                  -> {kind: "chandle"}
            | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
+                  -> {kind: "virtual_interface",     interface_keyword: $2, name: $3, params: $4, modport: $5}
            | scoped_data_type_identifier
+                  -> {kind: "scoped_data_type",      body: $1}
            | known_unscoped_data_type_identifier
+                  -> {kind: "known_unscoped_data_type", body: $1}
            | class_type
+                  -> {kind: "class_type",            body: $1}
            | provisional_unscoped_block_class_type
+                  -> {kind: "provisional_class_type", body: $1}
            | kw_event_5006ed02
+                  -> {kind: "event"}
            | ps_covergroup_identifier
+                  -> {kind: "covergroup",            body: $1}
            | type_reference
+                  -> {kind: "type_reference",        body: $1}
 
-data_type_or_implicit := data_type | implicit_data_type
+data_type_or_implicit := data_type          -> {kind: "data_type",     body: $1}
+                       | implicit_data_type -> {kind: "implicit",       body: $1}
 
 @profiles: ["sv_2023"]
-data_type_or_incomplete_class_scoped_type_sv_2023 := data_type | incomplete_class_scoped_type
+data_type_or_incomplete_class_scoped_type_sv_2023 := data_type                     -> {kind: "data_type",            body: $1}
+                                                   | incomplete_class_scoped_type  -> {kind: "incomplete_class_scoped", body: $1}
 
 data_type_or_incomplete_class_scoped_type := data_type_or_incomplete_class_scoped_type_sv_2023
 
-data_type_or_void := data_type | kw_void_e9cede9b
+data_type_or_void := data_type        -> {kind: "data_type", body: $1}
+                   | kw_void_e9cede9b -> {kind: "void"}
 
 decimal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_d_3c363836 | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_D_50c9e8d5
 
@@ -1430,6 +1448,7 @@ immediate_assertion_statement := simple_immediate_assertion_statement   -> {kind
 implicit_class_handle := kw_this_c2543fff | kw_super_8451ba8a | kw_this_c2543fff dot kw_super_8451ba8a
 
 implicit_data_type := ( signing )? packed_dimension*
+                   -> {signing: $1, dims: $2}
 
 import_export := kw_import_62fdfbd5 | kw_export_51713409
 
@@ -1489,7 +1508,12 @@ inst_name := topmodule_identifier ( dot instance_identifier )*
 
 instance_identifier := identifier
 
-integer_atom_type := kw_byte_8cf1783f | kw_shortint_131a0f0d | kw_int_46f8ab7c | kw_longint_30bcfc87 | kw_integer_1178cafb | kw_time_714eea0f
+integer_atom_type := kw_byte_8cf1783f     -> {kind: "byte"}
+                   | kw_shortint_131a0f0d -> {kind: "shortint"}
+                   | kw_int_46f8ab7c      -> {kind: "int"}
+                   | kw_longint_30bcfc87  -> {kind: "longint"}
+                   | kw_integer_1178cafb  -> {kind: "integer"}
+                   | kw_time_714eea0f     -> {kind: "time"}
 
 @profiles: ["sv_2017"]
 integer_covergroup_expression_sv_2017 := covergroup_expression
@@ -1499,9 +1523,12 @@ integer_covergroup_expression_sv_2023 := covergroup_expression | kw_dollar
 
 integer_covergroup_expression := integer_covergroup_expression_sv_2017 | integer_covergroup_expression_sv_2023
 
-integer_type := integer_vector_type | integer_atom_type
+integer_type := integer_vector_type -> {kind: "vector", body: $1}
+              | integer_atom_type   -> {kind: "atom",   body: $1}
 
-integer_vector_type := kw_bit_026e996a | kw_logic_2c684987 | kw_reg_e06b9586
+integer_vector_type := kw_bit_026e996a   -> {kind: "bit"}
+                     | kw_logic_2c684987 -> {kind: "logic"}
+                     | kw_reg_e06b9586   -> {kind: "reg"}
 
 interface_ansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )? interface_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
                       -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
@@ -2032,7 +2059,9 @@ non_consecutive_repetition_sv_2017 := ( assign const_or_range_expression )?
 
 non_consecutive_repetition := non_consecutive_repetition_sv_2017
 
-non_integer_type := kw_shortreal_99d69111 | kw_real_c9c64e07 | kw_realtime_91c462ed
+non_integer_type := kw_shortreal_99d69111 -> {kind: "shortreal"}
+                  | kw_real_c9c64e07      -> {kind: "real"}
+                  | kw_realtime_91c462ed  -> {kind: "realtime"}
 
 non_port_interface_item := generate_region
                                -> {kind: "generate_region",       body: $1}

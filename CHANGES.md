@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-41 batch: data_type family typed (8 rules / 36 annotations)
+
+Pervasive impact across the entire grammar — `data_type` fields appear in module/interface/program port declarations, function/task return types, variable declarations, parameter declarations, struct/union members, class properties, function arguments, etc.
+
+```ebnf
+data_type            -> 15 kinds (integer_vector / integer_atom / non_integer / struct_union / enum / string / chandle / virtual_interface / scoped_data_type / known_unscoped_data_type / class_type / provisional_class_type / event / covergroup / type_reference)
+data_type_or_implicit                             -> 2 kinds
+data_type_or_void                                 -> 2 kinds
+data_type_or_incomplete_class_scoped_type_sv_2023 -> 2 kinds
+implicit_data_type                                -> {signing, dims}
+integer_atom_type                                 -> 6 kinds bare (byte / shortint / int / longint / integer / time)
+integer_vector_type                               -> 3 kinds bare (bit / logic / reg)
+non_integer_type                                  -> 3 kinds bare (shortreal / real / realtime)
+integer_type                                      -> 2 kinds (vector / atom)
+```
+
+Annotation count: **567** (was 531, +36). Same accept set. Schema stays at `1`. Contract bumped 1.0.40 → 1.0.41. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-40 batch: simple immediate assertions + inc_or_dec + weight_specification typed (6 rules / 11 annotations)
 
 Closes immediate_assertion_statement.kind=="simple" walk, inc_or_dec_expression internals, and weight_specification_sv_2017.

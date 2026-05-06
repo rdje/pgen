@@ -207,6 +207,15 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `simple_immediate_cover_statement` | `-> {condition, statement}` | Uses `statement_or_null` instead of `action_block` (cover has no pass/fail branching). |
 | `inc_or_dec_expression` (2 branches) | per-branch typed | Kind labels: `"prefix"` (`{op, attributes, lvalue}` — `++a` / `--a`) / `"postfix"` (`{lvalue, attributes, op}` — `a++` / `a--`). The `attributes` slot carries inline `attribute_instance*` (LRM allows attributes between operator and operand). |
 | `weight_specification_sv_2017` (3 branches) | per-branch `{kind, body}` | Kind labels: `"number"` / `"identifier"` / `"expression"`. Parallel to `rs_weight_specification_sv_2023`. |
+| `data_type` (15 branches) | per-branch typed | Kind labels: `"integer_vector"` (`{base, signing, dims}` — bit/logic/reg with optional signing + packed dims) / `"integer_atom"` (`{base, signing}` — byte/shortint/int/longint/integer/time) / `"non_integer"` (`{base}` — shortreal/real/realtime) / `"struct_union"` (`{header, packed_signing, members: {first, rest}, dims}`) / `"enum"` (`{base_type, names: {first, rest}, dims}`) / `"string"` / `"chandle"` / `"event"` (bare; no body) / `"virtual_interface"` (`{interface_keyword, name, params, modport}`) / `"scoped_data_type"` / `"known_unscoped_data_type"` / `"class_type"` / `"provisional_class_type"` / `"covergroup"` / `"type_reference"` (each `{body}`). |
+| `data_type_or_implicit` (2 branches) | per-branch `{kind, body}` | Kind labels: `"data_type"` / `"implicit"`. |
+| `data_type_or_void` (2 branches) | per-branch typed | Kind labels: `"data_type"` (`{body}`) / `"void"` (bare). |
+| `data_type_or_incomplete_class_scoped_type_sv_2023` (2 branches) | per-branch `{kind, body}` | Kind labels: `"data_type"` / `"incomplete_class_scoped"`. |
+| `implicit_data_type` | `-> {signing, dims}` | `signing` is `[]` or typed signing slot. `dims` is the packed_dimension* iteration. |
+| `integer_atom_type` (6 branches) | per-branch `{kind}` (bare) | Kind labels: `"byte"` / `"shortint"` / `"int"` / `"longint"` / `"integer"` / `"time"`. |
+| `integer_vector_type` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"bit"` / `"logic"` / `"reg"`. |
+| `non_integer_type` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"shortreal"` / `"real"` / `"realtime"`. |
+| `integer_type` (2 branches) | per-branch `{kind, body}` | Kind labels: `"vector"` / `"atom"`. |
 
 ## Sub-rules with implicit defaults
 

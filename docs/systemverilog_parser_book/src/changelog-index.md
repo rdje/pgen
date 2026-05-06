@@ -19,6 +19,28 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.41 / Contract 1.0.41 — SV-Slice-41 batch: data_type family typed (8 rules / 36 annotations)
+
+**What changed:** Pervasive impact — `data_type` fields appear across the entire grammar.
+
+```ebnf
+data_type                                         -> 15 kinds (integer_vector / integer_atom / non_integer / struct_union / enum / string / chandle / virtual_interface / scoped_data_type / known_unscoped_data_type / class_type / provisional_class_type / event / covergroup / type_reference)
+data_type_or_implicit                             -> 2 kinds (data_type / implicit)
+data_type_or_void                                 -> 2 kinds (data_type / void)
+data_type_or_incomplete_class_scoped_type_sv_2023 -> 2 kinds
+implicit_data_type                                -> {signing, dims}
+integer_atom_type                                 -> 6 kinds bare (byte / shortint / int / longint / integer / time)
+integer_vector_type                               -> 3 kinds bare (bit / logic / reg)
+non_integer_type                                  -> 3 kinds bare (shortreal / real / realtime)
+integer_type                                      -> 2 kinds (vector / atom)
+```
+
+**Annotation inventory:** 567 entries (was 531). +36 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.41 / Contract 1.0.41 Highlights".
+
 ### 1.0.40 / Contract 1.0.40 — SV-Slice-40 batch: simple immediate assertions + inc_or_dec + weight_specification typed (6 rules / 11 annotations)
 
 **What changed:** Closes immediate_assertion_statement.kind=="simple", inc_or_dec_expression internals, and weight_specification_sv_2017.

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b05ae63f.js";
+            window.path_to_searchindex_js = "searchindex-8e579737.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -391,6 +391,15 @@
 <tr><td><code>simple_immediate_cover_statement</code></td><td><code>-&gt; {condition, statement}</code></td><td>Uses <code>statement_or_null</code> instead of <code>action_block</code> (cover has no pass/fail branching).</td></tr>
 <tr><td><code>inc_or_dec_expression</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"prefix"</code> (<code>{op, attributes, lvalue}</code> — <code>++a</code> / <code>--a</code>) / <code>"postfix"</code> (<code>{lvalue, attributes, op}</code> — <code>a++</code> / <code>a--</code>). The <code>attributes</code> slot carries inline <code>attribute_instance*</code> (LRM allows attributes between operator and operand).</td></tr>
 <tr><td><code>weight_specification_sv_2017</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"number"</code> / <code>"identifier"</code> / <code>"expression"</code>. Parallel to <code>rs_weight_specification_sv_2023</code>.</td></tr>
+<tr><td><code>data_type</code> (15 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"integer_vector"</code> (<code>{base, signing, dims}</code> — bit/logic/reg with optional signing + packed dims) / <code>"integer_atom"</code> (<code>{base, signing}</code> — byte/shortint/int/longint/integer/time) / <code>"non_integer"</code> (<code>{base}</code> — shortreal/real/realtime) / <code>"struct_union"</code> (<code>{header, packed_signing, members: {first, rest}, dims}</code>) / <code>"enum"</code> (<code>{base_type, names: {first, rest}, dims}</code>) / <code>"string"</code> / <code>"chandle"</code> / <code>"event"</code> (bare; no body) / <code>"virtual_interface"</code> (<code>{interface_keyword, name, params, modport}</code>) / <code>"scoped_data_type"</code> / <code>"known_unscoped_data_type"</code> / <code>"class_type"</code> / <code>"provisional_class_type"</code> / <code>"covergroup"</code> / <code>"type_reference"</code> (each <code>{body}</code>).</td></tr>
+<tr><td><code>data_type_or_implicit</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"data_type"</code> / <code>"implicit"</code>.</td></tr>
+<tr><td><code>data_type_or_void</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"data_type"</code> (<code>{body}</code>) / <code>"void"</code> (bare).</td></tr>
+<tr><td><code>data_type_or_incomplete_class_scoped_type_sv_2023</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"data_type"</code> / <code>"incomplete_class_scoped"</code>.</td></tr>
+<tr><td><code>implicit_data_type</code></td><td><code>-&gt; {signing, dims}</code></td><td><code>signing</code> is <code>[]</code> or typed signing slot. <code>dims</code> is the packed_dimension* iteration.</td></tr>
+<tr><td><code>integer_atom_type</code> (6 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"byte"</code> / <code>"shortint"</code> / <code>"int"</code> / <code>"longint"</code> / <code>"integer"</code> / <code>"time"</code>.</td></tr>
+<tr><td><code>integer_vector_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"bit"</code> / <code>"logic"</code> / <code>"reg"</code>.</td></tr>
+<tr><td><code>non_integer_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"shortreal"</code> / <code>"real"</code> / <code>"realtime"</code>.</td></tr>
+<tr><td><code>integer_type</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"vector"</code> / <code>"atom"</code>.</td></tr>
 </tbody>
 </table>
 </div>
