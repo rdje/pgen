@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c200748c.js";
+            window.path_to_searchindex_js = "searchindex-b1624e33.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,17 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1038--contract-1038--sv-slice-38-batch-randsequence-top-level--production-typed-4-rules--4-annotations"><a class="header" href="#1038--contract-1038--sv-slice-38-batch-randsequence-top-level--production-typed-4-rules--4-annotations">1.0.38 / Contract 1.0.38 — SV-Slice-38 batch: randsequence top-level + production typed (4 rules / 4 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the last raw-envelope statement_item kind.</p>
+<pre><code class="language-ebnf">randsequence_statement_sv_2017 -&gt; {start, productions: {first, rest}}
+randsequence_statement_sv_2023 -&gt; {start, productions: {first, rest}}  (uses rs_production per LRM 2023)
+production_sv_2017             -&gt; {return_type, name, ports, rules: {first, rest}}
+production_item_sv_2017        -&gt; {name, args}
+</code></pre>
+<p><strong>DEFERRED:</strong> rs_* family internals (rs_rule, rs_prod, rs_case, rs_if_else, rs_repeat, rs_code_block) — referenced from production.rules.</p>
+<p><strong>Annotation inventory:</strong> 489 entries (was 485). +4 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.38 / Contract 1.0.38 Highlights”.</p>
 <h3 id="1037--contract-1037--sv-slice-37-batch-blocking_assignment-typed-via-helper-rule-extraction-3-rules--12-annotations--1-new-helper-rule-with-3-annotations"><a class="header" href="#1037--contract-1037--sv-slice-37-batch-blocking_assignment-typed-via-helper-rule-extraction-3-rules--12-annotations--1-new-helper-rule-with-3-annotations">1.0.37 / Contract 1.0.37 — SV-Slice-37 batch: blocking_assignment typed via helper-rule extraction (3 rules / 12 annotations + 1 new helper rule with 3 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the last DEFERRED statement_item kind. After this slice, <strong>all 20 (sv_2017) / 19 (sv_2023) statement_item kinds expose typed dispatch end-to-end</strong>.</p>
 <pre><code class="language-ebnf">blocking_assignment_sv_2017     -&gt; 4 kinds (delay_assign / dynamic_array_new / class_new / operator)

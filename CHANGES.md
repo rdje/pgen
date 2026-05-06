@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-38 batch: randsequence top-level + production typed (4 rules / 4 annotations)
+
+Closes the last raw-envelope `statement_item` kind. Every framed procedural statement in module/program/function/task bodies now type-discriminates into a structured shape AND every typed body content (productions / production rules) is reachable.
+
+```ebnf
+randsequence_statement_sv_2017 -> {start, productions: {first, rest}}
+randsequence_statement_sv_2023 -> {start, productions: {first, rest}}
+production_sv_2017             -> {return_type, name, ports, rules: {first, rest}}
+production_item_sv_2017        -> {name, args}
+```
+
+DEFERRED: rs_* family internals (rs_rule, rs_prod, rs_case, rs_if_else, rs_repeat, rs_code_block) — referenced from production.rules.
+
+Annotation count: **489** (was 485, +4). Same accept set. Schema stays at `1`. Contract bumped 1.0.37 → 1.0.38. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-37 batch: blocking_assignment typed via helper-rule extraction (3 rules / 12 annotations + 1 new helper rule with 3 annotations)
 
 Closes the last DEFERRED `statement_item` kind. **All 20 (sv_2017) / 19 (sv_2023) statement_item kinds now expose typed dispatch end-to-end** — the entire procedural-statement walk path is type-discriminated.

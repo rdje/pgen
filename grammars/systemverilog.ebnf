@@ -2362,6 +2362,7 @@ procedural_timing_control_statement := procedural_timing_control statement_or_nu
 
 @profiles: ["sv_2017"]
 production_sv_2017 := ( data_type_or_void )? production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
+                   -> {return_type: $1, name: $2, ports: $3, rules: {first: $5, rest: $6}}
 
 production := production_sv_2017
 
@@ -2372,6 +2373,7 @@ production_identifier := production_identifier_sv_2017
 
 @profiles: ["sv_2017"]
 production_item_sv_2017 := production_identifier ( lparen list_of_arguments rparen )?
+                        -> {name: $1, args: $2}
 
 production_item := production_item_sv_2017
 
@@ -2552,9 +2554,11 @@ randomize_call := kw_randomize_e3b19624 attribute_instance* ( lparen ( variable_
 
 @profiles: ["sv_2017"]
 randsequence_statement_sv_2017 := kw_randsequence_8b92cf8f lparen ( production_identifier )? rparen production production* kw_endsequence_241830d7
+                               -> {start: $3, productions: {first: $5, rest: $6}}
 
 @profiles: ["sv_2023"]
 randsequence_statement_sv_2023 := kw_randsequence_8b92cf8f lparen ( rs_production_identifier )? rparen rs_production rs_production* kw_endsequence_241830d7
+                               -> {start: $3, productions: {first: $5, rest: $6}}
 
 randsequence_statement := randsequence_statement_sv_2017 | randsequence_statement_sv_2023
 

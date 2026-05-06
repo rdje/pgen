@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.37`
+  - `1.0.38`
 - Parser release version:
-  - `1.0.37`
+  - `1.0.38`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,71 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.38 / Contract 1.0.38 Highlights — SV-Slice-38 batch: randsequence top-level + production typed (4 rules / 4 annotations)
+
+Closes the last raw-envelope `statement_item` kind. After this slice, every framed procedural statement in module/program/function/task bodies type-discriminates into a structured shape AND every typed body content (productions / production rules) is reachable.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+randsequence_statement_sv_2017 := kw_randsequence lparen ( production_identifier )? rparen production production* kw_endsequence
+                               -> {start: $3, productions: {first: $5, rest: $6}}
+
+@profiles: ["sv_2023"]
+randsequence_statement_sv_2023 := kw_randsequence lparen ( rs_production_identifier )? rparen rs_production rs_production* kw_endsequence
+                               -> {start: $3, productions: {first: $5, rest: $6}}
+
+@profiles: ["sv_2017"]
+production_sv_2017 := ( data_type_or_void )? production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
+                   -> {return_type: $1, name: $2, ports: $3, rules: {first: $5, rest: $6}}
+
+@profiles: ["sv_2017"]
+production_item_sv_2017 := production_identifier ( lparen list_of_arguments rparen )?
+                        -> {name: $1, args: $2}
+```
+
+### Field semantics
+
+- `randsequence_statement.start`: the optional starting production name (e.g., `randsequence (top) ... endsequence`). `[]` for `randsequence () ...` form.
+- `randsequence_statement.productions`: mini-mixed-array — `first` is required, `rest` is the trailing production iteration.
+- `production.return_type`: optional `data_type_or_void` prefix for productions that produce values (e.g., `int p : ... ;`).
+- `production.ports`: optional `(lparen tf_port_list rparen)?` for parameterized productions.
+- `production.rules.rest`: each entry in the iteration is a `[bitwise_or_token, rs_rule_shape]` pair (alternative rules separated by `|`).
+- `production_item.args`: optional argument list when invoking the production.
+
+### Profile difference
+
+`randsequence_statement_sv_2017` references rules `production_identifier` / `production`; `randsequence_statement_sv_2023` references `rs_production_identifier` / `rs_production` (LRM 2023 renamed/namespaced these to avoid clashes with covergroup `production`). The typed shape is identical for consumers.
+
+### DEFERRED
+
+The deeper `rs_*` family (`rs_rule`, `rs_prod`, `rs_case`, `rs_if_else`, `rs_repeat`, `rs_code_block`, `rs_production_list`, etc.) are still raw envelope. These are referenced from `production.rules.{first,rest}` (typed in this slice as field references). Typing these closes the random-sequence walk path; will be done in a follow-up slice.
+
+### Annotation inventory
+
+489 entries (was 485). +4 in this batch (1 randsequence_statement_sv_2017 + 1 randsequence_statement_sv_2023 + 1 production_sv_2017 + 1 production_item_sv_2017).
+
+### statement_item dispatch coverage — now 100% (no raw-envelope kinds remaining)
+
+After this slice and SV-Slice-37, every statement_item kind exposes typed dispatch and every reachable typed-body field is itself typed:
+
+| kind | typed-in | body-of-body |
+|---|---|---|
+| randsequence_statement | SV-Slice-32 ✅ | typed THIS slice (productions field exposed; rs_* internals deferred) |
+| (all other 19 kinds typed in earlier slices — see SV-Slice-37 coverage table) | | |
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `rs_rule_sv_2017/2023` + `rs_prod_sv_2017/2023` + `rs_case` + `rs_case_item` + `rs_if_else` + `rs_repeat` + `rs_code_block` (close randsequence internals).
+- `simple_immediate_assertion_statement` (close immediate_assertion_statement.kind == "simple").
+- `inc_or_dec_expression` internals.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void`.
 
 ## Release 1.0.37 / Contract 1.0.37 Highlights — SV-Slice-37 batch: blocking_assignment typed via helper-rule extraction (3 rules / 12 annotations + 1 new helper rule with 3 annotations)
 

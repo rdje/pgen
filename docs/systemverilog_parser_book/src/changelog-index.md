@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.38 / Contract 1.0.38 — SV-Slice-38 batch: randsequence top-level + production typed (4 rules / 4 annotations)
+
+**What changed:** Closes the last raw-envelope statement_item kind.
+
+```ebnf
+randsequence_statement_sv_2017 -> {start, productions: {first, rest}}
+randsequence_statement_sv_2023 -> {start, productions: {first, rest}}  (uses rs_production per LRM 2023)
+production_sv_2017             -> {return_type, name, ports, rules: {first, rest}}
+production_item_sv_2017        -> {name, args}
+```
+
+**DEFERRED:** rs_* family internals (rs_rule, rs_prod, rs_case, rs_if_else, rs_repeat, rs_code_block) — referenced from production.rules.
+
+**Annotation inventory:** 489 entries (was 485). +4 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.38 / Contract 1.0.38 Highlights".
+
 ### 1.0.37 / Contract 1.0.37 — SV-Slice-37 batch: blocking_assignment typed via helper-rule extraction (3 rules / 12 annotations + 1 new helper rule with 3 annotations)
 
 **What changed:** Closes the last DEFERRED statement_item kind. After this slice, **all 20 (sv_2017) / 19 (sv_2023) statement_item kinds expose typed dispatch end-to-end**.
