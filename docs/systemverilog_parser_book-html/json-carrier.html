@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6ec16ecd.js";
+            window.path_to_searchindex_js = "searchindex-c200748c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -361,6 +361,9 @@
 <tr><td><code>procedural_assertion_statement</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"concurrent"</code> (typed in SV-Slice-29) / <code>"immediate"</code> (typed in this slice — bridges to immediate_assertion_statement) / <code>"checker_instantiation"</code> (raw envelope still).</td></tr>
 <tr><td><code>immediate_assertion_statement</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"simple"</code> (raw envelope still — <code>simple_immediate_assertion_statement</code> to be typed in a future slice) / <code>"deferred"</code> (typed in SV-Slice-30 — <code>deferred_immediate_assertion_statement</code>).</td></tr>
 <tr><td><code>variable_assignment</code></td><td><code>-&gt; {lvalue, value}</code></td><td>Drops <code>assign</code>. Reached from <code>procedural_continuous_assignment.kind == "assign"</code> and from <code>force_variable</code>.</td></tr>
+<tr><td><code>blocking_assignment_sv_2017</code> (4 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"delay_assign"</code> (<code>{lvalue, delay, value}</code> — <code>lvalue = #N expr;</code>) / <code>"dynamic_array_new"</code> (<code>{lvalue, value}</code> — <code>lvalue = new[size];</code>) / <code>"class_new"</code> (<code>{scope, name, select, value}</code> — <code>[scope.]name[select] = new(args);</code>; <code>scope</code> uses NEW helper rule) / <code>"operator"</code> (<code>{body}</code> — wraps operator_assignment for <code>+=</code> / <code>*=</code> / etc.).</td></tr>
+<tr><td><code>blocking_assignment_sv_2023</code> (5 branches)</td><td>per-branch typed</td><td>Same 4 kinds as sv_2017 plus <code>"inc_or_dec"</code> (<code>{body}</code> — LRM 2023 folds <code>++</code> / <code>--</code> into blocking_assignment; in sv_2017 these were a separate <code>inc_or_dec_expression semi</code> statement_item branch).</td></tr>
+<tr><td><code>class_or_package_scope</code> (NEW; 3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"instance"</code> (<code>{handle}</code> — implicit_class_handle dot prefix, typically <code>this.</code> / <code>super.</code>) / <code>"class_scope"</code> (<code>{body}</code> — <code>ClassName::</code>) / <code>"package_scope"</code> (<code>{body}</code> — <code>pkg::</code>). Helper rule extracted from inline <code>( implicit_class_handle dot | class_scope | package_scope )?</code> to dodge task #38. 4th use of the helper-rule extraction pattern.</td></tr>
 </tbody>
 </table>
 </div>

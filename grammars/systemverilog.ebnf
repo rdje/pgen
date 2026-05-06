@@ -481,12 +481,29 @@ block_data_declaration := block_data_declaration_sv_2017 | block_data_declaratio
 
 @profiles: ["sv_2017"]
 blocking_assignment_sv_2017 := @probe_sample: "a = #1 1" variable_lvalue assign delay_or_event_control expression
+                                  -> {kind: "delay_assign",      lvalue: $1, delay: $3, value: $4}
                              | nonrange_variable_lvalue assign dynamic_array_new
-                             | ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_variable_identifier select assign class_new
+                                  -> {kind: "dynamic_array_new", lvalue: $1, value: $3}
+                             | ( class_or_package_scope )? hierarchical_variable_identifier select assign class_new
+                                  -> {kind: "class_new",         scope: $1, name: $2, select: $3, value: $5}
                              | @probe_sample: "a = 1" operator_assignment
+                                  -> {kind: "operator",          body: $1}
 
 @profiles: ["sv_2023"]
-blocking_assignment_sv_2023 := variable_lvalue assign delay_or_event_control expression | nonrange_variable_lvalue assign dynamic_array_new | ( implicit_class_handle dot | class_scope | package_scope )? hierarchical_variable_identifier select assign class_new | operator_assignment | inc_or_dec_expression
+blocking_assignment_sv_2023 := variable_lvalue assign delay_or_event_control expression
+                                  -> {kind: "delay_assign",      lvalue: $1, delay: $3, value: $4}
+                             | nonrange_variable_lvalue assign dynamic_array_new
+                                  -> {kind: "dynamic_array_new", lvalue: $1, value: $3}
+                             | ( class_or_package_scope )? hierarchical_variable_identifier select assign class_new
+                                  -> {kind: "class_new",         scope: $1, name: $2, select: $3, value: $5}
+                             | operator_assignment
+                                  -> {kind: "operator",          body: $1}
+                             | inc_or_dec_expression
+                                  -> {kind: "inc_or_dec",        body: $1}
+
+class_or_package_scope := implicit_class_handle dot -> {kind: "instance",      handle: $1}
+                        | class_scope               -> {kind: "class_scope",   body: $1}
+                        | package_scope             -> {kind: "package_scope", body: $1}
 
 blocking_assignment := blocking_assignment_sv_2017 | blocking_assignment_sv_2023
 

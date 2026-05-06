@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-37 batch: blocking_assignment typed via helper-rule extraction (3 rules / 12 annotations + 1 new helper rule with 3 annotations)
+
+Closes the last DEFERRED `statement_item` kind. **All 20 (sv_2017) / 19 (sv_2023) statement_item kinds now expose typed dispatch end-to-end** — the entire procedural-statement walk path is type-discriminated.
+
+```ebnf
+blocking_assignment_sv_2017     -> 4 kinds (delay_assign / dynamic_array_new / class_new / operator)
+blocking_assignment_sv_2023     -> 5 kinds (same 4 + inc_or_dec per LRM 2023)
+class_or_package_scope (NEW)    -> 3 kinds (instance / class_scope / package_scope)
+```
+
+Helper-rule extraction is now used in 4 places: `if_generate_else_clause` (slice 23), `net_strength` + `net_vector_scalar` (slice 26), `conditional_else_branch` (slice 35), `class_or_package_scope` (slice 37). Established workaround pattern for task #38.
+
+Annotation count: **485** (was 473, +12). Same accept set. Schema stays at `1`. Contract bumped 1.0.36 → 1.0.37. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-36 batch: assignments + procedural assertions + randcase typed (8 rules / 16 annotations)
 
 Closes 4 more `statement_item` kinds. After this slice, 19 of statement_item's 19/20 kinds expose typed dispatch end-to-end (only `blocking_assignment` remains DEFERRED — needs parens-Or helper-rule extraction).

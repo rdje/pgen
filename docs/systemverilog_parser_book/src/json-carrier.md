@@ -177,6 +177,9 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `procedural_assertion_statement` (3 branches) | per-branch `{kind, body}` | Kind labels: `"concurrent"` (typed in SV-Slice-29) / `"immediate"` (typed in this slice — bridges to immediate_assertion_statement) / `"checker_instantiation"` (raw envelope still). |
 | `immediate_assertion_statement` (2 branches) | per-branch `{kind, body}` | Kind labels: `"simple"` (raw envelope still — `simple_immediate_assertion_statement` to be typed in a future slice) / `"deferred"` (typed in SV-Slice-30 — `deferred_immediate_assertion_statement`). |
 | `variable_assignment` | `-> {lvalue, value}` | Drops `assign`. Reached from `procedural_continuous_assignment.kind == "assign"` and from `force_variable`. |
+| `blocking_assignment_sv_2017` (4 branches) | per-branch typed | Kind labels: `"delay_assign"` (`{lvalue, delay, value}` — `lvalue = #N expr;`) / `"dynamic_array_new"` (`{lvalue, value}` — `lvalue = new[size];`) / `"class_new"` (`{scope, name, select, value}` — `[scope.]name[select] = new(args);`; `scope` uses NEW helper rule) / `"operator"` (`{body}` — wraps operator_assignment for `+=` / `*=` / etc.). |
+| `blocking_assignment_sv_2023` (5 branches) | per-branch typed | Same 4 kinds as sv_2017 plus `"inc_or_dec"` (`{body}` — LRM 2023 folds `++` / `--` into blocking_assignment; in sv_2017 these were a separate `inc_or_dec_expression semi` statement_item branch). |
+| `class_or_package_scope` (NEW; 3 branches) | per-branch typed | Kind labels: `"instance"` (`{handle}` — implicit_class_handle dot prefix, typically `this.` / `super.`) / `"class_scope"` (`{body}` — `ClassName::`) / `"package_scope"` (`{body}` — `pkg::`). Helper rule extracted from inline `( implicit_class_handle dot \| class_scope \| package_scope )?` to dodge task #38. 4th use of the helper-rule extraction pattern. |
 
 ## Sub-rules with implicit defaults
 

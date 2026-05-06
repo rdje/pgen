@@ -19,6 +19,24 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.37 / Contract 1.0.37 — SV-Slice-37 batch: blocking_assignment typed via helper-rule extraction (3 rules / 12 annotations + 1 new helper rule with 3 annotations)
+
+**What changed:** Closes the last DEFERRED statement_item kind. After this slice, **all 20 (sv_2017) / 19 (sv_2023) statement_item kinds expose typed dispatch end-to-end**.
+
+```ebnf
+blocking_assignment_sv_2017     -> 4 kinds (delay_assign / dynamic_array_new / class_new / operator)
+blocking_assignment_sv_2023     -> 5 kinds (same 4 + inc_or_dec per LRM 2023)
+class_or_package_scope (NEW)    -> 3 kinds (instance / class_scope / package_scope)
+```
+
+**Helper-rule extraction (4th use of the pattern).** `class_or_package_scope` extracted from `( implicit_class_handle dot | class_scope | package_scope )?` — same pattern as if_generate_else_clause / net_strength / net_vector_scalar / conditional_else_branch.
+
+**Annotation inventory:** 485 entries (was 473). +12 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.37 / Contract 1.0.37 Highlights" with full annotation source + helper-rule pattern table + 100% statement_item dispatch coverage.
+
 ### 1.0.36 / Contract 1.0.36 — SV-Slice-36 batch: assignments + procedural assertions + randcase typed (8 rules / 16 annotations)
 
 **What changed:** Closes 4 more statement_item kinds. After this slice, 19 of statement_item's 19/20 kinds expose typed dispatch end-to-end (only blocking_assignment remains DEFERRED).

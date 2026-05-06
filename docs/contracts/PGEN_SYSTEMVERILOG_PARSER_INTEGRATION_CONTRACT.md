@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.36`
+  - `1.0.37`
 - Parser release version:
-  - `1.0.36`
+  - `1.0.37`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,109 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.37 / Contract 1.0.37 Highlights — SV-Slice-37 batch: blocking_assignment typed via helper-rule extraction (3 rules / 12 annotations + 1 new helper rule with 3 annotations)
+
+Closes the last DEFERRED `statement_item` kind from SV-Slice-36. After this slice, **all 20 (sv_2017) / 19 (sv_2023) statement_item kinds expose typed dispatch end-to-end** — the entire procedural-statement walk path is type-discriminated for Nexsim consumers.
+
+### Annotations
+
+```ebnf
+@profiles: ["sv_2017"]
+blocking_assignment_sv_2017 := variable_lvalue assign delay_or_event_control expression
+                                  -> {kind: "delay_assign",      lvalue: $1, delay: $3, value: $4}
+                             | nonrange_variable_lvalue assign dynamic_array_new
+                                  -> {kind: "dynamic_array_new", lvalue: $1, value: $3}
+                             | ( class_or_package_scope )? hierarchical_variable_identifier select assign class_new
+                                  -> {kind: "class_new",         scope: $1, name: $2, select: $3, value: $5}
+                             | operator_assignment
+                                  -> {kind: "operator",          body: $1}
+
+@profiles: ["sv_2023"]
+blocking_assignment_sv_2023 := /* same 4 kinds plus 5th: */
+                             | inc_or_dec_expression
+                                  -> {kind: "inc_or_dec",        body: $1}
+
+class_or_package_scope := implicit_class_handle dot -> {kind: "instance",      handle: $1}
+                        | class_scope               -> {kind: "class_scope",   body: $1}
+                        | package_scope             -> {kind: "package_scope", body: $1}
+```
+
+### Helper-rule extraction (4th use of the pattern)
+
+The original `blocking_assignment_sv_2017/2023` branch 2 had:
+
+```ebnf
+( implicit_class_handle dot | class_scope | package_scope )? hierarchical_variable_identifier select assign class_new
+```
+
+The 3-way parens-Or hits task #38. Extracted to `class_or_package_scope` helper rule. This is the 4th use of the pattern:
+
+| Slice | Helper rule | Source rule | Original parens-Or |
+|---|---|---|---|
+| SV-Slice-23 | `if_generate_else_clause` | `if_generate_construct` | `( kw_else if_generate_construct \| kw_else generate_block )?` |
+| SV-Slice-26 | `net_strength` | `net_declaration_sv_2017/2023` | `( drive_strength \| charge_strength )?` |
+| SV-Slice-26 | `net_vector_scalar` | `net_declaration_sv_2017/2023` | `( kw_vectored \| kw_scalared )?` |
+| SV-Slice-35 | `conditional_else_branch` | `conditional_statement` | `( conditional_statement \| statement_or_null )` |
+| SV-Slice-37 | `class_or_package_scope` | `blocking_assignment_sv_2017/2023` | `( implicit_class_handle dot \| class_scope \| package_scope )?` |
+
+The pattern is now well-established. Future inline parens-Or in any sub-rule should follow this template until task #38 is fixed.
+
+### Field semantics
+
+- `blocking_assignment.kind == "delay_assign"`: the most common form `lvalue = #N expr;`. Drops `assign` operator.
+- `blocking_assignment.kind == "dynamic_array_new"`: `lvalue = new[size];` (or `new[size](init)`). The `nonrange_variable_lvalue` constraint matches a non-range variable target.
+- `blocking_assignment.kind == "class_new"`: `[scope.]name[select] = new(args);`. `scope` is `[]` for plain `name = new(...)`, or `[<class_or_package_scope shape>]` when prefixed (`pkg::name = new(...)`, `class_handle.member = new(...)`, etc.).
+- `blocking_assignment.kind == "operator"`: bridges to `operator_assignment` rule (e.g., `a += b;`, `a *= b;` — typed via assignment_operator from SV-Slice-24).
+- `blocking_assignment_sv_2023.kind == "inc_or_dec"`: LRM 2023 form. The same `++` / `--` operator that's a separate `inc_or_dec_expression semi` statement_item branch in sv_2017 is now folded into blocking_assignment in sv_2023.
+- `class_or_package_scope.kind == "instance"`: `implicit_class_handle dot` — typically `this.` or `super.` prefix (instance-scoped member access).
+
+### statement_item dispatch coverage — now 100%
+
+After this slice, all kinds have typed body dispatch end-to-end:
+
+| kind | typed-in-slice |
+|---|---|
+| blocking_assignment | **SV-Slice-37 (this slice)** ✅ |
+| nonblocking_assignment | SV-Slice-36 ✅ |
+| procedural_continuous_assignment | SV-Slice-36 ✅ |
+| case_statement | SV-Slice-34 ✅ |
+| conditional_statement | SV-Slice-35 ✅ |
+| inc_or_dec_expression (sv_2017) | wraps inc_or_dec_expression rule (raw envelope still — to be typed in a future slice) |
+| subroutine_call_statement | SV-Slice-33 ✅ |
+| disable_statement | SV-Slice-33 ✅ |
+| event_trigger | SV-Slice-33 ✅ |
+| loop_statement | SV-Slice-34 ✅ |
+| jump_statement | SV-Slice-33 ✅ |
+| par_block | SV-Slice-33 ✅ |
+| procedural_timing_control_statement | SV-Slice-33 ✅ |
+| seq_block | SV-Slice-33 ✅ |
+| wait_statement | SV-Slice-33 ✅ |
+| procedural_assertion_statement | SV-Slice-36 ✅ |
+| clocking_drive | SV-Slice-36 ✅ |
+| randsequence_statement | raw envelope still — internals to be typed in a future slice |
+| randcase_statement | SV-Slice-36 ✅ |
+| expect_property_statement | SV-Slice-29 ✅ |
+
+### Annotation inventory
+
+485 entries (was 473). +12 in this batch (4 blocking_assignment_sv_2017 + 5 blocking_assignment_sv_2023 + 3 class_or_package_scope).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### Grammar surface change
+
+This slice adds one new rule (`class_or_package_scope`) to the public grammar surface — internal refactor of inline parens-Or for annotation purposes. No LRM equivalent. Same accept set.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `randsequence_statement_sv_2017/2023` internals (close last raw-envelope statement_item kind).
+- `simple_immediate_assertion_statement` (close immediate_assertion_statement.kind == "simple").
+- `inc_or_dec_expression` internals.
+- `data_type` / `data_type_or_implicit` / `data_type_or_void`.
+- `expression`, `cond_predicate`, `pattern` (large but underlie many already-typed rules).
 
 ## Release 1.0.36 / Contract 1.0.36 Highlights — SV-Slice-36 batch: assignments + procedural assertions + randcase typed (8 rules / 16 annotations)
 
