@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.40 / Contract 1.0.40 — SV-Slice-40 batch: simple immediate assertions + inc_or_dec + weight_specification typed (6 rules / 11 annotations)
+
+**What changed:** Closes immediate_assertion_statement.kind=="simple", inc_or_dec_expression internals, and weight_specification_sv_2017.
+
+```ebnf
+simple_immediate_assertion_statement -> 3 kinds (assert / assume / cover)
+simple_immediate_assert_statement    -> {condition, action}
+simple_immediate_assume_statement    -> {condition, action}
+simple_immediate_cover_statement     -> {condition, statement}
+inc_or_dec_expression                -> 2 kinds (prefix {op, attributes, lvalue} / postfix {lvalue, attributes, op})
+weight_specification_sv_2017         -> 3 kinds (number / identifier / expression)
+```
+
+**Annotation inventory:** 531 entries (was 520). +11 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.40 / Contract 1.0.40 Highlights".
+
 ### 1.0.39 / Contract 1.0.39 — SV-Slice-39 batch: rs_* family typed (17 rules / 31 annotations — crosses 500-annotation milestone)
 
 **What changed:** Closes the random-sequence walk path end-to-end. After this slice, every reachable randsequence_statement → production → rules.{first,rest} → rs_rule → rs_production_list → rs_prod → ... resolves through typed shapes.

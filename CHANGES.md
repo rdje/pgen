@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-40 batch: simple immediate assertions + inc_or_dec + weight_specification typed (6 rules / 11 annotations)
+
+Closes immediate_assertion_statement.kind=="simple" walk, inc_or_dec_expression internals, and weight_specification_sv_2017.
+
+```ebnf
+simple_immediate_assertion_statement -> 3 kinds (assert / assume / cover)
+simple_immediate_assert/assume_statement -> {condition, action}
+simple_immediate_cover_statement     -> {condition, statement}
+inc_or_dec_expression                -> 2 kinds (prefix / postfix)
+weight_specification_sv_2017         -> 3 kinds (number / identifier / expression)
+```
+
+Annotation count: **531** (was 520, +11). Same accept set. Schema stays at `1`. Contract bumped 1.0.39 → 1.0.40. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-39 batch: rs_* family typed (17 rules / 31 annotations — crosses 500-annotation milestone)
 
 Closes the random-sequence walk path end-to-end. Every reachable `randsequence_statement` → `production` → `rules.{first,rest}` → `rs_rule` → `rs_production_list` → `rs_prod` → ... resolves through typed shapes. **Crosses the 500-annotation milestone.**

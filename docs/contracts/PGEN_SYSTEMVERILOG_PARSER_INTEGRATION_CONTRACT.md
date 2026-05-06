@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.39`
+  - `1.0.40`
 - Parser release version:
-  - `1.0.39`
+  - `1.0.40`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,58 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.40 / Contract 1.0.40 Highlights — SV-Slice-40 batch: simple immediate assertions + inc_or_dec + weight_specification typed (6 rules / 11 annotations)
+
+Closes the `immediate_assertion_statement.kind == "simple"` walk path (typed in SV-Slice-36 as a bridge), the `inc_or_dec_expression` rule (referenced from `blocking_assignment_sv_2023.kind == "inc_or_dec"` and `statement_item_sv_2017.kind == "inc_or_dec_expression"`), and `weight_specification_sv_2017` (sv_2017 counterpart of `rs_weight_specification_sv_2023` typed in SV-Slice-39, referenced from `rs_rule_sv_2017.weight`).
+
+### Annotations
+
+```ebnf
+simple_immediate_assertion_statement := simple_immediate_assert_statement -> {kind: "assert", body: $1}
+                                      | simple_immediate_assume_statement -> {kind: "assume", body: $1}
+                                      | simple_immediate_cover_statement  -> {kind: "cover",  body: $1}
+
+simple_immediate_assert_statement := kw_assert lparen expression rparen action_block
+                                  -> {condition: $3, action: $5}
+
+simple_immediate_assume_statement := kw_assume lparen expression rparen action_block
+                                  -> {condition: $3, action: $5}
+
+simple_immediate_cover_statement := kw_cover lparen expression rparen statement_or_null
+                                 -> {condition: $3, statement: $5}
+
+inc_or_dec_expression := inc_or_dec_operator attribute_instance* variable_lvalue
+                              -> {kind: "prefix",  op: $1, attributes: $2, lvalue: $3}
+                       | variable_lvalue attribute_instance* inc_or_dec_operator
+                              -> {kind: "postfix", lvalue: $1, attributes: $2, op: $3}
+
+@profiles: ["sv_2017"]
+weight_specification_sv_2017 := integral_number          -> {kind: "number",     body: $1}
+                              | ps_identifier            -> {kind: "identifier", body: $1}
+                              | lparen expression rparen -> {kind: "expression", body: $2}
+```
+
+### Field semantics
+
+- `simple_immediate_assert_statement.condition`: the predicate expression (raw envelope still — `expression` rule itself untyped).
+- `simple_immediate_*_statement.action` / `.statement`: typed `action_block` (slice 31) for assert/assume; typed `statement_or_null` (slice 31) for cover.
+- `inc_or_dec_expression.kind`: distinguishes prefix `++a` / `--a` from postfix `a++` / `a--`. The `attributes` slot carries inline `attribute_instance*` (LRM allows attributes between operator and operand).
+- `weight_specification_sv_2017`: parallel shape to `rs_weight_specification_sv_2023` typed in SV-Slice-39. Profile-agnostic walks should accept either field name when traversing rs_rule.weight slots.
+
+### Annotation inventory
+
+531 entries (was 520). +11 in this batch (3 simple_immediate_assertion_statement + 1 simple_immediate_assert_statement + 1 simple_immediate_assume_statement + 1 simple_immediate_cover_statement + 2 inc_or_dec_expression + 3 weight_specification_sv_2017).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `data_type` / `data_type_or_implicit` / `data_type_or_void` (used pervasively as field types across declarations).
+- `expression`, `cond_predicate`, `pattern` (large but underlie many already-typed rules).
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.39 / Contract 1.0.39 Highlights — SV-Slice-39 batch: rs_* family typed (17 rules / 31 annotations — crosses 500-annotation milestone)
 

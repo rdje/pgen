@@ -201,6 +201,12 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `rs_rule_sv_2017` | `-> {productions, weight}` | `weight` is the optional `( colon assign weight_specification ( rs_code_block )? )?` slot — `[]` when production has no explicit weight. |
 | `rs_rule_sv_2023` | `-> {productions, weight}` | Parallel; uses rs_weight_specification per LRM 2023. |
 | `rs_weight_specification_sv_2023` (3 branches) | per-branch `{kind, body}` | Kind labels: `"number"` (integral_number) / `"identifier"` (ps_identifier) / `"expression"` (parenthesized expression). |
+| `simple_immediate_assertion_statement` (3 branches) | per-branch `{kind, body}` | Kind labels: `"assert"` / `"assume"` / `"cover"`. Reached from `immediate_assertion_statement.kind == "simple"`. |
+| `simple_immediate_assert_statement` | `-> {condition, action}` | Drops `kw_assert` / parens. `action` is a typed `action_block`. |
+| `simple_immediate_assume_statement` | `-> {condition, action}` | Parallel to assert. |
+| `simple_immediate_cover_statement` | `-> {condition, statement}` | Uses `statement_or_null` instead of `action_block` (cover has no pass/fail branching). |
+| `inc_or_dec_expression` (2 branches) | per-branch typed | Kind labels: `"prefix"` (`{op, attributes, lvalue}` — `++a` / `--a`) / `"postfix"` (`{lvalue, attributes, op}` — `a++` / `a--`). The `attributes` slot carries inline `attribute_instance*` (LRM allows attributes between operator and operand). |
+| `weight_specification_sv_2017` (3 branches) | per-branch `{kind, body}` | Kind labels: `"number"` / `"identifier"` / `"expression"`. Parallel to `rs_weight_specification_sv_2023`. |
 
 ## Sub-rules with implicit defaults
 

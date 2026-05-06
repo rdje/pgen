@@ -1433,7 +1433,10 @@ implicit_data_type := ( signing )? packed_dimension*
 
 import_export := kw_import_62fdfbd5 | kw_export_51713409
 
-inc_or_dec_expression := inc_or_dec_operator attribute_instance* variable_lvalue | variable_lvalue attribute_instance* inc_or_dec_operator
+inc_or_dec_expression := inc_or_dec_operator attribute_instance* variable_lvalue
+                              -> {kind: "prefix",  op: $1, attributes: $2, lvalue: $3}
+                       | variable_lvalue attribute_instance* inc_or_dec_operator
+                              -> {kind: "postfix", lvalue: $1, attributes: $2, op: $3}
 
 inc_or_dec_operator := plus_plus    -> {kind: "plus_plus"}
                      | minus_minus  -> {kind: "minus_minus"}
@@ -2760,12 +2763,17 @@ signal_identifier := identifier
 signing := kw_signed_07235a80 | kw_unsigned_9861ca25
 
 simple_immediate_assert_statement := kw_assert_64b5daad lparen expression rparen action_block
+                                  -> {condition: $3, action: $5}
 
-simple_immediate_assertion_statement := simple_immediate_assert_statement | simple_immediate_assume_statement | simple_immediate_cover_statement
+simple_immediate_assertion_statement := simple_immediate_assert_statement -> {kind: "assert", body: $1}
+                                      | simple_immediate_assume_statement -> {kind: "assume", body: $1}
+                                      | simple_immediate_cover_statement  -> {kind: "cover",  body: $1}
 
 simple_immediate_assume_statement := kw_assume_661e458e lparen expression rparen action_block
+                                  -> {condition: $3, action: $5}
 
 simple_immediate_cover_statement := kw_cover_a28100fa lparen expression rparen statement_or_null
+                                 -> {condition: $3, statement: $5}
 
 simple_path_declaration := parallel_path_description assign path_delay_value | full_path_description assign path_delay_value
 
@@ -3230,7 +3238,9 @@ wait_statement := kw_wait_daaad336 lparen expression rparen statement_or_null
                        -> {kind: "wait_order", events: {first: $3, rest: $4}, action: $6}
 
 @profiles: ["sv_2017"]
-weight_specification_sv_2017 := integral_number | ps_identifier | lparen expression rparen
+weight_specification_sv_2017 := integral_number          -> {kind: "number",     body: $1}
+                              | ps_identifier            -> {kind: "identifier", body: $1}
+                              | lparen expression rparen -> {kind: "expression", body: $2}
 
 weight_specification := weight_specification_sv_2017
 
