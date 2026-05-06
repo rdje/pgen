@@ -720,7 +720,12 @@ base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_cla
 
 scoped_class_type_identifier := non_typedef_package_scope class_identifier
 
-class_type := ( scoped_class_type_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+class_type := class_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+           -> {head: $1, params: $2, suffix: $3}
+
+class_type_head := scoped_class_type_identifier                          -> {kind: "scoped",          body: $1}
+                 | known_unscoped_class_scope_class_identifier           -> {kind: "class",           body: $1}
+                 | known_unscoped_class_scope_interface_class_identifier -> {kind: "interface_class", body: $1}
 
 class_variable_identifier := variable_identifier
 
@@ -1240,11 +1245,17 @@ enable_terminal := expression
 
 end_edge_offset := mintypmax_expression
 
-enum_base_type := integer_atom_type ( signing )? | integer_vector_type ( signing )? ( packed_dimension )? | type_identifier ( packed_dimension )?
+enum_base_type := integer_atom_type ( signing )?
+                       -> {kind: "atom",       base: $1, signing: $2}
+                | integer_vector_type ( signing )? ( packed_dimension )?
+                       -> {kind: "vector",     base: $1, signing: $2, dim: $3}
+                | type_identifier ( packed_dimension )?
+                       -> {kind: "type_alias", name: $1, dim: $2}
 
 enum_identifier := declaration_identifier
 
 enum_name_declaration := enum_identifier ( lbrack integral_number ( colon integral_number )? rbrack )? ( assign constant_expression )?
+                      -> {name: $1, range: $2, value: $3}
 
 error_limit_value := limit_value
 
@@ -2789,7 +2800,8 @@ sign := plus | minus
 
 signal_identifier := identifier
 
-signing := kw_signed_07235a80 | kw_unsigned_9861ca25
+signing := kw_signed_07235a80   -> {kind: "signed"}
+         | kw_unsigned_9861ca25 -> {kind: "unsigned"}
 
 simple_immediate_assert_statement := kw_assert_64b5daad lparen expression rparen action_block
                                   -> {condition: $3, action: $5}
@@ -2902,14 +2914,20 @@ strength := kw_supply_076df715 | kw_strong_0117691d | kw_pull_c872d556 | kw_weak
 // string_escape_seq := string_escape_seq_sv_2023
 
 @profiles: ["sv_2017"]
-struct_union_sv_2017 := kw_struct_d118e5a3 | kw_union_67ad5a07 ( kw_tagged_8e1ec218 )?
+struct_union_sv_2017 := kw_struct_d118e5a3                        -> {kind: "struct"}
+                      | kw_union_67ad5a07 ( kw_tagged_8e1ec218 )? -> {kind: "union", tagged: $2}
 
 @profiles: ["sv_2023"]
-struct_union_sv_2023 := kw_struct_d118e5a3 | kw_union_67ad5a07 ( kw_soft_eb74f2cb | kw_tagged_8e1ec218 )?
+struct_union_sv_2023 := kw_struct_d118e5a3                       -> {kind: "struct"}
+                      | kw_union_67ad5a07 ( union_modifier )?    -> {kind: "union", modifier: $2}
+
+union_modifier := kw_soft_eb74f2cb   -> {kind: "soft"}
+                | kw_tagged_8e1ec218 -> {kind: "tagged"}
 
 struct_union := struct_union_sv_2017 | struct_union_sv_2023
 
 struct_union_member := attribute_instance* ( random_qualifier )? data_type_or_void list_of_variable_decl_assignments semi
+                    -> {attributes: $1, random_qualifier: $2, data_type: $3, decls: $4}
 
 structure_pattern_key := member_identifier | assignment_pattern_key
 
@@ -3132,10 +3150,14 @@ type_parameter_declaration_sv_2023 := kw_type_d0a3e7f8 ( forward_type )? list_of
 type_parameter_declaration := type_parameter_declaration_sv_2023
 
 @profiles: ["sv_2017"]
-type_reference_sv_2017 := kw_type_d0a3e7f8 lparen expression rparen | kw_type_d0a3e7f8 lparen data_type rparen
+type_reference_sv_2017 := kw_type_d0a3e7f8 lparen expression rparen -> {kind: "expression", body: $3}
+                        | kw_type_d0a3e7f8 lparen data_type rparen  -> {kind: "data_type",  body: $3}
 
 @profiles: ["sv_2023"]
-type_reference_sv_2023 := kw_type_d0a3e7f8 lparen expression rparen | kw_type_d0a3e7f8 lparen data_type_or_incomplete_class_scoped_type rparen
+type_reference_sv_2023 := kw_type_d0a3e7f8 lparen expression rparen
+                               -> {kind: "expression",                   body: $3}
+                        | kw_type_d0a3e7f8 lparen data_type_or_incomplete_class_scoped_type rparen
+                               -> {kind: "data_type_or_incomplete_class", body: $3}
 
 type_reference := type_reference_sv_2017 | type_reference_sv_2023
 

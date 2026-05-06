@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8e579737.js";
+            window.path_to_searchindex_js = "searchindex-b63c2897.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,23 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1042--contract-1042--sv-slice-42-batch-signing--struct_union--enum--type_reference--class_type-internals-typed-9-rules--21-annotations--2-new-helper-rules-with-5-annotations"><a class="header" href="#1042--contract-1042--sv-slice-42-batch-signing--struct_union--enum--type_reference--class_type-internals-typed-9-rules--21-annotations--2-new-helper-rules-with-5-annotations">1.0.42 / Contract 1.0.42 — SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes data_type field structural-content walks.</p>
+<pre><code class="language-ebnf">signing                          -&gt; 2 kinds bare (signed / unsigned)
+struct_union_sv_2017             -&gt; 2 kinds (struct / union with optional tagged)
+struct_union_sv_2023             -&gt; 2 kinds (struct / union with union_modifier helper)
+union_modifier (NEW)             -&gt; 2 kinds bare (soft / tagged)
+struct_union_member              -&gt; {attributes, random_qualifier, data_type, decls}
+enum_base_type                   -&gt; 3 kinds (atom / vector / type_alias)
+enum_name_declaration            -&gt; {name, range, value}
+type_reference_sv_2017/2023      -&gt; 2 kinds each (expression / data_type[_or_incomplete_class])
+class_type                       -&gt; {head, params, suffix}
+class_type_head (NEW)            -&gt; 3 kinds (scoped / class / interface_class)
+</code></pre>
+<p><strong>Helper-rule extraction</strong> (5th and 6th uses): <code>union_modifier</code> from <code>( kw_soft | kw_tagged )?</code>, <code>class_type_head</code> from leading 3-way parens-Or in class_type.</p>
+<p><strong>Annotation inventory:</strong> 588 entries (was 567). +21 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.42 / Contract 1.0.42 Highlights”.</p>
 <h3 id="1041--contract-1041--sv-slice-41-batch-data_type-family-typed-8-rules--36-annotations"><a class="header" href="#1041--contract-1041--sv-slice-41-batch-data_type-family-typed-8-rules--36-annotations">1.0.41 / Contract 1.0.41 — SV-Slice-41 batch: data_type family typed (8 rules / 36 annotations)</a></h3>
 <p><strong>What changed:</strong> Pervasive impact — <code>data_type</code> fields appear across the entire grammar.</p>
 <pre><code class="language-ebnf">data_type                                         -&gt; 15 kinds (integer_vector / integer_atom / non_integer / struct_union / enum / string / chandle / virtual_interface / scoped_data_type / known_unscoped_data_type / class_type / provisional_class_type / event / covergroup / type_reference)

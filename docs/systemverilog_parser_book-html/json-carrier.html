@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8e579737.js";
+            window.path_to_searchindex_js = "searchindex-b63c2897.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -400,6 +400,17 @@
 <tr><td><code>integer_vector_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"bit"</code> / <code>"logic"</code> / <code>"reg"</code>.</td></tr>
 <tr><td><code>non_integer_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"shortreal"</code> / <code>"real"</code> / <code>"realtime"</code>.</td></tr>
 <tr><td><code>integer_type</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"vector"</code> / <code>"atom"</code>.</td></tr>
+<tr><td><code>signing</code> (2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"signed"</code> / <code>"unsigned"</code>.</td></tr>
+<tr><td><code>struct_union_sv_2017</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"struct"</code> (bare) / <code>"union"</code> (<code>{tagged}</code> — <code>tagged</code> is <code>[]</code> or <code>[&lt;kw_tagged&gt;]</code>).</td></tr>
+<tr><td><code>struct_union_sv_2023</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"struct"</code> / <code>"union"</code> (<code>{modifier}</code> — modifier is the optional typed <code>union_modifier</code> shape).</td></tr>
+<tr><td><code>union_modifier</code> (NEW; 2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"soft"</code> / <code>"tagged"</code>. Helper rule extracted from inline <code>( kw_soft | kw_tagged )?</code> to dodge task #38.</td></tr>
+<tr><td><code>struct_union_member</code></td><td><code>-&gt; {attributes, random_qualifier, data_type, decls}</code></td><td><code>random_qualifier</code> is <code>[]</code> or <code>[&lt;rand/randc&gt;]</code>. <code>data_type</code> is the typed <code>data_type_or_void</code>. <code>decls</code> is the variable_decl_assignments list.</td></tr>
+<tr><td><code>enum_base_type</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"atom"</code> (<code>{base, signing}</code>) / <code>"vector"</code> (<code>{base, signing, dim}</code>) / <code>"type_alias"</code> (<code>{name, dim}</code>).</td></tr>
+<tr><td><code>enum_name_declaration</code></td><td><code>-&gt; {name, range, value}</code></td><td><code>range</code> is <code>[]</code> or <code>[&lt;lbrack, n, [colon n], rbrack&gt;]</code>. <code>value</code> is <code>[]</code> or <code>[&lt;assign, expr&gt;]</code>.</td></tr>
+<tr><td><code>type_reference_sv_2017</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"data_type"</code>.</td></tr>
+<tr><td><code>type_reference_sv_2023</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"data_type_or_incomplete_class"</code> (LRM 2023 widens the second variant).</td></tr>
+<tr><td><code>class_type</code></td><td><code>-&gt; {head, params, suffix}</code></td><td><code>head</code> is the typed <code>class_type_head</code> (helper rule). <code>params</code> is <code>[]</code> or <code>[&lt;parameter_value_assignment&gt;]</code>. <code>suffix</code> is <code>*</code> of <code>[scope_resolution, class_identifier, [parameter_value_assignment]]</code> chains for nested class scopes.</td></tr>
+<tr><td><code>class_type_head</code> (NEW; 3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"scoped"</code> / <code>"class"</code> / <code>"interface_class"</code>. Helper rule extracted from leading 3-way parens-Or in class_type to dodge task #38.</td></tr>
 </tbody>
 </table>
 </div>

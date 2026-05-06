@@ -216,6 +216,17 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `integer_vector_type` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"bit"` / `"logic"` / `"reg"`. |
 | `non_integer_type` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"shortreal"` / `"real"` / `"realtime"`. |
 | `integer_type` (2 branches) | per-branch `{kind, body}` | Kind labels: `"vector"` / `"atom"`. |
+| `signing` (2 branches) | per-branch `{kind}` (bare) | Kind labels: `"signed"` / `"unsigned"`. |
+| `struct_union_sv_2017` (2 branches) | per-branch typed | Kind labels: `"struct"` (bare) / `"union"` (`{tagged}` — `tagged` is `[]` or `[<kw_tagged>]`). |
+| `struct_union_sv_2023` (2 branches) | per-branch typed | Kind labels: `"struct"` / `"union"` (`{modifier}` — modifier is the optional typed `union_modifier` shape). |
+| `union_modifier` (NEW; 2 branches) | per-branch `{kind}` (bare) | Kind labels: `"soft"` / `"tagged"`. Helper rule extracted from inline `( kw_soft \| kw_tagged )?` to dodge task #38. |
+| `struct_union_member` | `-> {attributes, random_qualifier, data_type, decls}` | `random_qualifier` is `[]` or `[<rand/randc>]`. `data_type` is the typed `data_type_or_void`. `decls` is the variable_decl_assignments list. |
+| `enum_base_type` (3 branches) | per-branch typed | Kind labels: `"atom"` (`{base, signing}`) / `"vector"` (`{base, signing, dim}`) / `"type_alias"` (`{name, dim}`). |
+| `enum_name_declaration` | `-> {name, range, value}` | `range` is `[]` or `[<lbrack, n, [colon n], rbrack>]`. `value` is `[]` or `[<assign, expr>]`. |
+| `type_reference_sv_2017` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"data_type"`. |
+| `type_reference_sv_2023` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"data_type_or_incomplete_class"` (LRM 2023 widens the second variant). |
+| `class_type` | `-> {head, params, suffix}` | `head` is the typed `class_type_head` (helper rule). `params` is `[]` or `[<parameter_value_assignment>]`. `suffix` is `*` of `[scope_resolution, class_identifier, [parameter_value_assignment]]` chains for nested class scopes. |
+| `class_type_head` (NEW; 3 branches) | per-branch `{kind, body}` | Kind labels: `"scoped"` / `"class"` / `"interface_class"`. Helper rule extracted from leading 3-way parens-Or in class_type to dodge task #38. |
 
 ## Sub-rules with implicit defaults
 

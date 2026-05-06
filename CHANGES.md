@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-05-06 - SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)
+
+Closes data_type field structural-content walks. Every kind path through `data_type` (typed in SV-Slice-41) resolves to typed sub-rules.
+
+```ebnf
+signing                          -> 2 kinds bare (signed / unsigned)
+struct_union_sv_2017             -> 2 kinds (struct / union {tagged})
+struct_union_sv_2023             -> 2 kinds (struct / union {modifier})
+union_modifier (NEW)             -> 2 kinds bare (soft / tagged)
+struct_union_member              -> {attributes, random_qualifier, data_type, decls}
+enum_base_type                   -> 3 kinds (atom / vector / type_alias)
+enum_name_declaration            -> {name, range, value}
+type_reference_sv_2017/2023      -> 2 kinds each (expression / data_type[_or_incomplete_class])
+class_type                       -> {head, params, suffix}
+class_type_head (NEW)            -> 3 kinds (scoped / class / interface_class)
+```
+
+5th and 6th uses of the helper-rule extraction pattern (now: if_generate_else_clause, net_strength, net_vector_scalar, conditional_else_branch, class_or_package_scope, union_modifier, class_type_head).
+
+Annotation count: **588** (was 567, +21). Same accept set. Schema stays at `1`. Contract bumped 1.0.41 → 1.0.42. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-41 batch: data_type family typed (8 rules / 36 annotations)
 
 Pervasive impact across the entire grammar — `data_type` fields appear in module/interface/program port declarations, function/task return types, variable declarations, parameter declarations, struct/union members, class properties, function arguments, etc.

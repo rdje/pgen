@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.41`
+  - `1.0.42`
 - Parser release version:
-  - `1.0.41`
+  - `1.0.42`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,99 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.42 / Contract 1.0.42 Highlights — SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)
+
+Closes the data_type field structural-content walks. After this slice, every kind path through `data_type` (typed in SV-Slice-41) resolves to typed sub-rules — `data_type.signing`, `data_type.kind == "struct_union" → header / packed_signing / members`, `data_type.kind == "enum" → base_type / names`, `data_type.kind == "class_type" → head / params / suffix`, etc.
+
+### Annotations
+
+```ebnf
+signing := kw_signed   -> {kind: "signed"}
+         | kw_unsigned -> {kind: "unsigned"}
+
+struct_union_sv_2017 := kw_struct                  -> {kind: "struct"}
+                      | kw_union ( kw_tagged )?    -> {kind: "union", tagged: $2}
+
+struct_union_sv_2023 := kw_struct                  -> {kind: "struct"}
+                      | kw_union ( union_modifier )? -> {kind: "union", modifier: $2}
+
+union_modifier (NEW) := kw_soft   -> {kind: "soft"}
+                      | kw_tagged -> {kind: "tagged"}
+
+struct_union_member := attribute_instance* ( random_qualifier )? data_type_or_void list_of_variable_decl_assignments semi
+                    -> {attributes: $1, random_qualifier: $2, data_type: $3, decls: $4}
+
+enum_base_type := integer_atom_type ( signing )?
+                       -> {kind: "atom",       base: $1, signing: $2}
+                | integer_vector_type ( signing )? ( packed_dimension )?
+                       -> {kind: "vector",     base: $1, signing: $2, dim: $3}
+                | type_identifier ( packed_dimension )?
+                       -> {kind: "type_alias", name: $1, dim: $2}
+
+enum_name_declaration := enum_identifier ( lbrack integral_number ( colon integral_number )? rbrack )? ( assign constant_expression )?
+                      -> {name: $1, range: $2, value: $3}
+
+type_reference_sv_2017 := kw_type lparen expression rparen -> {kind: "expression", body: $3}
+                        | kw_type lparen data_type rparen  -> {kind: "data_type",  body: $3}
+
+type_reference_sv_2023 := kw_type lparen expression rparen
+                               -> {kind: "expression",                   body: $3}
+                        | kw_type lparen data_type_or_incomplete_class_scoped_type rparen
+                               -> {kind: "data_type_or_incomplete_class", body: $3}
+
+class_type := class_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+           -> {head: $1, params: $2, suffix: $3}
+
+class_type_head (NEW) := scoped_class_type_identifier                          -> {kind: "scoped",          body: $1}
+                       | known_unscoped_class_scope_class_identifier           -> {kind: "class",           body: $1}
+                       | known_unscoped_class_scope_interface_class_identifier -> {kind: "interface_class", body: $1}
+```
+
+### Helper-rule extraction (5th use of pattern)
+
+The original `class_type` had a leading 3-way parens-Or:
+
+```ebnf
+class_type := ( scoped_class_type_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier ) (parameter_value_assignment)? ...
+```
+
+Extracted to `class_type_head` helper, parallel to `class_or_package_scope` (slice 37). The `struct_union_sv_2023` extraction of `union_modifier` is the 6th use — extracted from `( kw_soft | kw_tagged )?`.
+
+| Slice | Helper rule | Extracted from |
+|---|---|---|
+| 23 | `if_generate_else_clause` | `( kw_else if_generate_construct \| kw_else generate_block )?` |
+| 26 | `net_strength` | `( drive_strength \| charge_strength )?` |
+| 26 | `net_vector_scalar` | `( kw_vectored \| kw_scalared )?` |
+| 35 | `conditional_else_branch` | `( conditional_statement \| statement_or_null )` |
+| 37 | `class_or_package_scope` | `( implicit_class_handle dot \| class_scope \| package_scope )?` |
+| 42 | `union_modifier` | `( kw_soft \| kw_tagged )?` |
+| 42 | `class_type_head` | `( scoped_class_type_identifier \| known_unscoped_class_scope_class_identifier \| known_unscoped_class_scope_interface_class_identifier )` |
+
+### Field semantics
+
+- `enum_name_declaration.range`: optional `[N]` or `[N:M]` packed-range. `[]` for plain `enum { A, B }`, `[<lbrack, n, [colon n], rbrack>]` for ranged form.
+- `enum_name_declaration.value`: optional `= expr` initial value. `[]` for unset, `[<assign, expr>]` when set.
+- `class_type.suffix`: zero or more `:: identifier (parameter_value_assignment)?` chains for nested class scope (e.g., `pkg::Outer::Inner#(...)`).
+
+### Annotation inventory
+
+588 entries (was 567). +21 in this batch (2 signing + 2 struct_union_sv_2017 + 2 struct_union_sv_2023 + 2 union_modifier + 1 struct_union_member + 3 enum_base_type + 1 enum_name_declaration + 2 type_reference_sv_2017 + 2 type_reference_sv_2023 + 1 class_type + 3 class_type_head).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### Grammar surface change
+
+This slice adds two new rules (`union_modifier`, `class_type_head`) — internal refactors of inline parens-Or for annotation purposes. No LRM equivalents. Same accept set.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `expression`, `cond_predicate`, `pattern` (large but underlie many already-typed rules).
+- `parameter_value_assignment` / `list_of_arguments` internals.
+- `attribute_instance` / `attr_spec` (already partially typed in SV-Slice-6 — could go deeper into attr_spec).
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.41 / Contract 1.0.41 Highlights — SV-Slice-41 batch: data_type family typed (8 rules / 36 annotations)
 

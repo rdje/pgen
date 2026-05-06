@@ -19,6 +19,31 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.42 / Contract 1.0.42 — SV-Slice-42 batch: signing + struct_union + enum + type_reference + class_type internals typed (9 rules / 21 annotations + 2 new helper rules with 5 annotations)
+
+**What changed:** Closes data_type field structural-content walks.
+
+```ebnf
+signing                          -> 2 kinds bare (signed / unsigned)
+struct_union_sv_2017             -> 2 kinds (struct / union with optional tagged)
+struct_union_sv_2023             -> 2 kinds (struct / union with union_modifier helper)
+union_modifier (NEW)             -> 2 kinds bare (soft / tagged)
+struct_union_member              -> {attributes, random_qualifier, data_type, decls}
+enum_base_type                   -> 3 kinds (atom / vector / type_alias)
+enum_name_declaration            -> {name, range, value}
+type_reference_sv_2017/2023      -> 2 kinds each (expression / data_type[_or_incomplete_class])
+class_type                       -> {head, params, suffix}
+class_type_head (NEW)            -> 3 kinds (scoped / class / interface_class)
+```
+
+**Helper-rule extraction** (5th and 6th uses): `union_modifier` from `( kw_soft | kw_tagged )?`, `class_type_head` from leading 3-way parens-Or in class_type.
+
+**Annotation inventory:** 588 entries (was 567). +21 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.42 / Contract 1.0.42 Highlights".
+
 ### 1.0.41 / Contract 1.0.41 — SV-Slice-41 batch: data_type family typed (8 rules / 36 annotations)
 
 **What changed:** Pervasive impact — `data_type` fields appear across the entire grammar.
