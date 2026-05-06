@@ -500,6 +500,7 @@ direct_index_method_call := ( ( kw_class_qualifier_fa08937d | non_typedef_packag
 bit_select_expression := direct_index_method_call | method_call | expression
 
 bit_select := ( lbrack bit_select_expression rbrack )*
+           -> {body: $1}
 
 block_event_expression := block_event_expression kw_or_1758356d block_event_expression | kw_begin_8cbd0a74 hierarchical_btf_identifier | kw_end_7a92f3d2 hierarchical_btf_identifier
 
@@ -611,7 +612,11 @@ case_statement := @sample: "case (a) default: ; endcase" ( unique_priority )? ca
 cast := casting_type tick lparen expression rparen
      -> {type: $1, body: $4}
 
-casting_type := simple_type | constant_primary | signing | kw_string_ecb25204 | kw_const_b42f3f6f
+casting_type := simple_type            -> {kind: "simple_type",     body: $1}
+              | constant_primary       -> {kind: "constant_primary", body: $1}
+              | signing                -> {kind: "signing",          body: $1}
+              | kw_string_ecb25204     -> {kind: "string"}
+              | kw_const_b42f3f6f      -> {kind: "const"}
 
 cell_clause := kw_cell_5f435eb3 ( library_identifier dot )? cell_identifier
 
@@ -3215,7 +3220,12 @@ sv_dollar_timeskew_timing_check := kw_sv_dollar_timeskew_6d763f0a lparen referen
 
 sv_dollar_width_timing_check := kw_sv_dollar_width_72b04d27 lparen controlled_reference_event comma timing_check_limit comma threshold ( comma ( notifier )? )? rparen semi
 
-system_tf_call := system_tf_identifier ( lparen list_of_arguments rparen )? | system_tf_identifier lparen data_type ( comma expression )? rparen | system_tf_identifier lparen expression ( comma ( expression )? )* ( comma ( clocking_event )? )? rparen
+system_tf_call := system_tf_identifier ( lparen list_of_arguments rparen )?
+                       -> {kind: "args",        name: $1, args: $2}
+                | system_tf_identifier lparen data_type ( comma expression )? rparen
+                       -> {kind: "data_type",   name: $1, data_type: $3, expr: $4}
+                | system_tf_identifier lparen expression ( comma ( expression )? )* ( comma ( clocking_event )? )? rparen
+                       -> {kind: "expr_clocking", name: $1, first_expr: $3, rest_exprs: $4, clocking: $5}
 
 system_timing_check := sv_dollar_setup_timing_check | sv_dollar_hold_timing_check | sv_dollar_setuphold_timing_check | sv_dollar_recovery_timing_check | sv_dollar_removal_timing_check | sv_dollar_recrem_timing_check | sv_dollar_skew_timing_check | sv_dollar_timeskew_timing_check | sv_dollar_fullskew_timing_check | sv_dollar_period_timing_check | sv_dollar_width_timing_check | sv_dollar_nochange_timing_check
 

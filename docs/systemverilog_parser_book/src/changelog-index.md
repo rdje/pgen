@@ -19,6 +19,22 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.50 / Contract 1.0.50 — SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)
+
+**What changed:** Closes the cast.type field referent and system-task-call dispatch.
+
+```ebnf
+casting_type      -> 5 kinds (simple_type / constant_primary / signing / string / const)
+bit_select        -> {body}
+system_tf_call    -> 3 kinds (args / data_type / expr_clocking)
+```
+
+**Annotation inventory:** 796 entries (was 787). +9 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.50 / Contract 1.0.50 Highlights".
+
 ### 1.0.49 / Contract 1.0.49 — SV-Slice-49 batch: concat / cast / call_primary / attr_spec typed (9 rules / 14 annotations)
 
 **What changed:** Closes the leaf rules used pervasively across primary_sv_2017/2023.

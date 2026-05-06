@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-648766f6.js";
+            window.path_to_searchindex_js = "searchindex-df0d8368.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -460,6 +460,9 @@
 <tr><td><code>multiple_concatenation</code> / <code>constant_multiple_concatenation</code></td><td><code>-&gt; {count, body}</code></td><td>LRM <code>{N{...}}</code> replication.</td></tr>
 <tr><td><code>streaming_concatenation</code></td><td><code>-&gt; {op, slice_size, body}</code></td><td>LRM A.8.1 <code>&lt;&lt;size{...}&gt;&gt;</code> / <code>&gt;&gt;{...}</code> form. <code>op</code> is <code>&lt;&lt;</code> or <code>&gt;&gt;</code>. <code>slice_size</code> is <code>[]</code> for default-bit-stream.</td></tr>
 <tr><td><code>call_primary</code> (6 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"split_direct_callable_method"</code> / <code>"class_scoped_tf"</code> / <code>"plain_tf"</code> / <code>"tf"</code> / <code>"direct_callable_method"</code> / <code>"system_tf"</code>.</td></tr>
+<tr><td><code>casting_type</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"simple_type"</code> (<code>{body}</code>) / <code>"constant_primary"</code> (<code>{body}</code> — width-cast <code>N'(expr)</code>) / <code>"signing"</code> (<code>{body}</code>) / <code>"string"</code> (bare) / <code>"const"</code> (bare).</td></tr>
+<tr><td><code>bit_select</code></td><td><code>-&gt; {body}</code></td><td>Quantified iteration <code>( lbrack bit_select_expression rbrack )*</code> — multi-dimensional bit select.</td></tr>
+<tr><td><code>system_tf_call</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"args"</code> (<code>{name, args}</code> — <code>$display(...)</code> general form) / <code>"data_type"</code> (<code>{name, data_type, expr}</code> — <code>$cast(type, expr)</code>) / <code>"expr_clocking"</code> (<code>{name, first_expr, rest_exprs, clocking}</code> — <code>$rose</code> / <code>$past</code> etc.).</td></tr>
 </tbody>
 </table>
 </div>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-648766f6.js";
+            window.path_to_searchindex_js = "searchindex-df0d8368.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,15 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1050--contract-1050--sv-slice-50-batch-casting_type--bit_select--system_tf_call-typed-3-rules--9-annotations"><a class="header" href="#1050--contract-1050--sv-slice-50-batch-casting_type--bit_select--system_tf_call-typed-3-rules--9-annotations">1.0.50 / Contract 1.0.50 — SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the cast.type field referent and system-task-call dispatch.</p>
+<pre><code class="language-ebnf">casting_type      -&gt; 5 kinds (simple_type / constant_primary / signing / string / const)
+bit_select        -&gt; {body}
+system_tf_call    -&gt; 3 kinds (args / data_type / expr_clocking)
+</code></pre>
+<p><strong>Annotation inventory:</strong> 796 entries (was 787). +9 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.50 / Contract 1.0.50 Highlights”.</p>
 <h3 id="1049--contract-1049--sv-slice-49-batch-concat--cast--call_primary--attr_spec-typed-9-rules--14-annotations"><a class="header" href="#1049--contract-1049--sv-slice-49-batch-concat--cast--call_primary--attr_spec-typed-9-rules--14-annotations">1.0.49 / Contract 1.0.49 — SV-Slice-49 batch: concat / cast / call_primary / attr_spec typed (9 rules / 14 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the leaf rules used pervasively across primary_sv_2017/2023.</p>
 <pre><code class="language-ebnf">attr_spec                          -&gt; {name, value}

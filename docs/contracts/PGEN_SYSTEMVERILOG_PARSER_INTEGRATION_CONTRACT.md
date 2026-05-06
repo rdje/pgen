@@ -7,15 +7,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.49`
+  - `1.0.50`
 - Parser release version:
-  - `1.0.49`
+  - `1.0.50`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-05-06`
+  - `2026-05-07`
 - Current grammar family label:
   - `systemverilog`
 - Current stable host profiles:
@@ -35,6 +35,56 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.50 / Contract 1.0.50 Highlights — SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)
+
+Closes the `cast.type` / `constant_cast.type` field referent (5 forms per LRM A.8.5) plus the system-task-call dispatch (3 LRM A.8.2 forms).
+
+### Annotations
+
+```ebnf
+casting_type := simple_type        -> {kind: "simple_type",     body: $1}
+              | constant_primary   -> {kind: "constant_primary", body: $1}
+              | signing            -> {kind: "signing",          body: $1}
+              | kw_string          -> {kind: "string"}
+              | kw_const           -> {kind: "const"}
+
+bit_select := ( lbrack bit_select_expression rbrack )*
+           -> {body: $1}
+
+system_tf_call := system_tf_identifier ( lparen list_of_arguments rparen )?
+                       -> {kind: "args",          name: $1, args: $2}
+                | system_tf_identifier lparen data_type ( comma expression )? rparen
+                       -> {kind: "data_type",     name: $1, data_type: $3, expr: $4}
+                | system_tf_identifier lparen expression ( comma ( expression )? )* ( comma ( clocking_event )? )? rparen
+                       -> {kind: "expr_clocking", name: $1, first_expr: $3, rest_exprs: $4, clocking: $5}
+```
+
+### Field semantics
+
+- `casting_type.kind == "simple_type"`: simple LRM type (e.g., `int`, `byte`). Most common form.
+- `casting_type.kind == "constant_primary"`: width-cast `N'(expr)` form where N is a constant primary literal.
+- `casting_type.kind == "signing"`: `signed'(expr)` / `unsigned'(expr)` form.
+- `casting_type.kind == "string"` / `"const"`: bare keyword type-cast forms.
+- `bit_select.body`: zero-or-more `[bit_select_expression]` indices for multi-dimensional bit select.
+- `system_tf_call.kind == "args"`: most common — `$display(args)` / `$random(args)` / etc.
+- `system_tf_call.kind == "data_type"`: type-aware system tasks like `$cast(type, expr)` / `$bits(type)`.
+- `system_tf_call.kind == "expr_clocking"`: assertion-related system tasks like `$rose(expr, clocking)` / `$fell(expr)` / `$past(expr, n, e, c)`.
+
+### Annotation inventory
+
+796 entries (was 787). +9 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `select` / `constant_select` (complex shapes — need helper-rule extraction for the embedded parens-Or in the trailing tail).
+- `simple_type` (referenced from casting_type.kind == "simple_type").
+- `range_expression` / `part_select_range` / `constant_part_select_range`.
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.49 / Contract 1.0.49 Highlights — SV-Slice-49 batch: concat / cast / call_primary / attr_spec typed (9 rules / 14 annotations)
 

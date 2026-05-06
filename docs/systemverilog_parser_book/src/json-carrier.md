@@ -276,6 +276,9 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `multiple_concatenation` / `constant_multiple_concatenation` | `-> {count, body}` | LRM `{N{...}}` replication. |
 | `streaming_concatenation` | `-> {op, slice_size, body}` | LRM A.8.1 `<<size{...}>>` / `>>{...}` form. `op` is `<<` or `>>`. `slice_size` is `[]` for default-bit-stream. |
 | `call_primary` (6 branches) | per-branch `{kind, body}` | Kind labels: `"split_direct_callable_method"` / `"class_scoped_tf"` / `"plain_tf"` / `"tf"` / `"direct_callable_method"` / `"system_tf"`. |
+| `casting_type` (5 branches) | per-branch typed | Kind labels: `"simple_type"` (`{body}`) / `"constant_primary"` (`{body}` — width-cast `N'(expr)`) / `"signing"` (`{body}`) / `"string"` (bare) / `"const"` (bare). |
+| `bit_select` | `-> {body}` | Quantified iteration `( lbrack bit_select_expression rbrack )*` — multi-dimensional bit select. |
+| `system_tf_call` (3 branches) | per-branch typed | Kind labels: `"args"` (`{name, args}` — `$display(...)` general form) / `"data_type"` (`{name, data_type, expr}` — `$cast(type, expr)`) / `"expr_clocking"` (`{name, first_expr, rest_exprs, clocking}` — `$rose` / `$past` etc.). |
 
 ## Sub-rules with implicit defaults
 

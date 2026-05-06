@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)
+
+Closes the cast.type field referent (5 LRM A.8.5 forms) plus the system-task-call dispatch (3 LRM A.8.2 forms).
+
+```ebnf
+casting_type      -> 5 kinds (simple_type / constant_primary / signing / string / const)
+bit_select        -> {body}
+system_tf_call    -> 3 kinds (args / data_type / expr_clocking)
+```
+
+Annotation count: **796** (was 787, +9). Same accept set. Schema stays at `1`. Contract bumped 1.0.49 → 1.0.50. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-06 - SV-Slice-49 batch: concat / cast / call_primary / attr_spec typed (9 rules / 14 annotations)
 
 Closes the leaf rules used pervasively across `primary_sv_2017/2023`. After this slice, primary's `cast` / `concat` / `multiple_concat` / `call` / `assign_pattern` / `attribute_instance` field references all resolve to typed shapes.
