@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)
+
+Closes the LRM A.6.10 clocking declaration sub-tree end-to-end. **Crosses the 900-annotation milestone.**
+
+```ebnf
+class_constructor_prototype_sv_2017/2023 -> {ports}
+clocking_decl_assign                     -> {name, value}
+clocking_declaration                     -> {default_keyword, name, event, items, end_label}
+clocking_direction                       -> 4 kinds (input / output / input_output / inout)
+clocking_event_sv_2017                   -> {body}
+clocking_event_sv_2023                   -> 3 kinds (ps / hierarchical / expression)
+clocking_item                            -> 3 kinds (default_skew / direction / assertion)
+clocking_skew                            -> 2 kinds (edge / delay)
+edge_identifier                          -> 3 kinds bare (posedge / negedge / edge)
+method_prototype                         -> 2 kinds (task / function)
+```
+
+Annotation count: **907** (was 885, +22). Same accept set. Schema stays at `1`. Contract bumped 1.0.54 → 1.0.55. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-07 - SV-Slice-54 batch: delay/event/strength leaves typed (10 rules / 33 annotations)
 
 Closes the LRM A.6.5 / A.6.4 timing-control / event-control / strength leaves used pervasively across blocking_assignment / nonblocking_assignment / procedural_timing_control / net_declaration.

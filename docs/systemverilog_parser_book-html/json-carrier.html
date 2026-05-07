@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f8850bd3.js";
+            window.path_to_searchindex_js = "searchindex-7cf17fe3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -499,6 +499,16 @@
 <tr><td><code>event_control_sv_2023</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"clocking"</code> (<code>{body}</code> — clocking_event prefix) / <code>"wildcard"</code> / <code>"wildcard_paren"</code> (bare). LRM 2023 simplifies the event_control set.</td></tr>
 <tr><td><code>event_expression_primary</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expression"</code> (<code>{edge, expr, iff}</code>) / <code>"sequence"</code> (<code>{body, iff}</code>) / <code>"paren"</code> (<code>{body}</code>).</td></tr>
 <tr><td><code>strength</code> (4 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"supply"</code> / <code>"strong"</code> / <code>"pull"</code> / <code>"weak"</code>.</td></tr>
+<tr><td><code>class_constructor_prototype_sv_2017</code> / <code>class_constructor_prototype_sv_2023</code></td><td><code>-&gt; {ports}</code></td><td>Drops <code>kw_function</code>, <code>kw_new</code>, <code>semi</code>. <code>ports</code> is the optional <code>( lparen ... rparen )?</code> slot.</td></tr>
+<tr><td><code>clocking_decl_assign</code></td><td><code>-&gt; {name, value}</code></td><td>LRM A.6.10. <code>value</code> is <code>[]</code> or <code>[&lt;assign, expr&gt;]</code>.</td></tr>
+<tr><td><code>clocking_declaration</code></td><td><code>-&gt; {default_keyword, name, event, items, end_label}</code></td><td>Drops <code>kw_clocking</code>, <code>kw_endclocking</code>, <code>semi</code>.</td></tr>
+<tr><td><code>clocking_direction</code> (4 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"input"</code> (<code>{skew}</code>) / <code>"output"</code> (<code>{skew}</code>) / <code>"input_output"</code> (<code>{input_skew, output_skew}</code>) / <code>"inout"</code> (bare).</td></tr>
+<tr><td><code>clocking_event_sv_2017</code></td><td><code>-&gt; {body}</code></td><td>The simple <code>@id</code> form.</td></tr>
+<tr><td><code>clocking_event_sv_2023</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"ps"</code> / <code>"hierarchical"</code> / <code>"expression"</code>. LRM 2023 expansion.</td></tr>
+<tr><td><code>clocking_item</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"default_skew"</code> (<code>{skew}</code>) / <code>"direction"</code> (<code>{direction, decls}</code>) / <code>"assertion"</code> (<code>{attributes, body}</code>).</td></tr>
+<tr><td><code>clocking_skew</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"edge"</code> (<code>{edge, delay}</code>) / <code>"delay"</code> (<code>{body}</code>).</td></tr>
+<tr><td><code>edge_identifier</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"posedge"</code> / <code>"negedge"</code> / <code>"edge"</code>.</td></tr>
+<tr><td><code>method_prototype</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"task"</code> / <code>"function"</code>.</td></tr>
 </tbody>
 </table>
 </div>

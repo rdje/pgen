@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f8850bd3.js";
+            window.path_to_searchindex_js = "searchindex-7cf17fe3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,22 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1055--contract-1055--sv-slice-55-batch-clocking--class_constructor_prototype--edge_identifier--method_prototype-typed-10-rules--22-annotations--crosses-900-annotation-milestone"><a class="header" href="#1055--contract-1055--sv-slice-55-batch-clocking--class_constructor_prototype--edge_identifier--method_prototype-typed-10-rules--22-annotations--crosses-900-annotation-milestone">1.0.55 / Contract 1.0.55 — SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)</a></h3>
+<p><strong>What changed:</strong> Closes the LRM A.6.10 clocking declaration sub-tree.</p>
+<pre><code class="language-ebnf">class_constructor_prototype_sv_2017/2023 -&gt; {ports}
+clocking_decl_assign                     -&gt; {name, value}
+clocking_declaration                     -&gt; {default_keyword, name, event, items, end_label}
+clocking_direction                       -&gt; 4 kinds (input / output / input_output / inout)
+clocking_event_sv_2017                   -&gt; {body}
+clocking_event_sv_2023                   -&gt; 3 kinds (ps / hierarchical / expression)
+clocking_item                            -&gt; 3 kinds (default_skew / direction / assertion)
+clocking_skew                            -&gt; 2 kinds (edge / delay)
+edge_identifier                          -&gt; 3 kinds bare (posedge / negedge / edge)
+method_prototype                         -&gt; 2 kinds (task / function)
+</code></pre>
+<p><strong>Annotation inventory:</strong> 907 entries (was 885). +22 in this batch — crosses the 900-annotation milestone.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.55 / Contract 1.0.55 Highlights”.</p>
 <h3 id="1054--contract-1054--sv-slice-54-batch-delayeventstrength-leaves-typed-10-rules--33-annotations"><a class="header" href="#1054--contract-1054--sv-slice-54-batch-delayeventstrength-leaves-typed-10-rules--33-annotations">1.0.54 / Contract 1.0.54 — SV-Slice-54 batch: delay/event/strength leaves typed (10 rules / 33 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the LRM A.6.5 / A.6.4 timing-control / event-control / strength leaves.</p>
 <pre><code class="language-ebnf">charge_strength                       -&gt; 3 kinds bare (small / medium / large)

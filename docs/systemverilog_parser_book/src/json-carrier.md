@@ -315,6 +315,16 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `event_control_sv_2023` (3 branches) | per-branch typed | Kind labels: `"clocking"` (`{body}` — clocking_event prefix) / `"wildcard"` / `"wildcard_paren"` (bare). LRM 2023 simplifies the event_control set. |
 | `event_expression_primary` (3 branches) | per-branch typed | Kind labels: `"expression"` (`{edge, expr, iff}`) / `"sequence"` (`{body, iff}`) / `"paren"` (`{body}`). |
 | `strength` (4 branches) | per-branch `{kind}` (bare) | Kind labels: `"supply"` / `"strong"` / `"pull"` / `"weak"`. |
+| `class_constructor_prototype_sv_2017` / `class_constructor_prototype_sv_2023` | `-> {ports}` | Drops `kw_function`, `kw_new`, `semi`. `ports` is the optional `( lparen ... rparen )?` slot. |
+| `clocking_decl_assign` | `-> {name, value}` | LRM A.6.10. `value` is `[]` or `[<assign, expr>]`. |
+| `clocking_declaration` | `-> {default_keyword, name, event, items, end_label}` | Drops `kw_clocking`, `kw_endclocking`, `semi`. |
+| `clocking_direction` (4 branches) | per-branch typed | Kind labels: `"input"` (`{skew}`) / `"output"` (`{skew}`) / `"input_output"` (`{input_skew, output_skew}`) / `"inout"` (bare). |
+| `clocking_event_sv_2017` | `-> {body}` | The simple `@id` form. |
+| `clocking_event_sv_2023` (3 branches) | per-branch `{kind, body}` | Kind labels: `"ps"` / `"hierarchical"` / `"expression"`. LRM 2023 expansion. |
+| `clocking_item` (3 branches) | per-branch typed | Kind labels: `"default_skew"` (`{skew}`) / `"direction"` (`{direction, decls}`) / `"assertion"` (`{attributes, body}`). |
+| `clocking_skew` (2 branches) | per-branch typed | Kind labels: `"edge"` (`{edge, delay}`) / `"delay"` (`{body}`). |
+| `edge_identifier` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"posedge"` / `"negedge"` / `"edge"`. |
+| `method_prototype` (2 branches) | per-branch `{kind, body}` | Kind labels: `"task"` / `"function"`. |
 
 ## Sub-rules with implicit defaults
 

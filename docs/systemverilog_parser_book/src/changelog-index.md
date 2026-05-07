@@ -19,6 +19,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.55 / Contract 1.0.55 — SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)
+
+**What changed:** Closes the LRM A.6.10 clocking declaration sub-tree.
+
+```ebnf
+class_constructor_prototype_sv_2017/2023 -> {ports}
+clocking_decl_assign                     -> {name, value}
+clocking_declaration                     -> {default_keyword, name, event, items, end_label}
+clocking_direction                       -> 4 kinds (input / output / input_output / inout)
+clocking_event_sv_2017                   -> {body}
+clocking_event_sv_2023                   -> 3 kinds (ps / hierarchical / expression)
+clocking_item                            -> 3 kinds (default_skew / direction / assertion)
+clocking_skew                            -> 2 kinds (edge / delay)
+edge_identifier                          -> 3 kinds bare (posedge / negedge / edge)
+method_prototype                         -> 2 kinds (task / function)
+```
+
+**Annotation inventory:** 907 entries (was 885). +22 in this batch — crosses the 900-annotation milestone.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.55 / Contract 1.0.55 Highlights".
+
 ### 1.0.54 / Contract 1.0.54 — SV-Slice-54 batch: delay/event/strength leaves typed (10 rules / 33 annotations)
 
 **What changed:** Closes the LRM A.6.5 / A.6.4 timing-control / event-control / strength leaves.

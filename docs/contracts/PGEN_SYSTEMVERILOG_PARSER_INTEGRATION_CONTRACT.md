@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.54`
+  - `1.0.55`
 - Parser release version:
-  - `1.0.54`
+  - `1.0.55`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,84 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.55 / Contract 1.0.55 Highlights — SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)
+
+Closes the LRM A.6.10 clocking declaration sub-tree end-to-end. Crosses the **900-annotation milestone**.
+
+### Annotations
+
+```ebnf
+class_constructor_prototype_sv_2017 := kw_function kw_new ( lparen ( tf_port_list )? rparen )? semi
+                                    -> {ports: $3}
+
+class_constructor_prototype_sv_2023 := kw_function kw_new ( lparen ( class_constructor_arg_list )? rparen )? semi
+                                    -> {ports: $3}
+
+clocking_decl_assign := signal_identifier ( assign expression )?
+                     -> {name: $1, value: $2}
+
+clocking_declaration := ( kw_default )? kw_clocking ( clocking_identifier )? clocking_event semi clocking_item* kw_endclocking ( colon clocking_identifier )?
+                     -> {default_keyword: $1, name: $3, event: $4, items: $6, end_label: $8}
+
+clocking_direction := kw_input ( clocking_skew )?
+                            -> {kind: "input",        skew: $2}
+                    | kw_output ( clocking_skew )?
+                            -> {kind: "output",       skew: $2}
+                    | kw_input ( clocking_skew )? kw_output ( clocking_skew )?
+                            -> {kind: "input_output", input_skew: $2, output_skew: $4}
+                    | kw_inout
+                            -> {kind: "inout"}
+
+@profiles: ["sv_2017"]
+clocking_event_sv_2017 := at_sign identifier
+                       -> {body: $2}
+
+@profiles: ["sv_2023"]
+clocking_event_sv_2023 := at_sign ps_identifier              -> {kind: "ps",           body: $2}
+                        | at_sign hierarchical_identifier    -> {kind: "hierarchical", body: $2}
+                        | at_sign lparen event_expression rparen
+                                                             -> {kind: "expression",   body: $3}
+
+clocking_item := kw_default default_skew semi
+                      -> {kind: "default_skew", skew: $2}
+               | clocking_direction list_of_clocking_decl_assign semi
+                      -> {kind: "direction",    direction: $1, decls: $2}
+               | attribute_instance* assertion_item_declaration
+                      -> {kind: "assertion",    attributes: $1, body: $2}
+
+clocking_skew := edge_identifier ( delay_control )? -> {kind: "edge",  edge: $1, delay: $2}
+               | delay_control                       -> {kind: "delay", body: $1}
+
+edge_identifier := kw_posedge -> {kind: "posedge"}
+                 | kw_negedge -> {kind: "negedge"}
+                 | kw_edge    -> {kind: "edge"}
+
+method_prototype := task_prototype     -> {kind: "task",     body: $1}
+                  | function_prototype -> {kind: "function", body: $1}
+```
+
+### Field semantics
+
+- `clocking_declaration`: LRM A.6.10. The `default_keyword` is `[]` for non-default clockings. `name` is `[]` for anonymous clocking. `items` is the list of clocking-block contents.
+- `clocking_direction.kind == "input_output"`: the LRM `input ... output ...` combined direction (each side has its own optional skew).
+- `clocking_skew.kind == "edge"`: edge-prefixed skew (e.g., `posedge #1`); `delay` is `[]` or `[<delay_control>]`.
+- `class_constructor_prototype_sv_2017/2023`: method-prototype form for `extern function new(args)` declaration.
+
+### Annotation inventory
+
+907 entries (was 885). +22 in this batch. Crosses the 900-annotation milestone.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `class_constructor_declaration_sv_2017/2023` (complex single-seq with super.new call optional).
+- The remaining unannotated mid-size rules.
+- Profile-tag wrapper rules.
+- Drive-strength / unique_priority / delay grammar fixes (separate task).
 
 ## Release 1.0.54 / Contract 1.0.54 Highlights — SV-Slice-54 batch: delay/event/strength leaves typed (10 rules / 33 annotations)
 

@@ -681,9 +681,11 @@ class_constructor_declaration := class_constructor_declaration_sv_2017 | class_c
 
 @profiles: ["sv_2017"]
 class_constructor_prototype_sv_2017 := kw_function_c218e39e kw_new_c2a6b03f ( lparen ( tf_port_list )? rparen )? semi
+                                    -> {ports: $3}
 
 @profiles: ["sv_2023"]
 class_constructor_prototype_sv_2023 := kw_function_c218e39e kw_new_c2a6b03f ( lparen ( class_constructor_arg_list )? rparen )? semi
+                                    -> {ports: $3}
 
 class_constructor_prototype := class_constructor_prototype_sv_2017 | class_constructor_prototype_sv_2023
 
@@ -791,29 +793,48 @@ class_type_head := scoped_class_type_identifier                          -> {kin
 class_variable_identifier := variable_identifier
 
 clocking_decl_assign := signal_identifier ( assign expression )?
+                     -> {name: $1, value: $2}
 
 clocking_declaration := @sample: "clocking cb @(posedge clk); endclocking : cb" ( kw_default_7505d64a )? kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi clocking_item* kw_endclocking_c1e6d71f ( colon clocking_identifier )?
+                     -> {default_keyword: $1, name: $3, event: $4, items: $6, end_label: $8}
                       | @sample: "global clocking cb @(posedge clk); endclocking : cb" kw_global_9027cc5a kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi kw_endclocking_c1e6d71f ( colon clocking_identifier )?
 
-clocking_direction := kw_input_140f86aa ( clocking_skew )? | kw_output_1029d676 ( clocking_skew )? | kw_input_140f86aa ( clocking_skew )? kw_output_1029d676 ( clocking_skew )? | kw_inout_c900aaa9
+clocking_direction := kw_input_140f86aa ( clocking_skew )?
+                            -> {kind: "input",        skew: $2}
+                    | kw_output_1029d676 ( clocking_skew )?
+                            -> {kind: "output",       skew: $2}
+                    | kw_input_140f86aa ( clocking_skew )? kw_output_1029d676 ( clocking_skew )?
+                            -> {kind: "input_output", input_skew: $2, output_skew: $4}
+                    | kw_inout_c900aaa9
+                            -> {kind: "inout"}
 
 clocking_drive := clockvar_expression less_equal ( cycle_delay )? expression
                -> {lvalue: $1, cycle_delay: $3, value: $4}
 
 @profiles: ["sv_2017"]
 clocking_event_sv_2017 := @probe_sample: "@clk" at_sign identifier
+                       -> {body: $2}
                         | @probe_sample: "@(posedge clk)" at_sign lparen event_expression rparen
 
 @profiles: ["sv_2023"]
-clocking_event_sv_2023 := at_sign ps_identifier | at_sign hierarchical_identifier | at_sign lparen event_expression rparen
+clocking_event_sv_2023 := at_sign ps_identifier             -> {kind: "ps",           body: $2}
+                        | at_sign hierarchical_identifier   -> {kind: "hierarchical", body: $2}
+                        | at_sign lparen event_expression rparen
+                                                            -> {kind: "expression",   body: $3}
 
 clocking_event := clocking_event_sv_2017 | clocking_event_sv_2023
 
 clocking_identifier := declaration_identifier
 
-clocking_item := kw_default_7505d64a default_skew semi | clocking_direction list_of_clocking_decl_assign semi | attribute_instance* assertion_item_declaration
+clocking_item := kw_default_7505d64a default_skew semi
+                      -> {kind: "default_skew", skew: $2}
+               | clocking_direction list_of_clocking_decl_assign semi
+                      -> {kind: "direction",    direction: $1, decls: $2}
+               | attribute_instance* assertion_item_declaration
+                      -> {kind: "assertion",    attributes: $1, body: $2}
 
-clocking_skew := edge_identifier ( delay_control )? | delay_control
+clocking_skew := edge_identifier ( delay_control )? -> {kind: "edge",  edge: $1, delay: $2}
+               | delay_control                       -> {kind: "delay", body: $1}
 
 clockvar := hierarchical_identifier
 
@@ -1373,7 +1394,9 @@ edge_control_specifier := kw_edge_a0f2c69a ( edge_descriptor ( comma edge_descri
 
 edge_descriptor := kw_n_01_ddfe1633 | kw_n_10_b1d57811 | z_or_x zero_or_one | zero_or_one z_or_x
 
-edge_identifier := kw_posedge_7529558b | kw_negedge_c77fbc5c | kw_edge_a0f2c69a
+edge_identifier := kw_posedge_7529558b -> {kind: "posedge"}
+                 | kw_negedge_c77fbc5c -> {kind: "negedge"}
+                 | kw_edge_a0f2c69a    -> {kind: "edge"}
 
 edge_indicator := lparen level_symbol level_symbol rparen | edge_symbol
 
@@ -2042,7 +2065,8 @@ call_primary := split_direct_callable_method_call -> {kind: "split_direct_callab
 
 method_identifier := declaration_identifier
 
-method_prototype := task_prototype | function_prototype
+method_prototype := task_prototype     -> {kind: "task",     body: $1}
+                  | function_prototype -> {kind: "function", body: $1}
 
 method_qualifier := ( kw_pure_afe003f1 )? kw_virtual_af84d91f -> {kind: "virtual",              pure: $1}
                   | class_item_qualifier                       -> {kind: "class_item_qualifier", body: $1}
