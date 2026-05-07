@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-53 batch: array/stream/class_new/join leaf cleanup typed (9 rules / 18 annotations)
+
+Closes pervasive leaf rules used across primary / streaming-concat / par_block / dynamic-array contexts.
+
+```ebnf
+array_method_name                  -> 5 kinds
+class_new                          -> 2 kinds (constructor / copy)
+dynamic_array_new                  -> {size, init}
+empty_unpacked_array_concatenation -> bare {kind}
+join_keyword                       -> 3 kinds bare
+slice_size                         -> 2 kinds
+stream_concatenation               -> {body}
+stream_expression                  -> {expr, with_clause}
+stream_operator                    -> 2 kinds bare
+```
+
+Annotation count: **852** (was 834, +18). Same accept set. Schema stays at `1`. Contract bumped 1.0.52 → 1.0.53. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-07 - SV-Slice-52 batch: simple_type + range/dist family typed (14 rules / 29 annotations)
 
 Closes the simple_type / range_expression / part_select_range / dist_* / range_list / value_range walk paths used pervasively across data_type / cast / inside_expression / range-expression contexts.

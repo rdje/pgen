@@ -296,6 +296,15 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `range_list_sv_2023` / `open_range_list_sv_2017` | `-> {first, rest}` | Mini-mixed-array. |
 | `value_range_sv_2017` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"`. |
 | `value_range_sv_2023` (5 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"` / `"dollar_lo"` (`[$:expr]`) / `"dollar_hi"` (`[expr:$]`) / `"tolerance"` (`[expr +/- expr]`). LRM 2023 expansion. |
+| `array_method_name` (5 branches) | per-branch typed | Kind labels: `"method_identifier"` (`{body}` — user-defined method) / `"unique"` / `"and"` / `"or"` / `"xor"` (bare; LRM-reserved array-builtin method names per A.2.10). |
+| `class_new` (2 branches) | per-branch typed | Kind labels: `"constructor"` (`{scope, args}` — `new(args)` with optional class scope) / `"copy"` (`{source}` — `new other` shallow-copy form). |
+| `dynamic_array_new` | `-> {size, init}` | LRM `new[size]` or `new[size](init)` form. |
+| `empty_unpacked_array_concatenation` | `-> {kind: "empty_unpacked_array_concat"}` | The `'{}` empty-unpacked-array-concat literal per LRM 2023. |
+| `join_keyword` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"join"` / `"join_any"` / `"join_none"`. Used by `par_block.join` from SV-Slice-33. |
+| `slice_size` (2 branches) | per-branch `{kind, body}` | Kind labels: `"simple_type"` / `"constant_expression"`. Used by streaming_concatenation.slice_size. |
+| `stream_concatenation` | `-> {body}` | Quantified-of-Quantified iteration `( stream_expression ( comma stream_expression )* )*`. |
+| `stream_expression` | `-> {expr, with_clause}` | Optional `with [array_range_expression]` per LRM A.8.1. |
+| `stream_operator` (2 branches) | per-branch `{kind}` (bare) | Kind labels: `"shift_right"` (`>>`) / `"shift_left"` (`<<`). |
 
 ## Sub-rules with implicit defaults
 

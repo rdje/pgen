@@ -19,6 +19,28 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.53 / Contract 1.0.53 — SV-Slice-53 batch: array/stream/class_new/join leaf cleanup typed (9 rules / 18 annotations)
+
+**What changed:** Closes pervasive leaf rules used across primary / streaming-concat / par_block / dynamic-array contexts.
+
+```ebnf
+array_method_name                  -> 5 kinds (method_identifier / unique / and / or / xor)
+class_new                          -> 2 kinds (constructor / copy)
+dynamic_array_new                  -> {size, init}
+empty_unpacked_array_concatenation -> bare {kind}
+join_keyword                       -> 3 kinds bare (join / join_any / join_none)
+slice_size                         -> 2 kinds (simple_type / constant_expression)
+stream_concatenation               -> {body}
+stream_expression                  -> {expr, with_clause}
+stream_operator                    -> 2 kinds bare (shift_right / shift_left)
+```
+
+**Annotation inventory:** 852 entries (was 834). +18 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.53 / Contract 1.0.53 Highlights".
+
 ### 1.0.52 / Contract 1.0.52 — SV-Slice-52 batch: simple_type + range/dist family typed (14 rules / 29 annotations)
 
 **What changed:** Closes the simple_type / range_expression / part_select_range / dist_* / range_list / value_range walk paths.

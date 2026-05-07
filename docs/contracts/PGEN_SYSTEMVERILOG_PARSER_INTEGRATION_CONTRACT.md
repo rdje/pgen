@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.52`
+  - `1.0.53`
 - Parser release version:
-  - `1.0.52`
+  - `1.0.53`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,70 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.53 / Contract 1.0.53 Highlights — SV-Slice-53 batch: array/stream/class_new/join leaf cleanup typed (9 rules / 18 annotations)
+
+Closes pervasive leaf rules used across primary / streaming-concat / par_block / dynamic-array contexts.
+
+### Annotations
+
+```ebnf
+array_method_name := method_identifier      -> {kind: "method_identifier", body: $1}
+                   | kw_unique              -> {kind: "unique"}
+                   | kw_and                 -> {kind: "and"}
+                   | kw_or                  -> {kind: "or"}
+                   | kw_xor                 -> {kind: "xor"}
+
+class_new := ( class_scope )? kw_new ( lparen list_of_arguments rparen )?
+                  -> {kind: "constructor", scope: $1, args: $3}
+           | kw_new expression
+                  -> {kind: "copy",        source: $2}
+
+dynamic_array_new := kw_new lbrack expression rbrack ( lparen expression rparen )?
+                  -> {size: $3, init: $5}
+
+empty_unpacked_array_concatenation := lbrace epsilon rbrace
+                                   -> {kind: "empty_unpacked_array_concat"}
+
+join_keyword := kw_join      -> {kind: "join"}
+              | kw_join_any  -> {kind: "join_any"}
+              | kw_join_none -> {kind: "join_none"}
+
+slice_size := simple_type         -> {kind: "simple_type",         body: $1}
+            | constant_expression -> {kind: "constant_expression", body: $1}
+
+stream_concatenation := ( stream_expression ( comma stream_expression )* )*
+                     -> {body: $1}
+
+stream_expression := expression ( kw_with ( array_range_expression )? )?
+                  -> {expr: $1, with_clause: $2}
+
+stream_operator := shift_right -> {kind: "shift_right"}
+                 | shift_left  -> {kind: "shift_left"}
+```
+
+### Field semantics
+
+- `array_method_name`: 5 LRM A.2.10 array-builtin method names. The `method_identifier` branch carries an arbitrary user-defined method; the other 4 are the LRM-reserved keyword forms (`unique`, `and`, `or`, `xor`).
+- `class_new.kind == "constructor"`: standard `new(args)` form with optional class scope (e.g., `MyPkg::MyClass::new(a, b)`).
+- `class_new.kind == "copy"`: `new other_object` shallow-copy form.
+- `join_keyword`: par_block (slice 33) used `$1` default which surfaced the raw envelope in `par_block.join` field. With this slice the `kind` discriminator is now exposed, giving consumers a cleaner dispatch on `join_keyword.kind`.
+
+### Annotation inventory
+
+852 entries (was 834). +18 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- The remaining unannotated rules (sweep — small leaf forms across the grammar).
+- `unique_priority` (after grammar duplicate-branch fix).
+- Profile-tag wrapper rules (module_declaration / interface_declaration / class_declaration / program_declaration).
+- `tagged_union_expression` deeper.
+- `delay`, `delay_control`, `delay_value`, `delay_or_event_control`.
 
 ## Release 1.0.52 / Contract 1.0.52 Highlights — SV-Slice-52 batch: simple_type + range/dist family typed (14 rules / 29 annotations)
 

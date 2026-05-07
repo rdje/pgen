@@ -403,7 +403,11 @@ ansi_port_declaration := ( net_port_header | interface_port_header )? port_ident
 
 array_manipulation_call := array_method_name attribute_instance* ( lparen list_of_arguments rparen )? ( kw_with_8fcd25a3 lparen expression rparen )?
 
-array_method_name := method_identifier | kw_unique_58037c00 | kw_and_cffa50a3 | kw_or_1758356d | kw_xor_f1922a23
+array_method_name := method_identifier      -> {kind: "method_identifier", body: $1}
+                   | kw_unique_58037c00     -> {kind: "unique"}
+                   | kw_and_cffa50a3        -> {kind: "and"}
+                   | kw_or_1758356d         -> {kind: "or"}
+                   | kw_xor_f1922a23        -> {kind: "xor"}
 
 array_pattern_key := constant_expression | assignment_pattern_key
 
@@ -741,7 +745,10 @@ class_method := method_qualifier* task_declaration
              | kw_extern_bf1ee311 method_qualifier* class_constructor_prototype
                      -> {kind: "extern_constructor",  qualifiers: $2, prototype: $3}
 
-class_new := ( class_scope )? kw_new_c2a6b03f ( lparen list_of_arguments rparen )? | kw_new_c2a6b03f expression
+class_new := ( class_scope )? kw_new_c2a6b03f ( lparen list_of_arguments rparen )?
+                  -> {kind: "constructor", scope: $1, args: $3}
+           | kw_new_c2a6b03f expression
+                  -> {kind: "copy",        source: $2}
 
 class_property := property_qualifier* data_declaration
                        -> {kind: "decl",  qualifiers: $1, body: $2}
@@ -1341,6 +1348,7 @@ dpi_task_proto := task_prototype
 drive_strength := lparen strength comma strength rparen | lparen strength comma strength rparen | lparen strength comma kw_highz_ed790878 rparen | lparen strength comma kw_highz_ed790878 rparen | lparen kw_highz_ed790878 comma strength rparen | lparen kw_highz_ed790878 comma strength rparen
 
 dynamic_array_new := kw_new_c2a6b03f lbrack expression rbrack ( lparen expression rparen )?
+                  -> {size: $3, init: $5}
 
 dynamic_array_variable_identifier := variable_identifier
 
@@ -1374,6 +1382,7 @@ elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_n
 elaboration_system_task := elaboration_system_task_sv_2017
 
 empty_unpacked_array_concatenation := lbrace epsilon rbrace
+                                   -> {kind: "empty_unpacked_array_concat"}
 
 enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
 
@@ -1756,7 +1765,9 @@ interface_port_identifier_sv_2023 := identifier
 
 interface_port_identifier := interface_port_identifier_sv_2023
 
-join_keyword := kw_join_c455b38e | kw_join_any_24358a7a | kw_join_none_4454a7a6
+join_keyword := kw_join_c455b38e      -> {kind: "join"}
+              | kw_join_any_24358a7a  -> {kind: "join_any"}
+              | kw_join_none_4454a7a6 -> {kind: "join_none"}
 
 jump_statement := kw_return_63143b6f ( expression )? semi -> {kind: "return",   value: $2}
                 | kw_break_4f9cac8d semi                   -> {kind: "break"}
@@ -3101,7 +3112,8 @@ simple_type := integer_type            -> {kind: "integer",         body: $1}
              | ps_type_identifier      -> {kind: "ps_type",         body: $1}
              | ps_parameter_identifier -> {kind: "ps_parameter",    body: $1}
 
-slice_size := simple_type | constant_expression
+slice_size := simple_type         -> {kind: "simple_type",         body: $1}
+            | constant_expression -> {kind: "constant_expression", body: $1}
 
 solve_before_list := constraint_primary ( comma constraint_primary )*
 
@@ -3180,10 +3192,13 @@ statement_or_null := statement                                -> {kind: "stateme
                    | @probe_sample: ";" attribute_instance* semi -> {kind: "null",      attributes: $1}
 
 stream_concatenation := ( stream_expression ( comma stream_expression )* )*
+                     -> {body: $1}
 
 stream_expression := expression ( kw_with_8fcd25a3 ( array_range_expression )? )?
+                  -> {expr: $1, with_clause: $2}
 
-stream_operator := shift_right | shift_left
+stream_operator := shift_right -> {kind: "shift_right"}
+                 | shift_left  -> {kind: "shift_left"}
 
 streaming_concatenation := lbrace stream_operator ( slice_size )? stream_concatenation rbrace
                         -> {op: $2, slice_size: $3, body: $4}

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0918e1bc.js";
+            window.path_to_searchindex_js = "searchindex-83b60c6f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -480,6 +480,15 @@
 <tr><td><code>range_list_sv_2023</code> / <code>open_range_list_sv_2017</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array.</td></tr>
 <tr><td><code>value_range_sv_2017</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code>.</td></tr>
 <tr><td><code>value_range_sv_2023</code> (5 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code> / <code>"dollar_lo"</code> (<code>[$:expr]</code>) / <code>"dollar_hi"</code> (<code>[expr:$]</code>) / <code>"tolerance"</code> (<code>[expr +/- expr]</code>). LRM 2023 expansion.</td></tr>
+<tr><td><code>array_method_name</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"method_identifier"</code> (<code>{body}</code> — user-defined method) / <code>"unique"</code> / <code>"and"</code> / <code>"or"</code> / <code>"xor"</code> (bare; LRM-reserved array-builtin method names per A.2.10).</td></tr>
+<tr><td><code>class_new</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"constructor"</code> (<code>{scope, args}</code> — <code>new(args)</code> with optional class scope) / <code>"copy"</code> (<code>{source}</code> — <code>new other</code> shallow-copy form).</td></tr>
+<tr><td><code>dynamic_array_new</code></td><td><code>-&gt; {size, init}</code></td><td>LRM <code>new[size]</code> or <code>new[size](init)</code> form.</td></tr>
+<tr><td><code>empty_unpacked_array_concatenation</code></td><td><code>-&gt; {kind: "empty_unpacked_array_concat"}</code></td><td>The <code>'{}</code> empty-unpacked-array-concat literal per LRM 2023.</td></tr>
+<tr><td><code>join_keyword</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"join"</code> / <code>"join_any"</code> / <code>"join_none"</code>. Used by <code>par_block.join</code> from SV-Slice-33.</td></tr>
+<tr><td><code>slice_size</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"simple_type"</code> / <code>"constant_expression"</code>. Used by streaming_concatenation.slice_size.</td></tr>
+<tr><td><code>stream_concatenation</code></td><td><code>-&gt; {body}</code></td><td>Quantified-of-Quantified iteration <code>( stream_expression ( comma stream_expression )* )*</code>.</td></tr>
+<tr><td><code>stream_expression</code></td><td><code>-&gt; {expr, with_clause}</code></td><td>Optional <code>with [array_range_expression]</code> per LRM A.8.1.</td></tr>
+<tr><td><code>stream_operator</code> (2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"shift_right"</code> (<code>&gt;&gt;</code>) / <code>"shift_left"</code> (<code>&lt;&lt;</code>).</td></tr>
 </tbody>
 </table>
 </div>
