@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-52 batch: simple_type + range/dist family typed (14 rules / 29 annotations)
+
+Closes the simple_type / range_expression / part_select_range / dist_* / range_list / value_range walk paths used pervasively across data_type / cast / inside_expression / range-expression contexts.
+
+```ebnf
+simple_type                    -> 4 kinds (integer / non_integer / ps_type / ps_parameter)
+range_expression               -> 2 kinds
+part_select_range              -> 2 kinds (range / indexed_range)
+constant_part_select_range     -> 2 kinds (parallel)
+indexed_range                  -> 2 kinds (plus_indexed [base+:width] / minus_indexed [base-:width])
+constant_indexed_range         -> 2 kinds (parallel)
+dist_list                      -> {first, rest}
+dist_item_sv_2017              -> {value, weight}
+dist_item_sv_2023              -> 2 kinds (value / default)
+dist_weight                    -> 2 kinds (equal := / proportional :/)
+range_list_sv_2023             -> {first, rest}
+open_range_list_sv_2017        -> {first, rest}
+value_range_sv_2017            -> 2 kinds
+value_range_sv_2023            -> 5 kinds (LRM 2023 adds dollar_lo / dollar_hi / tolerance)
+```
+
+Annotation count: **834** (was 805, +29). Same accept set. Schema stays at `1`. Contract bumped 1.0.51 → 1.0.52. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-07 - SV-Slice-51 batch: select + constant_select + constant_range typed (4 rules / 5 annotations + 2 new helper rules with 4 annotations — crosses 800-annotation milestone)
 
 Closes the `select` / `constant_select` referent used pervasively across primary's hierarchical-name suffix. **Crosses the 800-annotation milestone.**

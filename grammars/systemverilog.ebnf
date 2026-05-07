@@ -880,7 +880,8 @@ constant_concatenation := lbrace constant_expression ( comma constant_expression
 
 constant_function_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call
 
-constant_indexed_range := constant_expression plus colon constant_expression | constant_expression minus colon constant_expression
+constant_indexed_range := constant_expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
+                        | constant_expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
 
 constant_let_expression := let_expression
 
@@ -891,7 +892,8 @@ constant_multiple_concatenation := lbrace constant_expression constant_concatena
 
 constant_param_expression := constant_mintypmax_expression | data_type | kw_dollar
 
-constant_part_select_range := constant_range | constant_indexed_range
+constant_part_select_range := constant_range          -> {kind: "range",         body: $1}
+                            | constant_indexed_range  -> {kind: "indexed_range", body: $1}
 
 @profiles: ["sv_2017"]
 constant_primary_sv_2017 := primary_literal
@@ -1308,15 +1310,21 @@ disable_statement := kw_disable_ccf09e2d hierarchical_task_identifier semi
 
 @profiles: ["sv_2017"]
 dist_item_sv_2017 := value_range ( dist_weight )?
+                  -> {value: $1, weight: $2}
 
 @profiles: ["sv_2023"]
-dist_item_sv_2023 := value_range ( dist_weight )? | kw_default_7505d64a colon slash expression
+dist_item_sv_2023 := value_range ( dist_weight )?
+                          -> {kind: "value", value: $1, weight: $2}
+                   | kw_default_7505d64a colon slash expression
+                          -> {kind: "default", weight: $4}
 
 dist_item := dist_item_sv_2017 | dist_item_sv_2023
 
 dist_list := dist_item ( comma dist_item )*
+          -> {first: $1, rest: $2}
 
-dist_weight := colon assign expression | colon slash expression
+dist_weight := colon assign expression -> {kind: "equal",       weight: $3}
+             | colon slash expression  -> {kind: "proportional", weight: $3}
 
 dpi_function_import_property := kw_context_ec2727b3 | kw_pure_afe003f1
 
@@ -1612,7 +1620,8 @@ incomplete_class_scoped_type := incomplete_class_scoped_type_sv_2023
 
 index_variable_identifier := identifier
 
-indexed_range := expression plus colon constant_expression | expression minus colon constant_expression
+indexed_range := expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
+               | expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
 
 init_val := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick_bx_ab9cb068 | kw_n_1_tick_bX_70a6d618 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_Bx_0a99de19 | kw_n_1_tick_BX_874bf116 | kw_n_1_356a192b | kw_n_0_b6589fc6
 
@@ -2333,6 +2342,7 @@ octal_value := octal_digit ( kw_sv_rule_c82a06f6 | octal_digit )*
 
 @profiles: ["sv_2017"]
 open_range_list_sv_2017 := open_value_range ( comma open_value_range )*
+                        -> {first: $1, rest: $2}
 
 open_range_list := open_range_list_sv_2017
 
@@ -2491,7 +2501,8 @@ parameter_value_assignment_sv_2023 := hash lparen ( list_of_parameter_value_assi
 
 parameter_value_assignment := parameter_value_assignment_sv_2017 | parameter_value_assignment_sv_2023
 
-part_select_range := constant_range | indexed_range
+part_select_range := constant_range -> {kind: "range",         body: $1}
+                   | indexed_range  -> {kind: "indexed_range", body: $1}
 
 pass_en_switchtype := kw_tranif_02d116e0 | kw_tranif_02d116e0 | kw_rtranif_75c812fc | kw_rtranif_75c812fc
 
@@ -2864,10 +2875,12 @@ randsequence_statement_sv_2023 := kw_randsequence_8b92cf8f lparen ( rs_productio
 
 randsequence_statement := randsequence_statement_sv_2017 | randsequence_statement_sv_2023
 
-range_expression := expression | part_select_range
+range_expression := expression        -> {kind: "expression",        body: $1}
+                  | part_select_range -> {kind: "part_select_range", body: $1}
 
 @profiles: ["sv_2023"]
 range_list_sv_2023 := value_range ( comma value_range )*
+                   -> {first: $1, rest: $2}
 
 range_list := range_list_sv_2023
 
@@ -3083,7 +3096,10 @@ simple_immediate_cover_statement := kw_cover_a28100fa lparen expression rparen s
 
 simple_path_declaration := parallel_path_description assign path_delay_value | full_path_description assign path_delay_value
 
-simple_type := integer_type | non_integer_type | ps_type_identifier | ps_parameter_identifier
+simple_type := integer_type            -> {kind: "integer",         body: $1}
+             | non_integer_type        -> {kind: "non_integer",     body: $1}
+             | ps_type_identifier      -> {kind: "ps_type",         body: $1}
+             | ps_parameter_identifier -> {kind: "ps_parameter",    body: $1}
 
 slice_size := simple_type | constant_expression
 
@@ -3538,10 +3554,15 @@ use_clause := @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot 
             | @probe_sample: "use top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
 
 @profiles: ["sv_2017"]
-value_range_sv_2017 := expression | ( expression colon expression )?
+value_range_sv_2017 := expression                          -> {kind: "expression", body: $1}
+                     | ( expression colon expression )?    -> {kind: "range",      body: $1}
 
 @profiles: ["sv_2023"]
-value_range_sv_2023 := expression | ( expression colon expression )? | ( kw_dollar colon expression )? | ( expression colon kw_dollar )? | ( expression plus slash minus expression )?
+value_range_sv_2023 := expression                                       -> {kind: "expression",  body: $1}
+                     | ( expression colon expression )?                 -> {kind: "range",       body: $1}
+                     | ( kw_dollar colon expression )?                  -> {kind: "dollar_lo",   body: $1}
+                     | ( expression colon kw_dollar )?                  -> {kind: "dollar_hi",   body: $1}
+                     | ( expression plus slash minus expression )?      -> {kind: "tolerance",   body: $1}
 
 value_range := value_range_sv_2017 | value_range_sv_2023
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a93e2116.js";
+            window.path_to_searchindex_js = "searchindex-0918e1bc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -469,6 +469,17 @@
 <tr><td><code>constant_select_tail</code> (NEW; 2 branches)</td><td>per-branch typed</td><td>Same kinds as select_tail with constant_* sub-rules. Helper extracted from inline parens-Or.</td></tr>
 <tr><td><code>constant_range</code></td><td><code>-&gt; {lo, hi}</code></td><td>LRM <code>[lo:hi]</code> part-range. Drops colon.</td></tr>
 <tr><td><code>constant_range_expression</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"part_select_range"</code>.</td></tr>
+<tr><td><code>simple_type</code> (4 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"integer"</code> / <code>"non_integer"</code> / <code>"ps_type"</code> / <code>"ps_parameter"</code>. Used by casting_type.kind==“simple_type”.</td></tr>
+<tr><td><code>range_expression</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"part_select_range"</code>.</td></tr>
+<tr><td><code>part_select_range</code> / <code>constant_part_select_range</code> (2 branches each)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"range"</code> / <code>"indexed_range"</code>.</td></tr>
+<tr><td><code>indexed_range</code> / <code>constant_indexed_range</code> (2 branches each)</td><td>per-branch typed</td><td>Kind labels: <code>"plus_indexed"</code> (<code>{base, width}</code> — <code>[base+:width]</code>) / <code>"minus_indexed"</code> (<code>{base, width}</code> — <code>[base-:width]</code>). LRM 1800-2017 §11.5.1.</td></tr>
+<tr><td><code>dist_list</code></td><td><code>-&gt; {first, rest}</code></td><td>LRM dist clause iteration. Mini-mixed-array.</td></tr>
+<tr><td><code>dist_item_sv_2017</code></td><td><code>-&gt; {value, weight}</code></td><td>Single value-range with optional weight.</td></tr>
+<tr><td><code>dist_item_sv_2023</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"value"</code> (<code>{value, weight}</code>) / <code>"default"</code> (<code>{weight}</code> — <code>default :/ weight</code> form per LRM 2023).</td></tr>
+<tr><td><code>dist_weight</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"equal"</code> (<code>{weight}</code> — <code>:=</code> operator, equal share) / <code>"proportional"</code> (<code>{weight}</code> — <code>:/</code> operator, divided weight).</td></tr>
+<tr><td><code>range_list_sv_2023</code> / <code>open_range_list_sv_2017</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array.</td></tr>
+<tr><td><code>value_range_sv_2017</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code>.</td></tr>
+<tr><td><code>value_range_sv_2023</code> (5 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code> / <code>"dollar_lo"</code> (<code>[$:expr]</code>) / <code>"dollar_hi"</code> (<code>[expr:$]</code>) / <code>"tolerance"</code> (<code>[expr +/- expr]</code>). LRM 2023 expansion.</td></tr>
 </tbody>
 </table>
 </div>

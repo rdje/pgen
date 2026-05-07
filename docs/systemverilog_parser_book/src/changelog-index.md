@@ -19,6 +19,33 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.52 / Contract 1.0.52 — SV-Slice-52 batch: simple_type + range/dist family typed (14 rules / 29 annotations)
+
+**What changed:** Closes the simple_type / range_expression / part_select_range / dist_* / range_list / value_range walk paths.
+
+```ebnf
+simple_type                    -> 4 kinds (integer / non_integer / ps_type / ps_parameter)
+range_expression               -> 2 kinds (expression / part_select_range)
+part_select_range              -> 2 kinds (range / indexed_range)
+constant_part_select_range     -> 2 kinds (parallel)
+indexed_range                  -> 2 kinds (plus_indexed [base+:width] / minus_indexed [base-:width])
+constant_indexed_range         -> 2 kinds (parallel)
+dist_list                      -> {first, rest}
+dist_item_sv_2017              -> {value, weight}
+dist_item_sv_2023              -> 2 kinds (value / default)
+dist_weight                    -> 2 kinds (equal := / proportional :/)
+range_list_sv_2023             -> {first, rest}
+open_range_list_sv_2017        -> {first, rest}
+value_range_sv_2017            -> 2 kinds (expression / range)
+value_range_sv_2023            -> 5 kinds (expression / range / dollar_lo / dollar_hi / tolerance)
+```
+
+**Annotation inventory:** 834 entries (was 805). +29 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.52 / Contract 1.0.52 Highlights".
+
 ### 1.0.51 / Contract 1.0.51 — SV-Slice-51 batch: select + constant_select + constant_range typed (4 rules / 5 annotations + 2 new helper rules with 4 annotations — crosses 800-annotation milestone)
 
 **What changed:** Closes the select / constant_select referent used pervasively across primary's hierarchical-name suffix.

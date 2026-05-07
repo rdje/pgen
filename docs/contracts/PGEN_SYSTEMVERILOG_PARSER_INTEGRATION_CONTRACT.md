@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.51`
+  - `1.0.52`
 - Parser release version:
-  - `1.0.51`
+  - `1.0.52`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,94 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.52 / Contract 1.0.52 Highlights — SV-Slice-52 batch: simple_type + range/dist family typed (14 rules / 29 annotations)
+
+Closes the simple_type / range_expression / part_select_range / dist_* / range_list / value_range walk paths used pervasively across data_type / cast / inside_expression / range-expression contexts.
+
+### Annotations
+
+```ebnf
+simple_type := integer_type            -> {kind: "integer",       body: $1}
+             | non_integer_type        -> {kind: "non_integer",   body: $1}
+             | ps_type_identifier      -> {kind: "ps_type",       body: $1}
+             | ps_parameter_identifier -> {kind: "ps_parameter",  body: $1}
+
+range_expression := expression        -> {kind: "expression",        body: $1}
+                  | part_select_range -> {kind: "part_select_range", body: $1}
+
+part_select_range := constant_range -> {kind: "range",         body: $1}
+                   | indexed_range  -> {kind: "indexed_range", body: $1}
+
+constant_part_select_range := constant_range          -> {kind: "range",         body: $1}
+                            | constant_indexed_range  -> {kind: "indexed_range", body: $1}
+
+indexed_range := expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
+               | expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
+
+constant_indexed_range := constant_expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
+                        | constant_expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
+
+dist_list := dist_item ( comma dist_item )*
+          -> {first: $1, rest: $2}
+
+@profiles: ["sv_2017"]
+dist_item_sv_2017 := value_range ( dist_weight )?
+                  -> {value: $1, weight: $2}
+
+@profiles: ["sv_2023"]
+dist_item_sv_2023 := value_range ( dist_weight )?
+                          -> {kind: "value",   value: $1, weight: $2}
+                   | kw_default colon slash expression
+                          -> {kind: "default", weight: $4}
+
+dist_weight := colon assign expression -> {kind: "equal",        weight: $3}
+             | colon slash expression  -> {kind: "proportional", weight: $3}
+
+@profiles: ["sv_2023"]
+range_list_sv_2023 := value_range ( comma value_range )*
+                   -> {first: $1, rest: $2}
+
+@profiles: ["sv_2017"]
+open_range_list_sv_2017 := open_value_range ( comma open_value_range )*
+                        -> {first: $1, rest: $2}
+
+@profiles: ["sv_2017"]
+value_range_sv_2017 := expression                          -> {kind: "expression", body: $1}
+                     | ( expression colon expression )?    -> {kind: "range",      body: $1}
+
+@profiles: ["sv_2023"]
+value_range_sv_2023 := expression                                       -> {kind: "expression", body: $1}
+                     | ( expression colon expression )?                 -> {kind: "range",      body: $1}
+                     | ( kw_dollar colon expression )?                  -> {kind: "dollar_lo",  body: $1}
+                     | ( expression colon kw_dollar )?                  -> {kind: "dollar_hi",  body: $1}
+                     | ( expression plus slash minus expression )?      -> {kind: "tolerance",  body: $1}
+```
+
+### Field semantics
+
+- `simple_type.kind`: discriminates the 4 LRM A.2.2.1 simple type forms — built-in integer/non-integer types, package-scoped type alias, package-scoped parameter (type parameter).
+- `indexed_range.kind == "plus_indexed"`: the `[base +: width]` LRM 1800-2017 §11.5.1 indexed-part form (base address, ascending width).
+- `indexed_range.kind == "minus_indexed"`: the `[base -: width]` form (descending width).
+- `dist_weight.kind == "equal"`: `:=` operator — assign equal weight share.
+- `dist_weight.kind == "proportional"`: `:/` operator — weight is divided across range/items.
+- `value_range_sv_2023.kind == "tolerance"`: LRM 2023 `[expr +/- expr]` tolerance form.
+- `value_range_sv_2023.kind == "dollar_lo"` / `"dollar_hi"`: open-ended LRM 2023 `[$:expr]` / `[expr:$]` form.
+
+### Annotation inventory
+
+834 entries (was 805). +29 in this batch (4 simple_type + 2 range_expression + 2 part_select_range + 2 constant_part_select_range + 2 indexed_range + 2 constant_indexed_range + 1 dist_list + 1 dist_item_sv_2017 + 2 dist_item_sv_2023 + 2 dist_weight + 1 range_list_sv_2023 + 1 open_range_list_sv_2017 + 2 value_range_sv_2017 + 5 value_range_sv_2023).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `unique_priority` (after grammar duplicate-branch fix).
+- `tagged_union_expression` deeper / `streaming_concatenation` internals.
+- The remaining ~50 untyped rules — `dynamic_array_new`, `class_new`, `array_method_name`, etc.
+- Profile-tag wrapper rules (module_declaration / interface_declaration / class_declaration / program_declaration) for explicit profile discriminators.
 
 ## Release 1.0.51 / Contract 1.0.51 Highlights — SV-Slice-51 batch: select + constant_select + constant_range typed (4 rules / 5 annotations + 2 new helper rules with 4 annotations — crosses 800-annotation milestone)
 

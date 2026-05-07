@@ -285,6 +285,17 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `constant_select_tail` (NEW; 2 branches) | per-branch typed | Same kinds as select_tail with constant_* sub-rules. Helper extracted from inline parens-Or. |
 | `constant_range` | `-> {lo, hi}` | LRM `[lo:hi]` part-range. Drops colon. |
 | `constant_range_expression` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"part_select_range"`. |
+| `simple_type` (4 branches) | per-branch `{kind, body}` | Kind labels: `"integer"` / `"non_integer"` / `"ps_type"` / `"ps_parameter"`. Used by casting_type.kind=="simple_type". |
+| `range_expression` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"part_select_range"`. |
+| `part_select_range` / `constant_part_select_range` (2 branches each) | per-branch `{kind, body}` | Kind labels: `"range"` / `"indexed_range"`. |
+| `indexed_range` / `constant_indexed_range` (2 branches each) | per-branch typed | Kind labels: `"plus_indexed"` (`{base, width}` — `[base+:width]`) / `"minus_indexed"` (`{base, width}` — `[base-:width]`). LRM 1800-2017 §11.5.1. |
+| `dist_list` | `-> {first, rest}` | LRM dist clause iteration. Mini-mixed-array. |
+| `dist_item_sv_2017` | `-> {value, weight}` | Single value-range with optional weight. |
+| `dist_item_sv_2023` (2 branches) | per-branch typed | Kind labels: `"value"` (`{value, weight}`) / `"default"` (`{weight}` — `default :/ weight` form per LRM 2023). |
+| `dist_weight` (2 branches) | per-branch typed | Kind labels: `"equal"` (`{weight}` — `:=` operator, equal share) / `"proportional"` (`{weight}` — `:/` operator, divided weight). |
+| `range_list_sv_2023` / `open_range_list_sv_2017` | `-> {first, rest}` | Mini-mixed-array. |
+| `value_range_sv_2017` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"`. |
+| `value_range_sv_2023` (5 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"` / `"dollar_lo"` (`[$:expr]`) / `"dollar_hi"` (`[expr:$]`) / `"tolerance"` (`[expr +/- expr]`). LRM 2023 expansion. |
 
 ## Sub-rules with implicit defaults
 
