@@ -305,6 +305,16 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `stream_concatenation` | `-> {body}` | Quantified-of-Quantified iteration `( stream_expression ( comma stream_expression )* )*`. |
 | `stream_expression` | `-> {expr, with_clause}` | Optional `with [array_range_expression]` per LRM A.8.1. |
 | `stream_operator` (2 branches) | per-branch `{kind}` (bare) | Kind labels: `"shift_right"` (`>>`) / `"shift_left"` (`<<`). |
+| `charge_strength` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"small"` / `"medium"` / `"large"`. |
+| `cycle_delay` (3 branches) | per-branch `{kind, body}` | Kind labels: `"number"` / `"identifier"` / `"expression"` (`##N` form). |
+| `cycle_delay_const_range_expression` (2 branches) | per-branch typed | Kind labels: `"range"` (`{lo, hi}`) / `"dollar_hi"` (`{lo}` — `[lo:$]` form). |
+| `delay_control` (2 branches) | per-branch `{kind, body}` | Kind labels: `"value"` (`#N`) / `"mintypmax"` (`#(...)`). |
+| `delay_or_event_control` (3 branches) | per-branch typed | Kind labels: `"delay"` (`{body}`) / `"event"` (`{body}`) / `"repeat"` (`{count, control}` — `repeat (count) event_control`). |
+| `delay_value` (5 branches) | per-branch typed | Kind labels: `"unsigned_number"` / `"real_number"` / `"ps_identifier"` / `"time_literal"` (each `{body}`) / `"step"` (bare — `1step`). |
+| `event_control_sv_2017` (5 branches) | per-branch typed | Kind labels: `"event"` (`{body}` — `@event_id`) / `"expression"` (`{body}` — `@(expr)`) / `"wildcard"` (bare — `@*`) / `"wildcard_alt"` (bare — `@(*)` LRM-alt syntax) / `"sequence"` (`{body}` — `@seq_id`). |
+| `event_control_sv_2023` (3 branches) | per-branch typed | Kind labels: `"clocking"` (`{body}` — clocking_event prefix) / `"wildcard"` / `"wildcard_paren"` (bare). LRM 2023 simplifies the event_control set. |
+| `event_expression_primary` (3 branches) | per-branch typed | Kind labels: `"expression"` (`{edge, expr, iff}`) / `"sequence"` (`{body, iff}`) / `"paren"` (`{body}`). |
+| `strength` (4 branches) | per-branch `{kind}` (bare) | Kind labels: `"supply"` / `"strong"` / `"pull"` / `"weak"`. |
 
 ## Sub-rules with implicit defaults
 

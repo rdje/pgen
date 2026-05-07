@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-83b60c6f.js";
+            window.path_to_searchindex_js = "searchindex-f8850bd3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -489,6 +489,16 @@
 <tr><td><code>stream_concatenation</code></td><td><code>-&gt; {body}</code></td><td>Quantified-of-Quantified iteration <code>( stream_expression ( comma stream_expression )* )*</code>.</td></tr>
 <tr><td><code>stream_expression</code></td><td><code>-&gt; {expr, with_clause}</code></td><td>Optional <code>with [array_range_expression]</code> per LRM A.8.1.</td></tr>
 <tr><td><code>stream_operator</code> (2 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"shift_right"</code> (<code>&gt;&gt;</code>) / <code>"shift_left"</code> (<code>&lt;&lt;</code>).</td></tr>
+<tr><td><code>charge_strength</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"small"</code> / <code>"medium"</code> / <code>"large"</code>.</td></tr>
+<tr><td><code>cycle_delay</code> (3 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"number"</code> / <code>"identifier"</code> / <code>"expression"</code> (<code>##N</code> form).</td></tr>
+<tr><td><code>cycle_delay_const_range_expression</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"range"</code> (<code>{lo, hi}</code>) / <code>"dollar_hi"</code> (<code>{lo}</code> — <code>[lo:$]</code> form).</td></tr>
+<tr><td><code>delay_control</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"value"</code> (<code>#N</code>) / <code>"mintypmax"</code> (<code>#(...)</code>).</td></tr>
+<tr><td><code>delay_or_event_control</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"delay"</code> (<code>{body}</code>) / <code>"event"</code> (<code>{body}</code>) / <code>"repeat"</code> (<code>{count, control}</code> — <code>repeat (count) event_control</code>).</td></tr>
+<tr><td><code>delay_value</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"unsigned_number"</code> / <code>"real_number"</code> / <code>"ps_identifier"</code> / <code>"time_literal"</code> (each <code>{body}</code>) / <code>"step"</code> (bare — <code>1step</code>).</td></tr>
+<tr><td><code>event_control_sv_2017</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"event"</code> (<code>{body}</code> — <code>@event_id</code>) / <code>"expression"</code> (<code>{body}</code> — <code>@(expr)</code>) / <code>"wildcard"</code> (bare — <code>@*</code>) / <code>"wildcard_alt"</code> (bare — <code>@(*)</code> LRM-alt syntax) / <code>"sequence"</code> (<code>{body}</code> — <code>@seq_id</code>).</td></tr>
+<tr><td><code>event_control_sv_2023</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"clocking"</code> (<code>{body}</code> — clocking_event prefix) / <code>"wildcard"</code> / <code>"wildcard_paren"</code> (bare). LRM 2023 simplifies the event_control set.</td></tr>
+<tr><td><code>event_expression_primary</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expression"</code> (<code>{edge, expr, iff}</code>) / <code>"sequence"</code> (<code>{body, iff}</code>) / <code>"paren"</code> (<code>{body}</code>).</td></tr>
+<tr><td><code>strength</code> (4 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"supply"</code> / <code>"strong"</code> / <code>"pull"</code> / <code>"weak"</code>.</td></tr>
 </tbody>
 </table>
 </div>

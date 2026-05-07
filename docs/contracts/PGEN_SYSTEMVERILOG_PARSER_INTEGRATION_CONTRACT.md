@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.53`
+  - `1.0.54`
 - Parser release version:
-  - `1.0.53`
+  - `1.0.54`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,84 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.54 / Contract 1.0.54 Highlights — SV-Slice-54 batch: delay/event/strength leaves typed (10 rules / 33 annotations)
+
+Closes the LRM A.6.5 / A.6.4 timing-control / event-control / strength leaves used pervasively across blocking_assignment / nonblocking_assignment / procedural_timing_control / net_declaration.
+
+### Annotations
+
+```ebnf
+charge_strength := lparen kw_small rparen   -> {kind: "small"}
+                 | lparen kw_medium rparen  -> {kind: "medium"}
+                 | lparen kw_large rparen   -> {kind: "large"}
+
+cycle_delay := kw_token integral_number          -> {kind: "number",     body: $2}
+             | kw_token identifier               -> {kind: "identifier", body: $2}
+             | kw_token lparen expression rparen -> {kind: "expression", body: $3}
+
+cycle_delay_const_range_expression := constant_expression colon constant_expression -> {kind: "range",     lo: $1, hi: $3}
+                                    | constant_expression colon kw_dollar             -> {kind: "dollar_hi", lo: $1}
+
+delay_control := hash delay_value                          -> {kind: "value",     body: $2}
+               | hash lparen mintypmax_expression rparen   -> {kind: "mintypmax", body: $3}
+
+delay_or_event_control := delay_control                                              -> {kind: "delay",  body: $1}
+                        | event_control                                              -> {kind: "event",  body: $1}
+                        | kw_repeat lparen expression rparen event_control           -> {kind: "repeat", count: $3, control: $5}
+
+delay_value := unsigned_number     -> {kind: "unsigned_number", body: $1}
+             | real_number         -> {kind: "real_number",     body: $1}
+             | ps_identifier       -> {kind: "ps_identifier",   body: $1}
+             | time_literal        -> {kind: "time_literal",    body: $1}
+             | kw_n_1step          -> {kind: "step"}
+
+@profiles: ["sv_2017"]
+event_control_sv_2017 := at_sign hierarchical_event_identifier         -> {kind: "event",        body: $2}
+                       | at_sign lparen event_expression rparen          -> {kind: "expression",   body: $3}
+                       | at_sign star                                    -> {kind: "wildcard"}
+                       | at_sign attr_open rparen                        -> {kind: "wildcard_alt"}
+                       | at_sign ps_or_hierarchical_sequence_identifier  -> {kind: "sequence",     body: $2}
+
+@profiles: ["sv_2023"]
+event_control_sv_2023 := clocking_event           -> {kind: "clocking",       body: $1}
+                       | at_sign star              -> {kind: "wildcard"}
+                       | at_sign lparen star rparen -> {kind: "wildcard_paren"}
+
+event_expression_primary := ( edge_identifier )? expression ( kw_iff expression )?
+                                  -> {kind: "expression", edge: $1, expr: $2, iff: $3}
+                          | sequence_instance ( kw_iff expression )?
+                                  -> {kind: "sequence",   body: $1, iff: $2}
+                          | lparen event_expression rparen
+                                  -> {kind: "paren",      body: $2}
+
+strength := kw_supply -> {kind: "supply"}
+          | kw_strong -> {kind: "strong"}
+          | kw_pull   -> {kind: "pull"}
+          | kw_weak   -> {kind: "weak"}
+```
+
+### DEFERRED
+
+- `drive_strength` — rule has duplicate branches (each strength-pair appears twice). Pattern is identical to `unique_priority` (slice 34) and `delay_sv_2017/2023`: branch 0 = branch 1, branch 2 = branch 3, branch 4 = branch 5. Likely grammar bug; tracked for separate fix.
+- `delay_sv_2017` / `delay_sv_2023` — same duplicate-branch issue (4 branches; 0=2 with slight differences in 1/3).
+- `event_expression` — has parens-Or `( kw_or | comma )` inside Quantified `*`; trailing-annotation attribution risk per task #38. Could add helper rule but defer.
+
+### Annotation inventory
+
+885 entries (was 852). +33 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- Sweep: remaining unannotated rules across the grammar (~30-40 mid-size rules).
+- Profile-tag wrapper rules.
+- `tagged_union_expression` / `class_constructor_declaration` / `class_constructor_prototype`.
+- `clocking_drive` / `clocking_event` / `clocking_decl_assign`.
+- Drive-strength / unique_priority / delay grammar fixes (separate task).
 
 ## Release 1.0.53 / Contract 1.0.53 Highlights — SV-Slice-53 batch: array/stream/class_new/join leaf cleanup typed (9 rules / 18 annotations)
 

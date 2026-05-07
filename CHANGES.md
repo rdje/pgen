@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-54 batch: delay/event/strength leaves typed (10 rules / 33 annotations)
+
+Closes the LRM A.6.5 / A.6.4 timing-control / event-control / strength leaves used pervasively across blocking_assignment / nonblocking_assignment / procedural_timing_control / net_declaration.
+
+```ebnf
+charge_strength                       -> 3 kinds bare
+cycle_delay                           -> 3 kinds (number / identifier / expression)
+cycle_delay_const_range_expression    -> 2 kinds
+delay_control                         -> 2 kinds (value / mintypmax)
+delay_or_event_control                -> 3 kinds (delay / event / repeat)
+delay_value                           -> 5 kinds
+event_control_sv_2017                 -> 5 kinds
+event_control_sv_2023                 -> 3 kinds
+event_expression_primary              -> 3 kinds
+strength                              -> 4 kinds bare
+```
+
+DEFERRED: `drive_strength` / `delay_sv_2017/2023` (grammar duplicate-branch bug, similar to `unique_priority` from slice 34); `event_expression` (parens-Or in Quantified — task #38 risk).
+
+Annotation count: **885** (was 852, +33). Same accept set. Schema stays at `1`. Contract bumped 1.0.53 → 1.0.54. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-07 - SV-Slice-53 batch: array/stream/class_new/join leaf cleanup typed (9 rules / 18 annotations)
 
 Closes pervasive leaf rules used across primary / streaming-concat / par_block / dynamic-array contexts.

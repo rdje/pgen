@@ -626,7 +626,9 @@ cell_clause := kw_cell_5f435eb3 ( library_identifier dot )? cell_identifier
 
 cell_identifier := identifier
 
-charge_strength := lparen kw_small_89f6229a rparen | lparen kw_medium_20af4186 rparen | lparen kw_large_5296d5cc rparen
+charge_strength := lparen kw_small_89f6229a rparen   -> {kind: "small"}
+                 | lparen kw_medium_20af4186 rparen  -> {kind: "medium"}
+                 | lparen kw_large_5296d5cc rparen   -> {kind: "large"}
 
 checker_declaration := kw_checker_29e5b9a8 declared_checker_identifier ( lparen ( checker_port_list )? rparen )? semi ( attribute_instance* checker_or_generate_item )* kw_endchecker_cd5c3b65 ( colon checker_identifier )?
 
@@ -1125,9 +1127,12 @@ cross_set_expression := covergroup_expression
 
 current_state := level_symbol
 
-cycle_delay := kw_token_93ac8946 integral_number | kw_token_93ac8946 identifier | kw_token_93ac8946 lparen expression rparen
+cycle_delay := kw_token_93ac8946 integral_number          -> {kind: "number",     body: $2}
+             | kw_token_93ac8946 identifier               -> {kind: "identifier", body: $2}
+             | kw_token_93ac8946 lparen expression rparen -> {kind: "expression", body: $3}
 
-cycle_delay_const_range_expression := constant_expression colon constant_expression | constant_expression colon kw_dollar
+cycle_delay_const_range_expression := constant_expression colon constant_expression -> {kind: "range",     lo: $1, hi: $3}
+                                    | constant_expression colon kw_dollar             -> {kind: "dollar_hi", lo: $1}
 
 cycle_delay_range := kw_token_93ac8946 constant_primary | kw_token_93ac8946 ( cycle_delay_const_range_expression )? | kw_token_71b8cf7e | kw_token_9768502a
 
@@ -1287,11 +1292,18 @@ delay_sv_2023 := hash delay_value | hash lparen mintypmax_expression ( comma min
 
 delay := delay_sv_2017 | delay_sv_2023
 
-delay_control := hash delay_value | hash lparen mintypmax_expression rparen
+delay_control := hash delay_value                          -> {kind: "value",    body: $2}
+               | hash lparen mintypmax_expression rparen   -> {kind: "mintypmax", body: $3}
 
-delay_or_event_control := delay_control | event_control | kw_repeat_c0ac4842 lparen expression rparen event_control
+delay_or_event_control := delay_control                                                  -> {kind: "delay",  body: $1}
+                        | event_control                                                  -> {kind: "event",  body: $1}
+                        | kw_repeat_c0ac4842 lparen expression rparen event_control      -> {kind: "repeat", count: $3, control: $5}
 
-delay_value := unsigned_number | real_number | ps_identifier | time_literal | kw_n_1step_e6d37e7c
+delay_value := unsigned_number     -> {kind: "unsigned_number", body: $1}
+             | real_number         -> {kind: "real_number",     body: $1}
+             | ps_identifier       -> {kind: "ps_identifier",   body: $1}
+             | time_literal        -> {kind: "time_literal",    body: $1}
+             | kw_n_1step_e6d37e7c -> {kind: "step"}
 
 delayed_data := terminal_identifier | terminal_identifier ( constant_mintypmax_expression )?
 
@@ -1409,14 +1421,25 @@ error_limit_value := limit_value
 event_based_flag := constant_expression
 
 @profiles: ["sv_2017"]
-event_control_sv_2017 := at_sign hierarchical_event_identifier | at_sign lparen event_expression rparen | at_sign star | at_sign attr_open rparen | at_sign ps_or_hierarchical_sequence_identifier
+event_control_sv_2017 := at_sign hierarchical_event_identifier        -> {kind: "event",       body: $2}
+                       | at_sign lparen event_expression rparen        -> {kind: "expression",  body: $3}
+                       | at_sign star                                  -> {kind: "wildcard"}
+                       | at_sign attr_open rparen                      -> {kind: "wildcard_alt"}
+                       | at_sign ps_or_hierarchical_sequence_identifier -> {kind: "sequence",    body: $2}
 
 @profiles: ["sv_2023"]
-event_control_sv_2023 := clocking_event | at_sign star | at_sign lparen star rparen
+event_control_sv_2023 := clocking_event           -> {kind: "clocking",     body: $1}
+                       | at_sign star              -> {kind: "wildcard"}
+                       | at_sign lparen star rparen -> {kind: "wildcard_paren"}
 
 event_control := event_control_sv_2017 | event_control_sv_2023
 
-event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e expression )? | sequence_instance ( kw_iff_ee1c009e expression )? | lparen event_expression rparen
+event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e expression )?
+                                  -> {kind: "expression", edge: $1, expr: $2, iff: $3}
+                          | sequence_instance ( kw_iff_ee1c009e expression )?
+                                  -> {kind: "sequence",   body: $1, iff: $2}
+                          | lparen event_expression rparen
+                                  -> {kind: "paren",      body: $2}
 
 event_expression := event_expression_primary ( ( kw_or_1758356d | comma ) event_expression_primary )*
 
@@ -3203,7 +3226,10 @@ stream_operator := shift_right -> {kind: "shift_right"}
 streaming_concatenation := lbrace stream_operator ( slice_size )? stream_concatenation rbrace
                         -> {op: $2, slice_size: $3, body: $4}
 
-strength := kw_supply_076df715 | kw_strong_0117691d | kw_pull_c872d556 | kw_weak_1ded3053
+strength := kw_supply_076df715 -> {kind: "supply"}
+          | kw_strong_0117691d -> {kind: "strong"}
+          | kw_pull_c872d556   -> {kind: "pull"}
+          | kw_weak_1ded3053   -> {kind: "weak"}
 
 // @profiles: ["sv_2023"]
 // string_escape_seq_sv_2023 := kw_any_ASCII_character_c02c60ae | kw_one_to_three_digit_octal_number_29d40f0b | kw_x_fc9847dc kw_one_to_two_digit_hex_number_d97efd5a

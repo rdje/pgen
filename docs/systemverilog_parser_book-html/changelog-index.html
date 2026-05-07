@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-83b60c6f.js";
+            window.path_to_searchindex_js = "searchindex-f8850bd3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,23 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1054--contract-1054--sv-slice-54-batch-delayeventstrength-leaves-typed-10-rules--33-annotations"><a class="header" href="#1054--contract-1054--sv-slice-54-batch-delayeventstrength-leaves-typed-10-rules--33-annotations">1.0.54 / Contract 1.0.54 — SV-Slice-54 batch: delay/event/strength leaves typed (10 rules / 33 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the LRM A.6.5 / A.6.4 timing-control / event-control / strength leaves.</p>
+<pre><code class="language-ebnf">charge_strength                       -&gt; 3 kinds bare (small / medium / large)
+cycle_delay                           -&gt; 3 kinds (number / identifier / expression)
+cycle_delay_const_range_expression    -&gt; 2 kinds (range / dollar_hi)
+delay_control                         -&gt; 2 kinds (value / mintypmax)
+delay_or_event_control                -&gt; 3 kinds (delay / event / repeat)
+delay_value                           -&gt; 5 kinds (unsigned_number / real_number / ps_identifier / time_literal / step)
+event_control_sv_2017                 -&gt; 5 kinds (event / expression / wildcard / wildcard_alt / sequence)
+event_control_sv_2023                 -&gt; 3 kinds (clocking / wildcard / wildcard_paren)
+event_expression_primary              -&gt; 3 kinds (expression / sequence / paren)
+strength                              -&gt; 4 kinds bare (supply / strong / pull / weak)
+</code></pre>
+<p><strong>DEFERRED:</strong> drive_strength, delay_sv_2017/2023 (grammar duplicate-branch bug), event_expression (parens-Or in Quantified — task #38 risk).</p>
+<p><strong>Annotation inventory:</strong> 885 entries (was 852). +33 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.54 / Contract 1.0.54 Highlights”.</p>
 <h3 id="1053--contract-1053--sv-slice-53-batch-arraystreamclass_newjoin-leaf-cleanup-typed-9-rules--18-annotations"><a class="header" href="#1053--contract-1053--sv-slice-53-batch-arraystreamclass_newjoin-leaf-cleanup-typed-9-rules--18-annotations">1.0.53 / Contract 1.0.53 — SV-Slice-53 batch: array/stream/class_new/join leaf cleanup typed (9 rules / 18 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes pervasive leaf rules used across primary / streaming-concat / par_block / dynamic-array contexts.</p>
 <pre><code class="language-ebnf">array_method_name                  -&gt; 5 kinds (method_identifier / unique / and / or / xor)
