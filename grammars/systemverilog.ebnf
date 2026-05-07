@@ -965,10 +965,18 @@ constant_primary_sv_2023 := primary_literal
 constant_primary := constant_primary_sv_2017 | constant_primary_sv_2023
 
 constant_range := constant_expression colon constant_expression
+               -> {lo: $1, hi: $3}
 
-constant_range_expression := constant_expression | constant_part_select_range
+constant_range_expression := constant_expression          -> {kind: "expression",        body: $1}
+                           | constant_part_select_range   -> {kind: "part_select_range", body: $1}
 
-constant_select := ( ( dot member_identifier constant_bit_select )* dot member_identifier )? ( lbrack constant_part_select_range rbrack | constant_bit_select ( lbrack constant_part_select_range rbrack )? )?
+constant_select := ( ( dot member_identifier constant_bit_select )* dot member_identifier )? ( constant_select_tail )?
+                -> {member_chain: $1, tail: $2}
+
+constant_select_tail := lbrack constant_part_select_range rbrack
+                              -> {kind: "part_range", body: $2}
+                      | constant_bit_select ( lbrack constant_part_select_range rbrack )?
+                              -> {kind: "bit_select", bits: $1, range: $2}
 
 constraint_block := lbrace constraint_block_item* rbrace
                  -> {items: $2}
@@ -2984,7 +2992,13 @@ scalar_constant := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick
 
 scalar_timing_check_condition := expression | tilde expression | expression equal scalar_constant | expression case_equal scalar_constant | expression not_equal scalar_constant | expression case_not_equal scalar_constant
 
-select := ( ( dot member_identifier !lparen bit_select )* dot member_identifier !lparen )? ( lbrack part_select_range rbrack | bit_select ( lbrack part_select_range rbrack )? )?
+select := ( ( dot member_identifier !lparen bit_select )* dot member_identifier !lparen )? ( select_tail )?
+       -> {member_chain: $1, tail: $2}
+
+select_tail := lbrack part_select_range rbrack
+                    -> {kind: "part_range", body: $2}
+             | bit_select ( lbrack part_select_range rbrack )?
+                    -> {kind: "bit_select", bits: $1, range: $2}
 
 select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_intersect_6c96caaf covergroup_range_list* )?
 

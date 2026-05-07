@@ -279,6 +279,12 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `casting_type` (5 branches) | per-branch typed | Kind labels: `"simple_type"` (`{body}`) / `"constant_primary"` (`{body}` — width-cast `N'(expr)`) / `"signing"` (`{body}`) / `"string"` (bare) / `"const"` (bare). |
 | `bit_select` | `-> {body}` | Quantified iteration `( lbrack bit_select_expression rbrack )*` — multi-dimensional bit select. |
 | `system_tf_call` (3 branches) | per-branch typed | Kind labels: `"args"` (`{name, args}` — `$display(...)` general form) / `"data_type"` (`{name, data_type, expr}` — `$cast(type, expr)`) / `"expr_clocking"` (`{name, first_expr, rest_exprs, clocking}` — `$rose` / `$past` etc.). |
+| `select` | `-> {member_chain, tail}` | LRM A.8.5 select form. `member_chain` is the optional `.foo.bar` dereference (each segment optionally followed by a bit_select); `tail` is the optional bracket-index portion typed via `select_tail` helper. |
+| `select_tail` (NEW; 2 branches) | per-branch typed | Kind labels: `"part_range"` (`{body}` — `[N:M]`) / `"bit_select"` (`{bits, range}` — multi-dim with optional trailing range). Helper extracted from inline parens-Or to dodge task #38. |
+| `constant_select` | `-> {member_chain, tail}` | Parallel to select; uses `constant_select_tail` helper. |
+| `constant_select_tail` (NEW; 2 branches) | per-branch typed | Same kinds as select_tail with constant_* sub-rules. Helper extracted from inline parens-Or. |
+| `constant_range` | `-> {lo, hi}` | LRM `[lo:hi]` part-range. Drops colon. |
+| `constant_range_expression` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"part_select_range"`. |
 
 ## Sub-rules with implicit defaults
 

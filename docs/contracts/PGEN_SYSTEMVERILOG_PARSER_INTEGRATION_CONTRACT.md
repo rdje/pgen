@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.50`
+  - `1.0.51`
 - Parser release version:
-  - `1.0.50`
+  - `1.0.51`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,77 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.51 / Contract 1.0.51 Highlights — SV-Slice-51 batch: select + constant_select + constant_range typed (4 rules / 5 annotations + 2 new helper rules with 4 annotations — crosses 800-annotation milestone)
+
+Closes the `select` / `constant_select` referent used pervasively across primary's hierarchical-name suffix and various LRM A.8.1/A.8.5 selection forms. Crosses the **800-annotation milestone**.
+
+### Annotations
+
+```ebnf
+select := ( ( dot member_identifier !lparen bit_select )* dot member_identifier !lparen )? ( select_tail )?
+       -> {member_chain: $1, tail: $2}
+
+select_tail (NEW) := lbrack part_select_range rbrack
+                          -> {kind: "part_range", body: $2}
+                   | bit_select ( lbrack part_select_range rbrack )?
+                          -> {kind: "bit_select", bits: $1, range: $2}
+
+constant_select := ( ( dot member_identifier constant_bit_select )* dot member_identifier )? ( constant_select_tail )?
+                -> {member_chain: $1, tail: $2}
+
+constant_select_tail (NEW) := lbrack constant_part_select_range rbrack
+                                    -> {kind: "part_range", body: $2}
+                            | constant_bit_select ( lbrack constant_part_select_range rbrack )?
+                                    -> {kind: "bit_select", bits: $1, range: $2}
+
+constant_range := constant_expression colon constant_expression
+               -> {lo: $1, hi: $3}
+
+constant_range_expression := constant_expression          -> {kind: "expression",        body: $1}
+                           | constant_part_select_range   -> {kind: "part_select_range", body: $1}
+```
+
+### Helper-rule extraction (10th and 11th uses of pattern)
+
+Two new helper rules extracted from inline parens-Or constructs in select / constant_select:
+
+| Helper | Extracted from |
+|---|---|
+| `select_tail` | `( lbrack part_select_range rbrack \| bit_select ( lbrack part_select_range rbrack )? )?` in `select` |
+| `constant_select_tail` | `( lbrack constant_part_select_range rbrack \| constant_bit_select ( lbrack constant_part_select_range rbrack )? )?` in `constant_select` |
+
+Helper-rule extraction pattern is now used in **12 places total**:
+
+1. `if_generate_else_clause` (slice 23)
+2. `net_strength` + `net_vector_scalar` (slice 26)
+3. `conditional_else_branch` (slice 35)
+4. `class_or_package_scope` (slice 37)
+5. `union_modifier` + `class_type_head` (slice 42)
+6. `primary_hier_scope_prefix` + `instance_or_class_scope` + `enum_id_scope_prefix` (slice 47)
+7. `select_tail` + `constant_select_tail` (slice 51)
+
+### Field semantics
+
+- `select.member_chain`: the optional `.foo.bar.baz` member dereference chain, with each segment optionally followed by a bit_select. The `!lparen` negative lookahead distinguishes member access from function call.
+- `select.tail`: the optional bracket-index portion (`[N]` / `[N:M]` / `bit_select[N:M]` per LRM A.8.5).
+- `constant_range`: the LRM `[lo:hi]` part-range form.
+
+### Annotation inventory
+
+805 entries (was 796). +9 in this batch (1 select + 2 select_tail + 1 constant_select + 2 constant_select_tail + 1 constant_range + 2 constant_range_expression). Crosses the 800-annotation milestone.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `simple_type` (referenced from casting_type.kind == "simple_type").
+- `range_expression` / `part_select_range`.
+- `dist_list` / `dist_item` / `dist_weight` (referenced from expression_or_dist).
+- `range_list` / `open_range_list` / `value_range`.
+- `unique_priority` (after grammar duplicate-branch fix).
 
 ## Release 1.0.50 / Contract 1.0.50 Highlights — SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)
 

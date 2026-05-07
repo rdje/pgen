@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-df0d8368.js";
+            window.path_to_searchindex_js = "searchindex-a93e2116.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,18 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1051--contract-1051--sv-slice-51-batch-select--constant_select--constant_range-typed-4-rules--5-annotations--2-new-helper-rules-with-4-annotations--crosses-800-annotation-milestone"><a class="header" href="#1051--contract-1051--sv-slice-51-batch-select--constant_select--constant_range-typed-4-rules--5-annotations--2-new-helper-rules-with-4-annotations--crosses-800-annotation-milestone">1.0.51 / Contract 1.0.51 — SV-Slice-51 batch: select + constant_select + constant_range typed (4 rules / 5 annotations + 2 new helper rules with 4 annotations — crosses 800-annotation milestone)</a></h3>
+<p><strong>What changed:</strong> Closes the select / constant_select referent used pervasively across primary’s hierarchical-name suffix.</p>
+<pre><code class="language-ebnf">select                       -&gt; {member_chain, tail}
+select_tail (NEW)            -&gt; 2 kinds (part_range / bit_select)
+constant_select              -&gt; {member_chain, tail}
+constant_select_tail (NEW)   -&gt; 2 kinds (part_range / bit_select)
+constant_range               -&gt; {lo, hi}
+constant_range_expression    -&gt; 2 kinds (expression / part_select_range)
+</code></pre>
+<p><strong>Annotation inventory:</strong> 805 entries (was 796). +9 in this batch — crosses the 800-annotation milestone.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.51 / Contract 1.0.51 Highlights”.</p>
 <h3 id="1050--contract-1050--sv-slice-50-batch-casting_type--bit_select--system_tf_call-typed-3-rules--9-annotations"><a class="header" href="#1050--contract-1050--sv-slice-50-batch-casting_type--bit_select--system_tf_call-typed-3-rules--9-annotations">1.0.50 / Contract 1.0.50 — SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the cast.type field referent and system-task-call dispatch.</p>
 <pre><code class="language-ebnf">casting_type      -&gt; 5 kinds (simple_type / constant_primary / signing / string / const)

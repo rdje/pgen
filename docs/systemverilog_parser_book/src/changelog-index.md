@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.51 / Contract 1.0.51 — SV-Slice-51 batch: select + constant_select + constant_range typed (4 rules / 5 annotations + 2 new helper rules with 4 annotations — crosses 800-annotation milestone)
+
+**What changed:** Closes the select / constant_select referent used pervasively across primary's hierarchical-name suffix.
+
+```ebnf
+select                       -> {member_chain, tail}
+select_tail (NEW)            -> 2 kinds (part_range / bit_select)
+constant_select              -> {member_chain, tail}
+constant_select_tail (NEW)   -> 2 kinds (part_range / bit_select)
+constant_range               -> {lo, hi}
+constant_range_expression    -> 2 kinds (expression / part_select_range)
+```
+
+**Annotation inventory:** 805 entries (was 796). +9 in this batch — crosses the 800-annotation milestone.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.51 / Contract 1.0.51 Highlights".
+
 ### 1.0.50 / Contract 1.0.50 — SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)
 
 **What changed:** Closes the cast.type field referent and system-task-call dispatch.

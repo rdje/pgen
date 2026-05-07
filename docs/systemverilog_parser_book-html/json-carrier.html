@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-df0d8368.js";
+            window.path_to_searchindex_js = "searchindex-a93e2116.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -463,6 +463,12 @@
 <tr><td><code>casting_type</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"simple_type"</code> (<code>{body}</code>) / <code>"constant_primary"</code> (<code>{body}</code> — width-cast <code>N'(expr)</code>) / <code>"signing"</code> (<code>{body}</code>) / <code>"string"</code> (bare) / <code>"const"</code> (bare).</td></tr>
 <tr><td><code>bit_select</code></td><td><code>-&gt; {body}</code></td><td>Quantified iteration <code>( lbrack bit_select_expression rbrack )*</code> — multi-dimensional bit select.</td></tr>
 <tr><td><code>system_tf_call</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"args"</code> (<code>{name, args}</code> — <code>$display(...)</code> general form) / <code>"data_type"</code> (<code>{name, data_type, expr}</code> — <code>$cast(type, expr)</code>) / <code>"expr_clocking"</code> (<code>{name, first_expr, rest_exprs, clocking}</code> — <code>$rose</code> / <code>$past</code> etc.).</td></tr>
+<tr><td><code>select</code></td><td><code>-&gt; {member_chain, tail}</code></td><td>LRM A.8.5 select form. <code>member_chain</code> is the optional <code>.foo.bar</code> dereference (each segment optionally followed by a bit_select); <code>tail</code> is the optional bracket-index portion typed via <code>select_tail</code> helper.</td></tr>
+<tr><td><code>select_tail</code> (NEW; 2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"part_range"</code> (<code>{body}</code> — <code>[N:M]</code>) / <code>"bit_select"</code> (<code>{bits, range}</code> — multi-dim with optional trailing range). Helper extracted from inline parens-Or to dodge task #38.</td></tr>
+<tr><td><code>constant_select</code></td><td><code>-&gt; {member_chain, tail}</code></td><td>Parallel to select; uses <code>constant_select_tail</code> helper.</td></tr>
+<tr><td><code>constant_select_tail</code> (NEW; 2 branches)</td><td>per-branch typed</td><td>Same kinds as select_tail with constant_* sub-rules. Helper extracted from inline parens-Or.</td></tr>
+<tr><td><code>constant_range</code></td><td><code>-&gt; {lo, hi}</code></td><td>LRM <code>[lo:hi]</code> part-range. Drops colon.</td></tr>
+<tr><td><code>constant_range_expression</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"part_select_range"</code>.</td></tr>
 </tbody>
 </table>
 </div>

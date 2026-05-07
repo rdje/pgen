@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-51 batch: select + constant_select + constant_range typed (4 rules / 5 annotations + 2 new helper rules with 4 annotations — crosses 800-annotation milestone)
+
+Closes the `select` / `constant_select` referent used pervasively across primary's hierarchical-name suffix. **Crosses the 800-annotation milestone.**
+
+```ebnf
+select                       -> {member_chain, tail}
+select_tail (NEW)            -> 2 kinds (part_range / bit_select)
+constant_select              -> {member_chain, tail}
+constant_select_tail (NEW)   -> 2 kinds (part_range / bit_select)
+constant_range               -> {lo, hi}
+constant_range_expression    -> 2 kinds (expression / part_select_range)
+```
+
+Helper-rule extraction pattern is now used in **12 places total** (10th and 11th uses this slice).
+
+Annotation count: **805** (was 796, +9). Same accept set. Schema stays at `1`. Contract bumped 1.0.50 → 1.0.51. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-07 - SV-Slice-50 batch: casting_type + bit_select + system_tf_call typed (3 rules / 9 annotations)
 
 Closes the cast.type field referent (5 LRM A.8.5 forms) plus the system-task-call dispatch (3 LRM A.8.2 forms).
