@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7cf17fe3.js";
+            window.path_to_searchindex_js = "searchindex-10effa72.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,18 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1056--contract-1056--sv-slice-56-batch-class_constructor_declaration-family-typed-4-rules--5-annotations--1-new-helper-rule-with-2-annotations"><a class="header" href="#1056--contract-1056--sv-slice-56-batch-class_constructor_declaration-family-typed-4-rules--5-annotations--1-new-helper-rule-with-2-annotations">1.0.56 / Contract 1.0.56 — SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the class constructor declaration walks for both LRM 1800-2017 and 2023 profiles.</p>
+<pre><code class="language-ebnf">class_constructor_arg_sv_2023            -&gt; 2 kinds (tf_port_item / default)
+class_constructor_arg_list_sv_2023       -&gt; {first, rest}
+class_constructor_declaration_sv_2017    -&gt; {class_scope, ports, decls, super_call, statements, end_label}
+class_constructor_declaration_sv_2023    -&gt; parallel shape
+class_constructor_super_args (NEW)       -&gt; 2 kinds (args / default)
+</code></pre>
+<p>12th use of helper-rule extraction pattern (now used in 13 places total).</p>
+<p><strong>Annotation inventory:</strong> 914 entries (was 907). +7 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.56 / Contract 1.0.56 Highlights”.</p>
 <h3 id="1055--contract-1055--sv-slice-55-batch-clocking--class_constructor_prototype--edge_identifier--method_prototype-typed-10-rules--22-annotations--crosses-900-annotation-milestone"><a class="header" href="#1055--contract-1055--sv-slice-55-batch-clocking--class_constructor_prototype--edge_identifier--method_prototype-typed-10-rules--22-annotations--crosses-900-annotation-milestone">1.0.55 / Contract 1.0.55 — SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)</a></h3>
 <p><strong>What changed:</strong> Closes the LRM A.6.10 clocking declaration sub-tree.</p>
 <pre><code class="language-ebnf">class_constructor_prototype_sv_2017/2023 -&gt; {ports}

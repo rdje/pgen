@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.55`
+  - `1.0.56`
 - Parser release version:
-  - `1.0.55`
+  - `1.0.56`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,69 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.56 / Contract 1.0.56 Highlights — SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)
+
+Closes the class constructor declaration walks for both LRM 1800-2017 and 2023 profiles. After this slice, every reachable `class_method.kind == "constructor"` body and `class_method.kind == "extern_constructor"` prototype resolves to typed dispatch.
+
+### Annotations
+
+```ebnf
+class_constructor_arg_sv_2023 := tf_port_item            -> {kind: "tf_port_item", body: $1}
+                               | kw_default              -> {kind: "default"}
+
+class_constructor_arg_list_sv_2023 := class_constructor_arg ( comma class_constructor_arg )*
+                                   -> {first: $1, rest: $2}
+
+@profiles: ["sv_2017"]
+class_constructor_declaration_sv_2017 := kw_function ( class_scope )? kw_new ( lparen ( tf_port_list )? rparen )? semi block_item_declaration* ( kw_super dot kw_new ( lparen list_of_arguments rparen )? semi )? function_statement_or_null* kw_endfunction ( colon kw_new )?
+                                      -> {class_scope: $2, ports: $4, decls: $6, super_call: $7, statements: $8, end_label: $10}
+
+@profiles: ["sv_2023"]
+class_constructor_declaration_sv_2023 := kw_function ( class_scope )? kw_new ( lparen ( class_constructor_arg_list )? rparen )? semi block_item_declaration* ( kw_super dot kw_new ( lparen ( class_constructor_super_args )? rparen )? semi )? function_statement_or_null* kw_endfunction ( colon kw_new )?
+                                      -> {class_scope: $2, ports: $4, decls: $6, super_call: $7, statements: $8, end_label: $10}
+
+class_constructor_super_args (NEW) := list_of_arguments    -> {kind: "args",    body: $1}
+                                    | kw_default            -> {kind: "default"}
+```
+
+### Helper-rule extraction (12th use of pattern)
+
+`class_constructor_super_args` extracted from the deeply-nested parens-Or in the super-call sub-clause of `class_constructor_declaration_sv_2023`:
+
+```ebnf
+( kw_super dot kw_new ( lparen ( list_of_arguments | kw_default )? rparen )? semi )?
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                                              parens-Or (task #38 risk)
+```
+
+Now used in **13 places total** — established workaround pattern.
+
+### Field semantics
+
+- `class_constructor_declaration.class_scope`: optional `( class_scope )?` prefix (e.g., `function MyClass::new(...)` for out-of-class constructor declaration).
+- `class_constructor_declaration.ports`: optional argument list. sv_2017 uses `tf_port_list`; sv_2023 uses `class_constructor_arg_list` (which adds the `default` arg form).
+- `class_constructor_declaration.super_call`: optional `super.new(args);` initializer call.
+- `class_constructor_super_args.kind == "default"`: LRM 2023 `super.new(default);` form (delegates to default super constructor).
+
+### Annotation inventory
+
+914 entries (was 907). +7 in this batch (2 class_constructor_arg_sv_2023 + 1 class_constructor_arg_list_sv_2023 + 1 class_constructor_declaration_sv_2017 + 1 class_constructor_declaration_sv_2023 + 2 class_constructor_super_args).
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### Grammar surface change
+
+This slice adds one new rule (`class_constructor_super_args`) — internal refactor of inline parens-Or for annotation purposes. No LRM equivalent. Same accept set.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- `tf_port_list` / `tf_port_item` (function/task port lists).
+- The remaining unannotated mid-size rules.
+- Profile-tag wrapper rules.
+- Drive-strength / unique_priority / delay grammar fixes (separate task).
 
 ## Release 1.0.55 / Contract 1.0.55 Highlights — SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)
 

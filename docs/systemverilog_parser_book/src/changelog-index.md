@@ -19,6 +19,26 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.56 / Contract 1.0.56 — SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)
+
+**What changed:** Closes the class constructor declaration walks for both LRM 1800-2017 and 2023 profiles.
+
+```ebnf
+class_constructor_arg_sv_2023            -> 2 kinds (tf_port_item / default)
+class_constructor_arg_list_sv_2023       -> {first, rest}
+class_constructor_declaration_sv_2017    -> {class_scope, ports, decls, super_call, statements, end_label}
+class_constructor_declaration_sv_2023    -> parallel shape
+class_constructor_super_args (NEW)       -> 2 kinds (args / default)
+```
+
+12th use of helper-rule extraction pattern (now used in 13 places total).
+
+**Annotation inventory:** 914 entries (was 907). +7 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.56 / Contract 1.0.56 Highlights".
+
 ### 1.0.55 / Contract 1.0.55 — SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)
 
 **What changed:** Closes the LRM A.6.10 clocking declaration sub-tree.

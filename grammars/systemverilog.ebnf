@@ -662,20 +662,27 @@ class_constraint := constraint_prototype   -> {kind: "prototype",   body: $1}
                   | constraint_declaration -> {kind: "declaration", body: $1}
 
 @profiles: ["sv_2023"]
-class_constructor_arg_sv_2023 := tf_port_item | kw_default_7505d64a
+class_constructor_arg_sv_2023 := tf_port_item            -> {kind: "tf_port_item", body: $1}
+                               | kw_default_7505d64a     -> {kind: "default"}
 
 class_constructor_arg := class_constructor_arg_sv_2023
 
 @profiles: ["sv_2023"]
 class_constructor_arg_list_sv_2023 := class_constructor_arg ( comma class_constructor_arg )*
+                                   -> {first: $1, rest: $2}
 
 class_constructor_arg_list := class_constructor_arg_list_sv_2023
 
 @profiles: ["sv_2017"]
 class_constructor_declaration_sv_2017 := kw_function_c218e39e ( class_scope )? kw_new_c2a6b03f ( lparen ( tf_port_list )? rparen )? semi block_item_declaration* ( kw_super_8451ba8a dot kw_new_c2a6b03f ( lparen list_of_arguments rparen )? semi )? function_statement_or_null* kw_endfunction_84b8f967 ( colon kw_new_c2a6b03f )?
+                                      -> {class_scope: $2, ports: $4, decls: $6, super_call: $7, statements: $8, end_label: $10}
 
 @profiles: ["sv_2023"]
-class_constructor_declaration_sv_2023 := kw_function_c218e39e ( class_scope )? kw_new_c2a6b03f ( lparen ( class_constructor_arg_list )? rparen )? semi block_item_declaration* ( kw_super_8451ba8a dot kw_new_c2a6b03f ( lparen ( list_of_arguments | kw_default_7505d64a )? rparen )? semi )? function_statement_or_null* kw_endfunction_84b8f967 ( colon kw_new_c2a6b03f )?
+class_constructor_declaration_sv_2023 := kw_function_c218e39e ( class_scope )? kw_new_c2a6b03f ( lparen ( class_constructor_arg_list )? rparen )? semi block_item_declaration* ( kw_super_8451ba8a dot kw_new_c2a6b03f ( lparen ( class_constructor_super_args )? rparen )? semi )? function_statement_or_null* kw_endfunction_84b8f967 ( colon kw_new_c2a6b03f )?
+                                      -> {class_scope: $2, ports: $4, decls: $6, super_call: $7, statements: $8, end_label: $10}
+
+class_constructor_super_args := list_of_arguments    -> {kind: "args",    body: $1}
+                              | kw_default_7505d64a  -> {kind: "default"}
 
 class_constructor_declaration := class_constructor_declaration_sv_2017 | class_constructor_declaration_sv_2023
 

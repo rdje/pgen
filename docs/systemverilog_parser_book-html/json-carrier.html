@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7cf17fe3.js";
+            window.path_to_searchindex_js = "searchindex-10effa72.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -509,6 +509,11 @@
 <tr><td><code>clocking_skew</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"edge"</code> (<code>{edge, delay}</code>) / <code>"delay"</code> (<code>{body}</code>).</td></tr>
 <tr><td><code>edge_identifier</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"posedge"</code> / <code>"negedge"</code> / <code>"edge"</code>.</td></tr>
 <tr><td><code>method_prototype</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"task"</code> / <code>"function"</code>.</td></tr>
+<tr><td><code>class_constructor_arg_sv_2023</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"tf_port_item"</code> (<code>{body}</code>) / <code>"default"</code> (bare; LRM 2023 explicit-default arg).</td></tr>
+<tr><td><code>class_constructor_arg_list_sv_2023</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array.</td></tr>
+<tr><td><code>class_constructor_declaration_sv_2017</code></td><td><code>-&gt; {class_scope, ports, decls, super_call, statements, end_label}</code></td><td>Drops <code>kw_function</code>, <code>kw_new</code>, <code>semi</code>, <code>kw_endfunction</code>.</td></tr>
+<tr><td><code>class_constructor_declaration_sv_2023</code></td><td><code>-&gt; {class_scope, ports, decls, super_call, statements, end_label}</code></td><td>Parallel shape; uses <code>class_constructor_super_args</code> helper for the inner <code>( list_of_arguments | kw_default )?</code> parens-Or in the super.new clause.</td></tr>
+<tr><td><code>class_constructor_super_args</code> (NEW; 2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"args"</code> (<code>{body}</code> — <code>super.new(args);</code>) / <code>"default"</code> (bare — <code>super.new(default);</code>). Helper rule extracted from inline parens-Or to dodge task #38.</td></tr>
 </tbody>
 </table>
 </div>

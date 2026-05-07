@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)
+
+Closes the class constructor declaration walks for both LRM 1800-2017 and 2023 profiles.
+
+```ebnf
+class_constructor_arg_sv_2023            -> 2 kinds (tf_port_item / default)
+class_constructor_arg_list_sv_2023       -> {first, rest}
+class_constructor_declaration_sv_2017    -> {class_scope, ports, decls, super_call, statements, end_label}
+class_constructor_declaration_sv_2023    -> parallel shape
+class_constructor_super_args (NEW)       -> 2 kinds (args / default)
+```
+
+12th use of helper-rule extraction pattern (now 13 places total).
+
+Annotation count: **914** (was 907, +7). Same accept set. Schema stays at `1`. Contract bumped 1.0.55 → 1.0.56. mdBook synced. Gate green ✅. SV calibration parse passes.
+
 ## 2026-05-07 - SV-Slice-55 batch: clocking + class_constructor_prototype + edge_identifier + method_prototype typed (10 rules / 22 annotations — crosses 900-annotation milestone)
 
 Closes the LRM A.6.10 clocking declaration sub-tree end-to-end. **Crosses the 900-annotation milestone.**

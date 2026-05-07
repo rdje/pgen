@@ -325,6 +325,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `clocking_skew` (2 branches) | per-branch typed | Kind labels: `"edge"` (`{edge, delay}`) / `"delay"` (`{body}`). |
 | `edge_identifier` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"posedge"` / `"negedge"` / `"edge"`. |
 | `method_prototype` (2 branches) | per-branch `{kind, body}` | Kind labels: `"task"` / `"function"`. |
+| `class_constructor_arg_sv_2023` (2 branches) | per-branch typed | Kind labels: `"tf_port_item"` (`{body}`) / `"default"` (bare; LRM 2023 explicit-default arg). |
+| `class_constructor_arg_list_sv_2023` | `-> {first, rest}` | Mini-mixed-array. |
+| `class_constructor_declaration_sv_2017` | `-> {class_scope, ports, decls, super_call, statements, end_label}` | Drops `kw_function`, `kw_new`, `semi`, `kw_endfunction`. |
+| `class_constructor_declaration_sv_2023` | `-> {class_scope, ports, decls, super_call, statements, end_label}` | Parallel shape; uses `class_constructor_super_args` helper for the inner `( list_of_arguments \| kw_default )?` parens-Or in the super.new clause. |
+| `class_constructor_super_args` (NEW; 2 branches) | per-branch typed | Kind labels: `"args"` (`{body}` — `super.new(args);`) / `"default"` (bare — `super.new(default);`). Helper rule extracted from inline parens-Or to dodge task #38. |
 
 ## Sub-rules with implicit defaults
 
