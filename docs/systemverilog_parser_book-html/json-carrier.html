@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-10effa72.js";
+            window.path_to_searchindex_js = "searchindex-87ed6627.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -514,6 +514,20 @@
 <tr><td><code>class_constructor_declaration_sv_2017</code></td><td><code>-&gt; {class_scope, ports, decls, super_call, statements, end_label}</code></td><td>Drops <code>kw_function</code>, <code>kw_new</code>, <code>semi</code>, <code>kw_endfunction</code>.</td></tr>
 <tr><td><code>class_constructor_declaration_sv_2023</code></td><td><code>-&gt; {class_scope, ports, decls, super_call, statements, end_label}</code></td><td>Parallel shape; uses <code>class_constructor_super_args</code> helper for the inner <code>( list_of_arguments | kw_default )?</code> parens-Or in the super.new clause.</td></tr>
 <tr><td><code>class_constructor_super_args</code> (NEW; 2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"args"</code> (<code>{body}</code> — <code>super.new(args);</code>) / <code>"default"</code> (bare — <code>super.new(default);</code>). Helper rule extracted from inline parens-Or to dodge task #38.</td></tr>
+<tr><td><code>tf_port_list</code></td><td><code>-&gt; {first, rest}</code></td><td>Function/task port list. Mini-mixed-array.</td></tr>
+<tr><td><code>tf_port_item</code></td><td><code>-&gt; {attributes, direction, var_keyword, data_type, port_spec}</code></td><td>Single port-item per LRM A.2.7.</td></tr>
+<tr><td><code>tf_port_direction_sv_2017</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"port_direction"</code> (<code>{body}</code>) / <code>"const_ref"</code> (bare).</td></tr>
+<tr><td><code>tf_port_direction_sv_2023</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"port_direction"</code> (<code>{body}</code>) / <code>"ref"</code> (<code>{const_keyword, static_keyword}</code> — LRM 2023 expanded ref form).</td></tr>
+<tr><td><code>function_prototype_sv_2017</code></td><td><code>-&gt; {return_type, name, ports}</code></td><td>Drops <code>kw_function</code>.</td></tr>
+<tr><td><code>function_prototype_sv_2023</code></td><td><code>-&gt; {dynamic_override, return_type, name, ports}</code></td><td>Adds LRM 2023 dynamic_override slot.</td></tr>
+<tr><td><code>task_prototype_sv_2017</code> / <code>task_prototype_sv_2023</code></td><td><code>-&gt; {[dynamic_override,] name, ports}</code></td><td>Parallel to function_prototype.</td></tr>
+<tr><td><code>let_port_item</code></td><td><code>-&gt; {attributes, type, name, dims, init}</code></td><td>LRM A.2.8 let port.</td></tr>
+<tr><td><code>let_port_list</code></td><td><code>-&gt; {first, rest}</code></td><td>Mini-mixed-array.</td></tr>
+<tr><td><code>net_decl_assignment</code></td><td><code>-&gt; {name, dims, init}</code></td><td>Drops <code>assign</code> (init has the body).</td></tr>
+<tr><td><code>variable_decl_assignment</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"variable"</code> (<code>{name, dims, init}</code>) / <code>"dynamic_array"</code> (<code>{name, unsized_dim, dims, init}</code>) / <code>"class"</code> (<code>{name, init}</code> — <code>class_var = new</code> form).</td></tr>
+<tr><td><code>net_lvalue</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"name"</code> (<code>{name, select}</code>) / <code>"concatenation"</code> (<code>{items: {first, rest}}</code>) / <code>"pattern"</code> (<code>{type, body}</code>).</td></tr>
+<tr><td><code>variable_lvalue</code> (4 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"name"</code> (<code>{scope, name, select}</code> — scope uses NEW <code>variable_lvalue_scope</code> helper) / <code>"concatenation"</code> (<code>{items: {first, rest}}</code>) / <code>"pattern"</code> (<code>{type, body}</code>) / <code>"streaming_concatenation"</code> (<code>{body}</code>).</td></tr>
+<tr><td><code>variable_lvalue_scope</code> (NEW; 2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"instance"</code> (<code>{handle}</code> — implicit_class_handle dot prefix) / <code>"package_scope"</code> (<code>{body}</code>). Helper extracted from inline <code>( implicit_class_handle dot | non_typedef_package_scope )?</code> to dodge task #38.</td></tr>
 </tbody>
 </table>
 </div>

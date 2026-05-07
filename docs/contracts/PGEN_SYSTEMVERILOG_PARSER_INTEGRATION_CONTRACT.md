@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.56`
+  - `1.0.57`
 - Parser release version:
-  - `1.0.56`
+  - `1.0.57`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,99 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.57 / Contract 1.0.57 Highlights — SV-Slice-57 batch: tf_port + prototypes + lvalue/decl_assignment family typed (12 rules / 23 annotations + 1 new helper rule with 2 annotations)
+
+Closes the LRM A.2.7 task/function port-list family, prototype rules, and the LRM A.8.1 lvalue family.
+
+### Annotations
+
+```ebnf
+tf_port_list := tf_port_item ( comma tf_port_item )*
+             -> {first: $1, rest: $2}
+
+tf_port_item := attribute_instance* ( tf_port_direction )? ( kw_var )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
+             -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
+
+@profiles: ["sv_2017"]
+tf_port_direction_sv_2017 := port_direction               -> {kind: "port_direction", body: $1}
+                           | kw_const kw_ref              -> {kind: "const_ref"}
+
+@profiles: ["sv_2023"]
+tf_port_direction_sv_2023 := port_direction
+                                   -> {kind: "port_direction", body: $1}
+                           | ( kw_const )? kw_ref ( kw_static )?
+                                   -> {kind: "ref",            const_keyword: $1, static_keyword: $3}
+
+function_prototype_sv_2017 := kw_function data_type_or_void function_identifier ( lparen ( tf_port_list )? rparen )?
+                           -> {return_type: $2, name: $3, ports: $4}
+
+function_prototype_sv_2023 := kw_function ( dynamic_override_specifiers )? data_type_or_void function_identifier ( lparen ( tf_port_list )? rparen )?
+                           -> {dynamic_override: $2, return_type: $3, name: $4, ports: $5}
+
+task_prototype_sv_2017 := kw_task task_identifier ( lparen ( tf_port_list )? rparen )?
+                       -> {name: $2, ports: $3}
+
+task_prototype_sv_2023 := kw_task ( dynamic_override_specifiers )? task_identifier ( lparen ( tf_port_list )? rparen )?
+                       -> {dynamic_override: $2, name: $3, ports: $4}
+
+let_port_item := attribute_instance* let_formal_type formal_port_identifier variable_dimension* ( assign expression )?
+              -> {attributes: $1, type: $2, name: $3, dims: $4, init: $5}
+
+let_port_list := let_port_item ( comma let_port_item )*
+              -> {first: $1, rest: $2}
+
+net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
+                    -> {name: $1, dims: $2, init: $3}
+
+variable_decl_assignment := variable_identifier !lparen variable_dimension* ( assign expression )?
+                                  -> {kind: "variable",      name: $1, dims: $3, init: $4}
+                          | dynamic_array_variable_identifier unsized_dimension variable_dimension* ( assign dynamic_array_new )?
+                                  -> {kind: "dynamic_array", name: $1, unsized_dim: $2, dims: $3, init: $4}
+                          | class_variable_identifier ( assign class_new )?
+                                  -> {kind: "class",         name: $1, init: $2}
+
+net_lvalue := ps_or_hierarchical_net_identifier constant_select
+                    -> {kind: "name",          name: $1, select: $2}
+            | lbrace net_lvalue ( comma net_lvalue )* rbrace
+                    -> {kind: "concatenation", items: {first: $2, rest: $3}}
+            | ( assignment_pattern_expression_type )? assignment_pattern_net_lvalue
+                    -> {kind: "pattern",       type: $1, body: $2}
+
+variable_lvalue := ( variable_lvalue_scope )? hierarchical_variable_identifier select
+                        -> {kind: "name",                  scope: $1, name: $2, select: $3}
+                 | lbrace variable_lvalue ( comma variable_lvalue )* rbrace
+                        -> {kind: "concatenation",         items: {first: $2, rest: $3}}
+                 | ( assignment_pattern_expression_type )? assignment_pattern_variable_lvalue
+                        -> {kind: "pattern",               type: $1, body: $2}
+                 | streaming_concatenation
+                        -> {kind: "streaming_concatenation", body: $1}
+
+variable_lvalue_scope (NEW) := implicit_class_handle dot   -> {kind: "instance",      handle: $1}
+                              | non_typedef_package_scope   -> {kind: "package_scope", body: $1}
+```
+
+### Helper-rule extraction (13th use of pattern)
+
+`variable_lvalue_scope` extracted from inline `( implicit_class_handle dot | non_typedef_package_scope )?` parens-Or in `variable_lvalue` branch 0 (similar to `instance_or_class_scope` from slice 47, but with `package_scope` instead of `class_scope`).
+
+### Annotation inventory
+
+939 entries (was 914). +25 in this batch.
+
+### Same accept set, same diagnostic codes. Schema stays at `1`.
+
+### Grammar surface change
+
+This slice adds one new rule (`variable_lvalue_scope`) — internal refactor of inline parens-Or for annotation purposes. No LRM equivalent. Same accept set.
+
+### mdBook updated, gate green.
+
+### Next slice candidates
+
+- The remaining unannotated mid-size rules.
+- Profile-tag wrapper rules.
+- Drive-strength / unique_priority / delay grammar fixes (separate task).
 
 ## Release 1.0.56 / Contract 1.0.56 Highlights — SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)
 

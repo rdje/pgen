@@ -19,6 +19,35 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.57 / Contract 1.0.57 — SV-Slice-57 batch: tf_port + prototypes + lvalue/decl_assignment family typed (12 rules / 23 annotations + 1 new helper rule with 2 annotations)
+
+**What changed:** Closes the LRM A.2.7 task/function port-list family + prototype rules + LRM A.8.1 lvalue family.
+
+```ebnf
+tf_port_list                         -> {first, rest}
+tf_port_item                         -> {attributes, direction, var_keyword, data_type, port_spec}
+tf_port_direction_sv_2017            -> 2 kinds (port_direction / const_ref)
+tf_port_direction_sv_2023            -> 2 kinds (port_direction / ref with optional const + static)
+function_prototype_sv_2017           -> {return_type, name, ports}
+function_prototype_sv_2023           -> {dynamic_override, return_type, name, ports}
+task_prototype_sv_2017/2023          -> parallel shape
+let_port_item                        -> {attributes, type, name, dims, init}
+let_port_list                        -> {first, rest}
+net_decl_assignment                  -> {name, dims, init}
+variable_decl_assignment             -> 3 kinds (variable / dynamic_array / class)
+net_lvalue                           -> 3 kinds (name / concatenation / pattern)
+variable_lvalue                      -> 4 kinds (name / concatenation / pattern / streaming_concatenation)
+variable_lvalue_scope (NEW)          -> 2 kinds (instance / package_scope)
+```
+
+13th use of helper-rule extraction pattern.
+
+**Annotation inventory:** 939 entries (was 914). +25 in this batch.
+
+**Schema version:** stays at `1`.
+
+**Contract section:** [`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`](../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md) → "Release 1.0.57 / Contract 1.0.57 Highlights".
+
 ### 1.0.56 / Contract 1.0.56 — SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)
 
 **What changed:** Closes the class constructor declaration walks for both LRM 1800-2017 and 2023 profiles.

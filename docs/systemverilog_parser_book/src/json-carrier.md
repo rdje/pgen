@@ -330,6 +330,20 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `class_constructor_declaration_sv_2017` | `-> {class_scope, ports, decls, super_call, statements, end_label}` | Drops `kw_function`, `kw_new`, `semi`, `kw_endfunction`. |
 | `class_constructor_declaration_sv_2023` | `-> {class_scope, ports, decls, super_call, statements, end_label}` | Parallel shape; uses `class_constructor_super_args` helper for the inner `( list_of_arguments \| kw_default )?` parens-Or in the super.new clause. |
 | `class_constructor_super_args` (NEW; 2 branches) | per-branch typed | Kind labels: `"args"` (`{body}` — `super.new(args);`) / `"default"` (bare — `super.new(default);`). Helper rule extracted from inline parens-Or to dodge task #38. |
+| `tf_port_list` | `-> {first, rest}` | Function/task port list. Mini-mixed-array. |
+| `tf_port_item` | `-> {attributes, direction, var_keyword, data_type, port_spec}` | Single port-item per LRM A.2.7. |
+| `tf_port_direction_sv_2017` (2 branches) | per-branch typed | Kind labels: `"port_direction"` (`{body}`) / `"const_ref"` (bare). |
+| `tf_port_direction_sv_2023` (2 branches) | per-branch typed | Kind labels: `"port_direction"` (`{body}`) / `"ref"` (`{const_keyword, static_keyword}` — LRM 2023 expanded ref form). |
+| `function_prototype_sv_2017` | `-> {return_type, name, ports}` | Drops `kw_function`. |
+| `function_prototype_sv_2023` | `-> {dynamic_override, return_type, name, ports}` | Adds LRM 2023 dynamic_override slot. |
+| `task_prototype_sv_2017` / `task_prototype_sv_2023` | `-> {[dynamic_override,] name, ports}` | Parallel to function_prototype. |
+| `let_port_item` | `-> {attributes, type, name, dims, init}` | LRM A.2.8 let port. |
+| `let_port_list` | `-> {first, rest}` | Mini-mixed-array. |
+| `net_decl_assignment` | `-> {name, dims, init}` | Drops `assign` (init has the body). |
+| `variable_decl_assignment` (3 branches) | per-branch typed | Kind labels: `"variable"` (`{name, dims, init}`) / `"dynamic_array"` (`{name, unsized_dim, dims, init}`) / `"class"` (`{name, init}` — `class_var = new` form). |
+| `net_lvalue` (3 branches) | per-branch typed | Kind labels: `"name"` (`{name, select}`) / `"concatenation"` (`{items: {first, rest}}`) / `"pattern"` (`{type, body}`). |
+| `variable_lvalue` (4 branches) | per-branch typed | Kind labels: `"name"` (`{scope, name, select}` — scope uses NEW `variable_lvalue_scope` helper) / `"concatenation"` (`{items: {first, rest}}`) / `"pattern"` (`{type, body}`) / `"streaming_concatenation"` (`{body}`). |
+| `variable_lvalue_scope` (NEW; 2 branches) | per-branch typed | Kind labels: `"instance"` (`{handle}` — implicit_class_handle dot prefix) / `"package_scope"` (`{body}`). Helper extracted from inline `( implicit_class_handle dot \| non_typedef_package_scope )?` to dodge task #38. |
 
 ## Sub-rules with implicit defaults
 

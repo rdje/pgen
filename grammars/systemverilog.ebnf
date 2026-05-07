@@ -1566,9 +1566,11 @@ function_identifier := declaration_identifier
 
 @profiles: ["sv_2017"]
 function_prototype_sv_2017 := kw_function_c218e39e data_type_or_void function_identifier ( lparen ( tf_port_list )? rparen )?
+                           -> {return_type: $2, name: $3, ports: $4}
 
 @profiles: ["sv_2023"]
 function_prototype_sv_2023 := kw_function_c218e39e ( dynamic_override_specifiers )? data_type_or_void function_identifier ( lparen ( tf_port_list )? rparen )?
+                           -> {dynamic_override: $2, return_type: $3, name: $4, ports: $5}
 
 function_prototype := function_prototype_sv_2017 | function_prototype_sv_2023
 
@@ -1851,8 +1853,10 @@ scoped_let_identifier := non_typedef_package_scope let_identifier
 let_list_of_arguments := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma dot identifier lparen ( let_actual_arg )? rparen )* | dot identifier lparen ( let_actual_arg )? rparen ( comma dot identifier lparen ( let_actual_arg )? rparen )*
 
 let_port_item := attribute_instance* let_formal_type formal_port_identifier variable_dimension* ( assign expression )?
+              -> {attributes: $1, type: $2, name: $3, dims: $4, init: $5}
 
 let_port_list := let_port_item ( comma let_port_item )*
+              -> {first: $1, rest: $2}
 
 level_input_list := level_symbol level_symbol*
 
@@ -2254,6 +2258,7 @@ net_alias := kw_alias_cdb6fdbe net_lvalue assign net_lvalue ( assign net_lvalue 
 net_assignment := net_lvalue assign expression
 
 net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
+                    -> {name: $1, dims: $2, init: $3}
 
 @profiles: ["sv_2017"]
 net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
@@ -2281,7 +2286,12 @@ net_declaration := net_declaration_sv_2017 | net_declaration_sv_2023
 
 net_identifier := declaration_identifier
 
-net_lvalue := ps_or_hierarchical_net_identifier constant_select | lbrace net_lvalue ( comma net_lvalue )* rbrace | ( assignment_pattern_expression_type )? assignment_pattern_net_lvalue
+net_lvalue := ps_or_hierarchical_net_identifier constant_select
+                    -> {kind: "name",          name: $1, select: $2}
+            | lbrace net_lvalue ( comma net_lvalue )* rbrace
+                    -> {kind: "concatenation", items: {first: $2, rest: $3}}
+            | ( assignment_pattern_expression_type )? assignment_pattern_net_lvalue
+                    -> {kind: "pattern",       type: $1, body: $2}
 
 net_port_header := ( port_direction )? net_port_type
 
@@ -3375,9 +3385,11 @@ task_identifier := declaration_identifier
 
 @profiles: ["sv_2017"]
 task_prototype_sv_2017 := kw_task_7fbb727d task_identifier ( lparen ( tf_port_list )? rparen )?
+                       -> {name: $2, ports: $3}
 
 @profiles: ["sv_2023"]
 task_prototype_sv_2023 := kw_task_7fbb727d ( dynamic_override_specifiers )? task_identifier ( lparen ( tf_port_list )? rparen )?
+                       -> {dynamic_override: $2, name: $3, ports: $4}
 
 task_prototype := task_prototype_sv_2017 | task_prototype_sv_2023
 
@@ -3398,16 +3410,22 @@ tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
 tf_port_declaration := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit list_of_tf_variable_identifiers semi
 
 @profiles: ["sv_2017"]
-tf_port_direction_sv_2017 := port_direction | kw_const_b42f3f6f kw_ref_69449f99
+tf_port_direction_sv_2017 := port_direction                       -> {kind: "port_direction", body: $1}
+                           | kw_const_b42f3f6f kw_ref_69449f99    -> {kind: "const_ref"}
 
 @profiles: ["sv_2023"]
-tf_port_direction_sv_2023 := port_direction | ( kw_const_b42f3f6f )? kw_ref_69449f99 ( kw_static_a381562a )?
+tf_port_direction_sv_2023 := port_direction
+                                   -> {kind: "port_direction", body: $1}
+                           | ( kw_const_b42f3f6f )? kw_ref_69449f99 ( kw_static_a381562a )?
+                                   -> {kind: "ref",            const_keyword: $1, static_keyword: $3}
 
 tf_port_direction := tf_port_direction_sv_2017 | tf_port_direction_sv_2023
 
 tf_port_item := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4e786 )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
+             -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
 
 tf_port_list := tf_port_item ( comma tf_port_item )*
+             -> {first: $1, rest: $2}
 
 tfall_path_delay_expression := path_delay_expression
 
@@ -3643,7 +3661,12 @@ var_data_type := data_type | kw_var_e5b4e786 data_type_or_implicit
 variable_assignment := variable_lvalue assign expression
                     -> {lvalue: $1, value: $3}
 
-variable_decl_assignment := variable_identifier !lparen variable_dimension* ( assign expression )? | dynamic_array_variable_identifier unsized_dimension variable_dimension* ( assign dynamic_array_new )? | class_variable_identifier ( assign class_new )?
+variable_decl_assignment := variable_identifier !lparen variable_dimension* ( assign expression )?
+                                  -> {kind: "variable",      name: $1, dims: $3, init: $4}
+                          | dynamic_array_variable_identifier unsized_dimension variable_dimension* ( assign dynamic_array_new )?
+                                  -> {kind: "dynamic_array", name: $1, unsized_dim: $2, dims: $3, init: $4}
+                          | class_variable_identifier ( assign class_new )?
+                                  -> {kind: "class",         name: $1, init: $2}
 
 variable_dimension := unsized_dimension | unpacked_dimension | associative_dimension | queue_dimension
 
@@ -3651,7 +3674,17 @@ variable_identifier := declaration_identifier
 
 variable_identifier_list := variable_identifier ( comma variable_identifier )*
 
-variable_lvalue := ( implicit_class_handle dot | non_typedef_package_scope )? hierarchical_variable_identifier select | lbrace variable_lvalue ( comma variable_lvalue )* rbrace | ( assignment_pattern_expression_type )? assignment_pattern_variable_lvalue | streaming_concatenation
+variable_lvalue := ( variable_lvalue_scope )? hierarchical_variable_identifier select
+                        -> {kind: "name",                  scope: $1, name: $2, select: $3}
+                 | lbrace variable_lvalue ( comma variable_lvalue )* rbrace
+                        -> {kind: "concatenation",         items: {first: $2, rest: $3}}
+                 | ( assignment_pattern_expression_type )? assignment_pattern_variable_lvalue
+                        -> {kind: "pattern",               type: $1, body: $2}
+                 | streaming_concatenation
+                        -> {kind: "streaming_concatenation", body: $1}
+
+variable_lvalue_scope := implicit_class_handle dot   -> {kind: "instance",      handle: $1}
+                       | non_typedef_package_scope   -> {kind: "package_scope", body: $1}
 
 variable_port_header := ( port_direction )? variable_port_type
 

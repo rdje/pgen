@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-10effa72.js";
+            window.path_to_searchindex_js = "searchindex-87ed6627.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,27 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1057--contract-1057--sv-slice-57-batch-tf_port--prototypes--lvaluedecl_assignment-family-typed-12-rules--23-annotations--1-new-helper-rule-with-2-annotations"><a class="header" href="#1057--contract-1057--sv-slice-57-batch-tf_port--prototypes--lvaluedecl_assignment-family-typed-12-rules--23-annotations--1-new-helper-rule-with-2-annotations">1.0.57 / Contract 1.0.57 — SV-Slice-57 batch: tf_port + prototypes + lvalue/decl_assignment family typed (12 rules / 23 annotations + 1 new helper rule with 2 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the LRM A.2.7 task/function port-list family + prototype rules + LRM A.8.1 lvalue family.</p>
+<pre><code class="language-ebnf">tf_port_list                         -&gt; {first, rest}
+tf_port_item                         -&gt; {attributes, direction, var_keyword, data_type, port_spec}
+tf_port_direction_sv_2017            -&gt; 2 kinds (port_direction / const_ref)
+tf_port_direction_sv_2023            -&gt; 2 kinds (port_direction / ref with optional const + static)
+function_prototype_sv_2017           -&gt; {return_type, name, ports}
+function_prototype_sv_2023           -&gt; {dynamic_override, return_type, name, ports}
+task_prototype_sv_2017/2023          -&gt; parallel shape
+let_port_item                        -&gt; {attributes, type, name, dims, init}
+let_port_list                        -&gt; {first, rest}
+net_decl_assignment                  -&gt; {name, dims, init}
+variable_decl_assignment             -&gt; 3 kinds (variable / dynamic_array / class)
+net_lvalue                           -&gt; 3 kinds (name / concatenation / pattern)
+variable_lvalue                      -&gt; 4 kinds (name / concatenation / pattern / streaming_concatenation)
+variable_lvalue_scope (NEW)          -&gt; 2 kinds (instance / package_scope)
+</code></pre>
+<p>13th use of helper-rule extraction pattern.</p>
+<p><strong>Annotation inventory:</strong> 939 entries (was 914). +25 in this batch.</p>
+<p><strong>Schema version:</strong> stays at <code>1</code>.</p>
+<p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.57 / Contract 1.0.57 Highlights”.</p>
 <h3 id="1056--contract-1056--sv-slice-56-batch-class_constructor_declaration-family-typed-4-rules--5-annotations--1-new-helper-rule-with-2-annotations"><a class="header" href="#1056--contract-1056--sv-slice-56-batch-class_constructor_declaration-family-typed-4-rules--5-annotations--1-new-helper-rule-with-2-annotations">1.0.56 / Contract 1.0.56 — SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the class constructor declaration walks for both LRM 1800-2017 and 2023 profiles.</p>
 <pre><code class="language-ebnf">class_constructor_arg_sv_2023            -&gt; 2 kinds (tf_port_item / default)
