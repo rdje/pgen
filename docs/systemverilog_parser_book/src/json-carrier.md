@@ -344,6 +344,17 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `net_lvalue` (3 branches) | per-branch typed | Kind labels: `"name"` (`{name, select}`) / `"concatenation"` (`{items: [$2, $3::2*]}` — flat array per slice 58 audit) / `"pattern"` (`{type, body}`). |
 | `variable_lvalue` (4 branches) | per-branch typed | Kind labels: `"name"` (`{scope, name, select}` — scope uses NEW `variable_lvalue_scope` helper) / `"concatenation"` (`{items: [$2, $3::2*]}` — flat array per slice 58 audit) / `"pattern"` (`{type, body}`) / `"streaming_concatenation"` (`{body}`). |
 | `variable_lvalue_scope` (NEW; 2 branches) | per-branch typed | Kind labels: `"instance"` (`{handle}` — implicit_class_handle dot prefix) / `"package_scope"` (`{body}`). Helper extracted from inline `( implicit_class_handle dot \| non_typedef_package_scope )?` to dodge task #38. |
+| `always_construct` | `-> {keyword, body}` | LRM A.1.4 always-construct (`always`/`always_comb`/`always_latch`/`always_ff` followed by a single `statement`). `keyword` is itself typed via `always_keyword`. `body` is the procedural statement. Referenced from `module_common_item.kind == "always".body`. |
+| `always_keyword` (4 branches) | per-branch `{kind: "<name>"}` | Kind labels: `"always"` / `"always_comb"` / `"always_latch"` / `"always_ff"`. Bare typed object — drops the keyword token (redundant with `kind`). |
+| `import_export` (2 branches) | per-branch `{kind: "<name>"}` | Kind labels: `"import"` / `"export"`. Bare typed — used by `package_import_declaration` and `modport_tf_ports_declaration`. |
+| `modport_simple_ports_declaration` | `-> {direction, port}` | LRM A.2.9 modport simple-port declaration. `direction` is the typed `port_direction`. `port` is the typed `modport_simple_port`. |
+| `modport_clocking_declaration` | `-> {name}` | Drops `kw_clocking`; surfaces only the clocking_identifier. |
+| `modport_declaration` | `-> {items: [$2, $3::2*]}` | Drops `kw_modport`/`semi`. `items` is a flat array of `modport_item` shapes (Category A — slice 58 pattern). |
+| `modport_item` | `-> {name, ports: [$3, $4::2*]}` | Drops `lparen`/`rparen`. `name` is the modport_identifier; `ports` is a flat array of `modport_ports_declaration` shapes. |
+| `modport_ports_declaration` (3 branches) | per-branch `{kind, attributes, body}` | Kind labels: `"simple"` (modport_simple_ports_declaration) / `"tf"` (modport_tf_ports_declaration) / `"clocking"` (modport_clocking_declaration). `attributes` carries the leading `attribute_instance*`. |
+| `modport_simple_port` (2 branches) | per-branch typed | Kind labels: `"identifier"` (`{name}` — bare port_identifier reference) / `"explicit"` (`{name, expression}` — `.name(expr)` synthesized port form; `expression` is `[]` if absent). |
+| `modport_tf_port` (2 branches) | per-branch typed | Kind labels: `"method_prototype"` (`{body}`) / `"tf_identifier"` (`{name}`). |
+| `modport_tf_ports_declaration` | `-> {import_export, ports: [$2, $3::2*]}` | `import_export` is typed (`{kind: "import"}` or `{kind: "export"}`). `ports` is a flat array of `modport_tf_port` shapes. |
 
 ## Sub-rules with implicit defaults
 

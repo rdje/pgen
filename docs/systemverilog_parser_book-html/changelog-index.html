@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ddd3af1f.js";
+            window.path_to_searchindex_js = "searchindex-4f5565c7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,22 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1059--contract-1059--sv-slice-59-batch-always--modport-family-typed-11-rules--19-annotations"><a class="header" href="#1059--contract-1059--sv-slice-59-batch-always--modport-family-typed-11-rules--19-annotations">1.0.59 / Contract 1.0.59 — SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.1.4 always-construct dispatch and LRM A.2.9 modport family.</p>
+<pre><code class="language-ebnf">always_construct        -&gt; {keyword, body}
+always_keyword          -&gt; 4 kinds bare (always / always_comb / always_latch / always_ff)
+import_export           -&gt; 2 kinds bare (import / export)
+modport_simple_ports_declaration -&gt; {direction, port}
+modport_clocking_declaration     -&gt; {name}
+modport_declaration              -&gt; {items: [$2, $3::2*]}
+modport_item                     -&gt; {name, ports: [$3, $4::2*]}
+modport_ports_declaration        -&gt; 3 kinds (simple / tf / clocking; each {kind, attributes, body})
+modport_simple_port              -&gt; 2 kinds (identifier {name} / explicit {name, expression})
+modport_tf_port                  -&gt; 2 kinds (method_prototype {body} / tf_identifier {name})
+modport_tf_ports_declaration     -&gt; {import_export, ports: [$2, $3::2*]}
+</code></pre>
+<p>All new pure-list patterns use <code>[$N, $M::2*]</code> from the start per slice 58 audit conclusion.</p>
+<p><strong>Calibration:</strong> parses minimal_module.sv unchanged plus a 5-line interface-with-modport sample. Annotation inventory: <strong>958</strong> (was 939, +19). Same accept set.</p>
 <h3 id="1058--contract-1058--sv-slice-58-audit-horizontal-first-rest--n-m2-extraction-spread-fix-across-49-grammar-locations"><a class="header" href="#1058--contract-1058--sv-slice-58-audit-horizontal-first-rest--n-m2-extraction-spread-fix-across-49-grammar-locations">1.0.58 / Contract 1.0.58 — SV-Slice-58 audit: horizontal <code>{first, rest}</code> → <code>[$N, $M::2*]</code> extraction-spread fix across 49 grammar locations</a></h3>
 <p><strong>What changed:</strong> Horizontal correctness audit (not a typing slice). Replace <code>{first: $N, rest: $M}</code> (raw <code>[sep, item]</code> envelope) with <code>[$N, $M::2*]</code> (clean flat array of items, separators dropped) for every Category A rule (pure <code>X (sep X)*</code> with single payload per iteration). Annotation count unchanged at <strong>939</strong>.</p>
 <p><strong>Why:</strong> Earlier slices defaulted to <code>{first, rest}</code> which exposed <code>[[sep, item], ...]</code> to consumers. The annotation language has a first-class extraction-spread operator <code>$N::M*</code> (defined in <code>grammars/return_annotation.ebnf</code> lines 50-58 and used by the bootstrap parser itself at line 158). For pure-list patterns it gives consumers a flat item array — no envelope walking required. This audit was triggered by user feedback after slice 57’s <code>tf_port_list</code> was flagged.</p>

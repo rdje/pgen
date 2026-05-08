@@ -19,6 +19,28 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.59 / Contract 1.0.59 — SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations)
+
+**What changed:** Closes LRM A.1.4 always-construct dispatch and LRM A.2.9 modport family.
+
+```ebnf
+always_construct        -> {keyword, body}
+always_keyword          -> 4 kinds bare (always / always_comb / always_latch / always_ff)
+import_export           -> 2 kinds bare (import / export)
+modport_simple_ports_declaration -> {direction, port}
+modport_clocking_declaration     -> {name}
+modport_declaration              -> {items: [$2, $3::2*]}
+modport_item                     -> {name, ports: [$3, $4::2*]}
+modport_ports_declaration        -> 3 kinds (simple / tf / clocking; each {kind, attributes, body})
+modport_simple_port              -> 2 kinds (identifier {name} / explicit {name, expression})
+modport_tf_port                  -> 2 kinds (method_prototype {body} / tf_identifier {name})
+modport_tf_ports_declaration     -> {import_export, ports: [$2, $3::2*]}
+```
+
+All new pure-list patterns use `[$N, $M::2*]` from the start per slice 58 audit conclusion.
+
+**Calibration:** parses minimal_module.sv unchanged plus a 5-line interface-with-modport sample. Annotation inventory: **958** (was 939, +19). Same accept set.
+
 ### 1.0.58 / Contract 1.0.58 — SV-Slice-58 audit: horizontal `{first, rest}` → `[$N, $M::2*]` extraction-spread fix across 49 grammar locations
 
 **What changed:** Horizontal correctness audit (not a typing slice). Replace `{first: $N, rest: $M}` (raw `[sep, item]` envelope) with `[$N, $M::2*]` (clean flat array of items, separators dropped) for every Category A rule (pure `X (sep X)*` with single payload per iteration). Annotation count unchanged at **939**.

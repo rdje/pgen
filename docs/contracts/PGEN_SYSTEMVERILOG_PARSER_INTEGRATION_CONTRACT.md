@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.58`
+  - `1.0.59`
 - Parser release version:
-  - `1.0.58`
+  - `1.0.59`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,63 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.59 / Contract 1.0.59 Highlights — SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations)
+
+Closes the LRM A.1.4 always-construct dispatch (referenced from `module_common_item.kind == "always"`) and the LRM A.2.9 modport family (referenced from interface bodies via `non_port_interface_item.kind == "modport_declaration"`). All new pure-list patterns use `[$N, $M::2*]` from the start, honoring the slice 58 audit conclusion.
+
+### Annotations
+
+```ebnf
+always_construct := always_keyword statement
+                 -> {keyword: $1, body: $2}
+
+always_keyword := kw_always       -> {kind: "always"}
+                | kw_always_comb  -> {kind: "always_comb"}
+                | kw_always_latch -> {kind: "always_latch"}
+                | kw_always_ff    -> {kind: "always_ff"}
+
+import_export := kw_import -> {kind: "import"}
+               | kw_export -> {kind: "export"}
+
+modport_simple_ports_declaration := port_direction modport_simple_port
+                                 -> {direction: $1, port: $2}
+
+modport_clocking_declaration := kw_clocking clocking_identifier
+                             -> {name: $2}
+
+modport_declaration := kw_modport modport_item ( comma modport_item )* semi
+                    -> {items: [$2, $3::2*]}
+
+modport_item := modport_identifier lparen modport_ports_declaration ( comma modport_ports_declaration )* rparen
+             -> {name: $1, ports: [$3, $4::2*]}
+
+modport_ports_declaration := attribute_instance* modport_simple_ports_declaration   -> {kind: "simple",   attributes: $1, body: $2}
+                           | attribute_instance* modport_tf_ports_declaration       -> {kind: "tf",       attributes: $1, body: $2}
+                           | attribute_instance* modport_clocking_declaration       -> {kind: "clocking", attributes: $1, body: $2}
+
+modport_simple_port := port_identifier                                        -> {kind: "identifier", name: $1}
+                     | dot port_identifier lparen ( expression )? rparen      -> {kind: "explicit",   name: $2, expression: $4}
+
+modport_tf_port := method_prototype  -> {kind: "method_prototype", body: $1}
+                 | tf_identifier     -> {kind: "tf_identifier",    name: $1}
+
+modport_tf_ports_declaration := import_export modport_tf_port ( comma modport_tf_port )*
+                             -> {import_export: $1, ports: [$2, $3::2*]}
+```
+
+### Notes
+
+- `always_keyword` is referenced from the typed `always_construct.keyword` field and propagates the typed dispatch up through `module_common_item.kind == "always".body`.
+- `modport_ports_declaration` distinguishes the three modport-port forms with `kind` discriminator. The legacy `attributes:` slot carries the attribute_instance* prefix.
+- `modport_simple_port`'s `"explicit"` kind covers the `.name(expression)` form used for synthesizing port mappings; the `expression` field carries the optional inner expression.
+- `modport_declaration` and `modport_tf_ports_declaration` use the slice 58 `[$N, $M::2*]` extraction-spread for their `( comma X )*` tails — flat arrays of items.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. A 5-line interface-with-modport sample (`/tmp/sv_modport_check.sv`) also parses successfully end-to-end. minimal_module is empty so the AST envelope at the top level is unchanged.
+
+Annotation count: **958** (was 939, +19). Same accept set.
 
 ## Release 1.0.58 / Contract 1.0.58 Highlights — SV-Slice-58 audit: horizontal Category A `{first, rest}` → `[$N, $M::2*]` extraction-spread fix (49 grammar locations + 1 manual edit)
 

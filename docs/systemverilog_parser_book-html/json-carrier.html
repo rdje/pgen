@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ddd3af1f.js";
+            window.path_to_searchindex_js = "searchindex-4f5565c7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -528,6 +528,17 @@
 <tr><td><code>net_lvalue</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"name"</code> (<code>{name, select}</code>) / <code>"concatenation"</code> (<code>{items: [$2, $3::2*]}</code> — flat array per slice 58 audit) / <code>"pattern"</code> (<code>{type, body}</code>).</td></tr>
 <tr><td><code>variable_lvalue</code> (4 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"name"</code> (<code>{scope, name, select}</code> — scope uses NEW <code>variable_lvalue_scope</code> helper) / <code>"concatenation"</code> (<code>{items: [$2, $3::2*]}</code> — flat array per slice 58 audit) / <code>"pattern"</code> (<code>{type, body}</code>) / <code>"streaming_concatenation"</code> (<code>{body}</code>).</td></tr>
 <tr><td><code>variable_lvalue_scope</code> (NEW; 2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"instance"</code> (<code>{handle}</code> — implicit_class_handle dot prefix) / <code>"package_scope"</code> (<code>{body}</code>). Helper extracted from inline <code>( implicit_class_handle dot | non_typedef_package_scope )?</code> to dodge task #38.</td></tr>
+<tr><td><code>always_construct</code></td><td><code>-&gt; {keyword, body}</code></td><td>LRM A.1.4 always-construct (<code>always</code>/<code>always_comb</code>/<code>always_latch</code>/<code>always_ff</code> followed by a single <code>statement</code>). <code>keyword</code> is itself typed via <code>always_keyword</code>. <code>body</code> is the procedural statement. Referenced from <code>module_common_item.kind == "always".body</code>.</td></tr>
+<tr><td><code>always_keyword</code> (4 branches)</td><td>per-branch <code>{kind: "&lt;name&gt;"}</code></td><td>Kind labels: <code>"always"</code> / <code>"always_comb"</code> / <code>"always_latch"</code> / <code>"always_ff"</code>. Bare typed object — drops the keyword token (redundant with <code>kind</code>).</td></tr>
+<tr><td><code>import_export</code> (2 branches)</td><td>per-branch <code>{kind: "&lt;name&gt;"}</code></td><td>Kind labels: <code>"import"</code> / <code>"export"</code>. Bare typed — used by <code>package_import_declaration</code> and <code>modport_tf_ports_declaration</code>.</td></tr>
+<tr><td><code>modport_simple_ports_declaration</code></td><td><code>-&gt; {direction, port}</code></td><td>LRM A.2.9 modport simple-port declaration. <code>direction</code> is the typed <code>port_direction</code>. <code>port</code> is the typed <code>modport_simple_port</code>.</td></tr>
+<tr><td><code>modport_clocking_declaration</code></td><td><code>-&gt; {name}</code></td><td>Drops <code>kw_clocking</code>; surfaces only the clocking_identifier.</td></tr>
+<tr><td><code>modport_declaration</code></td><td><code>-&gt; {items: [$2, $3::2*]}</code></td><td>Drops <code>kw_modport</code>/<code>semi</code>. <code>items</code> is a flat array of <code>modport_item</code> shapes (Category A — slice 58 pattern).</td></tr>
+<tr><td><code>modport_item</code></td><td><code>-&gt; {name, ports: [$3, $4::2*]}</code></td><td>Drops <code>lparen</code>/<code>rparen</code>. <code>name</code> is the modport_identifier; <code>ports</code> is a flat array of <code>modport_ports_declaration</code> shapes.</td></tr>
+<tr><td><code>modport_ports_declaration</code> (3 branches)</td><td>per-branch <code>{kind, attributes, body}</code></td><td>Kind labels: <code>"simple"</code> (modport_simple_ports_declaration) / <code>"tf"</code> (modport_tf_ports_declaration) / <code>"clocking"</code> (modport_clocking_declaration). <code>attributes</code> carries the leading <code>attribute_instance*</code>.</td></tr>
+<tr><td><code>modport_simple_port</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"identifier"</code> (<code>{name}</code> — bare port_identifier reference) / <code>"explicit"</code> (<code>{name, expression}</code> — <code>.name(expr)</code> synthesized port form; <code>expression</code> is <code>[]</code> if absent).</td></tr>
+<tr><td><code>modport_tf_port</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"method_prototype"</code> (<code>{body}</code>) / <code>"tf_identifier"</code> (<code>{name}</code>).</td></tr>
+<tr><td><code>modport_tf_ports_declaration</code></td><td><code>-&gt; {import_export, ports: [$2, $3::2*]}</code></td><td><code>import_export</code> is typed (<code>{kind: "import"}</code> or <code>{kind: "export"}</code>). <code>ports</code> is a flat array of <code>modport_tf_port</code> shapes.</td></tr>
 </tbody>
 </table>
 </div>

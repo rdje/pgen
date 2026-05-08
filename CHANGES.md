@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-08 - SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations) (PGEN-SVP-0059)
+
+Closes the LRM A.1.4 always-construct dispatch (referenced from `module_common_item.kind == "always".body`) and the LRM A.2.9 modport family (referenced from interface bodies via `non_port_interface_item.kind == "modport_declaration"`).
+
+`always_construct` (`{keyword, body}`), `always_keyword` (4 kinds bare: always / always_comb / always_latch / always_ff), `import_export` (2 kinds bare: import / export — also used by `package_import_declaration`), `modport_simple_ports_declaration` (`{direction, port}`), `modport_clocking_declaration` (`{name}`), `modport_declaration` (`{items: [$2, $3::2*]}`), `modport_item` (`{name, ports: [$3, $4::2*]}`), `modport_ports_declaration` (3 kinds: simple / tf / clocking), `modport_simple_port` (2 kinds: identifier / explicit `.name(expr)` form), `modport_tf_port` (2 kinds: method_prototype / tf_identifier), `modport_tf_ports_declaration` (`{import_export, ports: [$2, $3::2*]}`).
+
+All new pure-list patterns emit `[$N, $M::2*]` from the start per slice 58's audit conclusion — no `{first, rest}` regressions.
+
+Annotation count: 958 (was 939, +19). Same accept set. Manifest + contract bumped to 1.0.59. mdBook chapters refreshed. Book gate passing. Calibration parses on minimal_module.sv and a 5-line interface-with-modport sample both succeed.
+
 ## 2026-05-07 - SV-Slice-58 audit: horizontal `{first, rest}` → `[$N, $M::2*]` extraction-spread fix across 49 grammar locations (PGEN-SVP-0058)
 
 Horizontal correctness audit applied retroactively to typed annotations introduced across earlier slices. Replaces `{first: $N, rest: $M}` (raw `[sep, item]` envelope of `(sep X)*` Quantified-of-Sequence) with `[$N, $M::2*]` (clean flat array of items, separators dropped) for every Category A rule (pure `X (sep X)*` with single payload per iteration). Audit triggered by user observation that `tf_port_list := tf_port_item ( comma tf_port_item )* -> {first: $1, rest: $2}` exposed raw `[[comma, item], ...]` to consumers instead of a clean item array.

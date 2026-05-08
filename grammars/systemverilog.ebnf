@@ -374,6 +374,7 @@ line_comment := /\/\/[^\n]*(\n|$)/
 block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
 
 modport_simple_ports_declaration := port_direction modport_simple_port
+                                 -> {direction: $1, port: $2}
 
 # Profile-aware LRM-derived syntax
 
@@ -383,8 +384,12 @@ action_block := statement_or_null
                      -> {kind: "with_else", pass: $1, fail: $3}
 
 always_construct := always_keyword statement
+                 -> {keyword: $1, body: $2}
 
-always_keyword := kw_always_6656018a | kw_always_comb_a1f2a86b | kw_always_latch_23c99af9 | kw_always_ff_3c7a051e
+always_keyword := kw_always_6656018a       -> {kind: "always"}
+                | kw_always_comb_a1f2a86b  -> {kind: "always_comb"}
+                | kw_always_latch_23c99af9 -> {kind: "always_latch"}
+                | kw_always_ff_3c7a051e    -> {kind: "always_ff"}
 
 anonymous_program := kw_program_81d9aeea semi anonymous_program_item* kw_endprogram_6b609b1f
                   -> {items: $3}
@@ -1665,7 +1670,8 @@ implicit_class_handle := kw_this_c2543fff | kw_super_8451ba8a | kw_this_c2543fff
 implicit_data_type := ( signing )? packed_dimension*
                    -> {signing: $1, dims: $2}
 
-import_export := kw_import_62fdfbd5 | kw_export_51713409
+import_export := kw_import_62fdfbd5 -> {kind: "import"}
+               | kw_export_51713409 -> {kind: "export"}
 
 inc_or_dec_expression := inc_or_dec_operator attribute_instance* variable_lvalue
                               -> {kind: "prefix",  op: $1, attributes: $2, lvalue: $3}
@@ -2085,20 +2091,28 @@ method_qualifier := ( kw_pure_afe003f1 )? kw_virtual_af84d91f -> {kind: "virtual
 mintypmax_expression := expression | expression colon expression colon expression
 
 modport_clocking_declaration := kw_clocking_4d22041d clocking_identifier
+                             -> {name: $2}
 
 modport_declaration := kw_modport_1cf85849 modport_item ( comma modport_item )* semi
+                    -> {items: [$2, $3::2*]}
 
 modport_identifier := declaration_identifier
 
 modport_item := modport_identifier lparen modport_ports_declaration ( comma modport_ports_declaration )* rparen
+             -> {name: $1, ports: [$3, $4::2*]}
 
-modport_ports_declaration := attribute_instance* modport_simple_ports_declaration | attribute_instance* modport_tf_ports_declaration | attribute_instance* modport_clocking_declaration
+modport_ports_declaration := attribute_instance* modport_simple_ports_declaration   -> {kind: "simple",   attributes: $1, body: $2}
+                           | attribute_instance* modport_tf_ports_declaration       -> {kind: "tf",       attributes: $1, body: $2}
+                           | attribute_instance* modport_clocking_declaration       -> {kind: "clocking", attributes: $1, body: $2}
 
-modport_simple_port := port_identifier | dot port_identifier lparen ( expression )? rparen
+modport_simple_port := port_identifier                                        -> {kind: "identifier", name: $1}
+                     | dot port_identifier lparen ( expression )? rparen      -> {kind: "explicit",   name: $2, expression: $4}
 
-modport_tf_port := method_prototype | tf_identifier
+modport_tf_port := method_prototype  -> {kind: "method_prototype", body: $1}
+                 | tf_identifier     -> {kind: "tf_identifier",    name: $1}
 
 modport_tf_ports_declaration := import_export modport_tf_port ( comma modport_tf_port )*
+                             -> {import_export: $1, ports: [$2, $3::2*]}
 
 @sample: "module m(input logic a);"
 module_ansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
