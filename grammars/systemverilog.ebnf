@@ -426,7 +426,7 @@ assertion_item_declaration := property_declaration -> {kind: "property", body: $
 assertion_variable_declaration := var_data_type list_of_variable_decl_assignments semi
 
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
-                   -> {exprs: {first: $3, rest: $4}}
+                   -> {exprs: [$3, $4::2*]}
                     | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
                     | @sample: "'{1: 0}" tick lbrace array_pattern_key colon expression ( comma array_pattern_key colon expression )* rbrace
                     | @sample: "'{2{0, 1}}" tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace
@@ -452,7 +452,7 @@ attr_spec := attr_name ( assign constant_expression )?
           -> {name: $1, value: $2}
 
 attribute_instance := attr_open attr_spec ( comma attr_spec )* attr_close
-                   -> {first: $2, rest: $3}
+                   -> [$2, $3::2*]
 
 bin_identifier := identifier
 
@@ -481,7 +481,7 @@ bind_target_instance := hierarchical_identifier constant_bit_select
                      -> {name: $1, bit_select: $2}
 
 bind_target_instance_list := bind_target_instance ( comma bind_target_instance )*
-                          -> {first: $1, rest: $2}
+                          -> [$1, $2::2*]
 
 bind_target_scope := module_identifier    -> {kind: "module",    name: $1}
                   | interface_identifier -> {kind: "interface", name: $1}
@@ -574,7 +574,7 @@ case_generate_construct := kw_case_6406510c lparen constant_expression rparen ca
                         -> {expr: $3, items: {first: $5, rest: $6}}
 
 case_generate_item := constant_expression ( comma constant_expression )* colon generate_block
-                          -> {kind: "expr_list", exprs: {first: $1, rest: $2}, block: $4}
+                          -> {kind: "expr_list", exprs: [$1, $2::2*], block: $4}
                    | kw_default_7505d64a ( colon )? generate_block
                           -> {kind: "default",   block: $3}
 
@@ -593,7 +593,7 @@ case_inside_item_sv_2023 := range_list colon statement_or_null
 case_inside_item := case_inside_item_sv_2017 | case_inside_item_sv_2023
 
 case_item := case_item_expression ( comma case_item_expression )* colon statement_or_null
-                  -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+                  -> {kind: "expr_list", exprs: [$1, $2::2*], body: $4}
            | kw_default_7505d64a ( colon )? statement_or_null
                   -> {kind: "default",   body: $3}
 
@@ -669,7 +669,7 @@ class_constructor_arg := class_constructor_arg_sv_2023
 
 @profiles: ["sv_2023"]
 class_constructor_arg_list_sv_2023 := class_constructor_arg ( comma class_constructor_arg )*
-                                   -> {first: $1, rest: $2}
+                                   -> [$1, $2::2*]
 
 class_constructor_arg_list := class_constructor_arg_list_sv_2023
 
@@ -860,7 +860,7 @@ combinational_entry := level_input_list colon output_symbol semi
 // comment := one_line_comment | block_comment
 
 concatenation := lbrace expression ( comma expression )* rbrace
-              -> {first: $2, rest: $3}
+              -> [$2, $3::2*]
 
 concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_statement
                                   -> {kind: "statement",             label: $1, body: $2}
@@ -877,7 +877,7 @@ cond_pattern := expression_base kw_matches_9f3e9242 pattern
              -> {expression: $1, pattern: $3}
 
 cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_pattern )*
-               -> {first: $1, rest: $2}
+               -> [$1, $2::2*]
 
 conditional_expression := cond_predicate &question question attribute_instance* expression colon expression
                        -> {predicate: $1, attributes: $4, then_expr: $5, else_expr: $7}
@@ -913,7 +913,7 @@ constant_cast := casting_type tick lparen constant_expression rparen
               -> {type: $1, body: $4}
 
 constant_concatenation := lbrace constant_expression ( comma constant_expression )* rbrace
-                       -> {first: $2, rest: $3}
+                       -> [$2, $3::2*]
 
 constant_function_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call
 
@@ -1246,7 +1246,7 @@ data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimens
            | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
                   -> {kind: "struct_union",         header: $1, packed_signing: $2, members: {first: $4, rest: $5}, dims: $7}
            | @sample: "enum { A }" kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
-                  -> {kind: "enum",                  base_type: $2, names: {first: $4, rest: $5}, dims: $7}
+                  -> {kind: "enum",                  base_type: $2, names: [$4, $5::2*], dims: $7}
            | kw_string_ecb25204
                   -> {kind: "string"}
            | kw_chandle_34401c13
@@ -1368,7 +1368,7 @@ dist_item_sv_2023 := value_range ( dist_weight )?
 dist_item := dist_item_sv_2017 | dist_item_sv_2023
 
 dist_list := dist_item ( comma dist_item )*
-          -> {first: $1, rest: $2}
+          -> [$1, $2::2*]
 
 dist_weight := colon assign expression -> {kind: "equal",       weight: $3}
              | colon slash expression  -> {kind: "proportional", weight: $3}
@@ -1856,7 +1856,7 @@ let_port_item := attribute_instance* let_formal_type formal_port_identifier vari
               -> {attributes: $1, type: $2, name: $3, dims: $4, init: $5}
 
 let_port_list := let_port_item ( comma let_port_item )*
-              -> {first: $1, rest: $2}
+              -> [$1, $2::2*]
 
 level_input_list := level_symbol level_symbol*
 
@@ -1883,7 +1883,7 @@ list_of_arguments := list_of_arguments_ordered -> {kind: "ordered", body: $1}
                    | list_of_arguments_mixed   -> {kind: "mixed",   body: $1}
 
 list_of_arguments_mixed := list_of_arguments_mixed_head comma named_argument ( comma named_argument )*
-                        -> {head: $1, named: {first: $3, rest: $4}}
+                        -> {head: $1, named: [$3, $4::2*]}
 
 list_of_arguments_mixed_head := expression
                                      -> {kind: "single", body: $1}
@@ -1891,53 +1891,53 @@ list_of_arguments_mixed_head := expression
                                      -> {kind: "chain",  expr: $1, rest: $3}
 
 list_of_arguments_ordered := ( expression )? ( comma ( expression )? )*
-                          -> {first: $1, rest: $2}
+                          -> [$1, $2::2*]
 
 list_of_arguments_named := named_argument ( comma named_argument )*
-                        -> {first: $1, rest: $2}
+                        -> [$1, $2::2*]
 
 list_of_checker_port_connections := ordered_checker_port_connection ( comma ordered_checker_port_connection )*
-                                          -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                          -> {kind: "ordered", items: [$1, $2::2*]}
                                   | named_checker_port_connection ( comma named_checker_port_connection )*
-                                          -> {kind: "named",   items: {first: $1, rest: $2}}
+                                          -> {kind: "named",   items: [$1, $2::2*]}
 
 list_of_clocking_decl_assign := clocking_decl_assign ( comma clocking_decl_assign )*
-                             -> {first: $1, rest: $2}
+                             -> [$1, $2::2*]
 
 list_of_cross_items := cross_item comma cross_item ( comma cross_item )*
-                    -> {first: $1, second: $3, rest: $4}
+                    -> [$1, $3, $4::2*]
 
 list_of_defparam_assignments := defparam_assignment ( comma defparam_assignment )*
-                             -> {first: $1, rest: $2}
+                             -> [$1, $2::2*]
 
 list_of_genvar_identifiers := genvar_identifier ( comma genvar_identifier )*
-                           -> {first: $1, rest: $2}
+                           -> [$1, $2::2*]
 
 list_of_interface_identifiers := interface_identifier unpacked_dimension* ( comma interface_identifier unpacked_dimension* )*
                               -> {first: {name: $1, dims: $2}, rest: $3}
 
 list_of_net_assignments := net_assignment ( comma net_assignment )*
-                        -> {first: $1, rest: $2}
+                        -> [$1, $2::2*]
 
 list_of_net_decl_assignments := net_decl_assignment ( comma net_decl_assignment )*
-                             -> {first: $1, rest: $2}
+                             -> [$1, $2::2*]
 
 list_of_param_assignments := param_assignment ( comma param_assignment )*
-                          -> {first: $1, rest: $2}
+                          -> [$1, $2::2*]
 
 @profiles: ["sv_2017"]
 list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
-                                              -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                              -> {kind: "ordered", items: [$1, $2::2*]}
                                        | named_parameter_assignment ( comma named_parameter_assignment )*
-                                              -> {kind: "named",   items: {first: $1, rest: $2}}
+                                              -> {kind: "named",   items: [$1, $2::2*]}
 
 list_of_parameter_assignments := list_of_parameter_assignments_sv_2017
 
 @profiles: ["sv_2023"]
 list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
-                                                     -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                                     -> {kind: "ordered", items: [$1, $2::2*]}
                                               | named_parameter_assignment ( comma named_parameter_assignment )*
-                                                     -> {kind: "named",   items: {first: $1, rest: $2}}
+                                                     -> {kind: "named",   items: [$1, $2::2*]}
 
 list_of_parameter_value_assignments := list_of_parameter_value_assignments_sv_2023
 
@@ -1952,15 +1952,15 @@ list_of_path_delay_expressions := @probe_sample: "1" t_path_delay_expression
                                 | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma txz_path_delay_expression comma tzx_path_delay_expression
 
 list_of_path_inputs := specify_input_terminal_descriptor ( comma specify_input_terminal_descriptor )*
-                    -> {first: $1, rest: $2}
+                    -> [$1, $2::2*]
 
 list_of_path_outputs := specify_output_terminal_descriptor ( comma specify_output_terminal_descriptor )*
-                     -> {first: $1, rest: $2}
+                     -> [$1, $2::2*]
 
 list_of_port_connections := named_port_connection ( comma named_port_connection )*
-                                  -> {kind: "named",   items: {first: $1, rest: $2}}
+                                  -> {kind: "named",   items: [$1, $2::2*]}
                           | ordered_port_connection ( comma ordered_port_connection )*
-                                  -> {kind: "ordered", items: {first: $1, rest: $2}}
+                                  -> {kind: "ordered", items: [$1, $2::2*]}
 
 list_of_port_declarations := lparen ( attribute_instance* ansi_port_declaration ( comma attribute_instance* ansi_port_declaration )* )? rparen
                           -> $2
@@ -1969,25 +1969,25 @@ list_of_port_identifiers := port_identifier unpacked_dimension* ( comma port_ide
                          -> {first: {name: $1, dims: $2}, rest: $3}
 
 list_of_ports := lparen port ( comma port )* rparen
-              -> {first: $2, rest: $3}
+              -> [$2, $3::2*]
 
 list_of_specparam_assignments := specparam_assignment ( comma specparam_assignment )*
-                              -> {first: $1, rest: $2}
+                              -> [$1, $2::2*]
 
 list_of_tf_variable_identifiers := port_identifier variable_dimension* ( assign expression )? ( comma port_identifier variable_dimension* ( assign expression )? )*
                                 -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
 
 list_of_type_assignments := type_assignment ( !( comma kw_type_d0a3e7f8 ) comma type_assignment )*
-                         -> {first: $1, rest: $2}
+                         -> [$1, $2::2*]
 
 list_of_udp_port_identifiers := port_identifier ( comma port_identifier )*
-                             -> {first: $1, rest: $2}
+                             -> [$1, $2::2*]
 
 list_of_variable_assignments := variable_assignment ( comma variable_assignment )*
-                             -> {first: $1, rest: $2}
+                             -> [$1, $2::2*]
 
 list_of_variable_decl_assignments := variable_decl_assignment ( comma variable_decl_assignment )*
-                                  -> {first: $1, rest: $2}
+                                  -> [$1, $2::2*]
 
 list_of_variable_identifiers := variable_identifier variable_dimension* ( comma variable_identifier variable_dimension* )*
                              -> {first: {name: $1, dims: $2}, rest: $3}
@@ -2289,7 +2289,7 @@ net_identifier := declaration_identifier
 net_lvalue := ps_or_hierarchical_net_identifier constant_select
                     -> {kind: "name",          name: $1, select: $2}
             | lbrace net_lvalue ( comma net_lvalue )* rbrace
-                    -> {kind: "concatenation", items: {first: $2, rest: $3}}
+                    -> {kind: "concatenation", items: [$2, $3::2*]}
             | ( assignment_pattern_expression_type )? assignment_pattern_net_lvalue
                     -> {kind: "pattern",       type: $1, body: $2}
 
@@ -2417,7 +2417,7 @@ octal_value := octal_digit ( kw_sv_rule_c82a06f6 | octal_digit )*
 
 @profiles: ["sv_2017"]
 open_range_list_sv_2017 := open_value_range ( comma open_value_range )*
-                        -> {first: $1, rest: $2}
+                        -> [$1, $2::2*]
 
 open_range_list := open_range_list_sv_2017
 
@@ -2451,12 +2451,12 @@ package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? pac
 package_export_declaration := kw_export_51713409 star scope_resolution star semi
                                  -> {kind: "wildcard"}
                             | kw_export_51713409 package_import_item ( comma package_import_item )* semi
-                                 -> {kind: "explicit", items: {first: $2, rest: $3}}
+                                 -> {kind: "explicit", items: [$2, $3::2*]}
 
 package_identifier := declaration_identifier
 
 package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma package_import_item )* semi
-                            -> {items: {first: $2, rest: $3}}
+                            -> {items: [$2, $3::2*]}
 
 package_import_item := package_identifier scope_resolution identifier
                           -> {kind: "explicit", package: $1, name: $3}
@@ -2603,7 +2603,7 @@ pattern_sv_2017 := dot variable_identifier
                 | kw_tagged_8e1ec218 member_identifier ( pattern )?
                         -> {kind: "tagged",           name: $2, sub_pattern: $3}
                 | tick lbrace pattern ( comma pattern )* rbrace
-                        -> {kind: "ordered",          patterns: {first: $3, rest: $4}}
+                        -> {kind: "ordered",          patterns: [$3, $4::2*]}
                 | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
                         -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
 
@@ -2619,7 +2619,7 @@ pattern_sv_2023 := lparen pattern rparen
                 | kw_tagged_8e1ec218 member_identifier ( pattern )?
                         -> {kind: "tagged",           name: $2, sub_pattern: $3}
                 | tick lbrace pattern ( comma pattern )* rbrace
-                        -> {kind: "ordered",          patterns: {first: $3, rest: $4}}
+                        -> {kind: "ordered",          patterns: [$3, $4::2*]}
                 | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
                         -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
 
@@ -2750,7 +2750,7 @@ procedural_timing_control_statement := procedural_timing_control statement_or_nu
 
 @profiles: ["sv_2017"]
 production_sv_2017 := ( data_type_or_void )? production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
-                   -> {return_type: $1, name: $2, ports: $3, rules: {first: $5, rest: $6}}
+                   -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
 production := production_sv_2017
 
@@ -2955,7 +2955,7 @@ range_expression := expression        -> {kind: "expression",        body: $1}
 
 @profiles: ["sv_2023"]
 range_list_sv_2023 := value_range ( comma value_range )*
-                   -> {first: $1, rest: $2}
+                   -> [$1, $2::2*]
 
 range_list := range_list_sv_2023
 
@@ -2977,13 +2977,13 @@ rs_case := kw_case_6406510c lparen case_expression rparen rs_case_item rs_case_i
 
 @profiles: ["sv_2017"]
 rs_case_item_sv_2017 := case_item_expression ( comma case_item_expression )* colon production_item semi
-                             -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+                             -> {kind: "expr_list", exprs: [$1, $2::2*], body: $4}
                       | kw_default_7505d64a ( colon )? production_item semi
                              -> {kind: "default",   body: $3}
 
 @profiles: ["sv_2023"]
 rs_case_item_sv_2023 := case_item_expression ( comma case_item_expression )* colon rs_production_item semi
-                             -> {kind: "expr_list", exprs: {first: $1, rest: $2}, body: $4}
+                             -> {kind: "expr_list", exprs: [$1, $2::2*], body: $4}
                       | kw_default_7505d64a ( colon )? rs_production_item semi
                              -> {kind: "default",   body: $3}
 
@@ -3020,7 +3020,7 @@ rs_prod := rs_prod_sv_2017 | rs_prod_sv_2023
 
 @profiles: ["sv_2023"]
 rs_production_sv_2023 := ( data_type_or_void )? rs_production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
-                      -> {return_type: $1, name: $2, ports: $3, rules: {first: $5, rest: $6}}
+                      -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
 rs_production := rs_production_sv_2023
 
@@ -3425,7 +3425,7 @@ tf_port_item := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4e786 )? 
              -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
 
 tf_port_list := tf_port_item ( comma tf_port_item )*
-             -> {first: $1, rest: $2}
+             -> [$1, $2::2*]
 
 tfall_path_delay_expression := path_delay_expression
 
@@ -3582,7 +3582,7 @@ udp_declaration := udp_declaration_sv_2017 | udp_declaration_sv_2023
 
 @sample: "output o, input i"
 udp_declaration_port_list := udp_output_declaration comma udp_input_declaration ( comma udp_input_declaration )*
-                          -> {output: $1, inputs: {first: $3, rest: $4}}
+                          -> {output: $1, inputs: [$3, $4::2*]}
 
 udp_identifier := identifier
 
@@ -3607,7 +3607,7 @@ udp_output_declaration := attribute_instance* kw_output_1029d676 port_identifier
 udp_port_declaration := udp_output_declaration semi | udp_input_declaration semi | udp_reg_declaration semi
 
 udp_port_list := output_port_identifier comma input_port_identifier ( comma input_port_identifier )*
-              -> {output: $1, inputs: {first: $3, rest: $4}}
+              -> [$1, $3, $4::2*]
 
 udp_reg_declaration := attribute_instance* kw_reg_e06b9586 variable_identifier
 
@@ -3677,7 +3677,7 @@ variable_identifier_list := variable_identifier ( comma variable_identifier )*
 variable_lvalue := ( variable_lvalue_scope )? hierarchical_variable_identifier select
                         -> {kind: "name",                  scope: $1, name: $2, select: $3}
                  | lbrace variable_lvalue ( comma variable_lvalue )* rbrace
-                        -> {kind: "concatenation",         items: {first: $2, rest: $3}}
+                        -> {kind: "concatenation",         items: [$2, $3::2*]}
                  | ( assignment_pattern_expression_type )? assignment_pattern_variable_lvalue
                         -> {kind: "pattern",               type: $1, body: $2}
                  | streaming_concatenation
@@ -3695,7 +3695,7 @@ wait_statement := kw_wait_daaad336 lparen expression rparen statement_or_null
                 | kw_wait_daaad336 kw_fork_3f673f2a semi
                        -> {kind: "wait_fork"}
                 | kw_wait_order_e1b7850a lparen hierarchical_identifier ( comma hierarchical_identifier )* rparen action_block
-                       -> {kind: "wait_order", events: {first: $3, rest: $4}, action: $6}
+                       -> {kind: "wait_order", events: [$3, $4::2*], action: $6}
 
 @profiles: ["sv_2017"]
 weight_specification_sv_2017 := integral_number          -> {kind: "number",     body: $1}

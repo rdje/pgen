@@ -19,6 +19,27 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.58 / Contract 1.0.58 — SV-Slice-58 audit: horizontal `{first, rest}` → `[$N, $M::2*]` extraction-spread fix across 49 grammar locations
+
+**What changed:** Horizontal correctness audit (not a typing slice). Replace `{first: $N, rest: $M}` (raw `[sep, item]` envelope) with `[$N, $M::2*]` (clean flat array of items, separators dropped) for every Category A rule (pure `X (sep X)*` with single payload per iteration). Annotation count unchanged at **939**.
+
+**Why:** Earlier slices defaulted to `{first, rest}` which exposed `[[sep, item], ...]` to consumers. The annotation language has a first-class extraction-spread operator `$N::M*` (defined in `grammars/return_annotation.ebnf` lines 50-58 and used by the bootstrap parser itself at line 158). For pure-list patterns it gives consumers a flat item array — no envelope walking required. This audit was triggered by user feedback after slice 57's `tf_port_list` was flagged.
+
+**Consumer-visible diff** (e.g. `tf_port_list := tf_port_item ( comma tf_port_item )*`):
+
+```
+Before  →  { first: <tf_port_item>, rest: [[<comma>, <tf_port_item>], ...] }
+After   →  [ <tf_port_item>, <tf_port_item>, ... ]
+```
+
+**Affected rules:** assignment_pattern, attribute_instance, bind_target_instance_list, case_generate_item, case_item, class_constructor_arg_list_sv_2023, concatenation, cond_predicate, constant_concatenation, data_type (enum names), dist_list, let_port_list, list_of_arguments_{mixed,ordered,named}, list_of_checker_port_connections, list_of_clocking_decl_assign, list_of_cross_items (also flattened first/second/rest into a single array), list_of_defparam_assignments, list_of_genvar_identifiers, list_of_net_assignments, list_of_net_decl_assignments, list_of_param_assignments, list_of_parameter_assignments_sv_2017, list_of_parameter_value_assignments_sv_2023, list_of_path_inputs, list_of_path_outputs, list_of_port_connections, list_of_ports, list_of_specparam_assignments, list_of_type_assignments, list_of_udp_port_identifiers, list_of_variable_assignments, list_of_variable_decl_assignments, net_lvalue (concat), open_range_list_sv_2017, package_export_declaration (explicit), package_import_declaration, pattern_sv_2017/2023 (ordered), production_sv_2017, range_list_sv_2023, rs_case_item_sv_2017/2023, rs_production_sv_2023, tf_port_list, udp_declaration_port_list, udp_port_list, variable_lvalue (concat), wait_order_statement (events).
+
+**Deferred to SV-Slice-59** (Category B — multi-payload per iteration, requires helper-rule extractions): constant_expression op-chain, expression operand_chain, list_of_*_identifiers families with dims/init payloads, pattern named-branch entries.
+
+**Deferred to post-campaign holistic review** (Category C — `X X*` with no separator, currently `{first, rest}` works correctly but verbosely).
+
+**Calibration:** parses minimal_module.sv unchanged. Annotation inventory at 939 (unchanged). Same accept set.
+
 ### 1.0.57 / Contract 1.0.57 — SV-Slice-57 batch: tf_port + prototypes + lvalue/decl_assignment family typed (12 rules / 23 annotations + 1 new helper rule with 2 annotations)
 
 **What changed:** Closes the LRM A.2.7 task/function port-list family + prototype rules + LRM A.8.1 lvalue family.

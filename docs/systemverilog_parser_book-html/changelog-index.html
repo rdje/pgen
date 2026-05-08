@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-87ed6627.js";
+            window.path_to_searchindex_js = "searchindex-ddd3af1f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,17 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1058--contract-1058--sv-slice-58-audit-horizontal-first-rest--n-m2-extraction-spread-fix-across-49-grammar-locations"><a class="header" href="#1058--contract-1058--sv-slice-58-audit-horizontal-first-rest--n-m2-extraction-spread-fix-across-49-grammar-locations">1.0.58 / Contract 1.0.58 — SV-Slice-58 audit: horizontal <code>{first, rest}</code> → <code>[$N, $M::2*]</code> extraction-spread fix across 49 grammar locations</a></h3>
+<p><strong>What changed:</strong> Horizontal correctness audit (not a typing slice). Replace <code>{first: $N, rest: $M}</code> (raw <code>[sep, item]</code> envelope) with <code>[$N, $M::2*]</code> (clean flat array of items, separators dropped) for every Category A rule (pure <code>X (sep X)*</code> with single payload per iteration). Annotation count unchanged at <strong>939</strong>.</p>
+<p><strong>Why:</strong> Earlier slices defaulted to <code>{first, rest}</code> which exposed <code>[[sep, item], ...]</code> to consumers. The annotation language has a first-class extraction-spread operator <code>$N::M*</code> (defined in <code>grammars/return_annotation.ebnf</code> lines 50-58 and used by the bootstrap parser itself at line 158). For pure-list patterns it gives consumers a flat item array — no envelope walking required. This audit was triggered by user feedback after slice 57’s <code>tf_port_list</code> was flagged.</p>
+<p><strong>Consumer-visible diff</strong> (e.g. <code>tf_port_list := tf_port_item ( comma tf_port_item )*</code>):</p>
+<pre><code>Before  →  { first: &lt;tf_port_item&gt;, rest: [[&lt;comma&gt;, &lt;tf_port_item&gt;], ...] }
+After   →  [ &lt;tf_port_item&gt;, &lt;tf_port_item&gt;, ... ]
+</code></pre>
+<p><strong>Affected rules:</strong> assignment_pattern, attribute_instance, bind_target_instance_list, case_generate_item, case_item, class_constructor_arg_list_sv_2023, concatenation, cond_predicate, constant_concatenation, data_type (enum names), dist_list, let_port_list, list_of_arguments_{mixed,ordered,named}, list_of_checker_port_connections, list_of_clocking_decl_assign, list_of_cross_items (also flattened first/second/rest into a single array), list_of_defparam_assignments, list_of_genvar_identifiers, list_of_net_assignments, list_of_net_decl_assignments, list_of_param_assignments, list_of_parameter_assignments_sv_2017, list_of_parameter_value_assignments_sv_2023, list_of_path_inputs, list_of_path_outputs, list_of_port_connections, list_of_ports, list_of_specparam_assignments, list_of_type_assignments, list_of_udp_port_identifiers, list_of_variable_assignments, list_of_variable_decl_assignments, net_lvalue (concat), open_range_list_sv_2017, package_export_declaration (explicit), package_import_declaration, pattern_sv_2017/2023 (ordered), production_sv_2017, range_list_sv_2023, rs_case_item_sv_2017/2023, rs_production_sv_2023, tf_port_list, udp_declaration_port_list, udp_port_list, variable_lvalue (concat), wait_order_statement (events).</p>
+<p><strong>Deferred to SV-Slice-59</strong> (Category B — multi-payload per iteration, requires helper-rule extractions): constant_expression op-chain, expression operand_chain, list_of_*_identifiers families with dims/init payloads, pattern named-branch entries.</p>
+<p><strong>Deferred to post-campaign holistic review</strong> (Category C — <code>X X*</code> with no separator, currently <code>{first, rest}</code> works correctly but verbosely).</p>
+<p><strong>Calibration:</strong> parses minimal_module.sv unchanged. Annotation inventory at 939 (unchanged). Same accept set.</p>
 <h3 id="1057--contract-1057--sv-slice-57-batch-tf_port--prototypes--lvaluedecl_assignment-family-typed-12-rules--23-annotations--1-new-helper-rule-with-2-annotations"><a class="header" href="#1057--contract-1057--sv-slice-57-batch-tf_port--prototypes--lvaluedecl_assignment-family-typed-12-rules--23-annotations--1-new-helper-rule-with-2-annotations">1.0.57 / Contract 1.0.57 — SV-Slice-57 batch: tf_port + prototypes + lvalue/decl_assignment family typed (12 rules / 23 annotations + 1 new helper rule with 2 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the LRM A.2.7 task/function port-list family + prototype rules + LRM A.8.1 lvalue family.</p>
 <pre><code class="language-ebnf">tf_port_list                         -&gt; {first, rest}

@@ -14,7 +14,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `source_text_item` (8 branches) | per-branch `{kind: "<name>", body: $1}` (or `{kind: "semi"}` for branch 7) | Typed object with `kind` discriminator: `"description"`, `"local_parameter_declaration"`, `"parameter_declaration"`, `"package_import_declaration"`, `"timeunits_declaration"`, `"compiler_directive"`, `"comment_only_source_region"`, `"semi"`. The `body` field carries the matched sub-rule's raw envelope OR a typed sub-rule shape if that sub-rule is itself annotated. For `kind: "description"`, body is now itself typed (per SV-Slice-4). The `semi` branch carries no `body` since it's just a stray `;`. Trailing `semi` dropped in branches 1 and 2 (annotation references `$1` only). |
 | `description` (8 branches) | per-branch `{kind: "<name>", body: $1}` for single-element branches; `{kind: "<name>", attributes: $1, body: $2}` for multi-element branches with `attribute_instance*` prefix | Typed object with `kind` discriminator: `"module_declaration"`, `"udp_declaration"`, `"interface_declaration"`, `"program_declaration"`, `"package_declaration"`, `"package_item"`, `"bind_directive"`, `"config_declaration"`. The `attributes` field (only on `package_item` / `bind_directive` branches) carries the leading `attribute_instance*` iteration. The `body` field carries the matched sub-rule's raw envelope (per-rule typing of `module_declaration`, etc. is a follow-up slice). |
 | `compiler_directive` | `-> $2` (transparent passthrough of regex capture) | Clean JSON string carrying the matched directive text (backtick + directive name + arguments, e.g. `"`define FOO bar"`). Drops the leading `trivia` slot. When `source_text_item.kind == "compiler_directive"`, the body is now a directly-usable string. |
-| `attribute_instance` | `-> {first: $2, rest: $3}` | Typed object `{first: <attr_spec shape>, rest: <( comma attr_spec )* iteration>}`. Drops the `attr_open` (`(*`) and `attr_close` (`*)`) delimiters. The `first` field carries the leading attr_spec; `rest` carries the trailing reps as a Quantified iteration where each entry is `[comma, attr_spec]`. Mixed-array spread `[$2, $3**]` is currently blocked by an annotation-language limitation; the cleaner flat-array form is deferred until that's resolved. |
+| `attribute_instance` | `-> [$2, $3::2*]` | Flat array `[<attr_spec shape>, <attr_spec shape>, ...]`. Drops the `attr_open` (`(*`) and `attr_close` (`*)`) delimiters and the comma separators between attr_specs. Slice 58 audit replaced the prior `{first, rest}` shape with the flat extraction-spread form per `grammars/return_annotation.ebnf` line 158's self-application. |
 | `module_declaration_sv_2017` (5 branches) | per-branch typed shapes, see contract section "Release 1.0.6 / Contract 1.0.6 Highlights" for the full annotation source | Typed object with `kind` discriminator: `"ansi"` / `"nonansi"` / `"wildcard"` / `"extern_nonansi"` / `"extern_ansi"`. Single-form branches expose `header / timeunits / items / end_label`. The wildcard branch additionally exposes `attributes / keyword / lifetime / name`. Extern branches expose only `header`. |
 | `module_declaration_sv_2023` (5 branches) | per-branch typed shapes (same kind set as sv_2017) | Identical kind discriminator and field names as sv_2017. Wildcard branch's positional indices shift due to `dot star` (2 tokens) vs `dot_star` (1 token); user-visible AST is identical to sv_2017. |
 | `module_keyword` (2 branches) | `-> {kind: "module"}` / `-> {kind: "macromodule"}` | Typed object with `kind` discriminator. Drops the keyword token (redundant with `kind`). When referenced by parent rules (e.g. module_ansi_header.keyword), the typed shape propagates automatically. |
@@ -45,25 +45,25 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `package_item` (4 branches) | per-branch `{kind, body}` | Kind labels: `"declaration"` (package_or_generate_item_declaration) / `"anonymous_program"` / `"export"` (package_export_declaration) / `"timeunits"` (timeunits_declaration). |
 | `bind_target_scope` (2 branches) | per-branch `{kind, name}` | Kind labels: `"module"` / `"interface"`. `name` is a clean identifier string. |
 | `bind_target_instance` | `-> {name, bit_select}` | 2-element typed object. `name` is the hierarchical_identifier, `bit_select` is the constant_bit_select. |
-| `bind_target_instance_list` | `-> {first, rest}` | Mini-mixed-array workaround for `bind_target_instance (comma bind_target_instance)*`. |
+| `bind_target_instance_list` | `-> [$1, $2::2*]` | Flat array of `bind_target_instance` shapes. Slice 58 audit replaced `{first, rest}` with extraction-spread. |
 | `interface_class_declaration` | `-> {name, parameters, extends, items, end_label}` | Single-sequence shape mirror to class_declaration. |
 | `config_declaration` | `-> {name, local_params, design, rules, end_label}` | Single-sequence shape with config-specific fields. |
-| `list_of_ports` | `-> {first, rest}` | Drops `lparen`/`rparen`; mini-mixed-array workaround for `port (comma port)*`. |
+| `list_of_ports` | `-> [$2, $3::2*]` | Flat array of `port` shapes. Drops `lparen`/`rparen` and the comma separators (slice 58 audit). |
 | `list_of_port_declarations` | `-> $2` | Transparent passthrough of the optional inner content (which is itself a 3-element envelope when populated). Drops parens. |
-| `udp_port_list` | `-> {output, inputs: {first, rest}}` | UDP-specific port list (uses port identifiers, not full declarations). `output` is a clean string (output_port_identifier); `inputs` is the {first, rest} array of input_port_identifier strings. |
-| `udp_declaration_port_list` | `-> {output, inputs: {first, rest}}` | Parallel shape to udp_port_list but inner sub-rules are full declarations (udp_output_declaration / udp_input_declaration) instead of identifier strings. |
+| `udp_port_list` | `-> [$1, $3, $4::2*]` | Flat array `[<output_port_identifier>, <input_port_identifier>, <input_port_identifier>, ...]`. Slice 58 audit flattened the prior `{output, inputs: {first, rest}}` into a single positional array; consumers identify the leading element as the output. |
+| `udp_declaration_port_list` | `-> {output, inputs: [$3, $4::2*]}` | Slice 58 audit replaced `inputs: {first, rest}` with flat extraction-spread; `output` field is preserved. `inputs` is now a flat array of `udp_input_declaration` shapes. |
 | `anonymous_program` | `-> {items}` | Drops kw_program/semi/kw_endprogram; surfaces only the items list. Reachable via package_item.kind = "anonymous_program". |
-| `package_export_declaration` (2 branches) | per-branch typed | Kind labels: `"wildcard"` (`export *::*;`, drops content) / `"explicit"` (with items: {first, rest}). |
+| `package_export_declaration` (2 branches) | per-branch typed | Kind labels: `"wildcard"` (`export *::*;`, drops content) / `"explicit"` (with `items: [$2, $3::2*]` — flat array of package_import_item per slice 58 audit). |
 | `port` (2 branches) | per-branch typed | Kind labels: `"expression"` (positional port — `expr` may be `[]` for empty placeholder) / `"named"` (`.name(expr)` form — `name` is clean identifier string). |
 | `port_direction` (4 branches) | per-branch `{kind}` | Kind labels: `"input"` / `"output"` / `"inout"` / `"ref"`. |
-| `package_import_declaration` | `-> {items: {first, rest}}` | Drops kw_import/semi; surfaces import items as {first, rest}. |
+| `package_import_declaration` | `-> {items: [$2, $3::2*]}` | Drops kw_import/semi; surfaces import items as a flat array (slice 58 audit). |
 | `package_import_item` (2 branches) | per-branch typed | Kind labels: `"explicit"` (`pkg::name` with `package` and `name` as clean identifier strings) / `"wildcard"` (`pkg::*` with only `package`). |
 | `udp_body` (2 branches) | per-branch `{kind, body}` | Kind labels: `"combinational"` / `"sequential"`. |
 | `udp_input_declaration` | `-> {attributes, identifiers}` | Drops kw_input. `identifiers` is the typed list_of_udp_port_identifiers `{first, rest}`. |
 | `udp_output_declaration` (2 branches) | per-branch typed | Kind labels: `"wire"` (no `assign` clause) / `"reg"` (with optional default). |
 | `combinational_body` | `-> {entries: {first, rest}}` | Drops kw_table/kw_endtable. Entries are the truth-table rows. |
 | `sequential_body` | `-> {initial, entries: {first, rest}}` | Preserves optional initial statement. |
-| `list_of_udp_port_identifiers` | `-> {first, rest}` | Mini-mixed-array workaround for `port_identifier (comma port_identifier)*`. |
+| `list_of_udp_port_identifiers` | `-> [$1, $2::2*]` | Flat array of port_identifier strings (slice 58 audit). |
 | `combinational_entry` | `-> {inputs, output}` | Single truth-table row for combinational UDP. |
 | `sequential_entry` | `-> {inputs, current_state, next_state}` | Single state-transition row for sequential UDP. |
 | `udp_initial_statement` | `-> {name, init_val}` | Initial value assignment for sequential UDP. |
@@ -91,7 +91,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `if_generate_construct` | `-> {condition: $3, then_block: $5, else_clause: $6}` | Single-sequence typed. `condition` is the matched constant_expression. `then_block` is the matched generate_block. `else_clause` is `[]` when no else is present, or `[<if_generate_else_clause shape>]` when one is matched. Drops `kw_if`, `lparen`, `rparen`. Reached from `conditional_generate_construct.kind == "if"`. |
 | `if_generate_else_clause` (NEW; 2 branches) | per-branch `{kind, body}` | Kind labels: `"elseif"` (body is itself an if_generate_construct — supports `else if` chains) / `"else_block"` (body is a generate_block — terminal else). Helper rule extracted from inline `( kw_else if_generate_construct \| kw_else generate_block )?` to dodge task #38. |
 | `case_generate_construct` | `-> {expr: $3, items: {first: $5, rest: $6}}` | Single-sequence typed. `expr` is the case-discriminant constant_expression. `items` is a {first, rest} mini-mixed-array (first matched case_generate_item + raw Quantified iteration of repeats). Drops `kw_case`, `lparen`, `rparen`, `kw_endcase`. |
-| `case_generate_item` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: {first, rest}, block}` — N-way label-list form `expr1, expr2, ... : block`; mini-mixed-array on `exprs`) / `"default"` (`{block}` — drops `kw_default` and the optional `( colon )?` separator). |
+| `case_generate_item` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: [$1, $2::2*], block}` — flat array of constant_expression labels per slice 58 audit) / `"default"` (`{block}` — drops `kw_default` and the optional `( colon )?` separator). |
 | `assertion_item` (2 branches) | per-branch `{kind, body}` | Kind labels: `"concurrent"` / `"deferred_immediate"`. Reached from `module_common_item.kind == "assertion_item"`. |
 | `assertion_item_declaration` (3 branches) | per-branch `{kind, body}` | Kind labels: `"property"` / `"sequence"` / `"let"`. Reached from `package_or_generate_item_declaration.kind == "assertion_item_declaration"`. |
 | `concurrent_assertion_item` (2 branches) | per-branch typed | Kind labels: `"statement"` (`{label, body}` — `label` is the optional `( block_identifier colon )?` per LRM A.6.10; `[]` when no label) / `"checker_instantiation"` (`{body}`). |
@@ -151,7 +151,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `block_item_declaration` (4 branches) | per-branch `{kind, attributes, body}` | Kind labels: `"block_data"` / `"local_parameter"` / `"parameter"` / `"let"`. Each preserves leading `attribute_instance*` prefix. Reached from `tf_item_declaration.kind == "block_item"`. |
 | `disable_statement` (3 branches) | per-branch typed | Kind labels: `"task"` (`{target}`) / `"block"` (`{target}`) / `"fork"` (bare). Reached from `statement_item.kind == "disable"`. |
 | `jump_statement` (3 branches) | per-branch typed | Kind labels: `"return"` (`{value}` — value is `[]` for bare `return;` or `[<expr>]` for `return expr;`) / `"break"` (bare) / `"continue"` (bare). |
-| `wait_statement` (3 branches) | per-branch typed | Kind labels: `"wait"` (`{condition, body}`) / `"wait_fork"` (bare) / `"wait_order"` (`{events: {first, rest}, action}` — wait order(e1, e2, ..., eN) action_block; mini-mixed-array on events). |
+| `wait_statement` (3 branches) | per-branch typed | Kind labels: `"wait"` (`{condition, body}`) / `"wait_fork"` (bare) / `"wait_order"` (`{events: [$3, $4::2*], action}` — wait order(e1, e2, ..., eN) action_block; flat array of hierarchical_identifier values per slice 58 audit). |
 | `event_trigger_sv_2017` (2 branches) | per-branch typed | Kind labels: `"non_blocking"` (`{name}` — `-> name;`) / `"blocking"` (`{control, name}` — `->> [delay] name;`). |
 | `event_trigger_sv_2023` (2 branches) | per-branch typed | Same 2 kinds as sv_2017 plus a `select` field per branch (LRM 2023 nonrange_select extension). |
 | `procedural_timing_control_statement` | `-> {control: $1, body: $2}` | Standard timing-controlled statement form: `<control> statement_or_null`. Reached from `statement_item.kind == "procedural_timing_control"`. |
@@ -162,7 +162,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `par_block` | `-> {label, declarations, statements, join, end_label}` | Same as seq_block plus `join` field carrying the typed `join_keyword` (discriminates `join` / `join_any` / `join_none` per SV-Slice-7). |
 | `case_statement` | `-> {unique_priority, keyword, expr, items: {first, rest}}` | Drops `kw_endcase` and parens. `keyword` is the typed `case_keyword` (case/casez/casex). `items` is mini-mixed-array with first matched case_item + rest iteration. `unique_priority` raw envelope (still — see DEFERRED in slice 34 contract). |
 | `case_keyword` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"case"` / `"casez"` / `"casex"`. |
-| `case_item` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: {first, rest}, body}` — N-way label-list `expr1, expr2, ... : stmt;`) / `"default"` (`{body}` — drops `kw_default` and optional colon). Same shape pattern as case_generate_item from SV-Slice-23. |
+| `case_item` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: [$1, $2::2*], body}` — flat array of case_item_expression labels per slice 58 audit) / `"default"` (`{body}` — drops `kw_default` and optional colon). |
 | `case_pattern_item` (2 branches) | per-branch typed | Kind labels: `"pattern"` (`{pattern, condition, body}` — `condition` is the optional `&&& expression` guard per LRM A.6.7.1) / `"default"` (`{body}`). |
 | `case_inside_item_sv_2017` (2 branches) | per-branch typed | Kind labels: `"range_list"` (`{ranges, body}` — ranges is open_range_list) / `"default"` (`{body}`). |
 | `case_inside_item_sv_2023` (2 branches) | per-branch typed | Same kind labels as sv_2017; ranges field uses LRM 2023 `range_list` (simplified naming). |
@@ -182,17 +182,17 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `class_or_package_scope` (NEW; 3 branches) | per-branch typed | Kind labels: `"instance"` (`{handle}` — implicit_class_handle dot prefix, typically `this.` / `super.`) / `"class_scope"` (`{body}` — `ClassName::`) / `"package_scope"` (`{body}` — `pkg::`). Helper rule extracted from inline `( implicit_class_handle dot \| class_scope \| package_scope )?` to dodge task #38. 4th use of the helper-rule extraction pattern. |
 | `randsequence_statement_sv_2017` | `-> {start, productions: {first, rest}}` | Drops `kw_randsequence`, parens, `kw_endsequence`. `start` is `[]` for `randsequence () ...`, `[<production_identifier>]` for `randsequence (top) ...`. `productions` is mini-mixed-array (first + rest). |
 | `randsequence_statement_sv_2023` | `-> {start, productions: {first, rest}}` | Same shape as sv_2017. References `rs_production_identifier` / `rs_production` per LRM 2023 namespacing (the typed shape is identical for consumers). |
-| `production_sv_2017` | `-> {return_type, name, ports, rules: {first, rest}}` | Drops `colon` and trailing `semi`. `return_type` is the optional `data_type_or_void` prefix. `ports` is the optional `( lparen tf_port_list rparen )?` slot. `rules` is mini-mixed-array — each entry in `rest` is a `[bitwise_or_token, rs_rule]` pair (alternative rules separated by `|`). |
+| `production_sv_2017` | `-> {return_type, name, ports, rules: [$5, $6::2*]}` | Drops `colon` and trailing `semi`. `return_type` is the optional `data_type_or_void` prefix. `ports` is the optional `( lparen tf_port_list rparen )?` slot. `rules` is a flat array of `rs_rule` shapes (slice 58 audit dropped the `bitwise_or` separators). |
 | `production_item_sv_2017` | `-> {name, args}` | `args` is the optional `( lparen list_of_arguments rparen )?` slot — `[]` for plain reference, `[<arg list>]` when invoking with arguments. |
 | `rs_case` | `-> {expr, items: {first, rest}}` | Drops `kw_case` / `kw_endcase` / parens. |
-| `rs_case_item_sv_2017` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: {first, rest}, body}`) / `"default"` (`{body}`). |
+| `rs_case_item_sv_2017` (2 branches) | per-branch typed | Kind labels: `"expr_list"` (`{exprs: [$1, $2::2*], body}` per slice 58 audit) / `"default"` (`{body}`). |
 | `rs_case_item_sv_2023` (2 branches) | per-branch typed | Same kinds as sv_2017; uses rs_production_item per LRM 2023 namespacing. |
 | `rs_code_block` | `-> {body}` | Exposes the Quantified iteration of `( data_declaration* statement_or_null* )*` directly — each entry is `[data_declaration*-array, statement_or_null*-array]`. |
 | `rs_if_else_sv_2017` | `-> {condition, then_body, else_body}` | `else_body` is `[]` for if-without-else, `[<production_item>]` when present. |
 | `rs_if_else_sv_2023` | `-> {condition, then_body, else_body}` | Parallel; uses rs_production_item. |
 | `rs_prod_sv_2017` (5 branches) | per-branch `{kind, body}` | Kind labels: `"production_item"` / `"code_block"` / `"if_else"` / `"repeat"` / `"case"`. |
 | `rs_prod_sv_2023` (5 branches) | per-branch `{kind, body}` | Same 5 kinds as sv_2017; first branch is rs_production_item. |
-| `rs_production_sv_2023` | `-> {return_type, name, ports, rules: {first, rest}}` | Parallel to production_sv_2017 from SV-Slice-38. |
+| `rs_production_sv_2023` | `-> {return_type, name, ports, rules: [$5, $6::2*]}` | Parallel to production_sv_2017 (slice 58 audit). |
 | `rs_production_item_sv_2023` | `-> {name, args}` | Parallel to production_item_sv_2017 from SV-Slice-38. |
 | `rs_production_list_sv_2017` (2 branches) | per-branch typed | Kind labels: `"productions"` (`{items: {first, rest}}` — simple rs_prod sequence) / `"rand_join"` (`{join_count, items: {first, second, rest}}` — `rand join [(expr)] prod1 prod2 [prod3...]`; per LRM A.6.13 at least 2 production_items required). |
 | `rs_production_list_sv_2023` (2 branches) | per-branch typed | Same kinds; rand_join uses rs_production_item. |
@@ -207,7 +207,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `simple_immediate_cover_statement` | `-> {condition, statement}` | Uses `statement_or_null` instead of `action_block` (cover has no pass/fail branching). |
 | `inc_or_dec_expression` (2 branches) | per-branch typed | Kind labels: `"prefix"` (`{op, attributes, lvalue}` — `++a` / `--a`) / `"postfix"` (`{lvalue, attributes, op}` — `a++` / `a--`). The `attributes` slot carries inline `attribute_instance*` (LRM allows attributes between operator and operand). |
 | `weight_specification_sv_2017` (3 branches) | per-branch `{kind, body}` | Kind labels: `"number"` / `"identifier"` / `"expression"`. Parallel to `rs_weight_specification_sv_2023`. |
-| `data_type` (15 branches) | per-branch typed | Kind labels: `"integer_vector"` (`{base, signing, dims}` — bit/logic/reg with optional signing + packed dims) / `"integer_atom"` (`{base, signing}` — byte/shortint/int/longint/integer/time) / `"non_integer"` (`{base}` — shortreal/real/realtime) / `"struct_union"` (`{header, packed_signing, members: {first, rest}, dims}`) / `"enum"` (`{base_type, names: {first, rest}, dims}`) / `"string"` / `"chandle"` / `"event"` (bare; no body) / `"virtual_interface"` (`{interface_keyword, name, params, modport}`) / `"scoped_data_type"` / `"known_unscoped_data_type"` / `"class_type"` / `"provisional_class_type"` / `"covergroup"` / `"type_reference"` (each `{body}`). |
+| `data_type` (15 branches) | per-branch typed | Kind labels: `"integer_vector"` (`{base, signing, dims}` — bit/logic/reg with optional signing + packed dims) / `"integer_atom"` (`{base, signing}` — byte/shortint/int/longint/integer/time) / `"non_integer"` (`{base}` — shortreal/real/realtime) / `"struct_union"` (`{header, packed_signing, members: {first, rest}, dims}` — Category C, kept as-is) / `"enum"` (`{base_type, names: [$4, $5::2*], dims}` — slice 58 audit applied to the enum_name_declaration list) / `"string"` / `"chandle"` / `"event"` (bare; no body) / `"virtual_interface"` (`{interface_keyword, name, params, modport}`) / `"scoped_data_type"` / `"known_unscoped_data_type"` / `"class_type"` / `"provisional_class_type"` / `"covergroup"` / `"type_reference"` (each `{body}`). |
 | `data_type_or_implicit` (2 branches) | per-branch `{kind, body}` | Kind labels: `"data_type"` / `"implicit"`. |
 | `data_type_or_void` (2 branches) | per-branch typed | Kind labels: `"data_type"` (`{body}`) / `"void"` (bare). |
 | `data_type_or_incomplete_class_scoped_type_sv_2023` (2 branches) | per-branch `{kind, body}` | Kind labels: `"data_type"` / `"incomplete_class_scoped"`. |
@@ -229,28 +229,28 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `class_type_head` (NEW; 3 branches) | per-branch `{kind, body}` | Kind labels: `"scoped"` / `"class"` / `"interface_class"`. Helper rule extracted from leading 3-way parens-Or in class_type to dodge task #38. |
 | `parameter_value_assignment_sv_2017` | `-> {params: $3}` | Drops `hash`, parens. `params` is `[]` for `#()`, `[<list_of_parameter_assignments shape>]` for non-empty form. |
 | `parameter_value_assignment_sv_2023` | `-> {params: $3}` | Parallel; uses list_of_parameter_value_assignments per LRM 2023 naming. |
-| `list_of_parameter_assignments_sv_2017` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"ordered"` (positional `#(8, 16)`) / `"named"` (keyword `#(.N(8), .M(16))`). |
-| `list_of_parameter_value_assignments_sv_2023` (2 branches) | per-branch `{kind, items: {first, rest}}` | Same kinds as sv_2017. |
+| `list_of_parameter_assignments_sv_2017` (2 branches) | per-branch `{kind, items: [$1, $2::2*]}` (slice 58 audit) | Kind labels: `"ordered"` (positional `#(8, 16)`) / `"named"` (keyword `#(.N(8), .M(16))`). |
+| `list_of_parameter_value_assignments_sv_2023` (2 branches) | per-branch `{kind, items: [$1, $2::2*]}` (slice 58 audit) | Same kinds as sv_2017. |
 | `named_parameter_assignment` | `-> {name: $2, value: $4}` | Drops `dot` / parens. `value` is `[]` for `.name()`, `[<param_expression>]` for `.name(expr)`. |
 | `named_argument` | `-> {name: $2, value: $4}` | Same shape as named_parameter_assignment. |
 | `list_of_arguments` (3 branches) | per-branch `{kind, body}` | Kind labels: `"ordered"` / `"named"` / `"mixed"` (positional + trailing named, e.g., `f(1, 2, .x(3))`). |
-| `list_of_arguments_ordered` | `-> {first: $1, rest: $2}` | `first` is `[]` for empty arg, `[<expression>]` otherwise. |
-| `list_of_arguments_named` | `-> {first: $1, rest: $2}` | All-named form. |
-| `list_of_arguments_mixed` | `-> {head: $1, named: {first: $3, rest: $4}}` | `head` is the typed `list_of_arguments_mixed_head` (positional prefix). `named` is mini-mixed-array of trailing named arguments. |
+| `list_of_arguments_ordered` | `-> [$1, $2::2*]` | Flat array `[<optional expression>, <optional expression>, ...]`. Each element is `[]` for empty arg, `[<expression>]` otherwise (slice 58 audit). |
+| `list_of_arguments_named` | `-> [$1, $2::2*]` | Flat array of named_argument shapes (slice 58 audit). |
+| `list_of_arguments_mixed` | `-> {head: $1, named: [$3, $4::2*]}` | `head` is the typed `list_of_arguments_mixed_head` (positional prefix). `named` is a flat array of trailing named_argument shapes (slice 58 audit). |
 | `list_of_arguments_mixed_head` (2 branches) | per-branch typed | Kind labels: `"single"` (`{body}` — single positional argument) / `"chain"` (`{expr, rest}` — recursive: optional expression followed by comma followed by recursive head). |
-| `list_of_clocking_decl_assign` / `list_of_defparam_assignments` / `list_of_genvar_identifiers` / `list_of_net_assignments` / `list_of_net_decl_assignments` / `list_of_param_assignments` / `list_of_path_inputs` / `list_of_path_outputs` / `list_of_specparam_assignments` / `list_of_type_assignments` / `list_of_variable_assignments` / `list_of_variable_decl_assignments` (12 rules) | `-> {first, rest}` | Uniform mini-mixed-array. `first` is the leading required item; `rest` is the trailing iteration of `[comma, item]` pairs. |
+| `list_of_clocking_decl_assign` / `list_of_defparam_assignments` / `list_of_genvar_identifiers` / `list_of_net_assignments` / `list_of_net_decl_assignments` / `list_of_param_assignments` / `list_of_path_inputs` / `list_of_path_outputs` / `list_of_specparam_assignments` / `list_of_type_assignments` / `list_of_variable_assignments` / `list_of_variable_decl_assignments` (12 rules) | `-> [$1, $2::2*]` | Uniform flat array of inner-rule shapes. Slice 58 audit replaced the prior `{first, rest}` mini-mixed-array. |
 | `list_of_interface_identifiers` / `list_of_port_identifiers` / `list_of_variable_identifiers` (3 rules) | `-> {first: {name, dims}, rest}` | Per-item `{name, dims}` (identifier + trailing unpacked/variable dimension list per LRM); `rest` is iteration of comma-prefixed items. |
 | `list_of_tf_variable_identifiers` | `-> {first: {name, dims, init}, rest}` | Per-item adds `init: ( assign expression )?` slot. |
 | `list_of_variable_port_identifiers` | `-> {first: {name, dims, init}, rest}` | Same shape; `init` is `( assign constant_expression )?`. |
 | `list_of_cross_items` | `-> {first, second, rest}` | Cross requires ≥2 items per LRM A.2.11 — `first` and `second` are required, `rest` is the trailing iteration. |
-| `list_of_checker_port_connections` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"ordered"` / `"named"`. |
-| `list_of_port_connections` (2 branches) | per-branch `{kind, items: {first, rest}}` | Kind labels: `"named"` / `"ordered"`. PEG ordered choice tries named first. |
-| `cond_predicate` | `-> {first, rest}` | LRM A.6.7.1 `&&&`-separated chain of expression-or-cond_pattern values used in conditional statement predicates. |
+| `list_of_checker_port_connections` (2 branches) | per-branch `{kind, items: [$1, $2::2*]}` (slice 58 audit) | Kind labels: `"ordered"` / `"named"`. |
+| `list_of_port_connections` (2 branches) | per-branch `{kind, items: [$1, $2::2*]}` (slice 58 audit) | Kind labels: `"named"` / `"ordered"`. PEG ordered choice tries named first. |
+| `cond_predicate` | `-> [$1, $2::2*]` | LRM A.6.7.1 `&&&`-separated chain of expression-or-cond_pattern values. Flat array per slice 58 audit. |
 | `cond_pattern` | `-> {expression, pattern}` | The `expr matches pattern` form used in conditional_statement guards. Drops `kw_matches`. |
 | `expression_or_cond_pattern` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"cond_pattern"`. |
-| `pattern_sv_2017` (6 branches) | per-branch typed | Kind labels: `"variable_capture"` (`{name}` — `.name` form, binds matched value) / `"wildcard"` (`.*`) / `"expression"` (`{body}`) / `"tagged"` (`{name, sub_pattern}` — tagged-union pattern) / `"ordered"` (`{patterns: {first, rest}}` — `'{p1, p2}` positional struct pattern) / `"named"` (`{entries: {first: {name, pattern}, rest}}` — `'{n1: p1, n2: p2}` keyed pattern). |
+| `pattern_sv_2017` (6 branches) | per-branch typed | Kind labels: `"variable_capture"` (`{name}` — `.name` form, binds matched value) / `"wildcard"` (`.*`) / `"expression"` (`{body}`) / `"tagged"` (`{name, sub_pattern}` — tagged-union pattern) / `"ordered"` (`{patterns: [$3, $4::2*]}` — `'{p1, p2}` positional struct pattern; flat array per slice 58 audit) / `"named"` (`{entries: {first: {name, pattern}, rest}}` — `'{n1: p1, n2: p2}` keyed pattern; queued for slice 59 helper-rule extraction). |
 | `pattern_sv_2023` (7 branches) | per-branch typed | Same 6 kinds as sv_2017 plus `"parenthesized"` (`{body}` — `(pattern)` form added in LRM 2023 A.6.7.1 grammar expansion). |
-| `assignment_pattern` | `-> {exprs: {first, rest}}` | The `'{expr, expr, ...}` assignment-pattern form (drops tick / braces). Mini-mixed-array on exprs. |
+| `assignment_pattern` | `-> {exprs: [$3, $4::2*]}` | The `'{expr, expr, ...}` assignment-pattern form (drops tick / braces). Flat array on exprs per slice 58 audit. |
 | `expression` (3 branches) | per-branch `{kind, body}` | Kind labels: `"base"` (typed expression_base) / `"inside"` (typed inside_expression) / `"conditional"` (typed conditional_expression). |
 | `expression_base` (3 branches) | per-branch typed | Kind labels: `"tagged_union"` (`{body}`) / `"operand_chain"` (`{first, rest}` — binary-operator chain) / `"paren_op_assign"` (`{body}`). |
 | `expression_operand` (3 branches) | per-branch typed | Kind labels: `"unary"` (`{op, attributes, primary}`) / `"inc_or_dec"` (`{body}`) / `"primary"` (`{body}`). |
@@ -272,7 +272,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `constant_primary_sv_2023` (16 branches) | per-branch typed | sv_2017's 15 kinds plus `"empty_array_concat"` (`{body}`) added per LRM 2023; also `"function_call"` adds optional `select` field. Reuses `enum_id_scope_prefix` helper. |
 | `attr_spec` | `-> {name, value}` | LRM A.9.1 attribute spec: `name [= value]`. `value` is `[]` for bare attribute, `[<assign, expr>]` when explicit. |
 | `cast` / `constant_cast` | `-> {type, body}` | LRM cast form `type'(expr)`. Drops tick / parens. |
-| `concatenation` / `constant_concatenation` | `-> {first, rest}` | LRM `{e1, e2, ...}`. Mini-mixed-array. Drops braces. |
+| `concatenation` / `constant_concatenation` | `-> [$2, $3::2*]` | LRM `{e1, e2, ...}`. Flat array of expression shapes (slice 58 audit). Drops braces. |
 | `multiple_concatenation` / `constant_multiple_concatenation` | `-> {count, body}` | LRM `{N{...}}` replication. |
 | `streaming_concatenation` | `-> {op, slice_size, body}` | LRM A.8.1 `<<size{...}>>` / `>>{...}` form. `op` is `<<` or `>>`. `slice_size` is `[]` for default-bit-stream. |
 | `call_primary` (6 branches) | per-branch `{kind, body}` | Kind labels: `"split_direct_callable_method"` / `"class_scoped_tf"` / `"plain_tf"` / `"tf"` / `"direct_callable_method"` / `"system_tf"`. |
@@ -289,11 +289,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `range_expression` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"part_select_range"`. |
 | `part_select_range` / `constant_part_select_range` (2 branches each) | per-branch `{kind, body}` | Kind labels: `"range"` / `"indexed_range"`. |
 | `indexed_range` / `constant_indexed_range` (2 branches each) | per-branch typed | Kind labels: `"plus_indexed"` (`{base, width}` — `[base+:width]`) / `"minus_indexed"` (`{base, width}` — `[base-:width]`). LRM 1800-2017 §11.5.1. |
-| `dist_list` | `-> {first, rest}` | LRM dist clause iteration. Mini-mixed-array. |
+| `dist_list` | `-> [$1, $2::2*]` | LRM dist clause iteration. Flat array of dist_item shapes (slice 58 audit). |
 | `dist_item_sv_2017` | `-> {value, weight}` | Single value-range with optional weight. |
 | `dist_item_sv_2023` (2 branches) | per-branch typed | Kind labels: `"value"` (`{value, weight}`) / `"default"` (`{weight}` — `default :/ weight` form per LRM 2023). |
 | `dist_weight` (2 branches) | per-branch typed | Kind labels: `"equal"` (`{weight}` — `:=` operator, equal share) / `"proportional"` (`{weight}` — `:/` operator, divided weight). |
-| `range_list_sv_2023` / `open_range_list_sv_2017` | `-> {first, rest}` | Mini-mixed-array. |
+| `range_list_sv_2023` / `open_range_list_sv_2017` | `-> [$1, $2::2*]` | Flat array of value_range / open_value_range shapes (slice 58 audit). |
 | `value_range_sv_2017` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"`. |
 | `value_range_sv_2023` (5 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"` / `"dollar_lo"` (`[$:expr]`) / `"dollar_hi"` (`[expr:$]`) / `"tolerance"` (`[expr +/- expr]`). LRM 2023 expansion. |
 | `array_method_name` (5 branches) | per-branch typed | Kind labels: `"method_identifier"` (`{body}` — user-defined method) / `"unique"` / `"and"` / `"or"` / `"xor"` (bare; LRM-reserved array-builtin method names per A.2.10). |
@@ -326,11 +326,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `edge_identifier` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"posedge"` / `"negedge"` / `"edge"`. |
 | `method_prototype` (2 branches) | per-branch `{kind, body}` | Kind labels: `"task"` / `"function"`. |
 | `class_constructor_arg_sv_2023` (2 branches) | per-branch typed | Kind labels: `"tf_port_item"` (`{body}`) / `"default"` (bare; LRM 2023 explicit-default arg). |
-| `class_constructor_arg_list_sv_2023` | `-> {first, rest}` | Mini-mixed-array. |
+| `class_constructor_arg_list_sv_2023` | `-> [$1, $2::2*]` | Flat array of class_constructor_arg shapes (slice 58 audit). |
 | `class_constructor_declaration_sv_2017` | `-> {class_scope, ports, decls, super_call, statements, end_label}` | Drops `kw_function`, `kw_new`, `semi`, `kw_endfunction`. |
 | `class_constructor_declaration_sv_2023` | `-> {class_scope, ports, decls, super_call, statements, end_label}` | Parallel shape; uses `class_constructor_super_args` helper for the inner `( list_of_arguments \| kw_default )?` parens-Or in the super.new clause. |
 | `class_constructor_super_args` (NEW; 2 branches) | per-branch typed | Kind labels: `"args"` (`{body}` — `super.new(args);`) / `"default"` (bare — `super.new(default);`). Helper rule extracted from inline parens-Or to dodge task #38. |
-| `tf_port_list` | `-> {first, rest}` | Function/task port list. Mini-mixed-array. |
+| `tf_port_list` | `-> [$1, $2::2*]` | Function/task port list. Flat array of tf_port_item shapes (slice 58 audit — this is the rule the user pointed at to trigger the audit). |
 | `tf_port_item` | `-> {attributes, direction, var_keyword, data_type, port_spec}` | Single port-item per LRM A.2.7. |
 | `tf_port_direction_sv_2017` (2 branches) | per-branch typed | Kind labels: `"port_direction"` (`{body}`) / `"const_ref"` (bare). |
 | `tf_port_direction_sv_2023` (2 branches) | per-branch typed | Kind labels: `"port_direction"` (`{body}`) / `"ref"` (`{const_keyword, static_keyword}` — LRM 2023 expanded ref form). |
@@ -338,11 +338,11 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `function_prototype_sv_2023` | `-> {dynamic_override, return_type, name, ports}` | Adds LRM 2023 dynamic_override slot. |
 | `task_prototype_sv_2017` / `task_prototype_sv_2023` | `-> {[dynamic_override,] name, ports}` | Parallel to function_prototype. |
 | `let_port_item` | `-> {attributes, type, name, dims, init}` | LRM A.2.8 let port. |
-| `let_port_list` | `-> {first, rest}` | Mini-mixed-array. |
+| `let_port_list` | `-> [$1, $2::2*]` | Flat array of let_port_item shapes (slice 58 audit). |
 | `net_decl_assignment` | `-> {name, dims, init}` | Drops `assign` (init has the body). |
 | `variable_decl_assignment` (3 branches) | per-branch typed | Kind labels: `"variable"` (`{name, dims, init}`) / `"dynamic_array"` (`{name, unsized_dim, dims, init}`) / `"class"` (`{name, init}` — `class_var = new` form). |
-| `net_lvalue` (3 branches) | per-branch typed | Kind labels: `"name"` (`{name, select}`) / `"concatenation"` (`{items: {first, rest}}`) / `"pattern"` (`{type, body}`). |
-| `variable_lvalue` (4 branches) | per-branch typed | Kind labels: `"name"` (`{scope, name, select}` — scope uses NEW `variable_lvalue_scope` helper) / `"concatenation"` (`{items: {first, rest}}`) / `"pattern"` (`{type, body}`) / `"streaming_concatenation"` (`{body}`). |
+| `net_lvalue` (3 branches) | per-branch typed | Kind labels: `"name"` (`{name, select}`) / `"concatenation"` (`{items: [$2, $3::2*]}` — flat array per slice 58 audit) / `"pattern"` (`{type, body}`). |
+| `variable_lvalue` (4 branches) | per-branch typed | Kind labels: `"name"` (`{scope, name, select}` — scope uses NEW `variable_lvalue_scope` helper) / `"concatenation"` (`{items: [$2, $3::2*]}` — flat array per slice 58 audit) / `"pattern"` (`{type, body}`) / `"streaming_concatenation"` (`{body}`). |
 | `variable_lvalue_scope` (NEW; 2 branches) | per-branch typed | Kind labels: `"instance"` (`{handle}` — implicit_class_handle dot prefix) / `"package_scope"` (`{body}`). Helper extracted from inline `( implicit_class_handle dot \| non_typedef_package_scope )?` to dodge task #38. |
 
 ## Sub-rules with implicit defaults

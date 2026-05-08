@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.57`
+  - `1.0.58`
 - Parser release version:
-  - `1.0.57`
+  - `1.0.58`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,81 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.58 / Contract 1.0.58 Highlights — SV-Slice-58 audit: horizontal Category A `{first, rest}` → `[$N, $M::2*]` extraction-spread fix (49 grammar locations + 1 manual edit)
+
+This slice is a **horizontal correctness audit**, not a typing slice. It changes the *shape* of typed AST output for ~50 grammar rules — annotation count is unchanged at **939**. The change applies retroactively to typed annotations introduced in earlier slices (most prominently SV-Slice-44's `list_of_*` family, SV-Slice-45's pattern.ordered, SV-Slice-46's expression internals, SV-Slice-49's concat family, SV-Slice-52's range/dist family, and SV-Slice-57's `tf_port_list` / `let_port_list`).
+
+### Why
+
+Earlier slices defaulted to `{first: $1, rest: $2}` for any rule of the shape `X (sep X)*`. This pattern looks innocuous but exposes a **raw envelope** to consumers: `$2` references the entire `(sep X)*` Quantified-of-Sequence, whose value is `[[sep, X], [sep, X], ...]` — an array of 2-element inner-Sequence matches. Consumers of `rest` therefore had to walk past every separator entry. This contradicts the grammar's stated goal: shape AST so downstream consumers find what they need quickly without walking deep envelope structure.
+
+The annotation language has a first-class **extraction-spread** operator `$N::M*` (defined in `grammars/return_annotation.ebnf` lines 50-58 and self-applied at line 158: `object_properties := object_property (',' object_property)* -> [$1, $2::2*]`). It pulls position `M` from each entry of a Quantified-of-Sequence and spreads. For pure `X (sep X)*` lists this gives a flat array of items with separators dropped — no envelope walking required.
+
+### What changes
+
+For every Category A rule (pure `X (sep X)*` list — single-payload-per-iteration), the `{first: $N, rest: $M}` annotation becomes `[$N, $M::2*]`. Consumer-visible difference:
+
+```
+// Before (SV-Slice-57)
+{
+  "first": <tf_port_item>,
+  "rest": [
+    [<comma>, <tf_port_item>],
+    [<comma>, <tf_port_item>]
+  ]
+}
+
+// After (SV-Slice-58)
+[
+  <tf_port_item>,
+  <tf_port_item>,
+  <tf_port_item>
+]
+```
+
+The 49 affected rules:
+
+```
+assignment_pattern (`'{e, e, ...}` form), attribute_instance, bind_target_instance_list,
+case_generate_item (expr_list branch), case_item (expr_list branch),
+class_constructor_arg_list_sv_2023,
+concatenation, cond_predicate, constant_concatenation,
+data_type (enum branch's `names` field), dist_list, let_port_list,
+list_of_arguments_mixed (named tail), list_of_arguments_ordered, list_of_arguments_named,
+list_of_checker_port_connections (ordered+named), list_of_clocking_decl_assign,
+list_of_cross_items (also flattened: was `{first, second, rest}`, now `[first, second, ...rest]`),
+list_of_defparam_assignments, list_of_genvar_identifiers, list_of_net_assignments,
+list_of_net_decl_assignments, list_of_param_assignments,
+list_of_parameter_assignments_sv_2017 (ordered+named),
+list_of_parameter_value_assignments_sv_2023 (ordered+named),
+list_of_path_inputs, list_of_path_outputs,
+list_of_port_connections (named+ordered), list_of_ports,
+list_of_specparam_assignments, list_of_type_assignments, list_of_udp_port_identifiers,
+list_of_variable_assignments, list_of_variable_decl_assignments,
+net_lvalue (concat branch), open_range_list_sv_2017,
+package_export_declaration (explicit branch), package_import_declaration,
+pattern_sv_2017 (ordered branch), pattern_sv_2023 (ordered branch),
+production_sv_2017 (rules), range_list_sv_2023,
+rs_case_item_sv_2017 (expr_list branch), rs_case_item_sv_2023 (expr_list branch),
+rs_production_sv_2023 (rules), tf_port_list,
+udp_declaration_port_list, udp_port_list,
+variable_lvalue (concat branch), wait_order_statement (events).
+```
+
+### Deferred
+
+**Category B — multi-payload-per-iteration** rules (where the inner Sequence has multiple meaningful positions, e.g. `binary_operator attribute_instance* operand` or `port_identifier unpacked_dimension*`) keep their `{first, rest}` shape for now. These need helper-rule extractions to expose typed objects per iteration entry — queued for **SV-Slice-59**. Affected: `constant_expression`, `expression` operand_chain, `list_of_interface_identifiers`, `list_of_port_identifiers`, `list_of_tf_variable_identifiers`, `list_of_variable_identifiers`, `list_of_variable_port_identifiers`, `pattern_sv_2017/2023` named-branch entries.
+
+**Category C — `X X*` (no separator)** rules already produce a clean array via `$M*`, but currently use `{first: $N, rest: $M}` for verbose-but-correct semantics. Flattening to a single array is queued for the post-campaign holistic shape-correctness audit (per user direction).
+
+**Post-campaign holistic shape-correctness audit** is also queued: review the entire shaped AST end-to-end after the SV typing campaign is complete and adjust shapes for downstream ergonomics where useful.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. minimal_module is empty (no items), so the AST envelope is unchanged at the top level — but every `list_of_*`, every concatenation, every pattern ordered branch, every operand chain reachable from typed parents now exposes a flat item array instead of the raw envelope.
+
+The historical `Release 1.0.57 Highlights` section below shows `tf_port_list -> {first: $1, rest: $2}` and `let_port_list -> {first: $1, rest: $2}`. These are now `-> [$1, $2::2*]` post-slice-58. Consumers should treat the slice 58 form as authoritative.
 
 ## Release 1.0.57 / Contract 1.0.57 Highlights — SV-Slice-57 batch: tf_port + prototypes + lvalue/decl_assignment family typed (12 rules / 23 annotations + 1 new helper rule with 2 annotations)
 

@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-05-07 - SV-Slice-58 audit: horizontal `{first, rest}` → `[$N, $M::2*]` extraction-spread fix across 49 grammar locations (PGEN-SVP-0058)
+
+Horizontal correctness audit applied retroactively to typed annotations introduced across earlier slices. Replaces `{first: $N, rest: $M}` (raw `[sep, item]` envelope of `(sep X)*` Quantified-of-Sequence) with `[$N, $M::2*]` (clean flat array of items, separators dropped) for every Category A rule (pure `X (sep X)*` with single payload per iteration). Audit triggered by user observation that `tf_port_list := tf_port_item ( comma tf_port_item )* -> {first: $1, rest: $2}` exposed raw `[[comma, item], ...]` to consumers instead of a clean item array.
+
+The annotation language has a first-class extraction-spread operator `$N::M*` (defined in `grammars/return_annotation.ebnf` lines 50-58 and self-applied at line 158: `object_properties := object_property (',' object_property)* -> [$1, $2::2*]`). For pure-list patterns it gives consumers a flat item array — no envelope walking required. This aligns with the grammar's stated downstream-ergonomic goal: shape AST so consumers find what they need without walking deep envelope structure.
+
+Affected: assignment_pattern, attribute_instance, bind_target_instance_list, case_generate_item / case_item / rs_case_item_sv_2017/2023 (expr_list branches), class_constructor_arg_list_sv_2023, concatenation / constant_concatenation, cond_predicate, data_type enum branch's names, dist_list, let_port_list, list_of_arguments_{mixed,ordered,named}, list_of_checker_port_connections, list_of_clocking_decl_assign, list_of_cross_items (also flattened first/second/rest into single positional array), list_of_defparam_assignments, list_of_genvar_identifiers, list_of_net_assignments, list_of_net_decl_assignments, list_of_param_assignments, list_of_parameter_assignments_sv_2017, list_of_parameter_value_assignments_sv_2023, list_of_path_inputs/outputs, list_of_port_connections, list_of_ports, list_of_specparam_assignments, list_of_type_assignments, list_of_udp_port_identifiers, list_of_variable_assignments, list_of_variable_decl_assignments, net_lvalue (concat), open_range_list_sv_2017, package_export_declaration (explicit) / package_import_declaration, pattern_sv_2017/2023 (ordered branch), production_sv_2017 / rs_production_sv_2023 (`( bitwise_or rs_rule )*` chain), range_list_sv_2023, tf_port_list, udp_declaration_port_list / udp_port_list, variable_lvalue (concat), wait_order_statement (events).
+
+Annotation count unchanged at **939** (only shape changes, not count). Same accept set.
+
+DEFERRED to SV-Slice-59 (Category B — multi-payload-per-iteration, requires helper-rule extractions to expose typed objects per iteration entry): constant_expression op-chain, expression operand_chain, list_of_*_identifiers families with dims/init payloads, pattern named-branch entries.
+
+DEFERRED to post-campaign holistic review (Category C — `X X*` no separator, currently `{first, rest}` works correctly but verbosely). Per user direction: don't audit mid-campaign, plan it for the end.
+
+Manifest + contract bumped to 1.0.58. mdBook chapters refreshed (changelog-index, schema-versioning, json-carrier with 34 row updates, rules-top-level). Book gate passing. Calibration parse on minimal_module.sv passes (sample is empty so AST is unchanged at top level — but every list_of_*, every concatenation, every pattern ordered branch now exposes a flat item array end-to-end).
+
+## 2026-05-07 - SV-Slice-57 batch: tf_port + prototypes + lvalue/decl_assignment family typed (12 rules / 23 annotations + 1 new helper rule with 2 annotations) (PGEN-SVP-0057)
+
+Closes the LRM A.2.7 task/function port-list family + prototype rules + LRM A.8.1 lvalue family. `tf_port_list`, `tf_port_item` (typed envelope + per-item shape), `tf_port_direction_sv_2017/2023` (each 2 kinds: port_direction / const_ref / ref-with-modifiers), `function_prototype_sv_2017/2023`, `task_prototype_sv_2017/2023` (all typed `{return_type, name, ports}` plus dynamic_override on sv_2023), `let_port_item`, `let_port_list`, `net_decl_assignment`, `variable_decl_assignment` (3 kinds: variable / dynamic_array / class), `net_lvalue` (3 kinds: name / concatenation / pattern), `variable_lvalue` (4 kinds: name / concatenation / pattern / streaming_concatenation), and NEW helper `variable_lvalue_scope` (2 kinds: instance / package_scope) extracted from inline parens-Or to dodge task #38 — 13th use of the helper-rule extraction pattern.
+
+Annotation count: 939 (was 914, +25). Same accept set. Manifest + contract bumped to 1.0.57. Subsequently corrected by SV-Slice-58 audit which replaced `tf_port_list` and `let_port_list`'s `{first, rest}` shape with `[$1, $2::2*]`.
+
 ## 2026-05-07 - SV-Slice-56 batch: class_constructor_declaration family typed (4 rules / 5 annotations + 1 new helper rule with 2 annotations)
 
 Closes the class constructor declaration walks for both LRM 1800-2017 and 2023 profiles.
