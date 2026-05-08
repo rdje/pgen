@@ -323,31 +323,51 @@ reserved_non_keyword_identifier := trivia /(?:parameter|localparam|type|context|
 @branch_policy: priority_first
 scope_free_identifier := simple_identifier_no_scope | escaped_identifier !scope_resolution
 
-number := real_number | integral_number
+number := real_number     -> {kind: "real",     body: $1}
+        | integral_number -> {kind: "integral", body: $1}
 
-integral_number := decimal_number | octal_number | binary_number | hex_number
+integral_number := decimal_number -> {kind: "decimal", body: $1}
+                 | octal_number   -> {kind: "octal",   body: $1}
+                 | binary_number  -> {kind: "binary",  body: $1}
+                 | hex_number     -> {kind: "hex",     body: $1}
 
-real_number := fixed_point_number | unsigned_number ( dot unsigned_number )? exp ( sign )? unsigned_number
+real_number := fixed_point_number
+                     -> {kind: "fixed_point", body: $1}
+             | unsigned_number ( dot unsigned_number )? exp ( sign )? unsigned_number
+                     -> {kind: "exponential", mantissa: $1, fraction: $2, sign: $4, exponent: $5}
 
 unsigned_number := decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )*
 
-string_literal := trivia /"""([^"]|"(?!""))*"""/ | trivia /"([^"\\]|\\.)*"/
+string_literal := trivia /"""([^"]|"(?!""))*"""/ -> {kind: "triple_quoted", body: $2}
+                | trivia /"([^"\\]|\\.)*"/        -> {kind: "double_quoted", body: $2}
 
 unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
 
 binary_number := ( size )? binary_base binary_value
+              -> {size: $1, base: $2, value: $3}
 
 octal_number := ( size )? octal_base octal_value
+             -> {size: $1, base: $2, value: $3}
 
-decimal_number := unsigned_number | ( size )? decimal_base unsigned_number | ( size )? decimal_base x_digit ( kw_sv_rule_c82a06f6 )* | ( size )? decimal_base z_digit ( kw_sv_rule_c82a06f6 )*
+decimal_number := unsigned_number
+                        -> {kind: "unsized", body: $1}
+                | ( size )? decimal_base unsigned_number
+                        -> {kind: "sized",   size: $1, base: $2, value: $3}
+                | ( size )? decimal_base x_digit ( kw_sv_rule_c82a06f6 )*
+                        -> {kind: "x_digit", size: $1, base: $2}
+                | ( size )? decimal_base z_digit ( kw_sv_rule_c82a06f6 )*
+                        -> {kind: "z_digit", size: $1, base: $2}
 
 hex_number := ( size )? hex_base hex_value
+           -> {size: $1, base: $2, value: $3}
 
 size := non_zero_unsigned_number
 
 fixed_point_number := unsigned_number dot unsigned_number
+                   -> {whole: $1, fractional: $3}
 
 time_literal := number time_unit
+             -> {value: $1, unit: $2}
 
 c_identifier := non_keyword_identifier
 

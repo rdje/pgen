@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.59`
+  - `1.0.60`
 - Parser release version:
-  - `1.0.59`
+  - `1.0.60`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,51 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.60 / Contract 1.0.60 Highlights — SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations)
+
+Closes the LRM A.8.7 number sub-tree referenced from `primary_literal.kind == "number".body` and `primary_literal.kind == "time_literal".body` / `"string_literal".body`.
+
+### Annotations
+
+```ebnf
+number := real_number     -> {kind: "real",     body: $1}
+        | integral_number -> {kind: "integral", body: $1}
+
+integral_number := decimal_number -> {kind: "decimal", body: $1}
+                 | octal_number   -> {kind: "octal",   body: $1}
+                 | binary_number  -> {kind: "binary",  body: $1}
+                 | hex_number     -> {kind: "hex",     body: $1}
+
+real_number := fixed_point_number
+                     -> {kind: "fixed_point", body: $1}
+             | unsigned_number ( dot unsigned_number )? exp ( sign )? unsigned_number
+                     -> {kind: "exponential", mantissa: $1, fraction: $2, sign: $4, exponent: $5}
+
+string_literal := triple-quoted regex -> {kind: "triple_quoted", body: $2}
+                | double-quoted regex -> {kind: "double_quoted", body: $2}
+
+binary_number := ( size )? binary_base binary_value -> {size: $1, base: $2, value: $3}
+octal_number  := ( size )? octal_base  octal_value  -> {size: $1, base: $2, value: $3}
+hex_number    := ( size )? hex_base    hex_value    -> {size: $1, base: $2, value: $3}
+
+decimal_number := unsigned_number
+                        -> {kind: "unsized", body: $1}
+                | ( size )? decimal_base unsigned_number
+                        -> {kind: "sized",   size: $1, base: $2, value: $3}
+                | ( size )? decimal_base x_digit (...)*
+                        -> {kind: "x_digit", size: $1, base: $2}
+                | ( size )? decimal_base z_digit (...)*
+                        -> {kind: "z_digit", size: $1, base: $2}
+
+fixed_point_number := unsigned_number dot unsigned_number -> {whole: $1, fractional: $3}
+
+time_literal := number time_unit -> {value: $1, unit: $2}
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **977** (was 958, +19). Same accept set.
 
 ## Release 1.0.59 / Contract 1.0.59 Highlights — SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations)
 

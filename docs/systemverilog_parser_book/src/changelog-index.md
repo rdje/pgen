@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.60 / Contract 1.0.60 — SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations)
+
+**What changed:** Closes LRM A.8.7 number sub-tree (referenced from `primary_literal.kind == "number" / "time_literal" / "string_literal".body`).
+
+```ebnf
+number              -> 2 kinds (real / integral)
+integral_number     -> 4 kinds (decimal / octal / binary / hex)
+real_number         -> 2 kinds (fixed_point / exponential {mantissa, fraction, sign, exponent})
+binary_number       -> {size, base, value}
+octal_number        -> {size, base, value}
+hex_number          -> {size, base, value}
+decimal_number      -> 4 kinds (unsized / sized / x_digit / z_digit)
+fixed_point_number  -> {whole, fractional}
+time_literal        -> {value, unit}
+string_literal      -> 2 kinds (triple_quoted / double_quoted)
+```
+
+Annotation inventory: **977** (was 958, +19). Same accept set.
+
 ### 1.0.59 / Contract 1.0.59 — SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations)
 
 **What changed:** Closes LRM A.1.4 always-construct dispatch and LRM A.2.9 modport family.

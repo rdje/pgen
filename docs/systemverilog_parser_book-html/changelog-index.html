@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4f5565c7.js";
+            window.path_to_searchindex_js = "searchindex-93d7035f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,20 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1060--contract-1060--sv-slice-60-batch-number--literal-family-typed-10-rules--19-annotations"><a class="header" href="#1060--contract-1060--sv-slice-60-batch-number--literal-family-typed-10-rules--19-annotations">1.0.60 / Contract 1.0.60 — SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.8.7 number sub-tree (referenced from <code>primary_literal.kind == "number" / "time_literal" / "string_literal".body</code>).</p>
+<pre><code class="language-ebnf">number              -&gt; 2 kinds (real / integral)
+integral_number     -&gt; 4 kinds (decimal / octal / binary / hex)
+real_number         -&gt; 2 kinds (fixed_point / exponential {mantissa, fraction, sign, exponent})
+binary_number       -&gt; {size, base, value}
+octal_number        -&gt; {size, base, value}
+hex_number          -&gt; {size, base, value}
+decimal_number      -&gt; 4 kinds (unsized / sized / x_digit / z_digit)
+fixed_point_number  -&gt; {whole, fractional}
+time_literal        -&gt; {value, unit}
+string_literal      -&gt; 2 kinds (triple_quoted / double_quoted)
+</code></pre>
+<p>Annotation inventory: <strong>977</strong> (was 958, +19). Same accept set.</p>
 <h3 id="1059--contract-1059--sv-slice-59-batch-always--modport-family-typed-11-rules--19-annotations"><a class="header" href="#1059--contract-1059--sv-slice-59-batch-always--modport-family-typed-11-rules--19-annotations">1.0.59 / Contract 1.0.59 — SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.1.4 always-construct dispatch and LRM A.2.9 modport family.</p>
 <pre><code class="language-ebnf">always_construct        -&gt; {keyword, body}

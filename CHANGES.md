@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-08 - SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations) (PGEN-SVP-0060)
+
+Closes the LRM A.8.7 number sub-tree referenced from `primary_literal.kind == "number" / "time_literal" / "string_literal".body`.
+
+`number` (2 kinds: real / integral), `integral_number` (4 kinds: decimal / octal / binary / hex), `real_number` (2 kinds: fixed_point / exponential `{mantissa, fraction, sign, exponent}`), `binary_number` / `octal_number` / `hex_number` (each `{size, base, value}`), `decimal_number` (4 kinds: unsized / sized / x_digit / z_digit), `fixed_point_number` (`{whole, fractional}`), `time_literal` (`{value, unit}`), `string_literal` (2 kinds: triple_quoted / double_quoted).
+
+Annotation count: 977 (was 958, +19). Same accept set. Manifest + contract bumped to 1.0.60. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-08 - SV-Slice-59 batch: always + modport family typed (11 rules / 19 annotations) (PGEN-SVP-0059)
 
 Closes the LRM A.1.4 always-construct dispatch (referenced from `module_common_item.kind == "always".body`) and the LRM A.2.9 modport family (referenced from interface bodies via `non_port_interface_item.kind == "modport_declaration"`).
