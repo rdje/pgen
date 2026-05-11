@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.64`
+  - `1.0.65`
 - Parser release version:
-  - `1.0.64`
+  - `1.0.65`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,35 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.65 / Contract 1.0.65 Highlights — SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations)
+
+Closes the body field of every `system_timing_check.kind` from slice 64. Every reachable specify timing-check task now exposes typed args at the top level (reference_event, data_event, limits, threshold, edge offsets); the deeply-nested optional trailing-arg envelope (notifier / timestamp_condition / timecheck_condition / etc.) is preserved as a `tail` slot for post-campaign helper-rule extraction.
+
+### Annotations (summary)
+
+```ebnf
+scalar_timing_check_condition -> 6 kinds (expression / not / eq / case_eq / ne / case_ne)
+delayed_data                  -> 2 kinds (simple / with_expr)
+delayed_reference             -> 2 kinds (simple / with_expr)
+
+sv_dollar_setup_timing_check     -> {data_event, reference_event, limit, tail}
+sv_dollar_hold_timing_check      -> {reference_event, data_event, limit, tail}
+sv_dollar_recovery_timing_check  -> {reference_event, data_event, limit, tail}
+sv_dollar_removal_timing_check   -> {reference_event, data_event, limit, tail}
+sv_dollar_skew_timing_check      -> {reference_event, data_event, limit, tail}
+sv_dollar_timeskew_timing_check  -> {reference_event, data_event, limit, tail}
+sv_dollar_setuphold_timing_check -> {reference_event, data_event, limit_setup, limit_hold, tail}
+sv_dollar_recrem_timing_check    -> {reference_event, data_event, limit_recov, limit_rem, tail}
+sv_dollar_fullskew_timing_check  -> {reference_event, data_event, limit_setup, limit_hold, tail}
+sv_dollar_period_timing_check    -> {controlled_reference_event, limit, tail}
+sv_dollar_width_timing_check     -> {controlled_reference_event, limit, threshold, tail}
+sv_dollar_nochange_timing_check  -> {reference_event, data_event, start_edge_offset, end_edge_offset, tail}
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1119** (was 1097, +22). Same accept set.
 
 ## Release 1.0.64 / Contract 1.0.64 Highlights — SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations)
 

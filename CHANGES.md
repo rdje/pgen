@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations) (PGEN-SVP-0065)
+
+Closes the body field of every `system_timing_check.kind` from slice 64. Every reachable specify timing-check task now exposes typed args at the top level (reference_event, data_event, limits, threshold, edge offsets); the deeply-nested optional trailing-arg envelope (notifier / timestamp_condition / timecheck_condition / etc.) is preserved as a `tail` slot for post-campaign helper-rule extraction.
+
+`scalar_timing_check_condition` (6 kinds: expression / not / eq / case_eq / ne / case_ne), `delayed_data` / `delayed_reference` (each 2 kinds: simple / with_expr), and 12 `sv_dollar_*_timing_check` rules each typed with field-named args + `tail` slot covering all LRM A.7.5.3 system tasks.
+
+Annotation count: 1119 (was 1097, +22). Same accept set. Manifest + contract bumped to 1.0.65. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations) (PGEN-SVP-0064)
 
 Closes LRM A.7.5.3 / A.7.6 timing check sub-trees referenced from `specify_item.kind == "system_timing".body` (typed in slice 62) and the LRM A.5 UDP edge-input descriptors.

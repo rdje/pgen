@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1d7de28.js";
+            window.path_to_searchindex_js = "searchindex-5670926f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.66.0</td><td>1.0.65</td><td><strong>SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed.</strong> 16 rules / 22 annotations closing the body field of every <code>system_timing_check.kind</code> from slice 64: <code>scalar_timing_check_condition</code> (6 kinds), <code>delayed_data</code> / <code>delayed_reference</code> (each 2 kinds), and 12 sv_dollar_*_timing_check rules each typed with field-named args (reference_event / data_event / limit / threshold / edge offsets) + <code>tail</code> slot for the deeply-nested optional trailing-arg envelope. Annotation inventory: 1119 entries (was 1097).</td></tr>
 <tr><td>0.65.0</td><td>1.0.64</td><td><strong>SV-Slice-64 batch: edge + timing_check family typed.</strong> 10 rules / 37 annotations covering LRM A.7.5.3 / A.7.6 timing-check walks plus LRM A.5 UDP edge-input descriptors: <code>edge_descriptor</code> (4 kinds), <code>edge_indicator</code> (2 kinds), <code>edge_symbol</code> (9 kinds bare), <code>edge_control_specifier</code> (<code>{descriptors}</code>), <code>edge_input_list</code> (<code>{leading_levels, indicator, trailing_levels}</code>), <code>system_timing_check</code> (12 kinds), <code>timing_check_condition</code> (2 kinds), <code>timing_check_event</code> (<code>{control, descriptor, condition}</code>), <code>timing_check_event_control</code> (4 kinds), <code>controlled_timing_check_event</code> (parallel). Annotation inventory: 1097 entries (was 1060).</td></tr>
 <tr><td>0.64.0</td><td>1.0.63</td><td><strong>SV-Slice-63 batch: path_declaration family typed.</strong> 14 rules / 25 annotations covering LRM A.7.2 / A.7.4 path-declaration walk: <code>path_declaration</code> (3 kinds), <code>simple_path_declaration</code> / <code>edge_sensitive_path_declaration</code> (each 2 kinds), <code>state_dependent_path_declaration</code> (3 kinds: if_simple / if_edge_sensitive / ifnone), <code>parallel_path_description</code> (<code>{input, polarity, output}</code>), <code>full_path_description</code> (<code>{inputs, polarity, outputs}</code>), <code>parallel_edge_sensitive_path_description_sv_2017</code> (single seq with data_source), <code>_sv_2023</code> (2 kinds), <code>full_edge_sensitive_path_description_sv_2017/2023</code> (parallel), <code>path_delay_value</code> (2 kinds: bare / paren), <code>list_of_path_delay_expressions</code> (<code>{body}</code>), <code>pulsestyle_declaration</code> (2 kinds), <code>showcancelled_declaration</code> (2 kinds). Annotation inventory: 1060 entries (was 1035).</td></tr>
 <tr><td>0.63.0</td><td>1.0.62</td><td><strong>SV-Slice-62 batch: specify family typed.</strong> 9 rules / 15 annotations covering LRM A.7 specify-block: <code>specify_block</code> (<code>{items}</code>), <code>specify_item</code> (5 kinds), <code>specify_input/output_terminal_descriptor</code> (each <code>{name, range}</code>), <code>specify_terminal_descriptor</code> (2 kinds), <code>specparam_assignment</code> (2 kinds: simple / pulse), <code>specparam_declaration</code> (<code>{dims, items}</code>), <code>polarity_operator</code> (2 kinds bare). Annotation inventory: 1035 entries (was 1020).</td></tr>
@@ -1411,6 +1412,14 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1065--contract-1065--sv-slice-65-batch-timing_check-internals--scalar_timing_check_condition-typed-16-rules--22-annotations"><a class="header" href="#1065--contract-1065--sv-slice-65-batch-timing_check-internals--scalar_timing_check_condition-typed-16-rules--22-annotations">1.0.65 / Contract 1.0.65 — SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the body field of every <code>system_timing_check.kind</code> from slice 64.</p>
+<pre><code class="language-ebnf">scalar_timing_check_condition -&gt; 6 kinds (expression / not / eq / case_eq / ne / case_ne)
+delayed_data                  -&gt; 2 kinds (simple / with_expr)
+delayed_reference             -&gt; 2 kinds (simple / with_expr)
+12 sv_dollar_*_timing_check    -&gt; field-typed top-level args + tail slot for nested optional envelope
+</code></pre>
+<p>Annotation inventory: <strong>1119</strong> (was 1097, +22). Same accept set.</p>
 <h3 id="1064--contract-1064--sv-slice-64-batch-edge--timing_check-family-typed-10-rules--37-annotations"><a class="header" href="#1064--contract-1064--sv-slice-64-batch-edge--timing_check-family-typed-10-rules--37-annotations">1.0.64 / Contract 1.0.64 — SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.7.5.3 / A.7.6 timing check sub-trees (referenced from <code>specify_item.kind == "system_timing".body</code>) and the LRM A.5 UDP edge-input descriptors.</p>
 <pre><code class="language-ebnf">edge_descriptor              -&gt; 4 kinds (01 / 10 / z_or_x_first / digit_first)

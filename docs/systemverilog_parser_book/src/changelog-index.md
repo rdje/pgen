@@ -19,6 +19,19 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.65 / Contract 1.0.65 — SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations)
+
+**What changed:** Closes the body field of every `system_timing_check.kind` from slice 64.
+
+```ebnf
+scalar_timing_check_condition -> 6 kinds (expression / not / eq / case_eq / ne / case_ne)
+delayed_data                  -> 2 kinds (simple / with_expr)
+delayed_reference             -> 2 kinds (simple / with_expr)
+12 sv_dollar_*_timing_check    -> field-typed top-level args + tail slot for nested optional envelope
+```
+
+Annotation inventory: **1119** (was 1097, +22). Same accept set.
+
 ### 1.0.64 / Contract 1.0.64 — SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations)
 
 **What changed:** Closes LRM A.7.5.3 / A.7.6 timing check sub-trees (referenced from `specify_item.kind == "system_timing".body`) and the LRM A.5 UDP edge-input descriptors.

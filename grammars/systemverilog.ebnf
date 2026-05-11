@@ -1361,9 +1361,11 @@ delay_value := unsigned_number     -> {kind: "unsigned_number", body: $1}
              | time_literal        -> {kind: "time_literal",    body: $1}
              | kw_n_1step_e6d37e7c -> {kind: "step"}
 
-delayed_data := terminal_identifier | terminal_identifier ( constant_mintypmax_expression )?
+delayed_data := terminal_identifier                                            -> {kind: "simple",    name: $1}
+              | terminal_identifier ( constant_mintypmax_expression )?         -> {kind: "with_expr", name: $1, expr: $2}
 
-delayed_reference := terminal_identifier | terminal_identifier ( constant_mintypmax_expression )?
+delayed_reference := terminal_identifier                                       -> {kind: "simple",    name: $1}
+                   | terminal_identifier ( constant_mintypmax_expression )?    -> {kind: "with_expr", name: $1, expr: $2}
 
 description := module_declaration                 -> {kind: "module_declaration", body: $1}
              | udp_declaration                    -> {kind: "udp_declaration", body: $1}
@@ -3202,7 +3204,12 @@ rs_weight_specification := rs_weight_specification_sv_2023
 
 scalar_constant := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_B_9f69eb32 | tick kw_b_e9d71f5e | tick kw_b_e9d71f5e | tick kw_B_ae4f281d | tick kw_B_ae4f281d | kw_n_1_356a192b | kw_n_0_b6589fc6
 
-scalar_timing_check_condition := expression | tilde expression | expression equal scalar_constant | expression case_equal scalar_constant | expression not_equal scalar_constant | expression case_not_equal scalar_constant
+scalar_timing_check_condition := expression                                    -> {kind: "expression", body: $1}
+                               | tilde expression                              -> {kind: "not",        body: $2}
+                               | expression equal scalar_constant              -> {kind: "eq",         lhs: $1, rhs: $3}
+                               | expression case_equal scalar_constant         -> {kind: "case_eq",    lhs: $1, rhs: $3}
+                               | expression not_equal scalar_constant          -> {kind: "ne",         lhs: $1, rhs: $3}
+                               | expression case_not_equal scalar_constant     -> {kind: "case_ne",    lhs: $1, rhs: $3}
 
 select := ( ( dot member_identifier !lparen bit_select )* dot member_identifier !lparen )? ( select_tail )?
        -> {member_chain: $1, tail: $2}
@@ -3456,28 +3463,40 @@ subroutine_call_statement := subroutine_call semi
                                   -> {kind: "void_cast", body: $4}
 
 sv_dollar_fullskew_timing_check := kw_sv_dollar_fullskew_1e1514b3 lparen reference_event comma data_event comma timing_check_limit comma timing_check_limit ( comma ( notifier )? ( comma ( event_based_flag )? ( comma ( remain_active_flag )? )? )? )? rparen semi
+                                -> {reference_event: $3, data_event: $5, limit_setup: $7, limit_hold: $9, tail: $10}
 
 sv_dollar_hold_timing_check := kw_sv_dollar_hold_0cf8df90 lparen reference_event comma data_event comma timing_check_limit ( comma ( notifier )? )? rparen semi
+                            -> {reference_event: $3, data_event: $5, limit: $7, tail: $8}
 
 sv_dollar_nochange_timing_check := kw_sv_dollar_nochange_872771bf lparen reference_event comma data_event comma start_edge_offset comma end_edge_offset ( comma ( notifier )? )? rparen semi
+                                -> {reference_event: $3, data_event: $5, start_edge_offset: $7, end_edge_offset: $9, tail: $10}
 
 sv_dollar_period_timing_check := kw_sv_dollar_period_87a9c33e lparen controlled_reference_event comma timing_check_limit ( comma ( notifier )? )? rparen semi
+                              -> {controlled_reference_event: $3, limit: $5, tail: $6}
 
 sv_dollar_recovery_timing_check := kw_sv_dollar_recovery_585fc30a lparen reference_event comma data_event comma timing_check_limit ( comma ( notifier )? )? rparen semi
+                                -> {reference_event: $3, data_event: $5, limit: $7, tail: $8}
 
 sv_dollar_recrem_timing_check := kw_sv_dollar_recrem_fc40cd26 lparen reference_event comma data_event comma timing_check_limit comma timing_check_limit ( comma ( notifier )? ( comma ( timestamp_condition )? ( comma ( timecheck_condition )? ( comma ( delayed_reference )? ( comma ( delayed_data )? )? )? )? )? )? rparen semi
+                              -> {reference_event: $3, data_event: $5, limit_recov: $7, limit_rem: $9, tail: $10}
 
 sv_dollar_removal_timing_check := kw_sv_dollar_removal_7a979d46 lparen reference_event comma data_event comma timing_check_limit ( comma ( notifier )? )? rparen semi
+                               -> {reference_event: $3, data_event: $5, limit: $7, tail: $8}
 
 sv_dollar_setup_timing_check := kw_sv_dollar_setup_b58bdaae lparen data_event comma reference_event comma timing_check_limit ( comma ( notifier )? )? rparen semi
+                             -> {data_event: $3, reference_event: $5, limit: $7, tail: $8}
 
 sv_dollar_setuphold_timing_check := kw_sv_dollar_setuphold_25a075ac lparen reference_event comma data_event comma timing_check_limit comma timing_check_limit ( comma ( notifier )? ( comma ( timestamp_condition )? ( comma ( timecheck_condition )? ( comma ( delayed_reference )? ( comma ( delayed_data )? )? )? )? )? )? rparen semi
+                                 -> {reference_event: $3, data_event: $5, limit_setup: $7, limit_hold: $9, tail: $10}
 
 sv_dollar_skew_timing_check := kw_sv_dollar_skew_1ae5c1e4 lparen reference_event comma data_event comma timing_check_limit ( comma ( notifier )? )? rparen semi
+                            -> {reference_event: $3, data_event: $5, limit: $7, tail: $8}
 
 sv_dollar_timeskew_timing_check := kw_sv_dollar_timeskew_6d763f0a lparen reference_event comma data_event comma timing_check_limit ( comma ( notifier )? ( comma ( event_based_flag )? ( comma ( remain_active_flag )? )? )? )? rparen semi
+                                -> {reference_event: $3, data_event: $5, limit: $7, tail: $8}
 
 sv_dollar_width_timing_check := kw_sv_dollar_width_72b04d27 lparen controlled_reference_event comma timing_check_limit comma threshold ( comma ( notifier )? )? rparen semi
+                             -> {controlled_reference_event: $3, limit: $5, threshold: $7, tail: $8}
 
 system_tf_call := system_tf_identifier ( lparen list_of_arguments rparen )?
                        -> {kind: "args",        name: $1, args: $2}

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b1d7de28.js";
+            window.path_to_searchindex_js = "searchindex-5670926f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,14 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1065--contract-1065--sv-slice-65-batch-timing_check-internals--scalar_timing_check_condition-typed-16-rules--22-annotations"><a class="header" href="#1065--contract-1065--sv-slice-65-batch-timing_check-internals--scalar_timing_check_condition-typed-16-rules--22-annotations">1.0.65 / Contract 1.0.65 — SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the body field of every <code>system_timing_check.kind</code> from slice 64.</p>
+<pre><code class="language-ebnf">scalar_timing_check_condition -&gt; 6 kinds (expression / not / eq / case_eq / ne / case_ne)
+delayed_data                  -&gt; 2 kinds (simple / with_expr)
+delayed_reference             -&gt; 2 kinds (simple / with_expr)
+12 sv_dollar_*_timing_check    -&gt; field-typed top-level args + tail slot for nested optional envelope
+</code></pre>
+<p>Annotation inventory: <strong>1119</strong> (was 1097, +22). Same accept set.</p>
 <h3 id="1064--contract-1064--sv-slice-64-batch-edge--timing_check-family-typed-10-rules--37-annotations"><a class="header" href="#1064--contract-1064--sv-slice-64-batch-edge--timing_check-family-typed-10-rules--37-annotations">1.0.64 / Contract 1.0.64 — SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.7.5.3 / A.7.6 timing check sub-trees (referenced from <code>specify_item.kind == "system_timing".body</code>) and the LRM A.5 UDP edge-input descriptors.</p>
 <pre><code class="language-ebnf">edge_descriptor              -&gt; 4 kinds (01 / 10 / z_or_x_first / digit_first)
