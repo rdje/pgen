@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-56d9653c.js";
+            window.path_to_searchindex_js = "searchindex-8348c14b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,23 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1070--contract-1070--sv-slice-70-batch-property-family-excluding-property_expr-typed-12-rules--16-annotations"><a class="header" href="#1070--contract-1070--sv-slice-70-batch-property-family-excluding-property_expr-typed-12-rules--16-annotations">1.0.70 / Contract 1.0.70 — SV-Slice-70 batch: property family (excluding property_expr) typed (12 rules / 16 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes the property-declaration walk path.</p>
+<pre><code class="language-ebnf">assertion_variable_declaration -&gt; {data_type, items}
+let_list_of_arguments          -&gt; 2 kinds (mixed / named_only)
+property_actual_arg            -&gt; 2 kinds
+property_case_item             -&gt; {expressions, body}
+property_declaration           -&gt; {name, ports, declarations, spec, end_label}
+property_formal_type           -&gt; 2 kinds
+property_instance              -&gt; {name, args}
+property_list_of_arguments     -&gt; 2 kinds
+property_lvar_port_direction   -&gt; 1 kind bare
+property_port_item             -&gt; {attributes, local_direction, formal_type, name, dims, default}
+property_port_list             -&gt; [$1, $2::2*]
+property_spec                  -&gt; {clocking, disable_iff, body}
+</code></pre>
+<p>DEFERRED: <code>property_expr_sv_2017/2023</code> (~30 kinds each) — slice 71.</p>
+<p>Annotation inventory: <strong>1223</strong> (was 1207, +16). Same accept set.</p>
 <h3 id="1069--contract-1069--sv-slice-69-batch-cover_cross--trans--select_expression-typed-12-rules--29-annotations"><a class="header" href="#1069--contract-1069--sv-slice-69-batch-cover_cross--trans--select_expression-typed-12-rules--29-annotations">1.0.69 / Contract 1.0.69 — SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.2.11 cross-cover and trans-list walk paths.</p>
 <pre><code class="language-ebnf">cover_cross               -&gt; {label, items, condition, body}

@@ -449,6 +449,7 @@ assertion_item_declaration := property_declaration -> {kind: "property", body: $
                             | let_declaration      -> {kind: "let",      body: $1}
 
 assertion_variable_declaration := var_data_type list_of_variable_decl_assignments semi
+                               -> {data_type: $1, items: $2}
 
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
                    -> {exprs: [$3, $4::2*]}
@@ -1983,7 +1984,10 @@ known_unscoped_let_identifier := let_identifier
 
 scoped_let_identifier := non_typedef_package_scope let_identifier
 
-let_list_of_arguments := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma dot identifier lparen ( let_actual_arg )? rparen )* | dot identifier lparen ( let_actual_arg )? rparen ( comma dot identifier lparen ( let_actual_arg )? rparen )*
+let_list_of_arguments := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma dot identifier lparen ( let_actual_arg )? rparen )*
+                                -> {kind: "mixed",      head: $1, ordered_tail: $2, named_tail: $3}
+                       | dot identifier lparen ( let_actual_arg )? rparen ( comma dot identifier lparen ( let_actual_arg )? rparen )*
+                                -> {kind: "named_only", first_name: $2, first_value: $4, rest: $6}
 
 let_port_item := attribute_instance* let_formal_type formal_port_identifier variable_dimension* ( assign expression )?
               -> {attributes: $1, type: $2, name: $3, dims: $4, init: $5}
@@ -2991,12 +2995,15 @@ program_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
 program_nonansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
                        -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
-property_actual_arg := property_expr | sequence_actual_arg
+property_actual_arg := property_expr        -> {kind: "property_expr",   body: $1}
+                     | sequence_actual_arg  -> {kind: "sequence_actual", body: $1}
 
 property_case_item := @probe_sample: "1: 1;" expression_or_dist ( comma expression_or_dist )* colon property_expr semi
+                   -> {expressions: [$1, $2::2*], body: $4}
                     | @probe_sample: "default: 1;" kw_default_7505d64a ( colon )? property_expr semi
 
 property_declaration := kw_property_269fe373 declared_property_identifier ( lparen ( property_port_list )? rparen )? semi assertion_variable_declaration* property_spec ( semi )? kw_endproperty_6594321c ( colon property_identifier )?
+                     -> {name: $2, ports: $3, declarations: $5, spec: $6, end_label: $9}
 
 @profiles: ["sv_2017"]
 property_expr_sv_2017 := sequence_expr | kw_strong_0117691d lparen sequence_expr rparen | kw_weak_1ded3053 lparen sequence_expr rparen | lparen property_expr rparen | kw_not_557f2555 property_expr | property_expr kw_or_1758356d property_expr | property_expr kw_and_cffa50a3 property_expr | sequence_expr | implies property_expr | sequence_expr or_assign property_expr | kw_if_958f57f5 lparen expression_or_dist rparen property_expr ( kw_else_ae050f5b property_expr )? | kw_case_6406510c lparen expression_or_dist rparen property_case_item property_case_item* kw_endcase_a27a6786 | sequence_expr hash minus hash property_expr | sequence_expr hash assign hash property_expr | kw_nexttime_b0f658f8 property_expr | kw_nexttime_b0f658f8 ( kw_constant_d810ca96 expression )? property_expr | kw_s_nexttime_373d0bd1 property_expr | kw_s_nexttime_373d0bd1 ( constant_expression )? property_expr | kw_always_6656018a property_expr | kw_always_6656018a ( cycle_delay_const_range_expression )? property_expr | kw_s_always_0f9aa900 ( constant_range )? property_expr | kw_s_eventually_86207140 property_expr | kw_eventually_5865020f ( constant_range )? property_expr | kw_s_eventually_86207140 ( cycle_delay_const_range_expression )? property_expr | property_expr kw_until_b310f4d4 property_expr | property_expr kw_s_until_073539cf property_expr | property_expr kw_until_with_f31dfb3c property_expr | property_expr kw_s_until_with_3a7bcf5b property_expr | property_expr implies property_expr | property_expr kw_iff_ee1c009e property_expr | kw_accept_on_2aee6cd4 lparen expression_or_dist rparen property_expr | kw_reject_on_a3b3068d lparen expression_or_dist rparen property_expr | kw_sync_accept_on_b65eda53 lparen expression_or_dist rparen property_expr | kw_sync_reject_on_1f0c8923 lparen expression_or_dist rparen property_expr | property_instance | clocking_event property_expr
@@ -3006,7 +3013,8 @@ property_expr_sv_2023 := sequence_expr | kw_strong_0117691d lparen sequence_expr
 
 property_expr := property_expr_sv_2017 | property_expr_sv_2023
 
-property_formal_type := sequence_formal_type | kw_property_269fe373
+property_formal_type := sequence_formal_type   -> {kind: "sequence", body: $1}
+                      | kw_property_269fe373   -> {kind: "property"}
 
 property_identifier := declaration_identifier
 
@@ -3015,19 +3023,27 @@ property_identifier := declaration_identifier
 declared_property_identifier := property_identifier
 
 property_instance := ps_or_hierarchical_property_identifier ( lparen ( property_list_of_arguments )? rparen )?
+                  -> {name: $1, args: $2}
 
-property_list_of_arguments := ( property_actual_arg )? ( comma ( property_actual_arg )? )* ( comma dot identifier lparen ( property_actual_arg )? rparen )* | dot identifier lparen ( property_actual_arg )? rparen ( comma dot identifier lparen ( property_actual_arg )? rparen )*
+property_list_of_arguments := ( property_actual_arg )? ( comma ( property_actual_arg )? )* ( comma dot identifier lparen ( property_actual_arg )? rparen )*
+                                    -> {kind: "mixed",      head: $1, ordered_tail: $2, named_tail: $3}
+                            | dot identifier lparen ( property_actual_arg )? rparen ( comma dot identifier lparen ( property_actual_arg )? rparen )*
+                                    -> {kind: "named_only", first_name: $2, first_value: $4, rest: $6}
 
 property_lvar_port_direction := kw_input_140f86aa
+                             -> {kind: "input"}
 
 property_port_item := attribute_instance* ( kw_local_939bb46a ( property_lvar_port_direction )? )? property_formal_type formal_port_identifier variable_dimension* ( assign property_actual_arg )?
+                   -> {attributes: $1, local_direction: $2, formal_type: $3, name: $4, dims: $5, default: $6}
 
 property_port_list := property_port_item ( comma property_port_item )*
+                   -> [$1, $2::2*]
 
 property_qualifier := random_qualifier     -> {kind: "random",                body: $1}
                     | class_item_qualifier  -> {kind: "class_item_qualifier", body: $1}
 
 property_spec := ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lparen expression_or_dist rparen )? property_expr
+              -> {clocking: $1, disable_iff: $2, body: $3}
 
 @predicate: { name: has_fact, args: [checker_name, $checker_identifier], phase: post }
 known_unscoped_checker_identifier := checker_identifier

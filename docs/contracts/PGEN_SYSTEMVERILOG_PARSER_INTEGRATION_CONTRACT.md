@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.69`
+  - `1.0.70`
 - Parser release version:
-  - `1.0.69`
+  - `1.0.70`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,35 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.70 / Contract 1.0.70 Highlights — SV-Slice-70 batch: property family (excluding property_expr) typed (12 rules / 16 annotations)
+
+Closes the property-declaration walk path (referenced from `concurrent_assertion_item.kind == "property_declaration".body`) and `property_instance` references.
+
+### Annotations
+
+```ebnf
+assertion_variable_declaration -> {data_type, items}
+let_list_of_arguments          -> 2 kinds (mixed / named_only)
+property_actual_arg            -> 2 kinds (property_expr / sequence_actual)
+property_case_item             -> {expressions: [$1, $2::2*], body}
+property_declaration           -> {name, ports, declarations, spec, end_label}
+property_formal_type           -> 2 kinds (sequence / property bare)
+property_instance              -> {name, args}
+property_list_of_arguments     -> 2 kinds (mixed / named_only)
+property_lvar_port_direction   -> 1 kind bare (input)
+property_port_item             -> {attributes, local_direction, formal_type, name, dims, default}
+property_port_list             -> [$1, $2::2*]
+property_spec                  -> {clocking, disable_iff, body}
+```
+
+### Deferred
+
+- `property_expr_sv_2017/2023` (~30 kinds each, many with left-recursive forms) queued for SV-Slice-71.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1223** (was 1207, +16). Same accept set.
 
 ## Release 1.0.69 / Contract 1.0.69 Highlights — SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations)
 

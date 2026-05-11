@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-70 batch: property family (excluding property_expr) typed (12 rules / 16 annotations) (PGEN-SVP-0070)
+
+Closes the property-declaration walk path referenced from `concurrent_assertion_item.kind == "property_declaration".body` and `property_instance` references.
+
+`assertion_variable_declaration` (`{data_type, items}`), `let_list_of_arguments` (2 kinds: mixed / named_only), `property_actual_arg` (2 kinds: property_expr / sequence_actual), `property_case_item` (`{expressions: [$1, $2::2*], body}`), `property_declaration` (`{name, ports, declarations, spec, end_label}`), `property_formal_type` (2 kinds: sequence / property), `property_instance` (`{name, args}`), `property_list_of_arguments` (2 kinds: mixed / named_only), `property_lvar_port_direction` (bare input), `property_port_item` (`{attributes, local_direction, formal_type, name, dims, default}`), `property_port_list` (`[$1, $2::2*]`), `property_spec` (`{clocking, disable_iff, body}`).
+
+DEFERRED: `property_expr_sv_2017/2023` (~30 kinds each, many with left-recursion — slice 71).
+
+Annotation count: 1223 (was 1207, +16). Same accept set. Manifest + contract bumped to 1.0.70. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations) (PGEN-SVP-0069)
 
 Closes LRM A.2.11 cross-cover walk path (referenced from `coverage_spec.kind == "cross".body`) and the LRM A.2.11 trans-list sub-tree (referenced from `bins_or_options.kind == "trans_list".trans`).

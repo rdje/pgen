@@ -19,6 +19,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.70 / Contract 1.0.70 — SV-Slice-70 batch: property family (excluding property_expr) typed (12 rules / 16 annotations)
+
+**What changed:** Closes the property-declaration walk path.
+
+```ebnf
+assertion_variable_declaration -> {data_type, items}
+let_list_of_arguments          -> 2 kinds (mixed / named_only)
+property_actual_arg            -> 2 kinds
+property_case_item             -> {expressions, body}
+property_declaration           -> {name, ports, declarations, spec, end_label}
+property_formal_type           -> 2 kinds
+property_instance              -> {name, args}
+property_list_of_arguments     -> 2 kinds
+property_lvar_port_direction   -> 1 kind bare
+property_port_item             -> {attributes, local_direction, formal_type, name, dims, default}
+property_port_list             -> [$1, $2::2*]
+property_spec                  -> {clocking, disable_iff, body}
+```
+
+DEFERRED: `property_expr_sv_2017/2023` (~30 kinds each) — slice 71.
+
+Annotation inventory: **1223** (was 1207, +16). Same accept set.
+
 ### 1.0.69 / Contract 1.0.69 — SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations)
 
 **What changed:** Closes LRM A.2.11 cross-cover and trans-list walk paths.
