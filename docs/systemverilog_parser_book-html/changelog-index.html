@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1ffebbde.js";
+            window.path_to_searchindex_js = "searchindex-dde68f4f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,23 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1067--contract-1067--sv-slice-67-batch-covergroup-declaration--coverage_event-family-typed-12-rules--26-annotations"><a class="header" href="#1067--contract-1067--sv-slice-67-batch-covergroup-declaration--coverage_event-family-typed-12-rules--26-annotations">1.0.67 / Contract 1.0.67 — SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.2.11 covergroup-declaration walk path.</p>
+<pre><code class="language-ebnf">bins_keyword                    -&gt; 3 kinds bare (bins / illegal_bins / ignore_bins)
+covergroup_declaration_sv_2017  -&gt; {name, ports, event, items, end_label}
+covergroup_declaration_sv_2023  -&gt; 2 kinds (single / extends)
+coverage_event                  -&gt; 3 kinds (clocking / sample_function / block_event)
+coverage_option                 -&gt; 2 kinds (option / type_option)
+coverage_spec                   -&gt; 2 kinds (point / cross)
+coverage_spec_or_option         -&gt; 2 kinds (spec / option)
+cover_point                     -&gt; {label, expression, condition, bins}
+covergroup_range_list           -&gt; [$1, $2::2*]
+covergroup_value_range_sv_2017  -&gt; 2 kinds (expression / range)
+covergroup_value_range_sv_2023  -&gt; 5 kinds (expression / range / dollar_lo / dollar_hi / tolerance)
+covergroup_value_range          -&gt; 2 kinds (sv_2017 / sv_2023)
+</code></pre>
+<p>DEFERRED: bins_or_empty / bins_or_options / bins_selection / bins_selection_or_option (deep multi-branch — slice 68).</p>
+<p>Annotation inventory: <strong>1164</strong> (was 1138, +26). Same accept set.</p>
 <h3 id="1066--contract-1066--sv-slice-66-batch-udp-bodyentry--udp_instance-family-typed-9-rules--19-annotations"><a class="header" href="#1066--contract-1066--sv-slice-66-batch-udp-bodyentry--udp_instance-family-typed-9-rules--19-annotations">1.0.66 / Contract 1.0.66 — SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.5 UDP body/instance walk paths.</p>
 <pre><code class="language-ebnf">combinational_entry  -&gt; {inputs, output}

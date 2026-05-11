@@ -19,6 +19,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.67 / Contract 1.0.67 — SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations)
+
+**What changed:** Closes LRM A.2.11 covergroup-declaration walk path.
+
+```ebnf
+bins_keyword                    -> 3 kinds bare (bins / illegal_bins / ignore_bins)
+covergroup_declaration_sv_2017  -> {name, ports, event, items, end_label}
+covergroup_declaration_sv_2023  -> 2 kinds (single / extends)
+coverage_event                  -> 3 kinds (clocking / sample_function / block_event)
+coverage_option                 -> 2 kinds (option / type_option)
+coverage_spec                   -> 2 kinds (point / cross)
+coverage_spec_or_option         -> 2 kinds (spec / option)
+cover_point                     -> {label, expression, condition, bins}
+covergroup_range_list           -> [$1, $2::2*]
+covergroup_value_range_sv_2017  -> 2 kinds (expression / range)
+covergroup_value_range_sv_2023  -> 5 kinds (expression / range / dollar_lo / dollar_hi / tolerance)
+covergroup_value_range          -> 2 kinds (sv_2017 / sv_2023)
+```
+
+DEFERRED: bins_or_empty / bins_or_options / bins_selection / bins_selection_or_option (deep multi-branch — slice 68).
+
+Annotation inventory: **1164** (was 1138, +26). Same accept set.
+
 ### 1.0.66 / Contract 1.0.66 — SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations)
 
 **What changed:** Closes LRM A.5 UDP body/instance walk paths.

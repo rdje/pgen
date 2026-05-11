@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.66`
+  - `1.0.67`
 - Parser release version:
-  - `1.0.66`
+  - `1.0.67`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,35 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.67 / Contract 1.0.67 Highlights — SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations)
+
+Closes LRM A.2.11 covergroup-declaration walk path referenced from `class_item.kind == "covergroup_declaration".body` and `package_or_generate_item_declaration.kind == "covergroup".body`.
+
+### Annotations
+
+```ebnf
+bins_keyword                        -> 3 kinds bare (bins / illegal_bins / ignore_bins)
+covergroup_declaration_sv_2017      -> {name, ports, event, items, end_label}
+covergroup_declaration_sv_2023      -> 2 kinds (single / extends — LRM 2023 inheritance)
+coverage_event                      -> 3 kinds (clocking / sample_function / block_event)
+coverage_option                     -> 2 kinds (option / type_option)
+coverage_spec                       -> 2 kinds (point / cross)
+coverage_spec_or_option             -> 2 kinds (spec / option) — wraps attribute_instance*
+cover_point                         -> {label, expression, condition, bins}
+covergroup_range_list               -> [$1, $2::2*]
+covergroup_value_range_sv_2017      -> 2 kinds (expression / range)
+covergroup_value_range_sv_2023      -> 5 kinds (expression / range / dollar_lo / dollar_hi / tolerance)
+covergroup_value_range              -> 2 kinds (sv_2017 / sv_2023)
+```
+
+### Deferred
+
+`bins_or_empty`, `bins_or_options`, `bins_selection`, `bins_selection_or_option` — deep multi-branch bin declarations (7-branch `bins_or_options`). Queued for SV-Slice-68.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1164** (was 1138, +26). Same accept set.
 
 ## Release 1.0.66 / Contract 1.0.66 Highlights — SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations)
 

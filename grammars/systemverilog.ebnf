@@ -513,7 +513,9 @@ bind_target_scope := module_identifier    -> {kind: "module",    name: $1}
 
 bins_expression := variable_identifier | cover_point_identifier ( dot bin_identifier )?
 
-bins_keyword := kw_bins_7de92be6 | kw_illegal_bins_909dfbf3 | kw_ignore_bins_c8b3e6e5
+bins_keyword := kw_bins_7de92be6           -> {kind: "bins"}
+              | kw_illegal_bins_909dfbf3   -> {kind: "illegal_bins"}
+              | kw_ignore_bins_c8b3e6e5    -> {kind: "ignore_bins"}
 
 bins_or_empty := ( attribute_instance* ( bins_or_options semi )* )* | semi
 
@@ -1115,6 +1117,7 @@ controlled_timing_check_event := timing_check_event_control specify_terminal_des
 cover_cross := ( cross_identifier colon )? kw_cross_ac4280ba list_of_cross_items ( kw_iff_ee1c009e lparen expression rparen )? cross_body
 
 cover_point := ( ( data_type_or_implicit )? cover_point_identifier colon )? kw_coverpoint_fc1cae9d expression ( kw_iff_ee1c009e lparen expression rparen )? bins_or_empty
+            -> {label: $1, expression: $3, condition: $4, bins: $5}
 
 cover_point_identifier := identifier
 
@@ -1124,19 +1127,28 @@ cover_property_statement := kw_cover_a28100fa kw_property_269fe373 lparen proper
 cover_sequence_statement := kw_cover_a28100fa kw_sequence_92504616 lparen ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lparen expression_or_dist rparen )? sequence_expr rparen statement_or_null
                          -> {clocking: $4, disable_iff: $5, sequence: $6, statement: $8}
 
-coverage_event := clocking_event | kw_with_8fcd25a3 kw_function_c218e39e kw_sample_8151325d lparen ( tf_port_list )? rparen | at_sign at_sign lparen block_event_expression rparen
+coverage_event := clocking_event                                                                          -> {kind: "clocking", body: $1}
+                | kw_with_8fcd25a3 kw_function_c218e39e kw_sample_8151325d lparen ( tf_port_list )? rparen -> {kind: "sample_function", ports: $5}
+                | at_sign at_sign lparen block_event_expression rparen                                     -> {kind: "block_event", body: $4}
 
-coverage_option := kw_option_14eb14ec dot member_identifier assign expression | kw_type_option_730ad061 dot member_identifier assign constant_expression
+coverage_option := kw_option_14eb14ec dot member_identifier assign expression                  -> {kind: "option",      name: $3, value: $5}
+                 | kw_type_option_730ad061 dot member_identifier assign constant_expression    -> {kind: "type_option", name: $3, value: $5}
 
-coverage_spec := cover_point | cover_cross
+coverage_spec := cover_point -> {kind: "point", body: $1}
+               | cover_cross -> {kind: "cross", body: $1}
 
-coverage_spec_or_option := attribute_instance* coverage_spec | attribute_instance* coverage_option semi
+coverage_spec_or_option := attribute_instance* coverage_spec        -> {kind: "spec",   attributes: $1, body: $2}
+                         | attribute_instance* coverage_option semi -> {kind: "option", attributes: $1, body: $2}
 
 @profiles: ["sv_2017"]
 covergroup_declaration_sv_2017 := kw_covergroup_80dfc68d declared_covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
+                                -> {name: $2, ports: $3, event: $4, items: $6, end_label: $8}
 
 @profiles: ["sv_2023"]
-covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d declared_covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )? | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
+covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d declared_covergroup_identifier ( lparen ( tf_port_list )? rparen )? ( coverage_event )? semi coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
+                                        -> {kind: "single",  name: $2, ports: $3, event: $4, items: $6, end_label: $8}
+                                | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
+                                        -> {kind: "extends", parent: $3, items: $6, end_label: $8}
 
 covergroup_declaration := covergroup_declaration_sv_2017 | covergroup_declaration_sv_2023
 
@@ -1149,14 +1161,21 @@ covergroup_identifier := declaration_identifier
 declared_covergroup_identifier := covergroup_identifier
 
 covergroup_range_list := covergroup_value_range ( comma covergroup_value_range )*
+                      -> [$1, $2::2*]
 
 @profiles: ["sv_2017"]
-covergroup_value_range_sv_2017 := covergroup_expression | ( covergroup_expression colon covergroup_expression )?
+covergroup_value_range_sv_2017 := covergroup_expression                                  -> {kind: "expression", body: $1}
+                                | ( covergroup_expression colon covergroup_expression )? -> {kind: "range",      body: $1}
 
 @profiles: ["sv_2023"]
-covergroup_value_range_sv_2023 := covergroup_expression | ( covergroup_expression colon covergroup_expression )? | ( kw_dollar colon covergroup_expression )? | ( covergroup_expression colon kw_dollar )? | ( covergroup_expression plus slash minus covergroup_expression )?
+covergroup_value_range_sv_2023 := covergroup_expression                                            -> {kind: "expression", body: $1}
+                                | ( covergroup_expression colon covergroup_expression )?           -> {kind: "range",      body: $1}
+                                | ( kw_dollar colon covergroup_expression )?                       -> {kind: "dollar_lo",  body: $1}
+                                | ( covergroup_expression colon kw_dollar )?                       -> {kind: "dollar_hi",  body: $1}
+                                | ( covergroup_expression plus slash minus covergroup_expression )? -> {kind: "tolerance",  body: $1}
 
-covergroup_value_range := covergroup_value_range_sv_2017 | covergroup_value_range_sv_2023
+covergroup_value_range := covergroup_value_range_sv_2017 -> {kind: "sv_2017", body: $1}
+                        | covergroup_value_range_sv_2023 -> {kind: "sv_2023", body: $1}
 
 // covergroup_variable_identifier := variable_identifier
 

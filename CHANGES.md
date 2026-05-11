@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations) (PGEN-SVP-0067)
+
+Closes LRM A.2.11 covergroup-declaration walk path referenced from `class_item.kind == "covergroup_declaration".body` and `package_or_generate_item_declaration.kind == "covergroup".body`.
+
+`bins_keyword` (3 kinds bare), `covergroup_declaration_sv_2017` (`{name, ports, event, items, end_label}`), `covergroup_declaration_sv_2023` (2 kinds: single / extends — LRM 2023 inheritance), `coverage_event` (3 kinds: clocking / sample_function / block_event), `coverage_option` (2 kinds: option / type_option), `coverage_spec` (2 kinds: point / cross), `coverage_spec_or_option` (2 kinds: spec / option), `cover_point` (`{label, expression, condition, bins}`), `covergroup_range_list` (`[$1, $2::2*]`), `covergroup_value_range_sv_2017` (2 kinds: expression / range), `covergroup_value_range_sv_2023` (5 kinds: expression / range / dollar_lo / dollar_hi / tolerance — LRM 2023 added open-ended and tolerance ranges), `covergroup_value_range` (2 kinds: sv_2017 / sv_2023).
+
+DEFERRED: `bins_or_empty`, `bins_or_options`, `bins_selection`, `bins_selection_or_option` (deep multi-branch bin declarations — slice 68).
+
+Annotation count: 1164 (was 1138, +26). Same accept set. Manifest + contract bumped to 1.0.67. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations) (PGEN-SVP-0066)
 
 Closes LRM A.5 UDP body/instance walk paths referenced from `udp_body.kind == "combinational"|"sequential".body` and `gate_instantiation.<kind>.instances` family.
