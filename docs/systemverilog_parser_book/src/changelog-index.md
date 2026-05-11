@@ -19,6 +19,32 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.61 / Contract 1.0.61 — SV-Slice-61 batch: gate_instantiation family typed (16 rules / 43 annotations — crosses 1000-annotation milestone)
+
+**What changed:** Closes LRM A.3.1 gate instantiation walk path (referenced from `module_or_generate_item.kind == "gate_instantiation".body`).
+
+```ebnf
+gate_instantiation_sv_2017/2023  -> 9 kinds each (cmos / enable / mos / n_input / n_output / pass_en / pass / pulldown / pullup)
+cmos_switchtype                  -> 2 kinds bare (cmos / rcmos)
+mos_switchtype                   -> 4 kinds bare (nmos / pmos / rnmos / rpmos)
+n_input_gatetype                 -> 6 kinds bare (and / nand / or / nor / xor / xnor)
+n_output_gatetype                -> 2 kinds bare (buf / not)
+pass_switchtype                  -> 2 kinds bare (tran / rtran)
+name_of_instance                 -> {name, dims}
+cmos_switch_instance             -> {name, output, input, ncontrol, pcontrol}
+enable_gate_instance             -> {name, output, input, enable}
+mos_switch_instance              -> {name, output, input, enable}
+n_input_gate_instance            -> {name, output, inputs: [$5, $6::2*]}
+n_output_gate_instance           -> {name, outputs: [$3, $4::2*], input}
+pass_enable_switch_instance      -> {name, in1, in2, enable}
+pass_switch_instance             -> {name, in1, in2}
+pull_gate_instance               -> {name, output}
+```
+
+DEFERRED: `enable_gatetype` / `pass_en_switchtype` / `pulldown_strength` / `pullup_strength` all have duplicate-branch grammar bug (same family as drive_strength / unique_priority / delay_sv_2017/2023).
+
+Annotation inventory: **1020** (was 977, +43). **Crosses 1000-annotation milestone.** Same accept set.
+
 ### 1.0.60 / Contract 1.0.60 — SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations)
 
 **What changed:** Closes LRM A.8.7 number sub-tree (referenced from `primary_literal.kind == "number" / "time_literal" / "string_literal".body`).

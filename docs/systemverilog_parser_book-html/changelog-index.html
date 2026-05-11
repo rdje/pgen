@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-93d7035f.js";
+            window.path_to_searchindex_js = "searchindex-28a1575d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,26 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1061--contract-1061--sv-slice-61-batch-gate_instantiation-family-typed-16-rules--43-annotations--crosses-1000-annotation-milestone"><a class="header" href="#1061--contract-1061--sv-slice-61-batch-gate_instantiation-family-typed-16-rules--43-annotations--crosses-1000-annotation-milestone">1.0.61 / Contract 1.0.61 — SV-Slice-61 batch: gate_instantiation family typed (16 rules / 43 annotations — crosses 1000-annotation milestone)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.3.1 gate instantiation walk path (referenced from <code>module_or_generate_item.kind == "gate_instantiation".body</code>).</p>
+<pre><code class="language-ebnf">gate_instantiation_sv_2017/2023  -&gt; 9 kinds each (cmos / enable / mos / n_input / n_output / pass_en / pass / pulldown / pullup)
+cmos_switchtype                  -&gt; 2 kinds bare (cmos / rcmos)
+mos_switchtype                   -&gt; 4 kinds bare (nmos / pmos / rnmos / rpmos)
+n_input_gatetype                 -&gt; 6 kinds bare (and / nand / or / nor / xor / xnor)
+n_output_gatetype                -&gt; 2 kinds bare (buf / not)
+pass_switchtype                  -&gt; 2 kinds bare (tran / rtran)
+name_of_instance                 -&gt; {name, dims}
+cmos_switch_instance             -&gt; {name, output, input, ncontrol, pcontrol}
+enable_gate_instance             -&gt; {name, output, input, enable}
+mos_switch_instance              -&gt; {name, output, input, enable}
+n_input_gate_instance            -&gt; {name, output, inputs: [$5, $6::2*]}
+n_output_gate_instance           -&gt; {name, outputs: [$3, $4::2*], input}
+pass_enable_switch_instance      -&gt; {name, in1, in2, enable}
+pass_switch_instance             -&gt; {name, in1, in2}
+pull_gate_instance               -&gt; {name, output}
+</code></pre>
+<p>DEFERRED: <code>enable_gatetype</code> / <code>pass_en_switchtype</code> / <code>pulldown_strength</code> / <code>pullup_strength</code> all have duplicate-branch grammar bug (same family as drive_strength / unique_priority / delay_sv_2017/2023).</p>
+<p>Annotation inventory: <strong>1020</strong> (was 977, +43). <strong>Crosses 1000-annotation milestone.</strong> Same accept set.</p>
 <h3 id="1060--contract-1060--sv-slice-60-batch-number--literal-family-typed-10-rules--19-annotations"><a class="header" href="#1060--contract-1060--sv-slice-60-batch-number--literal-family-typed-10-rules--19-annotations">1.0.60 / Contract 1.0.60 — SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.8.7 number sub-tree (referenced from <code>primary_literal.kind == "number" / "time_literal" / "string_literal".body</code>).</p>
 <pre><code class="language-ebnf">number              -&gt; 2 kinds (real / integral)

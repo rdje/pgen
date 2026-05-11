@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-61 batch: gate_instantiation family typed (16 rules / 43 annotations — crosses 1000-annotation milestone) (PGEN-SVP-0061)
+
+Closes the LRM A.3.1 gate instantiation walk path referenced from `module_or_generate_item.kind == "gate_instantiation".body`. Every reachable gate instantiation now exposes typed dispatch with per-instance terminal binding (output / input / enable / control / inout terminals all typed).
+
+`gate_instantiation_sv_2017/2023` (9 kinds each: cmos / enable / mos / n_input / n_output / pass_en / pass / pulldown / pullup), `cmos_switchtype` (2 kinds), `mos_switchtype` (4 kinds), `n_input_gatetype` (6 kinds), `n_output_gatetype` (2 kinds), `pass_switchtype` (2 kinds), `name_of_instance` (`{name, dims}`), plus 8 instance rules each with field-typed terminal layout.
+
+DEFERRED (duplicate-branch grammar bug, same family as drive_strength / unique_priority / delay_sv_2017/2023): `enable_gatetype`, `pass_en_switchtype`, `pulldown_strength`, `pullup_strength`. The `gate_instantiation.gatetype` / `.switchtype` / `.strength` fields therefore still resolve to raw envelope shapes for those four sub-rules; the parent gate_instantiation typed dispatch is unaffected.
+
+Annotation count: 1020 (was 977, +43). **Crosses the 1000-annotation milestone.** Same accept set. Manifest + contract bumped to 1.0.61. Book gate passing. Calibration parses on minimal_module.sv and a 4-line gate-instance sample both succeed.
+
 ## 2026-05-08 - SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations) (PGEN-SVP-0060)
 
 Closes the LRM A.8.7 number sub-tree referenced from `primary_literal.kind == "number" / "time_literal" / "string_literal".body`.

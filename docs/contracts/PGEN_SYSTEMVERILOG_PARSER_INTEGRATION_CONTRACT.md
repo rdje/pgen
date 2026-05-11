@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.60`
+  - `1.0.61`
 - Parser release version:
-  - `1.0.60`
+  - `1.0.61`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,62 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.61 / Contract 1.0.61 Highlights — SV-Slice-61 batch: gate_instantiation family typed (16 rules / 43 annotations — crosses 1000-annotation milestone)
+
+Closes the LRM A.3.1 gate instantiation walk path referenced from `module_or_generate_item.kind == "gate_instantiation".body`. Every reachable gate instantiation now exposes typed dispatch with per-instance terminal binding.
+
+### Annotations
+
+```ebnf
+gate_instantiation_sv_2017 := cmos_switchtype ( delay )? cmos_switch_instance ( comma cmos_switch_instance )* semi
+                                  -> {kind: "cmos",     switchtype, delay, instances: [$3, $4::2*]}
+                            | enable_gatetype ( drive_strength )? ( delay )? enable_gate_instance ( comma enable_gate_instance )* semi
+                                  -> {kind: "enable",   gatetype, drive_strength, delay, instances: [$4, $5::2*]}
+                            | mos_switchtype ( delay )? mos_switch_instance ( comma mos_switch_instance )* semi
+                                  -> {kind: "mos",      switchtype, delay, instances: [$3, $4::2*]}
+                            | n_input_gatetype ( drive_strength )? ( delay )? n_input_gate_instance ( comma n_input_gate_instance )* semi
+                                  -> {kind: "n_input",  gatetype, drive_strength, delay, instances: [$4, $5::2*]}
+                            | n_output_gatetype ( drive_strength )? ( delay )? n_output_gate_instance ( comma n_output_gate_instance )* semi
+                                  -> {kind: "n_output", gatetype, drive_strength, delay, instances: [$4, $5::2*]}
+                            | pass_en_switchtype ( delay )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi
+                                  -> {kind: "pass_en",  switchtype, delay, instances: [$3, $4::2*]}
+                            | pass_switchtype pass_switch_instance ( comma pass_switch_instance )* semi
+                                  -> {kind: "pass",     switchtype, instances: [$2, $3::2*]}
+                            | kw_pulldown ( pulldown_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+                                  -> {kind: "pulldown", strength, instances: [$3, $4::2*]}
+                            | kw_pullup   ( pullup_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+                                  -> {kind: "pullup",   strength, instances: [$3, $4::2*]}
+
+# sv_2023 has the same 9 kinds; LRM 2023 only reorders mos before enable in the alternation.
+
+cmos_switchtype   -> 2 kinds bare (cmos / rcmos)
+mos_switchtype    -> 4 kinds bare (nmos / pmos / rnmos / rpmos)
+n_input_gatetype  -> 6 kinds bare (and / nand / or / nor / xor / xnor)
+n_output_gatetype -> 2 kinds bare (buf / not)
+pass_switchtype   -> 2 kinds bare (tran / rtran)
+
+name_of_instance := instance_identifier unpacked_dimension*  -> {name, dims}
+
+cmos_switch_instance         -> {name, output, input, ncontrol, pcontrol}
+enable_gate_instance         -> {name, output, input, enable}
+mos_switch_instance          -> {name, output, input, enable}
+n_input_gate_instance        -> {name, output, inputs: [$5, $6::2*]}
+n_output_gate_instance       -> {name, outputs: [$3, $4::2*], input}
+pass_enable_switch_instance  -> {name, in1, in2, enable}
+pass_switch_instance         -> {name, in1, in2}
+pull_gate_instance           -> {name, output}
+```
+
+### Deferred
+
+- `enable_gatetype`, `pass_en_switchtype`, `pulldown_strength`, `pullup_strength` all have a duplicate-branch grammar bug (each branch is repeated). Same family of issues as `drive_strength` / `unique_priority` / `delay_sv_2017/2023` noted in earlier slices — to be fixed separately as a grammar correction. The `gate_instantiation.gatetype` / `.switchtype` / `.strength` fields therefore still resolve to raw envelope shapes for those four sub-rules; the parent gate_instantiation typed dispatch is unaffected.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. A 4-line gate-instance sample (`module gates; wire a, b, c, y; and g1 (y, a, b, c); buf g2 (y, a); endmodule`) also parses successfully end-to-end.
+
+Annotation count: **1020** (was 977, +43). **Crosses the 1000-annotation milestone.** Same accept set.
 
 ## Release 1.0.60 / Contract 1.0.60 Highlights — SV-Slice-60 batch: number + literal family typed (10 rules / 19 annotations)
 

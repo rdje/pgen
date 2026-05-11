@@ -873,8 +873,10 @@ clockvar := hierarchical_identifier
 clockvar_expression := clockvar select
 
 cmos_switch_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma ncontrol_terminal comma pcontrol_terminal rparen
+                     -> {name: $1, output: $3, input: $5, ncontrol: $7, pcontrol: $9}
 
-cmos_switchtype := kw_cmos_aabe63a7 | kw_rcmos_ae4a7a0a
+cmos_switchtype := kw_cmos_aabe63a7  -> {kind: "cmos"}
+                 | kw_rcmos_ae4a7a0a -> {kind: "rcmos"}
 
 combinational_body := kw_table_c3ee137d combinational_entry combinational_entry* kw_endtable_0b3f3e00
                    -> {entries: {first: $2, rest: $3}}
@@ -1452,6 +1454,7 @@ empty_unpacked_array_concatenation := lbrace epsilon rbrace
                                    -> {kind: "empty_unpacked_array_concat"}
 
 enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
+                     -> {name: $1, output: $3, input: $5, enable: $7}
 
 enable_gatetype := kw_bufif_8c9c7ee6 | kw_bufif_8c9c7ee6 | kw_notif_8743f903 | kw_notif_8743f903
 
@@ -1607,10 +1610,44 @@ function_statement_or_null := function_statement       -> {kind: "statement", bo
 function_subroutine_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call
 
 @profiles: ["sv_2017"]
-gate_instantiation_sv_2017 := cmos_switchtype ( delay )? cmos_switch_instance ( comma cmos_switch_instance )* semi | enable_gatetype ( drive_strength )? ( delay )? enable_gate_instance ( comma enable_gate_instance )* semi | mos_switchtype ( delay )? mos_switch_instance ( comma mos_switch_instance )* semi | n_input_gatetype ( drive_strength )? ( delay )? n_input_gate_instance ( comma n_input_gate_instance )* semi | n_output_gatetype ( drive_strength )? ( delay )? n_output_gate_instance ( comma n_output_gate_instance )* semi | pass_en_switchtype ( delay )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi | pass_switchtype pass_switch_instance ( comma pass_switch_instance )* semi | kw_pulldown_20560243 ( pulldown_strength )? pull_gate_instance ( comma pull_gate_instance )* semi | kw_pullup_f7402b53 ( pullup_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+gate_instantiation_sv_2017 := cmos_switchtype ( delay )? cmos_switch_instance ( comma cmos_switch_instance )* semi
+                                   -> {kind: "cmos",     switchtype: $1, delay: $2, instances: [$3, $4::2*]}
+                            | enable_gatetype ( drive_strength )? ( delay )? enable_gate_instance ( comma enable_gate_instance )* semi
+                                   -> {kind: "enable",   gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
+                            | mos_switchtype ( delay )? mos_switch_instance ( comma mos_switch_instance )* semi
+                                   -> {kind: "mos",      switchtype: $1, delay: $2, instances: [$3, $4::2*]}
+                            | n_input_gatetype ( drive_strength )? ( delay )? n_input_gate_instance ( comma n_input_gate_instance )* semi
+                                   -> {kind: "n_input",  gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
+                            | n_output_gatetype ( drive_strength )? ( delay )? n_output_gate_instance ( comma n_output_gate_instance )* semi
+                                   -> {kind: "n_output", gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
+                            | pass_en_switchtype ( delay )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi
+                                   -> {kind: "pass_en",  switchtype: $1, delay: $2, instances: [$3, $4::2*]}
+                            | pass_switchtype pass_switch_instance ( comma pass_switch_instance )* semi
+                                   -> {kind: "pass",     switchtype: $1, instances: [$2, $3::2*]}
+                            | kw_pulldown_20560243 ( pulldown_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+                                   -> {kind: "pulldown", strength: $2, instances: [$3, $4::2*]}
+                            | kw_pullup_f7402b53 ( pullup_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+                                   -> {kind: "pullup",   strength: $2, instances: [$3, $4::2*]}
 
 @profiles: ["sv_2023"]
-gate_instantiation_sv_2023 := cmos_switchtype ( delay )? cmos_switch_instance ( comma cmos_switch_instance )* semi | mos_switchtype ( delay )? mos_switch_instance ( comma mos_switch_instance )* semi | enable_gatetype ( drive_strength )? ( delay )? enable_gate_instance ( comma enable_gate_instance )* semi | n_input_gatetype ( drive_strength )? ( delay )? n_input_gate_instance ( comma n_input_gate_instance )* semi | n_output_gatetype ( drive_strength )? ( delay )? n_output_gate_instance ( comma n_output_gate_instance )* semi | pass_en_switchtype ( delay )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi | pass_switchtype pass_switch_instance ( comma pass_switch_instance )* semi | kw_pulldown_20560243 ( pulldown_strength )? pull_gate_instance ( comma pull_gate_instance )* semi | kw_pullup_f7402b53 ( pullup_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+gate_instantiation_sv_2023 := cmos_switchtype ( delay )? cmos_switch_instance ( comma cmos_switch_instance )* semi
+                                   -> {kind: "cmos",     switchtype: $1, delay: $2, instances: [$3, $4::2*]}
+                            | mos_switchtype ( delay )? mos_switch_instance ( comma mos_switch_instance )* semi
+                                   -> {kind: "mos",      switchtype: $1, delay: $2, instances: [$3, $4::2*]}
+                            | enable_gatetype ( drive_strength )? ( delay )? enable_gate_instance ( comma enable_gate_instance )* semi
+                                   -> {kind: "enable",   gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
+                            | n_input_gatetype ( drive_strength )? ( delay )? n_input_gate_instance ( comma n_input_gate_instance )* semi
+                                   -> {kind: "n_input",  gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
+                            | n_output_gatetype ( drive_strength )? ( delay )? n_output_gate_instance ( comma n_output_gate_instance )* semi
+                                   -> {kind: "n_output", gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
+                            | pass_en_switchtype ( delay )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi
+                                   -> {kind: "pass_en",  switchtype: $1, delay: $2, instances: [$3, $4::2*]}
+                            | pass_switchtype pass_switch_instance ( comma pass_switch_instance )* semi
+                                   -> {kind: "pass",     switchtype: $1, instances: [$2, $3::2*]}
+                            | kw_pulldown_20560243 ( pulldown_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+                                   -> {kind: "pulldown", strength: $2, instances: [$3, $4::2*]}
+                            | kw_pullup_f7402b53 ( pullup_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
+                                   -> {kind: "pullup",   strength: $2, instances: [$3, $4::2*]}
 
 gate_instantiation := gate_instantiation_sv_2017 | gate_instantiation_sv_2023
 
@@ -2247,21 +2284,34 @@ module_path_multiple_concatenation := ( constant_expression module_path_concaten
 module_path_primary := number | identifier | module_path_concatenation | module_path_multiple_concatenation | function_subroutine_call | lparen module_path_mintypmax_expression rparen
 
 mos_switch_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
+                    -> {name: $1, output: $3, input: $5, enable: $7}
 
-mos_switchtype := kw_nmos_0c967e00 | kw_pmos_f3d8bd5d | kw_rnmos_de1c9510 | kw_rpmos_7cd80934
+mos_switchtype := kw_nmos_0c967e00  -> {kind: "nmos"}
+                | kw_pmos_f3d8bd5d  -> {kind: "pmos"}
+                | kw_rnmos_de1c9510 -> {kind: "rnmos"}
+                | kw_rpmos_7cd80934 -> {kind: "rpmos"}
 
 multiple_concatenation := lbrace expression concatenation rbrace
                        -> {count: $2, body: $3}
 
 n_input_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal ( comma input_terminal )* rparen
+                      -> {name: $1, output: $3, inputs: [$5, $6::2*]}
 
-n_input_gatetype := kw_and_cffa50a3 | kw_nand_c8a98832 | kw_or_1758356d | kw_nor_19d0495c | kw_xor_f1922a23 | kw_xnor_ab48bc67
+n_input_gatetype := kw_and_cffa50a3  -> {kind: "and"}
+                  | kw_nand_c8a98832 -> {kind: "nand"}
+                  | kw_or_1758356d   -> {kind: "or"}
+                  | kw_nor_19d0495c  -> {kind: "nor"}
+                  | kw_xor_f1922a23  -> {kind: "xor"}
+                  | kw_xnor_ab48bc67 -> {kind: "xnor"}
 
 n_output_gate_instance := ( name_of_instance )? lparen output_terminal ( comma output_terminal )* comma input_terminal rparen
+                       -> {name: $1, outputs: [$3, $4::2*], input: $6}
 
-n_output_gatetype := kw_buf_cb252062 | kw_not_557f2555
+n_output_gatetype := kw_buf_cb252062 -> {kind: "buf"}
+                   | kw_not_557f2555 -> {kind: "not"}
 
 name_of_instance := instance_identifier unpacked_dimension*
+                 -> {name: $1, dims: $2}
 
 @profiles: ["sv_2017"]
 named_checker_port_connection_sv_2017 := attribute_instance* dot formal_port_identifier ( lparen ( property_actual_arg )? rparen )? | attribute_instance* dot_star
@@ -2616,10 +2666,13 @@ part_select_range := constant_range -> {kind: "range",         body: $1}
 pass_en_switchtype := kw_tranif_02d116e0 | kw_tranif_02d116e0 | kw_rtranif_75c812fc | kw_rtranif_75c812fc
 
 pass_enable_switch_instance := ( name_of_instance )? lparen inout_terminal comma inout_terminal comma enable_terminal rparen
+                            -> {name: $1, in1: $3, in2: $5, enable: $7}
 
 pass_switch_instance := ( name_of_instance )? lparen inout_terminal comma inout_terminal rparen
+                    -> {name: $1, in1: $3, in2: $5}
 
-pass_switchtype := kw_tran_8cc27d13 | kw_rtran_edbf7838
+pass_switchtype := kw_tran_8cc27d13   -> {kind: "tran"}
+                 | kw_rtran_edbf7838  -> {kind: "rtran"}
 
 path_declaration := simple_path_declaration semi | edge_sensitive_path_declaration semi | state_dependent_path_declaration semi
 
@@ -2942,6 +2995,7 @@ ps_type_identifier_sv_2023 := ( kw_local_939bb46a scope_resolution kw_n_48_64e09
 ps_type_identifier := ps_type_identifier_sv_2017 | ps_type_identifier_sv_2023
 
 pull_gate_instance := ( name_of_instance )? lparen output_terminal rparen
+                   -> {name: $1, output: $3}
 
 pulldown_strength := lparen strength comma strength rparen | lparen strength comma strength rparen | lparen strength rparen
 
