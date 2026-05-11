@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.70`
+  - `1.0.71`
 - Parser release version:
-  - `1.0.70`
+  - `1.0.71`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,35 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.71 / Contract 1.0.71 Highlights — SV-Slice-71 batch: property_expr family typed (2 rules / 72 annotations)
+
+Closes the LRM A.2.10 property expression sub-tree referenced from `property_spec.body` and `property_actual_arg.kind == "property_expr".body`.
+
+### Annotations
+
+`property_expr_sv_2017` 36 kinds covering all LRM 1800-2017 property operators:
+
+```
+sequence / strong / weak / paren / not / or / and / sequence_dup /
+implies_unary / sequence_or_assign / if / case / imp_minus /
+imp_assign / nexttime / nexttime_const / s_nexttime / s_nexttime_const /
+always / always_range / s_always / s_eventually / eventually /
+s_eventually_range / until / s_until / until_with / s_until_with /
+implies_binary / iff / accept_on / reject_on / sync_accept_on /
+sync_reject_on / instance / clocking
+```
+
+`property_expr_sv_2023` has the same 36 kinds — parallel except the `nexttime_const` branch uses `constant_expression` instead of `kw_constant_d810ca96 expression` per LRM 2023.
+
+### Notes
+
+- Several branches use left-recursion (`property_expr op property_expr`) — PEG generators don't handle left-recursion directly; the typed dispatch works for whatever the generator does parse.
+- Branch ordering matters: branch 1 (`sequence_expr`) wins for any sequence-shaped input before branch 8's duplicate.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1295** (was 1223, +72). Same accept set.
 
 ## Release 1.0.70 / Contract 1.0.70 Highlights — SV-Slice-70 batch: property family (excluding property_expr) typed (12 rules / 16 annotations)
 

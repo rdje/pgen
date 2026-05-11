@@ -19,6 +19,14 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.71 / Contract 1.0.71 — SV-Slice-71 batch: property_expr family typed (2 rules / 72 annotations)
+
+**What changed:** Closes LRM A.2.10 property expression sub-tree.
+
+`property_expr_sv_2017` and `property_expr_sv_2023` each get 36 kinds covering all property operators (sequence / strong / weak / paren / not / or / and / sequence_dup / implies_unary / sequence_or_assign / if / case / imp_minus / imp_assign / nexttime / nexttime_const / s_nexttime / s_nexttime_const / always / always_range / s_always / s_eventually / eventually / s_eventually_range / until / s_until / until_with / s_until_with / implies_binary / iff / accept_on / reject_on / sync_accept_on / sync_reject_on / instance / clocking).
+
+Annotation inventory: **1295** (was 1223, +72). Same accept set.
+
 ### 1.0.70 / Contract 1.0.70 — SV-Slice-70 batch: property family (excluding property_expr) typed (12 rules / 16 annotations)
 
 **What changed:** Closes the property-declaration walk path.

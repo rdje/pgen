@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-71 batch: property_expr family typed (2 rules / 72 annotations) (PGEN-SVP-0071)
+
+Closes the LRM A.2.10 property expression sub-tree referenced from `property_spec.body` and `property_actual_arg.kind == "property_expr".body` (typed in slice 70).
+
+`property_expr_sv_2017` 36 kinds covering all LRM 1800-2017 property operators: sequence / strong / weak / paren / not / or / and / sequence_dup / implies_unary / sequence_or_assign / if / case / imp_minus / imp_assign / nexttime / nexttime_const / s_nexttime / s_nexttime_const / always / always_range / s_always / s_eventually / eventually / s_eventually_range / until / s_until / until_with / s_until_with / implies_binary / iff / accept_on / reject_on / sync_accept_on / sync_reject_on / instance / clocking. `property_expr_sv_2023` parallel — same 36 kinds; differs only in the `nexttime_const` branch (uses `constant_expression` instead of `kw_constant_d810ca96 expression` per LRM 2023).
+
+NOTES: (1) Several branches use left-recursion — PEG generators don't handle left-recursion directly; the typed dispatch works for whatever the generator does parse. (2) Branch ordering matters: branch 1 `sequence_expr` will win before branch 8's duplicate (duplicate kept verbatim from LRM grammar).
+
+Annotation count: 1295 (was 1223, +72). Same accept set. Manifest + contract bumped to 1.0.71. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-70 batch: property family (excluding property_expr) typed (12 rules / 16 annotations) (PGEN-SVP-0070)
 
 Closes the property-declaration walk path referenced from `concurrent_assertion_item.kind == "property_declaration".body` and `property_instance` references.
