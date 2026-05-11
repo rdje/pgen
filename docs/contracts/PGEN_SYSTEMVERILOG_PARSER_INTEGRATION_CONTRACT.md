@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.63`
+  - `1.0.64`
 - Parser release version:
-  - `1.0.63`
+  - `1.0.64`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,29 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.64 / Contract 1.0.64 Highlights — SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations)
+
+Closes LRM A.7.5.3 / A.7.6 timing check sub-trees referenced from `specify_item.kind == "system_timing".body` (typed in slice 62) and the LRM A.5 UDP edge-input descriptors.
+
+### Annotations
+
+```ebnf
+edge_descriptor              -> 4 kinds (01 / 10 / z_or_x_first / digit_first)
+edge_indicator               -> 2 kinds (pair {first, second} / symbol {body})
+edge_symbol                  -> 9 kinds bare (r / R / f / F / p / P / n / N / star)
+edge_control_specifier       -> {descriptors}
+edge_input_list              -> {leading_levels, indicator, trailing_levels}
+system_timing_check          -> 12 kinds (setup / hold / setuphold / recovery / removal / recrem / skew / timeskew / fullskew / period / width / nochange)
+timing_check_condition       -> 2 kinds (scalar / paren)
+timing_check_event           -> {control, descriptor, condition}
+timing_check_event_control   -> 4 kinds (posedge / negedge / edge / edge_control)
+controlled_timing_check_event-> {control, descriptor, condition}
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1097** (was 1060, +37). Same accept set.
 
 ## Release 1.0.63 / Contract 1.0.63 Highlights — SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations)
 

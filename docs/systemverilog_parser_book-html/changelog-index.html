@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e74ccd1b.js";
+            window.path_to_searchindex_js = "searchindex-b1d7de28.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,20 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1064--contract-1064--sv-slice-64-batch-edge--timing_check-family-typed-10-rules--37-annotations"><a class="header" href="#1064--contract-1064--sv-slice-64-batch-edge--timing_check-family-typed-10-rules--37-annotations">1.0.64 / Contract 1.0.64 — SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.7.5.3 / A.7.6 timing check sub-trees (referenced from <code>specify_item.kind == "system_timing".body</code>) and the LRM A.5 UDP edge-input descriptors.</p>
+<pre><code class="language-ebnf">edge_descriptor              -&gt; 4 kinds (01 / 10 / z_or_x_first / digit_first)
+edge_indicator               -&gt; 2 kinds (pair / symbol)
+edge_symbol                  -&gt; 9 kinds bare (r / R / f / F / p / P / n / N / star)
+edge_control_specifier       -&gt; {descriptors}
+edge_input_list              -&gt; {leading_levels, indicator, trailing_levels}
+system_timing_check          -&gt; 12 kinds (setup / hold / setuphold / recovery / removal / recrem / skew / timeskew / fullskew / period / width / nochange)
+timing_check_condition       -&gt; 2 kinds (scalar / paren)
+timing_check_event           -&gt; {control, descriptor, condition}
+timing_check_event_control   -&gt; 4 kinds (posedge / negedge / edge / edge_control)
+controlled_timing_check_event-&gt; {control, descriptor, condition}
+</code></pre>
+<p>Annotation inventory: <strong>1097</strong> (was 1060, +37). Same accept set.</p>
 <h3 id="1063--contract-1063--sv-slice-63-batch-path_declaration-family-typed-14-rules--25-annotations"><a class="header" href="#1063--contract-1063--sv-slice-63-batch-path_declaration-family-typed-14-rules--25-annotations">1.0.63 / Contract 1.0.63 — SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.7.2 / A.7.4 path declarations (referenced from <code>specify_item.kind == "path".body</code>).</p>
 <pre><code class="language-ebnf">path_declaration                      -&gt; 3 kinds (simple / edge_sensitive / state_dependent)

@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.64 / Contract 1.0.64 — SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations)
+
+**What changed:** Closes LRM A.7.5.3 / A.7.6 timing check sub-trees (referenced from `specify_item.kind == "system_timing".body`) and the LRM A.5 UDP edge-input descriptors.
+
+```ebnf
+edge_descriptor              -> 4 kinds (01 / 10 / z_or_x_first / digit_first)
+edge_indicator               -> 2 kinds (pair / symbol)
+edge_symbol                  -> 9 kinds bare (r / R / f / F / p / P / n / N / star)
+edge_control_specifier       -> {descriptors}
+edge_input_list              -> {leading_levels, indicator, trailing_levels}
+system_timing_check          -> 12 kinds (setup / hold / setuphold / recovery / removal / recrem / skew / timeskew / fullskew / period / width / nochange)
+timing_check_condition       -> 2 kinds (scalar / paren)
+timing_check_event           -> {control, descriptor, condition}
+timing_check_event_control   -> 4 kinds (posedge / negedge / edge / edge_control)
+controlled_timing_check_event-> {control, descriptor, condition}
+```
+
+Annotation inventory: **1097** (was 1060, +37). Same accept set.
+
 ### 1.0.63 / Contract 1.0.63 — SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations)
 
 **What changed:** Closes LRM A.7.2 / A.7.4 path declarations (referenced from `specify_item.kind == "path".body`).

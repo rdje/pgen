@@ -1109,6 +1109,7 @@ continuous_assign := kw_assign_9009b730 ( drive_strength )? ( delay )? list_of_n
 controlled_reference_event := controlled_timing_check_event
 
 controlled_timing_check_event := timing_check_event_control specify_terminal_descriptor ( logical_and3 timing_check_condition )?
+                              -> {control: $1, descriptor: $2, condition: $3}
 
 cover_cross := ( cross_identifier colon )? kw_cross_ac4280ba list_of_cross_items ( kw_iff_ee1c009e lparen expression rparen )? cross_body
 
@@ -1425,23 +1426,37 @@ dynamic_override_specifiers_sv_2023 := ( initial_or_extends_specifier )? ( final
 dynamic_override_specifiers := dynamic_override_specifiers_sv_2023
 
 edge_control_specifier := kw_edge_a0f2c69a ( edge_descriptor ( comma edge_descriptor )* )?
+                       -> {descriptors: $2}
 
-edge_descriptor := kw_n_01_ddfe1633 | kw_n_10_b1d57811 | z_or_x zero_or_one | zero_or_one z_or_x
+edge_descriptor := kw_n_01_ddfe1633        -> {kind: "01"}
+                 | kw_n_10_b1d57811        -> {kind: "10"}
+                 | z_or_x zero_or_one      -> {kind: "z_or_x_first", z: $1, digit: $2}
+                 | zero_or_one z_or_x      -> {kind: "digit_first",  digit: $1, z: $2}
 
 edge_identifier := kw_posedge_7529558b -> {kind: "posedge"}
                  | kw_negedge_c77fbc5c -> {kind: "negedge"}
                  | kw_edge_a0f2c69a    -> {kind: "edge"}
 
-edge_indicator := lparen level_symbol level_symbol rparen | edge_symbol
+edge_indicator := lparen level_symbol level_symbol rparen   -> {kind: "pair",   first: $2, second: $3}
+                | edge_symbol                                -> {kind: "symbol", body: $1}
 
 edge_input_list := level_symbol* edge_indicator level_symbol*
+                -> {leading_levels: $1, indicator: $2, trailing_levels: $3}
 
 edge_sensitive_path_declaration := parallel_edge_sensitive_path_description assign path_delay_value
                                           -> {kind: "parallel", path: $1, delay: $3}
                                  | full_edge_sensitive_path_description assign path_delay_value
                                           -> {kind: "full",     path: $1, delay: $3}
 
-edge_symbol := kw_r_4dc7c9ec | kw_R_06576556 | kw_f_4a0a1921 | kw_F_e69f20e9 | kw_p_516b9783 | kw_P_511993d3 | kw_n_d1854cae | kw_N_b51a6073 | star
+edge_symbol := kw_r_4dc7c9ec -> {kind: "r"}
+             | kw_R_06576556 -> {kind: "R"}
+             | kw_f_4a0a1921 -> {kind: "f"}
+             | kw_F_e69f20e9 -> {kind: "F"}
+             | kw_p_516b9783 -> {kind: "p"}
+             | kw_P_511993d3 -> {kind: "P"}
+             | kw_n_d1854cae -> {kind: "n"}
+             | kw_N_b51a6073 -> {kind: "N"}
+             | star          -> {kind: "star"}
 
 @profiles: ["sv_2023"]
 elaboration_severity_system_task_sv_2023 := severity_system_task
@@ -3471,7 +3486,18 @@ system_tf_call := system_tf_identifier ( lparen list_of_arguments rparen )?
                 | system_tf_identifier lparen expression ( comma ( expression )? )* ( comma ( clocking_event )? )? rparen
                        -> {kind: "expr_clocking", name: $1, first_expr: $3, rest_exprs: $4, clocking: $5}
 
-system_timing_check := sv_dollar_setup_timing_check | sv_dollar_hold_timing_check | sv_dollar_setuphold_timing_check | sv_dollar_recovery_timing_check | sv_dollar_removal_timing_check | sv_dollar_recrem_timing_check | sv_dollar_skew_timing_check | sv_dollar_timeskew_timing_check | sv_dollar_fullskew_timing_check | sv_dollar_period_timing_check | sv_dollar_width_timing_check | sv_dollar_nochange_timing_check
+system_timing_check := sv_dollar_setup_timing_check        -> {kind: "setup",      body: $1}
+                     | sv_dollar_hold_timing_check         -> {kind: "hold",       body: $1}
+                     | sv_dollar_setuphold_timing_check    -> {kind: "setuphold",  body: $1}
+                     | sv_dollar_recovery_timing_check     -> {kind: "recovery",   body: $1}
+                     | sv_dollar_removal_timing_check      -> {kind: "removal",    body: $1}
+                     | sv_dollar_recrem_timing_check       -> {kind: "recrem",     body: $1}
+                     | sv_dollar_skew_timing_check         -> {kind: "skew",       body: $1}
+                     | sv_dollar_timeskew_timing_check     -> {kind: "timeskew",   body: $1}
+                     | sv_dollar_fullskew_timing_check     -> {kind: "fullskew",   body: $1}
+                     | sv_dollar_period_timing_check       -> {kind: "period",     body: $1}
+                     | sv_dollar_width_timing_check        -> {kind: "width",      body: $1}
+                     | sv_dollar_nochange_timing_check     -> {kind: "nochange",   body: $1}
 
 t01_path_delay_expression := path_delay_expression
 
@@ -3575,11 +3601,16 @@ timeunit_separator_slash := timeunit_separator_trivia "/"
 
 timeunit_separator_trivia := /(?:[ \t\r\n]+|\/\/[^\n]*(\n|$)|\/\*([^*]|\*+[^*\/])*\*+\/)*/
 
-timing_check_condition := scalar_timing_check_condition | lparen scalar_timing_check_condition rparen
+timing_check_condition := scalar_timing_check_condition           -> {kind: "scalar", body: $1}
+                        | lparen scalar_timing_check_condition rparen -> {kind: "paren",  body: $2}
 
 timing_check_event := ( timing_check_event_control )? specify_terminal_descriptor ( logical_and3 timing_check_condition )?
+                   -> {control: $1, descriptor: $2, condition: $3}
 
-timing_check_event_control := kw_posedge_7529558b | kw_negedge_c77fbc5c | kw_edge_a0f2c69a | edge_control_specifier
+timing_check_event_control := kw_posedge_7529558b   -> {kind: "posedge"}
+                            | kw_negedge_c77fbc5c   -> {kind: "negedge"}
+                            | kw_edge_a0f2c69a      -> {kind: "edge"}
+                            | edge_control_specifier -> {kind: "edge_control", body: $1}
 
 timing_check_limit := expression
 

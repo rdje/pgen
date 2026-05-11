@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-64 batch: edge + timing_check family typed (10 rules / 37 annotations) (PGEN-SVP-0064)
+
+Closes LRM A.7.5.3 / A.7.6 timing check sub-trees referenced from `specify_item.kind == "system_timing".body` (typed in slice 62) and the LRM A.5 UDP edge-input descriptors.
+
+`edge_descriptor` (4 kinds: 01 / 10 / z_or_x_first / digit_first), `edge_indicator` (2 kinds: pair / symbol), `edge_symbol` (9 kinds bare: r / R / f / F / p / P / n / N / star), `edge_control_specifier` (`{descriptors}`), `edge_input_list` (`{leading_levels, indicator, trailing_levels}`), `system_timing_check` (12 kinds covering all LRM A.7.5.3 system tasks: setup / hold / setuphold / recovery / removal / recrem / skew / timeskew / fullskew / period / width / nochange), `timing_check_condition` (2 kinds: scalar / paren), `timing_check_event` (`{control, descriptor, condition}`), `timing_check_event_control` (4 kinds: posedge / negedge / edge / edge_control), `controlled_timing_check_event` (parallel shape).
+
+Annotation count: 1097 (was 1060, +37). Same accept set. Manifest + contract bumped to 1.0.64. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations) (PGEN-SVP-0063)
 
 Closes the LRM A.7.2 / A.7.4 path-declaration walk paths referenced from `specify_item.kind == "path".body` (typed in slice 62). Every reachable specify path declaration now exposes typed dispatch with field-typed terminal/condition slots.
