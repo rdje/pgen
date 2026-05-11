@@ -19,6 +19,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.63 / Contract 1.0.63 — SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations)
+
+**What changed:** Closes LRM A.7.2 / A.7.4 path declarations (referenced from `specify_item.kind == "path".body`).
+
+```ebnf
+path_declaration                      -> 3 kinds (simple / edge_sensitive / state_dependent)
+simple_path_declaration               -> 2 kinds (parallel / full)
+edge_sensitive_path_declaration       -> 2 kinds (parallel / full)
+state_dependent_path_declaration      -> 3 kinds (if_simple / if_edge_sensitive / ifnone)
+parallel_path_description             -> {input, polarity, output}
+full_path_description                 -> {inputs, polarity, outputs}
+parallel_edge_sensitive_path_description_sv_2017  -> {edge, input, in_polarity, output, out_polarity, data_source}
+parallel_edge_sensitive_path_description_sv_2023  -> 2 kinds (with_data_source / simple)
+full_edge_sensitive_path_description_sv_2017      -> {edge, inputs, in_polarity, outputs, out_polarity, data_source}
+full_edge_sensitive_path_description_sv_2023      -> 2 kinds
+path_delay_value                      -> 2 kinds (bare / paren)
+list_of_path_delay_expressions        -> {body}
+pulsestyle_declaration                -> 2 kinds (onevent / ondetect)
+showcancelled_declaration             -> 2 kinds (showcancelled / noshowcancelled)
+```
+
+Annotation inventory: **1060** (was 1035, +25). Same accept set.
+
 ### 1.0.62 / Contract 1.0.62 — SV-Slice-62 batch: specify family typed (9 rules / 15 annotations)
 
 **What changed:** Closes LRM A.7 specify-block walk path (referenced from `non_port_module_item.kind == "specify".body`) and the LRM A.7.5.1 specparam declaration sub-tree.

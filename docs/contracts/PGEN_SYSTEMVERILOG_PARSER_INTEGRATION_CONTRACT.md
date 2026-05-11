@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.62`
+  - `1.0.63`
 - Parser release version:
-  - `1.0.62`
+  - `1.0.63`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,33 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.63 / Contract 1.0.63 Highlights — SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations)
+
+Closes the LRM A.7.2 / A.7.4 path declarations referenced from `specify_item.kind == "path".body` (typed in slice 62).
+
+### Annotations
+
+```ebnf
+path_declaration                  -> 3 kinds (simple / edge_sensitive / state_dependent — drops trailing semi)
+simple_path_declaration           -> 2 kinds (parallel / full) {kind, path, delay}
+edge_sensitive_path_declaration   -> 2 kinds (parallel / full) {kind, path, delay}
+state_dependent_path_declaration  -> 3 kinds (if_simple / if_edge_sensitive / ifnone)
+parallel_path_description         -> {input, polarity, output}
+full_path_description             -> {inputs, polarity, outputs}
+parallel_edge_sensitive_path_description_sv_2017  -> {edge, input, in_polarity, output, out_polarity, data_source}
+parallel_edge_sensitive_path_description_sv_2023  -> 2 kinds (with_data_source / simple — LRM 2023 added no-data-source form)
+full_edge_sensitive_path_description_sv_2017      -> parallel shape for inputs/outputs
+full_edge_sensitive_path_description_sv_2023      -> 2 kinds (with_data_source / simple)
+path_delay_value                  -> 2 kinds (bare / paren)
+list_of_path_delay_expressions    -> {body}
+pulsestyle_declaration            -> 2 kinds (onevent / ondetect) — output paths the keyword applies to
+showcancelled_declaration         -> 2 kinds (showcancelled / noshowcancelled)
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1060** (was 1035, +25). Same accept set.
 
 ## Release 1.0.62 / Contract 1.0.62 Highlights — SV-Slice-62 batch: specify family typed (9 rules / 15 annotations)
 

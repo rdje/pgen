@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5c76384c.js";
+            window.path_to_searchindex_js = "searchindex-e74ccd1b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.64.0</td><td>1.0.63</td><td><strong>SV-Slice-63 batch: path_declaration family typed.</strong> 14 rules / 25 annotations covering LRM A.7.2 / A.7.4 path-declaration walk: <code>path_declaration</code> (3 kinds), <code>simple_path_declaration</code> / <code>edge_sensitive_path_declaration</code> (each 2 kinds), <code>state_dependent_path_declaration</code> (3 kinds: if_simple / if_edge_sensitive / ifnone), <code>parallel_path_description</code> (<code>{input, polarity, output}</code>), <code>full_path_description</code> (<code>{inputs, polarity, outputs}</code>), <code>parallel_edge_sensitive_path_description_sv_2017</code> (single seq with data_source), <code>_sv_2023</code> (2 kinds), <code>full_edge_sensitive_path_description_sv_2017/2023</code> (parallel), <code>path_delay_value</code> (2 kinds: bare / paren), <code>list_of_path_delay_expressions</code> (<code>{body}</code>), <code>pulsestyle_declaration</code> (2 kinds), <code>showcancelled_declaration</code> (2 kinds). Annotation inventory: 1060 entries (was 1035).</td></tr>
 <tr><td>0.63.0</td><td>1.0.62</td><td><strong>SV-Slice-62 batch: specify family typed.</strong> 9 rules / 15 annotations covering LRM A.7 specify-block: <code>specify_block</code> (<code>{items}</code>), <code>specify_item</code> (5 kinds), <code>specify_input/output_terminal_descriptor</code> (each <code>{name, range}</code>), <code>specify_terminal_descriptor</code> (2 kinds), <code>specparam_assignment</code> (2 kinds: simple / pulse), <code>specparam_declaration</code> (<code>{dims, items}</code>), <code>polarity_operator</code> (2 kinds bare). Annotation inventory: 1035 entries (was 1020).</td></tr>
 <tr><td>0.62.0</td><td>1.0.61</td><td><strong>SV-Slice-61 batch: gate_instantiation family typed (crosses 1000-annotation milestone).</strong> 16 rules / 43 annotations covering LRM A.3.1 gate instantiation walk path: <code>gate_instantiation_sv_2017/2023</code> (9 kinds each), <code>cmos_switchtype</code> / <code>mos_switchtype</code> / <code>n_input_gatetype</code> / <code>n_output_gatetype</code> / <code>pass_switchtype</code> (all bare kinds), <code>name_of_instance</code> (<code>{name, dims}</code>), <code>cmos_switch_instance</code> (<code>{name, output, input, ncontrol, pcontrol}</code>), <code>enable_gate_instance</code> / <code>mos_switch_instance</code> (<code>{name, output, input, enable}</code>), <code>n_input_gate_instance</code> (<code>{name, output, inputs: [$5, $6::2*]}</code>), <code>n_output_gate_instance</code> (<code>{name, outputs: [$3, $4::2*], input}</code>), <code>pass_enable_switch_instance</code> (<code>{name, in1, in2, enable}</code>), <code>pass_switch_instance</code> (<code>{name, in1, in2}</code>), <code>pull_gate_instance</code> (<code>{name, output}</code>). DEFERRED: <code>enable_gatetype</code> / <code>pass_en_switchtype</code> / <code>pulldown_strength</code> / <code>pullup_strength</code> (duplicate-branch grammar bug, same family as drive_strength). Annotation inventory: 1020 entries (was 977).</td></tr>
 <tr><td>0.61.0</td><td>1.0.60</td><td><strong>SV-Slice-60 batch: number + literal family typed.</strong> 10 rules / 19 annotations covering LRM A.8.7 number sub-tree: <code>number</code> (2 kinds), <code>integral_number</code> (4 kinds), <code>real_number</code> (2 kinds: fixed_point / exponential), <code>binary_number</code> / <code>octal_number</code> / <code>hex_number</code> (each <code>{size, base, value}</code>), <code>decimal_number</code> (4 kinds: unsized / sized / x_digit / z_digit), <code>fixed_point_number</code> (<code>{whole, fractional}</code>), <code>time_literal</code> (<code>{value, unit}</code>), <code>string_literal</code> (2 kinds: triple_quoted / double_quoted). Annotation inventory: 977 entries (was 958).</td></tr>
@@ -1409,6 +1410,24 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1063--contract-1063--sv-slice-63-batch-path_declaration-family-typed-14-rules--25-annotations"><a class="header" href="#1063--contract-1063--sv-slice-63-batch-path_declaration-family-typed-14-rules--25-annotations">1.0.63 / Contract 1.0.63 — SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.7.2 / A.7.4 path declarations (referenced from <code>specify_item.kind == "path".body</code>).</p>
+<pre><code class="language-ebnf">path_declaration                      -&gt; 3 kinds (simple / edge_sensitive / state_dependent)
+simple_path_declaration               -&gt; 2 kinds (parallel / full)
+edge_sensitive_path_declaration       -&gt; 2 kinds (parallel / full)
+state_dependent_path_declaration      -&gt; 3 kinds (if_simple / if_edge_sensitive / ifnone)
+parallel_path_description             -&gt; {input, polarity, output}
+full_path_description                 -&gt; {inputs, polarity, outputs}
+parallel_edge_sensitive_path_description_sv_2017  -&gt; {edge, input, in_polarity, output, out_polarity, data_source}
+parallel_edge_sensitive_path_description_sv_2023  -&gt; 2 kinds (with_data_source / simple)
+full_edge_sensitive_path_description_sv_2017      -&gt; {edge, inputs, in_polarity, outputs, out_polarity, data_source}
+full_edge_sensitive_path_description_sv_2023      -&gt; 2 kinds
+path_delay_value                      -&gt; 2 kinds (bare / paren)
+list_of_path_delay_expressions        -&gt; {body}
+pulsestyle_declaration                -&gt; 2 kinds (onevent / ondetect)
+showcancelled_declaration             -&gt; 2 kinds (showcancelled / noshowcancelled)
+</code></pre>
+<p>Annotation inventory: <strong>1060</strong> (was 1035, +25). Same accept set.</p>
 <h3 id="1062--contract-1062--sv-slice-62-batch-specify-family-typed-9-rules--15-annotations"><a class="header" href="#1062--contract-1062--sv-slice-62-batch-specify-family-typed-9-rules--15-annotations">1.0.62 / Contract 1.0.62 — SV-Slice-62 batch: specify family typed (9 rules / 15 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.7 specify-block walk path (referenced from <code>non_port_module_item.kind == "specify".body</code>) and the LRM A.7.5.1 specparam declaration sub-tree.</p>
 <pre><code class="language-ebnf">specify_block                        -&gt; {items}

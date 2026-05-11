@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-63 batch: path_declaration family typed (14 rules / 25 annotations) (PGEN-SVP-0063)
+
+Closes the LRM A.7.2 / A.7.4 path-declaration walk paths referenced from `specify_item.kind == "path".body` (typed in slice 62). Every reachable specify path declaration now exposes typed dispatch with field-typed terminal/condition slots.
+
+`path_declaration` (3 kinds: simple / edge_sensitive / state_dependent), `simple_path_declaration` / `edge_sensitive_path_declaration` (each 2 kinds: parallel / full), `state_dependent_path_declaration` (3 kinds: if_simple / if_edge_sensitive / ifnone), `parallel_path_description` (`{input, polarity, output}`), `full_path_description` (`{inputs, polarity, outputs}`), `parallel_edge_sensitive_path_description_sv_2017` (single sequence), `_sv_2023` (2 kinds — LRM 2023 added no-data-source form), `full_edge_sensitive_path_description_sv_2017/2023` (parallel for inputs/outputs), `path_delay_value` (2 kinds: bare / paren), `list_of_path_delay_expressions` (`{body}`), `pulsestyle_declaration` (2 kinds: onevent / ondetect), `showcancelled_declaration` (2 kinds: showcancelled / noshowcancelled).
+
+Annotation count: 1060 (was 1035, +25). Same accept set. Manifest + contract bumped to 1.0.63. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-62 batch: specify family typed (9 rules / 15 annotations) (PGEN-SVP-0062)
 
 Closes the LRM A.7 specify-block walk path (referenced from `non_port_module_item.kind == "specify".body`) and the LRM A.7.5.1 specparam-declaration sub-tree.

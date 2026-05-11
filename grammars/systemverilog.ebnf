@@ -1436,7 +1436,10 @@ edge_indicator := lparen level_symbol level_symbol rparen | edge_symbol
 
 edge_input_list := level_symbol* edge_indicator level_symbol*
 
-edge_sensitive_path_declaration := parallel_edge_sensitive_path_description assign path_delay_value | full_edge_sensitive_path_description assign path_delay_value
+edge_sensitive_path_declaration := parallel_edge_sensitive_path_description assign path_delay_value
+                                          -> {kind: "parallel", path: $1, delay: $3}
+                                 | full_edge_sensitive_path_description assign path_delay_value
+                                          -> {kind: "full",     path: $1, delay: $3}
 
 edge_symbol := kw_r_4dc7c9ec | kw_R_06576556 | kw_f_4a0a1921 | kw_F_e69f20e9 | kw_p_516b9783 | kw_P_511993d3 | kw_n_d1854cae | kw_N_b51a6073 | star
 
@@ -1564,13 +1567,18 @@ forward_type := forward_type_sv_2023
 
 @profiles: ["sv_2017"]
 full_edge_sensitive_path_description_sv_2017 := lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow lparen list_of_path_outputs ( polarity_operator )? colon data_source_expression rparen rparen
+                                             -> {edge: $2, inputs: $3, in_polarity: $4, outputs: $7, out_polarity: $8, data_source: $10}
 
 @profiles: ["sv_2023"]
-full_edge_sensitive_path_description_sv_2023 := lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow lparen list_of_path_outputs ( polarity_operator )? colon data_source_expression rparen rparen | lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
+full_edge_sensitive_path_description_sv_2023 := lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow lparen list_of_path_outputs ( polarity_operator )? colon data_source_expression rparen rparen
+                                                      -> {kind: "with_data_source", edge: $2, inputs: $3, in_polarity: $4, outputs: $7, out_polarity: $8, data_source: $10}
+                                              | lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
+                                                      -> {kind: "simple",           edge: $2, inputs: $3, in_polarity: $4, outputs: $6}
 
 full_edge_sensitive_path_description := full_edge_sensitive_path_description_sv_2017 | full_edge_sensitive_path_description_sv_2023
 
 full_path_description := lparen list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
+                      -> {inputs: $2, polarity: $3, outputs: $5}
 
 function_body_declaration := @sample: "int f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}
@@ -2005,6 +2013,7 @@ list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( co
 list_of_parameter_value_assignments := list_of_parameter_value_assignments_sv_2023
 
 list_of_path_delay_expressions := @probe_sample: "1" t_path_delay_expression
+                               -> {body: $1}
                                 | trise_path_delay_expression comma tfall_path_delay_expression
                                 | trise_path_delay_expression comma tfall_path_delay_expression comma tz_path_delay_expression
                                 | t01_path_delay_expression comma t10_path_delay_expression comma t0z_path_delay_expression comma tz1_path_delay_expression comma t1z_path_delay_expression comma tz0_path_delay_expression
@@ -2598,13 +2607,18 @@ par_block := kw_fork_3f673f2a ( colon block_identifier )? block_item_declaration
 
 @profiles: ["sv_2017"]
 parallel_edge_sensitive_path_description_sv_2017 := lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies lparen specify_output_terminal_descriptor ( polarity_operator )? colon data_source_expression rparen rparen
+                                                  -> {edge: $2, input: $3, in_polarity: $4, output: $7, out_polarity: $8, data_source: $10}
 
 @profiles: ["sv_2023"]
-parallel_edge_sensitive_path_description_sv_2023 := lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies lparen specify_output_terminal_descriptor ( polarity_operator )? colon data_source_expression rparen rparen | lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies specify_output_terminal_descriptor rparen
+parallel_edge_sensitive_path_description_sv_2023 := lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies lparen specify_output_terminal_descriptor ( polarity_operator )? colon data_source_expression rparen rparen
+                                                          -> {kind: "with_data_source", edge: $2, input: $3, in_polarity: $4, output: $7, out_polarity: $8, data_source: $10}
+                                                  | lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies specify_output_terminal_descriptor rparen
+                                                          -> {kind: "simple",           edge: $2, input: $3, in_polarity: $4, output: $6}
 
 parallel_edge_sensitive_path_description := parallel_edge_sensitive_path_description_sv_2017 | parallel_edge_sensitive_path_description_sv_2023
 
 parallel_path_description := lparen specify_input_terminal_descriptor ( polarity_operator )? sequence_implies specify_output_terminal_descriptor rparen
+                          -> {input: $2, polarity: $3, output: $5}
 
 @profiles: ["sv_2017"]
 param_assignment_sv_2017 := declared_parameter_identifier unpacked_dimension* assign constant_param_expression | declared_parameter_identifier unpacked_dimension*
@@ -2674,11 +2688,14 @@ pass_switch_instance := ( name_of_instance )? lparen inout_terminal comma inout_
 pass_switchtype := kw_tran_8cc27d13   -> {kind: "tran"}
                  | kw_rtran_edbf7838  -> {kind: "rtran"}
 
-path_declaration := simple_path_declaration semi | edge_sensitive_path_declaration semi | state_dependent_path_declaration semi
+path_declaration := simple_path_declaration semi          -> {kind: "simple",          body: $1}
+                  | edge_sensitive_path_declaration semi  -> {kind: "edge_sensitive",  body: $1}
+                  | state_dependent_path_declaration semi -> {kind: "state_dependent", body: $1}
 
 path_delay_expression := constant_mintypmax_expression
 
-path_delay_value := list_of_path_delay_expressions | lparen list_of_path_delay_expressions rparen
+path_delay_value := list_of_path_delay_expressions          -> {kind: "bare",   body: $1}
+                  | lparen list_of_path_delay_expressions rparen -> {kind: "paren",  body: $2}
 
 @profiles: ["sv_2017"]
 pattern_sv_2017 := dot variable_identifier
@@ -3004,7 +3021,10 @@ pullup_strength := lparen strength comma strength rparen | lparen strength comma
 
 pulse_control_specparam := kw_PATHPULSE_dollar_e0f78dc5 assign lparen reject_limit_value ( comma error_limit_value )? rparen | kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a assign lparen reject_limit_value ( comma error_limit_value )? rparen
 
-pulsestyle_declaration := kw_pulsestyle_onevent_11e408b6 list_of_path_outputs semi | kw_pulsestyle_ondetect_90d0b4fa list_of_path_outputs semi
+pulsestyle_declaration := kw_pulsestyle_onevent_11e408b6 list_of_path_outputs semi
+                                -> {kind: "onevent",   outputs: $2}
+                        | kw_pulsestyle_ondetect_90d0b4fa list_of_path_outputs semi
+                                -> {kind: "ondetect",  outputs: $2}
 
 queue_dimension := lbrack kw_dollar ( colon constant_expression )? rbrack
 
@@ -3236,7 +3256,10 @@ severity_system_task_sv_2023 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_numb
 
 severity_system_task := severity_system_task_sv_2023
 
-showcancelled_declaration := kw_showcancelled_ac9a7408 list_of_path_outputs semi | kw_noshowcancelled_1d50d807 list_of_path_outputs semi
+showcancelled_declaration := kw_showcancelled_ac9a7408 list_of_path_outputs semi
+                                   -> {kind: "showcancelled",   outputs: $2}
+                           | kw_noshowcancelled_1d50d807 list_of_path_outputs semi
+                                   -> {kind: "noshowcancelled", outputs: $2}
 
 sign := plus | minus
 
@@ -3258,7 +3281,10 @@ simple_immediate_assume_statement := kw_assume_661e458e lparen expression rparen
 simple_immediate_cover_statement := kw_cover_a28100fa lparen expression rparen statement_or_null
                                  -> {condition: $3, statement: $5}
 
-simple_path_declaration := parallel_path_description assign path_delay_value | full_path_description assign path_delay_value
+simple_path_declaration := parallel_path_description assign path_delay_value
+                                 -> {kind: "parallel", path: $1, delay: $3}
+                         | full_path_description assign path_delay_value
+                                 -> {kind: "full",     path: $1, delay: $3}
 
 simple_type := integer_type            -> {kind: "integer",         body: $1}
              | non_integer_type        -> {kind: "non_integer",     body: $1}
@@ -3303,7 +3329,12 @@ specparam_identifier := identifier
 
 start_edge_offset := mintypmax_expression
 
-state_dependent_path_declaration := kw_if_958f57f5 lparen module_path_expression rparen simple_path_declaration | kw_if_958f57f5 lparen module_path_expression rparen edge_sensitive_path_declaration | kw_ifnone_32ae8180 simple_path_declaration
+state_dependent_path_declaration := kw_if_958f57f5 lparen module_path_expression rparen simple_path_declaration
+                                          -> {kind: "if_simple",         condition: $3, body: $5}
+                                  | kw_if_958f57f5 lparen module_path_expression rparen edge_sensitive_path_declaration
+                                          -> {kind: "if_edge_sensitive", condition: $3, body: $5}
+                                  | kw_ifnone_32ae8180 simple_path_declaration
+                                          -> {kind: "ifnone",                            body: $2}
 
 statement := ( block_identifier colon !colon )? attribute_instance* statement_item
           -> {label: $1, attributes: $2, body: $3}
