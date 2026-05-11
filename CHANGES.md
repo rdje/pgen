@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations) (PGEN-SVP-0069)
+
+Closes LRM A.2.11 cross-cover walk path (referenced from `coverage_spec.kind == "cross".body`) and the LRM A.2.11 trans-list sub-tree (referenced from `bins_or_options.kind == "trans_list".trans`).
+
+`cover_cross` (`{label, items, condition, body}`), `cross_body_sv_2017/2023` (each 2 kinds: block / empty — LRM 2023 dropped the trailing semi), `cross_body` (2 kinds), `cross_body_item_sv_2017/2023` (each 2 kinds: function_decl / selection_or_option), `cross_body_item` (2 kinds), `cross_item` (2 kinds: cover_point / variable), `trans_list` (`[$2, $4::3*]` — extracts trans_set from each iteration entry), `trans_range_list` (4 kinds: simple / star / implies / assign), `trans_set` (`[$1, $2::2*]`), `select_expression` (8 kinds: condition / not / and / or / paren / with_matches / cross / cross_set — left-recursive branches parse what the PEG generator can handle).
+
+Annotation count: 1207 (was 1178, +29). Same accept set. Manifest + contract bumped to 1.0.69. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-68 batch: bins family typed (5 rules / 14 annotations) (PGEN-SVP-0068)
 
 Closes LRM A.2.11 bin-declaration sub-tree referenced from `cover_point.bins` (typed in slice 67). After this slice, `cover_point.bins` resolves to typed dispatch end-to-end.

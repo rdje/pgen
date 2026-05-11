@@ -19,6 +19,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.69 / Contract 1.0.69 — SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations)
+
+**What changed:** Closes LRM A.2.11 cross-cover and trans-list walk paths.
+
+```ebnf
+cover_cross               -> {label, items, condition, body}
+cross_body_sv_2017/2023   -> 2 kinds each (block / empty)
+cross_body                -> 2 kinds (sv_2017 / sv_2023)
+cross_body_item_sv_2017/2023 -> 2 kinds each (function_decl / selection_or_option)
+cross_body_item           -> 2 kinds
+cross_item                -> 2 kinds (cover_point / variable)
+trans_list                -> [$2, $4::3*]
+trans_range_list          -> 4 kinds (simple / star / implies / assign)
+trans_set                 -> [$1, $2::2*]
+select_expression         -> 8 kinds (condition / not / and / or / paren / with_matches / cross / cross_set)
+```
+
+Annotation inventory: **1207** (was 1178, +29). Same accept set.
+
 ### 1.0.68 / Contract 1.0.68 — SV-Slice-68 batch: bins family typed (5 rules / 14 annotations)
 
 **What changed:** Closes LRM A.2.11 bin-declaration sub-tree referenced from `cover_point.bins`.

@@ -1132,6 +1132,7 @@ controlled_timing_check_event := timing_check_event_control specify_terminal_des
                               -> {control: $1, descriptor: $2, condition: $3}
 
 cover_cross := ( cross_identifier colon )? kw_cross_ac4280ba list_of_cross_items ( kw_iff_ee1c009e lparen expression rparen )? cross_body
+            -> {label: $1, items: $3, condition: $4, body: $5}
 
 cover_point := ( ( data_type_or_implicit )? cover_point_identifier colon )? kw_coverpoint_fc1cae9d expression ( kw_iff_ee1c009e lparen expression rparen )? bins_or_empty
             -> {label: $1, expression: $3, condition: $4, bins: $5}
@@ -1197,24 +1198,31 @@ covergroup_value_range := covergroup_value_range_sv_2017 -> {kind: "sv_2017", bo
 // covergroup_variable_identifier := variable_identifier
 
 @profiles: ["sv_2017"]
-cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace | semi
+cross_body_sv_2017 := lbrace ( cross_body_item semi )* rbrace -> {kind: "block", items: $2}
+                    | semi                                   -> {kind: "empty"}
 
 @profiles: ["sv_2023"]
-cross_body_sv_2023 := lbrace cross_body_item* rbrace | semi
+cross_body_sv_2023 := lbrace cross_body_item* rbrace -> {kind: "block", items: $2}
+                    | semi                            -> {kind: "empty"}
 
-cross_body := cross_body_sv_2017 | cross_body_sv_2023
+cross_body := cross_body_sv_2017 -> {kind: "sv_2017", body: $1}
+            | cross_body_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
-cross_body_item_sv_2017 := kw_function_declaraton_06b7ed29 | bins_selection_or_option semi
+cross_body_item_sv_2017 := kw_function_declaraton_06b7ed29  -> {kind: "function_decl"}
+                         | bins_selection_or_option semi    -> {kind: "selection_or_option", body: $1}
 
 @profiles: ["sv_2023"]
-cross_body_item_sv_2023 := function_declaration | bins_selection_or_option semi
+cross_body_item_sv_2023 := function_declaration              -> {kind: "function_decl",        body: $1}
+                         | bins_selection_or_option semi     -> {kind: "selection_or_option",  body: $1}
 
-cross_body_item := cross_body_item_sv_2017 | cross_body_item_sv_2023
+cross_body_item := cross_body_item_sv_2017 -> {kind: "sv_2017", body: $1}
+                 | cross_body_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 cross_identifier := identifier
 
-cross_item := cover_point_identifier | variable_identifier
+cross_item := cover_point_identifier -> {kind: "cover_point", name: $1}
+            | variable_identifier    -> {kind: "variable",    name: $1}
 
 cross_set_expression := covergroup_expression
 
@@ -3268,7 +3276,22 @@ select_tail := lbrack part_select_range rbrack
 
 select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_intersect_6c96caaf covergroup_range_list* )?
 
-select_expression := select_condition | bang select_condition | select_expression logical_and select_expression | select_expression logical_or select_expression | lparen select_expression rparen | select_expression kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_matches_9f3e9242 integer_covergroup_expression )? | cross_identifier | cross_set_expression ( kw_matches_9f3e9242 integer_covergroup_expression )?
+select_expression := select_condition
+                            -> {kind: "condition",   body: $1}
+                   | bang select_condition
+                            -> {kind: "not",         body: $2}
+                   | select_expression logical_and select_expression
+                            -> {kind: "and",         lhs: $1, rhs: $3}
+                   | select_expression logical_or select_expression
+                            -> {kind: "or",          lhs: $1, rhs: $3}
+                   | lparen select_expression rparen
+                            -> {kind: "paren",       body: $2}
+                   | select_expression kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_matches_9f3e9242 integer_covergroup_expression )?
+                            -> {kind: "with_matches", lhs: $1, expression: $4, matches: $6}
+                   | cross_identifier
+                            -> {kind: "cross",        name: $1}
+                   | cross_set_expression ( kw_matches_9f3e9242 integer_covergroup_expression )?
+                            -> {kind: "cross_set",    body: $1, matches: $2}
 
 seq_block := kw_begin_8cbd0a74 ( colon block_identifier )? block_item_declaration* statement_or_null* kw_end_7a92f3d2 ( colon block_identifier )?
           -> {label: $2, declarations: $3, statements: $4, end_label: $6}
@@ -3686,10 +3709,15 @@ topmodule_identifier := declaration_identifier
 trans_item := covergroup_range_list
 
 trans_list := lparen trans_set rparen ( comma lparen trans_set rparen )*
+           -> [$2, $4::3*]
 
-trans_range_list := trans_item | trans_item ( star repeat_range )? | trans_item ( implies repeat_range )? | trans_item ( assign repeat_range )?
+trans_range_list := trans_item                                  -> {kind: "simple",  body: $1}
+                  | trans_item ( star repeat_range )?           -> {kind: "star",    body: $1, range: $2}
+                  | trans_item ( implies repeat_range )?        -> {kind: "implies", body: $1, range: $2}
+                  | trans_item ( assign repeat_range )?         -> {kind: "assign",  body: $1, range: $2}
 
 trans_set := trans_range_list ( sequence_implies trans_range_list )*
+          -> [$1, $2::2*]
 
 // @profiles: ["sv_2023"]
 // triple_quoted_string_sv_2023 := lit_token_dd29ecf5 lit_triple_quoted_string_item_string_escape_seq_4a340947 lit_token_dd29ecf5

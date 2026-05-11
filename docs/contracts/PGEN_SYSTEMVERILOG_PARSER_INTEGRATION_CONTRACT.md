@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.68`
+  - `1.0.69`
 - Parser release version:
-  - `1.0.68`
+  - `1.0.69`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,35 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.69 / Contract 1.0.69 Highlights — SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations)
+
+Closes LRM A.2.11 cross-cover walk path referenced from `coverage_spec.kind == "cross".body` and the LRM A.2.11 trans-list sub-tree referenced from `bins_or_options.kind == "trans_list".trans`.
+
+### Annotations
+
+```ebnf
+cover_cross               -> {label, items, condition, body}
+cross_body_sv_2017        -> 2 kinds (block {items} / empty)
+cross_body_sv_2023        -> 2 kinds (block {items} / empty) — LRM 2023 dropped semi
+cross_body                -> 2 kinds (sv_2017 / sv_2023)
+cross_body_item_sv_2017   -> 2 kinds (function_decl / selection_or_option)
+cross_body_item_sv_2023   -> 2 kinds (function_decl / selection_or_option)
+cross_body_item           -> 2 kinds (sv_2017 / sv_2023)
+cross_item                -> 2 kinds (cover_point / variable)
+trans_list                -> [$2, $4::3*]  # Category A; extracts trans_set from each (comma lparen trans_set rparen) iteration entry
+trans_range_list          -> 4 kinds (simple / star / implies / assign)
+trans_set                 -> [$1, $2::2*]  # Category A, sequence_implies-separated
+select_expression         -> 8 kinds (condition / not / and / or / paren / with_matches / cross / cross_set)
+```
+
+### Notes
+
+- `select_expression` has left-recursive branches (`select_expression logical_and|or|with select_expression`). PEG generators usually don't handle left-recursion directly; the typed dispatch works for whatever the generator does parse.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1207** (was 1178, +29). Same accept set.
 
 ## Release 1.0.68 / Contract 1.0.68 Highlights — SV-Slice-68 batch: bins family typed (5 rules / 14 annotations)
 

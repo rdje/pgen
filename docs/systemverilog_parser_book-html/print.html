@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f21639c6.js";
+            window.path_to_searchindex_js = "searchindex-56d9653c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.70.0</td><td>1.0.69</td><td><strong>SV-Slice-69 batch: cover_cross + trans + select_expression typed.</strong> 12 rules / 29 annotations covering LRM A.2.11 cross-cover and trans-list walks: <code>cover_cross</code> (<code>{label, items, condition, body}</code>), <code>cross_body_sv_2017/2023</code> (each 2 kinds), <code>cross_body</code> (2 kinds), <code>cross_body_item_sv_2017/2023</code> (each 2 kinds), <code>cross_body_item</code> (2 kinds), <code>cross_item</code> (2 kinds), <code>trans_list</code> (<code>[$2, $4::3*]</code>), <code>trans_range_list</code> (4 kinds), <code>trans_set</code> (<code>[$1, $2::2*]</code>), <code>select_expression</code> (8 kinds). Annotation inventory: 1207 entries (was 1178).</td></tr>
 <tr><td>0.69.0</td><td>1.0.68</td><td><strong>SV-Slice-68 batch: bins family typed.</strong> 5 rules / 14 annotations covering LRM A.2.11 bin-declaration sub-tree referenced from <code>cover_point.bins</code>: <code>bins_expression</code> (2 kinds), <code>bins_or_empty</code> (2 kinds), <code>bins_or_options</code> (7 kinds: coverage_option / range_list / cover_point_with / set / trans_list / default / default_sequence), <code>bins_selection</code> (<code>{keyword, name, select, iff}</code>), <code>bins_selection_or_option</code> (2 kinds). Annotation inventory: 1178 entries (was 1164).</td></tr>
 <tr><td>0.68.0</td><td>1.0.67</td><td><strong>SV-Slice-67 batch: covergroup declaration + coverage_event family typed.</strong> 12 rules / 26 annotations covering LRM A.2.11 covergroup-declaration walk path: <code>bins_keyword</code> (3 kinds), <code>covergroup_declaration_sv_2017</code> (<code>{name, ports, event, items, end_label}</code>), <code>covergroup_declaration_sv_2023</code> (2 kinds: single / extends), <code>coverage_event</code> (3 kinds), <code>coverage_option</code> (2 kinds), <code>coverage_spec</code> (2 kinds), <code>coverage_spec_or_option</code> (2 kinds), <code>cover_point</code> (<code>{label, expression, condition, bins}</code>), <code>covergroup_range_list</code> (<code>[$1, $2::2*]</code>), <code>covergroup_value_range_sv_2017</code> (2 kinds), <code>covergroup_value_range_sv_2023</code> (5 kinds), <code>covergroup_value_range</code> (2 kinds). DEFERRED: bins_or_empty / bins_or_options / bins_selection / bins_selection_or_option (slice 68). Annotation inventory: 1164 entries (was 1138).</td></tr>
 <tr><td>0.67.0</td><td>1.0.66</td><td><strong>SV-Slice-66 batch: UDP body/entry + udp_instance family typed.</strong> 9 rules / 19 annotations covering LRM A.5 UDP body/instance walks: <code>combinational_entry</code> (<code>{inputs, output}</code>), <code>sequential_entry</code> (<code>{inputs, current_state, next_state}</code>), <code>level_symbol</code> (7 kinds), <code>output_symbol</code> (4 kinds), <code>next_state</code> (2 kinds), <code>udp_instance</code> (<code>{name, output, inputs: [$5, $6::2*]}</code>), <code>udp_instantiation</code> (<code>{name, drive_strength, delay, instances: [$4, $5::2*]}</code>), <code>udp_port_declaration</code> (3 kinds), <code>udp_reg_declaration</code> (<code>{attributes, name}</code>). DEFERRED: <code>init_val</code> (duplicate-branch grammar bug). Annotation inventory: 1138 entries (was 1119).</td></tr>
@@ -1415,6 +1416,20 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1069--contract-1069--sv-slice-69-batch-cover_cross--trans--select_expression-typed-12-rules--29-annotations"><a class="header" href="#1069--contract-1069--sv-slice-69-batch-cover_cross--trans--select_expression-typed-12-rules--29-annotations">1.0.69 / Contract 1.0.69 — SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.2.11 cross-cover and trans-list walk paths.</p>
+<pre><code class="language-ebnf">cover_cross               -&gt; {label, items, condition, body}
+cross_body_sv_2017/2023   -&gt; 2 kinds each (block / empty)
+cross_body                -&gt; 2 kinds (sv_2017 / sv_2023)
+cross_body_item_sv_2017/2023 -&gt; 2 kinds each (function_decl / selection_or_option)
+cross_body_item           -&gt; 2 kinds
+cross_item                -&gt; 2 kinds (cover_point / variable)
+trans_list                -&gt; [$2, $4::3*]
+trans_range_list          -&gt; 4 kinds (simple / star / implies / assign)
+trans_set                 -&gt; [$1, $2::2*]
+select_expression         -&gt; 8 kinds (condition / not / and / or / paren / with_matches / cross / cross_set)
+</code></pre>
+<p>Annotation inventory: <strong>1207</strong> (was 1178, +29). Same accept set.</p>
 <h3 id="1068--contract-1068--sv-slice-68-batch-bins-family-typed-5-rules--14-annotations"><a class="header" href="#1068--contract-1068--sv-slice-68-batch-bins-family-typed-5-rules--14-annotations">1.0.68 / Contract 1.0.68 — SV-Slice-68 batch: bins family typed (5 rules / 14 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.2.11 bin-declaration sub-tree referenced from <code>cover_point.bins</code>.</p>
 <pre><code class="language-ebnf">bins_expression           -&gt; 2 kinds (variable / cover_point)

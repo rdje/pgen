@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f21639c6.js";
+            window.path_to_searchindex_js = "searchindex-56d9653c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,20 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1069--contract-1069--sv-slice-69-batch-cover_cross--trans--select_expression-typed-12-rules--29-annotations"><a class="header" href="#1069--contract-1069--sv-slice-69-batch-cover_cross--trans--select_expression-typed-12-rules--29-annotations">1.0.69 / Contract 1.0.69 — SV-Slice-69 batch: cover_cross + trans + select_expression typed (12 rules / 29 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.2.11 cross-cover and trans-list walk paths.</p>
+<pre><code class="language-ebnf">cover_cross               -&gt; {label, items, condition, body}
+cross_body_sv_2017/2023   -&gt; 2 kinds each (block / empty)
+cross_body                -&gt; 2 kinds (sv_2017 / sv_2023)
+cross_body_item_sv_2017/2023 -&gt; 2 kinds each (function_decl / selection_or_option)
+cross_body_item           -&gt; 2 kinds
+cross_item                -&gt; 2 kinds (cover_point / variable)
+trans_list                -&gt; [$2, $4::3*]
+trans_range_list          -&gt; 4 kinds (simple / star / implies / assign)
+trans_set                 -&gt; [$1, $2::2*]
+select_expression         -&gt; 8 kinds (condition / not / and / or / paren / with_matches / cross / cross_set)
+</code></pre>
+<p>Annotation inventory: <strong>1207</strong> (was 1178, +29). Same accept set.</p>
 <h3 id="1068--contract-1068--sv-slice-68-batch-bins-family-typed-5-rules--14-annotations"><a class="header" href="#1068--contract-1068--sv-slice-68-batch-bins-family-typed-5-rules--14-annotations">1.0.68 / Contract 1.0.68 — SV-Slice-68 batch: bins family typed (5 rules / 14 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.2.11 bin-declaration sub-tree referenced from <code>cover_point.bins</code>.</p>
 <pre><code class="language-ebnf">bins_expression           -&gt; 2 kinds (variable / cover_point)
