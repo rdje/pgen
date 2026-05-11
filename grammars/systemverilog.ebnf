@@ -2714,7 +2714,8 @@ pattern := pattern_sv_2017 | pattern_sv_2023
 
 pcontrol_terminal := expression
 
-polarity_operator := plus | minus
+polarity_operator := plus  -> {kind: "plus"}
+                   | minus -> {kind: "minus"}
 
 port := ( port_expression )?
         -> {kind: "expression", expr: $1}
@@ -3273,18 +3274,30 @@ source_text := source_text_item*
             -> [$1**]
 
 specify_block := kw_specify_ade6a05c specify_item* kw_endspecify_4e5c5021
+              -> {items: $2}
 
 specify_input_terminal_descriptor := input_identifier ( lbrack constant_range_expression rbrack )?
+                                  -> {name: $1, range: $2}
 
-specify_item := specparam_declaration | pulsestyle_declaration | showcancelled_declaration | path_declaration | system_timing_check
+specify_item := specparam_declaration       -> {kind: "specparam",        body: $1}
+              | pulsestyle_declaration      -> {kind: "pulsestyle",       body: $1}
+              | showcancelled_declaration   -> {kind: "showcancelled",    body: $1}
+              | path_declaration            -> {kind: "path",             body: $1}
+              | system_timing_check         -> {kind: "system_timing",    body: $1}
 
 specify_output_terminal_descriptor := output_identifier ( lbrack constant_range_expression rbrack )?
+                                   -> {name: $1, range: $2}
 
-specify_terminal_descriptor := specify_input_terminal_descriptor | specify_output_terminal_descriptor
+specify_terminal_descriptor := specify_input_terminal_descriptor   -> {kind: "input",  body: $1}
+                             | specify_output_terminal_descriptor  -> {kind: "output", body: $1}
 
-specparam_assignment := specparam_identifier assign constant_mintypmax_expression | pulse_control_specparam
+specparam_assignment := specparam_identifier assign constant_mintypmax_expression
+                              -> {kind: "simple", name: $1, value: $3}
+                      | pulse_control_specparam
+                              -> {kind: "pulse",  body: $1}
 
 specparam_declaration := kw_specparam_54af7813 ( packed_dimension )? list_of_specparam_assignments semi
+                      -> {dims: $2, items: $3}
 
 specparam_identifier := identifier
 

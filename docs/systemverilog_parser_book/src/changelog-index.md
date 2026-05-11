@@ -19,6 +19,23 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.62 / Contract 1.0.62 — SV-Slice-62 batch: specify family typed (9 rules / 15 annotations)
+
+**What changed:** Closes LRM A.7 specify-block walk path (referenced from `non_port_module_item.kind == "specify".body`) and the LRM A.7.5.1 specparam declaration sub-tree.
+
+```ebnf
+specify_block                        -> {items}
+specify_item                         -> 5 kinds (specparam / pulsestyle / showcancelled / path / system_timing)
+specify_input_terminal_descriptor    -> {name, range}
+specify_output_terminal_descriptor   -> {name, range}
+specify_terminal_descriptor          -> 2 kinds (input / output)
+specparam_assignment                 -> 2 kinds (simple {name, value} / pulse {body})
+specparam_declaration                -> {dims, items}
+polarity_operator                    -> 2 kinds bare (plus / minus)
+```
+
+Annotation inventory: **1035** (was 1020, +15). Same accept set.
+
 ### 1.0.61 / Contract 1.0.61 — SV-Slice-61 batch: gate_instantiation family typed (16 rules / 43 annotations — crosses 1000-annotation milestone)
 
 **What changed:** Closes LRM A.3.1 gate instantiation walk path (referenced from `module_or_generate_item.kind == "gate_instantiation".body`).

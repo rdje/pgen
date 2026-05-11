@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.61`
+  - `1.0.62`
 - Parser release version:
-  - `1.0.61`
+  - `1.0.62`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,42 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.62 / Contract 1.0.62 Highlights — SV-Slice-62 batch: specify family typed (9 rules / 15 annotations)
+
+Closes the LRM A.7 specify-block walk path (referenced from `non_port_module_item.kind == "specify".body`) and the LRM A.7.5.1 specparam-declaration sub-tree.
+
+### Annotations
+
+```ebnf
+specify_block := kw_specify specify_item* kw_endspecify
+              -> {items: $2}
+
+specify_item := specparam_declaration       -> {kind: "specparam",     body: $1}
+              | pulsestyle_declaration      -> {kind: "pulsestyle",    body: $1}
+              | showcancelled_declaration   -> {kind: "showcancelled", body: $1}
+              | path_declaration            -> {kind: "path",          body: $1}
+              | system_timing_check         -> {kind: "system_timing", body: $1}
+
+specify_input_terminal_descriptor  := input_identifier  ( lbrack constant_range_expression rbrack )?  -> {name, range}
+specify_output_terminal_descriptor := output_identifier ( lbrack constant_range_expression rbrack )?  -> {name, range}
+
+specify_terminal_descriptor := specify_input_terminal_descriptor   -> {kind: "input",  body: $1}
+                             | specify_output_terminal_descriptor  -> {kind: "output", body: $1}
+
+specparam_assignment := specparam_identifier assign constant_mintypmax_expression  -> {kind: "simple", name: $1, value: $3}
+                      | pulse_control_specparam                                     -> {kind: "pulse",  body: $1}
+
+specparam_declaration := kw_specparam ( packed_dimension )? list_of_specparam_assignments semi
+                      -> {dims, items}
+
+polarity_operator := plus  -> {kind: "plus"}
+                   | minus -> {kind: "minus"}
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1035** (was 1020, +15). Same accept set.
 
 ## Release 1.0.61 / Contract 1.0.61 Highlights — SV-Slice-61 batch: gate_instantiation family typed (16 rules / 43 annotations — crosses 1000-annotation milestone)
 

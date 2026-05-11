@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-28a1575d.js";
+            window.path_to_searchindex_js = "searchindex-5c76384c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,18 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1062--contract-1062--sv-slice-62-batch-specify-family-typed-9-rules--15-annotations"><a class="header" href="#1062--contract-1062--sv-slice-62-batch-specify-family-typed-9-rules--15-annotations">1.0.62 / Contract 1.0.62 — SV-Slice-62 batch: specify family typed (9 rules / 15 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.7 specify-block walk path (referenced from <code>non_port_module_item.kind == "specify".body</code>) and the LRM A.7.5.1 specparam declaration sub-tree.</p>
+<pre><code class="language-ebnf">specify_block                        -&gt; {items}
+specify_item                         -&gt; 5 kinds (specparam / pulsestyle / showcancelled / path / system_timing)
+specify_input_terminal_descriptor    -&gt; {name, range}
+specify_output_terminal_descriptor   -&gt; {name, range}
+specify_terminal_descriptor          -&gt; 2 kinds (input / output)
+specparam_assignment                 -&gt; 2 kinds (simple {name, value} / pulse {body})
+specparam_declaration                -&gt; {dims, items}
+polarity_operator                    -&gt; 2 kinds bare (plus / minus)
+</code></pre>
+<p>Annotation inventory: <strong>1035</strong> (was 1020, +15). Same accept set.</p>
 <h3 id="1061--contract-1061--sv-slice-61-batch-gate_instantiation-family-typed-16-rules--43-annotations--crosses-1000-annotation-milestone"><a class="header" href="#1061--contract-1061--sv-slice-61-batch-gate_instantiation-family-typed-16-rules--43-annotations--crosses-1000-annotation-milestone">1.0.61 / Contract 1.0.61 — SV-Slice-61 batch: gate_instantiation family typed (16 rules / 43 annotations — crosses 1000-annotation milestone)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.3.1 gate instantiation walk path (referenced from <code>module_or_generate_item.kind == "gate_instantiation".body</code>).</p>
 <pre><code class="language-ebnf">gate_instantiation_sv_2017/2023  -&gt; 9 kinds each (cmos / enable / mos / n_input / n_output / pass_en / pass / pulldown / pullup)
