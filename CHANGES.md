@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-68 batch: bins family typed (5 rules / 14 annotations) (PGEN-SVP-0068)
+
+Closes LRM A.2.11 bin-declaration sub-tree referenced from `cover_point.bins` (typed in slice 67). After this slice, `cover_point.bins` resolves to typed dispatch end-to-end.
+
+`bins_expression` (2 kinds: variable / cover_point), `bins_or_empty` (2 kinds: block / empty), `bins_or_options` (7 kinds: coverage_option / range_list / cover_point_with / set / trans_list / default / default_sequence — each with field-typed bin attributes), `bins_selection` (`{keyword, name, select, iff}`), `bins_selection_or_option` (2 kinds: option / selection).
+
+Annotation count: 1178 (was 1164, +14). Same accept set. Manifest + contract bumped to 1.0.68. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations) (PGEN-SVP-0067)
 
 Closes LRM A.2.11 covergroup-declaration walk path referenced from `class_item.kind == "covergroup_declaration".body` and `package_or_generate_item_declaration.kind == "covergroup".body`.

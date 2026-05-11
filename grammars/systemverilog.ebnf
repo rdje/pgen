@@ -511,19 +511,36 @@ bind_target_instance_list := bind_target_instance ( comma bind_target_instance )
 bind_target_scope := module_identifier    -> {kind: "module",    name: $1}
                   | interface_identifier -> {kind: "interface", name: $1}
 
-bins_expression := variable_identifier | cover_point_identifier ( dot bin_identifier )?
+bins_expression := variable_identifier                       -> {kind: "variable",     name: $1}
+                 | cover_point_identifier ( dot bin_identifier )? -> {kind: "cover_point", name: $1, bin: $2}
 
 bins_keyword := kw_bins_7de92be6           -> {kind: "bins"}
               | kw_illegal_bins_909dfbf3   -> {kind: "illegal_bins"}
               | kw_ignore_bins_c8b3e6e5    -> {kind: "ignore_bins"}
 
-bins_or_empty := ( attribute_instance* ( bins_or_options semi )* )* | semi
+bins_or_empty := ( attribute_instance* ( bins_or_options semi )* )*  -> {kind: "block", body: $1}
+               | semi                                                  -> {kind: "empty"}
 
-bins_or_options := coverage_option | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign covergroup_range_list* ( kw_with_8fcd25a3 lparen with_covergroup_expression rparen )? ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign cover_point_identifier kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign set_covergroup_expression ( kw_iff_ee1c009e lparen expression rparen )? | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack rbrack )? assign trans_list ( kw_iff_ee1c009e lparen expression rparen )? | bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign kw_default_7505d64a ( kw_iff_ee1c009e lparen expression rparen )? | bins_keyword bin_identifier assign kw_default_7505d64a kw_sequence_92504616 ( kw_iff_ee1c009e lparen expression rparen )?
+bins_or_options := coverage_option
+                          -> {kind: "coverage_option", body: $1}
+                 | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign covergroup_range_list* ( kw_with_8fcd25a3 lparen with_covergroup_expression rparen )? ( kw_iff_ee1c009e lparen expression rparen )?
+                          -> {kind: "range_list",      wildcard: $1, keyword: $2, name: $3, index: $4, ranges: $6, with_expr: $7, iff: $8}
+                 | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign cover_point_identifier kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_iff_ee1c009e lparen expression rparen )?
+                          -> {kind: "cover_point_with", wildcard: $1, keyword: $2, name: $3, index: $4, cover_point: $6, with_expr: $9, iff: $11}
+                 | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign set_covergroup_expression ( kw_iff_ee1c009e lparen expression rparen )?
+                          -> {kind: "set",             wildcard: $1, keyword: $2, name: $3, index: $4, value: $6, iff: $7}
+                 | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack rbrack )? assign trans_list ( kw_iff_ee1c009e lparen expression rparen )?
+                          -> {kind: "trans_list",      wildcard: $1, keyword: $2, name: $3, array: $4, trans: $6, iff: $7}
+                 | bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign kw_default_7505d64a ( kw_iff_ee1c009e lparen expression rparen )?
+                          -> {kind: "default",         keyword: $1, name: $2, index: $3, iff: $6}
+                 | bins_keyword bin_identifier assign kw_default_7505d64a kw_sequence_92504616 ( kw_iff_ee1c009e lparen expression rparen )?
+                          -> {kind: "default_sequence", keyword: $1, name: $2, iff: $6}
 
 bins_selection := bins_keyword bin_identifier assign select_expression ( kw_iff_ee1c009e lparen expression rparen )?
+               -> {keyword: $1, name: $2, select: $4, iff: $5}
 
-bins_selection_or_option := attribute_instance* coverage_option | attribute_instance* bins_selection
+bins_selection_or_option := attribute_instance* coverage_option -> {kind: "option",    attributes: $1, body: $2}
+                          | attribute_instance* bins_selection  -> {kind: "selection", attributes: $1, body: $2}
 
 direct_index_method_call := ( ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | implicit_class_handle ) dot method_call_body
 

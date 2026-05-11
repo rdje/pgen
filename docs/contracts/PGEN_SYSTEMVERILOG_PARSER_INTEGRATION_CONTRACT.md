@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.67`
+  - `1.0.68`
 - Parser release version:
-  - `1.0.67`
+  - `1.0.68`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,34 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.68 / Contract 1.0.68 Highlights — SV-Slice-68 batch: bins family typed (5 rules / 14 annotations)
+
+Closes LRM A.2.11 bin-declaration sub-tree referenced from `cover_point.bins` (typed in slice 67). After this slice, `cover_point.bins` resolves to typed dispatch end-to-end.
+
+### Annotations
+
+```ebnf
+bins_expression -> 2 kinds (variable {name} / cover_point {name, bin})
+
+bins_or_empty   -> 2 kinds (block {body} / empty)
+
+bins_or_options -> 7 kinds:
+  | coverage_option            -> {kind: "coverage_option",   body}
+  | <range_list form>          -> {kind: "range_list",        wildcard, keyword, name, index, ranges, with_expr, iff}
+  | <cover_point_with form>    -> {kind: "cover_point_with",  wildcard, keyword, name, index, cover_point, with_expr, iff}
+  | <set form>                 -> {kind: "set",               wildcard, keyword, name, index, value, iff}
+  | <trans_list form>          -> {kind: "trans_list",        wildcard, keyword, name, array, trans, iff}
+  | <default form>             -> {kind: "default",           keyword, name, index, iff}
+  | <default_sequence form>    -> {kind: "default_sequence",  keyword, name, iff}
+
+bins_selection                -> {keyword, name, select, iff}
+bins_selection_or_option      -> 2 kinds (option {attributes, body} / selection {attributes, body})
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1178** (was 1164, +14). Same accept set.
 
 ## Release 1.0.67 / Contract 1.0.67 Highlights — SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations)
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dde68f4f.js";
+            window.path_to_searchindex_js = "searchindex-f21639c6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,15 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1068--contract-1068--sv-slice-68-batch-bins-family-typed-5-rules--14-annotations"><a class="header" href="#1068--contract-1068--sv-slice-68-batch-bins-family-typed-5-rules--14-annotations">1.0.68 / Contract 1.0.68 — SV-Slice-68 batch: bins family typed (5 rules / 14 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.2.11 bin-declaration sub-tree referenced from <code>cover_point.bins</code>.</p>
+<pre><code class="language-ebnf">bins_expression           -&gt; 2 kinds (variable / cover_point)
+bins_or_empty             -&gt; 2 kinds (block / empty)
+bins_or_options           -&gt; 7 kinds (coverage_option / range_list / cover_point_with / set / trans_list / default / default_sequence)
+bins_selection            -&gt; {keyword, name, select, iff}
+bins_selection_or_option  -&gt; 2 kinds (option / selection)
+</code></pre>
+<p>Annotation inventory: <strong>1178</strong> (was 1164, +14). Same accept set.</p>
 <h3 id="1067--contract-1067--sv-slice-67-batch-covergroup-declaration--coverage_event-family-typed-12-rules--26-annotations"><a class="header" href="#1067--contract-1067--sv-slice-67-batch-covergroup-declaration--coverage_event-family-typed-12-rules--26-annotations">1.0.67 / Contract 1.0.67 — SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.2.11 covergroup-declaration walk path.</p>
 <pre><code class="language-ebnf">bins_keyword                    -&gt; 3 kinds bare (bins / illegal_bins / ignore_bins)

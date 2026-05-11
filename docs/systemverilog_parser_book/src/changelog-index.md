@@ -19,6 +19,20 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.68 / Contract 1.0.68 — SV-Slice-68 batch: bins family typed (5 rules / 14 annotations)
+
+**What changed:** Closes LRM A.2.11 bin-declaration sub-tree referenced from `cover_point.bins`.
+
+```ebnf
+bins_expression           -> 2 kinds (variable / cover_point)
+bins_or_empty             -> 2 kinds (block / empty)
+bins_or_options           -> 7 kinds (coverage_option / range_list / cover_point_with / set / trans_list / default / default_sequence)
+bins_selection            -> {keyword, name, select, iff}
+bins_selection_or_option  -> 2 kinds (option / selection)
+```
+
+Annotation inventory: **1178** (was 1164, +14). Same accept set.
+
 ### 1.0.67 / Contract 1.0.67 — SV-Slice-67 batch: covergroup declaration + coverage_event family typed (12 rules / 26 annotations)
 
 **What changed:** Closes LRM A.2.11 covergroup-declaration walk path.
