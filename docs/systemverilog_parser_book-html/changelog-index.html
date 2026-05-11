@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5670926f.js";
+            window.path_to_searchindex_js = "searchindex-1ffebbde.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,20 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1066--contract-1066--sv-slice-66-batch-udp-bodyentry--udp_instance-family-typed-9-rules--19-annotations"><a class="header" href="#1066--contract-1066--sv-slice-66-batch-udp-bodyentry--udp_instance-family-typed-9-rules--19-annotations">1.0.66 / Contract 1.0.66 — SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.5 UDP body/instance walk paths.</p>
+<pre><code class="language-ebnf">combinational_entry  -&gt; {inputs, output}
+sequential_entry     -&gt; {inputs, current_state, next_state}
+level_symbol         -&gt; 7 kinds bare (0 / 1 / x / X / ? / b / B)
+output_symbol        -&gt; 4 kinds bare (0 / 1 / x / X)
+next_state           -&gt; 2 kinds (symbol / minus)
+udp_instance         -&gt; {name, output, inputs: [$5, $6::2*]}
+udp_instantiation    -&gt; {name, drive_strength, delay, instances: [$4, $5::2*]}
+udp_port_declaration -&gt; 3 kinds (output / input / reg)
+udp_reg_declaration  -&gt; {attributes, name}
+</code></pre>
+<p>DEFERRED: <code>init_val</code> (duplicate-branch grammar bug, same family as drive_strength).</p>
+<p>Annotation inventory: <strong>1138</strong> (was 1119, +19). Same accept set.</p>
 <h3 id="1065--contract-1065--sv-slice-65-batch-timing_check-internals--scalar_timing_check_condition-typed-16-rules--22-annotations"><a class="header" href="#1065--contract-1065--sv-slice-65-batch-timing_check-internals--scalar_timing_check_condition-typed-16-rules--22-annotations">1.0.65 / Contract 1.0.65 — SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes the body field of every <code>system_timing_check.kind</code> from slice 64.</p>
 <pre><code class="language-ebnf">scalar_timing_check_condition -&gt; 6 kinds (expression / not / eq / case_eq / ne / case_ne)

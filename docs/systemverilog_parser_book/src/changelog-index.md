@@ -19,6 +19,26 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.66 / Contract 1.0.66 — SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations)
+
+**What changed:** Closes LRM A.5 UDP body/instance walk paths.
+
+```ebnf
+combinational_entry  -> {inputs, output}
+sequential_entry     -> {inputs, current_state, next_state}
+level_symbol         -> 7 kinds bare (0 / 1 / x / X / ? / b / B)
+output_symbol        -> 4 kinds bare (0 / 1 / x / X)
+next_state           -> 2 kinds (symbol / minus)
+udp_instance         -> {name, output, inputs: [$5, $6::2*]}
+udp_instantiation    -> {name, drive_strength, delay, instances: [$4, $5::2*]}
+udp_port_declaration -> 3 kinds (output / input / reg)
+udp_reg_declaration  -> {attributes, name}
+```
+
+DEFERRED: `init_val` (duplicate-branch grammar bug, same family as drive_strength).
+
+Annotation inventory: **1138** (was 1119, +19). Same accept set.
+
 ### 1.0.65 / Contract 1.0.65 — SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations)
 
 **What changed:** Closes the body field of every `system_timing_check.kind` from slice 64.

@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-11 - SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations) (PGEN-SVP-0066)
+
+Closes LRM A.5 UDP body/instance walk paths referenced from `udp_body.kind == "combinational"|"sequential".body` and `gate_instantiation.<kind>.instances` family.
+
+`combinational_entry` (`{inputs, output}`), `sequential_entry` (`{inputs, current_state, next_state}`), `level_symbol` (7 kinds bare: 0 / 1 / x / X / ? / b / B), `output_symbol` (4 kinds bare: 0 / 1 / x / X), `next_state` (2 kinds: symbol / minus), `udp_instance` (`{name, output, inputs: [$5, $6::2*]}`), `udp_instantiation` (`{name, drive_strength, delay, instances: [$4, $5::2*]}`), `udp_port_declaration` (3 kinds: output / input / reg), `udp_reg_declaration` (`{attributes, name}`).
+
+DEFERRED: `init_val` (duplicate-branch grammar bug, same family as drive_strength).
+
+Annotation count: 1138 (was 1119, +19). Same accept set. Manifest + contract bumped to 1.0.66. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-11 - SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations) (PGEN-SVP-0065)
 
 Closes the body field of every `system_timing_check.kind` from slice 64. Every reachable specify timing-check task now exposes typed args at the top level (reference_event, data_event, limits, threshold, edge offsets); the deeply-nested optional trailing-arg envelope (notifier / timestamp_condition / timecheck_condition / etc.) is preserved as a `tail` slot for post-campaign helper-rule extraction.

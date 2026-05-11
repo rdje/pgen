@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.65`
+  - `1.0.66`
 - Parser release version:
-  - `1.0.65`
+  - `1.0.66`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,32 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.66 / Contract 1.0.66 Highlights — SV-Slice-66 batch: UDP body/entry + udp_instance family typed (9 rules / 19 annotations)
+
+Closes LRM A.5 UDP body/instance walk paths referenced from `udp_body.kind == "combinational"|"sequential".body` and `gate_instantiation.<kind>.instances` family.
+
+### Annotations
+
+```ebnf
+combinational_entry  -> {inputs, output}
+sequential_entry     -> {inputs, current_state, next_state}
+level_symbol         -> 7 kinds bare (0 / 1 / x / X / ? / b / B)
+output_symbol        -> 4 kinds bare (0 / 1 / x / X)
+next_state           -> 2 kinds (symbol / minus)
+udp_instance         -> {name, output, inputs: [$5, $6::2*]}
+udp_instantiation    -> {name, drive_strength, delay, instances: [$4, $5::2*]}
+udp_port_declaration -> 3 kinds (output / input / reg)
+udp_reg_declaration  -> {attributes, name}
+```
+
+### Deferred
+
+`init_val` has a duplicate-branch grammar bug (`kw_n_1_tick_b_f4c81681` and `kw_n_1_tick_B_9f69eb32` each appear twice). Same family as drive_strength / unique_priority / delay_sv_2017/2023. Sequential UDPs default to typing `current_state.init_val` as a raw envelope until the grammar duplicate is removed.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1138** (was 1119, +19). Same accept set.
 
 ## Release 1.0.65 / Contract 1.0.65 Highlights — SV-Slice-65 batch: timing_check internals + scalar_timing_check_condition typed (16 rules / 22 annotations)
 

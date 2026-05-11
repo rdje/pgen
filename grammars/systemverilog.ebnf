@@ -883,6 +883,7 @@ combinational_body := kw_table_c3ee137d combinational_entry combinational_entry*
 
 combinational_entry := level_input_list colon output_symbol semi
                     -> {inputs: $1, output: $3}
+                    -> {inputs: $1, output: $3}
 
 // comment := one_line_comment | block_comment
 
@@ -1948,7 +1949,13 @@ let_port_list := let_port_item ( comma let_port_item )*
 
 level_input_list := level_symbol level_symbol*
 
-level_symbol := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_x_11f6ad8e | kw_X_c032adc1 | question | kw_b_e9d71f5e | kw_B_ae4f281d
+level_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
+              | kw_n_1_356a192b -> {kind: "1"}
+              | kw_x_11f6ad8e   -> {kind: "x"}
+              | kw_X_c032adc1   -> {kind: "X"}
+              | question        -> {kind: "?"}
+              | kw_b_e9d71f5e   -> {kind: "b"}
+              | kw_B_ae4f281d   -> {kind: "B"}
 
 liblist_clause := kw_liblist_4851fe70 library_identifier*
 
@@ -2437,7 +2444,8 @@ nettype_identifier_sv_2023 := declaration_identifier
 
 nettype_identifier := nettype_identifier_sv_2023
 
-next_state := output_symbol | minus
+next_state := output_symbol -> {kind: "symbol", body: $1}
+            | minus         -> {kind: "minus"}
 
 @profiles: ["sv_2017"]
 non_consecutive_repetition_sv_2017 := ( assign const_or_range_expression )?
@@ -2550,7 +2558,10 @@ output_identifier := output_port_identifier | inout_port_identifier | interface_
 
 output_port_identifier := identifier
 
-output_symbol := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_x_11f6ad8e | kw_X_c032adc1
+output_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
+               | kw_n_1_356a192b -> {kind: "1"}
+               | kw_x_11f6ad8e   -> {kind: "x"}
+               | kw_X_c032adc1   -> {kind: "X"}
 
 output_terminal := net_lvalue
 
@@ -3270,6 +3281,7 @@ sequential_body := ( udp_initial_statement )? kw_table_c3ee137d sequential_entry
 
 sequential_entry := seq_input_list colon current_state colon next_state semi
                  -> {inputs: $1, current_state: $3, next_state: $5}
+                 -> {inputs: $1, current_state: $3, next_state: $5}
 
 set_covergroup_expression := covergroup_expression
 
@@ -3775,8 +3787,10 @@ udp_input_declaration := attribute_instance* kw_input_140f86aa list_of_udp_port_
                       -> {attributes: $1, identifiers: $3}
 
 udp_instance := ( name_of_instance )? lparen output_terminal comma input_terminal ( comma input_terminal )* rparen
+             -> {name: $1, output: $3, inputs: [$5, $6::2*]}
 
 udp_instantiation := udp_identifier ( drive_strength )? ( delay )? udp_instance ( comma udp_instance )* semi
+                  -> {name: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
 
 udp_nonansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier lparen udp_port_list rparen semi
                         -> {attributes: $1, name: $3, ports: $5}
@@ -3786,12 +3800,15 @@ udp_output_declaration := attribute_instance* kw_output_1029d676 port_identifier
                        | attribute_instance* kw_output_1029d676 kw_reg_e06b9586 port_identifier ( assign constant_expression )?
                             -> {kind: "reg", attributes: $1, name: $4, default: $5}
 
-udp_port_declaration := udp_output_declaration semi | udp_input_declaration semi | udp_reg_declaration semi
+udp_port_declaration := udp_output_declaration semi -> {kind: "output", body: $1}
+                      | udp_input_declaration semi  -> {kind: "input",  body: $1}
+                      | udp_reg_declaration semi    -> {kind: "reg",    body: $1}
 
 udp_port_list := output_port_identifier comma input_port_identifier ( comma input_port_identifier )*
               -> [$1, $3, $4::2*]
 
 udp_reg_declaration := attribute_instance* kw_reg_e06b9586 variable_identifier
+                    -> {attributes: $1, name: $3}
 
 unary_module_path_operator := bang | tilde | bitwise_and | reduction_nand | bitwise_or | reduction_nor | bitwise_xor | reduction_xnor | reduction_xnor_alt
 
