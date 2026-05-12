@@ -3649,7 +3649,8 @@ rs_case_item_sv_2023 := case_item_expression ( comma case_item_expression )* col
                       | kw_default_7505d64a ( colon )? rs_production_item semi
                              -> {kind: "default",   body: $3}
 
-rs_case_item := rs_case_item_sv_2017 | rs_case_item_sv_2023
+rs_case_item := rs_case_item_sv_2017 -> {kind: "sv_2017", body: $1}
+              | rs_case_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 rs_code_block := ( data_declaration* statement_or_null* )*
               -> {body: $1}
@@ -3662,7 +3663,8 @@ rs_if_else_sv_2017 := kw_if_958f57f5 lparen expression rparen production_item ( 
 rs_if_else_sv_2023 := kw_if_958f57f5 lparen expression rparen rs_production_item ( kw_else_ae050f5b rs_production_item )?
                    -> {condition: $3, then_body: $5, else_body: $6}
 
-rs_if_else := rs_if_else_sv_2017 | rs_if_else_sv_2023
+rs_if_else := rs_if_else_sv_2017 -> {kind: "sv_2017", body: $1}
+            | rs_if_else_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 rs_prod_sv_2017 := production_item -> {kind: "production_item", body: $1}
@@ -3678,13 +3680,15 @@ rs_prod_sv_2023 := rs_production_item -> {kind: "production_item", body: $1}
                  | rs_repeat          -> {kind: "repeat",          body: $1}
                  | rs_case            -> {kind: "case",            body: $1}
 
-rs_prod := rs_prod_sv_2017 | rs_prod_sv_2023
+rs_prod := rs_prod_sv_2017 -> {kind: "sv_2017", body: $1}
+         | rs_prod_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2023"]
 rs_production_sv_2023 := ( data_type_or_void )? rs_production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
                       -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
 rs_production := rs_production_sv_2023
+              -> {body: $1}
 
 @profiles: ["sv_2023"]
 rs_production_identifier_sv_2023 := identifier
@@ -3696,6 +3700,7 @@ rs_production_item_sv_2023 := rs_production_identifier ( lparen list_of_argument
                             -> {name: $1, args: $2}
 
 rs_production_item := rs_production_item_sv_2023
+                   -> {body: $1}
 
 @profiles: ["sv_2017"]
 rs_production_list_sv_2017 := rs_prod rs_prod*
@@ -3709,7 +3714,8 @@ rs_production_list_sv_2023 := rs_prod rs_prod*
                             | kw_rand_52400560 kw_join_c455b38e ( lparen expression rparen )? rs_production_item rs_production_item rs_production_item*
                                    -> {kind: "rand_join",   join_count: $3, items: {first: $4, second: $5, rest: $6}}
 
-rs_production_list := rs_production_list_sv_2017 | rs_production_list_sv_2023
+rs_production_list := rs_production_list_sv_2017 -> {kind: "sv_2017", body: $1}
+                    | rs_production_list_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 rs_repeat_sv_2017 := kw_repeat_c0ac4842 lparen expression rparen production_item
@@ -3719,7 +3725,8 @@ rs_repeat_sv_2017 := kw_repeat_c0ac4842 lparen expression rparen production_item
 rs_repeat_sv_2023 := kw_repeat_c0ac4842 lparen expression rparen rs_production_item
                   -> {count: $3, body: $5}
 
-rs_repeat := rs_repeat_sv_2017 | rs_repeat_sv_2023
+rs_repeat := rs_repeat_sv_2017 -> {kind: "sv_2017", body: $1}
+           | rs_repeat_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 rs_rule_sv_2017 := rs_production_list ( colon assign weight_specification ( rs_code_block )? )?
@@ -3729,7 +3736,8 @@ rs_rule_sv_2017 := rs_production_list ( colon assign weight_specification ( rs_c
 rs_rule_sv_2023 := rs_production_list ( colon assign rs_weight_specification ( rs_code_block )? )?
                 -> {productions: $1, weight: $2}
 
-rs_rule := rs_rule_sv_2017 | rs_rule_sv_2023
+rs_rule := rs_rule_sv_2017 -> {kind: "sv_2017", body: $1}
+         | rs_rule_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2023"]
 rs_weight_specification_sv_2023 := integral_number          -> {kind: "number",     body: $1}
@@ -4511,7 +4519,8 @@ value_range_sv_2023 := expression                                       -> {kind
                      | ( expression colon kw_dollar )?                  -> {kind: "dollar_hi",   body: $1}
                      | ( expression plus slash minus expression )?      -> {kind: "tolerance",   body: $1}
 
-value_range := value_range_sv_2017 | value_range_sv_2023
+value_range := value_range_sv_2017 -> {kind: "sv_2017", body: $1}
+             | value_range_sv_2023 -> {kind: "sv_2023", body: $1}
 
 var_data_type := data_type                            -> {kind: "data_type",     body: $1}
               | kw_var_e5b4e786 data_type_or_implicit  -> {kind: "var",          body: $2}

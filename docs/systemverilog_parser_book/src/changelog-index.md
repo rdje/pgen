@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.91 / Contract 1.0.91 — SV-Slice-91 batch: rs_ + value_range wrappers typed (9 rules / 16 annotations)
+
+Annotation inventory: **1716** (was 1700, +16). Same accept set.
+
 ### 1.0.90 / Contract 1.0.90 — SV-Slice-90 batch: production + udp_declaration + range_list wrappers typed (4 rules / 5 annotations)
 
 Annotation inventory: **1700** (was 1695, +5). Same accept set.

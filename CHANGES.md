@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-91 batch: rs_ + value_range wrappers typed (9 rules / 16 annotations) (PGEN-SVP-0091)
+
+`rs_case_item`, `rs_if_else`, `rs_prod`, `rs_production_list`, `rs_repeat`, `rs_rule` (each 2 kinds), `rs_production`, `rs_production_item` (passthroughs), `value_range` (2 kinds).
+
+Annotation count: 1716 (was 1700, +16). Same accept set. Manifest + contract bumped to 1.0.91. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-90 batch: production + udp_declaration + range_list wrappers typed (4 rules / 5 annotations) (PGEN-SVP-0090)
 
 `production` (`{body}` passthrough), `production_item` (`{body}` passthrough), `range_list` (`{body}` passthrough), `udp_declaration` (2 kinds: sv_2017 / sv_2023).
