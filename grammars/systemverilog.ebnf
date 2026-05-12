@@ -3249,6 +3249,7 @@ production_sv_2017 := ( data_type_or_void )? production_identifier ( lparen tf_p
                    -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
 production := production_sv_2017
+           -> {body: $1}
 
 @profiles: ["sv_2017"]
 production_identifier_sv_2017 := identifier
@@ -3260,6 +3261,7 @@ production_item_sv_2017 := production_identifier ( lparen list_of_arguments rpar
                         -> {name: $1, args: $2}
 
 production_item := production_item_sv_2017
+                -> {body: $1}
 
 @sample: "program p(input logic a);"
 program_ansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
@@ -3615,6 +3617,7 @@ range_list_sv_2023 := value_range ( comma value_range )*
                    -> [$1, $2::2*]
 
 range_list := range_list_sv_2023
+           -> {body: $1}
 
 ref_declaration := kw_ref_69449f99 variable_port_type list_of_variable_identifiers
 
@@ -4414,7 +4417,8 @@ udp_declaration_sv_2023 := udp_nonansi_declaration udp_port_declaration udp_port
                          | attribute_instance* kw_primitive_9756bf34 udp_identifier lparen dot star rparen semi udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
                             -> {kind: "wildcard", attributes: $1, name: $3, port_decls: $9, body: $10, end_label: $12}
 
-udp_declaration := udp_declaration_sv_2017 | udp_declaration_sv_2023
+udp_declaration := udp_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                 | udp_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @sample: "output o, input i"
 udp_declaration_port_list := udp_output_declaration comma udp_input_declaration ( comma udp_input_declaration )*

@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-90 batch: production + udp_declaration + range_list wrappers typed (4 rules / 5 annotations) (PGEN-SVP-0090)
+
+`production` (`{body}` passthrough), `production_item` (`{body}` passthrough), `range_list` (`{body}` passthrough), `udp_declaration` (2 kinds: sv_2017 / sv_2023).
+
+Annotation count: 1700 (was 1695, +5). Same accept set. Manifest + contract bumped to 1.0.90. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-89 batch: profile-router wrappers typed (9 rules / 18 annotations) (PGEN-SVP-0089)
 
 All 9 declaration/prototype wrappers that route between sv_2017 / sv_2023 typed bodies. Each gets 2 kinds (sv_2017 / sv_2023): `blocking_assignment`, `class_declaration`, `function_declaration`, `function_prototype`, `interface_declaration`, `module_declaration`, `program_declaration`, `task_declaration`, `task_prototype`.
