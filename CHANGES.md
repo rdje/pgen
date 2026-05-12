@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-86 batch: let_declaration + final/initial specifiers + named_port_connection + nonconsec_rep + time_unit typed (6 rules / 13 annotations) (PGEN-SVP-0086)
+
+`final_specifier_sv_2023`, `initial_or_extends_specifier_sv_2023` (2 kinds), `let_declaration`, `named_port_connection` (2 kinds), `nonconsecutive_repetition_sv_2023`, `time_unit` (6 kinds).
+
+Annotation count: 1653 (was 1640, +13). Same accept set. Manifest + contract bumped to 1.0.86. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-85 batch: type_declaration + type_identifier_or_class_type + type_reference + net_alias + net_declaration typed (7 rules / 19 annotations) (PGEN-SVP-0085)
 
 `type_declaration_sv_2017/2023` (each 6 kinds: class_alias / data_type / interface_type / forward_class / forward_interface_class / forward), `type_declaration` (2 kinds), `type_identifier_or_class_type_sv_2023` (2 kinds: type_identifier / class_type), `type_reference` (2 kinds), `net_alias` (`{first, second, rest}`), `net_declaration` (2 kinds).

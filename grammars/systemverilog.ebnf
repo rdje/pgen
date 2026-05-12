@@ -1724,6 +1724,7 @@ final_construct := kw_final_d594c2cc function_statement
 
 @profiles: ["sv_2023"]
 final_specifier_sv_2023 := colon kw_final_d594c2cc
+                        -> {kind: "final"}
 
 final_specifier := final_specifier_sv_2023
 
@@ -1969,7 +1970,8 @@ init_val := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick_bx_ab9
 initial_construct := kw_initial_8ad7d21c statement_or_null
 
 @profiles: ["sv_2023"]
-initial_or_extends_specifier_sv_2023 := colon kw_initial_8ad7d21c | colon kw_extends_2b781ff8
+initial_or_extends_specifier_sv_2023 := colon kw_initial_8ad7d21c -> {kind: "initial"}
+                                      | colon kw_extends_2b781ff8 -> {kind: "extends"}
 
 initial_or_extends_specifier := initial_or_extends_specifier_sv_2023
 
@@ -2125,6 +2127,7 @@ let_actual_arg := expression
                -> {body: $1}
 
 let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
+                -> {name: $2, ports: $3, value: $5}
 
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }
 non_typedef_package_scope := @probe_sample: "pkg::" package_scope
@@ -2641,7 +2644,8 @@ named_port_connection_sv_2023 := attribute_instance* dot port_identifier ( lpare
                                | attribute_instance* dot star
                                         -> {kind: "wildcard", attributes: $1}
 
-named_port_connection := named_port_connection_sv_2017 | named_port_connection_sv_2023
+named_port_connection := named_port_connection_sv_2017 -> {kind: "sv_2017", body: $1}
+                       | named_port_connection_sv_2023 -> {kind: "sv_2023", body: $1}
 
 ncontrol_terminal := expression
 
@@ -2805,6 +2809,7 @@ nonblocking_assignment := variable_lvalue less_equal ( delay_or_event_control )?
 
 @profiles: ["sv_2023"]
 nonconsecutive_repetition_sv_2023 := ( assign const_or_range_expression )?
+                                  -> {range: $1}
 
 nonconsecutive_repetition := nonconsecutive_repetition_sv_2023
 
@@ -4192,7 +4197,12 @@ tfall_path_delay_expression := path_delay_expression
 
 threshold := constant_expression
 
-time_unit := kw_s_a0f1490a | kw_ms_26cc3217 | kw_us_da2b1288 | kw_ns_7320d5b7 | kw_ps_c67f1ee1 | kw_fs_3f4bb586
+time_unit := kw_s_a0f1490a   -> {kind: "s"}
+           | kw_ms_26cc3217  -> {kind: "ms"}
+           | kw_us_da2b1288  -> {kind: "us"}
+           | kw_ns_7320d5b7  -> {kind: "ns"}
+           | kw_ps_c67f1ee1  -> {kind: "ps"}
+           | kw_fs_3f4bb586  -> {kind: "fs"}
 
 timecheck_condition := mintypmax_expression
 

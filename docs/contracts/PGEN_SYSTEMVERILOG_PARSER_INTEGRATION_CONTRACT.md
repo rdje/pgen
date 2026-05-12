@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.85`
+  - `1.0.86`
 - Parser release version:
-  - `1.0.85`
+  - `1.0.86`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,19 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.86 / Contract 1.0.86 Highlights — SV-Slice-86 batch: let_declaration + final/initial specifiers + named_port_connection + nonconsec_rep + time_unit typed (6 rules / 13 annotations)
+
+```ebnf
+final_specifier_sv_2023              -> 1 kind (final)
+initial_or_extends_specifier_sv_2023 -> 2 kinds (initial / extends)
+let_declaration                      -> {name, ports, value}
+named_port_connection                -> 2 kinds (sv_2017 / sv_2023)
+nonconsecutive_repetition_sv_2023    -> {range}
+time_unit                            -> 6 kinds (s / ms / us / ns / ps / fs)
+```
+
+Annotation count: **1653** (was 1640, +13). Same accept set.
 
 ## Release 1.0.85 / Contract 1.0.85 Highlights — SV-Slice-85 batch: type_declaration + type_identifier_or_class_type + type_reference + net_alias + net_declaration typed (7 rules / 19 annotations)
 
