@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9e9b99a3.js";
+            window.path_to_searchindex_js = "searchindex-5176eb0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.76.0</td><td>1.0.75</td><td><strong>SV-Slice-75 batch: net_port_type + I/O declarations + genvar typed.</strong> 10 rules / 17 annotations covering LRM A.2.1.2 net_port_type / nonansi I/O declarations / LRM A.2.1.3 genvar sub-trees. DEFERRED: <code>net_type</code> (duplicate-branch grammar bug). Annotation inventory: 1416 entries (was 1399).</td></tr>
 <tr><td>0.75.0</td><td>1.0.74</td><td><strong>SV-Slice-74 batch: dpi + extern_constraint + interface_class + param family typed.</strong> 18 rules / 32 annotations covering LRM A.2.6 DPI sub-tree, LRM A.1.4 extern_constraint, LRM A.1.9 interface_class, and LRM A.2.1.1 param_assignment sub-trees. Annotation inventory: 1399 entries (was 1367).</td></tr>
 <tr><td>0.74.0</td><td>1.0.73</td><td><strong>SV-Slice-73 batch: checker family typed.</strong> 10 rules / 33 annotations covering LRM A.2.2.2 checker-declaration walk path: <code>checker_declaration</code>, <code>checker_generate_item_sv_2017/2023</code> (each 4 kinds), <code>checker_generate_item</code> (2 kinds), <code>checker_instantiation</code>, <code>checker_or_generate_item</code> (7 kinds), <code>checker_or_generate_item_declaration</code> (10 kinds), <code>checker_port_direction</code> (2 kinds), <code>checker_port_item</code>, <code>checker_port_list</code> (<code>[$1, $2::2*]</code>). Annotation inventory: 1367 entries (was 1334).</td></tr>
 <tr><td>0.73.0</td><td>1.0.72</td><td><strong>SV-Slice-72 batch: sequence family typed.</strong> 16 rules / 39 annotations covering LRM A.2.10 sequence sub-tree: <code>seq_input_list</code>, <code>sequence_abbrev</code>, <code>sequence_actual_arg_sv_2017/2023</code> (2+3 kinds), <code>sequence_actual_arg</code>, <code>sequence_declaration</code>, <code>sequence_expr</code> (12 kinds), <code>sequence_formal_type</code> (3 kinds), <code>sequence_instance</code>, <code>sequence_list_of_arguments</code> (2 kinds), <code>sequence_lvar_port_direction</code> (3 kinds bare), <code>sequence_match_item</code> (3 kinds), <code>sequence_method_call</code>, <code>sequence_port_item</code>, <code>sequence_port_list</code> (<code>[$1, $2::2*]</code>), <code>with_covergroup_expression</code>. Annotation inventory: 1334 entries (was 1295).</td></tr>

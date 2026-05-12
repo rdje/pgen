@@ -19,6 +19,21 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.75 / Contract 1.0.75 — SV-Slice-75 batch: net_port_type + I/O declarations + genvar typed (10 rules / 17 annotations)
+
+**What changed:** Closes LRM A.2.1.2 net_port_type / nonansi I/O declarations / LRM A.2.1.3 genvar sub-trees.
+
+```ebnf
+genvar_declaration / genvar_expression / inout_declaration /
+input_declaration (2 kinds) / output_declaration (2 kinds) /
+net_port_header / net_port_type_sv_2017/2023 (3+3 kinds) /
+net_port_type (2 kinds) / net_type_declaration_sv_2017
+```
+
+DEFERRED: `net_type` (duplicate-branch grammar bug).
+
+Annotation inventory: **1416** (was 1399, +17). Same accept set.
+
 ### 1.0.74 / Contract 1.0.74 — SV-Slice-74 batch: dpi + extern_constraint + interface_class + param family typed (18 rules / 32 annotations)
 
 **What changed:** Closes LRM A.2.6 DPI sub-tree, LRM A.1.4 extern_constraint, LRM A.1.9 interface_class, and LRM A.2.1.1 param_assignment sub-trees.

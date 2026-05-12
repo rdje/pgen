@@ -1784,8 +1784,10 @@ generate_region := kw_generate_9e59d425 generate_item* kw_endgenerate_efb1f00a
                 -> {items: $2}
 
 genvar_declaration := kw_genvar_9cb2eb8a list_of_genvar_identifiers semi
+                   -> {items: $2}
 
 genvar_expression := constant_expression
+                  -> {body: $1}
 
 genvar_identifier := identifier
 
@@ -1883,12 +1885,16 @@ initial_or_extends_specifier_sv_2023 := colon kw_initial_8ad7d21c | colon kw_ext
 initial_or_extends_specifier := initial_or_extends_specifier_sv_2023
 
 inout_declaration := kw_inout_c900aaa9 net_port_type list_of_port_identifiers
+                  -> {port_type: $2, items: $3}
 
 inout_port_identifier := identifier
 
 inout_terminal := net_lvalue
 
-input_declaration := kw_input_140f86aa net_port_type list_of_port_identifiers | kw_input_140f86aa variable_port_type list_of_variable_identifiers
+input_declaration := kw_input_140f86aa net_port_type list_of_port_identifiers
+                            -> {kind: "net",      port_type: $2, items: $3}
+                   | kw_input_140f86aa variable_port_type list_of_variable_identifiers
+                            -> {kind: "variable", port_type: $2, items: $3}
 
 input_identifier := input_port_identifier | inout_port_identifier | interface_identifier dot port_identifier
 
@@ -2521,20 +2527,27 @@ net_lvalue := ps_or_hierarchical_net_identifier constant_select
                     -> {kind: "pattern",       type: $1, body: $2}
 
 net_port_header := ( port_direction )? net_port_type
+                -> {direction: $1, port_type: $2}
 
 @profiles: ["sv_2017"]
-net_port_type_sv_2017 := ( net_type )? data_type_or_implicit | net_type_identifier | kw_interconnect_c8ec83f5 implicit_data_type
+net_port_type_sv_2017 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
+                       | net_type_identifier                              -> {kind: "identifier",   name: $1}
+                       | kw_interconnect_c8ec83f5 implicit_data_type      -> {kind: "interconnect", data_type: $2}
 
 @profiles: ["sv_2023"]
-net_port_type_sv_2023 := ( net_type )? data_type_or_implicit | nettype_identifier | kw_interconnect_c8ec83f5 implicit_data_type
+net_port_type_sv_2023 := ( net_type )? data_type_or_implicit             -> {kind: "typed",        net_type: $1, data_type: $2}
+                       | nettype_identifier                               -> {kind: "identifier",   name: $1}
+                       | kw_interconnect_c8ec83f5 implicit_data_type      -> {kind: "interconnect", data_type: $2}
 
-net_port_type := net_port_type_sv_2017 | net_port_type_sv_2023
+net_port_type := net_port_type_sv_2017 -> {kind: "sv_2017", body: $1}
+               | net_port_type_sv_2023 -> {kind: "sv_2023", body: $1}
 
 net_type := kw_supply_076df715 | kw_supply_076df715 | kw_tri_54bf01f1 | kw_triand_51bca013 | kw_trior_56b8b9f0 | kw_trireg_f7901823 | kw_tri_54bf01f1 | kw_tri_54bf01f1 | kw_uwire_9143a634 | kw_wire_6e1c6849 | kw_wand_4be59aff | kw_wor_ff9e40da
 
 @profiles: ["sv_2017"]
 @sample: "nettype int nt;"
 net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type net_type_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
+                             -> {data_type: $2, name: $3, with_clause: $4}
                               | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier net_type_identifier semi
 
 net_type_declaration := net_type_declaration_sv_2017
@@ -2663,7 +2676,10 @@ ordered_parameter_assignment := param_expression
 
 ordered_port_connection := attribute_instance* ( expression )?
 
-output_declaration := kw_output_1029d676 net_port_type list_of_port_identifiers | kw_output_1029d676 variable_port_type list_of_variable_port_identifiers
+output_declaration := kw_output_1029d676 net_port_type list_of_port_identifiers
+                            -> {kind: "net",      port_type: $2, items: $3}
+                    | kw_output_1029d676 variable_port_type list_of_variable_port_identifiers
+                            -> {kind: "variable", port_type: $2, items: $3}
 
 output_identifier := output_port_identifier | inout_port_identifier | interface_identifier dot port_identifier
 

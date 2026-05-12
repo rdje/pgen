@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.74`
+  - `1.0.75`
 - Parser release version:
-  - `1.0.74`
+  - `1.0.75`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,33 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.75 / Contract 1.0.75 Highlights — SV-Slice-75 batch: net_port_type + I/O declarations + genvar typed (10 rules / 17 annotations)
+
+Closes LRM A.2.1.2 net_port_type / nonansi I/O declarations / LRM A.2.1.3 genvar sub-trees.
+
+### Annotations
+
+```ebnf
+genvar_declaration              -> {items}
+genvar_expression               -> {body}
+inout_declaration               -> {port_type, items}
+input_declaration               -> 2 kinds (net / variable)
+output_declaration              -> 2 kinds (net / variable)
+net_port_header                 -> {direction, port_type}
+net_port_type_sv_2017           -> 3 kinds (typed / identifier / interconnect)
+net_port_type_sv_2023           -> 3 kinds (parallel — uses nettype_identifier)
+net_port_type                   -> 2 kinds (sv_2017 / sv_2023)
+net_type_declaration_sv_2017    -> {data_type, name, with_clause}
+```
+
+### Deferred
+
+`net_type` has a duplicate-branch grammar bug — same family as drive_strength.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1416** (was 1399, +17). Same accept set.
 
 ## Release 1.0.74 / Contract 1.0.74 Highlights — SV-Slice-74 batch: dpi + extern_constraint + interface_class + param family typed (18 rules / 32 annotations)
 

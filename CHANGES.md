@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-75 batch: net_port_type + I/O declarations + genvar typed (10 rules / 17 annotations) (PGEN-SVP-0075)
+
+Closes LRM A.2.1.2 net_port_type / nonansi I/O declarations / LRM A.2.1.3 genvar sub-trees.
+
+`genvar_declaration` (`{items}`), `genvar_expression` (`{body}`), `inout_declaration` (`{port_type, items}`), `input_declaration` (2 kinds: net / variable), `output_declaration` (2 kinds: net / variable), `net_port_header` (`{direction, port_type}`), `net_port_type_sv_2017/2023` (each 3 kinds: typed / identifier / interconnect), `net_port_type` (2 kinds), `net_type_declaration_sv_2017` (`{data_type, name, with_clause}`).
+
+DEFERRED: `net_type` (duplicate-branch grammar bug, same family as drive_strength).
+
+Annotation count: 1416 (was 1399, +17). Same accept set. Manifest + contract bumped to 1.0.75. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-74 batch: dpi + extern_constraint + interface_class + param family typed (18 rules / 32 annotations) (PGEN-SVP-0074)
 
 Closes LRM A.2.6 DPI sub-tree, LRM A.1.4 extern_constraint, LRM A.1.9 interface_class, and LRM A.2.1.1 param_assignment sub-trees.
