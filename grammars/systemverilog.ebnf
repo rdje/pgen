@@ -619,7 +619,8 @@ class_or_package_scope := implicit_class_handle dot -> {kind: "instance",      h
                         | class_scope               -> {kind: "class_scope",   body: $1}
                         | package_scope             -> {kind: "package_scope", body: $1}
 
-blocking_assignment := blocking_assignment_sv_2017 | blocking_assignment_sv_2023
+blocking_assignment := blocking_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
+                     | blocking_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 boolean_abbrev_sv_2017 := consecutive_repetition      -> {kind: "consecutive",      body: $1}
@@ -815,7 +816,8 @@ class_declaration_sv_2017 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( lifeti
 class_declaration_sv_2023 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( final_specifier )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 base_class_type ( lparen ( list_of_arguments | kw_default_7505d64a )? rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
                           -> {virtual: $1, final_specifier: $3, name: $4, parameters: $5, extends: $6, implements: $7, items: $9, end_label: $11}
 
-class_declaration := class_declaration_sv_2017 | class_declaration_sv_2023
+class_declaration := class_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                   | class_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 class_identifier := declaration_identifier
 
@@ -1797,7 +1799,8 @@ function_declaration_sv_2017 := kw_function_c218e39e ( lifetime )? function_body
 function_declaration_sv_2023 := kw_function_c218e39e ( dynamic_override_specifiers )? ( lifetime )? function_body_declaration
                              -> {dynamic_override: $2, lifetime: $3, body: $4}
 
-function_declaration := function_declaration_sv_2017 | function_declaration_sv_2023
+function_declaration := function_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                      | function_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 function_identifier := declaration_identifier
 
@@ -1809,7 +1812,8 @@ function_prototype_sv_2017 := kw_function_c218e39e data_type_or_void function_id
 function_prototype_sv_2023 := kw_function_c218e39e ( dynamic_override_specifiers )? data_type_or_void function_identifier ( lparen ( tf_port_list )? rparen )?
                            -> {dynamic_override: $2, return_type: $3, name: $4, ports: $5}
 
-function_prototype := function_prototype_sv_2017 | function_prototype_sv_2023
+function_prototype := function_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
+                    | function_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
 function_statement := statement
 
@@ -2090,7 +2094,8 @@ interface_declaration_sv_2023 := interface_ansi_header ( timeunits_declaration )
                               | kw_extern_bf1ee311 interface_ansi_header
                                   -> {kind: "extern_ansi", header: $2}
 
-interface_declaration := interface_declaration_sv_2017 | interface_declaration_sv_2023
+interface_declaration := interface_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                       | interface_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 interface_identifier := @probe_sample: "I" declaration_identifier
 
@@ -2523,7 +2528,10 @@ module_declaration_sv_2023 := @sample: "module m; endmodule" module_ansi_header 
                             | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
                                 -> {kind: "extern_ansi", header: $2}
 
-module_declaration := @sample: "module m; endmodule" module_declaration_sv_2017 | @sample: "module m; endmodule" module_declaration_sv_2023
+module_declaration := @sample: "module m; endmodule" module_declaration_sv_2017
+                              -> {kind: "sv_2017", body: $1}
+                    | @sample: "module m; endmodule" module_declaration_sv_2023
+                              -> {kind: "sv_2023", body: $1}
 
 module_identifier := declaration_identifier
 
@@ -3281,7 +3289,10 @@ program_declaration_sv_2023 := @sample: "program p(a); endprogram" program_nonan
                              | @sample: "extern program p;" kw_extern_bf1ee311 program_ansi_header
                                  -> {kind: "extern_ansi", header: $2}
 
-program_declaration := @sample: "program p; endprogram" program_declaration_sv_2017 | @sample: "program p; endprogram" program_declaration_sv_2023
+program_declaration := @sample: "program p; endprogram" program_declaration_sv_2017
+                              -> {kind: "sv_2017", body: $1}
+                     | @sample: "program p; endprogram" program_declaration_sv_2023
+                              -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 program_generate_item_sv_2017 := loop_generate_construct | conditional_generate_construct | generate_region | elaboration_system_task
@@ -4148,7 +4159,8 @@ task_declaration_sv_2017 := kw_task_7fbb727d ( lifetime )? task_body_declaration
 task_declaration_sv_2023 := kw_task_7fbb727d ( dynamic_override_specifiers )? ( lifetime )? task_body_declaration
                          -> {dynamic_override: $2, lifetime: $3, body: $4}
 
-task_declaration := task_declaration_sv_2017 | task_declaration_sv_2023
+task_declaration := task_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                  | task_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 task_identifier := declaration_identifier
 
@@ -4160,7 +4172,8 @@ task_prototype_sv_2017 := kw_task_7fbb727d task_identifier ( lparen ( tf_port_li
 task_prototype_sv_2023 := kw_task_7fbb727d ( dynamic_override_specifiers )? task_identifier ( lparen ( tf_port_list )? rparen )?
                        -> {dynamic_override: $2, name: $3, ports: $4}
 
-task_prototype := task_prototype_sv_2017 | task_prototype_sv_2023
+task_prototype := task_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
+                | task_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
 terminal_identifier := identifier
 

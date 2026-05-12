@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.89 / Contract 1.0.89 — SV-Slice-89 batch: profile-router wrappers typed (9 rules / 18 annotations)
+
+Annotation inventory: **1695** (was 1677, +18). Same accept set.
+
 ### 1.0.88 / Contract 1.0.88 — SV-Slice-88 batch: constant_primary + primary wrappers typed (2 rules / 4 annotations)
 
 Annotation inventory: **1677** (was 1673, +4). Same accept set.

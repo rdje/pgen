@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-89 batch: profile-router wrappers typed (9 rules / 18 annotations) (PGEN-SVP-0089)
+
+All 9 declaration/prototype wrappers that route between sv_2017 / sv_2023 typed bodies. Each gets 2 kinds (sv_2017 / sv_2023): `blocking_assignment`, `class_declaration`, `function_declaration`, `function_prototype`, `interface_declaration`, `module_declaration`, `program_declaration`, `task_declaration`, `task_prototype`.
+
+Annotation count: 1695 (was 1677, +18). Same accept set. Manifest + contract bumped to 1.0.89. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-88 batch: constant_primary + primary wrappers typed (2 rules / 4 annotations) (PGEN-SVP-0088)
 
 Profile-router passthroughs that wrap the sv_2017/sv_2023 typed primaries from slices 47/48.
