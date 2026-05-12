@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.82 / Contract 1.0.82 — SV-Slice-82 batch: dynamic_override + incomplete_class + var_data_type + timing leaves typed (10 rules / 14 annotations)
+
+Annotation inventory: **1596** (was 1582, +14). Same accept set.
+
 ### 1.0.81 / Contract 1.0.81 — SV-Slice-81 batch: config_rule + library + hierarchical_identifier + severity typed (13 rules / 25 annotations)
 
 Closes LRM A.1.7 config/library walk paths + various leaf rules. Annotation inventory: **1582** (was 1557, +25). Same accept set.

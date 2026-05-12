@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.81`
+  - `1.0.82`
 - Parser release version:
-  - `1.0.81`
+  - `1.0.82`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,19 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.82 / Contract 1.0.82 Highlights — SV-Slice-82 batch: dynamic_override + incomplete_class + var_data_type + timing leaves typed (10 rules / 14 annotations)
+
+```ebnf
+controlled_reference_event / data_event / reference_event /
+  start_edge_offset / end_edge_offset / timestamp_condition  -> {body}
+dynamic_override_specifiers_sv_2023                           -> {initial_or_extends, final}
+finish_number                                                 -> 3 kinds (0 / 1 / 2)
+incomplete_class_scoped_type_sv_2023                          -> 2 kinds (head / recursive)
+var_data_type                                                 -> 2 kinds (data_type / var)
+```
+
+Annotation count: **1596** (was 1582, +14). Same accept set.
 
 ## Release 1.0.81 / Contract 1.0.81 Highlights — SV-Slice-81 batch: config_rule + library + hierarchical_identifier + severity typed (13 rules / 25 annotations)
 

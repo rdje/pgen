@@ -1193,6 +1193,7 @@ continuous_assign := kw_assign_9009b730 ( drive_strength )? ( delay )? list_of_n
                         -> {kind: "variable", delay_control:  $2, assignments: $3}
 
 controlled_reference_event := controlled_timing_check_event
+                           -> {body: $1}
 
 controlled_timing_check_event := timing_check_event_control specify_terminal_descriptor ( logical_and3 timing_check_condition )?
                               -> {control: $1, descriptor: $2, condition: $3}
@@ -1333,6 +1334,7 @@ data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifeti
 data_declaration := data_declaration_sv_2017 | data_declaration_sv_2023
 
 data_event := timing_check_event
+           -> {body: $1}
 
 data_source_expression := expression
 
@@ -1555,6 +1557,7 @@ dynamic_array_variable_identifier := variable_identifier
 
 @profiles: ["sv_2023"]
 dynamic_override_specifiers_sv_2023 := ( initial_or_extends_specifier )? ( final_specifier )?
+                                    -> {initial_or_extends: $1, final: $2}
 
 dynamic_override_specifiers := dynamic_override_specifiers_sv_2023
 
@@ -1619,6 +1622,7 @@ enable_gatetype := kw_bufif_8c9c7ee6 | kw_bufif_8c9c7ee6 | kw_notif_8743f903 | k
 enable_terminal := expression
 
 end_edge_offset := mintypmax_expression
+                -> {body: $1}
 
 enum_base_type := integer_atom_type ( signing )?
                        -> {kind: "atom",       base: $1, signing: $2}
@@ -1709,7 +1713,9 @@ final_specifier_sv_2023 := colon kw_final_d594c2cc
 
 final_specifier := final_specifier_sv_2023
 
-finish_number := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_n_2_da4b9237
+finish_number := kw_n_0_b6589fc6 -> {kind: "0"}
+               | kw_n_1_356a192b -> {kind: "1"}
+               | kw_n_2_da4b9237 -> {kind: "2"}
 
 for_initialization := list_of_variable_assignments
                               -> {kind: "assignments",  body: $1}
@@ -1927,7 +1933,10 @@ include_statement := kw_include_d3ecb0d8 kw_file_path_spec_c26c9dc9 semi
                   -> {path: $2}
 
 @profiles: ["sv_2023"]
-incomplete_class_scoped_type_sv_2023 := type_identifier scope_resolution type_identifier_or_class_type | incomplete_class_scoped_type scope_resolution type_identifier_or_class_type
+incomplete_class_scoped_type_sv_2023 := type_identifier scope_resolution type_identifier_or_class_type
+                                              -> {kind: "head",      head: $1, tail: $3}
+                                      | incomplete_class_scoped_type scope_resolution type_identifier_or_class_type
+                                              -> {kind: "recursive", body: $1, tail: $3}
 
 incomplete_class_scoped_type := incomplete_class_scoped_type_sv_2023
 
@@ -3556,6 +3565,7 @@ range_list := range_list_sv_2023
 ref_declaration := kw_ref_69449f99 variable_port_type list_of_variable_identifiers
 
 reference_event := timing_check_event
+                -> {body: $1}
 
 reject_limit_value := limit_value
 
@@ -3886,6 +3896,7 @@ specparam_declaration := kw_specparam_54af7813 ( packed_dimension )? list_of_spe
 specparam_identifier := identifier
 
 start_edge_offset := mintypmax_expression
+                  -> {body: $1}
 
 state_dependent_path_declaration := kw_if_958f57f5 lparen module_path_expression rparen simple_path_declaration
                                           -> {kind: "if_simple",         condition: $3, body: $5}
@@ -4158,6 +4169,7 @@ time_unit := kw_s_a0f1490a | kw_ms_26cc3217 | kw_us_da2b1288 | kw_ns_7320d5b7 | 
 timecheck_condition := mintypmax_expression
 
 timestamp_condition := mintypmax_expression
+                    -> {body: $1}
 
 timeunits_declaration := kw_timeunit_57f78b2f time_literal ( timeunit_separator_slash time_literal )? semi | kw_timeprecision_628f1cfc time_literal semi | kw_timeunit_57f78b2f time_literal semi kw_timeprecision_628f1cfc time_literal semi | kw_timeprecision_628f1cfc time_literal semi kw_timeunit_57f78b2f time_literal semi
 
@@ -4401,7 +4413,8 @@ value_range_sv_2023 := expression                                       -> {kind
 
 value_range := value_range_sv_2017 | value_range_sv_2023
 
-var_data_type := data_type | kw_var_e5b4e786 data_type_or_implicit
+var_data_type := data_type                            -> {kind: "data_type",     body: $1}
+              | kw_var_e5b4e786 data_type_or_implicit  -> {kind: "var",          body: $2}
 
 variable_assignment := variable_lvalue assign expression
                     -> {lvalue: $1, value: $3}
