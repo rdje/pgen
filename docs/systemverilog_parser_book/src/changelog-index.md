@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.85 / Contract 1.0.85 — SV-Slice-85 batch: type_declaration + type_identifier_or_class_type + type_reference + net_alias + net_declaration typed (7 rules / 19 annotations)
+
+Annotation inventory: **1640** (was 1621, +19). Same accept set.
+
 ### 1.0.84 / Contract 1.0.84 — SV-Slice-84 batch: net_assignment + param_expression + struct_union + inst_name typed (5 rules / 10 annotations)
 
 Annotation inventory: **1621** (was 1611, +10). Same accept set.

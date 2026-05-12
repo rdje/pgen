@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-85 batch: type_declaration + type_identifier_or_class_type + type_reference + net_alias + net_declaration typed (7 rules / 19 annotations) (PGEN-SVP-0085)
+
+`type_declaration_sv_2017/2023` (each 6 kinds: class_alias / data_type / interface_type / forward_class / forward_interface_class / forward), `type_declaration` (2 kinds), `type_identifier_or_class_type_sv_2023` (2 kinds: type_identifier / class_type), `type_reference` (2 kinds), `net_alias` (`{first, second, rest}`), `net_declaration` (2 kinds).
+
+Annotation count: 1640 (was 1621, +19). Same accept set. Manifest + contract bumped to 1.0.85. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-84 batch: net_assignment + param_expression + struct_union + inst_name typed (5 rules / 10 annotations) (PGEN-SVP-0084)
 
 `constant_param_expression` (3 kinds), `inst_name`, `net_assignment`, `param_expression` (3 kinds), `struct_union` (2 kinds).

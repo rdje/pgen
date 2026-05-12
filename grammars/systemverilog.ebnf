@@ -2646,6 +2646,7 @@ named_port_connection := named_port_connection_sv_2017 | named_port_connection_s
 ncontrol_terminal := expression
 
 net_alias := kw_alias_cdb6fdbe net_lvalue assign net_lvalue ( assign net_lvalue )* semi
+          -> {first: $2, second: $4, rest: $5}
 
 net_assignment := net_lvalue assign expression
                -> {lvalue: $1, value: $3}
@@ -2675,7 +2676,8 @@ net_strength := drive_strength  -> {kind: "drive",  body: $1}
 net_vector_scalar := kw_vectored_53eb166d -> {kind: "vectored"}
                    | kw_scalared_92ab459c -> {kind: "scalared"}
 
-net_declaration := net_declaration_sv_2017 | net_declaration_sv_2023
+net_declaration := net_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                 | net_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 net_identifier := declaration_identifier
 
@@ -4282,17 +4284,41 @@ declared_forward_class_identifier := type_identifier
 declared_forward_interface_class_identifier := type_identifier
 
 @profiles: ["sv_2017"]
-type_declaration_sv_2017 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi | kw_typedef_6dc2082b data_type declared_type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_instance_identifier constant_bit_select dot type_identifier declared_type_identifier semi | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
+type_declaration_sv_2017 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi
+                                    -> {kind: "class_alias",    class_type: $2, name: $3, dims: $4}
+                          | kw_typedef_6dc2082b data_type declared_type_identifier variable_dimension* semi
+                                    -> {kind: "data_type",      data_type: $2, name: $3, dims: $4}
+                          | kw_typedef_6dc2082b interface_instance_identifier constant_bit_select dot type_identifier declared_type_identifier semi
+                                    -> {kind: "interface_type", instance: $2, select: $3, source_type: $5, name: $6}
+                          | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi
+                                    -> {kind: "forward_class",  name: $3}
+                          | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi
+                                    -> {kind: "forward_interface_class", name: $4}
+                          | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
+                                    -> {kind: "forward",        keyword: $2, name: $3}
 
 @profiles: ["sv_2023"]
-type_declaration_sv_2023 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi | kw_typedef_6dc2082b data_type_or_incomplete_class_scoped_type declared_type_identifier variable_dimension* semi | kw_typedef_6dc2082b interface_port_identifier constant_bit_select dot type_identifier declared_type_identifier semi | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
+type_declaration_sv_2023 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi
+                                    -> {kind: "class_alias",    class_type: $2, name: $3, dims: $4}
+                          | kw_typedef_6dc2082b data_type_or_incomplete_class_scoped_type declared_type_identifier variable_dimension* semi
+                                    -> {kind: "data_type",      data_type: $2, name: $3, dims: $4}
+                          | kw_typedef_6dc2082b interface_port_identifier constant_bit_select dot type_identifier declared_type_identifier semi
+                                    -> {kind: "interface_type", port: $2, select: $3, source_type: $5, name: $6}
+                          | kw_typedef_6dc2082b kw_class_8d767bf5 declared_forward_class_identifier semi
+                                    -> {kind: "forward_class",  name: $3}
+                          | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi
+                                    -> {kind: "forward_interface_class", name: $4}
+                          | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
+                                    -> {kind: "forward",        keyword: $2, name: $3}
 
-type_declaration := type_declaration_sv_2017 | type_declaration_sv_2023
+type_declaration := type_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                  | type_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 type_identifier := declaration_identifier
 
 @profiles: ["sv_2023"]
-type_identifier_or_class_type_sv_2023 := type_identifier | class_type
+type_identifier_or_class_type_sv_2023 := type_identifier -> {kind: "type_identifier", body: $1}
+                                       | class_type      -> {kind: "class_type",      body: $1}
 
 type_identifier_or_class_type := type_identifier_or_class_type_sv_2023
 
@@ -4312,7 +4338,8 @@ type_reference_sv_2023 := kw_type_d0a3e7f8 lparen expression rparen
                         | kw_type_d0a3e7f8 lparen data_type_or_incomplete_class_scoped_type rparen
                                -> {kind: "data_type_or_incomplete_class", body: $3}
 
-type_reference := type_reference_sv_2017 | type_reference_sv_2023
+type_reference := type_reference_sv_2017 -> {kind: "sv_2017", body: $1}
+                | type_reference_sv_2023 -> {kind: "sv_2023", body: $1}
 
 tz0_path_delay_expression := path_delay_expression
 
