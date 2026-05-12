@@ -604,12 +604,17 @@ class_or_package_scope := implicit_class_handle dot -> {kind: "instance",      h
 blocking_assignment := blocking_assignment_sv_2017 | blocking_assignment_sv_2023
 
 @profiles: ["sv_2017"]
-boolean_abbrev_sv_2017 := consecutive_repetition | non_consecutive_repetition | goto_repetition
+boolean_abbrev_sv_2017 := consecutive_repetition      -> {kind: "consecutive",      body: $1}
+                        | non_consecutive_repetition  -> {kind: "non_consecutive",  body: $1}
+                        | goto_repetition             -> {kind: "goto",             body: $1}
 
 @profiles: ["sv_2023"]
-boolean_abbrev_sv_2023 := consecutive_repetition | nonconsecutive_repetition | goto_repetition
+boolean_abbrev_sv_2023 := consecutive_repetition       -> {kind: "consecutive",      body: $1}
+                        | nonconsecutive_repetition    -> {kind: "non_consecutive",  body: $1}
+                        | goto_repetition              -> {kind: "goto",             body: $1}
 
-boolean_abbrev := boolean_abbrev_sv_2017 | boolean_abbrev_sv_2023
+boolean_abbrev := boolean_abbrev_sv_2017 -> {kind: "sv_2017", body: $1}
+                | boolean_abbrev_sv_2023 -> {kind: "sv_2023", body: $1}
 
 built_in_method_call := array_manipulation_call | randomize_call
 
@@ -990,7 +995,9 @@ config_identifier := declaration_identifier
 
 config_rule_statement := default_clause liblist_clause semi | inst_clause liblist_clause semi | inst_clause use_clause semi | cell_clause liblist_clause semi | cell_clause use_clause semi
 
-consecutive_repetition := ( star const_or_range_expression )? | ( star )? | ( plus )?
+consecutive_repetition := ( star const_or_range_expression )?  -> {kind: "star_range", range: $1}
+                        | ( star )?                              -> {kind: "star"}
+                        | ( plus )?                              -> {kind: "plus"}
 
 const_identifier := identifier
 
@@ -1577,7 +1584,14 @@ elaboration_severity_system_task_sv_2023 := severity_system_task
 elaboration_severity_system_task := elaboration_severity_system_task_sv_2023
 
 @profiles: ["sv_2017"]
-elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_number ( comma list_of_arguments )? rparen )? semi | kw_sv_dollar_error_d304cf0a ( lparen ( list_of_arguments )? rparen )? semi | kw_sv_dollar_warning_22a41474 ( lparen ( list_of_arguments )? rparen )? semi | kw_sv_dollar_info_d116cb1c ( lparen ( list_of_arguments )? rparen )? semi
+elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_number ( comma list_of_arguments )? rparen )? semi
+                                          -> {kind: "fatal",   args: $2}
+                                 | kw_sv_dollar_error_d304cf0a ( lparen ( list_of_arguments )? rparen )? semi
+                                          -> {kind: "error",   args: $2}
+                                 | kw_sv_dollar_warning_22a41474 ( lparen ( list_of_arguments )? rparen )? semi
+                                          -> {kind: "warning", args: $2}
+                                 | kw_sv_dollar_info_d116cb1c ( lparen ( list_of_arguments )? rparen )? semi
+                                          -> {kind: "info",    args: $2}
 
 elaboration_system_task := elaboration_system_task_sv_2017
 
@@ -1830,6 +1844,7 @@ genvar_iteration := genvar_identifier assignment_operator genvar_expression
                          -> {kind: "postfix_inc_dec", name: $1, op: $2}
 
 goto_repetition := ( implies const_or_range_expression )?
+                -> {range: $1}
 
 hex_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_h_27d5482e | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_H_7cf184f4
 
@@ -2668,6 +2683,7 @@ next_state := output_symbol -> {kind: "symbol", body: $1}
 
 @profiles: ["sv_2017"]
 non_consecutive_repetition_sv_2017 := ( assign const_or_range_expression )?
+                                   -> {range: $1}
 
 non_consecutive_repetition := non_consecutive_repetition_sv_2017
 
@@ -3523,7 +3539,8 @@ reject_limit_value := limit_value
 
 remain_active_flag := constant_mintypmax_expression
 
-repeat_range := covergroup_expression | covergroup_expression colon covergroup_expression
+repeat_range := covergroup_expression                                -> {kind: "single", body: $1}
+              | covergroup_expression colon covergroup_expression    -> {kind: "range",  lo: $1, hi: $3}
 
 restrict_property_statement := kw_restrict_ee1e5b88 kw_property_269fe373 lparen property_spec rparen semi
                             -> {spec: $4}

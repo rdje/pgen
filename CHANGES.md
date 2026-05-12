@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-80 batch: boolean_abbrev + repetition + elaboration + repeat_range typed (8 rules / 19 annotations) (PGEN-SVP-0080)
+
+Closes LRM A.2.10 boolean_abbrev (used in sequence_expr), A.6.5 elaboration_system_task (used in checker_generate_item), repeat_range (used in trans_range_list), and repetition leaves.
+
+`boolean_abbrev_sv_2017/2023` (3 kinds each), `boolean_abbrev` (2 kinds), `consecutive_repetition` (3 kinds: star_range / star / plus), `elaboration_system_task_sv_2017` (4 kinds: fatal / error / warning / info), `goto_repetition`, `non_consecutive_repetition_sv_2017`, `repeat_range` (2 kinds: single / range).
+
+Annotation count: 1557 (was 1538, +19). Same accept set. Manifest + contract bumped to 1.0.80. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-79 batch: event + local/type parameter + mintypmax + nettype family typed (12 rules / 18 annotations) (PGEN-SVP-0079)
 
 Closes LRM A.6.5 event_expression / event_trigger, A.2.1.1 local_parameter, A.8.3 mintypmax, A.2.1.4 nettype_declaration, A.2.1.1 type_assignment + type_parameter_declaration sub-trees.

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e19e7f53.js";
+            window.path_to_searchindex_js = "searchindex-c6225205.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.81.0</td><td>1.0.80</td><td><strong>SV-Slice-80 batch: boolean_abbrev + repetition + elaboration + repeat_range typed.</strong> 8 rules / 19 annotations covering boolean_abbrev, elaboration_system_task, repeat_range, and repetition leaves. Annotation inventory: 1557 entries (was 1538).</td></tr>
 <tr><td>0.80.0</td><td>1.0.79</td><td><strong>SV-Slice-79 batch: event + local/type parameter + mintypmax + nettype family typed.</strong> 12 rules / 18 annotations covering event_expression, event_trigger, local_parameter, mintypmax, nettype_declaration, type_assignment + type_parameter_declaration sub-trees. Annotation inventory: 1538 entries (was 1520).</td></tr>
 <tr><td>0.79.0</td><td>1.0.78</td><td><strong>SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed.</strong> 21 rules / 48 annotations covering LRM A.1.10 class_constructor wrappers, A.6.8 let, A.6.5 for-loop, A.6.5 named/ordered checker/port connections, A.1.3 parameter_port. Annotation inventory: 1520 entries (was 1472).</td></tr>
 <tr><td>0.78.0</td><td>1.0.77</td><td><strong>SV-Slice-77 batch: module_path + constraint internals + uniqueness + misc typed.</strong> 16 rules / 29 annotations covering LRM A.8.3 module_path expression sub-tree + constraint_primary / cycle_delay_range / extern_tf / inst_clause / solve_before_list / uniqueness_constraint. Annotation inventory: 1472 entries (was 1443).</td></tr>
@@ -1426,6 +1427,8 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1080--contract-1080--sv-slice-80-batch-boolean_abbrev--repetition--elaboration--repeat_range-typed-8-rules--19-annotations"><a class="header" href="#1080--contract-1080--sv-slice-80-batch-boolean_abbrev--repetition--elaboration--repeat_range-typed-8-rules--19-annotations">1.0.80 / Contract 1.0.80 — SV-Slice-80 batch: boolean_abbrev + repetition + elaboration + repeat_range typed (8 rules / 19 annotations)</a></h3>
+<p>Closes LRM A.2.10 boolean_abbrev, A.6.5 elaboration_system_task, repeat_range, and repetition leaves. Annotation inventory: <strong>1557</strong> (was 1538, +19). Same accept set.</p>
 <h3 id="1079--contract-1079--sv-slice-79-batch-event--localtype-parameter--mintypmax--nettype-family-typed-12-rules--18-annotations"><a class="header" href="#1079--contract-1079--sv-slice-79-batch-event--localtype-parameter--mintypmax--nettype-family-typed-12-rules--18-annotations">1.0.79 / Contract 1.0.79 — SV-Slice-79 batch: event + local/type parameter + mintypmax + nettype family typed (12 rules / 18 annotations)</a></h3>
 <p>Closes event_expression, event_trigger, local_parameter, mintypmax, nettype_declaration, type_assignment + type_parameter_declaration sub-trees. Annotation inventory: <strong>1538</strong> (was 1520, +18). Same accept set.</p>
 <h3 id="1078--contract-1078--sv-slice-78-batch-class_constructor-wrappers--let--for--named_port--parameter_port-typed-21-rules--48-annotations"><a class="header" href="#1078--contract-1078--sv-slice-78-batch-class_constructor-wrappers--let--for--named_port--parameter_port-typed-21-rules--48-annotations">1.0.78 / Contract 1.0.78 — SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed (21 rules / 48 annotations)</a></h3>
