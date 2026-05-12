@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.75`
+  - `1.0.76`
 - Parser release version:
-  - `1.0.75`
+  - `1.0.76`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,38 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.76 / Contract 1.0.76 Highlights — SV-Slice-76 batch: class_scope + method_call + tf_call family typed (14 rules / 27 annotations)
+
+Closes LRM A.8.4 class-scope + method-call + tf-call walk paths referenced from `method_call.kind` dispatch + `primary.kind == "call".body`.
+
+### Annotations
+
+```ebnf
+class_scope_type                 -> {head, params, scope_chain}
+class_scope                      -> {body}
+implicit_class_handle            -> 3 kinds (this / super / this_super)
+method_call                      -> {initial, chain}
+method_call_initial              -> 5 kinds (split_direct_callable / direct / class_scoped_tf / tf / system_tf)
+method_call_body                 -> 3 kinds (built_in / call_with_args / method_bare)
+method_call_receiver_sv_2017     -> {body}
+method_call_receiver             -> 2 kinds (sv_2017 / sv_2023)
+method_call_root                 -> 2 kinds (receiver / implicit_class)
+plain_tf_call_with_args          -> {name, attributes, args}
+tf_call_with_args                -> {name, attributes, args}
+tf_call                          -> 4 kinds (plain_with_args / scoped_or_hierarchical_with_args / scoped_or_hierarchical_bare / tf_identifier_bare)
+class_scoped_call_prefix         -> {head, params, scope_chain}
+class_scoped_tf_call_with_args   -> {prefix, name, attributes, args}
+class_scoped_tf_call             -> 2 kinds (with_args / bare)
+```
+
+### Deferred
+
+`method_call_receiver_sv_2023` (~14 kinds with 2 parens-grouped-Or sub-expressions) is queued — task #38 attribution bug risk.
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1443** (was 1416, +27). Same accept set.
 
 ## Release 1.0.75 / Contract 1.0.75 Highlights — SV-Slice-75 batch: net_port_type + I/O declarations + genvar typed (10 rules / 17 annotations)
 

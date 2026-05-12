@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-76 batch: class_scope + method_call + tf_call family typed (14 rules / 27 annotations) (PGEN-SVP-0076)
+
+Closes LRM A.8.4 class-scope + method-call + tf-call walk paths referenced from `method_call.kind` dispatch + `primary.kind == "call".body`.
+
+`class_scope_type` (`{head, params, scope_chain}`), `class_scope` (`{body}`), `implicit_class_handle` (3 kinds), `method_call` (`{initial, chain}`), `method_call_initial` (5 kinds), `method_call_body` (3 kinds), `method_call_receiver_sv_2017` (`{body}`), `method_call_receiver` (2 kinds), `method_call_root` (2 kinds), `plain_tf_call_with_args`, `tf_call_with_args`, `tf_call` (4 kinds), `class_scoped_call_prefix`, `class_scoped_tf_call_with_args`, `class_scoped_tf_call` (2 kinds).
+
+DEFERRED: `method_call_receiver_sv_2023` (~14 kinds with 2 parens-grouped-Or sub-expressions — task #38 attribution bug risk).
+
+Annotation count: 1443 (was 1416, +27). Same accept set. Manifest + contract bumped to 1.0.76. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-75 batch: net_port_type + I/O declarations + genvar typed (10 rules / 17 annotations) (PGEN-SVP-0075)
 
 Closes LRM A.2.1.2 net_port_type / nonansi I/O declarations / LRM A.2.1.3 genvar sub-trees.

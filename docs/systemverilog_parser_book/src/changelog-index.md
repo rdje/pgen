@@ -19,6 +19,23 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.76 / Contract 1.0.76 — SV-Slice-76 batch: class_scope + method_call + tf_call family typed (14 rules / 27 annotations)
+
+**What changed:** Closes LRM A.8.4 class-scope + method-call + tf-call walk paths.
+
+```ebnf
+class_scope_type / class_scope / implicit_class_handle (3 kinds) /
+method_call / method_call_initial (5 kinds) / method_call_body (3 kinds) /
+method_call_receiver_sv_2017 / method_call_receiver (2 kinds) /
+method_call_root (2 kinds) / plain_tf_call_with_args / tf_call_with_args /
+tf_call (4 kinds) / class_scoped_call_prefix /
+class_scoped_tf_call_with_args / class_scoped_tf_call (2 kinds)
+```
+
+DEFERRED: `method_call_receiver_sv_2023` (~14 kinds with parens-grouped-Or sub-expressions — task #38 risk).
+
+Annotation inventory: **1443** (was 1416, +27). Same accept set.
+
 ### 1.0.75 / Contract 1.0.75 — SV-Slice-75 batch: net_port_type + I/O declarations + genvar typed (10 rules / 17 annotations)
 
 **What changed:** Closes LRM A.2.1.2 net_port_type / nonansi I/O declarations / LRM A.2.1.3 genvar sub-trees.

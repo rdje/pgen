@@ -860,8 +860,10 @@ known_unscoped_class_scope_type_parameter_identifier := type_identifier
 scoped_class_scope_identifier := non_typedef_package_scope class_identifier
 
 class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+                 -> {head: $1, params: $2, scope_chain: $3}
 
 class_scope := @probe_sample: "C::" class_scope_type scope_resolution
+            -> {body: $1}
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
 known_unscoped_base_class_type_identifier := class_identifier
@@ -1847,7 +1849,9 @@ if_generate_else_clause := kw_else_ae050f5b if_generate_construct -> {kind: "els
 immediate_assertion_statement := simple_immediate_assertion_statement   -> {kind: "simple",   body: $1}
                                | deferred_immediate_assertion_statement -> {kind: "deferred", body: $1}
 
-implicit_class_handle := kw_this_c2543fff | kw_super_8451ba8a | kw_this_c2543fff dot kw_super_8451ba8a
+implicit_class_handle := kw_this_c2543fff                                -> {kind: "this"}
+                       | kw_super_8451ba8a                               -> {kind: "super"}
+                       | kw_this_c2543fff dot kw_super_8451ba8a          -> {kind: "this_super"}
 
 implicit_data_type := ( signing )? packed_dimension*
                    -> {signing: $1, dims: $2}
@@ -2238,13 +2242,23 @@ loop_variables := ( index_variable_identifier )? ( comma ( index_variable_identi
 member_identifier := identifier
 
 method_call := method_call_initial ( dot method_call_body )*
+            -> {initial: $1, chain: $2}
 
-method_call_initial := split_direct_callable_method_call | direct_method_call | class_scoped_tf_call | tf_call | system_tf_call
+method_call_initial := split_direct_callable_method_call -> {kind: "split_direct_callable", body: $1}
+                     | direct_method_call                -> {kind: "direct",                body: $1}
+                     | class_scoped_tf_call              -> {kind: "class_scoped_tf",       body: $1}
+                     | tf_call                           -> {kind: "tf",                    body: $1}
+                     | system_tf_call                    -> {kind: "system_tf",             body: $1}
 
 direct_method_call := method_call_root dot method_call_body
 
 @branch_policy: priority_first
-method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen | method_identifier attribute_instance*
+method_call_body := built_in_method_call
+                          -> {kind: "built_in",       body: $1}
+                  | method_identifier attribute_instance* lparen list_of_arguments rparen
+                          -> {kind: "call_with_args", name: $1, attributes: $2, args: $4}
+                  | method_identifier attribute_instance*
+                          -> {kind: "method_bare",    name: $1, attributes: $2}
 
 @branch_policy: priority_first
 callable_method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen
@@ -2257,6 +2271,7 @@ direct_callable_method_call := method_call_root dot callable_method_call_body
 
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
+                             -> {body: $1}
                               | @probe_sample: "a" ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier
                               | empty_unpacked_array_concatenation
                               | multiple_concatenation ( lbrack range_expression rbrack )?
@@ -2274,9 +2289,11 @@ method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
 @profiles: ["sv_2023"]
 method_call_receiver_sv_2023 := primary_literal | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
 
-method_call_receiver := method_call_receiver_sv_2017 | method_call_receiver_sv_2023
+method_call_receiver := method_call_receiver_sv_2017 -> {kind: "sv_2017", body: $1}
+                      | method_call_receiver_sv_2023 -> {kind: "sv_2023", body: $1}
 
-method_call_root := method_call_receiver | implicit_class_handle
+method_call_root := method_call_receiver  -> {kind: "receiver",       body: $1}
+                  | implicit_class_handle -> {kind: "implicit_class", body: $1}
 
 @branch_policy: priority_first
 call_primary := split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
@@ -3931,11 +3948,20 @@ task_prototype := task_prototype_sv_2017 | task_prototype_sv_2023
 terminal_identifier := identifier
 
 plain_tf_call_with_args := tf_identifier attribute_instance* lparen list_of_arguments rparen
+                        -> {name: $1, attributes: $2, args: $4}
 
 tf_call_with_args := scoped_or_hierarchical_tf_identifier attribute_instance* lparen list_of_arguments rparen
+                  -> {name: $1, attributes: $2, args: $4}
 
 @branch_policy: priority_first
-tf_call := plain_tf_call_with_args | tf_call_with_args | scoped_or_hierarchical_tf_identifier attribute_instance* | tf_identifier attribute_instance*
+tf_call := plain_tf_call_with_args
+                  -> {kind: "plain_with_args",                       body: $1}
+        | tf_call_with_args
+                  -> {kind: "scoped_or_hierarchical_with_args",      body: $1}
+        | scoped_or_hierarchical_tf_identifier attribute_instance*
+                  -> {kind: "scoped_or_hierarchical_bare",           name: $1, attributes: $2}
+        | tf_identifier attribute_instance*
+                  -> {kind: "tf_identifier_bare",                    name: $1, attributes: $2}
 
 tf_identifier := callable_identifier
 
@@ -5094,7 +5120,12 @@ known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier
 scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier
 
 class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
+                        -> {head: $1, params: $2, scope_chain: $4}
 class_scoped_tf_call_with_args := class_scoped_call_prefix tf_identifier attribute_instance* lparen list_of_arguments rparen
+                               -> {prefix: $1, name: $2, attributes: $3, args: $5}
 
 @branch_policy: priority_first
-class_scoped_tf_call := class_scoped_tf_call_with_args | class_scoped_call_prefix tf_identifier attribute_instance*
+class_scoped_tf_call := class_scoped_tf_call_with_args
+                              -> {kind: "with_args", body: $1}
+                     | class_scoped_call_prefix tf_identifier attribute_instance*
+                              -> {kind: "bare",      prefix: $1, name: $2, attributes: $3}
