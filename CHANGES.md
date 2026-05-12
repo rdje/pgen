@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-81 batch: config_rule + library + hierarchical_identifier + severity typed (13 rules / 25 annotations) (PGEN-SVP-0081)
+
+Closes LRM A.1.7 config / library walk paths + various leaf rules.
+
+`cell_clause`, `config_rule_statement` (5 kinds), `const_or_range_expression` (2 kinds), `constant_assignment_pattern_expression`, `default_clause`, `hierarchical_identifier`, `hierarchical_instance`, `include_statement`, `liblist_clause`, `library_declaration` (`[$3, $4::2*]` on paths), `library_description` (4 kinds), `library_text`, `severity_system_task_sv_2023` (4 kinds), `use_clause`.
+
+Annotation count: 1582 (was 1557, +25). Same accept set. Manifest + contract bumped to 1.0.81. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-80 batch: boolean_abbrev + repetition + elaboration + repeat_range typed (8 rules / 19 annotations) (PGEN-SVP-0080)
 
 Closes LRM A.2.10 boolean_abbrev (used in sequence_expr), A.6.5 elaboration_system_task (used in checker_generate_item), repeat_range (used in trans_range_list), and repetition leaves.

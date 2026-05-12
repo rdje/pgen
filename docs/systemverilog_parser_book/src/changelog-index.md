@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.81 / Contract 1.0.81 — SV-Slice-81 batch: config_rule + library + hierarchical_identifier + severity typed (13 rules / 25 annotations)
+
+Closes LRM A.1.7 config/library walk paths + various leaf rules. Annotation inventory: **1582** (was 1557, +25). Same accept set.
+
 ### 1.0.80 / Contract 1.0.80 — SV-Slice-80 batch: boolean_abbrev + repetition + elaboration + repeat_range typed (8 rules / 19 annotations)
 
 Closes LRM A.2.10 boolean_abbrev, A.6.5 elaboration_system_task, repeat_range, and repetition leaves. Annotation inventory: **1557** (was 1538, +19). Same accept set.

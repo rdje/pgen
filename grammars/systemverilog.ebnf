@@ -673,6 +673,7 @@ casting_type := simple_type            -> {kind: "simple_type",     body: $1}
               | kw_const_b42f3f6f      -> {kind: "const"}
 
 cell_clause := kw_cell_5f435eb3 ( library_identifier dot )? cell_identifier
+            -> {library: $2, name: $3}
 
 cell_identifier := identifier
 
@@ -993,7 +994,16 @@ config_declaration := kw_config_dfba7aad config_identifier semi ( local_paramete
 
 config_identifier := declaration_identifier
 
-config_rule_statement := default_clause liblist_clause semi | inst_clause liblist_clause semi | inst_clause use_clause semi | cell_clause liblist_clause semi | cell_clause use_clause semi
+config_rule_statement := default_clause liblist_clause semi
+                                -> {kind: "default_liblist", clause: $1, body: $2}
+                       | inst_clause liblist_clause semi
+                                -> {kind: "inst_liblist",    clause: $1, body: $2}
+                       | inst_clause use_clause semi
+                                -> {kind: "inst_use",        clause: $1, body: $2}
+                       | cell_clause liblist_clause semi
+                                -> {kind: "cell_liblist",    clause: $1, body: $2}
+                       | cell_clause use_clause semi
+                                -> {kind: "cell_use",        clause: $1, body: $2}
 
 consecutive_repetition := ( star const_or_range_expression )?  -> {kind: "star_range", range: $1}
                         | ( star )?                              -> {kind: "star"}
@@ -1001,9 +1011,11 @@ consecutive_repetition := ( star const_or_range_expression )?  -> {kind: "star_r
 
 const_identifier := identifier
 
-const_or_range_expression := constant_expression | cycle_delay_const_range_expression
+const_or_range_expression := constant_expression                    -> {kind: "expression", body: $1}
+                           | cycle_delay_const_range_expression     -> {kind: "range",      body: $1}
 
 constant_assignment_pattern_expression := assignment_pattern_expression
+                                       -> {body: $1}
 
 constant_bit_select := ( lbrack constant_expression rbrack )*
 
@@ -1419,6 +1431,7 @@ decimal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_d_3c363836 | tick ( k
 decimal_digit := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_n_2_da4b9237 | kw_n_3_77de68da | kw_n_4_1b645389 | kw_n_5_ac3478d6 | kw_n_6_c1dfd96e | kw_n_7_902ba3cd | kw_n_8_fe5dbbce | kw_n_9_0ade7c2c
 
 default_clause := kw_default_7505d64a
+               -> {kind: "default"}
 
 default_skew := kw_input_140f86aa clocking_skew | kw_output_1029d676 clocking_skew | kw_input_140f86aa clocking_skew kw_output_1029d676 clocking_skew
 
@@ -1861,8 +1874,10 @@ hierarchical_btf_identifier := hierarchical_tf_identifier | hierarchical_block_i
 hierarchical_event_identifier := hierarchical_identifier
 
 hierarchical_identifier := ( kw_sv_dollar_root_f65f0e67 dot )? ( identifier constant_bit_select dot )* identifier
+                        -> {root: $1, scope: $2, name: $3}
 
 hierarchical_instance := name_of_instance lparen ( list_of_port_connections )? rparen
+                     -> {name: $1, connections: $3}
 
 hierarchical_net_identifier := hierarchical_identifier
 
@@ -1909,6 +1924,7 @@ inc_or_dec_operator := plus_plus    -> {kind: "plus_plus"}
                      | minus_minus  -> {kind: "minus_minus"}
 
 include_statement := kw_include_d3ecb0d8 kw_file_path_spec_c26c9dc9 semi
+                  -> {path: $2}
 
 @profiles: ["sv_2023"]
 incomplete_class_scoped_type_sv_2023 := type_identifier scope_resolution type_identifier_or_class_type | incomplete_class_scoped_type scope_resolution type_identifier_or_class_type
@@ -2124,14 +2140,20 @@ level_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
               | kw_B_ae4f281d   -> {kind: "B"}
 
 liblist_clause := kw_liblist_4851fe70 library_identifier*
+               -> {libraries: $2}
 
 library_declaration := kw_library_00299a40 library_identifier kw_file_path_spec_c26c9dc9 ( comma kw_file_path_spec_c26c9dc9 )* ( minus kw_incdir_e08adf20 kw_file_path_spec_c26c9dc9 ( comma kw_file_path_spec_c26c9dc9 )* )? semi
+                    -> {name: $2, paths: [$3, $4::2*], incdir: $5}
 
-library_description := library_declaration | include_statement | config_declaration | semi
+library_description := library_declaration   -> {kind: "library_declaration", body: $1}
+                     | include_statement     -> {kind: "include",             body: $1}
+                     | config_declaration    -> {kind: "config",              body: $1}
+                     | semi                  -> {kind: "semi"}
 
 library_identifier := identifier
 
 library_text := library_description*
+             -> {descriptions: $1}
 
 lifetime := kw_static_a381562a    -> {kind: "static"}
           | kw_automatic_ebe88724 -> {kind: "automatic"}
@@ -3780,7 +3802,14 @@ sequential_entry := seq_input_list colon current_state colon next_state semi
 set_covergroup_expression := covergroup_expression
 
 @profiles: ["sv_2023"]
-severity_system_task_sv_2023 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_number ( comma list_of_arguments )? rparen )? semi | kw_sv_dollar_error_d304cf0a ( lparen ( list_of_arguments )? rparen )? semi | kw_sv_dollar_warning_22a41474 ( lparen ( list_of_arguments )? rparen )? semi | kw_sv_dollar_info_d116cb1c ( lparen ( list_of_arguments )? rparen )? semi
+severity_system_task_sv_2023 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_number ( comma list_of_arguments )? rparen )? semi
+                                       -> {kind: "fatal",   args: $2}
+                              | kw_sv_dollar_error_d304cf0a ( lparen ( list_of_arguments )? rparen )? semi
+                                       -> {kind: "error",   args: $2}
+                              | kw_sv_dollar_warning_22a41474 ( lparen ( list_of_arguments )? rparen )? semi
+                                       -> {kind: "warning", args: $2}
+                              | kw_sv_dollar_info_d116cb1c ( lparen ( list_of_arguments )? rparen )? semi
+                                       -> {kind: "info",    args: $2}
 
 severity_system_task := severity_system_task_sv_2023
 
@@ -4355,6 +4384,7 @@ unpacked_dimension := lbrack constant_range rbrack | lbrack constant_expression 
 unsized_dimension := lbrack rbrack
 
 use_clause := @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )?
+           -> {library: $2, name: $3, config: $4}
             | @probe_sample: "use .P(1)" kw_use_04489a12 named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
             | @probe_sample: "use top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
 

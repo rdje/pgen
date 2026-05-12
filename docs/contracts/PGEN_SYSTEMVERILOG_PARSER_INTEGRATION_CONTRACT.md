@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.80`
+  - `1.0.81`
 - Parser release version:
-  - `1.0.80`
+  - `1.0.81`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,29 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.81 / Contract 1.0.81 Highlights — SV-Slice-81 batch: config_rule + library + hierarchical_identifier + severity typed (13 rules / 25 annotations)
+
+Closes LRM A.1.7 config / library walk paths + various leaf rules.
+
+```ebnf
+cell_clause                            -> {library, name}
+config_rule_statement                  -> 5 kinds (default_liblist / inst_liblist / inst_use / cell_liblist / cell_use)
+const_or_range_expression              -> 2 kinds (expression / range)
+constant_assignment_pattern_expression -> {body}
+default_clause                         -> 1 kind bare (default)
+hierarchical_identifier                -> {root, scope, name}
+hierarchical_instance                  -> {name, connections}
+include_statement                      -> {path}
+liblist_clause                         -> {libraries}
+library_declaration                    -> {name, paths: [$3, $4::2*], incdir}
+library_description                    -> 4 kinds
+library_text                           -> {descriptions}
+severity_system_task_sv_2023           -> 4 kinds (fatal / error / warning / info)
+use_clause                             -> {library, name, config}
+```
+
+Annotation count: **1582** (was 1557, +25). Same accept set.
 
 ## Release 1.0.80 / Contract 1.0.80 Highlights — SV-Slice-80 batch: boolean_abbrev + repetition + elaboration + repeat_range typed (8 rules / 19 annotations)
 
