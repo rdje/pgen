@@ -748,12 +748,14 @@ class_constructor_arg_sv_2023 := tf_port_item            -> {kind: "tf_port_item
                                | kw_default_7505d64a     -> {kind: "default"}
 
 class_constructor_arg := class_constructor_arg_sv_2023
+                      -> {body: $1}
 
 @profiles: ["sv_2023"]
 class_constructor_arg_list_sv_2023 := class_constructor_arg ( comma class_constructor_arg )*
                                    -> [$1, $2::2*]
 
 class_constructor_arg_list := class_constructor_arg_list_sv_2023
+                           -> {body: $1}
 
 @profiles: ["sv_2017"]
 class_constructor_declaration_sv_2017 := kw_function_c218e39e ( class_scope )? kw_new_c2a6b03f ( lparen ( tf_port_list )? rparen )? semi block_item_declaration* ( kw_super_8451ba8a dot kw_new_c2a6b03f ( lparen list_of_arguments rparen )? semi )? function_statement_or_null* kw_endfunction_84b8f967 ( colon kw_new_c2a6b03f )?
@@ -766,7 +768,8 @@ class_constructor_declaration_sv_2023 := kw_function_c218e39e ( class_scope )? k
 class_constructor_super_args := list_of_arguments    -> {kind: "args",    body: $1}
                               | kw_default_7505d64a  -> {kind: "default"}
 
-class_constructor_declaration := class_constructor_declaration_sv_2017 | class_constructor_declaration_sv_2023
+class_constructor_declaration := class_constructor_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                               | class_constructor_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 class_constructor_prototype_sv_2017 := kw_function_c218e39e kw_new_c2a6b03f ( lparen ( tf_port_list )? rparen )? semi
@@ -776,7 +779,8 @@ class_constructor_prototype_sv_2017 := kw_function_c218e39e kw_new_c2a6b03f ( lp
 class_constructor_prototype_sv_2023 := kw_function_c218e39e kw_new_c2a6b03f ( lparen ( class_constructor_arg_list )? rparen )? semi
                                     -> {ports: $3}
 
-class_constructor_prototype := class_constructor_prototype_sv_2017 | class_constructor_prototype_sv_2023
+class_constructor_prototype := class_constructor_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
+                             | class_constructor_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 class_declaration_sv_2017 := ( kw_virtual_af84d91f )? kw_class_8d767bf5 ( lifetime )? declared_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 base_class_type ( lparen list_of_arguments rparen )? )? ( kw_implements_e133e2cb interface_class_type ( comma interface_class_type )* )? semi class_item* kw_endclass_b43ac277 ( colon class_identifier )?
@@ -1678,13 +1682,20 @@ final_specifier := final_specifier_sv_2023
 
 finish_number := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_n_2_da4b9237
 
-for_initialization := list_of_variable_assignments | for_variable_declaration ( comma for_variable_declaration )*
+for_initialization := list_of_variable_assignments
+                              -> {kind: "assignments",  body: $1}
+                    | for_variable_declaration ( comma for_variable_declaration )*
+                              -> {kind: "declarations", items: [$1, $2::2*]}
 
 for_step := for_step_assignment ( comma for_step_assignment )*
+         -> [$1, $2::2*]
 
-for_step_assignment := operator_assignment | inc_or_dec_expression | function_subroutine_call
+for_step_assignment := operator_assignment   -> {kind: "operator_assignment", body: $1}
+                     | inc_or_dec_expression -> {kind: "inc_or_dec",          body: $1}
+                     | function_subroutine_call -> {kind: "function_call",    body: $1}
 
 for_variable_declaration := ( kw_var_e5b4e786 )? data_type variable_identifier assign expression ( comma variable_identifier assign expression )*
+                         -> {var_keyword: $1, data_type: $2, name: $3, value: $5, tail: $6}
 
 // formal_identifier := declaration_identifier
 
@@ -2049,13 +2060,17 @@ jump_statement := kw_return_63143b6f ( expression )? semi -> {kind: "return",   
                 | kw_continue_eee0bbba semi                -> {kind: "continue"}
 
 let_actual_arg := expression
+               -> {body: $1}
 
 let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_list )? rparen )? assign expression semi
 
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }
 non_typedef_package_scope := @probe_sample: "pkg::" package_scope
 
-let_expression := scoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )? | known_unscoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?
+let_expression := scoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?
+                          -> {kind: "scoped",     name: $1, args: $2}
+                | known_unscoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?
+                          -> {kind: "unscoped",   name: $1, args: $2}
 
 let_formal_type := data_type_or_implicit | kw_untyped_d53be1e8
 
@@ -2252,6 +2267,7 @@ loop_statement := kw_forever_e07f8c4a statement_or_null
                        -> {kind: "foreach",  array: $3, loop_vars: $5, body: $8}
 
 loop_variables := ( index_variable_identifier )? ( comma ( index_variable_identifier )? )*
+               -> [$1, $2::2*]
 
 member_identifier := identifier
 
@@ -2511,12 +2527,19 @@ name_of_instance := instance_identifier unpacked_dimension*
                  -> {name: $1, dims: $2}
 
 @profiles: ["sv_2017"]
-named_checker_port_connection_sv_2017 := attribute_instance* dot formal_port_identifier ( lparen ( property_actual_arg )? rparen )? | attribute_instance* dot_star
+named_checker_port_connection_sv_2017 := attribute_instance* dot formal_port_identifier ( lparen ( property_actual_arg )? rparen )?
+                                                -> {kind: "named",    attributes: $1, name: $3, value: $4}
+                                       | attribute_instance* dot_star
+                                                -> {kind: "wildcard", attributes: $1}
 
 @profiles: ["sv_2023"]
-named_checker_port_connection_sv_2023 := attribute_instance* dot formal_port_identifier ( lparen ( property_actual_arg )? rparen )? | attribute_instance* dot star
+named_checker_port_connection_sv_2023 := attribute_instance* dot formal_port_identifier ( lparen ( property_actual_arg )? rparen )?
+                                                -> {kind: "named",    attributes: $1, name: $3, value: $4}
+                                       | attribute_instance* dot star
+                                                -> {kind: "wildcard", attributes: $1}
 
-named_checker_port_connection := named_checker_port_connection_sv_2017 | named_checker_port_connection_sv_2023
+named_checker_port_connection := named_checker_port_connection_sv_2017 -> {kind: "sv_2017", body: $1}
+                               | named_checker_port_connection_sv_2023 -> {kind: "sv_2023", body: $1}
 
 named_parameter_assignment := dot parameter_identifier lparen ( param_expression )? rparen
                            -> {name: $2, value: $4}
@@ -2525,10 +2548,16 @@ named_argument := dot identifier lparen ( expression )? rparen
                -> {name: $2, value: $4}
 
 @profiles: ["sv_2017"]
-named_port_connection_sv_2017 := attribute_instance* dot port_identifier ( lparen ( expression )? rparen )? | attribute_instance* dot_star
+named_port_connection_sv_2017 := attribute_instance* dot port_identifier ( lparen ( expression )? rparen )?
+                                        -> {kind: "named",    attributes: $1, name: $3, value: $4}
+                               | attribute_instance* dot_star
+                                        -> {kind: "wildcard", attributes: $1}
 
 @profiles: ["sv_2023"]
-named_port_connection_sv_2023 := attribute_instance* dot port_identifier ( lparen ( expression )? rparen )? | attribute_instance* dot star
+named_port_connection_sv_2023 := attribute_instance* dot port_identifier ( lparen ( expression )? rparen )?
+                                        -> {kind: "named",    attributes: $1, name: $3, value: $4}
+                               | attribute_instance* dot star
+                                        -> {kind: "wildcard", attributes: $1}
 
 named_port_connection := named_port_connection_sv_2017 | named_port_connection_sv_2023
 
@@ -2718,6 +2747,7 @@ open_value_range := open_value_range_sv_2017
 operator_assignment := variable_lvalue assignment_operator expression
 
 ordered_checker_port_connection := attribute_instance* ( property_actual_arg )?
+                                -> {attributes: $1, arg: $2}
 
 ordered_parameter_assignment := param_expression
                              -> {body: $1}
@@ -2860,19 +2890,53 @@ parameter_override := kw_defparam_83d3c70e list_of_defparam_assignments semi
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]
-parameter_port_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments | kw_localparam_7829ee69 list_of_param_assignments | kw_type_d0a3e7f8 list_of_type_assignments | parameter_declaration | local_parameter_declaration | data_type list_of_param_assignments
+parameter_port_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments
+                                              -> {kind: "parameter",            items: $2}
+                                    | kw_localparam_7829ee69 list_of_param_assignments
+                                              -> {kind: "localparam",           items: $2}
+                                    | kw_type_d0a3e7f8 list_of_type_assignments
+                                              -> {kind: "type",                 items: $2}
+                                    | parameter_declaration
+                                              -> {kind: "parameter_declaration", body: $1}
+                                    | local_parameter_declaration
+                                              -> {kind: "local_parameter_declaration", body: $1}
+                                    | data_type list_of_param_assignments
+                                              -> {kind: "data_type_assignments", data_type: $1, items: $2}
 
 @branch_policy: priority_first
 @profiles: ["sv_2023"]
-parameter_port_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments | kw_localparam_7829ee69 list_of_param_assignments | type_parameter_declaration | parameter_declaration | local_parameter_declaration | data_type list_of_param_assignments
+parameter_port_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments
+                                              -> {kind: "parameter",            items: $2}
+                                    | kw_localparam_7829ee69 list_of_param_assignments
+                                              -> {kind: "localparam",           items: $2}
+                                    | type_parameter_declaration
+                                              -> {kind: "type_parameter",        body: $1}
+                                    | parameter_declaration
+                                              -> {kind: "parameter_declaration", body: $1}
+                                    | local_parameter_declaration
+                                              -> {kind: "local_parameter_declaration", body: $1}
+                                    | data_type list_of_param_assignments
+                                              -> {kind: "data_type_assignments", data_type: $1, items: $2}
 
-parameter_port_declaration := parameter_port_declaration_sv_2017 | parameter_port_declaration_sv_2023
+parameter_port_declaration := parameter_port_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                            | parameter_port_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 mixed_string_parameter_port_list := kw_type_d0a3e7f8 type_assignment ( !( comma kw_string_ecb25204 ) comma type_assignment )* comma kw_string_ecb25204 list_of_param_assignments ( comma parameter_port_declaration )*
 
 mixed_parameter_port_list := kw_type_d0a3e7f8 list_of_type_assignments comma parameter_port_declaration ( comma parameter_port_declaration )*
 
-parameter_port_list := hash lparen mixed_string_parameter_port_list rparen | hash lparen mixed_parameter_port_list rparen | hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen | hash lparen rparen
+parameter_port_list := hash lparen mixed_string_parameter_port_list rparen
+                              -> {kind: "mixed_string",      body: $3}
+                     | hash lparen mixed_parameter_port_list rparen
+                              -> {kind: "mixed",             body: $3}
+                     | hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen
+                              -> {kind: "type_only",         first: $4, rest: $5}
+                     | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen
+                              -> {kind: "declarations",      items: [$3, $4::2*]}
+                     | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen
+                              -> {kind: "list_then_decls",   first_list: $3, decls: $4}
+                     | hash lparen rparen
+                              -> {kind: "empty"}
 
 @profiles: ["sv_2017"]
 parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignments )? rparen

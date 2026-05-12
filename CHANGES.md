@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed (21 rules / 48 annotations) (PGEN-SVP-0078)
+
+Closes LRM A.1.10 class_constructor wrapper passthroughs, LRM A.6.8 let-expression, LRM A.6.5 for-loop sub-tree, LRM A.6.5 named/ordered checker/port-connection rules, LRM A.1.3 parameter_port declarations + list.
+
+`class_constructor_arg` / `class_constructor_arg_list` (each `{body}`), `class_constructor_declaration` / `_prototype` (each 2 kinds), `let_actual_arg`, `let_expression` (2 kinds), `for_initialization` (2 kinds), `for_step` (`[$1, $2::2*]`), `for_step_assignment` (3 kinds), `for_variable_declaration`, `loop_variables` (`[$1, $2::2*]`), `named_checker_port_connection_sv_2017/2023` (each 2 kinds), `named_checker_port_connection` (2 kinds), `named_port_connection_sv_2017/2023` (each 2 kinds), `ordered_checker_port_connection`, `parameter_port_declaration_sv_2017/2023` (each 6 kinds), `parameter_port_declaration` (2 kinds), `parameter_port_list` (6 kinds).
+
+Annotation count: 1520 (was 1472, +48). Same accept set. Manifest + contract bumped to 1.0.78. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-77 batch: module_path + constraint internals + uniqueness + misc typed (16 rules / 29 annotations) (PGEN-SVP-0077)
 
 Closes LRM A.8.3 module_path expression sub-tree, constraint primary scope, cycle_delay_range, extern_tf, inst_clause, solve_before list, and uniqueness_constraint family.

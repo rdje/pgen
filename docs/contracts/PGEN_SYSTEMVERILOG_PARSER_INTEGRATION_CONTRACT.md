@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.77`
+  - `1.0.78`
 - Parser release version:
-  - `1.0.77`
+  - `1.0.78`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,36 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.78 / Contract 1.0.78 Highlights — SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed (21 rules / 48 annotations)
+
+Closes LRM A.1.10 class_constructor wrapper passthroughs, LRM A.6.8 let-expression, LRM A.6.5 for-loop sub-tree, LRM A.6.5 named/ordered checker/port-connection rules, LRM A.1.3 parameter_port declarations + list.
+
+### Annotations (summary)
+
+```ebnf
+class_constructor_arg / class_constructor_arg_list      -> {body}
+class_constructor_declaration / _prototype              -> 2 kinds each (sv_2017 / sv_2023)
+let_actual_arg                                          -> {body}
+let_expression                                          -> 2 kinds (scoped / unscoped)
+for_initialization                                      -> 2 kinds (assignments / declarations)
+for_step                                                -> [$1, $2::2*]
+for_step_assignment                                     -> 3 kinds (operator_assignment / inc_or_dec / function_call)
+for_variable_declaration                                -> {var_keyword, data_type, name, value, tail}
+loop_variables                                          -> [$1, $2::2*]
+named_checker_port_connection_sv_2017/2023              -> 2 kinds each (named / wildcard)
+named_checker_port_connection                           -> 2 kinds
+named_port_connection_sv_2017/2023                      -> 2 kinds each (named / wildcard)
+ordered_checker_port_connection                         -> {attributes, arg}
+parameter_port_declaration_sv_2017                      -> 6 kinds (parameter / localparam / type / parameter_declaration / local_parameter_declaration / data_type_assignments)
+parameter_port_declaration_sv_2023                      -> 6 kinds (parallel — type_parameter instead of type)
+parameter_port_declaration                              -> 2 kinds
+parameter_port_list                                     -> 6 kinds (mixed_string / mixed / type_only / declarations / list_then_decls / empty)
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1520** (was 1472, +48). Same accept set.
 
 ## Release 1.0.77 / Contract 1.0.77 Highlights — SV-Slice-77 batch: module_path + constraint internals + uniqueness + misc typed (16 rules / 29 annotations)
 
