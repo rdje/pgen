@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-83 batch: block_data_declaration + base_class_type + misc typed (8 rules / 15 annotations) (PGEN-SVP-0083)
+
+`block_data_declaration_sv_2017/2023` (1+4 kinds), `block_data_declaration` (2 kinds), `base_class_type`, `case_inside_item` (2 kinds), `hierarchical_btf_identifier` (3 kinds), `tagged_union_expression` (2 kinds), `ordered_port_connection`, `data_source_expression`.
+
+Annotation count: 1611 (was 1596, +15). Same accept set. Manifest + contract bumped to 1.0.83. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-82 batch: dynamic_override + incomplete_class + var_data_type + timing leaves typed (10 rules / 14 annotations) (PGEN-SVP-0082)
 
 `controlled_reference_event` / `data_event` / `reference_event` / `start_edge_offset` / `end_edge_offset` / `timestamp_condition` (each `{body}`), `dynamic_override_specifiers_sv_2023`, `finish_number` (3 kinds), `incomplete_class_scoped_type_sv_2023` (2 kinds), `var_data_type` (2 kinds).

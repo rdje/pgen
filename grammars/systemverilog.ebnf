@@ -566,14 +566,23 @@ block_item_declaration := attribute_instance* block_data_declaration
 
 @profiles: ["sv_2017"]
 block_data_declaration_sv_2017 := @probe_sample: "int a;" ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi
+                               -> {const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
                                | @probe_sample: "typedef int t;" type_declaration
                                | @probe_sample: "import p::*;" package_import_declaration
                                | @probe_sample: "nettype int nt;" net_type_declaration
 
 @profiles: ["sv_2023"]
-block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi | type_declaration | package_import_declaration | nettype_declaration
+block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi
+                                        -> {kind: "data",       const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
+                                | type_declaration
+                                        -> {kind: "type",       body: $1}
+                                | package_import_declaration
+                                        -> {kind: "import",     body: $1}
+                                | nettype_declaration
+                                        -> {kind: "nettype",    body: $1}
 
-block_data_declaration := block_data_declaration_sv_2017 | block_data_declaration_sv_2023
+block_data_declaration := block_data_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                        | block_data_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 blocking_assignment_sv_2017 := @probe_sample: "a = #1 1" variable_lvalue assign delay_or_event_control expression
@@ -640,7 +649,8 @@ case_inside_item_sv_2023 := range_list colon statement_or_null
                           | kw_default_7505d64a ( colon )? statement_or_null
                                  -> {kind: "default",    body: $3}
 
-case_inside_item := case_inside_item_sv_2017 | case_inside_item_sv_2023
+case_inside_item := case_inside_item_sv_2017 -> {kind: "sv_2017", body: $1}
+                  | case_inside_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 case_item := case_item_expression ( comma case_item_expression )* colon statement_or_null
                   -> {kind: "expr_list", exprs: [$1, $2::2*], body: $4}
@@ -881,6 +891,7 @@ known_unscoped_base_class_type_identifier := class_identifier
 scoped_base_class_type_identifier := non_typedef_package_scope class_identifier
 
 base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+                -> {head: $1, params: $2, scope_chain: $3}
 
 scoped_class_type_identifier := non_typedef_package_scope class_identifier
 
@@ -1337,6 +1348,7 @@ data_event := timing_check_event
            -> {body: $1}
 
 data_source_expression := expression
+                       -> {body: $1}
 
 @predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
 known_unscoped_block_type_identifier := type_identifier packed_dimension*
@@ -1875,7 +1887,12 @@ hierarchical_array_identifier := hierarchical_identifier
 
 hierarchical_block_identifier := hierarchical_identifier
 
-hierarchical_btf_identifier := hierarchical_tf_identifier | hierarchical_block_identifier | ( hierarchical_identifier dot | class_scope )? method_identifier
+hierarchical_btf_identifier := hierarchical_tf_identifier
+                                    -> {kind: "tf",     body: $1}
+                             | hierarchical_block_identifier
+                                    -> {kind: "block",  body: $1}
+                             | ( hierarchical_identifier dot | class_scope )? method_identifier
+                                    -> {kind: "method", scope: $1, name: $2}
 
 hierarchical_event_identifier := hierarchical_identifier
 
@@ -2819,6 +2836,7 @@ ordered_parameter_assignment := param_expression
                              -> {body: $1}
 
 ordered_port_connection := attribute_instance* ( expression )?
+                        -> {attributes: $1, expression: $2}
 
 output_declaration := kw_output_1029d676 net_port_type list_of_port_identifiers
                             -> {kind: "net",      port_type: $2, items: $3}
@@ -4087,7 +4105,8 @@ tagged_union_expression_sv_2017 := kw_tagged_8e1ec218 member_identifier ( expres
 tagged_union_expression_sv_2023 := kw_tagged_8e1ec218 member_identifier ( primary )?
                                 -> {name: $2, value: $3}
 
-tagged_union_expression := tagged_union_expression_sv_2017 | tagged_union_expression_sv_2023
+tagged_union_expression := tagged_union_expression_sv_2017 -> {kind: "sv_2017", body: $1}
+                         | tagged_union_expression_sv_2023 -> {kind: "sv_2023", body: $1}
 
 task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                       -> {name: $1, items: $3, statements: $4, end_label: $6}
