@@ -19,6 +19,12 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.77 / Contract 1.0.77 — SV-Slice-77 batch: module_path + constraint internals + uniqueness + misc typed (16 rules / 29 annotations)
+
+**What changed:** Closes LRM A.8.3 module_path expression sub-tree, constraint primary scope, cycle_delay_range, extern_tf, inst_clause, solve_before list, and uniqueness_constraint family.
+
+Annotation inventory: **1472** (was 1443, +29). Same accept set.
+
 ### 1.0.76 / Contract 1.0.76 — SV-Slice-76 batch: class_scope + method_call + tf_call family typed (14 rules / 27 annotations)
 
 **What changed:** Closes LRM A.8.4 class-scope + method-call + tf-call walk paths.

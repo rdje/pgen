@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-77 batch: module_path + constraint internals + uniqueness + misc typed (16 rules / 29 annotations) (PGEN-SVP-0077)
+
+Closes LRM A.8.3 module_path expression sub-tree, constraint primary scope, cycle_delay_range, extern_tf, inst_clause, solve_before list, and uniqueness_constraint family.
+
+`constraint_primary_sv_2017/2023` (`{scope, name, select}` plus call marker on sv_2023), `constraint_primary` (2 kinds), `cycle_delay_range` (4 kinds), `extern_tf_declaration` (2 kinds), `inst_clause`, `solve_before_list` (`[$1, $2::2*]`), `module_path_concatenation`, `module_path_conditional_expression`, `module_path_expression_operand` (2 kinds), `module_path_expression` (2 kinds), `module_path_mintypmax_expression` (2 kinds), `module_path_multiple_concatenation`, `module_path_primary` (6 kinds), `uniqueness_constraint_sv_2017/2023`, `uniqueness_constraint` (2 kinds).
+
+Annotation count: 1472 (was 1443, +29). Same accept set. Manifest + contract bumped to 1.0.77. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-76 batch: class_scope + method_call + tf_call family typed (14 rules / 27 annotations) (PGEN-SVP-0076)
 
 Closes LRM A.8.4 class-scope + method-call + tf-call walk paths referenced from `method_call.kind` dispatch + `primary.kind == "call".body`.

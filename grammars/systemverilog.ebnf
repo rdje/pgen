@@ -1139,11 +1139,14 @@ constraint_identifier := identifier
 
 @profiles: ["sv_2017"]
 constraint_primary_sv_2017 := ( implicit_class_handle dot | class_scope )? hierarchical_identifier select
+                           -> {scope: $1, name: $2, select: $3}
 
 @profiles: ["sv_2023"]
 constraint_primary_sv_2023 := ( implicit_class_handle dot | class_scope )? hierarchical_identifier select ( lparen rparen )?
+                           -> {scope: $1, name: $2, select: $3, call: $4}
 
-constraint_primary := constraint_primary_sv_2017 | constraint_primary_sv_2023
+constraint_primary := constraint_primary_sv_2017 -> {kind: "sv_2017", body: $1}
+                    | constraint_primary_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 constraint_prototype_sv_2017 := ( constraint_prototype_qualifier )? ( kw_static_a381562a )? kw_constraint_9f454fd4 constraint_identifier semi
@@ -1275,7 +1278,14 @@ cycle_delay := kw_token_93ac8946 integral_number          -> {kind: "number",   
 cycle_delay_const_range_expression := constant_expression colon constant_expression -> {kind: "range",     lo: $1, hi: $3}
                                     | constant_expression colon kw_dollar             -> {kind: "dollar_hi", lo: $1}
 
-cycle_delay_range := kw_token_93ac8946 constant_primary | kw_token_93ac8946 ( cycle_delay_const_range_expression )? | kw_token_71b8cf7e | kw_token_9768502a
+cycle_delay_range := kw_token_93ac8946 constant_primary
+                            -> {kind: "primary",      body: $2}
+                  | kw_token_93ac8946 ( cycle_delay_const_range_expression )?
+                            -> {kind: "paren_range",  body: $2}
+                  | kw_token_71b8cf7e
+                            -> {kind: "token_71b8cf7e"}
+                  | kw_token_9768502a
+                            -> {kind: "token_9768502a"}
 
 @profiles: ["sv_2017"]
 data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
@@ -1654,7 +1664,10 @@ extern_constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9
 extern_constraint_declaration := extern_constraint_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                                | extern_constraint_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
-extern_tf_declaration := kw_extern_bf1ee311 method_prototype semi | kw_extern_bf1ee311 kw_forkjoin_91d67e81 task_prototype semi
+extern_tf_declaration := kw_extern_bf1ee311 method_prototype semi
+                                  -> {kind: "method",   prototype: $2}
+                       | kw_extern_bf1ee311 kw_forkjoin_91d67e81 task_prototype semi
+                                  -> {kind: "forkjoin", prototype: $3}
 
 final_construct := kw_final_d594c2cc function_statement
 
@@ -1917,6 +1930,7 @@ inside_expression_sv_2023 := expression_base kw_inside_fcc53788 range_list*
 inside_expression := inside_expression_sv_2017 | inside_expression_sv_2023
 
 inst_clause := kw_instance_c3bec6bc inst_name
+            -> {name: $2}
 
 inst_name := topmodule_identifier ( dot instance_identifier )*
 
@@ -2436,18 +2450,35 @@ module_or_generate_item_declaration := package_or_generate_item_declaration
                                           -> {kind: "default_disable_iff", expr: $4}
 
 module_path_concatenation := ( module_path_expression ( comma module_path_expression )* )*
+                           -> {body: $1}
 
 module_path_conditional_expression := module_path_expression question attribute_instance* module_path_expression colon module_path_expression
+                                   -> {condition: $1, attributes: $3, then_expr: $4, else_expr: $6}
 
-module_path_expression_operand := unary_module_path_operator attribute_instance* module_path_primary | module_path_primary
+module_path_expression_operand := unary_module_path_operator attribute_instance* module_path_primary
+                                          -> {kind: "unary",   op: $1, attributes: $2, primary: $3}
+                                | module_path_primary
+                                          -> {kind: "primary", body: $1}
 
-module_path_expression := module_path_conditional_expression | module_path_expression_operand ( binary_module_path_operator attribute_instance* module_path_expression_operand )*
+module_path_expression := module_path_conditional_expression
+                                -> {kind: "conditional", body: $1}
+                       | module_path_expression_operand ( binary_module_path_operator attribute_instance* module_path_expression_operand )*
+                                -> {kind: "chain",       first: $1, rest: $2}
 
-module_path_mintypmax_expression := module_path_expression | module_path_expression colon module_path_expression colon module_path_expression
+module_path_mintypmax_expression := module_path_expression
+                                          -> {kind: "simple", body: $1}
+                                  | module_path_expression colon module_path_expression colon module_path_expression
+                                          -> {kind: "triple", min: $1, typ: $3, max: $5}
 
 module_path_multiple_concatenation := ( constant_expression module_path_concatenation )*
+                                    -> {body: $1}
 
-module_path_primary := number | identifier | module_path_concatenation | module_path_multiple_concatenation | function_subroutine_call | lparen module_path_mintypmax_expression rparen
+module_path_primary := number                                          -> {kind: "number",            body: $1}
+                     | identifier                                      -> {kind: "identifier",        body: $1}
+                     | module_path_concatenation                       -> {kind: "concatenation",    body: $1}
+                     | module_path_multiple_concatenation              -> {kind: "multiple_concat",  body: $1}
+                     | function_subroutine_call                        -> {kind: "function_call",    body: $1}
+                     | lparen module_path_mintypmax_expression rparen  -> {kind: "paren",            body: $2}
 
 mos_switch_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
                     -> {name: $1, output: $3, input: $5, enable: $7}
@@ -3692,6 +3723,7 @@ slice_size := simple_type         -> {kind: "simple_type",         body: $1}
             | constant_expression -> {kind: "constant_expression", body: $1}
 
 solve_before_list := constraint_primary ( comma constraint_primary )*
+                  -> [$1, $2::2*]
 
 source_text := source_text_item*
             -> [$1**]
@@ -4205,11 +4237,14 @@ unique_priority := kw_unique_58037c00 | kw_unique_58037c00 | kw_priority_3345867
 
 @profiles: ["sv_2017"]
 uniqueness_constraint_sv_2017 := kw_unique_58037c00 open_range_list*
+                              -> {ranges: $2}
 
 @profiles: ["sv_2023"]
 uniqueness_constraint_sv_2023 := kw_unique_58037c00 range_list*
+                              -> {ranges: $2}
 
-uniqueness_constraint := uniqueness_constraint_sv_2017 | uniqueness_constraint_sv_2023
+uniqueness_constraint := uniqueness_constraint_sv_2017 -> {kind: "sv_2017", body: $1}
+                       | uniqueness_constraint_sv_2023 -> {kind: "sv_2023", body: $1}
 
 unpacked_dimension := lbrack constant_range rbrack | lbrack constant_expression rbrack
 

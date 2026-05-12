@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.76`
+  - `1.0.77`
 - Parser release version:
-  - `1.0.76`
+  - `1.0.77`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,35 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.77 / Contract 1.0.77 Highlights — SV-Slice-77 batch: module_path + constraint internals + uniqueness + misc typed (16 rules / 29 annotations)
+
+Closes LRM A.8.3 module_path expression sub-tree, constraint primary scope, cycle_delay_range, extern_tf, inst_clause, solve_before list, and uniqueness_constraint family.
+
+### Annotations
+
+```ebnf
+constraint_primary_sv_2017            -> {scope, name, select}
+constraint_primary_sv_2023            -> {scope, name, select, call}
+constraint_primary                    -> 2 kinds (sv_2017 / sv_2023)
+cycle_delay_range                     -> 4 kinds (primary / paren_range / token_71b8cf7e / token_9768502a)
+extern_tf_declaration                 -> 2 kinds (method / forkjoin)
+inst_clause                           -> {name}
+solve_before_list                     -> [$1, $2::2*]
+module_path_concatenation             -> {body}
+module_path_conditional_expression    -> {condition, attributes, then_expr, else_expr}
+module_path_expression_operand        -> 2 kinds (unary / primary)
+module_path_expression                -> 2 kinds (conditional / chain)
+module_path_mintypmax_expression      -> 2 kinds (simple / triple)
+module_path_multiple_concatenation    -> {body}
+module_path_primary                   -> 6 kinds (number / identifier / concatenation / multiple_concat / function_call / paren)
+uniqueness_constraint_sv_2017/2023    -> {ranges}
+uniqueness_constraint                 -> 2 kinds (sv_2017 / sv_2023)
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1472** (was 1443, +29). Same accept set.
 
 ## Release 1.0.76 / Contract 1.0.76 Highlights — SV-Slice-76 batch: class_scope + method_call + tf_call family typed (14 rules / 27 annotations)
 
