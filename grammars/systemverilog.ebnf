@@ -1631,6 +1631,7 @@ event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e ex
                                   -> {kind: "paren",      body: $2}
 
 event_expression := event_expression_primary ( ( kw_or_1758356d | comma ) event_expression_primary )*
+                 -> [$1, $2::2*]
 
 @profiles: ["sv_2017"]
 event_trigger_sv_2017 := implies hierarchical_event_identifier semi
@@ -1644,7 +1645,8 @@ event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select s
                        | implies ( delay_or_event_control )? hierarchical_event_identifier nonrange_select semi
                               -> {kind: "blocking",     control: $2, name: $3, select: $4}
 
-event_trigger := event_trigger_sv_2017 | event_trigger_sv_2023
+event_trigger := event_trigger_sv_2017 -> {kind: "sv_2017", body: $1}
+               | event_trigger_sv_2023 -> {kind: "sv_2023", body: $1}
 
 exp := kw_e_58e6b3a4 | kw_E_e0184ade
 
@@ -2242,13 +2244,24 @@ list_of_variable_port_identifiers := port_identifier variable_dimension* ( assig
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]
-local_parameter_declaration_sv_2017 := kw_localparam_7829ee69 list_of_param_assignments | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments | kw_localparam_7829ee69 kw_type_d0a3e7f8 list_of_type_assignments
+local_parameter_declaration_sv_2017 := kw_localparam_7829ee69 list_of_param_assignments
+                                              -> {kind: "implicit",  items: $2}
+                                     | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments
+                                              -> {kind: "typed",     data_type: $2, items: $3}
+                                     | kw_localparam_7829ee69 kw_type_d0a3e7f8 list_of_type_assignments
+                                              -> {kind: "type",      items: $3}
 
 @branch_policy: priority_first
 @profiles: ["sv_2023"]
-local_parameter_declaration_sv_2023 := kw_localparam_7829ee69 list_of_param_assignments | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments | kw_localparam_7829ee69 type_parameter_declaration
+local_parameter_declaration_sv_2023 := kw_localparam_7829ee69 list_of_param_assignments
+                                              -> {kind: "implicit",       items: $2}
+                                     | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments
+                                              -> {kind: "typed",          data_type: $2, items: $3}
+                                     | kw_localparam_7829ee69 type_parameter_declaration
+                                              -> {kind: "type_parameter", body: $2}
 
-local_parameter_declaration := local_parameter_declaration_sv_2017 | local_parameter_declaration_sv_2023
+local_parameter_declaration := local_parameter_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                             | local_parameter_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 loop_generate_construct := kw_for_43eef9a6 lparen genvar_initialization semi genvar_expression semi genvar_iteration rparen generate_block
                         -> {init: $3, condition: $5, step: $7, block: $9}
@@ -2341,7 +2354,10 @@ method_prototype := task_prototype     -> {kind: "task",     body: $1}
 method_qualifier := ( kw_pure_afe003f1 )? kw_virtual_af84d91f -> {kind: "virtual",              pure: $1}
                   | class_item_qualifier                       -> {kind: "class_item_qualifier", body: $1}
 
-mintypmax_expression := expression | expression colon expression colon expression
+mintypmax_expression := expression
+                              -> {kind: "simple", body: $1}
+                      | expression colon expression colon expression
+                              -> {kind: "triple", min: $1, typ: $3, max: $5}
 
 modport_clocking_declaration := kw_clocking_4d22041d clocking_identifier
                              -> {name: $2}
@@ -2635,7 +2651,10 @@ net_type_identifier_sv_2017 := declaration_identifier
 net_type_identifier := net_type_identifier_sv_2017
 
 @profiles: ["sv_2023"]
-nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? nettype_identifier nettype_identifier semi
+nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
+                                      -> {kind: "data_type",  data_type: $2, name: $3, with_clause: $4}
+                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? nettype_identifier nettype_identifier semi
+                                      -> {kind: "nettype",    scope: $2, base: $3, name: $4}
 
 nettype_declaration := nettype_declaration_sv_2023
 
@@ -4148,11 +4167,14 @@ txz_path_delay_expression := path_delay_expression
 
 @profiles: ["sv_2017"]
 type_assignment_sv_2017 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type )?
+                        -> {name: $1, value: $2}
 
 @profiles: ["sv_2023"]
 type_assignment_sv_2023 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type_or_incomplete_class_scoped_type )?
+                        -> {name: $1, value: $2}
 
-type_assignment := type_assignment_sv_2017 | type_assignment_sv_2023
+type_assignment := type_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
+                 | type_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @emit_fact: { kind: type_name, name: $type_identifier, declaration_family: type_parameter }
 @predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
@@ -4192,6 +4214,7 @@ type_identifier_or_class_type := type_identifier_or_class_type_sv_2023
 
 @profiles: ["sv_2023"]
 type_parameter_declaration_sv_2023 := kw_type_d0a3e7f8 ( forward_type )? list_of_type_assignments
+                                   -> {forward_type: $2, items: $3}
 
 type_parameter_declaration := type_parameter_declaration_sv_2023
 

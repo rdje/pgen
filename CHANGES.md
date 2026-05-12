@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-79 batch: event + local/type parameter + mintypmax + nettype family typed (12 rules / 18 annotations) (PGEN-SVP-0079)
+
+Closes LRM A.6.5 event_expression / event_trigger, A.2.1.1 local_parameter, A.8.3 mintypmax, A.2.1.4 nettype_declaration, A.2.1.1 type_assignment + type_parameter_declaration sub-trees.
+
+`event_expression` (`[$1, $2::2*]`), `event_trigger` (2 kinds), `local_parameter_declaration_sv_2017/2023` (each 3 kinds), `local_parameter_declaration` (2 kinds), `mintypmax_expression` (2 kinds), `nettype_declaration_sv_2023` (2 kinds), `type_assignment_sv_2017/2023`, `type_assignment` (2 kinds), `type_parameter_declaration_sv_2023`.
+
+Annotation count: 1538 (was 1520, +18). Same accept set. Manifest + contract bumped to 1.0.79. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed (21 rules / 48 annotations) (PGEN-SVP-0078)
 
 Closes LRM A.1.10 class_constructor wrapper passthroughs, LRM A.6.8 let-expression, LRM A.6.5 for-loop sub-tree, LRM A.6.5 named/ordered checker/port-connection rules, LRM A.1.3 parameter_port declarations + list.

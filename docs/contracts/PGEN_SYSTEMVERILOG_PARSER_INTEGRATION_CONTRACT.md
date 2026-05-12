@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.78`
+  - `1.0.79`
 - Parser release version:
-  - `1.0.78`
+  - `1.0.79`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,25 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.79 / Contract 1.0.79 Highlights — SV-Slice-79 batch: event + local/type parameter + mintypmax + nettype family typed (12 rules / 18 annotations)
+
+Closes LRM A.6.5 event_expression / event_trigger, A.2.1.1 local_parameter, A.8.3 mintypmax, A.2.1.4 nettype_declaration, A.2.1.1 type_assignment + type_parameter_declaration sub-trees.
+
+```ebnf
+event_expression                       -> [$1, $2::2*]
+event_trigger                          -> 2 kinds
+local_parameter_declaration_sv_2017    -> 3 kinds (implicit / typed / type)
+local_parameter_declaration_sv_2023    -> 3 kinds (parallel — uses type_parameter)
+local_parameter_declaration            -> 2 kinds
+mintypmax_expression                   -> 2 kinds (simple / triple)
+nettype_declaration_sv_2023            -> 2 kinds (data_type / nettype)
+type_assignment_sv_2017/2023           -> {name, value}
+type_assignment                        -> 2 kinds
+type_parameter_declaration_sv_2023     -> {forward_type, items}
+```
+
+Annotation count: **1538** (was 1520, +18). Same accept set.
 
 ## Release 1.0.78 / Contract 1.0.78 Highlights — SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed (21 rules / 48 annotations)
 

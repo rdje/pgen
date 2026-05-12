@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.79 / Contract 1.0.79 — SV-Slice-79 batch: event + local/type parameter + mintypmax + nettype family typed (12 rules / 18 annotations)
+
+Closes event_expression, event_trigger, local_parameter, mintypmax, nettype_declaration, type_assignment + type_parameter_declaration sub-trees. Annotation inventory: **1538** (was 1520, +18). Same accept set.
+
 ### 1.0.78 / Contract 1.0.78 — SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed (21 rules / 48 annotations)
 
 **What changed:** Closes LRM A.1.10 class_constructor wrappers, A.6.8 let, A.6.5 for-loop, A.6.5 named/ordered checker/port connections, A.1.3 parameter_port.

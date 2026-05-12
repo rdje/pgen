@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d99b539a.js";
+            window.path_to_searchindex_js = "searchindex-e19e7f53.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>0.80.0</td><td>1.0.79</td><td><strong>SV-Slice-79 batch: event + local/type parameter + mintypmax + nettype family typed.</strong> 12 rules / 18 annotations covering event_expression, event_trigger, local_parameter, mintypmax, nettype_declaration, type_assignment + type_parameter_declaration sub-trees. Annotation inventory: 1538 entries (was 1520).</td></tr>
 <tr><td>0.79.0</td><td>1.0.78</td><td><strong>SV-Slice-78 batch: class_constructor wrappers + let + for + named_port + parameter_port typed.</strong> 21 rules / 48 annotations covering LRM A.1.10 class_constructor wrappers, A.6.8 let, A.6.5 for-loop, A.6.5 named/ordered checker/port connections, A.1.3 parameter_port. Annotation inventory: 1520 entries (was 1472).</td></tr>
 <tr><td>0.78.0</td><td>1.0.77</td><td><strong>SV-Slice-77 batch: module_path + constraint internals + uniqueness + misc typed.</strong> 16 rules / 29 annotations covering LRM A.8.3 module_path expression sub-tree + constraint_primary / cycle_delay_range / extern_tf / inst_clause / solve_before_list / uniqueness_constraint. Annotation inventory: 1472 entries (was 1443).</td></tr>
 <tr><td>0.77.0</td><td>1.0.76</td><td><strong>SV-Slice-76 batch: class_scope + method_call + tf_call family typed.</strong> 14 rules / 27 annotations covering LRM A.8.4 class-scope / method-call / tf-call walk paths. DEFERRED: method_call_receiver_sv_2023 (task #38 risk). Annotation inventory: 1443 entries (was 1416).</td></tr>
