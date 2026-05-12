@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.87 / Contract 1.0.87 — SV-Slice-87 batch: module_path_operators + level_input_list typed (4 rules / 20 annotations)
+
+Annotation inventory: **1673** (was 1653, +20). Same accept set.
+
 ### 1.0.86 / Contract 1.0.86 — SV-Slice-86 batch: let_declaration + final/initial specifiers + named_port_connection + nonconsec_rep + time_unit typed (6 rules / 13 annotations)
 
 Annotation inventory: **1653** (was 1640, +13). Same accept set.

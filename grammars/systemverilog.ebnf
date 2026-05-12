@@ -487,9 +487,18 @@ binary_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_b_e9d71f5e | tick ( kw
 binary_digit := x_digit | z_digit | kw_n_0_b6589fc6 | kw_n_1_356a192b
 
 @profiles: ["sv_2023"]
-binary_module_path_operator_sv_2023 := equal | not_equal | logical_and | logical_or | bitwise_and | bitwise_or | bitwise_xor | reduction_xnor_alt | reduction_xnor
+binary_module_path_operator_sv_2023 := equal               -> {kind: "equal"}
+                                     | not_equal           -> {kind: "not_equal"}
+                                     | logical_and         -> {kind: "logical_and"}
+                                     | logical_or          -> {kind: "logical_or"}
+                                     | bitwise_and         -> {kind: "bitwise_and"}
+                                     | bitwise_or          -> {kind: "bitwise_or"}
+                                     | bitwise_xor         -> {kind: "bitwise_xor"}
+                                     | reduction_xnor_alt  -> {kind: "reduction_xnor_alt"}
+                                     | reduction_xnor      -> {kind: "reduction_xnor"}
 
 binary_module_path_operator := binary_module_path_operator_sv_2023
+                            -> {body: $1}
 
 binary_value := binary_digit ( kw_sv_rule_c82a06f6 | binary_digit )*
 
@@ -2162,6 +2171,7 @@ let_port_list := let_port_item ( comma let_port_item )*
               -> [$1, $2::2*]
 
 level_input_list := level_symbol level_symbol*
+                 -> [$1, $2*]
 
 level_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
               | kw_n_1_356a192b -> {kind: "1"}
@@ -4427,7 +4437,15 @@ udp_port_list := output_port_identifier comma input_port_identifier ( comma inpu
 udp_reg_declaration := attribute_instance* kw_reg_e06b9586 variable_identifier
                     -> {attributes: $1, name: $3}
 
-unary_module_path_operator := bang | tilde | bitwise_and | reduction_nand | bitwise_or | reduction_nor | bitwise_xor | reduction_xnor | reduction_xnor_alt
+unary_module_path_operator := bang                -> {kind: "bang"}
+                            | tilde               -> {kind: "tilde"}
+                            | bitwise_and         -> {kind: "bitwise_and"}
+                            | reduction_nand      -> {kind: "reduction_nand"}
+                            | bitwise_or          -> {kind: "bitwise_or"}
+                            | reduction_nor       -> {kind: "reduction_nor"}
+                            | bitwise_xor         -> {kind: "bitwise_xor"}
+                            | reduction_xnor      -> {kind: "reduction_xnor"}
+                            | reduction_xnor_alt  -> {kind: "reduction_xnor_alt"}
 
 unary_operator := plus                  -> {kind: "plus"}
                 | minus                 -> {kind: "minus"}

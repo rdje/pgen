@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-87 batch: module_path_operators + level_input_list typed (4 rules / 20 annotations) (PGEN-SVP-0087)
+
+`binary_module_path_operator_sv_2023` (9 kinds bare: equal / not_equal / logical_and / logical_or / bitwise_and / bitwise_or / bitwise_xor / reduction_xnor_alt / reduction_xnor), `binary_module_path_operator` (`{body}`), `unary_module_path_operator` (9 kinds bare: bang / tilde / bitwise_and / reduction_nand / bitwise_or / reduction_nor / bitwise_xor / reduction_xnor / reduction_xnor_alt), `level_input_list` (`[$1, $2*]`).
+
+Annotation count: 1673 (was 1653, +20). Same accept set. Manifest + contract bumped to 1.0.87. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-86 batch: let_declaration + final/initial specifiers + named_port_connection + nonconsec_rep + time_unit typed (6 rules / 13 annotations) (PGEN-SVP-0086)
 
 `final_specifier_sv_2023`, `initial_or_extends_specifier_sv_2023` (2 kinds), `let_declaration`, `named_port_connection` (2 kinds), `nonconsecutive_repetition_sv_2023`, `time_unit` (6 kinds).
