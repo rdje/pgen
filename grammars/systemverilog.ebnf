@@ -1133,7 +1133,8 @@ constant_primary_sv_2023 := primary_literal
                           | kw_null_2be88ca4
                                   -> {kind: "null"}
 
-constant_primary := constant_primary_sv_2017 | constant_primary_sv_2023
+constant_primary := constant_primary_sv_2017 -> {kind: "sv_2017", body: $1}
+                  | constant_primary_sv_2023 -> {kind: "sv_2023", body: $1}
 
 constant_range := constant_expression colon constant_expression
                -> {lo: $1, hi: $3}
@@ -3203,7 +3204,8 @@ primary_sv_2023 := primary_literal
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( instance_or_class_scope )?
                         -> {kind: "null_class_assign",  local_n: $5, scope: $6}
 
-primary := primary_sv_2017 | primary_sv_2023
+primary := primary_sv_2017 -> {kind: "sv_2017", body: $1}
+         | primary_sv_2023 -> {kind: "sv_2023", body: $1}
 
 primary_literal := number                  -> {kind: "number",                body: $1}
                  | time_literal            -> {kind: "time_literal",          body: $1}
