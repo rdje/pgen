@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-84 batch: net_assignment + param_expression + struct_union + inst_name typed (5 rules / 10 annotations) (PGEN-SVP-0084)
+
+`constant_param_expression` (3 kinds), `inst_name`, `net_assignment`, `param_expression` (3 kinds), `struct_union` (2 kinds).
+
+Annotation count: 1621 (was 1611, +10). Same accept set. Manifest + contract bumped to 1.0.84. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-83 batch: block_data_declaration + base_class_type + misc typed (8 rules / 15 annotations) (PGEN-SVP-0083)
 
 `block_data_declaration_sv_2017/2023` (1+4 kinds), `block_data_declaration` (2 kinds), `base_class_type`, `case_inside_item` (2 kinds), `hierarchical_btf_identifier` (3 kinds), `tagged_union_expression` (2 kinds), `ordered_port_connection`, `data_source_expression`.

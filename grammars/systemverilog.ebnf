@@ -1048,7 +1048,9 @@ constant_mintypmax_expression := constant_expression | constant_expression colon
 constant_multiple_concatenation := lbrace constant_expression constant_concatenation rbrace
                                 -> {count: $2, body: $3}
 
-constant_param_expression := constant_mintypmax_expression | data_type | kw_dollar
+constant_param_expression := constant_mintypmax_expression -> {kind: "mintypmax", body: $1}
+                           | data_type                      -> {kind: "data_type", body: $1}
+                           | kw_dollar                      -> {kind: "dollar"}
 
 constant_part_select_range := constant_range          -> {kind: "range",         body: $1}
                             | constant_indexed_range  -> {kind: "indexed_range", body: $1}
@@ -2003,6 +2005,7 @@ inst_clause := kw_instance_c3bec6bc inst_name
             -> {name: $2}
 
 inst_name := topmodule_identifier ( dot instance_identifier )*
+          -> {head: $1, scope_chain: $2}
 
 instance_identifier := identifier
 
@@ -2645,6 +2648,7 @@ ncontrol_terminal := expression
 net_alias := kw_alias_cdb6fdbe net_lvalue assign net_lvalue ( assign net_lvalue )* semi
 
 net_assignment := net_lvalue assign expression
+               -> {lvalue: $1, value: $3}
 
 net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
                     -> {name: $1, dims: $2, init: $3}
@@ -2952,7 +2956,9 @@ param_assignment_sv_2023 := declared_parameter_identifier variable_dimension* as
 param_assignment := param_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
                   | param_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
-param_expression := mintypmax_expression | data_type | kw_dollar
+param_expression := mintypmax_expression -> {kind: "mintypmax", body: $1}
+                  | data_type            -> {kind: "data_type", body: $1}
+                  | kw_dollar            -> {kind: "dollar"}
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]
@@ -4007,7 +4013,8 @@ struct_union_sv_2023 := kw_struct_d118e5a3                       -> {kind: "stru
 union_modifier := kw_soft_eb74f2cb   -> {kind: "soft"}
                 | kw_tagged_8e1ec218 -> {kind: "tagged"}
 
-struct_union := struct_union_sv_2017 | struct_union_sv_2023
+struct_union := struct_union_sv_2017 -> {kind: "sv_2017", body: $1}
+              | struct_union_sv_2023 -> {kind: "sv_2023", body: $1}
 
 struct_union_member := attribute_instance* ( random_qualifier )? data_type_or_void list_of_variable_decl_assignments semi
                     -> {attributes: $1, random_qualifier: $2, data_type: $3, decls: $4}
