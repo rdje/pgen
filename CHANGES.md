@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-72 batch: sequence family typed (16 rules / 39 annotations) (PGEN-SVP-0072)
+
+Closes LRM A.2.10 sequence sub-tree referenced from `property_expr.kind == "sequence".body` (typed in slice 71).
+
+`seq_input_list` (2 kinds: level / edge), `sequence_abbrev`, `sequence_actual_arg_sv_2017/2023` (2+3 kinds — sv_2023 adds dollar), `sequence_actual_arg` (2 kinds: profile wrapper), `sequence_declaration` (`{name, ports, declarations, body, end_label}`), `sequence_expr` (12 kinds: delay_head / delay_binary / expression / instance / paren / and / intersect / or / first_match / throughout / within / clocking — left-recursive branches parse what the PEG generator can handle), `sequence_formal_type` (3 kinds: data_type / sequence / untyped), `sequence_instance` (`{name, args}`), `sequence_list_of_arguments` (2 kinds: mixed / named_only), `sequence_lvar_port_direction` (3 kinds bare: input / inout / output), `sequence_match_item` (3 kinds: operator_assignment / inc_or_dec / subroutine_call), `sequence_method_call` (`{instance, method}`), `sequence_port_item` (`{attributes, local_direction, formal_type, name, dims, default}`), `sequence_port_list` (`[$1, $2::2*]`), `with_covergroup_expression` (`{body}`).
+
+Annotation count: 1334 (was 1295, +39). Same accept set. Manifest + contract bumped to 1.0.72. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-71 batch: property_expr family typed (2 rules / 72 annotations) (PGEN-SVP-0071)
 
 Closes the LRM A.2.10 property expression sub-tree referenced from `property_spec.body` and `property_actual_arg.kind == "property_expr".body` (typed in slice 70).

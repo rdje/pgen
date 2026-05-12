@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.71`
+  - `1.0.72`
 - Parser release version:
-  - `1.0.71`
+  - `1.0.72`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,35 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.72 / Contract 1.0.72 Highlights — SV-Slice-72 batch: sequence family typed (16 rules / 39 annotations)
+
+Closes LRM A.2.10 sequence sub-tree referenced from `property_expr.kind == "sequence".body` (typed in slice 71).
+
+### Annotations
+
+```ebnf
+seq_input_list                    -> 2 kinds (level / edge)
+sequence_abbrev                   -> {body}
+sequence_actual_arg_sv_2017       -> 2 kinds (event_expression / sequence_expr)
+sequence_actual_arg_sv_2023       -> 3 kinds (event_expression / sequence_expr / dollar)
+sequence_actual_arg               -> 2 kinds (sv_2017 / sv_2023)
+sequence_declaration              -> {name, ports, declarations, body, end_label}
+sequence_expr                     -> 12 kinds (delay_head / delay_binary / expression / instance / paren / and / intersect / or / first_match / throughout / within / clocking)
+sequence_formal_type              -> 3 kinds (data_type / sequence / untyped)
+sequence_instance                 -> {name, args}
+sequence_list_of_arguments        -> 2 kinds (mixed / named_only)
+sequence_lvar_port_direction      -> 3 kinds bare (input / inout / output)
+sequence_match_item               -> 3 kinds (operator_assignment / inc_or_dec / subroutine_call)
+sequence_method_call              -> {instance, method}
+sequence_port_item                -> {attributes, local_direction, formal_type, name, dims, default}
+sequence_port_list                -> [$1, $2::2*]
+with_covergroup_expression        -> {body}
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1334** (was 1295, +39). Same accept set.
 
 ## Release 1.0.71 / Contract 1.0.71 Highlights — SV-Slice-71 batch: property_expr family typed (2 rules / 72 annotations)
 

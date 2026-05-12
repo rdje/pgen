@@ -19,6 +19,20 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.72 / Contract 1.0.72 — SV-Slice-72 batch: sequence family typed (16 rules / 39 annotations)
+
+**What changed:** Closes LRM A.2.10 sequence sub-tree referenced from `property_expr.kind == "sequence".body`.
+
+```ebnf
+seq_input_list / sequence_abbrev / sequence_actual_arg_sv_2017/2023 (2+3 kinds) /
+sequence_actual_arg / sequence_declaration / sequence_expr (12 kinds) /
+sequence_formal_type (3 kinds) / sequence_instance / sequence_list_of_arguments (2 kinds) /
+sequence_lvar_port_direction (3 kinds bare) / sequence_match_item (3 kinds) /
+sequence_method_call / sequence_port_item / sequence_port_list / with_covergroup_expression
+```
+
+Annotation inventory: **1334** (was 1295, +39). Same accept set.
+
 ### 1.0.71 / Contract 1.0.71 — SV-Slice-71 batch: property_expr family typed (2 rules / 72 annotations)
 
 **What changed:** Closes LRM A.2.10 property expression sub-tree.

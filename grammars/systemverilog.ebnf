@@ -3454,24 +3454,56 @@ select_expression := select_condition
 seq_block := kw_begin_8cbd0a74 ( colon block_identifier )? block_item_declaration* statement_or_null* kw_end_7a92f3d2 ( colon block_identifier )?
           -> {label: $2, declarations: $3, statements: $4, end_label: $6}
 
-seq_input_list := level_input_list | edge_input_list
+seq_input_list := level_input_list -> {kind: "level", body: $1}
+                | edge_input_list  -> {kind: "edge",  body: $1}
 
 sequence_abbrev := consecutive_repetition
+                -> {body: $1}
 
 @profiles: ["sv_2017"]
-sequence_actual_arg_sv_2017 := event_expression | sequence_expr
+sequence_actual_arg_sv_2017 := event_expression -> {kind: "event_expression", body: $1}
+                             | sequence_expr    -> {kind: "sequence_expr",   body: $1}
 
 @profiles: ["sv_2023"]
-sequence_actual_arg_sv_2023 := event_expression | sequence_expr | kw_dollar
+sequence_actual_arg_sv_2023 := event_expression -> {kind: "event_expression", body: $1}
+                             | sequence_expr    -> {kind: "sequence_expr",   body: $1}
+                             | kw_dollar        -> {kind: "dollar"}
 
-sequence_actual_arg := sequence_actual_arg_sv_2017 | sequence_actual_arg_sv_2023
+sequence_actual_arg := sequence_actual_arg_sv_2017 -> {kind: "sv_2017", body: $1}
+                     | sequence_actual_arg_sv_2023 -> {kind: "sv_2023", body: $1}
 
 sequence_declaration := kw_sequence_92504616 declared_sequence_identifier ( lparen ( sequence_port_list )? rparen )? semi assertion_variable_declaration* sequence_expr ( semi )? kw_endsequence_241830d7 ( colon sequence_identifier )?
+                     -> {name: $2, ports: $3, declarations: $5, body: $6, end_label: $9}
 
 @probe_sample: "1"
-sequence_expr := cycle_delay_range sequence_expr ( cycle_delay_range sequence_expr )* | sequence_expr cycle_delay_range sequence_expr ( cycle_delay_range sequence_expr )* | expression_or_dist ( boolean_abbrev )? | sequence_instance ( sequence_abbrev )? | lparen sequence_expr ( comma sequence_match_item )* rparen ( sequence_abbrev )? | sequence_expr kw_and_cffa50a3 sequence_expr | sequence_expr kw_intersect_6c96caaf sequence_expr | sequence_expr kw_or_1758356d sequence_expr | kw_first_match_2ddb8d09 lparen sequence_expr ( comma sequence_match_item )* rparen | expression_or_dist kw_throughout_330dbf47 sequence_expr | sequence_expr kw_within_f42ef621 sequence_expr | @probe_sample: "@clk 1" clocking_event sequence_expr
+sequence_expr := cycle_delay_range sequence_expr ( cycle_delay_range sequence_expr )*
+                       -> {kind: "delay_head",     delay: $1, body: $2, tail: $3}
+              | sequence_expr cycle_delay_range sequence_expr ( cycle_delay_range sequence_expr )*
+                       -> {kind: "delay_binary",   lhs: $1, delay: $2, rhs: $3, tail: $4}
+              | expression_or_dist ( boolean_abbrev )?
+                       -> {kind: "expression",     body: $1, abbrev: $2}
+              | sequence_instance ( sequence_abbrev )?
+                       -> {kind: "instance",       body: $1, abbrev: $2}
+              | lparen sequence_expr ( comma sequence_match_item )* rparen ( sequence_abbrev )?
+                       -> {kind: "paren",          body: $2, match_items: $3, abbrev: $5}
+              | sequence_expr kw_and_cffa50a3 sequence_expr
+                       -> {kind: "and",            lhs: $1, rhs: $3}
+              | sequence_expr kw_intersect_6c96caaf sequence_expr
+                       -> {kind: "intersect",      lhs: $1, rhs: $3}
+              | sequence_expr kw_or_1758356d sequence_expr
+                       -> {kind: "or",             lhs: $1, rhs: $3}
+              | kw_first_match_2ddb8d09 lparen sequence_expr ( comma sequence_match_item )* rparen
+                       -> {kind: "first_match",    body: $3, match_items: $4}
+              | expression_or_dist kw_throughout_330dbf47 sequence_expr
+                       -> {kind: "throughout",     condition: $1, body: $3}
+              | sequence_expr kw_within_f42ef621 sequence_expr
+                       -> {kind: "within",         inner: $1, outer: $3}
+              | @probe_sample: "@clk 1" clocking_event sequence_expr
+                       -> {kind: "clocking",       event: $1, body: $2}
 
-sequence_formal_type := data_type_or_implicit | kw_sequence_92504616 | kw_untyped_d53be1e8
+sequence_formal_type := data_type_or_implicit -> {kind: "data_type", body: $1}
+                      | kw_sequence_92504616  -> {kind: "sequence"}
+                      | kw_untyped_d53be1e8   -> {kind: "untyped"}
 
 sequence_identifier := declaration_identifier
 
@@ -3480,18 +3512,29 @@ sequence_identifier := declaration_identifier
 declared_sequence_identifier := sequence_identifier
 
 sequence_instance := ps_or_hierarchical_sequence_identifier ( lparen ( sequence_list_of_arguments )? rparen )?
+                  -> {name: $1, args: $2}
 
-sequence_list_of_arguments := ( sequence_actual_arg )? ( comma ( sequence_actual_arg )? )* ( comma dot identifier lparen ( sequence_actual_arg )? rparen )* | dot identifier lparen ( sequence_actual_arg )? rparen ( comma dot identifier lparen ( sequence_actual_arg )? rparen )*
+sequence_list_of_arguments := ( sequence_actual_arg )? ( comma ( sequence_actual_arg )? )* ( comma dot identifier lparen ( sequence_actual_arg )? rparen )*
+                                    -> {kind: "mixed",      head: $1, ordered_tail: $2, named_tail: $3}
+                            | dot identifier lparen ( sequence_actual_arg )? rparen ( comma dot identifier lparen ( sequence_actual_arg )? rparen )*
+                                    -> {kind: "named_only", first_name: $2, first_value: $4, rest: $6}
 
-sequence_lvar_port_direction := kw_input_140f86aa | kw_inout_c900aaa9 | kw_output_1029d676
+sequence_lvar_port_direction := kw_input_140f86aa  -> {kind: "input"}
+                              | kw_inout_c900aaa9  -> {kind: "inout"}
+                              | kw_output_1029d676 -> {kind: "output"}
 
-sequence_match_item := operator_assignment | inc_or_dec_expression | subroutine_call
+sequence_match_item := operator_assignment    -> {kind: "operator_assignment", body: $1}
+                     | inc_or_dec_expression  -> {kind: "inc_or_dec",          body: $1}
+                     | subroutine_call        -> {kind: "subroutine_call",     body: $1}
 
 sequence_method_call := sequence_instance dot method_identifier
+                     -> {instance: $1, method: $3}
 
 sequence_port_item := attribute_instance* ( kw_local_939bb46a ( sequence_lvar_port_direction )? )? sequence_formal_type formal_port_identifier variable_dimension* ( assign sequence_actual_arg )?
+                   -> {attributes: $1, local_direction: $2, formal_type: $3, name: $4, dims: $5, default: $6}
 
 sequence_port_list := sequence_port_item ( comma sequence_port_item )*
+                   -> [$1, $2::2*]
 
 sequential_body := ( udp_initial_statement )? kw_table_c3ee137d sequential_entry sequential_entry* kw_endtable_0b3f3e00
                 -> {initial: $1, entries: {first: $3, rest: $4}}
@@ -4126,6 +4169,7 @@ weight_specification_sv_2017 := integral_number          -> {kind: "number",    
 weight_specification := weight_specification_sv_2017
 
 with_covergroup_expression := covergroup_expression
+                           -> {body: $1}
 
 x_digit := kw_x_11f6ad8e | kw_X_c032adc1
 
