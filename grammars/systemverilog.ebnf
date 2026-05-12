@@ -676,14 +676,22 @@ charge_strength := lparen kw_small_89f6229a rparen   -> {kind: "small"}
                  | lparen kw_large_5296d5cc rparen   -> {kind: "large"}
 
 checker_declaration := kw_checker_29e5b9a8 declared_checker_identifier ( lparen ( checker_port_list )? rparen )? semi ( attribute_instance* checker_or_generate_item )* kw_endchecker_cd5c3b65 ( colon checker_identifier )?
+                    -> {name: $2, ports: $3, items: $5, end_label: $7}
 
 @profiles: ["sv_2017"]
-checker_generate_item_sv_2017 := loop_generate_construct | conditional_generate_construct | generate_region | elaboration_system_task
+checker_generate_item_sv_2017 := loop_generate_construct           -> {kind: "loop",         body: $1}
+                                | conditional_generate_construct   -> {kind: "conditional",  body: $1}
+                                | generate_region                  -> {kind: "region",       body: $1}
+                                | elaboration_system_task          -> {kind: "elaboration",  body: $1}
 
 @profiles: ["sv_2023"]
-checker_generate_item_sv_2023 := loop_generate_construct | conditional_generate_construct | generate_region | elaboration_severity_system_task
+checker_generate_item_sv_2023 := loop_generate_construct                 -> {kind: "loop",                   body: $1}
+                                | conditional_generate_construct         -> {kind: "conditional",            body: $1}
+                                | generate_region                        -> {kind: "region",                 body: $1}
+                                | elaboration_severity_system_task       -> {kind: "elaboration_severity",   body: $1}
 
-checker_generate_item := checker_generate_item_sv_2017 | checker_generate_item_sv_2023
+checker_generate_item := checker_generate_item_sv_2017 -> {kind: "sv_2017", body: $1}
+                       | checker_generate_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 checker_identifier := declaration_identifier
 
@@ -692,16 +700,45 @@ checker_identifier := declaration_identifier
 declared_checker_identifier := checker_identifier
 
 checker_instantiation := ps_checker_identifier name_of_instance lparen ( list_of_checker_port_connections )? rparen semi
+                      -> {name: $1, instance: $2, connections: $4}
 
-checker_or_generate_item := checker_or_generate_item_declaration | initial_construct | always_construct | final_construct | assertion_item | continuous_assign | checker_generate_item
+checker_or_generate_item := checker_or_generate_item_declaration -> {kind: "declaration",      body: $1}
+                          | initial_construct                    -> {kind: "initial",          body: $1}
+                          | always_construct                     -> {kind: "always",           body: $1}
+                          | final_construct                      -> {kind: "final",            body: $1}
+                          | assertion_item                       -> {kind: "assertion",        body: $1}
+                          | continuous_assign                    -> {kind: "continuous_assign", body: $1}
+                          | checker_generate_item                -> {kind: "generate",         body: $1}
 
-checker_or_generate_item_declaration := ( kw_rand_52400560 )? data_declaration | function_declaration | checker_declaration | assertion_item_declaration | covergroup_declaration | genvar_declaration | clocking_declaration | kw_default_7505d64a kw_clocking_4d22041d clocking_identifier semi | kw_default_7505d64a kw_disable_ccf09e2d kw_iff_ee1c009e expression_or_dist semi | semi
+checker_or_generate_item_declaration := ( kw_rand_52400560 )? data_declaration
+                                              -> {kind: "data_declaration",         rand: $1, body: $2}
+                                      | function_declaration
+                                              -> {kind: "function_declaration",     body: $1}
+                                      | checker_declaration
+                                              -> {kind: "checker_declaration",      body: $1}
+                                      | assertion_item_declaration
+                                              -> {kind: "assertion_item_declaration", body: $1}
+                                      | covergroup_declaration
+                                              -> {kind: "covergroup_declaration",   body: $1}
+                                      | genvar_declaration
+                                              -> {kind: "genvar_declaration",       body: $1}
+                                      | clocking_declaration
+                                              -> {kind: "clocking_declaration",     body: $1}
+                                      | kw_default_7505d64a kw_clocking_4d22041d clocking_identifier semi
+                                              -> {kind: "default_clocking",         name: $3}
+                                      | kw_default_7505d64a kw_disable_ccf09e2d kw_iff_ee1c009e expression_or_dist semi
+                                              -> {kind: "default_disable_iff",      condition: $4}
+                                      | semi
+                                              -> {kind: "semi"}
 
-checker_port_direction := kw_input_140f86aa | kw_output_1029d676
+checker_port_direction := kw_input_140f86aa  -> {kind: "input"}
+                        | kw_output_1029d676 -> {kind: "output"}
 
 checker_port_item := attribute_instance* ( checker_port_direction )? property_formal_type formal_port_identifier variable_dimension* ( assign property_actual_arg )?
+                  -> {attributes: $1, direction: $2, formal_type: $3, name: $4, dims: $5, default: $6}
 
 checker_port_list := checker_port_item ( comma checker_port_item )*
+                  -> [$1, $2::2*]
 
 class_constraint := constraint_prototype   -> {kind: "prototype",   body: $1}
                   | constraint_declaration -> {kind: "declaration", body: $1}

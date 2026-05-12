@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-81862b4e.js";
+            window.path_to_searchindex_js = "searchindex-e1e11699.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,19 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="1073--contract-1073--sv-slice-73-batch-checker-family-typed-10-rules--33-annotations"><a class="header" href="#1073--contract-1073--sv-slice-73-batch-checker-family-typed-10-rules--33-annotations">1.0.73 / Contract 1.0.73 — SV-Slice-73 batch: checker family typed (10 rules / 33 annotations)</a></h3>
+<p><strong>What changed:</strong> Closes LRM A.2.2.2 checker-declaration walk path.</p>
+<pre><code class="language-ebnf">checker_declaration                    -&gt; {name, ports, items, end_label}
+checker_generate_item_sv_2017/2023     -&gt; 4 kinds each
+checker_generate_item                  -&gt; 2 kinds
+checker_instantiation                  -&gt; {name, instance, connections}
+checker_or_generate_item               -&gt; 7 kinds
+checker_or_generate_item_declaration   -&gt; 10 kinds
+checker_port_direction                 -&gt; 2 kinds
+checker_port_item                      -&gt; {attributes, direction, formal_type, name, dims, default}
+checker_port_list                      -&gt; [$1, $2::2*]
+</code></pre>
+<p>Annotation inventory: <strong>1367</strong> (was 1334, +33). Same accept set.</p>
 <h3 id="1072--contract-1072--sv-slice-72-batch-sequence-family-typed-16-rules--39-annotations"><a class="header" href="#1072--contract-1072--sv-slice-72-batch-sequence-family-typed-16-rules--39-annotations">1.0.72 / Contract 1.0.72 — SV-Slice-72 batch: sequence family typed (16 rules / 39 annotations)</a></h3>
 <p><strong>What changed:</strong> Closes LRM A.2.10 sequence sub-tree referenced from <code>property_expr.kind == "sequence".body</code>.</p>
 <pre><code class="language-ebnf">seq_input_list / sequence_abbrev / sequence_actual_arg_sv_2017/2023 (2+3 kinds) /

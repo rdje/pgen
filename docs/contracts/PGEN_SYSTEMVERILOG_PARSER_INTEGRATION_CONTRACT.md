@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.72`
+  - `1.0.73`
 - Parser release version:
-  - `1.0.72`
+  - `1.0.73`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,29 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.73 / Contract 1.0.73 Highlights — SV-Slice-73 batch: checker family typed (10 rules / 33 annotations)
+
+Closes LRM A.2.2.2 checker-declaration walk path (referenced from `class_item.kind == "checker_declaration".body` and `non_port_module_item.kind == "checker_declaration".body`).
+
+### Annotations
+
+```ebnf
+checker_declaration                    -> {name, ports, items, end_label}
+checker_generate_item_sv_2017          -> 4 kinds (loop / conditional / region / elaboration)
+checker_generate_item_sv_2023          -> 4 kinds (parallel — uses elaboration_severity per LRM 2023)
+checker_generate_item                  -> 2 kinds (sv_2017 / sv_2023)
+checker_instantiation                  -> {name, instance, connections}
+checker_or_generate_item               -> 7 kinds (declaration / initial / always / final / assertion / continuous_assign / generate)
+checker_or_generate_item_declaration   -> 10 kinds (data_declaration / function / checker / assertion_item / covergroup / genvar / clocking / default_clocking / default_disable_iff / semi)
+checker_port_direction                 -> 2 kinds (input / output)
+checker_port_item                      -> {attributes, direction, formal_type, name, dims, default}
+checker_port_list                      -> [$1, $2::2*]
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1367** (was 1334, +33). Same accept set.
 
 ## Release 1.0.72 / Contract 1.0.72 Highlights — SV-Slice-72 batch: sequence family typed (16 rules / 39 annotations)
 

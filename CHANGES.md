@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-12 - SV-Slice-73 batch: checker family typed (10 rules / 33 annotations) (PGEN-SVP-0073)
+
+Closes LRM A.2.2.2 checker-declaration walk path referenced from `class_item.kind == "checker_declaration".body` and `non_port_module_item.kind == "checker_declaration".body`.
+
+`checker_declaration` (`{name, ports, items, end_label}`), `checker_generate_item_sv_2017/2023` (each 4 kinds: loop / conditional / region / elaboration; sv_2023 uses elaboration_severity per LRM 2023), `checker_generate_item` (2 kinds: sv_2017 / sv_2023), `checker_instantiation` (`{name, instance, connections}`), `checker_or_generate_item` (7 kinds: declaration / initial / always / final / assertion / continuous_assign / generate), `checker_or_generate_item_declaration` (10 kinds: data_declaration / function / checker / assertion_item / covergroup / genvar / clocking / default_clocking / default_disable_iff / semi), `checker_port_direction` (2 kinds: input / output), `checker_port_item` (`{attributes, direction, formal_type, name, dims, default}`), `checker_port_list` (`[$1, $2::2*]`).
+
+Annotation count: 1367 (was 1334, +33). Same accept set. Manifest + contract bumped to 1.0.73. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-12 - SV-Slice-72 batch: sequence family typed (16 rules / 39 annotations) (PGEN-SVP-0072)
 
 Closes LRM A.2.10 sequence sub-tree referenced from `property_expr.kind == "sequence".body` (typed in slice 71).

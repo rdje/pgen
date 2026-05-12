@@ -19,6 +19,24 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.73 / Contract 1.0.73 — SV-Slice-73 batch: checker family typed (10 rules / 33 annotations)
+
+**What changed:** Closes LRM A.2.2.2 checker-declaration walk path.
+
+```ebnf
+checker_declaration                    -> {name, ports, items, end_label}
+checker_generate_item_sv_2017/2023     -> 4 kinds each
+checker_generate_item                  -> 2 kinds
+checker_instantiation                  -> {name, instance, connections}
+checker_or_generate_item               -> 7 kinds
+checker_or_generate_item_declaration   -> 10 kinds
+checker_port_direction                 -> 2 kinds
+checker_port_item                      -> {attributes, direction, formal_type, name, dims, default}
+checker_port_list                      -> [$1, $2::2*]
+```
+
+Annotation inventory: **1367** (was 1334, +33). Same accept set.
+
 ### 1.0.72 / Contract 1.0.72 — SV-Slice-72 batch: sequence family typed (16 rules / 39 annotations)
 
 **What changed:** Closes LRM A.2.10 sequence sub-tree referenced from `property_expr.kind == "sequence".body`.
