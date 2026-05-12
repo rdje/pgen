@@ -1486,17 +1486,29 @@ dist_list := dist_item ( comma dist_item )*
 dist_weight := colon assign expression -> {kind: "equal",       weight: $3}
              | colon slash expression  -> {kind: "proportional", weight: $3}
 
-dpi_function_import_property := kw_context_ec2727b3 | kw_pure_afe003f1
+dpi_function_import_property := kw_context_ec2727b3 -> {kind: "context"}
+                              | kw_pure_afe003f1    -> {kind: "pure"}
 
 dpi_function_proto := function_prototype
+                   -> {body: $1}
 
-dpi_import_export := kw_import_62fdfbd5 dpi_spec_string ( dpi_function_import_property )? ( c_identifier assign )? dpi_function_proto semi | kw_import_62fdfbd5 dpi_spec_string ( dpi_task_import_property )? ( c_identifier assign )? dpi_task_proto semi | kw_export_51713409 dpi_spec_string ( c_identifier assign )? kw_function_c218e39e function_identifier semi | kw_export_51713409 dpi_spec_string ( c_identifier assign )? kw_task_7fbb727d task_identifier semi
+dpi_import_export := kw_import_62fdfbd5 dpi_spec_string ( dpi_function_import_property )? ( c_identifier assign )? dpi_function_proto semi
+                            -> {kind: "import_function", spec: $2, property: $3, c_alias: $4, proto: $5}
+                  | kw_import_62fdfbd5 dpi_spec_string ( dpi_task_import_property )? ( c_identifier assign )? dpi_task_proto semi
+                            -> {kind: "import_task",     spec: $2, property: $3, c_alias: $4, proto: $5}
+                  | kw_export_51713409 dpi_spec_string ( c_identifier assign )? kw_function_c218e39e function_identifier semi
+                            -> {kind: "export_function", spec: $2, c_alias: $3, name: $5}
+                  | kw_export_51713409 dpi_spec_string ( c_identifier assign )? kw_task_7fbb727d task_identifier semi
+                            -> {kind: "export_task",     spec: $2, c_alias: $3, name: $5}
 
-dpi_spec_string := trivia /"DPI-C"/ | trivia /"DPI"/
+dpi_spec_string := trivia /"DPI-C"/   -> {kind: "DPI-C"}
+                 | trivia /"DPI"/     -> {kind: "DPI"}
 
 dpi_task_import_property := kw_context_ec2727b3
+                         -> {kind: "context"}
 
 dpi_task_proto := task_prototype
+               -> {body: $1}
 
 drive_strength := lparen strength comma strength rparen | lparen strength comma strength rparen | lparen strength comma kw_highz_ed790878 rparen | lparen strength comma kw_highz_ed790878 rparen | lparen kw_highz_ed790878 comma strength rparen | lparen kw_highz_ed790878 comma strength rparen
 
@@ -1631,11 +1643,14 @@ expression_or_dist := @probe_sample: "1" expression ( kw_dist_02450072 dist_list
 
 @profiles: ["sv_2017"]
 extern_constraint_declaration_sv_2017 := ( kw_static_a381562a )? kw_constraint_9f454fd4 class_scope constraint_identifier constraint_block
+                                      -> {static_keyword: $1, scope: $3, name: $4, body: $5}
 
 @profiles: ["sv_2023"]
 extern_constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? class_scope constraint_identifier constraint_block
+                                      -> {static_keyword: $1, dynamic_override: $3, scope: $4, name: $5, body: $6}
 
-extern_constraint_declaration := extern_constraint_declaration_sv_2017 | extern_constraint_declaration_sv_2023
+extern_constraint_declaration := extern_constraint_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                               | extern_constraint_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 extern_tf_declaration := kw_extern_bf1ee311 method_prototype semi | kw_extern_bf1ee311 kw_forkjoin_91d67e81 task_prototype semi
 
@@ -1925,9 +1940,14 @@ interface_ansi_header := attribute_instance* kw_interface_5ea2d81a ( lifetime )?
 interface_class_declaration := kw_interface_5ea2d81a kw_class_8d767bf5 declared_interface_class_identifier ( parameter_port_list )? ( kw_extends_2b781ff8 interface_class_type ( comma interface_class_type )* )? semi interface_class_item* kw_endclass_b43ac277 ( colon class_identifier )?
                             -> {name: $3, parameters: $4, extends: $5, items: $7, end_label: $9}
 
-interface_class_item := type_declaration | attribute_instance* interface_class_method | local_parameter_declaration semi | parameter_declaration semi | semi
+interface_class_item := type_declaration                            -> {kind: "type_declaration",        body: $1}
+                      | attribute_instance* interface_class_method  -> {kind: "method",                  attributes: $1, body: $2}
+                      | local_parameter_declaration semi            -> {kind: "local_parameter",         body: $1}
+                      | parameter_declaration semi                  -> {kind: "parameter",               body: $1}
+                      | semi                                        -> {kind: "semi"}
 
 interface_class_method := kw_pure_afe003f1 kw_virtual_af84d91f method_prototype semi
+                       -> {prototype: $3}
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
 known_unscoped_interface_class_type_identifier := class_identifier
@@ -1935,6 +1955,7 @@ known_unscoped_interface_class_type_identifier := class_identifier
 scoped_interface_class_type_identifier := non_typedef_package_scope class_identifier
 
 interface_class_type := ( scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier ) ( parameter_value_assignment )?
+                     -> {name: $1, params: $2}
 
 @profiles: ["sv_2017"]
 interface_declaration_sv_2017 := interface_ansi_header ( timeunits_declaration )? non_port_interface_item* kw_endinterface_ebd6ca35 ( colon interface_identifier )?
@@ -1982,9 +2003,13 @@ interface_or_generate_item := attribute_instance* module_common_item
                             | attribute_instance* extern_tf_declaration
                                   -> {kind: "extern_tf_declaration", attributes: $1, body: $2}
 
-interface_port_declaration := interface_identifier list_of_interface_identifiers | interface_identifier dot modport_identifier list_of_interface_identifiers
+interface_port_declaration := interface_identifier list_of_interface_identifiers
+                                    -> {kind: "plain",   name: $1, items: $2}
+                            | interface_identifier dot modport_identifier list_of_interface_identifiers
+                                    -> {kind: "modport", name: $1, modport: $3, items: $4}
 
-interface_port_header := interface_identifier ( dot modport_identifier )? | kw_interface_5ea2d81a ( dot modport_identifier )?
+interface_port_header := interface_identifier ( dot modport_identifier )?    -> {kind: "named",     name: $1, modport: $2}
+                      | kw_interface_5ea2d81a ( dot modport_identifier )?    -> {kind: "interface", modport: $2}
 
 @profiles: ["sv_2023"]
 interface_port_identifier_sv_2023 := identifier
@@ -2634,6 +2659,7 @@ operator_assignment := variable_lvalue assignment_operator expression
 ordered_checker_port_connection := attribute_instance* ( property_actual_arg )?
 
 ordered_parameter_assignment := param_expression
+                             -> {body: $1}
 
 ordered_port_connection := attribute_instance* ( expression )?
 
@@ -2734,12 +2760,19 @@ parallel_path_description := lparen specify_input_terminal_descriptor ( polarity
                           -> {input: $2, polarity: $3, output: $5}
 
 @profiles: ["sv_2017"]
-param_assignment_sv_2017 := declared_parameter_identifier unpacked_dimension* assign constant_param_expression | declared_parameter_identifier unpacked_dimension*
+param_assignment_sv_2017 := declared_parameter_identifier unpacked_dimension* assign constant_param_expression
+                                  -> {kind: "with_default", name: $1, dims: $2, value: $4}
+                          | declared_parameter_identifier unpacked_dimension*
+                                  -> {kind: "no_default",   name: $1, dims: $2}
 
 @profiles: ["sv_2023"]
-param_assignment_sv_2023 := declared_parameter_identifier variable_dimension* assign constant_param_expression | declared_parameter_identifier variable_dimension*
+param_assignment_sv_2023 := declared_parameter_identifier variable_dimension* assign constant_param_expression
+                                  -> {kind: "with_default", name: $1, dims: $2, value: $4}
+                          | declared_parameter_identifier variable_dimension*
+                                  -> {kind: "no_default",   name: $1, dims: $2}
 
-param_assignment := param_assignment_sv_2017 | param_assignment_sv_2023
+param_assignment := param_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
+                  | param_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
 param_expression := mintypmax_expression | data_type | kw_dollar
 

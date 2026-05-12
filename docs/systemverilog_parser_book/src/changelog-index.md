@@ -19,6 +19,14 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.74 / Contract 1.0.74 — SV-Slice-74 batch: dpi + extern_constraint + interface_class + param family typed (18 rules / 32 annotations)
+
+**What changed:** Closes LRM A.2.6 DPI sub-tree, LRM A.1.4 extern_constraint, LRM A.1.9 interface_class, and LRM A.2.1.1 param_assignment sub-trees.
+
+DPI: `dpi_function_import_property` (2 kinds), `dpi_function_proto`, `dpi_import_export` (4 kinds), `dpi_spec_string` (2 kinds), `dpi_task_import_property`, `dpi_task_proto`. Extern constraint: `extern_constraint_declaration_sv_2017/2023`, `extern_constraint_declaration` (2 kinds). Interface class: `interface_class_item` (5 kinds), `interface_class_method`, `interface_class_type`, `interface_port_declaration` (2 kinds), `interface_port_header` (2 kinds). Param: `ordered_parameter_assignment`, `param_assignment_sv_2017/2023` (each 2 kinds), `param_assignment` (2 kinds).
+
+Annotation inventory: **1399** (was 1367, +32). Same accept set.
+
 ### 1.0.73 / Contract 1.0.73 — SV-Slice-73 batch: checker family typed (10 rules / 33 annotations)
 
 **What changed:** Closes LRM A.2.2.2 checker-declaration walk path.

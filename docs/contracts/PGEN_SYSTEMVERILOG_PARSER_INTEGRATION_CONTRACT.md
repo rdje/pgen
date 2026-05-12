@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.73`
+  - `1.0.74`
 - Parser release version:
-  - `1.0.73`
+  - `1.0.74`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,37 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.74 / Contract 1.0.74 Highlights — SV-Slice-74 batch: dpi + extern_constraint + interface_class + param family typed (18 rules / 32 annotations)
+
+Closes the LRM A.2.6 DPI sub-tree, LRM A.1.4 extern_constraint, LRM A.1.9 interface_class, and LRM A.2.1.1 param_assignment sub-trees.
+
+### Annotations
+
+```ebnf
+dpi_function_import_property            -> 2 kinds (context / pure)
+dpi_function_proto                      -> {body}
+dpi_import_export                       -> 4 kinds (import_function / import_task / export_function / export_task)
+dpi_spec_string                         -> 2 kinds (DPI-C / DPI)
+dpi_task_import_property                -> 1 kind bare (context)
+dpi_task_proto                          -> {body}
+extern_constraint_declaration_sv_2017   -> {static_keyword, scope, name, body}
+extern_constraint_declaration_sv_2023   -> {static_keyword, dynamic_override, scope, name, body}
+extern_constraint_declaration           -> 2 kinds (sv_2017 / sv_2023)
+interface_class_item                    -> 5 kinds (type_declaration / method / local_parameter / parameter / semi)
+interface_class_method                  -> {prototype}
+interface_class_type                    -> {name, params}
+interface_port_declaration              -> 2 kinds (plain / modport)
+interface_port_header                   -> 2 kinds (named / interface)
+ordered_parameter_assignment            -> {body}
+param_assignment_sv_2017                -> 2 kinds (with_default / no_default)
+param_assignment_sv_2023                -> 2 kinds (with_default / no_default)
+param_assignment                        -> 2 kinds (sv_2017 / sv_2023)
+```
+
+### Calibration
+
+`parseability_probe --parse-dump-ast-pretty systemverilog /tmp/sv_calibration/minimal_module.sv` reports `parse_full passed`. Annotation count: **1399** (was 1367, +32). Same accept set.
 
 ## Release 1.0.73 / Contract 1.0.73 Highlights — SV-Slice-73 batch: checker family typed (10 rules / 33 annotations)
 
