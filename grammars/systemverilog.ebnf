@@ -1001,6 +1001,7 @@ clocking_skew := edge_identifier ( delay_control )? -> {kind: "edge",  edge: $1,
                | delay_control                       -> {kind: "delay", body: $1}
 
 clockvar := hierarchical_identifier
+         -> {body: $1}
 
 clockvar_expression := clockvar select
                     -> {clockvar: $1, select: $2}
@@ -1218,7 +1219,8 @@ constraint_declaration_sv_2017 := ( kw_static_a381562a )? kw_constraint_9f454fd4
 constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? constraint_identifier constraint_block
                                 -> {static_keyword: $1, dynamic_override: $3, name: $4, block: $5}
 
-constraint_declaration := constraint_declaration_sv_2017 | constraint_declaration_sv_2023
+constraint_declaration := constraint_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                        | constraint_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 constraint_expression := @probe_sample: "a;" ( kw_soft_eb74f2cb )? expression_or_dist semi
                               -> {kind: "expression",   soft: $1, expr: $2}
@@ -1254,7 +1256,8 @@ constraint_prototype_sv_2017 := ( constraint_prototype_qualifier )? ( kw_static_
 constraint_prototype_sv_2023 := ( constraint_prototype_qualifier )? ( kw_static_a381562a )? kw_constraint_9f454fd4 ( dynamic_override_specifiers )? constraint_identifier semi
                              -> {qualifier: $1, static_keyword: $2, dynamic_override: $4, name: $5}
 
-constraint_prototype := constraint_prototype_sv_2017 | constraint_prototype_sv_2023
+constraint_prototype := constraint_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
+                      | constraint_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
 constraint_prototype_qualifier := kw_extern_bf1ee311 -> {kind: "extern"}
                                 | kw_pure_afe003f1   -> {kind: "pure"}
@@ -1310,9 +1313,11 @@ covergroup_declaration_sv_2023 := kw_covergroup_80dfc68d declared_covergroup_ide
                                 | kw_covergroup_80dfc68d kw_extends_2b781ff8 covergroup_identifier semi kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup_33b6723a ( colon covergroup_identifier )?
                                         -> {kind: "extends", parent: $3, items: $6, end_label: $8}
 
-covergroup_declaration := covergroup_declaration_sv_2017 | covergroup_declaration_sv_2023
+covergroup_declaration := covergroup_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                        | covergroup_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 covergroup_expression := @probe_sample: "1" expression
+                      -> {body: $1}
 
 covergroup_identifier := declaration_identifier
 
@@ -1370,6 +1375,7 @@ cross_set_expression := covergroup_expression
                      -> {body: $1}
 
 current_state := level_symbol
+              -> {body: $1}
 
 cycle_delay := kw_token_93ac8946 integral_number          -> {kind: "number",     body: $2}
              | kw_token_93ac8946 identifier               -> {kind: "identifier", body: $2}
@@ -1407,7 +1413,8 @@ data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifeti
                          | nettype_declaration
                                 -> {kind: "nettype",               body: $1}
 
-data_declaration := data_declaration_sv_2017 | data_declaration_sv_2023
+data_declaration := data_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                  | data_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 data_event := timing_check_event
            -> {body: $1}
@@ -1443,6 +1450,7 @@ known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_ide
 scoped_block_covergroup_identifier := scoped_covergroup_type_identifier
 
 block_data_type := integer_vector_type ( signing )? packed_dimension*
+                -> {base: $1, signing: $2, dims: $3}
                  | integer_atom_type ( signing )?
                  | non_integer_type
                  | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
@@ -1460,7 +1468,8 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
                  | known_unscoped_block_covergroup_identifier
                  | type_reference
 
-block_data_type_or_implicit := block_data_type | implicit_data_type
+block_data_type_or_implicit := block_data_type    -> {kind: "block_data",     body: $1}
+                              | implicit_data_type -> {kind: "implicit_data", body: $1}
 
 data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimension*
                   -> {kind: "integer_vector",        base: $1, signing: $2, dims: $3}
@@ -1501,6 +1510,7 @@ data_type_or_incomplete_class_scoped_type_sv_2023 := data_type                  
                                                    | incomplete_class_scoped_type  -> {kind: "incomplete_class_scoped", body: $1}
 
 data_type_or_incomplete_class_scoped_type := data_type_or_incomplete_class_scoped_type_sv_2023
+                                           -> {body: $1}
 
 data_type_or_void := data_type        -> {kind: "data_type", body: $1}
                    | kw_void_e9cede9b -> {kind: "void"}
@@ -1537,6 +1547,7 @@ deferred_immediate_cover_statement := kw_cover_a28100fa hash kw_n_0_b6589fc6 lpa
                                             -> {kind: "final",      expression: $4, statement: $6}
 
 defparam_assignment := hierarchical_parameter_identifier assign constant_mintypmax_expression
+                    -> {name: $1, value: $3}
 
 @profiles: ["sv_2017"]
 delay_sv_2017 := @probe_sample: "#1" hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen | hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen
@@ -1575,6 +1586,7 @@ description := module_declaration                 -> {kind: "module_declaration"
              | config_declaration                 -> {kind: "config_declaration", body: $1}
 
 design_statement := kw_design_056f1182 ( ( library_identifier dot )? cell_identifier )* semi
+                 -> {cells: $2}
 
 disable_statement := kw_disable_ccf09e2d hierarchical_task_identifier semi
                           -> {kind: "task",  target: $2}
@@ -1593,7 +1605,8 @@ dist_item_sv_2023 := value_range ( dist_weight )?
                    | kw_default_7505d64a colon slash expression
                           -> {kind: "default", weight: $4}
 
-dist_item := dist_item_sv_2017 | dist_item_sv_2023
+dist_item := dist_item_sv_2017 -> {kind: "sv_2017", body: $1}
+           | dist_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 dist_list := dist_item ( comma dist_item )*
           -> [$1, $2::2*]
@@ -1673,8 +1686,10 @@ edge_symbol := kw_r_4dc7c9ec -> {kind: "r"}
 
 @profiles: ["sv_2023"]
 elaboration_severity_system_task_sv_2023 := severity_system_task
+                                         -> {body: $1}
 
 elaboration_severity_system_task := elaboration_severity_system_task_sv_2023
+                                 -> {body: $1}
 
 @profiles: ["sv_2017"]
 elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_number ( comma list_of_arguments )? rparen )? semi
@@ -1687,6 +1702,7 @@ elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_n
                                           -> {kind: "info",    args: $2}
 
 elaboration_system_task := elaboration_system_task_sv_2017
+                        -> {body: $1}
 
 empty_unpacked_array_concatenation := lbrace epsilon rbrace
                                    -> {kind: "empty_unpacked_array_concat"}
@@ -1715,8 +1731,10 @@ enum_name_declaration := enum_identifier ( lbrack integral_number ( colon integr
                       -> {name: $1, range: $2, value: $3}
 
 error_limit_value := limit_value
+                  -> {body: $1}
 
 event_based_flag := constant_expression
+                 -> {body: $1}
 
 @profiles: ["sv_2017"]
 event_control_sv_2017 := at_sign hierarchical_event_identifier        -> {kind: "event",       body: $2}
@@ -1730,7 +1748,8 @@ event_control_sv_2023 := clocking_event           -> {kind: "clocking",     body
                        | at_sign star              -> {kind: "wildcard"}
                        | at_sign lparen star rparen -> {kind: "wildcard_paren"}
 
-event_control := event_control_sv_2017 | event_control_sv_2023
+event_control := event_control_sv_2017 -> {kind: "sv_2017", body: $1}
+               | event_control_sv_2023 -> {kind: "sv_2023", body: $1}
 
 event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e expression )?
                                   -> {kind: "expression", edge: $1, expr: $2, iff: $3}
@@ -1757,7 +1776,8 @@ event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select s
 event_trigger := event_trigger_sv_2017 -> {kind: "sv_2017", body: $1}
                | event_trigger_sv_2023 -> {kind: "sv_2023", body: $1}
 
-exp := kw_e_58e6b3a4 | kw_E_e0184ade
+exp := kw_e_58e6b3a4 -> {kind: "e"}
+     | kw_E_e0184ade -> {kind: "E"}
 
 expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen action_block
                           -> {spec: $3, action: $5}

@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-96 batch: constraint/covergroup/data_declaration + design + dist + elaboration + event wrappers typed (17 rules / 28 annotations) (PGEN-SVP-0096)
+
+`clockvar` / `covergroup_expression` / `current_state` / `data_type_or_incomplete_class_scoped_type` / `elaboration_severity_system_task_sv_2023` / `elaboration_severity_system_task` / `elaboration_system_task` / `error_limit_value` / `event_based_flag` each `{body}`, `constraint_declaration` / `constraint_prototype` / `covergroup_declaration` / `data_declaration` / `dist_item` / `event_control` each 2 kinds, `block_data_type` (`{base, signing, dims}`), `block_data_type_or_implicit` (2 kinds), `defparam_assignment` (`{name, value}`), `design_statement` (`{cells}`), `exp` (2 kinds: e / E).
+
+Annotation count: 1825 (was 1797, +28). Same accept set. Manifest + contract bumped to 1.0.96. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-95 batch: sv_multi_entry_root + comment_only + bit_select + case + clocking + constant_* wrappers typed (12 rules / 18 annotations) (PGEN-SVP-0095)
 
 `sv_multi_entry_root` (3 kinds), `parseable_source_item`, `bit_select_expression` (3 kinds), `case_expression`, `case_item_expression`, `clocking_event` (2 kinds), `clockvar_expression`, `constant_bit_select`, `constant_function_call` (2 kinds), `constant_let_expression`, `constant_mintypmax_expression` (2 kinds).

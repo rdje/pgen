@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.95`
+  - `1.0.96`
 - Parser release version:
-  - `1.0.95`
+  - `1.0.96`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,24 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.96 / Contract 1.0.96 Highlights — SV-Slice-96 batch: constraint/covergroup/data_declaration + design + dist + elaboration + event wrappers typed (17 rules / 28 annotations)
+
+```ebnf
+clockvar / covergroup_expression / current_state / data_type_or_incomplete_class_scoped_type / 
+  elaboration_severity_system_task_sv_2023 / _normal / elaboration_system_task /
+  error_limit_value / event_based_flag                          -> {body}
+constraint_declaration / constraint_prototype                   -> 2 kinds each
+covergroup_declaration                                          -> 2 kinds
+data_declaration / dist_item / event_control                    -> 2 kinds each
+block_data_type                                                 -> {base, signing, dims}
+block_data_type_or_implicit                                     -> 2 kinds
+defparam_assignment                                             -> {name, value}
+design_statement                                                -> {cells}
+exp                                                             -> 2 kinds (e / E)
+```
+
+Annotation count: **1825** (was 1797, +28). Same accept set.
 
 ## Release 1.0.95 / Contract 1.0.95 Highlights — SV-Slice-95 batch: sv_multi_entry_root + comment_only + bit_select + case + clocking + constant_* wrappers typed (12 rules / 18 annotations)
 
