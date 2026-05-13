@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.106`
+  - `1.0.107`
 - Parser release version:
-  - `1.0.106`
+  - `1.0.107`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,19 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.107 / Contract 1.0.107 Highlights — SV-Slice-107: provisional_unscoped_block_class_type typed (1 rule / 1 annotation)
+
+```ebnf
+provisional_unscoped_block_class_type
+  -> {head, params, scope_chain}
+```
+
+Same shape as `known_unscoped_block_class_type` from slice 106 (per slice 106's predecessor analysis, the task #38 deferral on this rule was based on the parens-grouped-Or risk but actually only `(X)?` Optional groups appear here — not Or alternation — so it's safe to annotate).
+
+ATTEMPTED but reverted: `ps_type_identifier_sv_2017` / `ps_type_identifier_sv_2023` — codegen silently dropped the rule-level annotation on the `( kw scope_res kw | scope | scope )? type_identifier` shape (same class of codegen limitation as the `*_value` sequence rules deferred earlier).
+
+Annotation count: **2164** (was 2163, +1). Same accept set.
 
 ## Release 1.0.106 / Contract 1.0.106 Highlights — SV-Slice-106 batch: type-identifier + block_class_type chain rules typed (5 rules / 4 annotations after dedup)
 

@@ -1450,6 +1450,7 @@ known_unscoped_block_class_type := class_identifier ( parameter_value_assignment
                                 -> {head: $1, params: $2, scope_chain: $3}
 
 provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+                                      -> {head: $1, params: $2, scope_chain: $3}
 
 scoped_block_class_type := non_typedef_package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                         -> {scope: $1, head: $2, params: $3, scope_chain: $4}

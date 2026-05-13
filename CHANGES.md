@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-107: provisional_unscoped_block_class_type typed (1 rule / 1 annotation) (PGEN-SVP-0107)
+
+`provisional_unscoped_block_class_type` typed `{head, params, scope_chain}` (same shape as `known_unscoped_block_class_type` from slice 106). Per slice 106 analysis, the task #38 deferral on this rule was misattributed — actual structure only uses `(X)?` Optional groups, not Or alternation, so it's safe to annotate. ATTEMPTED but reverted: `ps_type_identifier_sv_2017` / `ps_type_identifier_sv_2023` — codegen silently dropped the rule-level annotation on `( kw scope_res kw | scope | scope )? type_identifier` shape (same codegen limitation as *_value sequence rules).
+
+Annotation count: 2164 (was 2163, +1). Same accept set. Manifest + contract bumped to 1.0.107. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-106 batch: type-identifier + block_class_type chain rules typed (5 rules / 4 annotations) (PGEN-SVP-0106)
 
 `known_unscoped_block_type_identifier` / `known_unscoped_data_type_identifier` typed `{type, dims}`. `scoped_block_type_identifier` / `scoped_data_type_identifier` typed `{scope, type, dims}` (scope = class_scope | non_typedef_package_scope). `known_unscoped_block_class_type` typed `{head, params, scope_chain}`. `scoped_block_class_type` typed `{scope, head, params, scope_chain}`. DEFERRED: `provisional_unscoped_block_class_type` (task #38).

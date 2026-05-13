@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f82b5596.js";
+            window.path_to_searchindex_js = "searchindex-f6694e22.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>1.8.0</td><td>1.0.107</td><td><strong>SV-Slice-107: provisional_unscoped_block_class_type typed</strong> <code>{head, params, scope_chain}</code>. 1 rule / 1 annotation. Same shape as known_unscoped_block_class_type. Annotation inventory: 2164 entries (was 2163).</td></tr>
 <tr><td>1.7.0</td><td>1.0.106</td><td><strong>SV-Slice-106 batch: type-identifier + block_class_type chain rules typed.</strong> 5 rules / 4 annotations. known_unscoped/scoped variants of block_type_identifier, data_type_identifier, block_class_type. Annotation inventory: 2163 entries (was 2159).</td></tr>
 <tr><td>1.6.0</td><td>1.0.105</td><td><strong>SV-Slice-105 batch: scoped_X passthrough identifier rules typed.</strong> 11 rules / 11 annotations. All <code>scoped_X := non_typedef_package_scope &lt;id&gt;</code> typed <code>{scope, name}</code>. Annotation inventory: 2159 entries (was 2148).</td></tr>
 <tr><td>1.5.0</td><td>1.0.104</td><td><strong>SV-Slice-104 batch: identifier-routing wrappers typed.</strong> 15 rules / 35 annotations. Per-branch shapes on identifier/ps_*_identifier/scoped_or_hierarchical_tf_identifier/delay. Annotation inventory: 2148 entries (was 2113).</td></tr>
@@ -1453,6 +1454,8 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10107--contract-10107--sv-slice-107-provisional_unscoped_block_class_type-typed-1-rule--1-annotation"><a class="header" href="#10107--contract-10107--sv-slice-107-provisional_unscoped_block_class_type-typed-1-rule--1-annotation">1.0.107 / Contract 1.0.107 — SV-Slice-107: provisional_unscoped_block_class_type typed (1 rule / 1 annotation)</a></h3>
+<p>Annotation inventory: <strong>2164</strong> (was 2163, +1). Same accept set.</p>
 <h3 id="10106--contract-10106--sv-slice-106-batch-type-identifier--block_class_type-chain-rules-typed-5-rules--4-annotations"><a class="header" href="#10106--contract-10106--sv-slice-106-batch-type-identifier--block_class_type-chain-rules-typed-5-rules--4-annotations">1.0.106 / Contract 1.0.106 — SV-Slice-106 batch: type-identifier + block_class_type chain rules typed (5 rules / 4 annotations)</a></h3>
 <p>Annotation inventory: <strong>2163</strong> (was 2159, +4). Same accept set.</p>
 <h3 id="10105--contract-10105--sv-slice-105-batch-scoped_x-passthrough-identifier-rules-typed-11-rules--11-annotations"><a class="header" href="#10105--contract-10105--sv-slice-105-batch-scoped_x-passthrough-identifier-rules-typed-11-rules--11-annotations">1.0.105 / Contract 1.0.105 — SV-Slice-105 batch: scoped_X passthrough identifier rules typed (11 rules / 11 annotations)</a></h3>
