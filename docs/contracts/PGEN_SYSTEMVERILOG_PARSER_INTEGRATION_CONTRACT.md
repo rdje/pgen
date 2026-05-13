@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.100`
+  - `1.0.101`
 - Parser release version:
-  - `1.0.100`
+  - `1.0.101`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,22 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.101 / Contract 1.0.101 Highlights — SV-Slice-101 batch: comment_only + timing_check_limit + trans_item + remaining t*_path + type wrappers + variable_port typed (15 rules / 15 annotations)
+
+```ebnf
+comment_only_source_region            -> {leading_whitespace, first_comment, tail}
+timing_check_limit / trans_item       -> {body}
+trise/tx0/tx1/txz/tz0/tz1/tz/tzx_path_delay_expression  -> {body}
+type_identifier_or_class_type / type_parameter_declaration  -> {body}
+variable_identifier_list              -> [$1, $2::2*]
+variable_port_header                  -> {direction, port_type}
+variable_port_type                    -> {body}
+```
+
+DEFERRED: `unique_priority` (duplicate-branch grammar bug).
+
+Annotation count: **1981** (was 1966, +15). Same accept set.
 
 ## Release 1.0.100 / Contract 1.0.100 Highlights — SV-Slice-100 batch: sign + statement_item + structure_pattern_key + t*_path_delay_expression + tf_port + threshold + timecheck + timeunits wrappers typed (16 rules / 26 annotations) — crosses 100-slice milestone
 

@@ -230,6 +230,7 @@ compiler_directive := trivia /`[^\r\n]*/
                    -> $2
 
 comment_only_source_region := white_space* ( line_comment | block_comment ) ( white_space | line_comment | block_comment )*
+                           -> {leading_whitespace: $1, first_comment: $2, tail: $3}
 
 binary_operator := plus                     -> {kind: "plus"}
                  | minus                    -> {kind: "minus"}
@@ -4484,10 +4485,12 @@ timing_check_event_control := kw_posedge_7529558b   -> {kind: "posedge"}
                             | edge_control_specifier -> {kind: "edge_control", body: $1}
 
 timing_check_limit := expression
+                   -> {body: $1}
 
 topmodule_identifier := declaration_identifier
 
 trans_item := covergroup_range_list
+           -> {body: $1}
 
 trans_list := lparen trans_set rparen ( comma lparen trans_set rparen )*
            -> [$2, $4::3*]
@@ -4511,12 +4514,16 @@ trans_set := trans_range_list ( sequence_implies trans_range_list )*
 // triple_quoted_string_item := triple_quoted_string_item_sv_2023
 
 trise_path_delay_expression := path_delay_expression
+                            -> {body: $1}
 
 tx0_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 tx1_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 txz_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 @profiles: ["sv_2017"]
 type_assignment_sv_2017 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type )?
@@ -4588,12 +4595,14 @@ type_identifier_or_class_type_sv_2023 := type_identifier -> {kind: "type_identif
                                        | class_type      -> {kind: "class_type",      body: $1}
 
 type_identifier_or_class_type := type_identifier_or_class_type_sv_2023
+                              -> {body: $1}
 
 @profiles: ["sv_2023"]
 type_parameter_declaration_sv_2023 := kw_type_d0a3e7f8 ( forward_type )? list_of_type_assignments
                                    -> {forward_type: $2, items: $3}
 
 type_parameter_declaration := type_parameter_declaration_sv_2023
+                           -> {body: $1}
 
 @profiles: ["sv_2017"]
 type_reference_sv_2017 := kw_type_d0a3e7f8 lparen expression rparen -> {kind: "expression", body: $3}
@@ -4609,12 +4618,16 @@ type_reference := type_reference_sv_2017 -> {kind: "sv_2017", body: $1}
                 | type_reference_sv_2023 -> {kind: "sv_2023", body: $1}
 
 tz0_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 tz1_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 tz_path_delay_expression := path_delay_expression
+                         -> {body: $1}
 
 tzx_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 udp_ansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier lparen udp_declaration_port_list rparen semi
                      -> {attributes: $1, name: $3, ports: $5}
@@ -4766,6 +4779,7 @@ variable_dimension := unsized_dimension     -> {kind: "unsized",     body: $1}
 variable_identifier := declaration_identifier
 
 variable_identifier_list := variable_identifier ( comma variable_identifier )*
+                         -> [$1, $2::2*]
 
 variable_lvalue := ( variable_lvalue_scope )? hierarchical_variable_identifier select
                         -> {kind: "name",                  scope: $1, name: $2, select: $3}
@@ -4780,8 +4794,10 @@ variable_lvalue_scope := implicit_class_handle dot   -> {kind: "instance",      
                        | non_typedef_package_scope   -> {kind: "package_scope", body: $1}
 
 variable_port_header := ( port_direction )? variable_port_type
+                     -> {direction: $1, port_type: $2}
 
 variable_port_type := var_data_type
+                   -> {body: $1}
 
 wait_statement := kw_wait_daaad336 lparen expression rparen statement_or_null
                        -> {kind: "wait",       condition: $3, body: $5}

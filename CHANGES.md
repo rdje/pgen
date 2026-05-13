@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-101 batch: comment_only + timing_check_limit + trans_item + remaining t*_path + type wrappers + variable_port typed (15 rules / 15 annotations) (PGEN-SVP-0101)
+
+`comment_only_source_region` (`{leading_whitespace, first_comment, tail}`), `timing_check_limit` / `trans_item` (each `{body}`), 8 t*_path_delay_expression rules (`trise` / `tx0` / `tx1` / `txz` / `tz0` / `tz1` / `tz` / `tzx` — each `{body}`), `type_identifier_or_class_type` / `type_parameter_declaration` (each `{body}`), `variable_identifier_list` (Category A: `[$1, $2::2*]`), `variable_port_header` (`{direction, port_type}`), `variable_port_type` (`{body}`). DEFERRED: `unique_priority` (duplicate-branch grammar bug).
+
+Annotation count: 1981 (was 1966, +15). Same accept set. Manifest + contract bumped to 1.0.101. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-100 batch: sign + statement_item + structure_pattern_key + t*_path_delay_expression + tf_port + threshold + timecheck + timeunits wrappers typed (16 rules / 26 annotations) — crosses 100-slice milestone (PGEN-SVP-0100)
 
 `mixed_string_parameter_port_list` / `mixed_parameter_port_list` (typed), `sign` (2 kinds), `statement_item` (2 kinds), `structure_pattern_key` (2 kinds), 7 t*_path_delay_expression rules (each `{body}`), `tf_port_declaration` (`{attributes, direction, var_keyword, data_type, items}`), `tf_port_direction` (2 kinds), `tfall_path_delay_expression` / `threshold` / `timecheck_condition` (each `{body}`), `timeunits_declaration` (4 kinds: timeunit / timeprecision / timeunit_then_precision / timeprecision_then_unit), `timeunit_separator_slash`.
