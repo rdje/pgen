@@ -3195,8 +3195,10 @@ parameter_port_declaration := parameter_port_declaration_sv_2017 -> {kind: "sv_2
                             | parameter_port_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 mixed_string_parameter_port_list := kw_type_d0a3e7f8 type_assignment ( !( comma kw_string_ecb25204 ) comma type_assignment )* comma kw_string_ecb25204 list_of_param_assignments ( comma parameter_port_declaration )*
+                                 -> {first_type: $2, type_tail: $3, string_list: $6, decl_tail: $7}
 
 mixed_parameter_port_list := kw_type_d0a3e7f8 list_of_type_assignments comma parameter_port_declaration ( comma parameter_port_declaration )*
+                          -> {types: $2, first_decl: $4, decl_tail: $5}
 
 parameter_port_list := hash lparen mixed_string_parameter_port_list rparen
                               -> {kind: "mixed_string",      body: $3}
@@ -4089,7 +4091,8 @@ showcancelled_declaration := kw_showcancelled_ac9a7408 list_of_path_outputs semi
                            | kw_noshowcancelled_1d50d807 list_of_path_outputs semi
                                    -> {kind: "noshowcancelled", outputs: $2}
 
-sign := plus | minus
+sign := plus  -> {kind: "plus"}
+      | minus -> {kind: "minus"}
 
 signal_identifier := identifier
 
@@ -4212,7 +4215,8 @@ statement_item_sv_2023 := blocking_assignment semi                  -> {kind: "b
                         | randcase_statement                        -> {kind: "randcase",                         body: $1}
                         | expect_property_statement                 -> {kind: "expect_property",                  body: $1}
 
-statement_item := statement_item_sv_2017 | statement_item_sv_2023
+statement_item := statement_item_sv_2017 -> {kind: "sv_2017", body: $1}
+                | statement_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 statement_or_null := statement                                -> {kind: "statement", body: $1}
                    | @probe_sample: ";" attribute_instance* semi -> {kind: "null",      attributes: $1}
@@ -4256,7 +4260,8 @@ struct_union := struct_union_sv_2017 -> {kind: "sv_2017", body: $1}
 struct_union_member := attribute_instance* ( random_qualifier )? data_type_or_void list_of_variable_decl_assignments semi
                     -> {attributes: $1, random_qualifier: $2, data_type: $3, decls: $4}
 
-structure_pattern_key := member_identifier | assignment_pattern_key
+structure_pattern_key := member_identifier      -> {kind: "member",  body: $1}
+                       | assignment_pattern_key -> {kind: "pattern", body: $1}
 
 @branch_policy: priority_first
 subroutine_call := class_scoped_tf_call                            -> {kind: "class_scoped_tf", body: $1}
@@ -4328,18 +4333,25 @@ system_timing_check := sv_dollar_setup_timing_check        -> {kind: "setup",   
                      | sv_dollar_nochange_timing_check     -> {kind: "nochange",   body: $1}
 
 t01_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 t0x_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 t0z_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 t10_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 t1x_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 t1z_path_delay_expression := path_delay_expression
+                          -> {body: $1}
 
 t_path_delay_expression := path_delay_expression
+                        -> {body: $1}
 
 @profiles: ["sv_2017"]
 tagged_union_expression_sv_2017 := kw_tagged_8e1ec218 member_identifier ( expression )?
@@ -4406,6 +4418,7 @@ tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
                      | tf_port_declaration    -> {kind: "tf_port",    body: $1}
 
 tf_port_declaration := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit list_of_tf_variable_identifiers semi
+                    -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, items: $5}
 
 @profiles: ["sv_2017"]
 tf_port_direction_sv_2017 := port_direction                       -> {kind: "port_direction", body: $1}
@@ -4417,7 +4430,8 @@ tf_port_direction_sv_2023 := port_direction
                            | ( kw_const_b42f3f6f )? kw_ref_69449f99 ( kw_static_a381562a )?
                                    -> {kind: "ref",            const_keyword: $1, static_keyword: $3}
 
-tf_port_direction := tf_port_direction_sv_2017 | tf_port_direction_sv_2023
+tf_port_direction := tf_port_direction_sv_2017 -> {kind: "sv_2017", body: $1}
+                   | tf_port_direction_sv_2023 -> {kind: "sv_2023", body: $1}
 
 tf_port_item := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4e786 )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
              -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
@@ -4426,8 +4440,10 @@ tf_port_list := tf_port_item ( comma tf_port_item )*
              -> [$1, $2::2*]
 
 tfall_path_delay_expression := path_delay_expression
+                            -> {body: $1}
 
 threshold := constant_expression
+          -> {body: $1}
 
 time_unit := kw_s_a0f1490a   -> {kind: "s"}
            | kw_ms_26cc3217  -> {kind: "ms"}
@@ -4437,13 +4453,22 @@ time_unit := kw_s_a0f1490a   -> {kind: "s"}
            | kw_fs_3f4bb586  -> {kind: "fs"}
 
 timecheck_condition := mintypmax_expression
+                    -> {body: $1}
 
 timestamp_condition := mintypmax_expression
                     -> {body: $1}
 
-timeunits_declaration := kw_timeunit_57f78b2f time_literal ( timeunit_separator_slash time_literal )? semi | kw_timeprecision_628f1cfc time_literal semi | kw_timeunit_57f78b2f time_literal semi kw_timeprecision_628f1cfc time_literal semi | kw_timeprecision_628f1cfc time_literal semi kw_timeunit_57f78b2f time_literal semi
+timeunits_declaration := kw_timeunit_57f78b2f time_literal ( timeunit_separator_slash time_literal )? semi
+                                -> {kind: "timeunit",                        unit: $2, precision: $3}
+                       | kw_timeprecision_628f1cfc time_literal semi
+                                -> {kind: "timeprecision",                   precision: $2}
+                       | kw_timeunit_57f78b2f time_literal semi kw_timeprecision_628f1cfc time_literal semi
+                                -> {kind: "timeunit_then_precision",         unit: $2, precision: $5}
+                       | kw_timeprecision_628f1cfc time_literal semi kw_timeunit_57f78b2f time_literal semi
+                                -> {kind: "timeprecision_then_unit",         precision: $2, unit: $5}
 
 timeunit_separator_slash := timeunit_separator_trivia "/"
+                         -> {kind: "slash"}
 
 timeunit_separator_trivia := /(?:[ \t\r\n]+|\/\/[^\n]*(\n|$)|\/\*([^*]|\*+[^*\/])*\*+\/)*/
 

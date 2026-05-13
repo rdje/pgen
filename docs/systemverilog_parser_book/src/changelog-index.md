@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.100 / Contract 1.0.100 — SV-Slice-100 batch: sign + statement_item + structure_pattern_key + t*_path_delay_expression + tf_port + threshold + timecheck + timeunits wrappers typed (16 rules / 26 annotations) — crosses 100-slice milestone
+
+Annotation inventory: **1966** (was 1940, +26). **Crosses 100-slice milestone.** Same accept set.
+
 ### 1.0.99 / Contract 1.0.99 — SV-Slice-99 batch: package_scope + parameter_declaration + parameter_value_assignment + parameter_override + pattern + port_declaration + program_generate_item + property_expr + pulse_control + randomize + ref_declaration + select_condition wrappers typed (25 rules / 50 annotations)
 
 Annotation inventory: **1940** (was 1890, +50). Same accept set.

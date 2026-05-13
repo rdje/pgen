@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.99`
+  - `1.0.100`
 - Parser release version:
-  - `1.0.99`
+  - `1.0.100`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,23 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.100 / Contract 1.0.100 Highlights — SV-Slice-100 batch: sign + statement_item + structure_pattern_key + t*_path_delay_expression + tf_port + threshold + timecheck + timeunits wrappers typed (16 rules / 26 annotations) — crosses 100-slice milestone
+
+```ebnf
+mixed_string_parameter_port_list / mixed_parameter_port_list  -> typed
+sign                          -> 2 kinds (plus / minus)
+statement_item                -> 2 kinds (sv_2017 / sv_2023)
+structure_pattern_key         -> 2 kinds (member / pattern)
+t01/t0x/t0z/t10/t1x/t1z/t_path_delay_expression  -> {body}
+tf_port_declaration           -> {attributes, direction, var_keyword, data_type, items}
+tf_port_direction             -> 2 kinds
+tfall_path_delay_expression / threshold / timecheck_condition  -> {body}
+timeunits_declaration         -> 4 kinds (timeunit / timeprecision / timeunit_then_precision / timeprecision_then_unit)
+timeunit_separator_slash      -> 1 kind bare
+```
+
+Annotation count: **1966** (was 1940, +26). **Crosses 100-slice milestone.** Same accept set.
 
 ## Release 1.0.99 / Contract 1.0.99 Highlights — SV-Slice-99 batch: package_scope + parameter_declaration + parameter_value_assignment + parameter_override + pattern + port_declaration + program_generate_item + property_expr + pulse_control + randomize + ref_declaration + select_condition wrappers typed (25 rules / 50 annotations)
 
