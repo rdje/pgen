@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.92 / Contract 1.0.92 — SV-Slice-92 batch: terminal + cross_set + weight_specification + passthroughs typed (8 rules / 8 annotations)
+
+Annotation inventory: **1724** (was 1716, +8). Same accept set.
+
 ### 1.0.91 / Contract 1.0.91 — SV-Slice-91 batch: rs_ + value_range wrappers typed (9 rules / 16 annotations)
 
 Annotation inventory: **1716** (was 1700, +16). Same accept set.

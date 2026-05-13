@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.91`
+  - `1.0.92`
 - Parser release version:
-  - `1.0.91`
+  - `1.0.92`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,12 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.92 / Contract 1.0.92 Highlights — SV-Slice-92 batch: terminal + cross_set + weight_specification + passthroughs typed (8 rules / 8 annotations)
+
+All single-sub-rule passthroughs: `cross_set_expression`, `weight_specification`, `enable_terminal`, `inout_terminal`, `input_terminal`, `ncontrol_terminal`, `output_terminal`, `pcontrol_terminal` (each `{body}`).
+
+Annotation count: **1724** (was 1716, +8). Same accept set.
 
 ## Release 1.0.91 / Contract 1.0.91 Highlights — SV-Slice-91 batch: rs_ + value_range wrappers typed (9 rules / 16 annotations)
 

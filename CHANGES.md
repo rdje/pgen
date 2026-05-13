@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-92 batch: terminal + cross_set + weight_specification + passthroughs typed (8 rules / 8 annotations) (PGEN-SVP-0092)
+
+All single-sub-rule passthroughs: `cross_set_expression`, `weight_specification`, `enable_terminal`, `inout_terminal`, `input_terminal`, `ncontrol_terminal`, `output_terminal`, `pcontrol_terminal` (each `{body}`).
+
+Annotation count: 1724 (was 1716, +8). Same accept set. Manifest + contract bumped to 1.0.92. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-91 batch: rs_ + value_range wrappers typed (9 rules / 16 annotations) (PGEN-SVP-0091)
 
 `rs_case_item`, `rs_if_else`, `rs_prod`, `rs_production_list`, `rs_repeat`, `rs_rule` (each 2 kinds), `rs_production`, `rs_production_item` (passthroughs), `value_range` (2 kinds).

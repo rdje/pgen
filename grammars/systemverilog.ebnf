@@ -1317,6 +1317,7 @@ cross_item := cover_point_identifier -> {kind: "cover_point", name: $1}
             | variable_identifier    -> {kind: "variable",    name: $1}
 
 cross_set_expression := covergroup_expression
+                     -> {body: $1}
 
 current_state := level_symbol
 
@@ -1646,6 +1647,7 @@ enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input
 enable_gatetype := kw_bufif_8c9c7ee6 | kw_bufif_8c9c7ee6 | kw_notif_8743f903 | kw_notif_8743f903
 
 enable_terminal := expression
+                -> {body: $1}
 
 end_edge_offset := mintypmax_expression
                 -> {body: $1}
@@ -1995,6 +1997,7 @@ inout_declaration := kw_inout_c900aaa9 net_port_type list_of_port_identifiers
 inout_port_identifier := identifier
 
 inout_terminal := net_lvalue
+               -> {body: $1}
 
 input_declaration := kw_input_140f86aa net_port_type list_of_port_identifiers
                             -> {kind: "net",      port_type: $2, items: $3}
@@ -2006,6 +2009,7 @@ input_identifier := input_port_identifier | inout_port_identifier | interface_id
 input_port_identifier := identifier
 
 input_terminal := expression
+               -> {body: $1}
 
 @profiles: ["sv_2017"]
 inside_expression_sv_2017 := expression_base kw_inside_fcc53788 open_range_list*
@@ -2667,6 +2671,7 @@ named_port_connection := named_port_connection_sv_2017 -> {kind: "sv_2017", body
                        | named_port_connection_sv_2023 -> {kind: "sv_2023", body: $1}
 
 ncontrol_terminal := expression
+                  -> {body: $1}
 
 net_alias := kw_alias_cdb6fdbe net_lvalue assign net_lvalue ( assign net_lvalue )* semi
           -> {first: $2, second: $4, rest: $5}
@@ -2883,6 +2888,7 @@ output_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
                | kw_X_c032adc1   -> {kind: "X"}
 
 output_terminal := net_lvalue
+                -> {body: $1}
 
 @emit_fact: { kind: package_name, name: $package_identifier }
 package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
@@ -3120,6 +3126,7 @@ pattern_sv_2023 := lparen pattern rparen
 pattern := pattern_sv_2017 | pattern_sv_2023
 
 pcontrol_terminal := expression
+                  -> {body: $1}
 
 polarity_operator := plus  -> {kind: "plus"}
                    | minus -> {kind: "minus"}
@@ -4570,6 +4577,7 @@ weight_specification_sv_2017 := integral_number          -> {kind: "number",    
                               | lparen expression rparen -> {kind: "expression", body: $2}
 
 weight_specification := weight_specification_sv_2017
+                     -> {body: $1}
 
 with_covergroup_expression := covergroup_expression
                            -> {body: $1}
