@@ -1669,7 +1669,12 @@ dpi_task_import_property := kw_context_ec2727b3
 dpi_task_proto := task_prototype
                -> {body: $1}
 
-drive_strength := lparen strength comma strength rparen | lparen strength comma strength rparen | lparen strength comma kw_highz_ed790878 rparen | lparen strength comma kw_highz_ed790878 rparen | lparen kw_highz_ed790878 comma strength rparen | lparen kw_highz_ed790878 comma strength rparen
+drive_strength := lparen strength comma strength rparen           -> {kind: "pair_strength", first: $2, second: $4}
+               | lparen strength comma strength rparen           -> {kind: "pair_strength", first: $2, second: $4}
+               | lparen strength comma kw_highz_ed790878 rparen  -> {kind: "strength_highz", first: $2}
+               | lparen strength comma kw_highz_ed790878 rparen  -> {kind: "strength_highz", first: $2}
+               | lparen kw_highz_ed790878 comma strength rparen  -> {kind: "highz_strength", second: $4}
+               | lparen kw_highz_ed790878 comma strength rparen  -> {kind: "highz_strength", second: $4}
 
 dynamic_array_new := kw_new_c2a6b03f lbrack expression rbrack ( lparen expression rparen )?
                   -> {size: $3, init: $5}
@@ -2126,7 +2131,16 @@ index_variable_identifier := identifier
 indexed_range := expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
                | expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
 
-init_val := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick_bx_ab9cb068 | kw_n_1_tick_bX_70a6d618 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_Bx_0a99de19 | kw_n_1_tick_BX_874bf116 | kw_n_1_356a192b | kw_n_0_b6589fc6
+init_val := kw_n_1_tick_b_f4c81681  -> {kind: "1'b"}
+         | kw_n_1_tick_b_f4c81681  -> {kind: "1'b"}
+         | kw_n_1_tick_bx_ab9cb068 -> {kind: "1'bx"}
+         | kw_n_1_tick_bX_70a6d618 -> {kind: "1'bX"}
+         | kw_n_1_tick_B_9f69eb32  -> {kind: "1'B"}
+         | kw_n_1_tick_B_9f69eb32  -> {kind: "1'B"}
+         | kw_n_1_tick_Bx_0a99de19 -> {kind: "1'Bx"}
+         | kw_n_1_tick_BX_874bf116 -> {kind: "1'BX"}
+         | kw_n_1_356a192b         -> {kind: "1"}
+         | kw_n_0_b6589fc6         -> {kind: "0"}
 
 initial_construct := kw_initial_8ad7d21c statement_or_null
                   -> {body: $2}
@@ -4038,7 +4052,16 @@ rs_weight_specification_sv_2023 := integral_number          -> {kind: "number", 
 rs_weight_specification := rs_weight_specification_sv_2023
                         -> {body: $1}
 
-scalar_constant := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_B_9f69eb32 | tick kw_b_e9d71f5e | tick kw_b_e9d71f5e | tick kw_B_ae4f281d | tick kw_B_ae4f281d | kw_n_1_356a192b | kw_n_0_b6589fc6
+scalar_constant := kw_n_1_tick_b_f4c81681 -> {kind: "1'b"}
+                | kw_n_1_tick_b_f4c81681 -> {kind: "1'b"}
+                | kw_n_1_tick_B_9f69eb32 -> {kind: "1'B"}
+                | kw_n_1_tick_B_9f69eb32 -> {kind: "1'B"}
+                | tick kw_b_e9d71f5e     -> {kind: "'b"}
+                | tick kw_b_e9d71f5e     -> {kind: "'b"}
+                | tick kw_B_ae4f281d     -> {kind: "'B"}
+                | tick kw_B_ae4f281d     -> {kind: "'B"}
+                | kw_n_1_356a192b        -> {kind: "1"}
+                | kw_n_0_b6589fc6        -> {kind: "0"}
 
 scalar_timing_check_condition := expression                                    -> {kind: "expression", body: $1}
                                | tilde expression                              -> {kind: "not",        body: $2}

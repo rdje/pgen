@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-110 batch: drive_strength + init_val + scalar_constant typed (3 rules / 26 annotations) (PGEN-SVP-0110)
+
+`drive_strength` 6 branches: `{kind: "pair_strength" | "strength_highz" | "highz_strength"}` with `first` / `second` strength fields extracted. `init_val` 10 branches: `{kind: "1'b" | "1'bx" | "1'bX" | "1'B" | "1'Bx" | "1'BX" | "1" | "0"}`. `scalar_constant` 10 branches: `{kind: "1'b" | "1'B" | "'b" | "'B" | "1" | "0"}`. Grammar duplicate branches retained.
+
+Annotation count: 2219 (was 2193, +26). Same accept set. Manifest + contract bumped to 1.0.110. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-109 batch: pulldown_strength + pullup_strength + net_type typed (3 rules / 18 annotations) (PGEN-SVP-0109)
 
 `net_type` 12 branches with `{kind: "<keyword>"}` discriminators: supply (x2), tri (x3), triand, trior, trireg, uwire, wire, wand, wor. `pulldown_strength` / `pullup_strength` 3 branches each: 2x `{kind: "pair", first, second}` (extract strengths) + 1x `{kind: "single", value}`. Duplicate branches accepted as-is (artifact of grammar profile-merging).
