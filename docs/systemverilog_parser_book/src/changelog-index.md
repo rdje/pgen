@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.104 / Contract 1.0.104 — SV-Slice-104 batch: identifier-routing wrappers typed (15 rules / 35 annotations)
+
+Annotation inventory: **2148** (was 2113, +35). Same accept set.
+
 ### 1.0.103 / Contract 1.0.103 — SV-Slice-103 batch: operator/punctuation leaves typed (69 rules / 69 annotations)
 
 Annotation inventory: **2113** (was 2044, +69). Same accept set.

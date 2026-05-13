@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-104 batch: identifier-routing wrappers typed (15 rules / 35 annotations) (PGEN-SVP-0104)
+
+Per-branch shapes on identifier and ps_*/scoped_* alternation rules: `identifier` / `scope_free_identifier` / `ps_checker_identifier` / `ps_covergroup_identifier` / `ps_or_hierarchical_property_identifier` / `ps_or_hierarchical_sequence_identifier` / `ps_type_identifier` / `delay` are per-branch `{body: $1}` passthroughs. `input_identifier` / `output_identifier` 3 kinds (input_port / output_port / inout_port / interface_dot_port — interface_dot_port extracts interface+port). `ps_identifier` 2 kinds (unscoped / scoped). `ps_or_hierarchical_array_identifier` typed `{scope, name}`. `ps_or_hierarchical_net_identifier` 2 kinds (ps / hierarchical). `scoped_or_hierarchical_tf_identifier` 3 kinds (class_scope / package_scope / hierarchical). `ps_parameter_identifier` 4 kinds (class_scope / package_scope / unscoped / generate_scoped).
+
+Annotation count: 2148 (was 2113, +35). Same accept set. Manifest + contract bumped to 1.0.104. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-103 batch: operator/punctuation leaves typed (69 rules / 69 annotations) (PGEN-SVP-0103)
 
 All non-kw plain `trivia "X"` leaf rules get `-> {kind: "<rule_name>"}` for clean discriminator shape without trivia noise: operators (assign, plus, minus, star, slash, percent, power, tilde, etc.), punctuation (lparen/rparen, lbrace/rbrace, lbrack/rbrack, colon, comma, semi, dot, dot_star, at_sign, hash, question, tick, bang), compound assigns (plus_assign, minus_assign, star_assign, slash_assign, percent_assign, and_assign, or_assign, xor_assign, shift_left/right_assign, arithmetic_shift_left/right_assign), shifts (shift_left, shift_right, arithmetic_shift_left/right), comparisons (equal, not_equal, case_equal, case_not_equal, wildcard_equal/not_equal, greater/less_than/_equal), logical/bitwise/reduction operators, arrows (implies, iff_arrow, full_path_arrow, sequence_implies), scope_resolution.

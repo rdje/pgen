@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.103`
+  - `1.0.104`
 - Parser release version:
-  - `1.0.103`
+  - `1.0.104`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,38 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.104 / Contract 1.0.104 Highlights — SV-Slice-104 batch: identifier-routing wrappers typed (15 rules / 35 annotations)
+
+Per-branch shapes on identifier and ps_*/scoped_* alternation rules:
+
+```ebnf
+identifier / scope_free_identifier / ps_checker_identifier /
+ps_covergroup_identifier / ps_or_hierarchical_property_identifier /
+ps_or_hierarchical_sequence_identifier / ps_type_identifier / delay
+  -> per-branch {body: $1}   (passthrough)
+
+input_identifier / output_identifier
+  -> 3 kinds: input_port / inout_port / interface_dot_port
+     (the last extracts interface + port)
+
+ps_identifier
+  -> 2 kinds: unscoped (name only) / scoped (scope + name)
+
+ps_or_hierarchical_array_identifier
+  -> {scope, name}
+
+ps_or_hierarchical_net_identifier
+  -> 2 kinds: ps (scope, name) / hierarchical (body)
+
+scoped_or_hierarchical_tf_identifier
+  -> 3 kinds: class_scope / package_scope / hierarchical
+
+ps_parameter_identifier
+  -> 4 kinds: class_scope / package_scope / unscoped / generate_scoped
+```
+
+Annotation count: **2148** (was 2113, +35). Same accept set.
 
 ## Release 1.0.103 / Contract 1.0.103 Highlights — SV-Slice-103 batch: operator/punctuation leaves typed (69 rules / 69 annotations)
 
