@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.107`
+  - `1.0.108`
 - Parser release version:
-  - `1.0.107`
+  - `1.0.108`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,18 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.108 / Contract 1.0.108 Highlights — SV-Slice-108 batch: duplicate-branch leaf rules typed (3 rules / 11 annotations)
+
+Per-branch `{kind: "X"}` on Or rules that have duplicate branches (artifact of grammar profile-merging). Duplicates accepted as-is — consumer sees identical `{kind}` regardless of which copy of the branch matched:
+
+```ebnf
+enable_gatetype     -> per-branch {kind: "bufif"} (x2) | {kind: "notif"} (x2)
+pass_en_switchtype  -> per-branch {kind: "tranif"} (x2) | {kind: "rtranif"} (x2)
+unique_priority     -> per-branch {kind: "unique"} (x2) | {kind: "priority"} (x1)
+```
+
+Annotation count: **2175** (was 2164, +11). Same accept set.
 
 ## Release 1.0.107 / Contract 1.0.107 Highlights — SV-Slice-107: provisional_unscoped_block_class_type typed (1 rule / 1 annotation)
 

@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-108 batch: duplicate-branch leaf rules typed (3 rules / 11 annotations) (PGEN-SVP-0108)
+
+Per-branch `{kind: "X"}` on Or rules with duplicate branches: `enable_gatetype` 4 branches (2x bufif / 2x notif), `pass_en_switchtype` 4 branches (2x tranif / 2x rtranif), `unique_priority` 3 branches (2x unique / 1x priority). Duplicates accepted as-is — consumers see identical `{kind}` regardless of which copy matched. Underlying grammar duplicates are an artifact of profile-merging; cleaning them up is a separate grammar-bug task.
+
+Annotation count: 2175 (was 2164, +11). Same accept set. Manifest + contract bumped to 1.0.108. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-107: provisional_unscoped_block_class_type typed (1 rule / 1 annotation) (PGEN-SVP-0107)
 
 `provisional_unscoped_block_class_type` typed `{head, params, scope_chain}` (same shape as `known_unscoped_block_class_type` from slice 106). Per slice 106 analysis, the task #38 deferral on this rule was misattributed — actual structure only uses `(X)?` Optional groups, not Or alternation, so it's safe to annotate. ATTEMPTED but reverted: `ps_type_identifier_sv_2017` / `ps_type_identifier_sv_2023` — codegen silently dropped the rule-level annotation on `( kw scope_res kw | scope | scope )? type_identifier` shape (same codegen limitation as *_value sequence rules).

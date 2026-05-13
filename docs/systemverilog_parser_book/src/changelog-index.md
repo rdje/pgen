@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.108 / Contract 1.0.108 — SV-Slice-108 batch: duplicate-branch leaf rules typed (3 rules / 11 annotations)
+
+Annotation inventory: **2175** (was 2164, +11). Same accept set.
+
 ### 1.0.107 / Contract 1.0.107 — SV-Slice-107: provisional_unscoped_block_class_type typed (1 rule / 1 annotation)
 
 Annotation inventory: **2164** (was 2163, +1). Same accept set.

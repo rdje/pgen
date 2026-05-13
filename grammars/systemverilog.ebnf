@@ -1742,7 +1742,10 @@ empty_unpacked_array_concatenation := lbrace epsilon rbrace
 enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
                      -> {name: $1, output: $3, input: $5, enable: $7}
 
-enable_gatetype := kw_bufif_8c9c7ee6 | kw_bufif_8c9c7ee6 | kw_notif_8743f903 | kw_notif_8743f903
+enable_gatetype := kw_bufif_8c9c7ee6 -> {kind: "bufif"}
+                | kw_bufif_8c9c7ee6 -> {kind: "bufif"}
+                | kw_notif_8743f903 -> {kind: "notif"}
+                | kw_notif_8743f903 -> {kind: "notif"}
 
 enable_terminal := expression
                 -> {body: $1}
@@ -3290,7 +3293,10 @@ parameter_value_assignment := parameter_value_assignment_sv_2017 -> {kind: "sv_2
 part_select_range := constant_range -> {kind: "range",         body: $1}
                    | indexed_range  -> {kind: "indexed_range", body: $1}
 
-pass_en_switchtype := kw_tranif_02d116e0 | kw_tranif_02d116e0 | kw_rtranif_75c812fc | kw_rtranif_75c812fc
+pass_en_switchtype := kw_tranif_02d116e0 -> {kind: "tranif"}
+                   | kw_tranif_02d116e0 -> {kind: "tranif"}
+                   | kw_rtranif_75c812fc -> {kind: "rtranif"}
+                   | kw_rtranif_75c812fc -> {kind: "rtranif"}
 
 pass_enable_switch_instance := ( name_of_instance )? lparen inout_terminal comma inout_terminal comma enable_terminal rparen
                             -> {name: $1, in1: $3, in2: $5, enable: $7}
@@ -4795,7 +4801,9 @@ unary_operator := plus                  -> {kind: "plus"}
                 | reduction_xnor        -> {kind: "reduction_xnor"}
                 | reduction_xnor_alt    -> {kind: "reduction_xnor_alt"}
 
-unique_priority := kw_unique_58037c00 | kw_unique_58037c00 | kw_priority_3345867e
+unique_priority := kw_unique_58037c00   -> {kind: "unique"}
+                | kw_unique_58037c00   -> {kind: "unique"}
+                | kw_priority_3345867e -> {kind: "priority"}
 
 @profiles: ["sv_2017"]
 uniqueness_constraint_sv_2017 := kw_unique_58037c00 open_range_list*
