@@ -3087,7 +3087,8 @@ package_or_generate_item_declaration_sv_2023 := local_parameter_declaration semi
 package_or_generate_item_declaration := package_or_generate_item_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                                        | package_or_generate_item_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
-package_scope := package_identifier scope_resolution | kw_sv_dollar_unit_1d99223f scope_resolution
+package_scope := package_identifier scope_resolution             -> {kind: "package",     name: $1}
+               | kw_sv_dollar_unit_1d99223f scope_resolution     -> {kind: "dollar_unit"}
 
 packed_dimension := lbrack constant_range rbrack    -> {kind: "range",    body: $2}
                   | unsized_dimension                 -> {kind: "unsized", body: $1}
@@ -3105,7 +3106,8 @@ parallel_edge_sensitive_path_description_sv_2023 := lparen ( edge_identifier )? 
                                                   | lparen ( edge_identifier )? specify_input_terminal_descriptor ( polarity_operator )? sequence_implies specify_output_terminal_descriptor rparen
                                                           -> {kind: "simple",           edge: $2, input: $3, in_polarity: $4, output: $6}
 
-parallel_edge_sensitive_path_description := parallel_edge_sensitive_path_description_sv_2017 | parallel_edge_sensitive_path_description_sv_2023
+parallel_edge_sensitive_path_description := parallel_edge_sensitive_path_description_sv_2017 -> {kind: "sv_2017", body: $1}
+                                          | parallel_edge_sensitive_path_description_sv_2023 -> {kind: "sv_2023", body: $1}
 
 parallel_path_description := lparen specify_input_terminal_descriptor ( polarity_operator )? sequence_implies specify_output_terminal_descriptor rparen
                           -> {input: $2, polarity: $3, output: $5}
@@ -3131,13 +3133,24 @@ param_expression := mintypmax_expression -> {kind: "mintypmax", body: $1}
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]
-parameter_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments | kw_parameter_b75381f0 data_type_or_implicit list_of_param_assignments | kw_parameter_b75381f0 kw_type_d0a3e7f8 list_of_type_assignments
+parameter_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments
+                                        -> {kind: "implicit", items: $2}
+                               | kw_parameter_b75381f0 data_type_or_implicit list_of_param_assignments
+                                        -> {kind: "typed",    data_type: $2, items: $3}
+                               | kw_parameter_b75381f0 kw_type_d0a3e7f8 list_of_type_assignments
+                                        -> {kind: "type",     items: $3}
 
 @branch_policy: priority_first
 @profiles: ["sv_2023"]
-parameter_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments | kw_parameter_b75381f0 data_type_or_implicit list_of_param_assignments | kw_parameter_b75381f0 type_parameter_declaration
+parameter_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments
+                                        -> {kind: "implicit",       items: $2}
+                               | kw_parameter_b75381f0 data_type_or_implicit list_of_param_assignments
+                                        -> {kind: "typed",          data_type: $2, items: $3}
+                               | kw_parameter_b75381f0 type_parameter_declaration
+                                        -> {kind: "type_parameter", body: $2}
 
-parameter_declaration := parameter_declaration_sv_2017 | parameter_declaration_sv_2023
+parameter_declaration := parameter_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                       | parameter_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 parameter_identifier := non_keyword_identifier
 
@@ -3146,6 +3159,7 @@ parameter_identifier := non_keyword_identifier
 declared_parameter_identifier := parameter_identifier
 
 parameter_override := kw_defparam_83d3c70e list_of_defparam_assignments semi
+                   -> {items: $2}
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]
@@ -3205,7 +3219,8 @@ parameter_value_assignment_sv_2017 := hash lparen ( list_of_parameter_assignment
 parameter_value_assignment_sv_2023 := hash lparen ( list_of_parameter_value_assignments )? rparen
                                    -> {params: $3}
 
-parameter_value_assignment := parameter_value_assignment_sv_2017 | parameter_value_assignment_sv_2023
+parameter_value_assignment := parameter_value_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
+                            | parameter_value_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
 part_select_range := constant_range -> {kind: "range",         body: $1}
                    | indexed_range  -> {kind: "indexed_range", body: $1}
@@ -3226,6 +3241,7 @@ path_declaration := simple_path_declaration semi          -> {kind: "simple",   
                   | state_dependent_path_declaration semi -> {kind: "state_dependent", body: $1}
 
 path_delay_expression := constant_mintypmax_expression
+                      -> {body: $1}
 
 path_delay_value := list_of_path_delay_expressions          -> {kind: "bare",   body: $1}
                   | lparen list_of_path_delay_expressions rparen -> {kind: "paren",  body: $2}
@@ -3260,7 +3276,8 @@ pattern_sv_2023 := lparen pattern rparen
                 | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
                         -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
 
-pattern := pattern_sv_2017 | pattern_sv_2023
+pattern := pattern_sv_2017 -> {kind: "sv_2017", body: $1}
+         | pattern_sv_2023 -> {kind: "sv_2023", body: $1}
 
 pcontrol_terminal := expression
                   -> {body: $1}
@@ -3273,18 +3290,31 @@ port := ( port_expression )?
      | dot port_identifier lparen ( port_expression )? rparen
         -> {kind: "named", name: $2, expr: $4}
 
-port_declaration := attribute_instance* inout_declaration | attribute_instance* input_declaration | attribute_instance* output_declaration | attribute_instance* ref_declaration | attribute_instance* interface_port_declaration
+port_declaration := attribute_instance* inout_declaration
+                            -> {kind: "inout",     attributes: $1, body: $2}
+                  | attribute_instance* input_declaration
+                            -> {kind: "input",     attributes: $1, body: $2}
+                  | attribute_instance* output_declaration
+                            -> {kind: "output",    attributes: $1, body: $2}
+                  | attribute_instance* ref_declaration
+                            -> {kind: "ref",       attributes: $1, body: $2}
+                  | attribute_instance* interface_port_declaration
+                            -> {kind: "interface", attributes: $1, body: $2}
 
 port_direction := kw_input_140f86aa  -> {kind: "input"}
                | kw_output_1029d676 -> {kind: "output"}
                | kw_inout_c900aaa9  -> {kind: "inout"}
                | kw_ref_69449f99    -> {kind: "ref"}
 
-port_expression := port_reference | ( port_reference ( comma port_reference )* )*
+port_expression := port_reference
+                          -> {kind: "single", body: $1}
+                | ( port_reference ( comma port_reference )* )*
+                          -> {kind: "list",   body: $1}
 
 port_identifier := declaration_identifier
 
 port_reference := port_identifier constant_select
+               -> {name: $1, select: $2}
 
 @profiles: ["sv_2017"]
 primary_sv_2017 := @probe_sample: "1" primary_literal
@@ -3441,16 +3471,24 @@ program_declaration := @sample: "program p; endprogram" program_declaration_sv_2
                               -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
-program_generate_item_sv_2017 := loop_generate_construct | conditional_generate_construct | generate_region | elaboration_system_task
+program_generate_item_sv_2017 := loop_generate_construct           -> {kind: "loop",         body: $1}
+                                | conditional_generate_construct  -> {kind: "conditional",  body: $1}
+                                | generate_region                 -> {kind: "region",       body: $1}
+                                | elaboration_system_task         -> {kind: "elaboration",  body: $1}
 
 @profiles: ["sv_2023"]
-program_generate_item_sv_2023 := loop_generate_construct | conditional_generate_construct | generate_region | elaboration_severity_system_task
+program_generate_item_sv_2023 := loop_generate_construct                -> {kind: "loop",                  body: $1}
+                                | conditional_generate_construct       -> {kind: "conditional",           body: $1}
+                                | generate_region                      -> {kind: "region",                body: $1}
+                                | elaboration_severity_system_task     -> {kind: "elaboration_severity",  body: $1}
 
-program_generate_item := program_generate_item_sv_2017 | program_generate_item_sv_2023
+program_generate_item := program_generate_item_sv_2017 -> {kind: "sv_2017", body: $1}
+                       | program_generate_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 program_identifier := declaration_identifier
 
 program_instantiation := program_identifier ( parameter_value_assignment )? hierarchical_instance ( comma hierarchical_instance )* semi
+                      -> {name: $1, params: $2, instances: [$3, $4::2*]}
 
 program_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
               | non_port_program_item   -> {kind: "non_port_item",   body: $1}
@@ -3617,7 +3655,8 @@ property_expr_sv_2023 := sequence_expr
                        | clocking_event property_expr
                               -> {kind: "clocking",            event: $1, body: $2}
 
-property_expr := property_expr_sv_2017 | property_expr_sv_2023
+property_expr := property_expr_sv_2017 -> {kind: "sv_2017", body: $1}
+               | property_expr_sv_2023 -> {kind: "sv_2023", body: $1}
 
 property_formal_type := sequence_formal_type   -> {kind: "sequence", body: $1}
                       | kw_property_269fe373   -> {kind: "property"}
@@ -3713,7 +3752,10 @@ pulldown_strength := lparen strength comma strength rparen | lparen strength com
 
 pullup_strength := lparen strength comma strength rparen | lparen strength comma strength rparen | lparen strength rparen
 
-pulse_control_specparam := kw_PATHPULSE_dollar_e0f78dc5 assign lparen reject_limit_value ( comma error_limit_value )? rparen | kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a assign lparen reject_limit_value ( comma error_limit_value )? rparen
+pulse_control_specparam := kw_PATHPULSE_dollar_e0f78dc5 assign lparen reject_limit_value ( comma error_limit_value )? rparen
+                                  -> {kind: "general",        reject: $4, error: $5}
+                          | kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a assign lparen reject_limit_value ( comma error_limit_value )? rparen
+                                  -> {kind: "input_output",   reject: $4, error: $5}
 
 pulsestyle_declaration := kw_pulsestyle_onevent_11e408b6 list_of_path_outputs semi
                                 -> {kind: "onevent",   outputs: $2}
@@ -3743,6 +3785,7 @@ random_qualifier := kw_rand_52400560  -> {kind: "rand"}
                   | kw_randc_c870e2bc -> {kind: "randc"}
 
 randomize_call := kw_randomize_e3b19624 attribute_instance* ( lparen ( variable_identifier_list | kw_null_2be88ca4 )? rparen )? ( kw_with_8fcd25a3 ( lparen ( identifier_list )? rparen )? constraint_block )?
+                -> {attributes: $2, args: $3, with_clause: $4}
 
 @profiles: ["sv_2017"]
 randsequence_statement_sv_2017 := kw_randsequence_8b92cf8f lparen ( production_identifier )? rparen production production* kw_endsequence_241830d7
@@ -3752,7 +3795,8 @@ randsequence_statement_sv_2017 := kw_randsequence_8b92cf8f lparen ( production_i
 randsequence_statement_sv_2023 := kw_randsequence_8b92cf8f lparen ( rs_production_identifier )? rparen rs_production rs_production* kw_endsequence_241830d7
                                -> {start: $3, productions: {first: $5, rest: $6}}
 
-randsequence_statement := randsequence_statement_sv_2017 | randsequence_statement_sv_2023
+randsequence_statement := randsequence_statement_sv_2017 -> {kind: "sv_2017", body: $1}
+                        | randsequence_statement_sv_2023 -> {kind: "sv_2023", body: $1}
 
 range_expression := expression        -> {kind: "expression",        body: $1}
                   | part_select_range -> {kind: "part_select_range", body: $1}
@@ -3765,13 +3809,16 @@ range_list := range_list_sv_2023
            -> {body: $1}
 
 ref_declaration := kw_ref_69449f99 variable_port_type list_of_variable_identifiers
+                -> {port_type: $2, items: $3}
 
 reference_event := timing_check_event
                 -> {body: $1}
 
 reject_limit_value := limit_value
+                   -> {body: $1}
 
 remain_active_flag := constant_mintypmax_expression
+                   -> {body: $1}
 
 repeat_range := covergroup_expression                                -> {kind: "single", body: $1}
               | covergroup_expression colon covergroup_expression    -> {kind: "range",  lo: $1, hi: $3}
@@ -3890,6 +3937,7 @@ rs_weight_specification_sv_2023 := integral_number          -> {kind: "number", 
                                  | lparen expression rparen -> {kind: "expression", body: $2}
 
 rs_weight_specification := rs_weight_specification_sv_2023
+                        -> {body: $1}
 
 scalar_constant := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_B_9f69eb32 | tick kw_b_e9d71f5e | tick kw_b_e9d71f5e | tick kw_B_ae4f281d | tick kw_B_ae4f281d | kw_n_1_356a192b | kw_n_0_b6589fc6
 
@@ -3909,6 +3957,7 @@ select_tail := lbrack part_select_range rbrack
                     -> {kind: "bit_select", bits: $1, range: $2}
 
 select_condition := kw_binsof_efb35b22 lparen bins_expression rparen ( kw_intersect_6c96caaf covergroup_range_list* )?
+                 -> {expression: $3, intersect: $5}
 
 select_expression := select_condition
                             -> {kind: "condition",   body: $1}
@@ -4020,6 +4069,7 @@ sequential_entry := seq_input_list colon current_state colon next_state semi
                  -> {inputs: $1, current_state: $3, next_state: $5}
 
 set_covergroup_expression := covergroup_expression
+                          -> {body: $1}
 
 @profiles: ["sv_2023"]
 severity_system_task_sv_2023 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_number ( comma list_of_arguments )? rparen )? semi
@@ -4032,6 +4082,7 @@ severity_system_task_sv_2023 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_numb
                                        -> {kind: "info",    args: $2}
 
 severity_system_task := severity_system_task_sv_2023
+                     -> {body: $1}
 
 showcancelled_declaration := kw_showcancelled_ac9a7408 list_of_path_outputs semi
                                    -> {kind: "showcancelled",   outputs: $2}
