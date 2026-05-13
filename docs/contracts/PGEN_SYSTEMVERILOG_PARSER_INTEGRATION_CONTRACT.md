@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.97`
+  - `1.0.98`
 - Parser release version:
-  - `1.0.97`
+  - `1.0.98`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,28 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.98 / Contract 1.0.98 Highlights — SV-Slice-98 batch: default_skew + dynamic_override + forward_type + module_instantiation + operator_assignment + package_or_generate wrappers typed (24 rules / 39 annotations)
+
+```ebnf
+default_skew                          -> 3 kinds (input / output / input_output)
+dynamic_override_specifiers / final_specifier / forward_type /
+  incomplete_class_scoped_type / initial_or_extends_specifier /
+  net_type_declaration / nettype_declaration /
+  non_consecutive_repetition / nonconsecutive_repetition / notifier /
+  open_range_list / open_value_range_sv_2017 / open_value_range  -> {body}
+forward_type_sv_2023                  -> 5 kinds (enum / struct / union / class / interface_class)
+full_edge_sensitive_path_description  -> 2 kinds (sv_2017 / sv_2023)
+function_data_type_or_implicit        -> 2 kinds (data_type / implicit)
+module_instantiation                  -> {name, params, instances: [$3, $4::2*]}
+non_zero_decimal_digit_sv_2017        -> 9 kinds (1-9)
+nonrange_select                       -> {member_chain, bits}
+nonrange_variable_lvalue              -> {scope, name, select}
+operator_assignment                   -> {lvalue, operator, value}
+package_or_generate_item_declaration  -> 2 kinds (sv_2017 / sv_2023)
+```
+
+Annotation count: **1890** (was 1851, +39). Same accept set.
 
 ## Release 1.0.97 / Contract 1.0.97 Highlights — SV-Slice-97 batch: final/initial_construct + method_call internals + identifier_list + interface_instantiation + module_common_item wrappers typed (19 rules / 26 annotations)
 

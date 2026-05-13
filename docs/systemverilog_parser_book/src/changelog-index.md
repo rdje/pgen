@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.98 / Contract 1.0.98 — SV-Slice-98 batch: default_skew + dynamic_override + forward_type + module_instantiation + operator_assignment + package_or_generate wrappers typed (24 rules / 39 annotations)
+
+Annotation inventory: **1890** (was 1851, +39). Same accept set.
+
 ### 1.0.97 / Contract 1.0.97 — SV-Slice-97 batch: final/initial_construct + method_call internals + identifier_list + interface_instantiation + module_common_item wrappers typed (19 rules / 26 annotations)
 
 Annotation inventory: **1851** (was 1825, +26). Same accept set.

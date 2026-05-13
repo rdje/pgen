@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-98 batch: default_skew + dynamic_override + forward_type + module_instantiation + operator_assignment + package_or_generate wrappers typed (24 rules / 39 annotations) (PGEN-SVP-0098)
+
+`default_skew` (3 kinds), `dynamic_override_specifiers` / `final_specifier` / `forward_type` / `incomplete_class_scoped_type` / `initial_or_extends_specifier` / `net_type_declaration` / `nettype_declaration` / `non_consecutive_repetition` / `nonconsecutive_repetition` / `notifier` / `open_range_list` / `open_value_range_sv_2017` / `open_value_range` (each `{body}`), `forward_type_sv_2023` (5 kinds), `full_edge_sensitive_path_description` (2 kinds), `function_data_type_or_implicit` (2 kinds), `module_instantiation` (`{name, params, instances: [$3, $4::2*]}`), `non_zero_decimal_digit_sv_2017` (9 kinds), `nonrange_select` (`{member_chain, bits}`), `nonrange_variable_lvalue` (`{scope, name, select}`), `operator_assignment` (`{lvalue, operator, value}`), `package_or_generate_item_declaration` (2 kinds).
+
+Annotation count: 1890 (was 1851, +39). Same accept set. Manifest + contract bumped to 1.0.98. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-97 batch: final/initial_construct + method_call internals + identifier_list + interface_instantiation + module_common_item wrappers typed (19 rules / 26 annotations) (PGEN-SVP-0097)
 
 `attr_name`, `final_construct`, `function_statement`, `initial_construct`, `non_typedef_package_scope`, `limit_value`, `list_of_parameter_assignments`, `list_of_parameter_value_assignments` (each `{body}`), `function_subroutine_call` (2 kinds), `gate_instantiation` (2 kinds), `identifier_list` (`[$1, $2::2*]`), `inside_expression` (2 kinds), `interface_instantiation` (`{name, params, instances: [$3, $4::2*]}`), `let_formal_type` (2 kinds: data_type / untyped), `direct_method_call`, `callable_method_call_body` (2 kinds), `split_hierarchical_callable_receiver`, `split_direct_callable_method_call` (2 kinds), `direct_callable_method_call`, `module_common_item` (2 kinds).

@@ -1523,7 +1523,12 @@ decimal_digit := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_n_2_da4b9237 | kw_n_3_77
 default_clause := kw_default_7505d64a
                -> {kind: "default"}
 
-default_skew := kw_input_140f86aa clocking_skew | kw_output_1029d676 clocking_skew | kw_input_140f86aa clocking_skew kw_output_1029d676 clocking_skew
+default_skew := kw_input_140f86aa clocking_skew
+                      -> {kind: "input",       skew: $2}
+              | kw_output_1029d676 clocking_skew
+                      -> {kind: "output",      skew: $2}
+              | kw_input_140f86aa clocking_skew kw_output_1029d676 clocking_skew
+                      -> {kind: "input_output", input_skew: $2, output_skew: $4}
 
 deferred_immediate_assert_statement := kw_assert_64b5daad hash kw_n_0_b6589fc6 lparen expression rparen action_block
                                             -> {kind: "zero_delay", expression: $5, action: $7}
@@ -1651,6 +1656,7 @@ dynamic_override_specifiers_sv_2023 := ( initial_or_extends_specifier )? ( final
                                     -> {initial_or_extends: $1, final: $2}
 
 dynamic_override_specifiers := dynamic_override_specifiers_sv_2023
+                            -> {body: $1}
 
 edge_control_specifier := kw_edge_a0f2c69a ( edge_descriptor ( comma edge_descriptor )* )?
                        -> {descriptors: $2}
@@ -1813,6 +1819,7 @@ final_specifier_sv_2023 := colon kw_final_d594c2cc
                         -> {kind: "final"}
 
 final_specifier := final_specifier_sv_2023
+                -> {body: $1}
 
 finish_number := kw_n_0_b6589fc6 -> {kind: "0"}
                | kw_n_1_356a192b -> {kind: "1"}
@@ -1838,9 +1845,14 @@ for_variable_declaration := ( kw_var_e5b4e786 )? data_type variable_identifier a
 formal_port_identifier := declaration_identifier
 
 @profiles: ["sv_2023"]
-forward_type_sv_2023 := kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 | kw_class_8d767bf5 | kw_interface_5ea2d81a kw_class_8d767bf5
+forward_type_sv_2023 := kw_enum_e338e8e3                            -> {kind: "enum"}
+                      | kw_struct_d118e5a3                          -> {kind: "struct"}
+                      | kw_union_67ad5a07                           -> {kind: "union"}
+                      | kw_class_8d767bf5                           -> {kind: "class"}
+                      | kw_interface_5ea2d81a kw_class_8d767bf5     -> {kind: "interface_class"}
 
 forward_type := forward_type_sv_2023
+             -> {body: $1}
 
 @profiles: ["sv_2017"]
 full_edge_sensitive_path_description_sv_2017 := lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow lparen list_of_path_outputs ( polarity_operator )? colon data_source_expression rparen rparen
@@ -1852,7 +1864,8 @@ full_edge_sensitive_path_description_sv_2023 := lparen ( edge_identifier )? list
                                               | lparen ( edge_identifier )? list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
                                                       -> {kind: "simple",           edge: $2, inputs: $3, in_polarity: $4, outputs: $6}
 
-full_edge_sensitive_path_description := full_edge_sensitive_path_description_sv_2017 | full_edge_sensitive_path_description_sv_2023
+full_edge_sensitive_path_description := full_edge_sensitive_path_description_sv_2017 -> {kind: "sv_2017", body: $1}
+                                       | full_edge_sensitive_path_description_sv_2023 -> {kind: "sv_2023", body: $1}
 
 full_path_description := lparen list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
                       -> {inputs: $2, polarity: $3, outputs: $5}
@@ -1863,7 +1876,8 @@ function_body_declaration := @sample: "int f; endfunction : f" function_data_typ
                            | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                            | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
 
-function_data_type_or_implicit := data_type_or_void | implicit_data_type
+function_data_type_or_implicit := data_type_or_void   -> {kind: "data_type", body: $1}
+                                | implicit_data_type  -> {kind: "implicit",  body: $1}
 
 @profiles: ["sv_2017"]
 function_declaration_sv_2017 := kw_function_c218e39e ( lifetime )? function_body_declaration
@@ -2053,6 +2067,7 @@ incomplete_class_scoped_type_sv_2023 := type_identifier scope_resolution type_id
                                               -> {kind: "recursive", body: $1, tail: $3}
 
 incomplete_class_scoped_type := incomplete_class_scoped_type_sv_2023
+                             -> {body: $1}
 
 index_variable_identifier := identifier
 
@@ -2069,6 +2084,7 @@ initial_or_extends_specifier_sv_2023 := colon kw_initial_8ad7d21c -> {kind: "ini
                                       | colon kw_extends_2b781ff8 -> {kind: "extends"}
 
 initial_or_extends_specifier := initial_or_extends_specifier_sv_2023
+                             -> {body: $1}
 
 inout_declaration := kw_inout_c900aaa9 net_port_type list_of_port_identifiers
                   -> {port_type: $2, items: $3}
@@ -2639,6 +2655,7 @@ module_declaration := @sample: "module m; endmodule" module_declaration_sv_2017
 module_identifier := declaration_identifier
 
 module_instantiation := module_identifier ( parameter_value_assignment )? hierarchical_instance ( comma hierarchical_instance )* semi
+                     -> {name: $1, params: $2, instances: [$3, $4::2*]}
 
 module_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
             | non_port_module_item   -> {kind: "non_port_item",    body: $1}
@@ -2840,6 +2857,7 @@ net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type net_type_identifie
                               | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier net_type_identifier semi
 
 net_type_declaration := net_type_declaration_sv_2017
+                     -> {body: $1}
 
 @profiles: ["sv_2017"]
 net_type_identifier_sv_2017 := declaration_identifier
@@ -2853,6 +2871,7 @@ nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type nettype_identifier 
                                       -> {kind: "nettype",    scope: $2, base: $3, name: $4}
 
 nettype_declaration := nettype_declaration_sv_2023
+                    -> {body: $1}
 
 @profiles: ["sv_2023"]
 nettype_identifier_sv_2023 := declaration_identifier
@@ -2867,6 +2886,7 @@ non_consecutive_repetition_sv_2017 := ( assign const_or_range_expression )?
                                    -> {range: $1}
 
 non_consecutive_repetition := non_consecutive_repetition_sv_2017
+                           -> {body: $1}
 
 non_integer_type := kw_shortreal_99d69111 -> {kind: "shortreal"}
                   | kw_real_c9c64e07      -> {kind: "real"}
@@ -2918,7 +2938,15 @@ non_port_program_item := attribute_instance* continuous_assign
                              -> {kind: "program_generate_item",            body: $1}
 
 @profiles: ["sv_2017"]
-non_zero_decimal_digit_sv_2017 := kw_n_1_356a192b | kw_n_2_da4b9237 | kw_n_3_77de68da | kw_n_4_1b645389 | kw_n_5_ac3478d6 | kw_n_6_c1dfd96e | kw_n_7_902ba3cd | kw_n_8_fe5dbbce | kw_n_9_0ade7c2c
+non_zero_decimal_digit_sv_2017 := kw_n_1_356a192b -> {kind: "1"}
+                                | kw_n_2_da4b9237 -> {kind: "2"}
+                                | kw_n_3_77de68da -> {kind: "3"}
+                                | kw_n_4_1b645389 -> {kind: "4"}
+                                | kw_n_5_ac3478d6 -> {kind: "5"}
+                                | kw_n_6_c1dfd96e -> {kind: "6"}
+                                | kw_n_7_902ba3cd -> {kind: "7"}
+                                | kw_n_8_fe5dbbce -> {kind: "8"}
+                                | kw_n_9_0ade7c2c -> {kind: "9"}
 
 non_zero_decimal_digit := non_zero_decimal_digit_sv_2017
 
@@ -2935,12 +2963,16 @@ nonconsecutive_repetition_sv_2023 := ( assign const_or_range_expression )?
                                   -> {range: $1}
 
 nonconsecutive_repetition := nonconsecutive_repetition_sv_2023
+                          -> {body: $1}
 
 nonrange_select := ( ( dot member_identifier bit_select )* dot member_identifier )? bit_select
+                -> {member_chain: $1, bits: $2}
 
 nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope )? hierarchical_variable_identifier nonrange_select
+                         -> {scope: $1, name: $2, select: $3}
 
 notifier := variable_identifier
+         -> {body: $1}
 
 octal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_o_7a81af3e | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_O_08a914cd
 
@@ -2955,13 +2987,17 @@ open_range_list_sv_2017 := open_value_range ( comma open_value_range )*
                         -> [$1, $2::2*]
 
 open_range_list := open_range_list_sv_2017
+                -> {body: $1}
 
 @profiles: ["sv_2017"]
 open_value_range_sv_2017 := value_range
+                         -> {body: $1}
 
 open_value_range := open_value_range_sv_2017
+                 -> {body: $1}
 
 operator_assignment := variable_lvalue assignment_operator expression
+                    -> {lvalue: $1, operator: $2, value: $3}
 
 ordered_checker_port_connection := attribute_instance* ( property_actual_arg )?
                                 -> {attributes: $1, arg: $2}
@@ -3048,7 +3084,8 @@ package_or_generate_item_declaration_sv_2023 := local_parameter_declaration semi
                                               | assertion_item_declaration         -> {kind: "assertion_item_declaration",    body: $1}
                                               | semi                               -> {kind: "semi"}
 
-package_or_generate_item_declaration := package_or_generate_item_declaration_sv_2017 | package_or_generate_item_declaration_sv_2023
+package_or_generate_item_declaration := package_or_generate_item_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                                       | package_or_generate_item_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 package_scope := package_identifier scope_resolution | kw_sv_dollar_unit_1d99223f scope_resolution
 
