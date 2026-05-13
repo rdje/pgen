@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-109 batch: pulldown_strength + pullup_strength + net_type typed (3 rules / 18 annotations) (PGEN-SVP-0109)
+
+`net_type` 12 branches with `{kind: "<keyword>"}` discriminators: supply (x2), tri (x3), triand, trior, trireg, uwire, wire, wand, wor. `pulldown_strength` / `pullup_strength` 3 branches each: 2x `{kind: "pair", first, second}` (extract strengths) + 1x `{kind: "single", value}`. Duplicate branches accepted as-is (artifact of grammar profile-merging).
+
+Annotation count: 2193 (was 2175, +18). Same accept set. Manifest + contract bumped to 1.0.109. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-108 batch: duplicate-branch leaf rules typed (3 rules / 11 annotations) (PGEN-SVP-0108)
 
 Per-branch `{kind: "X"}` on Or rules with duplicate branches: `enable_gatetype` 4 branches (2x bufif / 2x notif), `pass_en_switchtype` 4 branches (2x tranif / 2x rtranif), `unique_priority` 3 branches (2x unique / 1x priority). Duplicates accepted as-is — consumers see identical `{kind}` regardless of which copy matched. Underlying grammar duplicates are an artifact of profile-merging; cleaning them up is a separate grammar-bug task.

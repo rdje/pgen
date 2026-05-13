@@ -2902,7 +2902,18 @@ net_port_type_sv_2023 := ( net_type )? data_type_or_implicit             -> {kin
 net_port_type := net_port_type_sv_2017 -> {kind: "sv_2017", body: $1}
                | net_port_type_sv_2023 -> {kind: "sv_2023", body: $1}
 
-net_type := kw_supply_076df715 | kw_supply_076df715 | kw_tri_54bf01f1 | kw_triand_51bca013 | kw_trior_56b8b9f0 | kw_trireg_f7901823 | kw_tri_54bf01f1 | kw_tri_54bf01f1 | kw_uwire_9143a634 | kw_wire_6e1c6849 | kw_wand_4be59aff | kw_wor_ff9e40da
+net_type := kw_supply_076df715 -> {kind: "supply"}
+         | kw_supply_076df715 -> {kind: "supply"}
+         | kw_tri_54bf01f1    -> {kind: "tri"}
+         | kw_triand_51bca013 -> {kind: "triand"}
+         | kw_trior_56b8b9f0  -> {kind: "trior"}
+         | kw_trireg_f7901823 -> {kind: "trireg"}
+         | kw_tri_54bf01f1    -> {kind: "tri"}
+         | kw_tri_54bf01f1    -> {kind: "tri"}
+         | kw_uwire_9143a634  -> {kind: "uwire"}
+         | kw_wire_6e1c6849   -> {kind: "wire"}
+         | kw_wand_4be59aff   -> {kind: "wand"}
+         | kw_wor_ff9e40da    -> {kind: "wor"}
 
 @profiles: ["sv_2017"]
 @sample: "nettype int nt;"
@@ -3832,9 +3843,13 @@ ps_type_identifier := ps_type_identifier_sv_2017 -> {body: $1}
 pull_gate_instance := ( name_of_instance )? lparen output_terminal rparen
                    -> {name: $1, output: $3}
 
-pulldown_strength := lparen strength comma strength rparen | lparen strength comma strength rparen | lparen strength rparen
+pulldown_strength := lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
+                  | lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
+                  | lparen strength rparen                -> {kind: "single", value: $2}
 
-pullup_strength := lparen strength comma strength rparen | lparen strength comma strength rparen | lparen strength rparen
+pullup_strength := lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
+                | lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
+                | lparen strength rparen                -> {kind: "single", value: $2}
 
 pulse_control_specparam := kw_PATHPULSE_dollar_e0f78dc5 assign lparen reject_limit_value ( comma error_limit_value )? rparen
                                   -> {kind: "general",        reject: $4, error: $5}

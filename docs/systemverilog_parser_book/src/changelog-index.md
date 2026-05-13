@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.109 / Contract 1.0.109 — SV-Slice-109 batch: pulldown_strength + pullup_strength + net_type typed (3 rules / 18 annotations)
+
+Annotation inventory: **2193** (was 2175, +18). Same accept set.
+
 ### 1.0.108 / Contract 1.0.108 — SV-Slice-108 batch: duplicate-branch leaf rules typed (3 rules / 11 annotations)
 
 Annotation inventory: **2175** (was 2164, +11). Same accept set.

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.108`
+  - `1.0.109`
 - Parser release version:
-  - `1.0.108`
+  - `1.0.109`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,21 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.109 / Contract 1.0.109 Highlights — SV-Slice-109 batch: pulldown_strength + pullup_strength + net_type typed (3 rules / 18 annotations)
+
+```ebnf
+net_type
+  -> per-branch {kind: "supply" | "tri" | "triand" | "trior" | "trireg"
+                       | "uwire" | "wire" | "wand" | "wor"}
+     (supply x2, tri x3 — duplicates retained)
+
+pulldown_strength / pullup_strength
+  -> per-branch {kind: "pair", first, second}  (x2, duplicates retained)
+              | {kind: "single", value}
+```
+
+Annotation count: **2193** (was 2175, +18). Same accept set.
 
 ## Release 1.0.108 / Contract 1.0.108 Highlights — SV-Slice-108 batch: duplicate-branch leaf rules typed (3 rules / 11 annotations)
 
