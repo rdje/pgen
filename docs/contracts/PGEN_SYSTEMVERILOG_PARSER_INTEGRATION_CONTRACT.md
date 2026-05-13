@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.101`
+  - `1.0.102`
 - Parser release version:
-  - `1.0.101`
+  - `1.0.102`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,31 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.102 / Contract 1.0.102 Highlights — SV-Slice-102 batch: number-leaf family typed (12 Or rules / 63 annotations)
+
+Per-branch kind discriminators on the number-leaf alternation rules:
+
+```ebnf
+binary_base   -> {kind: "b" | "B"}
+binary_digit  -> {kind: "x" | "z" | "0" | "1"}
+decimal_base  -> {kind: "d" | "D"}
+decimal_digit -> {kind: "0" .. "9"}
+hex_base      -> {kind: "h" | "H"}
+hex_digit     -> {kind: "x" | "z" | "0"-"9" | "a"-"f" | "A"-"F"}
+octal_base    -> {kind: "o" | "O"}
+octal_digit   -> {kind: "x" | "z" | "0"-"7"}
+x_digit       -> {kind: "x" | "X"}
+z_digit       -> {kind: "z" | "Z" | "?"}
+z_or_x        -> {kind: "x" | "X" | "z" | "Z"}
+zero_or_one   -> {kind: "0" | "1"}
+```
+
+Per-branch (not rule-level) annotation chosen because rule-level `-> {body}` on an Or hits task #38 (parens-grouped-Or trailing-annotation attribution).
+
+DEFERRED: `*_value` rules (binary_value, hex_value, octal_value, unsigned_number, non_zero_unsigned_number) — sequence-with-repetition shape needs different shaping.
+
+Annotation count: **2044** (was 1981, +63). Same accept set.
 
 ## Release 1.0.101 / Contract 1.0.101 Highlights — SV-Slice-101 batch: comment_only + timing_check_limit + trans_item + remaining t*_path + type wrappers + variable_port typed (15 rules / 15 annotations)
 

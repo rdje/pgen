@@ -512,9 +512,13 @@ attribute_instance := attr_open attr_spec ( comma attr_spec )* attr_close
 
 bin_identifier := identifier
 
-binary_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_b_e9d71f5e | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_B_ae4f281d
+binary_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_b_e9d71f5e  -> {kind: "b"}
+            | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_B_ae4f281d   -> {kind: "B"}
 
-binary_digit := x_digit | z_digit | kw_n_0_b6589fc6 | kw_n_1_356a192b
+binary_digit := x_digit                 -> {kind: "x"}
+             | z_digit                  -> {kind: "z"}
+             | kw_n_0_b6589fc6          -> {kind: "0"}
+             | kw_n_1_356a192b          -> {kind: "1"}
 
 @profiles: ["sv_2023"]
 binary_module_path_operator_sv_2023 := equal               -> {kind: "equal"}
@@ -1517,9 +1521,19 @@ data_type_or_incomplete_class_scoped_type := data_type_or_incomplete_class_scope
 data_type_or_void := data_type        -> {kind: "data_type", body: $1}
                    | kw_void_e9cede9b -> {kind: "void"}
 
-decimal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_d_3c363836 | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_D_50c9e8d5
+decimal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_d_3c363836 -> {kind: "d"}
+             | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_D_50c9e8d5  -> {kind: "D"}
 
-decimal_digit := kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_n_2_da4b9237 | kw_n_3_77de68da | kw_n_4_1b645389 | kw_n_5_ac3478d6 | kw_n_6_c1dfd96e | kw_n_7_902ba3cd | kw_n_8_fe5dbbce | kw_n_9_0ade7c2c
+decimal_digit := kw_n_0_b6589fc6 -> {kind: "0"}
+              | kw_n_1_356a192b -> {kind: "1"}
+              | kw_n_2_da4b9237 -> {kind: "2"}
+              | kw_n_3_77de68da -> {kind: "3"}
+              | kw_n_4_1b645389 -> {kind: "4"}
+              | kw_n_5_ac3478d6 -> {kind: "5"}
+              | kw_n_6_c1dfd96e -> {kind: "6"}
+              | kw_n_7_902ba3cd -> {kind: "7"}
+              | kw_n_8_fe5dbbce -> {kind: "8"}
+              | kw_n_9_0ade7c2c -> {kind: "9"}
 
 default_clause := kw_default_7505d64a
                -> {kind: "default"}
@@ -1988,9 +2002,33 @@ genvar_iteration := genvar_identifier assignment_operator genvar_expression
 goto_repetition := ( implies const_or_range_expression )?
                 -> {range: $1}
 
-hex_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_h_27d5482e | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_H_7cf184f4
+hex_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_h_27d5482e -> {kind: "h"}
+         | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_H_7cf184f4  -> {kind: "H"}
 
-hex_digit := x_digit | z_digit | kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_n_2_da4b9237 | kw_n_3_77de68da | kw_n_4_1b645389 | kw_n_5_ac3478d6 | kw_n_6_c1dfd96e | kw_n_7_902ba3cd | kw_n_8_fe5dbbce | kw_n_9_0ade7c2c | kw_a_86f7e437 | kw_b_e9d71f5e | kw_c_84a51684 | kw_d_3c363836 | kw_e_58e6b3a4 | kw_f_4a0a1921 | kw_A_6dcd4ce2 | kw_B_ae4f281d | kw_C_32096c2e | kw_D_50c9e8d5 | kw_E_e0184ade | kw_F_e69f20e9
+hex_digit := x_digit          -> {kind: "x"}
+          | z_digit            -> {kind: "z"}
+          | kw_n_0_b6589fc6    -> {kind: "0"}
+          | kw_n_1_356a192b    -> {kind: "1"}
+          | kw_n_2_da4b9237    -> {kind: "2"}
+          | kw_n_3_77de68da    -> {kind: "3"}
+          | kw_n_4_1b645389    -> {kind: "4"}
+          | kw_n_5_ac3478d6    -> {kind: "5"}
+          | kw_n_6_c1dfd96e    -> {kind: "6"}
+          | kw_n_7_902ba3cd    -> {kind: "7"}
+          | kw_n_8_fe5dbbce    -> {kind: "8"}
+          | kw_n_9_0ade7c2c    -> {kind: "9"}
+          | kw_a_86f7e437      -> {kind: "a"}
+          | kw_b_e9d71f5e      -> {kind: "b"}
+          | kw_c_84a51684      -> {kind: "c"}
+          | kw_d_3c363836      -> {kind: "d"}
+          | kw_e_58e6b3a4      -> {kind: "e"}
+          | kw_f_4a0a1921      -> {kind: "f"}
+          | kw_A_6dcd4ce2      -> {kind: "A"}
+          | kw_B_ae4f281d      -> {kind: "B"}
+          | kw_C_32096c2e      -> {kind: "C"}
+          | kw_D_50c9e8d5      -> {kind: "D"}
+          | kw_E_e0184ade      -> {kind: "E"}
+          | kw_F_e69f20e9      -> {kind: "F"}
 
 hex_value := hex_digit ( kw_sv_rule_c82a06f6 | hex_digit )*
 
@@ -2975,9 +3013,19 @@ nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope )? hiera
 notifier := variable_identifier
          -> {body: $1}
 
-octal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_o_7a81af3e | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_O_08a914cd
+octal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_o_7a81af3e -> {kind: "o"}
+           | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_O_08a914cd  -> {kind: "O"}
 
-octal_digit := x_digit | z_digit | kw_n_0_b6589fc6 | kw_n_1_356a192b | kw_n_2_da4b9237 | kw_n_3_77de68da | kw_n_4_1b645389 | kw_n_5_ac3478d6 | kw_n_6_c1dfd96e | kw_n_7_902ba3cd
+octal_digit := x_digit              -> {kind: "x"}
+            | z_digit                -> {kind: "z"}
+            | kw_n_0_b6589fc6        -> {kind: "0"}
+            | kw_n_1_356a192b        -> {kind: "1"}
+            | kw_n_2_da4b9237        -> {kind: "2"}
+            | kw_n_3_77de68da        -> {kind: "3"}
+            | kw_n_4_1b645389        -> {kind: "4"}
+            | kw_n_5_ac3478d6        -> {kind: "5"}
+            | kw_n_6_c1dfd96e        -> {kind: "6"}
+            | kw_n_7_902ba3cd        -> {kind: "7"}
 
 octal_value := octal_digit ( kw_sv_rule_c82a06f6 | octal_digit )*
 
@@ -4817,13 +4865,20 @@ weight_specification := weight_specification_sv_2017
 with_covergroup_expression := covergroup_expression
                            -> {body: $1}
 
-x_digit := kw_x_11f6ad8e | kw_X_c032adc1
+x_digit := kw_x_11f6ad8e -> {kind: "x"}
+        | kw_X_c032adc1  -> {kind: "X"}
 
-z_digit := kw_z_395df8f7 | kw_Z_909f99a7 | question
+z_digit := kw_z_395df8f7 -> {kind: "z"}
+        | kw_Z_909f99a7  -> {kind: "Z"}
+        | question        -> {kind: "?"}
 
-z_or_x := kw_x_11f6ad8e | kw_X_c032adc1 | kw_z_395df8f7 | kw_Z_909f99a7
+z_or_x := kw_x_11f6ad8e -> {kind: "x"}
+       | kw_X_c032adc1  -> {kind: "X"}
+       | kw_z_395df8f7  -> {kind: "z"}
+       | kw_Z_909f99a7  -> {kind: "Z"}
 
-zero_or_one := kw_n_0_b6589fc6 | kw_n_1_356a192b
+zero_or_one := kw_n_0_b6589fc6 -> {kind: "0"}
+            | kw_n_1_356a192b -> {kind: "1"}
 
 # Generated literal tokens
 

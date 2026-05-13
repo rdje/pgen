@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4d752882.js";
+            window.path_to_searchindex_js = "searchindex-1f278ffe.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>1.3.0</td><td>1.0.102</td><td><strong>SV-Slice-102 batch: number-leaf family typed — 12 Or rules with per-branch kind discriminators (binary/decimal/hex/octal base+digit, x_digit, z_digit, z_or_x, zero_or_one).</strong> 12 rules / 63 annotations. Annotation inventory: 2044 entries (was 1981).</td></tr>
 <tr><td>1.2.0</td><td>1.0.101</td><td><em><em>SV-Slice-101 batch: comment_only + timing_check_limit + trans_item + remaining t</em>_path + type wrappers + variable_port typed.</em>* 15 rules / 15 annotations. Annotation inventory: 1981 entries (was 1966).</td></tr>
 <tr><td>1.1.0</td><td>1.0.100</td><td><em><em>SV-Slice-100 batch: sign + statement_item + structure_pattern_key + t</em>_path_delay_expression + tf_port + threshold + timecheck + timeunits wrappers typed (crosses 100-slice milestone).</em>* 16 rules / 26 annotations. Annotation inventory: 1966 entries (was 1940).</td></tr>
 <tr><td>1.0.0</td><td>1.0.99</td><td><strong>SV-Slice-99 batch: package_scope + parameter_declaration + parameter_value_assignment + parameter_override + pattern + port_declaration + program_generate_item + property_expr + pulse_control + randomize + ref_declaration + select_condition wrappers typed.</strong> 25 rules / 50 annotations. Annotation inventory: 1940 entries (was 1890).</td></tr>
@@ -1448,6 +1449,8 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10102--contract-10102--sv-slice-102-batch-number-leaf-family-typed--12-or-rules-with-per-branch-kind-discriminators-63-annotations"><a class="header" href="#10102--contract-10102--sv-slice-102-batch-number-leaf-family-typed--12-or-rules-with-per-branch-kind-discriminators-63-annotations">1.0.102 / Contract 1.0.102 — SV-Slice-102 batch: number-leaf family typed — 12 Or rules with per-branch kind discriminators (63 annotations)</a></h3>
+<p>Annotation inventory: <strong>2044</strong> (was 1981, +63). Same accept set.</p>
 <h3 id="10101--contract-10101--sv-slice-101-batch-comment_only--timing_check_limit--trans_item--remaining-t_path--type-wrappers--variable_port-typed-15-rules--15-annotations"><a class="header" href="#10101--contract-10101--sv-slice-101-batch-comment_only--timing_check_limit--trans_item--remaining-t_path--type-wrappers--variable_port-typed-15-rules--15-annotations">1.0.101 / Contract 1.0.101 — SV-Slice-101 batch: comment_only + timing_check_limit + trans_item + remaining t*_path + type wrappers + variable_port typed (15 rules / 15 annotations)</a></h3>
 <p>Annotation inventory: <strong>1981</strong> (was 1966, +15). Same accept set.</p>
 <h3 id="10100--contract-10100--sv-slice-100-batch-sign--statement_item--structure_pattern_key--t_path_delay_expression--tf_port--threshold--timecheck--timeunits-wrappers-typed-16-rules--26-annotations--crosses-100-slice-milestone"><a class="header" href="#10100--contract-10100--sv-slice-100-batch-sign--statement_item--structure_pattern_key--t_path_delay_expression--tf_port--threshold--timecheck--timeunits-wrappers-typed-16-rules--26-annotations--crosses-100-slice-milestone">1.0.100 / Contract 1.0.100 — SV-Slice-100 batch: sign + statement_item + structure_pattern_key + t*_path_delay_expression + tf_port + threshold + timecheck + timeunits wrappers typed (16 rules / 26 annotations) — crosses 100-slice milestone</a></h3>

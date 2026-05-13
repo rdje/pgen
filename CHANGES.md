@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-102 batch: number-leaf family typed — 12 Or rules with per-branch kind discriminators (63 annotations) (PGEN-SVP-0102)
+
+Per-branch `{kind: "<char>"}` discriminators on number-leaf alternation rules: `binary_base` (2: b/B), `binary_digit` (4: x/z/0/1), `decimal_base` (2: d/D), `decimal_digit` (10: 0-9), `hex_base` (2: h/H), `hex_digit` (24: x/z/0-9/a-f/A-F), `octal_base` (2: o/O), `octal_digit` (10: x/z/0-7), `x_digit` (2: x/X), `z_digit` (3: z/Z/?), `z_or_x` (4: x/X/z/Z), `zero_or_one` (2: 0/1). Per-branch syntax chosen because rule-level `-> {body}` on Or hits task #38 (parens-grouped-Or trailing-annotation attribution). DEFERRED: *_value rules (binary_value, hex_value, octal_value, unsigned_number, non_zero_unsigned_number) — sequence-with-repetition shape needs different approach.
+
+Annotation count: 2044 (was 1981, +63). Same accept set. Manifest + contract bumped to 1.0.102. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-101 batch: comment_only + timing_check_limit + trans_item + remaining t*_path + type wrappers + variable_port typed (15 rules / 15 annotations) (PGEN-SVP-0101)
 
 `comment_only_source_region` (`{leading_whitespace, first_comment, tail}`), `timing_check_limit` / `trans_item` (each `{body}`), 8 t*_path_delay_expression rules (`trise` / `tx0` / `tx1` / `txz` / `tz0` / `tz1` / `tz` / `tzx` — each `{body}`), `type_identifier_or_class_type` / `type_parameter_declaration` (each `{body}`), `variable_identifier_list` (Category A: `[$1, $2::2*]`), `variable_port_header` (`{direction, port_type}`), `variable_port_type` (`{body}`). DEFERRED: `unique_priority` (duplicate-branch grammar bug).
