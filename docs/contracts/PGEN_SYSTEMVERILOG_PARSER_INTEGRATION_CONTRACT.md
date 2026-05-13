@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.92`
+  - `1.0.93`
 - Parser release version:
-  - `1.0.92`
+  - `1.0.93`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,29 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.93 / Contract 1.0.93 Highlights — SV-Slice-93 batch: anonymous_program_item + assignment_pattern + array + block_event + built_in_method + class_item wrappers typed (16 rules / 40 annotations)
+
+```ebnf
+anonymous_program_item_sv_2017       -> 6 kinds (task / function / class / covergroup / class_constructor / semi)
+anonymous_program_item_sv_2023       -> 7 kinds (adds interface_class)
+anonymous_program_item               -> 2 kinds (sv_2017 / sv_2023)
+array_manipulation_call              -> {method, attributes, args, with_clause}
+array_pattern_key                    -> 2 kinds (expression / pattern_key)
+array_range_expression               -> 4 kinds (expression / range / plus_indexed / minus_indexed)
+assignment_pattern_expression        -> {type, pattern}
+assignment_pattern_expression_type   -> 4 kinds (ps_type / ps_parameter / integer_atom_type / type_reference)
+assignment_pattern_key               -> 2 kinds (type / default)
+assignment_pattern_net_lvalue        -> {items: [$3, $4::2*]}
+assignment_pattern_variable_lvalue   -> {items: [$3, $4::2*]}
+associative_dimension                -> 2 kinds (data_type / wildcard)
+block_event_expression               -> 3 kinds (or / begin / end)
+built_in_method_call                 -> 2 kinds (array_manipulation / randomize)
+class_item                           -> 2 kinds (sv_2017 / sv_2023)
+direct_index_method_call             -> {receiver, body}
+```
+
+Annotation count: **1764** (was 1724, +40). Same accept set.
 
 ## Release 1.0.92 / Contract 1.0.92 Highlights — SV-Slice-92 batch: terminal + cross_set + weight_specification + passthroughs typed (8 rules / 8 annotations)
 

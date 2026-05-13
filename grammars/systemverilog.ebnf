@@ -415,18 +415,31 @@ anonymous_program := kw_program_81d9aeea semi anonymous_program_item* kw_endprog
                   -> {items: $3}
 
 @profiles: ["sv_2017"]
-anonymous_program_item_sv_2017 := task_declaration | function_declaration | class_declaration | covergroup_declaration | class_constructor_declaration | semi
+anonymous_program_item_sv_2017 := task_declaration              -> {kind: "task",                body: $1}
+                                | function_declaration          -> {kind: "function",            body: $1}
+                                | class_declaration             -> {kind: "class",               body: $1}
+                                | covergroup_declaration        -> {kind: "covergroup",          body: $1}
+                                | class_constructor_declaration -> {kind: "class_constructor",   body: $1}
+                                | semi                          -> {kind: "semi"}
 
 @profiles: ["sv_2023"]
-anonymous_program_item_sv_2023 := task_declaration | function_declaration | class_declaration | interface_class_declaration | covergroup_declaration | class_constructor_declaration | semi
+anonymous_program_item_sv_2023 := task_declaration              -> {kind: "task",                body: $1}
+                                | function_declaration          -> {kind: "function",            body: $1}
+                                | class_declaration             -> {kind: "class",               body: $1}
+                                | interface_class_declaration   -> {kind: "interface_class",     body: $1}
+                                | covergroup_declaration        -> {kind: "covergroup",          body: $1}
+                                | class_constructor_declaration -> {kind: "class_constructor",   body: $1}
+                                | semi                          -> {kind: "semi"}
 
-anonymous_program_item := anonymous_program_item_sv_2017 | anonymous_program_item_sv_2023
+anonymous_program_item := anonymous_program_item_sv_2017 -> {kind: "sv_2017", body: $1}
+                        | anonymous_program_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 ansi_port_declaration := ( net_port_header | interface_port_header )? port_identifier unpacked_dimension* ( assign constant_expression )? | ( variable_port_header )? port_identifier variable_dimension* ( assign constant_expression )? | ( port_direction )? dot port_identifier lparen ( expression )? rparen
 
 // array_identifier := identifier
 
 array_manipulation_call := array_method_name attribute_instance* ( lparen list_of_arguments rparen )? ( kw_with_8fcd25a3 lparen expression rparen )?
+                        -> {method: $1, attributes: $2, args: $3, with_clause: $4}
 
 array_method_name := method_identifier      -> {kind: "method_identifier", body: $1}
                    | kw_unique_58037c00     -> {kind: "unique"}
@@ -434,9 +447,13 @@ array_method_name := method_identifier      -> {kind: "method_identifier", body:
                    | kw_or_1758356d         -> {kind: "or"}
                    | kw_xor_f1922a23        -> {kind: "xor"}
 
-array_pattern_key := constant_expression | assignment_pattern_key
+array_pattern_key := constant_expression      -> {kind: "expression",    body: $1}
+                   | assignment_pattern_key   -> {kind: "pattern_key",   body: $1}
 
-array_range_expression := expression | expression colon expression | expression plus colon expression | expression minus colon expression
+array_range_expression := expression                                    -> {kind: "expression",       body: $1}
+                        | expression colon expression                    -> {kind: "range",            lo: $1, hi: $3}
+                        | expression plus colon expression               -> {kind: "plus_indexed",     base: $1, width: $4}
+                        | expression minus colon expression              -> {kind: "minus_indexed",    base: $1, width: $4}
 
 assert_property_statement := kw_assert_64b5daad kw_property_269fe373 lparen property_spec rparen action_block
                           -> {spec: $4, action: $6}
@@ -458,16 +475,24 @@ assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expressi
                     | @sample: "'{2{0, 1}}" tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace
 
 assignment_pattern_expression := ( assignment_pattern_expression_type )? assignment_pattern
+                              -> {type: $1, pattern: $2}
 
-assignment_pattern_expression_type := ps_type_identifier | ps_parameter_identifier | integer_atom_type | type_reference
+assignment_pattern_expression_type := ps_type_identifier        -> {kind: "ps_type",           body: $1}
+                                    | ps_parameter_identifier   -> {kind: "ps_parameter",      body: $1}
+                                    | integer_atom_type         -> {kind: "integer_atom_type", body: $1}
+                                    | type_reference            -> {kind: "type_reference",    body: $1}
 
-assignment_pattern_key := simple_type | kw_default_7505d64a
+assignment_pattern_key := simple_type        -> {kind: "type",     body: $1}
+                        | kw_default_7505d64a -> {kind: "default"}
 
 assignment_pattern_net_lvalue := tick lbrace net_lvalue ( comma net_lvalue )* rbrace
+                              -> {items: [$3, $4::2*]}
 
 assignment_pattern_variable_lvalue := tick lbrace variable_lvalue ( comma variable_lvalue )* rbrace
+                                   -> {items: [$3, $4::2*]}
 
-associative_dimension := lbrack data_type rbrack | lbrack star rbrack
+associative_dimension := lbrack data_type rbrack    -> {kind: "data_type", body: $2}
+                       | lbrack star rbrack          -> {kind: "wildcard"}
 
 assume_property_statement := kw_assume_661e458e kw_property_269fe373 lparen property_spec rparen action_block
                           -> {spec: $4, action: $6}
@@ -553,6 +578,7 @@ bins_selection_or_option := attribute_instance* coverage_option -> {kind: "optio
                           | attribute_instance* bins_selection  -> {kind: "selection", attributes: $1, body: $2}
 
 direct_index_method_call := ( ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | implicit_class_handle ) dot method_call_body
+                         -> {receiver: $1, body: $3}
 
 @branch_policy: priority_first
 bit_select_expression := direct_index_method_call | method_call | expression
@@ -560,7 +586,12 @@ bit_select_expression := direct_index_method_call | method_call | expression
 bit_select := ( lbrack bit_select_expression rbrack )*
            -> {body: $1}
 
-block_event_expression := block_event_expression kw_or_1758356d block_event_expression | kw_begin_8cbd0a74 hierarchical_btf_identifier | kw_end_7a92f3d2 hierarchical_btf_identifier
+block_event_expression := block_event_expression kw_or_1758356d block_event_expression
+                                -> {kind: "or",    lhs: $1, rhs: $3}
+                       | kw_begin_8cbd0a74 hierarchical_btf_identifier
+                                -> {kind: "begin", body: $2}
+                       | kw_end_7a92f3d2 hierarchical_btf_identifier
+                                -> {kind: "end",   body: $2}
 
 block_identifier := declaration_identifier
 
@@ -635,7 +666,8 @@ boolean_abbrev_sv_2023 := consecutive_repetition       -> {kind: "consecutive", 
 boolean_abbrev := boolean_abbrev_sv_2017 -> {kind: "sv_2017", body: $1}
                 | boolean_abbrev_sv_2023 -> {kind: "sv_2023", body: $1}
 
-built_in_method_call := array_manipulation_call | randomize_call
+built_in_method_call := array_manipulation_call -> {kind: "array_manipulation", body: $1}
+                      | randomize_call          -> {kind: "randomize",         body: $1}
 
 case_expression := expression
 
@@ -850,7 +882,8 @@ class_item_sv_2023 := attribute_instance* class_property              -> {kind: 
                     | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
                     | semi                                            -> {kind: "semi"}
 
-class_item := class_item_sv_2017 | class_item_sv_2023
+class_item := class_item_sv_2017 -> {kind: "sv_2017", body: $1}
+            | class_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 class_item_qualifier := kw_static_a381562a    -> {kind: "static"}
                       | kw_protected_964cab4b -> {kind: "protected"}
