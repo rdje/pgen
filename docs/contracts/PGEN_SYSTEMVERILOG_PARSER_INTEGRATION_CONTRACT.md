@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.102`
+  - `1.0.103`
 - Parser release version:
-  - `1.0.102`
+  - `1.0.103`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,12 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.103 / Contract 1.0.103 Highlights — SV-Slice-103 batch: operator/punctuation leaves typed (69 rules / 69 annotations)
+
+All non-kw plain `trivia "X"` leaf rules get `-> {kind: "<rule_name>"}` for a clean discriminator shape without trivia noise. Touches operators (`assign`, `plus`, `minus`, `*`, `/`, etc.), punctuation (`lparen`, `rparen`, `lbrace`, `rbrace`, `lbrack`, `rbrack`, `colon`, `comma`, `semi`, `dot`, `dot_star`, `at_sign`, `hash`, `question`, `tilde`, `tick`, `bang`), compound assigns (`plus_assign`, `minus_assign`, `*_assign`, `/_assign`, etc.), arithmetic/logical/bitwise/reduction operators, shifts, comparisons, and arrows.
+
+Annotation count: **2113** (was 2044, +69). Same accept set.
 
 ## Release 1.0.102 / Contract 1.0.102 Highlights — SV-Slice-102 batch: number-leaf family typed (12 Or rules / 63 annotations)
 

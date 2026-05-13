@@ -4882,58 +4882,32 @@ zero_or_one := kw_n_0_b6589fc6 -> {kind: "0"}
 
 # Generated literal tokens
 
-and_assign := trivia "&="
-
-arithmetic_shift_left := trivia "<<<"
-
-arithmetic_shift_left_assign := trivia "<<<="
-
-arithmetic_shift_right := trivia ">>>"
-
-arithmetic_shift_right_assign := trivia ">>>="
-
-assign := trivia "="
-
-at_sign := trivia "@"
-
-attr_close := trivia "*)"
-
-attr_open := trivia "(*"
-
-bang := trivia "!"
-
-bitwise_and := trivia "&"
-
-bitwise_or := trivia "|"
-
-bitwise_xor := trivia "^"
-
-case_equal := trivia "==="
-
-case_not_equal := trivia "!=="
-
-colon := trivia ":"
-
-comma := trivia ","
-
-dot := trivia "."
-
-dot_star := trivia ".*"
-
-equal := trivia "=="
-
-full_path_arrow := trivia "*>"
-
-greater_equal := trivia ">="
-
-greater_than := trivia ">"
-
-hash := trivia "#"
-
-iff_arrow := trivia "<->"
-
-implies := trivia "->"
-
+and_assign := trivia "&="                     -> {kind: "and_assign"}
+arithmetic_shift_left := trivia "<<<"          -> {kind: "arithmetic_shift_left"}
+arithmetic_shift_left_assign := trivia "<<<="   -> {kind: "arithmetic_shift_left_assign"}
+arithmetic_shift_right := trivia ">>>"         -> {kind: "arithmetic_shift_right"}
+arithmetic_shift_right_assign := trivia ">>>="  -> {kind: "arithmetic_shift_right_assign"}
+assign := trivia "="                         -> {kind: "assign"}
+at_sign := trivia "@"                        -> {kind: "at_sign"}
+attr_close := trivia "*)"                     -> {kind: "attr_close"}
+attr_open := trivia "(*"                      -> {kind: "attr_open"}
+bang := trivia "!"                           -> {kind: "bang"}
+bitwise_and := trivia "&"                    -> {kind: "bitwise_and"}
+bitwise_or := trivia "|"                     -> {kind: "bitwise_or"}
+bitwise_xor := trivia "^"                    -> {kind: "bitwise_xor"}
+case_equal := trivia "==="                     -> {kind: "case_equal"}
+case_not_equal := trivia "!=="                 -> {kind: "case_not_equal"}
+colon := trivia ":"                          -> {kind: "colon"}
+comma := trivia ","                          -> {kind: "comma"}
+dot := trivia "."                            -> {kind: "dot"}
+dot_star := trivia ".*"                       -> {kind: "dot_star"}
+equal := trivia "=="                          -> {kind: "equal"}
+full_path_arrow := trivia "*>"                -> {kind: "full_path_arrow"}
+greater_equal := trivia ">="                  -> {kind: "greater_equal"}
+greater_than := trivia ">"                   -> {kind: "greater_than"}
+hash := trivia "#"                           -> {kind: "hash"}
+iff_arrow := trivia "<->"                      -> {kind: "iff_arrow"}
+implies := trivia "->"                        -> {kind: "implies"}
 kw_A_6dcd4ce2 := trivia /A\b/
 
 kw_B_ae4f281d := trivia /B\b/
@@ -5602,14 +5576,10 @@ kw_xor_f1922a23 := trivia /xor\b/
 
 kw_z_395df8f7 := trivia /z\b/
 
-lbrace := trivia "{"
-
-lbrack := trivia "["
-
-less_equal := trivia "<="
-
-less_than := trivia "<"
-
+lbrace := trivia "{"                         -> {kind: "lbrace"}
+lbrack := trivia "["                         -> {kind: "lbrack"}
+less_equal := trivia "<="                     -> {kind: "less_equal"}
+less_than := trivia "<"                      -> {kind: "less_than"}
 // lit_DPI_C_fb31e04e := trivia "DPI-C"
 
 // lit_DPI_b24b251b := trivia "DPI"
@@ -5620,83 +5590,45 @@ less_than := trivia "<"
 
 // lit_triple_quoted_string_item_string_escape_seq_4a340947 := trivia " { triple_quoted_string_item | string_escape_seq } "
 
-logical_and := trivia "&&"
-
-logical_and3 := trivia "&&&"
-
-logical_or := trivia "||"
-
-lparen := trivia "("
-
-minus := trivia "-"
-
-minus_assign := trivia "-="
-
-minus_minus := trivia "--"
-
-not_equal := trivia "!="
-
-or_assign := trivia "|="
-
-percent := trivia "%"
-
-percent_assign := trivia "%="
-
-plus := trivia "+"
-
-plus_assign := trivia "+="
-
-plus_plus := trivia "++"
-
-power := trivia "**"
-
-question := trivia "?"
-
-rbrace := trivia "}"
-
-rbrack := trivia "]"
-
-reduction_nand := trivia "~&"
-
-reduction_nor := trivia "~|"
-
-reduction_xnor := trivia "~^"
-
-reduction_xnor_alt := trivia "^~"
-
-rparen := trivia ")"
-
-scope_resolution := trivia "::"
-
-semi := trivia ";"
-
-sequence_implies := trivia "=>"
-
-shift_left := trivia "<<"
-
-shift_left_assign := trivia "<<="
-
-shift_right := trivia ">>"
-
-shift_right_assign := trivia ">>="
-
-slash := trivia "/"
-
-slash_assign := trivia "/="
-
-star := trivia "*"
-
-star_assign := trivia "*="
-
-tick := trivia "'"
-
-tilde := trivia "~"
-
-wildcard_equal := trivia "==?"
-
-wildcard_not_equal := trivia "!=?"
-
-xor_assign := trivia "^="
+logical_and := trivia "&&"                    -> {kind: "logical_and"}
+logical_and3 := trivia "&&&"                   -> {kind: "logical_and3"}
+logical_or := trivia "||"                     -> {kind: "logical_or"}
+lparen := trivia "("                         -> {kind: "lparen"}
+minus := trivia "-"                          -> {kind: "minus"}
+minus_assign := trivia "-="                   -> {kind: "minus_assign"}
+minus_minus := trivia "--"                    -> {kind: "minus_minus"}
+not_equal := trivia "!="                      -> {kind: "not_equal"}
+or_assign := trivia "|="                      -> {kind: "or_assign"}
+percent := trivia "%"                        -> {kind: "percent"}
+percent_assign := trivia "%="                 -> {kind: "percent_assign"}
+plus := trivia "+"                           -> {kind: "plus"}
+plus_assign := trivia "+="                    -> {kind: "plus_assign"}
+plus_plus := trivia "++"                      -> {kind: "plus_plus"}
+power := trivia "**"                          -> {kind: "power"}
+question := trivia "?"                       -> {kind: "question"}
+rbrace := trivia "}"                         -> {kind: "rbrace"}
+rbrack := trivia "]"                         -> {kind: "rbrack"}
+reduction_nand := trivia "~&"                 -> {kind: "reduction_nand"}
+reduction_nor := trivia "~|"                  -> {kind: "reduction_nor"}
+reduction_xnor := trivia "~^"                 -> {kind: "reduction_xnor"}
+reduction_xnor_alt := trivia "^~"             -> {kind: "reduction_xnor_alt"}
+rparen := trivia ")"                         -> {kind: "rparen"}
+scope_resolution := trivia "::"               -> {kind: "scope_resolution"}
+semi := trivia ";"                           -> {kind: "semi"}
+sequence_implies := trivia "=>"               -> {kind: "sequence_implies"}
+shift_left := trivia "<<"                     -> {kind: "shift_left"}
+shift_left_assign := trivia "<<="              -> {kind: "shift_left_assign"}
+shift_right := trivia ">>"                    -> {kind: "shift_right"}
+shift_right_assign := trivia ">>="             -> {kind: "shift_right_assign"}
+slash := trivia "/"                          -> {kind: "slash"}
+slash_assign := trivia "/="                   -> {kind: "slash_assign"}
+star := trivia "*"                           -> {kind: "star"}
+star_assign := trivia "*="                    -> {kind: "star_assign"}
+tick := trivia "'"                           -> {kind: "tick"}
+tilde := trivia "~"                          -> {kind: "tilde"}
+wildcard_equal := trivia "==?"                 -> {kind: "wildcard_equal"}
+wildcard_not_equal := trivia "!=?"             -> {kind: "wildcard_not_equal"}
+xor_assign := trivia "^="                     -> {kind: "xor_assign"}
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
 known_unscoped_class_scoped_call_class_identifier := class_identifier
 

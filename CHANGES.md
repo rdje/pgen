@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-103 batch: operator/punctuation leaves typed (69 rules / 69 annotations) (PGEN-SVP-0103)
+
+All non-kw plain `trivia "X"` leaf rules get `-> {kind: "<rule_name>"}` for clean discriminator shape without trivia noise: operators (assign, plus, minus, star, slash, percent, power, tilde, etc.), punctuation (lparen/rparen, lbrace/rbrace, lbrack/rbrack, colon, comma, semi, dot, dot_star, at_sign, hash, question, tick, bang), compound assigns (plus_assign, minus_assign, star_assign, slash_assign, percent_assign, and_assign, or_assign, xor_assign, shift_left/right_assign, arithmetic_shift_left/right_assign), shifts (shift_left, shift_right, arithmetic_shift_left/right), comparisons (equal, not_equal, case_equal, case_not_equal, wildcard_equal/not_equal, greater/less_than/_equal), logical/bitwise/reduction operators, arrows (implies, iff_arrow, full_path_arrow, sequence_implies), scope_resolution.
+
+Annotation count: 2113 (was 2044, +69). Same accept set. Manifest + contract bumped to 1.0.103. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-102 batch: number-leaf family typed — 12 Or rules with per-branch kind discriminators (63 annotations) (PGEN-SVP-0102)
 
 Per-branch `{kind: "<char>"}` discriminators on number-leaf alternation rules: `binary_base` (2: b/B), `binary_digit` (4: x/z/0/1), `decimal_base` (2: d/D), `decimal_digit` (10: 0-9), `hex_base` (2: h/H), `hex_digit` (24: x/z/0-9/a-f/A-F), `octal_base` (2: o/O), `octal_digit` (10: x/z/0-7), `x_digit` (2: x/X), `z_digit` (3: z/Z/?), `z_or_x` (4: x/X/z/Z), `zero_or_one` (2: 0/1). Per-branch syntax chosen because rule-level `-> {body}` on Or hits task #38 (parens-grouped-Or trailing-annotation attribution). DEFERRED: *_value rules (binary_value, hex_value, octal_value, unsigned_number, non_zero_unsigned_number) — sequence-with-repetition shape needs different approach.
