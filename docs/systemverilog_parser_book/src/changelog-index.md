@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.106 / Contract 1.0.106 — SV-Slice-106 batch: type-identifier + block_class_type chain rules typed (5 rules / 4 annotations)
+
+Annotation inventory: **2163** (was 2159, +4). Same accept set.
+
 ### 1.0.105 / Contract 1.0.105 — SV-Slice-105 batch: scoped_X passthrough identifier rules typed (11 rules / 11 annotations)
 
 Annotation inventory: **2159** (was 2148, +11). Same accept set.

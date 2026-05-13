@@ -1432,21 +1432,27 @@ data_source_expression := expression
 
 @predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
 known_unscoped_block_type_identifier := type_identifier packed_dimension*
+                                     -> {type: $1, dims: $2}
 
 scoped_block_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
+                             -> {scope: $1, type: $2, dims: $3}
 
 @predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
 known_unscoped_data_type_identifier := type_identifier packed_dimension*
+                                    -> {type: $1, dims: $2}
 
 scoped_data_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
+                            -> {scope: $1, type: $2, dims: $3}
 
 @predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, typedef], phase: post }
 known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+                                -> {head: $1, params: $2, scope_chain: $3}
 
 provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
 
 scoped_block_class_type := non_typedef_package_scope class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+                        -> {scope: $1, head: $2, params: $3, scope_chain: $4}
 
 @predicate: { name: fact_attribute_equals, args: [type_name, $covergroup_identifier, declaration_family, covergroup], phase: post }
 known_unscoped_covergroup_type_identifier := covergroup_identifier

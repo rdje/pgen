@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-106 batch: type-identifier + block_class_type chain rules typed (5 rules / 4 annotations) (PGEN-SVP-0106)
+
+`known_unscoped_block_type_identifier` / `known_unscoped_data_type_identifier` typed `{type, dims}`. `scoped_block_type_identifier` / `scoped_data_type_identifier` typed `{scope, type, dims}` (scope = class_scope | non_typedef_package_scope). `known_unscoped_block_class_type` typed `{head, params, scope_chain}`. `scoped_block_class_type` typed `{scope, head, params, scope_chain}`. DEFERRED: `provisional_unscoped_block_class_type` (task #38).
+
+Annotation count: 2163 (was 2159, +4 after manifest dedup). Same accept set. Manifest + contract bumped to 1.0.106. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-105 batch: scoped_X passthrough identifier rules typed (11 rules / 11 annotations) (PGEN-SVP-0105)
 
 All `scoped_X := non_typedef_package_scope <id>` passthroughs typed as `{scope, name}` for uniform consumer access: `scoped_class_scope_identifier`, `scoped_base_class_type_identifier`, `scoped_class_type_identifier`, `scoped_covergroup_type_identifier`, `scoped_interface_class_type_identifier`, `scoped_let_identifier`, `scoped_checker_identifier`, `scoped_property_identifier`, `scoped_sequence_identifier`, `scoped_package_parameter_identifier`, `scoped_class_scoped_call_prefix_identifier`.
