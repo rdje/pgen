@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.104`
+  - `1.0.105`
 - Parser release version:
-  - `1.0.104`
+  - `1.0.105`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,27 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.105 / Contract 1.0.105 Highlights — SV-Slice-105 batch: scoped_X passthrough identifier rules typed (11 rules / 11 annotations)
+
+All `scoped_X := non_typedef_package_scope <id>` passthroughs now emit a uniform `{scope, name}` shape so consumers can dereference the package scope and the identifier directly without rule-name introspection:
+
+```ebnf
+scoped_class_scope_identifier
+scoped_base_class_type_identifier
+scoped_class_type_identifier
+scoped_covergroup_type_identifier
+scoped_interface_class_type_identifier
+scoped_let_identifier
+scoped_checker_identifier
+scoped_property_identifier
+scoped_sequence_identifier
+scoped_package_parameter_identifier
+scoped_class_scoped_call_prefix_identifier
+  -> {scope, name}
+```
+
+Annotation count: **2159** (was 2148, +11). Same accept set.
 
 ## Release 1.0.104 / Contract 1.0.104 Highlights — SV-Slice-104 batch: identifier-routing wrappers typed (15 rules / 35 annotations)
 

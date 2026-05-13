@@ -936,7 +936,7 @@ known_unscoped_class_scope_interface_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $type_identifier, declaration_family, type_parameter], phase: post }
 known_unscoped_class_scope_type_parameter_identifier := type_identifier
 
-scoped_class_scope_identifier := non_typedef_package_scope class_identifier
+scoped_class_scope_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                  -> {head: $1, params: $2, scope_chain: $3}
@@ -947,12 +947,12 @@ class_scope := @probe_sample: "C::" class_scope_type scope_resolution
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, class], phase: post }
 known_unscoped_base_class_type_identifier := class_identifier
 
-scoped_base_class_type_identifier := non_typedef_package_scope class_identifier
+scoped_base_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                 -> {head: $1, params: $2, scope_chain: $3}
 
-scoped_class_type_identifier := non_typedef_package_scope class_identifier
+scoped_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 class_type := class_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
            -> {head: $1, params: $2, suffix: $3}
@@ -1451,7 +1451,7 @@ scoped_block_class_type := non_typedef_package_scope class_identifier ( paramete
 @predicate: { name: fact_attribute_equals, args: [type_name, $covergroup_identifier, declaration_family, covergroup], phase: post }
 known_unscoped_covergroup_type_identifier := covergroup_identifier
 
-scoped_covergroup_type_identifier := non_typedef_package_scope covergroup_identifier
+scoped_covergroup_type_identifier := non_typedef_package_scope covergroup_identifier -> {scope: $1, name: $2}
 
 known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_identifier
 
@@ -2212,7 +2212,7 @@ interface_class_method := kw_pure_afe003f1 kw_virtual_af84d91f method_prototype 
 @predicate: { name: fact_attribute_equals, args: [type_name, $class_identifier, declaration_family, interface_class], phase: post }
 known_unscoped_interface_class_type_identifier := class_identifier
 
-scoped_interface_class_type_identifier := non_typedef_package_scope class_identifier
+scoped_interface_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 interface_class_type := ( scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier ) ( parameter_value_assignment )?
                      -> {name: $1, params: $2}
@@ -2313,7 +2313,7 @@ declared_let_identifier := let_identifier
 @predicate: { name: has_fact, args: [let_name, $let_identifier], phase: post }
 known_unscoped_let_identifier := let_identifier
 
-scoped_let_identifier := non_typedef_package_scope let_identifier
+scoped_let_identifier := non_typedef_package_scope let_identifier -> {scope: $1, name: $2}
 
 let_list_of_arguments := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma dot identifier lparen ( let_actual_arg )? rparen )*
                                 -> {kind: "mixed",      head: $1, ordered_tail: $2, named_tail: $3}
@@ -3751,7 +3751,7 @@ property_spec := ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lpare
 @predicate: { name: has_fact, args: [checker_name, $checker_identifier], phase: post }
 known_unscoped_checker_identifier := checker_identifier
 
-scoped_checker_identifier := non_typedef_package_scope checker_identifier
+scoped_checker_identifier := non_typedef_package_scope checker_identifier -> {scope: $1, name: $2}
 
 ps_checker_identifier := scoped_checker_identifier            -> {body: $1}
                       | known_unscoped_checker_identifier    -> {body: $1}
@@ -3773,7 +3773,7 @@ ps_or_hierarchical_net_identifier := ( non_typedef_package_scope )? net_identifi
 @predicate: { name: has_fact, args: [property_name, $property_identifier], phase: post }
 known_unscoped_property_identifier := property_identifier
 
-scoped_property_identifier := non_typedef_package_scope property_identifier
+scoped_property_identifier := non_typedef_package_scope property_identifier -> {scope: $1, name: $2}
 
 ps_or_hierarchical_property_identifier := scoped_property_identifier        -> {body: $1}
                                        | known_unscoped_property_identifier -> {body: $1}
@@ -3782,7 +3782,7 @@ ps_or_hierarchical_property_identifier := scoped_property_identifier        -> {
 @predicate: { name: has_fact, args: [sequence_name, $sequence_identifier], phase: post }
 known_unscoped_sequence_identifier := sequence_identifier
 
-scoped_sequence_identifier := non_typedef_package_scope sequence_identifier
+scoped_sequence_identifier := non_typedef_package_scope sequence_identifier -> {scope: $1, name: $2}
 
 ps_or_hierarchical_sequence_identifier := scoped_sequence_identifier        -> {body: $1}
                                        | known_unscoped_sequence_identifier -> {body: $1}
@@ -3800,7 +3800,7 @@ scoped_or_hierarchical_tf_identifier := class_scope tf_identifier               
 @predicate: { name: has_fact, args: [parameter_name, $parameter_identifier], phase: post }
 known_unscoped_parameter_identifier := parameter_identifier
 
-scoped_package_parameter_identifier := non_typedef_package_scope parameter_identifier
+scoped_package_parameter_identifier := non_typedef_package_scope parameter_identifier -> {scope: $1, name: $2}
 
 ps_parameter_identifier := class_scope parameter_identifier                                                                         -> {kind: "class_scope", scope: $1, name: $2}
                         | scoped_package_parameter_identifier                                                                       -> {kind: "package_scope", body: $1}
@@ -5658,7 +5658,7 @@ known_unscoped_class_scoped_call_interface_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $type_identifier, declaration_family, type_parameter], phase: post }
 known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier
 
-scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier
+scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
                         -> {head: $1, params: $2, scope_chain: $4}

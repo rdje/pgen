@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-105 batch: scoped_X passthrough identifier rules typed (11 rules / 11 annotations) (PGEN-SVP-0105)
+
+All `scoped_X := non_typedef_package_scope <id>` passthroughs typed as `{scope, name}` for uniform consumer access: `scoped_class_scope_identifier`, `scoped_base_class_type_identifier`, `scoped_class_type_identifier`, `scoped_covergroup_type_identifier`, `scoped_interface_class_type_identifier`, `scoped_let_identifier`, `scoped_checker_identifier`, `scoped_property_identifier`, `scoped_sequence_identifier`, `scoped_package_parameter_identifier`, `scoped_class_scoped_call_prefix_identifier`.
+
+Annotation count: 2159 (was 2148, +11). Same accept set. Manifest + contract bumped to 1.0.105. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-104 batch: identifier-routing wrappers typed (15 rules / 35 annotations) (PGEN-SVP-0104)
 
 Per-branch shapes on identifier and ps_*/scoped_* alternation rules: `identifier` / `scope_free_identifier` / `ps_checker_identifier` / `ps_covergroup_identifier` / `ps_or_hierarchical_property_identifier` / `ps_or_hierarchical_sequence_identifier` / `ps_type_identifier` / `delay` are per-branch `{body: $1}` passthroughs. `input_identifier` / `output_identifier` 3 kinds (input_port / output_port / inout_port / interface_dot_port — interface_dot_port extracts interface+port). `ps_identifier` 2 kinds (unscoped / scoped). `ps_or_hierarchical_array_identifier` typed `{scope, name}`. `ps_or_hierarchical_net_identifier` 2 kinds (ps / hierarchical). `scoped_or_hierarchical_tf_identifier` 3 kinds (class_scope / package_scope / hierarchical). `ps_parameter_identifier` 4 kinds (class_scope / package_scope / unscoped / generate_scoped).
