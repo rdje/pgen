@@ -191,7 +191,9 @@ systemverilog_file := trivia source_text trivia
 # the first defined rule) keeps `parse_full_systemverilog_file` as the
 # embedding-API entry. Long-term, the closure gate should support a list
 # of entries directly so this rule can be removed.
-sv_multi_entry_root := systemverilog_file | library_text | systemverilog_parseable_file
+sv_multi_entry_root := systemverilog_file              -> {kind: "systemverilog_file",            body: $1}
+                     | library_text                     -> {kind: "library_text",                  body: $1}
+                     | systemverilog_parseable_file     -> {kind: "systemverilog_parseable_file", body: $1}
 
 @branch_policy: priority_first
 @priority: [20, 6, 4, 2]
@@ -201,6 +203,7 @@ systemverilog_parseable_file := trivia parseable_source_item* trivia
 @branch_policy: priority_first
 @priority: [20, 6, 4, 2]
 parseable_source_item := semi
+                      -> {kind: "semi"}
 //                        | package_import_declaration
 //                        | timeunits_declaration
 //                        | compiler_directive
@@ -581,7 +584,9 @@ direct_index_method_call := ( ( kw_class_qualifier_fa08937d | non_typedef_packag
                          -> {receiver: $1, body: $3}
 
 @branch_policy: priority_first
-bit_select_expression := direct_index_method_call | method_call | expression
+bit_select_expression := direct_index_method_call -> {kind: "direct_index_method", body: $1}
+                       | method_call               -> {kind: "method",              body: $1}
+                       | expression                -> {kind: "expression",          body: $1}
 
 bit_select := ( lbrack bit_select_expression rbrack )*
            -> {body: $1}
@@ -670,6 +675,7 @@ built_in_method_call := array_manipulation_call -> {kind: "array_manipulation", 
                       | randomize_call          -> {kind: "randomize",         body: $1}
 
 case_expression := expression
+                -> {body: $1}
 
 case_generate_construct := kw_case_6406510c lparen constant_expression rparen case_generate_item case_generate_item* kw_endcase_a27a6786
                         -> {expr: $3, items: {first: $5, rest: $6}}
@@ -700,6 +706,7 @@ case_item := case_item_expression ( comma case_item_expression )* colon statemen
                   -> {kind: "default",   body: $3}
 
 case_item_expression := expression
+                     -> {body: $1}
 
 case_keyword := kw_case_6406510c  -> {kind: "case"}
               | kw_casez_b8fbe0e1 -> {kind: "casez"}
@@ -978,7 +985,8 @@ clocking_event_sv_2023 := at_sign ps_identifier             -> {kind: "ps",     
                         | at_sign lparen event_expression rparen
                                                             -> {kind: "expression",   body: $3}
 
-clocking_event := clocking_event_sv_2017 | clocking_event_sv_2023
+clocking_event := clocking_event_sv_2017 -> {kind: "sv_2017", body: $1}
+                | clocking_event_sv_2023 -> {kind: "sv_2023", body: $1}
 
 clocking_identifier := declaration_identifier
 
@@ -995,6 +1003,7 @@ clocking_skew := edge_identifier ( delay_control )? -> {kind: "edge",  edge: $1,
 clockvar := hierarchical_identifier
 
 clockvar_expression := clockvar select
+                    -> {clockvar: $1, select: $2}
 
 cmos_switch_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma ncontrol_terminal comma pcontrol_terminal rparen
                      -> {name: $1, output: $3, input: $5, ncontrol: $7, pcontrol: $9}
@@ -1073,6 +1082,7 @@ constant_assignment_pattern_expression := assignment_pattern_expression
                                        -> {body: $1}
 
 constant_bit_select := ( lbrack constant_expression rbrack )*
+                    -> {bits: $1}
 
 constant_cast := casting_type tick lparen constant_expression rparen
               -> {type: $1, body: $4}
@@ -1080,14 +1090,21 @@ constant_cast := casting_type tick lparen constant_expression rparen
 constant_concatenation := lbrace constant_expression ( comma constant_expression )* rbrace
                        -> [$2, $3::2*]
 
-constant_function_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call
+constant_function_call := call_primary
+                                -> {kind: "call_primary",    body: $1}
+                        | ( kw_std_55ec981f scope_resolution )? randomize_call
+                                -> {kind: "randomize",       std_prefix: $1, body: $2}
 
 constant_indexed_range := constant_expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
                         | constant_expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
 
 constant_let_expression := let_expression
+                        -> {body: $1}
 
-constant_mintypmax_expression := constant_expression | constant_expression colon constant_expression colon constant_expression
+constant_mintypmax_expression := constant_expression
+                                        -> {kind: "simple", body: $1}
+                               | constant_expression colon constant_expression colon constant_expression
+                                        -> {kind: "triple", min: $1, typ: $3, max: $5}
 
 constant_multiple_concatenation := lbrace constant_expression constant_concatenation rbrace
                                 -> {count: $2, body: $3}

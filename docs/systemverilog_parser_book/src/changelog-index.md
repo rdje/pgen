@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.95 / Contract 1.0.95 — SV-Slice-95 batch: sv_multi_entry_root + comment_only + bit_select + case + clocking + constant_* wrappers typed (12 rules / 18 annotations)
+
+Annotation inventory: **1797** (was 1779, +18). Same accept set.
+
 ### 1.0.94 / Contract 1.0.94 — SV-Slice-94 batch: dimension family + integer_covergroup_expression typed (8 rules / 15 annotations)
 
 Annotation inventory: **1779** (was 1764, +15). Same accept set.

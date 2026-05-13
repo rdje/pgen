@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-95 batch: sv_multi_entry_root + comment_only + bit_select + case + clocking + constant_* wrappers typed (12 rules / 18 annotations) (PGEN-SVP-0095)
+
+`sv_multi_entry_root` (3 kinds), `parseable_source_item`, `bit_select_expression` (3 kinds), `case_expression`, `case_item_expression`, `clocking_event` (2 kinds), `clockvar_expression`, `constant_bit_select`, `constant_function_call` (2 kinds), `constant_let_expression`, `constant_mintypmax_expression` (2 kinds).
+
+Annotation count: 1797 (was 1779, +18). Same accept set. Manifest + contract bumped to 1.0.95. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-94 batch: dimension family + integer_covergroup_expression typed (8 rules / 15 annotations) (PGEN-SVP-0094)
 
 `integer_covergroup_expression_sv_2017/2023` (1/2 kinds), `integer_covergroup_expression` (2 kinds), `packed_dimension` (2 kinds), `queue_dimension`, `unpacked_dimension` (2 kinds), `unsized_dimension`, `variable_dimension` (4 kinds).
