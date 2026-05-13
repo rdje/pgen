@@ -501,6 +501,7 @@ assume_property_statement := kw_assume_661e458e kw_property_269fe373 lparen prop
                           -> {spec: $4, action: $6}
 
 attr_name := identifier
+          -> {body: $1}
 
 attr_spec := attr_name ( assign constant_expression )?
           -> {name: $1, value: $2}
@@ -1805,6 +1806,7 @@ extern_tf_declaration := kw_extern_bf1ee311 method_prototype semi
                                   -> {kind: "forkjoin", prototype: $3}
 
 final_construct := kw_final_d594c2cc function_statement
+                -> {body: $2}
 
 @profiles: ["sv_2023"]
 final_specifier_sv_2023 := colon kw_final_d594c2cc
@@ -1888,11 +1890,15 @@ function_prototype := function_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
                     | function_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
 function_statement := statement
+                   -> {body: $1}
 
 function_statement_or_null := function_statement       -> {kind: "statement", body: $1}
                             | attribute_instance* semi -> {kind: "null",      attributes: $1}
 
-function_subroutine_call := call_primary | ( kw_std_55ec981f scope_resolution )? randomize_call
+function_subroutine_call := call_primary
+                                  -> {kind: "call_primary", body: $1}
+                          | ( kw_std_55ec981f scope_resolution )? randomize_call
+                                  -> {kind: "randomize",    std_prefix: $1, body: $2}
 
 @profiles: ["sv_2017"]
 gate_instantiation_sv_2017 := cmos_switchtype ( delay )? cmos_switch_instance ( comma cmos_switch_instance )* semi
@@ -1934,7 +1940,8 @@ gate_instantiation_sv_2023 := cmos_switchtype ( delay )? cmos_switch_instance ( 
                             | kw_pullup_f7402b53 ( pullup_strength )? pull_gate_instance ( comma pull_gate_instance )* semi
                                    -> {kind: "pullup",   strength: $2, instances: [$3, $4::2*]}
 
-gate_instantiation := gate_instantiation_sv_2017 | gate_instantiation_sv_2023
+gate_instantiation := gate_instantiation_sv_2017 -> {kind: "sv_2017", body: $1}
+                    | gate_instantiation_sv_2023 -> {kind: "sv_2023", body: $1}
 
 generate_block_identifier := identifier
 
@@ -2007,6 +2014,7 @@ hierarchical_tf_identifier := kw_sv_dollar_root_f65f0e67 dot ( identifier consta
 hierarchical_variable_identifier := hierarchical_identifier
 
 identifier_list := identifier ( comma identifier )*
+                -> [$1, $2::2*]
 
 if_generate_construct := kw_if_958f57f5 lparen constant_expression rparen generate_block ( if_generate_else_clause )?
                       -> {condition: $3, then_block: $5, else_clause: $6}
@@ -2054,6 +2062,7 @@ indexed_range := expression plus colon constant_expression  -> {kind: "plus_inde
 init_val := kw_n_1_tick_b_f4c81681 | kw_n_1_tick_b_f4c81681 | kw_n_1_tick_bx_ab9cb068 | kw_n_1_tick_bX_70a6d618 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_B_9f69eb32 | kw_n_1_tick_Bx_0a99de19 | kw_n_1_tick_BX_874bf116 | kw_n_1_356a192b | kw_n_0_b6589fc6
 
 initial_construct := kw_initial_8ad7d21c statement_or_null
+                  -> {body: $2}
 
 @profiles: ["sv_2023"]
 initial_or_extends_specifier_sv_2023 := colon kw_initial_8ad7d21c -> {kind: "initial"}
@@ -2089,7 +2098,8 @@ inside_expression_sv_2017 := expression_base kw_inside_fcc53788 open_range_list*
 inside_expression_sv_2023 := expression_base kw_inside_fcc53788 range_list*
                           -> {expr: $1, ranges: $3}
 
-inside_expression := inside_expression_sv_2017 | inside_expression_sv_2023
+inside_expression := inside_expression_sv_2017 -> {kind: "sv_2017", body: $1}
+                   | inside_expression_sv_2023 -> {kind: "sv_2023", body: $1}
 
 inst_clause := kw_instance_c3bec6bc inst_name
             -> {name: $2}
@@ -2182,6 +2192,7 @@ interface_instance_identifier_sv_2017 := identifier
 interface_instance_identifier := interface_instance_identifier_sv_2017
 
 interface_instantiation := interface_identifier ( parameter_value_assignment )? hierarchical_instance ( comma hierarchical_instance )* semi
+                        -> {name: $1, params: $2, instances: [$3, $4::2*]}
 
 interface_item := port_declaration semi  -> {kind: "port_declaration", body: $1}
                 | non_port_interface_item -> {kind: "non_port_item",   body: $1}
@@ -2223,13 +2234,15 @@ let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_l
 
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $package_identifier, declaration_family, typedef], phase: post }
 non_typedef_package_scope := @probe_sample: "pkg::" package_scope
+                          -> {body: $1}
 
 let_expression := scoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?
                           -> {kind: "scoped",     name: $1, args: $2}
                 | known_unscoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?
                           -> {kind: "unscoped",   name: $1, args: $2}
 
-let_formal_type := data_type_or_implicit | kw_untyped_d53be1e8
+let_formal_type := data_type_or_implicit  -> {kind: "data_type", body: $1}
+                 | kw_untyped_d53be1e8    -> {kind: "untyped"}
 
 let_identifier := identifier
 
@@ -2284,6 +2297,7 @@ lifetime := kw_static_a381562a    -> {kind: "static"}
           | kw_automatic_ebe88724 -> {kind: "automatic"}
 
 limit_value := constant_mintypmax_expression
+            -> {body: $1}
 
 @branch_policy: priority_first
 list_of_arguments := list_of_arguments_ordered -> {kind: "ordered", body: $1}
@@ -2340,6 +2354,7 @@ list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma or
                                               -> {kind: "named",   items: [$1, $2::2*]}
 
 list_of_parameter_assignments := list_of_parameter_assignments_sv_2017
+                              -> {body: $1}
 
 @profiles: ["sv_2023"]
 list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
@@ -2348,6 +2363,7 @@ list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( co
                                                      -> {kind: "named",   items: [$1, $2::2*]}
 
 list_of_parameter_value_assignments := list_of_parameter_value_assignments_sv_2023
+                                    -> {body: $1}
 
 list_of_path_delay_expressions := @probe_sample: "1" t_path_delay_expression
                                -> {body: $1}
@@ -2456,6 +2472,7 @@ method_call_initial := split_direct_callable_method_call -> {kind: "split_direct
                      | system_tf_call                    -> {kind: "system_tf",             body: $1}
 
 direct_method_call := method_call_root dot method_call_body
+                   -> {receiver: $1, body: $3}
 
 @branch_policy: priority_first
 method_call_body := built_in_method_call
@@ -2466,13 +2483,21 @@ method_call_body := built_in_method_call
                           -> {kind: "method_bare",    name: $1, attributes: $2}
 
 @branch_policy: priority_first
-callable_method_call_body := built_in_method_call | method_identifier attribute_instance* lparen list_of_arguments rparen
+callable_method_call_body := built_in_method_call
+                                    -> {kind: "built_in",        body: $1}
+                           | method_identifier attribute_instance* lparen list_of_arguments rparen
+                                    -> {kind: "call_with_args",  name: $1, attributes: $2, args: $4}
 
 split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? ( identifier constant_bit_select dot !callable_method_call_body )* identifier
+                                     -> {scope: $1, path: $2, name: $3}
 
-split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body | implicit_class_handle dot callable_method_call_body
+split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
+                                            -> {kind: "split_hierarchical", receiver: $1, body: $3}
+                                  | implicit_class_handle dot callable_method_call_body
+                                            -> {kind: "implicit_class",     receiver: $1, body: $3}
 
 direct_callable_method_call := method_call_root dot callable_method_call_body
+                            -> {receiver: $1, body: $3}
 
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
@@ -2579,7 +2604,8 @@ module_common_item_sv_2023 := module_or_generate_item_declaration  -> {kind: "mo
                             | conditional_generate_construct       -> {kind: "conditional_generate_construct",      body: $1}
                             | elaboration_severity_system_task     -> {kind: "elaboration_severity_system_task",    body: $1}
 
-module_common_item := module_common_item_sv_2017 | module_common_item_sv_2023
+module_common_item := module_common_item_sv_2017 -> {kind: "sv_2017", body: $1}
+                    | module_common_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
 @profiles: ["sv_2017"]
 module_declaration_sv_2017 := @sample: "module m; endmodule" module_ansi_header ( timeunits_declaration )? non_port_module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?

@@ -41,6 +41,7 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 | Schema version | First parser release | Notable changes |
 |---|---|---|
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Initial mdbook + integration contract Highlights structure landed. Grammar (`grammars/systemverilog.ebnf`) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (`systemverilog_v1.json`) carries one stub sample (`minimal_module`) calibrated against the placeholder `current_content_kind: "sequence"`. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest. |
+| 0.98.0 | 1.0.97 | **SV-Slice-97 batch: final/initial_construct + method_call internals + identifier_list + interface_instantiation + module_common_item wrappers typed.** 19 rules / 26 annotations. Annotation inventory: 1851 entries (was 1825). |
 | 0.97.0 | 1.0.96 | **SV-Slice-96 batch: constraint/covergroup/data_declaration + design + dist + elaboration + event wrappers typed.** 17 rules / 28 annotations. Annotation inventory: 1825 entries (was 1797). |
 | 0.96.0 | 1.0.95 | **SV-Slice-95 batch: sv_multi_entry_root + comment_only + bit_select + case + clocking + constant_* wrappers typed.** 12 rules / 18 annotations. Annotation inventory: 1797 entries (was 1779). |
 | 0.95.0 | 1.0.94 | **SV-Slice-94 batch: dimension family + integer_covergroup_expression typed.** 8 rules / 15 annotations. Annotation inventory: 1779 entries (was 1764). |

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.96`
+  - `1.0.97`
 - Parser release version:
-  - `1.0.96`
+  - `1.0.97`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,28 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.97 / Contract 1.0.97 Highlights — SV-Slice-97 batch: final/initial_construct + method_call internals + identifier_list + interface_instantiation + module_common_item wrappers typed (19 rules / 26 annotations)
+
+```ebnf
+attr_name / final_construct / function_statement / initial_construct /
+  non_typedef_package_scope / limit_value /
+  list_of_parameter_assignments / list_of_parameter_value_assignments  -> {body}
+function_subroutine_call            -> 2 kinds (call_primary / randomize)
+gate_instantiation                  -> 2 kinds (sv_2017 / sv_2023)
+identifier_list                     -> [$1, $2::2*]
+inside_expression                   -> 2 kinds (sv_2017 / sv_2023)
+interface_instantiation             -> {name, params, instances: [$3, $4::2*]}
+let_formal_type                     -> 2 kinds (data_type / untyped)
+direct_method_call                  -> {receiver, body}
+callable_method_call_body           -> 2 kinds (built_in / call_with_args)
+split_hierarchical_callable_receiver -> {scope, path, name}
+split_direct_callable_method_call   -> 2 kinds (split_hierarchical / implicit_class)
+direct_callable_method_call         -> {receiver, body}
+module_common_item                  -> 2 kinds (sv_2017 / sv_2023)
+```
+
+Annotation count: **1851** (was 1825, +26). Same accept set.
 
 ## Release 1.0.96 / Contract 1.0.96 Highlights — SV-Slice-96 batch: constraint/covergroup/data_declaration + design + dist + elaboration + event wrappers typed (17 rules / 28 annotations)
 
