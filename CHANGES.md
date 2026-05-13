@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-94 batch: dimension family + integer_covergroup_expression typed (8 rules / 15 annotations) (PGEN-SVP-0094)
+
+`integer_covergroup_expression_sv_2017/2023` (1/2 kinds), `integer_covergroup_expression` (2 kinds), `packed_dimension` (2 kinds), `queue_dimension`, `unpacked_dimension` (2 kinds), `unsized_dimension`, `variable_dimension` (4 kinds).
+
+Annotation count: 1779 (was 1764, +15). Same accept set. Manifest + contract bumped to 1.0.94. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-93 batch: anonymous_program_item + assignment_pattern + array + block_event + built_in_method + class_item wrappers typed (16 rules / 40 annotations) (PGEN-SVP-0093)
 
 `anonymous_program_item_sv_2017` (6 kinds), `anonymous_program_item_sv_2023` (7 kinds — adds interface_class), `anonymous_program_item` (2 kinds), `array_manipulation_call`, `array_pattern_key` (2 kinds), `array_range_expression` (4 kinds), `assignment_pattern_expression`, `assignment_pattern_expression_type` (4 kinds), `assignment_pattern_key` (2 kinds), `assignment_pattern_net_lvalue` / `assignment_pattern_variable_lvalue` (each `{items: [$3, $4::2*]}`), `associative_dimension` (2 kinds), `block_event_expression` (3 kinds), `built_in_method_call` (2 kinds), `class_item` (2 kinds), `direct_index_method_call`.

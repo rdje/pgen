@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.93`
+  - `1.0.94`
 - Parser release version:
-  - `1.0.93`
+  - `1.0.94`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,21 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.94 / Contract 1.0.94 Highlights — SV-Slice-94 batch: dimension family + integer_covergroup_expression typed (8 rules / 15 annotations)
+
+```ebnf
+integer_covergroup_expression_sv_2017 -> {body}
+integer_covergroup_expression_sv_2023 -> 2 kinds (expression / dollar)
+integer_covergroup_expression         -> 2 kinds (sv_2017 / sv_2023)
+packed_dimension                      -> 2 kinds (range / unsized)
+queue_dimension                       -> {bound}
+unpacked_dimension                    -> 2 kinds (range / expression)
+unsized_dimension                     -> {kind: "unsized"}
+variable_dimension                    -> 4 kinds (unsized / unpacked / associative / queue)
+```
+
+Annotation count: **1779** (was 1764, +15). Same accept set.
 
 ## Release 1.0.93 / Contract 1.0.93 Highlights — SV-Slice-93 batch: anonymous_program_item + assignment_pattern + array + block_event + built_in_method + class_item wrappers typed (16 rules / 40 annotations)
 

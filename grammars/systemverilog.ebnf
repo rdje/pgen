@@ -2071,11 +2071,14 @@ integer_atom_type := kw_byte_8cf1783f     -> {kind: "byte"}
 
 @profiles: ["sv_2017"]
 integer_covergroup_expression_sv_2017 := covergroup_expression
+                                      -> {body: $1}
 
 @profiles: ["sv_2023"]
-integer_covergroup_expression_sv_2023 := covergroup_expression | kw_dollar
+integer_covergroup_expression_sv_2023 := covergroup_expression -> {kind: "expression", body: $1}
+                                       | kw_dollar             -> {kind: "dollar"}
 
-integer_covergroup_expression := integer_covergroup_expression_sv_2017 | integer_covergroup_expression_sv_2023
+integer_covergroup_expression := integer_covergroup_expression_sv_2017 -> {kind: "sv_2017", body: $1}
+                               | integer_covergroup_expression_sv_2023 -> {kind: "sv_2023", body: $1}
 
 integer_type := integer_vector_type -> {kind: "vector", body: $1}
               | integer_atom_type   -> {kind: "atom",   body: $1}
@@ -2986,7 +2989,8 @@ package_or_generate_item_declaration := package_or_generate_item_declaration_sv_
 
 package_scope := package_identifier scope_resolution | kw_sv_dollar_unit_1d99223f scope_resolution
 
-packed_dimension := lbrack constant_range rbrack | unsized_dimension
+packed_dimension := lbrack constant_range rbrack    -> {kind: "range",    body: $2}
+                  | unsized_dimension                 -> {kind: "unsized", body: $1}
 
 par_block := kw_fork_3f673f2a ( colon block_identifier )? block_item_declaration* statement_or_null* join_keyword ( colon block_identifier )?
           -> {label: $2, declarations: $3, statements: $4, join: $5, end_label: $6}
@@ -3617,6 +3621,7 @@ pulsestyle_declaration := kw_pulsestyle_onevent_11e408b6 list_of_path_outputs se
                                 -> {kind: "ondetect",  outputs: $2}
 
 queue_dimension := lbrack kw_dollar ( colon constant_expression )? rbrack
+                -> {bound: $3}
 
 // @profiles: ["sv_2023"]
 // quoted_string_sv_2023 := lit_quoted_string_item_string_escape_seq_1a5d4340
@@ -4539,9 +4544,11 @@ uniqueness_constraint_sv_2023 := kw_unique_58037c00 range_list*
 uniqueness_constraint := uniqueness_constraint_sv_2017 -> {kind: "sv_2017", body: $1}
                        | uniqueness_constraint_sv_2023 -> {kind: "sv_2023", body: $1}
 
-unpacked_dimension := lbrack constant_range rbrack | lbrack constant_expression rbrack
+unpacked_dimension := lbrack constant_range rbrack         -> {kind: "range",      body: $2}
+                    | lbrack constant_expression rbrack    -> {kind: "expression", body: $2}
 
 unsized_dimension := lbrack rbrack
+                  -> {kind: "unsized"}
 
 use_clause := @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )?
            -> {library: $2, name: $3, config: $4}
@@ -4575,7 +4582,10 @@ variable_decl_assignment := variable_identifier !lparen variable_dimension* ( as
                           | class_variable_identifier ( assign class_new )?
                                   -> {kind: "class",         name: $1, init: $2}
 
-variable_dimension := unsized_dimension | unpacked_dimension | associative_dimension | queue_dimension
+variable_dimension := unsized_dimension     -> {kind: "unsized",     body: $1}
+                    | unpacked_dimension    -> {kind: "unpacked",    body: $1}
+                    | associative_dimension -> {kind: "associative", body: $1}
+                    | queue_dimension       -> {kind: "queue",       body: $1}
 
 variable_identifier := declaration_identifier
 
