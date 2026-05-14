@@ -80,25 +80,29 @@ parameter_declaration_sequence := parameter_declaration_group ( comma parameter_
                                -> {first: $1, rest: $2}
 
 parameter_declaration_group := parameter_declaration_head ( comma parameter_declaration_tail )*
+                            -> {head: $1, tail: $2}
 
 @branch_policy: priority_first
-parameter_declaration_head := parameter_flavor &( data_type identifier ) data_type identifier ( equals rtl_expr )?
-                            | parameter_flavor identifier ( equals rtl_expr )?
+parameter_declaration_head := parameter_flavor &( data_type identifier ) data_type identifier ( equals rtl_expr )?  -> {kind: "typed",   flavor: $1, data_type: $3, name: $4, default: $5}
+                            | parameter_flavor identifier ( equals rtl_expr )?                                       -> {kind: "untyped", flavor: $1, name: $2, default: $3}
 
 @branch_policy: priority_first
-parameter_declaration_tail := parameter_flavor &( data_type identifier ) data_type identifier ( equals rtl_expr )?
-                            | parameter_flavor identifier ( equals rtl_expr )?
-                            | &( data_type identifier ) data_type identifier ( equals rtl_expr )?
-                            | identifier ( equals rtl_expr )?
+parameter_declaration_tail := parameter_flavor &( data_type identifier ) data_type identifier ( equals rtl_expr )?  -> {kind: "typed_with_flavor",   flavor: $1, data_type: $3, name: $4, default: $5}
+                            | parameter_flavor identifier ( equals rtl_expr )?                                       -> {kind: "untyped_with_flavor", flavor: $1, name: $2, default: $3}
+                            | &( data_type identifier ) data_type identifier ( equals rtl_expr )?                    -> {kind: "typed",   data_type: $2, name: $3, default: $4}
+                            | identifier ( equals rtl_expr )?                                                        -> {kind: "untyped", name: $1, default: $2}
 
 parameter_flavor := kw_parameter   -> {kind: "parameter"}
                  | kw_localparam  -> {kind: "localparam"}
 
 port_list := port_group ( comma port_group )*
+          -> {first: $1, rest: $2}
 
 port_group := port_direction data_type? packed_range? port_item ( comma !port_direction_token port_item )*
+           -> {direction: $1, data_type: $2, packed_range: $3, first: $4, rest: $5}
 
 port_item := identifier unpacked_dimension*
+          -> {name: $1, dims: $2}
 
 port_direction := kw_input   -> {kind: "input"}
                | kw_output  -> {kind: "output"}
