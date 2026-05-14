@@ -1950,6 +1950,22 @@ impl RustASTPipeline {
         let mut group_open_branch_stack: Vec<usize> = Vec::new();
         let mut last_closed_group_range: Option<(usize, usize)> = None;
 
+        // Map inner branch_idx → outer (top-level) branch_idx. Inner branches
+        // are created by `|` at any group_depth (needed for broadcast); outer
+        // branches are created only by `|` at group_depth == 0. The AST after
+        // step2_group_by_or only carries outer branches, so `branch_return_annotations`
+        // must be remapped from inner to outer indices before the truncation
+        // at parse_rule_content (line ~1922) would lop off inner-indexed
+        // entries. See codegen-drop fix for patterns:
+        //   (A) `id ( a | b )* -> ann` (binary_value/hex_value/etc.)
+        //   (B) `( a | b | c )? id -> ann` (ps_type_identifier_sv_2017/2023)
+        //   (C) `RULE = X | Y | ( a )? token id lparen ( e )? rparen -> ann`
+        //                                                              (^ ansi_port_declaration branch 3)
+        //   (D) per-branch annotation on `( a | b )? id` in multi-branch rule
+        //                                              (method_call_receiver_*)
+        let mut outer_branch_idx = 0usize;
+        let mut branch_to_outer: Vec<usize> = vec![0];
+
         for item in content {
             let Some(arr) = item.as_array() else {
                 syntax_elements.push(item.clone());
@@ -1987,6 +2003,12 @@ impl RustASTPipeline {
                         // back across grouped branches; tracking inner
                         // branches here is what makes that broadcast possible.
                         branch_idx = branch_idx.saturating_add(1);
+                        if group_depth == 0 {
+                            outer_branch_idx = outer_branch_idx.saturating_add(1);
+                        }
+                        if branch_to_outer.len() <= branch_idx {
+                            branch_to_outer.push(outer_branch_idx);
+                        }
                         if branch_return_annotations.len() <= branch_idx {
                             branch_return_annotations.push(None);
                         }
@@ -2118,6 +2140,54 @@ impl RustASTPipeline {
                 }
             }
         }
+
+        // Remap inner-indexed annotations to outer-indexed (top-level)
+        // branches. parse_rule_content truncates these vectors to the
+        // AST's top-level branch count; without this remap, inner-counted
+        // entries get lopped off. The last annotation per outer branch wins
+        // (matches existing "multiple return annotations in branch — keeping
+        // last" warning semantics).
+        let outer_count = outer_branch_idx + 1;
+        let remap_returns = |inner: Vec<Option<BranchAnnotation>>| -> Vec<Option<BranchAnnotation>> {
+            let mut out: Vec<Option<BranchAnnotation>> = vec![None; outer_count];
+            for (i, slot) in inner.into_iter().enumerate() {
+                if let Some(ann) = slot {
+                    let outer_idx = branch_to_outer.get(i).copied().unwrap_or(0);
+                    if outer_idx < out.len() {
+                        out[outer_idx] = Some(ann);
+                    }
+                }
+            }
+            out
+        };
+        let remap_vec_vec = |inner: Vec<Vec<SemanticAnnotation>>| -> Vec<Vec<SemanticAnnotation>> {
+            let mut out: Vec<Vec<SemanticAnnotation>> = vec![Vec::new(); outer_count];
+            for (i, vec_anns) in inner.into_iter().enumerate() {
+                if !vec_anns.is_empty() {
+                    let outer_idx = branch_to_outer.get(i).copied().unwrap_or(0);
+                    if outer_idx < out.len() {
+                        out[outer_idx].extend(vec_anns);
+                    }
+                }
+            }
+            out
+        };
+        let remap_mid_seq = |inner: Vec<Vec<MidSequenceSemanticAnnotation>>| -> Vec<Vec<MidSequenceSemanticAnnotation>> {
+            let mut out: Vec<Vec<MidSequenceSemanticAnnotation>> = vec![Vec::new(); outer_count];
+            for (i, vec_anns) in inner.into_iter().enumerate() {
+                if !vec_anns.is_empty() {
+                    let outer_idx = branch_to_outer.get(i).copied().unwrap_or(0);
+                    if outer_idx < out.len() {
+                        out[outer_idx].extend(vec_anns);
+                    }
+                }
+            }
+            out
+        };
+        let branch_return_annotations = remap_returns(branch_return_annotations);
+        let branch_semantic_annotations = remap_vec_vec(branch_semantic_annotations);
+        let branch_mid_sequence_semantic_annotations =
+            remap_mid_seq(branch_mid_sequence_semantic_annotations);
 
         Ok(ExtractedRuleAnnotations {
             syntax_elements,
