@@ -19,46 +19,46 @@ rtl_frontend_file := trivia design_item* trivia
 -> {type: "rtl_frontend_file", items: $2}
 
 @branch_policy: priority_first
-design_item := typedef_declaration
-             | package_declaration
-             | module_declaration
-             | semi
+design_item := typedef_declaration -> {kind: "typedef",  body: $1}
+             | package_declaration -> {kind: "package",  body: $1}
+             | module_declaration  -> {kind: "module",   body: $1}
+             | semi                -> {kind: "semi"}
 
 package_declaration := kw_package identifier semi package_item* kw_endpackage
 
 @branch_policy: priority_first
-package_item := typedef_declaration
-              | parameter_declaration_statement
-              | semi
+package_item := typedef_declaration               -> {kind: "typedef", body: $1}
+              | parameter_declaration_statement   -> {kind: "parameter", body: $1}
+              | semi                              -> {kind: "semi"}
 
 module_declaration := kw_module identifier import_declaration* ( hash lparen ( parameter_declaration_sequence )? rparen )? import_declaration* ( lparen ( port_list )? rparen )? semi module_item* kw_endmodule
 
 @branch_policy: priority_first
-module_item := parameter_declaration_statement
-             | import_declaration
-             | typedef_declaration
-             | genvar_declaration
-             | module_instantiation
-             | net_declaration
-             | continuous_assign
-             | procedural_block
-             | generate_region
-             | semi
+module_item := parameter_declaration_statement -> {kind: "parameter",           body: $1}
+             | import_declaration               -> {kind: "import",              body: $1}
+             | typedef_declaration              -> {kind: "typedef",             body: $1}
+             | genvar_declaration               -> {kind: "genvar",              body: $1}
+             | module_instantiation             -> {kind: "module_instantiation", body: $1}
+             | net_declaration                  -> {kind: "net",                 body: $1}
+             | continuous_assign                -> {kind: "continuous_assign",   body: $1}
+             | procedural_block                 -> {kind: "procedural_block",    body: $1}
+             | generate_region                  -> {kind: "generate_region",     body: $1}
+             | semi                             -> {kind: "semi"}
 
 generate_region := kw_generate generate_item* kw_endgenerate
 
 @branch_policy: priority_first
-generate_item := parameter_declaration_statement
-               | import_declaration
-               | typedef_declaration
-               | genvar_declaration
-               | module_instantiation
-               | net_declaration
-               | continuous_assign
-               | procedural_block
-               | generate_if
-               | generate_for
-               | semi
+generate_item := parameter_declaration_statement -> {kind: "parameter",           body: $1}
+               | import_declaration               -> {kind: "import",              body: $1}
+               | typedef_declaration              -> {kind: "typedef",             body: $1}
+               | genvar_declaration               -> {kind: "genvar",              body: $1}
+               | module_instantiation             -> {kind: "module_instantiation", body: $1}
+               | net_declaration                  -> {kind: "net",                 body: $1}
+               | continuous_assign                -> {kind: "continuous_assign",   body: $1}
+               | procedural_block                 -> {kind: "procedural_block",    body: $1}
+               | generate_if                      -> {kind: "generate_if",         body: $1}
+               | generate_for                     -> {kind: "generate_for",        body: $1}
+               | semi                             -> {kind: "semi"}
 
 generate_if := kw_if lparen rtl_expr rparen generate_body ( kw_else generate_body )?
 
