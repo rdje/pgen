@@ -3876,9 +3876,11 @@ ps_parameter_identifier := class_scope parameter_identifier                     
 
 @profiles: ["sv_2017"]
 ps_type_identifier_sv_2017 := ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 | non_typedef_package_scope | class_scope )? type_identifier
+                           -> {scope: $1, name: $2}
 
 @profiles: ["sv_2023"]
 ps_type_identifier_sv_2023 := ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe | non_typedef_package_scope | class_scope )? type_identifier
+                           -> {scope: $1, name: $2}
 
 ps_type_identifier := ps_type_identifier_sv_2017 -> {body: $1}
                    | ps_type_identifier_sv_2023 -> {body: $1}

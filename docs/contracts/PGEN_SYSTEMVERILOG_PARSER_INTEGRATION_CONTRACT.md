@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.114`
+  - `1.0.115`
 - Parser release version:
-  - `1.0.114`
+  - `1.0.115`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,19 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.115 / Contract 1.0.115 Highlights — SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed (2 rules / 2 annotations)
+
+Re-annotation of `( a | b | c )? id` shape after codegen-drop fix (PGEN-PIP-001):
+
+```ebnf
+ps_type_identifier_sv_2017 / ps_type_identifier_sv_2023
+  -> {scope: $1, name: $2}
+```
+
+`scope` is the optional parens-group (kw_local + scope_res + kw_n_{43,48} | non_typedef_package_scope | class_scope); `name` is the trailing type_identifier.
+
+Annotation count: **2290** (was 2288, +2). Same accept set.
 
 ## Release 1.0.114 / Contract 1.0.114 Highlights — SV-Slice-114 batch: Pattern-A number-value sequence rules typed (5 rules / 5 annotations)
 

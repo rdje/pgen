@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-991645bf.js";
+            window.path_to_searchindex_js = "searchindex-5fc3aac8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>1.16.0</td><td>1.0.115</td><td><strong>SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed</strong> (codegen drop fixed). 2 rules / 2 annotations. `( a</td></tr>
 <tr><td>1.15.0</td><td>1.0.114</td><td><strong>SV-Slice-114 batch: Pattern-A number-value sequence rules typed</strong> (codegen drop fixed). 5 rules / 5 annotations. `digit ( sep</td></tr>
 <tr><td>1.14.0</td><td>1.0.113</td><td><strong>SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed.</strong> 2 rules / 26 annotations. 14 distinct kinds per rule (<code>hierarchical</code> branch dropped by codegen on both). Annotation inventory: 2256 entries (was 2231).</td></tr>
 <tr><td>1.13.0</td><td>1.0.112</td><td><strong>SV-Slice-112 batch: hierarchical_tf_identifier + ansi_port_declaration typed.</strong> 2 rules / 4 annotations. Per-branch discriminators on task-#38 deferred rules. <code>ansi_port_declaration.named_dot</code> annotation dropped by codegen. Annotation inventory: 2231 entries (was 2227).</td></tr>
@@ -1461,6 +1462,8 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10115--contract-10115--sv-slice-115-batch-pattern-b-ps_type_identifier_sv_20172023-typed-2-rules--2-annotations"><a class="header" href="#10115--contract-10115--sv-slice-115-batch-pattern-b-ps_type_identifier_sv_20172023-typed-2-rules--2-annotations">1.0.115 / Contract 1.0.115 — SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed (2 rules / 2 annotations)</a></h3>
+<p>Annotation inventory: <strong>2290</strong> (was 2288, +2). Same accept set.</p>
 <h3 id="10114--contract-10114--sv-slice-114-batch-pattern-a-number-value-sequence-rules-typed-5-rules--5-annotations"><a class="header" href="#10114--contract-10114--sv-slice-114-batch-pattern-a-number-value-sequence-rules-typed-5-rules--5-annotations">1.0.114 / Contract 1.0.114 — SV-Slice-114 batch: Pattern-A number-value sequence rules typed (5 rules / 5 annotations)</a></h3>
 <p>Annotation inventory: <strong>2288</strong> (was 2283, +5). Same accept set.</p>
 <h3 id="10113--contract-10113--sv-slice-113-batch-method_call_receiver_sv_20172023-per-branch-typed-2-rules--26-annotations-after-codegen-drops-2"><a class="header" href="#10113--contract-10113--sv-slice-113-batch-method_call_receiver_sv_20172023-per-branch-typed-2-rules--26-annotations-after-codegen-drops-2">1.0.113 / Contract 1.0.113 — SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed (2 rules / 26 annotations after codegen drops 2)</a></h3>

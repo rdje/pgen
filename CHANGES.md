@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-14 - SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed (2 rules / 2 annotations) (PGEN-SVP-0115)
+
+Re-annotation of `( a | b | c )? id` shape after codegen-drop fix (PGEN-PIP-001). Both rules typed `{scope: $1, name: $2}` where scope is the optional parens-group (kw_local + scope_res + kw_n_{43,48} | non_typedef_package_scope | class_scope) and name is the trailing type_identifier.
+
+Annotation count: 2290 (was 2288, +2). Same accept set. Manifest + contract bumped to 1.0.115. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-14 - SV-Slice-114 batch: Pattern-A number-value sequence rules typed (5 rules / 5 annotations) (PGEN-SVP-0114)
 
 Re-annotation of `digit ( sep | digit )*` shape, previously blocked by a codegen drop (now fixed in PGEN-PIP-001). `unsigned_number`, `non_zero_unsigned_number`, `binary_value`, `hex_value`, `octal_value` each typed `{first: $1, rest: $2}` — first is leading digit, rest is iteration array of alternating digit/separator entries.
