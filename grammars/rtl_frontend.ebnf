@@ -114,8 +114,8 @@ parameter_override_list := &dot parameter_override ( comma &dot parameter_overri
                          | !dot parameter_override ( comma !dot parameter_override )*
 
 @branch_policy: priority_first
-parameter_override := dot identifier lparen rtl_expr rparen
-                    | rtl_expr
+parameter_override := dot identifier lparen rtl_expr rparen  -> {kind: "named",     name: $2, value: $4}
+                    | rtl_expr                                -> {kind: "positional", value: $1}
 
 port_connection_list := &dot port_connection ( comma &dot port_connection )*
                       | !dot port_connection ( comma !dot port_connection )*
@@ -132,12 +132,13 @@ net_item := identifier unpacked_dimension*
 continuous_assign := kw_assign assignment_target equals value_expr semi
 
 @branch_policy: priority_first
-procedural_block := kw_always_comb statement
-                  | kw_always_latch statement
-                  | kw_always_ff event_control_list always_ff_statement
-                  | kw_always always_star_event statement
+procedural_block := kw_always_comb statement                              -> {kind: "always_comb",  statement: $2}
+                  | kw_always_latch statement                              -> {kind: "always_latch", statement: $2}
+                  | kw_always_ff event_control_list always_ff_statement    -> {kind: "always_ff",    event_control: $2, statement: $3}
+                  | kw_always always_star_event statement                  -> {kind: "always",       event: $2, statement: $3}
 
-always_star_event := at lparen star rparen | star
+always_star_event := at lparen star rparen   -> {kind: "at_paren_star"}
+                  | star                    -> {kind: "bare_star"}
 
 event_control_list := at lparen event_control_item ( ( comma | kw_or ) event_control_item )* rparen
 
@@ -172,8 +173,8 @@ value_expr := rtl_expr
 
 rtl_expr := conditional_expr
 
-conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
-                  | logical_or_expr
+conditional_expr := logical_or_expr question conditional_expr colon conditional_expr  -> {type: "ternary",  condition: $1, then_expr: $3, else_expr: $5}
+                  | logical_or_expr                                                    -> $1
 
 logical_or_expr := logical_and_expr ( logical_or logical_and_expr )*
 logical_and_expr := bit_or_expr ( logical_and bit_or_expr )*
@@ -186,19 +187,19 @@ shift_expr := additive_expr ( ( shl | shr ) additive_expr )*
 additive_expr := multiplicative_expr ( ( plus | minus ) multiplicative_expr )*
 multiplicative_expr := unary_expr ( ( star | slash | percent ) unary_expr )*
 
-unary_expr := plus unary_expr
-           | minus unary_expr
-           | bang unary_expr
-           | tilde unary_expr
-           | primary_expr
+unary_expr := plus unary_expr     -> {type: "unary", op: "plus",        expr: $2}
+           | minus unary_expr    -> {type: "unary", op: "minus",       expr: $2}
+           | bang unary_expr     -> {type: "unary", op: "logical_not", expr: $2}
+           | tilde unary_expr    -> {type: "unary", op: "bit_not",     expr: $2}
+           | primary_expr        -> $1
 
 @branch_policy: priority_first
-primary_expr := repetition_expr
-             | concatenation_expr
-             | ranged_signal_reference
-             | signal_reference
-             | literal
-             | lparen rtl_expr rparen
+primary_expr := repetition_expr             -> {kind: "repetition",    body: $1}
+             | concatenation_expr           -> {kind: "concatenation", body: $1}
+             | ranged_signal_reference      -> {kind: "ranged_signal", body: $1}
+             | signal_reference             -> {kind: "signal",        body: $1}
+             | literal                      -> {kind: "literal",       body: $1}
+             | lparen rtl_expr rparen       -> {kind: "parens",        expr: $2}
 
 repetition_expr := lbrace rtl_expr lbrace rtl_expr ( comma rtl_expr )* rbrace rbrace
 
