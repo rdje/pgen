@@ -40,11 +40,11 @@ shape conventions.
   `SVPP-MDBOOK.4`, `SVPP-MDBOOK.5`, `SVPP-MDBOOK.6`
 
 - ID: `SVPP-MDBOOK.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Scaffold book.toml, SUMMARY.md, welcome chapter.`
   Acceptance: `mdbook build succeeds locally.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-14: mdbook build wrote HTML to docs/systemverilog_preprocessor_parser_book-html.`
+  Commit: `SVPP-MDBOOK-Slice-1`
 
 - ID: `SVPP-MDBOOK.2`
   Status: `pending`
@@ -85,7 +85,8 @@ shape conventions.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SVPP-MDBOOK.1` | `pending` | Scaffolding must exist first. |
+| 1 | `SVPP-MDBOOK.2` | `pending` | Core navigation content. |
+| 2 | `SVPP-MDBOOK.5` | `pending` | Gate wiring (parallel). |
 
 ## Decisions
 
@@ -104,14 +105,15 @@ shape conventions.
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `SVPP-MDBOOK.1` | `pending` | `pending` |
+| `2026-05-14` | `SVPP-MDBOOK.1` | `mdbook build` | `pass` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `SVPP-MDBOOK.1` | `pending` | `pending` |
+| `SVPP-MDBOOK.1` | `SVPP-MDBOOK-Slice-1` | book.toml + 13-entry SUMMARY + welcome + chapter stubs |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
+- `2026-05-14`: `.1` done; frontier → `.2` + `.5`.
