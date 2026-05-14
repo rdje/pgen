@@ -28,6 +28,18 @@
     "optional_grammar_json_crosscheck": "generated/rtl_frontend.json",
     "annotations": [
       {
+        "rule": "assignment_operator",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"blocking\"}"
+      },
+      {
+        "rule": "assignment_operator",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"nonblocking\"}"
+      },
+      {
         "rule": "design_item",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -50,6 +62,18 @@
         "branch_index": 3,
         "annotation_type": "return_object",
         "normalized_text": "{kind: \"semi\"}"
+      },
+      {
+        "rule": "event_edge",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"posedge\"}"
+      },
+      {
+        "rule": "event_edge",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"negedge\"}"
       },
       {
         "rule": "generate_item",
@@ -194,6 +218,54 @@
         "branch_index": 2,
         "annotation_type": "return_object",
         "normalized_text": "{kind: \"semi\"}"
+      },
+      {
+        "rule": "parameter_flavor",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"parameter\"}"
+      },
+      {
+        "rule": "parameter_flavor",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"localparam\"}"
+      },
+      {
+        "rule": "port_direction",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"input\"}"
+      },
+      {
+        "rule": "port_direction",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"output\"}"
+      },
+      {
+        "rule": "port_direction",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"inout\"}"
+      },
+      {
+        "rule": "port_direction_token",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"input\"}"
+      },
+      {
+        "rule": "port_direction_token",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"output\"}"
+      },
+      {
+        "rule": "port_direction_token",
+        "branch_index": 2,
+        "annotation_type": "return_object",
+        "normalized_text": "{kind: \"inout\"}"
       },
       {
         "rule": "rtl_frontend_file",

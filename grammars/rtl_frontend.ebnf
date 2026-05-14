@@ -84,7 +84,8 @@ parameter_declaration_tail := parameter_flavor &( data_type identifier ) data_ty
                             | &( data_type identifier ) data_type identifier ( equals rtl_expr )?
                             | identifier ( equals rtl_expr )?
 
-parameter_flavor := kw_parameter | kw_localparam
+parameter_flavor := kw_parameter   -> {kind: "parameter"}
+                 | kw_localparam  -> {kind: "localparam"}
 
 port_list := port_group ( comma port_group )*
 
@@ -92,8 +93,12 @@ port_group := port_direction data_type? packed_range? port_item ( comma !port_di
 
 port_item := identifier unpacked_dimension*
 
-port_direction := kw_input | kw_output | kw_inout
-port_direction_token := kw_input | kw_output | kw_inout
+port_direction := kw_input   -> {kind: "input"}
+               | kw_output  -> {kind: "output"}
+               | kw_inout   -> {kind: "inout"}
+port_direction_token := kw_input   -> {kind: "input"}
+                     | kw_output  -> {kind: "output"}
+                     | kw_inout   -> {kind: "inout"}
 
 import_declaration := kw_import identifier scope_resolution ( star | identifier ) semi
 
@@ -138,7 +143,8 @@ event_control_list := at lparen event_control_item ( ( comma | kw_or ) event_con
 
 event_control_item := event_edge? rtl_expr
 
-event_edge := kw_posedge | kw_negedge
+event_edge := kw_posedge  -> {kind: "posedge"}
+           | kw_negedge  -> {kind: "negedge"}
 
 @branch_policy: priority_first
 statement := semi
@@ -154,7 +160,8 @@ always_ff_statement := semi
 
 always_ff_assignment_operator := less_equal
 
-assignment_operator := equals | less_equal
+assignment_operator := equals      -> {kind: "blocking"}
+                    | less_equal  -> {kind: "nonblocking"}
 
 @branch_policy: priority_first
 assignment_target := lbrace assignment_target ( comma assignment_target )+ rbrace
