@@ -89,10 +89,12 @@ PGEN is a production-focused parser and stimuli generator platform.
 9. `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 10. `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 11. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-12. `CHANGES.md`
-13. `DEVELOPMENT_NOTES.md`
-14. `MEMORY.md`
-15. `COMMIT.md`
+12. `docs/TASK_TREE.md` (active task trees + PNT selection rules)
+13. `docs/TASK_TREE_README.md` (reusable workflow installation guide)
+14. `CHANGES.md`
+15. `DEVELOPMENT_NOTES.md`
+16. `MEMORY.md`
+17. `COMMIT.md`
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)

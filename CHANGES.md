@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-14 - Task-tree workflow installed (PGEN-WORKFLOW-0001)
+
+Adopted the FSMGen task-tree decomposition workflow for multi-slice lanes. New files:
+
+- `docs/TASK_TREE_README.md` — portable installation guide
+- `docs/TASK_TREE.md` — PGEN-local workflow + active task tree index + PNT selection rules
+- `docs/tasks/TEMPLATE.md` — copy-this-for-new-tree skeleton
+- `docs/tasks/VHDL-MDBOOK.md`, `RTL-FE-MDBOOK.md`, `RTL-CE-MDBOOK.md`, `SVPP-MDBOOK.md` — per-parser mdBook stand-up trees (6 leaves each)
+- `docs/tasks/VHDL-CONTRACT-BODY.md`, `RTL-FE-CONTRACT-BODY.md`, `RTL-CE-CONTRACT-BODY.md`, `SVPP-CONTRACT-BODY.md` — per-parser integration contract body trees (3-4 leaves each)
+
+Workflow wired into `SESSION_BOOTSTRAP.md`, `COMMIT.md` (new "Task-Tree Workflow Rule" section), `README.md` Fast Ramp-Up list, and `MEMORY.md` (feedback_task_tree_workflow.md). Historical slice campaigns (regex/SV/SV-preprocessor/VHDL/rtl_const_expr/rtl_frontend typing) are intentionally NOT retrofitted; their record stays in this file + git log + per-grammar manifest calibration_history.
+
+PNT now reads `docs/TASK_TREE.md` first and selects from the active tree's Current Frontier; mechanical single-slice work continues to use `PGEN-<FAMILY>-<NNNN>` slice IDs without task-tree promotion.
+
 ## 2026-05-14 - SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed (2 rules / 2 annotations) (PGEN-SVP-0115)
 
 Re-annotation of `( a | b | c )? id` shape after codegen-drop fix (PGEN-PIP-001). Both rules typed `{scope: $1, name: $2}` where scope is the optional parens-group (kw_local + scope_res + kw_n_{43,48} | non_typedef_package_scope | class_scope) and name is the trailing type_identifier.

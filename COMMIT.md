@@ -1,12 +1,22 @@
 # COMMIT.md
 
-Last updated: 2026-03-28
+Last updated: 2026-05-14
 
 ## Purpose
 Define the exact commit workflow for this project so a new AI instance can apply it consistently without re-reading chat history.
 
 ## When To Run
 Run this workflow after each completed task/activity.
+
+## Task-Tree Workflow Rule
+When the completed activity belongs to a task-tree leaf (i.e. a leaf node from a file under `docs/tasks/`):
+
+- Update the owning `docs/tasks/<TREE>.md` file: leaf status, verification log, commit log entries, frontier, decisions, blockers as applicable.
+- Update `docs/TASK_TREE.md` Active Task Trees table only if the current frontier changes.
+- The commit subject or first body line must name the leaf ID alongside the PGEN slice ID (example: `VHDL-MDBOOK-Slice-1 (PGEN-VHDL-MDBOOK-0001, leaf VHDL-MDBOOK.1): scaffold book.toml + SUMMARY`).
+- One commit per completed leaf before selecting another leaf.
+
+When the activity is NOT task-tree-managed (e.g. a one-shot fix, a single mechanical slice not promoted to a tree), the standard slice-ID convention `PGEN-<FAMILY>-<NNNN>` is sufficient and no `docs/tasks/` update is required.
 
 ## Files Involved
 - `README.md` (tracked)
