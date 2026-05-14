@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-14 - SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed (2 rules / 26 annotations after codegen drops 2) (PGEN-SVP-0113)
+
+Per-branch annotation on both profile variants of `method_call_receiver` (14 distinct kinds per rule): primary_literal, hierarchical, empty_concat, multi_concat, concat, let_expr, parens, cast, assignment_pattern, streaming_concat, sequence_method, this, dollar, null_class. The `hierarchical` branch (`( a | b )? hierarchical_identifier`) had its annotation dropped by codegen on both rules — same limitation as ansi_port_declaration.named_dot in slice 112. 13 of 14 branches per rule landed.
+
+Annotation count: 2256 (was 2231, +25). Same accept set. Manifest + contract bumped to 1.0.113. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-14 - SV-Slice-112 batch: hierarchical_tf_identifier + ansi_port_declaration typed (2 rules / 4 annotations after codegen drops) (PGEN-SVP-0112)
 
 Per-branch annotation on previously task-#38-deferred rules. `hierarchical_tf_identifier` 2 kinds (rooted with `{scope_chain, name}` / anchored with `{head, head_select, scope_chain, name}`). `ansi_port_declaration` 3 kinds attempted (net_or_interface / variable / named_dot) — `named_dot` annotation present in IR but dropped by parser codegen (third branch shape `( a )? dot id lparen ( e )? rparen` appears to hit a codegen limitation distinct from task #38). 4 of 5 annotations landed.

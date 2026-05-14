@@ -2598,23 +2598,39 @@ direct_callable_method_call := method_call_root dot callable_method_call_body
 
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
-                             -> {body: $1}
+                             -> {kind: "primary_literal", body: $1}
                               | @probe_sample: "a" ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier
-                              | empty_unpacked_array_concatenation
-                              | multiple_concatenation ( lbrack range_expression rbrack )?
-                              | concatenation ( lbrack range_expression rbrack )?
-                              | let_expression
-                              | lparen mintypmax_expression rparen
-                              | cast
-                              | assignment_pattern_expression
-                              | streaming_concatenation
-                              | sequence_method_call
-                              | @probe_sample: "this" kw_this_c2543fff
-                              | kw_sv_dollar_04da59ec
+                                                                                                                        -> {kind: "hierarchical", qualifier: $1, name: $2}
+                              | empty_unpacked_array_concatenation                                                      -> {kind: "empty_concat", body: $1}
+                              | multiple_concatenation ( lbrack range_expression rbrack )?                              -> {kind: "multi_concat", body: $1, select: $2}
+                              | concatenation ( lbrack range_expression rbrack )?                                       -> {kind: "concat", body: $1, select: $2}
+                              | let_expression                                                                          -> {kind: "let_expr", body: $1}
+                              | lparen mintypmax_expression rparen                                                      -> {kind: "parens", expr: $2}
+                              | cast                                                                                    -> {kind: "cast", body: $1}
+                              | assignment_pattern_expression                                                           -> {kind: "assignment_pattern", body: $1}
+                              | streaming_concatenation                                                                 -> {kind: "streaming_concat", body: $1}
+                              | sequence_method_call                                                                    -> {kind: "sequence_method", body: $1}
+                              | @probe_sample: "this" kw_this_c2543fff                                                  -> {kind: "this"}
+                              | kw_sv_dollar_04da59ec                                                                   -> {kind: "dollar"}
                               | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
+                                                                                                                        -> {kind: "null_class", local_n43: $5, prefix: $6}
 
 @profiles: ["sv_2023"]
-method_call_receiver_sv_2023 := primary_literal | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | empty_unpacked_array_concatenation | multiple_concatenation ( lbrack range_expression rbrack )? | concatenation ( lbrack range_expression rbrack )? | let_expression | lparen mintypmax_expression rparen | cast | assignment_pattern_expression | streaming_concatenation | sequence_method_call | kw_this_c2543fff | kw_sv_dollar_04da59ec | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
+method_call_receiver_sv_2023 := primary_literal                                                                         -> {kind: "primary_literal", body: $1}
+                              | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier    -> {kind: "hierarchical", qualifier: $1, name: $2}
+                              | empty_unpacked_array_concatenation                                                      -> {kind: "empty_concat", body: $1}
+                              | multiple_concatenation ( lbrack range_expression rbrack )?                              -> {kind: "multi_concat", body: $1, select: $2}
+                              | concatenation ( lbrack range_expression rbrack )?                                       -> {kind: "concat", body: $1, select: $2}
+                              | let_expression                                                                          -> {kind: "let_expr", body: $1}
+                              | lparen mintypmax_expression rparen                                                      -> {kind: "parens", expr: $2}
+                              | cast                                                                                    -> {kind: "cast", body: $1}
+                              | assignment_pattern_expression                                                           -> {kind: "assignment_pattern", body: $1}
+                              | streaming_concatenation                                                                 -> {kind: "streaming_concat", body: $1}
+                              | sequence_method_call                                                                    -> {kind: "sequence_method", body: $1}
+                              | kw_this_c2543fff                                                                        -> {kind: "this"}
+                              | kw_sv_dollar_04da59ec                                                                   -> {kind: "dollar"}
+                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
+                                                                                                                        -> {kind: "null_class", local_n48: $5, prefix: $6}
 
 method_call_receiver := method_call_receiver_sv_2017 -> {kind: "sv_2017", body: $1}
                       | method_call_receiver_sv_2023 -> {kind: "sv_2023", body: $1}

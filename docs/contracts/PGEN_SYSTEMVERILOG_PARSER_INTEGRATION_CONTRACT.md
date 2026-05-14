@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.112`
+  - `1.0.113`
 - Parser release version:
-  - `1.0.112`
+  - `1.0.113`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,25 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.113 / Contract 1.0.113 Highlights — SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed (2 rules / 26 annotations after codegen drops 2)
+
+Per-branch annotation on both profile variants of `method_call_receiver`. 14 distinct kinds per rule:
+
+```ebnf
+method_call_receiver_sv_2017 / method_call_receiver_sv_2023
+  -> per-branch {kind: "primary_literal"     | "hierarchical"
+                     | "empty_concat"        | "multi_concat"
+                     | "concat"              | "let_expr"
+                     | "parens"              | "cast"
+                     | "assignment_pattern"  | "streaming_concat"
+                     | "sequence_method"     | "this"
+                     | "dollar"              | "null_class", ...}
+```
+
+The `hierarchical` branch (`( a | b )? hierarchical_identifier`) had its annotation dropped by codegen on both rules — same limitation as `ansi_port_declaration.named_dot` in slice 112. 13 of 14 branches per rule landed.
+
+Annotation count: **2256** (was 2231, +25). Same accept set.
 
 ## Release 1.0.112 / Contract 1.0.112 Highlights — SV-Slice-112 batch: hierarchical_tf_identifier + ansi_port_declaration typed (2 rules / 4 annotations after codegen drops)
 
