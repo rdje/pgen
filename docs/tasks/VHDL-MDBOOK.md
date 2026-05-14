@@ -46,11 +46,11 @@ consumers can read first, paired with a tracked HTML rendering and a
   `VHDL-MDBOOK.4`, `VHDL-MDBOOK.5`, `VHDL-MDBOOK.6`
 
 - ID: `VHDL-MDBOOK.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Scaffold book.toml, SUMMARY.md, and the welcome chapter.`
   Acceptance: `book.toml + SUMMARY.md + welcome.md exist and mdbook build succeeds locally.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-14: mdbook build wrote HTML to docs/vhdl_parser_book-html. SUMMARY has 12 entries; all stubbed.`
+  Commit: `VHDL-MDBOOK-Slice-1`
 
 - ID: `VHDL-MDBOOK.2`
   Status: `pending`
@@ -91,7 +91,8 @@ consumers can read first, paired with a tracked HTML rendering and a
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `VHDL-MDBOOK.1` | `pending` | Scaffolding must exist before any chapter can be authored. |
+| 1 | `VHDL-MDBOOK.2` | `pending` | Core navigation chapters (quickstart, public-api, ast-envelope, build-recipe) are the next reader entry point. |
+| 2 | `VHDL-MDBOOK.5` | `pending` | Gate wiring can be done in parallel with chapter content — leaf .5 is the unblocking infrastructure work. |
 
 ## Decisions
 
@@ -113,14 +114,15 @@ consumers can read first, paired with a tracked HTML rendering and a
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `VHDL-MDBOOK.1` | `pending` | `pending` |
+| `2026-05-14` | `VHDL-MDBOOK.1` | `mdbook build` | `pass — HTML rendered to docs/vhdl_parser_book-html` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `VHDL-MDBOOK.1` | `pending` | `pending` |
+| `VHDL-MDBOOK.1` | `VHDL-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome chapter + stubs for remaining chapters |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
+- `2026-05-14`: `VHDL-MDBOOK.1` completed; frontier advances to `VHDL-MDBOOK.2` (next reader content) and `VHDL-MDBOOK.5` (gate wiring, parallel).
