@@ -17,15 +17,25 @@ conditional_expr := logical_or_expr
 -> $1
 
 logical_or_expr := logical_and_expr (logical_or logical_and_expr)*
+                -> {type: "binop_chain", level: "logical_or", lhs: $1, rest: $2}
 logical_and_expr := bit_or_expr (logical_and bit_or_expr)*
+                 -> {type: "binop_chain", level: "logical_and", lhs: $1, rest: $2}
 bit_or_expr := bit_xor_expr (bit_or bit_xor_expr)*
+            -> {type: "binop_chain", level: "bit_or", lhs: $1, rest: $2}
 bit_xor_expr := bit_and_expr (bit_xor bit_and_expr)*
+             -> {type: "binop_chain", level: "bit_xor", lhs: $1, rest: $2}
 bit_and_expr := equality_expr (bit_and equality_expr)*
+             -> {type: "binop_chain", level: "bit_and", lhs: $1, rest: $2}
 equality_expr := relational_expr ((eqeq | ne) relational_expr)*
+              -> {type: "binop_chain", level: "equality", lhs: $1, rest: $2}
 relational_expr := shift_expr ((le | lt | ge | gt) shift_expr)*
+                -> {type: "binop_chain", level: "relational", lhs: $1, rest: $2}
 shift_expr := additive_expr ((shl | shr) additive_expr)*
+           -> {type: "binop_chain", level: "shift", lhs: $1, rest: $2}
 additive_expr := multiplicative_expr ((plus | minus) multiplicative_expr)*
+              -> {type: "binop_chain", level: "additive", lhs: $1, rest: $2}
 multiplicative_expr := unary_expr ((star | slash | percent) unary_expr)*
+                    -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
 
 unary_expr := plus unary_expr
 -> {type: "unary", op: "plus", expr: $2}

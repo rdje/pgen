@@ -41,8 +41,32 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/rtl_const_expr_return_annotations.json",
-    "extracted_at": "2026-04-27",
+    "extracted_at": "2026-05-14",
     "annotations": [
+      {
+        "rule": "additive_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"additive\", lhs: $1, rest: $2}"
+      },
+      {
+        "rule": "bit_and_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"bit_and\", lhs: $1, rest: $2}"
+      },
+      {
+        "rule": "bit_or_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"bit_or\", lhs: $1, rest: $2}"
+      },
+      {
+        "rule": "bit_xor_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"bit_xor\", lhs: $1, rest: $2}"
+      },
       {
         "rule": "conditional_expr",
         "branch_index": 0,
@@ -54,6 +78,12 @@
         "branch_index": 1,
         "annotation_type": "return_scalar",
         "normalized_text": "$1"
+      },
+      {
+        "rule": "equality_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"equality\", lhs: $1, rest: $2}"
       },
       {
         "rule": "identifier",
@@ -74,6 +104,24 @@
         "normalized_text": "{type: \"literal\", kind: \"decimal\", text: $1}"
       },
       {
+        "rule": "logical_and_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"logical_and\", lhs: $1, rest: $2}"
+      },
+      {
+        "rule": "logical_or_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"logical_or\", lhs: $1, rest: $2}"
+      },
+      {
+        "rule": "multiplicative_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"multiplicative\", lhs: $1, rest: $2}"
+      },
+      {
         "rule": "primary_expr",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -92,10 +140,22 @@
         "normalized_text": "$2"
       },
       {
+        "rule": "relational_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"relational\", lhs: $1, rest: $2}"
+      },
+      {
         "rule": "rtl_const_expr",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"rtl_const_expr\", expr: $1}"
+      },
+      {
+        "rule": "shift_expr",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"binop_chain\", level: \"shift\", lhs: $1, rest: $2}"
       },
       {
         "rule": "unary_expr",
