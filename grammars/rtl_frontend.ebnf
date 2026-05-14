@@ -121,23 +121,25 @@ genvar_declaration := kw_genvar identifier ( comma identifier )* semi
                   -> {first: $2, rest: $3}
 
 module_instantiation := identifier ( hash lparen ( parameter_override_list )? rparen )? instance_item ( comma instance_item )* semi
+                     -> {module_name: $1, parameters: $2, first: $3, rest: $4}
 
 instance_item := identifier unpacked_dimension? lparen ( port_connection_list )? rparen
+              -> {name: $1, dims: $2, connections: $4}
 
-parameter_override_list := &dot parameter_override ( comma &dot parameter_override )*
-                         | !dot parameter_override ( comma !dot parameter_override )*
+parameter_override_list := &dot parameter_override ( comma &dot parameter_override )*   -> {kind: "named",      first: $2, rest: $3}
+                         | !dot parameter_override ( comma !dot parameter_override )*   -> {kind: "positional", first: $2, rest: $3}
 
 @branch_policy: priority_first
 parameter_override := dot identifier lparen rtl_expr rparen  -> {kind: "named",     name: $2, value: $4}
                     | rtl_expr                                -> {kind: "positional", value: $1}
 
-port_connection_list := &dot port_connection ( comma &dot port_connection )*
-                      | !dot port_connection ( comma !dot port_connection )*
+port_connection_list := &dot port_connection ( comma &dot port_connection )*   -> {kind: "named",      first: $2, rest: $3}
+                      | !dot port_connection ( comma !dot port_connection )*   -> {kind: "positional", first: $2, rest: $3}
 
 @branch_policy: priority_first
-port_connection := dot star
-                 | dot identifier lparen ( value_expr )? rparen
-                 | value_expr
+port_connection := dot star                                       -> {kind: "wildcard"}
+                 | dot identifier lparen ( value_expr )? rparen   -> {kind: "named",      name: $2, value: $4}
+                 | value_expr                                      -> {kind: "positional", value: $1}
 
 net_declaration := data_type packed_range? net_item ( comma net_item )* semi
                 -> {data_type: $1, packed_range: $2, first: $3, rest: $4}
@@ -158,23 +160,25 @@ always_star_event := at lparen star rparen   -> {kind: "at_paren_star"}
                   | star                    -> {kind: "bare_star"}
 
 event_control_list := at lparen event_control_item ( ( comma | kw_or ) event_control_item )* rparen
+                   -> {first: $3, rest: $4}
 
 event_control_item := event_edge? rtl_expr
+                  -> {edge: $1, expr: $2}
 
 event_edge := kw_posedge  -> {kind: "posedge"}
            | kw_negedge  -> {kind: "negedge"}
 
 @branch_policy: priority_first
-statement := semi
-          | kw_begin ( colon identifier )? statement* kw_end
-          | kw_if lparen rtl_expr rparen statement ( kw_else statement )?
-          | assignment_target assignment_operator value_expr semi
+statement := semi                                                                        -> {kind: "semi"}
+          | kw_begin ( colon identifier )? statement* kw_end                              -> {kind: "block",      label: $2, items: $3}
+          | kw_if lparen rtl_expr rparen statement ( kw_else statement )?                 -> {kind: "if",         cond: $3, then_body: $5, else_body: $6}
+          | assignment_target assignment_operator value_expr semi                         -> {kind: "assignment", lvalue: $1, operator: $2, value: $3}
 
 @branch_policy: priority_first
-always_ff_statement := semi
-                    | kw_begin ( colon identifier )? always_ff_statement* kw_end
-                    | kw_if lparen rtl_expr rparen always_ff_statement ( kw_else always_ff_statement )?
-                    | assignment_target always_ff_assignment_operator value_expr semi
+always_ff_statement := semi                                                                        -> {kind: "semi"}
+                    | kw_begin ( colon identifier )? always_ff_statement* kw_end                    -> {kind: "block",      label: $2, items: $3}
+                    | kw_if lparen rtl_expr rparen always_ff_statement ( kw_else always_ff_statement )? -> {kind: "if",         cond: $3, then_body: $5, else_body: $6}
+                    | assignment_target always_ff_assignment_operator value_expr semi               -> {kind: "assignment", lvalue: $1, operator: $2, value: $3}
 
 always_ff_assignment_operator := less_equal
 
@@ -182,9 +186,9 @@ assignment_operator := equals      -> {kind: "blocking"}
                     | less_equal  -> {kind: "nonblocking"}
 
 @branch_policy: priority_first
-assignment_target := lbrace assignment_target ( comma assignment_target )+ rbrace
-                   | ranged_signal_reference
-                   | signal_reference
+assignment_target := lbrace assignment_target ( comma assignment_target )+ rbrace  -> {kind: "concat",  first: $2, rest: $3}
+                   | ranged_signal_reference                                         -> {kind: "ranged",  body: $1}
+                   | signal_reference                                                -> {kind: "signal",  body: $1}
 
 value_expr := rtl_expr
 
@@ -229,56 +233,74 @@ primary_expr := repetition_expr             -> {kind: "repetition",    body: $1}
              | lparen rtl_expr rparen       -> {kind: "parens",        expr: $2}
 
 repetition_expr := lbrace rtl_expr lbrace rtl_expr ( comma rtl_expr )* rbrace rbrace
+                -> {count: $2, first: $4, rest: $5}
 
 concatenation_expr := lbrace rtl_expr ( comma rtl_expr )+ rbrace
+                   -> {first: $2, rest: $3}
 
 ranged_signal_reference := scoped_identifier signal_path_op* lbrack rtl_expr colon rtl_expr rbrack
+                        -> {name: $1, path: $2, msb: $4, lsb: $6}
 
 signal_reference := scoped_identifier signal_path_op*
+                 -> {name: $1, path: $2}
 
 scoped_identifier := identifier ( scope_resolution identifier )*
+                  -> {first: $1, rest: $2}
 
-signal_path_op := dot identifier | lbrack rtl_expr rbrack
+signal_path_op := dot identifier        -> {kind: "member", name: $2}
+               | lbrack rtl_expr rbrack -> {kind: "index",  index: $2}
 
-data_type := enum_type
-           | union_type
-           | struct_type
-           | builtin_data_type
-           | package_qualified_type
-           | named_data_type
+data_type := enum_type              -> {kind: "enum",     body: $1}
+           | union_type             -> {kind: "union",    body: $1}
+           | struct_type            -> {kind: "struct",   body: $1}
+           | builtin_data_type      -> {kind: "builtin",  body: $1}
+           | package_qualified_type -> {kind: "package",  body: $1}
+           | named_data_type        -> {kind: "named",    body: $1}
 
 package_qualified_type := identifier scope_resolution identifier
+                       -> {package: $1, name: $3}
 
 named_data_type := identifier
 
-builtin_data_type := kw_bit
-                   | kw_byte
-                   | kw_shortint
-                   | kw_int
-                   | kw_integer
-                   | kw_longint
-                   | kw_logic
-                   | kw_reg
-                   | kw_wire
+builtin_data_type := kw_bit       -> {kind: "bit"}
+                   | kw_byte      -> {kind: "byte"}
+                   | kw_shortint  -> {kind: "shortint"}
+                   | kw_int       -> {kind: "int"}
+                   | kw_integer   -> {kind: "integer"}
+                   | kw_longint   -> {kind: "longint"}
+                   | kw_logic     -> {kind: "logic"}
+                   | kw_reg       -> {kind: "reg"}
+                   | kw_wire      -> {kind: "wire"}
 
 enum_type := kw_enum ( enum_base_type )? packed_range? lbrace enum_item ( comma enum_item )* ( comma )? rbrace
+          -> {base: $2, packed_range: $3, first: $5, rest: $6}
 
-enum_base_type := builtin_data_type | package_qualified_type | named_data_type
+enum_base_type := builtin_data_type      -> {kind: "builtin", body: $1}
+               | package_qualified_type -> {kind: "package", body: $1}
+               | named_data_type        -> {kind: "named",   body: $1}
 
 enum_item := identifier ( equals rtl_expr )?
+          -> {name: $1, value: $2}
 
 union_type := kw_union ( kw_packed )? lbrace struct_union_field* rbrace
+           -> {packed: $2, fields: $4}
 
 struct_type := kw_struct ( kw_packed )? lbrace struct_union_field* rbrace
+            -> {packed: $2, fields: $4}
 
 struct_union_field := data_type packed_range? struct_union_field_name ( comma struct_union_field_name )* semi
+                   -> {data_type: $1, packed_range: $2, first: $3, rest: $4}
 
-struct_union_field_name := identifier | kw_byte
+struct_union_field_name := identifier   -> {kind: "identifier", body: $1}
+                        | kw_byte      -> {kind: "byte"}
 
 packed_range := lbrack rtl_expr colon rtl_expr rbrack
+             -> {msb: $2, lsb: $4}
 unpacked_dimension := packed_range
 
-literal := based_integer | decimal_integer | real_number
+literal := based_integer    -> {kind: "based",   text: $1}
+        | decimal_integer  -> {kind: "decimal", text: $1}
+        | real_number      -> {kind: "real",    body: $1}
 
 based_integer := trivia /[0-9][0-9_]*'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ?_]+/
 decimal_integer := trivia /[0-9][0-9_]*/
