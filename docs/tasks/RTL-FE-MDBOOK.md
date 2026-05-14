@@ -40,11 +40,11 @@ rendering and an `rtl_frontend_parser_book_gate` target.
   `RTL-FE-MDBOOK.4`, `RTL-FE-MDBOOK.5`, `RTL-FE-MDBOOK.6`
 
 - ID: `RTL-FE-MDBOOK.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Scaffold book.toml, SUMMARY.md, welcome chapter.`
   Acceptance: `mdbook build succeeds locally.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-14: mdbook build wrote HTML to docs/rtl_frontend_parser_book-html.`
+  Commit: `RTL-FE-MDBOOK-Slice-1`
 
 - ID: `RTL-FE-MDBOOK.2`
   Status: `pending`
@@ -85,7 +85,8 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-MDBOOK.1` | `pending` | Scaffolding must exist before any chapter can be authored. |
+| 1 | `RTL-FE-MDBOOK.2` | `pending` | Core navigation chapters next reader entry point. |
+| 2 | `RTL-FE-MDBOOK.5` | `pending` | Gate wiring infrastructure (parallel). |
 
 ## Decisions
 
@@ -106,14 +107,15 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `RTL-FE-MDBOOK.1` | `pending` | `pending` |
+| `2026-05-14` | `RTL-FE-MDBOOK.1` | `mdbook build` | `pass` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `RTL-FE-MDBOOK.1` | `pending` | `pending` |
+| `RTL-FE-MDBOOK.1` | `RTL-FE-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome + chapter stubs |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
+- `2026-05-14`: `RTL-FE-MDBOOK.1` done; frontier → `.2` + `.5`.
