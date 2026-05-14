@@ -30,7 +30,7 @@ same commit.
 | --- | --- | --- | --- | --- |
 | `VHDL-MDBOOK` | `active` | vhdl deliverables | `VHDL-MDBOOK.2`, `VHDL-MDBOOK.5` | [docs/tasks/VHDL-MDBOOK.md](tasks/VHDL-MDBOOK.md) |
 | `RTL-FE-MDBOOK` | `active` | rtl_frontend deliverables | `RTL-FE-MDBOOK.2`, `RTL-FE-MDBOOK.5` | [docs/tasks/RTL-FE-MDBOOK.md](tasks/RTL-FE-MDBOOK.md) |
-| `RTL-CE-MDBOOK` | `active` | rtl_const_expr deliverables | `RTL-CE-MDBOOK.1` | [docs/tasks/RTL-CE-MDBOOK.md](tasks/RTL-CE-MDBOOK.md) |
+| `RTL-CE-MDBOOK` | `active` | rtl_const_expr deliverables | `RTL-CE-MDBOOK.2`, `RTL-CE-MDBOOK.5` | [docs/tasks/RTL-CE-MDBOOK.md](tasks/RTL-CE-MDBOOK.md) |
 | `SVPP-MDBOOK` | `active` | sv_preprocessor deliverables | `SVPP-MDBOOK.1` | [docs/tasks/SVPP-MDBOOK.md](tasks/SVPP-MDBOOK.md) |
 | `VHDL-CONTRACT-BODY` | `active` | vhdl deliverables | `VHDL-CONTRACT-BODY.1` | [docs/tasks/VHDL-CONTRACT-BODY.md](tasks/VHDL-CONTRACT-BODY.md) |
 | `RTL-FE-CONTRACT-BODY` | `active` | rtl_frontend deliverables | `RTL-FE-CONTRACT-BODY.1` | [docs/tasks/RTL-FE-CONTRACT-BODY.md](tasks/RTL-FE-CONTRACT-BODY.md) |

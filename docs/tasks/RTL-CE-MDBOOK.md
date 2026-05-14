@@ -40,11 +40,11 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
   `RTL-CE-MDBOOK.4`, `RTL-CE-MDBOOK.5`, `RTL-CE-MDBOOK.6`
 
 - ID: `RTL-CE-MDBOOK.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Scaffold book.toml, SUMMARY.md, welcome chapter.`
   Acceptance: `mdbook build succeeds locally.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-14: mdbook build wrote HTML to docs/rtl_const_expr_parser_book-html.`
+  Commit: `RTL-CE-MDBOOK-Slice-1`
 
 - ID: `RTL-CE-MDBOOK.2`
   Status: `pending`
@@ -85,7 +85,8 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-CE-MDBOOK.1` | `pending` | Scaffolding must exist first. |
+| 1 | `RTL-CE-MDBOOK.2` | `pending` | Core navigation content. |
+| 2 | `RTL-CE-MDBOOK.5` | `pending` | Gate wiring (parallel). |
 
 ## Decisions
 
@@ -104,14 +105,15 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `RTL-CE-MDBOOK.1` | `pending` | `pending` |
+| `2026-05-14` | `RTL-CE-MDBOOK.1` | `mdbook build` | `pass` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `RTL-CE-MDBOOK.1` | `pending` | `pending` |
+| `RTL-CE-MDBOOK.1` | `RTL-CE-MDBOOK-Slice-1` | book.toml + 13-entry SUMMARY + welcome + chapter stubs |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
+- `2026-05-14`: `.1` done; frontier → `.2` + `.5`.
