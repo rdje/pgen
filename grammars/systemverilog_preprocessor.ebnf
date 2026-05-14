@@ -15,61 +15,75 @@
 systemverilog_preprocessor_file := pp_item*
 -> {type: "systemverilog_preprocessor_file", items: $1}
 
-pp_item := pp_define
-         | pp_undef
-         | pp_include
-         | pp_timescale
-         | pp_default_nettype
-         | pp_celldefine
-         | pp_endcelldefine
-         | pp_conditional
-         | pp_non_directive_line
-         | pp_blank_line
+pp_item := pp_define              -> {kind: "define",              body: $1}
+         | pp_undef               -> {kind: "undef",               body: $1}
+         | pp_include             -> {kind: "include",             body: $1}
+         | pp_timescale           -> {kind: "timescale",           body: $1}
+         | pp_default_nettype     -> {kind: "default_nettype",     body: $1}
+         | pp_celldefine          -> {kind: "celldefine"}
+         | pp_endcelldefine       -> {kind: "endcelldefine"}
+         | pp_conditional         -> {kind: "conditional",         body: $1}
+         | pp_non_directive_line  -> {kind: "non_directive_line",  body: $1}
+         | pp_blank_line          -> {kind: "blank_line"}
 
 # ---------------------------------------------------------------------------
 # Core directives
 # ---------------------------------------------------------------------------
 
 pp_define := kw_define macro_name macro_formals? macro_body? newline?
+          -> {name: $2, formals: $3, body: $4}
 pp_undef := kw_undef macro_name directive_comment_tail newline?
+         -> {name: $2, comment: $3}
 pp_include := kw_include include_path directive_comment_tail newline?
+           -> {path: $2, comment: $3}
 pp_timescale := kw_timescale time_literal slash time_literal directive_comment_tail newline?
+             -> {unit: $2, precision: $4, comment: $5}
 pp_default_nettype := kw_default_nettype nettype_value directive_comment_tail newline?
+                   -> {nettype: $2, comment: $3}
 pp_celldefine := kw_celldefine directive_comment_tail newline?
+              -> {comment: $2}
 pp_endcelldefine := kw_endcelldefine directive_comment_tail newline?
+                 -> {comment: $2}
 
-include_path := quoted_string
-              | angle_path
+include_path := quoted_string -> {kind: "quoted", text: $1}
+              | angle_path    -> {kind: "angle",  text: $1}
 
-nettype_value := identifier
-               | kw_none
+nettype_value := identifier -> {kind: "identifier", body: $1}
+               | kw_none    -> {kind: "none"}
 
 time_literal := unsigned_number time_unit
+             -> {value: $1, unit: $2}
 
 # ---------------------------------------------------------------------------
 # Conditional-compilation blocks
 # ---------------------------------------------------------------------------
 
 pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
+               -> {if_branch: $1, elsif_branches: $2, else_branch: $3}
 
 pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item*
+             -> {keyword: $1, macro: $2, tail: $3, items: $5}
 pp_elsif_branch := kw_elsif condition_expr newline pp_item*
+                -> {condition: $2, items: $4}
 pp_else_branch := kw_else directive_tail? newline pp_item*
+               -> {tail: $2, items: $4}
 pp_endif := kw_endif directive_tail? newline?
+         -> {tail: $2}
 
 condition_expr := condition_atom+
-condition_atom := macro_token_paste
-                | macro_stringize
-                | macro_reference
-                | condition_text
-                | lparen
-                | rparen
-                | comma
-                | question
-                | colon
-                | logical_or
-                | logical_and
-                | bang
+               -> {atoms: $1}
+condition_atom := macro_token_paste -> {kind: "token_paste"}
+                | macro_stringize   -> {kind: "stringize"}
+                | macro_reference   -> {kind: "macro_reference", body: $1}
+                | condition_text    -> {kind: "text",     body: $1}
+                | lparen            -> {kind: "lparen"}
+                | rparen            -> {kind: "rparen"}
+                | comma             -> {kind: "comma"}
+                | question          -> {kind: "question"}
+                | colon             -> {kind: "colon"}
+                | logical_or        -> {kind: "logical_or"}
+                | logical_and       -> {kind: "logical_and"}
+                | bang              -> {kind: "bang"}
 
 condition_text := inline_trivia /[^`(),?:!|&\r\n]+/
 
@@ -78,30 +92,34 @@ condition_text := inline_trivia /[^`(),?:!|&\r\n]+/
 # ---------------------------------------------------------------------------
 
 macro_formals := lparen macro_formal (comma macro_formal)* rparen
+              -> {first: $2, rest: $3}
 macro_formal := macro_name (assign macro_default_value)?
+             -> {name: $1, default: $2}
 
 macro_default_value := macro_default_atom+
-macro_default_atom := macro_token_paste
-                    | macro_stringize
-                    | macro_reference
-                    | macro_default_text
-                    | lparen
-                    | rparen
-                    | question
-                    | colon
+                    -> {atoms: $1}
+macro_default_atom := macro_token_paste -> {kind: "token_paste"}
+                    | macro_stringize   -> {kind: "stringize"}
+                    | macro_reference   -> {kind: "macro_reference", body: $1}
+                    | macro_default_text -> {kind: "text",  body: $1}
+                    | lparen            -> {kind: "lparen"}
+                    | rparen            -> {kind: "rparen"}
+                    | question          -> {kind: "question"}
+                    | colon             -> {kind: "colon"}
 
 macro_default_text := inline_trivia /[^`(),?:\r\n]+/
 
 macro_body := macro_body_fragment+
-macro_body_fragment := macro_token_paste
-                     | macro_stringize
-                     | macro_reference
-                     | macro_body_text
-                     | lparen
-                     | rparen
-                     | comma
-                     | question
-                     | colon
+           -> {fragments: $1}
+macro_body_fragment := macro_token_paste -> {kind: "token_paste"}
+                     | macro_stringize   -> {kind: "stringize"}
+                     | macro_reference   -> {kind: "macro_reference", body: $1}
+                     | macro_body_text   -> {kind: "text",   body: $1}
+                     | lparen            -> {kind: "lparen"}
+                     | rparen            -> {kind: "rparen"}
+                     | comma             -> {kind: "comma"}
+                     | question          -> {kind: "question"}
+                     | colon             -> {kind: "colon"}
 
 macro_body_text := inline_trivia /[^`(),?:\r\n]+/
 macro_reference := bt_identifier
@@ -113,7 +131,9 @@ macro_stringize := inline_trivia /`"/
 # ---------------------------------------------------------------------------
 
 pp_non_directive_line := non_directive_text newline?
+                      -> {text: $1}
 pp_blank_line := newline
+              -> {kind: "blank"}
 non_directive_text := inline_trivia /[^`\r\n][^\r\n]*/
 @sample: " "
 directive_tail := inline_trivia /[^\r\n]+/
