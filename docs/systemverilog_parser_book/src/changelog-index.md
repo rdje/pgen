@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.111 / Contract 1.0.111 — SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed (2 rules / 8 annotations)
+
+Annotation inventory: **2227** (was 2219, +8). Same accept set.
+
 ### 1.0.110 / Contract 1.0.110 — SV-Slice-110 batch: drive_strength + init_val + scalar_constant typed (3 rules / 26 annotations)
 
 Annotation inventory: **2219** (was 2193, +26). Same accept set.

@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-13 - SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed (2 rules / 8 annotations) (PGEN-SVP-0111)
+
+Per-branch annotation on 4-branch delay rules: `{kind: "value", body}` | `{kind: "pair_optional", first, second}` | `{kind: "triple_optional", first, rest}` | `{kind: "value", body}` (duplicate). Both profiles cover the same 4 branch shapes; branch order differs across sv_2017 vs sv_2023 but kind discriminators align.
+
+Annotation count: 2227 (was 2219, +8). Same accept set. Manifest + contract bumped to 1.0.111. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-110 batch: drive_strength + init_val + scalar_constant typed (3 rules / 26 annotations) (PGEN-SVP-0110)
 
 `drive_strength` 6 branches: `{kind: "pair_strength" | "strength_highz" | "highz_strength"}` with `first` / `second` strength fields extracted. `init_val` 10 branches: `{kind: "1'b" | "1'bx" | "1'bX" | "1'B" | "1'Bx" | "1'BX" | "1" | "0"}`. `scalar_constant` 10 branches: `{kind: "1'b" | "1'B" | "'b" | "'B" | "1" | "0"}`. Grammar duplicate branches retained.

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.110`
+  - `1.0.111`
 - Parser release version:
-  - `1.0.110`
+  - `1.0.111`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,20 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.111 / Contract 1.0.111 Highlights — SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed (2 rules / 8 annotations)
+
+```ebnf
+delay_sv_2017 / delay_sv_2023
+  -> per-branch {kind: "value", body}
+              | {kind: "pair_optional", first, second}
+              | {kind: "triple_optional", first, rest}
+              | {kind: "value", body}   (duplicate retained)
+```
+
+Both profiles cover the same 4 branch shapes; branch order differs across sv_2017 vs sv_2023 but kind discriminators align.
+
+Annotation count: **2227** (was 2219, +8). Same accept set.
 
 ## Release 1.0.110 / Contract 1.0.110 Highlights — SV-Slice-110 batch: drive_strength + init_val + scalar_constant typed (3 rules / 26 annotations)
 

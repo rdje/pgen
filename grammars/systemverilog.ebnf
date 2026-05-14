@@ -1580,10 +1580,16 @@ defparam_assignment := hierarchical_parameter_identifier assign constant_mintypm
                     -> {name: $1, value: $3}
 
 @profiles: ["sv_2017"]
-delay_sv_2017 := @probe_sample: "#1" hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen | hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen
+delay_sv_2017 := @probe_sample: "#1" hash delay_value                                                                                                  -> {kind: "value", body: $2}
+              | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen                              -> {kind: "triple_optional", first: $3, rest: $4}
+              | hash delay_value                                                                                                                       -> {kind: "value", body: $2}
+              | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen                                                              -> {kind: "pair_optional", first: $3, second: $4}
 
 @profiles: ["sv_2023"]
-delay_sv_2023 := hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen | hash delay_value | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen
+delay_sv_2023 := hash delay_value                                                                                                                      -> {kind: "value", body: $2}
+              | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen                                                              -> {kind: "pair_optional", first: $3, second: $4}
+              | hash delay_value                                                                                                                       -> {kind: "value", body: $2}
+              | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen                              -> {kind: "triple_optional", first: $3, rest: $4}
 
 delay := delay_sv_2017 -> {body: $1}
        | delay_sv_2023 -> {body: $1}

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ca78702a.js";
+            window.path_to_searchindex_js = "searchindex-593689df.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1288,6 +1288,7 @@ match outcome.status {
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>1.12.0</td><td>1.0.111</td><td><strong>SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed.</strong> 2 rules / 8 annotations. Per-branch `{kind: “value”</td></tr>
 <tr><td>1.11.0</td><td>1.0.110</td><td><strong>SV-Slice-110 batch: drive_strength + init_val + scalar_constant typed.</strong> 3 rules / 26 annotations. Per-branch <code>{kind, first?, second?}</code> discriminators. Annotation inventory: 2219 entries (was 2193).</td></tr>
 <tr><td>1.10.0</td><td>1.0.109</td><td><strong>SV-Slice-109 batch: pulldown_strength + pullup_strength + net_type typed.</strong> 3 rules / 18 annotations. Per-branch <code>{kind}</code> discriminators. Annotation inventory: 2193 entries (was 2175).</td></tr>
 <tr><td>1.9.0</td><td>1.0.108</td><td><strong>SV-Slice-108 batch: duplicate-branch leaf rules typed.</strong> 3 rules / 11 annotations. Per-branch <code>{kind}</code> on enable_gatetype, pass_en_switchtype, unique_priority. Annotation inventory: 2175 entries (was 2164).</td></tr>
@@ -1457,6 +1458,8 @@ match outcome.status {
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10111--contract-10111--sv-slice-111-batch-delay_sv_2017--delay_sv_2023-typed-2-rules--8-annotations"><a class="header" href="#10111--contract-10111--sv-slice-111-batch-delay_sv_2017--delay_sv_2023-typed-2-rules--8-annotations">1.0.111 / Contract 1.0.111 — SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed (2 rules / 8 annotations)</a></h3>
+<p>Annotation inventory: <strong>2227</strong> (was 2219, +8). Same accept set.</p>
 <h3 id="10110--contract-10110--sv-slice-110-batch-drive_strength--init_val--scalar_constant-typed-3-rules--26-annotations"><a class="header" href="#10110--contract-10110--sv-slice-110-batch-drive_strength--init_val--scalar_constant-typed-3-rules--26-annotations">1.0.110 / Contract 1.0.110 — SV-Slice-110 batch: drive_strength + init_val + scalar_constant typed (3 rules / 26 annotations)</a></h3>
 <p>Annotation inventory: <strong>2219</strong> (was 2193, +26). Same accept set.</p>
 <h3 id="10109--contract-10109--sv-slice-109-batch-pulldown_strength--pullup_strength--net_type-typed-3-rules--18-annotations"><a class="header" href="#10109--contract-10109--sv-slice-109-batch-pulldown_strength--pullup_strength--net_type-typed-3-rules--18-annotations">1.0.109 / Contract 1.0.109 — SV-Slice-109 batch: pulldown_strength + pullup_strength + net_type typed (3 rules / 18 annotations)</a></h3>
