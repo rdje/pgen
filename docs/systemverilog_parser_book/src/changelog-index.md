@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.112 / Contract 1.0.112 — SV-Slice-112 batch: hierarchical_tf_identifier + ansi_port_declaration typed (2 rules / 4 annotations after codegen drops)
+
+Annotation inventory: **2231** (was 2227, +4). Same accept set.
+
 ### 1.0.111 / Contract 1.0.111 — SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed (2 rules / 8 annotations)
 
 Annotation inventory: **2227** (was 2219, +8). Same accept set.

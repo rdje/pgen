@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-593689df.js";
+            window.path_to_searchindex_js = "searchindex-dd5a645c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -216,6 +216,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td>1.13.0</td><td>1.0.112</td><td><strong>SV-Slice-112 batch: hierarchical_tf_identifier + ansi_port_declaration typed.</strong> 2 rules / 4 annotations. Per-branch discriminators on task-#38 deferred rules. <code>ansi_port_declaration.named_dot</code> annotation dropped by codegen. Annotation inventory: 2231 entries (was 2227).</td></tr>
 <tr><td>1.12.0</td><td>1.0.111</td><td><strong>SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed.</strong> 2 rules / 8 annotations. Per-branch `{kind: “value”</td></tr>
 <tr><td>1.11.0</td><td>1.0.110</td><td><strong>SV-Slice-110 batch: drive_strength + init_val + scalar_constant typed.</strong> 3 rules / 26 annotations. Per-branch <code>{kind, first?, second?}</code> discriminators. Annotation inventory: 2219 entries (was 2193).</td></tr>
 <tr><td>1.10.0</td><td>1.0.109</td><td><strong>SV-Slice-109 batch: pulldown_strength + pullup_strength + net_type typed.</strong> 3 rules / 18 annotations. Per-branch <code>{kind}</code> discriminators. Annotation inventory: 2193 entries (was 2175).</td></tr>

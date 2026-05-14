@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-14 - SV-Slice-112 batch: hierarchical_tf_identifier + ansi_port_declaration typed (2 rules / 4 annotations after codegen drops) (PGEN-SVP-0112)
+
+Per-branch annotation on previously task-#38-deferred rules. `hierarchical_tf_identifier` 2 kinds (rooted with `{scope_chain, name}` / anchored with `{head, head_select, scope_chain, name}`). `ansi_port_declaration` 3 kinds attempted (net_or_interface / variable / named_dot) — `named_dot` annotation present in IR but dropped by parser codegen (third branch shape `( a )? dot id lparen ( e )? rparen` appears to hit a codegen limitation distinct from task #38). 4 of 5 annotations landed.
+
+Annotation count: 2231 (was 2227, +4). Same accept set. Manifest + contract bumped to 1.0.112. Book gate passing. Calibration parse on minimal_module.sv passes.
+
 ## 2026-05-13 - SV-Slice-111 batch: delay_sv_2017 + delay_sv_2023 typed (2 rules / 8 annotations) (PGEN-SVP-0111)
 
 Per-branch annotation on 4-branch delay rules: `{kind: "value", body}` | `{kind: "pair_optional", first, second}` | `{kind: "triple_optional", first, rest}` | `{kind: "value", body}` (duplicate). Both profiles cover the same 4 branch shapes; branch order differs across sv_2017 vs sv_2023 but kind discriminators align.

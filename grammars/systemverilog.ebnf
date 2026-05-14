@@ -440,7 +440,12 @@ anonymous_program_item_sv_2023 := task_declaration              -> {kind: "task"
 anonymous_program_item := anonymous_program_item_sv_2017 -> {kind: "sv_2017", body: $1}
                         | anonymous_program_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
-ansi_port_declaration := ( net_port_header | interface_port_header )? port_identifier unpacked_dimension* ( assign constant_expression )? | ( variable_port_header )? port_identifier variable_dimension* ( assign constant_expression )? | ( port_direction )? dot port_identifier lparen ( expression )? rparen
+ansi_port_declaration := ( net_port_header | interface_port_header )? port_identifier unpacked_dimension* ( assign constant_expression )?
+                                                                                                                       -> {kind: "net_or_interface", header: $1, name: $2, dims: $3, default: $4}
+                       | ( variable_port_header )? port_identifier variable_dimension* ( assign constant_expression )?
+                                                                                                                       -> {kind: "variable", header: $1, name: $2, dims: $3, default: $4}
+                       | ( port_direction )? dot port_identifier lparen ( expression )? rparen
+                                                                                                                       -> {kind: "named_dot", direction: $1, name: $3, expr: $5}
 
 // array_identifier := identifier
 
@@ -2086,7 +2091,9 @@ hierarchical_sequence_identifier := hierarchical_identifier
 hierarchical_task_identifier := hierarchical_identifier
 
 hierarchical_tf_identifier := kw_sv_dollar_root_f65f0e67 dot ( identifier constant_bit_select dot )* callable_identifier
+                                                                                                                       -> {kind: "rooted", scope_chain: $3, name: $4}
                            | identifier constant_bit_select dot ( identifier constant_bit_select dot )* callable_identifier
+                                                                                                                       -> {kind: "anchored", head: $1, head_select: $2, scope_chain: $4, name: $5}
 
 hierarchical_variable_identifier := hierarchical_identifier
 
