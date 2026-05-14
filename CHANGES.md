@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-05-14 - SV-Slice-114 batch: Pattern-A number-value sequence rules typed (5 rules / 5 annotations) (PGEN-SVP-0114)
+
+Re-annotation of `digit ( sep | digit )*` shape, previously blocked by a codegen drop (now fixed in PGEN-PIP-001). `unsigned_number`, `non_zero_unsigned_number`, `binary_value`, `hex_value`, `octal_value` each typed `{first: $1, rest: $2}` — first is leading digit, rest is iteration array of alternating digit/separator entries.
+
+Annotation count: 2288 (was 2283, +5). Same accept set. Manifest + contract bumped to 1.0.114. Book gate passing. Calibration parse on minimal_module.sv passes. Baseline note: 2283 floor reflects codegen-fix recovery (+27 from previously-suppressed inner branches).
+
 ## 2026-05-14 - SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed (2 rules / 26 annotations after codegen drops 2) (PGEN-SVP-0113)
 
 Per-branch annotation on both profile variants of `method_call_receiver` (14 distinct kinds per rule): primary_literal, hierarchical, empty_concat, multi_concat, concat, let_expr, parens, cast, assignment_pattern, streaming_concat, sequence_method, this, dollar, null_class. The `hierarchical` branch (`( a | b )? hierarchical_identifier`) had its annotation dropped by codegen on both rules — same limitation as ansi_port_declaration.named_dot in slice 112. 13 of 14 branches per rule landed.

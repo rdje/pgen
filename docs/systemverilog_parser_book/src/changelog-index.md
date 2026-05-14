@@ -19,6 +19,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.114 / Contract 1.0.114 — SV-Slice-114 batch: Pattern-A number-value sequence rules typed (5 rules / 5 annotations)
+
+Annotation inventory: **2288** (was 2283, +5). Same accept set.
+
 ### 1.0.113 / Contract 1.0.113 — SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed (2 rules / 26 annotations after codegen drops 2)
 
 Annotation inventory: **2256** (was 2231, +25). Same accept set.

@@ -7,9 +7,9 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.113`
+  - `1.0.114`
 - Parser release version:
-  - `1.0.113`
+  - `1.0.114`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
@@ -35,6 +35,21 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.114 / Contract 1.0.114 Highlights — SV-Slice-114 batch: Pattern-A number-value sequence rules typed (5 rules / 5 annotations)
+
+Re-annotation of the `digit ( sep | digit )*` shape, previously blocked by a codegen drop (now fixed in PGEN-PIP-001):
+
+```ebnf
+unsigned_number / non_zero_unsigned_number / binary_value / hex_value / octal_value
+  -> {first: $1, rest: $2}
+```
+
+`first` is the leading digit; `rest` is the iteration array of alternating digit / underscore-separator entries — consumers can either consume the raw array or skip separators by `kind`.
+
+Annotation count: **2288** (was 2283, +5). Same accept set.
+
+> Baseline note: the 2283 floor reflects the codegen fix's +27 recovery from previously-suppressed inner branches across earlier slices. Pre-fix baseline at slice 113 head was 2256.
 
 ## Release 1.0.113 / Contract 1.0.113 Highlights — SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed (2 rules / 26 annotations after codegen drops 2)
 

@@ -342,7 +342,7 @@ real_number := fixed_point_number
              | unsigned_number ( dot unsigned_number )? exp ( sign )? unsigned_number
                      -> {kind: "exponential", mantissa: $1, fraction: $2, sign: $4, exponent: $5}
 
-unsigned_number := decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )*
+unsigned_number := decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )* -> {first: $1, rest: $2}
 
 string_literal := trivia /"""([^"]|"(?!""))*"""/ -> {kind: "triple_quoted", body: $2}
                 | trivia /"([^"\\]|\\.)*"/        -> {kind: "double_quoted", body: $2}
@@ -541,7 +541,7 @@ binary_module_path_operator_sv_2023 := equal               -> {kind: "equal"}
 binary_module_path_operator := binary_module_path_operator_sv_2023
                             -> {body: $1}
 
-binary_value := binary_digit ( kw_sv_rule_c82a06f6 | binary_digit )*
+binary_value := binary_digit ( kw_sv_rule_c82a06f6 | binary_digit )* -> {first: $1, rest: $2}
 
 bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instance_list )? bind_instantiation semi
                     -> {kind: "scoped", target_scope: $2, instances: $3, instantiation: $4}
@@ -2059,7 +2059,7 @@ hex_digit := x_digit          -> {kind: "x"}
           | kw_E_e0184ade      -> {kind: "E"}
           | kw_F_e69f20e9      -> {kind: "F"}
 
-hex_value := hex_digit ( kw_sv_rule_c82a06f6 | hex_digit )*
+hex_value := hex_digit ( kw_sv_rule_c82a06f6 | hex_digit )* -> {first: $1, rest: $2}
 
 hierarchical_array_identifier := hierarchical_identifier
 
@@ -3061,7 +3061,7 @@ non_zero_decimal_digit := non_zero_decimal_digit_sv_2017
 // @profiles: ["sv_2017"]
 // non_zero_unsigned_number_sv_2017 := non_zero_decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )*
 
-non_zero_unsigned_number := non_zero_decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )*
+non_zero_unsigned_number := non_zero_decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )* -> {first: $1, rest: $2}
 
 nonblocking_assignment := variable_lvalue less_equal ( delay_or_event_control )? expression
                        -> {lvalue: $1, control: $3, value: $4}
@@ -3096,7 +3096,7 @@ octal_digit := x_digit              -> {kind: "x"}
             | kw_n_6_c1dfd96e        -> {kind: "6"}
             | kw_n_7_902ba3cd        -> {kind: "7"}
 
-octal_value := octal_digit ( kw_sv_rule_c82a06f6 | octal_digit )*
+octal_value := octal_digit ( kw_sv_rule_c82a06f6 | octal_digit )* -> {first: $1, rest: $2}
 
 // one_line_comment := slash slash comment_text kw_n_ef7e6794
 
