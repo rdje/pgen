@@ -39,11 +39,11 @@ identity, gate recipe, and the 24-annotation baseline.
   `RTL-CE-CONTRACT-BODY.3`
 
 - ID: `RTL-CE-CONTRACT-BODY.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Create skeleton: Contract Identity, Source Of Truth, Schema Versioning, Release 1.0.1.`
   Acceptance: `Contract file exists with section headings + version numbers + sample inputs (literal_42, binary_addition).`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md created. Identity + Source + Stable surface + Validation gates + Schema versioning + Release 1.0.1 (10 binop_chain levels with consumer-guidance section) populated.`
+  Commit: `RTL-CE-CONTRACT-BODY-Slice-1`
 
 - ID: `RTL-CE-CONTRACT-BODY.2`
   Status: `pending`
@@ -63,7 +63,7 @@ identity, gate recipe, and the 24-annotation baseline.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-CE-CONTRACT-BODY.1` | `pending` | Skeleton must exist before content. |
+| 1 | `RTL-CE-CONTRACT-BODY.2` | `pending` | Deeper expression hierarchy + binop_chain documentation builds on the now-existing identity section. |
 
 ## Decisions
 
@@ -82,13 +82,13 @@ identity, gate recipe, and the 24-annotation baseline.
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `RTL-CE-CONTRACT-BODY.1` | `pending` | `pending` |
+| `2026-05-15` | `RTL-CE-CONTRACT-BODY.1` | manual review of created contract | `pass — Identity through Release 1.0.1 (with consumer-facing binop_chain guidance) populated` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `RTL-CE-CONTRACT-BODY.1` | `pending` | `pending` |
+| `RTL-CE-CONTRACT-BODY.1` | `RTL-CE-CONTRACT-BODY-Slice-1` | new contract file: identity + source + stable surface + schema versioning + Release 1.0.1 with binop_chain consumer guidance |
 
 ## Changelog
 
