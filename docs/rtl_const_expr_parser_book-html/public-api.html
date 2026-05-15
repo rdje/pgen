@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7c0d78e2.js";
+            window.path_to_searchindex_js = "searchindex-8a422829.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -180,11 +180,122 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="public-api"><a class="header" href="#public-api">Public Api</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-CE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-CE-MDBOOK.html">docs/tasks/RTL-CE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="public-api-surface"><a class="header" href="#public-api-surface">Public API Surface</a></h1>
+<p>The stable downstream contract is the <code>pgen::embedding_api</code> host surface, <strong>not</strong> internal generated-parser types. This chapter enumerates the entry points downstream rtl_const_expr consumers should call.</p>
+<p>All entry points return <code>Outcome</code> types (<code>NamedGrammarParseOutcome</code>, <code>NamedGrammarAstDumpOutcome</code>, etc.) that carry an <code>api_version</code>, <code>grammar</code>, <code>profile</code>, <code>status</code>, and <code>diagnostic</code>/<code>ast_dump</code> payload. The <code>Outcome</code> types are stable and source-compatible across patch / minor releases.</p>
+<h2 id="entry-points-for-the-rtl_const_expr-family"><a class="header" href="#entry-points-for-the-rtl_const_expr-family">Entry points for the rtl_const_expr family</a></h2>
+<p>The rtl_const_expr family does not yet expose per-grammar convenience entry points (e.g. there is no <code>parse_rtl_const_expr</code> function). The stable host surface during this release is the generic-by-grammar entry points.</p>
+<h3 id="generic-entry-points"><a class="header" href="#generic-entry-points">Generic entry points</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_grammar_profile(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &amp;str,
+) -&gt; GrammarParseOutcome;
+
+pub fn parse_grammar_profile_result(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &amp;str,
+) -&gt; Result&lt;(), ParseDiagnostic&gt;;
+
+pub fn parse_grammar_profile_ast_dump(
+    grammar: GrammarFamily,
+    profile: GrammarProfile,
+    input: &amp;str,
+    options: &amp;AstDumpOptions,
+) -&gt; GrammarAstDumpOutcome;
+<span class="boring">}</span></code></pre>
+<p>Use <code>GrammarFamily::RtlConstExpr</code> + <code>GrammarProfile::Default</code>.</p>
+<h3 id="string-name-overloads"><a class="header" href="#string-name-overloads">String-name overloads</a></h3>
+<p>For embedders that select grammar / profile by string name (e.g. plugin systems, cross-language bindings):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_grammar_profile_named(
+    grammar: &amp;str,        // "rtl_const_expr"
+    profile: &amp;str,        // "default"
+    input: &amp;str,
+) -&gt; NamedGrammarParseOutcome;
+
+pub fn parse_grammar_profile_named_with_limits(
+    grammar: &amp;str,
+    profile: &amp;str,
+    input: &amp;str,
+    limits: &amp;ParseLimits,
+) -&gt; NamedGrammarParseOutcome;
+<span class="boring">}</span></code></pre>
+<h2 id="astdumpoptions"><a class="header" href="#astdumpoptions">AstDumpOptions</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct AstDumpOptions {
+    pub pretty: bool,                 // pretty-print the JSON
+    pub max_ast_bytes: Option&lt;usize&gt;, // truncation cap (bytes); None = no cap
+}
+<span class="boring">}</span></code></pre>
+<h2 id="parselimits"><a class="header" href="#parselimits">ParseLimits</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ParseLimits {
+    pub max_input_bytes: Option&lt;usize&gt;,  // input-size cap; None = no cap
+    // (other fields may be added in minor releases)
+}
+
+impl Default for ParseLimits {
+    fn default() -&gt; Self;
+}
+<span class="boring">}</span></code></pre>
+<h2 id="outcome-types"><a class="header" href="#outcome-types">Outcome types</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct GrammarParseOutcome {
+    pub api_version: String,
+    pub grammar: GrammarFamily,
+    pub profile: GrammarProfile,
+    pub status: ParseStatus,
+    pub diagnostic: Option&lt;ParseDiagnostic&gt;,
+}
+
+pub struct GrammarAstDumpOutcome {
+    pub api_version: String,
+    pub grammar: GrammarFamily,
+    pub profile: GrammarProfile,
+    pub status: ParseStatus,
+    pub diagnostic: Option&lt;ParseDiagnostic&gt;,
+    pub ast_dump: Option&lt;AstDumpPayload&gt;,
+}
+
+pub enum ParseStatus { Success, Failure }
+
+pub struct ParseDiagnostic {
+    pub code: String,        // e.g. "E_PARSE_FAILURE"
+    pub message: String,
+    // (other fields)
+}
+<span class="boring">}</span></code></pre>
+<h2 id="stable-diagnostics"><a class="header" href="#stable-diagnostics">Stable diagnostics</a></h2>
+<p>These diagnostic codes are stable across patch / minor releases:</p>
+<ul>
+<li><code>E_BACKEND_UNAVAILABLE</code> — the generated parser backend is not present in this build.</li>
+<li><code>E_PARSE_FAILURE</code> — the input failed to parse.</li>
+<li><code>E_INPUT_TOO_LARGE</code> — the input exceeds the configured <code>max_input_bytes</code> limit.</li>
+<li><code>E_INVALID_LIMITS</code> — the supplied <code>ParseLimits</code> are not valid.</li>
+<li><code>E_INVALID_ARGUMENT</code> — the supplied grammar / profile / input is not valid.</li>
+<li><code>E_UNSUPPORTED_PROFILE</code> — the supplied profile is not supported by the selected grammar family.</li>
+</ul>
+<h2 id="backend-availability-check"><a class="header" href="#backend-availability-check">Backend availability check</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parser_embedding_api_contract() -&gt; ParserEmbeddingApiContract;
+
+pub struct ParserEmbeddingApiContract {
+    pub supports_rtl_const_expr_generated_backend: bool,
+    // (other fields)
+}
+<span class="boring">}</span></code></pre>
+<p>Embedders should check this at startup and refuse to operate (or fall back gracefully) if the rtl_const_expr backend is unavailable.</p>
+<h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
+<p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
 
                     </main>
 
