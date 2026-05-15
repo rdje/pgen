@@ -39,11 +39,11 @@ gate recipe — modeled on the SV contract.
   `RTL-FE-CONTRACT-BODY.3`, `RTL-FE-CONTRACT-BODY.4`
 
 - ID: `RTL-FE-CONTRACT-BODY.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Create the contract skeleton with Contract Identity + Source Of Truth + Schema Versioning + Release 1.0.1 sections.`
   Acceptance: `Contract file exists; section headings + version numbers + sample input populated.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md created (188 lines); Identity, Source Of Truth, Stable Surface, Build/Validation gates, Schema Versioning + 1.0.0/0.1.0 rows, and full Release 1.0.1 Highlights rule-by-rule across all 7 RTL-FE slices populated.`
+  Commit: `RTL-FE-CONTRACT-BODY-Slice-1`
 
 - ID: `RTL-FE-CONTRACT-BODY.2`
   Status: `pending`
@@ -70,7 +70,7 @@ gate recipe — modeled on the SV contract.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-CONTRACT-BODY.1` | `pending` | Skeleton must exist before content. |
+| 1 | `RTL-FE-CONTRACT-BODY.2` | `pending` | Deeper design_item / module_item dispatch documentation builds on the now-existing identity section. |
 
 ## Decisions
 
@@ -89,13 +89,13 @@ gate recipe — modeled on the SV contract.
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `RTL-FE-CONTRACT-BODY.1` | `pending` | `pending` |
+| `2026-05-15` | `RTL-FE-CONTRACT-BODY.1` | manual review of created contract | `pass — 188-line contract created with full rule-by-rule surface for 156 annotations` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `RTL-FE-CONTRACT-BODY.1` | `pending` | `pending` |
+| `RTL-FE-CONTRACT-BODY.1` | `RTL-FE-CONTRACT-BODY-Slice-1` | new contract file: identity + source + stable surface + schema versioning + Release 1.0.1 full rule-by-rule |
 
 ## Changelog
 
