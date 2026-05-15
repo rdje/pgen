@@ -68,11 +68,11 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
   Commit: `pending`
 
 - ID: `RTL-CE-MDBOOK.5`
-  Status: `pending`
+  Status: `done`
   Goal: `Wire rtl_const_expr_parser_book_gate Makefile target.`
   Acceptance: `Gate passes locally; HTML tracked.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: make rtl_const_expr_parser_book_gate — pass.`
+  Commit: `RTL-CE-MDBOOK-Slice-2`
 
 - ID: `RTL-CE-MDBOOK.6`
   Status: `pending`
@@ -86,7 +86,6 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `RTL-CE-MDBOOK.2` | `pending` | Core navigation content. |
-| 2 | `RTL-CE-MDBOOK.5` | `pending` | Gate wiring (parallel). |
 
 ## Decisions
 
@@ -106,12 +105,14 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-05-14` | `RTL-CE-MDBOOK.1` | `mdbook build` | `pass` |
+| `2026-05-15` | `RTL-CE-MDBOOK.5` | `make rtl_const_expr_parser_book_gate` | `pass` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `RTL-CE-MDBOOK.1` | `RTL-CE-MDBOOK-Slice-1` | book.toml + 13-entry SUMMARY + welcome + chapter stubs |
+| `RTL-CE-MDBOOK.5` | `RTL-CE-MDBOOK-Slice-2` | gate script + Makefile target |
 
 ## Changelog
 
