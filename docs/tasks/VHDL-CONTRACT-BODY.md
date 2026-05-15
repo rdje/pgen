@@ -44,11 +44,11 @@ downstream consumers can rely on.
   `VHDL-CONTRACT-BODY.3`, `VHDL-CONTRACT-BODY.4`
 
 - ID: `VHDL-CONTRACT-BODY.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Add Contract Identity, Schema Versioning, and Release 1.0.1 sections.`
   Acceptance: `Contract carries explicit version numbers, annotation count, sample input, and "what changed" pointer to VHDL-Slice-1.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: Contract Identity (version 1.0.1, schema v1), Schema Versioning table, and Release 1.0.1 Highlights (full 249-annotation rule-by-rule summary) inserted.`
+  Commit: `VHDL-CONTRACT-BODY-Slice-1`
 
 - ID: `VHDL-CONTRACT-BODY.2`
   Status: `pending`
@@ -75,7 +75,7 @@ downstream consumers can rely on.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `VHDL-CONTRACT-BODY.1` | `pending` | Contract identity must exist before the body sections reference it. |
+| 1 | `VHDL-CONTRACT-BODY.2` | `pending` | AST envelope + design_unit dispatch deepens the consumer-facing surface. |
 
 ## Decisions
 
@@ -94,13 +94,13 @@ downstream consumers can rely on.
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `VHDL-CONTRACT-BODY.1` | `pending` | `pending` |
+| `2026-05-15` | `VHDL-CONTRACT-BODY.1` | manual review of inserted sections | `pass — Contract Identity (1.0.1), Schema Versioning (1.0.0/0.1.0 rows), Release 1.0.1 Highlights (249-annotation surface) populated` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `VHDL-CONTRACT-BODY.1` | `pending` | `pending` |
+| `VHDL-CONTRACT-BODY.1` | `VHDL-CONTRACT-BODY-Slice-1` | Contract Identity + Schema Versioning + Release 1.0.1 Highlights inserted (240+ lines added to contract) |
 
 ## Changelog
 
