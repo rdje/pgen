@@ -74,11 +74,11 @@ consumers can read first, paired with a tracked HTML rendering and a
   Commit: `pending`
 
 - ID: `VHDL-MDBOOK.5`
-  Status: `pending`
+  Status: `done`
   Goal: `Wire vhdl_parser_book_gate target into the Makefile + scripts.`
   Acceptance: `rust/Makefile exposes vhdl_parser_book_gate and rust/scripts/vhdl_parser_book_gate.sh exists; the gate passes locally.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: make vhdl_parser_book_gate passes (mdbook_build + tracked_html_check).`
+  Commit: `VHDL-MDBOOK-Slice-2`
 
 - ID: `VHDL-MDBOOK.6`
   Status: `pending`
@@ -92,7 +92,6 @@ consumers can read first, paired with a tracked HTML rendering and a
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `VHDL-MDBOOK.2` | `pending` | Core navigation chapters (quickstart, public-api, ast-envelope, build-recipe) are the next reader entry point. |
-| 2 | `VHDL-MDBOOK.5` | `pending` | Gate wiring can be done in parallel with chapter content — leaf .5 is the unblocking infrastructure work. |
 
 ## Decisions
 
@@ -115,12 +114,14 @@ consumers can read first, paired with a tracked HTML rendering and a
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-05-14` | `VHDL-MDBOOK.1` | `mdbook build` | `pass — HTML rendered to docs/vhdl_parser_book-html` |
+| `2026-05-15` | `VHDL-MDBOOK.5` | `make vhdl_parser_book_gate` | `pass — mdbook_build + tracked_html_check both green` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `VHDL-MDBOOK.1` | `VHDL-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome chapter + stubs for remaining chapters |
+| `VHDL-MDBOOK.5` | `VHDL-MDBOOK-Slice-2` | rust/scripts/vhdl_parser_book_gate.sh + Makefile target |
 
 ## Changelog
 

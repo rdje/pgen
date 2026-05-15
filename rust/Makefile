@@ -729,6 +729,12 @@ systemverilog_parser_book_gate:
 	cd $(RUST_DIR) && ./scripts/systemverilog_parser_book_gate.sh
 	@echo "✅ systemverilog parser book gate passed."
 
+.PHONY: vhdl_parser_book_gate
+vhdl_parser_book_gate:
+	@echo "📖 Running vhdl parser book gate..."
+	cd $(RUST_DIR) && ./scripts/vhdl_parser_book_gate.sh
+	@echo "✅ vhdl parser book gate passed."
+
 .PHONY: clippy_on_rust_change
 clippy_on_rust_change:
 	@echo "🧹 Running clippy flow on Rust/generated Rust changes..."
