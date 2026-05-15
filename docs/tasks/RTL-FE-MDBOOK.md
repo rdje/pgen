@@ -68,11 +68,11 @@ rendering and an `rtl_frontend_parser_book_gate` target.
   Commit: `pending`
 
 - ID: `RTL-FE-MDBOOK.5`
-  Status: `pending`
+  Status: `done`
   Goal: `Wire rtl_frontend_parser_book_gate target into Makefile + scripts.`
   Acceptance: `Makefile target exists; gate passes locally.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: make rtl_frontend_parser_book_gate — pass.`
+  Commit: `RTL-FE-MDBOOK-Slice-2`
 
 - ID: `RTL-FE-MDBOOK.6`
   Status: `pending`
@@ -86,7 +86,6 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `RTL-FE-MDBOOK.2` | `pending` | Core navigation chapters next reader entry point. |
-| 2 | `RTL-FE-MDBOOK.5` | `pending` | Gate wiring infrastructure (parallel). |
 
 ## Decisions
 
@@ -108,12 +107,14 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-05-14` | `RTL-FE-MDBOOK.1` | `mdbook build` | `pass` |
+| `2026-05-15` | `RTL-FE-MDBOOK.5` | `make rtl_frontend_parser_book_gate` | `pass` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `RTL-FE-MDBOOK.1` | `RTL-FE-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome + chapter stubs |
+| `RTL-FE-MDBOOK.5` | `RTL-FE-MDBOOK-Slice-2` | gate script + Makefile target |
 
 ## Changelog
 

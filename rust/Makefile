@@ -735,6 +735,12 @@ vhdl_parser_book_gate:
 	cd $(RUST_DIR) && ./scripts/vhdl_parser_book_gate.sh
 	@echo "✅ vhdl parser book gate passed."
 
+.PHONY: rtl_frontend_parser_book_gate
+rtl_frontend_parser_book_gate:
+	@echo "📖 Running rtl_frontend parser book gate..."
+	cd $(RUST_DIR) && ./scripts/rtl_frontend_parser_book_gate.sh
+	@echo "✅ rtl_frontend parser book gate passed."
+
 .PHONY: clippy_on_rust_change
 clippy_on_rust_change:
 	@echo "🧹 Running clippy flow on Rust/generated Rust changes..."
