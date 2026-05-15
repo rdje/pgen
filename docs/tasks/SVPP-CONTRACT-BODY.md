@@ -39,11 +39,11 @@ public API, schema versioning, release identity, gate recipe, and the
   `SVPP-CONTRACT-BODY.3`, `SVPP-CONTRACT-BODY.4`
 
 - ID: `SVPP-CONTRACT-BODY.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Audit current contract content; populate Contract Identity + Schema Versioning + Release 1.0.1.`
   Acceptance: `Contract carries explicit version numbers, annotation count, sample input (single_define).`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: Identity (1.0.1), Schema Versioning (1.0.0/0.1.0 rows), Release 1.0.1 Highlights (full 64-annotation surface including pp_item dispatch + 7 directives + conditional tree + macro fragment dispatch) inserted at the top of the existing scope-limited contract.`
+  Commit: `SVPP-CONTRACT-BODY-Slice-1`
 
 - ID: `SVPP-CONTRACT-BODY.2`
   Status: `pending`
@@ -70,7 +70,7 @@ public API, schema versioning, release identity, gate recipe, and the
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SVPP-CONTRACT-BODY.1` | `pending` | Identity sections must exist before body sections reference them. |
+| 1 | `SVPP-CONTRACT-BODY.2` | `pending` | Deeper pp_item / directive shape documentation builds on the now-existing identity section. |
 
 ## Decisions
 
@@ -89,13 +89,13 @@ public API, schema versioning, release identity, gate recipe, and the
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-14` | `SVPP-CONTRACT-BODY.1` | `pending` | `pending` |
+| `2026-05-15` | `SVPP-CONTRACT-BODY.1` | manual review of inserted sections | `pass — Identity through Release 1.0.1 surface populated at the top of the existing scope-limited contract` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `SVPP-CONTRACT-BODY.1` | `pending` | `pending` |
+| `SVPP-CONTRACT-BODY.1` | `SVPP-CONTRACT-BODY-Slice-1` | Contract Identity + Schema Versioning + Release 1.0.1 Highlights (full 64-annotation surface) inserted at the top |
 
 ## Changelog
 
