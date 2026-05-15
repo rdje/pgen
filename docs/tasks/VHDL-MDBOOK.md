@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: vhdl deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-14`
+- Last updated: `2026-05-15`
 - Owner: repo-local workflow
 
 ## Goal
@@ -53,11 +53,11 @@ consumers can read first, paired with a tracked HTML rendering and a
   Commit: `VHDL-MDBOOK-Slice-1`
 
 - ID: `VHDL-MDBOOK.2`
-  Status: `pending`
+  Status: `done`
   Goal: `Author the core navigation chapters (quickstart, public-api, ast-envelope, build-recipe).`
   Acceptance: `Each chapter exists and references current grammar/contract paths verbatim.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: quickstart + build-recipe + public-api + ast-envelope authored; vhdl_parser_book_gate passes.`
+  Commit: `VHDL-MDBOOK-Slice-3`
 
 - ID: `VHDL-MDBOOK.3`
   Status: `pending`
@@ -91,7 +91,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `VHDL-MDBOOK.2` | `pending` | Core navigation chapters (quickstart, public-api, ast-envelope, build-recipe) are the next reader entry point. |
+| 1 | `VHDL-MDBOOK.3` | `pending` | Shape-reference chapters (rules-top-level, json-carrier, walking-the-ast, schema-versioning) come next once core navigation is in place. |
 
 ## Decisions
 
@@ -115,6 +115,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 | --- | --- | --- | --- |
 | `2026-05-14` | `VHDL-MDBOOK.1` | `mdbook build` | `pass — HTML rendered to docs/vhdl_parser_book-html` |
 | `2026-05-15` | `VHDL-MDBOOK.5` | `make vhdl_parser_book_gate` | `pass — mdbook_build + tracked_html_check both green` |
+| `2026-05-15` | `VHDL-MDBOOK.2` | `make vhdl_parser_book_gate` | `pass — quickstart + build-recipe + public-api + ast-envelope authored; gate green` |
 
 ## Commit Log
 
@@ -122,8 +123,10 @@ consumers can read first, paired with a tracked HTML rendering and a
 | --- | --- | --- |
 | `VHDL-MDBOOK.1` | `VHDL-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome chapter + stubs for remaining chapters |
 | `VHDL-MDBOOK.5` | `VHDL-MDBOOK-Slice-2` | rust/scripts/vhdl_parser_book_gate.sh + Makefile target |
+| `VHDL-MDBOOK.2` | `VHDL-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-14`: `VHDL-MDBOOK.1` completed; frontier advances to `VHDL-MDBOOK.2` (next reader content) and `VHDL-MDBOOK.5` (gate wiring, parallel).
+- `2026-05-15`: `VHDL-MDBOOK.2` completed; frontier advances to `VHDL-MDBOOK.3` (shape-reference chapters).

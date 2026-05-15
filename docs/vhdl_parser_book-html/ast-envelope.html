@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-83b4e2e8.js";
+            window.path_to_searchindex_js = "searchindex-c4777fc7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -180,11 +180,126 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="ast-envelope"><a class="header" href="#ast-envelope">Ast Envelope</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
+<p>The PGEN VHDL parser produces a JSON AST through <code>parse_vhdl_1076_2019_ast_dump</code>. This chapter documents the top-level structure of that JSON.</p>
+<h2 id="the-envelope"><a class="header" href="#the-envelope">The envelope</a></h2>
+<p>The <code>ast_dump</code> field of <code>GrammarAstDumpOutcome</code> carries an <code>AstDumpPayload</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct AstDumpPayload {
+    pub pgen_dump_contract_version: u32,  // currently 1
+    pub schema_version: u32,              // 1 — see Schema Versioning
+    pub grammar: String,                  // "vhdl"
+    pub profile: String,                  // "vhdl_1076_2019"
+    pub root: JsonValue,                  // the actual AST tree
+    pub truncated: bool,                  // true if max_ast_bytes was hit
+}
+<span class="boring">}</span></code></pre>
+<p>The <code>root</code> field is the VHDL AST as a <code>serde_json::Value</code>. It is what this book’s per-rule chapters describe.</p>
+<h2 id="the-root-rule"><a class="header" href="#the-root-rule">The root rule</a></h2>
+<p>The VHDL grammar root is <code>vhdl_file</code>, defined as:</p>
+<pre><code class="language-ebnf">vhdl_file := design_unit*
+</code></pre>
+<p><code>vhdl_file</code> produces a JSON array of zero or more typed <code>design_unit</code> objects.</p>
+<h2 id="design_unit-dispatch"><a class="header" href="#design_unit-dispatch">design_unit dispatch</a></h2>
+<p><code>design_unit</code> is the primary top-level dispatcher. It is a 10-branch <code>kind</code>-tagged shape covering all VHDL library-unit forms:</p>
+<pre><code class="language-ebnf">design_unit := library_clause              -&gt; {kind: "library",            body: $1}
+             | use_clause                  -&gt; {kind: "use",                body: $1}
+             | context_reference_clause    -&gt; {kind: "context_reference",  body: $1}
+             | entity_declaration          -&gt; {kind: "entity",             body: $1}
+             | architecture_body           -&gt; {kind: "architecture",       body: $1}
+             | package_declaration         -&gt; {kind: "package",            body: $1}
+             | package_body                -&gt; {kind: "package_body",       body: $1}
+             | configuration_declaration   -&gt; {kind: "configuration",      body: $1}
+             | context_declaration         -&gt; {kind: "context",            body: $1}
+             | semi                        -&gt; {kind: "semi"}
+</code></pre>
+<p>Each branch produces an object with:</p>
+<ul>
+<li><code>kind</code> — one of: <code>"library"</code>, <code>"use"</code>, <code>"context_reference"</code>, <code>"entity"</code>, <code>"architecture"</code>, <code>"package"</code>, <code>"package_body"</code>, <code>"configuration"</code>, <code>"context"</code>, <code>"semi"</code>.</li>
+<li><code>body</code> — the child shape for that branch (absent for the <code>"semi"</code> branch, which carries only the kind).</li>
+</ul>
+<p>A typical consumer dispatch:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn handle_design_unit(node: &amp;serde_json::Value) {
+    let kind = node.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+    let body = node.get("body");
+    match kind {
+        "entity"            =&gt; handle_entity(body),
+        "architecture"      =&gt; handle_architecture(body),
+        "package"           =&gt; handle_package(body),
+        "package_body"      =&gt; handle_package_body(body),
+        "configuration"    =&gt; handle_configuration(body),
+        "context"           =&gt; handle_context(body),
+        "context_reference" =&gt; handle_context_reference(body),
+        "library"           =&gt; handle_library_clause(body),
+        "use"               =&gt; handle_use_clause(body),
+        "semi"              =&gt; {/* lone `;` separator */}
+        _                   =&gt; unreachable!("unknown design_unit kind: {}", kind),
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="two-carrier-kinds-typed-and-recursive-envelope"><a class="header" href="#two-carrier-kinds-typed-and-recursive-envelope">Two carrier kinds: typed and recursive-envelope</a></h2>
+<p>Per-rule, the AST dump produces JSON in one of two shapes:</p>
+<h3 id="typed-shape-rules-with-return-annotations"><a class="header" href="#typed-shape-rules-with-return-annotations">Typed shape (rules with return annotations)</a></h3>
+<p>When a grammar rule carries a <code>-&gt; {...}</code> return annotation, the rule produces a typed JSON object:</p>
+<pre><code class="language-json">{
+  "type": "&lt;rule-family&gt;",
+  "kind": "&lt;specific-shape&gt;",
+  "...": "..."
+}
+</code></pre>
+<p>Many VHDL rules currently use only a <code>kind</code> discriminator (no <code>type</code>), reflecting the design choice for tightly-scoped dispatch.</p>
+<h3 id="recursive-envelope-shape-rules-without-annotations"><a class="header" href="#recursive-envelope-shape-rules-without-annotations">Recursive envelope shape (rules without annotations)</a></h3>
+<p>When a grammar rule has no return annotation, the rule produces a JSON value derived from its grammar shape:</p>
+<ul>
+<li>A <strong>terminal literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>regex literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>rule reference</strong> produces whatever shape that rule produces.</li>
+<li>A <strong>sequence</strong> produces a JSON array of the per-element shapes.</li>
+<li>An <strong>alternation</strong> produces the matched branch’s shape directly.</li>
+<li>A <strong>quantified rule</strong> (e.g. <code>expr*</code>, <code>expr+</code>) produces a JSON array of the per-iteration shapes.</li>
+<li>An <strong>optional rule</strong> (<code>expr?</code>) produces either the matched shape (if matched) or <code>[]</code> (if un-matched).</li>
+</ul>
+<p>For a 3-element sequence rule like <code>a b c</code>, the envelope shape is <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</p>
+<h2 id="mixing-typed-and-envelope-shapes"><a class="header" href="#mixing-typed-and-envelope-shapes">Mixing typed and envelope shapes</a></h2>
+<p>The 249-annotation surface (as of contract 1.0.1) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.</p>
+<p>Consumers need to handle both:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn walk(node: &amp;serde_json::Value) {
+    match node {
+        serde_json::Value::Object(obj) =&gt; {
+            // Typed shape — dispatch on `kind` (VHDL) or `type` (envelope-root).
+        }
+        serde_json::Value::Array(items) =&gt; {
+            // Recursive-envelope shape — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        serde_json::Value::String(text) =&gt; {
+            // Terminal text — no children.
+        }
+        _ =&gt; {
+            // Bool / Number / Null — produced by typed annotations using
+            // `BooleanLiteral` / `NumberLiteral` / `NullLiteral`.
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="walking-the-ast.html">Walking the AST</a> for the full walker pattern, including the binop_chain consumer-fold across the 5-level expression hierarchy.</p>
+<h2 id="determinism"><a class="header" href="#determinism">Determinism</a></h2>
+<p>The AST dump is <strong>deterministic</strong> for a given input + parser-release version:</p>
+<ul>
+<li>Object keys are emitted in canonical (alphabetical) order.</li>
+<li>Number formatting is canonical (no trailing zeros for integers, etc.).</li>
+<li>Whitespace is configurable via <code>AstDumpOptions.pretty</code> (compact vs pretty-printed) but the underlying JSON value is the same.</li>
+</ul>
+<p>Any non-determinism in the dump is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="truncation"><a class="header" href="#truncation">Truncation</a></h2>
+<p>If <code>AstDumpOptions.max_ast_bytes</code> is set and the encoded JSON exceeds it, the dump is truncated and <code>truncated: true</code> is set on the payload. The truncated payload is still valid JSON (the truncation happens at a node boundary). Consumers should check the <code>truncated</code> flag and either bail or note the truncation.</p>
 
                     </main>
 

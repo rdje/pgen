@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-83b4e2e8.js";
+            window.path_to_searchindex_js = "searchindex-c4777fc7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -180,11 +180,70 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="quickstart"><a class="header" href="#quickstart">Quickstart</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
+<p>A minimal “compile this, walk that” recipe for embedding the PGEN VHDL parser. Read <a href="build-recipe.html">Build Recipe</a> and <a href="public-api.html">Public API Surface</a> for the long-form versions of each step.</p>
+<h2 id="1-cold-clone-build"><a class="header" href="#1-cold-clone-build">1. Cold-clone build</a></h2>
+<pre><code class="language-bash">git clone https://github.com/richarddje/pgen.git
+cd pgen
+# Regenerate the VHDL parser from the EBNF source:
+cd rust &amp;&amp; cargo build --release --features ebnf_dual_run --bin ast_pipeline
+./target/release/ast_pipeline ../grammars/vhdl.ebnf \
+    --generate-parser --output ../generated/vhdl_parser.rs
+</code></pre>
+<p>The generated parser lands at <code>generated/vhdl_parser.rs</code>. Unlike SystemVerilog, the VHDL parser does not have a stimuli quality gate yet — regeneration is the canonical proof of <code>grammars/vhdl.ebnf</code> → <code>vhdl_parser.rs</code> correspondence.</p>
+<h2 id="2-wire-the-generated-parser-into-your-downstream-cargo-build"><a class="header" href="#2-wire-the-generated-parser-into-your-downstream-cargo-build">2. Wire the generated parser into your downstream Cargo build</a></h2>
+<pre><code class="language-bash">export PGEN_VHDL_PARSER_PATH=/absolute/path/to/pgen/generated/vhdl_parser.rs
+
+cargo build --release --features generated_parsers
+</code></pre>
+<p><code>rust/build.rs</code> discovers the parser via that environment variable. Absolute paths are safest.</p>
+<h2 id="3-parse-and-walk"><a class="header" href="#3-parse-and-walk">3. Parse and walk</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{parse_vhdl_1076_2019, ParseStatus};
+
+let outcome = parse_vhdl_1076_2019("entity e is end e;\n");
+
+match outcome.status {
+    ParseStatus::Success =&gt; {
+        // Outcome's `diagnostic` is None on success.
+        // For the AST dump, call `parse_vhdl_1076_2019_ast_dump`
+        // (see Public API Surface).
+    }
+    ParseStatus::Failure =&gt; {
+        eprintln!("parse failed: {:?}", outcome.diagnostic);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>For typed AST output, use <code>parse_vhdl_1076_2019_ast_dump</code> instead. The AST dump is the JSON shape this book documents per-rule.</p>
+<h2 id="4-write-the-ast-walker"><a class="header" href="#4-write-the-ast-walker">4. Write the AST walker</a></h2>
+<p>See <a href="walking-the-ast.html">Walking the AST</a> for the recommended walker pattern. The short version: dispatch on <code>type</code> / <code>kind</code> discriminators in JSON objects.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use serde_json::Value as JsonValue;
+
+fn walk(node: &amp;JsonValue) {
+    match node {
+        JsonValue::Object(obj) =&gt; {
+            // VHDL typed-shape node; dispatch on `type` (root) or `kind` (variants).
+            // E.g. design_unit -&gt; {kind: "library" | "use" | "entity" | ..., body}
+        }
+        JsonValue::Array(items) =&gt; {
+            // Sequence / iteration array — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        JsonValue::String(_) =&gt; {
+            // Terminal text — no children.
+        }
+        _ =&gt; {}
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="5-track-the-contract-version"><a class="header" href="#5-track-the-contract-version">5. Track the contract version</a></h2>
+<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. When you bump to a new PGEN version, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
+<p>For the binop_chain shape used across the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>), see <a href="walking-the-ast.html">Walking the AST</a> for the consumer-facing left-fold contract.</p>
 
                     </main>
 
