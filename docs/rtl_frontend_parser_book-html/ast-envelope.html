@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1a0fd949.js";
+            window.path_to_searchindex_js = "searchindex-92912c8a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-440c5d76.js"></script>
@@ -180,11 +180,125 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="ast-envelope"><a class="header" href="#ast-envelope">Ast Envelope</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-FE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-FE-MDBOOK.html">docs/tasks/RTL-FE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
+<p>The PGEN rtl_frontend parser produces a JSON AST through <code>parse_grammar_profile_ast_dump_named</code> (grammar <code>"rtl_frontend"</code>). This chapter documents the top-level structure of that JSON.</p>
+<h2 id="the-envelope"><a class="header" href="#the-envelope">The envelope</a></h2>
+<p>The <code>ast_dump</code> field of <code>NamedGrammarAstDumpOutcome</code> carries an <code>AstDumpPayload</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct AstDumpPayload {
+    pub pgen_dump_contract_version: u32,  // currently 1
+    pub schema_version: u32,              // 1 — see Schema Versioning
+    pub grammar: String,                  // "rtl_frontend"
+    pub profile: String,                  // "default"
+    pub root: JsonValue,                  // the actual AST tree
+    pub truncated: bool,                  // true if max_ast_bytes was hit
+}
+<span class="boring">}</span></code></pre>
+<p>The <code>root</code> field is the rtl_frontend AST as a <code>serde_json::Value</code>. It is what this book’s per-rule chapters describe.</p>
+<h2 id="the-root-rule"><a class="header" href="#the-root-rule">The root rule</a></h2>
+<p>The rtl_frontend grammar root is <code>rtl_frontend_file</code>, defined with a typed <code>{type, items}</code> envelope:</p>
+<pre><code class="language-ebnf">rtl_frontend_file := trivia design_item* trivia
+                  -&gt; {type: "rtl_frontend_file", items: $2}
+</code></pre>
+<p><code>rtl_frontend_file</code> produces a JSON object with:</p>
+<ul>
+<li><code>type: "rtl_frontend_file"</code></li>
+<li><code>items</code>: a JSON array of zero or more typed <code>design_item</code> objects.</li>
+</ul>
+<h2 id="design_item-dispatch"><a class="header" href="#design_item-dispatch">design_item dispatch</a></h2>
+<p><code>design_item</code> is the primary top-level dispatcher. It is a 4-branch <code>kind</code>-tagged shape covering all rtl_frontend library-unit forms:</p>
+<pre><code class="language-ebnf">design_item := typedef_declaration -&gt; {kind: "typedef", body: $1}
+             | package_declaration -&gt; {kind: "package", body: $1}
+             | module_declaration  -&gt; {kind: "module",  body: $1}
+             | semi                -&gt; {kind: "semi"}
+</code></pre>
+<p>Each branch produces an object with:</p>
+<ul>
+<li><code>kind</code> — one of: <code>"typedef"</code>, <code>"package"</code>, <code>"module"</code>, <code>"semi"</code>.</li>
+<li><code>body</code> — the child shape for that branch (absent for the <code>"semi"</code> branch).</li>
+</ul>
+<h2 id="nested-dispatchers"><a class="header" href="#nested-dispatchers">Nested dispatchers</a></h2>
+<p>The rtl_frontend grammar uses three additional dispatchers below <code>design_item</code>:</p>
+<ul>
+<li><code>module_item</code> — 10 <code>kind</code> variants (parameter, port, signal, datatype, instantiation, always, initial, assign, generate, semi).</li>
+<li><code>generate_item</code> — 11 variants (parameter, port, signal, datatype, instantiation, always, initial, assign, generate, semi, if).</li>
+<li><code>package_item</code> — 3 variants (parameter, typedef, semi).</li>
+</ul>
+<p>Each follows the same <code>{kind, body?}</code> shape pattern.</p>
+<p>A typical consumer dispatch:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn handle_design_item(node: &amp;serde_json::Value) {
+    let kind = node.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+    let body = node.get("body");
+    match kind {
+        "typedef" =&gt; handle_typedef(body),
+        "package" =&gt; handle_package_decl(body),
+        "module"  =&gt; handle_module_decl(body),
+        "semi"    =&gt; {/* lone `;` separator */}
+        _         =&gt; unreachable!("unknown design_item kind: {}", kind),
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="two-carrier-kinds-typed-and-recursive-envelope"><a class="header" href="#two-carrier-kinds-typed-and-recursive-envelope">Two carrier kinds: typed and recursive-envelope</a></h2>
+<p>Per-rule, the AST dump produces JSON in one of two shapes:</p>
+<h3 id="typed-shape-rules-with-return-annotations"><a class="header" href="#typed-shape-rules-with-return-annotations">Typed shape (rules with return annotations)</a></h3>
+<p>When a grammar rule carries a <code>-&gt; {...}</code> return annotation, the rule produces a typed JSON object:</p>
+<pre><code class="language-json">{
+  "type": "&lt;rule-family&gt;",
+  "kind": "&lt;specific-shape&gt;",
+  "...": "..."
+}
+</code></pre>
+<p>The 156-annotation surface (as of contract 1.0.1) covers all the load-bearing rules including the 10-level binop_chain expression hierarchy.</p>
+<h3 id="recursive-envelope-shape-rules-without-annotations"><a class="header" href="#recursive-envelope-shape-rules-without-annotations">Recursive envelope shape (rules without annotations)</a></h3>
+<p>When a grammar rule has no return annotation, the rule produces a JSON value derived from its grammar shape:</p>
+<ul>
+<li>A <strong>terminal literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>regex literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>rule reference</strong> produces whatever shape that rule produces.</li>
+<li>A <strong>sequence</strong> produces a JSON array of the per-element shapes.</li>
+<li>An <strong>alternation</strong> produces the matched branch’s shape directly.</li>
+<li>A <strong>quantified rule</strong> (e.g. <code>expr*</code>, <code>expr+</code>) produces a JSON array of the per-iteration shapes.</li>
+<li>An <strong>optional rule</strong> (<code>expr?</code>) produces either the matched shape (if matched) or <code>[]</code> (if un-matched).</li>
+</ul>
+<h2 id="mixing-typed-and-envelope-shapes"><a class="header" href="#mixing-typed-and-envelope-shapes">Mixing typed and envelope shapes</a></h2>
+<p>Consumers need to handle both shapes:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn walk(node: &amp;serde_json::Value) {
+    match node {
+        serde_json::Value::Object(obj) =&gt; {
+            // Typed shape — dispatch on `kind` (or `type` at envelope root).
+        }
+        serde_json::Value::Array(items) =&gt; {
+            // Recursive-envelope shape — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        serde_json::Value::String(text) =&gt; {
+            // Terminal text — no children.
+        }
+        _ =&gt; {
+            // Bool / Number / Null — produced by typed annotations using
+            // `BooleanLiteral` / `NumberLiteral` / `NullLiteral`.
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="walking-the-ast.html">Walking the AST</a> for the full walker pattern, including the binop_chain consumer-fold across the 10-level expression hierarchy.</p>
+<h2 id="determinism"><a class="header" href="#determinism">Determinism</a></h2>
+<p>The AST dump is <strong>deterministic</strong> for a given input + parser-release version:</p>
+<ul>
+<li>Object keys are emitted in canonical (alphabetical) order.</li>
+<li>Number formatting is canonical (no trailing zeros for integers, etc.).</li>
+<li>Whitespace is configurable via <code>AstDumpOptions.pretty</code> (compact vs pretty-printed) but the underlying JSON value is the same.</li>
+</ul>
+<p>Any non-determinism in the dump is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="truncation"><a class="header" href="#truncation">Truncation</a></h2>
+<p>If <code>AstDumpOptions.max_ast_bytes</code> is set and the encoded JSON exceeds it, the dump is truncated and <code>truncated: true</code> is set on the payload. The truncated payload is still valid JSON (the truncation happens at a node boundary). Consumers should check the <code>truncated</code> flag and either bail or note the truncation.</p>
 
                     </main>
 

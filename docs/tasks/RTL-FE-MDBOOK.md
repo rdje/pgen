@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: rtl_frontend deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-14`
+- Last updated: `2026-05-15`
 - Owner: repo-local workflow
 
 ## Goal
@@ -47,11 +47,11 @@ rendering and an `rtl_frontend_parser_book_gate` target.
   Commit: `RTL-FE-MDBOOK-Slice-1`
 
 - ID: `RTL-FE-MDBOOK.2`
-  Status: `pending`
+  Status: `done`
   Goal: `Author core navigation chapters (quickstart, public-api, ast-envelope, build-recipe).`
   Acceptance: `Each chapter references current grammar/contract paths.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: 4 chapters authored; rtl_frontend_parser_book_gate passes.`
+  Commit: `RTL-FE-MDBOOK-Slice-3`
 
 - ID: `RTL-FE-MDBOOK.3`
   Status: `pending`
@@ -85,7 +85,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-MDBOOK.2` | `pending` | Core navigation chapters next reader entry point. |
+| 1 | `RTL-FE-MDBOOK.3` | `pending` | Shape-reference chapters (rules-top-level, json-carrier, walking-the-ast, schema-versioning) come next once core navigation is in place. |
 
 ## Decisions
 
@@ -108,6 +108,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | --- | --- | --- | --- |
 | `2026-05-14` | `RTL-FE-MDBOOK.1` | `mdbook build` | `pass` |
 | `2026-05-15` | `RTL-FE-MDBOOK.5` | `make rtl_frontend_parser_book_gate` | `pass` |
+| `2026-05-15` | `RTL-FE-MDBOOK.2` | `make rtl_frontend_parser_book_gate` | `pass — 4 chapters authored; gate green` |
 
 ## Commit Log
 
@@ -115,8 +116,10 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | --- | --- | --- |
 | `RTL-FE-MDBOOK.1` | `RTL-FE-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome + chapter stubs |
 | `RTL-FE-MDBOOK.5` | `RTL-FE-MDBOOK-Slice-2` | gate script + Makefile target |
+| `RTL-FE-MDBOOK.2` | `RTL-FE-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-14`: `RTL-FE-MDBOOK.1` done; frontier → `.2` + `.5`.
+- `2026-05-15`: `RTL-FE-MDBOOK.2` done; frontier advances to `.3` (shape-reference chapters).
