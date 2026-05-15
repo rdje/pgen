@@ -68,11 +68,11 @@ shape conventions.
   Commit: `pending`
 
 - ID: `SVPP-MDBOOK.5`
-  Status: `pending`
+  Status: `done`
   Goal: `Wire systemverilog_preprocessor_parser_book_gate Makefile target.`
   Acceptance: `Gate passes locally; HTML tracked.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-15: make systemverilog_preprocessor_parser_book_gate — pass.`
+  Commit: `SVPP-MDBOOK-Slice-2`
 
 - ID: `SVPP-MDBOOK.6`
   Status: `pending`
@@ -86,7 +86,6 @@ shape conventions.
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `SVPP-MDBOOK.2` | `pending` | Core navigation content. |
-| 2 | `SVPP-MDBOOK.5` | `pending` | Gate wiring (parallel). |
 
 ## Decisions
 
@@ -106,12 +105,14 @@ shape conventions.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-05-14` | `SVPP-MDBOOK.1` | `mdbook build` | `pass` |
+| `2026-05-15` | `SVPP-MDBOOK.5` | `make systemverilog_preprocessor_parser_book_gate` | `pass` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `SVPP-MDBOOK.1` | `SVPP-MDBOOK-Slice-1` | book.toml + 13-entry SUMMARY + welcome + chapter stubs |
+| `SVPP-MDBOOK.5` | `SVPP-MDBOOK-Slice-2` | gate script + Makefile target |
 
 ## Changelog
 
