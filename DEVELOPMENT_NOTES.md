@@ -55,9 +55,12 @@ after RTL-FE-CONTRACT-BODY-Slice-2.
   broad re-audit). Broad-pattern audit = 0 residual;
   `rtl_frontend_parser_book_gate` green. The corrected rtl_frontend +
   (soon) VHDL chapters are the copy templates.
-- **VHDL book: 6/7 chapters fixed; `examples-minimal-entity.md`
-  OUTSTANDING** — fixed in the immediate DOC-ENVELOPE-0001 VHDL
-  closeout commit (see honesty correction above).
+- **VHDL book: FULLY closed (verified comprehensively)** — 6 chapters
+  in VHDL-CONTRACT-BODY-Slice-3+4 + `examples-minimal-entity.md` in the
+  DOC-ENVELOPE-0001 VHDL-closeout commit (2026-05-16). Broad-pattern
+  audit = 0 residual; `vhdl_parser_book_gate` green. The premature
+  "fully closed" claim from Slice-3+4 is now actually true and the
+  CHANGES wording was corrected in place.
 - **Tracked (not yet fixed)** — the fabricated struct + `.root` /
   `.schema_version` prose/snippets across **~7 chapters each** in the
   `rtl_const_expr`, `systemverilog_preprocessor`, and `systemverilog`

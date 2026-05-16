@@ -78,12 +78,15 @@ printf 'entity e is end e;\n' > /tmp/min_entity.vhd
 (`vhdl_file`); `span` is the byte range the parse covered (`0..18` — the
 whole input).
 
-## The consumer-facing view (`AstDumpPayload.root`)
+## The consumer-facing view (parsed `dump_json`)
 
 Downstream code does not call the probe — it calls the public API
 ([Public API Surface](public-api.md)), which hands back an
-`AstDumpPayload` whose `root` is the **unwrapped** `content.Json` value.
-That is the shape every per-rule chapter in this book describes:
+`AstDumpPayload` (real fields: `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`
+— there is no `root` field). After confirming `truncated == false`,
+`serde_json::from_str(&payload.dump_json)` yields the **unwrapped**
+typed AST (the same value the probe shows under `content.Json`) — the
+shape every per-rule chapter in this book describes:
 
 ```json
 {
@@ -145,12 +148,20 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
     &AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
 
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+
 match outcome.status {
     ParseStatus::Success => {
-        let dump = outcome.ast_dump.expect("Success carries an AST dump");
-        assert_eq!(dump.schema_version, 1);
+        let dump = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+        assert!(!dump.truncated, "dump_json would hold the truncation envelope");
+        let _ = VHDL_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
 
-        let root = &dump.root;
+        // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+        // parse dump_json to get the typed root object.
+        let root: serde_json::Value =
+            serde_json::from_str(&dump.dump_json).expect("dump_json is valid JSON");
         assert_eq!(root["type"], "vhdl_file");
 
         let unit = &root["design_units"][0];

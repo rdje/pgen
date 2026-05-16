@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-05-16 - DOC-ENVELOPE-0001 VHDL closeout (PGEN-DOC-ENVELOPE-0001): fix the examples-minimal-entity.md residual the narrow audit missed
+
+Honesty/correctness follow-up. The VHDL-CONTRACT-BODY-Slice-3+4 entry
+(below) claimed "VHDL book DOC-ENVELOPE-0001 fully closed" — that was
+**premature**: the narrow audit grep
+(`ast_dump_payload.root|AstDumpPayload.schema_version|pub root: JsonValue`)
+missed `docs/vhdl_parser_book/src/examples-minimal-entity.md`, whose
+worked-example walker used `dump.schema_version` / `dump.root` (variable
+named `dump`) plus a `(`AstDumpPayload.root`)` heading. Fixed here:
+heading + prose corrected to "parsed `dump_json`", and the walker
+rewritten to the real model (`const VHDL_AST_SCHEMA_VERSION` pinned from
+the contract, `!truncated` check, `serde_json::from_str(&dump.dump_json)`).
+**VHDL book is now genuinely, comprehensively 0-residual** under the
+broad audit pattern; `vhdl_parser_book_gate` green. The earlier entry's
+"fully closed" wording is corrected in place to "closed except
+examples-minimal-entity.md (completed in this closeout)". Scope of
+`DOC-ENVELOPE-0001` is ~7 chapters/book (incl. `json-carrier.md` +
+`examples-*.md`); see DEVELOPMENT_NOTES "Scope refinement #2".
+
 ## 2026-05-16 - RTL-FE-CONTRACT-BODY-Slice-2 (PGEN-RTL-FE-CONTRACT-BODY-0002): AST Envelope + Dispatch; rtl_frontend book DOC-ENVELOPE-0001 comprehensively closed
 
 - rtl_frontend integration contract: added "## AST Envelope and
@@ -25,7 +44,7 @@ the immediately-following DOC-ENVELOPE-0001 VHDL-closeout commit.
 rtl_const_expr, sv_preprocessor, systemverilog books (folded into their
 CONTRACT-BODY slices / a systemverilog-book closeout).
 
-## 2026-05-16 - VHDL-CONTRACT-BODY-Slice-3 + Slice-4 (PGEN-VHDL-CONTRACT-BODY-0003/0004): close the VHDL-CONTRACT-BODY tree; VHDL book DOC-ENVELOPE-0001 fully closed
+## 2026-05-16 - VHDL-CONTRACT-BODY-Slice-3 + Slice-4 (PGEN-VHDL-CONTRACT-BODY-0003/0004): close the VHDL-CONTRACT-BODY tree; VHDL book DOC-ENVELOPE-0001 closed EXCEPT examples-minimal-entity.md (completed in the 2026-05-16 DOC-ENVELOPE-0001 VHDL-closeout commit above — the "fully closed" wording here was premature; corrected)
 
 **Slice-3 (leaf .3):** added the "Declarations, Types, Statements, and
 Expressions" contract section (every rule family's `kind`/fields; the

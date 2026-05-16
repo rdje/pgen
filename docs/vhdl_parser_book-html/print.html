@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-61d5f625.js";
+            window.path_to_searchindex_js = "searchindex-66450573.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -1336,11 +1336,14 @@ printf 'entity e is end e;\n' &gt; /tmp/min_entity.vhd
 <p><code>content.Json</code> is the typed AST. <code>rule_name</code> is the entry rule
 (<code>vhdl_file</code>); <code>span</code> is the byte range the parse covered (<code>0..18</code> — the
 whole input).</p>
-<h2 id="the-consumer-facing-view-astdumppayloadroot"><a class="header" href="#the-consumer-facing-view-astdumppayloadroot">The consumer-facing view (<code>AstDumpPayload.root</code>)</a></h2>
+<h2 id="the-consumer-facing-view-parsed-dump_json"><a class="header" href="#the-consumer-facing-view-parsed-dump_json">The consumer-facing view (parsed <code>dump_json</code>)</a></h2>
 <p>Downstream code does not call the probe — it calls the public API
 (<a href="#public-api-surface">Public API Surface</a>), which hands back an
-<code>AstDumpPayload</code> whose <code>root</code> is the <strong>unwrapped</strong> <code>content.Json</code> value.
-That is the shape every per-rule chapter in this book describes:</p>
+<code>AstDumpPayload</code> (real fields: <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>
+— there is no <code>root</code> field). After confirming <code>truncated == false</code>,
+<code>serde_json::from_str(&amp;payload.dump_json)</code> yields the <strong>unwrapped</strong>
+typed AST (the same value the probe shows under <code>content.Json</code>) — the
+shape every per-rule chapter in this book describes:</p>
 <pre><code class="language-json">{
   "type": "vhdl_file",
   "design_units": [
@@ -1400,12 +1403,20 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
     &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
 
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+
 match outcome.status {
     ParseStatus::Success =&gt; {
-        let dump = outcome.ast_dump.expect("Success carries an AST dump");
-        assert_eq!(dump.schema_version, 1);
+        let dump = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+        assert!(!dump.truncated, "dump_json would hold the truncation envelope");
+        let _ = VHDL_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
 
-        let root = &amp;dump.root;
+        // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+        // parse dump_json to get the typed root object.
+        let root: serde_json::Value =
+            serde_json::from_str(&amp;dump.dump_json).expect("dump_json is valid JSON");
         assert_eq!(root["type"], "vhdl_file");
 
         let unit = &amp;root["design_units"][0];
