@@ -62,7 +62,7 @@ _ => {
 
 This is **important** because the annotation campaign adds new typed shapes over time. A walker that hard-fails on unknown `type` values will break on every parser-release that adds a new typed rule. A walker that walks children of unknown typed shapes degrades gracefully — it won't extract structured info for shapes it doesn't understand, but it'll still find descendants.
 
-Recommendation: only hard-fail on unknown shapes when you're explicitly pinning to a specific `schema_version` and your test corpus covers every `type` value in that schema.
+Recommendation: only hard-fail on unknown shapes when you're explicitly pinning to a specific AST-dump schema version (the constant you pin from the contract — see [Schema-version-aware walking](#schema-version-aware-walking) below) and your test corpus covers every `type` value in that schema.
 
 ## Identifier extraction
 
@@ -97,16 +97,26 @@ Recommendations:
 
 ## Schema-version-aware walking
 
-If your tool needs to support multiple PGEN versions:
+`AstDumpPayload` has **no** `schema_version` (or `root`) field — the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`. The AST-dump schema version is not discoverable at runtime from the payload; you **pin** it from `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" as a constant in your consumer and re-validate that pin against the contract's "Schema Versioning" table whenever you bump PGEN. The shape-contract manifest (`rust/test_data/ast_shape_contract/systemverilog_v1.json`) is the machine-checkable lock that fails CI if the parser drifts from the pinned schema.
 
 ```rust
-let schema = ast_dump_payload.schema_version;
-match schema {
-    1 => walk_schema_v1(&ast_dump_payload.root),
-    // (future) 2 => walk_schema_v2(...),
-    other => {
-        eprintln!("unsupported schema version: {}", other);
-    }
+// The AST-dump schema version you integrated against (from the contract):
+const SV_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    // dump_json holds the truncation diagnostic envelope, not the AST.
+    return Err("systemverilog AST dump truncated".into());
+}
+let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
+
+// SV_AST_SCHEMA_VERSION selects which walker your code was built for.
+// When you bump PGEN, diff the contract's Schema Versioning table; if the
+// integer schema version moved, update the constant and the walker together.
+match SV_AST_SCHEMA_VERSION {
+    1 => walk_schema_v1(&root),
+    // (future) 2 => walk_schema_v2(&root),
+    other => eprintln!("no walker compiled for systemverilog AST schema version {other}"),
 }
 ```
 

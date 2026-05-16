@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5fc3aac8.js";
+            window.path_to_searchindex_js = "searchindex-405fdf9d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -432,8 +432,8 @@ impl Default for ParseLimits {
 
 pub struct NamedGrammarAstDumpOutcome {
     pub api_version: String,
-    pub grammar: GrammarFamily,
-    pub profile: GrammarProfile,
+    pub grammar: String,
+    pub profile: String,
     pub status: ParseStatus,
     pub diagnostic: Option&lt;ParseDiagnostic&gt;,
     pub ast_dump: Option&lt;AstDumpPayload&gt;,
@@ -474,19 +474,56 @@ pub struct ParserEmbeddingApiContract {
 <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
 <p>The PGEN SystemVerilog parser produces a JSON AST through <code>parse_grammar_profile_ast_dump_named</code>. This chapter documents the top-level structure of that JSON.</p>
 <h2 id="the-envelope"><a class="header" href="#the-envelope">The envelope</a></h2>
-<p>The <code>ast_dump</code> field of <code>NamedGrammarAstDumpOutcome</code> carries an <code>AstDumpPayload</code>:</p>
+<p>The AST-dump host entry points (the generic
+<code>parse_grammar_profile_ast_dump*</code> family and the named-result form
+<code>parse_grammar_profile_ast_dump_named</code>) return — on success — an
+<code>AstDumpPayload</code>, defined in <code>rust/src/embedding_api.rs</code> (the
+authoritative API contract is <code>rust/docs/EMBEDDING_API_CONTRACT.md</code>). It
+is a <strong>canonical-JSON payload string plus truncation metadata</strong> — it has
+<strong>exactly four fields</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AstDumpPayload {
-    pub pgen_dump_contract_version: u32,  // currently 1
-    pub schema_version: u32,              // 1 — see Schema Versioning
-    pub grammar: String,                  // "systemverilog"
-    pub profile: String,                  // "sv_2017" | "sv_2023"
-    pub root: JsonValue,                  // the actual AST tree
-    pub truncated: bool,                  // true if max_ast_bytes was hit
+    pub dump_json: String,    // canonical (key-sorted) JSON encoding of the typed AST
+    pub truncated: bool,      // true if max_ast_bytes was exceeded
+    pub full_bytes: usize,    // byte length of the full encoded AST (pre-truncation)
+    pub emitted_bytes: usize, // byte length actually placed in dump_json
 }
 <span class="boring">}</span></code></pre>
-<p>The <code>root</code> field is the SystemVerilog AST as a <code>serde_json::Value</code>. It is what this book’s per-rule chapters describe.</p>
+<p><code>dump_json</code> is a <strong>JSON string you must parse</strong> (e.g.
+<code>serde_json::from_str</code>) to obtain the <code>systemverilog_file</code> <strong>root
+object</strong> that this book’s per-rule chapters describe. There is no <code>root</code>
+/ <code>schema_version</code> / <code>grammar</code> / <code>profile</code> field on <code>AstDumpPayload</code>
+itself: the AST-dump schema version is the <code>1</code> tracked in
+<a href="#schema-versioning">Schema Versioning</a> (pinned from the contract,
+<strong>not</strong> a payload field); the grammar/profile are fixed
+(<code>systemverilog</code> / <code>sv_2017</code> | <code>sv_2023</code>).</p>
+<p>When <code>truncated</code> is <code>true</code>, <code>dump_json</code> is <strong>not</strong> the AST — it is a
+deterministic truncation diagnostic envelope carrying
+<code>pgen_dump_contract_version</code> (currently <code>1</code>),
+<code>kind: "pgen_ast_dump_truncation"</code>, <code>truncated: true</code>,
+<code>dump_kind: "parser_return_ast"</code>, <code>max_bytes</code>, <code>full_bytes</code>, and
+<code>reason</code>. Consumers must check <code>truncated</code> (or, equivalently, the
+presence of <code>pgen_dump_contract_version</code> / <code>kind == "pgen_ast_dump_truncation"</code> in the parsed <code>dump_json</code>) before treating
+<code>dump_json</code> as a SystemVerilog AST. If <code>max_ast_bytes</code> is too small to
+fit even the diagnostic envelope, the API returns <code>E_INVALID_LIMITS</code>.
+The downstream integration contract
+<code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code>
+(“Contract Identity” + “Schema Versioning”) is the authoritative
+restatement of this for consumers.</p>
+<p>The parsed <code>dump_json</code> is what this book’s per-rule chapters describe.</p>
+<h2 id="the-root-rule"><a class="header" href="#the-root-rule">The root rule</a></h2>
+<p>The SystemVerilog grammar root is the <code>systemverilog_file</code> rule (the
+parser-generation default and the embedding-API entry). It is
+<strong>typed</strong> — it wraps the <code>source_text</code> body:</p>
+<pre><code class="language-ebnf">systemverilog_file := trivia source_text trivia
+                   -&gt; {type: "systemverilog_file", source_text: $2}
+</code></pre>
+<pre><code class="language-json">{ "type": "systemverilog_file", "source_text": [ /* source_text_item shapes */ ] }
+</code></pre>
+<p>Dispatch on <code>root["type"] == "systemverilog_file"</code>, then iterate
+<code>root["source_text"]</code> (a flat array of typed <code>source_text_item</code>
+shapes, each carrying a <code>kind</code> discriminator).</p>
 <h2 id="two-carrier-kinds-typed-and-recursive-envelope"><a class="header" href="#two-carrier-kinds-typed-and-recursive-envelope">Two carrier kinds: typed and recursive-envelope</a></h2>
 <p>Per-rule, the AST dump produces JSON in one of two shapes:</p>
 <h3 id="typed-shape-rules-with-return-annotations"><a class="header" href="#typed-shape-rules-with-return-annotations">Typed shape (rules with return annotations)</a></h3>
@@ -1063,7 +1100,7 @@ fn walk(node: &amp;JsonValue) {
 }
 <span class="boring">}</span></code></pre>
 <p>This is <strong>important</strong> because the annotation campaign adds new typed shapes over time. A walker that hard-fails on unknown <code>type</code> values will break on every parser-release that adds a new typed rule. A walker that walks children of unknown typed shapes degrades gracefully — it won’t extract structured info for shapes it doesn’t understand, but it’ll still find descendants.</p>
-<p>Recommendation: only hard-fail on unknown shapes when you’re explicitly pinning to a specific <code>schema_version</code> and your test corpus covers every <code>type</code> value in that schema.</p>
+<p>Recommendation: only hard-fail on unknown shapes when you’re explicitly pinning to a specific AST-dump schema version (the constant you pin from the contract — see <a href="#schema-version-aware-walking">Schema-version-aware walking</a> below) and your test corpus covers every <code>type</code> value in that schema.</p>
 <h2 id="identifier-extraction"><a class="header" href="#identifier-extraction">Identifier extraction</a></h2>
 <p>For SystemVerilog identifiers (module names, signal names, etc.), look for the rule that produces the identifier and walk to its terminal text:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1091,16 +1128,26 @@ fn walk(node: &amp;JsonValue) {
 <li><strong>For pure AST drop</strong> (releasing all the JSON values once parsing is done), use a non-recursive drop — <code>serde_json::Value</code>’s default <code>Drop</code> is recursive and can blow the stack on deeply-nested values. PGEN’s test path uses <code>run_with_regex_worker_stack</code> (a 64MB-stack worker) to avoid this; downstream consumers should consider similar patterns.</li>
 </ol>
 <h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
-<p>If your tool needs to support multiple PGEN versions:</p>
+<p><code>AstDumpPayload</code> has <strong>no</strong> <code>schema_version</code> (or <code>root</code>) field — the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>. The AST-dump schema version is not discoverable at runtime from the payload; you <strong>pin</strong> it from <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” as a constant in your consumer and re-validate that pin against the contract’s “Schema Versioning” table whenever you bump PGEN. The shape-contract manifest (<code>rust/test_data/ast_shape_contract/systemverilog_v1.json</code>) is the machine-checkable lock that fails CI if the parser drifts from the pinned schema.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let schema = ast_dump_payload.schema_version;
-match schema {
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
-    // (future) 2 =&gt; walk_schema_v2(...),
-    other =&gt; {
-        eprintln!("unsupported schema version: {}", other);
-    }
+</span>// The AST-dump schema version you integrated against (from the contract):
+const SV_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    // dump_json holds the truncation diagnostic envelope, not the AST.
+    return Err("systemverilog AST dump truncated".into());
+}
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+
+// SV_AST_SCHEMA_VERSION selects which walker your code was built for.
+// When you bump PGEN, diff the contract's Schema Versioning table; if the
+// integer schema version moved, update the constant and the walker together.
+match SV_AST_SCHEMA_VERSION {
+    1 =&gt; walk_schema_v1(&amp;root),
+    // (future) 2 =&gt; walk_schema_v2(&amp;root),
+    other =&gt; eprintln!("no walker compiled for systemverilog AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>
 <p>See <a href="#schema-versioning">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>
@@ -1232,11 +1279,22 @@ let outcome = parse_grammar_profile_ast_dump_named(
     &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
 
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const SV_AST_SCHEMA_VERSION: u32 = 1;
+
 match outcome.status {
     ParseStatus::Success =&gt; {
         let ast_dump = outcome.ast_dump.expect("Success outcome carries AST dump");
-        println!("schema version: {}", ast_dump.schema_version);
-        println!("AST root: {}", serde_json::to_string_pretty(&amp;ast_dump.root).unwrap());
+        assert!(!ast_dump.truncated, "dump_json would hold the truncation envelope");
+        let _ = SV_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+        // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+        // parse dump_json to get the typed root object.
+        let root: serde_json::Value = serde_json::from_str(&amp;ast_dump.dump_json)
+            .expect("dump_json is valid JSON");
+        assert_eq!(root["type"], "systemverilog_file");
+        println!("AST root: {}", serde_json::to_string_pretty(&amp;root).unwrap());
     }
     ParseStatus::Failure =&gt; {
         eprintln!("parse failed: {:?}", outcome.diagnostic);

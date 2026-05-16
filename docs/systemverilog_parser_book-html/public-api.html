@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5fc3aac8.js";
+            window.path_to_searchindex_js = "searchindex-405fdf9d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -273,8 +273,8 @@ impl Default for ParseLimits {
 
 pub struct NamedGrammarAstDumpOutcome {
     pub api_version: String,
-    pub grammar: GrammarFamily,
-    pub profile: GrammarProfile,
+    pub grammar: String,
+    pub profile: String,
     pub status: ParseStatus,
     pub diagnostic: Option&lt;ParseDiagnostic&gt;,
     pub ast_dump: Option&lt;AstDumpPayload&gt;,

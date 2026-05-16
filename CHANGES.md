@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-05-16 - PGEN-DOC-ENVELOPE-0001 (systemverilog-book closeout): DOC-ENVELOPE-0001 lane COMPLETE — all five per-parser books closed
+
+- **`systemverilog` book `DOC-ENVELOPE-0001` comprehensively closed**
+  (the last remaining book; non-task-tree single-slice). The fabricated
+  6-field `AstDumpPayload` (`{pgen_dump_contract_version, schema_version,
+  grammar, profile, root, truncated}` — does not exist) replaced with
+  the real 4-field struct (`{dump_json, truncated, full_bytes,
+  emitted_bytes}`, `embedding_api.rs:147-152`) + the canonical
+  pinned-constant walker (`const SV_AST_SCHEMA_VERSION: u32 = 1;` +
+  `!truncated` check + `serde_json::from_str(&dump.dump_json)`) across
+  3 chapters: `ast-envelope.md` (real struct table + disclaimer +
+  truncation-envelope paragraph + a new `systemverilog_file` root
+  section), `examples-minimal-module.md` (walker rewritten;
+  `root["type"] == "systemverilog_file"`), `walking-the-ast.md`
+  (fabricated runtime branch → pinned-constant walker; conceptual
+  pinning prose tightened).
+  - Authoritative facts verified: SV parser release **`1.0.115`**,
+    AST-dump schema version **`1`** (`PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
+    Contract Identity), real root `type == "systemverilog_file"`
+    (`generated/systemverilog_return_annotations.json` +
+    `grammars/systemverilog.ebnf`).
+  - Broad-audit pure-fabricated residual = **0**; the remaining broad
+    matches are all legitimate (the `ast-envelope` disclaimer +
+    truncation-envelope `pgen_dump_contract_version`; the
+    `walking-the-ast` "no `root`/`schema_version`" disclaimer; and
+    `public-api.md`'s **real** `NamedGrammarParseOutcome.grammar/
+    profile: String` + the **real** `GrammarFamily`/`GrammarProfile`
+    generic-entry-point signatures — verified vs
+    `embedding_api.rs:318-324`/`:661`/`:761`/`:898`).
+  - `systemverilog_parser_book_gate` **independently re-run → green**
+    (mdbook_build + tracked_html_check); tracked `-html/` regenerated
+    in same-commit lockstep (deterministic searchindex content-hash
+    rename).
+- **`DOC-ENVELOPE-0001` is now COMPLETE** — all five per-parser books
+  (rtl_frontend / vhdl / rtl_const_expr / sv_preprocessor /
+  systemverilog) FULLY closed and broad-audit-verified. The SV
+  *contract* was verified read-only as already-correct (no fabricated
+  envelope; schema `1` pinned from Contract Identity) — no contract
+  follow-up owed; only the `regex` contract remains un-re-audited for
+  this envelope (low-risk; tracked in DEVELOPMENT_NOTES).
+- **Adjacent correction folded in (tracked honestly, distinct from
+  DOC-ENVELOPE-0001):** `public-api.md` documented
+  `NamedGrammarAstDumpOutcome` as `grammar: GrammarFamily` /
+  `profile: GrammarProfile`; the real struct
+  (`embedding_api.rs:327-334`) is `grammar: String` /
+  `profile: String` — corrected to `String`/`String` in the same
+  commit (same SV book / same file / same embedding-API-accuracy theme;
+  non-negotiable book-sync directive). The 6 other `GrammarFamily`/
+  `GrammarProfile` mentions are legitimate real generic-entry-point
+  parameter types and were correctly left untouched.
+
 ## 2026-05-16 - SVPP-CONTRACT-BODY-Slice-4 (PGEN-SVPP-CONTRACT-BODY-0004, leaf SVPP-CONTRACT-BODY.4): Companion Documentation + Gate Recipe + Glossary — closes the tree (8th completed; ALL task trees now complete)
 
 - sv_preprocessor integration contract, final leaf:

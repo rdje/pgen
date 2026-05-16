@@ -101,8 +101,8 @@ pub struct NamedGrammarParseOutcome {
 
 pub struct NamedGrammarAstDumpOutcome {
     pub api_version: String,
-    pub grammar: GrammarFamily,
-    pub profile: GrammarProfile,
+    pub grammar: String,
+    pub profile: String,
     pub status: ParseStatus,
     pub diagnostic: Option<ParseDiagnostic>,
     pub ast_dump: Option<AstDumpPayload>,

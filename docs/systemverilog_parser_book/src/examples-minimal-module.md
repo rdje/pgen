@@ -71,11 +71,22 @@ let outcome = parse_grammar_profile_ast_dump_named(
     &AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
 
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const SV_AST_SCHEMA_VERSION: u32 = 1;
+
 match outcome.status {
     ParseStatus::Success => {
         let ast_dump = outcome.ast_dump.expect("Success outcome carries AST dump");
-        println!("schema version: {}", ast_dump.schema_version);
-        println!("AST root: {}", serde_json::to_string_pretty(&ast_dump.root).unwrap());
+        assert!(!ast_dump.truncated, "dump_json would hold the truncation envelope");
+        let _ = SV_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+        // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+        // parse dump_json to get the typed root object.
+        let root: serde_json::Value = serde_json::from_str(&ast_dump.dump_json)
+            .expect("dump_json is valid JSON");
+        assert_eq!(root["type"], "systemverilog_file");
+        println!("AST root: {}", serde_json::to_string_pretty(&root).unwrap());
     }
     ParseStatus::Failure => {
         eprintln!("parse failed: {:?}", outcome.diagnostic);

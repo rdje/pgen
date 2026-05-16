@@ -130,27 +130,63 @@ after RTL-FE-CONTRACT-BODY-Slice-2.
   disclaimers/truncation); `systemverilog_preprocessor_parser_book_gate`
   **independently re-run → green**; tracked `-html/` regenerated in
   same-commit lockstep.
-- **Tracked (not yet fixed) — `systemverilog` book ONLY** — the
-  fabricated struct + `.root` / `.schema_version` prose/snippets across
-  **~7 chapters** of the `systemverilog` book (+ tracked `-html`
-  mirror). It is pre-existing and not owned by any active task tree —
-  its own dedicated closeout slice (broad-audit-verified, 0-residual,
-  gate green, real 4-field struct, no parser/codegen change). The
-  rtl_frontend/vhdl/rtl_const_expr/sv_preprocessor books are now all
-  FULLY closed; this is the **last remaining** DOC-ENVELOPE-0001 book.
+- **systemverilog book: FULLY closed (verified comprehensively)** —
+  `PGEN-DOC-ENVELOPE-0001` systemverilog-book closeout (2026-05-16)
+  fixed 3 chapters (`ast-envelope` / `examples-minimal-module` /
+  `walking-the-ast`) to the real 4-field struct + the canonical
+  `const SV_AST_SCHEMA_VERSION: u32 = 1;` pinned-constant walker
+  (schema `1` from `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
+  Contract Identity; real root `type == "systemverilog_file"` verified
+  vs `generated/systemverilog_return_annotations.json`). Broad-audit
+  pure-fabricated residual = **0**; the remaining matches are all
+  legitimate (the `ast-envelope` disclaimer + truncation-envelope
+  `pgen_dump_contract_version`; the `walking-the-ast` "no
+  `root`/`schema_version`" disclaimer; and `public-api.md`'s **real**
+  `NamedGrammarParseOutcome.grammar/profile: String` fields + the
+  **real** `GrammarFamily`/`GrammarProfile` generic-entry-point
+  signatures, verified vs `embedding_api.rs:318-324`/`:661`/`:761`/`:898`).
+  `systemverilog_parser_book_gate` **independently re-run → green**;
+  tracked `-html/` regenerated in same-commit lockstep.
+  **ALL FIVE per-parser books (rtl_frontend / vhdl / rtl_const_expr /
+  sv_preprocessor / systemverilog) are now FULLY closed —
+  `DOC-ENVELOPE-0001` is COMPLETE.** The SV *contract* was verified
+  read-only as already-correct (no fabricated envelope; schema `1`
+  pinned from Contract Identity) — no contract follow-up owed.
+- **Adjacent correction folded into the SV-book closeout (tracked
+  honestly, distinct from DOC-ENVELOPE-0001):** `public-api.md`
+  documented `NamedGrammarAstDumpOutcome` with
+  `grammar: GrammarFamily` / `profile: GrammarProfile`, but the real
+  struct (`embedding_api.rs:327-334`) uses `grammar: String` /
+  `profile: String` (its sibling `NamedGrammarParseOutcome` block was
+  already correct). Corrected to `String`/`String` in the same commit
+  because the book-sync directive (book = the user's only window;
+  ANY user-impacting inaccuracy must not be left) is non-negotiable
+  and this is the same SV book / same file / same embedding-API-struct
+  accuracy theme / same HTML-regen surface — not cross-ownership
+  scope-bleed. The 6 other `GrammarFamily`/`GrammarProfile` mentions
+  in `public-api.md` are **legitimate** real generic-entry-point
+  parameter types and were correctly left untouched.
 
-### Fix lane (recommended, focused, fresh context)
-Per book: replace the struct + the "root field" prose with the real
-4-field struct and the parse-`dump_json` / check-`truncated` guidance
-(reuse the VHDL template verbatim, adjusting grammar/profile names),
-regen that book's HTML, run its `*_parser_book_gate`, one commit per
-book (or one coherent doc-correctness slice). Pure documentation
-correctness — no parser/codegen change. Also re-audit the four
-per-parser *contracts* (regex/rtl_const_expr/rtl_frontend/sv_preprocessor)
-for the same wrong envelope description; the VHDL contract is now
-correct. This is distinct from the systemic inline-alternation
-parser-correctness lane (rtl_frontend/vhdl/sv_preprocessor binop /
-`pp_if_branch`).
+### Fix lane — STATUS: book lane COMPLETE (2026-05-16)
+The per-book fix lane is **closed**: all five per-parser books
+(rtl_frontend / vhdl / rtl_const_expr / sv_preprocessor /
+systemverilog) were reconciled to the real 4-field `AstDumpPayload` +
+the parse-`dump_json` / check-`truncated` / pinned-schema-constant
+walker, each broad-audit-verified 0-residual with its
+`*_parser_book_gate` green and tracked `-html/` regenerated in
+lockstep. Method (kept for reference): replace the fabricated struct +
+"root field" prose with the real 4-field struct, reuse the closed
+exemplars verbatim (rtl_const_expr/sv_preprocessor), one coherent
+doc-correctness slice per book. Pure documentation correctness — no
+parser/codegen change. Contract side: the VHDL/rtl_frontend/
+rtl_const_expr/sv_preprocessor contracts gained correct AST-envelope
+sections during their `*-CONTRACT-BODY` slices and the `systemverilog`
+contract was verified read-only as already-correct; the only contract
+not yet explicitly re-audited for this envelope is the **`regex`**
+contract (low-risk residual — track if a regex-contract slice is
+opened). This is distinct from the still-open systemic
+inline-alternation parser-correctness lane (rtl_frontend/vhdl `binop` /
+sv_preprocessor `pp_if_branch` `SVPP-0001`).
 
 ## 2026-05-16 - RTL-CE-Slice-2 root cause: inline operator alternation breaks `$N` over a Quantified iteration (PGEN-RTL-0002)
 
