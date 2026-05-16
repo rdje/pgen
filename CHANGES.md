@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-05-16 - SVPP-CONTRACT-BODY-Slice-3 (PGEN-SVPP-CONTRACT-BODY-0003, leaf SVPP-CONTRACT-BODY.3): Conditional Compilation and Macro Body Fragments
+
+- sv_preprocessor integration contract: added **`## Conditional
+  Compilation and Macro Body Fragments`** (after AST-Envelope, before
+  Source Of Truth) —
+  - the **5-rule conditional-compilation tree** (`pp_conditional`,
+    `pp_if_branch`, `pp_elsif_branch`, `pp_else_branch`, `pp_endif`):
+    each one-branch `return_object`, field lists, positional-`$N`
+    structure, verified `grammars/systemverilog_preprocessor.ebnf`
+    line refs, and a step-by-step
+    `` `ifdef/`ifndef…`elsif…`else…`endif`` reconstruction walk;
+  - **`macro_body_fragment` — 9 kinds** and **`macro_default_atom` —
+    8 kinds** (per-kind `type`/field list/captured-text/line ref;
+    plus the verified structural nuance that `macro_default_atom`
+    has no `"comma"` kind and uses `macro_default_text`, not
+    `macro_body_text`);
+  - a `### Consumer guidance — walking a pp_define body` paragraph.
+  - **`SVPP-0001`** framed in the fragment context precisely where it
+    lives (`pp_if_branch.keyword`, inline-alternation-`$N`; malformed
+    nested object with three `"<invalid_sequence_access>"` strings) —
+    honest, **explicitly not fixed**, schema **stays 1**, referenced
+    by anchor + bug ledger (not duplicated), with the documented
+    consumer workaround (treat `keyword` opaque; polarity/guard
+    recoverable elsewhere).
+- Independently verified vs `generated/systemverilog_preprocessor_return_annotations.json`:
+  `macro_body_fragment` exactly 9, `macro_default_atom` exactly 8, the
+  5 conditional rules each 1-branch — **EXACT** match. Section ×1, no
+  duplicate `## ` headers, no fabricated-struct reintroduction; release
+  uniformly `1.0.1` (the 2 `1.0.0` hits are the pre-existing
+  Schema-Versioning-table rows), schema `1` / 64 / 27 consistent.
+  Contract-only — the sv_preprocessor book `DOC-ENVELOPE-0001` was
+  already comprehensively closed in Slice-2; `.3` documents existing
+  behavior (no user-impacting behavior change → no further book sync
+  owed).
+- `SVPP-CONTRACT-BODY` stays `active` — `.3` of `.1`–`.4` `done`,
+  frontier advances `.3`→`.4` (gate recipe + manifest cross-ref +
+  README/LIVE links — final leaf, closes the tree = 8th).
+
 ## 2026-05-16 - SVPP-CONTRACT-BODY-Slice-2 (PGEN-SVPP-CONTRACT-BODY-0002, leaf SVPP-CONTRACT-BODY.2): AST Envelope + pp_item Dispatch; sv_preprocessor book DOC-ENVELOPE-0001 comprehensively closed
 
 - sv_preprocessor integration contract: added **`## AST Envelope and

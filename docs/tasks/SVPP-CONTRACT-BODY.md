@@ -53,11 +53,11 @@ public API, schema versioning, release identity, gate recipe, and the
   Commit: `SVPP-CONTRACT-BODY-Slice-2`
 
 - ID: `SVPP-CONTRACT-BODY.3`
-  Status: `pending`
+  Status: `done`
   Goal: `Document conditional-compilation tree + macro_body fragment (9 kinds) + macro_default_atom (8 kinds).`
   Acceptance: `Section enumerates all fragment kinds with consumer guidance.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: Added "## Conditional Compilation and Macro Body Fragments" (after AST-Envelope, before Source Of Truth): the 5-rule conditional tree (pp_conditional/pp_if_branch/pp_elsif_branch/pp_else_branch/pp_endif, field lists + grammar line refs + reconstruction walk), macro_body_fragment 9 kinds + macro_default_atom 8 kinds (per-kind detail + grammar refs + the verified no-"comma"-kind/macro_default_text nuance), and a pp_define-body consumer-walk paragraph. SVPP-0001 framed in fragment context (pp_if_branch.keyword inline-alternation-$N, malformed nested object w/ three <invalid_sequence_access>; NOT fixed, schema stays 1; referenced by anchor + bug ledger, not duplicated). Independently verified: section ×1, no dup ## headers, no fabricated-struct reintroduction; inventory cross-check EXACT (generated/systemverilog_preprocessor_return_annotations.json: macro_body_fragment 9, macro_default_atom 8, the 5 conditional rules each 1-branch); numbers uniform (1.0.1 only — the 2 "1.0.0" hits are the pre-existing Schema-Versioning-table rows; schema 1 / 64 / 27 consistent). Scope clean (contract file only).`
+  Commit: `SVPP-CONTRACT-BODY-Slice-3`
 
 - ID: `SVPP-CONTRACT-BODY.4`
   Status: `pending`
@@ -70,7 +70,7 @@ public API, schema versioning, release identity, gate recipe, and the
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SVPP-CONTRACT-BODY.3` | `pending` | Conditional-compilation tree + macro_body fragment (9 kinds) + macro_default_atom (8 kinds) build on the now-existing AST envelope + pp_item dispatch section. |
+| 1 | `SVPP-CONTRACT-BODY.4` | `pending` | Gate recipe + manifest cross-reference + README/LIVE links close the contract — final leaf (closes the tree). |
 
 ## Decisions
 
@@ -91,6 +91,7 @@ public API, schema versioning, release identity, gate recipe, and the
 | --- | --- | --- | --- |
 | `2026-05-15` | `SVPP-CONTRACT-BODY.1` | manual review of inserted sections | `pass — Identity through Release 1.0.1 surface populated at the top of the existing scope-limited contract` |
 | `2026-05-16` | `SVPP-CONTRACT-BODY.2` | section-count + dup-`## `-header + no-fabricated-reintroduction grep on contract; inventory cross-check (annotation_count/array-len/distinct-rules/pp_item-branches); broad-audit targeted fabricated residual on book src; SVPP-0001 framing check; independent `systemverilog_preprocessor_parser_book_gate` re-run | `pass — AST Envelope + pp_item Dispatch section (real AstDumpPayload, 10 pp_item kinds, 7 directive shapes, SVPP-0001 honest/not-fixed/schema-1); inventory EXACT 64/27/10; sv_preprocessor book DOC-ENVELOPE-0001 comprehensively closed (8 chapters, targeted fabricated-residual 0, 5 legitimate disclaimers/truncation); gate green; HTML deterministic` |
+| `2026-05-16` | `SVPP-CONTRACT-BODY.3` | section-count + dup-`## `-header + no-fabricated-reintroduction grep; conditional-tree rule presence; inventory fragment/atom-count cross-check; numbers/SVPP-0001/scope check | `pass — Conditional Compilation and Macro Body Fragments section (5-rule conditional tree, macro_body_fragment 9, macro_default_atom 8, pp_define-body consumer walk, SVPP-0001 fragment-context honest/not-fixed/schema-1); inventory EXACT (9/8/5×1-branch); 1.0.1 uniform (2 "1.0.0" = pre-existing schema-table rows); no dup ## headers; scope = contract only` |
 
 ## Commit Log
 
@@ -98,8 +99,10 @@ public API, schema versioning, release identity, gate recipe, and the
 | --- | --- | --- |
 | `SVPP-CONTRACT-BODY.1` | `SVPP-CONTRACT-BODY-Slice-1` | Contract Identity + Schema Versioning + Release 1.0.1 Highlights (full 64-annotation surface) inserted at the top |
 | `SVPP-CONTRACT-BODY.2` | `SVPP-CONTRACT-BODY-Slice-2` | AST Envelope + pp_item Dispatch (10 kinds + 7 directive shapes, SVPP-0001 honest); sv_preprocessor book DOC-ENVELOPE-0001 comprehensively closed in lockstep (8 chapters, fabricated-residual 0, gate green) |
+| `SVPP-CONTRACT-BODY.3` | `SVPP-CONTRACT-BODY-Slice-3` | Conditional Compilation and Macro Body Fragments (5-rule conditional tree + macro_body_fragment 9 + macro_default_atom 8 + pp_define-body consumer walk; SVPP-0001 fragment-context honest); inventory cross-check EXACT; contract-only |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-16`: `.2` done (AST Envelope + pp_item Dispatch section — 10 pp_item kinds + 7 directive shapes + SVPP-0001 honest/not-fixed/schema-1; inventory cross-check EXACT 64/27/10; sv_preprocessor book `DOC-ENVELOPE-0001` comprehensively closed in lockstep — 8 chapters, targeted fabricated-residual 0, independent gate re-run green). Frontier advances to `.3` (conditional-compilation tree + macro_body fragment + macro_default_atom). Tree stays `active` (`.3`, `.4` remain).
+- `2026-05-16`: `.3` done (Conditional Compilation and Macro Body Fragments section — 5-rule conditional tree + macro_body_fragment 9 kinds + macro_default_atom 8 kinds + pp_define-body consumer walk; SVPP-0001 framed in fragment context, honest/not-fixed/schema-1; inventory cross-check EXACT 9/8/5×1-branch; contract-only — sv_preprocessor book DOC-ENVELOPE already closed in `.2`). Frontier advances to `.4` (gate recipe + manifest cross-ref + README/LIVE links — final leaf, closes the tree). Tree stays `active` (`.4` remains).

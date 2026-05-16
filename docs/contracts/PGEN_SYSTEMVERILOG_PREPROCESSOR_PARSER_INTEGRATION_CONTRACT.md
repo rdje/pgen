@@ -333,6 +333,236 @@ kw_ifndef)` into a named rule per the proven RTL-CE-Slice-2 playbook;
 schema bump + lockstep at that time). The AST-dump schema version stays
 **`1`** for release `1.0.1`.
 
+## Conditional Compilation and Macro Body Fragments
+
+This section is the consumer-facing walk contract for the two deep
+substructures the [`pp_item` dispatch](#the-10-branch-pp_item-dispatch)
+hands back: the **conditional-compilation tree** (reached via the
+`pp_item` `"conditional"` branch → `pp_conditional`) and the
+**macro-body / macro-default fragment streams** (reached via the
+`pp_item` `"define"` branch → `pp_define` → `macro_body` and, for
+parameterised macros, `macro_formal` → `macro_default_value`). Every
+shape, `kind`, field name, branch count, and grammar line reference
+below is transcribed from the live inventory
+`generated/systemverilog_preprocessor_return_annotations.json`
+(`version: 1`, `grammar: "systemverilog_preprocessor"`,
+`annotation_count: 64`, **27 distinct rules**) and verified against
+`grammars/systemverilog_preprocessor.ebnf`. The inventory is the ground
+truth: where this prose and the inventory disagree, the inventory wins.
+
+### The conditional-compilation tree
+
+The `pp_item` `"conditional"` branch (branch 7 in the
+[`pp_item` dispatch](#the-10-branch-pp_item-dispatch)) carries a `body`
+that is the typed `pp_conditional` object. `pp_conditional` is the
+single-branch root of the `` `ifdef`` / `` `ifndef`` … `` `elsif`` …
+`` `else`` … `` `endif`` tree. Per
+`grammars/systemverilog_preprocessor.ebnf` (lines 61–71):
+
+```ebnf
+pp_conditional  := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
+                -> {if_branch: $1, elsif_branches: $2, else_branch: $3}
+pp_if_branch    := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item*
+                -> {keyword: $1, macro: $2, tail: $3, items: $5}
+pp_elsif_branch := kw_elsif condition_expr newline pp_item*
+                -> {condition: $2, items: $4}
+pp_else_branch  := kw_else directive_tail? newline pp_item*
+                -> {tail: $2, items: $4}
+pp_endif        := kw_endif directive_tail? newline?
+                -> {tail: $2}
+```
+
+Each of these five rule names exists verbatim in the inventory, each
+with exactly **one** branch (`branch_index: 0`), each
+`annotation_type: "return_object"`. None of the five carries a `type`
+or `kind` discriminator — they are fixed-shape positional objects
+reached structurally from the `pp_item` `"conditional"` `body`, not by
+tag dispatch.
+
+| Rule (`grammars/systemverilog_preprocessor.ebnf`) | Annotation | Branches | Fields | Meaning |
+|---|---|---|---|---|
+| `pp_conditional` (line 61) | `return_object` `{if_branch: $1, elsif_branches: $2, else_branch: $3}` | 1 | `if_branch`, `elsif_branches`, `else_branch` | `if_branch` is exactly one typed `pp_if_branch`. `elsif_branches` is an array (`[]` when there are no `` `elsif``) of typed `pp_elsif_branch`, in source order. `else_branch` is the single typed `pp_else_branch`, or `[]` when there is no `` `else`` (the `pp_else_branch?` optional). The closing `pp_endif` ($4) is **not** re-emitted as a field — it is consumed positionally and contributes only its `tail` semantics; there is no `endif` key on `pp_conditional`. |
+| `pp_if_branch` (line 64) | `return_object` `{keyword: $1, macro: $2, tail: $3, items: $5}` | 1 | `keyword`, `macro`, `tail`, `items` | `keyword` is the `` `ifdef``/`` `ifndef`` token — **see `SVPP-0001` below; this field is defective in `1.0.1`.** `macro` is the guard macro name (`macro_name`/`identifier` envelope). `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when the branch body is empty) — recurse into the [`pp_item` dispatch](#the-10-branch-pp_item-dispatch) for each element. |
+| `pp_elsif_branch` (line 66) | `return_object` `{condition: $2, items: $4}` | 1 | `condition`, `items` | `condition` is the typed `condition_expr` object (`{atoms}`, line 73) — a `condition_atom+` stream (see the condition-atom note below). `items` is a nested `pp_item*` array (`[]` when empty). Note the positional gap: `kw_elsif` is `$1`, `condition_expr` is `$2`, `newline` is `$3`, `pp_item*` is `$4`; `$1`/`$3` are consumed but not re-emitted. |
+| `pp_else_branch` (line 68) | `return_object` `{tail: $2, items: $4}` | 1 | `tail`, `items` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when empty). `kw_else` (`$1`) and `newline` (`$3`) are consumed positionally without their own fields. |
+| `pp_endif` (line 70) | `return_object` `{tail: $2}` | 1 | `tail` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `pp_endif` is consumed positionally by `pp_conditional` ($4) and is **not** surfaced as a `pp_conditional` field — a consumer that needs the `` `endif`` trailing comment must obtain it through a path that retains the `pp_endif` shape (e.g. a raw/structured dump), not from the typed `pp_conditional` object. |
+
+**Consumer walk.** To reconstruct the
+`` `ifdef``/`` `ifndef`` … `` `elsif`` … `` `else`` … `` `endif``
+tree: dispatch a `pp_item` on `kind == "conditional"`, take
+`body` (the `pp_conditional`). Read `body.if_branch` — its `macro` is
+the guard identifier and its `keyword` *would* distinguish
+`` `ifdef`` (defined-true) from `` `ifndef`` (defined-false) but is
+defective in `1.0.1` (see `SVPP-0001`). Recurse `body.if_branch.items`
+as a `pp_item*` array for the if-true body. Iterate
+`body.elsif_branches` (possibly `[]`); for each, evaluate
+`elsif.condition` (a `condition_expr` `{atoms}`) and recurse
+`elsif.items`. If `body.else_branch` is not `[]`, recurse
+`body.else_branch.items` for the fallback body. The closing
+`` `endif`` is structurally implied (the tree is well-formed only when
+a `pp_endif` was consumed) and is not a field.
+
+#### `SVPP-0001` in the conditional-tree context
+
+`pp_if_branch.keyword` (the `$1` bound to the inline alternation
+`(kw_ifdef | kw_ifndef)` at line 64) surfaces, for any
+`` `ifdef``/`` `ifndef`` input, a malformed nested object containing
+three `"<invalid_sequence_access>"` strings instead of the keyword
+token — the inline-alternation-`$N` emit-time defect class. This is the
+same `SVPP-0001` defect documented at the head of this contract under
+[Known Defects (release 1.0.1)](#known-defects-release-101) and in the
+[Known defect — `SVPP-0001`](#known-defect--svpp-0001) note of the
+AST-Envelope section; it is tracked in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`,
+status `Root Caused`). It is **NOT fixed in `1.0.1`**, and the AST-dump
+schema version deliberately **stays `1`** for this release. The
+fragment-specific consumer guidance: the *only* defective field in the
+entire conditional tree is `pp_if_branch.keyword` — `if_branch.macro`,
+`if_branch.tail`, `if_branch.items`, and every `pp_elsif_branch` /
+`pp_else_branch` / `pp_endif` field are correct. Treat
+`if_branch.keyword` as opaque/unusable; do not branch on its (absent)
+token text and do not read its nested fields. To recover the
+`` `ifdef`` vs `` `ifndef`` polarity in `1.0.1`, a consumer must obtain
+it outside the typed `keyword` field (e.g. from the raw source span /
+structured dump that retains the keyword token); the guard macro itself
+is always recoverable from the correct outer `if_branch.macro`. The
+scheduled fix lifts `(kw_ifdef | kw_ifndef)` into a named rule per the
+proven RTL-CE-Slice-2 playbook, with a schema bump + book/contract
+lockstep at that time.
+
+### The `macro_body` fragment kinds
+
+The `pp_item` `"define"` branch carries a `body` that is the typed
+`pp_define` (`{name, formals, body}`, line 33). `pp_define.body` is, for
+a non-bodyless macro, the typed `macro_body` object; for a bodyless
+`` `define`` it is `[]` (the `macro_body?` optional). Per
+`grammars/systemverilog_preprocessor.ebnf` (lines 112–124):
+
+```ebnf
+macro_body          := macro_body_fragment+
+                    -> {fragments: $1}
+macro_body_fragment := macro_token_paste -> {kind: "token_paste"}
+                     | macro_stringize   -> {kind: "stringize"}
+                     | macro_reference   -> {kind: "macro_reference", body: $1}
+                     | macro_body_text   -> {kind: "text",   body: $1}
+                     | lparen            -> {kind: "lparen"}
+                     | rparen            -> {kind: "rparen"}
+                     | comma             -> {kind: "comma"}
+                     | question          -> {kind: "question"}
+                     | colon             -> {kind: "colon"}
+```
+
+`macro_body` is a single-branch `return_object`
+(`{fragments: $1}`, line 112): `fragments` is a non-empty array (the
+`macro_body_fragment+`) of typed `macro_body_fragment` objects in
+source order. `macro_body_fragment` is a `kind`-tagged dispatcher. The
+inventory confirms exactly **9** `macro_body_fragment` branches
+(`branch_index` 0–8, every one `annotation_type: "return_object"`) —
+this **matches the expected 9**:
+
+| Branch | `kind` | Fields | Captured source text | Grammar line |
+|---|---|---|---|---|
+| 0 | `"token_paste"` | _(none — bare `{kind}`)_ | The `` `` `` token-paste operator (`macro_token_paste := inline_trivia /``/`) | line 114 |
+| 1 | `"stringize"` | _(none — bare `{kind}`)_ | The `` `" `` stringize operator (`macro_stringize := inline_trivia /`"/`) | line 115 |
+| 2 | `"macro_reference"` | `body` | A nested macro reference `` `IDENT`` (`macro_reference := bt_identifier`); `body` is the referenced macro envelope | line 116 |
+| 3 | `"text"` | `body` | A run of literal body text (`macro_body_text := inline_trivia /[^`(),?:\r\n]+/`); `body` is the captured text envelope | line 117 |
+| 4 | `"lparen"` | _(none — bare `{kind}`)_ | A literal `(` | line 118 |
+| 5 | `"rparen"` | _(none — bare `{kind}`)_ | A literal `)` | line 119 |
+| 6 | `"comma"` | _(none — bare `{kind}`)_ | A literal `,` | line 120 |
+| 7 | `"question"` | _(none — bare `{kind}`)_ | A literal `?` | line 121 |
+| 8 | `"colon"` | _(none — bare `{kind}`)_ | A literal `:` | line 122 |
+
+The structural punctuation kinds (`"lparen"`, `"rparen"`, `"comma"`,
+`"question"`, `"colon"`) are emitted as discrete fragments rather than
+folded into `"text"` so a consumer can reconstruct macro-argument
+parentheses and `?:` ternary structure inside the un-expanded body
+without re-lexing. Only `"macro_reference"` and `"text"` carry a
+`body`; the other seven kinds are bare `{kind}` objects.
+
+### The `macro_default_atom` kinds
+
+For a parameterised macro, `pp_define.formals` is the typed
+`macro_formals` (`{first, rest}`, line 94); each `macro_formal`
+(`{name, default}`, line 96) may carry a `default` that is the typed
+`macro_default_value` object. Per
+`grammars/systemverilog_preprocessor.ebnf` (lines 99–110):
+
+```ebnf
+macro_default_value := macro_default_atom+
+                    -> {atoms: $1}
+macro_default_atom  := macro_token_paste  -> {kind: "token_paste"}
+                     | macro_stringize    -> {kind: "stringize"}
+                     | macro_reference    -> {kind: "macro_reference", body: $1}
+                     | macro_default_text -> {kind: "text",  body: $1}
+                     | lparen             -> {kind: "lparen"}
+                     | rparen             -> {kind: "rparen"}
+                     | question           -> {kind: "question"}
+                     | colon              -> {kind: "colon"}
+```
+
+`macro_default_value` is a single-branch `return_object`
+(`{atoms: $1}`, line 99): `atoms` is a non-empty array (the
+`macro_default_atom+`) of typed `macro_default_atom` objects in source
+order. `macro_default_atom` is a `kind`-tagged dispatcher. The
+inventory confirms exactly **8** `macro_default_atom` branches
+(`branch_index` 0–7, every one `annotation_type: "return_object"`) —
+this **matches the expected 8**. Note this is one fewer than
+`macro_body_fragment`: `macro_default_atom` has **no `"comma"` kind**
+(a comma terminates a default-argument value in the `macro_formals`
+`lparen macro_formal (comma macro_formal)* rparen` grammar, so it is
+not part of an atom stream), and its text leaf is `macro_default_text`
+(line 110, char class `/[^`(),?:\r\n]+/`) rather than
+`macro_body_text`:
+
+| Branch | `kind` | Fields | Captured source text | Grammar line |
+|---|---|---|---|---|
+| 0 | `"token_paste"` | _(none — bare `{kind}`)_ | The `` `` `` token-paste operator | line 101 |
+| 1 | `"stringize"` | _(none — bare `{kind}`)_ | The `` `" `` stringize operator | line 102 |
+| 2 | `"macro_reference"` | `body` | A nested macro reference `` `IDENT``; `body` is the referenced macro envelope | line 103 |
+| 3 | `"text"` | `body` | A run of literal default text (`macro_default_text := inline_trivia /[^`(),?:\r\n]+/`); `body` is the captured text envelope | line 104 |
+| 4 | `"lparen"` | _(none — bare `{kind}`)_ | A literal `(` | line 105 |
+| 5 | `"rparen"` | _(none — bare `{kind}`)_ | A literal `)` | line 106 |
+| 6 | `"question"` | _(none — bare `{kind}`)_ | A literal `?` | line 107 |
+| 7 | `"colon"` | _(none — bare `{kind}`)_ | A literal `:` | line 108 |
+
+**Consumer guidance — composing default-argument atoms.** A
+default-argument value is the `atoms` array of a `macro_default_value`,
+reached via `pp_define.formals` → `macro_formals.first` /
+`macro_formals.rest[]` (each a `macro_formal`) → `macro_formal.default`
+(`[]` when the formal has no `= default`). Concatenate the atoms in
+order, dispatching each on `kind`: `"text"` / `"macro_reference"`
+contribute their `body`; `"lparen"` / `"rparen"` / `"question"` /
+`"colon"` contribute their literal punctuation (these let a consumer
+reassemble a parenthesised or ternary default expression); `"token_paste"` /
+`"stringize"` contribute the `` `` `` / `` `" `` operators. There is no
+`"comma"` atom by construction — a comma always closes the current
+default and begins the next `macro_formal`.
+
+### Consumer guidance — walking a `pp_define` body
+
+To walk a `` `define`` end to end: dispatch a `pp_item` on
+`kind == "define"` and take `body` — the typed `pp_define`
+(`{name, formals, body}`, line 33). `name` is the macro identifier
+envelope. `formals` is `[]` for an object-like macro, else the typed
+`macro_formals` (`{first, rest}`); iterate `first` then each element of
+`rest` (both typed `macro_formal` `{name, default}`), recursing into
+`macro_default_value.atoms` (the `macro_default_atom` stream above) for
+any non-`[]` `default`. `pp_define.body` is `[]` for a bodyless macro,
+else the typed `macro_body` (`{fragments}`); iterate `fragments`,
+dispatching each typed `macro_body_fragment` on its `type`-equivalent
+`kind` tag (`"text"` / `"macro_reference"` / `"token_paste"` /
+`"stringize"` / `"lparen"` / `"rparen"` / `"comma"` / `"question"` /
+`"colon"`) per the table above to reconstruct the un-expanded macro
+body in source order. The only `type`-discriminated object on this
+whole path is the `systemverilog_preprocessor_file` root; `pp_item`,
+`macro_body_fragment`, and `macro_default_atom` all dispatch on `kind`.
+This contract documents the surface as it exists in the inventory; the
+schema axis is the AST-dump schema version **`1`** (see
+[Schema Versioning](#schema-versioning)) and the parser release is
+**`1.0.1`**, with **64 return annotations across 27 distinct rules** —
+unchanged by this section. Where this prose and the inventory disagree,
+the inventory wins.
+
 ## Source Of Truth
 - Grammar source:
   - `grammars/systemverilog_preprocessor.ebnf`
