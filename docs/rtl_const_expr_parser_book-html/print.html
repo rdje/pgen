@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-20ed5a02.js";
+            window.path_to_searchindex_js = "searchindex-c1cc3e67.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -186,7 +186,7 @@
 <li><strong>AST envelope and walking conventions.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a>, <a href="#walking-the-ast">Walking the AST</a>.</li>
 <li><strong>Per-rule typed shapes.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The grammar (<code>grammars/rtl_const_expr.ebnf</code>) carries <strong>24 typed annotations</strong> covering the conditional/binary/unary/primary expression hierarchy plus literal and identifier leaves.</li>
 <li><strong>The <code>binop_chain</code> shape.</strong> All 10 binary-operator chain rules (logical_or through multiplicative) emit a uniform <code>{type: "binop_chain", level, lhs, rest}</code> shape so consumers fold left.</li>
-<li><strong>Worked examples</strong>: see <a href="#examples-literal-42">Literal 42</a> and <a href="#examples-binary-addition">Binary Addition</a>.</li>
+<li><strong>Worked examples</strong>: see <a href="#worked-example-literal-42">Literal 42</a> and <a href="#worked-example-binary-addition-a--b">Binary Addition</a>.</li>
 </ul>
 <h2 id="what-this-book-is-not"><a class="header" href="#what-this-book-is-not">What this book is NOT</a></h2>
 <ul>
@@ -646,7 +646,7 @@ enumerated authoritatively in <a href="#top-level-rules">Top-Level Rules</a>.</p
 <li><code>primary_expr</code> branch 0 is <strong>passthrough</strong> to <code>literal</code>.</li>
 <li><code>literal</code> matched <code>decimal_integer</code>, so it is the <strong>typed object</strong> <code>{ "type": "literal", "kind": "decimal", "text": "42" }</code>. <code>text</code> is <code>$1</code> — the value of <code>literal</code>’s <code>decimal_integer</code> body element, which is <code>decimal_integer</code>’s own <code>-&gt; $2</code> clean capture, the string <code>"42"</code>. (Pre-<code>1.0.2</code> this was the envelope <code>["", "42"]</code> because <code>decimal_integer</code> was un-annotated; the <code>1.0.2</code> fix annotated it <code>-&gt; $2</code>.)</li>
 </ul>
-<p>So <code>42</code> produces a <code>rtl_const_expr</code> root whose <code>expr</code> is a ten-deep stack of empty <code>binop_chain</code> wrappers bottoming out at the captured node <code>{"kind": "decimal", "text": "42", "type": "literal"}</code> (object keys emitted alphabetically). The full captured payload is in <a href="#examples-literal-42">Literal 42</a>; a chain with an actual operator (non-empty <code>rest</code>) is in <a href="#examples-binary-addition">Binary Addition</a>. The field names above come straight from the live inventory’s <code>normalized_text</code> — confirm structure against the inventory and the live parser, never assume a scalar where a typed object or envelope is produced.</p>
+<p>So <code>42</code> produces a <code>rtl_const_expr</code> root whose <code>expr</code> is a ten-deep stack of empty <code>binop_chain</code> wrappers bottoming out at the captured node <code>{"kind": "decimal", "text": "42", "type": "literal"}</code> (object keys emitted alphabetically). The full captured payload is in <a href="#worked-example-literal-42">Literal 42</a>; a chain with an actual operator (non-empty <code>rest</code>) is in <a href="#worked-example-binary-addition-a--b">Binary Addition</a>. The field names above come straight from the live inventory’s <code>normalized_text</code> — confirm structure against the inventory and the live parser, never assume a scalar where a typed object or envelope is produced.</p>
 <h2 id="the-expression-family-binop_chain"><a class="header" href="#the-expression-family-binop_chain">The expression family (<code>binop_chain</code>)</a></h2>
 <p>The ten precedence levels (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>) all carry the same <code>binop_chain</code> carrier so a single consumer fold handles the whole tree:</p>
 <pre><code class="language-json">{ "type": "binop_chain", "level": "additive", "lhs": &lt;next-level-shape&gt;, "rest": [ [ ["", "+"], &lt;operand&gt; ] ] }
@@ -849,7 +849,7 @@ fn split_op_operand(entry: &amp;serde_json::Value) -&gt; (String, &amp;serde_jso
 }
 <span class="boring">}</span></code></pre>
 <p><code>level</code> tells you which precedence tier you are at without re-deriving it from context, and lets you validate operator-vs-level conformance. The fold is identical at every level precisely because the carrier is identical at every level. When <code>rest == []</code> (no operator at this level), the loop runs zero times and <code>acc</code> is just the lowered <code>lhs</code> — the consumer transparently unwraps the empty wrapper.</p>
-<p>A non-empty <code>rest</code> example: see <a href="#examples-binary-addition">Binary Addition</a> for the captured shape of an <code>additive_expr</code> with one <code>(plus, operand)</code> iteration.</p>
+<p>A non-empty <code>rest</code> example: see <a href="#worked-example-binary-addition-a--b">Binary Addition</a> for the captured shape of an <code>additive_expr</code> with one <code>(plus, operand)</code> iteration.</p>
 <h2 id="identifier-and-literal-extraction"><a class="header" href="#identifier-and-literal-extraction">Identifier and literal extraction</a></h2>
 <p>rtl_const_expr identifiers and literals <strong>are</strong> annotated, so unlike rtl_frontend they surface as typed <code>{type, text}</code> objects, not bare envelopes. As of the <code>1.0.2</code> fix the <code>text</code> field is a <strong>clean source string</strong> in both cases — <code>identifier</code> binds <code>text: $2</code> (was <code>$1</code>, the empty leading <code>trivia</code>) and <code>literal.text</code> is <code>based_integer</code> / <code>decimal_integer</code>’s clean <code>-&gt; $2</code> capture (was the envelope <code>["", "42"]</code>). Extraction is therefore a direct field read:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1122,19 +1122,247 @@ primary_expr := lparen conditional_expr rparen -&gt; $2
 </ul>
 <p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
 <h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
-<p>Each shape-affecting slice after RTL-CE-Slice-1 gets a row in <a href="#schema-versioning">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="#changelog-index">Changelog Index</a> ties them together. For two end-to-end captured shapes, see <a href="#examples-literal-42">Literal 42</a> and <a href="#examples-binary-addition">Binary Addition</a>.</p>
+<p>Each shape-affecting slice after RTL-CE-Slice-1 gets a row in <a href="#schema-versioning">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="#changelog-index">Changelog Index</a> ties them together. For two end-to-end captured shapes, see <a href="#worked-example-literal-42">Literal 42</a> and <a href="#worked-example-binary-addition-a--b">Binary Addition</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="examples-literal-42"><a class="header" href="#examples-literal-42">Examples Literal 42</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-CE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-CE-MDBOOK.html">docs/tasks/RTL-CE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+<h1 id="worked-example-literal-42"><a class="header" href="#worked-example-literal-42">Worked Example: Literal <code>42</code></a></h1>
+<p>A “what does the AST actually look like” walkthrough for the smallest
+rtl_const_expr input — a single decimal literal. Every JSON value here
+is the <strong>real captured output</strong> of <code>generated/rtl_const_expr_parser.rs</code>
+(parser release <code>1.0.2</code>, schema version <code>2</code>) and is the exact input the
+shape contract regression-locks (sample <code>literal_42</code> in
+<code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code>).</p>
+<h2 id="input"><a class="header" href="#input">Input</a></h2>
+<pre><code>42
+</code></pre>
+<p>(2 bytes, no trailing newline required.)</p>
+<h2 id="reproducing-the-dump"><a class="header" href="#reproducing-the-dump">Reproducing the dump</a></h2>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf '42' &gt; /tmp/l42.rce
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty rtl_const_expr /tmp/l42.rce /tmp/l42.json
+</code></pre>
+<h2 id="the-consumer-facing-ast-astdumppayloadroot"><a class="header" href="#the-consumer-facing-ast-astdumppayloadroot">The consumer-facing AST (<code>AstDumpPayload.root</code>)</a></h2>
+<p>The root is <code>{type: "rtl_const_expr", expr: &lt;conditional_expr&gt;}</code>. Because
+the expression grammar is a ten-level precedence cascade and <code>42</code> uses
+no operators, <code>expr</code> is a <strong>ten-deep stack of empty <code>binop_chain</code>
+wrappers</strong> — each <code>{type:"binop_chain", level, lhs:&lt;next&gt;, rest:[]}</code> —
+bottoming out at the typed <code>literal</code>. The repetitive middle levels are
+elided here <strong>for readability only</strong>; regenerate with the command above
+for the byte-exact tree.</p>
+<pre><code class="language-json">{
+  "type": "rtl_const_expr",
+  "expr": {
+    "type": "binop_chain", "level": "logical_or", "rest": [],
+    "lhs": {
+      "type": "binop_chain", "level": "logical_and", "rest": [],
+      "lhs": { "...": "binop_chain levels: bit_or, bit_xor, bit_and, equality, relational, shift, additive (each {rest:[], lhs:&lt;next&gt;})" ,
+        "lhs": {
+          "type": "binop_chain", "level": "multiplicative", "rest": [],
+          "lhs": {
+            "type": "literal",
+            "kind": "decimal",
+            "text": "42"
+          }
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<p>Exact, unabridged structure: <code>expr</code> is exactly <strong>10</strong> nested
+<code>binop_chain</code> objects in this order — <code>logical_or</code> → <code>logical_and</code> →
+<code>bit_or</code> → <code>bit_xor</code> → <code>bit_and</code> → <code>equality</code> → <code>relational</code> → <code>shift</code>
+→ <code>additive</code> → <code>multiplicative</code> — each with <code>rest: []</code> and <code>lhs</code>
+pointing at the next; the innermost <code>multiplicative</code>’s <code>lhs</code> is the
+<code>literal</code>. (As of schema <code>2</code>, <code>literal.text</code> is the clean string
+<code>"42"</code> — pre-<code>1.0.2</code> it was the envelope <code>["", "42"]</code>; see
+<a href="#schema-versioning">Schema Versioning</a>.)</p>
+<h2 id="field-by-field-walk"><a class="header" href="#field-by-field-walk">Field-by-field walk</a></h2>
+<ul>
+<li><strong><code>type: "rtl_const_expr"</code></strong> — the typed root. Dispatch here, then
+descend <code>obj["expr"]</code>.</li>
+<li><strong><code>expr</code></strong> — the <code>conditional_expr</code> result. With no <code>?:</code>,
+<code>conditional_expr</code> is the <strong>passthrough</strong> branch (<code>-&gt; $1</code>), so <code>expr</code>
+is directly the <code>logical_or</code> <code>binop_chain</code> (no <code>ternary</code> wrapper).</li>
+<li><strong>The 10 <code>binop_chain</code> levels</strong> — each <code>{type:"binop_chain", level, lhs, rest}</code>. <code>rest: []</code> means “no operator at this level”: the
+consumer simply unwraps <code>lhs</code>. This is the dominant shape — every
+operator-free sub-expression is a straight <code>lhs</code> chain to a leaf.</li>
+<li><strong><code>literal</code></strong> — <code>{type:"literal", kind:"decimal", text:"42"}</code>.
+<code>kind</code> is <code>"decimal"</code> or <code>"based"</code> (e.g. <code>8'hFF</code> →
+<code>{kind:"based", text:"8'hFF"}</code>); <code>text</code> is the clean matched digits.</li>
+</ul>
+<h2 id="walker-code"><a class="header" href="#walker-code">Walker code</a></h2>
+<p>rtl_const_expr exposes the <strong>generic</strong> host surface (no
+<code>parse_rtl_const_expr</code> convenience fn — see
+<a href="#public-api-surface">Public API Surface</a>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+/// Unwrap empty binop_chain levels (rest == []) down to the operand.
+fn unwrap_chain(mut n: &amp;serde_json::Value) -&gt; &amp;serde_json::Value {
+    while n["type"] == "binop_chain"
+        &amp;&amp; n["rest"].as_array().map(|a| a.is_empty()).unwrap_or(false)
+    {
+        n = &amp;n["lhs"];
+    }
+    n
+}
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "rtl_const_expr", "default", "42",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+if let ParseStatus::Success = outcome.status {
+    let d = outcome.ast_dump.expect("AST dump");
+    assert_eq!(d.schema_version, 2);
+    let root = &amp;d.root;
+    assert_eq!(root["type"], "rtl_const_expr");
+    let leaf = unwrap_chain(&amp;root["expr"]);
+    assert_eq!(leaf["type"], "literal");
+    assert_eq!(leaf["kind"], "decimal");
+    assert_eq!(leaf["text"], "42");
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-is-a-canonical-first-test"><a class="header" href="#why-this-is-a-canonical-first-test">Why this is a canonical first-test</a></h2>
+<ul>
+<li>It exercises the <strong>full ten-level cascade</strong> with zero operators, so
+the empty-<code>rest</code> unwrap path — the single most common shape a
+consumer walks — is proven on the simplest possible input.</li>
+<li>It is the regression-locked sample <code>literal_42</code>
+(<code>rule_under_test: "rtl_const_expr"</code>,
+<code>expected_json_object_keys_present: ["type","expr"]</code>). Drift fails
+<code>rtl_const_expr_ast_shape_contract</code> immediately.</li>
+</ul>
+<p>See <a href="#worked-example-binary-addition-a--b">Binary Addition</a> for the non-empty
+<code>rest</code> (operator) shape and the left-fold.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="examples-binary-addition"><a class="header" href="#examples-binary-addition">Examples Binary Addition</a></h1>
+<h1 id="worked-example-binary-addition-a--b"><a class="header" href="#worked-example-binary-addition-a--b">Worked Example: Binary Addition <code>a + b</code></a></h1>
+<p>The companion to <a href="#worked-example-literal-42">Literal <code>42</code></a>: this one shows
+the <strong>non-empty <code>rest</code></strong> (operator) shape and the consumer left-fold.
+Every JSON value here is the <strong>real captured output</strong> of
+<code>generated/rtl_const_expr_parser.rs</code> (parser release <code>1.0.2</code>, schema
+version <code>2</code>) and is the regression-locked sample <code>binary_addition</code> in
+<code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code>.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-CE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-CE-MDBOOK.html">docs/tasks/RTL-CE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p>Schema <code>2</code> note: at <code>1.0.1</code> this exact input emitted
+<code>"rest": "&lt;invalid_sequence_access&gt;"</code> — a real parser defect fixed in
+<code>1.0.2</code> (named operator rules + bare <code>rest:$2</code>; see
+<a href="#schema-versioning">Schema Versioning</a>). The shape below is the
+corrected, gate-locked output.</p>
 </blockquote>
+<h2 id="input-1"><a class="header" href="#input-1">Input</a></h2>
+<pre><code>a + b
+</code></pre>
+<h2 id="reproducing-the-dump-1"><a class="header" href="#reproducing-the-dump-1">Reproducing the dump</a></h2>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf 'a + b' &gt; /tmp/ab.rce
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty rtl_const_expr /tmp/ab.rce /tmp/ab.json
+</code></pre>
+<h2 id="the-relevant-node-additive-level"><a class="header" href="#the-relevant-node-additive-level">The relevant node (<code>additive</code> level)</a></h2>
+<p><code>root.expr</code> is again the ten-level cascade; the upper levels
+(<code>logical_or</code> … <code>shift</code>) are empty-<code>rest</code> wrappers (unwrap to <code>lhs</code>,
+exactly as in the literal example). The operator appears at the
+<code>additive</code> level:</p>
+<pre><code class="language-json">{
+  "type": "binop_chain",
+  "level": "additive",
+  "lhs": {
+    "type": "binop_chain", "level": "multiplicative", "rest": [],
+    "lhs": { "type": "identifier", "text": "a" }
+  },
+  "rest": [
+    [
+      [ "", "+" ],
+      {
+        "type": "binop_chain", "level": "multiplicative", "rest": [],
+        "lhs": { "type": "identifier", "text": "b" }
+      }
+    ]
+  ]
+}
+</code></pre>
+<h2 id="reading-rest-the-operator-chain-contract"><a class="header" href="#reading-rest-the-operator-chain-contract">Reading <code>rest</code> (the operator chain contract)</a></h2>
+<p><code>rest</code> is a <strong>clean array of iteration entries</strong> — one per <code>(op operand)</code> repetition of <code>next (NAMED_op next)*</code>. Each entry is a
+two-element array:</p>
+<ul>
+<li><strong><code>entry[0]</code></strong> — the operator envelope of the named op rule
+(<code>additive_op := plus | minus</code>). Here <code>[ "", "+" ]</code>: the leading <code>""</code>
+is the empty <code>trivia</code>, the operator <strong>token text is at
+<code>entry[0][1]</code></strong> (<code>"+"</code>). For <code>-</code>, it would be <code>[ "", "-" ]</code>.</li>
+<li><strong><code>entry[1]</code></strong> — the right-hand operand: the next-tighter level
+(<code>multiplicative</code> <code>binop_chain</code>), itself unwrappable to its <code>lhs</code>
+leaf (here <code>{type:"identifier", text:"b"}</code> — clean name, schema <code>2</code>).</li>
+</ul>
+<p><code>a + b - c</code> produces <strong>two</strong> entries in <code>additive.rest</code>
+(<code>[["","+"],&lt;b&gt;]</code>, <code>[["","-"],&lt;c&gt;]</code>); the consumer left-folds them onto
+<code>lhs</code>: <code>((a + b) - c)</code>.</p>
+<h2 id="walker-code--the-left-fold"><a class="header" href="#walker-code--the-left-fold">Walker code — the left-fold</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+fn unwrap_chain(mut n: &amp;serde_json::Value) -&gt; &amp;serde_json::Value {
+    while n["type"] == "binop_chain"
+        &amp;&amp; n["rest"].as_array().map(|a| a.is_empty()).unwrap_or(false)
+    {
+        n = &amp;n["lhs"];
+    }
+    n
+}
+
+/// Left-fold a binop_chain node into (op, operand) steps over `lhs`.
+fn fold(node: &amp;serde_json::Value) -&gt; String {
+    let node = unwrap_chain(node);
+    if node["type"] != "binop_chain" {
+        // a leaf: identifier / literal / ternary / unary
+        return match node["type"].as_str() {
+            Some("identifier") =&gt; node["text"].as_str().unwrap_or("?").to_string(),
+            Some("literal")    =&gt; node["text"].as_str().unwrap_or("?").to_string(),
+            _ =&gt; "&lt;expr&gt;".to_string(),
+        };
+    }
+    let mut acc = fold(&amp;node["lhs"]);
+    for entry in node["rest"].as_array().unwrap() {
+        let op = entry[0][1].as_str().unwrap_or("?"); // op text at [0][1]
+        let rhs = fold(&amp;entry[1]);
+        acc = format!("({acc} {op} {rhs})");
+    }
+    acc
+}
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "rtl_const_expr", "default", "a + b",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+if let ParseStatus::Success = outcome.status {
+    let d = outcome.ast_dump.expect("AST dump");
+    assert_eq!(d.schema_version, 2);
+    assert_eq!(d.root["type"], "rtl_const_expr");
+    assert_eq!(fold(&amp;d.root["expr"]), "(a + b)");
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-is-a-canonical-first-test-1"><a class="header" href="#why-this-is-a-canonical-first-test-1">Why this is a canonical first-test</a></h2>
+<ul>
+<li>It is the smallest input with a <strong>non-empty <code>rest</code></strong>, so the
+operator-chain contract (<code>entry[0]</code> op-envelope, <code>entry[1]</code> operand,
+left-fold) is proven on the simplest possible operator expression.</li>
+<li>It is the regression-locked sample <code>binary_addition</code>
+(<code>rule_under_test: "rtl_const_expr"</code>,
+<code>expected_json_object_keys_present: ["type","expr"]</code>). Combined with
+the now-26-entry <code>declared_annotation_inventory</code>, any reversion to the
+pre-<code>1.0.2</code> <code>&lt;invalid_sequence_access&gt;</code> shape fails
+<code>rtl_const_expr_ast_shape_contract</code> immediately.</li>
+</ul>
+<p>See <a href="#walking-the-ast">Walking the AST</a> for the full multi-level fold
+and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
 <p>This chapter explains how the PGEN rtl_const_expr parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape. The authoritative numbers come from <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code>; where this chapter and the contract disagree, <strong>the contract wins</strong>.</p>

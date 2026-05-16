@@ -61,11 +61,11 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
   Commit: `RTL-CE-MDBOOK-Slice-4`
 
 - ID: `RTL-CE-MDBOOK.4`
-  Status: `pending`
+  Status: `done`
   Goal: `Add literal_42 and binary_addition worked examples with annotated AST dumps.`
   Acceptance: `examples-*.md exist; outputs validated against generated/rtl_const_expr_parser.rs.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: examples-literal-42.md + examples-binary-addition.md authored from the REAL captured AST of the FIXED parser (post RTL-CE-Slice-2/PGEN-RTL-0002 — implementing this leaf is what surfaced the 3 correctness bugs). Doc JSON independently re-verified vs /tmp dumps: literal_42 = 10-level binop_chain stack bottoming at clean {kind:decimal,text:"42"}; binary_addition additive.rest[0] = [["","+"], {operand id b}] (op text at [0][1]), identifier text clean. rtl_const_expr_parser_book_gate green; links resolve; no stub markers.`
+  Commit: `RTL-CE-MDBOOK-Slice-5`
 
 - ID: `RTL-CE-MDBOOK.5`
   Status: `done`
@@ -85,8 +85,7 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-CE-MDBOOK.4` | `pending` | The literal_42 + binary_addition worked examples (AST dumps validated against generated/rtl_const_expr_parser.rs) come next. |
-| 2 | `RTL-CE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE links close the book — final leaf. |
+| 1 | `RTL-CE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE links close the book — final leaf. |
 
 ## Decisions
 
@@ -109,6 +108,7 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | `2026-05-15` | `RTL-CE-MDBOOK.5` | `make rtl_const_expr_parser_book_gate` | `pass` |
 | `2026-05-15` | `RTL-CE-MDBOOK.2` | `make rtl_const_expr_parser_book_gate` | `pass — 4 chapters authored; gate green` |
 | `2026-05-16` | `RTL-CE-MDBOOK.3` | `make rtl_const_expr_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters; verified 24/16, root/ternary/10-level binop_chain/unary/literal/identifier vs generated/rtl_const_expr_return_annotations.json; corrected confirmed ast-envelope.md inaccuracy (kind→type, 10→24, typed-rest→raw-envelope); gate green` |
+| `2026-05-16` | `RTL-CE-MDBOOK.4` | `make rtl_const_expr_parser_book_gate` + real-dump faithfulness check | `pass — literal_42 + binary_addition examples authored from FIXED parser (post PGEN-RTL-0002); doc JSON re-verified vs /tmp dumps (10-level stack→clean literal "42"; additive.rest[0]=[["","+"],id b]); gate green` |
 
 ## Commit Log
 
@@ -118,6 +118,7 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | `RTL-CE-MDBOOK.5` | `RTL-CE-MDBOOK-Slice-2` | gate script + Makefile target |
 | `RTL-CE-MDBOOK.2` | `RTL-CE-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 | `RTL-CE-MDBOOK.3` | `RTL-CE-MDBOOK-Slice-4` | 4 shape-reference chapters (24/16, 10-level binop_chain) + ast-envelope.md accuracy correction |
+| `RTL-CE-MDBOOK.4` | `RTL-CE-MDBOOK-Slice-5` | literal_42 + binary_addition worked examples from the FIXED parser (real captured AST, byte-verified); surfaced PGEN-RTL-0002 |
 
 ## Changelog
 
@@ -126,3 +127,4 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 - `2026-05-15`: `.2` done; frontier advances to `.3` (shape-reference chapters).
 - `2026-05-16`: `.3` done (4 shape chapters + ast-envelope.md accuracy correction); frontier advances to `.4` (worked examples), then `.6` (glossary/changelog/links).
 - `2026-05-16`: while implementing `.4`, the worked examples surfaced 3 real `rtl_const_expr` parser-correctness bugs (binop_chain `<invalid_sequence_access>`, empty `identifier.text`, envelope `literal.text`). Fixed under RTL-CE-Slice-2 / `PGEN-RTL-0002` (parser regen + manifest tighten + contract `1.0.2`/schema `2`); all 5 `.3` book chapters re-synced to the corrected 26-annotation shape in lockstep. `.4` resumes against the now-clean parser output.
+- `2026-05-16`: `.4` done (literal_42 + binary_addition worked examples authored from the fixed parser, byte-verified); frontier advances to `.6` (final leaf — glossary/changelog/links).

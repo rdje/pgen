@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-20ed5a02.js";
+            window.path_to_searchindex_js = "searchindex-c1cc3e67.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -180,11 +180,121 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="examples-literal-42"><a class="header" href="#examples-literal-42">Examples Literal 42</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-CE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-CE-MDBOOK.html">docs/tasks/RTL-CE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="worked-example-literal-42"><a class="header" href="#worked-example-literal-42">Worked Example: Literal <code>42</code></a></h1>
+<p>A “what does the AST actually look like” walkthrough for the smallest
+rtl_const_expr input — a single decimal literal. Every JSON value here
+is the <strong>real captured output</strong> of <code>generated/rtl_const_expr_parser.rs</code>
+(parser release <code>1.0.2</code>, schema version <code>2</code>) and is the exact input the
+shape contract regression-locks (sample <code>literal_42</code> in
+<code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code>).</p>
+<h2 id="input"><a class="header" href="#input">Input</a></h2>
+<pre><code>42
+</code></pre>
+<p>(2 bytes, no trailing newline required.)</p>
+<h2 id="reproducing-the-dump"><a class="header" href="#reproducing-the-dump">Reproducing the dump</a></h2>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf '42' &gt; /tmp/l42.rce
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty rtl_const_expr /tmp/l42.rce /tmp/l42.json
+</code></pre>
+<h2 id="the-consumer-facing-ast-astdumppayloadroot"><a class="header" href="#the-consumer-facing-ast-astdumppayloadroot">The consumer-facing AST (<code>AstDumpPayload.root</code>)</a></h2>
+<p>The root is <code>{type: "rtl_const_expr", expr: &lt;conditional_expr&gt;}</code>. Because
+the expression grammar is a ten-level precedence cascade and <code>42</code> uses
+no operators, <code>expr</code> is a <strong>ten-deep stack of empty <code>binop_chain</code>
+wrappers</strong> — each <code>{type:"binop_chain", level, lhs:&lt;next&gt;, rest:[]}</code> —
+bottoming out at the typed <code>literal</code>. The repetitive middle levels are
+elided here <strong>for readability only</strong>; regenerate with the command above
+for the byte-exact tree.</p>
+<pre><code class="language-json">{
+  "type": "rtl_const_expr",
+  "expr": {
+    "type": "binop_chain", "level": "logical_or", "rest": [],
+    "lhs": {
+      "type": "binop_chain", "level": "logical_and", "rest": [],
+      "lhs": { "...": "binop_chain levels: bit_or, bit_xor, bit_and, equality, relational, shift, additive (each {rest:[], lhs:&lt;next&gt;})" ,
+        "lhs": {
+          "type": "binop_chain", "level": "multiplicative", "rest": [],
+          "lhs": {
+            "type": "literal",
+            "kind": "decimal",
+            "text": "42"
+          }
+        }
+      }
+    }
+  }
+}
+</code></pre>
+<p>Exact, unabridged structure: <code>expr</code> is exactly <strong>10</strong> nested
+<code>binop_chain</code> objects in this order — <code>logical_or</code> → <code>logical_and</code> →
+<code>bit_or</code> → <code>bit_xor</code> → <code>bit_and</code> → <code>equality</code> → <code>relational</code> → <code>shift</code>
+→ <code>additive</code> → <code>multiplicative</code> — each with <code>rest: []</code> and <code>lhs</code>
+pointing at the next; the innermost <code>multiplicative</code>’s <code>lhs</code> is the
+<code>literal</code>. (As of schema <code>2</code>, <code>literal.text</code> is the clean string
+<code>"42"</code> — pre-<code>1.0.2</code> it was the envelope <code>["", "42"]</code>; see
+<a href="schema-versioning.html">Schema Versioning</a>.)</p>
+<h2 id="field-by-field-walk"><a class="header" href="#field-by-field-walk">Field-by-field walk</a></h2>
+<ul>
+<li><strong><code>type: "rtl_const_expr"</code></strong> — the typed root. Dispatch here, then
+descend <code>obj["expr"]</code>.</li>
+<li><strong><code>expr</code></strong> — the <code>conditional_expr</code> result. With no <code>?:</code>,
+<code>conditional_expr</code> is the <strong>passthrough</strong> branch (<code>-&gt; $1</code>), so <code>expr</code>
+is directly the <code>logical_or</code> <code>binop_chain</code> (no <code>ternary</code> wrapper).</li>
+<li><strong>The 10 <code>binop_chain</code> levels</strong> — each <code>{type:"binop_chain", level, lhs, rest}</code>. <code>rest: []</code> means “no operator at this level”: the
+consumer simply unwraps <code>lhs</code>. This is the dominant shape — every
+operator-free sub-expression is a straight <code>lhs</code> chain to a leaf.</li>
+<li><strong><code>literal</code></strong> — <code>{type:"literal", kind:"decimal", text:"42"}</code>.
+<code>kind</code> is <code>"decimal"</code> or <code>"based"</code> (e.g. <code>8'hFF</code> →
+<code>{kind:"based", text:"8'hFF"}</code>); <code>text</code> is the clean matched digits.</li>
+</ul>
+<h2 id="walker-code"><a class="header" href="#walker-code">Walker code</a></h2>
+<p>rtl_const_expr exposes the <strong>generic</strong> host surface (no
+<code>parse_rtl_const_expr</code> convenience fn — see
+<a href="public-api.html">Public API Surface</a>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+/// Unwrap empty binop_chain levels (rest == []) down to the operand.
+fn unwrap_chain(mut n: &amp;serde_json::Value) -&gt; &amp;serde_json::Value {
+    while n["type"] == "binop_chain"
+        &amp;&amp; n["rest"].as_array().map(|a| a.is_empty()).unwrap_or(false)
+    {
+        n = &amp;n["lhs"];
+    }
+    n
+}
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "rtl_const_expr", "default", "42",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+if let ParseStatus::Success = outcome.status {
+    let d = outcome.ast_dump.expect("AST dump");
+    assert_eq!(d.schema_version, 2);
+    let root = &amp;d.root;
+    assert_eq!(root["type"], "rtl_const_expr");
+    let leaf = unwrap_chain(&amp;root["expr"]);
+    assert_eq!(leaf["type"], "literal");
+    assert_eq!(leaf["kind"], "decimal");
+    assert_eq!(leaf["text"], "42");
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-is-a-canonical-first-test"><a class="header" href="#why-this-is-a-canonical-first-test">Why this is a canonical first-test</a></h2>
+<ul>
+<li>It exercises the <strong>full ten-level cascade</strong> with zero operators, so
+the empty-<code>rest</code> unwrap path — the single most common shape a
+consumer walks — is proven on the simplest possible input.</li>
+<li>It is the regression-locked sample <code>literal_42</code>
+(<code>rule_under_test: "rtl_const_expr"</code>,
+<code>expected_json_object_keys_present: ["type","expr"]</code>). Drift fails
+<code>rtl_const_expr_ast_shape_contract</code> immediately.</li>
+</ul>
+<p>See <a href="examples-binary-addition.html">Binary Addition</a> for the non-empty
+<code>rest</code> (operator) shape and the left-fold.</p>
 
                     </main>
 
