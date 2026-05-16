@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-05-16 - TASK_TREE.md frontier reconciliation (PGEN-WORKFLOW-0002)
+
+Trued up the `docs/TASK_TREE.md` Active Task Trees table against the
+authoritative Current Frontier in each owning `docs/tasks/<TREE>.md`.
+Three rows were stale: the pre-crash `*-MDBOOK-Slice-3` commits
+(`24d028ff` VHDL, `1cd543d8` RTL-FE, `8ffcd78d` RTL-CE) completed their
+`.2` leaves and advanced each task file's frontier to `.3`, but did not
+update the TASK_TREE.md index (under-compliance with the COMMIT.md
+Task-Tree Workflow Rule "update the table when the frontier changes").
+
+- `VHDL-MDBOOK` `.2` → `.3`
+- `RTL-FE-MDBOOK` `.2` → `.3`
+- `RTL-CE-MDBOOK` `.2` → `.3`
+
+The other five rows (`SVPP-MDBOOK.3`, four `*-CONTRACT-BODY.2`) already
+matched their task files and were left unchanged. All 8 rows now
+reconcile. No task-tree leaf, no live-status change; bookkeeping only.
+
 ## 2026-05-16 - Declared-annotation inventory backfill: systemverilog_preprocessor + vhdl (PGEN-PIP-002)
 
 Continued the declared-annotation-inventory rollout (schema + gate
