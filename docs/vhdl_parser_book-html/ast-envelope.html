@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dc25268f.js";
+            window.path_to_searchindex_js = "searchindex-b916fb7c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -183,19 +183,42 @@
                         <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
 <p>The PGEN VHDL parser produces a JSON AST through <code>parse_vhdl_1076_2019_ast_dump</code>. This chapter documents the top-level structure of that JSON.</p>
 <h2 id="the-envelope"><a class="header" href="#the-envelope">The envelope</a></h2>
-<p>The <code>ast_dump</code> field of <code>GrammarAstDumpOutcome</code> carries an <code>AstDumpPayload</code>:</p>
+<p>The AST-dump host entry points (<code>parse_vhdl_1076_2019_ast_dump</code>, the
+generic <code>parse_grammar_profile_ast_dump*</code> family, and the named-result
+form <code>parse_grammar_profile_ast_dump_named</code>) return — on success — an
+<code>AstDumpPayload</code>, defined in <code>rust/src/embedding_api.rs</code> (the
+authoritative API contract is <code>rust/docs/EMBEDDING_API_CONTRACT.md</code>). It
+is a <strong>canonical-JSON payload string plus truncation metadata</strong> — it has
+<strong>exactly four fields</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AstDumpPayload {
-    pub pgen_dump_contract_version: u32,  // currently 1
-    pub schema_version: u32,              // 1 — see Schema Versioning
-    pub grammar: String,                  // "vhdl"
-    pub profile: String,                  // "vhdl_1076_2019"
-    pub root: JsonValue,                  // the actual AST tree
-    pub truncated: bool,                  // true if max_ast_bytes was hit
+    pub dump_json: String,    // canonical (key-sorted) JSON encoding of the typed AST
+    pub truncated: bool,      // true if max_ast_bytes was exceeded
+    pub full_bytes: usize,    // byte length of the full encoded AST (pre-truncation)
+    pub emitted_bytes: usize, // byte length actually placed in dump_json
 }
 <span class="boring">}</span></code></pre>
-<p>The <code>root</code> field is the VHDL AST as a <code>serde_json::Value</code>. It is what this book’s per-rule chapters describe.</p>
+<p><code>dump_json</code> is a <strong>JSON string you must parse</strong> (e.g.
+<code>serde_json::from_str</code>) to obtain the <code>vhdl_file</code> <strong>root object</strong> that
+this book’s per-rule chapters describe. There is no <code>root</code> /
+<code>schema_version</code> / <code>grammar</code> / <code>profile</code> field on <code>AstDumpPayload</code>
+itself: the AST-dump schema version is the <code>1</code> tracked in
+<a href="schema-versioning.html">Schema Versioning</a>; the grammar/profile are fixed
+(<code>vhdl</code> / <code>vhdl_1076_2019</code>).</p>
+<p>When <code>truncated</code> is <code>true</code>, <code>dump_json</code> is <strong>not</strong> the AST — it is a
+deterministic truncation diagnostic envelope carrying
+<code>pgen_dump_contract_version</code> (currently <code>1</code>),
+<code>kind: "pgen_ast_dump_truncation"</code>, <code>truncated: true</code>,
+<code>dump_kind: "parser_return_ast"</code>, <code>max_bytes</code>, <code>full_bytes</code>, and
+<code>reason</code>. Consumers must check <code>truncated</code> (or, equivalently, the
+presence of <code>pgen_dump_contract_version</code> / <code>kind == "pgen_ast_dump_truncation"</code> in the parsed <code>dump_json</code>) before treating
+<code>dump_json</code> as a VHDL AST. If <code>max_ast_bytes</code> is too small to fit even
+the diagnostic envelope, the API returns <code>E_INVALID_LIMITS</code>. The
+downstream integration contract
+<code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>
+(“AST Envelope and <code>design_unit</code> Dispatch”) is the authoritative
+restatement of this for consumers.</p>
 <h2 id="the-root-rule"><a class="header" href="#the-root-rule">The root rule</a></h2>
 <p>The VHDL grammar root is <code>vhdl_file</code>, defined as:</p>
 <pre><code class="language-ebnf">vhdl_file := design_unit*

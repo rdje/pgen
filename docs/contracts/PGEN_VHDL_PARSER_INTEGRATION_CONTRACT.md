@@ -151,7 +151,123 @@ The `binop_chain` shape is the consumer-facing left-fold contract for VHDL's 5-l
 
 Annotation count: **249** (was 1 / pre-typing baseline). Same accept set.
 
-## Source Of Truth
+## AST Envelope and `design_unit` Dispatch
+
+This section is the consumer-facing dispatch contract: how a downstream
+integrator goes from the host AST-dump call to a typed VHDL tree, and how to
+branch on the top-level discriminators. Every shape below is transcribed from
+the live inventory `generated/vhdl_return_annotations.json`
+(`version: 1`, `grammar: "vhdl"`, `annotation_count: 249`), cross-checked
+against the embedded copy in
+`rust/test_data/ast_shape_contract/vhdl_v1.json` (identical content), and is
+consistent with the curated per-rule reference at
+`docs/vhdl_parser_book/src/rules-top-level.md`.
+
+### The `AstDumpPayload` envelope
+
+The AST-dump host entry points
+(`parse_vhdl_1076_2019_ast_dump`, the generic
+`parse_grammar_profile_ast_dump*` family, and the named-result form
+`parse_grammar_profile_ast_dump_named`) return — on success — an
+`AstDumpPayload` (defined in `rust/src/embedding_api.rs`, contract in
+`rust/docs/EMBEDDING_API_CONTRACT.md`). It is a canonical-JSON payload string
+plus truncation metadata, with exactly four fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `dump_json` | string | The canonical (key-sorted) JSON encoding of the typed VHDL AST. Parse this string to obtain the `vhdl_file` root object described below. |
+| `truncated` | bool | `false` for a complete dump; `true` when `max_ast_bytes` was exceeded and `dump_json` instead carries the truncation diagnostic envelope. |
+| `full_bytes` | int | Byte length of the full encoded AST payload (before any truncation). |
+| `emitted_bytes` | int | Byte length actually placed in `dump_json`. Equals `full_bytes` when not truncated. |
+
+When `truncated` is `true`, `dump_json` is replaced by a deterministic
+truncation diagnostic envelope (not the AST). That envelope carries
+`pgen_dump_contract_version` (currently `1`), `kind:
+"pgen_ast_dump_truncation"`, `truncated: true`, `dump_kind:
+"parser_return_ast"`, `max_bytes`, `full_bytes`, and `reason`. Consumers must
+check `truncated` (or, equivalently, the presence of
+`pgen_dump_contract_version` / `kind == "pgen_ast_dump_truncation"` in the
+parsed `dump_json`) before treating `dump_json` as a VHDL AST. If
+`max_ast_bytes` is too small to fit even the diagnostic envelope, the API
+returns `E_INVALID_LIMITS` instead.
+
+> Accuracy note: the live `AstDumpPayload` struct exposes precisely
+> `dump_json` / `truncated` / `full_bytes` / `emitted_bytes`. The
+> `pgen_dump_contract_version` / `schema_version` / `grammar` / `profile` /
+> `root` keys are **not** members of `AstDumpPayload` itself —
+> `pgen_dump_contract_version` appears only inside the truncation diagnostic
+> envelope, the schema axis is the **AST-dump schema version `1`** tracked in
+> [Schema Versioning](#schema-versioning) (and surfaced for the regex sibling
+> via `parser_embedding_api_contract().regex_ast_dump_schema_version`), the
+> grammar family is the fixed `vhdl` label, and the profile is the fixed
+> `vhdl_1076_2019` stable profile (see [Stable Integration
+> Surface](#stable-integration-surface)). The "root" is the parsed
+> `vhdl_file` object documented next. This contract documents the surface as
+> it exists in `rust/src/embedding_api.rs`, not an idealized envelope.
+
+### The `vhdl_file` root
+
+The parsed `dump_json` is, for a successful VHDL parse, a single typed root
+object. Per `grammars/vhdl.ebnf` (line 11–12):
+
+```ebnf
+vhdl_file := design_unit*
+          -> {type: "vhdl_file", design_units: $1}
+```
+
+```json
+{
+  "type": "vhdl_file",
+  "design_units": [ /* array of design_unit shapes, source order */ ]
+}
+```
+
+Consumers dispatch on `obj["type"] == "vhdl_file"` at the root, then iterate
+`obj["design_units"]` — each element is one typed `design_unit` object in
+source order.
+
+### The 10-branch `design_unit` dispatch
+
+`design_unit` is the primary top-level dispatcher. It is a 10-branch
+`kind`-tagged shape (`grammars/vhdl.ebnf` line 14). Consumers dispatch on
+`obj["kind"]`; every branch except `"semi"` carries a `body` holding the
+underlying typed shape:
+
+```ebnf
+design_unit := library_clause              -> {kind: "library",            body: $1}
+             | use_clause                  -> {kind: "use",                body: $1}
+             | context_reference_clause    -> {kind: "context_reference",  body: $1}
+             | entity_declaration          -> {kind: "entity",             body: $1}
+             | architecture_body           -> {kind: "architecture",       body: $1}
+             | package_declaration         -> {kind: "package",            body: $1}
+             | package_body                -> {kind: "package_body",       body: $1}
+             | configuration_declaration   -> {kind: "configuration",      body: $1}
+             | context_declaration         -> {kind: "context",            body: $1}
+             | semi                        -> {kind: "semi"}
+```
+
+| `kind` | `body` shape (fields) | Underlying rule (`grammars/vhdl.ebnf`) |
+|---|---|---|
+| `"library"` | `{first, rest}` — first identifier + comma-separated identifier iteration | `library_clause` (line 29) |
+| `"use"` | `{first, rest}` — first selected name + comma-separated iteration | `use_clause` (line 31) |
+| `"context_reference"` | `{name}` — the referenced context name | `context_reference_clause` (line 33) |
+| `"entity"` | `{name, items, end_label}` — `items` is the `entity_declarative_item*` array; `end_label` is the optional trailing identifier | `entity_declaration` (line 51) |
+| `"architecture"` | `{name, entity_name, items, statements, end_label}` — `items` are declarative items, `statements` are concurrent statements | `architecture_body` (line 84) |
+| `"package"` | `{name, header, items, end_label}` — `header` is the optional `package_header` | `package_declaration` (line 100) |
+| `"package_body"` | `{name, items, end_label}` | `package_body` (line 102) |
+| `"configuration"` | `{name, entity_name, items, end_label}` — `items` is the `configuration_item*` array | `configuration_declaration` (line 144) |
+| `"context"` | `{name, items, end_label}` — `items` is the `context_item*` array | `context_declaration` (line 35) |
+| `"semi"` | _(no `body` — a lone top-level `;` separator)_ | `semi` (line 427) |
+
+The `"semi"` branch is the only bodyless one: it carries solely
+`{kind: "semi"}` for a stray top-level `;`. Every other branch carries
+`{kind, body}` where `body` is the typed shape of the named rule. The full
+per-family shapes (declarations, types, statements, the five-level
+`binop_chain` expression hierarchy, literals) are enumerated in
+`docs/vhdl_parser_book/src/rules-top-level.md`; the machine-checkable
+enumeration of every `(rule, branch_index, annotation_type, normalized_text)`
+tuple is `generated/vhdl_return_annotations.json` and its embedded copy
+`rust/test_data/ast_shape_contract/vhdl_v1.json`.
 
 ## Source Of Truth
 - Grammar source:
@@ -165,6 +281,9 @@ Annotation count: **249** (was 1 / pre-typing baseline). Same accept set.
   - `PGEN_VHDL_PARSER_PATH`
 - Live closure/status surface:
   - `LIVE_ACHIEVEMENT_STATUS.md`
+- Machine-checkable shape inventory:
+  - `generated/vhdl_return_annotations.json`
+  - `rust/test_data/ast_shape_contract/vhdl_v1.json`
 
 ## Stable Integration Surface
 - Grammar family:

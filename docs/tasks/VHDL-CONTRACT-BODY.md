@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: vhdl deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-14`
+- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal
@@ -51,11 +51,11 @@ downstream consumers can rely on.
   Commit: `VHDL-CONTRACT-BODY-Slice-1`
 
 - ID: `VHDL-CONTRACT-BODY.2`
-  Status: `pending`
+  Status: `done`
   Goal: `Document the AST envelope and design_unit dispatch.`
   Acceptance: `Section enumerates the 10 design_unit kinds with example fields and links to the underlying grammar lines.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: "AST Envelope and design_unit Dispatch" section added (real 4-field AstDumpPayload + truncation envelope + accuracy note, vhdl_file root, 10-branch design_unit dispatch with per-kind body shapes + verified grammars/vhdl.ebnf line refs). Independently verified vs generated/vhdl_return_annotations.json: 249 annotations / 110 distinct rules / 10 design_unit branches. Also fixed a duplicate "## Source Of Truth" header (grep -c == 1). Surfaced the systemic fabricated-AstDumpPayload doc defect: fixed docs/vhdl_parser_book/src/ast-envelope.md in lockstep (VHDL contract+book consistent; vhdl_parser_book_gate green); other 4 books tracked as DOC-ENVELOPE-0001 (DEVELOPMENT_NOTES).`
+  Commit: `VHDL-CONTRACT-BODY-Slice-2`
 
 - ID: `VHDL-CONTRACT-BODY.3`
   Status: `pending`
@@ -75,7 +75,8 @@ downstream consumers can rely on.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `VHDL-CONTRACT-BODY.2` | `pending` | AST envelope + design_unit dispatch deepens the consumer-facing surface. |
+| 1 | `VHDL-CONTRACT-BODY.3` | `pending` | Declarations / types / statements / expression (binop_chain) shapes — deepens the per-rule-family consumer surface. |
+| 2 | `VHDL-CONTRACT-BODY.4` | `pending` | Gate-recipe + cross-references + glossary close the contract. |
 
 ## Decisions
 
@@ -95,13 +96,16 @@ downstream consumers can rely on.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-05-15` | `VHDL-CONTRACT-BODY.1` | manual review of inserted sections | `pass — Contract Identity (1.0.1), Schema Versioning (1.0.0/0.1.0 rows), Release 1.0.1 Highlights (249-annotation surface) populated` |
+| `2026-05-16` | `VHDL-CONTRACT-BODY.2` | inventory cross-check + dedup grep + vhdl_parser_book_gate | `pass — AST Envelope + 10-branch design_unit dispatch section (real AstDumpPayload, grammar line refs, 249/110/10 verified); duplicate Source Of Truth header merged (grep -c==1); VHDL book ast-envelope.md reconciled to the real struct, gate green; systemic 4-book defect tracked DOC-ENVELOPE-0001` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `VHDL-CONTRACT-BODY.1` | `VHDL-CONTRACT-BODY-Slice-1` | Contract Identity + Schema Versioning + Release 1.0.1 Highlights inserted (240+ lines added to contract) |
+| `VHDL-CONTRACT-BODY.2` | `VHDL-CONTRACT-BODY-Slice-2` | AST Envelope + design_unit dispatch section; dup-header fix; VHDL book ast-envelope.md reconciled; DOC-ENVELOPE-0001 tracked |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
+- `2026-05-16`: `.2` done (AST Envelope + design_unit dispatch; dup-header fix; VHDL book ast-envelope.md reconciled to the real `AstDumpPayload`; systemic 4-book doc defect tracked as `DOC-ENVELOPE-0001`). Frontier advances to `.3` (declarations/types/statements/expression shapes), then `.4`.

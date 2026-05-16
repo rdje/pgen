@@ -4,20 +4,45 @@ The PGEN VHDL parser produces a JSON AST through `parse_vhdl_1076_2019_ast_dump`
 
 ## The envelope
 
-The `ast_dump` field of `GrammarAstDumpOutcome` carries an `AstDumpPayload`:
+The AST-dump host entry points (`parse_vhdl_1076_2019_ast_dump`, the
+generic `parse_grammar_profile_ast_dump*` family, and the named-result
+form `parse_grammar_profile_ast_dump_named`) return — on success — an
+`AstDumpPayload`, defined in `rust/src/embedding_api.rs` (the
+authoritative API contract is `rust/docs/EMBEDDING_API_CONTRACT.md`). It
+is a **canonical-JSON payload string plus truncation metadata** — it has
+**exactly four fields**:
 
 ```rust
 pub struct AstDumpPayload {
-    pub pgen_dump_contract_version: u32,  // currently 1
-    pub schema_version: u32,              // 1 — see Schema Versioning
-    pub grammar: String,                  // "vhdl"
-    pub profile: String,                  // "vhdl_1076_2019"
-    pub root: JsonValue,                  // the actual AST tree
-    pub truncated: bool,                  // true if max_ast_bytes was hit
+    pub dump_json: String,    // canonical (key-sorted) JSON encoding of the typed AST
+    pub truncated: bool,      // true if max_ast_bytes was exceeded
+    pub full_bytes: usize,    // byte length of the full encoded AST (pre-truncation)
+    pub emitted_bytes: usize, // byte length actually placed in dump_json
 }
 ```
 
-The `root` field is the VHDL AST as a `serde_json::Value`. It is what this book's per-rule chapters describe.
+`dump_json` is a **JSON string you must parse** (e.g.
+`serde_json::from_str`) to obtain the `vhdl_file` **root object** that
+this book's per-rule chapters describe. There is no `root` /
+`schema_version` / `grammar` / `profile` field on `AstDumpPayload`
+itself: the AST-dump schema version is the `1` tracked in
+[Schema Versioning](schema-versioning.md); the grammar/profile are fixed
+(`vhdl` / `vhdl_1076_2019`).
+
+When `truncated` is `true`, `dump_json` is **not** the AST — it is a
+deterministic truncation diagnostic envelope carrying
+`pgen_dump_contract_version` (currently `1`),
+`kind: "pgen_ast_dump_truncation"`, `truncated: true`,
+`dump_kind: "parser_return_ast"`, `max_bytes`, `full_bytes`, and
+`reason`. Consumers must check `truncated` (or, equivalently, the
+presence of `pgen_dump_contract_version` / `kind ==
+"pgen_ast_dump_truncation"` in the parsed `dump_json`) before treating
+`dump_json` as a VHDL AST. If `max_ast_bytes` is too small to fit even
+the diagnostic envelope, the API returns `E_INVALID_LIMITS`. The
+downstream integration contract
+`docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
+("AST Envelope and `design_unit` Dispatch") is the authoritative
+restatement of this for consumers.
 
 ## The root rule
 

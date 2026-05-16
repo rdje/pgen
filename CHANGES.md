@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-05-16 - VHDL-CONTRACT-BODY-Slice-2 (PGEN-VHDL-CONTRACT-BODY-0002, leaf VHDL-CONTRACT-BODY.2): AST envelope + design_unit dispatch; fix duplicate header; VHDL book envelope reconciled
+
+Bodied out `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`:
+new "AST Envelope and `design_unit` Dispatch" section (the real
+4-field `AstDumpPayload` — `dump_json`/`truncated`/`full_bytes`/
+`emitted_bytes` — the truncation diagnostic envelope, the `vhdl_file`
+root, and the 10-branch `design_unit` dispatch with per-kind body
+shapes + verified `grammars/vhdl.ebnf` line refs). Fixed a structural
+defect: the contract had a **duplicate `## Source Of Truth` header**
+(merged into one, all bullets preserved; `grep -c` now `1`). Verified
+249 annotations / 110 distinct rules / 10 design_unit branches against
+`generated/vhdl_return_annotations.json`.
+
+**Systemic doc defect discovered + partially fixed.** Authoring this
+section surfaced that **every per-parser book's `ast-envelope.md`
+documents a fabricated `AstDumpPayload` struct** — `{ pgen_dump_contract_version,
+schema_version, grammar, profile, root: JsonValue, truncated }` — which
+**does not exist**. The real struct (`rust/src/embedding_api.rs:147`,
+already correctly documented in `rust/docs/EMBEDDING_API_CONTRACT.md`)
+is `{ dump_json: String, truncated, full_bytes, emitted_bytes }`; the
+books wrongly tell consumers to read `payload.root` (the real API gives
+`payload.dump_json`, a JSON *string* to parse). This materially
+misleads downstream integrators about the core embedding API.
+`docs/vhdl_parser_book/src/ast-envelope.md` is **fixed in this commit**
+(VHDL surface kept internally consistent with the corrected contract;
+book gate green). The 4 remaining affected pushed chapters are tracked
+for a focused follow-up doc-correctness lane (see DEVELOPMENT_NOTES):
+
+- `docs/rtl_const_expr_parser_book/src/ast-envelope.md`
+- `docs/rtl_frontend_parser_book/src/ast-envelope.md`
+- `docs/systemverilog_preprocessor_parser_book/src/ast-envelope.md`
+- `docs/systemverilog_parser_book/src/ast-envelope.md` (pre-existing;
+  not owned by any active task tree)
+
+Task-tree: VHDL-CONTRACT-BODY.2 -> done; frontier -> .3.
+
 ## 2026-05-16 - Shared .claude/settings.json: EBNF annotation guardrail + PostCompact resume hooks (PGEN-WORKFLOW-0003)
 
 New tracked `.claude/settings.json` (project/shared scope; `settings.local.json`

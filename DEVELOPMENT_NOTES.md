@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-16 - TRACKED: systemic fabricated `AstDumpPayload` struct in per-parser book ast-envelope chapters (DOC-ENVELOPE-0001)
+
+### Defect
+Every per-parser book `ast-envelope.md` "The envelope" section
+documents `AstDumpPayload` as
+`{ pgen_dump_contract_version: u32, schema_version: u32, grammar: String,
+profile: String, root: JsonValue, truncated: bool }` and tells consumers
+"the `root` field is the AST as a serde_json::Value." **This struct does
+not exist.** Ground truth (`rust/src/embedding_api.rs:147`, and already
+correct in `rust/docs/EMBEDDING_API_CONTRACT.md:83-88`):
+
+```rust
+pub struct AstDumpPayload { pub dump_json: String, pub truncated: bool,
+                            pub full_bytes: usize, pub emitted_bytes: usize }
+```
+
+`dump_json` is a canonical-JSON **string** the consumer must parse to get
+the grammar root object; `pgen_dump_contract_version` exists only inside
+the *truncation diagnostic* envelope (`AstDumpTruncationDiagnostic`,
+embedding_api.rs:1174). The wrong shape materially misleads downstream
+integrators about the core embedding API. Likely originated in the
+original `.2`-era ast-envelope authoring and propagated; the per-rule
+*shape* re-syncs this session cross-checked rule shapes against the
+inventory but not the `AstDumpPayload` struct against `embedding_api.rs`.
+Surfaced by the VHDL-CONTRACT-BODY.2 subagent (which I had verify the
+envelope against the Rust source for the contract).
+
+### Status
+- **Fixed:** `docs/vhdl_parser_book/src/ast-envelope.md` (this commit;
+  VHDL surface kept consistent with the now-correct VHDL contract;
+  `vhdl_parser_book_gate` green). The corrected, signoff-quality
+  template is the VHDL contract's "The `AstDumpPayload` envelope"
+  subsection (real struct + truncation-envelope + accuracy note).
+- **Tracked (not yet fixed)** — identical fabricated struct + `.root`
+  prose in 4 pushed chapters: `rtl_const_expr`, `rtl_frontend`,
+  `systemverilog_preprocessor`, and `systemverilog` book
+  `ast-envelope.md` (+ their tracked `-html` mirrors). The
+  `systemverilog` book is pre-existing and not owned by any active task
+  tree.
+
+### Fix lane (recommended, focused, fresh context)
+Per book: replace the struct + the "root field" prose with the real
+4-field struct and the parse-`dump_json` / check-`truncated` guidance
+(reuse the VHDL template verbatim, adjusting grammar/profile names),
+regen that book's HTML, run its `*_parser_book_gate`, one commit per
+book (or one coherent doc-correctness slice). Pure documentation
+correctness — no parser/codegen change. Also re-audit the four
+per-parser *contracts* (regex/rtl_const_expr/rtl_frontend/sv_preprocessor)
+for the same wrong envelope description; the VHDL contract is now
+correct. This is distinct from the systemic inline-alternation
+parser-correctness lane (rtl_frontend/vhdl/sv_preprocessor binop /
+`pp_if_branch`).
+
 ## 2026-05-16 - RTL-CE-Slice-2 root cause: inline operator alternation breaks `$N` over a Quantified iteration (PGEN-RTL-0002)
 
 ### Symptom
