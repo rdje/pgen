@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-05-16 - PGEN-INLINE-ALT-FIX-0000 (INLINE-ALT-FIX tree setup): decompose the inline-alternation parser-correctness lane + correct the stale Cat-B extraction memory
+
+- Created the **`INLINE-ALT-FIX`** task tree
+  (`docs/tasks/INLINE-ALT-FIX.md`) for the inline-alternation-`$N`
+  released-parser defect class — a multi-slice, structured,
+  released-parser-behavior lane (grammar edit + parser regen + manifest
+  + AST-dump schema bump + book + contract + bug ledger, per grammar),
+  which the task-tree workflow's splitting rules require be a tree
+  rather than a flat single slice. Three per-grammar leaves, frontier
+  ordered by downstream visibility:
+  - `.1` sv_preprocessor `SVPP-0001` (`pp_if_branch.keyword` inline
+    `(kw_ifdef|kw_ifndef)`) — first (only one with a filed
+    released-parser bug-ledger entry + confirmed repro);
+  - `.2` rtl_frontend `binop_chain`;
+  - `.3` vhdl `binop_chain` (verify-first — "VHDL likely" not yet
+    empirically confirmed).
+  `docs/TASK_TREE.md` Active table updated (was empty after the 8
+  trees + DOC-ENVELOPE closed); `DOC-README-SHELL-0001` remains the
+  one non-tree single-slice lane.
+- **Fix method recorded as decided/proven** (no re-derivation): lift
+  the inline alternation into a **named op-rule** + **bare `$2`** — the
+  mature `systemverilog.ebnf` `binary_operator` idiom, landed
+  gate-locked in `rtl_const_expr` (`PGEN-RTL-0002`, schema 1→2).
+  `$2*`/`$2**`/`$2::2*` are all empirically wrong for op-chains
+  (`$2*` was tried first on rtl_const_expr and rejected). Every
+  `.ebnf` edit in this lane is gated by the mandatory annotation-doc
+  consultation (hook-enforced) + `parseability_probe` verification.
+- **Memory-accuracy correction (in lockstep, user-flagged concern):**
+  the `feedback_quantified_group_extraction` memory's Category B
+  guidance ("blessed workaround is single-star `rest:$2*`, never bare
+  `rest:$2`") was **empirically falsified** by the landed rtl_const_expr
+  fix. Corrected both the memory body and its `MEMORY.md` index line to
+  the truth: root cause = inline alternation as iteration lead; fix =
+  named op-rule + bare `$2`; `$2*` rejected. (Memory store is outside
+  the repo — recorded here for traceability; not a tracked file in
+  this commit.)
+- Lane-setup only — **no grammar/parser/codegen change in this commit**;
+  no parser-family status row change.
+
 ## 2026-05-16 - PGEN-DOC-ENVELOPE-0001 (systemverilog-book closeout): DOC-ENVELOPE-0001 lane COMPLETE — all five per-parser books closed
 
 - **`systemverilog` book `DOC-ENVELOPE-0001` comprehensively closed**

@@ -26,11 +26,18 @@ same commit.
 
 ## Active Task Trees
 
-_None active — all eight task trees are complete (`2026-05-16`). Remaining repo work proceeds as non-task-tree single-slice lanes (each its own `PGEN-<FAMILY>-<NNNN>` ID): the `systemverilog`-book `DOC-ENVELOPE-0001` closeout, the inline-alternation parser-correctness lane (`SVPP-0001` + rtl_frontend/vhdl `binop_chain`), and the `DOC-README-SHELL-0001` README/COMMIT.md `SHELL=` reconciliation. See `LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot._
+The eight `*-MDBOOK` / `*-CONTRACT-BODY` trees and the
+`systemverilog`-book `DOC-ENVELOPE-0001` closeout are complete
+(`2026-05-16`). The inline-alternation parser-correctness lane is now
+decomposed into the `INLINE-ALT-FIX` task tree (multi-slice, structured,
+released-parser-behavior). The remaining `DOC-README-SHELL-0001`
+README/COMMIT.md `SHELL=` reconciliation stays a non-task-tree
+single-slice lane (`PGEN-WORKFLOW-<NNNN>`). See
+`LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| _(none active)_ | | | | |
+| `INLINE-ALT-FIX` | `active` | parser-correctness (released-parser defect class) | `INLINE-ALT-FIX.1` | [docs/tasks/INLINE-ALT-FIX.md](tasks/INLINE-ALT-FIX.md) |
 
 ## Proposed Task Trees
 
