@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1842a953.js";
+            window.path_to_searchindex_js = "searchindex-61d5f625.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -229,7 +229,7 @@
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>1</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="walking-the-ast.html">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer <strong><code>1</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="walking-the-ast.html">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
@@ -237,13 +237,20 @@
 <p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>1</code>. Reject or warn on an unexpected value rather than mis-parsing a newer shape:</p>
+<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>1</code>, from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match ast_dump_payload.schema_version {
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
-    other =&gt; return Err(format!("unsupported VHDL schema version: {other}")),
+</span>// Schema version you integrated against, from the contract:
+const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    return Err("VHDL AST dump truncated (dump_json holds the diagnostic envelope)".into());
 }
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+// VHDL_AST_SCHEMA_VERSION drives which walker you compiled; re-check the
+// contract's Schema Versioning table on every PGEN bump.
+walk_schema_v1(&amp;root);
 <span class="boring">}</span></code></pre>
 </li>
 <li>

@@ -52,18 +52,25 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_VHDL_PA
 | 1.0.0 | 1.0.1 | **VHDL-Slice-1** — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (the `binop_chain` shape across the 5-level operator hierarchy `expression` → `relation` → `simple_expression` → `term` → `factor`), and literals all typed in one comprehensive batch. Same accept set as the pre-typing baseline. AST-dump schema version field value: `1`. |
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Grammar (`grammars/vhdl.ebnf`) un-annotated except for the `vhdl_file -> {type, design_units}` root. AST dump is the recursive-envelope shape across all rules. |
 
-> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones, while the `AstDumpPayload.schema_version` integer field consumers branch on is currently `1`. Pin against the integer schema-version field for runtime dispatch (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
+> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer **`1`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
 
 ## How to pin to a known shape
 
 1. **Record the parser-release version** your downstream code was written against — `1.0.1` as of this writing. It is recorded in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
-2. **Branch on the integer schema version at runtime.** `AstDumpPayload.schema_version` is `1`. Reject or warn on an unexpected value rather than mis-parsing a newer shape:
+2. **Pin the AST-dump schema version you built against** — currently `1`, from `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
 
    ```rust
-   match ast_dump_payload.schema_version {
-       1 => walk_schema_v1(&ast_dump_payload.root),
-       other => return Err(format!("unsupported VHDL schema version: {other}")),
+   // Schema version you integrated against, from the contract:
+   const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+
+   let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+   if payload.truncated {
+       return Err("VHDL AST dump truncated (dump_json holds the diagnostic envelope)".into());
    }
+   let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
+   // VHDL_AST_SCHEMA_VERSION drives which walker you compiled; re-check the
+   // contract's Schema Versioning table on every PGEN bump.
+   walk_schema_v1(&root);
    ```
 
 3. **Vendor or pin the generated parser.** The VHDL parser is on-demand-only (see [Build Recipe](build-recipe.md)); vendor `generated/vhdl_parser.rs` against the recorded parser-release version, or build it in CI from the pinned `grammars/vhdl.ebnf`.

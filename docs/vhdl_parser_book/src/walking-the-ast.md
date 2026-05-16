@@ -210,15 +210,26 @@ Recommendations:
 
 ## Schema-version-aware walking
 
-If your tool needs to support multiple PGEN versions, branch on the payload's schema version (`AstDumpPayload.schema_version`):
+`AstDumpPayload` has **no** `schema_version` (or `root`) field — the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`. The AST-dump schema version is not discoverable at runtime from the payload; you **pin** it from `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" as a constant in your consumer and re-validate that pin against the contract's "Schema Versioning" table whenever you bump PGEN. The shape-contract manifest (`rust/test_data/ast_shape_contract/vhdl_v1.json`) is the machine-checkable lock that fails CI if the parser drifts from the pinned schema.
 
 ```rust
-match ast_dump_payload.schema_version {
-    1 => walk_schema_v1(&ast_dump_payload.root),
-    // (future) 2 => walk_schema_v2(...),
-    other => {
-        eprintln!("unsupported VHDL schema version: {}", other);
-    }
+// The AST-dump schema version you integrated against (from the contract):
+const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    // dump_json holds the truncation diagnostic envelope, not the AST.
+    return Err("VHDL AST dump truncated".into());
+}
+let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
+
+// VHDL_AST_SCHEMA_VERSION selects which walker your code was built for.
+// When you bump PGEN, diff the contract's Schema Versioning table; if the
+// integer schema version moved, update the constant and the walker together.
+match VHDL_AST_SCHEMA_VERSION {
+    1 => walk_schema_v1(&root),
+    // (future) 2 => walk_schema_v2(&root),
+    other => eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 ```
 

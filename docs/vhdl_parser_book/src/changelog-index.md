@@ -26,7 +26,7 @@ This book is **live** and tracks current main HEAD. The two entries below mirror
 The initial typing campaign, covering the entire `grammars/vhdl.ebnf` surface in **one batch**.
 
 - **Schema-version milestone:** `1.0.0` (first parser release: `1.0.1`).
-- **AST-dump schema version field value:** `1` — the integer consumers branch on at runtime (`AstDumpPayload.schema_version`).
+- **AST-dump schema version:** `1` — the integer consumers **pin** from the contract (it is **not** a field of `AstDumpPayload`, whose real fields are `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`).
 - **Annotation count:** **249** (was `1` / pre-typing baseline). Coverage: the `vhdl_file` root; `design_unit` and the declarative-item / statement dispatch rules; design units (entity, architecture, package, package body, configuration, context); generic / port / parameter interfaces; declarations; types and constraints; the five-level `binop_chain` expression hierarchy (`expression` → `relation` → `simple_expression` → `term` → `factor`); and the literal dispatch.
 - **Accept set:** unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.
 - **Contract section:** `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` → "Release 1.0.1 / Contract 1.0.1 Highlights — VHDL-Slice-1".

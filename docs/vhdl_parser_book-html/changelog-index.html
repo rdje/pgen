@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1842a953.js";
+            window.path_to_searchindex_js = "searchindex-61d5f625.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -205,7 +205,7 @@
 <p>The initial typing campaign, covering the entire <code>grammars/vhdl.ebnf</code> surface in <strong>one batch</strong>.</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.0</code> (first parser release: <code>1.0.1</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>1</code> — the integer consumers branch on at runtime (<code>AstDumpPayload.schema_version</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>1</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>).</li>
 <li><strong>Annotation count:</strong> <strong>249</strong> (was <code>1</code> / pre-typing baseline). Coverage: the <code>vhdl_file</code> root; <code>design_unit</code> and the declarative-item / statement dispatch rules; design units (entity, architecture, package, package body, configuration, context); generic / port / parameter interfaces; declarations; types and constraints; the five-level <code>binop_chain</code> expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>); and the literal dispatch.</li>
 <li><strong>Accept set:</strong> unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.</li>
 <li><strong>Contract section:</strong> <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.0.1 / Contract 1.0.1 Highlights — VHDL-Slice-1”.</li>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1842a953.js";
+            window.path_to_searchindex_js = "searchindex-61d5f625.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -912,15 +912,26 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
 <li><strong>For pure AST drop</strong>, use a non-recursive drop — <code>serde_json::Value</code>’s default <code>Drop</code> is recursive and can blow the stack on deeply-nested values. PGEN’s test path uses a large-stack worker to avoid this; downstream consumers should consider similar patterns.</li>
 </ol>
 <h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
-<p>If your tool needs to support multiple PGEN versions, branch on the payload’s schema version (<code>AstDumpPayload.schema_version</code>):</p>
+<p><code>AstDumpPayload</code> has <strong>no</strong> <code>schema_version</code> (or <code>root</code>) field — the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>. The AST-dump schema version is not discoverable at runtime from the payload; you <strong>pin</strong> it from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” as a constant in your consumer and re-validate that pin against the contract’s “Schema Versioning” table whenever you bump PGEN. The shape-contract manifest (<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>) is the machine-checkable lock that fails CI if the parser drifts from the pinned schema.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match ast_dump_payload.schema_version {
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
-    // (future) 2 =&gt; walk_schema_v2(...),
-    other =&gt; {
-        eprintln!("unsupported VHDL schema version: {}", other);
-    }
+</span>// The AST-dump schema version you integrated against (from the contract):
+const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    // dump_json holds the truncation diagnostic envelope, not the AST.
+    return Err("VHDL AST dump truncated".into());
+}
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+
+// VHDL_AST_SCHEMA_VERSION selects which walker your code was built for.
+// When you bump PGEN, diff the contract's Schema Versioning table; if the
+// integer schema version moved, update the constant and the walker together.
+match VHDL_AST_SCHEMA_VERSION {
+    1 =&gt; walk_schema_v1(&amp;root),
+    // (future) 2 =&gt; walk_schema_v2(&amp;root),
+    other =&gt; eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>
 <p>See <a href="#schema-versioning">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>
@@ -1488,7 +1499,7 @@ shape reference.</p>
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>1</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer <strong><code>1</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
@@ -1496,13 +1507,20 @@ shape reference.</p>
 <p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>1</code>. Reject or warn on an unexpected value rather than mis-parsing a newer shape:</p>
+<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>1</code>, from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match ast_dump_payload.schema_version {
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
-    other =&gt; return Err(format!("unsupported VHDL schema version: {other}")),
+</span>// Schema version you integrated against, from the contract:
+const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    return Err("VHDL AST dump truncated (dump_json holds the diagnostic envelope)".into());
 }
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+// VHDL_AST_SCHEMA_VERSION drives which walker you compiled; re-check the
+// contract's Schema Versioning table on every PGEN bump.
+walk_schema_v1(&amp;root);
 <span class="boring">}</span></code></pre>
 </li>
 <li>
@@ -1532,7 +1550,7 @@ shape reference.</p>
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <p>Terms used throughout this book. Where a term has a normative definition, the integration contract <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> is authoritative; this glossary paraphrases it for quick lookup.</p>
 <h2 id="ast-envelope"><a class="header" href="#ast-envelope">AST envelope</a></h2>
-<p>The JSON tree returned by the VHDL AST-dump entry points. It is the <code>root</code> field of the <code>AstDumpPayload</code> carried by <code>GrammarAstDumpOutcome</code>. See <a href="#ast-envelope-structure">AST Envelope Structure</a>.</p>
+<p>The typed VHDL AST. It is obtained by <strong>parsing the <code>dump_json</code> string</strong> of the <code>AstDumpPayload</code> (the real struct has exactly <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code> — there is <strong>no</strong> <code>root</code> field). After confirming <code>truncated == false</code>, <code>serde_json::from_str(&amp;payload.dump_json)</code> yields the <code>vhdl_file</code> root object this book’s per-rule chapters describe. See <a href="#ast-envelope-structure">AST Envelope Structure</a>.</p>
 <h2 id="ast-shape-contract-manifest"><a class="header" href="#ast-shape-contract-manifest">AST shape contract manifest</a></h2>
 <p>The file <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>. It records the per-rule expected JSON shape for each sample in the VHDL test corpus and embeds the declared-annotation inventory (<code>version: 1</code>, 249 entries). Drift in the AST dump fails the <code>vhdl_ast_shape_contract_holds_against_running_generated_parser</code> regression-lock test under <code>cargo test</code>, surfacing the change. Its content is byte-identical to the live inventory <code>generated/vhdl_return_annotations.json</code>. (This is the VHDL manifest; the SystemVerilog parser has its own separate <code>systemverilog_v1.json</code>.)</p>
 <h2 id="binop_chain"><a class="header" href="#binop_chain">binop_chain</a></h2>
@@ -1554,7 +1572,7 @@ shape reference.</p>
 <h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>
 <p>A <code>-&gt; ...</code> clause appended to a grammar rule definition in <code>grammars/vhdl.ebnf</code> that overrides the default recursive-envelope shape with a typed JSON value. Example: <code>vhdl_file := design_unit* -&gt; {type: "vhdl_file", design_units: $1}</code>. The annotation language (<code>$N</code> positional references, <code>{field: value}</code> object literals, <code>[...]</code> array literals, string literals) is specified in <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
 <h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
-<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The integer <code>AstDumpPayload.schema_version</code> field consumers branch on at runtime is currently <code>1</code>. The contract’s “Schema Versioning” table additionally uses <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the typing-campaign timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>1</code> — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the typing-campaign timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
 <p>The JSON value produced by an annotated rule. In VHDL it takes three sub-forms: a root object carrying <code>type</code> (only <code>vhdl_file</code>); a <code>kind</code>-tagged dispatch object (<code>{kind, body}</code> or per-branch named fields); and a named-field object for single-sequence rules. The <code>binop_chain</code> expression rules combine the <code>type</code> and named-field forms. Consumers dispatch on <code>obj["type"]</code> at the root and <code>obj["kind"]</code> for variants. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <h2 id="vhdl-slice-1"><a class="header" href="#vhdl-slice-1">VHDL-Slice-1</a></h2>
@@ -1585,7 +1603,7 @@ shape reference.</p>
 <p>The initial typing campaign, covering the entire <code>grammars/vhdl.ebnf</code> surface in <strong>one batch</strong>.</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.0</code> (first parser release: <code>1.0.1</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>1</code> — the integer consumers branch on at runtime (<code>AstDumpPayload.schema_version</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>1</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>).</li>
 <li><strong>Annotation count:</strong> <strong>249</strong> (was <code>1</code> / pre-typing baseline). Coverage: the <code>vhdl_file</code> root; <code>design_unit</code> and the declarative-item / statement dispatch rules; design units (entity, architecture, package, package body, configuration, context); generic / port / parameter interfaces; declarations; types and constraints; the five-level <code>binop_chain</code> expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>); and the literal dispatch.</li>
 <li><strong>Accept set:</strong> unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.</li>
 <li><strong>Contract section:</strong> <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.0.1 / Contract 1.0.1 Highlights — VHDL-Slice-1”.</li>

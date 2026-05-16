@@ -599,3 +599,170 @@ wins, and this integration contract wins over the book.
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
 - `vhdl` is still an `In Progress` family in the live tracker, so downstream integrators should treat the embedding surface as real but still pay attention to the current live blocker list in `LIVE_ACHIEVEMENT_STATUS.md`.
 - When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+
+## Companion Documentation — VHDL Parser Integration mdBook
+
+This contract is the **downstream integration surface**: the host-API
+envelope, the dispatch/rule-family shapes a consumer compiles against, and
+the release/schema axes. It does not duplicate the per-rule walkthroughs or
+worked examples — those live in the companion artifacts below. Each surface
+is authoritative for a different thing; consult the matching one and respect
+the precedence order stated at the end of this section.
+
+| Surface | Path | Authoritative for |
+|---|---|---|
+| **This contract** | `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` | The downstream integration surface: AST-dump envelope, `vhdl_file` root, the 10-branch `design_unit` dispatch, and the per-family rule shapes (declarations, types, statements, the 5-level `binop_chain` expression hierarchy, literals). See [AST Envelope and `design_unit` Dispatch](#ast-envelope-and-design_unit-dispatch) and [Declarations, Types, Statements, and Expressions](#declarations-types-statements-and-expressions). |
+| **Per-parser mdBook** | `docs/vhdl_parser_book/` (source `src/*.md`; tracked HTML at `docs/vhdl_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples, schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. |
+| **Shape-contract manifest** | `rust/test_data/ast_shape_contract/vhdl_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
+| **Declared-annotation inventory** | `generated/vhdl_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the VHDL grammar emits (`version: 1`, `grammar: "vhdl"`, `annotation_count: 249`, **110 distinct rules**). The generator-side source of truth for the typed surface. |
+| **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released VHDL parser. Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+
+Precedence when surfaces disagree (highest first): the **embedding-API
+contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
+`AstDumpPayload` truth; the **declared-annotation inventory**
+(`generated/vhdl_return_annotations.json`) and its embedded
+shape-contract manifest copy win for the exact typed-shape enumeration;
+**this integration contract** wins over the **per-parser mdBook** for
+downstream compliance. Report any disagreement as a documentation bug
+rather than silently coding to the lower-precedence surface.
+
+### Gate Recipe
+
+The exact, copy-pasteable per-family commands a downstream integrator or
+releaser runs. Each is verified against the repo (`rust/Makefile`,
+`docs/vhdl_parser_book/src/build-recipe.md`,
+`rust/src/ast_shape_contract.rs`); none are invented — do not substitute
+flags.
+
+**1. On-demand parser regen.** The VHDL parser is on-demand-only (not in the
+default build). Build `ast_pipeline`, then regenerate the parser from
+`grammars/vhdl.ebnf` (run from `rust/`, per
+`docs/vhdl_parser_book/src/build-recipe.md`):
+
+```bash
+cd rust && cargo build --release --features ebnf_dual_run --bin ast_pipeline
+./target/release/ast_pipeline ../grammars/vhdl.ebnf \
+    --generate-parser --output ../generated/vhdl_parser.rs
+```
+
+To wire the regenerated parser into a cargo build, point
+`PGEN_VHDL_PARSER_PATH` at the absolute path of the generated file before
+`cargo build --release --features generated_parsers` (see
+`docs/vhdl_parser_book/src/build-recipe.md` § "Wiring into a downstream
+Cargo build").
+
+**2. Per-family book gate.** Builds the VHDL parser book and verifies the
+tracked HTML landing pages (Makefile target `vhdl_parser_book_gate`,
+`rust/Makefile` line 733):
+
+```bash
+make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_book_gate
+```
+
+**3. AST-shape-contract regression lock.** With the generated backend wired
+in (`PGEN_VHDL_PARSER_PATH` exported), run the shape-contract test that
+diffs the running generated parser against
+`rust/test_data/ast_shape_contract/vhdl_v1.json` (test fn
+`vhdl_ast_shape_contract_holds_against_running_generated_parser` in the
+`pgen::ast_shape_contract` library module,
+`rust/src/ast_shape_contract.rs` line 839):
+
+```bash
+cargo test --lib --features generated_parsers vhdl_ast_shape_contract
+```
+
+The substring `vhdl_ast_shape_contract` selects exactly the
+`vhdl_ast_shape_contract_holds_against_running_generated_parser` test.
+Any drift between the running parser's emitted shapes and the locked
+manifest fails this test, surfacing the change before release.
+
+**4. Family closure / proof gates.** Anyone publishing a parser-release
+version bump also runs the closure/proof gates enumerated in
+[Validation / Release Gates](#validation--release-gates) (e.g.
+`make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_family_status_gate`).
+That section is the full list; it is not repeated here.
+
+## Glossary
+
+Contract-scoped definitions of the terms a downstream integrator needs to
+read this document. Where a term has a normative definition, this contract
+is authoritative; the per-parser book's
+[glossary](../vhdl_parser_book/src/glossary.md) paraphrases the same terms
+for quick lookup. Numbers below are pinned to contract `1.0.1` /
+schema `1` / **249 annotations across 110 distinct rules**.
+
+- **`AstDumpPayload`** — the success return of the VHDL AST-dump host
+  entry points (defined in `rust/src/embedding_api.rs`, contract in
+  `rust/docs/EMBEDDING_API_CONTRACT.md`). A canonical-JSON payload string
+  plus truncation metadata, with **exactly four fields**: `dump_json`,
+  `truncated`, `full_bytes`, `emitted_bytes`. It does **not** carry
+  `root` / `schema_version` / `grammar` / `profile` members — see
+  [The `AstDumpPayload` envelope](#the-astdumppayload-envelope) for the
+  precise accuracy note.
+- **`dump_json`** — the `AstDumpPayload` field holding the canonical
+  (key-sorted) JSON encoding of the typed VHDL AST. Parse this string to
+  obtain the `vhdl_file` root object. When `truncated` is `true` this
+  string is replaced by the truncation diagnostic envelope, not the AST.
+- **Truncation diagnostic envelope** — the deterministic JSON object that
+  replaces the AST in `dump_json` when `max_ast_bytes` is exceeded. It
+  carries `pgen_dump_contract_version` (currently `1`), `kind:
+  "pgen_ast_dump_truncation"`, `truncated: true`, `dump_kind:
+  "parser_return_ast"`, `max_bytes`, `full_bytes`, and `reason`.
+  Consumers must check `truncated` (or detect `kind ==
+  "pgen_ast_dump_truncation"`) before treating `dump_json` as a VHDL AST.
+- **AST-dump schema version** — the integer version axis tracking the AST
+  output shape, currently `1`. Bumped only when the emitted shape changes
+  in a way consumers may need to adapt to (new annotation on a
+  previously-unannotated rule, restructured annotation, user-visible
+  grammar-shape change). Pure perf work / internal codegen
+  reorganization do not bump it. See [Schema Versioning](#schema-versioning).
+- **Parser release version** — the parser library's release identity,
+  currently `1.0.1`. Bumped on every functional change (bug fixes, perf
+  work, grammar changes). Moves independently of the schema version.
+- **`design_unit` dispatch** — the primary top-level dispatcher: a
+  10-branch `kind`-tagged shape (`"library"`, `"use"`,
+  `"context_reference"`, `"entity"`, `"architecture"`, `"package"`,
+  `"package_body"`, `"configuration"`, `"context"`, `"semi"`). Every
+  branch except the bodyless `"semi"` carries a `body`. Every parse
+  roots at `{type: "vhdl_file", design_units: [...]}`; each element of
+  `design_units` is one `design_unit` object. See
+  [The 10-branch `design_unit` dispatch](#the-10-branch-design_unit-dispatch).
+- **`binop_chain` left-fold** — the consumer-facing contract for VHDL's
+  five-level operator-precedence cascade (`expression` → `relation` →
+  `simple_expression` → `term` → `factor`). Every level emits
+  `{type: "binop_chain", level, lhs, rest}`; consumers MUST fold `rest`
+  left-associatively onto `lhs`. One fold routine walks the whole
+  expression tree. See
+  [Expressions — the `binop_chain` left-fold contract](#expressions--the-binop_chain-left-fold-contract).
+- **Shape-contract manifest** — the embedded machine-checkable shape lock
+  `rust/test_data/ast_shape_contract/vhdl_v1.json`. Content-identical to
+  the declared-annotation inventory on the `(rule, branch_index,
+  annotation_type, normalized_text)` tuples (omits only the diagnostic
+  `raw_text` field). Drift fails the
+  `vhdl_ast_shape_contract_holds_against_running_generated_parser`
+  regression test (see [Gate Recipe](#gate-recipe)).
+- **Declared-annotation inventory** — the live machine-checkable
+  enumeration of every typed-shape annotation the VHDL grammar emits:
+  `generated/vhdl_return_annotations.json` (`version: 1`,
+  `grammar: "vhdl"`, `annotation_count: 249`, **110 distinct rules**).
+  The generator-side source of truth for the typed surface; mirrored by
+  the embedded shape-contract manifest copy.
+- **Recursive envelope** — the default JSON shape produced by
+  un-annotated rules: a recursive composition of arrays (sequences,
+  quantified iterations, the `rest` tail of a `{first, rest}` list),
+  strings (terminal/regex leaves), and matched-branch passthroughs (for
+  alternations). Un-matched optionals are the empty array `[]`, never
+  `null`. It is what a consumer reaches when descending below the typed
+  surface (identifier tokens; physical / bit-string / string / character
+  literals; the few utility rules with no per-rule annotation).
+- **Generic host AST-dump surface** — the
+  `parse_grammar_profile_ast_dump*` family
+  (`parse_grammar_profile_ast_dump`,
+  `parse_grammar_profile_ast_dump_with_limits`, the `*_result` and
+  `*_named` forms). The grammar-agnostic entry points that, for the
+  `vhdl` grammar + `vhdl_1076_2019` profile, return the same
+  `AstDumpPayload` as the named convenience entry point
+  `parse_vhdl_1076_2019_ast_dump`. Signatures are in
+  `rust/docs/EMBEDDING_API_CONTRACT.md`; the stable entry-point list is
+  in [Stable Integration Surface](#stable-integration-surface).

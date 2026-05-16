@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-05-16 - VHDL-CONTRACT-BODY-Slice-3 + Slice-4 (PGEN-VHDL-CONTRACT-BODY-0003/0004): close the VHDL-CONTRACT-BODY tree; VHDL book DOC-ENVELOPE-0001 fully closed
+
+**Slice-3 (leaf .3):** added the "Declarations, Types, Statements, and
+Expressions" contract section (every rule family's `kind`/fields; the
+5-level `binop_chain` cascade as the normative consumer left-fold —
+level/field/operator table, fold `rest` left onto `lhs`, `additive`
+`sign`, the `?`-capped levels). Lockstep book fix: corrected a
+`docs/vhdl_parser_book/src/rules-top-level.md` precision defect (it
+implied only `relational` is `?`-capped; `power`/`factor` is too —
+`factor := primary (power primary)?`). Verified 249/110 + binop_chain
+rule set vs `generated/vhdl_return_annotations.json`.
+
+**Slice-4 (leaf .4, closes the tree):** appended "Companion
+Documentation" (surface/authority table + precedence order), a
+"Gate Recipe" (4 copy-pasteable commands, each verified against
+`build-recipe.md` / `Makefile` / `ast_shape_contract.rs`), and a
+12-term "Glossary" — all consistent with the real 4-field
+`AstDumpPayload`. No duplicate `## ` headers.
+
+**`DOC-ENVELOPE-0001` — VHDL book FULLY closed.** Scope was found to be
+~5 chapters/book (not just `ast-envelope.md`): `glossary.md`,
+`schema-versioning.md`, `walking-the-ast.md`, `changelog-index.md` all
+referenced the non-existent `AstDumpPayload.root` / `.schema_version`
+(incl. wrong `match ast_dump_payload.schema_version` snippets). All
+reconciled to the real struct + the "pin schema from the contract,
+parse `dump_json`, check `truncated`" model; `vhdl_parser_book_gate`
+green, 0 residual. The 4 remaining books (rtl_frontend / rtl_const_expr
+/ sv_preprocessor / systemverilog, ~5 chapters each) stay tracked
+(DEVELOPMENT_NOTES `DOC-ENVELOPE-0001`) — each folded into its
+`*-CONTRACT-BODY` slice in lockstep, as VHDL was.
+
+**`VHDL-CONTRACT-BODY` tree complete** (5th completed tree, after
+VHDL/RTL-FE/RTL-CE/SVPP MDBOOK). Active trees remaining: the 3 other
+`*-CONTRACT-BODY` trees.
+
 ## 2026-05-16 - VHDL-CONTRACT-BODY-Slice-2 (PGEN-VHDL-CONTRACT-BODY-0002, leaf VHDL-CONTRACT-BODY.2): AST envelope + design_unit dispatch; fix duplicate header; VHDL book envelope reconciled
 
 Bodied out `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`:

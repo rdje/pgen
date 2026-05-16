@@ -28,7 +28,6 @@ same commit.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `VHDL-CONTRACT-BODY` | `active` | vhdl deliverables | `VHDL-CONTRACT-BODY.4` | [docs/tasks/VHDL-CONTRACT-BODY.md](tasks/VHDL-CONTRACT-BODY.md) |
 | `RTL-FE-CONTRACT-BODY` | `active` | rtl_frontend deliverables | `RTL-FE-CONTRACT-BODY.2` | [docs/tasks/RTL-FE-CONTRACT-BODY.md](tasks/RTL-FE-CONTRACT-BODY.md) |
 | `RTL-CE-CONTRACT-BODY` | `active` | rtl_const_expr deliverables | `RTL-CE-CONTRACT-BODY.2` | [docs/tasks/RTL-CE-CONTRACT-BODY.md](tasks/RTL-CE-CONTRACT-BODY.md) |
 | `SVPP-CONTRACT-BODY` | `active` | sv_preprocessor deliverables | `SVPP-CONTRACT-BODY.2` | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
@@ -50,6 +49,7 @@ PNT-eligible until explicitly activated.
 | `RTL-FE-MDBOOK` | `done` | rtl_frontend deliverables | all leaves `.1`–`.6` `done` (`2026-05-16`) | [docs/tasks/RTL-FE-MDBOOK.md](tasks/RTL-FE-MDBOOK.md) |
 | `RTL-CE-MDBOOK` | `done` | rtl_const_expr deliverables | all leaves `.1`–`.6` `done` (`2026-05-16`); .4 surfaced PGEN-RTL-0002 | [docs/tasks/RTL-CE-MDBOOK.md](tasks/RTL-CE-MDBOOK.md) |
 | `SVPP-MDBOOK` | `done` | sv_preprocessor deliverables | all leaves `.1`–`.6` `done` (`2026-05-16`); .4 surfaced SVPP-0001 | [docs/tasks/SVPP-MDBOOK.md](tasks/SVPP-MDBOOK.md) |
+| `VHDL-CONTRACT-BODY` | `done` | vhdl deliverables | all leaves `.1`–`.4` `done` (`2026-05-16`); VHDL book DOC-ENVELOPE-0001 closed in lockstep | [docs/tasks/VHDL-CONTRACT-BODY.md](tasks/VHDL-CONTRACT-BODY.md) |
 
 ## Coverage Note
 

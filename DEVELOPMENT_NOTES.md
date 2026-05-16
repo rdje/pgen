@@ -26,17 +26,32 @@ inventory but not the `AstDumpPayload` struct against `embedding_api.rs`.
 Surfaced by the VHDL-CONTRACT-BODY.2 subagent (which I had verify the
 envelope against the Rust source for the contract).
 
+### Scope refinement (2026-05-16, VHDL-CONTRACT-BODY.4)
+The defect is NOT confined to `ast-envelope.md`. It recurs across **~5
+chapters per book** — `ast-envelope.md`, `glossary.md`,
+`schema-versioning.md`, `walking-the-ast.md`, `changelog-index.md` —
+anywhere the struct is shown or `payload.root` / `payload.schema_version`
+is referenced (incl. schema-version-aware-walking code snippets that
+`match ast_dump_payload.schema_version`). Per-book chapter counts with
+the ref: rtl_frontend 5, rtl_const_expr 5, systemverilog_preprocessor 5,
+systemverilog 2.
+
 ### Status
-- **Fixed:** `docs/vhdl_parser_book/src/ast-envelope.md` (this commit;
-  VHDL surface kept consistent with the now-correct VHDL contract;
-  `vhdl_parser_book_gate` green). The corrected, signoff-quality
-  template is the VHDL contract's "The `AstDumpPayload` envelope"
-  subsection (real struct + truncation-envelope + accuracy note).
-- **Tracked (not yet fixed)** — identical fabricated struct + `.root`
-  prose in 4 pushed chapters: `rtl_const_expr`, `rtl_frontend`,
-  `systemverilog_preprocessor`, and `systemverilog` book
-  `ast-envelope.md` (+ their tracked `-html` mirrors). The
-  `systemverilog` book is pre-existing and not owned by any active task
+- **FULLY fixed: the entire VHDL book** (`ast-envelope.md` in Slice-2;
+  `glossary.md` / `schema-versioning.md` / `walking-the-ast.md` /
+  `changelog-index.md` in VHDL-CONTRACT-BODY-Slice-4) — 0 residual
+  fabricated-struct refs, `vhdl_parser_book_gate` green. The VHDL
+  contract's "The `AstDumpPayload` envelope" subsection +
+  `rust/docs/EMBEDDING_API_CONTRACT.md` are the signoff-quality
+  template; the corrected VHDL book chapters are now worked examples of
+  the fix to copy for the remaining books.
+- **Tracked (not yet fixed)** — the same fabricated struct + `.root` /
+  `.schema_version` prose/snippets across **~5 chapters each** in the
+  `rtl_const_expr`, `rtl_frontend`, `systemverilog_preprocessor`, and
+  `systemverilog` books (+ tracked `-html` mirrors). Plan: fold each
+  family's full-book fix into its `*-CONTRACT-BODY` slice in lockstep
+  (as done for VHDL); the `systemverilog` book is pre-existing and not
+  owned by any active task
   tree.
 
 ### Fix lane (recommended, focused, fresh context)
