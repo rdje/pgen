@@ -1,6 +1,6 @@
 # Walking the AST
 
-This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and `kind` names from the live return-annotation inventory (`generated/systemverilog_preprocessor_return_annotations.json`, 64 annotations across 27 rules, schema version `1`).
+This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and `kind` names from the live return-annotation inventory (`generated/systemverilog_preprocessor_return_annotations.json`, 66 annotations across 28 rules, schema version `2`).
 
 ## The dual-shape walker
 
@@ -121,6 +121,14 @@ fn handle_conditional(body: Option<&serde_json::Value>) {
 
     // if_branch: {keyword, macro, tail, items}
     if let Some(ifb) = c.get("if_branch") {
+        // keyword is the typed pp_if_keyword polarity object as of the
+        // 1.0.2 SVPP-0001 fix: "ifdef" = compile-if-defined,
+        // "ifndef" = compile-if-not-defined. (Was the malformed
+        // <invalid_sequence_access> object at 1.0.1 / schema 1.)
+        let _polarity = ifb
+            .get("keyword")
+            .and_then(|k| k.get("kind"))
+            .and_then(|v| v.as_str()); // Some("ifdef") | Some("ifndef")
         for it in ifb.get("items").and_then(|v| v.as_array()).into_iter().flatten() {
             handle_pp_item(it); // recursion: a nested `ifdef` lives here
         }
@@ -245,7 +253,7 @@ A pathologically deep nest of `` `ifdef`` / `` `elsif`` / `` `else`` blocks prod
 
 ```rust
 // The AST-dump schema version you integrated against (from the contract):
-const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+const SVPP_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -258,8 +266,8 @@ let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match SVPP_AST_SCHEMA_VERSION {
-    1 => walk_schema_v1(&root),
-    // (future) 2 => walk_schema_v2(&root),
+    2 => walk_schema_v2(&root), // schema 2: if_branch.keyword is {kind: "ifdef"|"ifndef"}
+    // schema 1 (pre-1.0.2) had the SVPP-0001 malformed keyword object.
     other => eprintln!("no walker compiled for sv_preprocessor AST schema version {other}"),
 }
 ```

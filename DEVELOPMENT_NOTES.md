@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-16 - RESOLVED: SVPP-0001 fixed — first inline-alternation-$N fix beyond rtl_const_expr (PGEN-INLINE-ALT-FIX-0001)
+
+### What
+`SVPP-0001` (`systemverilog_preprocessor` `pp_if_branch.keyword` →
+malformed `"<invalid_sequence_access>"` object) is the second landed
+fix of the systemic inline-alternation-`$N` defect class (after
+`rtl_const_expr` / `PGEN-RTL-0002`), and the first executed under the
+`INLINE-ALT-FIX` task tree (leaf `.1`).
+
+### Fix (the proven playbook, applied)
+The inline alternation `(kw_ifdef | kw_ifndef)` — the lead element of
+`pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail?
+newline pp_item* -> {keyword:$1, …}` — corrupts the positional model in
+`rust/src/ast_pipeline/ast_return_transform.rs` exactly as documented
+in the RTL-CE-Slice-2 root-cause note below. Fix = the mature
+`systemverilog.ebnf` `binary_operator` idiom: lift it into a **named
+rule** `pp_if_keyword := kw_ifdef -> {kind:"ifdef"} | kw_ifndef ->
+{kind:"ifndef"}`; `pp_if_branch`'s `{keyword:$1, …}` is unchanged —
+`$1` now binds the clean named rule. Chosen over the ledger's simpler
+un-annotated `pp_if_keyword := kw_ifdef | kw_ifndef` sketch because the
+`{kind:…}` form is the exact gate-locked exemplar AND gives consumers a
+clean polarity discriminator (`keyword.kind == "ifdef"|"ifndef"`).
+
+### Verification + lockstep
+Before/after `parseability_probe` (ledger repro):
+`{items/macro/tail:"<invalid_sequence_access>", keyword:[[],"\`ifdef"]}`
+→ `{kind:"ifdef"}`. Parser + frontend JSON + inventory regenerated
+(64→66 / 27→28); manifest `declared_annotation_inventory` rebuilt via
+the canonical `dump_declared_annotation_inventory` bin (the cross-check
+validates the manifest against the **frontend** JSON's raw_ast walk,
+NOT the return-annotations inventory — both must be regenerated and the
+manifest derived from the frontend dump in its canonical order, else
+the `optional_grammar_json_crosscheck` fails with index mismatches —
+learned this slice). `conditional` regression sample added. Schema
+`1→2`, release `1.0.1→1.0.2`. Contract + 7+ book chapters + bug ledger
+(`SVPP-0001` → `Released`) all same-commit; DOC-ENVELOPE-0001 4-field
+`AstDumpPayload` preserved. `systemverilog_preprocessor_ast_shape_contract`
++ `systemverilog_preprocessor_parser_book_gate` green.
+
+### Remaining systemic-class instances
+`INLINE-ALT-FIX.2` (rtl_frontend `binop_chain`) and `.3` (vhdl
+`binop_chain`, verify-first) — same playbook.
+
 ## 2026-05-16 - TRACKED: README per-parser-book gate lines use `SHELL=/bin/bash` (DOC-README-SHELL-0001)
 
 ### Observation

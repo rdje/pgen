@@ -5,13 +5,15 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 ## Contract Identity
 - Contract version:
-  - `1.0.1`
+  - `1.0.2`
 - Parser release version:
-  - `1.0.1`
+  - `1.0.2`
 - systemverilog_preprocessor AST-dump schema version:
-  - `1`
+  - `2` (breaking shape correction — see Release 1.0.2 Highlights)
+- Annotation count:
+  - `66` (all `return_object`; 28 distinct rules)
 - Last updated:
-  - `2026-05-15`
+  - `2026-05-16`
 - Current grammar family label:
   - `systemverilog_preprocessor`
 - Per-family mdBook:
@@ -25,34 +27,111 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 The systemverilog_preprocessor parser carries two version axes:
 
-1. **Parser release version** (`1.0.1`). Tracks the parser library's release identity.
-2. **AST-dump schema version** (`1`). Tracks the AST output shape.
+1. **Parser release version** (`1.0.2`). Tracks the parser library's release identity.
+2. **AST-dump schema version** (`2`). Tracks the AST output shape.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline. pp_item dispatch (10 kinds), 7 directive shapes (define/undef/include/timescale/default_nettype/celldefine/endcelldefine), include_path/nettype_value/time_literal, conditional-compilation tree (5 nodes), condition_expr/condition_atom (12 kinds), macro_formals/formal/default_value/default_atom (8 kinds) / body/body_fragment (9 kinds), passthrough lines. |
+| 2 | 1.0.2 | **SVPP-0001 correctness fix (breaking).** `pp_if_branch.keyword` no longer emits the malformed `"<invalid_sequence_access>"` object for `` `ifdef`` / `` `ifndef`` conditional input. The inline alternation `(kw_ifdef \| kw_ifndef)` that was the lead element of `pp_if_branch` (and corrupted the positional model so the bare `keyword: $1` mis-recursed) is lifted into a **named** rule `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} \| kw_ifndef -> {kind: "ifndef"}`, mirroring the proven `systemverilog.ebnf` op-chain / `rtl_const_expr` RTL-CE-Slice-2 idiom. `pp_if_branch`'s annotation is **unchanged** (`{keyword: $1, macro: $2, tail: $3, items: $5}`); only `$1` now binds the clean named rule, so `if_branch.keyword` is now `{kind: "ifdef"}` (or `{kind: "ifndef"}`) — a real typed polarity discriminator. Annotation count `64 → 66` (the 2 new `pp_if_keyword` `return_object` branches); distinct rules `27 → 28` (the new `pp_if_keyword`). All annotations remain `return_object`. Same accept set (no grammar acceptance change — purely the alternation lift + its 2 branch annotations). Gate-locked. |
+| 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline. pp_item dispatch (10 kinds), 7 directive shapes (define/undef/include/timescale/default_nettype/celldefine/endcelldefine), include_path/nettype_value/time_literal, conditional-compilation tree (5 nodes), condition_expr/condition_atom (12 kinds), macro_formals/formal/default_value/default_atom (8 kinds) / body/body_fragment (9 kinds), passthrough lines. **NOTE:** the `pp_if_branch.keyword` shape in this baseline was defective (`SVPP-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation) — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/systemverilog_preprocessor.ebnf`) with the `systemverilog_preprocessor_file -> {type, items}` root only. AST dump is the recursive-envelope shape across all other rules. |
 
-## Known Defects (release 1.0.1)
+## Resolved Defects — `SVPP-0001` (fixed in release 1.0.2, schema 2)
 
 - **`SVPP-0001` — `pp_if_branch.keyword` `<invalid_sequence_access>`
-  (`Root Caused`, fix not yet landed).** For `` `ifdef`` / `` `ifndef``
-  conditional input, `items[].body.if_branch.keyword` is a malformed
-  nested object containing three `"<invalid_sequence_access>"` strings
-  instead of the keyword token. Root cause: `pp_if_branch := (kw_ifdef |
-  kw_ifndef) macro_name … -> {keyword: $1, …}` binds `$1` to an
-  **inline alternation group**, the same emit-time defect class fixed
-  for `rtl_const_expr` in RTL-CE-Slice-2 (and tracked for
-  `rtl_frontend` / `vhdl` `binop_chain`). The `` `define`` /
-  non-conditional surface is unaffected. **Consumer workaround:** read
-  the guard macro from the correct outer `if_branch.macro` (which is
-  correct); treat `if_branch.keyword` as token-text-only and do not
-  rely on its nested fields. Documented honestly in
-  [the conditional worked example](../systemverilog_preprocessor_parser_book/src/examples-conditional.md);
-  tracked in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
-  (`SVPP-0001`). Scheduled fix: the systemic inline-alternation-`$N`
-  correctness lane (lift `(kw_ifdef | kw_ifndef)` into a named rule per
-  the proven RTL-CE-Slice-2 playbook; schema bump + lockstep).
+  (`Released`, fixed in parser release `1.0.2` / schema `2`).**
+  *Historical (release `1.0.1`, schema `1`):* for `` `ifdef`` /
+  `` `ifndef`` conditional input, `items[].body.if_branch.keyword`
+  surfaced a malformed nested object containing three
+  `"<invalid_sequence_access>"` strings instead of the keyword token.
+  Root cause: `pp_if_branch := (kw_ifdef | kw_ifndef) macro_name … ->
+  {keyword: $1, …}` bound `$1` to an **inline alternation group**, the
+  same emit-time defect class fixed for `rtl_const_expr` in
+  RTL-CE-Slice-2 (and tracked for `rtl_frontend` / `vhdl`
+  `binop_chain`). The `` `define`` / non-conditional surface was
+  unaffected. **Fix (proven RTL-CE-Slice-2 / `systemverilog.ebnf`
+  idiom):** the inline alternation is lifted into a **named** rule
+  `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} | kw_ifndef -> {kind:
+  "ifndef"}`; `pp_if_branch`'s annotation is unchanged
+  (`{keyword: $1, …}`) but `$1` now binds the clean named rule. The
+  parser is regenerated and the corrected shape is machine-locked. For
+  input `` `ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n`` the
+  fixed `if_branch.keyword` is now `{kind: "ifdef"}` (would be
+  `{kind: "ifndef"}` for an `` `ifndef`` guard) — a real typed polarity
+  discriminator with **no** `<invalid_sequence_access>` anywhere.
+  Consumers read the conditional polarity directly from
+  `if_branch.keyword.kind`; the guard macro stays at the outer
+  `if_branch.macro`. The honest pre-fix history is kept in the
+  [Schema Versioning](#schema-versioning) table (schema `1.0.0` row) and
+  the conditional worked example's schema-`2` transition note; tracked
+  (status `Released`) in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  (`SVPP-0001`). Documented in
+  [the conditional worked example](../systemverilog_preprocessor_parser_book/src/examples-conditional.md).
+
+## Release 1.0.2 / Contract 1.0.2 Highlights — SVPP-0001 correctness fix (pp_if_branch.keyword); schema 1 → 2
+
+Landed 2026-05-16. A worked-example pass surfaced that the `1.0.1`
+baseline shipped one return-annotation defect (`SVPP-0001`) that the
+(root-keys-only) shape-contract regression lock did not catch. It is
+fixed, the parser is regenerated, and the manifest inventory is
+tightened to the full 66-entry surface so the corrected shape is now
+machine-locked.
+
+- **`pp_if_branch.keyword` `<invalid_sequence_access>` (SVPP-0001).**
+  For any `` `ifdef`` / `` `ifndef`` conditional input,
+  `items[].body.if_branch.keyword` emitted a malformed nested object
+  containing three `"<invalid_sequence_access>"` strings instead of the
+  keyword token. Root cause:
+  `pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail?
+  newline pp_item* -> {keyword: $1, macro: $2, tail: $3, items: $5}`
+  bound `$1` to an **inline alternation group**
+  `(kw_ifdef | kw_ifndef)`, which corrupts the positional model so the
+  rule's own annotation is mis-recursed. **Fix (proven RTL-CE-Slice-2 /
+  `systemverilog.ebnf` op-chain idiom):** the inline alternation is
+  lifted into a **named** rule:
+
+  ```ebnf
+  pp_if_keyword := kw_ifdef  -> {kind: "ifdef"}
+                 | kw_ifndef -> {kind: "ifndef"}
+  pp_if_branch  := pp_if_keyword macro_name directive_tail? newline pp_item*
+                -> {keyword: $1, macro: $2, tail: $3, items: $5}
+  ```
+
+  `pp_if_branch`'s annotation is **unchanged** — only `$1` now binds
+  the clean named `pp_if_keyword` rule instead of the inline group. The
+  fixed shape for input
+  `` `ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n`` is
+  `pp_conditional` = `{if_branch, elsif_branches, else_branch}`;
+  `if_branch` = `{keyword: {kind: "ifdef"}, macro: [[" "], "X"],
+  tail: [], items: [{kind: "define", …}]}`. `if_branch.keyword` is now
+  the typed polarity object `{kind: "ifdef"}` (or `{kind: "ifndef"}`) —
+  **no** `<invalid_sequence_access>` anywhere. Consumers read the
+  `` `ifdef`` vs `` `ifndef`` polarity directly from
+  `if_branch.keyword.kind`; the guard macro stays at the outer
+  `if_branch.macro`.
+
+Annotation count: **66** (was 64; +2 = the new `pp_if_keyword`
+`return_object` branches `{kind: "ifdef"}` / `{kind: "ifndef"}`). **28**
+distinct rules (was 27; +1 = `pp_if_keyword`). All 66 remain
+`annotation_type: "return_object"`. Same accept set (no grammar
+acceptance change — purely the alternation lift + its 2 branch
+annotations). Schema bumped `1 → 2` because `pp_if_branch.keyword`
+changed shape in a consumer-visible way (was the malformed
+`<invalid_sequence_access>` object, now the typed `{kind}` polarity
+discriminator). Gate-locked:
+`cargo test --lib --features generated_parsers systemverilog_preprocessor_ast_shape_contract`
+and
+`make -C rust SHELL=/opt/homebrew/bin/bash systemverilog_preprocessor_parser_book_gate`.
+
+> **Systemic note:** the inline-operator-alternation antipattern that
+> caused `SVPP-0001` also exists in `grammars/rtl_frontend.ebnf` and
+> `grammars/vhdl.ebnf` `binop_chain` levels (same
+> `<invalid_sequence_access>` empirically confirmed for rtl_frontend
+> `a + b`), and was the same root cause fixed for `rtl_const_expr` in
+> RTL-CE-Slice-2 (`docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md`
+> Release 1.0.2 systemic note). Those families' corrections are tracked
+> separately as their own slices + bug-ledger entries; this release
+> fixes systemverilog_preprocessor only.
 
 ## Release 1.0.1 / Contract 1.0.1 Highlights — SVPP-Slice-1: full grammar typed (40+ rules / 63 annotations)
 
@@ -122,7 +201,7 @@ systemverilog_preprocessor tree, and how to branch on the top-level
 discriminators. Every shape below is transcribed from the live inventory
 `generated/systemverilog_preprocessor_return_annotations.json`
 (`version: 1`, `grammar: "systemverilog_preprocessor"`,
-`annotation_count: 64`, **27 distinct rules**), cross-checked against the
+`annotation_count: 66`, **28 distinct rules**), cross-checked against the
 embedded copy in
 `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
 (content-identical on the `(rule, branch_index, annotation_type,
@@ -165,7 +244,7 @@ instead.
 > `root` keys are **not** members of `AstDumpPayload` itself —
 > `pgen_dump_contract_version` appears only inside the truncation
 > diagnostic envelope, the schema axis is the **AST-dump schema version
-> `1`** tracked in [Schema Versioning](#schema-versioning), the grammar
+> `2`** tracked in [Schema Versioning](#schema-versioning), the grammar
 > family is the fixed `systemverilog_preprocessor` label, and the profile
 > is the fixed `default` profile (see [Stable Integration
 > Surface](#stable-integration-surface)). The "root" is the parsed
@@ -297,41 +376,53 @@ formal / macro body atom dispatchers (`condition_expr` /
 
 ### Verified surface totals
 
-The full typed surface of contract `1.0.1` is **64 return annotations
-across 27 distinct rules** (all 64 are `annotation_type:
-"return_object"`), AST-dump schema version `1`, parser release `1.0.1`.
+The full typed surface of contract `1.0.2` is **66 return annotations
+across 28 distinct rules** (all 66 are `annotation_type:
+"return_object"`), AST-dump schema version `2`, parser release `1.0.2`.
 These exact numbers are transcribed from
 `generated/systemverilog_preprocessor_return_annotations.json`
 (`version: 1`, `grammar: "systemverilog_preprocessor"`,
-`annotation_count: 64`; 27 distinct `rule` values) and its embedded copy
+`annotation_count: 66`; 28 distinct `rule` values) and its embedded copy
 `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`.
 (The inventory-file `version: 1` is the inventory format version,
-distinct from the AST-dump schema version `1` and the parser release
-version `1.0.1`.) The machine-checkable enumeration of every
+distinct from the AST-dump schema version `2` and the parser release
+version `1.0.2`.) The `1.0.2` `SVPP-0001` fix added the new
+`pp_if_keyword` rule (2 `return_object` branches, `{kind: "ifdef"}` /
+`{kind: "ifndef"}`), taking the count `64 → 66` and distinct rules
+`27 → 28`. The machine-checkable enumeration of every
 `(rule, branch_index, annotation_type, normalized_text)` tuple is those
 two artifacts; this contract section is curated; if this section and
 either artifact disagree, the artifact wins, and this integration
 contract wins over the per-family mdBook.
 
-### Known defect — `SVPP-0001`
+### Resolved defect — `SVPP-0001` (fixed in 1.0.2)
 
-The released `1.0.1` parser ships one accepted shape defect, tracked in
-`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`) and
-documented at the head of this contract under
-[Known Defects (release 1.0.1)](#known-defects-release-101):
-`pp_if_branch.keyword` emits `"<invalid_sequence_access>"` for
-`` `ifdef`` / `` `ifndef`` conditional input. Root cause:
+The released `1.0.1` parser shipped one accepted shape defect,
+`SVPP-0001`, **fixed in parser release `1.0.2` / schema `2`** and
+tracked (status `Released`) in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`) and at
+the head of this contract under
+[Resolved Defects — `SVPP-0001`](#resolved-defects--svpp-0001-fixed-in-release-102-schema-2).
+*Historical (release `1.0.1`, schema `1`):* `pp_if_branch.keyword`
+emitted `"<invalid_sequence_access>"` for `` `ifdef`` / `` `ifndef``
+conditional input. Root cause:
 `pp_if_branch := (kw_ifdef | kw_ifndef) macro_name … -> {keyword: $1,
-…}` binds `$1` to an **inline alternation group** — the same
+…}` bound `$1` to an **inline alternation group** — the same
 inline-alternation-`$N` emit-time defect class fixed for `rtl_const_expr`
 in RTL-CE-Slice-2 (and tracked for `rtl_frontend` / `vhdl` `binop_chain`).
-The `` `define`` / non-conditional surface is unaffected; the guard macro
-is still recoverable from the correct outer `if_branch.macro`. **This
-defect is NOT fixed in `1.0.1`** — the fix is deferred to the systemic
-inline-alternation parser-correctness lane (lift `(kw_ifdef |
-kw_ifndef)` into a named rule per the proven RTL-CE-Slice-2 playbook;
-schema bump + lockstep at that time). The AST-dump schema version stays
-**`1`** for release `1.0.1`.
+The `` `define`` / non-conditional surface was unaffected. **Fix
+(proven RTL-CE-Slice-2 playbook):** the inline alternation is lifted into
+the named rule `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} | kw_ifndef
+-> {kind: "ifndef"}`; `pp_if_branch`'s annotation is unchanged
+(`{keyword: $1, …}`) but `$1` now binds the clean named rule. The
+verified post-fix output is clean — for
+`` `ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n`` the
+`if_branch.keyword` is now `{kind: "ifdef"}` (or `{kind: "ifndef"}` for
+an `` `ifndef`` guard), with **no** `<invalid_sequence_access>`
+anywhere. Consumers read the conditional polarity directly from
+`if_branch.keyword.kind`; the guard macro stays at the outer
+`if_branch.macro`. The honest pre-fix history is retained in the
+[Schema Versioning](#schema-versioning) schema `1.0.0` row.
 
 ## Conditional Compilation and Macro Body Fragments
 
@@ -346,7 +437,7 @@ shape, `kind`, field name, branch count, and grammar line reference
 below is transcribed from the live inventory
 `generated/systemverilog_preprocessor_return_annotations.json`
 (`version: 1`, `grammar: "systemverilog_preprocessor"`,
-`annotation_count: 64`, **27 distinct rules**) and verified against
+`annotation_count: 66`, **28 distinct rules**) and verified against
 `grammars/systemverilog_preprocessor.ebnf`. The inventory is the ground
 truth: where this prose and the inventory disagree, the inventory wins.
 
@@ -357,12 +448,14 @@ The `pp_item` `"conditional"` branch (branch 7 in the
 that is the typed `pp_conditional` object. `pp_conditional` is the
 single-branch root of the `` `ifdef`` / `` `ifndef`` … `` `elsif`` …
 `` `else`` … `` `endif`` tree. Per
-`grammars/systemverilog_preprocessor.ebnf` (lines 61–71):
+`grammars/systemverilog_preprocessor.ebnf` (lines 61–80):
 
 ```ebnf
 pp_conditional  := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
                 -> {if_branch: $1, elsif_branches: $2, else_branch: $3}
-pp_if_branch    := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item*
+pp_if_keyword   := kw_ifdef  -> {kind: "ifdef"}
+                 | kw_ifndef -> {kind: "ifndef"}
+pp_if_branch    := pp_if_keyword macro_name directive_tail? newline pp_item*
                 -> {keyword: $1, macro: $2, tail: $3, items: $5}
 pp_elsif_branch := kw_elsif condition_expr newline pp_item*
                 -> {condition: $2, items: $4}
@@ -372,29 +465,41 @@ pp_endif        := kw_endif directive_tail? newline?
                 -> {tail: $2}
 ```
 
-Each of these five rule names exists verbatim in the inventory, each
-with exactly **one** branch (`branch_index: 0`), each
-`annotation_type: "return_object"`. None of the five carries a `type`
-or `kind` discriminator — they are fixed-shape positional objects
-reached structurally from the `pp_item` `"conditional"` `body`, not by
-tag dispatch.
+`pp_if_keyword` is the `1.0.2` `SVPP-0001` correctness fix (the proven
+RTL-CE-Slice-2 / `systemverilog.ebnf` idiom): the previously-inline
+`(kw_ifdef | kw_ifndef)` alternation is lifted into this **named**
+2-branch rule so `pp_if_branch`'s bare `keyword: $1` captures cleanly.
+It is the **only** dispatch rule in the conditional tree — a 2-branch
+`kind`-tagged shape (`{kind: "ifdef"}` / `{kind: "ifndef"}`,
+`branch_index` 0–1, both `return_object`). The other five rules
+(`pp_conditional`, `pp_if_branch`, `pp_elsif_branch`, `pp_else_branch`,
+`pp_endif`) each have exactly **one** branch (`branch_index: 0`), each
+`annotation_type: "return_object"`, and carry no `type`/`kind`
+discriminator — they are fixed-shape positional objects reached
+structurally from the `pp_item` `"conditional"` `body`, not by tag
+dispatch.
 
 | Rule (`grammars/systemverilog_preprocessor.ebnf`) | Annotation | Branches | Fields | Meaning |
 |---|---|---|---|---|
 | `pp_conditional` (line 61) | `return_object` `{if_branch: $1, elsif_branches: $2, else_branch: $3}` | 1 | `if_branch`, `elsif_branches`, `else_branch` | `if_branch` is exactly one typed `pp_if_branch`. `elsif_branches` is an array (`[]` when there are no `` `elsif``) of typed `pp_elsif_branch`, in source order. `else_branch` is the single typed `pp_else_branch`, or `[]` when there is no `` `else`` (the `pp_else_branch?` optional). The closing `pp_endif` ($4) is **not** re-emitted as a field — it is consumed positionally and contributes only its `tail` semantics; there is no `endif` key on `pp_conditional`. |
-| `pp_if_branch` (line 64) | `return_object` `{keyword: $1, macro: $2, tail: $3, items: $5}` | 1 | `keyword`, `macro`, `tail`, `items` | `keyword` is the `` `ifdef``/`` `ifndef`` token — **see `SVPP-0001` below; this field is defective in `1.0.1`.** `macro` is the guard macro name (`macro_name`/`identifier` envelope). `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when the branch body is empty) — recurse into the [`pp_item` dispatch](#the-10-branch-pp_item-dispatch) for each element. |
-| `pp_elsif_branch` (line 66) | `return_object` `{condition: $2, items: $4}` | 1 | `condition`, `items` | `condition` is the typed `condition_expr` object (`{atoms}`, line 73) — a `condition_atom+` stream (see the condition-atom note below). `items` is a nested `pp_item*` array (`[]` when empty). Note the positional gap: `kw_elsif` is `$1`, `condition_expr` is `$2`, `newline` is `$3`, `pp_item*` is `$4`; `$1`/`$3` are consumed but not re-emitted. |
-| `pp_else_branch` (line 68) | `return_object` `{tail: $2, items: $4}` | 1 | `tail`, `items` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when empty). `kw_else` (`$1`) and `newline` (`$3`) are consumed positionally without their own fields. |
-| `pp_endif` (line 70) | `return_object` `{tail: $2}` | 1 | `tail` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `pp_endif` is consumed positionally by `pp_conditional` ($4) and is **not** surfaced as a `pp_conditional` field — a consumer that needs the `` `endif`` trailing comment must obtain it through a path that retains the `pp_endif` shape (e.g. a raw/structured dump), not from the typed `pp_conditional` object. |
+| `pp_if_keyword` (lines 71–72) | `return_object` `{kind: "ifdef"}` (branch 0) / `{kind: "ifndef"}` (branch 1) | 2 | `kind` | The `1.0.2` `SVPP-0001` named-rule fix. A 2-branch `kind`-tagged polarity discriminator: branch 0 matches `kw_ifdef` → `{kind: "ifdef"}`, branch 1 matches `kw_ifndef` → `{kind: "ifndef"}`. This is exactly what `pp_if_branch.keyword` now holds. The two branches are the +2 entries that took the annotation count `64 → 66` and the distinct-rule count `27 → 28`. |
+| `pp_if_branch` (line 74) | `return_object` `{keyword: $1, macro: $2, tail: $3, items: $5}` | 1 | `keyword`, `macro`, `tail`, `items` | `keyword` is `$1`, the typed `pp_if_keyword` polarity object — **`{kind: "ifdef"}` or `{kind: "ifndef"}`** as of the `1.0.2` `SVPP-0001` fix (was the malformed `<invalid_sequence_access>` object at `1.0.1` / schema `1` — see [Resolved defect — `SVPP-0001`](#resolved-defect--svpp-0001-fixed-in-102)). Read the conditional polarity from `if_branch.keyword.kind`. `macro` is the guard macro name (`macro_name`/`identifier` envelope). `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when the branch body is empty) — recurse into the [`pp_item` dispatch](#the-10-branch-pp_item-dispatch) for each element. |
+| `pp_elsif_branch` (line 76) | `return_object` `{condition: $2, items: $4}` | 1 | `condition`, `items` | `condition` is the typed `condition_expr` object (`{atoms}`) — a `condition_atom+` stream (see the condition-atom note below). `items` is a nested `pp_item*` array (`[]` when empty). Note the positional gap: `kw_elsif` is `$1`, `condition_expr` is `$2`, `newline` is `$3`, `pp_item*` is `$4`; `$1`/`$3` are consumed but not re-emitted. |
+| `pp_else_branch` (line 78) | `return_object` `{tail: $2, items: $4}` | 1 | `tail`, `items` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `items` is a nested `pp_item*` array (`[]` when empty). `kw_else` (`$1`) and `newline` (`$3`) are consumed positionally without their own fields. |
+| `pp_endif` (line 80) | `return_object` `{tail: $2}` | 1 | `tail` | `tail` is the optional `directive_tail` envelope (`[]` when absent). `pp_endif` is consumed positionally by `pp_conditional` ($4) and is **not** surfaced as a `pp_conditional` field — a consumer that needs the `` `endif`` trailing comment must obtain it through a path that retains the `pp_endif` shape (e.g. a raw/structured dump), not from the typed `pp_conditional` object. |
 
 **Consumer walk.** To reconstruct the
 `` `ifdef``/`` `ifndef`` … `` `elsif`` … `` `else`` … `` `endif``
 tree: dispatch a `pp_item` on `kind == "conditional"`, take
 `body` (the `pp_conditional`). Read `body.if_branch` — its `macro` is
-the guard identifier and its `keyword` *would* distinguish
-`` `ifdef`` (defined-true) from `` `ifndef`` (defined-false) but is
-defective in `1.0.1` (see `SVPP-0001`). Recurse `body.if_branch.items`
-as a `pp_item*` array for the if-true body. Iterate
+the guard identifier and its `keyword` distinguishes
+`` `ifdef`` (defined-true) from `` `ifndef`` (defined-false) via
+`body.if_branch.keyword.kind` (`"ifdef"` / `"ifndef"`), the typed
+`pp_if_keyword` polarity object landed by the `1.0.2` `SVPP-0001`
+fix (was defective at `1.0.1`; see
+[Resolved defect — `SVPP-0001`](#resolved-defect--svpp-0001-fixed-in-102)).
+Recurse `body.if_branch.items` as a `pp_item*` array for the if-true
+body. Iterate
 `body.elsif_branches` (possibly `[]`); for each, evaluate
 `elsif.condition` (a `condition_expr` `{atoms}`) and recurse
 `elsif.items`. If `body.else_branch` is not `[]`, recurse
@@ -402,33 +507,35 @@ as a `pp_item*` array for the if-true body. Iterate
 `` `endif`` is structurally implied (the tree is well-formed only when
 a `pp_endif` was consumed) and is not a field.
 
-#### `SVPP-0001` in the conditional-tree context
+#### `SVPP-0001` in the conditional-tree context (resolved in 1.0.2)
 
-`pp_if_branch.keyword` (the `$1` bound to the inline alternation
-`(kw_ifdef | kw_ifndef)` at line 64) surfaces, for any
+`pp_if_branch.keyword` is now the typed `pp_if_keyword` polarity object
+**`{kind: "ifdef"}`** (or `{kind: "ifndef"}`). *Historical (release
+`1.0.1`, schema `1`):* `keyword` (the `$1` bound to the then-inline
+alternation `(kw_ifdef | kw_ifndef)`) surfaced, for any
 `` `ifdef``/`` `ifndef`` input, a malformed nested object containing
 three `"<invalid_sequence_access>"` strings instead of the keyword
-token — the inline-alternation-`$N` emit-time defect class. This is the
-same `SVPP-0001` defect documented at the head of this contract under
-[Known Defects (release 1.0.1)](#known-defects-release-101) and in the
-[Known defect — `SVPP-0001`](#known-defect--svpp-0001) note of the
-AST-Envelope section; it is tracked in
-`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`,
-status `Root Caused`). It is **NOT fixed in `1.0.1`**, and the AST-dump
-schema version deliberately **stays `1`** for this release. The
-fragment-specific consumer guidance: the *only* defective field in the
-entire conditional tree is `pp_if_branch.keyword` — `if_branch.macro`,
-`if_branch.tail`, `if_branch.items`, and every `pp_elsif_branch` /
-`pp_else_branch` / `pp_endif` field are correct. Treat
-`if_branch.keyword` as opaque/unusable; do not branch on its (absent)
-token text and do not read its nested fields. To recover the
-`` `ifdef`` vs `` `ifndef`` polarity in `1.0.1`, a consumer must obtain
-it outside the typed `keyword` field (e.g. from the raw source span /
-structured dump that retains the keyword token); the guard macro itself
-is always recoverable from the correct outer `if_branch.macro`. The
-scheduled fix lifts `(kw_ifdef | kw_ifndef)` into a named rule per the
-proven RTL-CE-Slice-2 playbook, with a schema bump + book/contract
-lockstep at that time.
+token — the inline-alternation-`$N` emit-time defect class
+(`SVPP-0001`). **Fixed in parser release `1.0.2` / schema `2`** by
+lifting `(kw_ifdef | kw_ifndef)` into the named `pp_if_keyword` rule
+(proven RTL-CE-Slice-2 playbook); the schema was bumped `1 → 2` because
+`pp_if_branch.keyword` changed shape in a consumer-visible way. Tracked
+(status `Released`) in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`) and at
+the head of this contract under
+[Resolved Defects — `SVPP-0001`](#resolved-defects--svpp-0001-fixed-in-release-102-schema-2)
+and the
+[Resolved defect — `SVPP-0001`](#resolved-defect--svpp-0001-fixed-in-102)
+note of the AST-Envelope section. The fragment-specific consumer
+guidance: read the conditional polarity directly from
+`if_branch.keyword.kind` (`"ifdef"` = defined-true,
+`"ifndef"` = defined-false); the guard macro is at the outer
+`if_branch.macro`; `if_branch.tail`, `if_branch.items`, and every
+`pp_elsif_branch` / `pp_else_branch` / `pp_endif` field are correct.
+There is no longer any `<invalid_sequence_access>` anywhere in the
+conditional tree; consumers written against `1.0.1` that treated
+`if_branch.keyword` as opaque/text-only must repin to schema `2` and
+switch to the `keyword.kind` discriminator.
 
 ### The `macro_body` fragment kinds
 
@@ -557,11 +664,12 @@ body in source order. The only `type`-discriminated object on this
 whole path is the `systemverilog_preprocessor_file` root; `pp_item`,
 `macro_body_fragment`, and `macro_default_atom` all dispatch on `kind`.
 This contract documents the surface as it exists in the inventory; the
-schema axis is the AST-dump schema version **`1`** (see
+schema axis is the AST-dump schema version **`2`** (see
 [Schema Versioning](#schema-versioning)) and the parser release is
-**`1.0.1`**, with **64 return annotations across 27 distinct rules** —
-unchanged by this section. Where this prose and the inventory disagree,
-the inventory wins.
+**`1.0.2`**, with **66 return annotations across 28 distinct rules** —
+unchanged by this section (the `1.0.2` `SVPP-0001` fix touched only the
+conditional tree's `pp_if_branch.keyword` / new `pp_if_keyword` rule).
+Where this prose and the inventory disagree, the inventory wins.
 
 ## Source Of Truth
 - Grammar source:
@@ -610,11 +718,11 @@ order stated at the end of this section.
 | Surface | Path | Authoritative for |
 |---|---|---|
 | **This contract** | `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` | The downstream integration surface: AST-dump envelope, `systemverilog_preprocessor_file` root, the 10-branch `pp_item` dispatch, the conditional-compilation tree, and the macro-body / macro-default fragment streams. See [AST Envelope and pp_item Dispatch](#ast-envelope-and-pp_item-dispatch) and [Conditional Compilation and Macro Body Fragments](#conditional-compilation-and-macro-body-fragments). |
-| **Per-parser mdBook** | `docs/systemverilog_preprocessor_parser_book/` (source `src/*.md`; tracked HTML at `docs/systemverilog_preprocessor_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples (including the `SVPP-0001` conditional shown honestly), schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. Listed in `README.md` § "Per-Parser Integration Reference Books". |
+| **Per-parser mdBook** | `docs/systemverilog_preprocessor_parser_book/` (source `src/*.md`; tracked HTML at `docs/systemverilog_preprocessor_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples (including the conditional worked example with the `SVPP-0001` schema-`1`→`2` fix transition), schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. Listed in `README.md` § "Per-Parser Integration Reference Books". |
 | **Shape-contract manifest** | `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
-| **Declared-annotation inventory** | `generated/systemverilog_preprocessor_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the systemverilog_preprocessor grammar emits (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 64`, **27 distinct rules**; all 64 `return_object`). The generator-side source of truth for the typed surface. |
+| **Declared-annotation inventory** | `generated/systemverilog_preprocessor_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the systemverilog_preprocessor grammar emits (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 66`, **28 distinct rules**; all 66 `return_object`). The generator-side source of truth for the typed surface. |
 | **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
-| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released systemverilog_preprocessor parser; the known defect `SVPP-0001` lives there (status `Root Caused`, fix not yet landed). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released systemverilog_preprocessor parser; the `SVPP-0001` defect lives there (status `Released`, fixed in parser release `1.0.2` / schema `2`). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
 
 Precedence when surfaces disagree (highest first): the **embedding-API
 contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
@@ -693,10 +801,11 @@ exactly the
 test (it does not match the `vhdl_*` / `rtl_*` shape-contract tests in
 the same module). Any drift between the running parser's emitted shapes
 and the locked manifest fails this test, surfacing the change before
-release. (The accepted `SVPP-0001` defect is part of the locked
-baseline — it is documented honestly, not masked; the schema version
-deliberately **stays `1`** until the systemic inline-alternation fix
-lands with a schema bump + lockstep.)
+release. (The `1.0.2` `SVPP-0001` fix is locked here — the corrected
+`pp_if_branch.keyword` / new `pp_if_keyword` shape is part of the locked
+66-entry baseline; any reversion to the pre-fix
+`<invalid_sequence_access>` shape fails this test immediately. The
+schema was bumped `1 → 2` in same-commit lockstep with this fix.)
 
 **4. Validation / release gates.** Anyone publishing a parser-release
 version bump also runs the per-family gates enumerated in
@@ -712,8 +821,8 @@ read this document. Where a term has a normative definition, this
 contract is authoritative; the per-parser book's
 [glossary](../systemverilog_preprocessor_parser_book/src/glossary.md)
 paraphrases the same terms for quick lookup. Numbers below are pinned to
-contract `1.0.1` / AST-dump schema `1` / parser release `1.0.1` /
-**64 return annotations across 27 distinct rules** (all 64
+contract `1.0.2` / AST-dump schema `2` / parser release `1.0.2` /
+**66 return annotations across 28 distinct rules** (all 66
 `return_object`).
 
 - **`AstDumpPayload`** — the success return of the
@@ -741,18 +850,20 @@ contract `1.0.1` / AST-dump schema `1` / parser release `1.0.1` /
   systemverilog_preprocessor AST. `pgen_dump_contract_version` is a
   member of **this envelope only**, never of `AstDumpPayload` itself.
 - **AST-dump schema version** — the integer version axis tracking the
-  AST output shape, currently `1`, pinned by this contract (see
+  AST output shape, currently `2`, pinned by this contract (see
   [Schema Versioning](#schema-versioning)). It is **not** a field of
   `AstDumpPayload`; it is the contract-tracked axis. Bumped only when
   the emitted shape changes in a way consumers may need to adapt to (new
   annotation on a previously-unannotated rule, restructured annotation,
-  user-visible grammar-shape change). The `SVPP-0001` fix is the
-  scheduled trigger for the next bump (`1 → 2`); it deliberately
-  **stays `1`** for release `1.0.1`.
+  user-visible grammar-shape change). It was bumped `1 → 2` by the
+  `1.0.2` `SVPP-0001` correctness fix because `pp_if_branch.keyword`
+  changed shape in a consumer-visible way (was the malformed
+  `<invalid_sequence_access>` object at schema `1`, now the typed
+  `{kind: "ifdef"|"ifndef"}` `pp_if_keyword` polarity discriminator).
 - **Parser release version** — the parser library's release identity,
-  currently `1.0.1`. Bumped on every functional change (bug fixes, perf
+  currently `1.0.2`. Bumped on every functional change (bug fixes, perf
   work, grammar changes). Moves independently of the schema version; the
-  `1.0.1` release carries AST-dump schema `1`.
+  `1.0.2` release carries AST-dump schema `2`.
 - **`pp_item` dispatch** — the primary top-level dispatcher: a
   **10-branch** `kind`-tagged shape
   (`grammars/systemverilog_preprocessor.ebnf` lines 18–27). Every parse
@@ -775,14 +886,18 @@ contract `1.0.1` / AST-dump schema `1` / parser release `1.0.1` /
   (`{unit, precision, comment}`), `pp_default_nettype`
   (`{nettype, comment}`), `pp_celldefine` (`{comment}`),
   `pp_endcelldefine` (`{comment}`). See [Per-directive shapes](#per-directive-shapes).
-- **Conditional-compilation tree** — the typed five-node tree the
+- **Conditional-compilation tree** — the typed tree the
   `pp_item` `"conditional"` branch hands back: `pp_conditional`
   (`{if_branch, elsif_branches, else_branch}`) over `pp_if_branch`
-  (`{keyword, macro, tail, items}`), `pp_elsif_branch`
-  (`{condition, items}`), `pp_else_branch` (`{tail, items}`), and
-  `pp_endif` (`{tail}`). Each branch's `items` is a nested `pp_item*`
-  array; the closing `pp_endif` is consumed positionally and is **not**
-  re-emitted as a `pp_conditional` field. See
+  (`{keyword, macro, tail, items}` — where `keyword` is the typed
+  `pp_if_keyword` polarity object `{kind: "ifdef"|"ifndef"}` as of the
+  `1.0.2` `SVPP-0001` fix), `pp_elsif_branch` (`{condition, items}`),
+  `pp_else_branch` (`{tail, items}`), and `pp_endif` (`{tail}`), plus
+  the 2-branch `pp_if_keyword` dispatch rule
+  (`{kind: "ifdef"}` / `{kind: "ifndef"}`) the `1.0.2` fix added. Each
+  branch's `items` is a nested `pp_item*` array; the closing `pp_endif`
+  is consumed positionally and is **not** re-emitted as a
+  `pp_conditional` field. See
   [The conditional-compilation tree](#the-conditional-compilation-tree).
 - **`macro_body_fragment` / `macro_default_atom`** — the two
   `kind`-tagged fragment-stream dispatchers. `macro_body` is
@@ -816,12 +931,12 @@ contract `1.0.1` / AST-dump schema `1` / parser release `1.0.1` /
   systemverilog_preprocessor grammar emits:
   `generated/systemverilog_preprocessor_return_annotations.json`
   (`version: 1`, `grammar: "systemverilog_preprocessor"`,
-  `annotation_count: 64`, **27 distinct rules**; all 64
+  `annotation_count: 66`, **28 distinct rules**; all 66
   `return_object`). The generator-side source of truth for the typed
   surface; mirrored by the embedded shape-contract manifest copy. (The
   `version: 1` field is the inventory-file format version, distinct from
-  the AST-dump schema version `1` and the parser release version
-  `1.0.1`.)
+  the AST-dump schema version `2` and the parser release version
+  `1.0.2`.)
 - **Generic host AST-dump surface** — the
   `parse_grammar_profile_ast_dump*` family
   (`parse_grammar_profile_ast_dump`, the `*_result` and `*_named`
@@ -834,22 +949,29 @@ contract `1.0.1` / AST-dump schema `1` / parser release `1.0.1` /
   `pgen::embedding_api`; the practical stable surface today is the
   runtime module `rust/src/sv_preprocessor.rs` plus the executable
   gates. Signatures are in `rust/docs/EMBEDDING_API_CONTRACT.md`.
-- **`SVPP-0001`** — the one accepted shape defect the released `1.0.1`
-  parser ships: `pp_if_branch.keyword` (the `$1` bound to the inline
-  alternation `(kw_ifdef | kw_ifndef)` at
-  `grammars/systemverilog_preprocessor.ebnf` line 64) surfaces, for any
+- **`SVPP-0001`** — the one accepted shape defect the `1.0.1` parser
+  shipped, **fixed in parser release `1.0.2` / schema `2`**.
+  *Historical:* `pp_if_branch.keyword` (the `$1` bound to the
+  then-inline alternation `(kw_ifdef | kw_ifndef)`) surfaced, for any
   `` `ifdef``/`` `ifndef`` input, a malformed nested object containing
   three `"<invalid_sequence_access>"` strings instead of the keyword
   token — the inline-alternation-`$N` emit-time defect class also fixed
   for `rtl_const_expr` in RTL-CE-Slice-2 and tracked for
-  `rtl_frontend` / `vhdl` `binop_chain`. **NOT fixed in `1.0.1`**
-  (status `Root Caused`); tracked in
+  `rtl_frontend` / `vhdl` `binop_chain`. **Fixed** by lifting
+  `(kw_ifdef | kw_ifndef)` into the named rule `pp_if_keyword := kw_ifdef
+  -> {kind: "ifdef"} | kw_ifndef -> {kind: "ifndef"}`
+  (`grammars/systemverilog_preprocessor.ebnf` lines 71–72); `pp_if_branch`'s
+  bare `keyword: $1` (line 74) now binds the clean named rule, so
+  `if_branch.keyword` is the typed polarity object `{kind: "ifdef"}` /
+  `{kind: "ifndef"}` with **no** `<invalid_sequence_access>` anywhere.
+  Status `Released`; tracked in
   `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` and documented at
-  [Known Defects (release 1.0.1)](#known-defects-release-101) and in the
-  [Known defect — `SVPP-0001`](#known-defect--svpp-0001) and
-  [`SVPP-0001` in the conditional-tree context](#svpp-0001-in-the-conditional-tree-context)
-  notes. Consumer workaround: read the guard from the correct outer
-  `if_branch.macro` and treat `if_branch.keyword` as opaque. The AST-dump
-  schema version deliberately **stays `1`** for this release; the fix is
-  deferred to the systemic inline-alternation correctness lane with a
-  schema bump + book/contract lockstep.
+  [Resolved Defects — `SVPP-0001`](#resolved-defects--svpp-0001-fixed-in-release-102-schema-2)
+  and in the
+  [Resolved defect — `SVPP-0001`](#resolved-defect--svpp-0001-fixed-in-102)
+  and
+  [`SVPP-0001` in the conditional-tree context](#svpp-0001-in-the-conditional-tree-context-resolved-in-102)
+  notes. Consumer guidance: read the conditional polarity from
+  `if_branch.keyword.kind` and the guard macro from the outer
+  `if_branch.macro`. The AST-dump schema version was bumped `1 → 2` by
+  this fix; consumers written against `1.0.1` must repin to schema `2`.

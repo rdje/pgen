@@ -2,7 +2,7 @@
 
 This chapter is the per-rule shape reference for the PGEN sv_preprocessor parser. It documents the `systemverilog_preprocessor_file` root, the `pp_item` dispatch, the seven directive shapes, the conditional-compilation tree, the condition / macro-formal / macro-body atom families, and the passthrough lines — grouped by rule family.
 
-> **Status:** SVPP-Slice-1 (parser release `1.0.1`, AST-dump schema version `1`) landed the full grammar typing in one comprehensive batch — **64 return annotations across 27 distinct rules** in `grammars/systemverilog_preprocessor.ebnf`. Every shape in this chapter is drawn from the live inventory at `generated/systemverilog_preprocessor_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — identical content; the contract-embedded copy omits only the cosmetic `raw_text` field, the `(rule, branch_index, annotation_type, normalized_text)` tuples are byte-identical, 64 entries). That artifact, not this prose, is the machine-checkable source of truth.
+> **Status:** SVPP-Slice-1 landed the full grammar typing in one comprehensive batch; the `1.0.2` `SVPP-0001` correctness fix then lifted the inline `(kw_ifdef | kw_ifndef)` alternation into the named `pp_if_keyword` rule. As of parser release `1.0.2` / AST-dump schema version `2` the surface is **66 return annotations across 28 distinct rules** in `grammars/systemverilog_preprocessor.ebnf`. Every shape in this chapter is drawn from the live inventory at `generated/systemverilog_preprocessor_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — identical content; the contract-embedded copy omits only the cosmetic `raw_text` field, the `(rule, branch_index, annotation_type, normalized_text)` tuples are byte-identical, 66 entries). That artifact, not this prose, is the machine-checkable source of truth.
 
 ## How to read this chapter
 
@@ -122,12 +122,14 @@ time_literal := unsigned_number time_unit -> {value: $1, unit: $2}
 | `nettype_value` (2 kinds) | `{kind: "identifier", body}` (e.g. `wire`) / `{kind: "none"}` (the `none` keyword, bodyless). |
 | `time_literal` | `{value, unit}` — `value` is the un-annotated `unsigned_number` envelope; `unit` is the un-annotated `time_unit` envelope (`s`/`ms`/`us`/`ns`/`ps`/`fs`). |
 
-## Family: conditional-compilation tree (5 nodes)
+## Family: conditional-compilation tree (5 nodes + the pp_if_keyword polarity rule)
 
 ```ebnf
 pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
                -> {if_branch: $1, elsif_branches: $2, else_branch: $3}
-pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item*
+pp_if_keyword := kw_ifdef  -> {kind: "ifdef"}
+              |  kw_ifndef -> {kind: "ifndef"}
+pp_if_branch := pp_if_keyword macro_name directive_tail? newline pp_item*
              -> {keyword: $1, macro: $2, tail: $3, items: $5}
 pp_elsif_branch := kw_elsif condition_expr newline pp_item*
                 -> {condition: $2, items: $4}
@@ -137,10 +139,18 @@ pp_endif := kw_endif directive_tail? newline?
          -> {tail: $2}
 ```
 
+`pp_if_keyword` is the `1.0.2` `SVPP-0001` correctness fix: the
+previously-inline `(kw_ifdef | kw_ifndef)` alternation lifted into a
+named 2-branch `kind`-tagged rule (the proven `rtl_const_expr`
+RTL-CE-Slice-2 / `systemverilog.ebnf` idiom) so `pp_if_branch`'s bare
+`keyword: $1` captures cleanly. Its 2 branches are the +2 entries that
+took the surface to 66 annotations / 28 distinct rules.
+
 | Rule | Shape | Notes |
 |---|---|---|
 | `pp_conditional` | `{if_branch, elsif_branches, else_branch}` | `elsif_branches` is the `pp_elsif_branch*` array (`[]` when none); `else_branch` is `[]` when there is no `` `else``. The terminating `pp_endif` is matched (`$4`) but **not** surfaced in the annotation. |
-| `pp_if_branch` | `{keyword, macro, tail, items}` | `keyword` is the matched `` `ifdef``/`` `ifndef`` token envelope; `macro` is the macro-name envelope; `tail` is the optional `directive_tail` (`[]` when absent); `items` is the recursively-nested `pp_item*` body of the branch. |
+| `pp_if_keyword` | `{kind: "ifdef"}` (branch 0) / `{kind: "ifndef"}` (branch 1) | The 2-branch `` `ifdef``/`` `ifndef`` polarity discriminator landed by the `1.0.2` `SVPP-0001` fix. Both branches `return_object`. |
+| `pp_if_branch` | `{keyword, macro, tail, items}` | `keyword` is `$1`, the typed `pp_if_keyword` polarity object — **`{kind: "ifdef"}` or `{kind: "ifndef"}`** as of the `1.0.2` `SVPP-0001` fix (was the malformed `<invalid_sequence_access>` object at `1.0.1` / schema `1`; see [Conditional Compilation](examples-conditional.md) and [Schema Versioning](schema-versioning.md)). Read the polarity from `if_branch.keyword.kind`. `macro` is the macro-name envelope; `tail` is the optional `directive_tail` (`[]` when absent); `items` is the recursively-nested `pp_item*` body of the branch. |
 | `pp_elsif_branch` | `{condition, items}` | `condition` is the typed `condition_expr`; `items` is the nested `pp_item*` body. |
 | `pp_else_branch` | `{tail, items}` | `tail` is the optional `directive_tail` (`[]` when absent); `items` is the nested `pp_item*` body. |
 | `pp_endif` | `{tail}` | `tail` is the optional `directive_tail` (`[]` when absent). |
@@ -248,10 +258,10 @@ The three atom families differ only in which punctuation/operator branches they 
 
 ## Total surface and the machine-checkable source
 
-The full typed surface as of contract `1.0.1` is **64 return annotations across 27 distinct rules** (independently re-counted from the inventory: 64 `annotations` entries, all `annotation_type: "return_object"`, over 27 distinct rule names). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
+The full typed surface as of contract `1.0.2` is **66 return annotations across 28 distinct rules** (independently re-counted from the inventory: 66 `annotations` entries, all `annotation_type: "return_object"`, over 28 distinct rule names; the `1.0.2` `SVPP-0001` fix added the 2 `pp_if_keyword` branches / +1 distinct rule, taking 64→66 / 27→28). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
 
-- `generated/systemverilog_preprocessor_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 64`).
-- `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — the embedded inventory used by the AST shape-contract regression lock (`declared_annotation_inventory.annotations`, 64 entries; identical tuples — the contract-embedded copy omits only the cosmetic `raw_text` field).
+- `generated/systemverilog_preprocessor_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 66`).
+- `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — the embedded inventory used by the AST shape-contract regression lock (`declared_annotation_inventory.annotations`, 66 entries; identical tuples — the contract-embedded copy omits only the cosmetic `raw_text` field).
 
 If this chapter and either artifact disagree, the artifact wins — and the integration contract `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` wins over both.
 

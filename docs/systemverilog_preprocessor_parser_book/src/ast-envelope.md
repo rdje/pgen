@@ -25,7 +25,7 @@ pub struct AstDumpPayload {
 `serde_json::from_str`) to obtain the `systemverilog_preprocessor_file`
 **root object** that this book's per-rule chapters describe. There is no
 `root` / `schema_version` / `grammar` / `profile` field on
-`AstDumpPayload` itself: the AST-dump schema version is the `1` tracked
+`AstDumpPayload` itself: the AST-dump schema version is the `2` tracked
 in [Schema Versioning](schema-versioning.md) (pinned from the contract,
 **not** a payload field); the grammar/profile are fixed
 (`systemverilog_preprocessor` / `default`).
@@ -103,11 +103,11 @@ fn handle_pp_item(node: &serde_json::Value) {
 
 ## Conditional-compilation tree
 
-`pp_conditional` describes the recursive `` `ifdef / `elsif / `else / `endif`` (and `` `ifndef``) chain. The body is a typed shape mirroring the grammar's recursive layout — see [Walking the AST](walking-the-ast.md) for the full tree shape.
+`pp_conditional` describes the recursive `` `ifdef / `elsif / `else / `endif`` (and `` `ifndef``) chain. The body is a typed shape mirroring the grammar's recursive layout. The `` `ifdef``/`` `ifndef`` polarity is a typed `pp_if_keyword` object — `pp_if_branch.keyword` is `{kind: "ifdef"}` or `{kind: "ifndef"}` as of the `1.0.2` `SVPP-0001` correctness fix (was the malformed `<invalid_sequence_access>` object at `1.0.1` / schema `1`; see [Schema Versioning](schema-versioning.md) and the [Conditional Compilation](examples-conditional.md) worked example). See [Walking the AST](walking-the-ast.md) for the full tree shape.
 
 ## macro_body fragment dispatch
 
-`pp_define` bodies (the macro replacement text) are tokenized into a `macro_body_fragment` list with **9** `kind`-tagged kinds: `token_paste`, `stringize`, `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `lparen`, `rparen`, `comma`, `question`, `colon`. The separate `macro_default_atom` dispatcher (macro-formal default values) has **8** kinds. The 64-annotation surface (contract 1.0.1) covers all of these; the authoritative per-branch enumeration is in [Top-Level Rules](rules-top-level.md) and the live inventory `generated/systemverilog_preprocessor_return_annotations.json`.
+`pp_define` bodies (the macro replacement text) are tokenized into a `macro_body_fragment` list with **9** `kind`-tagged kinds: `token_paste`, `stringize`, `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `lparen`, `rparen`, `comma`, `question`, `colon`. The separate `macro_default_atom` dispatcher (macro-formal default values) has **8** kinds. The 66-annotation surface (contract 1.0.2) covers all of these; the authoritative per-branch enumeration is in [Top-Level Rules](rules-top-level.md) and the live inventory `generated/systemverilog_preprocessor_return_annotations.json`.
 
 ## Two carrier kinds: typed and recursive-envelope
 
@@ -116,7 +116,7 @@ Per-rule, the AST dump produces JSON in one of two shapes:
 - **Typed shape** — rules with `-> {...}` annotations (pp_item dispatch, all directive bodies, conditional-compilation tree, macro_body fragments).
 - **Recursive-envelope shape** — rules without annotations produce a JSON value derived from grammar shape (sequence → array, alternation → matched-branch shape, etc.).
 
-The 64-annotation surface covers all load-bearing dispatchers. Identifier-leaf and whitespace-leaf rules remain envelope-shaped strings.
+The 66-annotation surface covers all load-bearing dispatchers. Identifier-leaf and whitespace-leaf rules remain envelope-shaped strings.
 
 ```rust
 fn walk(node: &serde_json::Value) {

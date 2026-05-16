@@ -61,7 +61,17 @@ time_literal := unsigned_number time_unit
 pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
                -> {if_branch: $1, elsif_branches: $2, else_branch: $3}
 
-pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item*
+# pp_if_keyword: the `ifdef`/`ifndef` polarity, lifted into a NAMED rule
+# (the systemverilog.ebnf `binary_operator` idiom). An inline alternation
+# `(kw_ifdef | kw_ifndef)` as the lead element of pp_if_branch corrupted
+# the positional model, so `keyword:$1` emitted `<invalid_sequence_access>`
+# (SVPP-0001 / inline-alternation-$N defect class). The named rule fixes
+# it and gives consumers a clean `{kind:"ifdef"|"ifndef"}` polarity
+# discriminator.
+pp_if_keyword := kw_ifdef  -> {kind: "ifdef"}
+               | kw_ifndef -> {kind: "ifndef"}
+
+pp_if_branch := pp_if_keyword macro_name directive_tail? newline pp_item*
              -> {keyword: $1, macro: $2, tail: $3, items: $5}
 pp_elsif_branch := kw_elsif condition_expr newline pp_item*
                 -> {condition: $2, items: $4}

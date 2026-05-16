@@ -6,17 +6,17 @@ This chapter explains how the PGEN sv_preprocessor parser's AST shape is version
 
 The sv_preprocessor parser carries **two** version numbers:
 
-1. **Parser release version** — currently `1.0.1`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
-2. **AST-dump schema version** — currently `1`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+1. **Parser release version** — currently `1.0.2`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
+2. **AST-dump schema version** — currently `2`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.
 
 These numbers are taken from the integration contract's "Contract Identity" section, which records:
 
-- Contract version: `1.0.1`
-- Parser release version: `1.0.1`
-- systemverilog_preprocessor AST-dump schema version: `1`
-- Annotation count: **64** (SVPP-Slice-1 — the full grammar typed in one batch, across 27 distinct rules)
+- Contract version: `1.0.2`
+- Parser release version: `1.0.2`
+- systemverilog_preprocessor AST-dump schema version: `2`
+- Annotation count: **66** (SVPP-Slice-1's full-grammar batch plus the `1.0.2` `SVPP-0001` correctness fix; across 28 distinct rules)
 
 The contract document `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` is the authoritative source for all of these per release.
 
@@ -35,7 +35,9 @@ These do **not** trigger a schema bump:
 - Internal codegen reorganization that doesn't reach the output.
 - Parser-side bug fixes that produce the same shape consumers were already relying on.
 
-The sv_preprocessor grammar was typed in a single comprehensive batch (SVPP-Slice-1, 64 annotations / 27 rules) rather than the long slice-by-slice cadence used by the main SystemVerilog campaign, so the sv_preprocessor schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
+The `1.0.2` `SVPP-0001` correctness fix **did** bump the schema (`1` → `2`): although it fixed a bug, it changed the user-visible `pp_if_branch.keyword` shape (was the malformed `"<invalid_sequence_access>"` object, now the typed `{kind: "ifdef"|"ifndef"}` `pp_if_keyword` polarity discriminator) and added two return annotations. It restructured a shape a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix.
+
+The sv_preprocessor grammar was typed in a single comprehensive batch (SVPP-Slice-1, 64 annotations / 27 rules) rather than the long slice-by-slice cadence used by the main SystemVerilog campaign, so the sv_preprocessor schema timeline is short. A follow-up correctness fix (parser release `1.0.2`, schema `2`, landed 2026-05-16) brought the inventory to 66 annotations / 28 rules — see the schema-`2` row below and the contract's Release 1.0.2 Highlights. Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
 
 ## Byte-equivalence guarantee
 
@@ -49,19 +51,20 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_SYSTEMV
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline (27 distinct rules). `pp_item` dispatch (10 kinds), 7 directive shapes (`define` / `undef` / `include` / `timescale` / `default_nettype` / `celldefine` / `endcelldefine`), `include_path` / `nettype_value` / `time_literal`, conditional-compilation tree (5 nodes), `condition_expr` / `condition_atom` (12 kinds), `macro_formals` / `macro_formal` / `macro_default_value` / `macro_default_atom` (8 kinds) / `macro_body` / `macro_body_fragment` (9 kinds), passthrough lines — all typed in one comprehensive batch. Same accept set as the pre-typing baseline. AST-dump schema version field value: `1`. |
+| 2 | 1.0.2 | **`SVPP-0001` correctness fix (breaking).** `pp_if_branch.keyword` no longer emits the malformed `"<invalid_sequence_access>"` object for `` `ifdef`` / `` `ifndef`` conditional input. The inline alternation `(kw_ifdef \| kw_ifndef)` that was the lead element of `pp_if_branch` (corrupting the positional model so the bare `keyword: $1` mis-recursed) is lifted into a **named** rule `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} \| kw_ifndef -> {kind: "ifndef"}` — the proven `rtl_const_expr` RTL-CE-Slice-2 / `systemverilog.ebnf` op-chain idiom. `pp_if_branch`'s annotation is **unchanged** (`{keyword: $1, macro: $2, tail: $3, items: $5}`); only `$1` now binds the clean named rule, so `if_branch.keyword` is now the typed polarity object `{kind: "ifdef"}` (or `{kind: "ifndef"}`). Annotation inventory **64 → 66** (the 2 new `pp_if_keyword` `return_object` branches); distinct rules **27 → 28** (the new `pp_if_keyword`). Same accept set (no grammar acceptance change — purely the alternation lift + its 2 branch annotations). AST-dump schema version field value: `2`. |
+| 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline (27 distinct rules). `pp_item` dispatch (10 kinds), 7 directive shapes (`define` / `undef` / `include` / `timescale` / `default_nettype` / `celldefine` / `endcelldefine`), `include_path` / `nettype_value` / `time_literal`, conditional-compilation tree (5 nodes), `condition_expr` / `condition_atom` (12 kinds), `macro_formals` / `macro_formal` / `macro_default_value` / `macro_default_atom` (8 kinds) / `macro_body` / `macro_body_fragment` (9 kinds), passthrough lines — all typed in one comprehensive batch. Same accept set as the pre-typing baseline. **NOTE:** the `pp_if_branch.keyword` shape in this baseline was defective (`SVPP-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation) — see schema `2` for the correction. AST-dump schema version field value: `1`. |
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Grammar (`grammars/systemverilog_preprocessor.ebnf`) un-annotated except for the `systemverilog_preprocessor_file -> {type, items}` root. AST dump is the recursive-envelope shape across all other rules. |
 
-> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer **`1`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
+> Note on the version columns: the contract's "Schema version" column uses the integer `2` row plus the `1.0.0` / `0.1.0` milestone labels above; the AST-dump schema version consumers pin against is the integer **`2`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
 
 ## How to pin to a known shape
 
-1. **Record the parser-release version** your downstream code was written against — `1.0.1` as of this writing. It is recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
-2. **Pin the AST-dump schema version you built against** — currently `1`, from `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
+1. **Record the parser-release version** your downstream code was written against — `1.0.2` as of this writing. It is recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
+2. **Pin the AST-dump schema version you built against** — currently `2`, from `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
 
    ```rust
    // Schema version you integrated against, from the contract:
-   const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+   const SVPP_AST_SCHEMA_VERSION: u32 = 2;
 
    let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
    if payload.truncated {
@@ -70,8 +73,10 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_SYSTEMV
    let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
    // SVPP_AST_SCHEMA_VERSION drives which walker you compiled;
    // re-check the contract's Schema Versioning table on every PGEN bump.
+   // (schema 2 added pp_if_keyword: if_branch.keyword is now
+   // {kind: "ifdef"|"ifndef"}, was the SVPP-0001 malformed object at 1.)
    match SVPP_AST_SCHEMA_VERSION {
-       1 => walk_schema_v1(&root),
+       2 => walk_schema_v2(&root),
        other => return Err(format!("unsupported sv_preprocessor schema version: {other}")),
    }
    ```
@@ -92,7 +97,7 @@ The contract's bump-trigger guidance is the binding policy; this section paraphr
 
 If you observe an AST shape that disagrees with this book, the contract, or the live inventory `generated/systemverilog_preprocessor_return_annotations.json`:
 
-1. Confirm against the machine-checkable inventory (`generated/systemverilog_preprocessor_return_annotations.json` / `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`, 64 entries; identical tuples — the contract-embedded copy omits only the cosmetic `raw_text` field).
+1. Confirm against the machine-checkable inventory (`generated/systemverilog_preprocessor_return_annotations.json` / `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`, 66 entries; identical tuples — the contract-embedded copy omits only the cosmetic `raw_text` field).
 2. If the inventory agrees with what you observe but the contract does not, the contract is authoritative for intended behavior — file via `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
 3. Accepted released-parser bugs are tracked in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 

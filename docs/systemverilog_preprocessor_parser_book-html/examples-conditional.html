@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c812085f.js";
+            window.path_to_searchindex_js = "searchindex-36a4a501.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -185,10 +185,15 @@
 walks the <strong>recursive conditional-compilation tree</strong> — the one place the
 sv_preprocessor AST nests. Every JSON value here is the <strong>real, captured
 output</strong> of <code>generated/systemverilog_preprocessor_parser.rs</code> (parser
-release <code>1.0.1</code>, AST-dump schema version <code>1</code>, 64 return annotations) —
-including one real released-parser defect surfaced honestly (the
-<code>if_branch.keyword</code> <code>&lt;invalid_sequence_access&gt;</code> envelope, below). Nothing
-here is idealized.</p>
+release <code>1.0.2</code>, AST-dump schema version <code>2</code>, 66 return annotations) and
+is the regression-locked <code>conditional</code> sample in
+<code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code>.
+Nothing here is idealized.</p>
+<blockquote>
+<p>Schema <code>2</code> note: at <code>1.0.1</code> (schema <code>1</code>) this exact input emitted the
+malformed <code>"if_branch.keyword": {"items": "&lt;invalid_sequence_access&gt;", "keyword": [[], "\</code>ifdef“], “macro”:
+“&lt;invalid_sequence_access&gt;”, “tail”: “&lt;invalid_sequence_access&gt;”}<code> object — a real parser defect (</code>SVPP-0001<code>) fixed in </code>1.0.2<code>by lifting the inline</code>(kw_ifdef | kw_ifndef)<code>alternation into a named</code>pp_if_keyword<code>rule (the proven</code>rtl_const_expr<code>RTL-CE-Slice-2 /</code>systemverilog.ebnf<code>idiom; see [Schema Versioning](schema-versioning.md)). The shape below is the corrected, gate-locked output:</code>if_branch.keyword<code>is now the typed polarity object</code>{“kind”: “ifdef”}`.</p>
+</blockquote>
 <h2 id="input"><a class="header" href="#input">Input</a></h2>
 <pre><code class="language-systemverilog">`ifdef X
 `define A 1
@@ -222,10 +227,10 @@ printf '`ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n' &gt; /tmp/cc.svpp
 <code>ParseNode</code> directly, so the dump is wrapped in the parse-node envelope
 (<code>content</code> / <code>rule_name</code> / <code>span</code>) described in
 <a href="ast-envelope.html">AST Envelope Structure</a>. This is the byte-exact
-content of <code>/tmp/cc.json</code> — including the <code>if_branch.keyword</code>
-<code>&lt;invalid_sequence_access&gt;</code> markers, which are shown honestly and
+content of <code>/tmp/cc.json</code> — note <code>if_branch.keyword</code> is now the clean
+typed polarity object <code>{"kind": "ifdef"}</code> (the <code>1.0.2</code> <code>SVPP-0001</code> fix),
 explained in
-<a href="#the-if_branchkeyword-defect-shown-honestly">The <code>if_branch.keyword</code> defect</a>:</p>
+<a href="#the-if_branchkeyword-shape-and-the-svpp-0001-fix">The <code>if_branch.keyword</code> shape and the SVPP-0001 fix</a>:</p>
 <pre><code class="language-json">{
   "content": {
     "Json": {
@@ -292,13 +297,7 @@ explained in
                 }
               ],
               "keyword": {
-                "items": "&lt;invalid_sequence_access&gt;",
-                "keyword": [
-                  [],
-                  "`ifdef"
-                ],
-                "macro": "&lt;invalid_sequence_access&gt;",
-                "tail": "&lt;invalid_sequence_access&gt;"
+                "kind": "ifdef"
               },
               "macro": [
                 [
@@ -331,8 +330,8 @@ which hands back a <code>NamedGrammarAstDumpOutcome</code> whose <code>ast_dump<
 <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code> — there is no
 <code>root</code> field). After confirming <code>truncated == false</code>,
 <code>serde_json::from_str(&amp;payload.dump_json)</code> yields the typed root object
-below, which is byte-identical to <code>content.Json</code> above (no abridgement,
-defect markers included):</p>
+below, which is byte-identical to <code>content.Json</code> above (no abridgement;
+the fixed <code>keyword: {"kind": "ifdef"}</code> shape included):</p>
 <pre><code class="language-json">{
   "type": "systemverilog_preprocessor_file",
   "items": [
@@ -340,12 +339,7 @@ defect markers included):</p>
       "kind": "conditional",
       "body": {
         "if_branch": {
-          "keyword": {
-            "keyword": [ [], "`ifdef" ],
-            "items": "&lt;invalid_sequence_access&gt;",
-            "macro": "&lt;invalid_sequence_access&gt;",
-            "tail": "&lt;invalid_sequence_access&gt;"
-          },
+          "keyword": { "kind": "ifdef" },
           "macro": [ [ " " ], "X" ],
           "tail": [],
           "items": [
@@ -381,8 +375,8 @@ defect markers included):</p>
 <p>(Object-key order differs from the probe dump only because the probe
 emits keys alphabetically — see
 <a href="json-carrier.html#determinism">Determinism</a> — while the view above follows
-grammar order for readability; the JSON <em>value</em> is identical, defect
-markers and all.)</p>
+grammar order for readability; the JSON <em>value</em> is identical, the typed
+<code>keyword: {"kind": "ifdef"}</code> polarity object and all.)</p>
 <h2 id="field-by-field-walk"><a class="header" href="#field-by-field-walk">Field-by-field walk</a></h2>
 <ul>
 <li><strong><code>type: "systemverilog_preprocessor_file"</code></strong> — the typed root; one
@@ -395,15 +389,17 @@ Note <code>pp_endif</code> (<code>$4</code>) is matched but <strong>not</strong>
 <code>endif</code> field; the branch list is exhaustive on its own.
 <ul>
 <li><strong><code>if_branch</code></strong> — <code>$1</code>, the <code>pp_if_branch</code> object from
-<code>pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item* -&gt; {keyword: $1, macro: $2, tail: $3, items: $5}</code>:
+<code>pp_if_branch := pp_if_keyword macro_name directive_tail? newline pp_item* -&gt; {keyword: $1, macro: $2, tail: $3, items: $5}</code>:
 <ul>
-<li><strong><code>keyword</code></strong> — <code>$1</code>, the <code>(kw_ifdef | kw_ifndef)</code> alternation
-group. <strong>This field is defective in release <code>1.0.1</code></strong> — see
-<a href="#the-if_branchkeyword-defect-shown-honestly">The <code>if_branch.keyword</code> defect</a>.
-The actual matched token <code> `ifdef</code> is recoverable at
-<code>keyword["keyword"][1]</code>; the three sibling keys
-(<code>items</code> / <code>macro</code> / <code>tail</code>) are the literal string
-<code>"&lt;invalid_sequence_access&gt;"</code>.</li>
+<li><strong><code>keyword: { "kind": "ifdef" }</code></strong> — <code>$1</code>, the typed
+<code>pp_if_keyword</code> polarity object from
+<code>pp_if_keyword := kw_ifdef -&gt; {kind: "ifdef"} | kw_ifndef -&gt; {kind: "ifndef"}</code>.
+Read the conditional polarity directly from
+<code>if_branch.keyword.kind</code> (<code>"ifdef"</code> here; <code>"ifndef"</code> for an
+<code> `ifndef</code> guard). This is the <code>1.0.2</code> <code>SVPP-0001</code> fix — at
+<code>1.0.1</code> / schema <code>1</code> this field was the malformed
+<code>&lt;invalid_sequence_access&gt;</code> object; see
+<a href="#the-if_branchkeyword-shape-and-the-svpp-0001-fix">The <code>if_branch.keyword</code> shape and the SVPP-0001 fix</a>.</li>
 <li><strong><code>macro: [ [ " " ], "X" ]</code></strong> — <code>$2</code>, the un-annotated <code>macro_name</code>
 → <code>identifier</code> envelope (the guard macro). Same
 <code>[ &lt;trivia-prefix&gt;, "&lt;text&gt;" ]</code> shape as in
@@ -447,59 +443,51 @@ missing key. Test <code>else_branch</code> for an empty array, not for null.</li
 <code>else_branch.items</code>) are themselves <code>pp_item*</code> arrays, so the conditional
 tree nests recursively: a <code>pp_conditional</code> can appear inside any branch’s
 <code>items</code>, and the same <code>handle_pp_item</code> dispatcher handles it.</p>
-<h2 id="the-if_branchkeyword-defect-shown-honestly"><a class="header" href="#the-if_branchkeyword-defect-shown-honestly">The <code>if_branch.keyword</code> defect (shown honestly)</a></h2>
-<p><code>pp_if_branch</code>’s <code>keyword: $1</code> points at the <strong>alternation group</strong>
-<code>(kw_ifdef | kw_ifndef)</code>. In release <code>1.0.1</code> the generated parser does
-not resolve a bare <code>$N</code> reference to an inline alternation group cleanly:
-instead of the matched keyword token’s envelope, <code>keyword</code> is captured as
-a <strong>malformed nested object</strong> where the matched alternative’s envelope is
-present under a <code>"keyword"</code> key but the other positional slots are filled
-with the literal sentinel string <code>"&lt;invalid_sequence_access&gt;"</code>:</p>
-<pre><code class="language-json">"keyword": {
-  "keyword": [ [], "`ifdef" ],
-  "items": "&lt;invalid_sequence_access&gt;",
-  "macro": "&lt;invalid_sequence_access&gt;",
-  "tail": "&lt;invalid_sequence_access&gt;"
-}
+<h2 id="the-if_branchkeyword-shape-and-the-svpp-0001-fix"><a class="header" href="#the-if_branchkeyword-shape-and-the-svpp-0001-fix">The <code>if_branch.keyword</code> shape and the SVPP-0001 fix</a></h2>
+<p><code>pp_if_branch</code>’s <code>keyword: $1</code> is now the typed <strong><code>pp_if_keyword</code></strong>
+polarity object. The grammar is:</p>
+<pre><code class="language-ebnf">pp_if_keyword := kw_ifdef  -&gt; {kind: "ifdef"}
+               | kw_ifndef -&gt; {kind: "ifndef"}
+pp_if_branch  := pp_if_keyword macro_name directive_tail? newline pp_item*
+              -&gt; {keyword: $1, macro: $2, tail: $3, items: $5}
 </code></pre>
-<p><code>"&lt;invalid_sequence_access&gt;"</code> is PGEN’s emit-time sentinel for a
-return-annotation positional reference (<code>$N</code>) that could not be resolved
-to a sequence element — the same class of released-parser defect first
-documented for the rtl_const_expr <code>binop_chain</code> <code>rest</code> field (see that
-book’s schema-versioning chapter, repo path
-<code>docs/rtl_const_expr_parser_book/src/schema-versioning.md</code>, for the
-historical precedent). It is <strong>not</strong> valid AST data and <strong>not</strong> a shape a
-consumer should attempt to interpret beyond text recovery.</p>
-<p>What is and is not safe to rely on for this field, on the <strong>current</strong>
-release:</p>
+<p>so for the input above <code>if_branch.keyword</code> is the clean typed object:</p>
+<pre><code class="language-json">"keyword": { "kind": "ifdef" }
+</code></pre>
+<p>For an <code> `ifndef</code> guard it would be <code>{ "kind": "ifndef" }</code>. The
+consumer reads the conditional polarity directly from
+<code>if_branch.keyword.kind</code> — <code>"ifdef"</code> means <em>defined-true</em> (compile the
+body when the macro is defined), <code>"ifndef"</code> means <em>defined-false</em>
+(compile the body when the macro is <strong>not</strong> defined).</p>
+<blockquote>
+<p>Schema <code>2</code> note: at <code>1.0.1</code> (schema <code>1</code>) this exact field emitted the
+malformed object
+<code>{"items": "&lt;invalid_sequence_access&gt;", "keyword": [[], "\</code>ifdef“],
+“macro”: “&lt;invalid_sequence_access&gt;”, “tail”:
+“&lt;invalid_sequence_access&gt;”}<code> — a real parser defect (</code>SVPP-0001<code>) fixed in </code>1.0.2<code>; the shape above is the corrected, gate-locked output. The defect's root cause: </code>pp_if_branch<code>'s </code>keyword: $1<code>pointed at an **inline alternation group**</code>(kw_ifdef | kw_ifndef)<code>, and PGEN's emit-time machinery did not resolve a bare </code>$N<code>reference to an inline alternation group cleanly — it substituted the literal sentinel string</code>“&lt;invalid_sequence_access&gt;”<code>into the mis-recursed positional slots. This is the same emit-time defect class first fixed for the</code>rtl_const_expr<code> </code>binop_chain<code> </code>rest<code>field in RTL-CE-Slice-2 (see that book's schema-versioning chapter, repo path</code>docs/rtl_const_expr_parser_book/src/schema-versioning.md<code>). The </code>1.0.2<code>fix applies the identical, proven playbook: lift the inline</code>(kw_ifdef | kw_ifndef)<code>alternation into the **named**</code>pp_if_keyword<code>rule (the</code>systemverilog.ebnf<code>op-chain idiom), keeping</code>pp_if_branch<code>'s annotation unchanged — only </code>$1<code>now binds the clean named rule. The history is kept honestly here and in [Schema Versioning](schema-versioning.md) (the schema</code>1.0.0` row);
+it is not whitewashed.</p>
+</blockquote>
+<p>What is safe to rely on for this field, on the <strong>current</strong> release
+(<code>1.0.2</code>, schema <code>2</code>):</p>
 <ul>
-<li><strong>Recoverable:</strong> the matched directive token text is at
-<code>if_branch["keyword"]["keyword"][1]</code> (here <code> `ifdef</code>; for an
-<code> `ifndef</code> guard it would be <code> `ifndef</code>). The
-<a href="walking-the-ast.html#identifier-and-text-extraction">walk-to-terminal</a>
-<code>extract_text</code> helper applied to <code>if_branch["keyword"]</code> reaches
-<code> `ifdef</code> and skips the sentinel strings (it returns the first
-string it finds; with alphabetical key order that is the sentinel —
-see the defensive variant in the walker code below).</li>
-<li><strong>Not recoverable from <code>keyword</code>:</strong> nothing else lives there. The
-<code>items</code> / <code>macro</code> / <code>tail</code> sibling keys inside <code>keyword</code> are sentinels,
-<strong>not</strong> the branch’s real <code>items</code> / <code>macro</code> / <code>tail</code> — those are the
-<em>outer</em> <code>if_branch.items</code> / <code>if_branch.macro</code> / <code>if_branch.tail</code>
-fields, which are correct (<code>macro = [ [ " " ], "X" ]</code>, <code>tail = []</code>,
-<code>items = [ &lt;the </code>define<code>&gt; ]</code>). Do <strong>not</strong> read branch data out of the
-<code>keyword</code> sub-object.</li>
+<li><strong><code>if_branch.keyword.kind</code></strong> is the typed polarity string <code>"ifdef"</code>
+or <code>"ifndef"</code> — branch on it directly. There is <strong>no</strong>
+<code>&lt;invalid_sequence_access&gt;</code> anywhere in the conditional tree any more.</li>
+<li><strong><code>if_branch.macro</code></strong> is the guard macro name envelope
+(<code>[ [ " " ], "X" ]</code> here — name at index <code>[1]</code>); <strong><code>if_branch.tail</code></strong>
+is the optional <code>directive_tail?</code> (<code>[]</code> here); <strong><code>if_branch.items</code></strong>
+is the recursively-nested <code>pp_item*</code> body. All three are, and always
+were, correct — they are the <em>outer</em> <code>if_branch</code> fields, distinct
+from the (now-removed) malformed <code>keyword</code> sub-keys of the pre-fix
+shape.</li>
 </ul>
-<p>This defect is reported, not hidden: it is surfaced verbatim in the
-captured AST above and called out here. The robust consumer reads the
-guard <em>macro name</em> (which it almost always needs) from the <strong>correct</strong>
-outer <code>if_branch["macro"]</code> field, and treats the <code>keyword</code> field as
-“directive token text only, via the nested <code>keyword</code> key”. A future
-correctness slice that lifts <code>(kw_ifdef | kw_ifndef)</code> into a named rule
-(the same fix pattern rtl_const_expr used for its operator alternations)
-would bump the schema version and get a
-<a href="schema-versioning.html">Schema Versioning</a> row and a
-<a href="changelog-index.html">Changelog Index</a> entry; until then this is the real
-schema-<code>1</code> shape and consumers must not target a cleaner one.</p>
+<p>The robust consumer reads the polarity from <code>if_branch.keyword.kind</code>
+and the guard macro from <code>if_branch.macro</code>. A consumer written against
+the pre-fix <code>1.0.1</code> schema-<code>1</code> shape (treating <code>keyword</code> as
+opaque/text-only) must repin to schema <code>2</code> and switch to the
+<code>keyword.kind</code> discriminator — this fix bumped the schema <code>1 → 2</code> and
+has a <a href="schema-versioning.html">Schema Versioning</a> row and a
+<a href="changelog-index.html">Changelog Index</a> entry.</p>
 <h2 id="walker-code-for-this-input"><a class="header" href="#walker-code-for-this-input">Walker code for this input</a></h2>
 <p>The sv_preprocessor family exposes the <strong>generic-by-grammar</strong> host
 surface — there is <strong>no</strong> <code>parse_systemverilog_preprocessor</code> convenience
@@ -513,8 +501,10 @@ grammar <code>"systemverilog_preprocessor"</code>, profile <code>"default"</code
 };
 
 /// Walk to the terminal text inside an un-annotated identifier/text
-/// envelope, skipping empty-array placeholders AND the parser's
-/// `&lt;invalid_sequence_access&gt;` defect sentinel.
+/// envelope, skipping empty-array placeholders. (The defensive
+/// `&lt;invalid_sequence_access&gt;` skip arm is kept so the helper stays
+/// correct against any pre-`1.0.2` schema-`1` dump a consumer might
+/// still have vendored; the `1.0.2` parser never emits that sentinel.)
 fn extract_text(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt; {
     match node {
         serde_json::Value::String(s) if s == "&lt;invalid_sequence_access&gt;" =&gt; None,
@@ -534,7 +524,7 @@ let outcome = parse_grammar_profile_ast_dump_named(
 
 // The AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+const SVPP_AST_SCHEMA_VERSION: u32 = 2;
 
 match outcome.status {
     ParseStatus::Success =&gt; {
@@ -554,14 +544,12 @@ match outcome.status {
 
         // --- if_branch ---
         let ifb = &amp;body["if_branch"];
-        // The directive token is recoverable only via the nested
-        // `keyword` key; the other keyword sub-keys are defect sentinels.
-        assert_eq!(
-            extract_text(&amp;ifb["keyword"]["keyword"]).as_deref(),
-            Some("`ifdef"),
-        );
-        // The guard macro is the CORRECT outer field, not the sentinel
-        // inside `keyword`.
+        // `keyword` is the typed pp_if_keyword polarity object as of the
+        // 1.0.2 SVPP-0001 fix: read the `ifdef`/`ifndef` polarity
+        // directly from keyword.kind (was the malformed
+        // &lt;invalid_sequence_access&gt; object at 1.0.1 / schema 1).
+        assert_eq!(ifb["keyword"]["kind"], "ifdef");
+        // The guard macro is the outer field.
         assert_eq!(extract_text(&amp;ifb["macro"]).as_deref(), Some("X"));
         assert!(ifb["tail"].as_array().unwrap().is_empty());
         let if_items = ifb["items"].as_array().unwrap();
@@ -591,34 +579,50 @@ match outcome.status {
     }
 }
 <span class="boring">}</span></code></pre>
-<p>The <code>extract_text</code> here adds an <code>Object</code> arm and an explicit
-<code>&lt;invalid_sequence_access&gt;</code> skip versus the
-<a href="examples-single-define.html">Single Define</a> version, precisely so it stays
-correct over the defective <code>keyword</code> sub-object. The
+<p>The <code>keyword</code> polarity is read directly from the typed
+<code>if_branch.keyword.kind</code> discriminator (<code>"ifdef"</code> / <code>"ifndef"</code>) — no
+text-walk is needed for it any more, as of the <code>1.0.2</code> <code>SVPP-0001</code>
+fix. The <code>extract_text</code> helper still keeps an <code>Object</code> arm and a
+defensive <code>&lt;invalid_sequence_access&gt;</code> skip versus the
+<a href="examples-single-define.html">Single Define</a> version, so it stays correct
+even against a pre-<code>1.0.2</code> schema-<code>1</code> dump a consumer might still have
+vendored. The
 <a href="walking-the-ast.html#walking-the-conditional-compilation-tree">Walking the AST</a>
 chapter has the full recursive <code>handle_conditional</code> dispatcher; this
 example is the concrete instantiation of it.</p>
 <h2 id="why-this-example-is-the-canonical-conditional-tree-test"><a class="header" href="#why-this-example-is-the-canonical-conditional-tree-test">Why this example is the canonical conditional-tree test</a></h2>
 <ul>
 <li><strong>It exercises every <code>pp_conditional</code> node</strong> —
-<code>pp_conditional → pp_if_branch</code> / <code>pp_else_branch</code>, the empty
-<code>elsif_branches</code>, the absent-optional <code>tail: []</code>, and the recursive
-<code>pp_item*</code> branch bodies — in 46 bytes.</li>
+<code>pp_conditional → pp_if_branch</code> (with the typed <code>pp_if_keyword</code>
+polarity) / <code>pp_else_branch</code>, the empty <code>elsif_branches</code>, the
+absent-optional <code>tail: []</code>, and the recursive <code>pp_item*</code> branch
+bodies — in 46 bytes.</li>
 <li><strong>It proves the recursion</strong> — each branch body is a full <code>pp_item</code>
 (here a <code>pp_define</code>), reached one level deeper, so the same dispatcher
 used at the root handles branch contents unchanged.</li>
-<li><strong>It surfaces a real released-parser defect honestly</strong> — the
-<code>if_branch.keyword</code> <code>&lt;invalid_sequence_access&gt;</code> shape is shown
-verbatim, explained, and given a safe consumer rule (read the <em>macro</em>
-from the correct outer field; treat <code>keyword</code> as token-text-only),
-rather than being idealized away. A book that hid this would mislead
-every downstream <code> `ifdef</code>-handling integration.</li>
+<li><strong>It is the regression-locked <code>conditional</code> sample</strong> — it is the
+<code>conditional</code> sample in
+<code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code>.
+Combined with the now-66-entry <code>declared_annotation_inventory</code> (which
+includes the 2 new <code>pp_if_keyword</code> <code>{kind: "ifdef"}</code> /
+<code>{kind: "ifndef"}</code> branches), any reversion to the pre-<code>1.0.2</code>
+<code>&lt;invalid_sequence_access&gt;</code> shape fails
+<code>systemverilog_preprocessor_ast_shape_contract</code> immediately.</li>
+<li><strong>It honestly transitions a real released-parser defect</strong> — the
+<code>if_branch.keyword</code> field was the malformed
+<code>&lt;invalid_sequence_access&gt;</code> object at <code>1.0.1</code> / schema <code>1</code>
+(<code>SVPP-0001</code>); the schema-<code>2</code> corrected shape (<code>{kind: "ifdef"}</code>) is
+shown, with the pre-fix history kept (not whitewashed) in the
+schema-<code>2</code> transition note and
+<a href="schema-versioning.html">Schema Versioning</a>. A book that hid the defect
+history would mislead every downstream <code> `ifdef</code>-handling
+integration repinning across the schema bump.</li>
 </ul>
 <p>For the non-recursive baseline shape see
 <a href="examples-single-define.html">Single Define</a>; for the full per-rule field
-tables (including <code>pp_elsif_branch</code> / <code>condition_expr</code> / the atom
-families) see <a href="rules-top-level.html">Top-Level Rules</a>; for what triggers a
-schema bump when the <code>keyword</code> defect is fixed see
+tables (including <code>pp_if_keyword</code> / <code>pp_elsif_branch</code> / <code>condition_expr</code>
+/ the atom families) see <a href="rules-top-level.html">Top-Level Rules</a>; for the
+schema <code>1 → 2</code> <code>SVPP-0001</code> fix row see
 <a href="schema-versioning.html">Schema Versioning</a>.</p>
 
                     </main>

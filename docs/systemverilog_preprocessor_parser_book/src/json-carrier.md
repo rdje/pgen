@@ -2,7 +2,7 @@
 
 This chapter explains how the sv_preprocessor parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, the absent-optional convention, and the determinism guarantee. It is the conceptual companion to [Top-Level Rules](rules-top-level.md), which enumerates the concrete per-rule shapes, and to [AST Envelope Structure](ast-envelope.md), which documents the outer `AstDumpPayload`.
 
-> **Note:** The sv_preprocessor return-annotation campaign landed in a single comprehensive batch — **SVPP-Slice-1, 64 annotations across 27 rules** (parser release `1.0.1`, schema version `1`). Every dispatcher and directive shape is typed; the remaining un-annotated rules (terminal/regex leaves like `identifier`, `macro_name`, `macro_body_text`, `unsigned_number`, `time_unit`, and the keyword/operator tokens) produce the recursive-envelope shape. The authoritative enumeration is `generated/systemverilog_preprocessor_return_annotations.json` (mirrored by the embedded inventory in `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — same tuples; the contract-embedded copy omits only the cosmetic `raw_text` field).
+> **Note:** The sv_preprocessor return-annotation campaign landed in a single comprehensive batch — **SVPP-Slice-1, 64 annotations across 27 rules** — followed by the `1.0.2` `SVPP-0001` correctness fix that lifted the inline `(kw_ifdef | kw_ifndef)` alternation into the named `pp_if_keyword` rule, bringing the surface to **66 annotations across 28 rules** (parser release `1.0.2`, schema version `2`). Every dispatcher and directive shape is typed; the remaining un-annotated rules (terminal/regex leaves like `identifier`, `macro_name`, `macro_body_text`, `unsigned_number`, `time_unit`, and the keyword/operator tokens) produce the recursive-envelope shape. The authoritative enumeration is `generated/systemverilog_preprocessor_return_annotations.json` (mirrored by the embedded inventory in `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — same tuples; the contract-embedded copy omits only the cosmetic `raw_text` field).
 
 ## Two carrier kinds
 
@@ -34,7 +34,7 @@ When a rule in `grammars/systemverilog_preprocessor.ebnf` carries a return annot
 
    `name` is `$2` of the `pp_define` sequence, bound to the **un-annotated** `macro_name` → `identifier` rule, so it carries that rule's recursive envelope `[ <trivia-prefix>, "<text>" ]` rather than a bare string. The text is at index `[1]`.
 
-There is **no** fourth form: the sv_preprocessor surface uses no `return_scalar` passthrough annotations and no `binop_chain`-style expression carrier (the grammar is directive/line-oriented, not expression-precedence-oriented). All 64 annotations are `annotation_type: "return_object"`.
+There is **no** fourth form: the sv_preprocessor surface uses no `return_scalar` passthrough annotations and no `binop_chain`-style expression carrier (the grammar is directive/line-oriented, not expression-precedence-oriented). All 66 annotations are `annotation_type: "return_object"`.
 
 ### Recursive-envelope shape (rules without annotations)
 

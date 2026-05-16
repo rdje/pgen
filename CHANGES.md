@@ -1,4 +1,59 @@
 # CHANGES.md
+## 2026-05-16 - PGEN-INLINE-ALT-FIX-0001 (leaf INLINE-ALT-FIX.1): SVPP-0001 FIXED — sv_preprocessor pp_if_branch.keyword inline-alternation defect resolved (schema 1→2, release 1.0.2)
+
+- **`SVPP-0001` fixed** (released-parser correctness). The inline
+  alternation `(kw_ifdef | kw_ifndef)` as the lead element of
+  `pp_if_branch` corrupted the positional model, so `keyword:$1`
+  emitted a malformed object with three `"<invalid_sequence_access>"`
+  strings. Fix = the proven `systemverilog.ebnf` `binary_operator`
+  idiom: lifted into a named rule
+  `pp_if_keyword := kw_ifdef -> {kind:"ifdef"} | kw_ifndef -> {kind:"ifndef"}`;
+  `pp_if_branch`'s annotation is unchanged (`{keyword:$1, macro:$2,
+  tail:$3, items:$5}`) — `$1` now binds the clean named rule.
+- **Verified before→after** with `parseability_probe` (the bug-ledger
+  repro): `if_branch.keyword` `{items/macro/tail:"<invalid_sequence_access>",
+  keyword:[[],"\`ifdef"]}` → **`{kind:"ifdef"}`** (clean typed polarity
+  discriminator), zero `<invalid_sequence_access>` anywhere.
+- Parser + frontend grammar JSON + return-annotation inventory
+  regenerated: **64→66** annotations, **27→28** distinct rules (added
+  `pp_if_keyword`, 2 `return_object` branches). Manifest
+  `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
+  `declared_annotation_inventory` rebuilt from the regenerated frontend
+  JSON via the canonical `dump_declared_annotation_inventory` bin
+  (correct cross-check order) + a new `conditional` regression sample
+  locking the fixed path → `systemverilog_preprocessor_ast_shape_contract`
+  **passes** (`generated/` stays untracked per the on-demand-parser
+  policy; the manifest is the git-traveling CI lock).
+- **Lockstep (same commit, book-sync directive):** AST-dump schema
+  `1→2`, parser+contract release `1.0.1→1.0.2`. Contract: schema/
+  release/surface bumped (current-state) with historical `1.0.1`/`64`/
+  `27` rows kept; "Known Defects" → "Resolved Defects" + new Release
+  1.0.2 Highlights; `pp_if_keyword` documented. Bug ledger: `SVPP-0001`
+  `Root Caused` → **`Released`** (the ledger's terminal status;
+  REGEX-0001 precedent), `Fixed In` = release 1.0.2 (schema 1→2),
+  pre/post-fix repro both shown, history kept honestly. Book
+  (7+ chapters): `examples-conditional.md` rewritten to the real
+  captured fixed shape with a schema-`2` transition note (exact
+  rtl_const_expr `examples-binary-addition.md` template); all walker
+  snippets pin `SVPP_AST_SCHEMA_VERSION = 2`; surface 66/28;
+  `schema-versioning.md` 1→2 row. `docs/book/` checked — only a path
+  pointer to the contract, no drifting fact, no edit needed.
+- **DOC-ENVELOPE-0001 not regressed** — the real 4-field
+  `AstDumpPayload` + pinned-constant walker model is preserved
+  (independently grep-verified; no `root`/`schema_version`/`grammar`/
+  `profile` struct fields reintroduced).
+- Independently verified: contract no dup `## ` headers, numbers
+  uniformly current `1.0.2`/`2`/`66`/`28` (1.0.1/64/27 only in kept
+  history); `systemverilog_preprocessor_parser_book_gate` **re-run
+  green** (searchindex deterministic, tracked `-html/` regenerated
+  same-commit); `clippy_on_rust_change` strict source lint **passed**
+  (the generated-parser non-strict clippy debt is pre-existing across
+  all parsers and tolerated by gate design — not introduced by a
+  shape-only inline-alt→named-rule change; the regenerated parser
+  provably compiles, as the shape-contract test built+ran against it).
+- `INLINE-ALT-FIX` tree stays `active` — `.1` of `.1`–`.3` done,
+  frontier `.1`→`.2` (rtl_frontend `binop_chain`, then `.3` vhdl).
+
 ## 2026-05-16 - PGEN-INLINE-ALT-FIX-0000 (INLINE-ALT-FIX tree setup): decompose the inline-alternation parser-correctness lane + correct the stale Cat-B extraction memory
 
 - Created the **`INLINE-ALT-FIX`** task tree

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c812085f.js";
+            window.path_to_searchindex_js = "searchindex-36a4a501.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
-<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/systemverilog_preprocessor_return_annotations.json</code>, 64 annotations across 27 rules, schema version <code>1</code>).</p>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/systemverilog_preprocessor_return_annotations.json</code>, 66 annotations across 28 rules, schema version <code>2</code>).</p>
 <h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
 <p>Because the AST tree mixes typed objects (the SVPP-Slice-1 surface) and recursive-envelope arrays (terminal/regex leaves and the literal-text runs), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -291,6 +291,14 @@ fn walk(node: &amp;JsonValue) {
 
     // if_branch: {keyword, macro, tail, items}
     if let Some(ifb) = c.get("if_branch") {
+        // keyword is the typed pp_if_keyword polarity object as of the
+        // 1.0.2 SVPP-0001 fix: "ifdef" = compile-if-defined,
+        // "ifndef" = compile-if-not-defined. (Was the malformed
+        // &lt;invalid_sequence_access&gt; object at 1.0.1 / schema 1.)
+        let _polarity = ifb
+            .get("keyword")
+            .and_then(|k| k.get("kind"))
+            .and_then(|v| v.as_str()); // Some("ifdef") | Some("ifndef")
         for it in ifb.get("items").and_then(|v| v.as_array()).into_iter().flatten() {
             handle_pp_item(it); // recursion: a nested `ifdef` lives here
         }
@@ -402,7 +410,7 @@ fn walk(node: &amp;JsonValue) {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+const SVPP_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -415,8 +423,8 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match SVPP_AST_SCHEMA_VERSION {
-    1 =&gt; walk_schema_v1(&amp;root),
-    // (future) 2 =&gt; walk_schema_v2(&amp;root),
+    2 =&gt; walk_schema_v2(&amp;root), // schema 2: if_branch.keyword is {kind: "ifdef"|"ifndef"}
+    // schema 1 (pre-1.0.2) had the SVPP-0001 malformed keyword object.
     other =&gt; eprintln!("no walker compiled for sv_preprocessor AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>

@@ -70,4 +70,4 @@ See [Walking the AST](walking-the-ast.md) for the full walker pattern.
 
 ## 5. Track the contract version
 
-Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.1`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the directives you consume.
+Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.2`, AST-dump schema `2`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the directives you consume (e.g. the `1.0.2` `SVPP-0001` fix changed `pp_if_branch.keyword` to `{kind: "ifdef"|"ifndef"}`).
