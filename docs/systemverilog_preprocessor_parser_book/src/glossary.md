@@ -1,5 +1,79 @@
 # Glossary
 
-> **Status**: scaffolding-only stub. Authored content lands in subsequent SVPP-MDBOOK frontier leaves.
->
-> See [docs/tasks/SVPP-MDBOOK.md](../../tasks/SVPP-MDBOOK.md) for the leaf that owns this chapter.
+Terms used throughout this book. Where a term has a normative definition, the integration contract `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` is authoritative; this glossary paraphrases it for quick lookup.
+
+## AST envelope
+
+The JSON tree returned by the sv_preprocessor AST-dump entry points. It is the `root` field of the `AstDumpPayload` carried by `NamedGrammarAstDumpOutcome` / `GrammarAstDumpOutcome`. Every parse roots at the single typed object `{type: "systemverilog_preprocessor_file", items: [ <pp_item> … ]}`. See [AST Envelope Structure](ast-envelope.md).
+
+## AST shape contract manifest
+
+The file `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` (`version: 1`, `grammar: "systemverilog_preprocessor"`). It records the per-rule expected JSON shape for each sample in the sv_preprocessor test corpus (the `single_define` and conditional-compilation samples) and embeds the declared-annotation inventory — **64 annotation entries across 27 distinct rules** as of contract `1.0.1`. Drift in the AST dump fails the `systemverilog_preprocessor_ast_shape_contract` regression-lock test under `cargo test --lib --features generated_parsers systemverilog_preprocessor_ast_shape_contract`, surfacing the change. Its `declared_annotation_inventory.annotations` list is content-identical to the live inventory `generated/systemverilog_preprocessor_return_annotations.json` — the `(rule, branch_index, annotation_type, normalized_text)` tuples match exactly; the live inventory additionally carries a per-entry `raw_text` field that the contract-embedded copy omits. (This is the sv_preprocessor manifest; the SystemVerilog, VHDL, and rtl_const_expr parsers have their own separate `systemverilog_v1.json` / `vhdl_v1.json` / `rtl_const_expr_v1.json`.)
+
+## Conditional-compilation tree
+
+The recursive `` `ifdef`` / `` `ifndef`` / `` `elsif`` / `` `else`` / `` `endif`` chain, modelled by **five** typed rules: `pp_conditional` (`{if_branch, elsif_branches, else_branch}` — the terminating `pp_endif` is matched but not surfaced), `pp_if_branch` (`{keyword, macro, tail, items}`), `pp_elsif_branch` (`{condition, items}`), `pp_else_branch` (`{tail, items}`), and `pp_endif` (`{tail}`). Each branch's `items` is itself a `pp_item*` array, so a `pp_conditional` can nest inside any branch. The `pp_if_branch.keyword` field is subject to the known defect `SVPP-0001` (see below). See [Top-Level Rules](rules-top-level.md) and the [Conditional Compilation](examples-conditional.md) worked example.
+
+## Declared-annotation inventory
+
+The machine-checkable enumeration of every typed-shape annotation the sv_preprocessor grammar emits: `generated/systemverilog_preprocessor_return_annotations.json` (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 64`). It is the live source of truth for the typed surface and is mirrored content-for-content by the embedded inventory in `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` (64 entries). All **64** entries are `annotation_type: "return_object"` — the grammar uses no `return_scalar` passthrough — spread across **27 distinct rules**. If this book's prose disagrees with the inventory, the inventory wins; if the inventory disagrees with the integration contract, the contract wins.
+
+## {first, rest} list convention
+
+The carrier for a separated list: `{first: <head element>, rest: <recursive-envelope iteration of the (separator element)* tail>}`. In the sv_preprocessor grammar this convention is used in **exactly one** rule — `macro_formals` (`lparen macro_formal (comma macro_formal)* rparen -> {first: $2, rest: $3}`). It was **not** flattened to the clean `[$N, $M::2*]` array form that some other PGEN grammars adopted (e.g. the SystemVerilog slice-58 audit), so a consumer iterating macro formals must descend through the separator wrap. The other token/atom lists (`condition_expr.atoms`, `macro_default_value.atoms`, `macro_body.fragments`) are plain `x+` arrays, not `{first, rest}`. A future flattening slice, if it lands, gets its own [Changelog Index](changelog-index.md) row. See [Walking the AST](walking-the-ast.md).
+
+## `<invalid_sequence_access>` (SVPP-0001 — known defect)
+
+The literal sentinel string PGEN's emit-time machinery substitutes when a bare positional `$N` reference resolves to an **inline alternation group**. In sv_preprocessor it currently affects exactly one field: `pp_if_branch.keyword`. For `` `ifdef`` / `` `ifndef`` conditional input, `items[].body.if_branch.keyword` is a malformed nested object containing three `"<invalid_sequence_access>"` strings instead of the keyword token, because `pp_if_branch := (kw_ifdef | kw_ifndef) macro_name … -> {keyword: $1, …}` binds `$1` to the inline `(kw_ifdef | kw_ifndef)` group — the same emit-time defect class fixed for `rtl_const_expr` in RTL-CE-Slice-2 and tracked for `rtl_frontend` / `vhdl` `binop_chain`. The `` `define`` / non-conditional surface is unaffected, and the guard macro is correct at the sibling `if_branch.macro`. Status `Root Caused`; fix not yet landed (scheduled on the systemic inline-alternation-`$N` correctness lane — lift `(kw_ifdef | kw_ifndef)` into a named rule per the proven RTL-CE-Slice-2 playbook, with a schema bump and lockstep book/contract sync). **Consumer workaround:** read the guard macro from `if_branch.macro`; treat `if_branch.keyword` as token-text-only and do not rely on its nested fields. Documented honestly in [Conditional Compilation](examples-conditional.md); recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Known Defects (release 1.0.1)" and `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0001`).
+
+## macro_body_fragment (9 kinds)
+
+The `kind`-tagged dispatch for the tokenized `` `define`` replacement text (`macro_body := macro_body_fragment+ -> {fragments: $1}`). The **9** kinds are `token_paste`, `stringize`, `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `lparen`, `rparen`, `comma`, `question`, `colon`. `"macro_reference"` and `"text"` carry a `body`; the rest are bare `{kind}` atoms. `"token_paste"` is the SystemVerilog `` `` `` paste operator; `"stringize"` is the `` `" `` stringize operator. See [Top-Level Rules](rules-top-level.md).
+
+## macro_default_atom (8 kinds)
+
+The `kind`-tagged dispatch for a macro formal's default value (`macro_default_value := macro_default_atom+ -> {atoms: $1}`). The **8** kinds are exactly the shared eight — `token_paste`, `stringize`, `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `lparen`, `rparen`, `question`, `colon`. It has **no** `comma` (commas separate formals, so a default cannot contain a bare comma) and none of `condition_atom`'s `logical_or` / `logical_and` / `bang`. See [Top-Level Rules](rules-top-level.md).
+
+## condition_atom (12 kinds)
+
+The `kind`-tagged dispatch for the `` `elsif`` condition's flat token list (`condition_expr := condition_atom+ -> {atoms: $1}`). The **12** kinds are the shared eight plus `comma`, `logical_or`, `logical_and`, `bang`. It is a **flat token list in source order, not a parsed boolean expression** — any expression evaluation is the consumer's responsibility. `"macro_reference"` / `"text"` carry a `body`; the rest are bare `{kind}` atoms. See [Top-Level Rules](rules-top-level.md) and [The Json Carrier](json-carrier.md).
+
+## parseability_probe
+
+The CLI wrapper around `pgen::embedding_api` used for terminal-side verification, AST inspection, and bug-report reproducers. Sub-commands include `--parse`, `--parse-dump-ast`, and `--parse-dump-ast-pretty`. For sv_preprocessor the parser is on-demand-only, so the probe must be built with the generated backend before use (see [Build Recipe](build-recipe.md)). The full flag set, exit codes, and registered grammars are in the [`parseability_probe` CLI Reference](../../reference/PARSEABILITY_PROBE.md).
+
+## Parser release version
+
+The parser library's release identity, currently `1.0.1`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).
+
+## pp_item dispatch
+
+The primary top-level dispatcher of the sv_preprocessor AST. `pp_item` is a **10-branch** `kind`-tagged shape — `"define"`, `"undef"`, `"include"`, `"timescale"`, `"default_nettype"`, `"celldefine"`, `"endcelldefine"`, `"conditional"`, `"non_directive_line"`, `"blank_line"` — each carrying a `body` except the bodyless `"celldefine"` / `"endcelldefine"` / `"blank_line"`. Every parse roots at `{type: "systemverilog_preprocessor_file", items: [...]}`; each element of `items` is a `pp_item` object. The dispatch drops the typed body of `pp_celldefine` / `pp_endcelldefine` / `pp_blank_line` (those rules are themselves typed, but their bodies are not surfaced at the `pp_item` level). See [AST Envelope Structure](ast-envelope.md) and [Top-Level Rules](rules-top-level.md).
+
+## Profile
+
+A named configuration of the grammar that selects which top-level entry rule to start parsing from. The sv_preprocessor family has exactly **one** profile: `default`, whose entry rule is the grammar root `systemverilog_preprocessor_file`. There is **no** per-grammar convenience function for sv_preprocessor (no `parse_systemverilog_preprocessor`); the stable host surface is the generic-by-grammar entry points — `parse_grammar_profile`, `parse_grammar_profile_result`, `parse_grammar_profile_ast_dump` with `GrammarFamily::SystemverilogPreprocessor` + `GrammarProfile::Default`, plus the `parse_grammar_profile_named` / `parse_grammar_profile_named_with_limits` string overloads (and `parse_grammar_profile_ast_dump_named` for the AST dump) with `"systemverilog_preprocessor"` / `"default"`. See [Public API Surface](public-api.md).
+
+## Recursive envelope
+
+The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences, the `x*` / `x+` quantified iterations, and the `rest` tail of the `macro_formals` `{first, rest}` list), strings (for terminal and regex leaves), and matched-branch passthroughs (for alternations). An un-matched optional is the empty array `[]`, never `null` (verified empirically — e.g. `` `define MAX`` captures `{name: …, formals: [], body: []}`). In sv_preprocessor the recursive envelope is what you reach when you descend below the typed surface: the identifier / macro-name tokens, the literal-text runs (`macro_body_text`, `macro_default_text`, `condition_text`, `non_directive_text`, `directive_tail`, `directive_comment_tail`), `unsigned_number`, `time_unit`, `macro_reference`, and the keyword / punctuation token rules. See [AST Envelope Structure](ast-envelope.md) and [The Json Carrier](json-carrier.md).
+
+## Return annotation
+
+A `-> ...` clause appended to a grammar rule definition in `grammars/systemverilog_preprocessor.ebnf` that overrides the default recursive-envelope shape with a typed JSON value. Example: `systemverilog_preprocessor_file := pp_item* -> {type: "systemverilog_preprocessor_file", items: $1}`. The annotation language (`$N` positional references, `{field: value}` object literals, `[...]` array literals, string literals) is specified in `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`. The sv_preprocessor surface uses a single annotation kind — `return_object` (an object literal) — for all **64** annotations; there are no `return_scalar` passthroughs and no `binop_chain`-style expression carrier (the grammar is directive / line-oriented, not expression-precedence-oriented).
+
+## Schema version
+
+Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do **not** bump it. The integer `AstDumpPayload.schema_version` field consumers branch on at runtime is currently `1`. The contract's "Schema Versioning" table additionally uses `1.0.0` / `0.1.0` milestone labels for the typing-campaign timeline (schema `1.0.0` @ release `1.0.1`; schema `0.1.0` @ release `1.0.0`). Pin against the integer field for runtime dispatch; use the milestone labels when reading the changelog. See [Schema Versioning](schema-versioning.md).
+
+## Typed shape
+
+The JSON value produced by an annotated rule. In sv_preprocessor it takes three sub-forms: a **root object** carrying `type` (only `systemverilog_preprocessor_file`); a **`kind`-tagged dispatch object** (`pp_item`, `include_path`, `nettype_value`, and the three atom/fragment dispatchers); and a **named-field object** for single-sequence rules (`pp_define`, `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`, the conditional-tree rules, `macro_formal`, `time_literal`, …). There is **no** `binop_chain` / expression carrier. Consumers dispatch on `obj["type"]` at the root and `obj["kind"]` for variants. See [The Json Carrier](json-carrier.md) and [Top-Level Rules](rules-top-level.md).
+
+## Un-annotated leaf (rule of thumb)
+
+A value reached through an un-annotated rule surfaces as that rule's **recursive envelope**, not a bare JSON string. The text is nested inside the envelope, reached by walking to the terminal — for an identifier or text run this is typically `[ <trivia-prefix>, "<text>" ]`, with the text at index `[1]`. Do **not** assume any identifier-valued or text-valued field (`pp_define.name`, `pp_if_branch.macro`, every `"text"` atom's `body`, `time_literal.value` / `.unit`, the `*_comment` / `tail` fields) is a scalar string: in the [single-define worked example](examples-single-define.md), `pp_define.name` is `[ [ " " ], "FOO" ]`, not the string `"FOO"`. The robust consumer rule is to walk to the terminal string rather than indexing a fixed depth. See [The Json Carrier](json-carrier.md) and [Walking the AST](walking-the-ast.md).
+
+## SVPP-Slice-1
+
+The single comprehensive typing slice (landed 2026-05-14, parser release `1.0.1`, schema version `1`) that typed the entire `grammars/systemverilog_preprocessor.ebnf` directive surface at once — the `systemverilog_preprocessor_file` root; the 10-kind `pp_item` dispatch; the 7 per-directive shapes (`define` / `undef` / `include` / `timescale` / `default_nettype` / `celldefine` / `endcelldefine`); `include_path` / `nettype_value` / `time_literal`; the 5-node conditional-compilation tree; `condition_expr` / `condition_atom` (12 kinds); `macro_formals` / `macro_formal` / `macro_default_value` / `macro_default_atom` (8 kinds); `macro_body` / `macro_body_fragment` (9 kinds); and the passthrough lines — **64 return annotations across 27 distinct rules**, on top of the pre-typing baseline of one root annotation. Unlike the main SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over a long per-slice campaign (each slice bumping the schema version), sv_preprocessor was typed in one pass. The slice shipped one known annotation defect, `SVPP-0001` (above). This single-batch history is why the sv_preprocessor [Changelog Index](changelog-index.md) and [Schema Versioning](schema-versioning.md) timeline are short by design. Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.
