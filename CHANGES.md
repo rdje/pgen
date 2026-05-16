@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-05-16 - Shared .claude/settings.json: EBNF annotation guardrail + PostCompact resume hooks (PGEN-WORKFLOW-0003)
+
+New tracked `.claude/settings.json` (project/shared scope; `settings.local.json`
+stays gitignored). Two hooks address recurring failure modes observed
+this session:
+
+- **PreToolUse `Edit|Write|MultiEdit`** — on any `*.ebnf` path, prints a
+  binding reminder to consult `grammars/return_annotation.ebnf`,
+  `docs/RETURN_ANNOTATIONS_REFERENCE.md`,
+  `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`, and memory
+  `feedback_quantified_group_extraction` (binop/op-chain ⇒ named-op-rule
+  + bare `rest:$2`, never bare `$2` on an inline-alternation iteration —
+  which emits `<invalid_sequence_access>`). Non-blocking, exit 0.
+- **PostCompact `manual|auto`** — re-injects a resume protocol
+  (`additionalContext`): re-read SESSION_BOOTSTRAP/README/COMMIT +
+  `docs/TASK_TREE.md` active frontier + auto-memory MEMORY.md + the EBNF
+  rule + the per-leaf-commit / push-on-go-ahead workflow. Fixes the
+  "SESSION_BOOTSTRAP is session-start-only, lost after compaction" gap.
+
+Watcher caveat: created mid-session, so it activates after one `/hooks`
+open or restart; automatic thereafter. Pairs with the refreshed
+`feedback_quantified_group_extraction` + new
+`feedback_ebnf_consult_annotation_docs` auto-memories.
+
 ## 2026-05-16 - RTL-CE-Slice-2: rtl_const_expr binop/identifier/literal annotation correctness fix (PGEN-RTL-0002); schema 1 -> 2
 
 A worked-example pass (RTL-CE-MDBOOK.4) surfaced three return-annotation

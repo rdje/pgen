@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r \".tool_input.file_path // .tool_input.path // empty\" 2>/dev/null); case \"$f\" in *.ebnf) printf \"%s\\n\" \"PGEN EBNF GUARDRAIL — before changing any return annotation in a .ebnf grammar, consult: grammars/return_annotation.ebnf (\\$N | \\$N::M[*] | single-star \\$N* | flat-spread \\$N**), docs/RETURN_ANNOTATIONS_REFERENCE.md, docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md, and memory feedback_quantified_group_extraction. Binop / op-chain rules (next (OP next)*) MUST use rest: \\$2* (single-star spread) — NEVER bare rest: \\$2 (emits <invalid_sequence_access> + malformed nested objects). Copy the proven systemverilog.ebnf idiom; after regen ALWAYS verify with parseability_probe --parse-dump-ast-pretty before trusting the shape.\" >&2 ;; esac; exit 0",
+            "timeout": 10,
+            "statusMessage": "EBNF annotation guardrail"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "manual|auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' '{\"hookSpecificOutput\": {\"hookEventName\": \"PostCompact\", \"additionalContext\": \"POST-COMPACTION RESUME PROTOCOL — conversation context was just summarized; session-start docs (SESSION_BOOTSTRAP.md/README.md) were NOT re-read. Before continuing: (1) re-read SESSION_BOOTSTRAP.md, README.md, COMMIT.md; (2) read docs/TASK_TREE.md Active Task Trees and the owning docs/tasks/<TREE>.md for the current frontier — git log + working tree are the true state since work is committed per-leaf; (3) the auto-memory MEMORY.md index is authoritative durable feedback — re-read and honor it, especially feedback_quantified_group_extraction and feedback_ebnf_consult_annotation_docs. ACTIVE ENGINEERING RULE: binop / op-chain EBNF rules `next (OP next)*` MUST annotate rest: $2* (single-star spread) — NEVER bare rest: $2 (emits <invalid_sequence_access>); verify any grammar change with parseability_probe --parse-dump-ast-pretty. WORKFLOW: run the full COMMIT.md workflow per completed leaf; push ONLY on explicit user go-ahead (30-commit fallback cap). Resume the in-flight lane from where it stopped — do not restart it.\"}}'",
+            "timeout": 10,
+            "statusMessage": "Re-inject continuity after compaction"
+          }
+        ]
+      }
+    ]
+  }
+}
