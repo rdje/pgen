@@ -243,20 +243,31 @@ A practical shortcut: the empty-`rest` `binop_chain` wrappers carry no informati
 
 ## Schema-version-aware walking
 
-If your tool needs to support multiple PGEN versions, branch on the payload's schema version (`AstDumpPayload.schema_version`):
+`AstDumpPayload` has **no** `schema_version` (or `root`) field — the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`. The AST-dump schema version is not discoverable at runtime from the payload; you **pin** it from `docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" as a constant in your consumer and re-validate that pin against the contract's "Schema Versioning" table whenever you bump PGEN. The shape-contract manifest (`rust/test_data/ast_shape_contract/rtl_const_expr_v1.json`) is the machine-checkable lock that fails CI if the parser drifts from the pinned schema.
 
 ```rust
-match ast_dump_payload.schema_version {
+// The AST-dump schema version you integrated against (from the contract):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    // dump_json holds the truncation diagnostic envelope, not the AST.
+    return Err("rtl_const_expr AST dump truncated".into());
+}
+let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
+
+// RTL_CONST_EXPR_AST_SCHEMA_VERSION selects which walker your code was built
+// for. When you bump PGEN, diff the contract's Schema Versioning table; if the
+// integer schema version moved, update the constant and the walker together.
+match RTL_CONST_EXPR_AST_SCHEMA_VERSION {
     // schema 2 is current (parser release 1.0.2): clean binop_chain `rest`,
     // clean identifier/literal `text`.
-    2 => walk_schema_v2(&ast_dump_payload.root),
+    2 => walk_schema_v2(&root),
     // schema 1 (parser release 1.0.1) had the pre-correctness shapes
     // (binop_chain `rest` could emit "<invalid_sequence_access>";
     //  identifier/literal `text` carried the empty-trivia envelope).
-    1 => walk_schema_v1(&ast_dump_payload.root),
-    other => {
-        eprintln!("unsupported rtl_const_expr schema version: {}", other);
-    }
+    1 => walk_schema_v1(&root),
+    other => eprintln!("no walker compiled for rtl_const_expr AST schema version {other}"),
 }
 ```
 

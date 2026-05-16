@@ -55,19 +55,25 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_RTL_CON
 | 1.0.0 | 1.0.1 | **RTL-CE-Slice-1** — initial 24-annotation baseline (16 distinct rules). Expression hierarchy (conditional + the 10-rule `binop_chain` hierarchy `logical_or_expr` → `logical_and_expr` → `bit_or_expr` → `bit_xor_expr` → `bit_and_expr` → `equality_expr` → `relational_expr` → `shift_expr` → `additive_expr` → `multiplicative_expr` + unary + primary), `literal` (2 kinds: `"based"` / `"decimal"`), and `identifier` all typed in one slice. Pre-correctness shapes: `binop_chain` `rest` could surface `"<invalid_sequence_access>"`; `identifier.text` / `literal.text` carried the empty-`trivia` envelope. AST-dump schema version field value: `1`. |
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Grammar (`grammars/rtl_const_expr.ebnf`) with the `rtl_const_expr -> {type, expr}` root, `unary_expr` per-branch typed shapes, `primary_expr` / `literal` typed shapes, and `identifier -> {type, text}` already in place; the 10 binop-chain rules were the unannotated tail. AST dump is the recursive-envelope shape across the binop-chain rules. |
 
-> Note on the version columns: the contract's "Schema version" column uses the `1.0.2` / `1.0.0` / `0.1.0` labels above for the milestones, while the `AstDumpPayload.schema_version` integer field consumers branch on is currently `2`. Pin against the integer schema-version field for runtime dispatch (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
+> Note on the version columns: the contract's "Schema version" column uses the `1.0.2` / `1.0.0` / `0.1.0` labels above for the milestones; the AST-dump schema version consumers pin against is the integer **`2`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
 
 ## How to pin to a known shape
 
 1. **Record the parser-release version** your downstream code was written against — `1.0.2` as of this writing. It is recorded in `docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
-2. **Branch on the integer schema version at runtime.** `AstDumpPayload.schema_version` is `2`. Reject or warn on an unexpected value rather than mis-parsing a different shape:
+2. **Pin the AST-dump schema version you built against** — currently `2`, from `docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
 
    ```rust
-   match ast_dump_payload.schema_version {
-       2 => walk_schema_v2(&ast_dump_payload.root),
-       1 => walk_schema_v1(&ast_dump_payload.root), // pre-correctness shape
-       other => return Err(format!("unsupported rtl_const_expr schema version: {other}")),
+   // Schema version you integrated against, from the contract:
+   const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
+   let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+   if payload.truncated {
+       return Err("rtl_const_expr AST dump truncated (dump_json holds the diagnostic envelope)".into());
    }
+   let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
+   // RTL_CONST_EXPR_AST_SCHEMA_VERSION drives which walker you compiled;
+   // re-check the contract's Schema Versioning table on every PGEN bump.
+   walk_schema_v2(&root);
    ```
 
 3. **Vendor or pin the generated parser.** The rtl_const_expr parser is on-demand-only (see [Build Recipe](build-recipe.md)); vendor `generated/rtl_const_expr_parser.rs` against the recorded parser-release version, or build it in CI from the pinned `grammars/rtl_const_expr.ebnf`.

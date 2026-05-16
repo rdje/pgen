@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-544de5fc.js";
+            window.path_to_searchindex_js = "searchindex-6e09f93b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -198,7 +198,13 @@ printf '42' &gt; /tmp/l42.rce
 ./target/release/parseability_probe \
     --parse-dump-ast-pretty rtl_const_expr /tmp/l42.rce /tmp/l42.json
 </code></pre>
-<h2 id="the-consumer-facing-ast-astdumppayloadroot"><a class="header" href="#the-consumer-facing-ast-astdumppayloadroot">The consumer-facing AST (<code>AstDumpPayload.root</code>)</a></h2>
+<h2 id="the-consumer-facing-ast-parsed-dump_json"><a class="header" href="#the-consumer-facing-ast-parsed-dump_json">The consumer-facing AST (parsed <code>dump_json</code>)</a></h2>
+<p>Downstream code does not call the probe — it calls the public API
+(<a href="public-api.html">Public API Surface</a>), which hands back an
+<code>AstDumpPayload</code> (real fields: <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>
+— there is no <code>root</code> field). After confirming <code>truncated == false</code>,
+<code>serde_json::from_str(&amp;payload.dump_json)</code> yields the typed root object
+this book’s per-rule chapters describe.</p>
 <p>The root is <code>{type: "rtl_const_expr", expr: &lt;conditional_expr&gt;}</code>. Because
 the expression grammar is a ten-level precedence cascade and <code>42</code> uses
 no operators, <code>expr</code> is a <strong>ten-deep stack of empty <code>binop_chain</code>
@@ -272,10 +278,20 @@ let outcome = parse_grammar_profile_ast_dump_named(
     "rtl_const_expr", "default", "42",
     &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
 if let ParseStatus::Success = outcome.status {
-    let d = outcome.ast_dump.expect("AST dump");
-    assert_eq!(d.schema_version, 2);
-    let root = &amp;d.root;
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = RTL_CONST_EXPR_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&amp;d.dump_json).expect("dump_json is valid JSON");
     assert_eq!(root["type"], "rtl_const_expr");
     let leaf = unwrap_chain(&amp;root["expr"]);
     assert_eq!(leaf["type"], "literal");

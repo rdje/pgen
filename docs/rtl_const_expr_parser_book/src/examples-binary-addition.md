@@ -114,11 +114,22 @@ let outcome = parse_grammar_profile_ast_dump_named(
     "rtl_const_expr", "default", "a + b",
     &AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
 if let ParseStatus::Success = outcome.status {
-    let d = outcome.ast_dump.expect("AST dump");
-    assert_eq!(d.schema_version, 2);
-    assert_eq!(d.root["type"], "rtl_const_expr");
-    assert_eq!(fold(&d.root["expr"]), "(a + b)");
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = RTL_CONST_EXPR_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&d.dump_json).expect("dump_json is valid JSON");
+    assert_eq!(root["type"], "rtl_const_expr");
+    assert_eq!(fold(&root["expr"]), "(a + b)");
 }
 ```
 

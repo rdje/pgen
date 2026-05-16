@@ -28,7 +28,7 @@ same commit.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `RTL-CE-CONTRACT-BODY` | `active` | rtl_const_expr deliverables | `RTL-CE-CONTRACT-BODY.2` | [docs/tasks/RTL-CE-CONTRACT-BODY.md](tasks/RTL-CE-CONTRACT-BODY.md) |
+| `RTL-CE-CONTRACT-BODY` | `active` | rtl_const_expr deliverables | `RTL-CE-CONTRACT-BODY.3` | [docs/tasks/RTL-CE-CONTRACT-BODY.md](tasks/RTL-CE-CONTRACT-BODY.md) |
 | `SVPP-CONTRACT-BODY` | `active` | sv_preprocessor deliverables | `SVPP-CONTRACT-BODY.2` | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
 
 ## Proposed Task Trees

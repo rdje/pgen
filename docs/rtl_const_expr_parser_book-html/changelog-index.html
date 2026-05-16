@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-544de5fc.js";
+            window.path_to_searchindex_js = "searchindex-6e09f93b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -205,7 +205,7 @@
 <p>A worked-example pass surfaced that the <code>1.0.1</code> baseline shipped three return-annotation defects that the (root-keys-only) shape-contract regression lock did not catch. All three are fixed, the parser is regenerated, and the manifest inventory is tightened to the full 26-entry surface so the corrected shapes are machine-locked.</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.2</code> (first parser release: <code>1.0.2</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>2</code> — the integer consumers branch on at runtime (<code>AstDumpPayload.schema_version</code>); bumped from <code>1</code> because three user-visible shapes changed.</li>
+<li><strong>AST-dump schema version:</strong> <code>2</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); bumped from <code>1</code> because three user-visible shapes changed.</li>
 <li><strong>The three fixes:</strong>
 <ul>
 <li><strong><code>binop_chain</code> <code>rest</code> (Issue A).</strong> Was the literal string <code>"&lt;invalid_sequence_access&gt;"</code> inside a malformed nested object on any input exercising an operator at any of the ten levels. The five multi-token inner operator alternations were lifted into <strong>named rules</strong> (<code>equality_op</code>, <code>relational_op</code>, <code>shift_op</code>, <code>additive_op</code>, <code>multiplicative_op</code>), so every level is now <code>next ( NAMED_op next )* -&gt; {type: "binop_chain", level, lhs: $1, rest: $2}</code> with bare <code>$2</code>. <code>rest</code> is now a <strong>clean array</strong> of <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> iteration entries (operator text at <code>entry[0][1]</code>), <code>[]</code> when no operator at that level.</li>
@@ -223,7 +223,7 @@
 <p>The initial typing slice, covering the entire <code>grammars/rtl_const_expr.ebnf</code> expression surface in <strong>one batch</strong> (landed 2026-05-14).</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.0</code> (first parser release: <code>1.0.1</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>1</code> — the integer consumers branched on at runtime for this release.</li>
+<li><strong>AST-dump schema version:</strong> <code>1</code> — the integer consumers pinned from the contract for this release (it was never a field of <code>AstDumpPayload</code>).</li>
 <li><strong>Annotation count:</strong> <strong>24</strong> (was <code>1</code> / pre-typing baseline). Coverage: the <code>rtl_const_expr</code> root; <code>conditional_expr</code> (ternary + passthrough); the ten-rule <code>binop_chain</code> hierarchy (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>); <code>unary_expr</code> (four prefix forms + passthrough); <code>primary_expr</code> (three passthrough branches); <code>literal</code> (two kinds, <code>"based"</code> / <code>"decimal"</code>); and <code>identifier</code>.</li>
 <li><strong>NOTE — defective shapes:</strong> the <code>binop_chain</code> <code>rest</code> and the <code>identifier</code> / <code>literal</code> <code>text</code> shapes in this baseline were defective (<code>rest</code> could surface <code>"&lt;invalid_sequence_access&gt;"</code>; <code>identifier.text</code> / <code>literal.text</code> carried the empty-<code>trivia</code> envelope). They were corrected in schema <code>2</code> / release <code>1.0.2</code> above — consumers must not target the schema-<code>1</code> shapes.</li>
 <li><strong>Accept set:</strong> unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.</li>

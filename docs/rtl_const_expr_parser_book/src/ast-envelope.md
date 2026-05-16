@@ -4,20 +4,48 @@ The PGEN rtl_const_expr parser produces a JSON AST through `parse_grammar_profil
 
 ## The envelope
 
-The `ast_dump` field of `NamedGrammarAstDumpOutcome` carries an `AstDumpPayload`:
+The AST-dump host entry points (the generic
+`parse_grammar_profile_ast_dump*` family and the named-result form
+`parse_grammar_profile_ast_dump_named`) return — on success — an
+`AstDumpPayload`, defined in `rust/src/embedding_api.rs` (the
+authoritative API contract is `rust/docs/EMBEDDING_API_CONTRACT.md`). It
+is a **canonical-JSON payload string plus truncation metadata** — it has
+**exactly four fields**:
 
 ```rust
 pub struct AstDumpPayload {
-    pub pgen_dump_contract_version: u32,  // currently 1
-    pub schema_version: u32,              // 2 — see Schema Versioning
-    pub grammar: String,                  // "rtl_const_expr"
-    pub profile: String,                  // "default"
-    pub root: JsonValue,                  // the actual AST tree
-    pub truncated: bool,                  // true if max_ast_bytes was hit
+    pub dump_json: String,    // canonical (key-sorted) JSON encoding of the typed AST
+    pub truncated: bool,      // true if max_ast_bytes was exceeded
+    pub full_bytes: usize,    // byte length of the full encoded AST (pre-truncation)
+    pub emitted_bytes: usize, // byte length actually placed in dump_json
 }
 ```
 
-The `root` field is the rtl_const_expr AST as a `serde_json::Value`. It is what this book's per-rule chapters describe.
+`dump_json` is a **JSON string you must parse** (e.g.
+`serde_json::from_str`) to obtain the `rtl_const_expr` **root object**
+that this book's per-rule chapters describe. There is no `root` /
+`schema_version` / `grammar` / `profile` field on `AstDumpPayload`
+itself: the AST-dump schema version is the `2` tracked in
+[Schema Versioning](schema-versioning.md) (the post-`1.0.2`
+correctness-fix schema); the grammar/profile are fixed
+(`rtl_const_expr` / `default`).
+
+When `truncated` is `true`, `dump_json` is **not** the AST — it is a
+deterministic truncation diagnostic envelope carrying
+`pgen_dump_contract_version` (currently `1`),
+`kind: "pgen_ast_dump_truncation"`, `truncated: true`,
+`dump_kind: "parser_return_ast"`, `max_bytes`, `full_bytes`, and
+`reason`. Consumers must check `truncated` (or, equivalently, the
+presence of `pgen_dump_contract_version` / `kind ==
+"pgen_ast_dump_truncation"` in the parsed `dump_json`) before treating
+`dump_json` as an rtl_const_expr AST. If `max_ast_bytes` is too small to
+fit even the diagnostic envelope, the API returns `E_INVALID_LIMITS`.
+The downstream integration contract
+`docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md`
+("AST Envelope and Expression Hierarchy") is the authoritative
+restatement of this for consumers.
+
+The parsed `dump_json` is what this book's per-rule chapters describe.
 
 > **Authoritative shapes.** Every shape in this chapter is the live
 > output of `generated/rtl_const_expr_parser.rs`, drawn from the

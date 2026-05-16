@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-544de5fc.js";
+            window.path_to_searchindex_js = "searchindex-6e09f93b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -282,11 +282,22 @@ let outcome = parse_grammar_profile_ast_dump_named(
     "rtl_const_expr", "default", "a + b",
     &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
 if let ParseStatus::Success = outcome.status {
-    let d = outcome.ast_dump.expect("AST dump");
-    assert_eq!(d.schema_version, 2);
-    assert_eq!(d.root["type"], "rtl_const_expr");
-    assert_eq!(fold(&amp;d.root["expr"]), "(a + b)");
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = RTL_CONST_EXPR_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&amp;d.dump_json).expect("dump_json is valid JSON");
+    assert_eq!(root["type"], "rtl_const_expr");
+    assert_eq!(fold(&amp;root["expr"]), "(a + b)");
 }
 <span class="boring">}</span></code></pre>
 <h2 id="why-this-is-a-canonical-first-test"><a class="header" href="#why-this-is-a-canonical-first-test">Why this is a canonical first-test</a></h2>

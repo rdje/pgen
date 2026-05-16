@@ -173,6 +173,240 @@ for (op, operand) in rest:
 
 Annotation count: **24** (was 14 / foundation baseline). Same accept set.
 
+## AST Envelope and Expression Hierarchy
+
+This section is the consumer-facing dispatch contract: how a downstream
+integrator goes from the host AST-dump call to a typed rtl_const_expr
+tree, and how the expression-precedence cascade is shaped. Every shape
+below is transcribed from the live inventory
+`generated/rtl_const_expr_return_annotations.json`
+(`version: 1`, `grammar: "rtl_const_expr"`, `annotation_count: 26`),
+cross-checked against the embedded copy in
+`rust/test_data/ast_shape_contract/rtl_const_expr_v1.json` (content-identical
+on the `(rule, branch_index, annotation_type, normalized_text)` tuples;
+the live inventory additionally carries a per-entry `raw_text` field),
+and is consistent with the curated per-rule reference at
+`docs/rtl_const_expr_parser_book/src/rules-top-level.md`.
+
+### The `AstDumpPayload` envelope
+
+The AST-dump host entry points (the generic
+`parse_grammar_profile_ast_dump*` family and the named-result form
+`parse_grammar_profile_ast_dump_named`) return — on success — an
+`AstDumpPayload` (defined in `rust/src/embedding_api.rs`, contract in
+`rust/docs/EMBEDDING_API_CONTRACT.md`). It is a canonical-JSON payload
+string plus truncation metadata, with exactly four fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `dump_json` | string | The canonical (key-sorted) JSON encoding of the typed rtl_const_expr AST. Parse this string to obtain the `rtl_const_expr` root object described below. |
+| `truncated` | bool | `false` for a complete dump; `true` when `max_ast_bytes` was exceeded and `dump_json` instead carries the truncation diagnostic envelope. |
+| `full_bytes` | int | Byte length of the full encoded AST payload (before any truncation). |
+| `emitted_bytes` | int | Byte length actually placed in `dump_json`. Equals `full_bytes` when not truncated. |
+
+When `truncated` is `true`, `dump_json` is replaced by a deterministic
+truncation diagnostic envelope (not the AST). That envelope carries
+`pgen_dump_contract_version` (currently `1`), `kind:
+"pgen_ast_dump_truncation"`, `truncated: true`, `dump_kind:
+"parser_return_ast"`, `max_bytes`, `full_bytes`, and `reason`. Consumers
+must check `truncated` (or, equivalently, the presence of
+`pgen_dump_contract_version` / `kind == "pgen_ast_dump_truncation"` in
+the parsed `dump_json`) before treating `dump_json` as an
+rtl_const_expr AST. If `max_ast_bytes` is too small to fit even the
+diagnostic envelope, the API returns `E_INVALID_LIMITS` instead.
+
+> Accuracy note: the live `AstDumpPayload` struct exposes precisely
+> `dump_json` / `truncated` / `full_bytes` / `emitted_bytes`. The
+> `pgen_dump_contract_version` / `schema_version` / `grammar` / `profile` /
+> `root` keys are **not** members of `AstDumpPayload` itself —
+> `pgen_dump_contract_version` appears only inside the truncation diagnostic
+> envelope, the schema axis is the **AST-dump schema version `2`** tracked in
+> [Schema Versioning](#schema-versioning), the grammar family is the fixed
+> `rtl_const_expr` label, and the profile is the fixed `default` profile (see
+> [Stable Integration Surface](#stable-integration-surface)). The "root" is
+> the parsed `rtl_const_expr` object documented next. This contract documents
+> the surface as it exists in `rust/src/embedding_api.rs`, not an idealized
+> envelope.
+
+### The `rtl_const_expr` root
+
+The parsed `dump_json` is, for a successful rtl_const_expr parse, a
+single typed root object. Per `grammars/rtl_const_expr.ebnf` (lines
+11–12):
+
+```ebnf
+rtl_const_expr := conditional_expr
+              -> {type: "rtl_const_expr", expr: $1}
+```
+
+```json
+{
+  "type": "rtl_const_expr",
+  "expr": { /* conditional_expr shape */ }
+}
+```
+
+Consumers dispatch on `obj["type"] == "rtl_const_expr"` at the root,
+then descend into `obj["expr"]` — the single typed child, whatever shape
+`conditional_expr` produced. This is the only rule whose `type` is
+`"rtl_const_expr"`; every interior expression node carries a different
+`type`. rtl_const_expr uses a `type` discriminator on every typed
+object — there is **no** bare `kind` dispatcher anywhere in this
+grammar.
+
+### The expression hierarchy
+
+Below the root, the grammar is an expression-precedence cascade:
+`conditional_expr` (the ternary head) → a **ten-level** `binop_chain`
+cascade → `unary_expr` (the prefix tier) → `primary_expr` (the
+all-passthrough leaf dispatcher). The four families and their exact
+field lists, transcribed from the live inventory:
+
+#### `conditional_expr` — the ternary head (2 branches)
+
+`grammars/rtl_const_expr.ebnf` lines 14–17:
+
+```ebnf
+conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
+                 -> {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
+conditional_expr := logical_or_expr
+                 -> $1
+```
+
+| Branch | `annotation_type` | Shape |
+|---|---|---|
+| 0 | `return_object` | `{type: "ternary", condition: <logical_or_expr>, then_expr: <conditional_expr>, else_expr: <conditional_expr>}` — the `c ? t : e` form; both arms recurse into `conditional_expr`, so a ternary can nest. |
+| 1 | `return_scalar` (`-> $1`) | **Passthrough.** A non-ternary expression surfaces directly as its `logical_or_expr` `binop_chain` with no `conditional_expr` wrapper. |
+
+Because branch 1 is passthrough, any expression slot
+(`rtl_const_expr.expr`, a ternary arm, a parenthesized sub-expression)
+may hold a `ternary` object **or** directly a `binop_chain` — dispatch
+on `obj["type"]`.
+
+#### The ten-level `binop_chain` cascade
+
+`grammars/rtl_const_expr.ebnf` lines 19–38. Each of the **ten** binary
+levels emits the identical shape
+`{type: "binop_chain", level, lhs: $1, rest: $2}`. The five multi-token
+inner operator alternations are lifted into **named, un-annotated**
+rules (`equality_op := eqeq | ne`, `relational_op := le | lt | ge | gt`,
+`shift_op := shl | shr`, `additive_op := plus | minus`,
+`multiplicative_op := star | slash | percent` — lines 40–44); the other
+five levels use a single named token rule. This is the `1.0.2`
+correctness fix (the proven `systemverilog.ebnf` op-chain idiom) that
+made `rest: $2` capture cleanly. The five named operator rules carry
+**no** annotation and are therefore **not** in the 26-entry inventory.
+
+```ebnf
+logical_or_expr     := logical_and_expr ( logical_or  logical_and_expr )*
+                    -> {type: "binop_chain", level: "logical_or",     lhs: $1, rest: $2}
+multiplicative_expr := unary_expr       ( multiplicative_op unary_expr )*
+                    -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+```
+
+| `level` | Rule (`grammars/rtl_const_expr.ebnf`) | Operators (loosest binding first; grammar/precedence order) |
+|---|---|---|
+| `"logical_or"` | `logical_or_expr` (line 19) | `\|\|` |
+| `"logical_and"` | `logical_and_expr` (line 21) | `&&` |
+| `"bit_or"` | `bit_or_expr` (line 23) | `\|` |
+| `"bit_xor"` | `bit_xor_expr` (line 25) | `^` |
+| `"bit_and"` | `bit_and_expr` (line 27) | `&` |
+| `"equality"` | `equality_expr` (line 29) | `==` / `!=` (`equality_op`) |
+| `"relational"` | `relational_expr` (line 31) | `<=` / `<` / `>=` / `>` (`relational_op`) |
+| `"shift"` | `shift_expr` (line 33) | `<<` / `>>` (`shift_op`) |
+| `"additive"` | `additive_expr` (line 35) | `+` / `-` (`additive_op`) |
+| `"multiplicative"` | `multiplicative_expr` (line 37) | `*` / `/` / `%` (`multiplicative_op`) |
+
+Every level carries exactly the two fields `lhs` and `rest` (plus
+`type` and `level`). There is **no** `sign` field on any rtl_const_expr
+level (unlike VHDL's `simple_expression`); the prefix `+` / `-` / `!` /
+`~` operators live in `unary_expr`, below `multiplicative_expr`.
+
+**Consumer left-fold rule (normative).** `lhs` (`$1`) is the leading
+operand at this precedence level — the typed value from the next-tighter
+level, bottoming out at a `unary_expr` → passthrough `primary_expr`
+leaf. `rest` (`$2`) is, **as of the `1.0.2` correctness fix, a clean
+array** of per-iteration entries for the `( <op> <next> )*` tail (never
+the pre-`1.0.2` `"<invalid_sequence_access>"`), `[]` when there was no
+operator at that level. **Each entry is a two-element array
+`[ <op-envelope>, <operand> ]`:** `entry[0]` is the operator envelope
+(for a `trivia "<tok>"` operator token this is the two-element array
+`["", "<tok>"]`; the operator text is at `entry[0][1]`) and `entry[1]`
+is the next-level operand (itself a `binop_chain`). It is **not** a
+typed `{op, rhs}` object. Consumers MUST fold `rest`
+left-associatively onto `lhs` — evaluate `lhs`, then for each entry in
+array order apply the `entry[0]` operator with the running result as the
+left side and `entry[1]` as the right side. This left-fold is identical
+at all ten levels by construction, so one fold routine walks the whole
+binary-expression tree; `level` discriminates which operator family the
+node belongs to so consumers can validate operator-vs-level conformance.
+
+#### `unary_expr` — the prefix tier (5 branches)
+
+`grammars/rtl_const_expr.ebnf` lines 46–55:
+
+```ebnf
+unary_expr := plus  unary_expr -> {type: "unary", op: "plus",        expr: $2}
+unary_expr := minus unary_expr -> {type: "unary", op: "minus",       expr: $2}
+unary_expr := bang  unary_expr -> {type: "unary", op: "logical_not", expr: $2}
+unary_expr := tilde unary_expr -> {type: "unary", op: "bit_not",     expr: $2}
+unary_expr := primary_expr     -> $1
+```
+
+| Branch | `annotation_type` | Shape |
+|---|---|---|
+| 0 | `return_object` | `{type: "unary", op: "plus", expr: <unary_expr>}` (prefix `+`) |
+| 1 | `return_object` | `{type: "unary", op: "minus", expr: <unary_expr>}` (prefix `-`) |
+| 2 | `return_object` | `{type: "unary", op: "logical_not", expr: <unary_expr>}` (prefix `!`) |
+| 3 | `return_object` | `{type: "unary", op: "bit_not", expr: <unary_expr>}` (prefix `~`) |
+| 4 | `return_scalar` (`-> $1`) | **Passthrough.** A non-prefixed operand surfaces directly as its `primary_expr` shape with no `unary` wrapper. |
+
+The four operator branches carry the two fields `op` (the typed
+operator name — `"plus"`, `"minus"`, `"logical_not"`, `"bit_not"`, not
+the raw token) and `expr` (recursing into `unary_expr`, so `--x` /
+`!~x` chains nest).
+
+#### `primary_expr` — the all-passthrough leaf dispatcher (3 branches)
+
+`grammars/rtl_const_expr.ebnf` lines 57–62. All three branches are
+`return_scalar` passthroughs, so `primary_expr` never appears as its own
+wrapper object in the dump:
+
+```ebnf
+primary_expr := literal                        -> $1
+primary_expr := identifier                     -> $1
+primary_expr := lparen conditional_expr rparen -> $2
+```
+
+| Branch | `annotation_type` | Shape |
+|---|---|---|
+| 0 | `return_scalar` (`-> $1`) | **Passthrough** to the `literal` typed object. |
+| 1 | `return_scalar` (`-> $1`) | **Passthrough** to the `identifier` typed object. |
+| 2 | `return_scalar` (`-> $2`) | **Passthrough** to the parenthesized inner `conditional_expr`; the surrounding `( )` tokens are dropped. |
+
+The two typed leaves it bottoms out at (`grammars/rtl_const_expr.ebnf`
+lines 64–74): `literal := based_integer -> {type: "literal", kind:
+"based", text: $1}` / `decimal_integer -> {type: "literal", kind:
+"decimal", text: $1}` (two `kind` values `"based"` / `"decimal"`), and
+`identifier := trivia /…/ -> {type: "identifier", text: $2}`. As of the
+`1.0.2` fix `literal.text` and `identifier.text` are both clean source
+strings: `based_integer` / `decimal_integer` are now annotated `-> $2`
+(were unannotated, surfacing the envelope `["", "42"]`), and
+`identifier` binds `text: $2` (was `$1`, the empty leading `trivia`).
+
+The full per-branch field lists, the named-operator-rule table, and the
+worked left-fold are enumerated in
+`docs/rtl_const_expr_parser_book/src/rules-top-level.md`; the
+machine-checkable enumeration of every `(rule, branch_index,
+annotation_type, normalized_text)` tuple is
+`generated/rtl_const_expr_return_annotations.json` and its embedded copy
+`rust/test_data/ast_shape_contract/rtl_const_expr_v1.json`. The full
+typed surface of contract `1.0.2` is **26 return annotations across 18
+distinct rules** (19 `return_object` + 7 `return_scalar`; 10 of the 18
+rules emit `binop_chain`), AST-dump schema version `2`. If this section
+and either artifact disagree, the artifact wins; this integration
+contract wins over the per-family mdBook.
+
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
 - `rtl_const_expr` covers only **constant expressions** (decimal and sized-based integer literals, identifiers, unary `+ - ! ~`, binary arithmetic / shift / comparison / equality / bitwise / logical operators, ternary `?:`). For statements, modules, control flow → see `rtl_frontend`.

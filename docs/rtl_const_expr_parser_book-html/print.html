@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-544de5fc.js";
+            window.path_to_searchindex_js = "searchindex-6e09f93b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -419,19 +419,44 @@ pub struct ParserEmbeddingApiContract {
 <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
 <p>The PGEN rtl_const_expr parser produces a JSON AST through <code>parse_grammar_profile_ast_dump_named</code> (grammar <code>"rtl_const_expr"</code>). This chapter documents the top-level structure of that JSON.</p>
 <h2 id="the-envelope"><a class="header" href="#the-envelope">The envelope</a></h2>
-<p>The <code>ast_dump</code> field of <code>NamedGrammarAstDumpOutcome</code> carries an <code>AstDumpPayload</code>:</p>
+<p>The AST-dump host entry points (the generic
+<code>parse_grammar_profile_ast_dump*</code> family and the named-result form
+<code>parse_grammar_profile_ast_dump_named</code>) return — on success — an
+<code>AstDumpPayload</code>, defined in <code>rust/src/embedding_api.rs</code> (the
+authoritative API contract is <code>rust/docs/EMBEDDING_API_CONTRACT.md</code>). It
+is a <strong>canonical-JSON payload string plus truncation metadata</strong> — it has
+<strong>exactly four fields</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AstDumpPayload {
-    pub pgen_dump_contract_version: u32,  // currently 1
-    pub schema_version: u32,              // 2 — see Schema Versioning
-    pub grammar: String,                  // "rtl_const_expr"
-    pub profile: String,                  // "default"
-    pub root: JsonValue,                  // the actual AST tree
-    pub truncated: bool,                  // true if max_ast_bytes was hit
+    pub dump_json: String,    // canonical (key-sorted) JSON encoding of the typed AST
+    pub truncated: bool,      // true if max_ast_bytes was exceeded
+    pub full_bytes: usize,    // byte length of the full encoded AST (pre-truncation)
+    pub emitted_bytes: usize, // byte length actually placed in dump_json
 }
 <span class="boring">}</span></code></pre>
-<p>The <code>root</code> field is the rtl_const_expr AST as a <code>serde_json::Value</code>. It is what this book’s per-rule chapters describe.</p>
+<p><code>dump_json</code> is a <strong>JSON string you must parse</strong> (e.g.
+<code>serde_json::from_str</code>) to obtain the <code>rtl_const_expr</code> <strong>root object</strong>
+that this book’s per-rule chapters describe. There is no <code>root</code> /
+<code>schema_version</code> / <code>grammar</code> / <code>profile</code> field on <code>AstDumpPayload</code>
+itself: the AST-dump schema version is the <code>2</code> tracked in
+<a href="#schema-versioning">Schema Versioning</a> (the post-<code>1.0.2</code>
+correctness-fix schema); the grammar/profile are fixed
+(<code>rtl_const_expr</code> / <code>default</code>).</p>
+<p>When <code>truncated</code> is <code>true</code>, <code>dump_json</code> is <strong>not</strong> the AST — it is a
+deterministic truncation diagnostic envelope carrying
+<code>pgen_dump_contract_version</code> (currently <code>1</code>),
+<code>kind: "pgen_ast_dump_truncation"</code>, <code>truncated: true</code>,
+<code>dump_kind: "parser_return_ast"</code>, <code>max_bytes</code>, <code>full_bytes</code>, and
+<code>reason</code>. Consumers must check <code>truncated</code> (or, equivalently, the
+presence of <code>pgen_dump_contract_version</code> / <code>kind == "pgen_ast_dump_truncation"</code> in the parsed <code>dump_json</code>) before treating
+<code>dump_json</code> as an rtl_const_expr AST. If <code>max_ast_bytes</code> is too small to
+fit even the diagnostic envelope, the API returns <code>E_INVALID_LIMITS</code>.
+The downstream integration contract
+<code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code>
+(“AST Envelope and Expression Hierarchy”) is the authoritative
+restatement of this for consumers.</p>
+<p>The parsed <code>dump_json</code> is what this book’s per-rule chapters describe.</p>
 <blockquote>
 <p><strong>Authoritative shapes.</strong> Every shape in this chapter is the live
 output of <code>generated/rtl_const_expr_parser.rs</code>, drawn from the
@@ -895,20 +920,31 @@ fn extract_terminal_text(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt
 </ol>
 <p>A practical shortcut: the empty-<code>rest</code> <code>binop_chain</code> wrappers carry no information, so a consumer can collapse them — when <code>rest == []</code>, replace the node with its lowered <code>lhs</code> (the <code>fold_binop</code> above already does this implicitly).</p>
 <h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
-<p>If your tool needs to support multiple PGEN versions, branch on the payload’s schema version (<code>AstDumpPayload.schema_version</code>):</p>
+<p><code>AstDumpPayload</code> has <strong>no</strong> <code>schema_version</code> (or <code>root</code>) field — the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>. The AST-dump schema version is not discoverable at runtime from the payload; you <strong>pin</strong> it from <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” as a constant in your consumer and re-validate that pin against the contract’s “Schema Versioning” table whenever you bump PGEN. The shape-contract manifest (<code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code>) is the machine-checkable lock that fails CI if the parser drifts from the pinned schema.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match ast_dump_payload.schema_version {
+</span>// The AST-dump schema version you integrated against (from the contract):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    // dump_json holds the truncation diagnostic envelope, not the AST.
+    return Err("rtl_const_expr AST dump truncated".into());
+}
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+
+// RTL_CONST_EXPR_AST_SCHEMA_VERSION selects which walker your code was built
+// for. When you bump PGEN, diff the contract's Schema Versioning table; if the
+// integer schema version moved, update the constant and the walker together.
+match RTL_CONST_EXPR_AST_SCHEMA_VERSION {
     // schema 2 is current (parser release 1.0.2): clean binop_chain `rest`,
     // clean identifier/literal `text`.
-    2 =&gt; walk_schema_v2(&amp;ast_dump_payload.root),
+    2 =&gt; walk_schema_v2(&amp;root),
     // schema 1 (parser release 1.0.1) had the pre-correctness shapes
     // (binop_chain `rest` could emit "&lt;invalid_sequence_access&gt;";
     //  identifier/literal `text` carried the empty-trivia envelope).
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
-    other =&gt; {
-        eprintln!("unsupported rtl_const_expr schema version: {}", other);
-    }
+    1 =&gt; walk_schema_v1(&amp;root),
+    other =&gt; eprintln!("no walker compiled for rtl_const_expr AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>
 <p>See <a href="#schema-versioning">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>
@@ -1142,7 +1178,13 @@ printf '42' &gt; /tmp/l42.rce
 ./target/release/parseability_probe \
     --parse-dump-ast-pretty rtl_const_expr /tmp/l42.rce /tmp/l42.json
 </code></pre>
-<h2 id="the-consumer-facing-ast-astdumppayloadroot"><a class="header" href="#the-consumer-facing-ast-astdumppayloadroot">The consumer-facing AST (<code>AstDumpPayload.root</code>)</a></h2>
+<h2 id="the-consumer-facing-ast-parsed-dump_json"><a class="header" href="#the-consumer-facing-ast-parsed-dump_json">The consumer-facing AST (parsed <code>dump_json</code>)</a></h2>
+<p>Downstream code does not call the probe — it calls the public API
+(<a href="#public-api-surface">Public API Surface</a>), which hands back an
+<code>AstDumpPayload</code> (real fields: <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>
+— there is no <code>root</code> field). After confirming <code>truncated == false</code>,
+<code>serde_json::from_str(&amp;payload.dump_json)</code> yields the typed root object
+this book’s per-rule chapters describe.</p>
 <p>The root is <code>{type: "rtl_const_expr", expr: &lt;conditional_expr&gt;}</code>. Because
 the expression grammar is a ten-level precedence cascade and <code>42</code> uses
 no operators, <code>expr</code> is a <strong>ten-deep stack of empty <code>binop_chain</code>
@@ -1216,10 +1258,20 @@ let outcome = parse_grammar_profile_ast_dump_named(
     "rtl_const_expr", "default", "42",
     &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
 if let ParseStatus::Success = outcome.status {
-    let d = outcome.ast_dump.expect("AST dump");
-    assert_eq!(d.schema_version, 2);
-    let root = &amp;d.root;
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = RTL_CONST_EXPR_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&amp;d.dump_json).expect("dump_json is valid JSON");
     assert_eq!(root["type"], "rtl_const_expr");
     let leaf = unwrap_chain(&amp;root["expr"]);
     assert_eq!(leaf["type"], "literal");
@@ -1342,11 +1394,22 @@ let outcome = parse_grammar_profile_ast_dump_named(
     "rtl_const_expr", "default", "a + b",
     &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
 if let ParseStatus::Success = outcome.status {
-    let d = outcome.ast_dump.expect("AST dump");
-    assert_eq!(d.schema_version, 2);
-    assert_eq!(d.root["type"], "rtl_const_expr");
-    assert_eq!(fold(&amp;d.root["expr"]), "(a + b)");
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = RTL_CONST_EXPR_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&amp;d.dump_json).expect("dump_json is valid JSON");
+    assert_eq!(root["type"], "rtl_const_expr");
+    assert_eq!(fold(&amp;root["expr"]), "(a + b)");
 }
 <span class="boring">}</span></code></pre>
 <h2 id="why-this-is-a-canonical-first-test-1"><a class="header" href="#why-this-is-a-canonical-first-test-1">Why this is a canonical first-test</a></h2>
@@ -1415,7 +1478,7 @@ and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> labels above for the milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>2</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> labels above for the milestones; the AST-dump schema version consumers pin against is the integer <strong><code>2</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
@@ -1423,14 +1486,20 @@ and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p
 <p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.2</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>2</code>. Reject or warn on an unexpected value rather than mis-parsing a different shape:</p>
+<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>2</code>, from <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match ast_dump_payload.schema_version {
-    2 =&gt; walk_schema_v2(&amp;ast_dump_payload.root),
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root), // pre-correctness shape
-    other =&gt; return Err(format!("unsupported rtl_const_expr schema version: {other}")),
+</span>// Schema version you integrated against, from the contract:
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    return Err("rtl_const_expr AST dump truncated (dump_json holds the diagnostic envelope)".into());
 }
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+// RTL_CONST_EXPR_AST_SCHEMA_VERSION drives which walker you compiled;
+// re-check the contract's Schema Versioning table on every PGEN bump.
+walk_schema_v2(&amp;root);
 <span class="boring">}</span></code></pre>
 </li>
 <li>
@@ -1460,7 +1529,7 @@ and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <p>Terms used throughout this book. Where a term has a normative definition, the integration contract <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> is authoritative; this glossary paraphrases it for quick lookup.</p>
 <h2 id="ast-envelope"><a class="header" href="#ast-envelope">AST envelope</a></h2>
-<p>The JSON tree returned by the rtl_const_expr AST-dump entry points. It is the <code>root</code> field of the <code>AstDumpPayload</code> carried by <code>GrammarAstDumpOutcome</code>. Every parse roots at the single typed object <code>{type: "rtl_const_expr", expr: &lt;conditional_expr-shape&gt;}</code>. See <a href="#ast-envelope-structure">AST Envelope Structure</a>.</p>
+<p>The typed rtl_const_expr AST. It is obtained by <strong>parsing the <code>dump_json</code> string</strong> of the <code>AstDumpPayload</code> (the real struct has exactly <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code> — there is <strong>no</strong> <code>root</code> field). After confirming <code>truncated == false</code>, <code>serde_json::from_str(&amp;payload.dump_json)</code> yields the single typed root object <code>{type: "rtl_const_expr", expr: &lt;conditional_expr-shape&gt;}</code> this book’s per-rule chapters describe. See <a href="#ast-envelope-structure">AST Envelope Structure</a>.</p>
 <h2 id="ast-shape-contract-manifest"><a class="header" href="#ast-shape-contract-manifest">AST shape contract manifest</a></h2>
 <p>The file <code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code> (<code>version: 1</code>, <code>grammar: "rtl_const_expr"</code>). It records the per-rule expected JSON shape for each sample in the rtl_const_expr test corpus (the <code>literal_42</code> and <code>binary_addition</code> samples) and embeds the declared-annotation inventory — <strong>26 annotation entries</strong> as of contract <code>1.0.2</code>. Drift in the AST dump fails the <code>rtl_const_expr_ast_shape_contract</code> regression-lock test under <code>cargo test --lib --features generated_parsers rtl_const_expr_ast_shape_contract</code>, surfacing the change. Its <code>declared_annotation_inventory.annotations</code> list is content-identical to the live inventory <code>generated/rtl_const_expr_return_annotations.json</code> — the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples match exactly; the live inventory additionally carries a per-entry <code>raw_text</code> field. (This is the rtl_const_expr manifest; the SystemVerilog, VHDL, and rtl_frontend parsers have their own separate <code>systemverilog_v1.json</code> / <code>vhdl_v1.json</code> / <code>rtl_frontend_v1.json</code>.)</p>
 <h2 id="binop_chain"><a class="header" href="#binop_chain">binop_chain</a></h2>
@@ -1491,7 +1560,7 @@ multiplicative_op := star | slash | percent
 <h2 id="return_object--return_scalar"><a class="header" href="#return_object--return_scalar">return_object / return_scalar</a></h2>
 <p>The two <code>annotation_type</code> values in the inventory. <strong><code>return_object</code></strong> (19 entries) is an object literal — the root, <code>conditional_expr</code> branch 0, the ten <code>binop_chain</code> levels, <code>unary_expr</code> branches 0–3, and <code>literal</code>’s two branches. <strong><code>return_scalar</code></strong> (7 entries) is a bare positional reference and takes two roles: five are <strong>passthrough</strong> branches that contribute no wrapper and surface the matched sub-rule’s shape directly (<code>conditional_expr</code> branch 1, <code>primary_expr</code> branches 0/1/2, <code>unary_expr</code> branch 4), and two are leaf <strong>scalar captures</strong> (<code>based_integer</code> / <code>decimal_integer</code>, both <code>-&gt; $2</code>) that bind the matched regex span to a clean string feeding <code>literal.text</code>. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
-<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The integer <code>AstDumpPayload.schema_version</code> field consumers branch on at runtime is currently <code>2</code> (the <code>1.0.2</code> correctness fix bumped it from <code>1</code>). The contract’s “Schema Versioning” table additionally uses <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the typing-campaign timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>2</code> (the <code>1.0.2</code> correctness fix bumped it from <code>1</code>) — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the typing-campaign timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
 <p>The JSON value produced by an annotated rule. In rtl_const_expr it is uniformly a <code>type</code>-tagged object — the root (<code>{type: "rtl_const_expr", expr}</code>), the ten <code>binop_chain</code> levels (<code>{type: "binop_chain", level, lhs, rest}</code>), <code>conditional_expr</code> branch 0 (<code>{type: "ternary", condition, then_expr, else_expr}</code>), <code>unary_expr</code> branches 0–3 (<code>{type: "unary", op, expr}</code>), <code>literal</code> (<code>{type: "literal", kind, text}</code>), and <code>identifier</code> (<code>{type: "identifier", text}</code>). There is <strong>no</strong> bare <code>kind</code> dispatcher anywhere in this grammar; <code>kind</code> / <code>level</code> / <code>op</code> are secondary discriminators <strong>inside</strong> a <code>type</code>-tagged object. Consumers dispatch on <code>obj["type"]</code>. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <h2 id="un-annotated-leaf-rule-of-thumb"><a class="header" href="#un-annotated-leaf-rule-of-thumb">Un-annotated leaf (rule of thumb)</a></h2>
@@ -1526,7 +1595,7 @@ multiplicative_op := star | slash | percent
 <p>A worked-example pass surfaced that the <code>1.0.1</code> baseline shipped three return-annotation defects that the (root-keys-only) shape-contract regression lock did not catch. All three are fixed, the parser is regenerated, and the manifest inventory is tightened to the full 26-entry surface so the corrected shapes are machine-locked.</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.2</code> (first parser release: <code>1.0.2</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>2</code> — the integer consumers branch on at runtime (<code>AstDumpPayload.schema_version</code>); bumped from <code>1</code> because three user-visible shapes changed.</li>
+<li><strong>AST-dump schema version:</strong> <code>2</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); bumped from <code>1</code> because three user-visible shapes changed.</li>
 <li><strong>The three fixes:</strong>
 <ul>
 <li><strong><code>binop_chain</code> <code>rest</code> (Issue A).</strong> Was the literal string <code>"&lt;invalid_sequence_access&gt;"</code> inside a malformed nested object on any input exercising an operator at any of the ten levels. The five multi-token inner operator alternations were lifted into <strong>named rules</strong> (<code>equality_op</code>, <code>relational_op</code>, <code>shift_op</code>, <code>additive_op</code>, <code>multiplicative_op</code>), so every level is now <code>next ( NAMED_op next )* -&gt; {type: "binop_chain", level, lhs: $1, rest: $2}</code> with bare <code>$2</code>. <code>rest</code> is now a <strong>clean array</strong> of <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> iteration entries (operator text at <code>entry[0][1]</code>), <code>[]</code> when no operator at that level.</li>
@@ -1544,7 +1613,7 @@ multiplicative_op := star | slash | percent
 <p>The initial typing slice, covering the entire <code>grammars/rtl_const_expr.ebnf</code> expression surface in <strong>one batch</strong> (landed 2026-05-14).</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.0</code> (first parser release: <code>1.0.1</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>1</code> — the integer consumers branched on at runtime for this release.</li>
+<li><strong>AST-dump schema version:</strong> <code>1</code> — the integer consumers pinned from the contract for this release (it was never a field of <code>AstDumpPayload</code>).</li>
 <li><strong>Annotation count:</strong> <strong>24</strong> (was <code>1</code> / pre-typing baseline). Coverage: the <code>rtl_const_expr</code> root; <code>conditional_expr</code> (ternary + passthrough); the ten-rule <code>binop_chain</code> hierarchy (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>); <code>unary_expr</code> (four prefix forms + passthrough); <code>primary_expr</code> (three passthrough branches); <code>literal</code> (two kinds, <code>"based"</code> / <code>"decimal"</code>); and <code>identifier</code>.</li>
 <li><strong>NOTE — defective shapes:</strong> the <code>binop_chain</code> <code>rest</code> and the <code>identifier</code> / <code>literal</code> <code>text</code> shapes in this baseline were defective (<code>rest</code> could surface <code>"&lt;invalid_sequence_access&gt;"</code>; <code>identifier.text</code> / <code>literal.text</code> carried the empty-<code>trivia</code> envelope). They were corrected in schema <code>2</code> / release <code>1.0.2</code> above — consumers must not target the schema-<code>1</code> shapes.</li>
 <li><strong>Accept set:</strong> unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.</li>

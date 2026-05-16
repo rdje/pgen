@@ -25,7 +25,14 @@ printf '42' > /tmp/l42.rce
     --parse-dump-ast-pretty rtl_const_expr /tmp/l42.rce /tmp/l42.json
 ```
 
-## The consumer-facing AST (`AstDumpPayload.root`)
+## The consumer-facing AST (parsed `dump_json`)
+
+Downstream code does not call the probe — it calls the public API
+([Public API Surface](public-api.md)), which hands back an
+`AstDumpPayload` (real fields: `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`
+— there is no `root` field). After confirming `truncated == false`,
+`serde_json::from_str(&payload.dump_json)` yields the typed root object
+this book's per-rule chapters describe.
 
 The root is `{type: "rtl_const_expr", expr: <conditional_expr>}`. Because
 the expression grammar is a ten-level precedence cascade and `42` uses
@@ -106,10 +113,20 @@ let outcome = parse_grammar_profile_ast_dump_named(
     "rtl_const_expr", "default", "42",
     &AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_CONST_EXPR_AST_SCHEMA_VERSION: u32 = 2;
+
 if let ParseStatus::Success = outcome.status {
-    let d = outcome.ast_dump.expect("AST dump");
-    assert_eq!(d.schema_version, 2);
-    let root = &d.root;
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = RTL_CONST_EXPR_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&d.dump_json).expect("dump_json is valid JSON");
     assert_eq!(root["type"], "rtl_const_expr");
     let leaf = unwrap_chain(&root["expr"]);
     assert_eq!(leaf["type"], "literal");

@@ -26,7 +26,7 @@ This book is **live** and tracks current main HEAD. The three entries below mirr
 A worked-example pass surfaced that the `1.0.1` baseline shipped three return-annotation defects that the (root-keys-only) shape-contract regression lock did not catch. All three are fixed, the parser is regenerated, and the manifest inventory is tightened to the full 26-entry surface so the corrected shapes are machine-locked.
 
 - **Schema-version milestone:** `1.0.2` (first parser release: `1.0.2`).
-- **AST-dump schema version field value:** `2` — the integer consumers branch on at runtime (`AstDumpPayload.schema_version`); bumped from `1` because three user-visible shapes changed.
+- **AST-dump schema version:** `2` — the integer consumers **pin** from the contract (it is **not** a field of `AstDumpPayload`, whose real fields are `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`); bumped from `1` because three user-visible shapes changed.
 - **The three fixes:**
   - **`binop_chain` `rest` (Issue A).** Was the literal string `"<invalid_sequence_access>"` inside a malformed nested object on any input exercising an operator at any of the ten levels. The five multi-token inner operator alternations were lifted into **named rules** (`equality_op`, `relational_op`, `shift_op`, `additive_op`, `multiplicative_op`), so every level is now `next ( NAMED_op next )* -> {type: "binop_chain", level, lhs: $1, rest: $2}` with bare `$2`. `rest` is now a **clean array** of `[ <op-envelope>, <operand> ]` iteration entries (operator text at `entry[0][1]`), `[]` when no operator at that level.
   - **`identifier.text` (Issue B).** Was `$1` (the empty leading `trivia`), so every identifier `text` was `""`. Now `$2`, the real name.
@@ -42,7 +42,7 @@ A worked-example pass surfaced that the `1.0.1` baseline shipped three return-an
 The initial typing slice, covering the entire `grammars/rtl_const_expr.ebnf` expression surface in **one batch** (landed 2026-05-14).
 
 - **Schema-version milestone:** `1.0.0` (first parser release: `1.0.1`).
-- **AST-dump schema version field value:** `1` — the integer consumers branched on at runtime for this release.
+- **AST-dump schema version:** `1` — the integer consumers pinned from the contract for this release (it was never a field of `AstDumpPayload`).
 - **Annotation count:** **24** (was `1` / pre-typing baseline). Coverage: the `rtl_const_expr` root; `conditional_expr` (ternary + passthrough); the ten-rule `binop_chain` hierarchy (`logical_or_expr` → `logical_and_expr` → `bit_or_expr` → `bit_xor_expr` → `bit_and_expr` → `equality_expr` → `relational_expr` → `shift_expr` → `additive_expr` → `multiplicative_expr`); `unary_expr` (four prefix forms + passthrough); `primary_expr` (three passthrough branches); `literal` (two kinds, `"based"` / `"decimal"`); and `identifier`.
 - **NOTE — defective shapes:** the `binop_chain` `rest` and the `identifier` / `literal` `text` shapes in this baseline were defective (`rest` could surface `"<invalid_sequence_access>"`; `identifier.text` / `literal.text` carried the empty-`trivia` envelope). They were corrected in schema `2` / release `1.0.2` above — consumers must not target the schema-`1` shapes.
 - **Accept set:** unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.
