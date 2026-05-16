@@ -407,7 +407,289 @@ rules emit `binop_chain`), AST-dump schema version `2`. If this section
 and either artifact disagree, the artifact wins; this integration
 contract wins over the per-family mdBook.
 
+### Literal and Identifier Leaf Shapes
+
+The expression cascade bottoms out at two typed leaf objects — `literal`
+and `identifier` — reached through the all-passthrough `primary_expr`
+dispatcher. These are the only nodes a consumer's recursive descent
+ever terminates at; every other typed node holds typed children. Both
+shapes are transcribed from the live inventory
+`generated/rtl_const_expr_return_annotations.json` and cross-checked
+against the embedded manifest
+`rust/test_data/ast_shape_contract/rtl_const_expr_v1.json`.
+
+#### `literal` — the integer-literal leaf (2 branches)
+
+`grammars/rtl_const_expr.ebnf` lines 64–67:
+
+```ebnf
+literal := based_integer   -> {type: "literal", kind: "based",   text: $1}
+literal := decimal_integer -> {type: "literal", kind: "decimal", text: $1}
+```
+
+| Branch | `annotation_type` | `kind` | Shape |
+|---|---|---|---|
+| 0 | `return_object` | `"based"` | `{type: "literal", kind: "based", text: <string>}` — a sized/based integer (e.g. `8'hFF`, `4'b1010`, `'d255`). |
+| 1 | `return_object` | `"decimal"` | `{type: "literal", kind: "decimal", text: <string>}` — a plain decimal integer (e.g. `42`, `1_000`). |
+
+Both branches emit exactly the three fields `type` (always
+`"literal"`), `kind` (the two-valued discriminator `"based"` /
+`"decimal"`), and `text`. Consumers dispatch on `obj["type"] ==
+"literal"` then branch on `obj["kind"]` to choose decimal-vs-based
+numeric parsing of `obj["text"]`.
+
+`text` is bound `$1` — the matched `based_integer` / `decimal_integer`
+sub-rule value. **As of the `1.0.2` correctness fix, `text` is a clean
+source string**, not the pre-`1.0.2` envelope `["", "42"]`: the leaf
+rules `based_integer := trivia /…/ -> $2` and `decimal_integer :=
+trivia /…/ -> $2` (`grammars/rtl_const_expr.ebnf` lines 69–72) are now
+annotated `-> $2`, so the `$1` `literal.text` resolves to the trimmed
+literal text. Verified `42` → `{"type":"literal","kind":"decimal","text":"42"}`
+and `8'hFF` → `{"type":"literal","kind":"based","text":"8'hFF"}`.
+`based_integer` and `decimal_integer` carry their own `return_scalar`
+`-> $2` annotations — these are 2 of the 26 inventory entries (the +2
+that took the count `24 → 26`).
+
+#### `identifier` — the name leaf (1 branch)
+
+`grammars/rtl_const_expr.ebnf` lines 73–74:
+
+```ebnf
+identifier := trivia /[_A-Za-z][_A-Za-z0-9$]*(?:(?:\.)[…]|::[…])*/
+           -> {type: "identifier", text: $2}
+```
+
+| Branch | `annotation_type` | Shape |
+|---|---|---|
+| 0 | `return_object` | `{type: "identifier", text: <string>}` — a bare, dotted (`a.b`), or package-qualified (`pkg::name`) identifier; the whole matched name is one `text` string. |
+
+`identifier` emits exactly the two fields `type` (always
+`"identifier"`) and `text`. **As of the `1.0.2` correctness fix `text`
+binds `$2`** — the regex-matched name — not the pre-`1.0.2` `$1`, which
+was the empty leading `trivia` (so every identifier `text` was `""`).
+Verified `x1` → `{"type":"identifier","text":"x1"}`. Dotted /
+scope-resolution names are **not** split: `top.sub.WIDTH` and
+`pkg::PARAM` each surface as a single `text` string; consumers that need
+the path segments split them themselves.
+
+Both leaves are reached only through `primary_expr`'s branch 0
+(`literal`) / branch 1 (`identifier`) passthroughs (`-> $1`); a
+parenthesized sub-expression (`primary_expr` branch 2, `-> $2`) yields
+the inner `conditional_expr` shape directly, never a `literal` /
+`identifier` wrapper for the parentheses themselves.
+
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
 - `rtl_const_expr` covers only **constant expressions** (decimal and sized-based integer literals, identifiers, unary `+ - ! ~`, binary arithmetic / shift / comparison / equality / bitwise / logical operators, ternary `?:`). For statements, modules, control flow → see `rtl_frontend`.
 - When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+
+## Companion Documentation — rtl_const_expr Parser Integration mdBook
+
+This contract is the **downstream integration surface**: the host-API
+envelope, the dispatch/expression-hierarchy shapes a consumer compiles
+against, and the release/schema axes. It does not duplicate the per-rule
+walkthroughs or worked examples — those live in the companion artifacts
+below. Each surface is authoritative for a different thing; consult the
+matching one and respect the precedence order stated at the end of this
+section.
+
+| Surface | Path | Authoritative for |
+|---|---|---|
+| **This contract** | `docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md` | The downstream integration surface: AST-dump envelope, `rtl_const_expr` root, the conditional → ten-level `binop_chain` → unary → primary expression hierarchy, and the `literal` / `identifier` leaf shapes. See [AST Envelope and Expression Hierarchy](#ast-envelope-and-expression-hierarchy) and [Literal and Identifier Leaf Shapes](#literal-and-identifier-leaf-shapes). |
+| **Per-parser mdBook** | `docs/rtl_const_expr_parser_book/` (source `src/*.md`; tracked HTML at `docs/rtl_const_expr_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples, schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. Listed in `README.md` § "Per-Parser Integration Reference Books". |
+| **Shape-contract manifest** | `rust/test_data/ast_shape_contract/rtl_const_expr_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
+| **Declared-annotation inventory** | `generated/rtl_const_expr_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the rtl_const_expr grammar emits (`version: 1`, `grammar: "rtl_const_expr"`, `annotation_count: 26`, **18 distinct rules**; 19 `return_object` + 7 `return_scalar`). The generator-side source of truth for the typed surface. |
+| **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released rtl_const_expr parser. Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+
+Precedence when surfaces disagree (highest first): the **embedding-API
+contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
+`AstDumpPayload` truth; the **declared-annotation inventory**
+(`generated/rtl_const_expr_return_annotations.json`) and its embedded
+shape-contract manifest copy win for the exact typed-shape enumeration;
+**this integration contract** wins over the **per-parser mdBook** for
+downstream compliance. Report any disagreement as a documentation bug
+rather than silently coding to the lower-precedence surface.
+
+### Gate Recipe
+
+The exact, copy-pasteable per-family commands a downstream integrator or
+releaser runs. Each is verified against the repo (`rust/Makefile`,
+`docs/rtl_const_expr_parser_book/src/build-recipe.md`,
+`rust/src/ast_shape_contract.rs`); none are invented — do not substitute
+flags.
+
+**1. On-demand parser regen.** The rtl_const_expr parser is
+on-demand-only (not in the default `cargo test --features
+generated_parsers` build). Build `ast_pipeline`, then regenerate the
+parser from `grammars/rtl_const_expr.ebnf` (run from `rust/`, per
+`docs/rtl_const_expr_parser_book/src/build-recipe.md` § "Cold-clone
+build"):
+
+```bash
+cd rust && cargo build --release --features ebnf_dual_run --bin ast_pipeline
+./target/release/ast_pipeline ../grammars/rtl_const_expr.ebnf \
+    --generate-parser --output ../generated/rtl_const_expr_parser.rs
+```
+
+To wire the regenerated parser into a cargo build, point
+`PGEN_RTL_CONST_EXPR_PARSER_PATH` at the absolute path of the generated
+file before `cargo build --release --features generated_parsers` (see
+`docs/rtl_const_expr_parser_book/src/build-recipe.md` § "Wiring into a
+downstream Cargo build").
+
+**2. Per-family book gate.** Builds the rtl_const_expr parser book and
+verifies the tracked HTML landing pages (Makefile target
+`rtl_const_expr_parser_book_gate`, `rust/Makefile` line 745):
+
+```bash
+make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_parser_book_gate
+```
+
+**3. AST-shape-contract regression lock.** With the generated backend
+wired in (`PGEN_RTL_CONST_EXPR_PARSER_PATH` exported), run the
+shape-contract test that diffs the running generated parser against
+`rust/test_data/ast_shape_contract/rtl_const_expr_v1.json` (test fn
+`rtl_const_expr_ast_shape_contract_holds_against_running_generated_parser`
+in the `pgen::ast_shape_contract` library module,
+`rust/src/ast_shape_contract.rs` line 741):
+
+```bash
+cargo test --lib --features generated_parsers rtl_const_expr_ast_shape_contract
+```
+
+The substring `rtl_const_expr_ast_shape_contract` selects exactly the
+`rtl_const_expr_ast_shape_contract_holds_against_running_generated_parser`
+test. Any drift between the running parser's emitted shapes and the
+locked manifest fails this test, surfacing the change before release
+(the `1.0.2` correctness fix is locked here: samples=2 aligned=2,
+regression_lock_failures=0).
+
+**4. Validation / release gates.** Anyone publishing a parser-release
+version bump also runs the per-family gates enumerated in
+[Validation / Release Gates](#validation--release-gates) (the per-family
+book gate and the AST-shape-contract test above). That section is the
+canonical list; it is not repeated here.
+
+## Glossary
+
+Contract-scoped definitions of the terms a downstream integrator needs to
+read this document. Where a term has a normative definition, this contract
+is authoritative; the per-parser book's
+[glossary](../rtl_const_expr_parser_book/src/glossary.md) paraphrases the
+same terms for quick lookup. Numbers below are pinned to contract `1.0.2` /
+AST-dump schema `2` / parser release `1.0.2` / **26 annotations across 18
+distinct rules** (19 `return_object` + 7 `return_scalar`; 10 `binop_chain`).
+
+- **`AstDumpPayload`** — the success return of the rtl_const_expr
+  AST-dump host entry points (defined in `rust/src/embedding_api.rs`,
+  contract in `rust/docs/EMBEDDING_API_CONTRACT.md`). A canonical-JSON
+  payload string plus truncation metadata, with **exactly four fields**:
+  `dump_json`, `truncated`, `full_bytes`, `emitted_bytes`. It does
+  **not** carry `root` / `schema_version` / `grammar` / `profile`
+  members — see [The `AstDumpPayload` envelope](#the-astdumppayload-envelope)
+  for the precise accuracy note.
+- **`dump_json`** — the `AstDumpPayload` field holding the canonical
+  (key-sorted) JSON encoding of the typed rtl_const_expr AST. Parse this
+  string to obtain the `rtl_const_expr` root object. When `truncated`
+  is `true` this string is replaced by the truncation diagnostic
+  envelope, not the AST.
+- **Truncation diagnostic envelope** — the deterministic JSON object
+  that replaces the AST in `dump_json` when `max_ast_bytes` is exceeded.
+  It carries `pgen_dump_contract_version` (currently `1`), `kind:
+  "pgen_ast_dump_truncation"`, `truncated: true`, `dump_kind:
+  "parser_return_ast"`, `max_bytes`, `full_bytes`, and `reason`.
+  Consumers must check `truncated` (or detect `kind ==
+  "pgen_ast_dump_truncation"`) before treating `dump_json` as an
+  rtl_const_expr AST.
+- **AST-dump schema version** — the integer version axis tracking the
+  AST output shape, currently `2`, pinned by this contract (see
+  [Schema Versioning](#schema-versioning)). It is **not** a field of
+  `AstDumpPayload`; it is the contract-tracked axis. It was bumped
+  `1 → 2` by the `1.0.2` correctness fix because `binop_chain.rest`,
+  `identifier.text`, and `literal.text` all changed shape in
+  consumer-visible ways. Pure perf work / internal codegen
+  reorganization do not bump it.
+- **Parser release version** — the parser library's release identity,
+  currently `1.0.2`. Bumped on every functional change (bug fixes, perf
+  work, grammar changes). Moves independently of the schema version; the
+  `1.0.2` release carries AST-dump schema `2`.
+- **Conditional / `binop_chain` / unary / primary expression
+  hierarchy** — rtl_const_expr's expression-precedence cascade:
+  `conditional_expr` (the ternary head) → a **ten-level** `binop_chain`
+  cascade → `unary_expr` (the prefix tier) → `primary_expr` (the
+  all-passthrough leaf dispatcher) bottoming out at the `literal` /
+  `identifier` leaves. `conditional_expr` (non-`?`) and `unary_expr`
+  (non-prefixed) and all three `primary_expr` branches are passthroughs,
+  so any expression slot may directly hold a `ternary`, a `binop_chain`,
+  a `unary`, a `literal`, or an `identifier` — dispatch on `obj["type"]`.
+  See [The expression hierarchy](#the-expression-hierarchy).
+- **Ten-level `binop_chain` left-fold** — the consumer-facing contract
+  for rtl_const_expr's ten-level operator-precedence cascade
+  (`logical_or_expr` → `logical_and_expr` → `bit_or_expr` →
+  `bit_xor_expr` → `bit_and_expr` → `equality_expr` → `relational_expr`
+  → `shift_expr` → `additive_expr` → `multiplicative_expr`). Every level
+  emits `{type: "binop_chain", level, lhs: $1, rest: $2}` (10 rules / 10
+  annotations, one per rule); `rest` is, as of `1.0.2`, a **clean
+  array** of `[op-envelope, operand]` iteration entries (`[]` when no
+  operator at that level), never the pre-`1.0.2`
+  `"<invalid_sequence_access>"`. Consumers MUST fold `rest`
+  left-associatively onto `lhs`. There is **no `sign` field** on any
+  level — prefix operators are factored into the separate `unary_expr`
+  tier below `multiplicative_expr`. One fold routine walks the whole
+  binary-expression tree. See
+  [The ten-level `binop_chain` cascade](#the-ten-level-binop_chain-cascade).
+- **Named operator rules** — the five `1.0.2` op-chain helper rules
+  `equality_op := eqeq | ne`, `relational_op := le | lt | ge | gt`,
+  `shift_op := shl | shr`, `additive_op := plus | minus`,
+  `multiplicative_op := star | slash | percent` (`grammars/rtl_const_expr.ebnf`
+  lines 40–44). Lifting the previously-inline multi-token operator
+  alternations into these named rules (the proven `systemverilog.ebnf`
+  idiom) is what made `binop_chain.rest: $2` capture cleanly. They carry
+  **no** return annotation and are therefore **not** among the 26
+  inventory entries.
+- **`literal` / `identifier` leaves** — the two typed leaf objects the
+  expression cascade terminates at, reached through `primary_expr`'s
+  passthrough branches. `literal` is `{type: "literal", kind, text}`
+  with `kind` ∈ `{"based", "decimal"}`; `identifier` is
+  `{type: "identifier", text}`. As of `1.0.2` both `text` fields are
+  clean source strings (`based_integer` / `decimal_integer` annotated
+  `-> $2`; `identifier` binds `text: $2`). See
+  [Literal and Identifier Leaf Shapes](#literal-and-identifier-leaf-shapes).
+- **Shape-contract manifest** — the embedded machine-checkable shape lock
+  `rust/test_data/ast_shape_contract/rtl_const_expr_v1.json`.
+  Content-identical to the declared-annotation inventory on the
+  `(rule, branch_index, annotation_type, normalized_text)` tuples (omits
+  only the diagnostic `raw_text` field). Drift fails the
+  `rtl_const_expr_ast_shape_contract_holds_against_running_generated_parser`
+  regression test (see [Gate Recipe](#gate-recipe)).
+- **Declared-annotation inventory** — the live machine-checkable
+  enumeration of every typed-shape annotation the rtl_const_expr grammar
+  emits: `generated/rtl_const_expr_return_annotations.json`
+  (`version: 1`, `grammar: "rtl_const_expr"`, `annotation_count: 26`,
+  **18 distinct rules**; 19 `return_object` + 7 `return_scalar`). The
+  generator-side source of truth for the typed surface; mirrored by the
+  embedded shape-contract manifest copy. (The `version: 1` field is the
+  inventory-file format version, distinct from the AST-dump schema
+  version `2` and the parser release version `1.0.2`.)
+- **Recursive envelope** — the default JSON shape produced by
+  un-annotated rules: a recursive composition of arrays (sequences,
+  quantified iterations, the `rest` tail of an op-chain), strings
+  (terminal/regex leaves), and matched-branch passthroughs (for
+  alternations). Un-matched optionals are the empty array `[]`, never
+  `null`. It is what a consumer reaches when descending below the typed
+  surface — e.g. each `binop_chain.rest` iteration entry is a two-element
+  `[op-envelope, operand]` envelope (the operator token surfaces as the
+  two-element array `["", "<tok>"]`, text at `entry[0][1]`), not a typed
+  `{op, rhs}` object; and the five un-annotated named operator rules.
+- **Generic host AST-dump surface** — the
+  `parse_grammar_profile_ast_dump*` family
+  (`parse_grammar_profile_ast_dump`, the `*_result` and `*_named`
+  forms). The grammar-agnostic entry points that, for the
+  `rtl_const_expr` grammar + `default` profile, return the
+  `AstDumpPayload`. rtl_const_expr has **no** named-convenience entry
+  point (unlike VHDL's `parse_vhdl_1076_2019_ast_dump`); the generic
+  family used with grammar family `rtl_const_expr` / profile `default`
+  is the integration surface. Signatures are in
+  `rust/docs/EMBEDDING_API_CONTRACT.md`; the stable entry-point list is
+  in [Stable Integration Surface](#stable-integration-surface).

@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-05-16 - RTL-CE-CONTRACT-BODY-Slice-3 (PGEN-RTL-CE-CONTRACT-BODY-0003, leaf RTL-CE-CONTRACT-BODY.3): literal/identifier leaf shapes + Companion Documentation + Gate Recipe + Glossary — closes the tree (7th completed)
+
+- rtl_const_expr integration contract bodied to SV parity, final leaf:
+  - **`### Literal and Identifier Leaf Shapes`** (nested under
+    `## AST Envelope and Expression Hierarchy`): `literal` 2
+    `return_object` branches (`kind:"based"` / `kind:"decimal"`,
+    `{type:"literal", kind, text}`, `text:$1` clean post-`1.0.2`
+    because `based_integer`/`decimal_integer` are now `-> $2`),
+    `identifier` (`{type:"identifier", text:$2}`, clean name
+    post-`1.0.2`), with verified `grammars/rtl_const_expr.ebnf` line
+    refs; cross-checked vs `generated/rtl_const_expr_return_annotations.json`.
+  - **`## Companion Documentation`**: 6-row surface/authority table
+    (this contract / book + `-html` / `rtl_const_expr_v1.json` manifest
+    / return-annotation inventory / `EMBEDDING_API_CONTRACT.md` / bug
+    ledger) + precedence order; matches the VHDL/rtl_frontend template.
+  - **`### Gate Recipe`**: copy-pasteable book gate / AST-shape test /
+    on-demand regen — each source-verified (`rust/Makefile:745`,
+    `rust/src/ast_shape_contract.rs:741` unique fn,
+    `build-recipe.md` flags); Validation/Release Gates referenced by
+    anchor, not duplicated.
+  - **`## Glossary`**: 14 contract-scoped terms, rtl_const_expr-correct,
+    real 4-field `AstDumpPayload` only.
+- Independently verified: Companion Documentation / Glossary / Gate
+  Recipe / Leaf-Shapes ×1 each; **no duplicate `## ` headers**; numbers
+  consistent (`1.0.2` / schema `2` / 26 / 18 / ten-level); **zero**
+  forbidden reintroductions (no `pub root`, no `schema_version`-as-field,
+  `pgen_dump_contract_version` only in truncation/not-a-field context);
+  `README.md:240` already lists the rtl_const_expr book (read-only
+  confirm; README owned by parent, not edited here).
+- **`RTL-CE-CONTRACT-BODY` tree complete** — root + all leaves `.1`–`.3`
+  `done`, frontier emptied, promoted to Completed in
+  `docs/TASK_TREE.md` (**7th completed tree**). The rtl_const_expr book
+  `DOC-ENVELOPE-0001` was comprehensively closed in lockstep back in
+  Slice-2 (7 chapters, broad-audit 0 residual) — nothing further owed on
+  the rtl_const_expr book here.
+- **Reported, not hidden:** all six `README.md` per-parser-book lines
+  (235–240) invoke the book gate as `SHELL=/bin/bash`, whereas the
+  contracts, `build-recipe.md`, and the Makefile-invocation idiom use
+  `SHELL=/opt/homebrew/bin/bash` (the macOS bash-4+ path the gate
+  scripts need). Uniform README-wide convention, **not**
+  rtl_const_expr-specific; fixing it spans all 6 families, so it is
+  out of this atomic contract slice's scope — filed as tracked
+  observation `DOC-README-SHELL-0001` in DEVELOPMENT_NOTES for a
+  dedicated WORKFLOW slice. The new Gate Recipe uses the correct
+  `/opt/homebrew/bin/bash` (internally consistent with the contract +
+  build-recipe).
+
 ## 2026-05-16 - DOC-ENVELOPE-0001 VHDL closeout (PGEN-DOC-ENVELOPE-0001): fix the examples-minimal-entity.md residual the narrow audit missed
 
 Honesty/correctness follow-up. The VHDL-CONTRACT-BODY-Slice-3+4 entry

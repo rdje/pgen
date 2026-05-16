@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-16 - TRACKED: README per-parser-book gate lines use `SHELL=/bin/bash` (DOC-README-SHELL-0001)
+
+### Observation
+Surfaced while authoring the rtl_const_expr contract Gate Recipe
+(RTL-CE-CONTRACT-BODY.3). All six `README.md` "Per-Parser Integration
+Reference Books" lines (`README.md:235–240`) invoke the book gate as:
+
+```
+make -C rust SHELL=/bin/bash <family>_parser_book_gate
+```
+
+whereas every per-parser integration **contract** (Contract Identity /
+Validation-Release-Gates / new Gate Recipe sections), every
+`docs/<family>_parser_book/src/build-recipe.md`, and the established
+Makefile-invocation idiom (memory `feedback_*`, COMMIT.md examples for
+the *Rust* gates) use `SHELL=/opt/homebrew/bin/bash`.
+
+### Why it matters
+On macOS `/bin/bash` is the frozen system **bash 3.2**; the
+`*_parser_book_gate` recipes (and the wider gate tooling) rely on
+bash-4+ constructs, which is exactly why the contracts/build-recipes
+pin Homebrew bash. The README commands are therefore likely
+**non-runnable as written** on a stock macOS shell — a user-facing
+doc-correctness defect (README is a tracked navigation surface).
+Note: `COMMIT.md:57,117` documents the *top-level* `mdbook_docs_gate`
+with `SHELL=/bin/bash` too; whether that target tolerates bash 3.2 is
+a separate question to confirm in the fix slice (do not blindly
+rewrite COMMIT.md without verifying the actual gate requirement).
+
+### Scope / disposition
+This is a **uniform README-wide convention**, NOT rtl_const_expr-specific
+— it spans all 6 parser families (and possibly the COMMIT.md
+`mdbook_docs_gate` line). Fixing it inside an rtl_const_expr *contract*
+slice would be cross-family scope-bleed, violating atomic-slice
+discipline (TASK_TREE "Splitting Rules": would touch unrelated ownership
+areas in one commit). **Deferred to a dedicated WORKFLOW slice**
+(`PGEN-WORKFLOW-<NNNN>`): empirically confirm each
+`<family>_parser_book_gate` (and `mdbook_docs_gate`) bash-version
+requirement, then reconcile `README.md` (and COMMIT.md if warranted) to
+the verified-correct `SHELL=` path family-by-family in one commit. The
+RTL-CE-CONTRACT-BODY.3 Gate Recipe itself uses the correct
+`/opt/homebrew/bin/bash` (internally consistent with the contract +
+build-recipe), so the new content is not affected — only the
+pre-existing README lines are.
+
+### Status
+`tracked` — open observation, not yet scheduled into an active task
+tree. Recorded so it is not lost; reported in the RTL-CE-CONTRACT-BODY.3
+CHANGES entry and task-file verification log rather than silently
+worked around.
+
 ## 2026-05-16 - TRACKED: systemic fabricated `AstDumpPayload` struct in per-parser book ast-envelope chapters (DOC-ENVELOPE-0001)
 
 ### Defect
