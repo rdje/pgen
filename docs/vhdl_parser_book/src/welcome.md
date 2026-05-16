@@ -6,7 +6,7 @@ This book is the **canonical AST reference** for downstream consumers of PGEN's 
 
 - **How to build the generated parser and wire it into your project.** See [Build Recipe](build-recipe.md) and [Public API Surface](public-api.md).
 - **What the AST envelope looks like.** See [AST Envelope Structure](ast-envelope.md) and [Walking the AST](walking-the-ast.md).
-- **The shape every grammar rule produces in the AST dump.** See [Per-Rule Shape Reference](rules-top-level.md). The current grammar (`grammars/vhdl.ebnf`) has **249 typed annotations** covering design units, declarations, types, statements, expressions, and literals.
+- **The shape every grammar rule produces in the AST dump.** See [Per-Rule Shape Reference](rules-top-level.md). The current grammar (`grammars/vhdl.ebnf`) has **256 typed annotations** covering design units, declarations, types, statements, expressions, and literals.
 - **Worked examples by VHDL feature** — what does the AST look like for a minimal entity, a basic architecture, a package? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.
 - **Schema versioning policy.** See [Schema Versioning](schema-versioning.md). The schema is currently at version `1`.
 - **A release-by-release index of what changed and why.** See [Changelog Index](changelog-index.md).
@@ -28,4 +28,4 @@ This book is the **canonical AST reference** for downstream consumers of PGEN's 
 
 The PGEN VHDL parser is **on-demand-only** in the default build (it is not in `cargo test --features generated_parsers` until activated). The current grammar covers design units (library/use/entity/architecture/package/package body/configuration/context), entity generics/ports, architecture declarations and concurrent statements, process + core sequential statements, and the expression/type/literal baseline. See `LIVE_ACHIEVEMENT_STATUS.md` for the live closure status and `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` for the formal trust statement.
 
-The VHDL return-annotation campaign landed `VHDL-Slice-1` (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. Subsequent shape-affecting slices get their own changelog entries here.
+The VHDL return-annotation campaign landed `VHDL-Slice-1` (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. A follow-up correctness fix (`VHDL-0001`, parser release `1.0.2`, AST-dump schema `1` → `2`, landed 2026-05-17) lifted the `simple_expression` / `term` inline operator alternations into the named `adding_operator` / `multiplying_operator` rules, bringing the surface to **256 annotations / 112 rules** — see the [Changelog Index](changelog-index.md) and [Binary Addition](examples-binary-addition.md). Subsequent shape-affecting slices get their own changelog entries here.

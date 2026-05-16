@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - CLASS CLOSED: inline-alternation-$N defect fully resolved across all 4 grammars (PGEN-INLINE-ALT-FIX-0003 / VHDL-0001)
+
+### Summary
+`INLINE-ALT-FIX.3` fixed the final instance — `vhdl` `binop_chain`
+(`VHDL-0001`) — closing the `INLINE-ALT-FIX` tree and the **entire
+systemic inline-alternation-`$N` defect class**. All four affected
+released grammars are now fixed via the one proven playbook (lift the
+inline alternation that leads a quantified iteration into a NAMED
+op-rule; level annotations unchanged):
+
+| Grammar | Report | Op-rule style | Inventory delta | Schema/release |
+| --- | --- | --- | --- | --- |
+| rtl_const_expr | `RTL-CE-0001` (PGEN-RTL-0002) | un-annotated | (prior) | 1→2 / 1.0.1→1.0.2 |
+| sv_preprocessor | `SVPP-0001` | `{kind}`-annotated `pp_if_keyword` | 64→66 / 27→28 | 1→2 / 1.0.1→1.0.2 |
+| rtl_frontend | `RTL-FE-0001` | un-annotated (5 `*_op`) | **156/74 unchanged** | 1→2 / 1.0.1→1.0.2 |
+| vhdl | `VHDL-0001` | `{kind}`-annotated (vhdl convention) | 249→256 / 110→112 | 1→2 / 1.0.1→1.0.2 |
+
+### Key engineering finding (carry forward)
+Whether the lifted op-rule is annotated decides the inventory delta:
+**annotated `{kind}` op-rule → inventory grows** (SVPP/vhdl);
+**un-annotated alternation op-rule → inventory unchanged**
+(rtl_const_expr/rtl_frontend). Choose to match the *target grammar's
+own existing operator-rule convention* (vhdl already used
+`{kind}`-annotated `logical_operator`/`relational_operator`, so
+`adding_operator`/`multiplying_operator` matched it; rtl_frontend's
+prior op-rules were un-annotated, so its new ones matched that). The
+shape change alone (broken→clean `rest`) warrants a correctness schema
+bump even when the inventory count is unchanged. Surgical scope: only
+the inline alternation that is the *iteration lead* corrupts the model
+— a non-iteration optional inline alternation (vhdl `simple_expression`
+leading `(plus|minus)?` sign) is empirically fine; verify with
+`parseability_probe` rather than over-lifting.
+
+### Process note
+Independent verification caught the `.3` doc-lockstep subagent
+**reporting a bug-ledger update it never persisted** — the parent
+re-derived and applied it. Subagent self-reports are not evidence;
+the post-delegation independent grep/gate/probe verification is what
+gates the commit.
+
 ## 2026-05-16 - RESOLVED: rtl_frontend binop_chain fixed — RTL-FE-0001, third inline-alternation-$N fix (PGEN-INLINE-ALT-FIX-0002)
 
 ### What

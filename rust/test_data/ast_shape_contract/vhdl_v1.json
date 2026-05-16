@@ -1,1526 +1,1585 @@
 {
-  "version": 1,
-  "grammar": "vhdl",
-  "purpose": "Per-parser-family AST-shape contract for the VHDL grammar. Same default-build gating as `systemverilog_v1.json`: the parser is on-demand-only and the cfg `has_generated_vhdl_parser` stays off in default builds.",
-  "doctrine": "First run after the parser becomes available may hit a regression-lock failure because `current_content_kind` is a placeholder. Update on first calibration.",
-  "samples": [
-    {
-      "name": "minimal_entity",
-      "input": "entity e is end e;\n",
-      "rule_under_test": "vhdl_file",
-      "declared_annotation": "{type: \"vhdl_file\", design_units: $1}",
-      "expected_content_kind": "json_object",
-      "expected_json_object_keys_present": [
-        "type",
-        "design_units"
-      ],
-      "expected_json_object_string_values": {
-        "type": "vhdl_file"
-      },
-      "current_content_kind": "json_object",
-      "drift_status": "aligned",
-      "drift_tracked_in": "PGEN: VHDL per-family contract calibration on first parser availability + regen coordination follow-up"
-    }
-  ],
-  "declared_annotation_inventory": {
-    "pipeline_inventory_artifact": "generated/vhdl_return_annotations.json",
-    "optional_grammar_json_crosscheck": "generated/vhdl.json",
-    "extracted_at": "2026-05-14",
-    "annotations": [
-      {
-        "rule": "actual_parameter_element",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"association\", body: $1}"
-      },
-      {
-        "rule": "actual_parameter_element",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"range_expression\", body: $1}"
-      },
-      {
-        "rule": "actual_parameter_part",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $2, rest: $3}"
-      },
-      {
-        "rule": "actual_part",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"expression\", body: $1}"
-      },
-      {
-        "rule": "actual_part",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"open\"}"
-      },
-      {
-        "rule": "aggregate",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"named_first\", first_choices: $2, first_value: $4, rest: $5}"
-      },
-      {
-        "rule": "aggregate",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"positional_first\", first_value: $2, second: $4, rest: $5}"
-      },
-      {
-        "rule": "aggregate_choice",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"others\"}"
-      },
-      {
-        "rule": "aggregate_choice",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"name\", body: $1}"
-      },
-      {
-        "rule": "aggregate_choice",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"decimal\", body: $1}"
-      },
-      {
-        "rule": "aggregate_choice",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"character\", body: $1}"
-      },
-      {
-        "rule": "aggregate_choice",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"string\", body: $1}"
-      },
-      {
-        "rule": "aggregate_choice_list",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $1, rest: $2}"
-      },
-      {
-        "rule": "aggregate_element_association",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"named\", choices: $1, value: $3}"
-      },
-      {
-        "rule": "aggregate_element_association",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"positional\", value: $1}"
-      },
-      {
-        "rule": "alias_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, target: $4}"
-      },
-      {
-        "rule": "architecture_body",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, entity_name: $4, items: $6, statements: $8, end_label: $11}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"signal\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"constant\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"file\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"type\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subtype\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"component\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_declaration\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 7,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_body\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 8,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"package_instantiation\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 9,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"alias\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 10,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "architecture_declarative_item",
-        "branch_index": 11,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "array_type_definition",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{index_range: $3, element_subtype: $6}"
-      },
-      {
-        "rule": "assert_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{condition: $2, report: $3, severity: $4}"
-      },
-      {
-        "rule": "association_element",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{formal: $1, actual: $2}"
-      },
-      {
-        "rule": "association_list",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $2, rest: $3}"
-      },
-      {
-        "rule": "attribute_name",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{prefix: $1, prefix_params: $2, attribute: $4, attribute_params: $5}"
-      },
-      {
-        "rule": "based_literal",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{base: $1, value: $3}"
-      },
-      {
-        "rule": "block_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{label: $1, items: $4, statements: $6, end_label: $9}"
-      },
-      {
-        "rule": "case_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{value: $2, alternatives: $4}"
-      },
-      {
-        "rule": "case_statement_alternative",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{choices: $2, body: $4}"
-      },
-      {
-        "rule": "choice",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"expression\", body: $1}"
-      },
-      {
-        "rule": "choice",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"others\"}"
-      },
-      {
-        "rule": "choices",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $1, rest: $2}"
-      },
-      {
-        "rule": "component_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, generic: $4, port: $5, end_label: $8}"
-      },
-      {
-        "rule": "component_instantiation_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{label: $1, unit: $3, generic_map: $4, port_map: $5}"
-      },
-      {
-        "rule": "concurrent_signal_assignment_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{target: $1, rhs: $3}"
-      },
-      {
-        "rule": "concurrent_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"signal_assignment\", body: $1}"
-      },
-      {
-        "rule": "concurrent_statement",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"assert\", body: $1}"
-      },
-      {
-        "rule": "concurrent_statement",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"process\", body: $1}"
-      },
-      {
-        "rule": "concurrent_statement",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"component_instantiation\", body: $1}"
-      },
-      {
-        "rule": "concurrent_statement",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"generate\", body: $1}"
-      },
-      {
-        "rule": "concurrent_statement",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"block\", body: $1}"
-      },
-      {
-        "rule": "concurrent_statement",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "configuration_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, entity_name: $4, items: $6, end_label: $9}"
-      },
-      {
-        "rule": "configuration_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"for\", target: $2}"
-      },
-      {
-        "rule": "configuration_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "configuration_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "constant_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{names: $2, subtype: $4, value: $6}"
-      },
-      {
-        "rule": "constraint",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"range\", body: $1}"
-      },
-      {
-        "rule": "constraint",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"index\", body: $1}"
-      },
-      {
-        "rule": "context_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, items: $4, end_label: $7}"
-      },
-      {
-        "rule": "context_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"library\", body: $1}"
-      },
-      {
-        "rule": "context_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "context_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"context_reference\", body: $1}"
-      },
-      {
-        "rule": "context_item",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "context_reference_clause",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2}"
-      },
-      {
-        "rule": "decimal_literal",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{value: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"library\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"context_reference\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"entity\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"architecture\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"package\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"package_body\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 7,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"configuration\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 8,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"context\", body: $1}"
-      },
-      {
-        "rule": "design_unit",
-        "branch_index": 9,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "discrete_range",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"range\", body: $1}"
-      },
-      {
-        "rule": "discrete_range",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"attribute\", body: $1}"
-      },
-      {
-        "rule": "discrete_range",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"name\", body: $1}"
-      },
-      {
-        "rule": "discrete_range",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subtype_range\", subtype: $1, range: $3}"
-      },
-      {
-        "rule": "discrete_range",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subtype_box\", subtype: $1}"
-      },
-      {
-        "rule": "entity_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, items: $4, end_label: $7}"
-      },
-      {
-        "rule": "entity_declarative_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"generic\", body: $1}"
-      },
-      {
-        "rule": "entity_declarative_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"port\", body: $1}"
-      },
-      {
-        "rule": "entity_declarative_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"component\", body: $1}"
-      },
-      {
-        "rule": "entity_declarative_item",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "entity_declarative_item",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "enumeration_type_definition",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $2, rest: $3}"
-      },
-      {
-        "rule": "exit_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{condition_or_label: $2}"
-      },
-      {
-        "rule": "expression",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"binop_chain\", level: \"logical\", lhs: $1, rest: $2}"
-      },
-      {
-        "rule": "factor",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"binop_chain\", level: \"power\", lhs: $1, rest: $2}"
-      },
-      {
-        "rule": "file_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{names: $2, subtype: $4, open_mode: $5, filename: $7}"
-      },
-      {
-        "rule": "function_specification",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{impure: $1, name: $3, parameters: $4, return_type: $6}"
-      },
-      {
-        "rule": "generate_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"for\", label: $1, var: $3, range: $5, statements: $7}"
-      },
-      {
-        "rule": "generate_statement",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"if\", label: $1, condition: $3, statements: $5}"
-      },
-      {
-        "rule": "generic_clause",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{list: $3}"
-      },
-      {
-        "rule": "generic_interface_element",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"value\", names: $1, subtype: $3, default: $4}"
-      },
-      {
-        "rule": "generic_interface_element",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"package\", body: $1}"
-      },
-      {
-        "rule": "generic_interface_list",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $1, rest: $2}"
-      },
-      {
-        "rule": "generic_map_aspect",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{associations: $3}"
-      },
-      {
-        "rule": "identifier_list",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $1, rest: $2}"
-      },
-      {
-        "rule": "if_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{condition: $2, then_body: $4, elsif_branches: $5, else_body: $6}"
-      },
-      {
-        "rule": "index_constraint",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $2, rest: $3}"
-      },
-      {
-        "rule": "instantiated_unit",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"component\", name: $1}"
-      },
-      {
-        "rule": "instantiated_unit",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"entity\", name: $2}"
-      },
-      {
-        "rule": "instantiated_unit",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"configuration\", name: $2}"
-      },
-      {
-        "rule": "library_clause",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $2, rest: $3}"
-      },
-      {
-        "rule": "literal",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"physical\", body: $1}"
-      },
-      {
-        "rule": "literal",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"decimal\", body: $1}"
-      },
-      {
-        "rule": "literal",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"based\", body: $1}"
-      },
-      {
-        "rule": "literal",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"bit_string\", body: $1}"
-      },
-      {
-        "rule": "literal",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"string\", body: $1}"
-      },
-      {
-        "rule": "literal",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"character\", body: $1}"
-      },
-      {
-        "rule": "logical_operator",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"and\"}"
-      },
-      {
-        "rule": "logical_operator",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"or\"}"
-      },
-      {
-        "rule": "logical_operator",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"xor\"}"
-      },
-      {
-        "rule": "logical_operator",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"nand\"}"
-      },
-      {
-        "rule": "logical_operator",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"nor\"}"
-      },
-      {
-        "rule": "logical_operator",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"xnor\"}"
-      },
-      {
-        "rule": "loop_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"while\", condition: $2, body: $4}"
-      },
-      {
-        "rule": "loop_statement",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"for\", var: $2, range: $4, body: $6}"
-      },
-      {
-        "rule": "loop_statement",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"infinite\", body: $2}"
-      },
-      {
-        "rule": "package_body",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $3, items: $5, end_label: $9}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_declaration\", body: $1}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_body\", body: $1}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"constant\", body: $1}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"signal\", body: $1}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"file\", body: $1}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"alias\", body: $1}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "package_body_declarative_item",
-        "branch_index": 7,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "package_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, header: $4, items: $5, end_label: $8}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_declaration\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_body\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"type\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subtype\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"constant\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"signal\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"file\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 7,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"component\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 8,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"package_instantiation\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 9,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"view\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 10,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"alias\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 11,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "package_declarative_item",
-        "branch_index": 12,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "package_generic_interface_element",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, base: $5, map: $6}"
-      },
-      {
-        "rule": "package_header",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{generic: $1}"
-      },
-      {
-        "rule": "package_instantiation_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, base: $5, map: $6}"
-      },
-      {
-        "rule": "parameter_interface_element",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{names: $1, mode: $3, subtype: $4, default: $5}"
-      },
-      {
-        "rule": "parameter_list",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $2, rest: $3}"
-      },
-      {
-        "rule": "parameter_mode",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"in\"}"
-      },
-      {
-        "rule": "parameter_mode",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"out\"}"
-      },
-      {
-        "rule": "parameter_mode",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"inout\"}"
-      },
-      {
-        "rule": "port_clause",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{list: $3}"
-      },
-      {
-        "rule": "port_interface_element",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{names: $1, mode: $3, subtype: $4, default: $5}"
-      },
-      {
-        "rule": "port_interface_list",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $1, rest: $2}"
-      },
-      {
-        "rule": "port_map_aspect",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{associations: $3}"
-      },
-      {
-        "rule": "primary",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"literal\", body: $1}"
-      },
-      {
-        "rule": "primary",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"aggregate\", body: $1}"
-      },
-      {
-        "rule": "primary",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"attribute_name\", body: $1}"
-      },
-      {
-        "rule": "primary",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"function_call\", name: $1, params: $2}"
-      },
-      {
-        "rule": "primary",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"name\", body: $1}"
-      },
-      {
-        "rule": "primary",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"parens\", expr: $2}"
-      },
-      {
-        "rule": "primary",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"not\", expr: $2}"
-      },
-      {
-        "rule": "procedure_call_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $1, params: $2}"
-      },
-      {
-        "rule": "procedure_specification",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, parameters: $3}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"variable\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"file\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"constant\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"type\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subtype\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_declaration\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_body\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 7,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "process_declarative_item",
-        "branch_index": 8,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "process_label",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $1}"
-      },
-      {
-        "rule": "process_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{label: $1, sensitivity: $3, items: $5, statements: $7, end_label: $10}"
-      },
-      {
-        "rule": "range_constraint",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{range: $2}"
-      },
-      {
-        "rule": "range_expression",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"to\", low: $1, high: $3}"
-      },
-      {
-        "rule": "range_expression",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"downto\", high: $1, low: $3}"
-      },
-      {
-        "rule": "record_element_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{names: $1, subtype: $3}"
-      },
-      {
-        "rule": "record_type_definition",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{elements: $2}"
-      },
-      {
-        "rule": "relation",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"binop_chain\", level: \"relational\", lhs: $1, rest: $2}"
-      },
-      {
-        "rule": "relational_operator",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"eq\"}"
-      },
-      {
-        "rule": "relational_operator",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"ne\"}"
-      },
-      {
-        "rule": "relational_operator",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"lt\"}"
-      },
-      {
-        "rule": "relational_operator",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"le\"}"
-      },
-      {
-        "rule": "relational_operator",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"gt\"}"
-      },
-      {
-        "rule": "relational_operator",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"ge\"}"
-      },
-      {
-        "rule": "report_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{message: $2, severity: $3}"
-      },
-      {
-        "rule": "return_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{value: $2}"
-      },
-      {
-        "rule": "selected_name",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $1, rest: $2}"
-      },
-      {
-        "rule": "sensitivity_clause",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{list: $2}"
-      },
-      {
-        "rule": "sensitivity_list",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $1, rest: $2}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"signal_assignment\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"variable_assignment\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"if\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"case\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"loop\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"exit\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"wait\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 7,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"assert\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 8,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"report\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 9,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"null\"}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 10,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"return\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 11,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"procedure_call\", body: $1}"
-      },
-      {
-        "rule": "sequential_statement",
-        "branch_index": 12,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "signal_assignment_rhs",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{value: $1, conditional: $2}"
-      },
-      {
-        "rule": "signal_assignment_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{target: $1, rhs: $3}"
-      },
-      {
-        "rule": "signal_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{names: $2, subtype: $4, default: $5}"
-      },
-      {
-        "rule": "signal_mode",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"in\"}"
-      },
-      {
-        "rule": "signal_mode",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"out\"}"
-      },
-      {
-        "rule": "signal_mode",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"inout\"}"
-      },
-      {
-        "rule": "signal_mode",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"buffer\"}"
-      },
-      {
-        "rule": "signal_mode",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"linkage\"}"
-      },
-      {
-        "rule": "simple_expression",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"binop_chain\", level: \"additive\", sign: $1, lhs: $2, rest: $3}"
-      },
-      {
-        "rule": "subprogram_body",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"procedure\", spec: $1, items: $3, statements: $5, end_label: $8}"
-      },
-      {
-        "rule": "subprogram_body",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"function\", spec: $1, items: $3, statements: $5, end_label: $8}"
-      },
-      {
-        "rule": "subprogram_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"procedure\", spec: $1}"
-      },
-      {
-        "rule": "subprogram_declaration",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"function\", spec: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"variable\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"file\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"constant\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"type\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subtype\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 5,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_declaration\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 6,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"subprogram_body\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 7,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"use\", body: $1}"
-      },
-      {
-        "rule": "subprogram_declarative_item",
-        "branch_index": 8,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"semi\"}"
-      },
-      {
-        "rule": "subtype_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, subtype: $4}"
-      },
-      {
-        "rule": "subtype_indication",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type_mark: $1, constraint: $2}"
-      },
-      {
-        "rule": "target",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"name\", name: $1, params: $2}"
-      },
-      {
-        "rule": "target",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"aggregate\", first: $2, rest: $3}"
-      },
-      {
-        "rule": "term",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"binop_chain\", level: \"multiplicative\", lhs: $1, rest: $2}"
-      },
-      {
-        "rule": "type_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, definition: $4}"
-      },
-      {
-        "rule": "type_definition",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"enumeration\", body: $1}"
-      },
-      {
-        "rule": "type_definition",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"array\", body: $1}"
-      },
-      {
-        "rule": "type_definition",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"record\", body: $1}"
-      },
-      {
-        "rule": "use_clause",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{first: $2, rest: $3}"
-      },
-      {
-        "rule": "variable_assignment_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{target: $1, value: $3}"
-      },
-      {
-        "rule": "variable_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{names: $2, subtype: $4, default: $5}"
-      },
-      {
-        "rule": "vhdl_file",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{type: \"vhdl_file\", design_units: $1}"
-      },
-      {
-        "rule": "view_declaration",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $2, subtype: $4, elements: $6}"
-      },
-      {
-        "rule": "view_element",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{name: $1, mode: $3}"
-      },
-      {
-        "rule": "view_mode",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"in\"}"
-      },
-      {
-        "rule": "view_mode",
-        "branch_index": 1,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"out\"}"
-      },
-      {
-        "rule": "view_mode",
-        "branch_index": 2,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"inout\"}"
-      },
-      {
-        "rule": "view_mode",
-        "branch_index": 3,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"buffer\"}"
-      },
-      {
-        "rule": "view_mode",
-        "branch_index": 4,
-        "annotation_type": "return_object",
-        "normalized_text": "{kind: \"linkage\"}"
-      },
-      {
-        "rule": "wait_statement",
-        "branch_index": 0,
-        "annotation_type": "return_object",
-        "normalized_text": "{timeout: $2}"
-      }
-    ]
+ "version": 1,
+ "grammar": "vhdl",
+ "purpose": "Per-parser-family AST-shape contract for the VHDL grammar. Same default-build gating as `systemverilog_v1.json`: the parser is on-demand-only and the cfg `has_generated_vhdl_parser` stays off in default builds.",
+ "doctrine": "First run after the parser becomes available may hit a regression-lock failure because `current_content_kind` is a placeholder. Update on first calibration.",
+ "samples": [
+  {
+   "name": "minimal_entity",
+   "input": "entity e is end e;\n",
+   "rule_under_test": "vhdl_file",
+   "declared_annotation": "{type: \"vhdl_file\", design_units: $1}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "type",
+    "design_units"
+   ],
+   "expected_json_object_string_values": {
+    "type": "vhdl_file"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN: VHDL per-family contract calibration on first parser availability + regen coordination follow-up"
+  },
+  {
+   "name": "arithmetic_expr",
+   "input": "entity e is end;\narchitecture a of e is begin x <= b + c * d; end;\n",
+   "rule_under_test": "vhdl_file",
+   "declared_annotation": "{type: \"vhdl_file\", design_units: $1}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "type",
+    "design_units"
+   ],
+   "expected_json_object_string_values": {
+    "type": "vhdl_file"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-INLINE-ALT-FIX-0003 / VHDL-0001: simple_expression+term inline-alternation defect fixed (named adding_operator/multiplying_operator rules); locks the post-fix arithmetic path. AST-dump schema 1->2."
   }
+ ],
+ "declared_annotation_inventory": {
+  "pipeline_inventory_artifact": "generated/vhdl_return_annotations.json",
+  "optional_grammar_json_crosscheck": "generated/vhdl.json",
+  "extracted_at": "2026-05-16",
+  "annotations": [
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"association\", body: $1}",
+    "rule": "actual_parameter_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"range_expression\", body: $1}",
+    "rule": "actual_parameter_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $2, rest: $3}",
+    "rule": "actual_parameter_part"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"expression\", body: $1}",
+    "rule": "actual_part"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"open\"}",
+    "rule": "actual_part"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"plus\"}",
+    "rule": "adding_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"minus\"}",
+    "rule": "adding_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"concat\"}",
+    "rule": "adding_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"named_first\", first_choices: $2, first_value: $4, rest: $5}",
+    "rule": "aggregate"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"positional_first\", first_value: $2, second: $4, rest: $5}",
+    "rule": "aggregate"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"others\"}",
+    "rule": "aggregate_choice"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"name\", body: $1}",
+    "rule": "aggregate_choice"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"decimal\", body: $1}",
+    "rule": "aggregate_choice"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"character\", body: $1}",
+    "rule": "aggregate_choice"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"string\", body: $1}",
+    "rule": "aggregate_choice"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $1, rest: $2}",
+    "rule": "aggregate_choice_list"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"named\", choices: $1, value: $3}",
+    "rule": "aggregate_element_association"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"positional\", value: $1}",
+    "rule": "aggregate_element_association"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, target: $4}",
+    "rule": "alias_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, entity_name: $4, items: $6, statements: $8, end_label: $11}",
+    "rule": "architecture_body"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"signal\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"constant\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"file\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"type\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"subtype\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"component\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"subprogram_declaration\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 7,
+    "normalized_text": "{kind: \"subprogram_body\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 8,
+    "normalized_text": "{kind: \"package_instantiation\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 9,
+    "normalized_text": "{kind: \"alias\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 10,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 11,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "architecture_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{index_range: $3, element_subtype: $6}",
+    "rule": "array_type_definition"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{condition: $2, report: $3, severity: $4}",
+    "rule": "assert_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{formal: $1, actual: $2}",
+    "rule": "association_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $2, rest: $3}",
+    "rule": "association_list"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{prefix: $1, prefix_params: $2, attribute: $4, attribute_params: $5}",
+    "rule": "attribute_name"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{base: $1, value: $3}",
+    "rule": "based_literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{label: $1, items: $4, statements: $6, end_label: $9}",
+    "rule": "block_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{value: $2, alternatives: $4}",
+    "rule": "case_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{choices: $2, body: $4}",
+    "rule": "case_statement_alternative"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"expression\", body: $1}",
+    "rule": "choice"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"others\"}",
+    "rule": "choice"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $1, rest: $2}",
+    "rule": "choices"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, generic: $4, port: $5, end_label: $8}",
+    "rule": "component_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{label: $1, unit: $3, generic_map: $4, port_map: $5}",
+    "rule": "component_instantiation_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{target: $1, rhs: $3}",
+    "rule": "concurrent_signal_assignment_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"signal_assignment\", body: $1}",
+    "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"assert\", body: $1}",
+    "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"process\", body: $1}",
+    "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"component_instantiation\", body: $1}",
+    "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"generate\", body: $1}",
+    "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"block\", body: $1}",
+    "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "concurrent_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, entity_name: $4, items: $6, end_label: $9}",
+    "rule": "configuration_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"for\", target: $2}",
+    "rule": "configuration_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "configuration_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "configuration_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{names: $2, subtype: $4, value: $6}",
+    "rule": "constant_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"range\", body: $1}",
+    "rule": "constraint"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"index\", body: $1}",
+    "rule": "constraint"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, items: $4, end_label: $7}",
+    "rule": "context_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"library\", body: $1}",
+    "rule": "context_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "context_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"context_reference\", body: $1}",
+    "rule": "context_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "context_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2}",
+    "rule": "context_reference_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{value: $1}",
+    "rule": "decimal_literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"library\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"context_reference\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"entity\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"architecture\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"package\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"package_body\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 7,
+    "normalized_text": "{kind: \"configuration\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 8,
+    "normalized_text": "{kind: \"context\", body: $1}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 9,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "design_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"range\", body: $1}",
+    "rule": "discrete_range"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"attribute\", body: $1}",
+    "rule": "discrete_range"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"name\", body: $1}",
+    "rule": "discrete_range"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"subtype_range\", subtype: $1, range: $3}",
+    "rule": "discrete_range"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"subtype_box\", subtype: $1}",
+    "rule": "discrete_range"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, items: $4, end_label: $7}",
+    "rule": "entity_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"generic\", body: $1}",
+    "rule": "entity_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"port\", body: $1}",
+    "rule": "entity_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"component\", body: $1}",
+    "rule": "entity_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "entity_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "entity_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $2, rest: $3}",
+    "rule": "enumeration_type_definition"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{condition_or_label: $2}",
+    "rule": "exit_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{type: \"binop_chain\", level: \"logical\", lhs: $1, rest: $2}",
+    "rule": "expression"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{type: \"binop_chain\", level: \"power\", lhs: $1, rest: $2}",
+    "rule": "factor"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{names: $2, subtype: $4, open_mode: $5, filename: $7}",
+    "rule": "file_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{impure: $1, name: $3, parameters: $4, return_type: $6}",
+    "rule": "function_specification"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"for\", label: $1, var: $3, range: $5, statements: $7}",
+    "rule": "generate_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"if\", label: $1, condition: $3, statements: $5}",
+    "rule": "generate_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{list: $3}",
+    "rule": "generic_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"value\", names: $1, subtype: $3, default: $4}",
+    "rule": "generic_interface_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"package\", body: $1}",
+    "rule": "generic_interface_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $1, rest: $2}",
+    "rule": "generic_interface_list"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{associations: $3}",
+    "rule": "generic_map_aspect"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $1, rest: $2}",
+    "rule": "identifier_list"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{condition: $2, then_body: $4, elsif_branches: $5, else_body: $6}",
+    "rule": "if_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $2, rest: $3}",
+    "rule": "index_constraint"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"component\", name: $1}",
+    "rule": "instantiated_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"entity\", name: $2}",
+    "rule": "instantiated_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"configuration\", name: $2}",
+    "rule": "instantiated_unit"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $2, rest: $3}",
+    "rule": "library_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"physical\", body: $1}",
+    "rule": "literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"decimal\", body: $1}",
+    "rule": "literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"based\", body: $1}",
+    "rule": "literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"bit_string\", body: $1}",
+    "rule": "literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"string\", body: $1}",
+    "rule": "literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"character\", body: $1}",
+    "rule": "literal"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"and\"}",
+    "rule": "logical_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"or\"}",
+    "rule": "logical_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"xor\"}",
+    "rule": "logical_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"nand\"}",
+    "rule": "logical_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"nor\"}",
+    "rule": "logical_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"xnor\"}",
+    "rule": "logical_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"while\", condition: $2, body: $4}",
+    "rule": "loop_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"for\", var: $2, range: $4, body: $6}",
+    "rule": "loop_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"infinite\", body: $2}",
+    "rule": "loop_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"mul\"}",
+    "rule": "multiplying_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"div\"}",
+    "rule": "multiplying_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"mod\"}",
+    "rule": "multiplying_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"rem\"}",
+    "rule": "multiplying_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $3, items: $5, end_label: $9}",
+    "rule": "package_body"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"subprogram_declaration\", body: $1}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"subprogram_body\", body: $1}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"constant\", body: $1}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"signal\", body: $1}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"file\", body: $1}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"alias\", body: $1}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 7,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "package_body_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, header: $4, items: $5, end_label: $8}",
+    "rule": "package_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"subprogram_declaration\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"subprogram_body\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"type\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"subtype\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"constant\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"signal\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"file\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 7,
+    "normalized_text": "{kind: \"component\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 8,
+    "normalized_text": "{kind: \"package_instantiation\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 9,
+    "normalized_text": "{kind: \"view\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 10,
+    "normalized_text": "{kind: \"alias\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 11,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 12,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "package_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, base: $5, map: $6}",
+    "rule": "package_generic_interface_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{generic: $1}",
+    "rule": "package_header"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, base: $5, map: $6}",
+    "rule": "package_instantiation_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{names: $1, mode: $3, subtype: $4, default: $5}",
+    "rule": "parameter_interface_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $2, rest: $3}",
+    "rule": "parameter_list"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"in\"}",
+    "rule": "parameter_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"out\"}",
+    "rule": "parameter_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"inout\"}",
+    "rule": "parameter_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{list: $3}",
+    "rule": "port_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{names: $1, mode: $3, subtype: $4, default: $5}",
+    "rule": "port_interface_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $1, rest: $2}",
+    "rule": "port_interface_list"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{associations: $3}",
+    "rule": "port_map_aspect"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"literal\", body: $1}",
+    "rule": "primary"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"aggregate\", body: $1}",
+    "rule": "primary"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"attribute_name\", body: $1}",
+    "rule": "primary"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"function_call\", name: $1, params: $2}",
+    "rule": "primary"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"name\", body: $1}",
+    "rule": "primary"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"parens\", expr: $2}",
+    "rule": "primary"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"not\", expr: $2}",
+    "rule": "primary"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $1, params: $2}",
+    "rule": "procedure_call_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, parameters: $3}",
+    "rule": "procedure_specification"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"variable\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"file\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"constant\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"type\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"subtype\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"subprogram_declaration\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"subprogram_body\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 7,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 8,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "process_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $1}",
+    "rule": "process_label"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{label: $1, sensitivity: $3, items: $5, statements: $7, end_label: $10}",
+    "rule": "process_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{range: $2}",
+    "rule": "range_constraint"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"to\", low: $1, high: $3}",
+    "rule": "range_expression"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"downto\", high: $1, low: $3}",
+    "rule": "range_expression"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{names: $1, subtype: $3}",
+    "rule": "record_element_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{elements: $2}",
+    "rule": "record_type_definition"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{type: \"binop_chain\", level: \"relational\", lhs: $1, rest: $2}",
+    "rule": "relation"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"eq\"}",
+    "rule": "relational_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"ne\"}",
+    "rule": "relational_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"lt\"}",
+    "rule": "relational_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"le\"}",
+    "rule": "relational_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"gt\"}",
+    "rule": "relational_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"ge\"}",
+    "rule": "relational_operator"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{message: $2, severity: $3}",
+    "rule": "report_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{value: $2}",
+    "rule": "return_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $1, rest: $2}",
+    "rule": "selected_name"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{list: $2}",
+    "rule": "sensitivity_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $1, rest: $2}",
+    "rule": "sensitivity_list"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"signal_assignment\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"variable_assignment\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"if\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"case\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"loop\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"exit\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"wait\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 7,
+    "normalized_text": "{kind: \"assert\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 8,
+    "normalized_text": "{kind: \"report\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 9,
+    "normalized_text": "{kind: \"null\"}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 10,
+    "normalized_text": "{kind: \"return\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 11,
+    "normalized_text": "{kind: \"procedure_call\", body: $1}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 12,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "sequential_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{value: $1, conditional: $2}",
+    "rule": "signal_assignment_rhs"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{target: $1, rhs: $3}",
+    "rule": "signal_assignment_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{names: $2, subtype: $4, default: $5}",
+    "rule": "signal_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"in\"}",
+    "rule": "signal_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"out\"}",
+    "rule": "signal_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"inout\"}",
+    "rule": "signal_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"buffer\"}",
+    "rule": "signal_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"linkage\"}",
+    "rule": "signal_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{type: \"binop_chain\", level: \"additive\", sign: $1, lhs: $2, rest: $3}",
+    "rule": "simple_expression"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"procedure\", spec: $1, items: $3, statements: $5, end_label: $8}",
+    "rule": "subprogram_body"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"function\", spec: $1, items: $3, statements: $5, end_label: $8}",
+    "rule": "subprogram_body"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"procedure\", spec: $1}",
+    "rule": "subprogram_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"function\", spec: $1}",
+    "rule": "subprogram_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"variable\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"file\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"constant\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"type\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"subtype\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 5,
+    "normalized_text": "{kind: \"subprogram_declaration\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 6,
+    "normalized_text": "{kind: \"subprogram_body\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 7,
+    "normalized_text": "{kind: \"use\", body: $1}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 8,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "subprogram_declarative_item"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, subtype: $4}",
+    "rule": "subtype_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{type_mark: $1, constraint: $2}",
+    "rule": "subtype_indication"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"name\", name: $1, params: $2}",
+    "rule": "target"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"aggregate\", first: $2, rest: $3}",
+    "rule": "target"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{type: \"binop_chain\", level: \"multiplicative\", lhs: $1, rest: $2}",
+    "rule": "term"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, definition: $4}",
+    "rule": "type_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"enumeration\", body: $1}",
+    "rule": "type_definition"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"array\", body: $1}",
+    "rule": "type_definition"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"record\", body: $1}",
+    "rule": "type_definition"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{first: $2, rest: $3}",
+    "rule": "use_clause"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{target: $1, value: $3}",
+    "rule": "variable_assignment_statement"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{names: $2, subtype: $4, default: $5}",
+    "rule": "variable_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{type: \"vhdl_file\", design_units: $1}",
+    "rule": "vhdl_file"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $2, subtype: $4, elements: $6}",
+    "rule": "view_declaration"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{name: $1, mode: $3}",
+    "rule": "view_element"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"in\"}",
+    "rule": "view_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"out\"}",
+    "rule": "view_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 2,
+    "normalized_text": "{kind: \"inout\"}",
+    "rule": "view_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 3,
+    "normalized_text": "{kind: \"buffer\"}",
+    "rule": "view_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 4,
+    "normalized_text": "{kind: \"linkage\"}",
+    "rule": "view_mode"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{timeout: $2}",
+    "rule": "wait_statement"
+   }
+  ]
+ }
 }

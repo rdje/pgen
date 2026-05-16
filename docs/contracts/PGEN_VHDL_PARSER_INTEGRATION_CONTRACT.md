@@ -7,15 +7,15 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 ## Contract Identity
 - Contract version:
-  - `1.0.1`
+  - `1.0.2`
 - Parser release version:
-  - `1.0.1`
+  - `1.0.2`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
 - VHDL AST-dump schema version:
-  - `1`
+  - `2` (breaking shape correction — see Release 1.0.2 Highlights)
 - Last updated:
-  - `2026-05-15`
+  - `2026-05-17`
 - Current grammar family label:
   - `vhdl`
 - Per-family mdBook:
@@ -27,14 +27,15 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 The VHDL parser carries two version axes:
 
-1. **Parser release version** (`1.0.1`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
-2. **AST-dump schema version** (`1`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+1. **Parser release version** (`1.0.2`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
+2. **AST-dump schema version** (`2`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 1.0.0 | 1.0.1 | **VHDL-Slice-1** — initial 249-annotation baseline. Design units, declarations, types, statements, expressions (binop_chain shape across the 5-level operator hierarchy), and literals all typed. |
+| 2 | 1.0.2 | **VHDL-0001 correctness fix (breaking).** The `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` levels no longer emit `"<invalid_sequence_access>"` for multi-operand input. The two iteration-lead inline operator alternations — `(plus \| minus \| ampersand)` in `simple_expression` and `(star \| slash \| kw_mod \| kw_rem)` in `term` — that were the lead element of a `( … term )* ` / `( … factor )* ` iteration (and corrupted the positional model so the bare `rest: $N` mis-recursed) are lifted into **named** rules `adding_operator := plus -> {kind: "plus"} \| minus -> {kind: "minus"} \| ampersand -> {kind: "concat"}` and `multiplying_operator := star -> {kind: "mul"} \| slash -> {kind: "div"} \| kw_mod -> {kind: "mod"} \| kw_rem -> {kind: "rem"}`, matching vhdl's own `logical_operator` / `relational_operator` `{kind: …}` idiom. The `simple_expression` / `term` `binop_chain` annotations are **unchanged** (`{type: "binop_chain", level, sign, lhs, rest}` / `{type: "binop_chain", level, lhs, rest}`); only the inline group became a named rule, so each level's `rest` is now a clean `[ <op-envelope>, <operand> ]` array where the **op-envelope is the typed `{kind: …}` object** (uniform with the `logical` / `relational` levels — vhdl's op-envelope is the `{kind}` object, not a raw token array). The leading `(plus \| minus)?` sign in `simple_expression` is **not** an iteration lead and was empirically unaffected — left as-is. Annotation count `249 → 256` (the 3 new `adding_operator` + 4 new `multiplying_operator` `return_object` branches); distinct rules `110 → 112` (the new `adding_operator` / `multiplying_operator`). All annotations remain `return_object`. Same accept set (no grammar acceptance change — purely the two alternation lifts + their 7 branch annotations). Gate-locked. |
+| 1.0.0 | 1.0.1 | **VHDL-Slice-1** — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (binop_chain shape across the 5-level operator hierarchy), and literals all typed. **NOTE:** the `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` `rest` shapes in this baseline were defective (`VHDL-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation on multi-operand input) — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/vhdl.ebnf`) un-annotated except for `vhdl_file -> {type, design_units}` root. AST dump is the recursive-envelope shape across all rules. |
 
 Bump-trigger guidance:
@@ -44,6 +45,154 @@ Bump-trigger guidance:
 - A grammar rule changes shape in a way that's user-visible → schema bump.
 - Pure performance optimizations producing the same AST → NO bump.
 - Internal codegen reorganization that doesn't reach the output → NO bump.
+
+## Resolved Defects — `VHDL-0001` (fixed in release 1.0.2, schema 2)
+
+- **`VHDL-0001` — `simple_expression` / `term` `binop_chain.rest`
+  `<invalid_sequence_access>`
+  (`Released`, fixed in parser release `1.0.2` / schema `2`).**
+  *Historical (release `1.0.1`, schema `1`):* for any multi-operand
+  additive (`simple_expression`) or multiplicative (`term`) expression,
+  the `binop_chain` `rest` array surfaced the literal sentinel string
+  `"<invalid_sequence_access>"` (three of them at the `additive` level)
+  plus malformed nested `binop_chain` objects instead of the clean
+  `(op, operand)` iteration. Root cause:
+  `simple_expression := (plus | minus)? term (adding_operator term)*`
+  and `term := factor (multiplying_operator factor)*` previously bound
+  the bare positional `rest: $N` to an **inline alternation group**
+  (`(plus | minus | ampersand)` / `(star | slash | kw_mod | kw_rem)`) as
+  the lead element of the `( … )*` iteration — the same emit-time defect
+  class fixed for `rtl_const_expr` in RTL-CE-Slice-2, for
+  `systemverilog_preprocessor` as `SVPP-0001`, and for `rtl_frontend` as
+  `RTL-FE-0001`. **This is the final grammar in the systemic
+  inline-alternation-`$N` class — the class is now fully resolved across
+  `rtl_const_expr` / `systemverilog_preprocessor` / `rtl_frontend` /
+  `vhdl`.** The single-operand surface (empty `rest`), the leading
+  `(plus | minus)?` `sign` (not an iteration lead), and the
+  `logical` / `relational` / `power` levels were unaffected. **Fix
+  (proven RTL-CE-Slice-2 / `systemverilog.ebnf` op-chain idiom, matching
+  vhdl's own `logical_operator` / `relational_operator` convention):**
+  the two inline operator alternations are lifted into **named** rules
+  `adding_operator := plus -> {kind: "plus"} | minus -> {kind: "minus"}
+  | ampersand -> {kind: "concat"}` and `multiplying_operator := star ->
+  {kind: "mul"} | slash -> {kind: "div"} | kw_mod -> {kind: "mod"} |
+  kw_rem -> {kind: "rem"}`; the `simple_expression` / `term`
+  `binop_chain` annotations are unchanged (only `$N` now binds the clean
+  named rule). The parser is regenerated and the corrected shape is
+  machine-locked. For input
+  `entity e is end;\narchitecture a of e is begin x <= b + c; end;\n`
+  the fixed `additive`-level `binop_chain.rest` is the clean array
+  `[ [ {"kind": "plus"}, {"type": "binop_chain", "level":
+  "multiplicative", "lhs": <c>, "rest": []} ] ]` — one
+  `[op-envelope, operand]` entry per operator where the op-envelope is
+  the typed `{kind: "plus"|"minus"|"concat"}` (additive) /
+  `{kind: "mul"|"div"|"mod"|"rem"}` (multiplicative) object, `[]` when
+  no operator, with **no** `<invalid_sequence_access>` anywhere.
+  Consumers read the operator directly from the typed `{kind}`
+  op-envelope (uniform with the `logical` / `relational` levels). The
+  honest pre-fix history is kept in the
+  [Schema Versioning](#schema-versioning) table (schema `1.0.0` row) and
+  the binary-addition worked example's schema-`2` transition note;
+  tracked (status `Released`) in
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`VHDL-0001`).
+  Documented in
+  [the binary-addition worked example](../vhdl_parser_book/src/examples-binary-addition.md).
+
+## Release 1.0.2 / Contract 1.0.2 Highlights — VHDL-0001 correctness fix (simple_expression / term binop_chain.rest); schema 1 → 2
+
+Landed 2026-05-17. A worked-example pass surfaced that the `1.0.1`
+baseline shipped one systemic return-annotation defect (`VHDL-0001`)
+that the (root-keys-only) shape-contract regression lock did not catch.
+It is fixed, the parser is regenerated, and the manifest inventory is
+tightened to the full 256-entry surface so the corrected shape is now
+machine-locked.
+
+- **`simple_expression` / `term` `binop_chain.rest`
+  `<invalid_sequence_access>` (VHDL-0001).** For any multi-operand
+  additive (`simple_expression`) or multiplicative (`term`) expression,
+  the `binop_chain` `rest` array emitted the literal sentinel
+  `"<invalid_sequence_access>"` (3× at the `additive` level) plus
+  malformed nested `binop_chain` objects instead of the clean
+  `(op, operand)` iteration. Root cause:
+  `simple_expression := (plus | minus)? term (adding_operator term)* ->
+  {type: "binop_chain", level: "additive", sign: $1, lhs: $2, rest: $3}`
+  and `term := factor (multiplying_operator factor)* -> {type:
+  "binop_chain", level: "multiplicative", lhs: $1, rest: $2}` bound the
+  bare positional `rest` to an **inline alternation group**
+  (`(plus | minus | ampersand)` / `(star | slash | kw_mod | kw_rem)`) as
+  the lead element of the `( … )*` iteration, which corrupts the
+  positional model so the rule's own annotation is mis-recursed. **Fix
+  (proven RTL-CE-Slice-2 / `systemverilog.ebnf` op-chain idiom, matching
+  vhdl's own `logical_operator` / `relational_operator` `{kind}`
+  convention):** the two inline alternations are lifted into **named**
+  rules:
+
+  ```ebnf
+  adding_operator := plus      -> {kind: "plus"}
+                   | minus     -> {kind: "minus"}
+                   | ampersand -> {kind: "concat"}
+  multiplying_operator := star   -> {kind: "mul"}
+                        | slash  -> {kind: "div"}
+                        | kw_mod -> {kind: "mod"}
+                        | kw_rem -> {kind: "rem"}
+  simple_expression := (plus | minus)? term (adding_operator term)*
+                    -> {type: "binop_chain", level: "additive",       sign: $1, lhs: $2, rest: $3}
+  term              := factor (multiplying_operator factor)*
+                    -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+  ```
+
+  The `simple_expression` / `term` `binop_chain` annotations and the
+  level discriminators are **unchanged** — only the inline groups became
+  named rules, so each `rest` now binds the clean named op-rule. The
+  leading `(plus | minus)?` `sign` in `simple_expression` is **not** an
+  iteration lead, was empirically unaffected, and was deliberately left
+  as-is. The fixed shape for input
+  `entity e is end;\narchitecture a of e is begin x <= b + c; end;\n`
+  has the `additive`-level node
+  `{type: "binop_chain", level: "additive", sign: [], lhs: {…
+  multiplicative …}, rest: [ [ {"kind": "plus"}, {type:
+  "binop_chain", level: "multiplicative", lhs: <c>, rest: []} ] ]}`.
+  `rest` is now a clean `[op-envelope, operand]` array where the
+  **op-envelope is the typed `{kind: …}` object** (`{kind: "plus"}` /
+  `{kind: "minus"}` / `{kind: "concat"}` at the `additive` level;
+  `{kind: "mul"}` / `{kind: "div"}` / `{kind: "mod"}` / `{kind: "rem"}`
+  at the `multiplicative` level), `[]` for no operator — **no**
+  `<invalid_sequence_access>` anywhere. This is uniform with the
+  `logical` / `relational` levels (whose `logical_operator` /
+  `relational_operator` op-envelope is already the `{kind}` object);
+  vhdl's op-envelope convention differs from `rtl_const_expr` /
+  `rtl_frontend` (whose op-envelope is the `["", tok]` raw-token array)
+  — vhdl's is the typed `{kind}` object at every level. Consumers read
+  the operator directly from the `{kind}` op-envelope.
+
+Annotation count: **256** (was 249; +7 = the 3 new `adding_operator`
+`return_object` branches `{kind: "plus"}` / `{kind: "minus"}` /
+`{kind: "concat"}` plus the 4 new `multiplying_operator` `return_object`
+branches `{kind: "mul"}` / `{kind: "div"}` / `{kind: "mod"}` /
+`{kind: "rem"}`). **112** distinct rules (was 110; +2 =
+`adding_operator` / `multiplying_operator`). All 256 remain
+`annotation_type: "return_object"`. Same accept set (no grammar
+acceptance change — purely the two alternation lifts + their 7 branch
+annotations). Schema bumped `1 → 2` because `simple_expression` /
+`term` `binop_chain.rest` changed shape in a consumer-visible way (was
+the malformed `<invalid_sequence_access>` sentinel, now the clean
+`[{kind}-op-envelope, operand]` iteration). Gate-locked:
+`cargo test --lib --features generated_parsers vhdl_ast_shape_contract`
+and
+`make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_book_gate`.
+
+> **Systemic note (class fully resolved):** the
+> inline-operator-alternation-`$N` antipattern that caused `VHDL-0001`
+> is the same emit-time defect class fixed for `rtl_const_expr` in
+> RTL-CE-Slice-2 (`RTL-CE-0001`), for `systemverilog_preprocessor` as
+> `SVPP-0001` (fixed in 1.0.2), and for `rtl_frontend` as `RTL-FE-0001`
+> (fixed in 1.0.2). `vhdl` was the **final grammar** carrying an
+> instance of this class; with this release the systemic
+> inline-alternation-`$N` class is now **fully resolved across
+> `rtl_const_expr` / `systemverilog_preprocessor` / `rtl_frontend` /
+> `vhdl`**. Each family's correction is tracked separately in its own
+> contract Highlights + bug-ledger entry
+> (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`).
 
 ## Release 1.0.1 / Contract 1.0.1 Highlights — VHDL-Slice-1: full grammar typed (110+ rules / 249 annotations)
 
@@ -157,8 +306,9 @@ This section is the consumer-facing dispatch contract: how a downstream
 integrator goes from the host AST-dump call to a typed VHDL tree, and how to
 branch on the top-level discriminators. Every shape below is transcribed from
 the live inventory `generated/vhdl_return_annotations.json`
-(`version: 1`, `grammar: "vhdl"`, `annotation_count: 249`), cross-checked
-against the embedded copy in
+(inventory-file `version: 1` — the inventory **format** version, not the
+AST-dump schema; `grammar: "vhdl"`, `annotation_count: 256`),
+cross-checked against the embedded copy in
 `rust/test_data/ast_shape_contract/vhdl_v1.json` (identical content), and is
 consistent with the curated per-rule reference at
 `docs/vhdl_parser_book/src/rules-top-level.md`.
@@ -196,7 +346,7 @@ returns `E_INVALID_LIMITS` instead.
 > `pgen_dump_contract_version` / `schema_version` / `grammar` / `profile` /
 > `root` keys are **not** members of `AstDumpPayload` itself —
 > `pgen_dump_contract_version` appears only inside the truncation diagnostic
-> envelope, the schema axis is the **AST-dump schema version `1`** tracked in
+> envelope, the schema axis is the **AST-dump schema version `2`** tracked in
 > [Schema Versioning](#schema-versioning) (and surfaced for the regex sibling
 > via `parser_embedding_api_contract().regex_ast_dump_schema_version`), the
 > grammar family is the fixed `vhdl` label, and the profile is the fixed
@@ -276,8 +426,8 @@ VHDL rule family it enumerates the `kind` discriminator(s) and the exact
 field list the parser emits. Every `kind` value, field name, and branch
 count below is transcribed from the live inventory
 `generated/vhdl_return_annotations.json`
-(`version: 1`, `grammar: "vhdl"`, `annotation_count: 249`,
-**110 distinct rules**), cross-checked against the embedded
+(inventory-file `version: 1`, `grammar: "vhdl"`,
+`annotation_count: 256`, **112 distinct rules**), cross-checked against the embedded
 shape-contract manifest `rust/test_data/ast_shape_contract/vhdl_v1.json`
 (content-identical on the `(rule, branch_index, annotation_type,
 normalized_text)` tuples; the embedded copy omits only the diagnostic
@@ -447,7 +597,7 @@ redundant with `kind`.
 ### Expressions — the `binop_chain` left-fold contract
 
 VHDL's expression grammar is a **five-level operator-precedence cascade**
-(`grammars/vhdl.ebnf` lines 348–357):
+(`grammars/vhdl.ebnf` lines 348–367):
 `expression` → `relation` → `simple_expression` → `term` → `factor`.
 Every level emits the same typed shape — a `binop_chain` object — so a
 single consumer fold routine handles the entire expression tree:
@@ -457,30 +607,61 @@ expression        := relation (logical_operator relation)*
                   -> {type: "binop_chain", level: "logical",        lhs: $1, rest: $2}
 relation          := simple_expression (relational_operator simple_expression)?
                   -> {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
-simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+simple_expression := (plus | minus)? term (adding_operator term)*
                   -> {type: "binop_chain", level: "additive",       sign: $1, lhs: $2, rest: $3}
-term              := factor ((star | slash | kw_mod | kw_rem) factor)*
+term              := factor (multiplying_operator factor)*
                   -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
 factor            := primary (power primary)?
                   -> {type: "binop_chain", level: "power",          lhs: $1, rest: $2}
 ```
 
+The `adding_operator` / `multiplying_operator` iteration leads are
+**named rules** as of the `1.0.2` `VHDL-0001` correctness fix (schema
+`2`). At `1.0.1` / schema `1` they were inline alternations
+(`(plus | minus | ampersand)` / `(star | slash | kw_mod | kw_rem)`) as
+the lead element of the `( … )*` iteration, which corrupted the
+positional model so the `additive` (`simple_expression`) and
+`multiplicative` (`term`) `binop_chain.rest` emitted
+`"<invalid_sequence_access>"` on multi-operand input. They are now the
+named rules below; the `simple_expression` / `term` `binop_chain`
+annotations are unchanged (only the inline group became a named rule),
+and the leading `(plus | minus)?` `sign` — not an iteration lead — was
+empirically unaffected and left as-is. See
+[Resolved Defects — `VHDL-0001`](#resolved-defects--vhdl-0001-fixed-in-release-102-schema-2).
+
 | Level (`level`) | Rule (`grammars/vhdl.ebnf`) | Fields | Operators |
 |---|---|---|---|
 | `"logical"` | `expression` (line 348) | `lhs`, `rest` | `and` / `or` / `xor` / `nand` / `nor` / `xnor` |
 | `"relational"` | `relation` (line 350) | `lhs`, `rest` | `=` / `/=` / `<` / `<=` / `>` / `>=` |
-| `"additive"` | `simple_expression` (line 352) | `sign`, `lhs`, `rest` | unary `+`/`-` (`sign`); binary `+` / `-` / `&` |
-| `"multiplicative"` | `term` (line 354) | `lhs`, `rest` | `*` / `/` / `mod` / `rem` |
-| `"power"` | `factor` (line 356) | `lhs`, `rest` | `**` |
+| `"additive"` | `simple_expression` (line 361) | `sign`, `lhs`, `rest` | unary `+`/`-` (`sign`); binary `+` / `-` / `&` (`adding_operator`) |
+| `"multiplicative"` | `term` (line 363) | `lhs`, `rest` | `*` / `/` / `mod` / `rem` (`multiplying_operator`) |
+| `"power"` | `factor` (line 365) | `lhs`, `rest` | `**` |
 
 **Consumer left-fold rule (normative).** Every level emits
 `{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading
-operand and `rest` is the iteration array of `(op, operand)` pairs.
-**Consumers MUST fold `rest` left-associatively onto `lhs`** —
-evaluate `lhs`, then for each `(op, operand)` pair in `rest` (in array
-order) apply `op` with the running result as the left side and `operand`
-as the right side. This left-fold is identical at all five levels by
-construction, so one fold routine walks the whole expression tree.
+operand and `rest` is the **clean iteration array** of
+`[op-envelope, operand]` entries (one entry per operator; `[]` when no
+operator). At **every** level the op-envelope is the typed `{kind: …}`
+object (uniform: `logical_operator` / `relational_operator` /
+`adding_operator` / `multiplying_operator` all emit `{kind}`). **No
+level ever emits `<invalid_sequence_access>`** as of schema `2`.
+**Consumers MUST fold `rest` left-associatively onto `lhs`** — evaluate
+`lhs`, then for each `[op-envelope, operand]` entry in `rest` (in array
+order) apply the operator named by `op-envelope.kind` with the running
+result as the left side and `operand` as the right side. This left-fold
+is identical at all five levels by construction, so one fold routine
+walks the whole expression tree.
+
+> **Schema `2` note (`VHDL-0001`).** At `1.0.1` / schema `1` the
+> `additive` (`simple_expression`) and `multiplicative` (`term`) levels
+> emitted `"<invalid_sequence_access>"` (3× at the `additive` level)
+> plus malformed nested `binop_chain` objects for multi-operand input —
+> a real parser defect (`VHDL-0001`) fixed in `1.0.2` / schema `2` by
+> the named `adding_operator` / `multiplying_operator` rules. The shape
+> above is the corrected, gate-locked output; the pre-fix history is
+> kept in the [Schema Versioning](#schema-versioning) table (schema
+> `1.0.0` row), [Resolved Defects — `VHDL-0001`](#resolved-defects--vhdl-0001-fixed-in-release-102-schema-2),
+> and the [binary-addition worked example](../vhdl_parser_book/src/examples-binary-addition.md).
 
 Two level-specific notes:
 
@@ -497,15 +678,24 @@ Two level-specific notes:
 
 #### Operator leaves
 
-`logical_operator` and `relational_operator` are typed bare-`{kind}`
-leaves (no `body`); the `simple_expression`, `term`, and `factor`
-operators are matched inline as literal tokens within `rest`, not via a
-separate typed operator rule.
+`logical_operator`, `relational_operator`, `adding_operator`, and
+`multiplying_operator` are all typed bare-`{kind}` leaves (no `body`).
+As of the `1.0.2` `VHDL-0001` fix the `adding_operator` /
+`multiplying_operator` rules are the named iteration-lead rules of
+`simple_expression` / `term` (they were inline alternations at `1.0.1`),
+so the op-envelope is the uniform typed `{kind}` object at **every**
+level of the cascade.
 
 | Rule (`grammars/vhdl.ebnf`) | `kind` values |
 |---|---|
-| `logical_operator` (line 382, 6) | `"and"`, `"or"`, `"xor"`, `"nand"`, `"nor"`, `"xnor"` |
-| `relational_operator` (line 389, 6) | `"eq"`, `"ne"`, `"lt"`, `"le"`, `"gt"`, `"ge"` |
+| `logical_operator` (line 391, 6) | `"and"`, `"or"`, `"xor"`, `"nand"`, `"nor"`, `"xnor"` |
+| `relational_operator` (line 398, 6) | `"eq"`, `"ne"`, `"lt"`, `"le"`, `"gt"`, `"ge"` |
+| `adding_operator` (line 405, 3) — **`1.0.2` `VHDL-0001` fix** | `"plus"`, `"minus"`, `"concat"` (the `simple_expression` `additive`-level op-envelope) |
+| `multiplying_operator` (line 409, 4) — **`1.0.2` `VHDL-0001` fix** | `"mul"`, `"div"`, `"mod"`, `"rem"` (the `term` `multiplicative`-level op-envelope) |
+
+The 3 `adding_operator` + 4 `multiplying_operator` `return_object`
+branches are the +7 entries that took the annotation count `249 → 256`
+and the distinct-rule count `110 → 112` at the `1.0.2` `VHDL-0001` fix.
 
 ### `primary` and aggregates
 
@@ -536,8 +726,8 @@ separate typed operator rule.
 through the recursive-envelope shape (the string of matched text); they
 carry no per-rule annotation — only the dispatch in `literal` is typed.
 
-The above enumerates the full typed surface of contract `1.0.1`
-(**249 annotations across 110 distinct rules**, schema version `1`).
+The above enumerates the full typed surface of contract `1.0.2`
+(**256 annotations across 112 distinct rules**, schema version `2`).
 This contract section is curated; the authoritative machine-checkable
 enumeration of every `(rule, branch_index, annotation_type,
 normalized_text)` tuple is `generated/vhdl_return_annotations.json` and
@@ -612,11 +802,11 @@ the precedence order stated at the end of this section.
 | Surface | Path | Authoritative for |
 |---|---|---|
 | **This contract** | `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` | The downstream integration surface: AST-dump envelope, `vhdl_file` root, the 10-branch `design_unit` dispatch, and the per-family rule shapes (declarations, types, statements, the 5-level `binop_chain` expression hierarchy, literals). See [AST Envelope and `design_unit` Dispatch](#ast-envelope-and-design_unit-dispatch) and [Declarations, Types, Statements, and Expressions](#declarations-types-statements-and-expressions). |
-| **Per-parser mdBook** | `docs/vhdl_parser_book/` (source `src/*.md`; tracked HTML at `docs/vhdl_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples, schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. |
+| **Per-parser mdBook** | `docs/vhdl_parser_book/` (source `src/*.md`; tracked HTML at `docs/vhdl_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples (including the binary-addition worked example with the `VHDL-0001` schema-`1`→`2` fix transition), schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. |
 | **Shape-contract manifest** | `rust/test_data/ast_shape_contract/vhdl_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
-| **Declared-annotation inventory** | `generated/vhdl_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the VHDL grammar emits (`version: 1`, `grammar: "vhdl"`, `annotation_count: 249`, **110 distinct rules**). The generator-side source of truth for the typed surface. |
+| **Declared-annotation inventory** | `generated/vhdl_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the VHDL grammar emits (inventory-file `version: 1` — the inventory format version, not the AST-dump schema; `grammar: "vhdl"`, `annotation_count: 256`, **112 distinct rules**). The generator-side source of truth for the typed surface. |
 | **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
-| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released VHDL parser. Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released VHDL parser; the `VHDL-0001` defect lives there (status `Released`, fixed in parser release `1.0.2` / schema `2`). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
 
 Precedence when surfaces disagree (highest first): the **embedding-API
 contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
@@ -689,8 +879,8 @@ Contract-scoped definitions of the terms a downstream integrator needs to
 read this document. Where a term has a normative definition, this contract
 is authoritative; the per-parser book's
 [glossary](../vhdl_parser_book/src/glossary.md) paraphrases the same terms
-for quick lookup. Numbers below are pinned to contract `1.0.1` /
-schema `1` / **249 annotations across 110 distinct rules**.
+for quick lookup. Numbers below are pinned to contract `1.0.2` /
+schema `2` / **256 annotations across 112 distinct rules**.
 
 - **`AstDumpPayload`** — the success return of the VHDL AST-dump host
   entry points (defined in `rust/src/embedding_api.rs`, contract in
@@ -712,13 +902,14 @@ schema `1` / **249 annotations across 110 distinct rules**.
   Consumers must check `truncated` (or detect `kind ==
   "pgen_ast_dump_truncation"`) before treating `dump_json` as a VHDL AST.
 - **AST-dump schema version** — the integer version axis tracking the AST
-  output shape, currently `1`. Bumped only when the emitted shape changes
+  output shape, currently `2` (bumped `1 → 2` by the `1.0.2` `VHDL-0001`
+  correctness fix). Bumped only when the emitted shape changes
   in a way consumers may need to adapt to (new annotation on a
   previously-unannotated rule, restructured annotation, user-visible
   grammar-shape change). Pure perf work / internal codegen
   reorganization do not bump it. See [Schema Versioning](#schema-versioning).
 - **Parser release version** — the parser library's release identity,
-  currently `1.0.1`. Bumped on every functional change (bug fixes, perf
+  currently `1.0.2`. Bumped on every functional change (bug fixes, perf
   work, grammar changes). Moves independently of the schema version.
 - **`design_unit` dispatch** — the primary top-level dispatcher: a
   10-branch `kind`-tagged shape (`"library"`, `"use"`,
@@ -744,8 +935,9 @@ schema `1` / **249 annotations across 110 distinct rules**.
   regression test (see [Gate Recipe](#gate-recipe)).
 - **Declared-annotation inventory** — the live machine-checkable
   enumeration of every typed-shape annotation the VHDL grammar emits:
-  `generated/vhdl_return_annotations.json` (`version: 1`,
-  `grammar: "vhdl"`, `annotation_count: 249`, **110 distinct rules**).
+  `generated/vhdl_return_annotations.json` (inventory-file `version: 1`
+  — the inventory format version, not the AST-dump schema;
+  `grammar: "vhdl"`, `annotation_count: 256`, **112 distinct rules**).
   The generator-side source of truth for the typed surface; mirrored by
   the embedded shape-contract manifest copy.
 - **Recursive envelope** — the default JSON shape produced by

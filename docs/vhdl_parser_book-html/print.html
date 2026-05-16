@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66450573.js";
+            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0734e4e4.js"></script>
+        <script src="toc-77be4d5d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,7 +184,7 @@
 <ul>
 <li><strong>How to build the generated parser and wire it into your project.</strong> See <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a>.</li>
 <li><strong>What the AST envelope looks like.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#walking-the-ast">Walking the AST</a>.</li>
-<li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/vhdl.ebnf</code>) has <strong>249 typed annotations</strong> covering design units, declarations, types, statements, expressions, and literals.</li>
+<li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/vhdl.ebnf</code>) has <strong>256 typed annotations</strong> covering design units, declarations, types, statements, expressions, and literals.</li>
 <li><strong>Worked examples by VHDL feature</strong> — what does the AST look like for a minimal entity, a basic architecture, a package? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.</li>
 <li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>. The schema is currently at version <code>1</code>.</li>
 <li><strong>A release-by-release index of what changed and why.</strong> See <a href="#changelog-index">Changelog Index</a>.</li>
@@ -204,7 +204,7 @@
 </ol>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>The PGEN VHDL parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers design units (library/use/entity/architecture/package/package body/configuration/context), entity generics/ports, architecture declarations and concurrent statements, process + core sequential statements, and the expression/type/literal baseline. See <code>LIVE_ACHIEVEMENT_STATUS.md</code> for the live closure status and <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
-<p>The VHDL return-annotation campaign landed <code>VHDL-Slice-1</code> (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. Subsequent shape-affecting slices get their own changelog entries here.</p>
+<p>The VHDL return-annotation campaign landed <code>VHDL-Slice-1</code> (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. A follow-up correctness fix (<code>VHDL-0001</code>, parser release <code>1.0.2</code>, AST-dump schema <code>1</code> → <code>2</code>, landed 2026-05-17) lifted the <code>simple_expression</code> / <code>term</code> inline operator alternations into the named <code>adding_operator</code> / <code>multiplying_operator</code> rules, bringing the surface to <strong>256 annotations / 112 rules</strong> — see the <a href="#changelog-index">Changelog Index</a> and <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a>. Subsequent shape-affecting slices get their own changelog entries here.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN VHDL parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
@@ -498,7 +498,7 @@ is a <strong>canonical-JSON payload string plus truncation metadata</strong> —
 <code>serde_json::from_str</code>) to obtain the <code>vhdl_file</code> <strong>root object</strong> that
 this book’s per-rule chapters describe. There is no <code>root</code> /
 <code>schema_version</code> / <code>grammar</code> / <code>profile</code> field on <code>AstDumpPayload</code>
-itself: the AST-dump schema version is the <code>1</code> tracked in
+itself: the AST-dump schema version is the <code>2</code> tracked in
 <a href="#schema-versioning">Schema Versioning</a>; the grammar/profile are fixed
 (<code>vhdl</code> / <code>vhdl_1076_2019</code>).</p>
 <p>When <code>truncated</code> is <code>true</code>, <code>dump_json</code> is <strong>not</strong> the AST — it is a
@@ -582,7 +582,7 @@ restatement of this for consumers.</p>
 </ul>
 <p>For a 3-element sequence rule like <code>a b c</code>, the envelope shape is <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</p>
 <h2 id="mixing-typed-and-envelope-shapes"><a class="header" href="#mixing-typed-and-envelope-shapes">Mixing typed and envelope shapes</a></h2>
-<p>The 249-annotation surface (as of contract 1.0.1) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.</p>
+<p>The 256-annotation surface (as of contract 1.0.2) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>, including the named <code>adding_operator</code> / <code>multiplying_operator</code> op rules added by the <code>1.0.2</code> <code>VHDL-0001</code> fix), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.</p>
 <p>Consumers need to handle both:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -622,7 +622,7 @@ restatement of this for consumers.</p>
 <h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
 <p>This chapter explains how the VHDL parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, and the determinism guarantee. It is the conceptual companion to <a href="#top-level-rules">Top-Level Rules</a>, which enumerates the concrete per-rule shapes.</p>
 <blockquote>
-<p><strong>Note:</strong> The VHDL return-annotation campaign landed in a single comprehensive batch — <strong>VHDL-Slice-1, 249 annotations across 110 rules</strong> (parser release <code>1.0.1</code>, schema version <code>1</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in <a href="#ast-envelope-structure">AST Envelope Structure</a>. The authoritative enumeration is <code>generated/vhdl_return_annotations.json</code> (mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>).</p>
+<p><strong>Note:</strong> The VHDL return-annotation campaign landed in a single comprehensive batch — VHDL-Slice-1 (249 annotations / 110 rules, parser release <code>1.0.1</code>, schema version <code>1</code>); the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix then added the named <code>adding_operator</code> / <code>multiplying_operator</code> operator rules, bringing the <strong>current</strong> surface to <strong>256 annotations across 112 rules</strong> (parser release <code>1.0.2</code>, schema version <code>2</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in <a href="#ast-envelope-structure">AST Envelope Structure</a>. The authoritative enumeration is <code>generated/vhdl_return_annotations.json</code> (mirrored by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>).</p>
 </blockquote>
 <h2 id="two-carrier-kinds"><a class="header" href="#two-carrier-kinds">Two carrier kinds</a></h2>
 <p>Every node in the VHDL AST dump is carried in one of exactly two shapes.</p>
@@ -672,7 +672,7 @@ optional trailing label is omitted, <code>end_label</code> is <code>[]</code>.</
 <tr><td>Object <code>{...}</code></td><td>A typed return annotation that is an object literal (<code>{kind: ...}</code>, <code>{name: ..., subtype: ...}</code>, <code>{type: "binop_chain", ...}</code>, etc.).</td></tr>
 <tr><td>Array <code>[...]</code></td><td>A recursive-envelope sequence/quantified shape, <strong>or</strong> an un-matched optional field (<code>[]</code>), <strong>or</strong> the trailing <code>rest</code> iteration of a <code>{first, rest}</code> list rule.</td></tr>
 <tr><td>String <code>"..."</code></td><td>A matched terminal or regex leaf (identifier text, literal text, keyword text reached through an envelope).</td></tr>
-<tr><td><code>true</code> / <code>false</code></td><td>A <code>BooleanLiteral</code> in a typed annotation. VHDL’s current 249-annotation surface uses no boolean literals; all annotations are object literals.</td></tr>
+<tr><td><code>true</code> / <code>false</code></td><td>A <code>BooleanLiteral</code> in a typed annotation. VHDL’s current 256-annotation surface uses no boolean literals; all annotations are object literals.</td></tr>
 <tr><td>Number</td><td>A <code>NumberLiteral</code> typed transform. Not used by the current VHDL surface.</td></tr>
 <tr><td><code>null</code></td><td>A <code>NullLiteral</code>. Not used by the current VHDL surface — absent optional fields are carried as the empty array <code>[]</code>, not <code>null</code>.</td></tr>
 </tbody>
@@ -700,9 +700,9 @@ optional trailing label is omitted, <code>end_label</code> is <code>[]</code>.</
 <p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>; the value shapes above are the real captured output of <code>generated/vhdl_parser.rs</code>. See <a href="#worked-example-minimal-entity">Worked Example: Minimal Entity</a> for the pinned end-to-end production AST and the text-extraction rule of thumb.</p>
 <h2 id="the-expression-family-binop_chain"><a class="header" href="#the-expression-family-binop_chain">The expression family (<code>binop_chain</code>)</a></h2>
 <p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all carry the same <code>binop_chain</code> carrier so a single consumer fold handles the whole tree:</p>
-<pre><code class="language-json">{ "type": "binop_chain", "level": "logical", "lhs": &lt;relation-shape&gt;, "rest": [ /* (op, relation) iterations */ ] }
+<pre><code class="language-json">{ "type": "binop_chain", "level": "logical", "lhs": &lt;relation-shape&gt;, "rest": [ [ {"kind": "and"}, &lt;relation-shape&gt; ] ] }
 </code></pre>
-<p><code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level, bottoming out at a typed <code>primary</code>). <code>rest</code> is a recursive-envelope array of <code>(operator, operand)</code> iterations; for <code>simple_expression</code> there is an additional leading <code>sign</code> field (<code>[]</code> when no unary <code>+</code>/<code>-</code>). Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>. The full level/field/operator table is in <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a>; the fold code is in <a href="#walking-the-ast">Walking the AST</a>.</p>
+<p><code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level, bottoming out at a typed <code>primary</code>). <code>rest</code> is a <strong>clean</strong> array of <code>[op-envelope, operand]</code> entries — one per operator, <code>[]</code> when none — where the op-envelope is the typed <code>{kind: …}</code> object at <strong>every</strong> level (<code>logical_operator</code> / <code>relational_operator</code> / <code>adding_operator</code> / <code>multiplying_operator</code>); as of the <code>1.0.2</code> <code>VHDL-0001</code> fix (schema <code>2</code>) it is never <code>"&lt;invalid_sequence_access&gt;"</code>. For <code>simple_expression</code> there is an additional leading <code>sign</code> field (<code>[]</code> when no unary <code>+</code>/<code>-</code>). Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>, reading the operator from <code>op-envelope.kind</code>. The full level/field/operator table is in <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a>; the fold code is in <a href="#walking-the-ast">Walking the AST</a> and the real captured shape is in <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a>.</p>
 <h2 id="determinism-1"><a class="header" href="#determinism-1">Determinism</a></h2>
 <p>The AST dump is <strong>byte-deterministic</strong> for a given input + parser-release version:</p>
 <ul>
@@ -815,13 +815,14 @@ fn walk(node: &amp;JsonValue) {
 <span class="boring">}</span></code></pre>
 <p>The same <code>{kind, body}</code> pattern recurs for the declarative-item dispatch rules (<code>architecture_declarative_item</code>, <code>package_declarative_item</code>, <code>process_declarative_item</code>, …), <code>sequential_statement</code> (13 kinds), and <code>concurrent_statement</code> (7 kinds). All use the bodyless <code>{kind: "semi"}</code> for a stray <code>;</code>, and <code>sequential_statement</code> additionally uses bodyless <code>{kind: "null"}</code> for the VHDL <code>null;</code> statement.</p>
 <h2 id="folding-the-binop_chain-expression-hierarchy"><a class="header" href="#folding-the-binop_chain-expression-hierarchy">Folding the <code>binop_chain</code> expression hierarchy</a></h2>
-<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all emit the same <code>binop_chain</code> shape. A single fold handles the whole hierarchy:</p>
+<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all emit the same <code>binop_chain</code> shape. A single fold handles the whole hierarchy. As of the <code>1.0.2</code> <code>VHDL-0001</code> fix (schema <code>2</code>), <code>rest</code> is a <strong>clean</strong> <code>[op-envelope, operand]</code> array where the op-envelope is the typed <code>{kind: …}</code> object at every level (uniform — <code>logical_operator</code> / <code>relational_operator</code> / <code>adding_operator</code> / <code>multiplying_operator</code> all emit <code>{kind}</code>); it is <strong>never</strong> <code>"&lt;invalid_sequence_access&gt;"</code> (the pre-fix schema-<code>1</code> malformation):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// Folds one binop_chain level left-associatively. `lhs` is the leading
 /// operand (itself a binop_chain of the next-tighter level, bottoming out
-/// at a typed `primary`). `rest` is the recursive-envelope iteration of
-/// (operator, operand) pairs.
+/// at a typed `primary`). `rest` is the clean iteration array of
+/// [op-envelope, operand] entries; the op-envelope is the typed
+/// {kind: ...} object (schema 2).
 fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
     debug_assert_eq!(
         node.get("type").and_then(|v| v.as_str()),
@@ -837,14 +838,18 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
         acc = apply_unary_sign(sign, acc); // no-op if sign == []
     }
 
-    // `rest` is an array of (op, operand) iterations. For `relation`
-    // (level == "relational") it holds at most one pair (grammar uses `?`,
-    // not `*`); every other level iterates `*`.
+    // `rest` is an array of [op-envelope, operand] entries. For `relation`
+    // (level == "relational") and `factor` (level == "power") it holds at
+    // most one entry (grammar uses `?`, not `*`); the other three levels
+    // iterate `*`.
     if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
-        for pair in rest {
-            let (op, rhs_node) = split_op_operand(pair);
+        for entry in rest {
+            // entry[0] is the typed {kind:...} op-envelope (schema 2 —
+            // never "&lt;invalid_sequence_access&gt;"); entry[1] is the operand.
+            let op = entry[0]["kind"].as_str().expect("typed op-envelope kind");
+            let rhs_node = &amp;entry[1];
             acc = Expr::Binary {
-                op,
+                op: op.to_string(),
                 lhs: Box::new(acc),
                 rhs: Box::new(lower_operand(rhs_node)),
             };
@@ -853,7 +858,7 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
     acc
 }
 <span class="boring">}</span></code></pre>
-<p><code>level</code> tells you which precedence tier you are at (<code>"logical"</code>, <code>"relational"</code>, <code>"additive"</code>, <code>"multiplicative"</code>, <code>"power"</code>) without re-deriving it from context. The leaf operand is a typed <code>primary</code> (<code>{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}</code>); dispatch on its <code>kind</code> to bottom out the recursion.</p>
+<p><code>level</code> tells you which precedence tier you are at (<code>"logical"</code>, <code>"relational"</code>, <code>"additive"</code>, <code>"multiplicative"</code>, <code>"power"</code>) without re-deriving it from context. The op-envelope <code>kind</code> is the typed operator discriminator (<code>"plus"</code> / <code>"minus"</code> / <code>"concat"</code> at the <code>additive</code> level via <code>adding_operator</code>; <code>"mul"</code> / <code>"div"</code> / <code>"mod"</code> / <code>"rem"</code> at the <code>multiplicative</code> level via <code>multiplying_operator</code>; <code>"and"</code> … at the <code>logical</code> level; <code>"eq"</code> … at the <code>relational</code> level). The leaf operand is a typed <code>primary</code> (<code>{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}</code>); dispatch on its <code>kind</code> to bottom out the recursion. See the <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a> worked example for the real captured <code>b + c * d</code> shape.</p>
 <h2 id="identifier-extraction"><a class="header" href="#identifier-extraction">Identifier extraction</a></h2>
 <p>VHDL identifiers (entity names, signal names, labels) surface as JSON strings once you reach the relevant named field. For a typed parent the field is direct:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -916,7 +921,7 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+const VHDL_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -929,8 +934,9 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match VHDL_AST_SCHEMA_VERSION {
-    1 =&gt; walk_schema_v1(&amp;root),
-    // (future) 2 =&gt; walk_schema_v2(&amp;root),
+    2 =&gt; walk_schema_v2(&amp;root),
+    // schema 1 (pre-`VHDL-0001`) emitted "&lt;invalid_sequence_access&gt;" in
+    // simple_expression / term binop_chain.rest — do not target it.
     other =&gt; eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>
@@ -939,10 +945,10 @@ match VHDL_AST_SCHEMA_VERSION {
 <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the <code>vhdl_file</code> root, the <code>design_unit</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) landed the full grammar typing in one comprehensive batch — <strong>110 distinct rules / 249 return annotations</strong> across <code>grammars/vhdl.ebnf</code>. Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 249 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
+<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>) landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix (AST-dump schema version <code>1</code> → <code>2</code>) added the two named operator rules. The current typed surface is <strong>112 distinct rules / 256 return annotations</strong> across <code>grammars/vhdl.ebnf</code> (parser release <code>1.0.2</code>, AST-dump schema version <code>2</code>). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
 <h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
-<p>This is a <strong>curated, grouped</strong> reference — not a raw 249-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
+<p>This is a <strong>curated, grouped</strong> reference — not a raw 256-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
 <p>Two conventions appear throughout:</p>
 <ul>
 <li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>.</li>
@@ -1194,30 +1200,45 @@ match VHDL_AST_SCHEMA_VERSION {
                   -&gt; {type: "binop_chain", level: "logical",         lhs: $1, rest: $2}
 relation          := simple_expression (relational_operator simple_expression)?
                   -&gt; {type: "binop_chain", level: "relational",      lhs: $1, rest: $2}
-simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+simple_expression := (plus | minus)? term (adding_operator term)*
                   -&gt; {type: "binop_chain", level: "additive",        sign: $1, lhs: $2, rest: $3}
-term              := factor ((star | slash | kw_mod | kw_rem) factor)*
+term              := factor (multiplying_operator factor)*
                   -&gt; {type: "binop_chain", level: "multiplicative",  lhs: $1, rest: $2}
 factor            := primary (power primary)?
                   -&gt; {type: "binop_chain", level: "power",           lhs: $1, rest: $2}
 </code></pre>
+<blockquote>
+<p><strong>Schema <code>2</code> note (<code>VHDL-0001</code>).</strong> The <code>adding_operator</code> /
+<code>multiplying_operator</code> iteration leads are <strong>named rules</strong> as of the
+<code>1.0.2</code> correctness fix. At <code>1.0.1</code> / schema <code>1</code> they were inline
+alternations (<code>(plus | minus | ampersand)</code> / <code>(star | slash | kw_mod | kw_rem)</code>), which corrupted the positional model so the <code>additive</code>
+(<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>)
+<code>binop_chain.rest</code> emitted <code>"&lt;invalid_sequence_access&gt;"</code> on
+multi-operand input — a real parser defect fixed in <code>1.0.2</code> / schema
+<code>2</code>. The <code>simple_expression</code> / <code>term</code> <code>binop_chain</code> annotations are
+unchanged (only the inline group became a named rule); the leading
+<code>(plus | minus)?</code> <code>sign</code> is not an iteration lead and was empirically
+unaffected — left as-is. See <a href="#schema-versioning">Schema Versioning</a>
+and the <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a> worked example.</p>
+</blockquote>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Level (<code>level</code>)</th><th>Rule</th><th>Fields</th><th>Operators</th></tr>
 </thead>
 <tbody>
-<tr><td><code>"logical"</code></td><td><code>expression</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>and</code> / <code>or</code> / <code>xor</code> / <code>nand</code> / <code>nor</code> / <code>xnor</code></td></tr>
-<tr><td><code>"relational"</code></td><td><code>relation</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>=</code> / <code>/=</code> / <code>&lt;</code> / <code>&lt;=</code> / <code>&gt;</code> / <code>&gt;=</code></td></tr>
-<tr><td><code>"additive"</code></td><td><code>simple_expression</code></td><td><code>sign</code>, <code>lhs</code>, <code>rest</code></td><td>unary <code>+</code>/<code>-</code> (<code>sign</code>), binary <code>+</code> / <code>-</code> / <code>&amp;</code></td></tr>
-<tr><td><code>"multiplicative"</code></td><td><code>term</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>*</code> / <code>/</code> / <code>mod</code> / <code>rem</code></td></tr>
+<tr><td><code>"logical"</code></td><td><code>expression</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>and</code> / <code>or</code> / <code>xor</code> / <code>nand</code> / <code>nor</code> / <code>xnor</code> (<code>logical_operator</code>)</td></tr>
+<tr><td><code>"relational"</code></td><td><code>relation</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>=</code> / <code>/=</code> / <code>&lt;</code> / <code>&lt;=</code> / <code>&gt;</code> / <code>&gt;=</code> (<code>relational_operator</code>)</td></tr>
+<tr><td><code>"additive"</code></td><td><code>simple_expression</code></td><td><code>sign</code>, <code>lhs</code>, <code>rest</code></td><td>unary <code>+</code>/<code>-</code> (<code>sign</code>), binary <code>+</code> / <code>-</code> / <code>&amp;</code> (<code>adding_operator</code>)</td></tr>
+<tr><td><code>"multiplicative"</code></td><td><code>term</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>*</code> / <code>/</code> / <code>mod</code> / <code>rem</code> (<code>multiplying_operator</code>)</td></tr>
 <tr><td><code>"power"</code></td><td><code>factor</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>**</code></td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the iteration array of <code>(op, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). Two levels cap <code>rest</code> at <strong>at most one</strong> <code>(op, operand)</code> pair because their grammar rule uses <code>?</code> (not <code>*</code>): <code>"relational"</code> (<code>relation := simple_expression (relational_operator simple_expression)?</code>) and <code>"power"</code> (<code>factor := primary (power primary)?</code>). The other three levels — <code>"logical"</code> (<code>expression</code>), <code>"additive"</code> (<code>simple_expression</code>), and <code>"multiplicative"</code> (<code>term</code>) — iterate <code>*</code>, so their <code>rest</code> is a 0..N array. A correct left-fold consumer handles both uniformly (fold over a <code>rest</code> of length 0, 1, or N).</p>
-<p>This <code>binop_chain</code> shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See <a href="#walking-the-ast">Walking the AST</a> for a worked fold.</p>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.2 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the clean iteration array of <code>[op-envelope, operand]</code> entries. At <strong>every</strong> level the op-envelope is the typed <code>{kind: …}</code> object (uniform — <code>logical_operator</code> / <code>relational_operator</code> / <code>adding_operator</code> / <code>multiplying_operator</code> all emit <code>{kind}</code>); no level ever emits <code>&lt;invalid_sequence_access&gt;</code> as of schema <code>2</code>. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code></strong>, reading the operator from <code>op-envelope.kind</code>. At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). Two levels cap <code>rest</code> at <strong>at most one</strong> entry because their grammar rule uses <code>?</code> (not <code>*</code>): <code>"relational"</code> (<code>relation := simple_expression (relational_operator simple_expression)?</code>) and <code>"power"</code> (<code>factor := primary (power primary)?</code>). The other three levels — <code>"logical"</code> (<code>expression</code>), <code>"additive"</code> (<code>simple_expression</code>), and <code>"multiplicative"</code> (<code>term</code>) — iterate <code>*</code>, so their <code>rest</code> is a 0..N array. A correct left-fold consumer handles both uniformly (fold over a <code>rest</code> of length 0, 1, or N).</p>
+<p>This <code>binop_chain</code> shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See <a href="#walking-the-ast">Walking the AST</a> for a worked fold and the <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a> worked example for the real captured <code>b + c * d</code> shape.</p>
 <h3 id="operators-bare-kind-leaves"><a class="header" href="#operators-bare-kind-leaves">Operators (bare <code>{kind}</code> leaves)</a></h3>
+<p>All four operator rules are typed bare-<code>{kind}</code> leaves (no <code>body</code>); the op-envelope in <code>binop_chain.rest</code> at every level is the typed <code>{kind}</code> object these rules emit (schema <code>2</code>). <code>adding_operator</code> / <code>multiplying_operator</code> are the <code>1.0.2</code> <code>VHDL-0001</code> named-rule fix (they were inline alternations at <code>1.0.1</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1226,10 +1247,12 @@ factor            := primary (power primary)?
 <tbody>
 <tr><td><code>logical_operator</code> (6)</td><td><code>"and"</code>, <code>"or"</code>, <code>"xor"</code>, <code>"nand"</code>, <code>"nor"</code>, <code>"xnor"</code></td></tr>
 <tr><td><code>relational_operator</code> (6)</td><td><code>"eq"</code>, <code>"ne"</code>, <code>"lt"</code>, <code>"le"</code>, <code>"gt"</code>, <code>"ge"</code></td></tr>
+<tr><td><code>adding_operator</code> (3) — <strong><code>1.0.2</code> <code>VHDL-0001</code> fix</strong></td><td><code>"plus"</code>, <code>"minus"</code>, <code>"concat"</code></td></tr>
+<tr><td><code>multiplying_operator</code> (4) — <strong><code>1.0.2</code> <code>VHDL-0001</code> fix</strong></td><td><code>"mul"</code>, <code>"div"</code>, <code>"mod"</code>, <code>"rem"</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>(<code>simple_expression</code>, <code>term</code>, and <code>factor</code> operators are matched inline as literal tokens within <code>rest</code>, not via a separate typed operator rule.)</p>
+<p>The 3 <code>adding_operator</code> + 4 <code>multiplying_operator</code> <code>return_object</code> branches are the +7 entries that took the annotation count <code>249 → 256</code> and the distinct-rule count <code>110 → 112</code> at the <code>1.0.2</code> fix. (<code>factor</code>’s <code>power</code> operator is still matched inline as a literal token within <code>rest</code>, not via a separate typed operator rule — only <code>**</code> at one level.)</p>
 <h3 id="primary-and-aggregates"><a class="header" href="#primary-and-aggregates"><code>primary</code> and aggregates</a></h3>
 <div class="table-wrapper">
 <table>
@@ -1263,10 +1286,10 @@ factor            := primary (power primary)?
 </div>
 <p><code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, and <code>character_literal</code> are matched as terminal/regex leaves and carried through the recursive-envelope shape (string of matched text); they have no per-rule annotation — only the dispatch in <code>literal</code> is typed.</p>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.1</code> is <strong>249 annotations across 110 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.2</code> is <strong>256 annotations across 112 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
-<li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "vhdl"</code>, <code>annotation_count: 249</code>).</li>
-<li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 249 entries).</li>
+<li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (inventory-file <code>version: 1</code> — the inventory format version, not the AST-dump schema; <code>grammar: "vhdl"</code>, <code>annotation_count: 256</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 256 entries).</li>
 </ul>
 <p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
 <h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
@@ -1405,7 +1428,7 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+const VHDL_AST_SCHEMA_VERSION: u32 = 2;
 
 match outcome.status {
     ParseStatus::Success =&gt; {
@@ -1461,21 +1484,244 @@ broken upstream of any VHDL-specific concern. Start triage here, then
 move on to richer inputs and the <a href="#top-level-rules">Top-Level Rules</a>
 shape reference.</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="worked-example-binary-addition-b--c--d"><a class="header" href="#worked-example-binary-addition-b--c--d">Worked Example: Binary Addition <code>b + c * d</code></a></h1>
+<p>The companion to <a href="#worked-example-minimal-entity">Minimal Entity</a>: that one
+shows the top-level dispatch on a declaration; this one shows the
+<strong>non-empty <code>binop_chain.rest</code></strong> (operator) shape and the consumer
+left-fold across two precedence levels. Every JSON value here is the
+<strong>real captured output</strong> of <code>generated/vhdl_parser.rs</code> (parser release
+<code>1.0.2</code>, AST-dump schema version <code>2</code>) and is the regression-locked
+sample <code>arithmetic_expr</code> in
+<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>.</p>
+<blockquote>
+<p>Schema <code>2</code> note (<code>VHDL-0001</code>): at <code>1.0.1</code> / schema <code>1</code> the <code>additive</code>
+(<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code>
+<code>rest</code> emitted <code>"&lt;invalid_sequence_access&gt;"</code> (three of them at the
+<code>additive</code> level) plus malformed nested objects for multi-operand
+input — a real parser defect (<code>VHDL-0001</code>) fixed in <code>1.0.2</code> by
+lifting the inline operator alternations into the <strong>named</strong> rules
+<code>adding_operator</code> / <code>multiplying_operator</code> (see
+<a href="#schema-versioning">Schema Versioning</a> and the contract’s
+“Resolved Defects — <code>VHDL-0001</code>”). The shape below is the corrected,
+gate-locked output. <strong><code>vhdl</code> was the final grammar in the systemic
+inline-alternation-<code>$N</code> class; the class is now fully resolved across
+<code>rtl_const_expr</code> / <code>systemverilog_preprocessor</code> / <code>rtl_frontend</code> /
+<code>vhdl</code>.</strong></p>
+</blockquote>
+<h2 id="input-1"><a class="header" href="#input-1">Input</a></h2>
+<pre><code class="language-vhdl">entity e is end;
+architecture a of e is begin x &lt;= b + c * d; end;
+</code></pre>
+<p>(With a trailing newline.) This is the smallest input that exercises a
+<strong>multi-operand expression at two precedence levels</strong> — <code>b + (c * d)</code>
+under VHDL’s operator precedence — so both the <code>additive</code>
+(<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code>
+levels carry a non-empty <code>rest</code>. It is the exact input the AST shape
+contract regression-locks (sample <code>arithmetic_expr</code>).</p>
+<h2 id="reproducing-the-dump-1"><a class="header" href="#reproducing-the-dump-1">Reproducing the dump</a></h2>
+<p>The VHDL parser is on-demand-only (see <a href="#build-recipe">Build Recipe</a>).
+With <code>generated/vhdl_parser.rs</code> in place:</p>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf 'entity e is end;\narchitecture a of e is begin x &lt;= b + c * d; end;\n' &gt; /tmp/arith.vhd
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty vhdl /tmp/arith.vhd /tmp/arith_ast.json
+# -&gt; parse_full passed for grammar 'vhdl' on '/tmp/arith.vhd'
+</code></pre>
+<h2 id="the-relevant-node-additive-level"><a class="header" href="#the-relevant-node-additive-level">The relevant node (<code>additive</code> level)</a></h2>
+<p>The signal assignment <code>x &lt;= b + c * d;</code> parses to a <code>binop_chain</code>
+cascade. The upper levels (<code>logical</code>, <code>relational</code>) are empty-<code>rest</code>
+wrappers (unwrap to <code>lhs</code>). The operators appear at the <code>additive</code>
+(<code>+</code>) and, nested inside its right operand, the <code>multiplicative</code> (<code>*</code>)
+levels. This is the <strong>real captured shape</strong> (key-sorted, as the canonical
+dump emits it):</p>
+<pre><code class="language-json">{
+  "type": "binop_chain",
+  "level": "additive",
+  "sign": [],
+  "lhs": {
+    "type": "binop_chain",
+    "level": "multiplicative",
+    "rest": [],
+    "lhs": {
+      "type": "binop_chain",
+      "level": "power",
+      "rest": [],
+      "lhs": {
+        "kind": "function_call",
+        "name": { "first": [ [], "b" ], "rest": [] },
+        "params": []
+      }
+    }
+  },
+  "rest": [
+    [
+      { "kind": "plus" },
+      {
+        "type": "binop_chain",
+        "level": "multiplicative",
+        "lhs": {
+          "type": "binop_chain",
+          "level": "power",
+          "rest": [],
+          "lhs": {
+            "kind": "function_call",
+            "name": { "first": [ [], "c" ], "rest": [] },
+            "params": []
+          }
+        },
+        "rest": [
+          [
+            { "kind": "mul" },
+            {
+              "type": "binop_chain",
+              "level": "power",
+              "rest": [],
+              "lhs": {
+                "kind": "function_call",
+                "name": { "first": [ [], "d" ], "rest": [] },
+                "params": []
+              }
+            }
+          ]
+        ]
+      }
+    ]
+  ]
+}
+</code></pre>
+<p>(<code>b</code> / <code>c</code> / <code>d</code> are bare names; VHDL’s <code>primary</code> resolves a name with
+no parameter part to the <code>{kind: "function_call", name, params}</code> branch
+with <code>params: []</code> — the name text is at <code>name.first[1]</code>. See
+<a href="#top-level-rules">Top-Level Rules</a> § “<code>primary</code> and aggregates”.)</p>
+<h2 id="reading-rest-the-operator-chain-contract"><a class="header" href="#reading-rest-the-operator-chain-contract">Reading <code>rest</code> (the operator-chain contract)</a></h2>
+<p><code>rest</code> is a <strong>clean array of iteration entries</strong> — one per
+<code>(NAMED_op operand)</code> repetition of <code>next (NAMED_op next)*</code>. Each entry
+is a two-element array:</p>
+<ul>
+<li><strong><code>entry[0]</code></strong> — the <strong>op-envelope</strong>: the typed <code>{kind: …}</code> object
+emitted by the named operator rule. At the <code>additive</code> level
+(<code>adding_operator</code>) it is <code>{"kind": "plus"}</code> / <code>{"kind": "minus"}</code> /
+<code>{"kind": "concat"}</code>; at the <code>multiplicative</code> level
+(<code>multiplying_operator</code>) it is <code>{"kind": "mul"}</code> / <code>{"kind": "div"}</code> /
+<code>{"kind": "mod"}</code> / <code>{"kind": "rem"}</code>. This is <strong>uniform with the
+<code>logical</code> / <code>relational</code> levels</strong> (whose <code>logical_operator</code> /
+<code>relational_operator</code> op-envelope is already a <code>{kind}</code> object) —
+VHDL’s op-envelope is the typed <code>{kind}</code> object at <strong>every</strong> level,
+never <code>&lt;invalid_sequence_access&gt;</code> (schema <code>2</code>).</li>
+<li><strong><code>entry[1]</code></strong> — the right-hand operand: the next-tighter level’s
+<code>binop_chain</code>, itself unwrappable to its <code>lhs</code> leaf. Here the <code>+</code>
+entry’s operand is the <code>multiplicative</code> <code>binop_chain</code> for <code>c * d</code>,
+which itself has a one-entry <code>rest</code> (<code>[{"kind": "mul"}, &lt;d&gt;]</code>).</li>
+</ul>
+<p><code>b + c * d</code> therefore yields <strong>one</strong> entry in the <code>additive</code> <code>rest</code>
+(<code>[{"kind": "plus"}, &lt;c*d&gt;]</code>) whose operand carries <strong>one</strong> entry in its
+own <code>multiplicative</code> <code>rest</code> (<code>[{"kind": "mul"}, &lt;d&gt;]</code>). The consumer
+left-folds each level onto its <code>lhs</code>, bottoming out at the typed
+<code>primary</code> leaf: <code>(b + (c * d))</code>.</p>
+<p>The <code>"additive"</code> level additionally carries a leading <strong><code>sign</code></strong> field
+for the optional unary <code>+</code>/<code>-</code> (<code>(plus | minus)?</code> in
+<code>simple_expression</code>); it is <code>[]</code> here (no leading sign) and was
+<strong>deliberately left as an inline optional</strong> by the <code>VHDL-0001</code> fix
+because it is not an iteration lead and was empirically unaffected.</p>
+<h2 id="walker-code--the-left-fold"><a class="header" href="#walker-code--the-left-fold">Walker code — the left-fold</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{parse_vhdl_1076_2019_ast_dump, AstDumpOptions, ParseStatus};
+
+/// Unwrap empty-`rest` binop_chain wrappers down to the first node that
+/// either has operators or is a typed leaf (`primary`).
+fn unwrap_chain(mut n: &amp;serde_json::Value) -&gt; &amp;serde_json::Value {
+    while n["type"] == "binop_chain"
+        &amp;&amp; n["rest"].as_array().map(|a| a.is_empty()).unwrap_or(false)
+    {
+        n = &amp;n["lhs"];
+    }
+    n
+}
+
+/// Left-fold a binop_chain node into (op, operand) steps over `lhs`.
+fn fold(node: &amp;serde_json::Value) -&gt; String {
+    let node = unwrap_chain(node);
+    if node["type"] != "binop_chain" {
+        // a typed `primary` leaf: dispatch on its `kind`.
+        return match node["kind"].as_str() {
+            // bare name -&gt; {kind:"function_call", name:{first:[_,txt],rest:[]}, params:[]}
+            Some("function_call") =&gt; node["name"]["first"][1]
+                .as_str().unwrap_or("?").to_string(),
+            Some("name") =&gt; node["body"][1].as_str().unwrap_or("?").to_string(),
+            _ =&gt; "&lt;primary&gt;".to_string(),
+        };
+    }
+    let mut acc = fold(&amp;node["lhs"]);
+    for entry in node["rest"].as_array().unwrap() {
+        // entry[0] is the typed {kind:...} op-envelope (schema 2);
+        // never "&lt;invalid_sequence_access&gt;".
+        let op = entry[0]["kind"].as_str().unwrap_or("?");
+        let rhs = fold(&amp;entry[1]);
+        acc = format!("({acc} {op} {rhs})");
+    }
+    acc
+}
+
+let outcome = parse_vhdl_1076_2019_ast_dump(
+    "entity e is end;\narchitecture a of e is begin x &lt;= b + c * d; end;\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+
+if let ParseStatus::Success = outcome.status {
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = VHDL_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&amp;d.dump_json).expect("dump_json is valid JSON");
+    assert_eq!(root["type"], "vhdl_file");
+    // ... navigate to the architecture body's signal-assignment rhs,
+    // then fold the binop_chain: fold(&amp;rhs) == "(b + (c mul d))".
+}
+<span class="boring">}</span></code></pre>
+<p>(The fold renders the operator by its <code>kind</code> token — <code>plus</code> / <code>mul</code> /
+… — exactly the typed discriminator the parser emits; map to surface
+syntax (<code>+</code> / <code>*</code>) in your own lowering.)</p>
+<h2 id="why-this-is-a-canonical-operator-shape-test"><a class="header" href="#why-this-is-a-canonical-operator-shape-test">Why this is a canonical operator-shape test</a></h2>
+<ul>
+<li>It is the smallest input with a <strong>non-empty <code>rest</code> at two precedence
+levels</strong>, so the operator-chain contract (<code>entry[0]</code> typed <code>{kind}</code>
+op-envelope, <code>entry[1]</code> operand, recursive left-fold) is proven where
+precedence actually matters (<code>b + (c * d)</code>, not <code>(b + c) * d</code>).</li>
+<li>It is the regression-locked sample <code>arithmetic_expr</code>
+(<code>rule_under_test: "vhdl_file"</code>,
+<code>expected_json_object_keys_present: ["type", "design_units"]</code>).
+Combined with the now-256-entry <code>declared_annotation_inventory</code>, any
+reversion to the pre-<code>1.0.2</code> <code>&lt;invalid_sequence_access&gt;</code> shape fails
+<code>vhdl_ast_shape_contract_holds_against_running_generated_parser</code>
+immediately.</li>
+</ul>
+<p>See <a href="#walking-the-ast">Walking the AST</a> for the full multi-level fold
+and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
 <p>This chapter explains how the PGEN VHDL parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape. The authoritative numbers come from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; where this chapter and the contract disagree, <strong>the contract wins</strong>.</p>
 <h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
 <p>The VHDL parser carries <strong>two</strong> version numbers:</p>
 <ol>
-<li><strong>Parser release version</strong> — currently <code>1.0.1</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
-<li><strong>AST-dump schema version</strong> — currently <code>1</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+<li><strong>Parser release version</strong> — currently <code>1.0.2</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>AST-dump schema version</strong> — currently <code>2</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
 </ol>
 <p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.</p>
 <p>These numbers are taken from the integration contract’s “Contract Identity” section, which records:</p>
 <ul>
-<li>Contract version: <code>1.0.1</code></li>
-<li>Parser release version: <code>1.0.1</code></li>
-<li>VHDL AST-dump schema version: <code>1</code></li>
-<li>Annotation count: <strong>249</strong> (VHDL-Slice-1 — the full grammar typed in one batch)</li>
+<li>Contract version: <code>1.0.2</code></li>
+<li>Parser release version: <code>1.0.2</code></li>
+<li>VHDL AST-dump schema version: <code>2</code></li>
+<li>Annotation count: <strong>256</strong> (VHDL-Slice-1’s 249-annotation baseline plus the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix’s 7 new operator-rule branches; on 112 distinct rules)</li>
 </ul>
 <p>The contract document <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for all of these per release.</p>
 <h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
@@ -1492,7 +1738,8 @@ shape reference.</p>
 <li>Internal codegen reorganization that doesn’t reach the output.</li>
 <li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
 </ul>
-<p>The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<p>The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. A follow-up correctness fix (parser release <code>1.0.2</code>, schema <code>2</code>, landed 2026-05-17) brought the inventory to <strong>256 annotations / 112 rules</strong> — see the schema-<code>2</code> row below and the contract’s Release 1.0.2 Highlights. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<p>The <code>1.0.2</code> correctness fix <strong>did</strong> bump the schema (<code>1</code> → <code>2</code>): although it fixed a bug, it changed a user-visible shape — the <code>additive</code> (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code> <code>rest</code> (was <code>"&lt;invalid_sequence_access&gt;"</code> on multi-operand input, now a clean <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> array with a typed <code>{kind}</code> op-envelope) — and added seven return annotations. It restructured a shape a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix.</p>
 <h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
 <p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical (alphabetical) order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value. Whitespace is configurable via <code>AstDumpOptions.pretty</code> but the underlying JSON value is the same.</p>
 <p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
@@ -1504,25 +1751,26 @@ shape reference.</p>
 <tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
 </thead>
 <tbody>
-<tr><td>1.0.0</td><td>1.0.1</td><td><strong>VHDL-Slice-1</strong> — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (the <code>binop_chain</code> shape across the 5-level operator hierarchy <code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>), and literals all typed in one comprehensive batch. Same accept set as the pre-typing baseline. AST-dump schema version field value: <code>1</code>.</td></tr>
+<tr><td>1.0.2</td><td>1.0.2</td><td><strong><code>VHDL-0001</code> correctness fix (breaking).</strong> The <code>additive</code> (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code> <code>rest</code> no longer emits <code>"&lt;invalid_sequence_access&gt;"</code> for multi-operand input. The two iteration-lead inline operator alternations — <code>(plus | minus | ampersand)</code> in <code>simple_expression</code> and <code>(star | slash | kw_mod | kw_rem)</code> in <code>term</code> — were lifted into the <strong>named</strong> rules <code>adding_operator := plus -&gt; {kind: "plus"} | minus -&gt; {kind: "minus"} | ampersand -&gt; {kind: "concat"}</code> and <code>multiplying_operator := star -&gt; {kind: "mul"} | slash -&gt; {kind: "div"} | kw_mod -&gt; {kind: "mod"} | kw_rem -&gt; {kind: "rem"}</code>, matching vhdl’s own <code>logical_operator</code> / <code>relational_operator</code> <code>{kind}</code> idiom. The <code>simple_expression</code> / <code>term</code> <code>binop_chain</code> annotations are <strong>unchanged</strong> (only the inline group became a named rule), so each level’s <code>rest</code> is now a clean <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> array where the op-envelope is the typed <code>{kind: …}</code> object (uniform with the <code>logical</code> / <code>relational</code> levels). The leading <code>(plus | minus)?</code> <code>sign</code> is <strong>not</strong> an iteration lead and was empirically unaffected — left as-is. Annotation inventory <strong>249 → 256</strong> (the 3 new <code>adding_operator</code> + 4 new <code>multiplying_operator</code> <code>return_object</code> branches); distinct rules <strong>110 → 112</strong> (the new <code>adding_operator</code> / <code>multiplying_operator</code>). Same accept set as <code>1.0.1</code>. AST-dump schema version field value: <code>2</code>.</td></tr>
+<tr><td>1.0.0</td><td>1.0.1</td><td><strong>VHDL-Slice-1</strong> — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (the <code>binop_chain</code> shape across the 5-level operator hierarchy <code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>), and literals all typed in one comprehensive batch. Same accept set as the pre-typing baseline. Pre-correctness shapes: the <code>additive</code> (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code> <code>rest</code> could surface <code>"&lt;invalid_sequence_access&gt;"</code> on multi-operand input (<code>VHDL-0001</code>). AST-dump schema version field value: <code>1</code>.</td></tr>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Grammar (<code>grammars/vhdl.ebnf</code>) un-annotated except for the <code>vhdl_file -&gt; {type, design_units}</code> root. AST dump is the recursive-envelope shape across all rules.</td></tr>
 </tbody>
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer <strong><code>1</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> labels above for the milestones; the AST-dump schema version consumers pin against is the integer <strong><code>2</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
 <li>
-<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
+<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.2</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>1</code>, from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
+<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>2</code>, from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Schema version you integrated against, from the contract:
-const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+const VHDL_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -1531,7 +1779,7 @@ if payload.truncated {
 let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // VHDL_AST_SCHEMA_VERSION drives which walker you compiled; re-check the
 // contract's Schema Versioning table on every PGEN bump.
-walk_schema_v1(&amp;root);
+walk_schema_v2(&amp;root);
 <span class="boring">}</span></code></pre>
 </li>
 <li>
@@ -1551,7 +1799,7 @@ walk_schema_v1(&amp;root);
 <h2 id="reporting-drift"><a class="header" href="#reporting-drift">Reporting drift</a></h2>
 <p>If you observe an AST shape that disagrees with this book, the contract, or the live inventory <code>generated/vhdl_return_annotations.json</code>:</p>
 <ol>
-<li>Confirm against the machine-checkable inventory (<code>generated/vhdl_return_annotations.json</code> / <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>, 249 entries, identical content).</li>
+<li>Confirm against the machine-checkable inventory (<code>generated/vhdl_return_annotations.json</code> / <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>, 256 entries, identical content on the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples — the live inventory additionally carries a per-entry <code>raw_text</code> field).</li>
 <li>If the inventory agrees with what you observe but the contract does not, the contract is authoritative for intended behavior — file via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</li>
 <li>Accepted released-parser bugs are tracked in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</li>
 </ol>
@@ -1565,9 +1813,9 @@ walk_schema_v1(&amp;root);
 <h2 id="ast-shape-contract-manifest"><a class="header" href="#ast-shape-contract-manifest">AST shape contract manifest</a></h2>
 <p>The file <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>. It records the per-rule expected JSON shape for each sample in the VHDL test corpus and embeds the declared-annotation inventory (<code>version: 1</code>, 249 entries). Drift in the AST dump fails the <code>vhdl_ast_shape_contract_holds_against_running_generated_parser</code> regression-lock test under <code>cargo test</code>, surfacing the change. Its content is byte-identical to the live inventory <code>generated/vhdl_return_annotations.json</code>. (This is the VHDL manifest; the SystemVerilog parser has its own separate <code>systemverilog_v1.json</code>.)</p>
 <h2 id="binop_chain"><a class="header" href="#binop_chain">binop_chain</a></h2>
-<p>The consumer-facing left-fold contract for VHDL’s five-level expression-precedence hierarchy. Every level — <code>expression</code> (logical), <code>relation</code> (relational), <code>simple_expression</code> (additive), <code>term</code> (multiplicative), <code>factor</code> (power) — emits the same <code>{type: "binop_chain", level, lhs, rest}</code> shape, so a single consumer fold handles the whole expression tree. <code>lhs</code> is the leading operand; <code>rest</code> is the iteration array of <code>(operator, operand)</code> pairs folded left-associatively; <code>simple_expression</code> adds a leading <code>sign</code> field for the optional unary <code>+</code>/<code>-</code>. See <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a> for the level/field/operator table and <a href="#walking-the-ast">Walking the AST</a> for the fold code.</p>
+<p>The consumer-facing left-fold contract for VHDL’s five-level expression-precedence hierarchy. Every level — <code>expression</code> (logical), <code>relation</code> (relational), <code>simple_expression</code> (additive), <code>term</code> (multiplicative), <code>factor</code> (power) — emits the same <code>{type: "binop_chain", level, lhs, rest}</code> shape, so a single consumer fold handles the whole expression tree. <code>lhs</code> is the leading operand; <code>rest</code> is the clean iteration array of <code>[op-envelope, operand]</code> entries folded left-associatively, where the op-envelope is the typed <code>{kind: …}</code> object at <strong>every</strong> level (uniform — <code>logical_operator</code> / <code>relational_operator</code> / <code>adding_operator</code> / <code>multiplying_operator</code> all emit <code>{kind}</code>); as of the <code>1.0.2</code> <code>VHDL-0001</code> fix (schema <code>2</code>) it is never <code>"&lt;invalid_sequence_access&gt;"</code>. <code>simple_expression</code> adds a leading <code>sign</code> field for the optional unary <code>+</code>/<code>-</code>. See <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a> for the level/field/operator table, <a href="#walking-the-ast">Walking the AST</a> for the fold code, and <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a> for the real captured shape.</p>
 <h2 id="declared-annotation-inventory"><a class="header" href="#declared-annotation-inventory">Declared-annotation inventory</a></h2>
-<p>The machine-checkable enumeration of every typed-shape annotation the VHDL grammar emits: <code>generated/vhdl_return_annotations.json</code> (<code>version: 1</code>, <code>grammar: "vhdl"</code>, <code>annotation_count: 249</code>). It is the live source of truth for the typed surface and is mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>. If this book’s prose disagrees with the inventory, the inventory wins; if the inventory disagrees with the integration contract, the contract wins.</p>
+<p>The machine-checkable enumeration of every typed-shape annotation the VHDL grammar emits: <code>generated/vhdl_return_annotations.json</code> (inventory-file <code>version: 1</code> — the inventory format version, not the AST-dump schema; <code>grammar: "vhdl"</code>, <code>annotation_count: 256</code>). It is the live source of truth for the typed surface and is mirrored by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> (identical content on the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples; the embedded copy omits only the diagnostic <code>raw_text</code> field). If this book’s prose disagrees with the inventory, the inventory wins; if the inventory disagrees with the integration contract, the contract wins.</p>
 <h2 id="design_unit-dispatch-2"><a class="header" href="#design_unit-dispatch-2">design_unit dispatch</a></h2>
 <p>The primary top-level dispatcher of the VHDL AST. <code>design_unit</code> is a 10-branch <code>kind</code>-tagged shape — <code>"library"</code>, <code>"use"</code>, <code>"context_reference"</code>, <code>"entity"</code>, <code>"architecture"</code>, <code>"package"</code>, <code>"package_body"</code>, <code>"configuration"</code>, <code>"context"</code>, <code>"semi"</code> — each carrying a <code>body</code> (the <code>"semi"</code> branch is bodyless). Every parse roots at <code>{type: "vhdl_file", design_units: [...]}</code>; each element of <code>design_units</code> is a <code>design_unit</code> object. See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <h2 id="first-rest-list-convention"><a class="header" href="#first-rest-list-convention">{first, rest} list convention</a></h2>
@@ -1575,7 +1823,7 @@ walk_schema_v1(&amp;root);
 <h2 id="parseability_probe"><a class="header" href="#parseability_probe">parseability_probe</a></h2>
 <p>The CLI wrapper around <code>pgen::embedding_api</code> used for terminal-side verification, AST inspection, and bug-report reproducers. Sub-commands include <code>--parse</code>, <code>--parse-dump-ast</code>, and <code>--parse-dump-ast-pretty</code>. For VHDL the parser is on-demand-only, so the probe must be built with the generated backend before use (see <a href="#build-recipe">Build Recipe</a>). The full flag set, exit codes, and registered grammars are in the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a>.</p>
 <h2 id="parser-release-version"><a class="header" href="#parser-release-version">Parser release version</a></h2>
-<p>The parser library’s release identity, currently <code>1.0.1</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>The parser library’s release identity, currently <code>1.0.2</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
 <p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. VHDL has exactly <strong>one</strong> stable profile: <code>vhdl_1076_2019</code> (IEEE 1076-2019), whose entry rule is <code>vhdl_file</code>. The host entry points for it are <code>parse_vhdl_1076_2019</code> and <code>parse_vhdl_1076_2019_ast_dump</code>. Recognized profile-name aliases: <code>"vhdl_1076_2019"</code>, <code>"1076-2019"</code>, <code>"ieee1076-2019"</code>, <code>"ieee_1076_2019"</code>. See <a href="#public-api-surface">Public API Surface</a>.</p>
 <h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
@@ -1583,11 +1831,11 @@ walk_schema_v1(&amp;root);
 <h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>
 <p>A <code>-&gt; ...</code> clause appended to a grammar rule definition in <code>grammars/vhdl.ebnf</code> that overrides the default recursive-envelope shape with a typed JSON value. Example: <code>vhdl_file := design_unit* -&gt; {type: "vhdl_file", design_units: $1}</code>. The annotation language (<code>$N</code> positional references, <code>{field: value}</code> object literals, <code>[...]</code> array literals, string literals) is specified in <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
 <h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
-<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>1</code> — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the typing-campaign timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>2</code> (bumped <code>1 → 2</code> by the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix) — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
 <p>The JSON value produced by an annotated rule. In VHDL it takes three sub-forms: a root object carrying <code>type</code> (only <code>vhdl_file</code>); a <code>kind</code>-tagged dispatch object (<code>{kind, body}</code> or per-branch named fields); and a named-field object for single-sequence rules. The <code>binop_chain</code> expression rules combine the <code>type</code> and named-field forms. Consumers dispatch on <code>obj["type"]</code> at the root and <code>obj["kind"]</code> for variants. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <h2 id="vhdl-slice-1"><a class="header" href="#vhdl-slice-1">VHDL-Slice-1</a></h2>
-<p>The single comprehensive typing batch that landed the entire <code>grammars/vhdl.ebnf</code> typed surface at once — <strong>110 distinct rules / 249 return annotations</strong>, parser release <code>1.0.1</code>, schema version <code>1</code>. Unlike the SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over many slices (each slice bumping the schema version), the VHDL grammar was annotated line-by-line in one pass. This is why the VHDL <a href="#changelog-index">Changelog Index</a> and <a href="#schema-versioning">Schema Versioning</a> timeline are short by design. Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.</p>
+<p>The single comprehensive typing batch that landed the entire <code>grammars/vhdl.ebnf</code> typed surface at once — <strong>110 distinct rules / 249 return annotations</strong>, parser release <code>1.0.1</code>, schema version <code>1</code>. Unlike the SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over many slices (each slice bumping the schema version), the VHDL grammar was annotated line-by-line in one pass. This is why the VHDL <a href="#changelog-index">Changelog Index</a> and <a href="#schema-versioning">Schema Versioning</a> timeline are short by design. The one follow-up to date is the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix (schema <code>2</code>), which lifted the <code>simple_expression</code> / <code>term</code> inline operator alternations into the named <code>adding_operator</code> / <code>multiplying_operator</code> rules — bringing the <strong>current</strong> surface to <strong>112 distinct rules / 256 return annotations</strong> (parser release <code>1.0.2</code>, schema version <code>2</code>). Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="changelog-index"><a class="header" href="#changelog-index">Changelog Index</a></h1>
 <p>This chapter is an index — pointers into the documents that carry the full changelog detail, plus the short list of releases relevant to this book. Use it to find what changed in a given release.</p>
@@ -1607,9 +1855,22 @@ walk_schema_v1(&amp;root);
 </div>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the bug ledger for specific accepted bugs, and fall back to git for diffs.</p>
 <h2 id="why-this-index-is-short-by-design"><a class="header" href="#why-this-index-is-short-by-design">Why this index is short by design</a></h2>
-<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline has exactly two entries.</strong> This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
+<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A single follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
-<p>This book is <strong>live</strong> and tracks current main HEAD. The two entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<p>This book is <strong>live</strong> and tracks current main HEAD. The three entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="102--contract-102--vhdl-0001-correctness-fix-simple_expression--term-binop_chainrest-schema-1--2"><a class="header" href="#102--contract-102--vhdl-0001-correctness-fix-simple_expression--term-binop_chainrest-schema-1--2">1.0.2 / Contract 1.0.2 — VHDL-0001 correctness fix: simple_expression / term binop_chain.rest (schema 1 → 2)</a></h3>
+<p>A targeted, bug-ledger-driven correctness fix landed 2026-05-17. A worked-example pass surfaced that the <code>1.0.1</code> baseline shipped one systemic return-annotation defect (<code>VHDL-0001</code>) the root-keys-only shape-contract lock did not catch.</p>
+<ul>
+<li><strong>Schema-version milestone:</strong> <code>1.0.2</code> (first parser release: <code>1.0.2</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>2</code> — bumped <code>1 → 2</code> because <code>simple_expression</code> / <code>term</code> <code>binop_chain.rest</code> changed shape in a consumer-visible way. The integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>).</li>
+<li><strong>What changed:</strong> for any multi-operand additive (<code>simple_expression</code>) or multiplicative (<code>term</code>) expression, <code>binop_chain.rest</code> previously emitted the literal sentinel <code>"&lt;invalid_sequence_access&gt;"</code> (3× at the <code>additive</code> level) plus malformed nested objects. Root cause: the iteration-lead inline operator alternations <code>(plus | minus | ampersand)</code> / <code>(star | slash | kw_mod | kw_rem)</code> corrupted the positional model so the bare <code>rest: $N</code> mis-recursed (the systemic inline-alternation-<code>$N</code> defect class — same as <code>RTL-CE-0001</code> / <code>SVPP-0001</code> / <code>RTL-FE-0001</code>). <strong>Fix:</strong> the two inline alternations were lifted into the <strong>named</strong> rules <code>adding_operator := plus -&gt; {kind: "plus"} | minus -&gt; {kind: "minus"} | ampersand -&gt; {kind: "concat"}</code> and <code>multiplying_operator := star -&gt; {kind: "mul"} | slash -&gt; {kind: "div"} | kw_mod -&gt; {kind: "mod"} | kw_rem -&gt; {kind: "rem"}</code> (matching vhdl’s own <code>logical_operator</code> / <code>relational_operator</code> <code>{kind}</code> idiom). The <code>simple_expression</code> / <code>term</code> <code>binop_chain</code> annotations are unchanged; the leading <code>(plus | minus)?</code> <code>sign</code> (not an iteration lead) was empirically unaffected and left as-is. <code>rest</code> is now the clean <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> array with a typed <code>{kind}</code> op-envelope at every level — no <code>&lt;invalid_sequence_access&gt;</code> anywhere. <strong><code>vhdl</code> was the final grammar in the systemic inline-alternation-<code>$N</code> class; the class is now fully resolved across <code>rtl_const_expr</code> / <code>systemverilog_preprocessor</code> / <code>rtl_frontend</code> / <code>vhdl</code>.</strong></li>
+<li><strong>Annotation count:</strong> <strong>256</strong> (was <code>249</code>; +7 = the 3 new <code>adding_operator</code> + 4 new <code>multiplying_operator</code> <code>return_object</code> branches). <strong>112</strong> distinct rules (was <code>110</code>; +2).</li>
+<li><strong>Accept set:</strong> unchanged — no grammar acceptance change, purely the two alternation lifts + their 7 branch annotations.</li>
+<li><strong>Contract section:</strong> <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.0.2 / Contract 1.0.2 Highlights — VHDL-0001 correctness fix” and “Resolved Defects — <code>VHDL-0001</code>”.</li>
+<li><strong>Bug ledger:</strong> <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> → <code>VHDL-0001</code> (status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code>).</li>
+<li><strong>Machine-checkable inventory:</strong> <code>generated/vhdl_return_annotations.json</code> (256 entries) and its embedded mirror <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> (new <code>arithmetic_expr</code> regression sample).</li>
+<li><strong>Worked example:</strong> <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a> (the schema-<code>1</code>→<code>2</code> transition with the real captured <code>{kind}</code> op-envelope shape).</li>
+</ul>
 <h3 id="100--contract-101--vhdl-slice-1-full-grammar-typed-110-rules--249-annotations"><a class="header" href="#100--contract-101--vhdl-slice-1-full-grammar-typed-110-rules--249-annotations">1.0.0 / Contract 1.0.1 — VHDL-Slice-1: full grammar typed (110 rules / 249 annotations)</a></h3>
 <p>The initial typing campaign, covering the entire <code>grammars/vhdl.ebnf</code> surface in <strong>one batch</strong>.</p>
 <ul>
@@ -1629,7 +1890,7 @@ walk_schema_v1(&amp;root);
 <li><strong>Contract section:</strong> the <code>0.1.0</code> row of the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>.</li>
 </ul>
 <h2 id="bug-ledger-status"><a class="header" href="#bug-ledger-status">Bug ledger status</a></h2>
-<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries <strong>no VHDL rows</strong> — the <code>VHDL-NNNN</code> form appears there only as a report-ID naming-convention example. When a downstream VHDL bug is accepted, it gets a <code>VHDL-NNNN</code> row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change.</p>
+<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries <strong>one VHDL row — <code>VHDL-0001</code></strong> (status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code>): the systemic inline-alternation-<code>$N</code> <code>simple_expression</code> / <code>term</code> <code>binop_chain.rest</code> <code>&lt;invalid_sequence_access&gt;</code> defect, with its before/after <code>parseability_probe</code> reproducer, root cause, and fix proof. It points at the contract’s “Release 1.0.2 / Contract 1.0.2 Highlights” section for the accompanying schema-<code>1</code>→<code>2</code> shape change. Future accepted VHDL bugs get their own <code>VHDL-NNNN</code> rows the same way.</p>
 <h2 id="how-to-follow-per-slice-changes-1"><a class="header" href="#how-to-follow-per-slice-changes-1">How to follow per-slice changes</a></h2>
 <p>Each shape-affecting slice after VHDL-Slice-1 gets:</p>
 <ol>

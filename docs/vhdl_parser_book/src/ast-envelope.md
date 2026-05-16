@@ -25,7 +25,7 @@ pub struct AstDumpPayload {
 `serde_json::from_str`) to obtain the `vhdl_file` **root object** that
 this book's per-rule chapters describe. There is no `root` /
 `schema_version` / `grammar` / `profile` field on `AstDumpPayload`
-itself: the AST-dump schema version is the `1` tracked in
+itself: the AST-dump schema version is the `2` tracked in
 [Schema Versioning](schema-versioning.md); the grammar/profile are fixed
 (`vhdl` / `vhdl_1076_2019`).
 
@@ -132,7 +132,7 @@ For a 3-element sequence rule like `a b c`, the envelope shape is `[<a-shape>, <
 
 ## Mixing typed and envelope shapes
 
-The 249-annotation surface (as of contract 1.0.1) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (`expression` → `relation` → `simple_expression` → `term` → `factor`), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.
+The 256-annotation surface (as of contract 1.0.2) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (`expression` → `relation` → `simple_expression` → `term` → `factor`, including the named `adding_operator` / `multiplying_operator` op rules added by the `1.0.2` `VHDL-0001` fix), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.
 
 Consumers need to handle both:
 

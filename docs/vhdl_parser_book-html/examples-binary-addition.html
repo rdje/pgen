@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Public API Surface - PGEN VHDL Parser — Integration Reference</title>
+        <title>Binary Addition - PGEN VHDL Parser — Integration Reference</title>
 
 
         <!-- Custom HTML head -->
@@ -146,7 +146,7 @@
                         <a href="https://github.com/richarddje/pgen" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/richarddje/pgen/edit/main/docs/vhdl_parser_book/src/public-api.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/richarddje/pgen/edit/main/docs/vhdl_parser_book/src/examples-binary-addition.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,163 +180,238 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="public-api-surface"><a class="header" href="#public-api-surface">Public API Surface</a></h1>
-<p>The stable downstream contract is the <code>pgen::embedding_api</code> host surface, <strong>not</strong> internal generated-parser types. This chapter enumerates the entry points downstream VHDL consumers should call.</p>
-<p>All entry points return <code>Outcome</code> types (<code>GrammarParseOutcome</code>, <code>GrammarAstDumpOutcome</code>, etc.) that carry an <code>api_version</code>, <code>grammar</code>, <code>profile</code>, <code>status</code>, and <code>diagnostic</code>/<code>ast_dump</code> payload. The <code>Outcome</code> types are stable and source-compatible across patch / minor releases.</p>
-<h2 id="convenience-entry-points"><a class="header" href="#convenience-entry-points">Convenience entry points</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Parse-only (no AST dump):
-pub fn parse_vhdl_1076_2019(input: &amp;str) -&gt; GrammarParseOutcome;
-
-pub fn parse_vhdl_1076_2019_with_limits(
-    input: &amp;str,
-    limits: &amp;ParseLimits,
-) -&gt; GrammarParseOutcome;
-
-pub fn parse_vhdl_1076_2019_result(input: &amp;str) -&gt; Result&lt;(), ParseDiagnostic&gt;;
-
-pub fn parse_vhdl_1076_2019_with_limits_result(
-    input: &amp;str,
-    limits: &amp;ParseLimits,
-) -&gt; Result&lt;(), ParseDiagnostic&gt;;
-
-// Parse + AST dump (the version this book documents per-rule):
-pub fn parse_vhdl_1076_2019_ast_dump(
-    input: &amp;str,
-    options: &amp;AstDumpOptions,
-) -&gt; GrammarAstDumpOutcome;
-
-pub fn parse_vhdl_1076_2019_ast_dump_with_limits(
-    input: &amp;str,
-    options: &amp;AstDumpOptions,
-    limits: &amp;ParseLimits,
-) -&gt; GrammarAstDumpOutcome;
-<span class="boring">}</span></code></pre>
-<p><code>vhdl_1076_2019</code> corresponds to IEEE 1076-2019. It is currently the only stable VHDL profile.</p>
-<h2 id="generic-entry-points"><a class="header" href="#generic-entry-points">Generic entry points</a></h2>
-<p>For tools that select the grammar family at runtime:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn parse_grammar_profile(
-    grammar: GrammarFamily,
-    profile: GrammarProfile,
-    input: &amp;str,
-) -&gt; GrammarParseOutcome;
-
-pub fn parse_grammar_profile_result(
-    grammar: GrammarFamily,
-    profile: GrammarProfile,
-    input: &amp;str,
-) -&gt; Result&lt;(), ParseDiagnostic&gt;;
-
-pub fn parse_grammar_profile_ast_dump(
-    grammar: GrammarFamily,
-    profile: GrammarProfile,
-    input: &amp;str,
-    options: &amp;AstDumpOptions,
-) -&gt; GrammarAstDumpOutcome;
-<span class="boring">}</span></code></pre>
-<p>Use <code>GrammarFamily::Vhdl</code> + <code>GrammarProfile::Vhdl1076_2019</code>.</p>
-<h2 id="string-name-overloads"><a class="header" href="#string-name-overloads">String-name overloads</a></h2>
-<p>For embedders that select grammar / profile by string name (e.g. plugin systems, cross-language bindings):</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn parse_grammar_profile_named(
-    grammar: &amp;str,        // "vhdl"
-    profile: &amp;str,        // "vhdl_1076_2019" | "1076-2019" | "ieee1076-2019"
-    input: &amp;str,
-) -&gt; NamedGrammarParseOutcome;
-
-pub fn parse_grammar_profile_named_with_limits(
-    grammar: &amp;str,
-    profile: &amp;str,
-    input: &amp;str,
-    limits: &amp;ParseLimits,
-) -&gt; NamedGrammarParseOutcome;
-<span class="boring">}</span></code></pre>
-<p>Recognized aliases for the VHDL 1076-2019 profile name: <code>"vhdl_1076_2019"</code>, <code>"1076-2019"</code>, <code>"ieee1076-2019"</code>, <code>"ieee_1076_2019"</code>.</p>
-<h2 id="astdumpoptions"><a class="header" href="#astdumpoptions">AstDumpOptions</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct AstDumpOptions {
-    pub pretty: bool,                 // pretty-print the JSON
-    pub max_ast_bytes: Option&lt;usize&gt;, // truncation cap (bytes); None = no cap
+                        <h1 id="worked-example-binary-addition-b--c--d"><a class="header" href="#worked-example-binary-addition-b--c--d">Worked Example: Binary Addition <code>b + c * d</code></a></h1>
+<p>The companion to <a href="examples-minimal-entity.html">Minimal Entity</a>: that one
+shows the top-level dispatch on a declaration; this one shows the
+<strong>non-empty <code>binop_chain.rest</code></strong> (operator) shape and the consumer
+left-fold across two precedence levels. Every JSON value here is the
+<strong>real captured output</strong> of <code>generated/vhdl_parser.rs</code> (parser release
+<code>1.0.2</code>, AST-dump schema version <code>2</code>) and is the regression-locked
+sample <code>arithmetic_expr</code> in
+<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>.</p>
+<blockquote>
+<p>Schema <code>2</code> note (<code>VHDL-0001</code>): at <code>1.0.1</code> / schema <code>1</code> the <code>additive</code>
+(<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code>
+<code>rest</code> emitted <code>"&lt;invalid_sequence_access&gt;"</code> (three of them at the
+<code>additive</code> level) plus malformed nested objects for multi-operand
+input — a real parser defect (<code>VHDL-0001</code>) fixed in <code>1.0.2</code> by
+lifting the inline operator alternations into the <strong>named</strong> rules
+<code>adding_operator</code> / <code>multiplying_operator</code> (see
+<a href="schema-versioning.html">Schema Versioning</a> and the contract’s
+“Resolved Defects — <code>VHDL-0001</code>”). The shape below is the corrected,
+gate-locked output. <strong><code>vhdl</code> was the final grammar in the systemic
+inline-alternation-<code>$N</code> class; the class is now fully resolved across
+<code>rtl_const_expr</code> / <code>systemverilog_preprocessor</code> / <code>rtl_frontend</code> /
+<code>vhdl</code>.</strong></p>
+</blockquote>
+<h2 id="input"><a class="header" href="#input">Input</a></h2>
+<pre><code class="language-vhdl">entity e is end;
+architecture a of e is begin x &lt;= b + c * d; end;
+</code></pre>
+<p>(With a trailing newline.) This is the smallest input that exercises a
+<strong>multi-operand expression at two precedence levels</strong> — <code>b + (c * d)</code>
+under VHDL’s operator precedence — so both the <code>additive</code>
+(<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code>
+levels carry a non-empty <code>rest</code>. It is the exact input the AST shape
+contract regression-locks (sample <code>arithmetic_expr</code>).</p>
+<h2 id="reproducing-the-dump"><a class="header" href="#reproducing-the-dump">Reproducing the dump</a></h2>
+<p>The VHDL parser is on-demand-only (see <a href="build-recipe.html">Build Recipe</a>).
+With <code>generated/vhdl_parser.rs</code> in place:</p>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf 'entity e is end;\narchitecture a of e is begin x &lt;= b + c * d; end;\n' &gt; /tmp/arith.vhd
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty vhdl /tmp/arith.vhd /tmp/arith_ast.json
+# -&gt; parse_full passed for grammar 'vhdl' on '/tmp/arith.vhd'
+</code></pre>
+<h2 id="the-relevant-node-additive-level"><a class="header" href="#the-relevant-node-additive-level">The relevant node (<code>additive</code> level)</a></h2>
+<p>The signal assignment <code>x &lt;= b + c * d;</code> parses to a <code>binop_chain</code>
+cascade. The upper levels (<code>logical</code>, <code>relational</code>) are empty-<code>rest</code>
+wrappers (unwrap to <code>lhs</code>). The operators appear at the <code>additive</code>
+(<code>+</code>) and, nested inside its right operand, the <code>multiplicative</code> (<code>*</code>)
+levels. This is the <strong>real captured shape</strong> (key-sorted, as the canonical
+dump emits it):</p>
+<pre><code class="language-json">{
+  "type": "binop_chain",
+  "level": "additive",
+  "sign": [],
+  "lhs": {
+    "type": "binop_chain",
+    "level": "multiplicative",
+    "rest": [],
+    "lhs": {
+      "type": "binop_chain",
+      "level": "power",
+      "rest": [],
+      "lhs": {
+        "kind": "function_call",
+        "name": { "first": [ [], "b" ], "rest": [] },
+        "params": []
+      }
+    }
+  },
+  "rest": [
+    [
+      { "kind": "plus" },
+      {
+        "type": "binop_chain",
+        "level": "multiplicative",
+        "lhs": {
+          "type": "binop_chain",
+          "level": "power",
+          "rest": [],
+          "lhs": {
+            "kind": "function_call",
+            "name": { "first": [ [], "c" ], "rest": [] },
+            "params": []
+          }
+        },
+        "rest": [
+          [
+            { "kind": "mul" },
+            {
+              "type": "binop_chain",
+              "level": "power",
+              "rest": [],
+              "lhs": {
+                "kind": "function_call",
+                "name": { "first": [ [], "d" ], "rest": [] },
+                "params": []
+              }
+            }
+          ]
+        ]
+      }
+    ]
+  ]
 }
-<span class="boring">}</span></code></pre>
-<h2 id="parselimits"><a class="header" href="#parselimits">ParseLimits</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct ParseLimits {
-    pub max_input_bytes: Option&lt;usize&gt;,  // input-size cap; None = no cap
-    // (other fields may be added in minor releases)
-}
-
-impl Default for ParseLimits {
-    fn default() -&gt; Self;
-}
-<span class="boring">}</span></code></pre>
-<h2 id="outcome-types"><a class="header" href="#outcome-types">Outcome types</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct GrammarParseOutcome {
-    pub api_version: String,
-    pub grammar: GrammarFamily,
-    pub profile: GrammarProfile,
-    pub status: ParseStatus,
-    pub diagnostic: Option&lt;ParseDiagnostic&gt;,
-}
-
-pub struct GrammarAstDumpOutcome {
-    pub api_version: String,
-    pub grammar: GrammarFamily,
-    pub profile: GrammarProfile,
-    pub status: ParseStatus,
-    pub diagnostic: Option&lt;ParseDiagnostic&gt;,
-    pub ast_dump: Option&lt;AstDumpPayload&gt;,
-}
-
-pub enum ParseStatus { Success, Failure }
-
-pub struct ParseDiagnostic {
-    pub code: String,        // e.g. "E_PARSE_FAILURE"
-    pub message: String,
-    // (other fields)
-}
-<span class="boring">}</span></code></pre>
-<h2 id="stable-diagnostics"><a class="header" href="#stable-diagnostics">Stable diagnostics</a></h2>
-<p>These diagnostic codes are stable across patch / minor releases:</p>
+</code></pre>
+<p>(<code>b</code> / <code>c</code> / <code>d</code> are bare names; VHDL’s <code>primary</code> resolves a name with
+no parameter part to the <code>{kind: "function_call", name, params}</code> branch
+with <code>params: []</code> — the name text is at <code>name.first[1]</code>. See
+<a href="rules-top-level.html">Top-Level Rules</a> § “<code>primary</code> and aggregates”.)</p>
+<h2 id="reading-rest-the-operator-chain-contract"><a class="header" href="#reading-rest-the-operator-chain-contract">Reading <code>rest</code> (the operator-chain contract)</a></h2>
+<p><code>rest</code> is a <strong>clean array of iteration entries</strong> — one per
+<code>(NAMED_op operand)</code> repetition of <code>next (NAMED_op next)*</code>. Each entry
+is a two-element array:</p>
 <ul>
-<li><code>E_BACKEND_UNAVAILABLE</code> — the generated parser backend is not present in this build.</li>
-<li><code>E_PARSE_FAILURE</code> — the input failed to parse.</li>
-<li><code>E_INPUT_TOO_LARGE</code> — the input exceeds the configured <code>max_input_bytes</code> limit.</li>
-<li><code>E_INVALID_LIMITS</code> — the supplied <code>ParseLimits</code> are not valid.</li>
-<li><code>E_INVALID_ARGUMENT</code> — the supplied grammar / profile / input is not valid.</li>
-<li><code>E_UNSUPPORTED_PROFILE</code> — the supplied profile is not supported by the selected grammar family.</li>
+<li><strong><code>entry[0]</code></strong> — the <strong>op-envelope</strong>: the typed <code>{kind: …}</code> object
+emitted by the named operator rule. At the <code>additive</code> level
+(<code>adding_operator</code>) it is <code>{"kind": "plus"}</code> / <code>{"kind": "minus"}</code> /
+<code>{"kind": "concat"}</code>; at the <code>multiplicative</code> level
+(<code>multiplying_operator</code>) it is <code>{"kind": "mul"}</code> / <code>{"kind": "div"}</code> /
+<code>{"kind": "mod"}</code> / <code>{"kind": "rem"}</code>. This is <strong>uniform with the
+<code>logical</code> / <code>relational</code> levels</strong> (whose <code>logical_operator</code> /
+<code>relational_operator</code> op-envelope is already a <code>{kind}</code> object) —
+VHDL’s op-envelope is the typed <code>{kind}</code> object at <strong>every</strong> level,
+never <code>&lt;invalid_sequence_access&gt;</code> (schema <code>2</code>).</li>
+<li><strong><code>entry[1]</code></strong> — the right-hand operand: the next-tighter level’s
+<code>binop_chain</code>, itself unwrappable to its <code>lhs</code> leaf. Here the <code>+</code>
+entry’s operand is the <code>multiplicative</code> <code>binop_chain</code> for <code>c * d</code>,
+which itself has a one-entry <code>rest</code> (<code>[{"kind": "mul"}, &lt;d&gt;]</code>).</li>
 </ul>
-<h2 id="backend-availability-check"><a class="header" href="#backend-availability-check">Backend availability check</a></h2>
+<p><code>b + c * d</code> therefore yields <strong>one</strong> entry in the <code>additive</code> <code>rest</code>
+(<code>[{"kind": "plus"}, &lt;c*d&gt;]</code>) whose operand carries <strong>one</strong> entry in its
+own <code>multiplicative</code> <code>rest</code> (<code>[{"kind": "mul"}, &lt;d&gt;]</code>). The consumer
+left-folds each level onto its <code>lhs</code>, bottoming out at the typed
+<code>primary</code> leaf: <code>(b + (c * d))</code>.</p>
+<p>The <code>"additive"</code> level additionally carries a leading <strong><code>sign</code></strong> field
+for the optional unary <code>+</code>/<code>-</code> (<code>(plus | minus)?</code> in
+<code>simple_expression</code>); it is <code>[]</code> here (no leading sign) and was
+<strong>deliberately left as an inline optional</strong> by the <code>VHDL-0001</code> fix
+because it is not an iteration lead and was empirically unaffected.</p>
+<h2 id="walker-code--the-left-fold"><a class="header" href="#walker-code--the-left-fold">Walker code — the left-fold</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn parser_embedding_api_contract() -&gt; ParserEmbeddingApiContract;
+</span>use pgen::embedding_api::{parse_vhdl_1076_2019_ast_dump, AstDumpOptions, ParseStatus};
 
-pub struct ParserEmbeddingApiContract {
-    pub supports_vhdl_generated_backend: bool,
-    // (other fields)
+/// Unwrap empty-`rest` binop_chain wrappers down to the first node that
+/// either has operators or is a typed leaf (`primary`).
+fn unwrap_chain(mut n: &amp;serde_json::Value) -&gt; &amp;serde_json::Value {
+    while n["type"] == "binop_chain"
+        &amp;&amp; n["rest"].as_array().map(|a| a.is_empty()).unwrap_or(false)
+    {
+        n = &amp;n["lhs"];
+    }
+    n
+}
+
+/// Left-fold a binop_chain node into (op, operand) steps over `lhs`.
+fn fold(node: &amp;serde_json::Value) -&gt; String {
+    let node = unwrap_chain(node);
+    if node["type"] != "binop_chain" {
+        // a typed `primary` leaf: dispatch on its `kind`.
+        return match node["kind"].as_str() {
+            // bare name -&gt; {kind:"function_call", name:{first:[_,txt],rest:[]}, params:[]}
+            Some("function_call") =&gt; node["name"]["first"][1]
+                .as_str().unwrap_or("?").to_string(),
+            Some("name") =&gt; node["body"][1].as_str().unwrap_or("?").to_string(),
+            _ =&gt; "&lt;primary&gt;".to_string(),
+        };
+    }
+    let mut acc = fold(&amp;node["lhs"]);
+    for entry in node["rest"].as_array().unwrap() {
+        // entry[0] is the typed {kind:...} op-envelope (schema 2);
+        // never "&lt;invalid_sequence_access&gt;".
+        let op = entry[0]["kind"].as_str().unwrap_or("?");
+        let rhs = fold(&amp;entry[1]);
+        acc = format!("({acc} {op} {rhs})");
+    }
+    acc
+}
+
+let outcome = parse_vhdl_1076_2019_ast_dump(
+    "entity e is end;\narchitecture a of e is begin x &lt;= b + c * d; end;\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+
+if let ParseStatus::Success = outcome.status {
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = VHDL_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&amp;d.dump_json).expect("dump_json is valid JSON");
+    assert_eq!(root["type"], "vhdl_file");
+    // ... navigate to the architecture body's signal-assignment rhs,
+    // then fold the binop_chain: fold(&amp;rhs) == "(b + (c mul d))".
 }
 <span class="boring">}</span></code></pre>
-<p>Embedders should check this at startup and refuse to operate (or fall back gracefully) if the VHDL backend is unavailable.</p>
-<h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
-<p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
+<p>(The fold renders the operator by its <code>kind</code> token — <code>plus</code> / <code>mul</code> /
+… — exactly the typed discriminator the parser emits; map to surface
+syntax (<code>+</code> / <code>*</code>) in your own lowering.)</p>
+<h2 id="why-this-is-a-canonical-operator-shape-test"><a class="header" href="#why-this-is-a-canonical-operator-shape-test">Why this is a canonical operator-shape test</a></h2>
+<ul>
+<li>It is the smallest input with a <strong>non-empty <code>rest</code> at two precedence
+levels</strong>, so the operator-chain contract (<code>entry[0]</code> typed <code>{kind}</code>
+op-envelope, <code>entry[1]</code> operand, recursive left-fold) is proven where
+precedence actually matters (<code>b + (c * d)</code>, not <code>(b + c) * d</code>).</li>
+<li>It is the regression-locked sample <code>arithmetic_expr</code>
+(<code>rule_under_test: "vhdl_file"</code>,
+<code>expected_json_object_keys_present: ["type", "design_units"]</code>).
+Combined with the now-256-entry <code>declared_annotation_inventory</code>, any
+reversion to the pre-<code>1.0.2</code> <code>&lt;invalid_sequence_access&gt;</code> shape fails
+<code>vhdl_ast_shape_contract_holds_against_running_generated_parser</code>
+immediately.</li>
+</ul>
+<p>See <a href="walking-the-ast.html">Walking the AST</a> for the full multi-level fold
+and <a href="rules-top-level.html">Top-Level Rules</a> for every level’s shape.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="build-recipe.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="examples-minimal-entity.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="ast-envelope.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="schema-versioning.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -346,11 +421,11 @@ pub struct ParserEmbeddingApiContract {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="build-recipe.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="examples-minimal-entity.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="ast-envelope.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="schema-versioning.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

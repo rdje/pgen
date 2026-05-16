@@ -2,7 +2,7 @@
 
 This chapter explains how the VHDL parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, and the determinism guarantee. It is the conceptual companion to [Top-Level Rules](rules-top-level.md), which enumerates the concrete per-rule shapes.
 
-> **Note:** The VHDL return-annotation campaign landed in a single comprehensive batch — **VHDL-Slice-1, 249 annotations across 110 rules** (parser release `1.0.1`, schema version `1`). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in [AST Envelope Structure](ast-envelope.md). The authoritative enumeration is `generated/vhdl_return_annotations.json` (mirrored byte-for-byte by the embedded inventory in `rust/test_data/ast_shape_contract/vhdl_v1.json`).
+> **Note:** The VHDL return-annotation campaign landed in a single comprehensive batch — VHDL-Slice-1 (249 annotations / 110 rules, parser release `1.0.1`, schema version `1`); the `1.0.2` `VHDL-0001` correctness fix then added the named `adding_operator` / `multiplying_operator` operator rules, bringing the **current** surface to **256 annotations across 112 rules** (parser release `1.0.2`, schema version `2`). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in [AST Envelope Structure](ast-envelope.md). The authoritative enumeration is `generated/vhdl_return_annotations.json` (mirrored by the embedded inventory in `rust/test_data/ast_shape_contract/vhdl_v1.json`).
 
 ## Two carrier kinds
 
@@ -58,7 +58,7 @@ In VHDL, the recursive-envelope shape is what you reach when you descend below t
 | Object `{...}` | A typed return annotation that is an object literal (`{kind: ...}`, `{name: ..., subtype: ...}`, `{type: "binop_chain", ...}`, etc.). |
 | Array `[...]` | A recursive-envelope sequence/quantified shape, **or** an un-matched optional field (`[]`), **or** the trailing `rest` iteration of a `{first, rest}` list rule. |
 | String `"..."` | A matched terminal or regex leaf (identifier text, literal text, keyword text reached through an envelope). |
-| `true` / `false` | A `BooleanLiteral` in a typed annotation. VHDL's current 249-annotation surface uses no boolean literals; all annotations are object literals. |
+| `true` / `false` | A `BooleanLiteral` in a typed annotation. VHDL's current 256-annotation surface uses no boolean literals; all annotations are object literals. |
 | Number | A `NumberLiteral` typed transform. Not used by the current VHDL surface. |
 | `null` | A `NullLiteral`. Not used by the current VHDL surface — absent optional fields are carried as the empty array `[]`, not `null`. |
 
@@ -92,10 +92,10 @@ The per-rule field names come straight from the live inventory's `normalized_tex
 The five expression-precedence rules (`expression` → `relation` → `simple_expression` → `term` → `factor`) all carry the same `binop_chain` carrier so a single consumer fold handles the whole tree:
 
 ```json
-{ "type": "binop_chain", "level": "logical", "lhs": <relation-shape>, "rest": [ /* (op, relation) iterations */ ] }
+{ "type": "binop_chain", "level": "logical", "lhs": <relation-shape>, "rest": [ [ {"kind": "and"}, <relation-shape> ] ] }
 ```
 
-`lhs` is the leading operand (itself a `binop_chain` of the next-tighter level, bottoming out at a typed `primary`). `rest` is a recursive-envelope array of `(operator, operand)` iterations; for `simple_expression` there is an additional leading `sign` field (`[]` when no unary `+`/`-`). Consumers fold `rest` left-associatively onto `lhs`. The full level/field/operator table is in [Top-Level Rules](rules-top-level.md#family-expressions--the-binop_chain-contract); the fold code is in [Walking the AST](walking-the-ast.md).
+`lhs` is the leading operand (itself a `binop_chain` of the next-tighter level, bottoming out at a typed `primary`). `rest` is a **clean** array of `[op-envelope, operand]` entries — one per operator, `[]` when none — where the op-envelope is the typed `{kind: …}` object at **every** level (`logical_operator` / `relational_operator` / `adding_operator` / `multiplying_operator`); as of the `1.0.2` `VHDL-0001` fix (schema `2`) it is never `"<invalid_sequence_access>"`. For `simple_expression` there is an additional leading `sign` field (`[]` when no unary `+`/`-`). Consumers fold `rest` left-associatively onto `lhs`, reading the operator from `op-envelope.kind`. The full level/field/operator table is in [Top-Level Rules](rules-top-level.md#family-expressions--the-binop_chain-contract); the fold code is in [Walking the AST](walking-the-ast.md) and the real captured shape is in [Binary Addition](examples-binary-addition.md).
 
 ## Determinism
 

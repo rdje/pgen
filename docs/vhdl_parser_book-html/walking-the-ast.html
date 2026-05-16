@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66450573.js";
+            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0734e4e4.js"></script>
+        <script src="toc-77be4d5d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -271,13 +271,14 @@ fn walk(node: &amp;JsonValue) {
 <span class="boring">}</span></code></pre>
 <p>The same <code>{kind, body}</code> pattern recurs for the declarative-item dispatch rules (<code>architecture_declarative_item</code>, <code>package_declarative_item</code>, <code>process_declarative_item</code>, …), <code>sequential_statement</code> (13 kinds), and <code>concurrent_statement</code> (7 kinds). All use the bodyless <code>{kind: "semi"}</code> for a stray <code>;</code>, and <code>sequential_statement</code> additionally uses bodyless <code>{kind: "null"}</code> for the VHDL <code>null;</code> statement.</p>
 <h2 id="folding-the-binop_chain-expression-hierarchy"><a class="header" href="#folding-the-binop_chain-expression-hierarchy">Folding the <code>binop_chain</code> expression hierarchy</a></h2>
-<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all emit the same <code>binop_chain</code> shape. A single fold handles the whole hierarchy:</p>
+<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all emit the same <code>binop_chain</code> shape. A single fold handles the whole hierarchy. As of the <code>1.0.2</code> <code>VHDL-0001</code> fix (schema <code>2</code>), <code>rest</code> is a <strong>clean</strong> <code>[op-envelope, operand]</code> array where the op-envelope is the typed <code>{kind: …}</code> object at every level (uniform — <code>logical_operator</code> / <code>relational_operator</code> / <code>adding_operator</code> / <code>multiplying_operator</code> all emit <code>{kind}</code>); it is <strong>never</strong> <code>"&lt;invalid_sequence_access&gt;"</code> (the pre-fix schema-<code>1</code> malformation):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>/// Folds one binop_chain level left-associatively. `lhs` is the leading
 /// operand (itself a binop_chain of the next-tighter level, bottoming out
-/// at a typed `primary`). `rest` is the recursive-envelope iteration of
-/// (operator, operand) pairs.
+/// at a typed `primary`). `rest` is the clean iteration array of
+/// [op-envelope, operand] entries; the op-envelope is the typed
+/// {kind: ...} object (schema 2).
 fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
     debug_assert_eq!(
         node.get("type").and_then(|v| v.as_str()),
@@ -293,14 +294,18 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
         acc = apply_unary_sign(sign, acc); // no-op if sign == []
     }
 
-    // `rest` is an array of (op, operand) iterations. For `relation`
-    // (level == "relational") it holds at most one pair (grammar uses `?`,
-    // not `*`); every other level iterates `*`.
+    // `rest` is an array of [op-envelope, operand] entries. For `relation`
+    // (level == "relational") and `factor` (level == "power") it holds at
+    // most one entry (grammar uses `?`, not `*`); the other three levels
+    // iterate `*`.
     if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
-        for pair in rest {
-            let (op, rhs_node) = split_op_operand(pair);
+        for entry in rest {
+            // entry[0] is the typed {kind:...} op-envelope (schema 2 —
+            // never "&lt;invalid_sequence_access&gt;"); entry[1] is the operand.
+            let op = entry[0]["kind"].as_str().expect("typed op-envelope kind");
+            let rhs_node = &amp;entry[1];
             acc = Expr::Binary {
-                op,
+                op: op.to_string(),
                 lhs: Box::new(acc),
                 rhs: Box::new(lower_operand(rhs_node)),
             };
@@ -309,7 +314,7 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
     acc
 }
 <span class="boring">}</span></code></pre>
-<p><code>level</code> tells you which precedence tier you are at (<code>"logical"</code>, <code>"relational"</code>, <code>"additive"</code>, <code>"multiplicative"</code>, <code>"power"</code>) without re-deriving it from context. The leaf operand is a typed <code>primary</code> (<code>{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}</code>); dispatch on its <code>kind</code> to bottom out the recursion.</p>
+<p><code>level</code> tells you which precedence tier you are at (<code>"logical"</code>, <code>"relational"</code>, <code>"additive"</code>, <code>"multiplicative"</code>, <code>"power"</code>) without re-deriving it from context. The op-envelope <code>kind</code> is the typed operator discriminator (<code>"plus"</code> / <code>"minus"</code> / <code>"concat"</code> at the <code>additive</code> level via <code>adding_operator</code>; <code>"mul"</code> / <code>"div"</code> / <code>"mod"</code> / <code>"rem"</code> at the <code>multiplicative</code> level via <code>multiplying_operator</code>; <code>"and"</code> … at the <code>logical</code> level; <code>"eq"</code> … at the <code>relational</code> level). The leaf operand is a typed <code>primary</code> (<code>{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}</code>); dispatch on its <code>kind</code> to bottom out the recursion. See the <a href="examples-binary-addition.html">Binary Addition</a> worked example for the real captured <code>b + c * d</code> shape.</p>
 <h2 id="identifier-extraction"><a class="header" href="#identifier-extraction">Identifier extraction</a></h2>
 <p>VHDL identifiers (entity names, signal names, labels) surface as JSON strings once you reach the relevant named field. For a typed parent the field is direct:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -372,7 +377,7 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+const VHDL_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -385,8 +390,9 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match VHDL_AST_SCHEMA_VERSION {
-    1 =&gt; walk_schema_v1(&amp;root),
-    // (future) 2 =&gt; walk_schema_v2(&amp;root),
+    2 =&gt; walk_schema_v2(&amp;root),
+    // schema 1 (pre-`VHDL-0001`) emitted "&lt;invalid_sequence_access&gt;" in
+    // simple_expression / term binop_chain.rest — do not target it.
     other =&gt; eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>

@@ -26,18 +26,18 @@ same commit.
 
 ## Active Task Trees
 
-The eight `*-MDBOOK` / `*-CONTRACT-BODY` trees and the
-`systemverilog`-book `DOC-ENVELOPE-0001` closeout are complete
-(`2026-05-16`). The inline-alternation parser-correctness lane is now
-decomposed into the `INLINE-ALT-FIX` task tree (multi-slice, structured,
-released-parser-behavior). The remaining `DOC-README-SHELL-0001`
-README/COMMIT.md `SHELL=` reconciliation stays a non-task-tree
-single-slice lane (`PGEN-WORKFLOW-<NNNN>`). See
-`LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot.
+All nine prior trees + the `INLINE-ALT-FIX` parser-correctness tree are
+complete (`2026-05-16`→`17`). The systemic inline-alternation-`$N`
+defect class is fully resolved across all four affected grammars
+(`RTL-CE-0001`/`SVPP-0001`/`RTL-FE-0001`/`VHDL-0001`). **No active task
+trees.** The remaining `DOC-README-SHELL-0001` README/COMMIT.md
+`SHELL=` reconciliation is the one open non-task-tree single-slice lane
+(`PGEN-WORKFLOW-<NNNN>`). See `LIVE_ACHIEVEMENT_STATUS.md` for the live
+snapshot.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `INLINE-ALT-FIX` | `active` | parser-correctness (released-parser defect class) | `INLINE-ALT-FIX.3` | [docs/tasks/INLINE-ALT-FIX.md](tasks/INLINE-ALT-FIX.md) |
+| _(none active)_ | | | | |
 
 ## Proposed Task Trees
 
@@ -60,6 +60,7 @@ PNT-eligible until explicitly activated.
 | `RTL-FE-CONTRACT-BODY` | `done` | rtl_frontend deliverables | all leaves `.1`–`.4` `done` (`2026-05-16`); rtl_frontend book DOC-ENVELOPE-0001 closed in lockstep (7 chapters) | [docs/tasks/RTL-FE-CONTRACT-BODY.md](tasks/RTL-FE-CONTRACT-BODY.md) |
 | `RTL-CE-CONTRACT-BODY` | `done` | rtl_const_expr deliverables | all leaves `.1`–`.3` `done` (`2026-05-16`); rtl_const_expr book DOC-ENVELOPE-0001 closed in lockstep (7 chapters, Slice-2); .3 added literal/identifier shapes + Companion Documentation + Gate Recipe + Glossary | [docs/tasks/RTL-CE-CONTRACT-BODY.md](tasks/RTL-CE-CONTRACT-BODY.md) |
 | `SVPP-CONTRACT-BODY` | `done` | sv_preprocessor deliverables | all leaves `.1`–`.4` `done` (`2026-05-16`); sv_preprocessor book DOC-ENVELOPE-0001 closed in lockstep (8 chapters, Slice-2); .2 AST Envelope + pp_item dispatch, .3 conditional tree + macro fragments, .4 Companion Documentation + Gate Recipe + Glossary | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
+| `INLINE-ALT-FIX` | `done` | parser-correctness (released-parser defect class) | all leaves `.1`–`.3` `done` (`2026-05-16`→`17`); systemic inline-alternation-`$N` class fully resolved: `.1` SVPP-0001 (sv_preprocessor, +pp_if_keyword, 64→66), `.2` RTL-FE-0001 (rtl_frontend, 5 un-annotated op-rules, 156/74 unchanged), `.3` VHDL-0001 (vhdl, named {kind} op-rules, 249→256); all schema 1→2 / release 1.0.1→1.0.2, contract+book+ledger lockstep | [docs/tasks/INLINE-ALT-FIX.md](tasks/INLINE-ALT-FIX.md) |
 
 ## Coverage Note
 

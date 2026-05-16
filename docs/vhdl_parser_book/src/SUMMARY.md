@@ -21,6 +21,7 @@
 # Worked Examples
 
 - [Minimal Entity](examples-minimal-entity.md)
+- [Binary Addition](examples-binary-addition.md)
 
 # Migration
 

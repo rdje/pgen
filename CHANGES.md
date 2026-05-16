@@ -1,4 +1,74 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-INLINE-ALT-FIX-0003 (leaf INLINE-ALT-FIX.3): vhdl binop_chain inline-alternation defect FIXED (VHDL-0001) — closes the tree AND the systemic class
+
+- **`vhdl` `binop_chain` inline-alternation-`$N` defect FIXED**
+  (`VHDL-0001`) — the FINAL grammar in the systemic class. Empirically
+  confirmed first (per the verify-first leaf): vhdl `simple_expression`
+  (`(plus|minus|ampersand)` additive) + `term`
+  (`(star|slash|kw_mod|kw_rem)` multiplicative) had inline alternations
+  as `( … )*` iteration leads → 3 `<invalid_sequence_access>` +
+  malformed nested objects. `expression`/`relation` already used named
+  `logical_operator`/`relational_operator` (unaffected); the leading
+  `(plus|minus)?` sign in `simple_expression` is not an iteration lead
+  and was empirically unaffected (left as-is).
+- **Fix:** lifted the two iteration-lead alternations into named
+  `{kind}`-annotated rules `adding_operator := plus -> {kind:"plus"}
+  | minus -> {kind:"minus"} | ampersand -> {kind:"concat"}` and
+  `multiplying_operator := star -> {kind:"mul"} | slash ->
+  {kind:"div"} | kw_mod -> {kind:"mod"} | kw_rem -> {kind:"rem"}` —
+  matching vhdl's OWN `logical_operator`/`relational_operator`
+  `{kind}` convention (uniform op-envelope across all vhdl binop
+  levels); `binop_chain` level annotations unchanged.
+- **Verified before→after** with `parseability_probe`: `additive.rest`
+  3×`<invalid_sequence_access>` → clean
+  `[ [ {"kind":"plus"}, {binop_chain multiplicative …} ] ]` (typed
+  `{kind}` op-envelope — vhdl's convention, NOT the raw `["",tok]` of
+  rtl_const_expr/rtl_frontend), zero `<invalid_sequence_access>`.
+- **Counts changed 249→256 annotations / 110→112 distinct rules** — the
+  op-rules ARE `{kind}`-annotated (vhdl convention), so the inventory
+  grows (like SVPP-0001's +2; the KEY contrast with rtl_frontend whose
+  un-annotated op-rules left 156/74 unchanged). Manifest
+  `vhdl_v1.json` dai rebuilt to 256 via the canonical
+  `dump_declared_annotation_inventory` bin + new `arithmetic_expr`
+  regression sample + `extracted_at` 2026-05-16 →
+  `vhdl_ast_shape_contract` **passes**.
+- **Lockstep (same commit):** AST-dump schema `1→2`, parser+contract
+  release `1.0.1→1.0.2`. Contract: current-state bumped 249→256 /
+  110→112 / schema 2 / 1.0.2 (historical `1.0.1`/249/110 kept); new
+  `## Resolved Defects — VHDL-0001` + `## Release 1.0.2 Highlights`;
+  named op-rules documented. Book: new `examples-binary-addition.md`
+  worked example (real captured fixed shape + schema-`2` transition
+  note, wired into `SUMMARY.md`) + `schema-versioning`/`changelog`/
+  `rules-top-level`/`walking-the-ast`/`ast-envelope`/`glossary`/
+  `json-carrier`/`welcome`/`examples-minimal-entity` bumped; all 4
+  walker pins `VHDL_AST_SCHEMA_VERSION = 2`. **Bug ledger: new
+  `VHDL-0001` row (`Released`) + `SVPP-0001`/`RTL-FE-0001` Notes-cells
+  updated to "class fully resolved".**
+- **Independent verification caught a real subagent defect:** the
+  doc-lockstep subagent reported it had updated the bug ledger but had
+  **not persisted that edit** (ledger unmodified in git, no `VHDL-0001`
+  row). The parent added the `VHDL-0001` row + the
+  `SVPP-0001`/`RTL-FE-0001` "class fully resolved" cross-refs manually,
+  mirroring the `RTL-FE-0001` row structure exactly. (Reinforces: never
+  trust subagent self-reports; independent verification is mandatory.)
+- DOC-ENVELOPE-0001 not regressed (real 4-field `AstDumpPayload`
+  preserved, grep-verified). Independently verified: contract no dup
+  `## ` headers, 256/112 current (249/110 historical only), VHDL-0001
+  resolved; `vhdl_parser_book_gate` **independently re-run green**
+  (searchindex/toc deterministic, new chapter rendered);
+  `clippy_on_rust_change` strict source **passed** (generated
+  non-strict debt pre-existing/tolerated; regenerated parser provably
+  compiles via the passing shape-contract test).
+- **`INLINE-ALT-FIX` tree COMPLETE** (root + `.1`–`.3` `done`) →
+  promoted to Completed in `docs/TASK_TREE.md`; Active table empty.
+  **The systemic inline-alternation-`$N` defect class is now FULLY
+  RESOLVED across all four affected released grammars: `RTL-CE-0001`
+  (rtl_const_expr) / `SVPP-0001` (sv_preprocessor) / `RTL-FE-0001`
+  (rtl_frontend) / `VHDL-0001` (vhdl)** — each fixed via the proven
+  named-op-rule playbook, schema `1→2`, release `1.0.1→1.0.2`,
+  contract+book+ledger lockstep. The one remaining open lane is the
+  non-task-tree `DOC-README-SHELL-0001`.
+
 ## 2026-05-16 - PGEN-INLINE-ALT-FIX-0002 (leaf INLINE-ALT-FIX.2): rtl_frontend binop_chain inline-alternation defect FIXED (RTL-FE-0001; schema 1→2, release 1.0.2)
 
 - **`rtl_frontend` `binop_chain` inline-alternation-`$N` defect FIXED**

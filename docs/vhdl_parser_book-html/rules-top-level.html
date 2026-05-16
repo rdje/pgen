@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-66450573.js";
+            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0734e4e4.js"></script>
+        <script src="toc-77be4d5d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,10 +183,10 @@
                         <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the <code>vhdl_file</code> root, the <code>design_unit</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) landed the full grammar typing in one comprehensive batch — <strong>110 distinct rules / 249 return annotations</strong> across <code>grammars/vhdl.ebnf</code>. Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 249 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
+<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>) landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix (AST-dump schema version <code>1</code> → <code>2</code>) added the two named operator rules. The current typed surface is <strong>112 distinct rules / 256 return annotations</strong> across <code>grammars/vhdl.ebnf</code> (parser release <code>1.0.2</code>, AST-dump schema version <code>2</code>). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
 <h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
-<p>This is a <strong>curated, grouped</strong> reference — not a raw 249-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
+<p>This is a <strong>curated, grouped</strong> reference — not a raw 256-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
 <p>Two conventions appear throughout:</p>
 <ul>
 <li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>.</li>
@@ -438,30 +438,45 @@
                   -&gt; {type: "binop_chain", level: "logical",         lhs: $1, rest: $2}
 relation          := simple_expression (relational_operator simple_expression)?
                   -&gt; {type: "binop_chain", level: "relational",      lhs: $1, rest: $2}
-simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+simple_expression := (plus | minus)? term (adding_operator term)*
                   -&gt; {type: "binop_chain", level: "additive",        sign: $1, lhs: $2, rest: $3}
-term              := factor ((star | slash | kw_mod | kw_rem) factor)*
+term              := factor (multiplying_operator factor)*
                   -&gt; {type: "binop_chain", level: "multiplicative",  lhs: $1, rest: $2}
 factor            := primary (power primary)?
                   -&gt; {type: "binop_chain", level: "power",           lhs: $1, rest: $2}
 </code></pre>
+<blockquote>
+<p><strong>Schema <code>2</code> note (<code>VHDL-0001</code>).</strong> The <code>adding_operator</code> /
+<code>multiplying_operator</code> iteration leads are <strong>named rules</strong> as of the
+<code>1.0.2</code> correctness fix. At <code>1.0.1</code> / schema <code>1</code> they were inline
+alternations (<code>(plus | minus | ampersand)</code> / <code>(star | slash | kw_mod | kw_rem)</code>), which corrupted the positional model so the <code>additive</code>
+(<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>)
+<code>binop_chain.rest</code> emitted <code>"&lt;invalid_sequence_access&gt;"</code> on
+multi-operand input — a real parser defect fixed in <code>1.0.2</code> / schema
+<code>2</code>. The <code>simple_expression</code> / <code>term</code> <code>binop_chain</code> annotations are
+unchanged (only the inline group became a named rule); the leading
+<code>(plus | minus)?</code> <code>sign</code> is not an iteration lead and was empirically
+unaffected — left as-is. See <a href="schema-versioning.html">Schema Versioning</a>
+and the <a href="examples-binary-addition.html">Binary Addition</a> worked example.</p>
+</blockquote>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Level (<code>level</code>)</th><th>Rule</th><th>Fields</th><th>Operators</th></tr>
 </thead>
 <tbody>
-<tr><td><code>"logical"</code></td><td><code>expression</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>and</code> / <code>or</code> / <code>xor</code> / <code>nand</code> / <code>nor</code> / <code>xnor</code></td></tr>
-<tr><td><code>"relational"</code></td><td><code>relation</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>=</code> / <code>/=</code> / <code>&lt;</code> / <code>&lt;=</code> / <code>&gt;</code> / <code>&gt;=</code></td></tr>
-<tr><td><code>"additive"</code></td><td><code>simple_expression</code></td><td><code>sign</code>, <code>lhs</code>, <code>rest</code></td><td>unary <code>+</code>/<code>-</code> (<code>sign</code>), binary <code>+</code> / <code>-</code> / <code>&amp;</code></td></tr>
-<tr><td><code>"multiplicative"</code></td><td><code>term</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>*</code> / <code>/</code> / <code>mod</code> / <code>rem</code></td></tr>
+<tr><td><code>"logical"</code></td><td><code>expression</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>and</code> / <code>or</code> / <code>xor</code> / <code>nand</code> / <code>nor</code> / <code>xnor</code> (<code>logical_operator</code>)</td></tr>
+<tr><td><code>"relational"</code></td><td><code>relation</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>=</code> / <code>/=</code> / <code>&lt;</code> / <code>&lt;=</code> / <code>&gt;</code> / <code>&gt;=</code> (<code>relational_operator</code>)</td></tr>
+<tr><td><code>"additive"</code></td><td><code>simple_expression</code></td><td><code>sign</code>, <code>lhs</code>, <code>rest</code></td><td>unary <code>+</code>/<code>-</code> (<code>sign</code>), binary <code>+</code> / <code>-</code> / <code>&amp;</code> (<code>adding_operator</code>)</td></tr>
+<tr><td><code>"multiplicative"</code></td><td><code>term</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>*</code> / <code>/</code> / <code>mod</code> / <code>rem</code> (<code>multiplying_operator</code>)</td></tr>
 <tr><td><code>"power"</code></td><td><code>factor</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>**</code></td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the iteration array of <code>(op, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). Two levels cap <code>rest</code> at <strong>at most one</strong> <code>(op, operand)</code> pair because their grammar rule uses <code>?</code> (not <code>*</code>): <code>"relational"</code> (<code>relation := simple_expression (relational_operator simple_expression)?</code>) and <code>"power"</code> (<code>factor := primary (power primary)?</code>). The other three levels — <code>"logical"</code> (<code>expression</code>), <code>"additive"</code> (<code>simple_expression</code>), and <code>"multiplicative"</code> (<code>term</code>) — iterate <code>*</code>, so their <code>rest</code> is a 0..N array. A correct left-fold consumer handles both uniformly (fold over a <code>rest</code> of length 0, 1, or N).</p>
-<p>This <code>binop_chain</code> shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See <a href="walking-the-ast.html">Walking the AST</a> for a worked fold.</p>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.2 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the clean iteration array of <code>[op-envelope, operand]</code> entries. At <strong>every</strong> level the op-envelope is the typed <code>{kind: …}</code> object (uniform — <code>logical_operator</code> / <code>relational_operator</code> / <code>adding_operator</code> / <code>multiplying_operator</code> all emit <code>{kind}</code>); no level ever emits <code>&lt;invalid_sequence_access&gt;</code> as of schema <code>2</code>. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code></strong>, reading the operator from <code>op-envelope.kind</code>. At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). Two levels cap <code>rest</code> at <strong>at most one</strong> entry because their grammar rule uses <code>?</code> (not <code>*</code>): <code>"relational"</code> (<code>relation := simple_expression (relational_operator simple_expression)?</code>) and <code>"power"</code> (<code>factor := primary (power primary)?</code>). The other three levels — <code>"logical"</code> (<code>expression</code>), <code>"additive"</code> (<code>simple_expression</code>), and <code>"multiplicative"</code> (<code>term</code>) — iterate <code>*</code>, so their <code>rest</code> is a 0..N array. A correct left-fold consumer handles both uniformly (fold over a <code>rest</code> of length 0, 1, or N).</p>
+<p>This <code>binop_chain</code> shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See <a href="walking-the-ast.html">Walking the AST</a> for a worked fold and the <a href="examples-binary-addition.html">Binary Addition</a> worked example for the real captured <code>b + c * d</code> shape.</p>
 <h3 id="operators-bare-kind-leaves"><a class="header" href="#operators-bare-kind-leaves">Operators (bare <code>{kind}</code> leaves)</a></h3>
+<p>All four operator rules are typed bare-<code>{kind}</code> leaves (no <code>body</code>); the op-envelope in <code>binop_chain.rest</code> at every level is the typed <code>{kind}</code> object these rules emit (schema <code>2</code>). <code>adding_operator</code> / <code>multiplying_operator</code> are the <code>1.0.2</code> <code>VHDL-0001</code> named-rule fix (they were inline alternations at <code>1.0.1</code>).</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -470,10 +485,12 @@ factor            := primary (power primary)?
 <tbody>
 <tr><td><code>logical_operator</code> (6)</td><td><code>"and"</code>, <code>"or"</code>, <code>"xor"</code>, <code>"nand"</code>, <code>"nor"</code>, <code>"xnor"</code></td></tr>
 <tr><td><code>relational_operator</code> (6)</td><td><code>"eq"</code>, <code>"ne"</code>, <code>"lt"</code>, <code>"le"</code>, <code>"gt"</code>, <code>"ge"</code></td></tr>
+<tr><td><code>adding_operator</code> (3) — <strong><code>1.0.2</code> <code>VHDL-0001</code> fix</strong></td><td><code>"plus"</code>, <code>"minus"</code>, <code>"concat"</code></td></tr>
+<tr><td><code>multiplying_operator</code> (4) — <strong><code>1.0.2</code> <code>VHDL-0001</code> fix</strong></td><td><code>"mul"</code>, <code>"div"</code>, <code>"mod"</code>, <code>"rem"</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>(<code>simple_expression</code>, <code>term</code>, and <code>factor</code> operators are matched inline as literal tokens within <code>rest</code>, not via a separate typed operator rule.)</p>
+<p>The 3 <code>adding_operator</code> + 4 <code>multiplying_operator</code> <code>return_object</code> branches are the +7 entries that took the annotation count <code>249 → 256</code> and the distinct-rule count <code>110 → 112</code> at the <code>1.0.2</code> fix. (<code>factor</code>’s <code>power</code> operator is still matched inline as a literal token within <code>rest</code>, not via a separate typed operator rule — only <code>**</code> at one level.)</p>
 <h3 id="primary-and-aggregates"><a class="header" href="#primary-and-aggregates"><code>primary</code> and aggregates</a></h3>
 <div class="table-wrapper">
 <table>
@@ -507,10 +524,10 @@ factor            := primary (power primary)?
 </div>
 <p><code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, and <code>character_literal</code> are matched as terminal/regex leaves and carried through the recursive-envelope shape (string of matched text); they have no per-rule annotation — only the dispatch in <code>literal</code> is typed.</p>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.1</code> is <strong>249 annotations across 110 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.2</code> is <strong>256 annotations across 112 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
-<li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "vhdl"</code>, <code>annotation_count: 249</code>).</li>
-<li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 249 entries).</li>
+<li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (inventory-file <code>version: 1</code> — the inventory format version, not the AST-dump schema; <code>grammar: "vhdl"</code>, <code>annotation_count: 256</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 256 entries).</li>
 </ul>
 <p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
 <h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>

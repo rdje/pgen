@@ -2,11 +2,11 @@
 
 This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the `vhdl_file` root, the `design_unit` dispatch, and then enumerates the typed rule shapes grouped by rule family.
 
-> **Status:** VHDL-Slice-1 (parser release `1.0.1`, AST-dump schema version `1`) landed the full grammar typing in one comprehensive batch — **110 distinct rules / 249 return annotations** across `grammars/vhdl.ebnf`. Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at `generated/vhdl_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/vhdl_v1.json` — identical content, 249 entries). That artifact, not this prose, is the machine-checkable source of truth.
+> **Status:** VHDL-Slice-1 (parser release `1.0.1`) landed the full grammar typing in one comprehensive batch; the `1.0.2` `VHDL-0001` correctness fix (AST-dump schema version `1` → `2`) added the two named operator rules. The current typed surface is **112 distinct rules / 256 return annotations** across `grammars/vhdl.ebnf` (parser release `1.0.2`, AST-dump schema version `2`). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at `generated/vhdl_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/vhdl_v1.json` — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.
 
 ## How to read this chapter
 
-This is a **curated, grouped** reference — not a raw 249-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the `kind` discriminators and field lists that the parser actually emits, as transcribed from each rule's normalized return-annotation text. Where a rule has per-branch typing, the `kind` value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.
+This is a **curated, grouped** reference — not a raw 256-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the `kind` discriminators and field lists that the parser actually emits, as transcribed from each rule's normalized return-annotation text. Where a rule has per-branch typing, the `kind` value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.
 
 Two conventions appear throughout:
 
@@ -223,34 +223,52 @@ expression        := relation (logical_operator relation)*
                   -> {type: "binop_chain", level: "logical",         lhs: $1, rest: $2}
 relation          := simple_expression (relational_operator simple_expression)?
                   -> {type: "binop_chain", level: "relational",      lhs: $1, rest: $2}
-simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+simple_expression := (plus | minus)? term (adding_operator term)*
                   -> {type: "binop_chain", level: "additive",        sign: $1, lhs: $2, rest: $3}
-term              := factor ((star | slash | kw_mod | kw_rem) factor)*
+term              := factor (multiplying_operator factor)*
                   -> {type: "binop_chain", level: "multiplicative",  lhs: $1, rest: $2}
 factor            := primary (power primary)?
                   -> {type: "binop_chain", level: "power",           lhs: $1, rest: $2}
 ```
 
+> **Schema `2` note (`VHDL-0001`).** The `adding_operator` /
+> `multiplying_operator` iteration leads are **named rules** as of the
+> `1.0.2` correctness fix. At `1.0.1` / schema `1` they were inline
+> alternations (`(plus | minus | ampersand)` / `(star | slash | kw_mod
+> | kw_rem)`), which corrupted the positional model so the `additive`
+> (`simple_expression`) and `multiplicative` (`term`)
+> `binop_chain.rest` emitted `"<invalid_sequence_access>"` on
+> multi-operand input — a real parser defect fixed in `1.0.2` / schema
+> `2`. The `simple_expression` / `term` `binop_chain` annotations are
+> unchanged (only the inline group became a named rule); the leading
+> `(plus | minus)?` `sign` is not an iteration lead and was empirically
+> unaffected — left as-is. See [Schema Versioning](schema-versioning.md)
+> and the [Binary Addition](examples-binary-addition.md) worked example.
+
 | Level (`level`) | Rule | Fields | Operators |
 |---|---|---|---|
-| `"logical"` | `expression` | `lhs`, `rest` | `and` / `or` / `xor` / `nand` / `nor` / `xnor` |
-| `"relational"` | `relation` | `lhs`, `rest` | `=` / `/=` / `<` / `<=` / `>` / `>=` |
-| `"additive"` | `simple_expression` | `sign`, `lhs`, `rest` | unary `+`/`-` (`sign`), binary `+` / `-` / `&` |
-| `"multiplicative"` | `term` | `lhs`, `rest` | `*` / `/` / `mod` / `rem` |
+| `"logical"` | `expression` | `lhs`, `rest` | `and` / `or` / `xor` / `nand` / `nor` / `xnor` (`logical_operator`) |
+| `"relational"` | `relation` | `lhs`, `rest` | `=` / `/=` / `<` / `<=` / `>` / `>=` (`relational_operator`) |
+| `"additive"` | `simple_expression` | `sign`, `lhs`, `rest` | unary `+`/`-` (`sign`), binary `+` / `-` / `&` (`adding_operator`) |
+| `"multiplicative"` | `term` | `lhs`, `rest` | `*` / `/` / `mod` / `rem` (`multiplying_operator`) |
 | `"power"` | `factor` | `lhs`, `rest` | `**` |
 
-**Consumer-facing left-fold contract** (per the integration contract, Release 1.0.1 Highlights): every level emits `{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading operand and `rest` is the iteration array of `(op, operand)` pairs. **Consumers fold `rest` left-associatively onto `lhs`.** At the `"additive"` level there is an additional leading `sign` field carrying the optional unary `+`/`-` (`[]` when absent). Two levels cap `rest` at **at most one** `(op, operand)` pair because their grammar rule uses `?` (not `*`): `"relational"` (`relation := simple_expression (relational_operator simple_expression)?`) and `"power"` (`factor := primary (power primary)?`). The other three levels — `"logical"` (`expression`), `"additive"` (`simple_expression`), and `"multiplicative"` (`term`) — iterate `*`, so their `rest` is a 0..N array. A correct left-fold consumer handles both uniformly (fold over a `rest` of length 0, 1, or N).
+**Consumer-facing left-fold contract** (per the integration contract, Release 1.0.2 Highlights): every level emits `{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading operand and `rest` is the clean iteration array of `[op-envelope, operand]` entries. At **every** level the op-envelope is the typed `{kind: …}` object (uniform — `logical_operator` / `relational_operator` / `adding_operator` / `multiplying_operator` all emit `{kind}`); no level ever emits `<invalid_sequence_access>` as of schema `2`. **Consumers fold `rest` left-associatively onto `lhs`**, reading the operator from `op-envelope.kind`. At the `"additive"` level there is an additional leading `sign` field carrying the optional unary `+`/`-` (`[]` when absent). Two levels cap `rest` at **at most one** entry because their grammar rule uses `?` (not `*`): `"relational"` (`relation := simple_expression (relational_operator simple_expression)?`) and `"power"` (`factor := primary (power primary)?`). The other three levels — `"logical"` (`expression`), `"additive"` (`simple_expression`), and `"multiplicative"` (`term`) — iterate `*`, so their `rest` is a 0..N array. A correct left-fold consumer handles both uniformly (fold over a `rest` of length 0, 1, or N).
 
-This `binop_chain` shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See [Walking the AST](walking-the-ast.md) for a worked fold.
+This `binop_chain` shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See [Walking the AST](walking-the-ast.md) for a worked fold and the [Binary Addition](examples-binary-addition.md) worked example for the real captured `b + c * d` shape.
 
 ### Operators (bare `{kind}` leaves)
+
+All four operator rules are typed bare-`{kind}` leaves (no `body`); the op-envelope in `binop_chain.rest` at every level is the typed `{kind}` object these rules emit (schema `2`). `adding_operator` / `multiplying_operator` are the `1.0.2` `VHDL-0001` named-rule fix (they were inline alternations at `1.0.1`).
 
 | Rule | `kind` values |
 |---|---|
 | `logical_operator` (6) | `"and"`, `"or"`, `"xor"`, `"nand"`, `"nor"`, `"xnor"` |
 | `relational_operator` (6) | `"eq"`, `"ne"`, `"lt"`, `"le"`, `"gt"`, `"ge"` |
+| `adding_operator` (3) — **`1.0.2` `VHDL-0001` fix** | `"plus"`, `"minus"`, `"concat"` |
+| `multiplying_operator` (4) — **`1.0.2` `VHDL-0001` fix** | `"mul"`, `"div"`, `"mod"`, `"rem"` |
 
-(`simple_expression`, `term`, and `factor` operators are matched inline as literal tokens within `rest`, not via a separate typed operator rule.)
+The 3 `adding_operator` + 4 `multiplying_operator` `return_object` branches are the +7 entries that took the annotation count `249 → 256` and the distinct-rule count `110 → 112` at the `1.0.2` fix. (`factor`'s `power` operator is still matched inline as a literal token within `rest`, not via a separate typed operator rule — only `**` at one level.)
 
 ### `primary` and aggregates
 
@@ -277,10 +295,10 @@ This `binop_chain` shape is the same across all five levels precisely so that a 
 
 ## Total surface and the machine-checkable source
 
-The full typed surface as of contract `1.0.1` is **249 annotations across 110 distinct rules**. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
+The full typed surface as of contract `1.0.2` is **256 annotations across 112 distinct rules**. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
 
-- `generated/vhdl_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "vhdl"`, `annotation_count: 249`).
-- `rust/test_data/ast_shape_contract/vhdl_v1.json` — the embedded inventory used by the AST shape-contract regression lock (identical content; 249 entries).
+- `generated/vhdl_return_annotations.json` — the live return-annotation inventory (inventory-file `version: 1` — the inventory format version, not the AST-dump schema; `grammar: "vhdl"`, `annotation_count: 256`).
+- `rust/test_data/ast_shape_contract/vhdl_v1.json` — the embedded inventory used by the AST shape-contract regression lock (identical content; 256 entries).
 
 If this chapter and either artifact disagree, the artifact wins — and the integration contract `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` wins over both.
 

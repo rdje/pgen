@@ -349,9 +349,18 @@ expression := relation (logical_operator relation)*
            -> {type: "binop_chain", level: "logical",      lhs: $1, rest: $2}
 relation := simple_expression (relational_operator simple_expression)?
          -> {type: "binop_chain", level: "relational",   lhs: $1, rest: $2}
-simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+# NOTE: the iteration-lead operator alternations were lifted into the
+# named rules `adding_operator` / `multiplying_operator` (vhdl's own
+# `logical_operator`/`relational_operator` `{kind:…}` idiom). An inline
+# alternation `( a | b )` as the lead element of a `( … term )*`
+# iteration corrupted the positional model so `rest:$N` emitted
+# `<invalid_sequence_access>` (the systemic inline-alternation-$N defect
+# class; same as RTL-CE-0001 / SVPP-0001 / RTL-FE-0001). The leading
+# `(plus | minus)?` sign is NOT an iteration lead and is empirically
+# unaffected — left as-is.
+simple_expression := (plus | minus)? term (adding_operator term)*
                   -> {type: "binop_chain", level: "additive",     sign: $1, lhs: $2, rest: $3}
-term := factor ((star | slash | kw_mod | kw_rem) factor)*
+term := factor (multiplying_operator factor)*
      -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
 factor := primary (power primary)?
        -> {type: "binop_chain", level: "power",        lhs: $1, rest: $2}
@@ -392,6 +401,15 @@ relational_operator := equal        -> {kind: "eq"}
                      | lteq         -> {kind: "le"}
                      | gt           -> {kind: "gt"}
                      | gteq         -> {kind: "ge"}
+
+adding_operator := plus      -> {kind: "plus"}
+                 | minus     -> {kind: "minus"}
+                 | ampersand -> {kind: "concat"}
+
+multiplying_operator := star   -> {kind: "mul"}
+                      | slash  -> {kind: "div"}
+                      | kw_mod -> {kind: "mod"}
+                      | kw_rem -> {kind: "rem"}
 
 literal := physical_literal       -> {kind: "physical",     body: $1}
          | decimal_literal         -> {kind: "decimal",      body: $1}

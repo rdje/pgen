@@ -6,17 +6,17 @@ This chapter explains how the PGEN VHDL parser's AST shape is versioned, what gu
 
 The VHDL parser carries **two** version numbers:
 
-1. **Parser release version** — currently `1.0.1`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
-2. **AST-dump schema version** — currently `1`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+1. **Parser release version** — currently `1.0.2`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
+2. **AST-dump schema version** — currently `2`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.
 
 These numbers are taken from the integration contract's "Contract Identity" section, which records:
 
-- Contract version: `1.0.1`
-- Parser release version: `1.0.1`
-- VHDL AST-dump schema version: `1`
-- Annotation count: **249** (VHDL-Slice-1 — the full grammar typed in one batch)
+- Contract version: `1.0.2`
+- Parser release version: `1.0.2`
+- VHDL AST-dump schema version: `2`
+- Annotation count: **256** (VHDL-Slice-1's 249-annotation baseline plus the `1.0.2` `VHDL-0001` correctness fix's 7 new operator-rule branches; on 112 distinct rules)
 
 The contract document `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` is the authoritative source for all of these per release.
 
@@ -35,7 +35,9 @@ These do **not** trigger a schema bump:
 - Internal codegen reorganization that doesn't reach the output.
 - Parser-side bug fixes that produce the same shape consumers were already relying on.
 
-The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
+The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. A follow-up correctness fix (parser release `1.0.2`, schema `2`, landed 2026-05-17) brought the inventory to **256 annotations / 112 rules** — see the schema-`2` row below and the contract's Release 1.0.2 Highlights. Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
+
+The `1.0.2` correctness fix **did** bump the schema (`1` → `2`): although it fixed a bug, it changed a user-visible shape — the `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` `rest` (was `"<invalid_sequence_access>"` on multi-operand input, now a clean `[ <op-envelope>, <operand> ]` array with a typed `{kind}` op-envelope) — and added seven return annotations. It restructured a shape a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix.
 
 ## Byte-equivalence guarantee
 
@@ -49,19 +51,20 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_VHDL_PA
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 1.0.0 | 1.0.1 | **VHDL-Slice-1** — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (the `binop_chain` shape across the 5-level operator hierarchy `expression` → `relation` → `simple_expression` → `term` → `factor`), and literals all typed in one comprehensive batch. Same accept set as the pre-typing baseline. AST-dump schema version field value: `1`. |
+| 1.0.2 | 1.0.2 | **`VHDL-0001` correctness fix (breaking).** The `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` `rest` no longer emits `"<invalid_sequence_access>"` for multi-operand input. The two iteration-lead inline operator alternations — `(plus \| minus \| ampersand)` in `simple_expression` and `(star \| slash \| kw_mod \| kw_rem)` in `term` — were lifted into the **named** rules `adding_operator := plus -> {kind: "plus"} \| minus -> {kind: "minus"} \| ampersand -> {kind: "concat"}` and `multiplying_operator := star -> {kind: "mul"} \| slash -> {kind: "div"} \| kw_mod -> {kind: "mod"} \| kw_rem -> {kind: "rem"}`, matching vhdl's own `logical_operator` / `relational_operator` `{kind}` idiom. The `simple_expression` / `term` `binop_chain` annotations are **unchanged** (only the inline group became a named rule), so each level's `rest` is now a clean `[ <op-envelope>, <operand> ]` array where the op-envelope is the typed `{kind: …}` object (uniform with the `logical` / `relational` levels). The leading `(plus \| minus)?` `sign` is **not** an iteration lead and was empirically unaffected — left as-is. Annotation inventory **249 → 256** (the 3 new `adding_operator` + 4 new `multiplying_operator` `return_object` branches); distinct rules **110 → 112** (the new `adding_operator` / `multiplying_operator`). Same accept set as `1.0.1`. AST-dump schema version field value: `2`. |
+| 1.0.0 | 1.0.1 | **VHDL-Slice-1** — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (the `binop_chain` shape across the 5-level operator hierarchy `expression` → `relation` → `simple_expression` → `term` → `factor`), and literals all typed in one comprehensive batch. Same accept set as the pre-typing baseline. Pre-correctness shapes: the `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` `rest` could surface `"<invalid_sequence_access>"` on multi-operand input (`VHDL-0001`). AST-dump schema version field value: `1`. |
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Grammar (`grammars/vhdl.ebnf`) un-annotated except for the `vhdl_file -> {type, design_units}` root. AST dump is the recursive-envelope shape across all rules. |
 
-> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer **`1`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
+> Note on the version columns: the contract's "Schema version" column uses the `1.0.2` / `1.0.0` / `0.1.0` labels above for the milestones; the AST-dump schema version consumers pin against is the integer **`2`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
 
 ## How to pin to a known shape
 
-1. **Record the parser-release version** your downstream code was written against — `1.0.1` as of this writing. It is recorded in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
-2. **Pin the AST-dump schema version you built against** — currently `1`, from `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
+1. **Record the parser-release version** your downstream code was written against — `1.0.2` as of this writing. It is recorded in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
+2. **Pin the AST-dump schema version you built against** — currently `2`, from `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
 
    ```rust
    // Schema version you integrated against, from the contract:
-   const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+   const VHDL_AST_SCHEMA_VERSION: u32 = 2;
 
    let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
    if payload.truncated {
@@ -70,7 +73,7 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_VHDL_PA
    let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
    // VHDL_AST_SCHEMA_VERSION drives which walker you compiled; re-check the
    // contract's Schema Versioning table on every PGEN bump.
-   walk_schema_v1(&root);
+   walk_schema_v2(&root);
    ```
 
 3. **Vendor or pin the generated parser.** The VHDL parser is on-demand-only (see [Build Recipe](build-recipe.md)); vendor `generated/vhdl_parser.rs` against the recorded parser-release version, or build it in CI from the pinned `grammars/vhdl.ebnf`.
@@ -89,7 +92,7 @@ The contract's bump-trigger guidance is the binding policy; this section paraphr
 
 If you observe an AST shape that disagrees with this book, the contract, or the live inventory `generated/vhdl_return_annotations.json`:
 
-1. Confirm against the machine-checkable inventory (`generated/vhdl_return_annotations.json` / `rust/test_data/ast_shape_contract/vhdl_v1.json`, 249 entries, identical content).
+1. Confirm against the machine-checkable inventory (`generated/vhdl_return_annotations.json` / `rust/test_data/ast_shape_contract/vhdl_v1.json`, 256 entries, identical content on the `(rule, branch_index, annotation_type, normalized_text)` tuples — the live inventory additionally carries a per-entry `raw_text` field).
 2. If the inventory agrees with what you observe but the contract does not, the contract is authoritative for intended behavior — file via `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
 3. Accepted released-parser bugs are tracked in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 

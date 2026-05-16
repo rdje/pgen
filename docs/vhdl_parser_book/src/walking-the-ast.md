@@ -101,13 +101,14 @@ The same `{kind, body}` pattern recurs for the declarative-item dispatch rules (
 
 ## Folding the `binop_chain` expression hierarchy
 
-The five expression-precedence rules (`expression` → `relation` → `simple_expression` → `term` → `factor`) all emit the same `binop_chain` shape. A single fold handles the whole hierarchy:
+The five expression-precedence rules (`expression` → `relation` → `simple_expression` → `term` → `factor`) all emit the same `binop_chain` shape. A single fold handles the whole hierarchy. As of the `1.0.2` `VHDL-0001` fix (schema `2`), `rest` is a **clean** `[op-envelope, operand]` array where the op-envelope is the typed `{kind: …}` object at every level (uniform — `logical_operator` / `relational_operator` / `adding_operator` / `multiplying_operator` all emit `{kind}`); it is **never** `"<invalid_sequence_access>"` (the pre-fix schema-`1` malformation):
 
 ```rust
 /// Folds one binop_chain level left-associatively. `lhs` is the leading
 /// operand (itself a binop_chain of the next-tighter level, bottoming out
-/// at a typed `primary`). `rest` is the recursive-envelope iteration of
-/// (operator, operand) pairs.
+/// at a typed `primary`). `rest` is the clean iteration array of
+/// [op-envelope, operand] entries; the op-envelope is the typed
+/// {kind: ...} object (schema 2).
 fn fold_binop_chain(node: &serde_json::Value) -> Expr {
     debug_assert_eq!(
         node.get("type").and_then(|v| v.as_str()),
@@ -123,14 +124,18 @@ fn fold_binop_chain(node: &serde_json::Value) -> Expr {
         acc = apply_unary_sign(sign, acc); // no-op if sign == []
     }
 
-    // `rest` is an array of (op, operand) iterations. For `relation`
-    // (level == "relational") it holds at most one pair (grammar uses `?`,
-    // not `*`); every other level iterates `*`.
+    // `rest` is an array of [op-envelope, operand] entries. For `relation`
+    // (level == "relational") and `factor` (level == "power") it holds at
+    // most one entry (grammar uses `?`, not `*`); the other three levels
+    // iterate `*`.
     if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
-        for pair in rest {
-            let (op, rhs_node) = split_op_operand(pair);
+        for entry in rest {
+            // entry[0] is the typed {kind:...} op-envelope (schema 2 —
+            // never "<invalid_sequence_access>"); entry[1] is the operand.
+            let op = entry[0]["kind"].as_str().expect("typed op-envelope kind");
+            let rhs_node = &entry[1];
             acc = Expr::Binary {
-                op,
+                op: op.to_string(),
                 lhs: Box::new(acc),
                 rhs: Box::new(lower_operand(rhs_node)),
             };
@@ -140,7 +145,7 @@ fn fold_binop_chain(node: &serde_json::Value) -> Expr {
 }
 ```
 
-`level` tells you which precedence tier you are at (`"logical"`, `"relational"`, `"additive"`, `"multiplicative"`, `"power"`) without re-deriving it from context. The leaf operand is a typed `primary` (`{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}`); dispatch on its `kind` to bottom out the recursion.
+`level` tells you which precedence tier you are at (`"logical"`, `"relational"`, `"additive"`, `"multiplicative"`, `"power"`) without re-deriving it from context. The op-envelope `kind` is the typed operator discriminator (`"plus"` / `"minus"` / `"concat"` at the `additive` level via `adding_operator`; `"mul"` / `"div"` / `"mod"` / `"rem"` at the `multiplicative` level via `multiplying_operator`; `"and"` … at the `logical` level; `"eq"` … at the `relational` level). The leaf operand is a typed `primary` (`{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}`); dispatch on its `kind` to bottom out the recursion. See the [Binary Addition](examples-binary-addition.md) worked example for the real captured `b + c * d` shape.
 
 ## Identifier extraction
 
@@ -214,7 +219,7 @@ Recommendations:
 
 ```rust
 // The AST-dump schema version you integrated against (from the contract):
-const VHDL_AST_SCHEMA_VERSION: u32 = 1;
+const VHDL_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -227,8 +232,9 @@ let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match VHDL_AST_SCHEMA_VERSION {
-    1 => walk_schema_v1(&root),
-    // (future) 2 => walk_schema_v2(&root),
+    2 => walk_schema_v2(&root),
+    // schema 1 (pre-`VHDL-0001`) emitted "<invalid_sequence_access>" in
+    // simple_expression / term binop_chain.rest — do not target it.
     other => eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 ```
