@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-35cc147d.js";
+            window.path_to_searchindex_js = "searchindex-dc25268f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -1507,16 +1507,88 @@ shape reference.</p>
 <p>A future schema milestone will land if and when the VHDL grammar’s remaining un-annotated rules (terminal/regex leaves and a few utility rules) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. The VHDL family is still an <code>In Progress</code> family in the live tracker (<code>LIVE_ACHIEVEMENT_STATUS.md</code>); downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the <a href="#changelog-index">Changelog Index</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+<p>Terms used throughout this book. Where a term has a normative definition, the integration contract <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> is authoritative; this glossary paraphrases it for quick lookup.</p>
+<h2 id="ast-envelope"><a class="header" href="#ast-envelope">AST envelope</a></h2>
+<p>The JSON tree returned by the VHDL AST-dump entry points. It is the <code>root</code> field of the <code>AstDumpPayload</code> carried by <code>GrammarAstDumpOutcome</code>. See <a href="#ast-envelope-structure">AST Envelope Structure</a>.</p>
+<h2 id="ast-shape-contract-manifest"><a class="header" href="#ast-shape-contract-manifest">AST shape contract manifest</a></h2>
+<p>The file <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>. It records the per-rule expected JSON shape for each sample in the VHDL test corpus and embeds the declared-annotation inventory (<code>version: 1</code>, 249 entries). Drift in the AST dump fails the <code>vhdl_ast_shape_contract_holds_against_running_generated_parser</code> regression-lock test under <code>cargo test</code>, surfacing the change. Its content is byte-identical to the live inventory <code>generated/vhdl_return_annotations.json</code>. (This is the VHDL manifest; the SystemVerilog parser has its own separate <code>systemverilog_v1.json</code>.)</p>
+<h2 id="binop_chain"><a class="header" href="#binop_chain">binop_chain</a></h2>
+<p>The consumer-facing left-fold contract for VHDL’s five-level expression-precedence hierarchy. Every level — <code>expression</code> (logical), <code>relation</code> (relational), <code>simple_expression</code> (additive), <code>term</code> (multiplicative), <code>factor</code> (power) — emits the same <code>{type: "binop_chain", level, lhs, rest}</code> shape, so a single consumer fold handles the whole expression tree. <code>lhs</code> is the leading operand; <code>rest</code> is the iteration array of <code>(operator, operand)</code> pairs folded left-associatively; <code>simple_expression</code> adds a leading <code>sign</code> field for the optional unary <code>+</code>/<code>-</code>. See <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a> for the level/field/operator table and <a href="#walking-the-ast">Walking the AST</a> for the fold code.</p>
+<h2 id="declared-annotation-inventory"><a class="header" href="#declared-annotation-inventory">Declared-annotation inventory</a></h2>
+<p>The machine-checkable enumeration of every typed-shape annotation the VHDL grammar emits: <code>generated/vhdl_return_annotations.json</code> (<code>version: 1</code>, <code>grammar: "vhdl"</code>, <code>annotation_count: 249</code>). It is the live source of truth for the typed surface and is mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>. If this book’s prose disagrees with the inventory, the inventory wins; if the inventory disagrees with the integration contract, the contract wins.</p>
+<h2 id="design_unit-dispatch-2"><a class="header" href="#design_unit-dispatch-2">design_unit dispatch</a></h2>
+<p>The primary top-level dispatcher of the VHDL AST. <code>design_unit</code> is a 10-branch <code>kind</code>-tagged shape — <code>"library"</code>, <code>"use"</code>, <code>"context_reference"</code>, <code>"entity"</code>, <code>"architecture"</code>, <code>"package"</code>, <code>"package_body"</code>, <code>"configuration"</code>, <code>"context"</code>, <code>"semi"</code> — each carrying a <code>body</code> (the <code>"semi"</code> branch is bodyless). Every parse roots at <code>{type: "vhdl_file", design_units: [...]}</code>; each element of <code>design_units</code> is a <code>design_unit</code> object. See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
+<h2 id="first-rest-list-convention"><a class="header" href="#first-rest-list-convention">{first, rest} list convention</a></h2>
+<p>The uniform carrier for VHDL separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …). Each list emits <code>{first: &lt;head-element&gt;, rest: &lt;iteration-of-the-(separator element)*-tail&gt;}</code>. <code>rest</code> is a recursive-envelope array; each entry is the envelope of one <code>(separator element)</code> iteration. Unlike the SystemVerilog grammar — whose lists were flattened to clean <code>[$N, $M::2*]</code> arrays in its slice-58 audit — the VHDL grammar uses <code>{first, rest}</code> uniformly across VHDL-Slice-1. A future flattening slice, if it lands, gets its own <a href="#changelog-index">Changelog Index</a> row. See <a href="#walking-the-ast">Walking the AST</a> for the iteration helper.</p>
+<h2 id="parseability_probe"><a class="header" href="#parseability_probe">parseability_probe</a></h2>
+<p>The CLI wrapper around <code>pgen::embedding_api</code> used for terminal-side verification, AST inspection, and bug-report reproducers. Sub-commands include <code>--parse</code>, <code>--parse-dump-ast</code>, and <code>--parse-dump-ast-pretty</code>. For VHDL the parser is on-demand-only, so the probe must be built with the generated backend before use (see <a href="#build-recipe">Build Recipe</a>). The full flag set, exit codes, and registered grammars are in the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a>.</p>
+<h2 id="parser-release-version"><a class="header" href="#parser-release-version">Parser release version</a></h2>
+<p>The parser library’s release identity, currently <code>1.0.1</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
+<p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. VHDL has exactly <strong>one</strong> stable profile: <code>vhdl_1076_2019</code> (IEEE 1076-2019), whose entry rule is <code>vhdl_file</code>. The host entry points for it are <code>parse_vhdl_1076_2019</code> and <code>parse_vhdl_1076_2019_ast_dump</code>. Recognized profile-name aliases: <code>"vhdl_1076_2019"</code>, <code>"1076-2019"</code>, <code>"ieee1076-2019"</code>, <code>"ieee_1076_2019"</code>. See <a href="#public-api-surface">Public API Surface</a>.</p>
+<h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
+<p>The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences, quantified iterations, and the <code>rest</code> tail of a <code>{first, rest}</code> list), strings (for terminal and regex leaves), and matched-branch passthroughs (for alternations). Un-matched optionals are the empty array <code>[]</code>, never <code>null</code>. In VHDL the recursive envelope is what you reach when you descend below the typed surface: identifier tokens, physical / bit-string / string / character literals, and the few utility rules with no per-rule annotation. See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#the-json-carrier">The Json Carrier</a>.</p>
+<h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>
+<p>A <code>-&gt; ...</code> clause appended to a grammar rule definition in <code>grammars/vhdl.ebnf</code> that overrides the default recursive-envelope shape with a typed JSON value. Example: <code>vhdl_file := design_unit* -&gt; {type: "vhdl_file", design_units: $1}</code>. The annotation language (<code>$N</code> positional references, <code>{field: value}</code> object literals, <code>[...]</code> array literals, string literals) is specified in <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
+<h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
+<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The integer <code>AstDumpPayload.schema_version</code> field consumers branch on at runtime is currently <code>1</code>. The contract’s “Schema Versioning” table additionally uses <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the typing-campaign timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
+<p>The JSON value produced by an annotated rule. In VHDL it takes three sub-forms: a root object carrying <code>type</code> (only <code>vhdl_file</code>); a <code>kind</code>-tagged dispatch object (<code>{kind, body}</code> or per-branch named fields); and a named-field object for single-sequence rules. The <code>binop_chain</code> expression rules combine the <code>type</code> and named-field forms. Consumers dispatch on <code>obj["type"]</code> at the root and <code>obj["kind"]</code> for variants. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
+<h2 id="vhdl-slice-1"><a class="header" href="#vhdl-slice-1">VHDL-Slice-1</a></h2>
+<p>The single comprehensive typing batch that landed the entire <code>grammars/vhdl.ebnf</code> typed surface at once — <strong>110 distinct rules / 249 return annotations</strong>, parser release <code>1.0.1</code>, schema version <code>1</code>. Unlike the SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over many slices (each slice bumping the schema version), the VHDL grammar was annotated line-by-line in one pass. This is why the VHDL <a href="#changelog-index">Changelog Index</a> and <a href="#schema-versioning">Schema Versioning</a> timeline are short by design. Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="changelog-index"><a class="header" href="#changelog-index">Changelog Index</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+<p>This chapter is an index — pointers into the documents that carry the full changelog detail, plus the short list of releases relevant to this book. Use it to find what changed in a given release.</p>
+<h2 id="where-the-canonical-changelogs-live"><a class="header" href="#where-the-canonical-changelogs-live">Where the canonical changelogs live</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Source</th><th>Granularity</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code></td><td>Per-release shape change</td><td><strong>The authoritative contract.</strong> Its “Schema Versioning” table and per-release Highlights sections list the AST shape changes consumers care about. Where this book and the contract disagree, the contract wins.</td></tr>
+<tr><td><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code></td><td>Per-bug</td><td>When a downstream bug is accepted and fixed in a release, the ledger row records the input/output shape change and the fix proof.</td></tr>
+<tr><td><code>CHANGES.md</code> (root)</td><td>Per-release</td><td>Human-readable summary of all repository changes, VHDL among them.</td></tr>
+<tr><td>Git tags + commit log</td><td>Commit-by-commit</td><td>The most granular source — use for diffs once you know which release to inspect.</td></tr>
+</tbody>
+</table>
+</div>
+<p>When investigating “what changed and why,” start with the contract document, drop down to the bug ledger for specific accepted bugs, and fall back to git for diffs.</p>
+<h2 id="why-this-index-is-short-by-design"><a class="header" href="#why-this-index-is-short-by-design">Why this index is short by design</a></h2>
+<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline has exactly two entries.</strong> This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
+<h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
+<p>This book is <strong>live</strong> and tracks current main HEAD. The two entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="100--contract-101--vhdl-slice-1-full-grammar-typed-110-rules--249-annotations"><a class="header" href="#100--contract-101--vhdl-slice-1-full-grammar-typed-110-rules--249-annotations">1.0.0 / Contract 1.0.1 — VHDL-Slice-1: full grammar typed (110 rules / 249 annotations)</a></h3>
+<p>The initial typing campaign, covering the entire <code>grammars/vhdl.ebnf</code> surface in <strong>one batch</strong>.</p>
+<ul>
+<li><strong>Schema-version milestone:</strong> <code>1.0.0</code> (first parser release: <code>1.0.1</code>).</li>
+<li><strong>AST-dump schema version field value:</strong> <code>1</code> — the integer consumers branch on at runtime (<code>AstDumpPayload.schema_version</code>).</li>
+<li><strong>Annotation count:</strong> <strong>249</strong> (was <code>1</code> / pre-typing baseline). Coverage: the <code>vhdl_file</code> root; <code>design_unit</code> and the declarative-item / statement dispatch rules; design units (entity, architecture, package, package body, configuration, context); generic / port / parameter interfaces; declarations; types and constraints; the five-level <code>binop_chain</code> expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>); and the literal dispatch.</li>
+<li><strong>Accept set:</strong> unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.</li>
+<li><strong>Contract section:</strong> <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.0.1 / Contract 1.0.1 Highlights — VHDL-Slice-1”.</li>
+<li><strong>Machine-checkable inventory:</strong> <code>generated/vhdl_return_annotations.json</code> (249 entries) and its byte-identical embedded mirror <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>.</li>
+<li><strong>Per-rule shapes:</strong> <a href="#top-level-rules">Top-Level Rules</a>.</li>
+</ul>
+<h3 id="010--release-100--foundation-baseline"><a class="header" href="#010--release-100--foundation-baseline">0.1.0 / release 1.0.0 — foundation baseline</a></h3>
+<p>The pre-typing baseline.</p>
+<ul>
+<li><strong>Schema-version milestone:</strong> <code>0.1.0</code> (first parser release: <code>1.0.0</code>).</li>
+<li><strong>State:</strong> <code>grammars/vhdl.ebnf</code> un-annotated except for the <code>vhdl_file -&gt; {type, design_units}</code> root. The AST dump was the recursive-envelope shape across all other rules (see <a href="#ast-envelope-structure">AST Envelope Structure</a>).</li>
+<li><strong>Contract section:</strong> the <code>0.1.0</code> row of the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>.</li>
+</ul>
+<h2 id="bug-ledger-status"><a class="header" href="#bug-ledger-status">Bug ledger status</a></h2>
+<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries <strong>no VHDL rows</strong> — the <code>VHDL-NNNN</code> form appears there only as a report-ID naming-convention example. When a downstream VHDL bug is accepted, it gets a <code>VHDL-NNNN</code> row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change.</p>
+<h2 id="how-to-follow-per-slice-changes-1"><a class="header" href="#how-to-follow-per-slice-changes-1">How to follow per-slice changes</a></h2>
+<p>Each shape-affecting slice after VHDL-Slice-1 gets:</p>
+<ol>
+<li>A grammar change in <code>grammars/vhdl.ebnf</code> (the <code>-&gt; ...</code> annotation or restructure).</li>
+<li>A manifest update in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> (and the regenerated <code>generated/vhdl_return_annotations.json</code>).</li>
+<li>A parser-release / contract-version bump and a Highlights section in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>.</li>
+<li>A row in <a href="#schema-versioning">Schema Versioning</a> tagging the milestone.</li>
+<li>An entry in this changelog index summarizing the slice.</li>
+<li>A regression-lock test pinning the new typed shape.</li>
+</ol>
+<p>The live-book policy bundles all six in the same commit. Because VHDL-Slice-1 already typed the full grammar, the realistic future driver of new entries here is bug-ledger-driven shape fixes and any targeted restructure (for example, a list-flattening slice), not a long rule-by-rule campaign.</p>
 
                     </main>
 

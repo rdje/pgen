@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `VHDL-MDBOOK`
-- Status: `active`
+- Status: `done`
 - Roadmap lane: vhdl deliverables
 - Created: `2026-05-14`
 - Last updated: `2026-05-16`
@@ -40,10 +40,11 @@ consumers can read first, paired with a tracked HTML rendering and a
 ## Task Tree
 
 - ID: `VHDL-MDBOOK`
-  Status: `active`
+  Status: `done`
   Goal: `Stand up the VHDL parser mdBook on parity with the SV book.`
   Children: `VHDL-MDBOOK.1`, `VHDL-MDBOOK.2`, `VHDL-MDBOOK.3`,
   `VHDL-MDBOOK.4`, `VHDL-MDBOOK.5`, `VHDL-MDBOOK.6`
+  Result: `All 6 children done. The VHDL parser mdBook is fully stood up — scaffold + welcome, 4 core navigation chapters, 4 shape-reference chapters, the byte-verified minimal_entity worked example, the gate wiring, and the glossary + changelog-index closing leaf, with README + LIVE_ACHIEVEMENT_STATUS references. Tree complete 2026-05-16.`
 
 - ID: `VHDL-MDBOOK.1`
   Status: `done`
@@ -81,17 +82,15 @@ consumers can read first, paired with a tracked HTML rendering and a
   Commit: `VHDL-MDBOOK-Slice-2`
 
 - ID: `VHDL-MDBOOK.6`
-  Status: `pending`
+  Status: `done`
   Goal: `Wire glossary + changelog-index and link the book from README + LIVE_ACHIEVEMENT_STATUS.`
   Acceptance: `Glossary and changelog-index chapters exist; README and LIVE_ACHIEVEMENT_STATUS reference the book and its gate.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: glossary.md (15 terms, VHDL-correct, vhdl_v1.json manifest, single-batch VHDL-Slice-1 framing) + changelog-index.md (short by design — contract/ledger/CHANGES/git table + the 2 real release rows) authored and independently verified (links resolve, numbers 249/110/1.0.1/schema 1 correct). README.md gained a "Per-Parser Integration Reference Books" section listing all six books + gates; LIVE_ACHIEVEMENT_STATUS.md gained a Live Snapshot tracker note recording the completed VHDL-MDBOOK tree. vhdl_parser_book_gate green (independently re-run).`
+  Commit: `VHDL-MDBOOK-Slice-6`
 
 ## Current Frontier
 
-| Order | Leaf | Status | Why next |
-| --- | --- | --- | --- |
-| 1 | `VHDL-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — the last leaf. |
+_None — the `VHDL-MDBOOK` tree is complete. All leaves `.1`–`.6` are `done`._
 
 ## Decisions
 
@@ -118,6 +117,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 | `2026-05-15` | `VHDL-MDBOOK.2` | `make vhdl_parser_book_gate` | `pass — quickstart + build-recipe + public-api + ast-envelope authored; gate green` |
 | `2026-05-16` | `VHDL-MDBOOK.3` | `make vhdl_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters authored; content verified against generated/vhdl_return_annotations.json (249/110); gate green` |
 | `2026-05-16` | `VHDL-MDBOOK.4` | `make vhdl_parser_book_gate` + real-dump byte-equality check | `pass — examples-minimal-entity.md JSON byte-identical to generated/vhdl_parser.rs output; json-carrier.md accuracy defect corrected; gate green` |
+| `2026-05-16` | `VHDL-MDBOOK.6` | `make vhdl_parser_book_gate` + link/number cross-check | `pass — glossary + changelog-index authored; README/LIVE references added; links resolve, numbers correct; gate green. Tree complete.` |
 
 ## Commit Log
 
@@ -128,6 +128,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 | `VHDL-MDBOOK.2` | `VHDL-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 | `VHDL-MDBOOK.3` | `VHDL-MDBOOK-Slice-4` | rules-top-level + json-carrier + walking-the-ast + schema-versioning authored; inventory-verified (249/110) |
 | `VHDL-MDBOOK.4` | `VHDL-MDBOOK-Slice-5` | examples-minimal-entity.md (real captured AST, byte-verified) + json-carrier.md accuracy correction |
+| `VHDL-MDBOOK.6` | `VHDL-MDBOOK-Slice-6` | glossary + changelog-index authored; README per-parser-books section + LIVE tracker note; **tree complete** |
 
 ## Changelog
 
@@ -136,3 +137,4 @@ consumers can read first, paired with a tracked HTML rendering and a
 - `2026-05-15`: `VHDL-MDBOOK.2` completed; frontier advances to `VHDL-MDBOOK.3` (shape-reference chapters).
 - `2026-05-16`: `VHDL-MDBOOK.3` completed; frontier advances to `VHDL-MDBOOK.4` (minimal_entity worked example), then `VHDL-MDBOOK.6` (glossary/changelog/links).
 - `2026-05-16`: `VHDL-MDBOOK.4` completed (real captured AST, byte-verified; json-carrier.md accuracy defect corrected); frontier advances to `VHDL-MDBOOK.6` (final leaf — glossary/changelog/links).
+- `2026-05-16`: `VHDL-MDBOOK.6` completed (glossary + changelog-index + README/LIVE references). All children `done`; **`VHDL-MDBOOK` tree closed** and moved to Completed Task Trees in `docs/TASK_TREE.md`.
