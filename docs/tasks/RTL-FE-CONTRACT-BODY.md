@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `RTL-FE-CONTRACT-BODY`
-- Status: `active`
+- Status: `done`
 - Roadmap lane: rtl_frontend deliverables
 - Created: `2026-05-14`
 - Last updated: `2026-05-16`
@@ -33,10 +33,11 @@ gate recipe — modeled on the SV contract.
 ## Task Tree
 
 - ID: `RTL-FE-CONTRACT-BODY`
-  Status: `active`
+  Status: `done`
   Goal: `Create the rtl_frontend integration contract.`
   Children: `RTL-FE-CONTRACT-BODY.1`, `RTL-FE-CONTRACT-BODY.2`,
   `RTL-FE-CONTRACT-BODY.3`, `RTL-FE-CONTRACT-BODY.4`
+  Result: `All 4 children done. The rtl_frontend integration contract is at SV parity: Identity/Source/Schema/Release-1.0.1 (.1), AST Envelope + design_item/module_item/generate_item dispatch (.2), Declarations/Types/Ports/Statements/Expressions + ten-level binop_chain left-fold (.3), Companion Documentation + Gate Recipe + Glossary (.4). The rtl_frontend book DOC-ENVELOPE-0001 was comprehensively closed in lockstep in .2 (all 7 chapters, broad-audit-verified 0 residual). Tree complete 2026-05-16; 6th completed tree.`
 
 - ID: `RTL-FE-CONTRACT-BODY.1`
   Status: `done`
@@ -60,17 +61,15 @@ gate recipe — modeled on the SV contract.
   Commit: `RTL-FE-CONTRACT-BODY-Slice-3`
 
 - ID: `RTL-FE-CONTRACT-BODY.4`
-  Status: `pending`
+  Status: `done`
   Goal: `Add gate-recipe, manifest cross-reference, README + LIVE_ACHIEVEMENT_STATUS links.`
   Acceptance: `Contract cross-references the manifest + future book + lib API entry points.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: "Companion Documentation" (6-row surface/authority table + precedence order), "### Gate Recipe" (4 commands each verified vs build-recipe.md / Makefile:739 / ast_shape_contract.rs:763), and a 12-term "Glossary" appended. grep -c Companion Documentation==1, Glossary==1, no duplicate ## headers, real 4-field AstDumpPayload only. README.md already lists the rtl_frontend book in its Per-Parser Integration Reference Books section (line 239, confirmed read-only; not modified). Minor noted-only: README uses SHELL=/bin/bash vs the contract's /opt/homebrew/bin/bash (both valid; contract internally consistent).`
+  Commit: `RTL-FE-CONTRACT-BODY-Slice-4`
 
 ## Current Frontier
 
-| Order | Leaf | Status | Why next |
-| --- | --- | --- | --- |
-| 1 | `RTL-FE-CONTRACT-BODY.4` | `pending` | Gate-recipe + manifest cross-ref + README/LIVE links close the contract — final leaf. |
+_None — the `RTL-FE-CONTRACT-BODY` tree is complete. All leaves `.1`–`.4` are `done`._
 
 ## Decisions
 
@@ -92,6 +91,7 @@ gate recipe — modeled on the SV contract.
 | `2026-05-15` | `RTL-FE-CONTRACT-BODY.1` | manual review of created contract | `pass — 188-line contract created with full rule-by-rule surface for 156 annotations` |
 | `2026-05-16` | `RTL-FE-CONTRACT-BODY.2` | inventory cross-check + dup-header grep + comprehensive book residual audit + rtl_frontend_parser_book_gate | `pass — AST Envelope + Dispatch section (real AstDumpPayload, 4/10/11 kinds, grammar line refs, 156/74 verified, no dup ## headers); rtl_frontend book DOC-ENVELOPE-0001 comprehensively closed (7 chapters, 0 residual incl. worked-example vector); gate green` |
 | `2026-05-16` | `RTL-FE-CONTRACT-BODY.3` | inventory cross-check + dup-header grep + AstDumpPayload-clean check | `pass — Declarations/Types/Ports/Statements/Expressions section (7 families + ten-level binop_chain left-fold); 156/74 + 10 binop rules verified; no dup ## headers; AstDumpPayload 4-field model untouched; consistent with verified book` |
+| `2026-05-16` | `RTL-FE-CONTRACT-BODY.4` | command/path verification + dup-header grep + AstDumpPayload-clean + README read-only check | `pass — Companion Documentation + Gate Recipe + Glossary appended (commands verified vs build-recipe.md/Makefile:739/ast_shape_contract.rs:763); grep -c==1 each; no dup ## headers; real 4-field AstDumpPayload; README already lists the book. Tree complete.` |
 
 ## Commit Log
 
@@ -100,9 +100,11 @@ gate recipe — modeled on the SV contract.
 | `RTL-FE-CONTRACT-BODY.1` | `RTL-FE-CONTRACT-BODY-Slice-1` | new contract file: identity + source + stable surface + schema versioning + Release 1.0.1 full rule-by-rule |
 | `RTL-FE-CONTRACT-BODY.2` | `RTL-FE-CONTRACT-BODY-Slice-2` | AST Envelope + Dispatch section (4/10/11); rtl_frontend book DOC-ENVELOPE-0001 fully closed (7 chapters, 0 residual) |
 | `RTL-FE-CONTRACT-BODY.3` | `RTL-FE-CONTRACT-BODY-Slice-3` | Declarations/Types/Ports/Statements/Expressions section (ten-level binop_chain left-fold); contract-only |
+| `RTL-FE-CONTRACT-BODY.4` | `RTL-FE-CONTRACT-BODY-Slice-4` | Companion Documentation + Gate Recipe + Glossary; **tree complete** |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-16`: `.2` done (AST Envelope + Dispatch section; rtl_frontend book `DOC-ENVELOPE-0001` comprehensively closed — 7 chapters, 0 residual, broad audit caught the worked-example `dump.root`/`dump.schema_version` vector the earlier narrow grep missed). Frontier advances to `.3` (declarations/types/ports/statements/expressions), then `.4`.
 - `2026-05-16`: `.3` done (Declarations/Types/Ports/Statements/Expressions section + ten-level binop_chain left-fold contract; contract-only — book DOC-ENVELOPE-0001 already closed). Frontier advances to `.4` (gate-recipe + manifest cross-ref + README/LIVE links — final leaf).
+- `2026-05-16`: `.4` done (Companion Documentation + Gate Recipe + Glossary; README already lists the book). All children `done`; **`RTL-FE-CONTRACT-BODY` tree closed** and moved to Completed Task Trees in `docs/TASK_TREE.md` — 6th completed tree.

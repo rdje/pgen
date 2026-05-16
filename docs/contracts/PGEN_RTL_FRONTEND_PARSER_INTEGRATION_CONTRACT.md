@@ -611,6 +611,195 @@ reference at `docs/rtl_frontend_parser_book/src/rules-top-level.md`
 mirrors these family groupings; if any disagree, the inventory artifact
 wins, and this integration contract wins over the book.
 
+## Companion Documentation — rtl_frontend Parser Integration mdBook
+
+This contract is the **downstream integration surface**: the host-API
+envelope, the dispatch/rule-family shapes a consumer compiles against, and
+the release/schema axes. It does not duplicate the per-rule walkthroughs or
+worked examples — those live in the companion artifacts below. Each surface
+is authoritative for a different thing; consult the matching one and respect
+the precedence order stated at the end of this section.
+
+| Surface | Path | Authoritative for |
+|---|---|---|
+| **This contract** | `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` | The downstream integration surface: AST-dump envelope, `rtl_frontend_file` root, the `design_item` / `module_item` / `generate_item` dispatch, and the per-family rule shapes (declarations, parameters, ports, statements, the ten-level `binop_chain` expression hierarchy, data types, literals). See [AST Envelope and Dispatch](#ast-envelope-and-dispatch) and [Declarations, Types, Ports, Statements, and Expressions](#declarations-types-ports-statements-and-expressions). |
+| **Per-parser mdBook** | `docs/rtl_frontend_parser_book/` (source `src/*.md`; tracked HTML at `docs/rtl_frontend_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples, schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. Listed in `README.md` § "Per-Parser Integration Reference Books". |
+| **Shape-contract manifest** | `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
+| **Declared-annotation inventory** | `generated/rtl_frontend_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the rtl_frontend grammar emits (`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`, **74 distinct rules**). The generator-side source of truth for the typed surface. |
+| **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released rtl_frontend parser. Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+
+Precedence when surfaces disagree (highest first): the **embedding-API
+contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
+`AstDumpPayload` truth; the **declared-annotation inventory**
+(`generated/rtl_frontend_return_annotations.json`) and its embedded
+shape-contract manifest copy win for the exact typed-shape enumeration;
+**this integration contract** wins over the **per-parser mdBook** for
+downstream compliance. Report any disagreement as a documentation bug
+rather than silently coding to the lower-precedence surface.
+
+### Gate Recipe
+
+The exact, copy-pasteable per-family commands a downstream integrator or
+releaser runs. Each is verified against the repo (`rust/Makefile`,
+`docs/rtl_frontend_parser_book/src/build-recipe.md`,
+`rust/src/ast_shape_contract.rs`); none are invented — do not substitute
+flags.
+
+**1. On-demand parser regen.** The rtl_frontend parser is on-demand-only
+(not in the default `cargo test --features generated_parsers` build).
+Build `ast_pipeline`, then regenerate the parser from
+`grammars/rtl_frontend.ebnf` (run from `rust/`, per
+`docs/rtl_frontend_parser_book/src/build-recipe.md` § "Cold-clone build"):
+
+```bash
+cd rust && cargo build --release --features ebnf_dual_run --bin ast_pipeline
+./target/release/ast_pipeline ../grammars/rtl_frontend.ebnf \
+    --generate-parser --output ../generated/rtl_frontend_parser.rs
+```
+
+To wire the regenerated parser into a cargo build, point
+`PGEN_RTL_FRONTEND_PARSER_PATH` at the absolute path of the generated file
+before `cargo build --release --features generated_parsers` (see
+`docs/rtl_frontend_parser_book/src/build-recipe.md` § "Wiring into a
+downstream Cargo build").
+
+**2. Per-family book gate.** Builds the rtl_frontend parser book and
+verifies the tracked HTML landing pages (Makefile target
+`rtl_frontend_parser_book_gate`, `rust/Makefile` line 738):
+
+```bash
+make -C rust SHELL=/opt/homebrew/bin/bash rtl_frontend_parser_book_gate
+```
+
+**3. AST-shape-contract regression lock.** With the generated backend wired
+in (`PGEN_RTL_FRONTEND_PARSER_PATH` exported), run the shape-contract test
+that diffs the running generated parser against
+`rust/test_data/ast_shape_contract/rtl_frontend_v1.json` (test fn
+`rtl_frontend_ast_shape_contract_holds_against_running_generated_parser` in
+the `pgen::ast_shape_contract` library module,
+`rust/src/ast_shape_contract.rs` line 763):
+
+```bash
+cargo test --lib --features generated_parsers rtl_frontend_ast_shape_contract
+```
+
+The substring `rtl_frontend_ast_shape_contract` selects exactly the
+`rtl_frontend_ast_shape_contract_holds_against_running_generated_parser`
+test. Any drift between the running parser's emitted shapes and the locked
+manifest fails this test, surfacing the change before release.
+
+**4. Family closure / proof gates.** Anyone publishing a parser-release
+version bump also runs the closure/proof gates enumerated in
+[Validation / Release Gates](#validation--release-gates) (e.g. the public
+host-API stability gate `make -C rust SHELL=/bin/bash embedding_api_gate`
+and the per-family contract gate
+`make -C rust SHELL=/opt/homebrew/bin/bash rtl_frontend_generated_contract_gate`).
+That section is the full list; it is not repeated here.
+
+## Glossary
+
+Contract-scoped definitions of the terms a downstream integrator needs to
+read this document. Where a term has a normative definition, this contract
+is authoritative; the per-parser book's
+[glossary](../rtl_frontend_parser_book/src/glossary.md) paraphrases the
+same terms for quick lookup. Numbers below are pinned to contract `1.0.1` /
+schema `1` / **156 annotations across 74 distinct rules**.
+
+- **`AstDumpPayload`** — the success return of the rtl_frontend AST-dump
+  host entry points (defined in `rust/src/embedding_api.rs`, contract in
+  `rust/docs/EMBEDDING_API_CONTRACT.md`). A canonical-JSON payload string
+  plus truncation metadata, with **exactly four fields**: `dump_json`,
+  `truncated`, `full_bytes`, `emitted_bytes`. It does **not** carry
+  `root` / `schema_version` / `grammar` / `profile` members — see
+  [The `AstDumpPayload` envelope](#the-astdumppayload-envelope) for the
+  precise accuracy note.
+- **`dump_json`** — the `AstDumpPayload` field holding the canonical
+  (key-sorted) JSON encoding of the typed rtl_frontend AST. Parse this
+  string to obtain the `rtl_frontend_file` root object. When `truncated`
+  is `true` this string is replaced by the truncation diagnostic envelope,
+  not the AST.
+- **Truncation diagnostic envelope** — the deterministic JSON object that
+  replaces the AST in `dump_json` when `max_ast_bytes` is exceeded. It
+  carries `pgen_dump_contract_version` (currently `1`), `kind:
+  "pgen_ast_dump_truncation"`, `truncated: true`, `dump_kind:
+  "parser_return_ast"`, `max_bytes`, `full_bytes`, and `reason`.
+  Consumers must check `truncated` (or detect `kind ==
+  "pgen_ast_dump_truncation"`) before treating `dump_json` as an
+  rtl_frontend AST.
+- **AST-dump schema version** — the integer version axis tracking the AST
+  output shape, currently `1`, pinned by this contract (see
+  [Schema Versioning](#schema-versioning)). It is **not** a field of
+  `AstDumpPayload`; it is the contract-tracked axis. Bumped only when the
+  emitted shape changes in a way consumers may need to adapt to (new
+  annotation on a previously-unannotated rule, restructured annotation,
+  user-visible grammar-shape change). Pure perf work / internal codegen
+  reorganization do not bump it.
+- **Parser release version** — the parser library's release identity,
+  currently `1.0.1`. Bumped on every functional change (bug fixes, perf
+  work, grammar changes). Moves independently of the schema version.
+- **`design_item` / `module_item` / `generate_item` dispatch** — the
+  three top-level `kind`-tagged dispatchers. `design_item` is the primary
+  top-level dispatcher (4 branches: `"typedef"`, `"package"`, `"module"`,
+  `"semi"`); `module_item` is the in-module construct dispatcher (10
+  branches); `generate_item` is the in-generate-region dispatcher (11
+  branches — same families as `module_item` but admits `"generate_if"` /
+  `"generate_for"` instead of `"generate_region"`). Every branch except
+  the bodyless `"semi"` carries a `body`. Every parse roots at
+  `{type: "rtl_frontend_file", items: [...]}`; each element of `items` is
+  one `design_item` object. See
+  [The 4-branch `design_item` dispatch](#the-4-branch-design_item-dispatch),
+  [The 10-branch `module_item` dispatch](#the-10-branch-module_item-dispatch),
+  and [The 11-branch `generate_item` dispatch](#the-11-branch-generate_item-dispatch).
+- **Ten-level `binop_chain` left-fold** — the consumer-facing contract for
+  rtl_frontend's ten-level operator-precedence cascade (`logical_or_expr`
+  → `logical_and_expr` → `bit_or_expr` → `bit_xor_expr` → `bit_and_expr`
+  → `equality_expr` → `relational_expr` → `shift_expr` → `additive_expr`
+  → `multiplicative_expr`). Every level emits
+  `{type: "binop_chain", level, lhs, rest}` (10 rules / 10 annotations,
+  one per rule); consumers MUST fold `rest` left-associatively onto
+  `lhs`. There is **no `sign` field** on any level — prefix operators are
+  factored into the separate `unary_expr` tier below `multiplicative_expr`.
+  One fold routine walks the whole binary-expression tree. See
+  [Expressions — the ten-level `binop_chain` left-fold contract](#expressions--the-ten-level-binop_chain-left-fold-contract).
+- **Shape-contract manifest** — the embedded machine-checkable shape lock
+  `rust/test_data/ast_shape_contract/rtl_frontend_v1.json`.
+  Content-identical to the declared-annotation inventory on the
+  `(rule, branch_index, annotation_type, normalized_text)` tuples (omits
+  only the diagnostic `raw_text` field). Drift fails the
+  `rtl_frontend_ast_shape_contract_holds_against_running_generated_parser`
+  regression test (see [Gate Recipe](#gate-recipe)).
+- **Declared-annotation inventory** — the live machine-checkable
+  enumeration of every typed-shape annotation the rtl_frontend grammar
+  emits: `generated/rtl_frontend_return_annotations.json` (`version: 1`,
+  `grammar: "rtl_frontend"`, `annotation_count: 156`, **74 distinct
+  rules**). The generator-side source of truth for the typed surface;
+  mirrored by the embedded shape-contract manifest copy. (The grammar has
+  164 total rules; 74 of them carry the 156 typed-shape annotations — see
+  the Highlights header-reconciliation note.)
+- **Recursive envelope** — the default JSON shape produced by
+  un-annotated rules: a recursive composition of arrays (sequences,
+  quantified iterations, the `rest` tail of a `{first, rest}` list),
+  strings (terminal/regex leaves), and matched-branch passthroughs (for
+  alternations). Un-matched optionals are the empty array `[]`, never
+  `null`. It is what a consumer reaches when descending below the typed
+  surface (identifier tokens; the `binop_chain` `rest` iteration; the
+  un-annotated `named_data_type` reached as `data_type.body` when
+  `data_type.kind == "named"`; the few utility rules with no per-rule
+  annotation).
+- **Generic host AST-dump surface** — the
+  `parse_grammar_profile_ast_dump*` family
+  (`parse_grammar_profile_ast_dump`,
+  `parse_grammar_profile_ast_dump_with_limits`, the `*_result` and
+  `*_named` forms). The grammar-agnostic entry points that, for the
+  `rtl_frontend` grammar + `default` profile, return the
+  `AstDumpPayload`. rtl_frontend has **no** named-convenience entry point
+  (unlike VHDL's `parse_vhdl_1076_2019_ast_dump`); the generic family
+  used with grammar family `rtl_frontend` / profile `default` is the
+  integration surface. Signatures are in
+  `rust/docs/EMBEDDING_API_CONTRACT.md`; the stable entry-point list is
+  in [Stable Integration Surface](#stable-integration-surface).
+
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
 - `rtl_frontend` is an `In Progress` family in the live tracker. The current grammar covers the synthesizable RTL subset; the full IEEE 1800 SystemVerilog surface is **out of scope** — see the `systemverilog` family for that.
