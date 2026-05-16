@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-92912c8a.js";
+            window.path_to_searchindex_js = "searchindex-081add68.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-440c5d76.js"></script>
@@ -184,7 +184,7 @@
 <ul>
 <li><strong>Build and integration.</strong> See <a href="#build-recipe">Build Recipe</a>, <a href="#public-api-surface">Public API Surface</a>.</li>
 <li><strong>AST envelope and walking conventions.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a>, <a href="#walking-the-ast">Walking the AST</a>.</li>
-<li><strong>Per-rule typed shapes.</strong> See <a href="#rules-top-level">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/rtl_frontend.ebnf</code>) carries <strong>156 typed annotations</strong> covering design items, declarations, types, ports, statements, expressions (including the <code>binop_chain</code> shape for the 10 binary-operator chain rules), and literals.</li>
+<li><strong>Per-rule typed shapes.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/rtl_frontend.ebnf</code>) carries <strong>156 typed annotations</strong> covering design items, declarations, types, ports, statements, expressions (including the <code>binop_chain</code> shape for the 10 binary-operator chain rules), and literals.</li>
 <li><strong>Worked examples</strong> — what does the AST look like for an empty module, a single continuous assign, a generate-for? See <a href="#examples-empty-module">Empty Module</a>.</li>
 <li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>.</li>
 <li><strong>Release-by-release shape changes.</strong> See <a href="#changelog-index">Changelog Index</a>.</li>
@@ -559,23 +559,657 @@ pub struct ParserEmbeddingApiContract {
 <h2 id="truncation"><a class="header" href="#truncation">Truncation</a></h2>
 <p>If <code>AstDumpOptions.max_ast_bytes</code> is set and the encoded JSON exceeds it, the dump is truncated and <code>truncated: true</code> is set on the payload. The truncated payload is still valid JSON (the truncation happens at a node boundary). Consumers should check the <code>truncated</code> flag and either bail or note the truncation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="json-carrier"><a class="header" href="#json-carrier">Json Carrier</a></h1>
+<h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
+<p>This chapter explains how the rtl_frontend parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, the absent-optional convention, and the determinism guarantee. It is the conceptual companion to <a href="#top-level-rules">Top-Level Rules</a>, which enumerates the concrete per-rule shapes, and to <a href="#ast-envelope-structure">AST Envelope Structure</a>, which documents the outer <code>AstDumpPayload</code>.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-FE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-FE-MDBOOK.html">docs/tasks/RTL-FE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Note:</strong> The rtl_frontend return-annotation campaign landed across seven slices — <strong>RTL-FE-Slice-1..7, 156 annotations on 74 rules</strong> (parser release <code>1.0.1</code>, schema version <code>1</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves like <code>identifier</code>, and a few utility/passthrough rules) produce the recursive-envelope shape. The authoritative enumeration is <code>generated/rtl_frontend_return_annotations.json</code> (mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>).</p>
 </blockquote>
+<h2 id="two-carrier-kinds"><a class="header" href="#two-carrier-kinds">Two carrier kinds</a></h2>
+<p>Every node in the rtl_frontend AST dump is carried in one of exactly two shapes.</p>
+<h3 id="typed-shape-rules-with-a----return-annotation"><a class="header" href="#typed-shape-rules-with-a----return-annotation">Typed shape (rules with a <code>-&gt; ...</code> return annotation)</a></h3>
+<p>When a rule in <code>grammars/rtl_frontend.ebnf</code> carries a return annotation, the parser emits a typed JSON value derived from that annotation. For rtl_frontend this takes three sub-forms:</p>
+<ol>
+<li>
+<p><strong>Root object with <code>type</code>.</strong> Only <code>rtl_frontend_file</code> carries a <code>type</code> discriminator at the dispatch level:</p>
+<pre><code class="language-json">{ "type": "rtl_frontend_file", "items": [ /* ... */ ] }
+</code></pre>
+</li>
+<li>
+<p><strong><code>kind</code>-tagged dispatch object.</strong> Most rtl_frontend dispatch rules use a <code>kind</code> discriminator (no <code>type</code>), reflecting the design choice of tightly-scoped per-rule dispatch. For example, <code>design_item</code>:</p>
+<pre><code class="language-json">{ "kind": "module", "body": { /* module_declaration shape */ } }
+</code></pre>
+</li>
+<li>
+<p><strong>Named-field object.</strong> Single-sequence rules emit a flat object of named fields. For example, <code>module_declaration</code>:</p>
+<pre><code class="language-json">{ "name": &lt;identifier-envelope&gt;, "imports_pre": [], "parameters": [],
+  "imports_post": [], "ports": [], "items": [] }
+</code></pre>
+</li>
+</ol>
+<p>The expression rules combine forms: the ten <code>binop_chain</code> levels carry a <code>type</code> plus a <code>level</code> and the operand fields; <code>conditional_expr</code>’s ternary form carries a <code>type</code>; <code>primary_expr</code> carries a <code>kind</code>.</p>
+<h3 id="recursive-envelope-shape-rules-without-annotations-1"><a class="header" href="#recursive-envelope-shape-rules-without-annotations-1">Recursive-envelope shape (rules without annotations)</a></h3>
+<p>When a rule has no return annotation, the parser emits a JSON value derived mechanically from the rule’s grammar shape:</p>
+<ul>
+<li>A <strong>terminal literal</strong> or <strong>regex literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>rule reference</strong> produces whatever shape that rule produces.</li>
+<li>A <strong>sequence</strong> <code>a b c</code> produces a JSON array <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</li>
+<li>An <strong>alternation</strong> produces the matched branch’s shape directly.</li>
+<li>A <strong>quantified rule</strong> (<code>x*</code>, <code>x+</code>) produces a JSON array of the per-iteration shapes.</li>
+<li>An <strong>optional rule</strong> (<code>x?</code>) produces the matched shape if matched, or <code>[]</code> if un-matched.</li>
+</ul>
+<p>In rtl_frontend the recursive-envelope shape is what you reach when you descend below the typed surface: <code>identifier</code> tokens, <code>named_data_type</code>, the passthrough forms of <code>conditional_expr</code> / <code>unary_expr</code>, and the few utility rules with no per-rule annotation. The <code>body</code> field of any <code>{kind, body}</code> dispatch object is whatever shape the matched sub-rule produces — typed if that sub-rule is itself annotated (it usually is), envelope otherwise.</p>
+<blockquote>
+<p><strong>Rule of thumb — un-annotated leaves are envelopes, not bare strings.</strong> A field bound to an un-annotated rule (most importantly every identifier-valued field: <code>name</code>, <code>module_name</code>, <code>genvar</code>, …) surfaces as that rule’s <strong>recursive envelope</strong>, not a bare JSON string. The identifier text is nested inside the envelope, reached by walking to the terminal. Do not assume <code>obj["name"]</code> is a string — see the worked example below for the real shape.</p>
+</blockquote>
+<h2 id="object--array--string--scalar-mapping"><a class="header" href="#object--array--string--scalar-mapping">Object / array / string / scalar mapping</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>JSON value</th><th>Produced by</th></tr>
+</thead>
+<tbody>
+<tr><td>Object <code>{...}</code></td><td>A typed return annotation that is an object literal (<code>{kind: ...}</code>, <code>{name: ..., data_type: ...}</code>, <code>{type: "binop_chain", ...}</code>, etc.).</td></tr>
+<tr><td>Array <code>[...]</code></td><td>A recursive-envelope sequence/quantified shape, <strong>or</strong> an un-matched optional field (<code>[]</code>), <strong>or</strong> the trailing <code>rest</code> iteration of a <code>{first, rest}</code> list rule.</td></tr>
+<tr><td>String <code>"..."</code></td><td>A matched terminal or regex leaf reached through an envelope (identifier text, literal text, keyword text).</td></tr>
+<tr><td><code>true</code> / <code>false</code></td><td>A <code>BooleanLiteral</code> in a typed annotation. The current 156-annotation rtl_frontend surface uses <strong>no</strong> boolean literals; every <code>return_object</code> annotation is an object literal and the two <code>return_scalar</code> annotations are positional passthroughs.</td></tr>
+<tr><td>Number</td><td>A <code>NumberLiteral</code> typed transform. Not used by the current rtl_frontend surface.</td></tr>
+<tr><td><code>null</code></td><td>A <code>NullLiteral</code>. <strong>Not used</strong> by the current rtl_frontend surface — absent optional fields are carried as the empty array <code>[]</code>, never <code>null</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two rtl_frontend-specific points consumers must internalize:</p>
+<ul>
+<li><strong>Absent optionals are <code>[]</code>, never <code>null</code>.</strong> A <code>parameter_declaration_tail</code> with no <code>= &lt;expr&gt;</code> emits <code>"default": []</code>. An <code>enum_item</code> with no <code>= &lt;expr&gt;</code> emits <code>"value": []</code>. A <code>port_group</code> with no <code>data_type</code> emits <code>"data_type": []</code>. A plain signal’s <code>signal_reference.path</code> is <code>[]</code>. A module with no parameter list emits <code>"parameters": []</code>. Test for an empty array, not for <code>null</code> or a missing key. (This was verified empirically against the live parser output — see the worked example.)</li>
+<li><strong><code>{first, rest}</code> is the list convention, used uniformly.</strong> Separated lists (<code>port_list</code>, <code>parameter_declaration_sequence</code>, <code>genvar_declaration</code>, <code>net_declaration</code>, <code>scoped_identifier</code>, <code>event_control_list</code>, <code>module_instantiation</code>, <code>concatenation_expr</code>, <code>parameter_override_list</code>, <code>port_connection_list</code>, <code>struct_union_field</code>, <code>enum_type</code>, …) emit <code>{first: &lt;head&gt;, rest: &lt;iteration-of-the-(sep X)*-tail&gt;}</code>. <code>rest</code> is a recursive-envelope array; each entry is the envelope of one <code>(separator element)</code> iteration. Unlike the SystemVerilog grammar — where a slice-58 audit flattened these to clean <code>[$N, $M::2*]</code> arrays — the rtl_frontend grammar uses the <code>{first, rest}</code> shape uniformly across RTL-FE-Slice-1..7, so consumers should expect to descend through the separator wrap when iterating an rtl_frontend list. (A future flattening slice, if it lands, will get its own <a href="#schema-versioning">Schema Versioning</a> row.)</li>
+</ul>
+<h2 id="worked-example-a-minimal-module"><a class="header" href="#worked-example-a-minimal-module">Worked example: a minimal module</a></h2>
+<p>Input:</p>
+<pre><code class="language-systemverilog">module m; endmodule
+</code></pre>
+<p>This is the real captured output of the live <code>rtl_frontend</code> parser (<code>AstDumpPayload.root</code>):</p>
+<ul>
+<li>
+<p>The root is the <strong>typed root object</strong> <code>{ "type": "rtl_frontend_file", "items": [ … ] }</code>.</p>
+</li>
+<li>
+<p><code>items</code> is a <strong>recursive-envelope array</strong> (the <code>design_item*</code> iteration) with one element.</p>
+</li>
+<li>
+<p>That element is a <strong><code>kind</code>-tagged dispatch object</strong> <code>{ "kind": "module", "body": { … } }</code>.</p>
+</li>
+<li>
+<p><code>body</code> is the <strong>named-field object</strong> for <code>module_declaration</code>:</p>
+<pre><code class="language-json">{
+  "name":         &lt;identifier-envelope ending in [ [], "m" ]&gt;,
+  "imports_pre":  [],
+  "parameters":   [],
+  "imports_post": [],
+  "ports":        [],
+  "items":        []
+}
+</code></pre>
+</li>
+<li>
+<p><code>name</code> is <strong>not</strong> a bare string <code>"m"</code>. It is the recursive envelope of the <code>kw_module identifier</code> sequence position bound to <code>$2</code> of the <code>module_declaration</code> rule, threaded through the un-annotated <code>identifier</code> rule. In the live output it is a nested array whose deeply-nested tail is <code>[ [], "m" ]</code> — the identifier text <code>"m"</code> is at index <code>[1]</code> of that innermost two-element pair. A robust consumer walks to the terminal string rather than indexing a fixed depth (see <a href="#identifier-extraction">Walking the AST</a>).</p>
+</li>
+<li>
+<p><code>imports_pre</code>, <code>imports_post</code> are <strong>empty arrays</strong> (the <code>import_declaration*</code> iterations matched zero items).</p>
+</li>
+<li>
+<p><code>parameters</code> is an <strong>empty array</strong> (<code>[]</code>) because the optional <code>#( … )</code> parameter clause was absent — the absent-optional convention.</p>
+</li>
+<li>
+<p><code>ports</code> is an <strong>empty array</strong> (<code>[]</code>) because the optional <code>( … )</code> ANSI port list was absent.</p>
+</li>
+<li>
+<p><code>items</code> is an <strong>empty array</strong> (the <code>module_item*</code> iteration matched zero items).</p>
+</li>
+</ul>
+<p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>; the value shapes above are the real captured output of <code>generated/rtl_frontend_parser.rs</code> for this input. This grounds the rule of thumb: an un-annotated identifier field is the identifier rule’s recursive envelope, not a bare string — confirm structure against the inventory and the live parser, never assume a scalar.</p>
+<h2 id="the-expression-family-binop_chain"><a class="header" href="#the-expression-family-binop_chain">The expression family (<code>binop_chain</code>)</a></h2>
+<p>The ten expression-precedence rules (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>) all carry the same <code>binop_chain</code> carrier so a single consumer fold handles the whole tree:</p>
+<pre><code class="language-json">{ "type": "binop_chain", "level": "additive", "lhs": &lt;next-level-shape&gt;, "rest": [ /* (op, operand) iterations */ ] }
+</code></pre>
+<p><code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level, bottoming out at <code>unary_expr</code> → a typed <code>primary_expr</code>). <code>rest</code> is a recursive-envelope array of <code>(operator, operand)</code> iterations. There is <strong>no</strong> <code>sign</code> field on any rtl_frontend level (unlike VHDL’s <code>simple_expression</code>); prefix <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> are handled by the <code>unary_expr</code> rule below the cascade. Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>. The full level/field/operator table is in <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a>; the fold code is in <a href="#walking-the-ast">Walking the AST</a>.</p>
+<p><code>conditional_expr</code> (ternary) and <code>unary_expr</code> are <strong>passthrough</strong> when their distinguishing syntax is absent (the <code>-&gt; $1</code> <code>return_scalar</code> branches): a non-ternary, non-prefixed expression surfaces directly as its <code>logical_or_expr</code> <code>binop_chain</code> or its <code>primary_expr</code> <code>{kind, ...}</code> object, with no wrapper. Consumers must therefore accept a <code>type</code>-tagged object, a <code>kind</code>-tagged object, or a passthrough child in any expression slot.</p>
+<h2 id="determinism-1"><a class="header" href="#determinism-1">Determinism</a></h2>
+<p>The AST dump is <strong>byte-deterministic</strong> for a given input + parser-release version:</p>
+<ul>
+<li>Object keys are emitted in canonical (alphabetical) order.</li>
+<li>Number formatting is canonical.</li>
+<li>No embedded timestamps or hashes.</li>
+<li>Whitespace is configurable via <code>AstDumpOptions.pretty</code> (compact vs pretty-printed), but the underlying JSON value is identical.</li>
+</ul>
+<p>Re-running the parse on the same input produces an identical JSON value. This is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — report it via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="un-annotated-on-purpose-rules"><a class="header" href="#un-annotated-on-purpose-rules">Un-annotated-on-purpose rules</a></h2>
+<p>Some rules remain un-annotated by design — typically terminal/regex leaves (<code>identifier</code> and the keyword/operator tokens), <code>named_data_type</code>, and the passthrough forms of <code>conditional_expr</code> / <code>unary_expr</code> whose envelope shape is already the most useful representation. Their text is reachable through the recursive-envelope walk from the nearest typed parent (e.g. <code>data_type.kind == "named"</code> → <code>body</code> is the <code>named_data_type</code> envelope; <code>literal.kind == "decimal"</code> → <code>text</code> is the matched literal text).</p>
+<h2 id="how-to-read-the-annotation-text"><a class="header" href="#how-to-read-the-annotation-text">How to read the annotation text</a></h2>
+<p>The <code>normalized_text</code> field of each inventory entry is the EBNF <code>-&gt; ...</code> clause:</p>
+<ul>
+<li><code>$N</code> — positional reference to the Nth body element (1-indexed).</li>
+<li><code>{field: value, ...}</code> — typed object literal (<code>annotation_type: "return_object"</code>).</li>
+<li><code>$N</code> alone — positional passthrough (<code>annotation_type: "return_scalar"</code>; rtl_frontend uses exactly two: <code>conditional_expr</code> and <code>unary_expr</code> passthrough branches).</li>
+<li><code>[v1, v2, ...]</code> — array literal.</li>
+<li><code>"text"</code> — string literal.</li>
+</ul>
+<p>The full annotation-language grammar is <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>. The per-rule shapes those annotations produce are tabulated in <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking The Ast</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-FE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-FE-MDBOOK.html">docs/tasks/RTL-FE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+<h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/rtl_frontend_return_annotations.json</code>, 156 annotations on 74 rules, schema version <code>1</code>).</p>
+<h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
+<p>Because the AST tree mixes typed objects (the RTL-FE-Slice-1..7 surface) and recursive-envelope arrays (terminal/regex leaves, <code>named_data_type</code>, and the passthrough expression forms), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use serde_json::Value as JsonValue;
+
+fn walk(node: &amp;JsonValue) {
+    match node {
+        JsonValue::Object(obj) =&gt; {
+            // Typed-shape node. The root carries `type`; binop_chain /
+            // ternary / unary carry `type`; every other rtl_frontend
+            // typed shape uses a `kind` discriminator.
+            if obj.get("type").and_then(|v| v.as_str()) == Some("rtl_frontend_file") {
+                if let Some(items) = obj.get("items") {
+                    walk(items); // recursive-envelope array of design_item shapes
+                }
+                return;
+            }
+            match obj.get("type").and_then(|v| v.as_str()) {
+                Some("binop_chain") =&gt; { walk_binop_chain(obj); return; }
+                Some("ternary")     =&gt; {
+                    walk(obj.get("condition").unwrap_or(&amp;JsonValue::Null));
+                    walk(obj.get("then_expr").unwrap_or(&amp;JsonValue::Null));
+                    walk(obj.get("else_expr").unwrap_or(&amp;JsonValue::Null));
+                    return;
+                }
+                Some("unary") =&gt; { walk(obj.get("expr").unwrap_or(&amp;JsonValue::Null)); return; }
+                _ =&gt; {}
+            }
+            match obj.get("kind").and_then(|v| v.as_str()) {
+                Some("module")  =&gt; walk_module(obj.get("body")),
+                Some("package") =&gt; walk_package(obj.get("body")),
+                Some("typedef") =&gt; walk_typedef(obj.get("body")),
+                // ... other design_item / module_item / generate_item kinds
+                Some("semi")    =&gt; { /* lone `;` separator — nothing to do */ }
+                _ =&gt; {
+                    // Unknown or field-only typed object (e.g. a named-field
+                    // shape like module_declaration, or a primary_expr kind
+                    // the walker doesn't special-case). Fall through to a
+                    // generic child walk so the walker stays robust to
+                    // shapes it doesn't special-case.
+                    for (_key, value) in obj.iter() {
+                        walk(value);
+                    }
+                }
+            }
+        }
+        JsonValue::Array(items) =&gt; {
+            // Recursive-envelope shape (sequence / quantified / `rest`
+            // iteration / un-matched optional `[]`) — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        JsonValue::String(_text) =&gt; {
+            // Terminal text — identifier / literal value. No children.
+        }
+        JsonValue::Bool(_) | JsonValue::Number(_) | JsonValue::Null =&gt; {
+            // Annotation-produced scalars. The current rtl_frontend surface
+            // uses none of these (absent optionals are `[]`, not null), but
+            // handle them so future slices don't break the walker.
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-the-unknown-shape-fallback-matters"><a class="header" href="#why-the-unknown-shape-fallback-matters">Why the unknown-shape fallback matters</a></h2>
+<p>The fallthrough that walks the children of any typed object the walker doesn’t special-case is <strong>important</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>_ =&gt; {
+    for (_key, value) in obj.iter() {
+        walk(value);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The rtl_frontend grammar landed its full surface across RTL-FE-Slice-1..7, but subsequent shape-affecting slices can add new <code>kind</code> values or restructure a shape. A walker that hard-fails on an unrecognized <code>kind</code> will break on every parser-release that extends the grammar. A walker that walks the children of unknown shapes degrades gracefully — it won’t extract structured info for shapes it doesn’t understand, but it will still reach descendants.</p>
+<p>Recommendation: only hard-fail on unknown shapes when you are explicitly pinning to a specific <code>schema_version</code> and your test corpus exercises every <code>kind</code> value in that schema (see <a href="#schema-versioning">Schema Versioning</a>).</p>
+<h2 id="dispatching-the-design-item-list"><a class="header" href="#dispatching-the-design-item-list">Dispatching the design-item list</a></h2>
+<p>Every parse roots at <code>{ "type": "rtl_frontend_file", "items": [ ... ] }</code>. The per-item dispatch is the 4-kind <code>design_item</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn handle_design_item(node: &amp;serde_json::Value) {
+    let kind = node.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+    let body = node.get("body");
+    match kind {
+        "module"  =&gt; handle_module(body),   // {name, imports_pre, parameters, imports_post, ports, items}
+        "package" =&gt; handle_package(body),  // {name, items}
+        "typedef" =&gt; handle_typedef(body),  // {data_type, packed_range, name}
+        "semi"    =&gt; { /* lone `;` */ }
+        _         =&gt; { /* unknown — degrade gracefully */ }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The same <code>{kind, body?}</code> pattern recurs for the nested dispatch wrappers: <code>module_item</code> (10 kinds), <code>generate_item</code> (11 kinds), and <code>package_item</code> (3 kinds). All use the bodyless <code>{kind: "semi"}</code> for a stray <code>;</code>. The leaf keyword rules (<code>parameter_flavor</code>, <code>port_direction</code>, <code>port_direction_token</code>, <code>event_edge</code>, <code>assignment_operator</code>, <code>builtin_data_type</code>, <code>always_star_event</code>, the <code>"wildcard"</code> branch of <code>port_connection</code>, the <code>"byte"</code> branch of <code>struct_union_field_name</code>) are bare <code>{kind}</code> objects with no <code>body</code>.</p>
+<h2 id="folding-the-binop_chain-expression-hierarchy"><a class="header" href="#folding-the-binop_chain-expression-hierarchy">Folding the <code>binop_chain</code> expression hierarchy</a></h2>
+<p>The ten expression-precedence rules (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>) all emit the same <code>binop_chain</code> shape. A single fold handles the whole hierarchy:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Folds one binop_chain level left-associatively. `lhs` is the leading
+/// operand (itself a binop_chain of the next-tighter level, bottoming out
+/// at unary_expr -&gt; a typed primary_expr). `rest` is the recursive-envelope
+/// iteration of (operator, operand) pairs.
+fn walk_binop_chain(node: &amp;serde_json::Map&lt;String, serde_json::Value&gt;) {
+    debug_assert_eq!(
+        node.get("type").and_then(|v| v.as_str()),
+        Some("binop_chain")
+    );
+
+    // `level` names the precedence tier without re-deriving from context:
+    // "logical_or" | "logical_and" | "bit_or" | "bit_xor" | "bit_and" |
+    // "equality" | "relational" | "shift" | "additive" | "multiplicative".
+    let _level = node.get("level").and_then(|v| v.as_str());
+
+    let mut acc = lower_operand(node.get("lhs").expect("lhs present"));
+
+    // `rest` is the recursive-envelope array of (op, operand) iterations.
+    // rtl_frontend has NO `sign` field — prefix +/-/!/~ live in unary_expr,
+    // below this cascade. All ten levels iterate `*`.
+    if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
+        for pair in rest {
+            let (op, rhs_node) = split_op_operand(pair);
+            acc = Expr::Binary {
+                op,
+                lhs: Box::new(acc),
+                rhs: Box::new(lower_operand(rhs_node)),
+            };
+        }
+    }
+    // ... use `acc`
+}
+<span class="boring">}</span></code></pre>
+<p>The leaf operand bottoms out at <code>unary_expr</code> then <code>primary_expr</code>. Because <code>conditional_expr</code> (ternary) and <code>unary_expr</code> are <strong>passthrough</strong> when their syntax is absent, <code>lower_operand</code> must accept three shapes in any operand slot:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn lower_operand(node: &amp;serde_json::Value) -&gt; Expr {
+    match node.get("type").and_then(|v| v.as_str()) {
+        Some("binop_chain") =&gt; fold_binop(node),   // nested precedence level
+        Some("ternary")     =&gt; lower_ternary(node), // {condition, then_expr, else_expr}
+        Some("unary")       =&gt; lower_unary(node),   // {op, expr}; op in
+                                                    //  plus|minus|logical_not|bit_not
+        _ =&gt; match node.get("kind").and_then(|v| v.as_str()) {
+            // primary_expr passthrough (unary_expr / conditional_expr -&gt; $1):
+            Some("repetition")    =&gt; lower_repetition(node.get("body")),
+            Some("concatenation") =&gt; lower_concat(node.get("body")),
+            Some("ranged_signal") =&gt; lower_ranged_signal(node.get("body")),
+            Some("signal")        =&gt; lower_signal(node.get("body")),
+            Some("literal")       =&gt; lower_literal(node.get("body")),
+            Some("parens")        =&gt; lower_operand(node.get("expr").unwrap()),
+            _ =&gt; lower_envelope(node), // un-annotated descent
+        },
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><code>level</code> tells you which precedence tier you are at without re-deriving it from context. The fold is identical at every level precisely because the carrier is identical at every level.</p>
+<h2 id="identifier-extraction"><a class="header" href="#identifier-extraction">Identifier extraction</a></h2>
+<p>rtl_frontend identifiers (module names, signal names, genvars, labels) are bound to the <strong>un-annotated</strong> <code>identifier</code> rule, so they surface as a recursive envelope, <strong>not</strong> a bare JSON string. The identifier text is the terminal string nested inside that envelope. Walk to the terminal rather than indexing a fixed depth:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_identifier(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt; {
+    match node {
+        serde_json::Value::String(text) =&gt; Some(text.clone()),
+        serde_json::Value::Array(items) =&gt; {
+            // The identifier envelope nests through positional sequence
+            // arrays; the text is the deepest non-empty string leaf.
+            // Walk every child and take the first string we reach,
+            // skipping empty-array `[]` optional placeholders.
+            items.iter().find_map(extract_identifier)
+        }
+        _ =&gt; None,
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>For <code>module_declaration</code> the name lives at <code>body["name"]</code>; for <code>signal_reference</code> it is <code>body["name"]</code> (a <code>scoped_identifier</code> — itself a <code>{first, rest}</code> shape whose <code>first</code> is an identifier envelope). The per-rule chapters (<a href="#top-level-rules">Top-Level Rules</a>) document the field that holds the identifier for each rule that produces one. Always treat these as envelopes — see <a href="#worked-example-a-minimal-module">The Json Carrier</a> for the captured shape of <code>module m; endmodule</code>, where <code>name</code> is a nested array ending in <code>[ [], "m" ]</code>, not the string <code>"m"</code>.</p>
+<h2 id="iterating-first-rest-lists"><a class="header" href="#iterating-first-rest-lists">Iterating <code>{first, rest}</code> lists</a></h2>
+<p>rtl_frontend separated lists (<code>port_list</code>, <code>parameter_declaration_sequence</code>, <code>genvar_declaration</code>, <code>net_declaration</code>, <code>scoped_identifier</code>, <code>event_control_list</code>, <code>module_instantiation</code>, <code>concatenation_expr</code>, <code>parameter_override_list</code>, <code>port_connection_list</code>, <code>struct_union_field</code>, <code>enum_type</code>, …) use the <code>{first, rest}</code> carrier. <code>rest</code> is the recursive-envelope iteration of the <code>(separator element)*</code> tail, so each <code>rest</code> entry wraps a separator token plus one element:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn iter_list&lt;'a&gt;(list: &amp;'a serde_json::Value) -&gt; Vec&lt;&amp;'a serde_json::Value&gt; {
+    let mut out = Vec::new();
+    if let Some(first) = list.get("first") {
+        out.push(first);
+    }
+    if let Some(rest) = list.get("rest").and_then(|v| v.as_array()) {
+        for entry in rest {
+            // `entry` is the envelope of one `(sep element)` iteration;
+            // the element is the last child. Walk to it rather than
+            // assuming a fixed index, so a grammar tweak to the
+            // separator doesn't break extraction.
+            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
+                out.push(elem);
+            } else {
+                out.push(entry);
+            }
+        }
+    }
+    out
+}
+<span class="boring">}</span></code></pre>
+<p>This <code>{first, rest}</code> shape is uniform across the rtl_frontend surface (it was <strong>not</strong> flattened to <code>[$N, $M::2*]</code> the way the SystemVerilog grammar’s lists were in its slice-58 audit). Some list rules are additionally <code>kind</code>-tagged (<code>parameter_override_list</code>, <code>port_connection_list</code> carry <code>{kind: "named"|"positional", first, rest}</code>); read <code>kind</code> first, then iterate <code>first</code> + <code>rest</code> the same way.</p>
+<h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
+<p>rtl_frontend can produce deep AST trees — a module with deeply-nested generate regions and the ten-level expression cascade can reach hundreds of levels (every binary expression descends through all ten <code>binop_chain</code> levels even when no operator is present, because each level’s <code>lhs</code> is the next level).</p>
+<p>Recommendations:</p>
+<ol>
+<li><strong>Use an explicit stack-based walker</strong> (push children, pop work items in a loop) instead of recursive function calls. Stack depth becomes irrelevant.</li>
+<li><strong>Or grow the thread stack</strong> (e.g. the <code>stacker</code> crate). PGEN itself uses a large-stack worker internally for the parser; consumers can do the same for traversal.</li>
+<li><strong>For pure AST drop</strong>, use a non-recursive drop — <code>serde_json::Value</code>’s default <code>Drop</code> is recursive and can blow the stack on deeply-nested values. PGEN’s test path uses a large-stack worker to avoid this; downstream consumers should consider similar patterns.</li>
+</ol>
+<h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
+<p>If your tool needs to support multiple PGEN versions, branch on the payload’s schema version (<code>AstDumpPayload.schema_version</code>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match ast_dump_payload.schema_version {
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    // (future) 2 =&gt; walk_schema_v2(...),
+    other =&gt; {
+        eprintln!("unsupported rtl_frontend schema version: {}", other);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="#schema-versioning">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="rules-top-level"><a class="header" href="#rules-top-level">Rules Top Level</a></h1>
+<h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
+<p>This chapter is the per-rule shape reference for the PGEN rtl_frontend parser. It documents the <code>rtl_frontend_file</code> root, the <code>design_item</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-FE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-FE-MDBOOK.html">docs/tasks/RTL-FE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Status:</strong> RTL-FE-Slice-1..7 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) typed the full <code>grammars/rtl_frontend.ebnf</code> surface across seven slices — <strong>156 return annotations on 74 distinct rules</strong>. Every shape in this chapter is drawn from the live inventory at <code>generated/rtl_frontend_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
+<h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
+<p>This is a <strong>curated, grouped</strong> reference — not a raw 156-line dump and not a copy of any SystemVerilog LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
+<p>Three conventions appear throughout:</p>
+<ul>
+<li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>. The bodyless <code>{kind: "semi"}</code> branch carries a stray <code>;</code> with no <code>body</code>.</li>
+<li><strong><code>{first, rest}</code> list rules</strong> emit a head element plus the raw recursive-envelope iteration of the <code>(sep X)*</code> tail. This is the rtl_frontend grammar’s separated-list convention (<code>port_list</code>, <code>parameter_declaration_sequence</code>, <code>scoped_identifier</code>, <code>genvar_declaration</code>, …); the head is <code>first</code>, and <code>rest</code> is the trailing-iteration envelope. The rtl_frontend grammar uses this shape uniformly — it was <strong>not</strong> flattened to a clean <code>[$N, $M::2*]</code> array the way the SystemVerilog grammar’s lists were in its slice-58 audit.</li>
+<li><strong><code>binop_chain</code> expression rules</strong> emit <code>{type: "binop_chain", level, lhs, rest}</code> — the consumer-facing left-fold contract documented below.</li>
+</ul>
+<p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, <code>[...]</code>, string literals) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
+<h2 id="entry-point"><a class="header" href="#entry-point">Entry point</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Profile</th><th>Entry rule</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>default</code></td><td><code>rtl_frontend_file</code></td><td>The synthesizable RTL subset source file. The only rtl_frontend profile.</td></tr>
+</tbody>
+</table>
+</div>
+<p>There is no per-grammar convenience function for rtl_frontend; the stable host surface is the generic <code>parse_grammar_profile*</code> family with <code>GrammarFamily::RtlFrontend</code> + <code>GrammarProfile::Default</code> (and the <code>parse_grammar_profile_named</code> string overload with <code>"rtl_frontend"</code> / <code>"default"</code>). See <a href="#public-api-surface">Public API Surface</a>.</p>
+<h2 id="rtl_frontend_file-root"><a class="header" href="#rtl_frontend_file-root"><code>rtl_frontend_file</code> (root)</a></h2>
+<p>Per <code>grammars/rtl_frontend.ebnf</code>:</p>
+<pre><code class="language-ebnf">rtl_frontend_file := trivia design_item* trivia
+                  -&gt; {type: "rtl_frontend_file", items: $2}
+</code></pre>
+<p>The annotation produces a typed JSON object at the root of every parse:</p>
+<pre><code class="language-json">{
+  "type": "rtl_frontend_file",
+  "items": [/* array of design_item shapes */]
+}
+</code></pre>
+<p><code>items</code> is the array of typed <code>design_item</code> objects, one per top-level design item in source order. Consumers walking the rtl_frontend AST dispatch on <code>obj["type"] == "rtl_frontend_file"</code> at the root, then iterate <code>obj["items"]</code>. This is the only rule that carries a <code>type</code> discriminator at the dispatch level; every other dispatcher uses <code>kind</code>.</p>
+<h2 id="design_item-dispatch-1"><a class="header" href="#design_item-dispatch-1"><code>design_item</code> dispatch</a></h2>
+<p><code>design_item</code> is the primary top-level dispatcher — a 4-branch <code>kind</code>-tagged shape covering every rtl_frontend top-level form:</p>
+<pre><code class="language-ebnf">design_item := typedef_declaration -&gt; {kind: "typedef", body: $1}
+             | package_declaration -&gt; {kind: "package", body: $1}
+             | module_declaration  -&gt; {kind: "module",  body: $1}
+             | semi                -&gt; {kind: "semi"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>kind</code></th><th><code>body</code> shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"typedef"</code></td><td><code>typedef_declaration</code> — <code>{data_type, packed_range, name}</code></td></tr>
+<tr><td><code>"package"</code></td><td><code>package_declaration</code> — <code>{name, items}</code></td></tr>
+<tr><td><code>"module"</code></td><td><code>module_declaration</code> — <code>{name, imports_pre, parameters, imports_post, ports, items}</code></td></tr>
+<tr><td><code>"semi"</code></td><td><em>(no body — lone <code>;</code> separator)</em></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-dispatch-wrappers"><a class="header" href="#family-dispatch-wrappers">Family: dispatch wrappers</a></h2>
+<p>Below <code>design_item</code> the grammar uses three more <code>{kind, body?}</code> dispatchers. All emit <code>{kind, body: $1}</code> per branch except the bodyless <code>{kind: "semi"}</code> branch.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Branches</th><th><code>kind</code> values</th></tr>
+</thead>
+<tbody>
+<tr><td><code>module_item</code></td><td>10</td><td><code>"parameter"</code>, <code>"import"</code>, <code>"typedef"</code>, <code>"genvar"</code>, <code>"module_instantiation"</code>, <code>"net"</code>, <code>"continuous_assign"</code>, <code>"procedural_block"</code>, <code>"generate_region"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>generate_item</code></td><td>11</td><td><code>"parameter"</code>, <code>"import"</code>, <code>"typedef"</code>, <code>"genvar"</code>, <code>"module_instantiation"</code>, <code>"net"</code>, <code>"continuous_assign"</code>, <code>"procedural_block"</code>, <code>"generate_if"</code>, <code>"generate_for"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>package_item</code></td><td>3</td><td><code>"typedef"</code>, <code>"parameter"</code>, <code>"semi"</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>module_item</code> and <code>generate_item</code> admit the same construct families but differ at the tail: <code>module_item</code> admits <code>"generate_region"</code>, while <code>generate_item</code> (used inside a generate region) admits <code>"generate_if"</code> / <code>"generate_for"</code> directly.</p>
+<h2 id="family-modules-and-packages"><a class="header" href="#family-modules-and-packages">Family: modules and packages</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>module_declaration</code></td><td><code>{name, imports_pre, parameters, imports_post, ports, items}</code> — <code>imports_pre</code> / <code>imports_post</code> are the pre- and post-parameter <code>import_declaration*</code> arrays; <code>parameters</code> is the optional <code>( # ( parameter_declaration_sequence )? )?</code> envelope (<code>[]</code> when absent); <code>ports</code> is the optional ANSI port-list envelope; <code>items</code> is the <code>module_item*</code> array.</td></tr>
+<tr><td><code>package_declaration</code></td><td><code>{name, items}</code> — <code>items</code> is the <code>package_item*</code> array.</td></tr>
+<tr><td><code>import_declaration</code></td><td><code>{package, member}</code> — <code>member</code> is the imported symbol or <code>*</code> wildcard.</td></tr>
+<tr><td><code>typedef_declaration</code></td><td><code>{data_type, packed_range, name}</code> — <code>packed_range</code> is <code>[]</code> when no <code>[msb:lsb]</code> is present.</td></tr>
+<tr><td><code>generate_region</code></td><td><code>{items}</code> — the <code>generate_item*</code> array of a <code>generate … endgenerate</code> block.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-generate-constructs"><a class="header" href="#family-generate-constructs">Family: generate constructs</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>generate_if</code></td><td><code>{cond, then_body, else_body}</code> — <code>else_body</code> is <code>[]</code> when there is no <code>else</code>.</td></tr>
+<tr><td><code>generate_for</code></td><td><code>{genvar, init_var, init_value, condition, step_var, step_value, body}</code>.</td></tr>
+<tr><td><code>generate_body</code> (2 kinds)</td><td><code>{kind: "block", label, items}</code> for a <code>begin … end</code> (labeled) form / <code>{kind: "single", body}</code> for a single nested generate item.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-parameters"><a class="header" href="#family-parameters">Family: parameters</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parameter_declaration_statement</code></td><td><code>{body}</code> — wraps a <code>parameter_declaration_sequence</code>.</td></tr>
+<tr><td><code>parameter_declaration_sequence</code></td><td><code>{first, rest}</code> — comma-separated <code>parameter_declaration_group</code> list.</td></tr>
+<tr><td><code>parameter_declaration_group</code></td><td><code>{head, tail}</code> — <code>head</code> carries the leading flavor/type, <code>tail</code> carries the continued declarators.</td></tr>
+<tr><td><code>parameter_declaration_head</code> (2 kinds)</td><td><code>{kind: "typed", flavor, data_type, name, default}</code> / <code>{kind: "untyped", flavor, name, default}</code>.</td></tr>
+<tr><td><code>parameter_declaration_tail</code> (4 kinds)</td><td><code>{kind: "typed_with_flavor", flavor, data_type, name, default}</code> / <code>{kind: "untyped_with_flavor", flavor, name, default}</code> / <code>{kind: "typed", data_type, name, default}</code> / <code>{kind: "untyped", name, default}</code>.</td></tr>
+<tr><td><code>parameter_flavor</code> (2 kinds)</td><td><code>{kind: "parameter"}</code> / <code>{kind: "localparam"}</code> — bare <code>{kind}</code> keyword leaf.</td></tr>
+<tr><td><code>parameter_override</code> (2 kinds)</td><td><code>{kind: "named", name, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
+<tr><td><code>parameter_override_list</code> (2 kinds)</td><td><code>{kind: "named", first, rest}</code> / <code>{kind: "positional", first, rest}</code> — a <code>kind</code>-tagged <code>{first, rest}</code> list.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>default</code> field on every parameter shape is <code>[]</code> when no <code>= &lt;expr&gt;</code> initializer is present.</p>
+<h2 id="family-ports"><a class="header" href="#family-ports">Family: ports</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>port_list</code></td><td><code>{first, rest}</code> — comma-separated <code>port_group</code> list.</td></tr>
+<tr><td><code>port_group</code></td><td><code>{direction, data_type, packed_range, first, rest}</code> — <code>direction</code> is the typed <code>port_direction</code>; <code>data_type</code> / <code>packed_range</code> are <code>[]</code> when omitted; <code>first</code> + <code>rest</code> are the <code>port_item</code> declarators.</td></tr>
+<tr><td><code>port_item</code></td><td><code>{name, dims}</code> — <code>dims</code> is <code>[]</code> when the port is unpacked-scalar.</td></tr>
+<tr><td><code>port_direction</code> (3 kinds)</td><td><code>{kind: "input"}</code> / <code>{kind: "output"}</code> / <code>{kind: "inout"}</code> — bare <code>{kind}</code> keyword leaf.</td></tr>
+<tr><td><code>port_direction_token</code> (3 kinds)</td><td><code>{kind: "input"}</code> / <code>{kind: "output"}</code> / <code>{kind: "inout"}</code> — the negative-lookahead guard token used in the port-continuation iteration; same <code>kind</code> set as <code>port_direction</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-net--signal--instance-declarations"><a class="header" href="#family-net--signal--instance-declarations">Family: net / signal / instance declarations</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>net_declaration</code></td><td><code>{data_type, packed_range, first, rest}</code> — <code>first</code> + <code>rest</code> are the <code>net_item</code> declarators.</td></tr>
+<tr><td><code>net_item</code></td><td><code>{name, dims}</code> — <code>dims</code> is <code>[]</code> for a scalar net.</td></tr>
+<tr><td><code>genvar_declaration</code></td><td><code>{first, rest}</code> — comma-separated genvar identifier list.</td></tr>
+<tr><td><code>continuous_assign</code></td><td><code>{lvalue, value}</code> — <code>assign lvalue = value;</code>.</td></tr>
+<tr><td><code>module_instantiation</code></td><td><code>{module_name, parameters, first, rest}</code> — <code>parameters</code> is the optional <code>#( parameter_override_list? )</code> envelope (<code>[]</code> when absent); <code>first</code> + <code>rest</code> are the <code>instance_item</code> instances.</td></tr>
+<tr><td><code>instance_item</code></td><td><code>{name, dims, connections}</code> — <code>dims</code> is <code>[]</code> for a non-array instance; <code>connections</code> is the <code>port_connection_list</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-module-instantiation-port-connections"><a class="header" href="#family-module-instantiation-port-connections">Family: module instantiation port connections</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>port_connection_list</code> (2 kinds)</td><td><code>{kind: "named", first, rest}</code> / <code>{kind: "positional", first, rest}</code>.</td></tr>
+<tr><td><code>port_connection</code> (3 kinds)</td><td><code>{kind: "wildcard"}</code> (the <code>.*</code> form, bodyless) / <code>{kind: "named", name, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-procedural--always-blocks"><a class="header" href="#family-procedural--always-blocks">Family: procedural / always blocks</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>procedural_block</code> (4 kinds)</td><td><code>{kind: "always_comb", statement}</code> / <code>{kind: "always_latch", statement}</code> / <code>{kind: "always_ff", event_control, statement}</code> / <code>{kind: "always", event, statement}</code>.</td></tr>
+<tr><td><code>always_star_event</code> (2 kinds)</td><td><code>{kind: "at_paren_star"}</code> (<code>@(*)</code>) / <code>{kind: "bare_star"}</code> (<code>@*</code>).</td></tr>
+<tr><td><code>event_control_list</code></td><td><code>{first, rest}</code> — comma/<code>or</code>-separated <code>event_control_item</code> list.</td></tr>
+<tr><td><code>event_control_item</code></td><td><code>{edge, expr}</code> — <code>edge</code> is the typed <code>event_edge</code> (<code>[]</code> for a level-sensitive signal).</td></tr>
+<tr><td><code>event_edge</code> (2 kinds)</td><td><code>{kind: "posedge"}</code> / <code>{kind: "negedge"}</code> — bare <code>{kind}</code> keyword leaf.</td></tr>
+<tr><td><code>statement</code> (4 kinds)</td><td><code>{kind: "semi"}</code> / <code>{kind: "block", label, items}</code> / <code>{kind: "if", cond, then_body, else_body}</code> / <code>{kind: "assignment", lvalue, operator, value}</code>.</td></tr>
+<tr><td><code>always_ff_statement</code> (4 kinds)</td><td>Same 4-kind shape as <code>statement</code> (<code>"semi"</code> / <code>"block"</code> / <code>"if"</code> / <code>"assignment"</code>); the <code>always_ff</code> body grammar restricts the assignment operator to the nonblocking arrow.</td></tr>
+<tr><td><code>assignment_operator</code> (2 kinds)</td><td><code>{kind: "blocking"}</code> (<code>=</code>) / <code>{kind: "nonblocking"}</code> (<code>&lt;=</code>) — bare <code>{kind}</code> keyword leaf.</td></tr>
+<tr><td><code>assignment_target</code> (3 kinds)</td><td><code>{kind: "concat", first, rest}</code> (<code>{a, b}</code> LHS) / <code>{kind: "ranged", body}</code> / <code>{kind: "signal", body}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>For <code>"if"</code> shapes (<code>statement</code> / <code>always_ff_statement</code>), <code>else_body</code> is <code>[]</code> when there is no <code>else</code>. For <code>"block"</code>, <code>label</code> is <code>[]</code> when the <code>begin</code> has no <code>: label</code>.</p>
+<h2 id="family-expressions--the-binop_chain-contract"><a class="header" href="#family-expressions--the-binop_chain-contract">Family: expressions — the <code>binop_chain</code> contract</a></h2>
+<p>The rtl_frontend expression grammar is a <strong>ten-level operator-precedence cascade</strong> plus a ternary head and a unary tier. The ten binary levels each carry the same <code>binop_chain</code> typed shape:</p>
+<pre><code class="language-ebnf">rtl_expr            := conditional_expr
+conditional_expr    := logical_or_expr ? conditional_expr : conditional_expr
+                    -&gt; {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
+                     | logical_or_expr  -&gt; $1                       -- passthrough
+logical_or_expr     := logical_and_expr ( logical_or  logical_and_expr )*
+                    -&gt; {type: "binop_chain", level: "logical_or",     lhs: $1, rest: $2}
+logical_and_expr    := bit_or_expr      ( logical_and bit_or_expr     )*
+                    -&gt; {type: "binop_chain", level: "logical_and",    lhs: $1, rest: $2}
+bit_or_expr         := bit_xor_expr     ( bit_or      bit_xor_expr    )*
+                    -&gt; {type: "binop_chain", level: "bit_or",         lhs: $1, rest: $2}
+bit_xor_expr        := bit_and_expr     ( bit_xor     bit_and_expr    )*
+                    -&gt; {type: "binop_chain", level: "bit_xor",        lhs: $1, rest: $2}
+bit_and_expr        := equality_expr    ( bit_and     equality_expr   )*
+                    -&gt; {type: "binop_chain", level: "bit_and",        lhs: $1, rest: $2}
+equality_expr       := relational_expr  ( ( == | != )  relational_expr )*
+                    -&gt; {type: "binop_chain", level: "equality",       lhs: $1, rest: $2}
+relational_expr     := shift_expr       ( ( &lt;= | &lt; | &gt;= | &gt; ) shift_expr )*
+                    -&gt; {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
+shift_expr          := additive_expr    ( ( &lt;&lt; | &gt;&gt; )  additive_expr  )*
+                    -&gt; {type: "binop_chain", level: "shift",          lhs: $1, rest: $2}
+additive_expr       := multiplicative_expr ( ( + | - ) multiplicative_expr )*
+                    -&gt; {type: "binop_chain", level: "additive",       lhs: $1, rest: $2}
+multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
+                    -&gt; {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Level (<code>level</code>)</th><th>Rule</th><th>Operators</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"logical_or"</code></td><td><code>logical_or_expr</code></td><td><code>||</code></td></tr>
+<tr><td><code>"logical_and"</code></td><td><code>logical_and_expr</code></td><td><code>&amp;&amp;</code></td></tr>
+<tr><td><code>"bit_or"</code></td><td><code>bit_or_expr</code></td><td><code>|</code></td></tr>
+<tr><td><code>"bit_xor"</code></td><td><code>bit_xor_expr</code></td><td><code>^</code></td></tr>
+<tr><td><code>"bit_and"</code></td><td><code>bit_and_expr</code></td><td><code>&amp;</code></td></tr>
+<tr><td><code>"equality"</code></td><td><code>equality_expr</code></td><td><code>==</code> / <code>!=</code></td></tr>
+<tr><td><code>"relational"</code></td><td><code>relational_expr</code></td><td><code>&lt;=</code> / <code>&lt;</code> / <code>&gt;=</code> / <code>&gt;</code></td></tr>
+<tr><td><code>"shift"</code></td><td><code>shift_expr</code></td><td><code>&lt;&lt;</code> / <code>&gt;&gt;</code></td></tr>
+<tr><td><code>"additive"</code></td><td><code>additive_expr</code></td><td><code>+</code> / <code>-</code></td></tr>
+<tr><td><code>"multiplicative"</code></td><td><code>multiplicative_expr</code></td><td><code>*</code> / <code>/</code> / <code>%</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every one of these ten rules emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level) and <code>rest</code> is the recursive-envelope iteration array of <code>(operator, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> There is no <code>sign</code> field on any rtl_frontend level (unlike VHDL’s <code>simple_expression</code>); the unary <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> operators live in <code>unary_expr</code>, below <code>multiplicative_expr</code>. All ten levels iterate <code>*</code>, so <code>rest</code> may hold any number of pairs.</p>
+<p>The cascade bottoms out at <code>unary_expr</code> → <code>primary_expr</code>. This <code>binop_chain</code> shape is identical across all ten levels precisely so that a single consumer fold routine handles the entire binary-expression tree. See <a href="#walking-the-ast">Walking the AST</a> for a worked left-fold.</p>
+<h3 id="ternary-unary-and-primary"><a class="header" href="#ternary-unary-and-primary">Ternary, unary, and primary</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>conditional_expr</code> (2 forms)</td><td><code>{type: "ternary", condition, then_expr, else_expr}</code> for the <code>c ? t : e</code> form; <strong>passthrough</strong> (<code>-&gt; $1</code>, a <code>return_scalar</code> annotation) when there is no <code>?</code>, so a non-ternary expression surfaces as its <code>logical_or_expr</code> <code>binop_chain</code> directly with no <code>conditional_expr</code> wrapper.</td></tr>
+<tr><td><code>unary_expr</code> (5 forms)</td><td><code>{type: "unary", op: "plus", expr}</code> / <code>{op: "minus"}</code> / <code>{op: "logical_not"}</code> (<code>!</code>) / <code>{op: "bit_not"}</code> (<code>~</code>); the fifth branch is <strong>passthrough</strong> (<code>-&gt; $1</code>, <code>return_scalar</code>) — a non-prefixed operand surfaces as its <code>primary_expr</code> directly with no <code>unary</code> wrapper.</td></tr>
+<tr><td><code>primary_expr</code> (6 kinds)</td><td><code>{kind: "repetition", body}</code> / <code>{kind: "concatenation", body}</code> / <code>{kind: "ranged_signal", body}</code> / <code>{kind: "signal", body}</code> / <code>{kind: "literal", body}</code> / <code>{kind: "parens", expr}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Because <code>conditional_expr</code> and <code>unary_expr</code> are passthrough when their distinguishing syntax is absent, consumers must accept that any expression slot may hold a <code>binop_chain</code>, a <code>ternary</code>, a <code>unary</code>, <strong>or</strong> directly a <code>primary_expr</code> <code>{kind, ...}</code> object — dispatch on the presence of <code>type</code> vs <code>kind</code> (see <a href="#walking-the-ast">Walking the AST</a>).</p>
+<h3 id="signal-references-and-operands"><a class="header" href="#signal-references-and-operands">Signal references and operands</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>signal_reference</code></td><td><code>{name, path}</code> — <code>name</code> is the <code>scoped_identifier</code>; <code>path</code> is the <code>signal_path_op*</code> array (<code>[]</code> for a plain signal).</td></tr>
+<tr><td><code>ranged_signal_reference</code></td><td><code>{name, path, msb, lsb}</code> — a part-select <code>sig[msb:lsb]</code>.</td></tr>
+<tr><td><code>scoped_identifier</code></td><td><code>{first, rest}</code> — <code>pkg::name</code> scope-resolution chain; <code>rest</code> is <code>[]</code> for an unqualified identifier.</td></tr>
+<tr><td><code>signal_path_op</code> (2 kinds)</td><td><code>{kind: "member", name}</code> (<code>.field</code>) / <code>{kind: "index", index}</code> (<code>[expr]</code>).</td></tr>
+<tr><td><code>concatenation_expr</code></td><td><code>{first, rest}</code> — <code>{a, b, …}</code>.</td></tr>
+<tr><td><code>repetition_expr</code></td><td><code>{count, first, rest}</code> — <code>{count{a, …}}</code>.</td></tr>
+<tr><td><code>literal</code> (3 kinds)</td><td><code>{kind: "based", text}</code> / <code>{kind: "decimal", text}</code> / <code>{kind: "real", body}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-data-types"><a class="header" href="#family-data-types">Family: data types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>data_type</code> (6 kinds)</td><td><code>{kind: "enum", body}</code> / <code>{kind: "union", body}</code> / <code>{kind: "struct", body}</code> / <code>{kind: "builtin", body}</code> / <code>{kind: "package", body}</code> / <code>{kind: "named", body}</code>.</td></tr>
+<tr><td><code>builtin_data_type</code> (9 kinds)</td><td>bare <code>{kind}</code> for <code>"bit"</code>, <code>"byte"</code>, <code>"shortint"</code>, <code>"int"</code>, <code>"integer"</code>, <code>"longint"</code>, <code>"logic"</code>, <code>"reg"</code>, <code>"wire"</code>.</td></tr>
+<tr><td><code>package_qualified_type</code></td><td><code>{package, name}</code> — <code>pkg::type_name</code>.</td></tr>
+<tr><td><code>enum_type</code></td><td><code>{base, packed_range, first, rest}</code> — <code>base</code> is the typed <code>enum_base_type</code>; <code>first</code> + <code>rest</code> are the <code>enum_item</code> list.</td></tr>
+<tr><td><code>enum_base_type</code> (3 kinds)</td><td><code>{kind: "builtin", body}</code> / <code>{kind: "package", body}</code> / <code>{kind: "named", body}</code>.</td></tr>
+<tr><td><code>enum_item</code></td><td><code>{name, value}</code> — <code>value</code> is <code>[]</code> when there is no <code>= &lt;expr&gt;</code>.</td></tr>
+<tr><td><code>struct_type</code></td><td><code>{packed, fields}</code> — <code>packed</code> is <code>[]</code> when the struct is unpacked; <code>fields</code> is the <code>struct_union_field</code> list.</td></tr>
+<tr><td><code>union_type</code></td><td><code>{packed, fields}</code> — same shape as <code>struct_type</code>.</td></tr>
+<tr><td><code>struct_union_field</code></td><td><code>{data_type, packed_range, first, rest}</code> — <code>first</code> + <code>rest</code> are the field-name declarators.</td></tr>
+<tr><td><code>struct_union_field_name</code> (2 kinds)</td><td><code>{kind: "identifier", body}</code> / <code>{kind: "byte"}</code> (the <code>byte</code> reserved-word field-name form, bodyless).</td></tr>
+<tr><td><code>packed_range</code></td><td><code>{msb, lsb}</code> — <code>[msb:lsb]</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>named_data_type</code> (a bare identifier type reference) is <strong>un-annotated</strong> — it surfaces through the recursive envelope of its <code>identifier</code>, reached as <code>data_type.body</code> when <code>data_type.kind == "named"</code>. See <a href="#the-json-carrier">The Json Carrier</a>.</p>
+<h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
+<p>The full typed surface as of contract <code>1.0.1</code> is <strong>156 return annotations across 74 distinct rules</strong> (independently re-counted from the inventory below). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<ul>
+<li><code>generated/rtl_frontend_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "rtl_frontend"</code>, <code>annotation_count: 156</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 156 entries in <code>declared_annotation_inventory.annotations</code>).</li>
+</ul>
+<p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
+<h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
+<p>Each shape-affecting slice after RTL-FE-Slice-7 gets a row in <a href="#schema-versioning">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="#changelog-index">Changelog Index</a> ties them together.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-empty-module"><a class="header" href="#examples-empty-module">Examples Empty Module</a></h1>
 <blockquote>
@@ -584,10 +1218,94 @@ pub struct ParserEmbeddingApiContract {
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
+<p>This chapter explains how the PGEN rtl_frontend parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape. The authoritative numbers come from <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>; where this chapter and the contract disagree, <strong>the contract wins</strong>.</p>
+<h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
+<p>The rtl_frontend parser carries <strong>two</strong> version numbers:</p>
+<ol>
+<li><strong>Parser release version</strong> — currently <code>1.0.1</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>AST-dump schema version</strong> — currently <code>1</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+</ol>
+<p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.</p>
+<p>These numbers are taken from the integration contract’s “Contract Identity” section, which records:</p>
+<ul>
+<li>Contract version: <code>1.0.1</code></li>
+<li>Parser release version: <code>1.0.1</code></li>
+<li>rtl_frontend AST-dump schema version: <code>1</code></li>
+<li>Annotation count: <strong>156</strong> (RTL-FE-Slice-1..7 — the full grammar typed across seven slices, on 74 distinct rules)</li>
+</ul>
+<p>The contract document <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for all of these per release.</p>
+<h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
+<p>Any of these triggers a schema version bump:</p>
+<ul>
+<li>A new return annotation lands on a previously-unannotated rule.</li>
+<li>An existing return annotation is restructured.</li>
+<li>A grammar rule changes shape in a way that’s user-visible (new branch added, branch removed, a sub-rule renamed in a way that affects shape, a <code>{first, rest}</code> list flattened, etc.).</li>
+<li>The default fall-through behavior of unannotated rules changes.</li>
+</ul>
+<p>These do <strong>not</strong> trigger a schema bump:</p>
+<ul>
+<li>Pure performance optimizations that produce the same AST.</li>
+<li>Internal codegen reorganization that doesn’t reach the output.</li>
+<li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
+</ul>
+<p>The rtl_frontend grammar was typed across seven slices (RTL-FE-Slice-1..7, 156 annotations / 74 rules) landed together on 2026-05-14, rather than the long slice-by-slice cadence used by the SystemVerilog campaign, so the rtl_frontend schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
+<p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical (alphabetical) order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value. Whitespace is configurable via <code>AstDumpOptions.pretty</code> but the underlying JSON value is the same.</p>
+<p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="schema-version-timeline"><a class="header" href="#schema-version-timeline">Schema version timeline</a></h2>
+<p>This table mirrors the “Schema Versioning” table in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>. The contract is authoritative for the live state.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
+</thead>
+<tbody>
+<tr><td>1.0.0</td><td>1.0.1</td><td><strong>RTL-FE-Slice-1..7</strong> — initial 156-annotation baseline (74 distinct rules). Dispatch wrappers (<code>design_item</code> / <code>package_item</code> / <code>module_item</code> / <code>generate_item</code>), keyword/operator leaves, expression dispatch + procedural blocks, the 10-rule <code>binop_chain</code> hierarchy (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>), declarations + module structure, parameter/port rules, and the module-instantiation / ports / statements / signals / datatypes mass batch — all typed across seven slices. Same accept set as the pre-typing baseline. AST-dump schema version field value: <code>1</code>.</td></tr>
+<tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Grammar (<code>grammars/rtl_frontend.ebnf</code>) un-annotated except for the <code>rtl_frontend_file -&gt; {type, items}</code> root. AST dump is the recursive-envelope shape across all rules.</td></tr>
+</tbody>
+</table>
+</div>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-FE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-FE-MDBOOK.html">docs/tasks/RTL-FE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>1</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
+<h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
+<ol>
+<li>
+<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
+</li>
+<li>
+<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>1</code>. Reject or warn on an unexpected value rather than mis-parsing a newer shape:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match ast_dump_payload.schema_version {
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    other =&gt; return Err(format!("unsupported rtl_frontend schema version: {other}")),
+}
+<span class="boring">}</span></code></pre>
+</li>
+<li>
+<p><strong>Vendor or pin the generated parser.</strong> The rtl_frontend parser is on-demand-only (see <a href="#build-recipe">Build Recipe</a>); vendor <code>generated/rtl_frontend_parser.rs</code> against the recorded parser-release version, or build it in CI from the pinned <code>grammars/rtl_frontend.ebnf</code>.</p>
+</li>
+<li>
+<p><strong>When you bump PGEN</strong>, scan the <a href="#changelog-index">Changelog Index</a> for shape-change rows that affect the rules you consume, and re-run your walker’s test corpus.</p>
+</li>
+</ol>
+<h2 id="additive-vs-breaking-changes"><a class="header" href="#additive-vs-breaking-changes">Additive vs breaking changes</a></h2>
+<p>Within a single integer schema version, shape changes are intended to be <strong>additive</strong> wherever possible:</p>
+<ul>
+<li><strong>Additive (no integer schema bump expected):</strong> a new optional field on an existing typed object, a new <code>kind</code> value on a dispatch rule for a previously-unparseable construct, a new typed shape on a rule that was previously raw envelope. Consumers using the unknown-shape fallthrough from <a href="#walking-the-ast">Walking the AST</a> keep working; consumers that hard-match a closed <code>kind</code> set must extend it.</li>
+<li><strong>Breaking (integer schema bump):</strong> renaming or removing a field on an existing typed object, changing a <code>kind</code> discriminator value, restructuring a <code>{first, rest}</code> list into a flat array, or changing the default fall-through of an unannotated rule in a way that moves data consumers were already reading.</li>
+</ul>
+<p>The contract’s bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on the integer <code>schema_version</code>, (b) treats absent optionals as <code>[]</code>, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.</p>
+<h2 id="reporting-drift"><a class="header" href="#reporting-drift">Reporting drift</a></h2>
+<p>If you observe an AST shape that disagrees with this book, the contract, or the live inventory <code>generated/rtl_frontend_return_annotations.json</code>:</p>
+<ol>
+<li>Confirm against the machine-checkable inventory (<code>generated/rtl_frontend_return_annotations.json</code> / <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>, 156 entries, identical content).</li>
+<li>If the inventory agrees with what you observe but the contract does not, the contract is authoritative for intended behavior — file via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</li>
+<li>Accepted released-parser bugs are tracked in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</li>
+</ol>
+<h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
+<p>A future schema milestone will land if and when the rtl_frontend grammar’s remaining un-annotated rules (terminal/regex leaves like <code>identifier</code>, <code>named_data_type</code>, and the passthrough forms of <code>conditional_expr</code> / <code>unary_expr</code>) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. The rtl_frontend family is still an <code>In Progress</code> family in the live tracker (<code>LIVE_ACHIEVEMENT_STATUS.md</code>); the current grammar covers the synthesizable RTL subset, and the full IEEE 1800 SystemVerilog surface is out of scope (see the <code>systemverilog</code> family for that). Downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the <a href="#changelog-index">Changelog Index</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <blockquote>

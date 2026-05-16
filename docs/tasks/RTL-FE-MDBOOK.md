@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: rtl_frontend deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-15`
+- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal
@@ -54,11 +54,11 @@ rendering and an `rtl_frontend_parser_book_gate` target.
   Commit: `RTL-FE-MDBOOK-Slice-3`
 
 - ID: `RTL-FE-MDBOOK.3`
-  Status: `pending`
+  Status: `done`
   Goal: `Author shape-reference chapters (rules-top-level, json-carrier, walking-the-ast, schema-versioning) covering all 156 typed rules.`
   Acceptance: `Each chapter enumerates the typed shapes against the live inventory.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: 4 chapters authored — rules-top-level (rtl_frontend_file root + 4-branch design_item dispatch + module_item/generate_item/package_item wrappers + 10 rule families + the 10-level binop_chain cascade), json-carrier, walking-the-ast (binop left-fold), schema-versioning (1.0.1 / schema v1, contract-aligned). Independently verified against generated/rtl_frontend_return_annotations.json: 156 annotations / 74 distinct rules; design_item=4, module_item=10, generate_item=11, package_item=3, binop_chain cascade = exactly 10 levels — all match. Contract 164-rules-vs-156-annotations nuance handled (chapters use the inventory-accurate "156 annotations on 74 distinct rules"). rtl_frontend_parser_book_gate green (independently re-run).`
+  Commit: `RTL-FE-MDBOOK-Slice-4`
 
 - ID: `RTL-FE-MDBOOK.4`
   Status: `pending`
@@ -85,7 +85,8 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-MDBOOK.3` | `pending` | Shape-reference chapters (rules-top-level, json-carrier, walking-the-ast, schema-versioning) come next once core navigation is in place. |
+| 1 | `RTL-FE-MDBOOK.4` | `pending` | The empty_module worked example (annotated AST dump validated against generated/rtl_frontend_parser.rs) comes next once the shape reference is in place. |
+| 2 | `RTL-FE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — the final leaf. |
 
 ## Decisions
 
@@ -109,6 +110,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | `2026-05-14` | `RTL-FE-MDBOOK.1` | `mdbook build` | `pass` |
 | `2026-05-15` | `RTL-FE-MDBOOK.5` | `make rtl_frontend_parser_book_gate` | `pass` |
 | `2026-05-15` | `RTL-FE-MDBOOK.2` | `make rtl_frontend_parser_book_gate` | `pass — 4 chapters authored; gate green` |
+| `2026-05-16` | `RTL-FE-MDBOOK.3` | `make rtl_frontend_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters; verified 156/74, design_item=4, module_item=10, generate_item=11, package_item=3, binop_chain=10 levels vs generated/rtl_frontend_return_annotations.json; gate green` |
 
 ## Commit Log
 
@@ -117,9 +119,11 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | `RTL-FE-MDBOOK.1` | `RTL-FE-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome + chapter stubs |
 | `RTL-FE-MDBOOK.5` | `RTL-FE-MDBOOK-Slice-2` | gate script + Makefile target |
 | `RTL-FE-MDBOOK.2` | `RTL-FE-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
+| `RTL-FE-MDBOOK.3` | `RTL-FE-MDBOOK-Slice-4` | rules-top-level + json-carrier + walking-the-ast + schema-versioning authored; inventory-verified (156/74, 10-level binop_chain) |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-14`: `RTL-FE-MDBOOK.1` done; frontier → `.2` + `.5`.
 - `2026-05-15`: `RTL-FE-MDBOOK.2` done; frontier advances to `.3` (shape-reference chapters).
+- `2026-05-16`: `RTL-FE-MDBOOK.3` done; frontier advances to `.4` (empty_module worked example), then `.6` (glossary/changelog/links).
