@@ -364,6 +364,253 @@ contract section is curated, the inventory artifact is the authoritative
 machine-checkable enumeration, and this integration contract wins over the
 per-family book if they ever disagree.
 
+## Declarations, Types, Ports, Statements, and Expressions
+
+This section is the consumer-facing per-family shape contract: for every
+rtl_frontend rule family it enumerates the `kind` discriminator(s) and the
+exact field list the parser emits. Every `kind` value, field name, branch
+count, and `level` string below is transcribed from the live inventory
+`generated/rtl_frontend_return_annotations.json`
+(`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`,
+**74 distinct rules**), cross-checked against the embedded shape-contract
+manifest `rust/test_data/ast_shape_contract/rtl_frontend_v1.json`
+(content-identical on the `(rule, branch_index, annotation_type,
+normalized_text)` tuples; the embedded copy omits only the diagnostic
+`raw_text` field), and consistent with the curated per-rule reference at
+`docs/rtl_frontend_parser_book/src/rules-top-level.md`. The top-level
+`rtl_frontend_file` root and the `design_item` / `module_item` /
+`generate_item` dispatchers are documented in
+[AST Envelope and Dispatch](#ast-envelope-and-dispatch) and are **not
+repeated here** — this section references that dispatch and covers the
+underlying typed shapes it dispatches into.
+
+Two emission conventions recur:
+
+- **Dispatch rules** emit `{kind: "<branch>", body: $N}` (or per-branch
+  named fields). Consumers dispatch on `obj["kind"]`. A bodyless
+  `{kind: "semi"}` (and, for `port_connection`, `{kind: "wildcard"}`; for
+  `struct_union_field_name`, `{kind: "byte"}`) marks a branch with no
+  `body`.
+- **`{first, rest}` list rules** emit a head element plus the raw
+  recursive-envelope iteration of the `(sep X)*` tail. This is the
+  rtl_frontend separated-list convention; `first` is the head, `rest` is
+  the trailing-iteration envelope. rtl_frontend uses this shape uniformly
+  — it was **not** flattened to a clean `[$N, $M::2*]` array.
+
+Field selectors below name JSON keys exactly as emitted; a field bound to
+an optional grammar element is `[]` when that element is absent (e.g.
+`typedef_declaration.packed_range`, `module_declaration.parameters`,
+`generate_if.else_body`, `enum_item.value`, `signal_reference.path`).
+
+### Modules, packages, and generate constructs
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `module_declaration` (line 35) | `{name, imports_pre, parameters, imports_post, ports, items}` — `imports_pre` / `imports_post` are the pre- and post-parameter `import_declaration*` arrays; `parameters` is the optional `# ( parameter_declaration_sequence? )` envelope (`[]` when absent); `ports` is the optional ANSI port-list envelope; `items` is the `module_item*` array. |
+| `package_declaration` (line 27) | `{name, items}` — `items` is the `package_item*` array. |
+| `import_declaration` (line 114) | `{package, member}` — `member` is the imported symbol or `*` wildcard. |
+| `typedef_declaration` (line 117) | `{data_type, packed_range, name}` — `packed_range` is `[]` when no `[msb:lsb]` is present. |
+| `generate_region` (line 50) | `{items}` — the `generate_item*` array of a `generate … endgenerate` block. |
+| `generate_if` (line 66) | `{cond, then_body, else_body}` — `else_body` is `[]` when there is no `else`. |
+| `generate_for` (line 69) | `{genvar, init_var, init_value, condition, step_var, step_value, body}`. |
+| `generate_body` (line 73, 2 kinds) | `{kind: "block", label, items}` for the `begin … end` form (`label` is `[]` when there is no `: label`) / `{kind: "single", body}` for a single nested generate item. |
+
+### Parameters
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `parameter_declaration_statement` (line 76) | `{body}` — wraps a `parameter_declaration_sequence`. |
+| `parameter_declaration_sequence` (line 79) | `{first, rest}` — comma-separated `parameter_declaration_group` list. |
+| `parameter_declaration_group` (line 82) | `{head, tail}` — `head` carries the leading flavor/type, `tail` the continued declarators. |
+| `parameter_declaration_head` (line 86, 2 kinds) | `{kind: "typed", flavor, data_type, name, default}` / `{kind: "untyped", flavor, name, default}`. |
+| `parameter_declaration_tail` (line 90, 4 kinds) | `{kind: "typed_with_flavor", flavor, data_type, name, default}` / `{kind: "untyped_with_flavor", flavor, name, default}` / `{kind: "typed", data_type, name, default}` / `{kind: "untyped", name, default}`. |
+| `parameter_flavor` (line 95, 2 kinds) | `{kind: "parameter"}` / `{kind: "localparam"}` — bare `{kind}` keyword leaf. |
+| `parameter_override` (line 133, 2 kinds) | `{kind: "named", name, value}` / `{kind: "positional", value}`. |
+| `parameter_override_list` (line 129, 2 kinds) | `{kind: "named", first, rest}` / `{kind: "positional", first, rest}` — a `kind`-tagged `{first, rest}` list. |
+
+The `default` field on every parameter shape is `[]` when no
+`= <expr>` initializer is present.
+
+### Ports
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `port_list` (line 98) | `{first, rest}` — comma-separated `port_group` list. |
+| `port_group` (line 101) | `{direction, data_type, packed_range, first, rest}` — `direction` is the typed `port_direction`; `data_type` / `packed_range` are `[]` when omitted; `first` + `rest` are the `port_item` declarators. |
+| `port_item` (line 104) | `{name, dims}` — `dims` is `[]` for an unpacked-scalar port. |
+| `port_direction` (line 107, 3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — bare `{kind}` keyword leaf. |
+| `port_direction_token` (line 110, 3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — the negative-lookahead guard token used in the port-continuation iteration; same `kind` set as `port_direction`. |
+
+### Net / signal / instance declarations and port connections
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `net_declaration` (line 144) | `{data_type, packed_range, first, rest}` — `first` + `rest` are the `net_item` declarators. |
+| `net_item` (line 147) | `{name, dims}` — `dims` is `[]` for a scalar net. |
+| `genvar_declaration` (line 120) | `{first, rest}` — comma-separated genvar identifier list. |
+| `continuous_assign` (line 150) | `{lvalue, value}` — `assign lvalue = value;`. |
+| `module_instantiation` (line 123) | `{module_name, parameters, first, rest}` — `parameters` is the optional `#( parameter_override_list? )` envelope (`[]` when absent); `first` + `rest` are the `instance_item` instances. |
+| `instance_item` (line 126) | `{name, dims, connections}` — `dims` is `[]` for a non-array instance; `connections` is the `port_connection_list`. |
+| `port_connection_list` (line 136, 2 kinds) | `{kind: "named", first, rest}` / `{kind: "positional", first, rest}`. |
+| `port_connection` (line 140, 3 kinds) | `{kind: "wildcard"}` (the `.*` form, **bodyless**) / `{kind: "named", name, value}` / `{kind: "positional", value}`. |
+
+### Procedural / always blocks and statements
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `procedural_block` (line 154, 4 kinds) | `{kind: "always_comb", statement}` / `{kind: "always_latch", statement}` / `{kind: "always_ff", event_control, statement}` / `{kind: "always", event, statement}`. |
+| `always_star_event` (line 159, 2 kinds) | `{kind: "at_paren_star"}` (`@(*)`) / `{kind: "bare_star"}` (`@*`). |
+| `event_control_list` (line 162) | `{first, rest}` — comma/`or`-separated `event_control_item` list. |
+| `event_control_item` (line 165) | `{edge, expr}` — `edge` is the typed `event_edge` (`[]` for a level-sensitive signal). |
+| `event_edge` (line 168, 2 kinds) | `{kind: "posedge"}` / `{kind: "negedge"}` — bare `{kind}` keyword leaf. |
+| `statement` (line 172, 4 kinds) | `{kind: "semi"}` (bodyless) / `{kind: "block", label, items}` / `{kind: "if", cond, then_body, else_body}` / `{kind: "assignment", lvalue, operator, value}`. |
+| `always_ff_statement` (line 178, 4 kinds) | Same 4-kind shape as `statement` (`"semi"` / `"block"` / `"if"` / `"assignment"`); the `always_ff` body grammar restricts the assignment operator to the nonblocking arrow. |
+| `assignment_operator` (line 185, 2 kinds) | `{kind: "blocking"}` (`=`) / `{kind: "nonblocking"}` (`<=`) — bare `{kind}` keyword leaf. |
+| `assignment_target` (line 189, 3 kinds) | `{kind: "concat", first, rest}` (`{a, b}` LHS) / `{kind: "ranged", body}` / `{kind: "signal", body}`. |
+
+For `"if"` shapes (`statement` / `always_ff_statement`), `else_body` is
+`[]` when there is no `else`. For `"block"`, `label` is `[]` when the
+`begin` has no `: label`.
+
+### Expressions — the ten-level `binop_chain` left-fold contract
+
+The rtl_frontend expression grammar is a **ten-level
+operator-precedence cascade** (`grammars/rtl_frontend.ebnf` lines
+200–218), entered through `rtl_expr` → `conditional_expr` and bottoming
+out at `unary_expr` → `primary_expr`. Each of the ten binary levels emits
+the **same** typed shape — a `binop_chain` object — so a single consumer
+fold routine handles the entire binary-expression tree:
+
+```ebnf
+rtl_expr            := conditional_expr
+conditional_expr    := logical_or_expr ? conditional_expr : conditional_expr
+                    -> {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
+                     | logical_or_expr                                   -- passthrough ($1)
+logical_or_expr     := logical_and_expr ( logical_or  logical_and_expr )*
+                    -> {type: "binop_chain", level: "logical_or",     lhs: $1, rest: $2}
+logical_and_expr    := bit_or_expr      ( logical_and bit_or_expr     )*
+                    -> {type: "binop_chain", level: "logical_and",    lhs: $1, rest: $2}
+bit_or_expr         := bit_xor_expr     ( bit_or      bit_xor_expr    )*
+                    -> {type: "binop_chain", level: "bit_or",         lhs: $1, rest: $2}
+bit_xor_expr        := bit_and_expr     ( bit_xor     bit_and_expr    )*
+                    -> {type: "binop_chain", level: "bit_xor",        lhs: $1, rest: $2}
+bit_and_expr        := equality_expr    ( bit_and     equality_expr   )*
+                    -> {type: "binop_chain", level: "bit_and",        lhs: $1, rest: $2}
+equality_expr       := relational_expr  ( ( == | != )  relational_expr )*
+                    -> {type: "binop_chain", level: "equality",       lhs: $1, rest: $2}
+relational_expr     := shift_expr       ( ( <= | < | >= | > ) shift_expr )*
+                    -> {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
+shift_expr          := additive_expr    ( ( << | >> )  additive_expr  )*
+                    -> {type: "binop_chain", level: "shift",          lhs: $1, rest: $2}
+additive_expr       := multiplicative_expr ( ( + | - ) multiplicative_expr )*
+                    -> {type: "binop_chain", level: "additive",       lhs: $1, rest: $2}
+multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
+                    -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+```
+
+The ten levels, in precedence order (loosest binding first), each a
+`return_object` annotation on **branch 0** emitting
+`{type: "binop_chain", level, lhs: $1, rest: $2}`:
+
+| Level (`level`) | Rule (`grammars/rtl_frontend.ebnf`) | Operators |
+|---|---|---|
+| `"logical_or"` | `logical_or_expr` (line 200) | `\|\|` |
+| `"logical_and"` | `logical_and_expr` (line 202) | `&&` |
+| `"bit_or"` | `bit_or_expr` (line 204) | `\|` |
+| `"bit_xor"` | `bit_xor_expr` (line 206) | `^` |
+| `"bit_and"` | `bit_and_expr` (line 208) | `&` |
+| `"equality"` | `equality_expr` (line 210) | `==` / `!=` |
+| `"relational"` | `relational_expr` (line 212) | `<=` / `<` / `>=` / `>` |
+| `"shift"` | `shift_expr` (line 214) | `<<` / `>>` |
+| `"additive"` | `additive_expr` (line 216) | `+` / `-` |
+| `"multiplicative"` | `multiplicative_expr` (line 218) | `*` / `/` / `%` |
+
+These are exactly the ten rules that emit `{type: "binop_chain", …}` in
+`generated/rtl_frontend_return_annotations.json` (10 rules / 10
+annotations, one per rule). No other rtl_frontend rule emits a
+`binop_chain`.
+
+**Consumer left-fold rule (normative).** Every level emits
+`{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading
+operand — itself a `binop_chain` of the next-tighter level (or, at
+`multiplicative_expr`, a `unary_expr` shape) — and `rest` is the
+recursive-envelope iteration array of `(operator, operand)` pairs.
+**Consumers MUST fold `rest` left-associatively onto `lhs`**: evaluate
+`lhs`, then for each `(operator, operand)` pair in `rest` (in array
+order) apply `operator` with the running result as the left side and
+`operand` as the right side. This left-fold is identical at all ten
+levels by construction, so one fold routine walks the whole
+binary-expression tree. All ten levels iterate `*`, so `rest` may hold
+**any number** of pairs (including zero — a single operand surfaces as a
+`binop_chain` whose `rest` is empty).
+
+**There is NO `sign` field on any rtl_frontend `binop_chain` level**
+(unlike VHDL's `"additive"` level / `simple_expression`, which carries a
+leading-sign field). In rtl_frontend the prefix operators are factored
+into the separate `unary_expr` tier *below* `multiplicative_expr` — they
+never appear inside a `binop_chain`. Consumers must not look for a `sign`
+key on any rtl_frontend expression level.
+
+#### Ternary, unary, and primary operands
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `conditional_expr` (line 197, 2 forms) | `{type: "ternary", condition, then_expr, else_expr}` for the `c ? t : e` form; **passthrough** (a `return_scalar` annotation, `-> $1`) when there is no `?`, so a non-ternary expression surfaces directly as its `logical_or_expr` `binop_chain` with **no `conditional_expr` wrapper**. |
+| `unary_expr` (line 221, 5 forms) | `{type: "unary", op: "plus", expr}` / `{op: "minus"}` / `{op: "logical_not"}` (`!`) / `{op: "bit_not"}` (`~`); the fifth branch is **passthrough** (`return_scalar`, `-> $1`) — a non-prefixed operand surfaces directly as its `primary_expr` with **no `unary` wrapper**. |
+| `primary_expr` (line 228, 6 kinds) | `{kind: "repetition", body}` / `{kind: "concatenation", body}` / `{kind: "ranged_signal", body}` / `{kind: "signal", body}` / `{kind: "literal", body}` / `{kind: "parens", expr}`. |
+
+Because `conditional_expr` and `unary_expr` are **passthrough** when
+their distinguishing syntax is absent, any expression slot may hold a
+`binop_chain`, a `ternary`, a `unary`, **or directly** a `primary_expr`
+`{kind, …}` object. Consumers must dispatch on the presence of `type`
+vs. `kind`: a `type` of `"binop_chain"` / `"ternary"` / `"unary"`
+selects the corresponding shape, while an object carrying `kind` (no
+`type`) is a bare `primary_expr` that flowed through both passthroughs.
+
+#### Signal references and operand leaves
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `signal_reference` (line 244) | `{name, path}` — `name` is the `scoped_identifier`; `path` is the `signal_path_op*` array (`[]` for a plain signal). |
+| `ranged_signal_reference` (line 241) | `{name, path, msb, lsb}` — a part-select `sig[msb:lsb]`. |
+| `scoped_identifier` (line 247) | `{first, rest}` — `pkg::name` scope-resolution chain; `rest` is `[]` for an unqualified identifier. |
+| `signal_path_op` (line 250, 2 kinds) | `{kind: "member", name}` (`.field`) / `{kind: "index", index}` (`[expr]`). |
+| `concatenation_expr` (line 238) | `{first, rest}` — `{a, b, …}`. |
+| `repetition_expr` (line 235) | `{count, first, rest}` — `{count{a, …}}`. |
+| `literal` (line 301, 3 kinds) | `{kind: "based", text}` / `{kind: "decimal", text}` / `{kind: "real", body}`. |
+
+### Data types
+
+| Rule (`grammars/rtl_frontend.ebnf`) | Shape |
+|---|---|
+| `data_type` (line 253, 6 kinds) | `{kind: "enum", body}` / `{kind: "union", body}` / `{kind: "struct", body}` / `{kind: "builtin", body}` / `{kind: "package", body}` / `{kind: "named", body}`. |
+| `builtin_data_type` (line 265, 9 kinds) | bare `{kind}` for `"bit"`, `"byte"`, `"shortint"`, `"int"`, `"integer"`, `"longint"`, `"logic"`, `"reg"`, `"wire"`. |
+| `package_qualified_type` (line 260) | `{package, name}` — `pkg::type_name`. |
+| `enum_type` (line 275) | `{base, packed_range, first, rest}` — `base` is the typed `enum_base_type`; `first` + `rest` are the `enum_item` list. |
+| `enum_base_type` (line 278, 3 kinds) | `{kind: "builtin", body}` / `{kind: "package", body}` / `{kind: "named", body}`. |
+| `enum_item` (line 282) | `{name, value}` — `value` is `[]` when there is no `= <expr>`. |
+| `struct_type` (line 288) | `{packed, fields}` — `packed` is `[]` when the struct is unpacked; `fields` is the `struct_union_field` list. |
+| `union_type` (line 285) | `{packed, fields}` — same shape as `struct_type`. |
+| `struct_union_field` (line 291) | `{data_type, packed_range, first, rest}` — `first` + `rest` are the field-name declarators. |
+| `struct_union_field_name` (line 294, 2 kinds) | `{kind: "identifier", body}` / `{kind: "byte"}` (the `byte` reserved-word field-name form, **bodyless**). |
+| `packed_range` (line 297) | `{msb, lsb}` — `[msb:lsb]`. |
+
+`named_data_type` (a bare identifier type reference,
+`grammars/rtl_frontend.ebnf` line 263) is **un-annotated** — it surfaces
+through the recursive envelope of its `identifier`, reached as
+`data_type.body` when `data_type.kind == "named"`.
+
+The above enumerates the full typed surface of contract `1.0.1`
+(**156 annotations across 74 distinct rules**, schema version `1`).
+This contract section is curated; the authoritative machine-checkable
+enumeration of every `(rule, branch_index, annotation_type,
+normalized_text)` tuple is
+`generated/rtl_frontend_return_annotations.json` and its embedded copy
+`rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. The per-rule
+reference at `docs/rtl_frontend_parser_book/src/rules-top-level.md`
+mirrors these family groupings; if any disagree, the inventory artifact
+wins, and this integration contract wins over the book.
+
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
 - `rtl_frontend` is an `In Progress` family in the live tracker. The current grammar covers the synthesizable RTL subset; the full IEEE 1800 SystemVerilog surface is **out of scope** — see the `systemverilog` family for that.

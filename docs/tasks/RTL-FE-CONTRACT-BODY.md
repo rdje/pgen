@@ -53,11 +53,11 @@ gate recipe — modeled on the SV contract.
   Commit: `RTL-FE-CONTRACT-BODY-Slice-2`
 
 - ID: `RTL-FE-CONTRACT-BODY.3`
-  Status: `pending`
+  Status: `done`
   Goal: `Document declarations, types, ports, statements, expressions (binop_chain).`
   Acceptance: `Section enumerates each rule family; binop_chain documented as left-fold contract.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: "Declarations, Types, Ports, Statements, and Expressions" section added (7 rule families w/ kinds+fields + grammar line refs; the TEN-level binop_chain table logical_or..multiplicative + normative left-fold contract, no sign field, ternary/unary passthrough). Independently verified vs generated/rtl_frontend_return_annotations.json: 156/74, exactly 10 binop_chain rules; no duplicate ## headers; AstDumpPayload 4-field model untouched/clean (not reintroduced). Consistent with the verified rtl_frontend rules-top-level.md; no contract-vs-book discrepancy. Contract-only (rtl_frontend book DOC-ENVELOPE-0001 already fully closed in Slice-2).`
+  Commit: `RTL-FE-CONTRACT-BODY-Slice-3`
 
 - ID: `RTL-FE-CONTRACT-BODY.4`
   Status: `pending`
@@ -70,8 +70,7 @@ gate recipe — modeled on the SV contract.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-CONTRACT-BODY.3` | `pending` | Declarations/types/ports/statements/expressions (binop_chain left-fold) deepen the per-rule-family consumer surface. |
-| 2 | `RTL-FE-CONTRACT-BODY.4` | `pending` | Gate-recipe + manifest cross-ref + README/LIVE links close the contract. |
+| 1 | `RTL-FE-CONTRACT-BODY.4` | `pending` | Gate-recipe + manifest cross-ref + README/LIVE links close the contract — final leaf. |
 
 ## Decisions
 
@@ -92,6 +91,7 @@ gate recipe — modeled on the SV contract.
 | --- | --- | --- | --- |
 | `2026-05-15` | `RTL-FE-CONTRACT-BODY.1` | manual review of created contract | `pass — 188-line contract created with full rule-by-rule surface for 156 annotations` |
 | `2026-05-16` | `RTL-FE-CONTRACT-BODY.2` | inventory cross-check + dup-header grep + comprehensive book residual audit + rtl_frontend_parser_book_gate | `pass — AST Envelope + Dispatch section (real AstDumpPayload, 4/10/11 kinds, grammar line refs, 156/74 verified, no dup ## headers); rtl_frontend book DOC-ENVELOPE-0001 comprehensively closed (7 chapters, 0 residual incl. worked-example vector); gate green` |
+| `2026-05-16` | `RTL-FE-CONTRACT-BODY.3` | inventory cross-check + dup-header grep + AstDumpPayload-clean check | `pass — Declarations/Types/Ports/Statements/Expressions section (7 families + ten-level binop_chain left-fold); 156/74 + 10 binop rules verified; no dup ## headers; AstDumpPayload 4-field model untouched; consistent with verified book` |
 
 ## Commit Log
 
@@ -99,8 +99,10 @@ gate recipe — modeled on the SV contract.
 | --- | --- | --- |
 | `RTL-FE-CONTRACT-BODY.1` | `RTL-FE-CONTRACT-BODY-Slice-1` | new contract file: identity + source + stable surface + schema versioning + Release 1.0.1 full rule-by-rule |
 | `RTL-FE-CONTRACT-BODY.2` | `RTL-FE-CONTRACT-BODY-Slice-2` | AST Envelope + Dispatch section (4/10/11); rtl_frontend book DOC-ENVELOPE-0001 fully closed (7 chapters, 0 residual) |
+| `RTL-FE-CONTRACT-BODY.3` | `RTL-FE-CONTRACT-BODY-Slice-3` | Declarations/Types/Ports/Statements/Expressions section (ten-level binop_chain left-fold); contract-only |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-16`: `.2` done (AST Envelope + Dispatch section; rtl_frontend book `DOC-ENVELOPE-0001` comprehensively closed — 7 chapters, 0 residual, broad audit caught the worked-example `dump.root`/`dump.schema_version` vector the earlier narrow grep missed). Frontier advances to `.3` (declarations/types/ports/statements/expressions), then `.4`.
+- `2026-05-16`: `.3` done (Declarations/Types/Ports/Statements/Expressions section + ten-level binop_chain left-fold contract; contract-only — book DOC-ENVELOPE-0001 already closed). Frontier advances to `.4` (gate-recipe + manifest cross-ref + README/LIVE links — final leaf).
