@@ -183,11 +183,42 @@ RTL-CE-CONTRACT-BODY.3 Gate Recipe itself uses the correct
 build-recipe), so the new content is not affected — only the
 pre-existing README lines are.
 
+### RESOLVED — 2026-05-17 (PGEN-WORKFLOW-0005): hypothesis empirically FALSIFIED, no fix needed
+The "### Why it matters" claim above (that the README/`COMMIT.md`
+`SHELL=/bin/bash` commands are "likely non-runnable" because the gates
+"rely on bash-4+ constructs") was a **hypothesis** — and it is **wrong**.
+Empirically verified on this machine (`/bin/bash` = GNU bash
+**3.2.57**, the stock macOS system shell; `/opt/homebrew/bin/bash` =
+5.3.3):
+
+- All six `rust/scripts/<family>_parser_book_gate.sh` scripts **and**
+  `rust/scripts/mdbook_docs_gate.sh` are **bash-3-safe** — grep for
+  `declare -A` / `mapfile` / `readarray` / `${,,}` / `${^^}` in those
+  specific scripts returns nothing (the only `mapfile` users are the
+  unrelated `sv_external_corpus_triage_gate.sh` /
+  `sv_stimuli_quality_gate.sh`, which README/`COMMIT.md` do not invoke
+  with `/bin/bash`).
+- `make -C rust SHELL=/bin/bash regex_parser_book_gate` → **pass
+  (exit 0)**; `… vhdl_parser_book_gate` → **pass**; `…
+  mdbook_docs_gate` → **pass**. All on bash 3.2.57.
+
+Therefore the `README.md` per-parser-book lines and the `COMMIT.md`
+`mdbook_docs_gate` lines are **correct and runnable as written** on a
+stock macOS shell. There is **no user-facing doc-correctness defect**.
+The contracts/build-recipes' `/opt/homebrew/bin/bash` is a harmless
+stricter-than-necessary blanket convention (a contributor running the
+*full* gate suite — incl. the bash-4 `mapfile` corpus gates — benefits
+from Homebrew bash; the *book/docs* gates specifically do not require
+it). Both forms work for the documented commands; the divergence is
+cosmetic, not breaking. **No `README.md` / `COMMIT.md` / contract edit
+is made** — fabricating a "fix" for a non-defect would be wrong;
+correcting this inaccurate tracked claim *is* the deliverable.
+
 ### Status
-`tracked` — open observation, not yet scheduled into an active task
-tree. Recorded so it is not lost; reported in the RTL-CE-CONTRACT-BODY.3
-CHANGES entry and task-file verification log rather than silently
-worked around.
+`resolved` (2026-05-17, `PGEN-WORKFLOW-0005`) — investigated,
+hypothesis empirically falsified, closed with no code/doc fix required.
+The original observation + hypothesis are kept above as honest history
+(the claim was a reasonable prior, disproved by direct measurement).
 
 ## 2026-05-16 - TRACKED: systemic fabricated `AstDumpPayload` struct in per-parser book ast-envelope chapters (DOC-ENVELOPE-0001)
 

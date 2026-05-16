@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-WORKFLOW-0005: DOC-README-SHELL-0001 investigated → hypothesis empirically FALSIFIED → closed, no fix needed
+
+- `DOC-README-SHELL-0001` (filed earlier this session) hypothesised
+  that `README.md`'s six per-parser-book-gate lines + `COMMIT.md`'s
+  `mdbook_docs_gate` lines using `SHELL=/bin/bash` were "likely
+  non-runnable" on stock macOS because the gates "rely on bash-4+
+  constructs". **Empirically disproved.** On this machine `/bin/bash`
+  is GNU bash **3.2.57** (stock macOS); `/opt/homebrew/bin/bash` is
+  5.3.3. All six `rust/scripts/<family>_parser_book_gate.sh` **and**
+  `rust/scripts/mdbook_docs_gate.sh` are **bash-3-safe** (no
+  `declare -A`/`mapfile`/`readarray`/`${,,}`/`${^^}`; the only
+  `mapfile` users are unrelated SV-corpus gates not invoked by those
+  README/COMMIT lines). Verified by running them: `make -C rust
+  SHELL=/bin/bash regex_parser_book_gate` → pass; `… vhdl_parser_book_gate`
+  → pass; `… mdbook_docs_gate` → pass — all exit 0 on bash 3.2.57.
+- **Conclusion:** the README + COMMIT.md `SHELL=/bin/bash` commands are
+  **correct and runnable as written**; there is **no user-facing
+  doc-correctness defect**. The contracts/build-recipes'
+  `/opt/homebrew/bin/bash` is a harmless stricter blanket convention
+  (useful for the *full* gate suite incl. the bash-4 `mapfile` corpus
+  gates; not required for the book/docs gates). Both forms work for
+  the documented commands — the divergence is cosmetic, not breaking.
+- **No `README.md` / `COMMIT.md` / contract edit made** — fabricating
+  a "fix" for a non-defect would be wrong. The deliverable is the
+  honest correction of the inaccurate tracked claim: the
+  `DEVELOPMENT_NOTES.md` `DOC-README-SHELL-0001` entry now carries a
+  `RESOLVED` section with the empirical evidence and `Status:
+  resolved` (the original hypothesis kept as honest history).
+- **No open work lanes remain.** All 9 task trees + `DOC-ENVELOPE-0001`
+  (5 books) + the systemic inline-alternation-`$N` class
+  (`RTL-CE-0001`/`SVPP-0001`/`RTL-FE-0001`/`VHDL-0001`) + this last
+  tracking item are complete. Pure tracking-correctness commit — no
+  parser/grammar/codegen/contract change; no parser-family status row
+  change.
+
 ## 2026-05-17 - PGEN-INLINE-ALT-FIX-0003 (leaf INLINE-ALT-FIX.3): vhdl binop_chain inline-alternation defect FIXED (VHDL-0001) — closes the tree AND the systemic class
 
 - **`vhdl` `binop_chain` inline-alternation-`$N` defect FIXED**
