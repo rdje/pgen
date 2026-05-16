@@ -269,6 +269,283 @@ enumeration of every `(rule, branch_index, annotation_type, normalized_text)`
 tuple is `generated/vhdl_return_annotations.json` and its embedded copy
 `rust/test_data/ast_shape_contract/vhdl_v1.json`.
 
+## Declarations, Types, Statements, and Expressions
+
+This section is the consumer-facing per-family shape contract: for every
+VHDL rule family it enumerates the `kind` discriminator(s) and the exact
+field list the parser emits. Every `kind` value, field name, and branch
+count below is transcribed from the live inventory
+`generated/vhdl_return_annotations.json`
+(`version: 1`, `grammar: "vhdl"`, `annotation_count: 249`,
+**110 distinct rules**), cross-checked against the embedded
+shape-contract manifest `rust/test_data/ast_shape_contract/vhdl_v1.json`
+(content-identical on the `(rule, branch_index, annotation_type,
+normalized_text)` tuples; the embedded copy omits only the diagnostic
+`raw_text` field), and consistent with the curated per-rule reference at
+`docs/vhdl_parser_book/src/rules-top-level.md`. The top-level `vhdl_file`
+root and the 10-branch `design_unit` dispatcher are documented in
+[AST Envelope and `design_unit` Dispatch](#ast-envelope-and-design_unit-dispatch)
+and are not repeated here.
+
+Two emission conventions recur:
+
+- **Dispatch rules** emit `{kind: "<branch>", body: $N}` (or per-branch
+  named fields). Consumers dispatch on `obj["kind"]`. A bodyless
+  `{kind: "semi"}` (and, for `sequential_statement`, `{kind: "null"}`)
+  marks the lone-`;` / `null` branch — there is no `body`.
+- **`{first, rest}` list rules** emit a head element plus the raw
+  iteration envelope of the `(sep X)*` tail. This is VHDL's separated-list
+  convention; `first` is the head, `rest` is the trailing-iteration array.
+
+Field selectors below name JSON keys exactly as emitted; a field bound to
+an optional grammar element is `[]` when that element is absent (e.g.
+`signal_declaration.default`, `subtype_indication.constraint`,
+`return_statement.value`, `function_specification.impure`).
+
+### Context clauses and selected names
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `library_clause` (line 29) | `{first, rest}` — first identifier + comma-separated identifier iteration. |
+| `use_clause` (line 31) | `{first, rest}` — first selected name + comma-separated iteration. |
+| `context_reference_clause` (line 33) | `{name}` — the referenced context name. |
+| `context_item` (line 37, 4 kinds) | `{kind: "library", body}` / `{kind: "use", body}` / `{kind: "context_reference", body}` / `{kind: "semi"}` (bodyless). |
+| `selected_name` (line 42) | `{first, rest}` — leading name segment + dotted-suffix iteration. |
+
+### Design units
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `entity_declaration` (line 51) | `{name, items, end_label}` — `items` is the `entity_declarative_item*` array; `end_label` the optional trailing identifier after `end`. |
+| `architecture_body` (line 84) | `{name, entity_name, items, statements, end_label}` — `items` are declarative items, `statements` are concurrent statements. |
+| `package_declaration` (line 100) | `{name, header, items, end_label}` — `header` is the optional `package_header`. |
+| `package_body` (line 102) | `{name, items, end_label}`. |
+| `configuration_declaration` (line 144) | `{name, entity_name, items, end_label}` — `items` is the `configuration_item*` array. |
+| `context_declaration` (line 35) | `{name, items, end_label}` — `items` is the `context_item*` array. |
+| `configuration_item` (line 146, 3 kinds) | `{kind: "for", target}` / `{kind: "use", body}` / `{kind: "semi"}` (bodyless). |
+
+### Declarative-item dispatch rules
+
+Each declarative region is a `kind`-tagged dispatch over the declarations
+it admits. Every branch emits `{kind, body}` except the bodyless
+`{kind: "semi"}` branch.
+
+| Rule (`grammars/vhdl.ebnf`) | `kind` values (branch order) |
+|---|---|
+| `entity_declarative_item` (line 54, 5) | `"generic"`, `"port"`, `"component"`, `"use"`, `"semi"` |
+| `architecture_declarative_item` (line 87, 12) | `"signal"`, `"constant"`, `"file"`, `"type"`, `"subtype"`, `"component"`, `"subprogram_declaration"`, `"subprogram_body"`, `"package_instantiation"`, `"alias"`, `"use"`, `"semi"` |
+| `package_declarative_item` (line 107, 13) | `"subprogram_declaration"`, `"subprogram_body"`, `"type"`, `"subtype"`, `"constant"`, `"signal"`, `"file"`, `"component"`, `"package_instantiation"`, `"view"`, `"alias"`, `"use"`, `"semi"` |
+| `package_body_declarative_item` (line 121, 8) | `"subprogram_declaration"`, `"subprogram_body"`, `"constant"`, `"signal"`, `"file"`, `"alias"`, `"use"`, `"semi"` |
+| `subprogram_declarative_item` (line 161, 9) | `"variable"`, `"file"`, `"constant"`, `"type"`, `"subtype"`, `"subprogram_declaration"`, `"subprogram_body"`, `"use"`, `"semi"` |
+| `process_declarative_item` (line 279, 9) | `"variable"`, `"file"`, `"constant"`, `"type"`, `"subtype"`, `"subprogram_declaration"`, `"subprogram_body"`, `"use"`, `"semi"` |
+
+### Generic / port / parameter interfaces
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `generic_clause` (line 60) | `{list}` — the inner `generic_interface_list`. |
+| `generic_interface_list` | `{first, rest}`. |
+| `generic_interface_element` (2 kinds) | `{kind: "value", names, subtype, default}` / `{kind: "package", body}`. |
+| `port_clause` (line 71) | `{list}` — the inner `port_interface_list`. |
+| `port_interface_list` | `{first, rest}`. |
+| `port_interface_element` | `{names, mode, subtype, default}` — `mode` is the typed `signal_mode`. |
+| `parameter_list` | `{first, rest}`. |
+| `parameter_interface_element` | `{names, mode, subtype, default}` — `mode` is the typed `parameter_mode`. |
+| `generic_map_aspect` | `{associations}` — the inner `association_list`. |
+| `port_map_aspect` | `{associations}`. |
+| `association_list` | `{first, rest}`. |
+| `association_element` | `{formal, actual}`. |
+| `actual_part` (2 kinds) | `{kind: "expression", body}` / `{kind: "open"}` (bodyless). |
+| `actual_parameter_part` | `{first, rest}`. |
+| `actual_parameter_element` (2 kinds) | `{kind: "association", body}` / `{kind: "range_expression", body}`. |
+| `identifier_list` | `{first, rest}`. |
+
+#### Mode keyword leaves
+
+Each is a bare `{kind}` object — no `body`; the keyword token is
+redundant with `kind`.
+
+| Rule (`grammars/vhdl.ebnf`) | `kind` values |
+|---|---|
+| `signal_mode` (line 78, 5) | `"in"`, `"out"`, `"inout"`, `"buffer"`, `"linkage"` |
+| `view_mode` (line 136, 5) | `"in"`, `"out"`, `"inout"`, `"buffer"`, `"linkage"` |
+| `parameter_mode` (line 176, 3) | `"in"`, `"out"`, `"inout"` |
+
+### Declarations
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `signal_declaration` (line 184) | `{names, subtype, default}` — `default` is `[]` when no `:= expr` initializer. |
+| `constant_declaration` (line 186) | `{names, subtype, value}`. |
+| `variable_declaration` (line 188) | `{names, subtype, default}`. |
+| `file_declaration` | `{names, subtype, open_mode, filename}`. |
+| `subtype_declaration` | `{name, subtype}`. |
+| `component_declaration` | `{name, generic, port, end_label}`. |
+| `type_declaration` (line 197) | `{name, definition}` — `definition` is the typed `type_definition`. |
+| `view_declaration` | `{name, subtype, elements}`. |
+| `view_element` | `{name, mode}` — `mode` is the typed `view_mode`. |
+| `alias_declaration` | `{name, target}`. |
+| `package_header` | `{generic}`. |
+| `package_generic_interface_element` | `{name, base, map}`. |
+| `package_instantiation_declaration` | `{name, base, map}`. |
+| `subprogram_declaration` (2 kinds) | `{kind: "procedure", spec}` / `{kind: "function", spec}`. |
+| `subprogram_body` (2 kinds) | `{kind: "procedure", spec, items, statements, end_label}` / `{kind: "function", spec, items, statements, end_label}`. |
+| `procedure_specification` | `{name, parameters}`. |
+| `function_specification` | `{impure, name, parameters, return_type}` — `impure` is `[]` for a pure function, set when `impure` is present. |
+
+### Types and constraints
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `type_definition` (3 kinds) | `{kind: "enumeration", body}` / `{kind: "array", body}` / `{kind: "record", body}`. |
+| `enumeration_type_definition` | `{first, rest}`. |
+| `array_type_definition` | `{index_range, element_subtype}`. |
+| `record_type_definition` | `{elements}`. |
+| `record_element_declaration` | `{names, subtype}`. |
+| `subtype_indication` (line 212) | `{type_mark, constraint}` — `constraint` is `[]` when the subtype is unconstrained. |
+| `constraint` (line 214, 2 kinds) | `{kind: "range", body}` / `{kind: "index", body}`. |
+| `range_constraint` | `{range}`. |
+| `index_constraint` | `{first, rest}`. |
+| `discrete_range` (line 220, 5 kinds) | `{kind: "range", body}` / `{kind: "attribute", body}` / `{kind: "name", body}` / `{kind: "subtype_range", subtype, range}` / `{kind: "subtype_box", subtype}`. |
+| `range_expression` (line 226, 2 kinds) | `{kind: "to", low, high}` / `{kind: "downto", high, low}`. |
+
+### Concurrent statements
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `concurrent_statement` (line 233, 7 kinds) | `{kind, body}` for `"signal_assignment"`, `"assert"`, `"process"`, `"component_instantiation"`, `"generate"`, `"block"`; `{kind: "semi"}` (bodyless) for the lone-`;` branch. |
+| `concurrent_signal_assignment_statement` | `{target, rhs}`. |
+| `process_statement` (line 270) | `{label, sensitivity, items, statements, end_label}`. |
+| `process_label` | `{name}`. |
+| `sensitivity_clause` | `{list}` — the inner `sensitivity_list`. |
+| `sensitivity_list` | `{first, rest}`. |
+| `component_instantiation_statement` | `{label, unit, generic_map, port_map}` — `unit` is the typed `instantiated_unit`. |
+| `instantiated_unit` (3 kinds) | `{kind: "component", name}` / `{kind: "entity", name}` / `{kind: "configuration", name}`. |
+| `generate_statement` (2 kinds) | `{kind: "for", label, var, range, statements}` / `{kind: "if", label, condition, statements}`. |
+| `block_statement` | `{label, items, statements, end_label}`. |
+
+### Sequential statements
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `sequential_statement` (line 289, 13 kinds) | `{kind, body}` for `"signal_assignment"`, `"variable_assignment"`, `"if"`, `"case"`, `"loop"`, `"exit"`, `"wait"`, `"assert"`, `"report"`, `"return"`, `"procedure_call"`; `{kind: "null"}` and `{kind: "semi"}` are bodyless. |
+| `signal_assignment_statement` | `{target, rhs}`. |
+| `signal_assignment_rhs` | `{value, conditional}` — `conditional` carries the optional `when`-clause tail. |
+| `variable_assignment_statement` | `{target, value}`. |
+| `target` (2 kinds) | `{kind: "name", name, params}` / `{kind: "aggregate", first, rest}`. |
+| `if_statement` (line 316) | `{condition, then_body, elsif_branches, else_body}` — `elsif_branches` is the `(elsif … then …)*` iteration; `else_body` is `[]` when there is no `else`. |
+| `case_statement` (line 319) | `{value, alternatives}`. |
+| `case_statement_alternative` | `{choices, body}`. |
+| `loop_statement` (line 328, 3 kinds) | `{kind: "while", condition, body}` / `{kind: "for", var, range, body}` / `{kind: "infinite", body}`. |
+| `exit_statement` | `{condition_or_label}`. |
+| `wait_statement` | `{timeout}` — the optional `for expression` clause. |
+| `assert_statement` | `{condition, report, severity}`. |
+| `report_statement` | `{message, severity}`. |
+| `return_statement` | `{value}` — `value` is `[]` for a bare `return;`. |
+| `procedure_call_statement` | `{name, params}`. |
+
+### Expressions — the `binop_chain` left-fold contract
+
+VHDL's expression grammar is a **five-level operator-precedence cascade**
+(`grammars/vhdl.ebnf` lines 348–357):
+`expression` → `relation` → `simple_expression` → `term` → `factor`.
+Every level emits the same typed shape — a `binop_chain` object — so a
+single consumer fold routine handles the entire expression tree:
+
+```ebnf
+expression        := relation (logical_operator relation)*
+                  -> {type: "binop_chain", level: "logical",        lhs: $1, rest: $2}
+relation          := simple_expression (relational_operator simple_expression)?
+                  -> {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
+simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+                  -> {type: "binop_chain", level: "additive",       sign: $1, lhs: $2, rest: $3}
+term              := factor ((star | slash | kw_mod | kw_rem) factor)*
+                  -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+factor            := primary (power primary)?
+                  -> {type: "binop_chain", level: "power",          lhs: $1, rest: $2}
+```
+
+| Level (`level`) | Rule (`grammars/vhdl.ebnf`) | Fields | Operators |
+|---|---|---|---|
+| `"logical"` | `expression` (line 348) | `lhs`, `rest` | `and` / `or` / `xor` / `nand` / `nor` / `xnor` |
+| `"relational"` | `relation` (line 350) | `lhs`, `rest` | `=` / `/=` / `<` / `<=` / `>` / `>=` |
+| `"additive"` | `simple_expression` (line 352) | `sign`, `lhs`, `rest` | unary `+`/`-` (`sign`); binary `+` / `-` / `&` |
+| `"multiplicative"` | `term` (line 354) | `lhs`, `rest` | `*` / `/` / `mod` / `rem` |
+| `"power"` | `factor` (line 356) | `lhs`, `rest` | `**` |
+
+**Consumer left-fold rule (normative).** Every level emits
+`{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading
+operand and `rest` is the iteration array of `(op, operand)` pairs.
+**Consumers MUST fold `rest` left-associatively onto `lhs`** —
+evaluate `lhs`, then for each `(op, operand)` pair in `rest` (in array
+order) apply `op` with the running result as the left side and `operand`
+as the right side. This left-fold is identical at all five levels by
+construction, so one fold routine walks the whole expression tree.
+
+Two level-specific notes:
+
+- The **`"additive"`** level (`simple_expression`) carries an extra
+  leading `sign` field for the optional unary `+`/`-`; `sign` is `[]`
+  when no leading sign is present. Apply `sign` to the folded result of
+  `lhs`/`rest`.
+- The **`"relational"`** level's `rest` is **at most one `(op, operand)`
+  pair** — the grammar uses `?`, not `*` (`relation := simple_expression
+  (relational_operator simple_expression)?`). The `"logical"`,
+  `"additive"`, and `"multiplicative"` levels iterate `*` (zero or more
+  pairs); `"power"` (`factor`) likewise uses `?` and so carries at most
+  one pair.
+
+#### Operator leaves
+
+`logical_operator` and `relational_operator` are typed bare-`{kind}`
+leaves (no `body`); the `simple_expression`, `term`, and `factor`
+operators are matched inline as literal tokens within `rest`, not via a
+separate typed operator rule.
+
+| Rule (`grammars/vhdl.ebnf`) | `kind` values |
+|---|---|
+| `logical_operator` (line 382, 6) | `"and"`, `"or"`, `"xor"`, `"nand"`, `"nor"`, `"xnor"` |
+| `relational_operator` (line 389, 6) | `"eq"`, `"ne"`, `"lt"`, `"le"`, `"gt"`, `"ge"` |
+
+### `primary` and aggregates
+
+`primary` is the leaf-operand dispatcher at the bottom of the
+`binop_chain` cascade.
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `primary` (line 359, 7 kinds) | `{kind: "literal", body}` / `{kind: "aggregate", body}` / `{kind: "attribute_name", body}` / `{kind: "function_call", name, params}` / `{kind: "name", body}` / `{kind: "parens", expr}` / `{kind: "not", expr}`. |
+| `attribute_name` | `{prefix, prefix_params, attribute, attribute_params}`. |
+| `aggregate` (line 370, 2 kinds) | `{kind: "named_first", first_choices, first_value, rest}` / `{kind: "positional_first", first_value, second, rest}`. |
+| `aggregate_element_association` (2 kinds) | `{kind: "named", choices, value}` / `{kind: "positional", value}`. |
+| `aggregate_choice_list` | `{first, rest}`. |
+| `aggregate_choice` (5 kinds) | `{kind: "others"}` (bodyless) / `{kind: "name", body}` / `{kind: "decimal", body}` / `{kind: "character", body}` / `{kind: "string", body}`. |
+| `choices` | `{first, rest}`. |
+| `choice` (2 kinds) | `{kind: "expression", body}` / `{kind: "others"}` (bodyless). |
+
+### Literals
+
+| Rule (`grammars/vhdl.ebnf`) | Shape |
+|---|---|
+| `literal` (line 396, 6 kinds) | `{kind, body}` for `"physical"`, `"decimal"`, `"based"`, `"bit_string"`, `"string"`, `"character"`. |
+| `decimal_literal` (line 404) | `{value}`. |
+| `based_literal` (line 406) | `{base, value}`. |
+
+`physical_literal`, `bit_string_literal`, `string_literal`, and
+`character_literal` are matched as terminal/regex leaves and carried
+through the recursive-envelope shape (the string of matched text); they
+carry no per-rule annotation — only the dispatch in `literal` is typed.
+
+The above enumerates the full typed surface of contract `1.0.1`
+(**249 annotations across 110 distinct rules**, schema version `1`).
+This contract section is curated; the authoritative machine-checkable
+enumeration of every `(rule, branch_index, annotation_type,
+normalized_text)` tuple is `generated/vhdl_return_annotations.json` and
+its embedded copy `rust/test_data/ast_shape_contract/vhdl_v1.json`. The
+per-rule reference at `docs/vhdl_parser_book/src/rules-top-level.md`
+mirrors these family groupings; if any disagree, the inventory artifact
+wins, and this integration contract wins over the book.
+
 ## Source Of Truth
 - Grammar source:
   - `grammars/vhdl.ebnf`

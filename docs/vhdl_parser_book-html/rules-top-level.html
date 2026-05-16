@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b916fb7c.js";
+            window.path_to_searchindex_js = "searchindex-1842a953.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -459,7 +459,7 @@ factor            := primary (power primary)?
 </tbody>
 </table>
 </div>
-<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the iteration array of <code>(op, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). The <code>"relational"</code> level’s <code>rest</code> is at most a single <code>(op, operand)</code> pair (the grammar uses <code>?</code>, not <code>*</code>); all other levels iterate <code>*</code>.</p>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the iteration array of <code>(op, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). Two levels cap <code>rest</code> at <strong>at most one</strong> <code>(op, operand)</code> pair because their grammar rule uses <code>?</code> (not <code>*</code>): <code>"relational"</code> (<code>relation := simple_expression (relational_operator simple_expression)?</code>) and <code>"power"</code> (<code>factor := primary (power primary)?</code>). The other three levels — <code>"logical"</code> (<code>expression</code>), <code>"additive"</code> (<code>simple_expression</code>), and <code>"multiplicative"</code> (<code>term</code>) — iterate <code>*</code>, so their <code>rest</code> is a 0..N array. A correct left-fold consumer handles both uniformly (fold over a <code>rest</code> of length 0, 1, or N).</p>
 <p>This <code>binop_chain</code> shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See <a href="walking-the-ast.html">Walking the AST</a> for a worked fold.</p>
 <h3 id="operators-bare-kind-leaves"><a class="header" href="#operators-bare-kind-leaves">Operators (bare <code>{kind}</code> leaves)</a></h3>
 <div class="table-wrapper">
