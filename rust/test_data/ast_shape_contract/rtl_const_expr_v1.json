@@ -41,13 +41,19 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/rtl_const_expr_return_annotations.json",
-    "extracted_at": "2026-05-14",
+    "extracted_at": "2026-05-16",
     "annotations": [
       {
         "rule": "additive_expr",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"binop_chain\", level: \"additive\", lhs: $1, rest: $2}"
+      },
+      {
+        "rule": "based_integer",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
       },
       {
         "rule": "bit_and_expr",
@@ -80,6 +86,12 @@
         "normalized_text": "$1"
       },
       {
+        "rule": "decimal_integer",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
         "rule": "equality_expr",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -89,7 +101,7 @@
         "rule": "identifier",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"identifier\", text: $1}"
+        "normalized_text": "{type: \"identifier\", text: $2}"
       },
       {
         "rule": "literal",

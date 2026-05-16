@@ -9,7 +9,7 @@ The `ast_dump` field of `NamedGrammarAstDumpOutcome` carries an `AstDumpPayload`
 ```rust
 pub struct AstDumpPayload {
     pub pgen_dump_contract_version: u32,  // currently 1
-    pub schema_version: u32,              // 1 — see Schema Versioning
+    pub schema_version: u32,              // 2 — see Schema Versioning
     pub grammar: String,                  // "rtl_const_expr"
     pub profile: String,                  // "default"
     pub root: JsonValue,                  // the actual AST tree
@@ -47,13 +47,18 @@ Dispatch on `root["type"] == "rtl_const_expr"`, then descend into
 
 ## The typed surface at a glance
 
-The full typed surface as of contract `1.0.1` is **24 return
-annotations across 16 distinct rules** (19 `return_object`, 5
-`return_scalar` passthrough). It is **not** a `kind`-tagged surface:
-every typed object carries a `type` discriminator, never a bare `kind`.
-The five passthrough branches (`conditional_expr` branch 1,
-`primary_expr` branches 0/1/2, `unary_expr` branch 4) carry no wrapper
-of their own — they surface the matched sub-rule's shape directly.
+The full typed surface as of contract `1.0.2` is **26 return
+annotations across 18 distinct rules** (19 `return_object`, 7
+`return_scalar`). It is **not** a `kind`-tagged surface: every typed
+object carries a `type` discriminator, never a bare `kind`. Of the 7
+`return_scalar` annotations, five are passthrough branches
+(`conditional_expr` branch 1, `primary_expr` branches 0/1/2,
+`unary_expr` branch 4) that carry no wrapper and surface the matched
+sub-rule's shape directly; the other two (`based_integer` /
+`decimal_integer`, both `-> $2`) are leaf scalar captures feeding
+`literal.text`. The five named operator alternation rules (`equality_op`,
+`relational_op`, `shift_op`, `additive_op`, `multiplicative_op`) are
+**un-annotated** and not part of the 26.
 
 ## conditional_expr (ternary)
 
@@ -81,26 +86,37 @@ operator-precedence cascade. Each level emits the same `binop_chain`
 shape:
 
 ```ebnf
-<level>_expr := <next> ( <op> <next> )*
+<level>_expr := <next> ( <named_op> <next> )*
             -> {type: "binop_chain", level: "<level>", lhs: $1, rest: $2}
 ```
 
 The ten levels (loosest to tightest binding, the order they nest):
 `logical_or` → `logical_and` → `bit_or` → `bit_xor` → `bit_and` →
 `equality` → `relational` → `shift` → `additive` → `multiplicative`.
+The five inner multi-token operator alternations are lifted into named
+rules (`equality_op := eqeq | ne`, `relational_op := le | lt | ge | gt`,
+`shift_op := shl | shr`, `additive_op := plus | minus`,
+`multiplicative_op := star | slash | percent`); the other five levels
+use a single named token rule. This is the `1.0.2` correctness fix —
+see [Schema Versioning](schema-versioning.md).
 
 ```json
-{ "type": "binop_chain", "level": "<level>", "lhs": <next-level-shape>, "rest": <rest-envelope> }
+{ "type": "binop_chain", "level": "<level>", "lhs": <next-level-shape>, "rest": [ [ <op-envelope>, <operand> ], ... ] }
 ```
 
 `lhs` (`$1`) is the leading operand (itself the next tighter level,
-bottoming out at a typed `primary_expr` leaf). `rest` (`$2`) is the
-**raw recursive-envelope iteration** of the `( <op> <next> )*` tail —
-**not** an array of typed `{op, rhs}` objects. When the input had no
-operator at that level, `rest` is the empty-iteration envelope and the
-consumer simply unwraps `lhs`. Because `rest` is an envelope, the fold
-must walk it rather than read `step["op"]` / `step["rhs"]`; the single
-authoritative, inventory-accurate fold is in
+bottoming out at a typed `primary_expr` leaf). `rest` (`$2`) is a
+**clean array** of `( <named_op> <next> )` iterations — **not** an array
+of typed `{op, rhs}` objects, and (as of `1.0.2`) never
+`"<invalid_sequence_access>"`. Each entry is `[ <op-envelope>, <operand> ]`:
+`entry[0]` is the operator envelope (`["", "+"]` for a `trivia "+"`
+token; operator text at `entry[0][1]`) and `entry[1]` is the next-level
+operand. When the input had no operator at that level, `rest` is the
+empty array `[]` and the consumer simply unwraps `lhs`. Because each
+entry is the `[op-envelope, operand]` pair (not a `{op, rhs}` object),
+the fold must read `entry[0]` / `entry[1]` rather than
+`step["op"]` / `step["rhs"]`; the single authoritative,
+inventory-accurate fold is in
 [Walking the AST](walking-the-ast.md#folding-the-binop_chain-expression-hierarchy)
 — consumers should use that one rather than reimplement it here.
 
@@ -126,12 +142,19 @@ literal, identifier, or parenthesized-expression shape directly. The two
 typed leaves it bottoms out at are:
 
 ```ebnf
-literal    := ... -> {type: "literal", kind: "based",   text: $1}
-            | ... -> {type: "literal", kind: "decimal", text: $1}
-identifier := ... -> {type: "identifier", text: $1}
+based_integer   := trivia /…/ -> $2     # clean digit string, feeds literal.text
+decimal_integer := trivia /…/ -> $2     # clean digit string, feeds literal.text
+literal    := based_integer   -> {type: "literal", kind: "based",   text: $1}
+            | decimal_integer -> {type: "literal", kind: "decimal", text: $1}
+identifier := trivia /…/      -> {type: "identifier", text: $2}
 ```
 
-Full per-branch field lists are in [Top-Level Rules](rules-top-level.md).
+`literal.text` (`$1` = the `based_integer` / `decimal_integer` body
+element) is now a **clean string** because those leaf rules are
+annotated `-> $2` as of `1.0.2` (were unannotated, surfacing the
+envelope `["", "42"]`). `identifier.text` binds `$2` (was `$1`, the
+empty leading `trivia`) so it is the real name. Full per-branch field
+lists are in [Top-Level Rules](rules-top-level.md).
 
 ## Two carrier kinds: typed and recursive-envelope
 
@@ -140,14 +163,15 @@ Per-rule, the AST dump produces JSON in one of two shapes:
 - **Typed shape** — rules/branches with a `return_object` annotation
   (the root, `conditional_expr` branch 0, the ten `binop_chain` levels,
   `unary_expr` branches 0–3, `literal`, `identifier`).
-- **Recursive-envelope shape** — un-annotated rules and the
-  `return_scalar` passthrough branches surface a JSON value derived
-  from grammar shape (sequence → array, alternation → matched-branch
-  shape, quantified → iteration array). The `binop_chain` `rest` field
-  and every un-annotated leaf (operator tokens, etc.) are
-  envelope-shaped; see [The Json Carrier](json-carrier.md).
+- **Recursive-envelope shape** — un-annotated rules (including the five
+  named operator alternation rules) and the `return_scalar` passthrough
+  branches surface a JSON value derived from grammar shape (sequence →
+  array, alternation → matched-branch shape, quantified → iteration
+  array). Each `binop_chain` `rest` entry's `entry[0]` op-envelope and
+  every un-annotated leaf (operator tokens, etc.) are envelope-shaped;
+  see [The Json Carrier](json-carrier.md).
 
-The 24-annotation / 16-distinct-rule surface (contract `1.0.1`) is
+The 26-annotation / 18-distinct-rule surface (contract `1.0.2`) is
 enumerated authoritatively in [Top-Level Rules](rules-top-level.md).
 
 ## Determinism

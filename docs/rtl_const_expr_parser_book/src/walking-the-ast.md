@@ -1,6 +1,6 @@
 # Walking the AST
 
-This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_const_expr AST-dump JSON. It uses real rtl_const_expr rule, `type`, `level`, and `op` names from the live return-annotation inventory (`generated/rtl_const_expr_return_annotations.json`, 24 annotations on 16 distinct rules, schema version `1`).
+This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_const_expr AST-dump JSON. It uses real rtl_const_expr rule, `type`, `level`, and `op` names from the live return-annotation inventory (`generated/rtl_const_expr_return_annotations.json`, 26 annotations on 18 distinct rules, parser release `1.0.2`, schema version `2`).
 
 ## The dual-shape walker
 
@@ -145,19 +145,20 @@ fn fold_binop(node: &serde_json::Value) -> Expr {
 
     let mut acc = lower_expr(node.get("lhs").expect("lhs present"));
 
-    // `rest` is the recursive-envelope array of `( op operand )` iterations
-    // (NOT a typed {op, rhs} object). It is `[]` when there was no operator
-    // at this level — in that case the node is a pure wrapper around `lhs`.
+    // `rest` is a CLEAN array of `( <named_op> operand )` iterations (NOT a
+    // typed {op, rhs} object, and — as of parser release 1.0.2 — never
+    // `<invalid_sequence_access>`). It is `[]` when there was no operator at
+    // this level, in which case the node is a pure wrapper around `lhs`.
     // rtl_const_expr has NO `sign` field; prefix +/-/!/~ live in unary_expr,
     // below this cascade. All ten levels iterate `*`.
     if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
-        for pair in rest {
-            // Each `pair` is the envelope of one `( operator operand )`
-            // iteration: the operator-token sub-shape followed by the
-            // next-level operand. Walk to the operand rather than assuming a
-            // fixed index, so a grammar tweak to the operator token does not
-            // break extraction.
-            let (op, rhs_node) = split_op_operand(pair);
+        for entry in rest {
+            // Each `entry` is a two-element array: [ <op-envelope>, <operand> ].
+            //   entry[0] is the operator envelope — for a `trivia "<tok>"`
+            //            token this is ["", "<tok>"]; the operator text is the
+            //            last terminal in it (e.g. "+").
+            //   entry[1] is the next-level operand (a binop_chain).
+            let (op, rhs_node) = split_op_operand(entry);
             acc = Expr::Binary {
                 op,
                 lhs: Box::new(acc),
@@ -168,12 +169,15 @@ fn fold_binop(node: &serde_json::Value) -> Expr {
     acc
 }
 
-/// `pair` is the recursive envelope of one `( operator operand )` iteration.
-/// The operand is the last child; the operator token is what precedes it.
-fn split_op_operand(pair: &serde_json::Value) -> (String, &serde_json::Value) {
-    let arr = pair.as_array().expect("rest entry is a sequence envelope");
-    let operand = arr.last().expect("rest entry has an operand");
-    // The operator token is the leading child; walk it to its terminal text.
+/// `entry` is one `rest` element: `[ <op-envelope>, <operand> ]`.
+/// `entry[1]` is the operand; `entry[0]` is the operator envelope
+/// (`["", "<tok>"]`), whose terminal text is the operator.
+fn split_op_operand(entry: &serde_json::Value) -> (String, &serde_json::Value) {
+    let arr = entry.as_array().expect("rest entry is a [op, operand] pair");
+    let operand = arr
+        .get(1)
+        .expect("rest entry's operand is the second element");
+    // The operator envelope is the first element; walk it to its terminal text.
     let op = arr
         .first()
         .and_then(extract_terminal_text)
@@ -188,7 +192,7 @@ A non-empty `rest` example: see [Binary Addition](examples-binary-addition.md) f
 
 ## Identifier and literal extraction
 
-rtl_const_expr identifiers and literals **are** annotated, so unlike rtl_frontend they surface as typed `{type, text}` objects, not bare envelopes. The source text is the `text` field of the object — it is the one place rtl_const_expr surfaces a bare string:
+rtl_const_expr identifiers and literals **are** annotated, so unlike rtl_frontend they surface as typed `{type, text}` objects, not bare envelopes. As of the `1.0.2` fix the `text` field is a **clean source string** in both cases — `identifier` binds `text: $2` (was `$1`, the empty leading `trivia`) and `literal.text` is `based_integer` / `decimal_integer`'s clean `-> $2` capture (was the envelope `["", "42"]`). Extraction is therefore a direct field read:
 
 ```rust
 fn extract_identifier(node: &serde_json::Value) -> Option<String> {
@@ -223,7 +227,7 @@ fn extract_terminal_text(node: &serde_json::Value) -> Option<String> {
 }
 ```
 
-The per-rule chapter ([Top-Level Rules](rules-top-level.md)) documents which field holds the source text for each typed rule. Treat the `binop_chain` `rest` entries as envelopes — see [The Json Carrier](json-carrier.md#worked-example-a-decimal-literal) for the captured shape of `42`, a ten-deep stack of empty `binop_chain` wrappers bottoming out at `{type: "literal", kind: "decimal", text: "42"}`.
+The per-rule chapter ([Top-Level Rules](rules-top-level.md)) documents which field holds the source text for each typed rule. Treat each `binop_chain` `rest` entry as the `[ <op-envelope>, <operand> ]` pair described above — see [The Json Carrier](json-carrier.md#worked-example-a-decimal-literal) for the captured shape of `42`, a ten-deep stack of empty `binop_chain` wrappers bottoming out at the node `{"kind": "decimal", "text": "42", "type": "literal"}` (object keys emitted alphabetically).
 
 ## Avoiding deep recursion
 
@@ -243,8 +247,13 @@ If your tool needs to support multiple PGEN versions, branch on the payload's sc
 
 ```rust
 match ast_dump_payload.schema_version {
+    // schema 2 is current (parser release 1.0.2): clean binop_chain `rest`,
+    // clean identifier/literal `text`.
+    2 => walk_schema_v2(&ast_dump_payload.root),
+    // schema 1 (parser release 1.0.1) had the pre-correctness shapes
+    // (binop_chain `rest` could emit "<invalid_sequence_access>";
+    //  identifier/literal `text` carried the empty-trivia envelope).
     1 => walk_schema_v1(&ast_dump_payload.root),
-    // (future) 2 => walk_schema_v2(...),
     other => {
         eprintln!("unsupported rtl_const_expr schema version: {}", other);
     }

@@ -7,15 +7,17 @@ This is the document downstream projects (primarily RTLSyn, for deterministic pa
 
 ## Contract Identity
 - Contract version:
-  - `1.0.1`
+  - `1.0.2`
 - Parser release version:
-  - `1.0.1`
+  - `1.0.2`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
 - rtl_const_expr AST-dump schema version:
-  - `1`
+  - `2` (breaking shape correction — see Release 1.0.2 Highlights)
+- Annotation count:
+  - `26` (19 `return_object` + 7 `return_scalar`; 18 distinct rules)
 - Last updated:
-  - `2026-05-15`
+  - `2026-05-16`
 - Current grammar family label:
   - `rtl_const_expr`
 - Per-family mdBook:
@@ -63,13 +65,66 @@ This is the document downstream projects (primarily RTLSyn, for deterministic pa
 
 The rtl_const_expr parser carries two version axes:
 
-1. **Parser release version** (`1.0.1`). Tracks the parser library's release identity.
-2. **AST-dump schema version** (`1`). Tracks the AST output shape.
+1. **Parser release version** (`1.0.2`). Tracks the parser library's release identity.
+2. **AST-dump schema version** (`2`). Tracks the AST output shape.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 1.0.0 | 1.0.1 | **RTL-CE-Slice-1** — initial 24-annotation baseline. Expression hierarchy (conditional + 10-rule binop_chain + unary + primary), literal (2 kinds), identifier all typed. |
+| 2 | 1.0.2 | **RTL-CE correctness fix (breaking).** Three return-annotation bugs corrected, regenerated + gate-locked: (a) the 10 `binop_chain` levels no longer emit `"<invalid_sequence_access>"` on any operator input — the five multi-token inner operator alternations were lifted into named rules (`equality_op`, `relational_op`, `shift_op`, `additive_op`, `multiplicative_op`) mirroring the proven `systemverilog.ebnf` op-chain idiom, and `rest` is now a clean array of `[op-envelope, operand]` iteration entries; (b) `identifier.text` was `$1` (empty leading `trivia`) → `$2`, now the real name; (c) `based_integer` / `decimal_integer` were unannotated (surfacing the `["", "42"]` envelope) → annotated `-> $2`, so `literal.text` is a clean string. Annotation count `24 → 26` (the two new leaf scalar captures). Same accept set. |
+| 1.0.0 | 1.0.1 | **RTL-CE-Slice-1** — initial 24-annotation baseline. Expression hierarchy (conditional + 10-rule binop_chain + unary + primary), literal (2 kinds), identifier all typed. **NOTE:** the binop_chain `rest` shape and `identifier`/`literal` `text` in this baseline were defective — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/rtl_const_expr.ebnf`) with the `rtl_const_expr -> {type, expr}` root, `unary_expr` per-branch typed shapes, `primary_expr` / `literal` typed shapes, and `identifier -> {type, text}` already in place; the 10 binop-chain rules were the unannotated tail. |
+
+## Release 1.0.2 / Contract 1.0.2 Highlights — RTL-CE correctness fix (binop_chain / identifier / literal); schema 1 → 2
+
+Landed 2026-05-16. A worked-example pass surfaced that the `1.0.1`
+baseline shipped three return-annotation defects that the (root-keys-only)
+shape-contract regression lock did not catch. All three are fixed,
+the parser is regenerated, and the manifest inventory is tightened to
+the full 26-entry surface so the corrected shapes are now machine-locked.
+
+- **binop_chain `<invalid_sequence_access>` (Issue A).** For any input
+  exercising an operator at any of the 10 levels (e.g. `a + b`), the
+  `rest` field emitted the literal string `"<invalid_sequence_access>"`
+  inside a malformed nested object. Root cause: the five multi-token
+  levels used an inline operator alternation as the iteration's lead
+  element (`additive_expr := multiplicative_expr ((plus|minus) multiplicative_expr)* -> {... rest:$2}`),
+  which corrupts the positional model. **Fix (proven `systemverilog.ebnf`
+  idiom):** the inline alternations are lifted into named rules
+  (`equality_op := eqeq | ne`, `relational_op := le | lt | ge | gt`,
+  `shift_op := shl | shr`, `additive_op := plus | minus`,
+  `multiplicative_op := star | slash | percent`); every level is now
+  `next (NAMED_op next)* -> {type:"binop_chain", level, lhs:$1, rest:$2}`
+  with bare `$2`. `rest` is now a **clean array** of
+  `[op-envelope, operand]` iteration entries (operator text at
+  `entry[0][1]`), `[]` when no operator at that level. Verified on
+  `a+b`, `a-b`, `a*b`, `a%b`, `a<<b`, `a<b`, `a==b`, `a||b`, `a&&b`,
+  `a^b`, `a + b * c - d`, `a ? b + c : d * e`, `(a + b) * c`.
+- **`identifier.text` empty (Issue B).** `identifier := trivia /re/ -> {type:"identifier", text:$1}` —
+  `$1` was the leading `trivia`, so every identifier `text` was `""`.
+  **Fix:** `text: $2`. Verified `x1` → `{"type":"identifier","text":"x1"}`.
+- **`literal.text` envelope (Issue C).** `based_integer` /
+  `decimal_integer` (`:= trivia /re/`) were unannotated, so
+  `literal.text` surfaced the envelope `["", "42"]`. **Fix:** annotate
+  both leaves `-> $2`; `literal.text` is now a clean string. Verified
+  `42` → `{"type":"literal","kind":"decimal","text":"42"}` and
+  `8'hFF` → `kind:"based","text":"8'hFF"`.
+
+Annotation count: **26** (was 24; +2 = the `based_integer` /
+`decimal_integer` `-> $2` leaf scalar captures). 18 distinct rules; 19
+`return_object` + 7 `return_scalar`. Same accept set (no grammar
+acceptance change — purely annotation shaping). Schema bumped `1 → 2`
+because `binop_chain.rest`, `identifier.text`, and `literal.text` all
+changed shape in consumer-visible ways. Gate-locked:
+`cargo test --lib --features generated_parsers rtl_const_expr_ast_shape_contract`
+(samples=2 aligned=2, regression_lock_failures=0) and
+`make -C rust SHELL=/opt/homebrew/bin/bash rtl_const_expr_parser_book_gate`.
+
+> **Systemic note:** the inline-operator-alternation antipattern that
+> caused Issue A also exists in `grammars/rtl_frontend.ebnf` and
+> `grammars/vhdl.ebnf` binop_chain levels (same `<invalid_sequence_access>`
+> empirically confirmed for rtl_frontend `a + b`). Those families'
+> corrections are tracked separately as their own slices + bug-ledger
+> entries; this release fixes rtl_const_expr only.
 
 ## Release 1.0.1 / Contract 1.0.1 Highlights — RTL-CE-Slice-1: binop_chain hierarchy typed (10 rules / 10 annotations)
 

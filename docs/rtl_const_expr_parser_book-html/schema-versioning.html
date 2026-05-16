@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fea28a93.js";
+            window.path_to_searchindex_js = "searchindex-20ed5a02.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -185,16 +185,16 @@
 <h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
 <p>The rtl_const_expr parser carries <strong>two</strong> version numbers:</p>
 <ol>
-<li><strong>Parser release version</strong> — currently <code>1.0.1</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
-<li><strong>AST-dump schema version</strong> — currently <code>1</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+<li><strong>Parser release version</strong> — currently <code>1.0.2</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>AST-dump schema version</strong> — currently <code>2</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
 </ol>
 <p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.</p>
 <p>These numbers are taken from the integration contract’s “Contract Identity” section, which records:</p>
 <ul>
-<li>Contract version: <code>1.0.1</code></li>
-<li>Parser release version: <code>1.0.1</code></li>
-<li>rtl_const_expr AST-dump schema version: <code>1</code></li>
-<li>Annotation count: <strong>24</strong> (RTL-CE-Slice-1 — the full expression hierarchy typed in one slice, on 16 distinct rules)</li>
+<li>Contract version: <code>1.0.2</code></li>
+<li>Parser release version: <code>1.0.2</code></li>
+<li>rtl_const_expr AST-dump schema version: <code>2</code></li>
+<li>Annotation count: <strong>26</strong> (RTL-CE-Slice-1’s full expression hierarchy plus the <code>1.0.2</code> correctness fix; on 18 distinct rules — 19 <code>return_object</code> + 7 <code>return_scalar</code>)</li>
 </ul>
 <p>The contract document <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for all of these per release.</p>
 <h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
@@ -211,7 +211,8 @@
 <li>Internal codegen reorganization that doesn’t reach the output.</li>
 <li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
 </ul>
-<p>The rtl_const_expr grammar was typed in a single slice (RTL-CE-Slice-1, 24 annotations / 16 rules), landed on 2026-05-14, rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the rtl_const_expr schema timeline is short. (That slice required the codegen outer-branch remap fix <code>PGEN-PIP-001</code> to make the Pattern-A <code>digit ( sep | digit )*</code> <code>binop_chain</code> shape work; see the contract’s Release 1.0.1 Highlights.) Subsequent shape-affecting slices each get their own contract-version row and a <a href="changelog-index.html">Changelog Index</a> entry.</p>
+<p>The <code>1.0.2</code> correctness fix <strong>did</strong> bump the schema (<code>1</code> → <code>2</code>): although it fixed bugs, it changed user-visible shapes — <code>binop_chain</code> <code>rest</code> (was <code>"&lt;invalid_sequence_access&gt;"</code>, now a clean <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> array), <code>identifier.text</code> / <code>literal.text</code> (was the empty-<code>trivia</code> envelope, now a clean string) — and added two return annotations. It restructured shapes a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix.</p>
+<p>The rtl_const_expr grammar was typed in a single slice (RTL-CE-Slice-1, landed 2026-05-14) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the rtl_const_expr schema timeline is short. A follow-up correctness fix (parser release <code>1.0.2</code>, schema <code>2</code>, landed 2026-05-16) brought the inventory to 26 annotations / 18 rules — see the schema-<code>2</code> row below and the contract’s Release 1.0.2 Highlights. Subsequent shape-affecting slices each get their own contract-version row and a <a href="changelog-index.html">Changelog Index</a> entry.</p>
 <h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
 <p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical (alphabetical) order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value. Whitespace is configurable via <code>AstDumpOptions.pretty</code> but the underlying JSON value is the same.</p>
 <p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
@@ -223,25 +224,27 @@
 <tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
 </thead>
 <tbody>
-<tr><td>1.0.0</td><td>1.0.1</td><td><strong>RTL-CE-Slice-1</strong> — initial 24-annotation baseline (16 distinct rules). Expression hierarchy (conditional + the 10-rule <code>binop_chain</code> hierarchy <code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code> + unary + primary), <code>literal</code> (2 kinds: <code>"based"</code> / <code>"decimal"</code>), and <code>identifier</code> all typed in one slice. Same accept set as the pre-typing baseline. AST-dump schema version field value: <code>1</code>.</td></tr>
+<tr><td>1.0.2</td><td>1.0.2</td><td><strong>Correctness fix (3 bugs)</strong> — <code>binop_chain</code> <code>rest</code> no longer emits <code>"&lt;invalid_sequence_access&gt;"</code>: the inner operator alternations were lifted into five <strong>named</strong> rules (<code>equality_op := eqeq | ne</code>, <code>relational_op := le | lt | ge | gt</code>, <code>shift_op := shl | shr</code>, <code>additive_op := plus | minus</code>, <code>multiplicative_op := star | slash | percent</code>), so each level’s <code>rest: $2</code> now captures a <strong>clean array</strong> of <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> entries (operators preserved at <code>entry[0][1]</code>). <code>identifier</code> now binds <code>text: $2</code> (was <code>$1</code>, which captured the empty leading <code>trivia</code>) so <code>identifier.text</code> is the real name. <code>based_integer</code> / <code>decimal_integer</code> are now annotated <code>-&gt; $2</code> (were unannotated) so <code>literal.text</code> is a clean digit/literal string (was the envelope <code>["", "42"]</code>). Annotation inventory <strong>24 → 26</strong> (the two new <code>based_integer</code> / <code>decimal_integer</code> <code>return_scalar</code> annotations; the five new <code>*_op</code> rules are un-annotated alternations and not in the inventory). Same accept set as <code>1.0.0</code>. AST-dump schema version field value: <code>2</code>.</td></tr>
+<tr><td>1.0.0</td><td>1.0.1</td><td><strong>RTL-CE-Slice-1</strong> — initial 24-annotation baseline (16 distinct rules). Expression hierarchy (conditional + the 10-rule <code>binop_chain</code> hierarchy <code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code> + unary + primary), <code>literal</code> (2 kinds: <code>"based"</code> / <code>"decimal"</code>), and <code>identifier</code> all typed in one slice. Pre-correctness shapes: <code>binop_chain</code> <code>rest</code> could surface <code>"&lt;invalid_sequence_access&gt;"</code>; <code>identifier.text</code> / <code>literal.text</code> carried the empty-<code>trivia</code> envelope. AST-dump schema version field value: <code>1</code>.</td></tr>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Grammar (<code>grammars/rtl_const_expr.ebnf</code>) with the <code>rtl_const_expr -&gt; {type, expr}</code> root, <code>unary_expr</code> per-branch typed shapes, <code>primary_expr</code> / <code>literal</code> typed shapes, and <code>identifier -&gt; {type, text}</code> already in place; the 10 binop-chain rules were the unannotated tail. AST dump is the recursive-envelope shape across the binop-chain rules.</td></tr>
 </tbody>
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>1</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="walking-the-ast.html">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> labels above for the milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>2</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="walking-the-ast.html">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
 <li>
-<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
+<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.2</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>1</code>. Reject or warn on an unexpected value rather than mis-parsing a newer shape:</p>
+<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>2</code>. Reject or warn on an unexpected value rather than mis-parsing a different shape:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match ast_dump_payload.schema_version {
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    2 =&gt; walk_schema_v2(&amp;ast_dump_payload.root),
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root), // pre-correctness shape
     other =&gt; return Err(format!("unsupported rtl_const_expr schema version: {other}")),
 }
 <span class="boring">}</span></code></pre>
@@ -263,7 +266,7 @@
 <h2 id="reporting-drift"><a class="header" href="#reporting-drift">Reporting drift</a></h2>
 <p>If you observe an AST shape that disagrees with this book, the contract, or the live inventory <code>generated/rtl_const_expr_return_annotations.json</code>:</p>
 <ol>
-<li>Confirm against the machine-checkable inventory (<code>generated/rtl_const_expr_return_annotations.json</code> / <code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code>, 24 entries, content-identical — the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples match exactly; the live inventory additionally carries a per-entry <code>raw_text</code> field).</li>
+<li>Confirm against the machine-checkable inventory (<code>generated/rtl_const_expr_return_annotations.json</code> / <code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code>, 26 entries, content-identical — the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples match exactly; the live inventory additionally carries a per-entry <code>raw_text</code> field).</li>
 <li>If the inventory agrees with what you observe but the contract does not, the contract is authoritative for intended behavior — file via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</li>
 <li>Accepted released-parser bugs are tracked in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</li>
 </ol>

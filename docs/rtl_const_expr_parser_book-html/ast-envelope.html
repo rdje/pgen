@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fea28a93.js";
+            window.path_to_searchindex_js = "searchindex-20ed5a02.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -188,7 +188,7 @@
 </span><span class="boring">fn main() {
 </span>pub struct AstDumpPayload {
     pub pgen_dump_contract_version: u32,  // currently 1
-    pub schema_version: u32,              // 1 — see Schema Versioning
+    pub schema_version: u32,              // 2 — see Schema Versioning
     pub grammar: String,                  // "rtl_const_expr"
     pub profile: String,                  // "default"
     pub root: JsonValue,                  // the actual AST tree
@@ -217,13 +217,18 @@ inventory disagree, the inventory wins.</p>
 <p>Dispatch on <code>root["type"] == "rtl_const_expr"</code>, then descend into
 <code>root["expr"]</code>.</p>
 <h2 id="the-typed-surface-at-a-glance"><a class="header" href="#the-typed-surface-at-a-glance">The typed surface at a glance</a></h2>
-<p>The full typed surface as of contract <code>1.0.1</code> is <strong>24 return
-annotations across 16 distinct rules</strong> (19 <code>return_object</code>, 5
-<code>return_scalar</code> passthrough). It is <strong>not</strong> a <code>kind</code>-tagged surface:
-every typed object carries a <code>type</code> discriminator, never a bare <code>kind</code>.
-The five passthrough branches (<code>conditional_expr</code> branch 1,
-<code>primary_expr</code> branches 0/1/2, <code>unary_expr</code> branch 4) carry no wrapper
-of their own — they surface the matched sub-rule’s shape directly.</p>
+<p>The full typed surface as of contract <code>1.0.2</code> is <strong>26 return
+annotations across 18 distinct rules</strong> (19 <code>return_object</code>, 7
+<code>return_scalar</code>). It is <strong>not</strong> a <code>kind</code>-tagged surface: every typed
+object carries a <code>type</code> discriminator, never a bare <code>kind</code>. Of the 7
+<code>return_scalar</code> annotations, five are passthrough branches
+(<code>conditional_expr</code> branch 1, <code>primary_expr</code> branches 0/1/2,
+<code>unary_expr</code> branch 4) that carry no wrapper and surface the matched
+sub-rule’s shape directly; the other two (<code>based_integer</code> /
+<code>decimal_integer</code>, both <code>-&gt; $2</code>) are leaf scalar captures feeding
+<code>literal.text</code>. The five named operator alternation rules (<code>equality_op</code>,
+<code>relational_op</code>, <code>shift_op</code>, <code>additive_op</code>, <code>multiplicative_op</code>) are
+<strong>un-annotated</strong> and not part of the 26.</p>
 <h2 id="conditional_expr-ternary"><a class="header" href="#conditional_expr-ternary">conditional_expr (ternary)</a></h2>
 <p>The top of the expression hierarchy, two branches:</p>
 <pre><code class="language-ebnf">conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
@@ -243,22 +248,33 @@ dispatch on <code>obj["type"]</code>.</li>
 <p>Below <code>conditional_expr</code> is a ten-level left-associative
 operator-precedence cascade. Each level emits the same <code>binop_chain</code>
 shape:</p>
-<pre><code class="language-ebnf">&lt;level&gt;_expr := &lt;next&gt; ( &lt;op&gt; &lt;next&gt; )*
+<pre><code class="language-ebnf">&lt;level&gt;_expr := &lt;next&gt; ( &lt;named_op&gt; &lt;next&gt; )*
             -&gt; {type: "binop_chain", level: "&lt;level&gt;", lhs: $1, rest: $2}
 </code></pre>
 <p>The ten levels (loosest to tightest binding, the order they nest):
 <code>logical_or</code> → <code>logical_and</code> → <code>bit_or</code> → <code>bit_xor</code> → <code>bit_and</code> →
-<code>equality</code> → <code>relational</code> → <code>shift</code> → <code>additive</code> → <code>multiplicative</code>.</p>
-<pre><code class="language-json">{ "type": "binop_chain", "level": "&lt;level&gt;", "lhs": &lt;next-level-shape&gt;, "rest": &lt;rest-envelope&gt; }
+<code>equality</code> → <code>relational</code> → <code>shift</code> → <code>additive</code> → <code>multiplicative</code>.
+The five inner multi-token operator alternations are lifted into named
+rules (<code>equality_op := eqeq | ne</code>, <code>relational_op := le | lt | ge | gt</code>,
+<code>shift_op := shl | shr</code>, <code>additive_op := plus | minus</code>,
+<code>multiplicative_op := star | slash | percent</code>); the other five levels
+use a single named token rule. This is the <code>1.0.2</code> correctness fix —
+see <a href="schema-versioning.html">Schema Versioning</a>.</p>
+<pre><code class="language-json">{ "type": "binop_chain", "level": "&lt;level&gt;", "lhs": &lt;next-level-shape&gt;, "rest": [ [ &lt;op-envelope&gt;, &lt;operand&gt; ], ... ] }
 </code></pre>
 <p><code>lhs</code> (<code>$1</code>) is the leading operand (itself the next tighter level,
-bottoming out at a typed <code>primary_expr</code> leaf). <code>rest</code> (<code>$2</code>) is the
-<strong>raw recursive-envelope iteration</strong> of the <code>( &lt;op&gt; &lt;next&gt; )*</code> tail —
-<strong>not</strong> an array of typed <code>{op, rhs}</code> objects. When the input had no
-operator at that level, <code>rest</code> is the empty-iteration envelope and the
-consumer simply unwraps <code>lhs</code>. Because <code>rest</code> is an envelope, the fold
-must walk it rather than read <code>step["op"]</code> / <code>step["rhs"]</code>; the single
-authoritative, inventory-accurate fold is in
+bottoming out at a typed <code>primary_expr</code> leaf). <code>rest</code> (<code>$2</code>) is a
+<strong>clean array</strong> of <code>( &lt;named_op&gt; &lt;next&gt; )</code> iterations — <strong>not</strong> an array
+of typed <code>{op, rhs}</code> objects, and (as of <code>1.0.2</code>) never
+<code>"&lt;invalid_sequence_access&gt;"</code>. Each entry is <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code>:
+<code>entry[0]</code> is the operator envelope (<code>["", "+"]</code> for a <code>trivia "+"</code>
+token; operator text at <code>entry[0][1]</code>) and <code>entry[1]</code> is the next-level
+operand. When the input had no operator at that level, <code>rest</code> is the
+empty array <code>[]</code> and the consumer simply unwraps <code>lhs</code>. Because each
+entry is the <code>[op-envelope, operand]</code> pair (not a <code>{op, rhs}</code> object),
+the fold must read <code>entry[0]</code> / <code>entry[1]</code> rather than
+<code>step["op"]</code> / <code>step["rhs"]</code>; the single authoritative,
+inventory-accurate fold is in
 <a href="walking-the-ast.html#folding-the-binop_chain-expression-hierarchy">Walking the AST</a>
 — consumers should use that one rather than reimplement it here.</p>
 <h2 id="unary_expr-prefix"><a class="header" href="#unary_expr-prefix">unary_expr (prefix)</a></h2>
@@ -276,25 +292,33 @@ with no <code>unary</code> wrapper.</p>
 it never contributes a wrapper of its own — it surfaces the matched
 literal, identifier, or parenthesized-expression shape directly. The two
 typed leaves it bottoms out at are:</p>
-<pre><code class="language-ebnf">literal    := ... -&gt; {type: "literal", kind: "based",   text: $1}
-            | ... -&gt; {type: "literal", kind: "decimal", text: $1}
-identifier := ... -&gt; {type: "identifier", text: $1}
+<pre><code class="language-ebnf">based_integer   := trivia /…/ -&gt; $2     # clean digit string, feeds literal.text
+decimal_integer := trivia /…/ -&gt; $2     # clean digit string, feeds literal.text
+literal    := based_integer   -&gt; {type: "literal", kind: "based",   text: $1}
+            | decimal_integer -&gt; {type: "literal", kind: "decimal", text: $1}
+identifier := trivia /…/      -&gt; {type: "identifier", text: $2}
 </code></pre>
-<p>Full per-branch field lists are in <a href="rules-top-level.html">Top-Level Rules</a>.</p>
+<p><code>literal.text</code> (<code>$1</code> = the <code>based_integer</code> / <code>decimal_integer</code> body
+element) is now a <strong>clean string</strong> because those leaf rules are
+annotated <code>-&gt; $2</code> as of <code>1.0.2</code> (were unannotated, surfacing the
+envelope <code>["", "42"]</code>). <code>identifier.text</code> binds <code>$2</code> (was <code>$1</code>, the
+empty leading <code>trivia</code>) so it is the real name. Full per-branch field
+lists are in <a href="rules-top-level.html">Top-Level Rules</a>.</p>
 <h2 id="two-carrier-kinds-typed-and-recursive-envelope"><a class="header" href="#two-carrier-kinds-typed-and-recursive-envelope">Two carrier kinds: typed and recursive-envelope</a></h2>
 <p>Per-rule, the AST dump produces JSON in one of two shapes:</p>
 <ul>
 <li><strong>Typed shape</strong> — rules/branches with a <code>return_object</code> annotation
 (the root, <code>conditional_expr</code> branch 0, the ten <code>binop_chain</code> levels,
 <code>unary_expr</code> branches 0–3, <code>literal</code>, <code>identifier</code>).</li>
-<li><strong>Recursive-envelope shape</strong> — un-annotated rules and the
-<code>return_scalar</code> passthrough branches surface a JSON value derived
-from grammar shape (sequence → array, alternation → matched-branch
-shape, quantified → iteration array). The <code>binop_chain</code> <code>rest</code> field
-and every un-annotated leaf (operator tokens, etc.) are
-envelope-shaped; see <a href="json-carrier.html">The Json Carrier</a>.</li>
+<li><strong>Recursive-envelope shape</strong> — un-annotated rules (including the five
+named operator alternation rules) and the <code>return_scalar</code> passthrough
+branches surface a JSON value derived from grammar shape (sequence →
+array, alternation → matched-branch shape, quantified → iteration
+array). Each <code>binop_chain</code> <code>rest</code> entry’s <code>entry[0]</code> op-envelope and
+every un-annotated leaf (operator tokens, etc.) are envelope-shaped;
+see <a href="json-carrier.html">The Json Carrier</a>.</li>
 </ul>
-<p>The 24-annotation / 16-distinct-rule surface (contract <code>1.0.1</code>) is
+<p>The 26-annotation / 18-distinct-rule surface (contract <code>1.0.2</code>) is
 enumerated authoritatively in <a href="rules-top-level.html">Top-Level Rules</a>.</p>
 <h2 id="determinism"><a class="header" href="#determinism">Determinism</a></h2>
 <p>The AST dump is <strong>deterministic</strong> for a given input + parser-release version:</p>

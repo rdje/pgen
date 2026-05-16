@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-05-16 - RTL-CE-Slice-2: rtl_const_expr binop/identifier/literal annotation correctness fix (PGEN-RTL-0002); schema 1 -> 2
+
+A worked-example pass (RTL-CE-MDBOOK.4) surfaced three return-annotation
+defects shipped in the `1.0.1` baseline that the root-keys-only
+shape-contract lock did not catch. All fixed, parser regenerated,
+manifest tightened, lockstep contract/book synced.
+
+- **Issue A — binop_chain `<invalid_sequence_access>`:** every operator
+  input (e.g. `a + b`) emitted the literal `"<invalid_sequence_access>"`
+  in `rest`. Root cause: the 5 multi-token levels used an inline
+  operator alternation as the iteration lead element
+  (`((plus|minus) multiplicative_expr)*` + bare `rest:$2`). Fixed by the
+  proven `systemverilog.ebnf` idiom — alternations lifted into named
+  rules (`equality_op`, `relational_op`, `shift_op`, `additive_op`,
+  `multiplicative_op`); `rest` is now a clean `[op-envelope, operand]`
+  iteration array. (`$2*` single-star was tried and rejected — it
+  re-applied the rule transform per entry; named-op-rule + bare `$2` is
+  the SV-correct form.)
+- **Issue B — `identifier.text` empty:** `text:$1` captured leading
+  `trivia`; fixed to `text:$2`.
+- **Issue C — `literal.text` envelope `["","42"]`:** `based_integer` /
+  `decimal_integer` were unannotated; fixed by annotating both `-> $2`.
+
+Annotation count 24 -> 26 (the 2 new leaf scalar captures); 18 distinct
+rules; 19 `return_object` + 7 `return_scalar`. Same accept set. Schema
+bumped 1 -> 2 (breaking: `binop_chain.rest`, `identifier.text`,
+`literal.text` all changed consumer-visibly). Empirically verified
+across all 10 operator levels + nesting/ternary/parens via
+`parseability_probe --parse-dump-ast-pretty`. Gate-locked:
+`rtl_const_expr_ast_shape_contract` (samples=2 aligned=2,
+regression_lock_failures=0) + `rtl_const_expr_parser_book_gate` green.
+The `rtl_const_expr_v1.json` `declared_annotation_inventory` is now the
+full 26-entry surface so this class of drift fails the gate going
+forward. Lockstep: contract -> `1.0.2`/schema `2`; all 5 affected book
+chapters re-synced; HTML mirror regenerated.
+
+**Systemic:** the same inline-operator-alternation antipattern exists in
+`grammars/rtl_frontend.ebnf` and `grammars/vhdl.ebnf` binop_chain levels
+(rtl_frontend `a + b` `<invalid_sequence_access>` empirically confirmed);
+tracked for follow-up correctness slices, NOT fixed here (one concern per
+commit).
+
+Process hardening (same investigation): refreshed memory
+`feedback_quantified_group_extraction` (Cat-B binop => named-op-rule +
+bare `$2`, never inline-alt) + new `feedback_ebnf_consult_annotation_docs`;
+added `.claude/settings.json` PreToolUse `*.ebnf` guardrail + PostCompact
+resume hook (committed separately).
+
 ## 2026-05-16 - TASK_TREE.md frontier reconciliation (PGEN-WORKFLOW-0002)
 
 Trued up the `docs/TASK_TREE.md` Active Task Trees table against the

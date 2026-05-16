@@ -1,4 +1,62 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-16 - RTL-CE-Slice-2 root cause: inline operator alternation breaks `$N` over a Quantified iteration (PGEN-RTL-0002)
+
+### Symptom
+`rtl_const_expr` `a + b` (and every other operator input) produced
+`"rest": "<invalid_sequence_access>"` plus a malformed nested
+`{level:"additive", lhs:["","+"], rest:<invalid>}` object. `identifier.text`
+was `""`; `literal.text` was `["","42"]`.
+
+### Root cause (Issue A)
+`<invalid_sequence_access>` is emitted by `rust/src/ast_pipeline/ast_return_transform.rs:184`
+when a multi-positional `$N` (N>1) resolves against a base that is not a
+`Sequence` with `>N` elements. The 5 multi-token binop levels were
+`next ((opA|opB) next)* -> {... lhs:$1, rest:$2}`. The inline
+alternation `(opA|opB)` as the **lead element of the quantified
+iteration sequence** corrupts the positional model the transform builds
+for `$1`/`$2`, so the rule's own annotation is mis-recursed into the
+iteration entries and `$2`/`$2*` resolve invalidly. The mature
+`systemverilog.ebnf` never does this — its op-chains use a **named**
+operator rule (`binary_operator`, itself an alternation) with bare
+`rest:$2` (`constant_expression`, `expression_base.operand_chain`),
+documented Category B in memory `feedback_quantified_group_extraction`.
+
+### Fix
+Mirror the SV idiom exactly: lift each inline alternation into a named
+rule (`equality_op := eqeq | ne`, `relational_op := le|lt|ge|gt`,
+`shift_op := shl|shr`, `additive_op := plus|minus`,
+`multiplicative_op := star|slash|percent`); levels become
+`next (NAMED_op next)* -> {... lhs:$1, rest:$2}` (bare `$2`). Result:
+`rest` is a clean array of `[op-envelope, operand]` iteration entries
+(op text at `entry[0][1]`), `[]` when no operator. `$2*` (single-star)
+was tried first and rejected — it re-applies the rule transform per
+spread entry, reproducing the corruption; the structural named-op-rule
+fix is the correct one. Issues B/C are independent positional bugs:
+`identifier.text` `$1`(trivia)→`$2`; `based_integer`/`decimal_integer`
+unannotated→`-> $2` so `literal.text` (`$1`) is clean.
+
+### Why the regression lock missed it
+`rtl_const_expr_v1.json` only asserted root keys `["type","expr"]` and
+`type=="rtl_const_expr"` — never the inner `rest`/`text`. Tightened: the
+`declared_annotation_inventory` is now the full 26-entry surface, so any
+`(rule,branch,type,normalized_text)` drift fails
+`rtl_const_expr_ast_shape_contract`.
+
+### Validation
+`parseability_probe --parse-dump-ast-pretty` clean across `a+b a-b a*b
+a%b a<<b a<b a==b a||b a&&b a^b "a + b * c - d" "a ? b + c : d * e"
+"(a + b) * c"`, `x1` (identifier), `42`/`8'hFF` (literal).
+`cargo test --lib --features generated_parsers
+rtl_const_expr_ast_shape_contract` → samples=2 aligned=2
+regression_lock_failures=0. `rtl_const_expr_parser_book_gate` green
+(5 chapters re-synced, HTML regenerated). Schema 1→2, contract 1.0.2.
+
+### Systemic follow-up
+Identical inline-alternation antipattern in `grammars/rtl_frontend.ebnf`
++ `grammars/vhdl.ebnf` binop_chain levels (rtl_frontend `a + b`
+`<invalid_sequence_access>` confirmed). Separate per-family correctness
+slices + bug-ledger entries; NOT in this commit.
+
 ## 2026-05-16 - Declared-annotation inventory backfill: systemverilog_preprocessor + vhdl (PGEN-PIP-002)
 
 ### Context

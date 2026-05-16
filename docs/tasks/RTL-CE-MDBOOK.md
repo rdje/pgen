@@ -125,3 +125,4 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 - `2026-05-14`: `.1` done; frontier → `.2` + `.5`.
 - `2026-05-15`: `.2` done; frontier advances to `.3` (shape-reference chapters).
 - `2026-05-16`: `.3` done (4 shape chapters + ast-envelope.md accuracy correction); frontier advances to `.4` (worked examples), then `.6` (glossary/changelog/links).
+- `2026-05-16`: while implementing `.4`, the worked examples surfaced 3 real `rtl_const_expr` parser-correctness bugs (binop_chain `<invalid_sequence_access>`, empty `identifier.text`, envelope `literal.text`). Fixed under RTL-CE-Slice-2 / `PGEN-RTL-0002` (parser regen + manifest tighten + contract `1.0.2`/schema `2`); all 5 `.3` book chapters re-synced to the corrected 26-annotation shape in lockstep. `.4` resumes against the now-clean parser output.

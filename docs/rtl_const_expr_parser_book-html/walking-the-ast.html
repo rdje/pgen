@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fea28a93.js";
+            window.path_to_searchindex_js = "searchindex-20ed5a02.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
-<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_const_expr AST-dump JSON. It uses real rtl_const_expr rule, <code>type</code>, <code>level</code>, and <code>op</code> names from the live return-annotation inventory (<code>generated/rtl_const_expr_return_annotations.json</code>, 24 annotations on 16 distinct rules, schema version <code>1</code>).</p>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_const_expr AST-dump JSON. It uses real rtl_const_expr rule, <code>type</code>, <code>level</code>, and <code>op</code> names from the live return-annotation inventory (<code>generated/rtl_const_expr_return_annotations.json</code>, 26 annotations on 18 distinct rules, parser release <code>1.0.2</code>, schema version <code>2</code>).</p>
 <h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
 <p>Because the AST tree mixes typed objects (the RTL-CE-Slice-1 surface) and recursive-envelope arrays (the <code>binop_chain</code> <code>rest</code> iteration and the un-annotated leaves), the walker dispatches on JSON value kind, then on the <code>type</code> discriminator. rtl_const_expr uses a <code>type</code> tag on every typed object — there is no bare <code>kind</code> dispatcher in this grammar:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -314,19 +314,20 @@ fn fold_binop(node: &amp;serde_json::Value) -&gt; Expr {
 
     let mut acc = lower_expr(node.get("lhs").expect("lhs present"));
 
-    // `rest` is the recursive-envelope array of `( op operand )` iterations
-    // (NOT a typed {op, rhs} object). It is `[]` when there was no operator
-    // at this level — in that case the node is a pure wrapper around `lhs`.
+    // `rest` is a CLEAN array of `( &lt;named_op&gt; operand )` iterations (NOT a
+    // typed {op, rhs} object, and — as of parser release 1.0.2 — never
+    // `&lt;invalid_sequence_access&gt;`). It is `[]` when there was no operator at
+    // this level, in which case the node is a pure wrapper around `lhs`.
     // rtl_const_expr has NO `sign` field; prefix +/-/!/~ live in unary_expr,
     // below this cascade. All ten levels iterate `*`.
     if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
-        for pair in rest {
-            // Each `pair` is the envelope of one `( operator operand )`
-            // iteration: the operator-token sub-shape followed by the
-            // next-level operand. Walk to the operand rather than assuming a
-            // fixed index, so a grammar tweak to the operator token does not
-            // break extraction.
-            let (op, rhs_node) = split_op_operand(pair);
+        for entry in rest {
+            // Each `entry` is a two-element array: [ &lt;op-envelope&gt;, &lt;operand&gt; ].
+            //   entry[0] is the operator envelope — for a `trivia "&lt;tok&gt;"`
+            //            token this is ["", "&lt;tok&gt;"]; the operator text is the
+            //            last terminal in it (e.g. "+").
+            //   entry[1] is the next-level operand (a binop_chain).
+            let (op, rhs_node) = split_op_operand(entry);
             acc = Expr::Binary {
                 op,
                 lhs: Box::new(acc),
@@ -337,12 +338,15 @@ fn fold_binop(node: &amp;serde_json::Value) -&gt; Expr {
     acc
 }
 
-/// `pair` is the recursive envelope of one `( operator operand )` iteration.
-/// The operand is the last child; the operator token is what precedes it.
-fn split_op_operand(pair: &amp;serde_json::Value) -&gt; (String, &amp;serde_json::Value) {
-    let arr = pair.as_array().expect("rest entry is a sequence envelope");
-    let operand = arr.last().expect("rest entry has an operand");
-    // The operator token is the leading child; walk it to its terminal text.
+/// `entry` is one `rest` element: `[ &lt;op-envelope&gt;, &lt;operand&gt; ]`.
+/// `entry[1]` is the operand; `entry[0]` is the operator envelope
+/// (`["", "&lt;tok&gt;"]`), whose terminal text is the operator.
+fn split_op_operand(entry: &amp;serde_json::Value) -&gt; (String, &amp;serde_json::Value) {
+    let arr = entry.as_array().expect("rest entry is a [op, operand] pair");
+    let operand = arr
+        .get(1)
+        .expect("rest entry's operand is the second element");
+    // The operator envelope is the first element; walk it to its terminal text.
     let op = arr
         .first()
         .and_then(extract_terminal_text)
@@ -353,7 +357,7 @@ fn split_op_operand(pair: &amp;serde_json::Value) -&gt; (String, &amp;serde_json
 <p><code>level</code> tells you which precedence tier you are at without re-deriving it from context, and lets you validate operator-vs-level conformance. The fold is identical at every level precisely because the carrier is identical at every level. When <code>rest == []</code> (no operator at this level), the loop runs zero times and <code>acc</code> is just the lowered <code>lhs</code> — the consumer transparently unwraps the empty wrapper.</p>
 <p>A non-empty <code>rest</code> example: see <a href="examples-binary-addition.html">Binary Addition</a> for the captured shape of an <code>additive_expr</code> with one <code>(plus, operand)</code> iteration.</p>
 <h2 id="identifier-and-literal-extraction"><a class="header" href="#identifier-and-literal-extraction">Identifier and literal extraction</a></h2>
-<p>rtl_const_expr identifiers and literals <strong>are</strong> annotated, so unlike rtl_frontend they surface as typed <code>{type, text}</code> objects, not bare envelopes. The source text is the <code>text</code> field of the object — it is the one place rtl_const_expr surfaces a bare string:</p>
+<p>rtl_const_expr identifiers and literals <strong>are</strong> annotated, so unlike rtl_frontend they surface as typed <code>{type, text}</code> objects, not bare envelopes. As of the <code>1.0.2</code> fix the <code>text</code> field is a <strong>clean source string</strong> in both cases — <code>identifier</code> binds <code>text: $2</code> (was <code>$1</code>, the empty leading <code>trivia</code>) and <code>literal.text</code> is <code>based_integer</code> / <code>decimal_integer</code>’s clean <code>-&gt; $2</code> capture (was the envelope <code>["", "42"]</code>). Extraction is therefore a direct field read:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn extract_identifier(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt; {
@@ -386,7 +390,7 @@ fn extract_terminal_text(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt
     }
 }
 <span class="boring">}</span></code></pre>
-<p>The per-rule chapter (<a href="rules-top-level.html">Top-Level Rules</a>) documents which field holds the source text for each typed rule. Treat the <code>binop_chain</code> <code>rest</code> entries as envelopes — see <a href="json-carrier.html#worked-example-a-decimal-literal">The Json Carrier</a> for the captured shape of <code>42</code>, a ten-deep stack of empty <code>binop_chain</code> wrappers bottoming out at <code>{type: "literal", kind: "decimal", text: "42"}</code>.</p>
+<p>The per-rule chapter (<a href="rules-top-level.html">Top-Level Rules</a>) documents which field holds the source text for each typed rule. Treat each <code>binop_chain</code> <code>rest</code> entry as the <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> pair described above — see <a href="json-carrier.html#worked-example-a-decimal-literal">The Json Carrier</a> for the captured shape of <code>42</code>, a ten-deep stack of empty <code>binop_chain</code> wrappers bottoming out at the node <code>{"kind": "decimal", "text": "42", "type": "literal"}</code> (object keys emitted alphabetically).</p>
 <h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
 <p>rtl_const_expr produces deep AST trees by construction: every expression descends through <strong>all ten</strong> <code>binop_chain</code> levels even when no operator is present, because each level’s <code>lhs</code> is the next-tighter level. A bare <code>42</code> is already a ten-deep wrapper stack; nested parentheses and ternary arms multiply that.</p>
 <p>Recommendations:</p>
@@ -401,8 +405,13 @@ fn extract_terminal_text(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match ast_dump_payload.schema_version {
+    // schema 2 is current (parser release 1.0.2): clean binop_chain `rest`,
+    // clean identifier/literal `text`.
+    2 =&gt; walk_schema_v2(&amp;ast_dump_payload.root),
+    // schema 1 (parser release 1.0.1) had the pre-correctness shapes
+    // (binop_chain `rest` could emit "&lt;invalid_sequence_access&gt;";
+    //  identifier/literal `text` carried the empty-trivia envelope).
     1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
-    // (future) 2 =&gt; walk_schema_v2(...),
     other =&gt; {
         eprintln!("unsupported rtl_const_expr schema version: {}", other);
     }

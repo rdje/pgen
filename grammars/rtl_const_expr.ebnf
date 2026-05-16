@@ -26,16 +26,22 @@ bit_xor_expr := bit_and_expr (bit_xor bit_and_expr)*
              -> {type: "binop_chain", level: "bit_xor", lhs: $1, rest: $2}
 bit_and_expr := equality_expr (bit_and equality_expr)*
              -> {type: "binop_chain", level: "bit_and", lhs: $1, rest: $2}
-equality_expr := relational_expr ((eqeq | ne) relational_expr)*
+equality_expr := relational_expr (equality_op relational_expr)*
               -> {type: "binop_chain", level: "equality", lhs: $1, rest: $2}
-relational_expr := shift_expr ((le | lt | ge | gt) shift_expr)*
+relational_expr := shift_expr (relational_op shift_expr)*
                 -> {type: "binop_chain", level: "relational", lhs: $1, rest: $2}
-shift_expr := additive_expr ((shl | shr) additive_expr)*
+shift_expr := additive_expr (shift_op additive_expr)*
            -> {type: "binop_chain", level: "shift", lhs: $1, rest: $2}
-additive_expr := multiplicative_expr ((plus | minus) multiplicative_expr)*
+additive_expr := multiplicative_expr (additive_op multiplicative_expr)*
               -> {type: "binop_chain", level: "additive", lhs: $1, rest: $2}
-multiplicative_expr := unary_expr ((star | slash | percent) unary_expr)*
+multiplicative_expr := unary_expr (multiplicative_op unary_expr)*
                     -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+
+equality_op := eqeq | ne
+relational_op := le | lt | ge | gt
+shift_op := shl | shr
+additive_op := plus | minus
+multiplicative_op := star | slash | percent
 
 unary_expr := plus unary_expr
 -> {type: "unary", op: "plus", expr: $2}
@@ -61,9 +67,11 @@ literal := decimal_integer
 -> {type: "literal", kind: "decimal", text: $1}
 
 based_integer := trivia /[0-9][0-9_]*'[sS]?[bBoOdDhH][0-9a-fA-F_]+/
+-> $2
 decimal_integer := trivia /[0-9][0-9_]*/
+-> $2
 identifier := trivia /[_A-Za-z][_A-Za-z0-9$]*(?:(?:\.)[_A-Za-z][_A-Za-z0-9$]*|::[_A-Za-z][_A-Za-z0-9$]*)*/
--> {type: "identifier", text: $1}
+-> {type: "identifier", text: $2}
 
 trivia := /[ \t\r\n]*/
 
