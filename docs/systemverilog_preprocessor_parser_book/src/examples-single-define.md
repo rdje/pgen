@@ -95,13 +95,15 @@ content of `/tmp/sd.json`:
 (`systemverilog_preprocessor_file`); `span` is the byte range the parse
 covered (`0..14` — the whole input, including the trailing newline).
 
-## The consumer-facing view (`AstDumpPayload.root`)
+## The consumer-facing view (parsed `dump_json`)
 
 Downstream code does not call the probe — it calls the public API
 ([Public API Surface](public-api.md)), which hands back a
-`NamedGrammarAstDumpOutcome` whose `ast_dump.root` is the **unwrapped**
-`content.Json` value. That is the shape every per-rule chapter in this
-book describes:
+`NamedGrammarAstDumpOutcome` whose `ast_dump` is an `AstDumpPayload`
+(real fields: `dump_json`/`truncated`/`full_bytes`/`emitted_bytes` —
+there is no `root` field). After confirming `truncated == false`,
+`serde_json::from_str(&payload.dump_json)` yields the typed root object
+below — the shape every per-rule chapter in this book describes:
 
 ```json
 {
@@ -215,12 +217,20 @@ let outcome = parse_grammar_profile_ast_dump_named(
     &AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
 
+// The AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+
 match outcome.status {
     ParseStatus::Success => {
         let dump = outcome.ast_dump.expect("Success carries an AST dump");
-        assert_eq!(dump.schema_version, 1);
+        assert!(!dump.truncated, "dump_json would hold the truncation envelope");
+        let _ = SVPP_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
 
-        let root = &dump.root;
+        // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+        // parse dump_json to get the typed root object.
+        let root: serde_json::Value =
+            serde_json::from_str(&dump.dump_json).expect("dump_json is valid JSON");
         assert_eq!(root["type"], "systemverilog_preprocessor_file");
 
         let item = &root["items"][0];

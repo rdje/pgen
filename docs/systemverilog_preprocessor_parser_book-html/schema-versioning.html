@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3569e83f.js";
+            window.path_to_searchindex_js = "searchindex-c812085f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -229,7 +229,7 @@
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>1</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="walking-the-ast.html">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer <strong><code>1</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="walking-the-ast.html">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
@@ -237,11 +237,21 @@
 <p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>1</code>. Reject or warn on an unexpected value rather than mis-parsing a newer shape:</p>
+<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>1</code>, from <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match ast_dump_payload.schema_version {
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+</span>// Schema version you integrated against, from the contract:
+const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    return Err("sv_preprocessor AST dump truncated (dump_json holds the diagnostic envelope)".into());
+}
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+// SVPP_AST_SCHEMA_VERSION drives which walker you compiled;
+// re-check the contract's Schema Versioning table on every PGEN bump.
+match SVPP_AST_SCHEMA_VERSION {
+    1 =&gt; walk_schema_v1(&amp;root),
     other =&gt; return Err(format!("unsupported sv_preprocessor schema version: {other}")),
 }
 <span class="boring">}</span></code></pre>
@@ -259,7 +269,7 @@
 <li><strong>Additive (no integer schema bump expected):</strong> a new optional field on an existing typed object, a new <code>kind</code> value on a dispatch rule for a previously-unparseable construct, a new typed shape on a rule that was previously raw envelope. Consumers using the unknown-shape fallthrough from <a href="walking-the-ast.html">Walking the AST</a> keep working; consumers that hard-match a closed <code>kind</code> set must extend it.</li>
 <li><strong>Breaking (integer schema bump):</strong> renaming or removing a field on an existing typed object, changing a <code>kind</code> discriminator value, restructuring the <code>macro_formals</code> <code>{first, rest}</code> list into a flat array, or changing the default fall-through of an unannotated rule in a way that moves data consumers were already reading.</li>
 </ul>
-<p>The contract’s bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on the integer <code>schema_version</code>, (b) treats absent optionals as <code>[]</code>, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.</p>
+<p>The contract’s bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on its pinned <code>SVPP_AST_SCHEMA_VERSION</code> constant, (b) treats absent optionals as <code>[]</code>, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.</p>
 <h2 id="reporting-drift"><a class="header" href="#reporting-drift">Reporting drift</a></h2>
 <p>If you observe an AST shape that disagrees with this book, the contract, or the live inventory <code>generated/systemverilog_preprocessor_return_annotations.json</code>:</p>
 <ol>

@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-05-16 - SVPP-CONTRACT-BODY-Slice-2 (PGEN-SVPP-CONTRACT-BODY-0002, leaf SVPP-CONTRACT-BODY.2): AST Envelope + pp_item Dispatch; sv_preprocessor book DOC-ENVELOPE-0001 comprehensively closed
+
+- sv_preprocessor integration contract: added **`## AST Envelope and
+  pp_item Dispatch`** — the real 4-field `AstDumpPayload` + truncation
+  envelope + accuracy note (proven sibling template), the
+  `systemverilog_preprocessor_file` root, the **10-branch `pp_item`
+  dispatch** (define / undef / include / timescale / default_nettype /
+  celldefine / endcelldefine / conditional / non_directive_line /
+  blank_line) with `type` discriminators + field lists + verified
+  `grammars/systemverilog_preprocessor.ebnf` line refs, the **7
+  directive rule shapes** (`pp_define` `{name,formals,body}`,
+  `pp_undef`, `pp_include`, `pp_timescale`, `pp_default_nettype`,
+  `pp_celldefine`, `pp_endcelldefine`), verified surface totals
+  (release `1.0.1`, schema `1`, **64** annotations / **27** distinct
+  rules), and a **Known Defects** note for **`SVPP-0001`**
+  (`pp_if_branch.keyword` `<invalid_sequence_access>`,
+  inline-alternation-`$N` class) — framed honestly, explicitly **not**
+  fixed, schema **not** bumped, bug-ledger cross-referenced. No
+  duplicate `## ` headers.
+- Independently verified vs `generated/systemverilog_preprocessor_return_annotations.json`:
+  `annotation_count` 64, 64-element array, 27 distinct rules, `pp_item`
+  exactly 10 branches — **EXACT** match to the documented surface; no
+  fabricated-struct reintroduction in the contract.
+- sv_preprocessor book `DOC-ENVELOPE-0001` **comprehensively closed** in
+  lockstep (book-sync directive: the book is the user's only window;
+  drift = tracked correctness defect): 8 src chapters
+  (`ast-envelope` / `changelog-index` / `examples-conditional` /
+  `examples-single-define` / `glossary` / `json-carrier` /
+  `schema-versioning` / `walking-the-ast`) reconciled from the
+  fabricated 6-field `AstDumpPayload` (`{pgen_dump_contract_version,
+  schema_version, grammar, profile, root, truncated}` — does not exist)
+  to the real 4-field struct + the canonical pinned-constant walker
+  (`const SVPP_AST_SCHEMA_VERSION: u32 = 1;` + `!truncated` check +
+  `serde_json::from_str(&dump.dump_json)`), modeled on the
+  already-closed rtl_const_expr/rtl_frontend exemplars. Broad-audit
+  **targeted fabricated-struct residual = 0**; the 5 remaining broad
+  matches are all legitimate ("no `root`/`schema_version`" disclaimers
+  + truncation-envelope `pgen_dump_contract_version`). `SVPP-0001`
+  framing **not regressed**. `systemverilog_preprocessor_parser_book_gate`
+  **independently re-run → green** (mdbook_build + tracked_html_check),
+  tracked `-html/` mirror regenerated in same-commit lockstep
+  (deterministic searchindex content-hash rename).
+- `SVPP-CONTRACT-BODY` tree stays `active` — `.2` of `.1`–`.4` `done`,
+  frontier advances `.2`→`.3` (conditional-compilation tree +
+  macro_body fragment + macro_default_atom). **DOC-ENVELOPE-0001 now
+  remaining for the `systemverilog` book only** (its own closeout
+  slice; rtl_const_expr / rtl_frontend / vhdl / sv_preprocessor books
+  all closed).
+
 ## 2026-05-16 - RTL-CE-CONTRACT-BODY-Slice-3 (PGEN-RTL-CE-CONTRACT-BODY-0003, leaf RTL-CE-CONTRACT-BODY.3): literal/identifier leaf shapes + Companion Documentation + Gate Recipe + Glossary — closes the tree (7th completed)
 
 - rtl_const_expr integration contract bodied to SV parity, final leaf:

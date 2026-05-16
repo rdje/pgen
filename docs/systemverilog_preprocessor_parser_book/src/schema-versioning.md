@@ -52,16 +52,26 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_SYSTEMV
 | 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline (27 distinct rules). `pp_item` dispatch (10 kinds), 7 directive shapes (`define` / `undef` / `include` / `timescale` / `default_nettype` / `celldefine` / `endcelldefine`), `include_path` / `nettype_value` / `time_literal`, conditional-compilation tree (5 nodes), `condition_expr` / `condition_atom` (12 kinds), `macro_formals` / `macro_formal` / `macro_default_value` / `macro_default_atom` (8 kinds) / `macro_body` / `macro_body_fragment` (9 kinds), passthrough lines — all typed in one comprehensive batch. Same accept set as the pre-typing baseline. AST-dump schema version field value: `1`. |
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Grammar (`grammars/systemverilog_preprocessor.ebnf`) un-annotated except for the `systemverilog_preprocessor_file -> {type, items}` root. AST dump is the recursive-envelope shape across all other rules. |
 
-> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones, while the `AstDumpPayload.schema_version` integer field consumers branch on is currently `1`. Pin against the integer schema-version field for runtime dispatch (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
+> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer **`1`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
 
 ## How to pin to a known shape
 
 1. **Record the parser-release version** your downstream code was written against — `1.0.1` as of this writing. It is recorded in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
-2. **Branch on the integer schema version at runtime.** `AstDumpPayload.schema_version` is `1`. Reject or warn on an unexpected value rather than mis-parsing a newer shape:
+2. **Pin the AST-dump schema version you built against** — currently `1`, from `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
 
    ```rust
-   match ast_dump_payload.schema_version {
-       1 => walk_schema_v1(&ast_dump_payload.root),
+   // Schema version you integrated against, from the contract:
+   const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+
+   let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+   if payload.truncated {
+       return Err("sv_preprocessor AST dump truncated (dump_json holds the diagnostic envelope)".into());
+   }
+   let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
+   // SVPP_AST_SCHEMA_VERSION drives which walker you compiled;
+   // re-check the contract's Schema Versioning table on every PGEN bump.
+   match SVPP_AST_SCHEMA_VERSION {
+       1 => walk_schema_v1(&root),
        other => return Err(format!("unsupported sv_preprocessor schema version: {other}")),
    }
    ```
@@ -76,7 +86,7 @@ Within a single integer schema version, shape changes are intended to be **addit
 - **Additive (no integer schema bump expected):** a new optional field on an existing typed object, a new `kind` value on a dispatch rule for a previously-unparseable construct, a new typed shape on a rule that was previously raw envelope. Consumers using the unknown-shape fallthrough from [Walking the AST](walking-the-ast.md) keep working; consumers that hard-match a closed `kind` set must extend it.
 - **Breaking (integer schema bump):** renaming or removing a field on an existing typed object, changing a `kind` discriminator value, restructuring the `macro_formals` `{first, rest}` list into a flat array, or changing the default fall-through of an unannotated rule in a way that moves data consumers were already reading.
 
-The contract's bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on the integer `schema_version`, (b) treats absent optionals as `[]`, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.
+The contract's bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on its pinned `SVPP_AST_SCHEMA_VERSION` constant, (b) treats absent optionals as `[]`, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.
 
 ## Reporting drift
 

@@ -112,14 +112,32 @@ after RTL-FE-CONTRACT-BODY-Slice-2.
   audit = 0 residual; `vhdl_parser_book_gate` green. The premature
   "fully closed" claim from Slice-3+4 is now actually true and the
   CHANGES wording was corrected in place.
-- **Tracked (not yet fixed)** — the fabricated struct + `.root` /
-  `.schema_version` prose/snippets across **~7 chapters each** in the
-  `rtl_const_expr`, `systemverilog_preprocessor`, and `systemverilog`
-  books (+ tracked `-html` mirrors). Plan: fold each family's
-  comprehensive (broad-audit-verified, 0-residual) full-book fix into
-  its `*-CONTRACT-BODY` slice in lockstep; the `systemverilog` book is
-  pre-existing and not owned by any active task tree (its own
-  closeout slice).
+- **rtl_const_expr book: FULLY closed (verified comprehensively)** —
+  RTL-CE-CONTRACT-BODY-Slice-2 (2026-05-16) fixed all 7 chapters
+  (`ast-envelope`/`glossary`/`schema-versioning`/`walking-the-ast`/
+  `changelog-index`/`examples-literal-42`/`examples-binary-addition`)
+  to the real 4-field struct + pinned-constant walker, schema `2`
+  unregressed. Broad-audit = 0 residual; `rtl_const_expr_parser_book_gate`
+  green.
+- **sv_preprocessor book: FULLY closed (verified comprehensively)** —
+  SVPP-CONTRACT-BODY-Slice-2 (2026-05-16) fixed 8 chapters
+  (`ast-envelope`/`changelog-index`/`examples-conditional`/
+  `examples-single-define`/`glossary`/`json-carrier`/
+  `schema-versioning`/`walking-the-ast`) to the real 4-field struct +
+  the canonical `const SVPP_AST_SCHEMA_VERSION: u32 = 1;` walker;
+  `SVPP-0001` framing not regressed. Broad-audit targeted
+  fabricated-residual = 0 (5 remaining matches all legitimate
+  disclaimers/truncation); `systemverilog_preprocessor_parser_book_gate`
+  **independently re-run → green**; tracked `-html/` regenerated in
+  same-commit lockstep.
+- **Tracked (not yet fixed) — `systemverilog` book ONLY** — the
+  fabricated struct + `.root` / `.schema_version` prose/snippets across
+  **~7 chapters** of the `systemverilog` book (+ tracked `-html`
+  mirror). It is pre-existing and not owned by any active task tree —
+  its own dedicated closeout slice (broad-audit-verified, 0-residual,
+  gate green, real 4-field struct, no parser/codegen change). The
+  rtl_frontend/vhdl/rtl_const_expr/sv_preprocessor books are now all
+  FULLY closed; this is the **last remaining** DOC-ENVELOPE-0001 book.
 
 ### Fix lane (recommended, focused, fresh context)
 Per book: replace the struct + the "root field" prose with the real

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3569e83f.js";
+            window.path_to_searchindex_js = "searchindex-c812085f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -255,7 +255,7 @@
 <p>Input:</p>
 <pre><code class="language-systemverilog">`define FOO 1
 </code></pre>
-<p>(<code>printf '</code>define FOO 1\n’<code>). This is the real captured output of the live </code>systemverilog_preprocessor<code>parser — the</code>AstDumpPayload.root` value:</p>
+<p>(<code>printf '</code>define FOO 1\n’<code>). This is the real captured output of the live </code>systemverilog_preprocessor<code>parser — the parsed</code>AstDumpPayload.dump_json<code>value (there is no</code>root<code>field;</code>serde_json::from_str(&amp;payload.dump_json)` yields this typed root):</p>
 <pre><code class="language-json">{
   "type": "systemverilog_preprocessor_file",
   "items": [

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3569e83f.js";
+            window.path_to_searchindex_js = "searchindex-c812085f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -205,7 +205,7 @@
 <p>The initial typing slice, covering the entire <code>grammars/systemverilog_preprocessor.ebnf</code> directive surface in <strong>one batch</strong> (landed 2026-05-14).</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.0</code> (first parser release: <code>1.0.1</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>1</code> — the integer consumers branch on at runtime (<code>AstDumpPayload.schema_version</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>1</code> — the integer consumers <strong>pin</strong> from <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” as a compile-time constant. It is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); re-validate the pin against the contract’s “Schema Versioning” table when bumping PGEN.</li>
 <li><strong>Annotation count:</strong> <strong>64</strong> across <strong>27 distinct rules</strong> (on top of the pre-typing baseline of one root annotation). All 64 are <code>annotation_type: "return_object"</code>. Coverage: the <code>systemverilog_preprocessor_file</code> root; the 10-kind <code>pp_item</code> dispatch; the 7 per-directive shapes (<code>define</code> / <code>undef</code> / <code>include</code> / <code>timescale</code> / <code>default_nettype</code> / <code>celldefine</code> / <code>endcelldefine</code>); <code>include_path</code> / <code>nettype_value</code> / <code>time_literal</code>; the 5-node conditional-compilation tree (<code>pp_conditional</code> / <code>pp_if_branch</code> / <code>pp_elsif_branch</code> / <code>pp_else_branch</code> / <code>pp_endif</code>); <code>condition_expr</code> / <code>condition_atom</code> (12 kinds); <code>macro_formals</code> / <code>macro_formal</code> / <code>macro_default_value</code> / <code>macro_default_atom</code> (8 kinds); <code>macro_body</code> / <code>macro_body_fragment</code> (9 kinds); and the passthrough lines (<code>pp_non_directive_line</code> / <code>pp_blank_line</code>).</li>
 <li><strong>Accept set:</strong> unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.</li>
 <li><strong>Known defect shipped:</strong> <code>SVPP-0001</code> — <code>pp_if_branch.keyword</code> emits <code>&lt;invalid_sequence_access&gt;</code> for <code> `ifdef</code> / <code> `ifndef</code> conditional input (see “Known defects” below). The <code> `define</code> / non-conditional surface is unaffected.</li>

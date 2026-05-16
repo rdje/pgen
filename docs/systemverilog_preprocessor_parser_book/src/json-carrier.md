@@ -82,7 +82,7 @@ Input:
 `define FOO 1
 ```
 
-(`printf '`define FOO 1\n'`). This is the real captured output of the live `systemverilog_preprocessor` parser — the `AstDumpPayload.root` value:
+(`printf '`define FOO 1\n'`). This is the real captured output of the live `systemverilog_preprocessor` parser — the parsed `AstDumpPayload.dump_json` value (there is no `root` field; `serde_json::from_str(&payload.dump_json)` yields this typed root):
 
 ```json
 {

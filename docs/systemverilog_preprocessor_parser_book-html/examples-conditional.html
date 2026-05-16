@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3569e83f.js";
+            window.path_to_searchindex_js = "searchindex-c812085f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -324,11 +324,15 @@ explained in
 </code></pre>
 <p><code>content.Json</code> is the typed AST. <code>rule_name</code> is the entry rule
 (<code>systemverilog_preprocessor_file</code>); <code>span</code> is <code>0..46</code> — the whole input.</p>
-<h2 id="the-consumer-facing-view-astdumppayloadroot"><a class="header" href="#the-consumer-facing-view-astdumppayloadroot">The consumer-facing view (<code>AstDumpPayload.root</code>)</a></h2>
+<h2 id="the-consumer-facing-view-parsed-dump_json"><a class="header" href="#the-consumer-facing-view-parsed-dump_json">The consumer-facing view (parsed <code>dump_json</code>)</a></h2>
 <p>Downstream code calls the public API (<a href="public-api.html">Public API Surface</a>),
-which hands back a <code>NamedGrammarAstDumpOutcome</code> whose <code>ast_dump.root</code> is
-the <strong>unwrapped</strong> <code>content.Json</code> value. This is byte-identical to
-<code>content.Json</code> above (no abridgement, defect markers included):</p>
+which hands back a <code>NamedGrammarAstDumpOutcome</code> whose <code>ast_dump</code> is an
+<code>AstDumpPayload</code> (real fields:
+<code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code> — there is no
+<code>root</code> field). After confirming <code>truncated == false</code>,
+<code>serde_json::from_str(&amp;payload.dump_json)</code> yields the typed root object
+below, which is byte-identical to <code>content.Json</code> above (no abridgement,
+defect markers included):</p>
 <pre><code class="language-json">{
   "type": "systemverilog_preprocessor_file",
   "items": [
@@ -528,12 +532,20 @@ let outcome = parse_grammar_profile_ast_dump_named(
     &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
 
+// The AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const SVPP_AST_SCHEMA_VERSION: u32 = 1;
+
 match outcome.status {
     ParseStatus::Success =&gt; {
         let dump = outcome.ast_dump.expect("Success carries an AST dump");
-        assert_eq!(dump.schema_version, 1);
+        assert!(!dump.truncated, "dump_json would hold the truncation envelope");
+        let _ = SVPP_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
 
-        let root = &amp;dump.root;
+        // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+        // parse dump_json to get the typed root object.
+        let root: serde_json::Value =
+            serde_json::from_str(&amp;dump.dump_json).expect("dump_json is valid JSON");
         assert_eq!(root["type"], "systemverilog_preprocessor_file");
 
         let cond = &amp;root["items"][0];

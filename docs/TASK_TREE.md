@@ -28,7 +28,7 @@ same commit.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `SVPP-CONTRACT-BODY` | `active` | sv_preprocessor deliverables | `SVPP-CONTRACT-BODY.2` | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
+| `SVPP-CONTRACT-BODY` | `active` | sv_preprocessor deliverables | `SVPP-CONTRACT-BODY.3` | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
 
 ## Proposed Task Trees
 
