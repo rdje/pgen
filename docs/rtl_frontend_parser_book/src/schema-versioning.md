@@ -6,17 +6,17 @@ This chapter explains how the PGEN rtl_frontend parser's AST shape is versioned,
 
 The rtl_frontend parser carries **two** version numbers:
 
-1. **Parser release version** — currently `1.0.1`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
-2. **AST-dump schema version** — currently `1`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+1. **Parser release version** — currently `1.0.2`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
+2. **AST-dump schema version** — currently `2`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.
 
 These numbers are taken from the integration contract's "Contract Identity" section, which records:
 
-- Contract version: `1.0.1`
-- Parser release version: `1.0.1`
-- rtl_frontend AST-dump schema version: `1`
-- Annotation count: **156** (RTL-FE-Slice-1..7 — the full grammar typed across seven slices, on 74 distinct rules)
+- Contract version: `1.0.2`
+- Parser release version: `1.0.2`
+- rtl_frontend AST-dump schema version: `2`
+- Annotation count: **156** (RTL-FE-Slice-1..7 — the full grammar typed across seven slices, on 74 distinct rules; the `1.0.2` `RTL-FE-0001` correctness fix did **not** change this count — the five new `*_op` rules are un-annotated alternations)
 
 The contract document `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` is the authoritative source for all of these per release.
 
@@ -35,7 +35,9 @@ These do **not** trigger a schema bump:
 - Internal codegen reorganization that doesn't reach the output.
 - Parser-side bug fixes that produce the same shape consumers were already relying on.
 
-The rtl_frontend grammar was typed across seven slices (RTL-FE-Slice-1..7, 156 annotations / 74 rules) landed together on 2026-05-14, rather than the long slice-by-slice cadence used by the SystemVerilog campaign, so the rtl_frontend schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
+The `1.0.2` correctness fix **did** bump the schema (`1` → `2`): although it fixed a bug (`RTL-FE-0001`), it changed a user-visible shape — the ten `binop_chain` levels' `rest` (was `"<invalid_sequence_access>"` plus a malformed nested object for multi-operand input, now the clean `[ [op-envelope, operand] … ]` array). It restructured a shape a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix. It did **not** change the annotation inventory: the five inline operator alternations were lifted into the **un-annotated** named rules `equality_op` / `relational_op` / `shift_op` / `additive_op` / `multiplicative_op`, so the count stays **156 annotations / 74 distinct rules**.
+
+The rtl_frontend grammar was typed across seven slices (RTL-FE-Slice-1..7, 156 annotations / 74 rules) landed together on 2026-05-14, rather than the long slice-by-slice cadence used by the SystemVerilog campaign, so the rtl_frontend schema timeline is short. A follow-up correctness fix (parser release `1.0.2`, schema `2`, landed 2026-05-16) corrected the `binop_chain.rest` shape with the inventory unchanged — see the schema-`2` row below and the contract's Release 1.0.2 Highlights. Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
 
 ## Byte-equivalence guarantee
 
@@ -49,19 +51,20 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_RTL_FRO
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 1.0.0 | 1.0.1 | **RTL-FE-Slice-1..7** — initial 156-annotation baseline (74 distinct rules). Dispatch wrappers (`design_item` / `package_item` / `module_item` / `generate_item`), keyword/operator leaves, expression dispatch + procedural blocks, the 10-rule `binop_chain` hierarchy (`logical_or_expr` → `logical_and_expr` → `bit_or_expr` → `bit_xor_expr` → `bit_and_expr` → `equality_expr` → `relational_expr` → `shift_expr` → `additive_expr` → `multiplicative_expr`), declarations + module structure, parameter/port rules, and the module-instantiation / ports / statements / signals / datatypes mass batch — all typed across seven slices. Same accept set as the pre-typing baseline. AST-dump schema version field value: `1`. |
+| 1.0.2 | 1.0.2 | **Correctness fix (`RTL-FE-0001`).** The ten `binop_chain` levels' `rest` no longer emits `"<invalid_sequence_access>"` (plus a malformed nested `{level, lhs:["","<op>"], rest:<invalid>}` object) for multi-operand input: the five inline operator alternations were lifted into five **named, un-annotated** rules (`equality_op := eqeq \| ne`, `relational_op := less_equal \| lt \| ge \| gt`, `shift_op := shl \| shr`, `additive_op := plus \| minus`, `multiplicative_op := star \| slash \| percent`), so each level's `rest: $2` now captures a **clean array** of `[ [op-envelope], operand ]` entries (operator token text preserved at `entry[0][1]`, `[]` when no operator). This mirrors the gate-locked `rtl_const_expr` RTL-CE-Slice-2 fix and the `systemverilog.ebnf` `binary_operator` op-chain idiom. The five `binop_chain` level annotations are **unchanged**; only the inline `( a \| b )` became a named rule. Annotation inventory **unchanged at 156 / 74** (the five `*_op` rules are un-annotated alternations and not in the inventory). Same accept set as `1.0.1`. AST-dump schema version field value: `2`. |
+| 1.0.0 | 1.0.1 | **RTL-FE-Slice-1..7** — initial 156-annotation baseline (74 distinct rules). Dispatch wrappers (`design_item` / `package_item` / `module_item` / `generate_item`), keyword/operator leaves, expression dispatch + procedural blocks, the 10-rule `binop_chain` hierarchy (`logical_or_expr` → `logical_and_expr` → `bit_or_expr` → `bit_xor_expr` → `bit_and_expr` → `equality_expr` → `relational_expr` → `shift_expr` → `additive_expr` → `multiplicative_expr`), declarations + module structure, parameter/port rules, and the module-instantiation / ports / statements / signals / datatypes mass batch — all typed across seven slices. Same accept set as the pre-typing baseline. Pre-correctness shape: the ten `binop_chain` levels' `rest` could surface `"<invalid_sequence_access>"` for multi-operand input (`RTL-FE-0001`). AST-dump schema version field value: `1`. |
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Grammar (`grammars/rtl_frontend.ebnf`) un-annotated except for the `rtl_frontend_file -> {type, items}` root. AST dump is the recursive-envelope shape across all rules. |
 
-> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer **`1`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
+> Note on the version columns: the contract's "Schema version" column uses the `1.0.2` / `1.0.0` / `0.1.0` labels above for the milestones; the AST-dump schema version consumers pin against is the integer **`2`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
 
 ## How to pin to a known shape
 
-1. **Record the parser-release version** your downstream code was written against — `1.0.1` as of this writing. It is recorded in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
-2. **Pin the AST-dump schema version you built against** — currently `1`, from `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
+1. **Record the parser-release version** your downstream code was written against — `1.0.2` as of this writing. It is recorded in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
+2. **Pin the AST-dump schema version you built against** — currently `2`, from `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
 
    ```rust
    // Schema version you integrated against, from the contract:
-   const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+   const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
 
    let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
    if payload.truncated {
@@ -70,7 +73,7 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_RTL_FRO
    let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
    // RTL_FRONTEND_AST_SCHEMA_VERSION drives which walker you compiled;
    // re-check the contract's Schema Versioning table on every PGEN bump.
-   walk_schema_v1(&root);
+   walk_schema_v2(&root);
    ```
 
 3. **Vendor or pin the generated parser.** The rtl_frontend parser is on-demand-only (see [Build Recipe](build-recipe.md)); vendor `generated/rtl_frontend_parser.rs` against the recorded parser-release version, or build it in CI from the pinned `grammars/rtl_frontend.ebnf`.

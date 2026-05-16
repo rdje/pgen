@@ -21,6 +21,7 @@
 # Worked Examples
 
 - [Empty Module](examples-empty-module.md)
+- [Binary Addition `a + b`](examples-binary-addition.md)
 
 # Migration
 

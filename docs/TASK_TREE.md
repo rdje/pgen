@@ -37,7 +37,7 @@ single-slice lane (`PGEN-WORKFLOW-<NNNN>`). See
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `INLINE-ALT-FIX` | `active` | parser-correctness (released-parser defect class) | `INLINE-ALT-FIX.2` | [docs/tasks/INLINE-ALT-FIX.md](tasks/INLINE-ALT-FIX.md) |
+| `INLINE-ALT-FIX` | `active` | parser-correctness (released-parser defect class) | `INLINE-ALT-FIX.3` | [docs/tasks/INLINE-ALT-FIX.md](tasks/INLINE-ALT-FIX.md) |
 
 ## Proposed Task Trees
 

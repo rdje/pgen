@@ -7,15 +7,15 @@ This is the document downstream projects (primarily RTLSyn) embedding the PGEN r
 
 ## Contract Identity
 - Contract version:
-  - `1.0.1`
+  - `1.0.2`
 - Parser release version:
-  - `1.0.1`
+  - `1.0.2`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
 - rtl_frontend AST-dump schema version:
-  - `1`
+  - `2` (breaking shape correction — see Release 1.0.2 Highlights)
 - Last updated:
-  - `2026-05-15`
+  - `2026-05-16`
 - Current grammar family label:
   - `rtl_frontend`
 - Per-family mdBook:
@@ -71,13 +71,147 @@ This is the document downstream projects (primarily RTLSyn) embedding the PGEN r
 
 The rtl_frontend parser carries two version axes:
 
-1. **Parser release version** (`1.0.1`). Tracks the parser library's release identity. Bumped on every functional change.
-2. **AST-dump schema version** (`1`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+1. **Parser release version** (`1.0.2`). Tracks the parser library's release identity. Bumped on every functional change.
+2. **AST-dump schema version** (`2`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 1.0.0 | 1.0.1 | **RTL-FE-Slice-1..7** — initial 156-annotation baseline. Dispatch wrappers (design_item/package_item/module_item/generate_item), keyword leaves, expression dispatch + 10-rule binop_chain hierarchy, declarations + module structure, parameter/port rules, module instantiation/ports/statements/signals/datatypes mass batch. |
+| 2 | 1.0.2 | **RTL-FE-0001 correctness fix (breaking).** The ten `binop_chain` levels no longer emit `"<invalid_sequence_access>"` (and a malformed nested `{level, lhs:["","<op>"], rest:<invalid>}` object) in `rest` for multi-operand input. The five inline operator alternations that were the iteration lead of `( ( a \| b ) next )*` (and corrupted the positional model so the bare `rest: $2` mis-recursed) are lifted into **named** rules `equality_op := eqeq \| ne`, `relational_op := less_equal \| lt \| ge \| gt`, `shift_op := shl \| shr`, `additive_op := plus \| minus`, `multiplicative_op := star \| slash \| percent`, mirroring the gate-locked `rtl_const_expr` RTL-CE-Slice-2 fix and the `systemverilog.ebnf` `binary_operator` op-chain idiom. The five level rules' `binop_chain` annotations are **unchanged** (`{type: "binop_chain", level, lhs: $1, rest: $2}`); only the inline `( a \| b )` became a named op-rule, so `rest` is now the clean `[ [op-envelope, operand] … ]` array (operator token text at `entry[0][1]`, `[]` when no operator). The five `*_op` rules are **un-annotated** alternations, so the annotation inventory is **unchanged at 156 annotations / 74 distinct rules** — only the `binop_chain.rest` shape changed. Same accept set (no grammar acceptance change — purely the alternation lift). Gate-locked. |
+| 1.0.0 | 1.0.1 | **RTL-FE-Slice-1..7** — initial 156-annotation baseline. Dispatch wrappers (design_item/package_item/module_item/generate_item), keyword leaves, expression dispatch + 10-rule binop_chain hierarchy, declarations + module structure, parameter/port rules, module instantiation/ports/statements/signals/datatypes mass batch. **NOTE:** the ten `binop_chain` levels' `rest` shape in this baseline was defective for multi-operand input (`RTL-FE-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation) — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/rtl_frontend.ebnf`) un-annotated except for `rtl_frontend_file -> {type, items}` root. AST dump is the recursive-envelope shape across all rules. |
+
+## Resolved Defects — `RTL-FE-0001` (fixed in release 1.0.2, schema 2)
+
+- **`RTL-FE-0001` — `binop_chain.rest` `<invalid_sequence_access>`
+  (`Released`, fixed in parser release `1.0.2` / schema `2`).**
+  *Historical (release `1.0.1`, schema `1`):* for any multi-operand
+  expression input (e.g. `assign y = a + b;`), the affected
+  `binop_chain` level's `rest` surfaced the literal sentinel string
+  `"<invalid_sequence_access>"` plus a malformed nested
+  `{type: "binop_chain", level: "<level>", lhs: ["", "<op>"], rest:
+  <invalid>}` object instead of the clean `(operator, operand)`
+  iteration array. Root cause: each level rule
+  `<level>_expr := <next> ( ( a | b ) <next> )* -> {…, rest: $2}` had
+  the bare positional `rest: $2` reference an **inline alternation
+  group** `( a | b )` as the lead element of the `( … <next> )*`
+  iteration, the same emit-time defect class fixed for `rtl_const_expr`
+  in RTL-CE-Slice-2 (`RTL-CE-0001`) and for `systemverilog_preprocessor`
+  (`SVPP-0001`), and still tracked for `vhdl` `binop_chain`. The
+  single-operand surface (empty `rest`) was unaffected. **Fix (proven
+  RTL-CE-Slice-2 / `systemverilog.ebnf` op-chain idiom):** the five
+  inline operator alternations are lifted into **named** rules:
+
+  ```ebnf
+  equality_op       := eqeq | ne
+  relational_op     := less_equal | lt | ge | gt
+  shift_op          := shl | shr
+  additive_op       := plus | minus
+  multiplicative_op := star | slash | percent
+  ```
+
+  and the five level rules now reference the named op-rule (e.g.
+  `additive_expr := multiplicative_expr ( additive_op multiplicative_expr )* -> {type: "binop_chain", level: "additive", lhs: $1, rest: $2}`).
+  The five `binop_chain` level annotations are **unchanged** — only the
+  inline `( a | b )` became a named rule. The parser is regenerated and
+  the corrected shape is machine-locked. For input
+  `` module m;\nassign y = a + b;\nendmodule\n`` the `additive`-level
+  `binop_chain.rest` is now the clean array
+  `[ [ [[],"+"], {type:"binop_chain", level:"multiplicative",
+  lhs:<b>, rest:[]} ] ]` — one `[op-envelope, operand]` entry per
+  operator, the operator token text at `entry[0][1]` (`"+"`), `[]`
+  when there is no operator — with **no** `<invalid_sequence_access>`
+  anywhere. This is the identical consumer left-fold contract as
+  `rtl_const_expr`'s `binop_chain`. The five `*_op` rules are
+  **un-annotated** alternations, so the annotation inventory is
+  **unchanged at 156 annotations / 74 distinct rules** — only the
+  `binop_chain.rest` shape changed and the schema/release version
+  bumped. The honest pre-fix history is kept in the
+  [Schema Versioning](#schema-versioning) table (schema `1.0.0` row),
+  the
+  [ten-level `binop_chain` contract](#expressions--the-ten-level-binop_chain-left-fold-contract)
+  section, and the binary-addition worked example's schema-`2`
+  transition note; tracked (status `Released`) in
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`RTL-FE-0001`).
+  Documented in
+  [the binary-addition worked example](../rtl_frontend_parser_book/src/examples-binary-addition.md).
+
+## Release 1.0.2 / Contract 1.0.2 Highlights — RTL-FE-0001 correctness fix (binop_chain.rest); schema 1 → 2
+
+Landed 2026-05-16. A worked-example pass surfaced that the `1.0.1`
+baseline shipped one shape defect (`RTL-FE-0001`) — the same systemic
+inline-operator-alternation-`$N` class fixed for `rtl_const_expr`
+(RTL-CE-Slice-2 / `RTL-CE-0001`) and `systemverilog_preprocessor`
+(`SVPP-0001`) — that the (root-keys-only) shape-contract regression lock
+did not catch. It is fixed, the parser is regenerated, and the manifest
+inventory carries a new `assignment_expr` regression sample so the
+corrected `binop_chain.rest` shape is now machine-locked.
+
+- **`binop_chain.rest` `<invalid_sequence_access>` (RTL-FE-0001).**
+  For any multi-operand expression input, the affected `binop_chain`
+  level's `rest` emitted the literal sentinel string
+  `"<invalid_sequence_access>"` plus a malformed nested
+  `{type: "binop_chain", level: "<level>", lhs: ["", "<op>"], rest:
+  <invalid>}` object instead of the clean iteration array. Root cause:
+  the ten level rules each had a bare positional `rest: $2` referencing
+  an **inline alternation group** `( a | b )` as the lead element of
+  the `( ( a | b ) <next> )*` iteration, which corrupts the positional
+  model so the rule's own annotation is mis-recursed. **Fix (proven
+  RTL-CE-Slice-2 / `systemverilog.ebnf` op-chain idiom):** the five
+  inline operator alternations are lifted into **named** rules:
+
+  ```ebnf
+  equality_op       := eqeq | ne
+  relational_op     := less_equal | lt | ge | gt
+  shift_op          := shl | shr
+  additive_op       := plus | minus
+  multiplicative_op := star | slash | percent
+
+  equality_expr       := relational_expr  ( equality_op       relational_expr     )*
+                      -> {type: "binop_chain", level: "equality",       lhs: $1, rest: $2}
+  relational_expr     := shift_expr        ( relational_op     shift_expr          )*
+                      -> {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
+  shift_expr          := additive_expr     ( shift_op          additive_expr       )*
+                      -> {type: "binop_chain", level: "shift",          lhs: $1, rest: $2}
+  additive_expr       := multiplicative_expr ( additive_op     multiplicative_expr )*
+                      -> {type: "binop_chain", level: "additive",       lhs: $1, rest: $2}
+  multiplicative_expr := unary_expr        ( multiplicative_op unary_expr          )*
+                      -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+  ```
+
+  The five `binop_chain` level annotations are **unchanged** — only the
+  inline `( a | b )` became a named op-rule. The fixed shape for input
+  `` module m;\nassign y = a + b;\nendmodule\n`` is, at the `additive`
+  level, `{type: "binop_chain", level: "additive", lhs: <a>, rest:
+  [ [ [[],"+"], {type:"binop_chain", level:"multiplicative", lhs:<b>,
+  rest:[]} ] ]}` — `rest` is the clean array of `[op-envelope,
+  operand]` iteration entries, the operator token text at
+  `entry[0][1]` (`"+"`), `[]` for no operator — **no**
+  `<invalid_sequence_access>` anywhere. This is the identical
+  consumer-fold contract as `rtl_const_expr`'s `binop_chain`.
+
+Annotation count: **156** (UNCHANGED — the five `*_op` rules are
+**un-annotated** alternations and are not in the inventory). **74**
+distinct rules (UNCHANGED). All 156 remain `return_object` /
+`return_scalar` as before. Same accept set (no grammar acceptance
+change — purely the alternation lift). Schema bumped `1 → 2` because
+`binop_chain.rest` changed shape in a consumer-visible way (was the
+malformed `<invalid_sequence_access>` + nested object, now the clean
+`[op-envelope, operand]` iteration array). Gate-locked:
+`cargo test --lib --features generated_parsers rtl_frontend_ast_shape_contract`
+and
+`make -C rust SHELL=/opt/homebrew/bin/bash rtl_frontend_parser_book_gate`.
+
+> **Systemic note:** the inline-operator-alternation antipattern that
+> caused `RTL-FE-0001` is the same root cause fixed for `rtl_const_expr`
+> in RTL-CE-Slice-2 (`RTL-CE-0001`,
+> `docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md`
+> Release 1.0.2 systemic note) and for `systemverilog_preprocessor`
+> (`SVPP-0001`,
+> `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`).
+> The same antipattern still exists in `grammars/vhdl.ebnf`
+> `binop_chain` levels; that family's correction is tracked separately
+> as its own slice + bug-ledger entry. This release fixes rtl_frontend
+> only.
 
 ## Release 1.0.1 / Contract 1.0.1 Highlights — RTL-FE-Slice-1..7: full grammar typed (164 rules / 156 annotations)
 
@@ -228,7 +362,7 @@ returns `E_INVALID_LIMITS` instead.
 > `root` keys are **not** members of `AstDumpPayload` itself —
 > `pgen_dump_contract_version` appears only inside the truncation
 > diagnostic envelope, the schema axis is the **AST-dump schema version
-> `1`** tracked in [Schema Versioning](#schema-versioning), the grammar
+> `2`** tracked in [Schema Versioning](#schema-versioning), the grammar
 > family is the fixed `rtl_frontend` label, and the profile is the fixed
 > `default` profile (see [Stable Integration
 > Surface](#stable-integration-surface)). The "root" is the parsed
@@ -358,8 +492,8 @@ machine-checkable enumeration of every `(rule, branch_index,
 annotation_type, normalized_text)` tuple is
 `generated/rtl_frontend_return_annotations.json` and its embedded copy
 `rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. The above
-enumerates the full typed surface of contract `1.0.1`
-(**156 annotations across 74 distinct rules**, schema version `1`); this
+enumerates the full typed surface of contract `1.0.2`
+(**156 annotations across 74 distinct rules**, schema version `2`); this
 contract section is curated, the inventory artifact is the authoritative
 machine-checkable enumeration, and this integration contract wins over the
 per-family book if they ever disagree.
@@ -486,6 +620,15 @@ rtl_expr            := conditional_expr
 conditional_expr    := logical_or_expr ? conditional_expr : conditional_expr
                     -> {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
                      | logical_or_expr                                   -- passthrough ($1)
+
+# Named operator rules — un-annotated alternations (the RTL-FE-0001 fix,
+# schema 2; not in the 156-annotation inventory):
+equality_op         := eqeq | ne
+relational_op       := less_equal | lt | ge | gt
+shift_op            := shl | shr
+additive_op         := plus | minus
+multiplicative_op   := star | slash | percent
+
 logical_or_expr     := logical_and_expr ( logical_or  logical_and_expr )*
                     -> {type: "binop_chain", level: "logical_or",     lhs: $1, rest: $2}
 logical_and_expr    := bit_or_expr      ( logical_and bit_or_expr     )*
@@ -496,17 +639,42 @@ bit_xor_expr        := bit_and_expr     ( bit_xor     bit_and_expr    )*
                     -> {type: "binop_chain", level: "bit_xor",        lhs: $1, rest: $2}
 bit_and_expr        := equality_expr    ( bit_and     equality_expr   )*
                     -> {type: "binop_chain", level: "bit_and",        lhs: $1, rest: $2}
-equality_expr       := relational_expr  ( ( == | != )  relational_expr )*
+equality_expr       := relational_expr  ( equality_op       relational_expr     )*
                     -> {type: "binop_chain", level: "equality",       lhs: $1, rest: $2}
-relational_expr     := shift_expr       ( ( <= | < | >= | > ) shift_expr )*
+relational_expr     := shift_expr       ( relational_op     shift_expr          )*
                     -> {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
-shift_expr          := additive_expr    ( ( << | >> )  additive_expr  )*
+shift_expr          := additive_expr    ( shift_op          additive_expr       )*
                     -> {type: "binop_chain", level: "shift",          lhs: $1, rest: $2}
-additive_expr       := multiplicative_expr ( ( + | - ) multiplicative_expr )*
+additive_expr       := multiplicative_expr ( additive_op    multiplicative_expr )*
                     -> {type: "binop_chain", level: "additive",       lhs: $1, rest: $2}
-multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
+multiplicative_expr := unary_expr       ( multiplicative_op unary_expr          )*
                     -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
 ```
+
+> **`RTL-FE-0001` (resolved in `1.0.2` / schema `2`).** At release
+> `1.0.1` / schema `1` the five lower levels used **inline operator
+> alternations** as the iteration lead — `equality_expr := relational_expr
+> ( ( == | != ) relational_expr )*`, and likewise for `relational` /
+> `shift` / `additive` / `multiplicative`. A bare positional `rest: $2`
+> referencing an inline `( a | b )` group corrupts the positional model
+> (`rust/src/ast_pipeline/ast_return_transform.rs`), so for any
+> multi-operand input the level's `rest` emitted
+> `"<invalid_sequence_access>"` plus a malformed nested
+> `{level, lhs:["","<op>"], rest:<invalid>}` object. **Fixed in `1.0.2`**
+> by lifting the five inline alternations into the **named, un-annotated**
+> op-rules shown above (`equality_op` / `relational_op` / `shift_op` /
+> `additive_op` / `multiplicative_op`) — the proven RTL-CE-Slice-2 /
+> `systemverilog.ebnf` `binary_operator` idiom. The five `binop_chain`
+> level annotations are **unchanged**; only the inline `( a | b )` became
+> a named rule, so `rest` is now the clean `[ [op-envelope, operand] … ]`
+> array (operator token text at `entry[0][1]`, `[]` for no operator).
+> Because the five `*_op` rules are un-annotated, the annotation
+> inventory is **unchanged at 156 annotations / 74 distinct rules**. The
+> honest pre-fix history is kept here, in the
+> [Schema Versioning](#schema-versioning) table, and in the
+> binary-addition worked example; tracked (status `Released`) as
+> `RTL-FE-0001` in
+> `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 
 The ten levels, in precedence order (loosest binding first), each a
 `return_object` annotation on **branch 0** emitting
@@ -533,16 +701,30 @@ annotations, one per rule). No other rtl_frontend rule emits a
 **Consumer left-fold rule (normative).** Every level emits
 `{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading
 operand — itself a `binop_chain` of the next-tighter level (or, at
-`multiplicative_expr`, a `unary_expr` shape) — and `rest` is the
-recursive-envelope iteration array of `(operator, operand)` pairs.
-**Consumers MUST fold `rest` left-associatively onto `lhs`**: evaluate
-`lhs`, then for each `(operator, operand)` pair in `rest` (in array
-order) apply `operator` with the running result as the left side and
-`operand` as the right side. This left-fold is identical at all ten
-levels by construction, so one fold routine walks the whole
-binary-expression tree. All ten levels iterate `*`, so `rest` may hold
-**any number** of pairs (including zero — a single operand surfaces as a
-`binop_chain` whose `rest` is empty).
+`multiplicative_expr`, a `unary_expr` shape) — and `rest` is a **clean
+array of iteration entries**, one per `(op operand)` repetition of
+`<next> ( <NAMED_op> <next> )*`. Each entry is a two-element array:
+`entry[0]` is the **operator envelope** of the named op-rule (e.g.
+`additive_op := plus | minus`), with the operator **token text at
+`entry[0][1]`** (`"+"`, `"-"`, …) and an empty `trivia` at
+`entry[0][0]` (`[]` when there is no leading trivia); `entry[1]` is the
+right-hand operand — the next-tighter level's `binop_chain`. For input
+`assign y = a + b;` the `additive`-level `rest` is the single entry
+`[ [ [], "+" ], {type:"binop_chain", level:"multiplicative",
+lhs:<b>, rest:[]} ]`. This is the **identical** consumer-fold contract
+as `rtl_const_expr`'s `binop_chain` (operator at `entry[0][1]`). It is
+the `RTL-FE-0001` corrected, gate-locked shape — at `1.0.1` / schema
+`1` this field was the malformed `<invalid_sequence_access>` + nested
+object (see
+[Resolved Defects — `RTL-FE-0001`](#resolved-defects--rtl-fe-0001-fixed-in-release-102-schema-2)
+and the binary-addition worked example). **Consumers MUST fold `rest`
+left-associatively onto `lhs`**: evaluate `lhs`, then for each entry in
+`rest` (in array order) apply the operator at `entry[0][1]` with the
+running result as the left side and `entry[1]` as the right side. This
+left-fold is identical at all ten levels by construction, so one fold
+routine walks the whole binary-expression tree. All ten levels iterate
+`*`, so `rest` may hold **any number** of entries (including zero — a
+single operand surfaces as a `binop_chain` whose `rest` is `[]`).
 
 **There is NO `sign` field on any rtl_frontend `binop_chain` level**
 (unlike VHDL's `"additive"` level / `simple_expression`, which carries a
@@ -600,8 +782,8 @@ selects the corresponding shape, while an object carrying `kind` (no
 through the recursive envelope of its `identifier`, reached as
 `data_type.body` when `data_type.kind == "named"`.
 
-The above enumerates the full typed surface of contract `1.0.1`
-(**156 annotations across 74 distinct rules**, schema version `1`).
+The above enumerates the full typed surface of contract `1.0.2`
+(**156 annotations across 74 distinct rules**, schema version `2`).
 This contract section is curated; the authoritative machine-checkable
 enumeration of every `(rule, branch_index, annotation_type,
 normalized_text)` tuple is
@@ -627,7 +809,7 @@ the precedence order stated at the end of this section.
 | **Shape-contract manifest** | `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
 | **Declared-annotation inventory** | `generated/rtl_frontend_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the rtl_frontend grammar emits (`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`, **74 distinct rules**). The generator-side source of truth for the typed surface. |
 | **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
-| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released rtl_frontend parser. Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released rtl_frontend parser; the `RTL-FE-0001` defect lives there (status `Released`, fixed in parser release `1.0.2` / schema `2`). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
 
 Precedence when surfaces disagree (highest first): the **embedding-API
 contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
@@ -703,8 +885,8 @@ Contract-scoped definitions of the terms a downstream integrator needs to
 read this document. Where a term has a normative definition, this contract
 is authoritative; the per-parser book's
 [glossary](../rtl_frontend_parser_book/src/glossary.md) paraphrases the
-same terms for quick lookup. Numbers below are pinned to contract `1.0.1` /
-schema `1` / **156 annotations across 74 distinct rules**.
+same terms for quick lookup. Numbers below are pinned to contract `1.0.2` /
+schema `2` / **156 annotations across 74 distinct rules**.
 
 - **`AstDumpPayload`** — the success return of the rtl_frontend AST-dump
   host entry points (defined in `rust/src/embedding_api.rs`, contract in
@@ -728,7 +910,7 @@ schema `1` / **156 annotations across 74 distinct rules**.
   "pgen_ast_dump_truncation"`) before treating `dump_json` as an
   rtl_frontend AST.
 - **AST-dump schema version** — the integer version axis tracking the AST
-  output shape, currently `1`, pinned by this contract (see
+  output shape, currently `2`, pinned by this contract (see
   [Schema Versioning](#schema-versioning)). It is **not** a field of
   `AstDumpPayload`; it is the contract-tracked axis. Bumped only when the
   emitted shape changes in a way consumers may need to adapt to (new
@@ -736,7 +918,7 @@ schema `1` / **156 annotations across 74 distinct rules**.
   user-visible grammar-shape change). Pure perf work / internal codegen
   reorganization do not bump it.
 - **Parser release version** — the parser library's release identity,
-  currently `1.0.1`. Bumped on every functional change (bug fixes, perf
+  currently `1.0.2`. Bumped on every functional change (bug fixes, perf
   work, grammar changes). Moves independently of the schema version.
 - **`design_item` / `module_item` / `generate_item` dispatch** — the
   three top-level `kind`-tagged dispatchers. `design_item` is the primary

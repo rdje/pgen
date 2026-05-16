@@ -62,11 +62,11 @@ ledger.
   Commit: `PGEN-INLINE-ALT-FIX-0001`
 
 - ID: `INLINE-ALT-FIX.2`
-  Status: `pending`
+  Status: `done`
   Goal: `rtl_frontend binop_chain: lift each inline operator alternation into a named op-rule + bare $2; regen; manifest; schema bump; book + contract lockstep.`
   Acceptance: `parseability_probe on an operator expression shows clean binop_chain rest; rtl_frontend_parser_book_gate + rtl_frontend_ast_shape_contract green; book/contract/manifest/schema lockstep.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: Lifted the 5 inline operator alternations into named rules equality_op:=eqeq|ne / relational_op:=less_equal|lt|ge|gt / shift_op:=shl|shr / additive_op:=plus|minus / multiplicative_op:=star|slash|percent (mirrors rtl_const_expr's gate-locked fix; level annotations unchanged, $1/$2 now bind named rules). BEFORE probe (module m;assign y=a+b*c==d;endmodule) = 3 <invalid_sequence_access> + malformed additive.rest; AFTER = 0, clean [[op-envelope,operand]] rest (op text at entry[0][1]) — identical to rtl_const_expr binop contract. Parser+frontend-JSON+inventory regenerated; inventory UNCHANGED 156/74 (the 5 op-rules are un-annotated — KEY difference from SVPP-0001: no count delta). Manifest extracted_at->2026-05-16 + new assignment_expr sample (dai byte-identical 156) -> rtl_frontend_ast_shape_contract PASSES. Schema 1->2, release/contract 1.0.1->1.0.2. Contract + 10 book chapters (+ new examples-binary-addition.md wired in SUMMARY) + bug ledger lockstep: new RTL-FE-0001 row (Released, fixed 1.0.2 schema 1->2) + SVPP-0001 notes-cell tweak. Independently verified: contract no dup ## headers, 156/74 unchanged (no fabricated delta), 1.0.2/schema-2 current (1.0.1 historical only), Resolved Defects section, no fabricated AstDumpPayload (DOC-ENVELOPE not regressed), all 4 walker pins =2, 0 fabricated book residual, scope clean. rtl_frontend_parser_book_gate independently re-run GREEN (searchindex/toc deterministic, new chapter rendered). docs/book/ checked — no drift, no edit. clippy_on_rust_change: see commit.`
+  Commit: `PGEN-INLINE-ALT-FIX-0002`
 
 - ID: `INLINE-ALT-FIX.3`
   Status: `pending`
@@ -79,7 +79,7 @@ ledger.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `INLINE-ALT-FIX.2` | `pending` | rtl_frontend `binop_chain` inline-alternation instances — confirmed affected (memory). Apply the same proven named-op-rule + bare `$2` fix + lockstep. |
+| 1 | `INLINE-ALT-FIX.3` | `pending` | vhdl `binop_chain` — FIRST empirically confirm with parseability_probe ("VHDL likely" per memory, not yet confirmed); if affected, apply the same named-op-rule + bare `$2` fix + lockstep; if not, record the negative result and close. Final leaf — closes the tree. |
 
 ## Decisions
 
@@ -117,6 +117,7 @@ ledger.
 | --- | --- | --- | --- |
 | `2026-05-16` | `INLINE-ALT-FIX` (setup) | task-tree decomposition vs workflow splitting rules; fix-method provenance (rtl_const_expr gate-locked); memory correction | `pass — lane decomposed into 3 per-grammar leaves; method decided/proven; stale Cat-B memory + index corrected to the named-op-rule + bare $2 truth` |
 | `2026-05-16` | `INLINE-ALT-FIX.1` | before/after parseability_probe; regen (parser+frontend JSON+inventory 64->66); manifest rebuilt via dump_declared_annotation_inventory; systemverilog_preprocessor_ast_shape_contract; contract dup-header+numbers grep; book walker-pin + fabricated-residual grep; independent book-gate re-run; clippy; docs/book check | `pass — SVPP-0001 fixed (pp_if_keyword named rule); probe <invalid_sequence_access> -> {kind:"ifdef"}; shape-contract test PASSES; schema 1->2 / release 1.0.1->1.0.2 / 66/28; contract+7-book-chapters+ledger lockstep (SVPP-0001 -> Released, history kept); no dup ## headers; DOC-ENVELOPE not regressed; book gate green; clippy strict source ✓` |
+| `2026-05-16` | `INLINE-ALT-FIX.2` | before/after parseability_probe; regen (parser+frontend JSON+inventory, 156/74 UNCHANGED — op-rules un-annotated); manifest assignment_expr sample + extracted_at; rtl_frontend_ast_shape_contract; contract dup-header+numbers+no-fabricated-delta grep; book walker-pin + new-chapter-wired + fabricated-residual grep; ledger RTL-FE-0001 + SVPP-0001-tweak; independent book-gate re-run; clippy; docs/book check | `pass — rtl_frontend binop fixed (5 named op-rules, mirrors rtl_const_expr); probe 3 <invalid_sequence_access> -> 0, clean [[op-envelope,operand]] rest; shape-contract PASSES; 156/74 UNCHANGED (no fabricated delta); schema 1->2 / release 1.0.1->1.0.2; contract+10-book-chapters(+new examples-binary-addition)+ledger lockstep (RTL-FE-0001 Released, SVPP-0001 notes tweak); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green (searchindex/toc deterministic)` |
 
 ## Commit Log
 
@@ -124,6 +125,7 @@ ledger.
 | --- | --- | --- |
 | `INLINE-ALT-FIX` (setup) | `PGEN-INLINE-ALT-FIX-0000` | tree created; frontier `.1`; stale Cat-B extraction memory corrected in lockstep |
 | `INLINE-ALT-FIX.1` | `PGEN-INLINE-ALT-FIX-0001` | SVPP-0001 fixed: named `pp_if_keyword` rule; schema 1→2 / 1.0.1→1.0.2 / 64→66 / 27→28; contract+book+ledger lockstep; SVPP-0001 → Released; shape-contract + book gate green |
+| `INLINE-ALT-FIX.2` | `PGEN-INLINE-ALT-FIX-0002` | rtl_frontend binop fixed: 5 named op-rules (mirrors rtl_const_expr); schema 1→2 / 1.0.1→1.0.2 / **156/74 unchanged**; contract+10-book-chapters+ledger lockstep; RTL-FE-0001 → Released; shape-contract + book gate green |
 
 ## Changelog
 
@@ -133,6 +135,19 @@ ledger.
   (named-op-rule + bare `$2`, proven in `rtl_const_expr`). Frontier
   `.1`. Corrected the stale `feedback_quantified_group_extraction`
   memory (Cat B) + its MEMORY.md index line in lockstep.
+- `2026-05-16`: `.2` done — `rtl_frontend` `binop_chain` fixed via 5
+  named op-rules (`equality_op`/`relational_op`/`shift_op`/`additive_op`/
+  `multiplicative_op`, mirroring rtl_const_expr's gate-locked fix; level
+  annotations unchanged). Before/after `parseability_probe`: 3
+  `<invalid_sequence_access>` → 0, clean `[[op-envelope,operand]]` rest.
+  **Inventory UNCHANGED 156/74** (op-rules un-annotated — no count delta,
+  unlike SVPP-0001). Schema `1→2`, release/contract `1.0.1→1.0.2`;
+  manifest `assignment_expr` sample → `rtl_frontend_ast_shape_contract`
+  passes; contract + 10 book chapters (+ new `examples-binary-addition.md`)
+  + bug ledger lockstep (`RTL-FE-0001` Released; `SVPP-0001` notes
+  tweak). Independently verified; book gate re-run green. Frontier
+  advances to `.3` (vhdl `binop_chain`, verify-first — final leaf,
+  closes the tree). Tree stays `active` (`.3` remains).
 - `2026-05-16`: `.1` done — `SVPP-0001` fixed in `systemverilog_preprocessor`
   via the named `pp_if_keyword` rule (the proven `systemverilog.ebnf`
   `binary_operator` idiom). Before/after `parseability_probe` proves

@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-16 - RESOLVED: rtl_frontend binop_chain fixed — RTL-FE-0001, third inline-alternation-$N fix (PGEN-INLINE-ALT-FIX-0002)
+
+### What
+`rtl_frontend`'s five `binop_chain` levels (`equality`/`relational`/
+`shift`/`additive`/`multiplicative`) each had an inline operator
+alternation as the `( … next )*` iteration lead → the systemic
+inline-alternation-`$N` defect (3 `<invalid_sequence_access>` +
+malformed nested objects, verified by `parseability_probe`). Third
+landed fix of the class (after `rtl_const_expr`/`PGEN-RTL-0002` and
+`SVPP-0001`); leaf `INLINE-ALT-FIX.2`.
+
+### Fix + the key distinction from SVPP-0001
+Lifted the five inline alternations into named rules
+(`equality_op := eqeq | ne`, `relational_op := less_equal | lt | ge |
+gt`, `shift_op := shl | shr`, `additive_op := plus | minus`,
+`multiplicative_op := star | slash | percent`) — verbatim mirror of
+rtl_const_expr's gate-locked op-rules (rtl_frontend token names, e.g.
+`less_equal` not `le`). Level annotations unchanged; `$1`/`$2` now bind
+named rules. **Crucial difference vs SVPP-0001:** these op-rules are
+**un-annotated** (no `-> {kind:…}`), so they do NOT appear in the
+return-annotation inventory — the surface stays **156/74 unchanged**
+(SVPP-0001's `pp_if_keyword` had `{kind}` annotations → +2). The fix is
+shape-only at `binop_chain.rest` (broken→clean) — still a correctness
+schema bump `1→2` / release `1.0.1→1.0.2` because the consumer-visible
+AST shape changed, even with zero inventory delta. Lockstep:
+contract + 10 book chapters (+ new `examples-binary-addition.md`) +
+ledger `RTL-FE-0001` (Released). Remaining class instance: vhdl
+`binop_chain` (`INLINE-ALT-FIX.3`, verify-first).
+
 ## 2026-05-16 - WORKFLOW: hooks must not hard-code falsifiable engineering rules (PGEN-WORKFLOW-0004)
 
 ### Root cause

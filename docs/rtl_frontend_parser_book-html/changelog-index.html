@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c7eff9da.js";
+            window.path_to_searchindex_js = "searchindex-018ab0b2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-440c5d76.js"></script>
+        <script src="toc-b4e659eb.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,9 +198,22 @@
 </div>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the bug ledger for specific accepted bugs, and fall back to git for diffs.</p>
 <h2 id="why-this-index-is-short-by-design"><a class="header" href="#why-this-index-is-short-by-design">Why this index is short by design</a></h2>
-<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The rtl_frontend grammar is different: it was typed across a small number of grouped slices — RTL-FE-Slice-1..7, all landed together on 2026-05-14 — so the rtl_frontend schema timeline has exactly two entries.</strong> This is also unlike the VHDL grammar, which was typed in a single comprehensive batch (<code>VHDL-Slice-1</code>); rtl_frontend used seven grouped slices rather than one batch or a long campaign. Either way, the result is the same: this is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="schema-versioning.html">Schema Versioning</a> row, and an entry below.</p>
+<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The rtl_frontend grammar is different: it was typed across a small number of grouped slices — RTL-FE-Slice-1..7, all landed together on 2026-05-14 — plus one follow-up correctness fix (<code>RTL-FE-0001</code>, schema <code>2</code>, 2026-05-16), so the rtl_frontend schema timeline has just three entries.</strong> This is also unlike the VHDL grammar, which was typed in a single comprehensive batch (<code>VHDL-Slice-1</code>); rtl_frontend used seven grouped slices rather than one batch or a long campaign. Either way, the result is the same: this is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="schema-versioning.html">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
-<p>This book is <strong>live</strong> and tracks current main HEAD. The two entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<p>This book is <strong>live</strong> and tracks current main HEAD. The three entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="102--contract-102--rtl-fe-0001-correctness-fix-binop_chainrest-schema-1--2"><a class="header" href="#102--contract-102--rtl-fe-0001-correctness-fix-binop_chainrest-schema-1--2">1.0.2 / Contract 1.0.2 — RTL-FE-0001 correctness fix: <code>binop_chain.rest</code> (schema 1 → 2)</a></h3>
+<p>A worked-example pass surfaced that the <code>1.0.1</code> baseline shipped one shape defect — the same systemic inline-operator-alternation-<code>$N</code> class fixed for <code>rtl_const_expr</code> (RTL-CE-Slice-2 / <code>RTL-CE-0001</code>) and <code>systemverilog_preprocessor</code> (<code>SVPP-0001</code>). Landed 2026-05-16.</p>
+<ul>
+<li><strong>Schema-version milestone:</strong> <code>1.0.2</code> (first parser release: <code>1.0.2</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>2</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>).</li>
+<li><strong>What changed:</strong> the ten <code>binop_chain</code> levels’ <code>rest</code> no longer emits <code>"&lt;invalid_sequence_access&gt;"</code> (plus a malformed nested <code>{level, lhs:["","&lt;op&gt;"], rest:&lt;invalid&gt;}</code> object) for multi-operand input. The five inline operator alternations were lifted into five <strong>named, un-annotated</strong> rules — <code>equality_op := eqeq | ne</code>, <code>relational_op := less_equal | lt | ge | gt</code>, <code>shift_op := shl | shr</code>, <code>additive_op := plus | minus</code>, <code>multiplicative_op := star | slash | percent</code> (the proven RTL-CE-Slice-2 / <code>systemverilog.ebnf</code> <code>binary_operator</code> idiom). Each level’s <code>rest: $2</code> now captures the clean <code>[ [op-envelope], operand ]</code> iteration array (operator token text at <code>entry[0][1]</code>, <code>[]</code> when no operator). The five <code>binop_chain</code> level annotations are <strong>unchanged</strong> — only the inline <code>( a | b )</code> became a named rule.</li>
+<li><strong>Annotation count:</strong> <strong>156 / 74 — UNCHANGED.</strong> The five <code>*_op</code> rules are un-annotated alternations and are not in the inventory; only the <code>binop_chain.rest</code> shape changed and the schema/release version bumped.</li>
+<li><strong>Accept set:</strong> unchanged — no grammar acceptance change, purely the alternation lift.</li>
+<li><strong>Contract section:</strong> <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.0.2 / Contract 1.0.2 Highlights — RTL-FE-0001 correctness fix (binop_chain.rest); schema 1 → 2” and “Resolved Defects — <code>RTL-FE-0001</code>”.</li>
+<li><strong>Bug ledger:</strong> <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> → <code>RTL-FE-0001</code> (status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code>).</li>
+<li><strong>Worked example:</strong> <a href="examples-binary-addition.html">Worked Example: Binary Addition</a> — the schema-<code>2</code> corrected shape with the pre-fix history kept.</li>
+<li><strong>Machine-checkable inventory:</strong> <code>generated/rtl_frontend_return_annotations.json</code> (156 entries) and its content-identical embedded mirror <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> (new <code>assignment_expr</code> regression sample).</li>
+</ul>
 <h3 id="100--contract-101--rtl-fe-slice-17-full-grammar-typed-156-annotations--74-rules"><a class="header" href="#100--contract-101--rtl-fe-slice-17-full-grammar-typed-156-annotations--74-rules">1.0.0 / Contract 1.0.1 — RTL-FE-Slice-1..7: full grammar typed (156 annotations / 74 rules)</a></h3>
 <p>The initial typing campaign, covering the entire <code>grammars/rtl_frontend.ebnf</code> surface across <strong>seven grouped slices</strong> that landed together on 2026-05-14.</p>
 <ul>
@@ -220,7 +233,7 @@
 <li><strong>Contract section:</strong> the <code>0.1.0</code> row of the “Schema Versioning” table in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>.</li>
 </ul>
 <h2 id="bug-ledger-status"><a class="header" href="#bug-ledger-status">Bug ledger status</a></h2>
-<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries no accepted rtl_frontend rows. When a downstream rtl_frontend bug is accepted, it gets a ledger row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change. Reports follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries one accepted rtl_frontend row: <strong><code>RTL-FE-0001</code></strong> (the <code>binop_chain.rest</code> <code>&lt;invalid_sequence_access&gt;</code> defect, status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code> — see the <code>1.0.2 / Contract 1.0.2</code> entry above). When a further downstream rtl_frontend bug is accepted, it gets its own ledger row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change. Reports follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
 <h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
 <p>Each shape-affecting slice after RTL-FE-Slice-7 gets:</p>
 <ol>

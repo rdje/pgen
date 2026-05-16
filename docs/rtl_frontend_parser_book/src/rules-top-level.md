@@ -2,7 +2,7 @@
 
 This chapter is the per-rule shape reference for the PGEN rtl_frontend parser. It documents the `rtl_frontend_file` root, the `design_item` dispatch, and then enumerates the typed rule shapes grouped by rule family.
 
-> **Status:** RTL-FE-Slice-1..7 (parser release `1.0.1`, AST-dump schema version `1`) typed the full `grammars/rtl_frontend.ebnf` surface across seven slices — **156 return annotations on 74 distinct rules**. Every shape in this chapter is drawn from the live inventory at `generated/rtl_frontend_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.
+> **Status:** RTL-FE-Slice-1..7 typed the full `grammars/rtl_frontend.ebnf` surface across seven slices — **156 return annotations on 74 distinct rules**. The current parser release is `1.0.2` / AST-dump schema version `2` (the `1.0.2` `RTL-FE-0001` correctness fix to `binop_chain.rest` — see [Schema Versioning](schema-versioning.md); the annotation inventory is **unchanged at 156 / 74**, since the five new `*_op` rules are un-annotated alternations). Every shape in this chapter is drawn from the live inventory at `generated/rtl_frontend_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.
 
 ## How to read this chapter
 
@@ -160,6 +160,15 @@ rtl_expr            := conditional_expr
 conditional_expr    := logical_or_expr ? conditional_expr : conditional_expr
                     -> {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
                      | logical_or_expr  -> $1                       -- passthrough
+
+# Named operator rules — un-annotated alternations (the RTL-FE-0001 fix,
+# schema 2; NOT in the 156-annotation inventory):
+equality_op         := eqeq | ne
+relational_op       := less_equal | lt | ge | gt
+shift_op            := shl | shr
+additive_op         := plus | minus
+multiplicative_op   := star | slash | percent
+
 logical_or_expr     := logical_and_expr ( logical_or  logical_and_expr )*
                     -> {type: "binop_chain", level: "logical_or",     lhs: $1, rest: $2}
 logical_and_expr    := bit_or_expr      ( logical_and bit_or_expr     )*
@@ -170,17 +179,38 @@ bit_xor_expr        := bit_and_expr     ( bit_xor     bit_and_expr    )*
                     -> {type: "binop_chain", level: "bit_xor",        lhs: $1, rest: $2}
 bit_and_expr        := equality_expr    ( bit_and     equality_expr   )*
                     -> {type: "binop_chain", level: "bit_and",        lhs: $1, rest: $2}
-equality_expr       := relational_expr  ( ( == | != )  relational_expr )*
+equality_expr       := relational_expr  ( equality_op       relational_expr     )*
                     -> {type: "binop_chain", level: "equality",       lhs: $1, rest: $2}
-relational_expr     := shift_expr       ( ( <= | < | >= | > ) shift_expr )*
+relational_expr     := shift_expr       ( relational_op     shift_expr          )*
                     -> {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
-shift_expr          := additive_expr    ( ( << | >> )  additive_expr  )*
+shift_expr          := additive_expr    ( shift_op          additive_expr       )*
                     -> {type: "binop_chain", level: "shift",          lhs: $1, rest: $2}
-additive_expr       := multiplicative_expr ( ( + | - ) multiplicative_expr )*
+additive_expr       := multiplicative_expr ( additive_op    multiplicative_expr )*
                     -> {type: "binop_chain", level: "additive",       lhs: $1, rest: $2}
-multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
+multiplicative_expr := unary_expr       ( multiplicative_op unary_expr          )*
                     -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
 ```
+
+> **`RTL-FE-0001` (resolved in `1.0.2` / schema `2`).** At release
+> `1.0.1` / schema `1` the five lower levels used **inline operator
+> alternations** as the iteration lead (`equality_expr := relational_expr
+> ( ( == | != ) relational_expr )*`, and likewise `relational` / `shift`
+> / `additive` / `multiplicative`). A bare positional `rest: $2`
+> referencing an inline `( a | b )` group corrupts the positional model,
+> so for any multi-operand input the level's `rest` emitted
+> `"<invalid_sequence_access>"` plus a malformed nested object. **Fixed
+> in `1.0.2`** by lifting the five inline alternations into the **named,
+> un-annotated** op-rules shown above — the proven RTL-CE-Slice-2 /
+> `systemverilog.ebnf` `binary_operator` idiom. The five `binop_chain`
+> level annotations are **unchanged**; only the inline `( a | b )`
+> became a named rule, so `rest` is now the clean `[ [op-envelope],
+> operand ]` array (operator token text at `entry[0][1]`, `[]` for no
+> operator). Because the five `*_op` rules are un-annotated, the
+> annotation inventory is **unchanged at 156 / 74**. See
+> [Worked Example: Binary Addition](examples-binary-addition.md) for the
+> captured schema-`2` shape and the kept pre-fix history; tracked
+> (status `Released`) as `RTL-FE-0001` in
+> `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 
 | Level (`level`) | Rule | Operators |
 |---|---|---|
@@ -195,7 +225,7 @@ multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
 | `"additive"` | `additive_expr` | `+` / `-` |
 | `"multiplicative"` | `multiplicative_expr` | `*` / `/` / `%` |
 
-**Consumer-facing left-fold contract** (per the integration contract, Release 1.0.1 Highlights): every one of these ten rules emits `{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading operand (itself a `binop_chain` of the next-tighter level) and `rest` is the recursive-envelope iteration array of `(operator, operand)` pairs. **Consumers fold `rest` left-associatively onto `lhs`.** There is no `sign` field on any rtl_frontend level (unlike VHDL's `simple_expression`); the unary `+` / `-` / `!` / `~` operators live in `unary_expr`, below `multiplicative_expr`. All ten levels iterate `*`, so `rest` may hold any number of pairs.
+**Consumer-facing left-fold contract** (per the integration contract, Release 1.0.2 Highlights): every one of these ten rules emits `{type: "binop_chain", level, lhs, rest}` where `lhs` is the leading operand (itself a `binop_chain` of the next-tighter level) and `rest` is a **clean array of iteration entries**, one per `(op operand)` repetition of `<next> ( <NAMED_op> <next> )*`. Each entry is a two-element array: `entry[0]` is the named op-rule envelope with the operator **token text at `entry[0][1]`** (`"+"`, `"-"`, …) and an empty `trivia` at `entry[0][0]` (`[]` when no leading trivia); `entry[1]` is the right-hand operand. For `a + b` the `additive`-level `rest` is the single entry `[ [ [], "+" ], {type:"binop_chain", level:"multiplicative", lhs:<b>, rest:[]} ]` — the **identical** consumer-fold contract as `rtl_const_expr`'s `binop_chain`. (This is the `RTL-FE-0001` corrected, gate-locked shape — at `1.0.1` / schema `1` it was the malformed `<invalid_sequence_access>` + nested object; see the note above and [Worked Example: Binary Addition](examples-binary-addition.md).) **Consumers fold `rest` left-associatively onto `lhs`**: evaluate `lhs`, then for each entry apply the operator at `entry[0][1]` with the running result on the left and `entry[1]` on the right. There is no `sign` field on any rtl_frontend level (unlike VHDL's `simple_expression`); the unary `+` / `-` / `!` / `~` operators live in `unary_expr`, below `multiplicative_expr`. All ten levels iterate `*`, so `rest` may hold any number of entries (including zero — a single operand surfaces as a `binop_chain` whose `rest` is `[]`).
 
 The cascade bottoms out at `unary_expr` → `primary_expr`. This `binop_chain` shape is identical across all ten levels precisely so that a single consumer fold routine handles the entire binary-expression tree. See [Walking the AST](walking-the-ast.md) for a worked left-fold.
 
@@ -241,7 +271,7 @@ Because `conditional_expr` and `unary_expr` are passthrough when their distingui
 
 ## Total surface and the machine-checkable source
 
-The full typed surface as of contract `1.0.1` is **156 return annotations across 74 distinct rules** (independently re-counted from the inventory below). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
+The full typed surface as of contract `1.0.2` is **156 return annotations across 74 distinct rules** (independently re-counted from the inventory below; the `1.0.2` `RTL-FE-0001` fix did not change this count — the five `*_op` rules are un-annotated alternations). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
 
 - `generated/rtl_frontend_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`).
 - `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — the embedded inventory used by the AST shape-contract regression lock (identical content; 156 entries in `declared_annotation_inventory.annotations`).

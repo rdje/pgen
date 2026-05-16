@@ -1,6 +1,6 @@
 # Walking the AST
 
-This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and `kind` names from the live return-annotation inventory (`generated/rtl_frontend_return_annotations.json`, 156 annotations on 74 rules, schema version `1`).
+This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and `kind` names from the live return-annotation inventory (`generated/rtl_frontend_return_annotations.json`, 156 annotations on 74 rules, schema version `2`).
 
 ## The dual-shape walker
 
@@ -112,8 +112,9 @@ The ten expression-precedence rules (`logical_or_expr` → `logical_and_expr` �
 ```rust
 /// Folds one binop_chain level left-associatively. `lhs` is the leading
 /// operand (itself a binop_chain of the next-tighter level, bottoming out
-/// at unary_expr -> a typed primary_expr). `rest` is the recursive-envelope
-/// iteration of (operator, operand) pairs.
+/// at unary_expr -> a typed primary_expr). `rest` is the clean array of
+/// `[ [op-envelope], operand ]` iteration entries: the operator token text
+/// is at `entry[0][1]`, the right-hand operand is `entry[1]`.
 fn walk_binop_chain(node: &serde_json::Map<String, serde_json::Value>) {
     debug_assert_eq!(
         node.get("type").and_then(|v| v.as_str()),
@@ -127,14 +128,25 @@ fn walk_binop_chain(node: &serde_json::Map<String, serde_json::Value>) {
 
     let mut acc = lower_operand(node.get("lhs").expect("lhs present"));
 
-    // `rest` is the recursive-envelope array of (op, operand) iterations.
+    // `rest` is the clean array of [op-envelope, operand] iteration
+    // entries (the RTL-FE-0001 fix, schema 2 — at 1.0.1 / schema 1 this
+    // field could surface "<invalid_sequence_access>" for multi-operand
+    // input; see Schema Versioning and the binary-addition worked example).
+    // The operator token text is at entry[0][1]; entry[1] is the operand.
     // rtl_frontend has NO `sign` field — prefix +/-/!/~ live in unary_expr,
-    // below this cascade. All ten levels iterate `*`.
+    // below this cascade. All ten levels iterate `*` (rest may be `[]`).
     if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
-        for pair in rest {
-            let (op, rhs_node) = split_op_operand(pair);
+        for entry in rest {
+            // entry[0] is the named op-rule envelope; the operator token
+            // text is at entry[0][1]. entry[1] is the right-hand operand.
+            let op = entry
+                .get(0)
+                .and_then(|e| e.get(1))
+                .and_then(|v| v.as_str())
+                .unwrap_or("?");
+            let rhs_node = entry.get(1).expect("entry[1] is the operand");
             acc = Expr::Binary {
-                op,
+                op: op.to_string(),
                 lhs: Box::new(acc),
                 rhs: Box::new(lower_operand(rhs_node)),
             };
@@ -236,7 +248,7 @@ Recommendations:
 
 ```rust
 // The AST-dump schema version you integrated against (from the contract):
-const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -250,8 +262,9 @@ let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
 // the integer schema version moved, update the constant and the walker
 // together.
 match RTL_FRONTEND_AST_SCHEMA_VERSION {
-    1 => walk_schema_v1(&root),
-    // (future) 2 => walk_schema_v2(&root),
+    2 => walk_schema_v2(&root),
+    // schema 1 (pre-RTL-FE-0001) is superseded — binop_chain.rest there
+    // could surface "<invalid_sequence_access>"; repin to schema 2.
     other => eprintln!("no walker compiled for rtl_frontend AST schema version {other}"),
 }
 ```

@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-05-16 - PGEN-INLINE-ALT-FIX-0002 (leaf INLINE-ALT-FIX.2): rtl_frontend binop_chain inline-alternation defect FIXED (RTL-FE-0001; schema 1→2, release 1.0.2)
+
+- **`rtl_frontend` `binop_chain` inline-alternation-`$N` defect FIXED**
+  (same systemic class as `SVPP-0001`/`RTL-CE-0001`). The five inline
+  operator alternations were lifted into NAMED rules — `equality_op`,
+  `relational_op`, `shift_op`, `additive_op`, `multiplicative_op`
+  (mirroring rtl_const_expr's gate-locked fix + the `systemverilog.ebnf`
+  `binary_operator` idiom). The five `binop_chain` level annotations
+  are UNCHANGED — only the inline `( a | b )` became a named rule.
+- **Verified before→after** with `parseability_probe`
+  (`module m;\nassign y = a + b * c == d;\nendmodule\n`):
+  `additive`-level `binop_chain.rest` `<invalid_sequence_access>` +
+  malformed nested object (3 occurrences) → clean
+  `[ [ [[],"+"], {binop_chain multiplicative …} ] ]` (op token at
+  `entry[0][1]`, `[]` when none) — IDENTICAL consumer-fold contract to
+  rtl_const_expr's `binop_chain`. Zero `<invalid_sequence_access>`.
+- **Surface counts UNCHANGED — 156 annotations / 74 distinct rules**
+  (the five op-rules are *un-annotated*, so the return-annotation
+  inventory is byte-identical; KEY difference from SVPP-0001 which
+  added 2). Parser + frontend grammar JSON + inventory regenerated;
+  manifest `rtl_frontend_v1.json` `extracted_at` → 2026-05-16 + a new
+  `assignment_expr` regression sample (dai unchanged 156) →
+  `rtl_frontend_ast_shape_contract` **passes** (`generated/` stays
+  untracked per the on-demand-parser policy; the manifest is the
+  git-traveling CI lock).
+- **Lockstep (same commit, book-sync directive):** AST-dump schema
+  `1→2`, parser+contract release `1.0.1→1.0.2`. Contract: schema/
+  release/shape bumped (current-state) with historical `1.0.1` rows
+  kept; new `## Resolved Defects — RTL-FE-0001` + `## Release 1.0.2
+  Highlights`; named op-rules in the binop EBNF; **156/74 explicitly
+  unchanged**. Book (10 chapters + a new `examples-binary-addition.md`
+  worked example wired into `SUMMARY.md`, real captured fixed shape +
+  schema-`2` transition note per the rtl_const_expr template; all 4
+  walker snippets pin `RTL_FRONTEND_AST_SCHEMA_VERSION = 2`;
+  `schema-versioning.md` 1→2 row). Bug ledger: new **`RTL-FE-0001`**
+  row (`Released`, fixed in rtl_frontend 1.0.2 schema 1→2, before/after
+  repro, inventory-unchanged noted); `SVPP-0001` notes-cell tweak
+  ("rtl_frontend tracked as `RTL-FE-0001` (fixed in 1.0.2); the vhdl
+  `binop_chain` instance remains tracked separately").
+- **DOC-ENVELOPE-0001 not regressed** — real 4-field `AstDumpPayload`
+  + pinned-constant walker preserved (independently grep-verified).
+- Independently verified: contract no dup `## ` headers, numbers
+  uniformly current `1.0.2`/`2`, **156/74 unchanged with no fabricated
+  count delta**, `## Resolved Defects` ×1, `RTL-FE-0001` ledger row +
+  `SVPP-0001` tweak exact; `rtl_frontend_parser_book_gate`
+  **independently re-run green** (searchindex/toc deterministic, new
+  chapter rendered, tracked `-html/` regenerated same-commit);
+  `clippy_on_rust_change` strict source lint **passed** (the 164-error
+  generated non-strict clippy debt is pre-existing across all parsers,
+  tolerated by gate design, not introduced by a shape-only
+  inline-alt→named-rule change; regenerated parser provably compiles —
+  the shape-contract test built+ran against it).
+- `INLINE-ALT-FIX` tree stays `active` — `.2` of `.1`–`.3` done,
+  frontier `.2`→`.3` (vhdl `binop_chain`, verify-first — final leaf,
+  closes the tree).
+
 ## 2026-05-16 - PGEN-WORKFLOW-0004: correct + rescope the .claude/settings.json hooks (user-directed)
 
 - **Removed a stale, empirically-falsified engineering rule from BOTH

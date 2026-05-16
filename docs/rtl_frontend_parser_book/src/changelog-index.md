@@ -15,11 +15,25 @@ When investigating "what changed and why," start with the contract document, dro
 
 ## Why this index is short by design
 
-The SystemVerilog parser's changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. **The rtl_frontend grammar is different: it was typed across a small number of grouped slices — RTL-FE-Slice-1..7, all landed together on 2026-05-14 — so the rtl_frontend schema timeline has exactly two entries.** This is also unlike the VHDL grammar, which was typed in a single comprehensive batch (`VHDL-Slice-1`); rtl_frontend used seven grouped slices rather than one batch or a long campaign. Either way, the result is the same: this is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a [Schema Versioning](schema-versioning.md) row, and an entry below.
+The SystemVerilog parser's changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. **The rtl_frontend grammar is different: it was typed across a small number of grouped slices — RTL-FE-Slice-1..7, all landed together on 2026-05-14 — plus one follow-up correctness fix (`RTL-FE-0001`, schema `2`, 2026-05-16), so the rtl_frontend schema timeline has just three entries.** This is also unlike the VHDL grammar, which was typed in a single comprehensive batch (`VHDL-Slice-1`); rtl_frontend used seven grouped slices rather than one batch or a long campaign. Either way, the result is the same: this is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a [Schema Versioning](schema-versioning.md) row, and an entry below.
 
 ## Releases relevant to this book
 
-This book is **live** and tracks current main HEAD. The two entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
+This book is **live** and tracks current main HEAD. The three entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
+
+### 1.0.2 / Contract 1.0.2 — RTL-FE-0001 correctness fix: `binop_chain.rest` (schema 1 → 2)
+
+A worked-example pass surfaced that the `1.0.1` baseline shipped one shape defect — the same systemic inline-operator-alternation-`$N` class fixed for `rtl_const_expr` (RTL-CE-Slice-2 / `RTL-CE-0001`) and `systemverilog_preprocessor` (`SVPP-0001`). Landed 2026-05-16.
+
+- **Schema-version milestone:** `1.0.2` (first parser release: `1.0.2`).
+- **AST-dump schema version:** `2` — the integer consumers **pin** from the contract (it is **not** a field of `AstDumpPayload`, whose real fields are `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`).
+- **What changed:** the ten `binop_chain` levels' `rest` no longer emits `"<invalid_sequence_access>"` (plus a malformed nested `{level, lhs:["","<op>"], rest:<invalid>}` object) for multi-operand input. The five inline operator alternations were lifted into five **named, un-annotated** rules — `equality_op := eqeq | ne`, `relational_op := less_equal | lt | ge | gt`, `shift_op := shl | shr`, `additive_op := plus | minus`, `multiplicative_op := star | slash | percent` (the proven RTL-CE-Slice-2 / `systemverilog.ebnf` `binary_operator` idiom). Each level's `rest: $2` now captures the clean `[ [op-envelope], operand ]` iteration array (operator token text at `entry[0][1]`, `[]` when no operator). The five `binop_chain` level annotations are **unchanged** — only the inline `( a | b )` became a named rule.
+- **Annotation count:** **156 / 74 — UNCHANGED.** The five `*_op` rules are un-annotated alternations and are not in the inventory; only the `binop_chain.rest` shape changed and the schema/release version bumped.
+- **Accept set:** unchanged — no grammar acceptance change, purely the alternation lift.
+- **Contract section:** `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` → "Release 1.0.2 / Contract 1.0.2 Highlights — RTL-FE-0001 correctness fix (binop_chain.rest); schema 1 → 2" and "Resolved Defects — `RTL-FE-0001`".
+- **Bug ledger:** `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` → `RTL-FE-0001` (status `Released`, fixed in parser release `1.0.2` / schema `2`).
+- **Worked example:** [Worked Example: Binary Addition](examples-binary-addition.md) — the schema-`2` corrected shape with the pre-fix history kept.
+- **Machine-checkable inventory:** `generated/rtl_frontend_return_annotations.json` (156 entries) and its content-identical embedded mirror `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` (new `assignment_expr` regression sample).
 
 ### 1.0.0 / Contract 1.0.1 — RTL-FE-Slice-1..7: full grammar typed (156 annotations / 74 rules)
 
@@ -43,7 +57,7 @@ The pre-typing baseline.
 
 ## Bug ledger status
 
-`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` is the canonical per-bug tracker. As of this writing it carries no accepted rtl_frontend rows. When a downstream rtl_frontend bug is accepted, it gets a ledger row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change. Reports follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` is the canonical per-bug tracker. As of this writing it carries one accepted rtl_frontend row: **`RTL-FE-0001`** (the `binop_chain.rest` `<invalid_sequence_access>` defect, status `Released`, fixed in parser release `1.0.2` / schema `2` — see the `1.0.2 / Contract 1.0.2` entry above). When a further downstream rtl_frontend bug is accepted, it gets its own ledger row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change. Reports follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`.
 
 ## How to follow per-slice changes
 

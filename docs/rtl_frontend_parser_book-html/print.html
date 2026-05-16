@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c7eff9da.js";
+            window.path_to_searchindex_js = "searchindex-018ab0b2.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-440c5d76.js"></script>
+        <script src="toc-b4e659eb.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -264,7 +264,7 @@ fn walk(node: &amp;JsonValue) {
 }
 <span class="boring">}</span></code></pre>
 <h2 id="5-track-the-contract-version"><a class="header" href="#5-track-the-contract-version">5. Track the contract version</a></h2>
-<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.1</code>). When you bump to a new PGEN version, scan the <a href="#changelog-index">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
+<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.2</code> / AST-dump schema version <code>2</code>). When you bump to a new PGEN version, scan the <a href="#changelog-index">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
 <p>For the binop_chain shape used across the 10-level expression hierarchy (<code>expression</code> → <code>conditional</code> → … → <code>unary</code>), see <a href="#walking-the-ast">Walking the AST</a> for the consumer-facing left-fold contract.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="build-recipe"><a class="header" href="#build-recipe">Build Recipe</a></h1>
@@ -534,7 +534,7 @@ for consumers.</p>
   "...": "..."
 }
 </code></pre>
-<p>The 156-annotation surface (as of contract 1.0.1) covers all the load-bearing rules including the 10-level binop_chain expression hierarchy.</p>
+<p>The 156-annotation surface (as of contract 1.0.2) covers all the load-bearing rules including the 10-level binop_chain expression hierarchy.</p>
 <h3 id="recursive-envelope-shape-rules-without-annotations"><a class="header" href="#recursive-envelope-shape-rules-without-annotations">Recursive envelope shape (rules without annotations)</a></h3>
 <p>When a grammar rule has no return annotation, the rule produces a JSON value derived from its grammar shape:</p>
 <ul>
@@ -586,7 +586,7 @@ for consumers.</p>
 <h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
 <p>This chapter explains how the rtl_frontend parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, the absent-optional convention, and the determinism guarantee. It is the conceptual companion to <a href="#top-level-rules">Top-Level Rules</a>, which enumerates the concrete per-rule shapes, and to <a href="#ast-envelope-structure">AST Envelope Structure</a>, which documents the outer <code>AstDumpPayload</code>.</p>
 <blockquote>
-<p><strong>Note:</strong> The rtl_frontend return-annotation campaign landed across seven slices — <strong>RTL-FE-Slice-1..7, 156 annotations on 74 rules</strong> (parser release <code>1.0.1</code>, schema version <code>1</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves like <code>identifier</code>, and a few utility/passthrough rules) produce the recursive-envelope shape. The authoritative enumeration is <code>generated/rtl_frontend_return_annotations.json</code> (mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>).</p>
+<p><strong>Note:</strong> The rtl_frontend return-annotation campaign landed across seven slices — <strong>RTL-FE-Slice-1..7, 156 annotations on 74 rules</strong>; the current parser release is <code>1.0.2</code> / schema version <code>2</code> (the <code>1.0.2</code> <code>RTL-FE-0001</code> <code>binop_chain.rest</code> correctness fix — the inventory is <strong>unchanged at 156 / 74</strong>, since the five new <code>*_op</code> rules are un-annotated alternations; see <a href="#schema-versioning">Schema Versioning</a>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves like <code>identifier</code>, the five <code>*_op</code> operator alternations, and a few utility/passthrough rules) produce the recursive-envelope shape. The authoritative enumeration is <code>generated/rtl_frontend_return_annotations.json</code> (mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>).</p>
 </blockquote>
 <h2 id="two-carrier-kinds"><a class="header" href="#two-carrier-kinds">Two carrier kinds</a></h2>
 <p>Every node in the rtl_frontend AST dump is carried in one of exactly two shapes.</p>
@@ -692,9 +692,9 @@ for consumers.</p>
 <p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>; the value shapes above are the real captured output of <code>generated/rtl_frontend_parser.rs</code> for this input. This grounds the rule of thumb: an un-annotated identifier field is the identifier rule’s recursive envelope, not a bare string — confirm structure against the inventory and the live parser, never assume a scalar.</p>
 <h2 id="the-expression-family-binop_chain"><a class="header" href="#the-expression-family-binop_chain">The expression family (<code>binop_chain</code>)</a></h2>
 <p>The ten expression-precedence rules (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>) all carry the same <code>binop_chain</code> carrier so a single consumer fold handles the whole tree:</p>
-<pre><code class="language-json">{ "type": "binop_chain", "level": "additive", "lhs": &lt;next-level-shape&gt;, "rest": [ /* (op, operand) iterations */ ] }
+<pre><code class="language-json">{ "type": "binop_chain", "level": "additive", "lhs": &lt;next-level-shape&gt;, "rest": [ [ [ [], "+" ], &lt;operand&gt; ] ] }
 </code></pre>
-<p><code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level, bottoming out at <code>unary_expr</code> → a typed <code>primary_expr</code>). <code>rest</code> is a recursive-envelope array of <code>(operator, operand)</code> iterations. There is <strong>no</strong> <code>sign</code> field on any rtl_frontend level (unlike VHDL’s <code>simple_expression</code>); prefix <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> are handled by the <code>unary_expr</code> rule below the cascade. Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>. The full level/field/operator table is in <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a>; the fold code is in <a href="#walking-the-ast">Walking the AST</a>.</p>
+<p><code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level, bottoming out at <code>unary_expr</code> → a typed <code>primary_expr</code>). <code>rest</code> is a <strong>clean array of iteration entries</strong>, one per <code>(op operand)</code> repetition: each entry is <code>[ [op-envelope], operand ]</code> where the operator token text is at <code>entry[0][1]</code> (<code>"+"</code> here; <code>[]</code> is the empty leading trivia at <code>entry[0][0]</code>) and <code>entry[1]</code> is the right-hand operand. This is the <strong>identical</strong> consumer-fold contract as <code>rtl_const_expr</code>’s <code>binop_chain</code>. (It is the <code>RTL-FE-0001</code> corrected, gate-locked shape — at <code>1.0.1</code> / schema <code>1</code> this field could surface <code>"&lt;invalid_sequence_access&gt;"</code> plus a malformed nested object for multi-operand input; see <a href="#schema-versioning">Schema Versioning</a> and <a href="#worked-example-binary-addition-a--b">Worked Example: Binary Addition</a>.) There is <strong>no</strong> <code>sign</code> field on any rtl_frontend level (unlike VHDL’s <code>simple_expression</code>); prefix <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> are handled by the <code>unary_expr</code> rule below the cascade. Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>. The full level/field/operator table is in <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a>; the fold code is in <a href="#walking-the-ast">Walking the AST</a>.</p>
 <p><code>conditional_expr</code> (ternary) and <code>unary_expr</code> are <strong>passthrough</strong> when their distinguishing syntax is absent (the <code>-&gt; $1</code> <code>return_scalar</code> branches): a non-ternary, non-prefixed expression surfaces directly as its <code>logical_or_expr</code> <code>binop_chain</code> or its <code>primary_expr</code> <code>{kind, ...}</code> object, with no wrapper. Consumers must therefore accept a <code>type</code>-tagged object, a <code>kind</code>-tagged object, or a passthrough child in any expression slot.</p>
 <h2 id="determinism-1"><a class="header" href="#determinism-1">Determinism</a></h2>
 <p>The AST dump is <strong>byte-deterministic</strong> for a given input + parser-release version:</p>
@@ -719,7 +719,7 @@ for consumers.</p>
 <p>The full annotation-language grammar is <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>. The per-rule shapes those annotations produce are tabulated in <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
-<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/rtl_frontend_return_annotations.json</code>, 156 annotations on 74 rules, schema version <code>1</code>).</p>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/rtl_frontend_return_annotations.json</code>, 156 annotations on 74 rules, schema version <code>2</code>).</p>
 <h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
 <p>Because the AST tree mixes typed objects (the RTL-FE-Slice-1..7 surface) and recursive-envelope arrays (terminal/regex leaves, <code>named_data_type</code>, and the passthrough expression forms), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -820,8 +820,9 @@ fn walk(node: &amp;JsonValue) {
 </span><span class="boring">fn main() {
 </span>/// Folds one binop_chain level left-associatively. `lhs` is the leading
 /// operand (itself a binop_chain of the next-tighter level, bottoming out
-/// at unary_expr -&gt; a typed primary_expr). `rest` is the recursive-envelope
-/// iteration of (operator, operand) pairs.
+/// at unary_expr -&gt; a typed primary_expr). `rest` is the clean array of
+/// `[ [op-envelope], operand ]` iteration entries: the operator token text
+/// is at `entry[0][1]`, the right-hand operand is `entry[1]`.
 fn walk_binop_chain(node: &amp;serde_json::Map&lt;String, serde_json::Value&gt;) {
     debug_assert_eq!(
         node.get("type").and_then(|v| v.as_str()),
@@ -835,14 +836,25 @@ fn walk_binop_chain(node: &amp;serde_json::Map&lt;String, serde_json::Value&gt;)
 
     let mut acc = lower_operand(node.get("lhs").expect("lhs present"));
 
-    // `rest` is the recursive-envelope array of (op, operand) iterations.
+    // `rest` is the clean array of [op-envelope, operand] iteration
+    // entries (the RTL-FE-0001 fix, schema 2 — at 1.0.1 / schema 1 this
+    // field could surface "&lt;invalid_sequence_access&gt;" for multi-operand
+    // input; see Schema Versioning and the binary-addition worked example).
+    // The operator token text is at entry[0][1]; entry[1] is the operand.
     // rtl_frontend has NO `sign` field — prefix +/-/!/~ live in unary_expr,
-    // below this cascade. All ten levels iterate `*`.
+    // below this cascade. All ten levels iterate `*` (rest may be `[]`).
     if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
-        for pair in rest {
-            let (op, rhs_node) = split_op_operand(pair);
+        for entry in rest {
+            // entry[0] is the named op-rule envelope; the operator token
+            // text is at entry[0][1]. entry[1] is the right-hand operand.
+            let op = entry
+                .get(0)
+                .and_then(|e| e.get(1))
+                .and_then(|v| v.as_str())
+                .unwrap_or("?");
+            let rhs_node = entry.get(1).expect("entry[1] is the operand");
             acc = Expr::Binary {
-                op,
+                op: op.to_string(),
                 lhs: Box::new(acc),
                 rhs: Box::new(lower_operand(rhs_node)),
             };
@@ -932,7 +944,7 @@ fn walk_binop_chain(node: &amp;serde_json::Map&lt;String, serde_json::Value&gt;)
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -946,8 +958,9 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // the integer schema version moved, update the constant and the walker
 // together.
 match RTL_FRONTEND_AST_SCHEMA_VERSION {
-    1 =&gt; walk_schema_v1(&amp;root),
-    // (future) 2 =&gt; walk_schema_v2(&amp;root),
+    2 =&gt; walk_schema_v2(&amp;root),
+    // schema 1 (pre-RTL-FE-0001) is superseded — binop_chain.rest there
+    // could surface "&lt;invalid_sequence_access&gt;"; repin to schema 2.
     other =&gt; eprintln!("no walker compiled for rtl_frontend AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>
@@ -956,7 +969,7 @@ match RTL_FRONTEND_AST_SCHEMA_VERSION {
 <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter is the per-rule shape reference for the PGEN rtl_frontend parser. It documents the <code>rtl_frontend_file</code> root, the <code>design_item</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status:</strong> RTL-FE-Slice-1..7 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) typed the full <code>grammars/rtl_frontend.ebnf</code> surface across seven slices — <strong>156 return annotations on 74 distinct rules</strong>. Every shape in this chapter is drawn from the live inventory at <code>generated/rtl_frontend_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
+<p><strong>Status:</strong> RTL-FE-Slice-1..7 typed the full <code>grammars/rtl_frontend.ebnf</code> surface across seven slices — <strong>156 return annotations on 74 distinct rules</strong>. The current parser release is <code>1.0.2</code> / AST-dump schema version <code>2</code> (the <code>1.0.2</code> <code>RTL-FE-0001</code> correctness fix to <code>binop_chain.rest</code> — see <a href="#schema-versioning">Schema Versioning</a>; the annotation inventory is <strong>unchanged at 156 / 74</strong>, since the five new <code>*_op</code> rules are un-annotated alternations). Every shape in this chapter is drawn from the live inventory at <code>generated/rtl_frontend_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
 <h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
 <p>This is a <strong>curated, grouped</strong> reference — not a raw 156-line dump and not a copy of any SystemVerilog LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
@@ -1142,6 +1155,15 @@ match RTL_FRONTEND_AST_SCHEMA_VERSION {
 conditional_expr    := logical_or_expr ? conditional_expr : conditional_expr
                     -&gt; {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
                      | logical_or_expr  -&gt; $1                       -- passthrough
+
+# Named operator rules — un-annotated alternations (the RTL-FE-0001 fix,
+# schema 2; NOT in the 156-annotation inventory):
+equality_op         := eqeq | ne
+relational_op       := less_equal | lt | ge | gt
+shift_op            := shl | shr
+additive_op         := plus | minus
+multiplicative_op   := star | slash | percent
+
 logical_or_expr     := logical_and_expr ( logical_or  logical_and_expr )*
                     -&gt; {type: "binop_chain", level: "logical_or",     lhs: $1, rest: $2}
 logical_and_expr    := bit_or_expr      ( logical_and bit_or_expr     )*
@@ -1152,17 +1174,37 @@ bit_xor_expr        := bit_and_expr     ( bit_xor     bit_and_expr    )*
                     -&gt; {type: "binop_chain", level: "bit_xor",        lhs: $1, rest: $2}
 bit_and_expr        := equality_expr    ( bit_and     equality_expr   )*
                     -&gt; {type: "binop_chain", level: "bit_and",        lhs: $1, rest: $2}
-equality_expr       := relational_expr  ( ( == | != )  relational_expr )*
+equality_expr       := relational_expr  ( equality_op       relational_expr     )*
                     -&gt; {type: "binop_chain", level: "equality",       lhs: $1, rest: $2}
-relational_expr     := shift_expr       ( ( &lt;= | &lt; | &gt;= | &gt; ) shift_expr )*
+relational_expr     := shift_expr       ( relational_op     shift_expr          )*
                     -&gt; {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
-shift_expr          := additive_expr    ( ( &lt;&lt; | &gt;&gt; )  additive_expr  )*
+shift_expr          := additive_expr    ( shift_op          additive_expr       )*
                     -&gt; {type: "binop_chain", level: "shift",          lhs: $1, rest: $2}
-additive_expr       := multiplicative_expr ( ( + | - ) multiplicative_expr )*
+additive_expr       := multiplicative_expr ( additive_op    multiplicative_expr )*
                     -&gt; {type: "binop_chain", level: "additive",       lhs: $1, rest: $2}
-multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
+multiplicative_expr := unary_expr       ( multiplicative_op unary_expr          )*
                     -&gt; {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
 </code></pre>
+<blockquote>
+<p><strong><code>RTL-FE-0001</code> (resolved in <code>1.0.2</code> / schema <code>2</code>).</strong> At release
+<code>1.0.1</code> / schema <code>1</code> the five lower levels used <strong>inline operator
+alternations</strong> as the iteration lead (<code>equality_expr := relational_expr ( ( == | != ) relational_expr )*</code>, and likewise <code>relational</code> / <code>shift</code>
+/ <code>additive</code> / <code>multiplicative</code>). A bare positional <code>rest: $2</code>
+referencing an inline <code>( a | b )</code> group corrupts the positional model,
+so for any multi-operand input the level’s <code>rest</code> emitted
+<code>"&lt;invalid_sequence_access&gt;"</code> plus a malformed nested object. <strong>Fixed
+in <code>1.0.2</code></strong> by lifting the five inline alternations into the <strong>named,
+un-annotated</strong> op-rules shown above — the proven RTL-CE-Slice-2 /
+<code>systemverilog.ebnf</code> <code>binary_operator</code> idiom. The five <code>binop_chain</code>
+level annotations are <strong>unchanged</strong>; only the inline <code>( a | b )</code>
+became a named rule, so <code>rest</code> is now the clean <code>[ [op-envelope], operand ]</code> array (operator token text at <code>entry[0][1]</code>, <code>[]</code> for no
+operator). Because the five <code>*_op</code> rules are un-annotated, the
+annotation inventory is <strong>unchanged at 156 / 74</strong>. See
+<a href="#worked-example-binary-addition-a--b">Worked Example: Binary Addition</a> for the
+captured schema-<code>2</code> shape and the kept pre-fix history; tracked
+(status <code>Released</code>) as <code>RTL-FE-0001</code> in
+<code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</p>
+</blockquote>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1182,7 +1224,7 @@ multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
 </tbody>
 </table>
 </div>
-<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every one of these ten rules emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level) and <code>rest</code> is the recursive-envelope iteration array of <code>(operator, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> There is no <code>sign</code> field on any rtl_frontend level (unlike VHDL’s <code>simple_expression</code>); the unary <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> operators live in <code>unary_expr</code>, below <code>multiplicative_expr</code>. All ten levels iterate <code>*</code>, so <code>rest</code> may hold any number of pairs.</p>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.2 Highlights): every one of these ten rules emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level) and <code>rest</code> is a <strong>clean array of iteration entries</strong>, one per <code>(op operand)</code> repetition of <code>&lt;next&gt; ( &lt;NAMED_op&gt; &lt;next&gt; )*</code>. Each entry is a two-element array: <code>entry[0]</code> is the named op-rule envelope with the operator <strong>token text at <code>entry[0][1]</code></strong> (<code>"+"</code>, <code>"-"</code>, …) and an empty <code>trivia</code> at <code>entry[0][0]</code> (<code>[]</code> when no leading trivia); <code>entry[1]</code> is the right-hand operand. For <code>a + b</code> the <code>additive</code>-level <code>rest</code> is the single entry <code>[ [ [], "+" ], {type:"binop_chain", level:"multiplicative", lhs:&lt;b&gt;, rest:[]} ]</code> — the <strong>identical</strong> consumer-fold contract as <code>rtl_const_expr</code>’s <code>binop_chain</code>. (This is the <code>RTL-FE-0001</code> corrected, gate-locked shape — at <code>1.0.1</code> / schema <code>1</code> it was the malformed <code>&lt;invalid_sequence_access&gt;</code> + nested object; see the note above and <a href="#worked-example-binary-addition-a--b">Worked Example: Binary Addition</a>.) <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code></strong>: evaluate <code>lhs</code>, then for each entry apply the operator at <code>entry[0][1]</code> with the running result on the left and <code>entry[1]</code> on the right. There is no <code>sign</code> field on any rtl_frontend level (unlike VHDL’s <code>simple_expression</code>); the unary <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> operators live in <code>unary_expr</code>, below <code>multiplicative_expr</code>. All ten levels iterate <code>*</code>, so <code>rest</code> may hold any number of entries (including zero — a single operand surfaces as a <code>binop_chain</code> whose <code>rest</code> is <code>[]</code>).</p>
 <p>The cascade bottoms out at <code>unary_expr</code> → <code>primary_expr</code>. This <code>binop_chain</code> shape is identical across all ten levels precisely so that a single consumer fold routine handles the entire binary-expression tree. See <a href="#walking-the-ast">Walking the AST</a> for a worked left-fold.</p>
 <h3 id="ternary-unary-and-primary"><a class="header" href="#ternary-unary-and-primary">Ternary, unary, and primary</a></h3>
 <div class="table-wrapper">
@@ -1238,7 +1280,7 @@ multiplicative_expr := unary_expr       ( ( * | / | % ) unary_expr   )*
 </div>
 <p><code>named_data_type</code> (a bare identifier type reference) is <strong>un-annotated</strong> — it surfaces through the recursive envelope of its <code>identifier</code>, reached as <code>data_type.body</code> when <code>data_type.kind == "named"</code>. See <a href="#the-json-carrier">The Json Carrier</a>.</p>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.1</code> is <strong>156 return annotations across 74 distinct rules</strong> (independently re-counted from the inventory below). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.2</code> is <strong>156 return annotations across 74 distinct rules</strong> (independently re-counted from the inventory below; the <code>1.0.2</code> <code>RTL-FE-0001</code> fix did not change this count — the five <code>*_op</code> rules are un-annotated alternations). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
 <li><code>generated/rtl_frontend_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "rtl_frontend"</code>, <code>annotation_count: 156</code>).</li>
 <li><code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 156 entries in <code>declared_annotation_inventory.annotations</code>).</li>
@@ -1416,7 +1458,7 @@ let outcome = parse_grammar_profile_ast_dump_named(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
 
 match outcome.status {
     ParseStatus::Success =&gt; {
@@ -1470,21 +1512,223 @@ integration is broken upstream of any rtl_frontend-specific concern.
 Start triage here, then move on to the
 <a href="#top-level-rules">Top-Level Rules</a> shape reference.</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="worked-example-binary-addition-a--b"><a class="header" href="#worked-example-binary-addition-a--b">Worked Example: Binary Addition <code>a + b</code></a></h1>
+<p>The companion to <a href="#worked-example-empty-module">Empty Module</a>: this one shows
+the <strong>non-empty <code>rest</code></strong> (operator) shape of the ten-level
+<code>binop_chain</code> cascade and the consumer left-fold. Every JSON value here
+is the <strong>real captured output</strong> of <code>generated/rtl_frontend_parser.rs</code>
+(parser release <code>1.0.2</code>, AST-dump schema version <code>2</code>) for the
+regression-locked <code>assignment_expr</code> sample in
+<code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>. Nothing here
+is idealized.</p>
+<blockquote>
+<p>Schema <code>2</code> note: at <code>1.0.1</code> (schema <code>1</code>) this exact input emitted
+<code>"rest": "&lt;invalid_sequence_access&gt;"</code> plus a malformed nested
+<code>{type:"binop_chain", level:"additive", lhs:["","+"], rest:&lt;invalid&gt;}</code>
+object at the <code>additive</code> level — a real parser defect (<code>RTL-FE-0001</code>)
+fixed in <code>1.0.2</code> by lifting the five inline operator alternations into
+the named, un-annotated rules <code>equality_op</code> / <code>relational_op</code> /
+<code>shift_op</code> / <code>additive_op</code> / <code>multiplicative_op</code> (the proven
+<code>rtl_const_expr</code> RTL-CE-Slice-2 / <code>systemverilog.ebnf</code>
+<code>binary_operator</code> idiom; see <a href="#schema-versioning">Schema Versioning</a>).
+The shape below is the corrected, gate-locked output. The annotation
+inventory is <strong>unchanged at 156 / 74</strong> — the five <code>*_op</code> rules are
+un-annotated alternations.</p>
+</blockquote>
+<h2 id="input-1"><a class="header" href="#input-1">Input</a></h2>
+<pre><code class="language-verilog">module m;
+assign y = a + b;
+endmodule
+</code></pre>
+<p>(With a trailing newline. The whole input is 41 bytes:
+<code>module m;\nassign y = a + b;\nendmodule\n</code>.)</p>
+<p>This is the smallest rtl_frontend source that produces a <strong>non-empty
+<code>binop_chain</code> <code>rest</code></strong>: a <code>continuous_assign</code> (<code>assign y = …</code>) whose
+right-hand value is the ten-level expression cascade with one <code>+</code>
+operator at the <code>additive</code> level.</p>
+<h2 id="reproducing-the-dump-1"><a class="header" href="#reproducing-the-dump-1">Reproducing the dump</a></h2>
+<p>The rtl_frontend parser is on-demand-only (see
+<a href="#build-recipe">Build Recipe</a>). With
+<code>generated/rtl_frontend_parser.rs</code> in place, build the probe with the
+generated backend and dump the AST:</p>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf 'module m;\nassign y = a + b;\nendmodule\n' &gt; /tmp/ab.sv
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty rtl_frontend /tmp/ab.sv /tmp/ab.json
+# -&gt; parse_full passed for grammar 'rtl_frontend' on '/tmp/ab.sv'
+</code></pre>
+<h2 id="the-relevant-node-additive-level"><a class="header" href="#the-relevant-node-additive-level">The relevant node (<code>additive</code> level)</a></h2>
+<p><code>root</code> is <code>{type: "rtl_frontend_file", items: [...]}</code>; <code>items[0]</code> is the
+<code>{kind: "module", body: {…}}</code> design item; the module body’s single
+<code>items</code> element is the <code>{kind: "continuous_assign", body: {lvalue, value}}</code> module item. <code>body.value</code> is the ten-level cascade entered at
+<code>logical_or</code>. The upper eight levels (<code>logical_or</code> … <code>shift</code>) are
+empty-<code>rest</code> wrappers — unwrap each to its <code>lhs</code>, exactly as in the
+<a href="#worked-example-empty-module">Empty Module</a> walkthrough’s nested shapes.
+The operator appears at the <code>additive</code> level:</p>
+<pre><code class="language-json">{
+  "type": "binop_chain",
+  "level": "additive",
+  "lhs": {
+    "type": "binop_chain", "level": "multiplicative", "rest": [],
+    "lhs": {
+      "kind": "signal",
+      "body": { "name": { "first": [ /* … */ [ [], "a" ] ], "rest": [] }, "path": [] }
+    }
+  },
+  "rest": [
+    [
+      [ [], "+" ],
+      {
+        "type": "binop_chain", "level": "multiplicative", "rest": [],
+        "lhs": {
+          "kind": "signal",
+          "body": { "name": { "first": [ /* … */ [ [], "b" ] ], "rest": [] }, "path": [] }
+        }
+      }
+    ]
+  ]
+}
+</code></pre>
+<p>(The <code>signal</code> leaf’s <code>name.first</code> is the un-annotated <code>scoped_identifier</code>
+→ <code>identifier</code> envelope — a long positional array of empty-<code>[]</code>
+placeholders ending in <code>[ [], "&lt;name&gt;" ]</code>. It is abbreviated <code>/* … */</code>
+above; the operator chain — the point of this example — is byte-exact.
+Walk that envelope to its terminal string rather than indexing a fixed
+depth, as in <a href="#identifier-extraction">Walking the AST</a>.)</p>
+<h2 id="reading-rest-the-operator-chain-contract"><a class="header" href="#reading-rest-the-operator-chain-contract">Reading <code>rest</code> (the operator chain contract)</a></h2>
+<p><code>rest</code> is a <strong>clean array of iteration entries</strong> — one per <code>(op operand)</code> repetition of <code>&lt;next&gt; ( &lt;NAMED_op&gt; &lt;next&gt; )*</code>. Each entry is a
+two-element array:</p>
+<ul>
+<li><strong><code>entry[0]</code></strong> — the operator envelope of the named op-rule
+(<code>additive_op := plus | minus</code>). Here <code>[ [], "+" ]</code>: the leading <code>[]</code>
+is the empty <code>trivia</code>, the operator <strong>token text is at <code>entry[0][1]</code></strong>
+(<code>"+"</code>). For <code>-</code>, it would be <code>[ [], "-" ]</code>.</li>
+<li><strong><code>entry[1]</code></strong> — the right-hand operand: the next-tighter level
+(<code>multiplicative</code> <code>binop_chain</code>), itself unwrappable to its <code>lhs</code>
+leaf (here the <code>{kind: "signal", …}</code> for <code>b</code>).</li>
+</ul>
+<p><code>a + b - c</code> produces <strong>two</strong> entries in <code>additive.rest</code>
+(<code>[[[],"+"],&lt;b&gt;]</code>, <code>[[[],"-"],&lt;c&gt;]</code>); the consumer left-folds them onto
+<code>lhs</code>: <code>((a + b) - c)</code>. This is the <strong>identical</strong> consumer-fold
+contract as <code>rtl_const_expr</code>’s <code>binop_chain</code> (operator text at
+<code>entry[0][1]</code>, operand at <code>entry[1]</code>).</p>
+<h2 id="walker-code--the-left-fold"><a class="header" href="#walker-code--the-left-fold">Walker code — the left-fold</a></h2>
+<p>The rtl_frontend family exposes the <strong>generic-by-grammar</strong> host surface
+(there is no <code>parse_rtl_frontend</code> convenience function — see
+<a href="#public-api-surface">Public API Surface</a>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+/// Walk to the terminal identifier text inside an un-annotated
+/// signal/identifier envelope, skipping empty-array `[]` placeholders.
+fn signal_name(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt; {
+    match node {
+        serde_json::Value::String(s) =&gt; Some(s.clone()),
+        serde_json::Value::Array(items) =&gt; items.iter().find_map(signal_name),
+        serde_json::Value::Object(map) =&gt; map.values().find_map(signal_name),
+        _ =&gt; None,
+    }
+}
+
+/// Unwrap empty-`rest` binop_chain wrappers down to the first node that
+/// is not an empty-`rest` binop_chain.
+fn unwrap_chain(mut n: &amp;serde_json::Value) -&gt; &amp;serde_json::Value {
+    while n["type"] == "binop_chain"
+        &amp;&amp; n["rest"].as_array().map(|a| a.is_empty()).unwrap_or(false)
+    {
+        n = &amp;n["lhs"];
+    }
+    n
+}
+
+/// Left-fold a binop_chain node into (op, operand) steps over `lhs`.
+fn fold(node: &amp;serde_json::Value) -&gt; String {
+    let node = unwrap_chain(node);
+    if node["type"] != "binop_chain" {
+        // a leaf: a primary_expr {kind, …} (here {kind: "signal", …})
+        return signal_name(node).unwrap_or_else(|| "&lt;expr&gt;".to_string());
+    }
+    let mut acc = fold(&amp;node["lhs"]);
+    for entry in node["rest"].as_array().unwrap() {
+        // op token text is at entry[0][1]; the operand is entry[1].
+        let op = entry[0][1].as_str().unwrap_or("?");
+        let rhs = fold(&amp;entry[1]);
+        acc = format!("({acc} {op} {rhs})");
+    }
+    acc
+}
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "rtl_frontend", "default", "module m;\nassign y = a + b;\nendmodule\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
+
+if let ParseStatus::Success = outcome.status {
+    let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+    assert!(!d.truncated, "dump_json would hold the truncation envelope");
+    let _ = RTL_FRONTEND_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
+
+    // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+    // parse dump_json to get the typed root object.
+    let root: serde_json::Value =
+        serde_json::from_str(&amp;d.dump_json).expect("dump_json is valid JSON");
+    assert_eq!(root["type"], "rtl_frontend_file");
+
+    let module = &amp;root["items"][0];
+    assert_eq!(module["kind"], "module");
+    let assign = &amp;module["body"]["items"][0];
+    assert_eq!(assign["kind"], "continuous_assign");
+    assert_eq!(fold(&amp;assign["body"]["value"]), "(a + b)");
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-is-a-canonical-operator-test"><a class="header" href="#why-this-is-a-canonical-operator-test">Why this is a canonical operator test</a></h2>
+<ul>
+<li>It is the smallest rtl_frontend input with a <strong>non-empty <code>rest</code></strong>, so
+the operator-chain contract (<code>entry[0]</code> op-envelope, <code>entry[1]</code>
+operand, left-fold) is proven on the simplest possible operator
+expression.</li>
+<li>It is the regression-locked <code>assignment_expr</code> sample
+(<code>rule_under_test: "rtl_frontend_file"</code>). Combined with the
+unchanged-156-entry <code>declared_annotation_inventory</code>, any reversion to
+the pre-<code>1.0.2</code> <code>&lt;invalid_sequence_access&gt;</code> shape fails
+<code>rtl_frontend_ast_shape_contract</code> immediately.</li>
+<li><strong>It honestly transitions a real released-parser defect</strong> — the
+ten <code>binop_chain</code> levels’ <code>rest</code> was the malformed
+<code>&lt;invalid_sequence_access&gt;</code> + nested object at <code>1.0.1</code> / schema <code>1</code>
+(<code>RTL-FE-0001</code>); the schema-<code>2</code> corrected shape is shown, with the
+pre-fix history kept (not whitewashed) in the schema-<code>2</code> transition
+note and <a href="#schema-versioning">Schema Versioning</a>. A book that hid
+the defect history would mislead every downstream expression-folding
+integration repinning across the schema bump.</li>
+</ul>
+<p>See <a href="#folding-the-binop_chain-expression-hierarchy">Walking the AST</a>
+for the full multi-level fold and
+<a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a>
+for every level’s shape and the <code>RTL-FE-0001</code> note.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
 <p>This chapter explains how the PGEN rtl_frontend parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape. The authoritative numbers come from <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>; where this chapter and the contract disagree, <strong>the contract wins</strong>.</p>
 <h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
 <p>The rtl_frontend parser carries <strong>two</strong> version numbers:</p>
 <ol>
-<li><strong>Parser release version</strong> — currently <code>1.0.1</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
-<li><strong>AST-dump schema version</strong> — currently <code>1</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+<li><strong>Parser release version</strong> — currently <code>1.0.2</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>AST-dump schema version</strong> — currently <code>2</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
 </ol>
 <p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.</p>
 <p>These numbers are taken from the integration contract’s “Contract Identity” section, which records:</p>
 <ul>
-<li>Contract version: <code>1.0.1</code></li>
-<li>Parser release version: <code>1.0.1</code></li>
-<li>rtl_frontend AST-dump schema version: <code>1</code></li>
-<li>Annotation count: <strong>156</strong> (RTL-FE-Slice-1..7 — the full grammar typed across seven slices, on 74 distinct rules)</li>
+<li>Contract version: <code>1.0.2</code></li>
+<li>Parser release version: <code>1.0.2</code></li>
+<li>rtl_frontend AST-dump schema version: <code>2</code></li>
+<li>Annotation count: <strong>156</strong> (RTL-FE-Slice-1..7 — the full grammar typed across seven slices, on 74 distinct rules; the <code>1.0.2</code> <code>RTL-FE-0001</code> correctness fix did <strong>not</strong> change this count — the five new <code>*_op</code> rules are un-annotated alternations)</li>
 </ul>
 <p>The contract document <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for all of these per release.</p>
 <h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
@@ -1501,7 +1745,8 @@ Start triage here, then move on to the
 <li>Internal codegen reorganization that doesn’t reach the output.</li>
 <li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
 </ul>
-<p>The rtl_frontend grammar was typed across seven slices (RTL-FE-Slice-1..7, 156 annotations / 74 rules) landed together on 2026-05-14, rather than the long slice-by-slice cadence used by the SystemVerilog campaign, so the rtl_frontend schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<p>The <code>1.0.2</code> correctness fix <strong>did</strong> bump the schema (<code>1</code> → <code>2</code>): although it fixed a bug (<code>RTL-FE-0001</code>), it changed a user-visible shape — the ten <code>binop_chain</code> levels’ <code>rest</code> (was <code>"&lt;invalid_sequence_access&gt;"</code> plus a malformed nested object for multi-operand input, now the clean <code>[ [op-envelope, operand] … ]</code> array). It restructured a shape a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix. It did <strong>not</strong> change the annotation inventory: the five inline operator alternations were lifted into the <strong>un-annotated</strong> named rules <code>equality_op</code> / <code>relational_op</code> / <code>shift_op</code> / <code>additive_op</code> / <code>multiplicative_op</code>, so the count stays <strong>156 annotations / 74 distinct rules</strong>.</p>
+<p>The rtl_frontend grammar was typed across seven slices (RTL-FE-Slice-1..7, 156 annotations / 74 rules) landed together on 2026-05-14, rather than the long slice-by-slice cadence used by the SystemVerilog campaign, so the rtl_frontend schema timeline is short. A follow-up correctness fix (parser release <code>1.0.2</code>, schema <code>2</code>, landed 2026-05-16) corrected the <code>binop_chain.rest</code> shape with the inventory unchanged — see the schema-<code>2</code> row below and the contract’s Release 1.0.2 Highlights. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
 <h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
 <p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical (alphabetical) order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value. Whitespace is configurable via <code>AstDumpOptions.pretty</code> but the underlying JSON value is the same.</p>
 <p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
@@ -1513,25 +1758,26 @@ Start triage here, then move on to the
 <tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
 </thead>
 <tbody>
-<tr><td>1.0.0</td><td>1.0.1</td><td><strong>RTL-FE-Slice-1..7</strong> — initial 156-annotation baseline (74 distinct rules). Dispatch wrappers (<code>design_item</code> / <code>package_item</code> / <code>module_item</code> / <code>generate_item</code>), keyword/operator leaves, expression dispatch + procedural blocks, the 10-rule <code>binop_chain</code> hierarchy (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>), declarations + module structure, parameter/port rules, and the module-instantiation / ports / statements / signals / datatypes mass batch — all typed across seven slices. Same accept set as the pre-typing baseline. AST-dump schema version field value: <code>1</code>.</td></tr>
+<tr><td>1.0.2</td><td>1.0.2</td><td><strong>Correctness fix (<code>RTL-FE-0001</code>).</strong> The ten <code>binop_chain</code> levels’ <code>rest</code> no longer emits <code>"&lt;invalid_sequence_access&gt;"</code> (plus a malformed nested <code>{level, lhs:["","&lt;op&gt;"], rest:&lt;invalid&gt;}</code> object) for multi-operand input: the five inline operator alternations were lifted into five <strong>named, un-annotated</strong> rules (<code>equality_op := eqeq | ne</code>, <code>relational_op := less_equal | lt | ge | gt</code>, <code>shift_op := shl | shr</code>, <code>additive_op := plus | minus</code>, <code>multiplicative_op := star | slash | percent</code>), so each level’s <code>rest: $2</code> now captures a <strong>clean array</strong> of <code>[ [op-envelope], operand ]</code> entries (operator token text preserved at <code>entry[0][1]</code>, <code>[]</code> when no operator). This mirrors the gate-locked <code>rtl_const_expr</code> RTL-CE-Slice-2 fix and the <code>systemverilog.ebnf</code> <code>binary_operator</code> op-chain idiom. The five <code>binop_chain</code> level annotations are <strong>unchanged</strong>; only the inline <code>( a | b )</code> became a named rule. Annotation inventory <strong>unchanged at 156 / 74</strong> (the five <code>*_op</code> rules are un-annotated alternations and not in the inventory). Same accept set as <code>1.0.1</code>. AST-dump schema version field value: <code>2</code>.</td></tr>
+<tr><td>1.0.0</td><td>1.0.1</td><td><strong>RTL-FE-Slice-1..7</strong> — initial 156-annotation baseline (74 distinct rules). Dispatch wrappers (<code>design_item</code> / <code>package_item</code> / <code>module_item</code> / <code>generate_item</code>), keyword/operator leaves, expression dispatch + procedural blocks, the 10-rule <code>binop_chain</code> hierarchy (<code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>), declarations + module structure, parameter/port rules, and the module-instantiation / ports / statements / signals / datatypes mass batch — all typed across seven slices. Same accept set as the pre-typing baseline. Pre-correctness shape: the ten <code>binop_chain</code> levels’ <code>rest</code> could surface <code>"&lt;invalid_sequence_access&gt;"</code> for multi-operand input (<code>RTL-FE-0001</code>). AST-dump schema version field value: <code>1</code>.</td></tr>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Grammar (<code>grammars/rtl_frontend.ebnf</code>) un-annotated except for the <code>rtl_frontend_file -&gt; {type, items}</code> root. AST dump is the recursive-envelope shape across all rules.</td></tr>
 </tbody>
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer <strong><code>1</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> labels above for the milestones; the AST-dump schema version consumers pin against is the integer <strong><code>2</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
 <li>
-<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
+<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.2</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>1</code>, from <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
+<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>2</code>, from <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Schema version you integrated against, from the contract:
-const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -1540,7 +1786,7 @@ if payload.truncated {
 let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // RTL_FRONTEND_AST_SCHEMA_VERSION drives which walker you compiled;
 // re-check the contract's Schema Versioning table on every PGEN bump.
-walk_schema_v1(&amp;root);
+walk_schema_v2(&amp;root);
 <span class="boring">}</span></code></pre>
 </li>
 <li>
@@ -1574,7 +1820,7 @@ walk_schema_v1(&amp;root);
 <h2 id="ast-shape-contract-manifest"><a class="header" href="#ast-shape-contract-manifest">AST shape contract manifest</a></h2>
 <p>The file <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> (<code>version: 1</code>, <code>grammar: "rtl_frontend"</code>). It records the per-rule expected JSON shape for each sample in the rtl_frontend test corpus (currently the <code>empty_module</code> sample) and embeds the declared-annotation inventory — <strong>156 annotation entries</strong>. Drift in the AST dump fails the <code>rtl_frontend_ast_shape_contract_holds_against_running_generated_parser</code> regression-lock test under <code>cargo test --lib --features generated_parsers rtl_frontend_ast_shape_contract</code>, surfacing the change. Its <code>declared_annotation_inventory.annotations</code> list is content-identical to the live inventory <code>generated/rtl_frontend_return_annotations.json</code> (the live inventory additionally carries a <code>raw_text</code> field per entry; the <code>rule</code> / <code>branch_index</code> / <code>annotation_type</code> / <code>normalized_text</code> tuples match exactly). (This is the rtl_frontend manifest; the SystemVerilog and VHDL parsers have their own separate <code>systemverilog_v1.json</code> / <code>vhdl_v1.json</code>.)</p>
 <h2 id="binop_chain"><a class="header" href="#binop_chain">binop_chain</a></h2>
-<p>The consumer-facing left-fold contract for rtl_frontend’s expression-precedence hierarchy. rtl_frontend has a <strong>ten-level</strong> binary-operator cascade — <code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>. Every level emits the same <code>{type: "binop_chain", level, lhs, rest}</code> shape, so a single consumer fold handles the whole expression tree. <code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level); <code>rest</code> is the recursive-envelope iteration array of <code>(operator, operand)</code> pairs folded left-associatively. Unlike VHDL’s <code>simple_expression</code>, <strong>no rtl_frontend level carries a <code>sign</code> field</strong> — prefix <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> live in the <code>unary_expr</code> rule below the cascade, and <code>conditional_expr</code> (ternary) / <code>unary_expr</code> are passthrough when their distinguishing syntax is absent. See <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a> for the level/field/operator table and <a href="#walking-the-ast">Walking the AST</a> for the fold code.</p>
+<p>The consumer-facing left-fold contract for rtl_frontend’s expression-precedence hierarchy. rtl_frontend has a <strong>ten-level</strong> binary-operator cascade — <code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>. Every level emits the same <code>{type: "binop_chain", level, lhs, rest}</code> shape, so a single consumer fold handles the whole expression tree. <code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level); <code>rest</code> is a clean array of <code>[ [op-envelope], operand ]</code> iteration entries — the operator token text is at <code>entry[0][1]</code>, <code>entry[1]</code> is the operand — folded left-associatively. (This is the <code>RTL-FE-0001</code> corrected, schema-<code>2</code> shape; at <code>1.0.1</code> / schema <code>1</code> <code>rest</code> could surface <code>"&lt;invalid_sequence_access&gt;"</code> for multi-operand input — the five inline operator alternations are now the named, un-annotated <code>equality_op</code> / <code>relational_op</code> / <code>shift_op</code> / <code>additive_op</code> / <code>multiplicative_op</code> rules, inventory unchanged at 156 / 74. See <a href="#schema-versioning">Schema Versioning</a>.) Unlike VHDL’s <code>simple_expression</code>, <strong>no rtl_frontend level carries a <code>sign</code> field</strong> — prefix <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> live in the <code>unary_expr</code> rule below the cascade, and <code>conditional_expr</code> (ternary) / <code>unary_expr</code> are passthrough when their distinguishing syntax is absent. See <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a> for the level/field/operator table and <a href="#walking-the-ast">Walking the AST</a> for the fold code.</p>
 <h2 id="declared-annotation-inventory"><a class="header" href="#declared-annotation-inventory">Declared-annotation inventory</a></h2>
 <p>The machine-checkable enumeration of every typed-shape annotation the rtl_frontend grammar emits: <code>generated/rtl_frontend_return_annotations.json</code> (<code>version: 1</code>, <code>grammar: "rtl_frontend"</code>, <code>annotation_count: 156</code>). It is the live source of truth for the typed surface and is mirrored content-for-content by the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> (156 entries). Of the 156 entries, 154 are <code>return_object</code> annotations and exactly <strong>two</strong> are <code>return_scalar</code> positional passthroughs (<code>conditional_expr</code> and <code>unary_expr</code>). If this book’s prose disagrees with the inventory, the inventory wins; if the inventory disagrees with the integration contract, the contract wins.</p>
 <h2 id="design_item-dispatch-2"><a class="header" href="#design_item-dispatch-2">design_item dispatch</a></h2>
@@ -1584,7 +1830,7 @@ walk_schema_v1(&amp;root);
 <h2 id="parseability_probe"><a class="header" href="#parseability_probe">parseability_probe</a></h2>
 <p>The CLI wrapper around <code>pgen::embedding_api</code> used for terminal-side verification, AST inspection, and bug-report reproducers. Sub-commands include <code>--parse</code>, <code>--parse-dump-ast</code>, and <code>--parse-dump-ast-pretty</code>. For rtl_frontend the parser is on-demand-only, so the probe must be built with the generated backend before use (see <a href="#build-recipe">Build Recipe</a>). The full flag set, exit codes, and registered grammars are in the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a>.</p>
 <h2 id="parser-release-version"><a class="header" href="#parser-release-version">Parser release version</a></h2>
-<p>The parser library’s release identity, currently <code>1.0.1</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>The parser library’s release identity, currently <code>1.0.2</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
 <p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. rtl_frontend has exactly <strong>one</strong> profile: <code>default</code>, whose entry rule is <code>rtl_frontend_file</code> (the synthesizable RTL subset source file). There is <strong>no</strong> per-grammar convenience function for rtl_frontend (no <code>parse_rtl_frontend</code>); the stable host surface is the generic-by-grammar entry points — <code>parse_grammar_profile</code>, <code>parse_grammar_profile_result</code>, <code>parse_grammar_profile_ast_dump</code> with <code>GrammarFamily::RtlFrontend</code> + <code>GrammarProfile::Default</code>, plus the <code>parse_grammar_profile_named</code> string overload with <code>"rtl_frontend"</code> / <code>"default"</code>. See <a href="#public-api-surface">Public API Surface</a>.</p>
 <h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
@@ -1592,13 +1838,13 @@ walk_schema_v1(&amp;root);
 <h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>
 <p>A <code>-&gt; ...</code> clause appended to a grammar rule definition in <code>grammars/rtl_frontend.ebnf</code> that overrides the default recursive-envelope shape with a typed JSON value. Example: <code>rtl_frontend_file := trivia design_item* trivia -&gt; {type: "rtl_frontend_file", items: $2}</code>. The annotation language (<code>$N</code> positional references, <code>{field: value}</code> object literals, <code>[...]</code> array literals, string literals) is specified in <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>. rtl_frontend uses two annotation kinds: <code>return_object</code> (an object literal) and <code>return_scalar</code> (a positional passthrough such as <code>-&gt; $1</code> on the <code>conditional_expr</code> / <code>unary_expr</code> non-distinguishing branches).</p>
 <h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
-<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>1</code> — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the typing-campaign timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>2</code> (the <code>1.0.2</code> <code>RTL-FE-0001</code> <code>binop_chain.rest</code> correctness fix) — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
 <p>The JSON value produced by an annotated rule. In rtl_frontend it takes three sub-forms: a root object carrying <code>type</code> (only <code>rtl_frontend_file</code>); a <code>kind</code>-tagged dispatch object (<code>{kind, body?}</code> or per-branch named fields); and a named-field object for single-sequence rules. The <code>binop_chain</code> expression rules combine the <code>type</code> and named-field forms (<code>{type: "binop_chain", level, lhs, rest}</code>), and <code>conditional_expr</code>’s ternary form carries a <code>type</code>. Consumers dispatch on <code>obj["type"]</code> at the root and <code>obj["kind"]</code> for variants. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <h2 id="un-annotated-leaf-rule-of-thumb"><a class="header" href="#un-annotated-leaf-rule-of-thumb">Un-annotated leaf (rule of thumb)</a></h2>
 <p>A field bound to an un-annotated rule — most importantly every identifier-valued field (<code>name</code>, <code>module_name</code>, <code>genvar</code>, …) — surfaces as that rule’s <strong>recursive envelope</strong>, not a bare JSON string. The identifier text is nested inside the envelope, reached by walking to the terminal. Do not assume <code>obj["name"]</code> is a string: the rtl_frontend <code>identifier</code> rule is a large alternation, so its envelope carries one <code>[]</code> slot per unmatched alternative and the matched text near the end. The robust consumer rule is to walk to the single non-<code>[]</code> element and read its trailing string rather than indexing a fixed depth/offset. See <a href="#the-json-carrier">The Json Carrier</a> and the worked walkthrough in <a href="#worked-example-empty-module">Empty Module</a>.</p>
 <h2 id="rtl-fe-slice-17"><a class="header" href="#rtl-fe-slice-17">RTL-FE-Slice-1..7</a></h2>
-<p>The seven typing slices that landed the entire <code>grammars/rtl_frontend.ebnf</code> typed surface — <strong>156 return annotations on 74 distinct rules</strong>, parser release <code>1.0.1</code>, schema version <code>1</code>, all landed on 2026-05-14. Unlike the VHDL grammar, which was typed in a single comprehensive batch (<code>VHDL-Slice-1</code>), and unlike the SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over a long per-slice campaign (each slice bumping the schema version), rtl_frontend was typed across a small number of grouped slices: dispatch wrappers (slice 1), keyword/operator leaves (slice 2), expression dispatch + procedural (slice 3), the ten-rule <code>binop_chain</code> hierarchy (slice 4), declarations + module structure (slice 5), parameter/port rules (slice 6), and the module-instantiation / ports / statements / signals / datatypes mass batch (slice 7). This is why the rtl_frontend <a href="#changelog-index">Changelog Index</a> and <a href="#schema-versioning">Schema Versioning</a> timeline are short by design. Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.</p>
+<p>The seven typing slices that landed the entire <code>grammars/rtl_frontend.ebnf</code> typed surface — <strong>156 return annotations on 74 distinct rules</strong>, all landed on 2026-05-14 (then at parser release <code>1.0.1</code> / schema version <code>1</code>). Unlike the VHDL grammar, which was typed in a single comprehensive batch (<code>VHDL-Slice-1</code>), and unlike the SystemVerilog and regex parsers, whose return annotations were added rule-by-rule over a long per-slice campaign (each slice bumping the schema version), rtl_frontend was typed across a small number of grouped slices: dispatch wrappers (slice 1), keyword/operator leaves (slice 2), expression dispatch + procedural (slice 3), the ten-rule <code>binop_chain</code> hierarchy (slice 4), declarations + module structure (slice 5), parameter/port rules (slice 6), and the module-instantiation / ports / statements / signals / datatypes mass batch (slice 7). A single follow-up correctness fix — <code>RTL-FE-0001</code>, parser release <code>1.0.2</code> / schema version <code>2</code>, landed 2026-05-16 — corrected the ten <code>binop_chain</code> levels’ <code>rest</code> shape (inventory unchanged at 156 / 74). This is why the rtl_frontend <a href="#changelog-index">Changelog Index</a> and <a href="#schema-versioning">Schema Versioning</a> timeline are short by design. Subsequent shape-affecting slices, if any, each get their own contract row and changelog entry.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="changelog-index"><a class="header" href="#changelog-index">Changelog Index</a></h1>
 <p>This chapter is an index — pointers into the documents that carry the full changelog detail, plus the short list of releases relevant to this book. Use it to find what changed in a given release.</p>
@@ -1618,9 +1864,22 @@ walk_schema_v1(&amp;root);
 </div>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the bug ledger for specific accepted bugs, and fall back to git for diffs.</p>
 <h2 id="why-this-index-is-short-by-design"><a class="header" href="#why-this-index-is-short-by-design">Why this index is short by design</a></h2>
-<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The rtl_frontend grammar is different: it was typed across a small number of grouped slices — RTL-FE-Slice-1..7, all landed together on 2026-05-14 — so the rtl_frontend schema timeline has exactly two entries.</strong> This is also unlike the VHDL grammar, which was typed in a single comprehensive batch (<code>VHDL-Slice-1</code>); rtl_frontend used seven grouped slices rather than one batch or a long campaign. Either way, the result is the same: this is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
+<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The rtl_frontend grammar is different: it was typed across a small number of grouped slices — RTL-FE-Slice-1..7, all landed together on 2026-05-14 — plus one follow-up correctness fix (<code>RTL-FE-0001</code>, schema <code>2</code>, 2026-05-16), so the rtl_frontend schema timeline has just three entries.</strong> This is also unlike the VHDL grammar, which was typed in a single comprehensive batch (<code>VHDL-Slice-1</code>); rtl_frontend used seven grouped slices rather than one batch or a long campaign. Either way, the result is the same: this is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
-<p>This book is <strong>live</strong> and tracks current main HEAD. The two entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<p>This book is <strong>live</strong> and tracks current main HEAD. The three entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="102--contract-102--rtl-fe-0001-correctness-fix-binop_chainrest-schema-1--2"><a class="header" href="#102--contract-102--rtl-fe-0001-correctness-fix-binop_chainrest-schema-1--2">1.0.2 / Contract 1.0.2 — RTL-FE-0001 correctness fix: <code>binop_chain.rest</code> (schema 1 → 2)</a></h3>
+<p>A worked-example pass surfaced that the <code>1.0.1</code> baseline shipped one shape defect — the same systemic inline-operator-alternation-<code>$N</code> class fixed for <code>rtl_const_expr</code> (RTL-CE-Slice-2 / <code>RTL-CE-0001</code>) and <code>systemverilog_preprocessor</code> (<code>SVPP-0001</code>). Landed 2026-05-16.</p>
+<ul>
+<li><strong>Schema-version milestone:</strong> <code>1.0.2</code> (first parser release: <code>1.0.2</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>2</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>).</li>
+<li><strong>What changed:</strong> the ten <code>binop_chain</code> levels’ <code>rest</code> no longer emits <code>"&lt;invalid_sequence_access&gt;"</code> (plus a malformed nested <code>{level, lhs:["","&lt;op&gt;"], rest:&lt;invalid&gt;}</code> object) for multi-operand input. The five inline operator alternations were lifted into five <strong>named, un-annotated</strong> rules — <code>equality_op := eqeq | ne</code>, <code>relational_op := less_equal | lt | ge | gt</code>, <code>shift_op := shl | shr</code>, <code>additive_op := plus | minus</code>, <code>multiplicative_op := star | slash | percent</code> (the proven RTL-CE-Slice-2 / <code>systemverilog.ebnf</code> <code>binary_operator</code> idiom). Each level’s <code>rest: $2</code> now captures the clean <code>[ [op-envelope], operand ]</code> iteration array (operator token text at <code>entry[0][1]</code>, <code>[]</code> when no operator). The five <code>binop_chain</code> level annotations are <strong>unchanged</strong> — only the inline <code>( a | b )</code> became a named rule.</li>
+<li><strong>Annotation count:</strong> <strong>156 / 74 — UNCHANGED.</strong> The five <code>*_op</code> rules are un-annotated alternations and are not in the inventory; only the <code>binop_chain.rest</code> shape changed and the schema/release version bumped.</li>
+<li><strong>Accept set:</strong> unchanged — no grammar acceptance change, purely the alternation lift.</li>
+<li><strong>Contract section:</strong> <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.0.2 / Contract 1.0.2 Highlights — RTL-FE-0001 correctness fix (binop_chain.rest); schema 1 → 2” and “Resolved Defects — <code>RTL-FE-0001</code>”.</li>
+<li><strong>Bug ledger:</strong> <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> → <code>RTL-FE-0001</code> (status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code>).</li>
+<li><strong>Worked example:</strong> <a href="#worked-example-binary-addition-a--b">Worked Example: Binary Addition</a> — the schema-<code>2</code> corrected shape with the pre-fix history kept.</li>
+<li><strong>Machine-checkable inventory:</strong> <code>generated/rtl_frontend_return_annotations.json</code> (156 entries) and its content-identical embedded mirror <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> (new <code>assignment_expr</code> regression sample).</li>
+</ul>
 <h3 id="100--contract-101--rtl-fe-slice-17-full-grammar-typed-156-annotations--74-rules"><a class="header" href="#100--contract-101--rtl-fe-slice-17-full-grammar-typed-156-annotations--74-rules">1.0.0 / Contract 1.0.1 — RTL-FE-Slice-1..7: full grammar typed (156 annotations / 74 rules)</a></h3>
 <p>The initial typing campaign, covering the entire <code>grammars/rtl_frontend.ebnf</code> surface across <strong>seven grouped slices</strong> that landed together on 2026-05-14.</p>
 <ul>
@@ -1640,7 +1899,7 @@ walk_schema_v1(&amp;root);
 <li><strong>Contract section:</strong> the <code>0.1.0</code> row of the “Schema Versioning” table in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code>.</li>
 </ul>
 <h2 id="bug-ledger-status"><a class="header" href="#bug-ledger-status">Bug ledger status</a></h2>
-<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries no accepted rtl_frontend rows. When a downstream rtl_frontend bug is accepted, it gets a ledger row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change. Reports follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries one accepted rtl_frontend row: <strong><code>RTL-FE-0001</code></strong> (the <code>binop_chain.rest</code> <code>&lt;invalid_sequence_access&gt;</code> defect, status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code> — see the <code>1.0.2 / Contract 1.0.2</code> entry above). When a further downstream rtl_frontend bug is accepted, it gets its own ledger row recording the reproducer bundle, root cause, fix proof, and the parser release it was fixed in; this index will then point at the relevant contract Highlights section for any accompanying shape change. Reports follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
 <h2 id="how-to-follow-per-slice-changes-1"><a class="header" href="#how-to-follow-per-slice-changes-1">How to follow per-slice changes</a></h2>
 <p>Each shape-affecting slice after RTL-FE-Slice-7 gets:</p>
 <ol>

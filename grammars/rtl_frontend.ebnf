@@ -207,16 +207,30 @@ bit_xor_expr := bit_and_expr ( bit_xor bit_and_expr )*
              -> {type: "binop_chain", level: "bit_xor",      lhs: $1, rest: $2}
 bit_and_expr := equality_expr ( bit_and equality_expr )*
              -> {type: "binop_chain", level: "bit_and",      lhs: $1, rest: $2}
-equality_expr := relational_expr ( ( eqeq | ne ) relational_expr )*
+# Operator-precedence levels. The five multi-token operator alternations
+# are lifted into NAMED rules (the gate-locked rtl_const_expr / mature
+# systemverilog.ebnf `binary_operator` idiom). An inline alternation
+# `( a | b )` as the lead element of the `( ... next )*` iteration
+# corrupted the positional model so bare `rest:$2` emitted
+# `<invalid_sequence_access>` (the systemic inline-alternation-$N defect
+# class; same as RTL-CE-0001 / SVPP-0001). The named op-rules keep the
+# annotation unchanged and yield a clean `[op-envelope, operand]` rest.
+equality_expr := relational_expr ( equality_op relational_expr )*
               -> {type: "binop_chain", level: "equality",    lhs: $1, rest: $2}
-relational_expr := shift_expr ( ( less_equal | lt | ge | gt ) shift_expr )*
+relational_expr := shift_expr ( relational_op shift_expr )*
                 -> {type: "binop_chain", level: "relational",  lhs: $1, rest: $2}
-shift_expr := additive_expr ( ( shl | shr ) additive_expr )*
+shift_expr := additive_expr ( shift_op additive_expr )*
            -> {type: "binop_chain", level: "shift",        lhs: $1, rest: $2}
-additive_expr := multiplicative_expr ( ( plus | minus ) multiplicative_expr )*
+additive_expr := multiplicative_expr ( additive_op multiplicative_expr )*
               -> {type: "binop_chain", level: "additive",     lhs: $1, rest: $2}
-multiplicative_expr := unary_expr ( ( star | slash | percent ) unary_expr )*
+multiplicative_expr := unary_expr ( multiplicative_op unary_expr )*
                     -> {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+
+equality_op       := eqeq | ne
+relational_op     := less_equal | lt | ge | gt
+shift_op          := shl | shr
+additive_op       := plus | minus
+multiplicative_op := star | slash | percent
 
 unary_expr := plus unary_expr     -> {type: "unary", op: "plus",        expr: $2}
            | minus unary_expr    -> {type: "unary", op: "minus",       expr: $2}
