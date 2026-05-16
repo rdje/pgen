@@ -24,11 +24,17 @@ When a rule in `grammars/vhdl.ebnf` carries a return annotation, the parser emit
    { "kind": "entity", "body": { /* entity_declaration shape */ } }
    ```
 
-3. **Named-field object.** Single-sequence rules emit a flat object of named fields. For example, `entity_declaration`:
+3. **Named-field object.** Single-sequence rules emit a flat object of named fields. For example, `entity_declaration` for `entity e is end e;` (real captured shape — see [Worked Example: Minimal Entity](examples-minimal-entity.md)):
 
    ```json
-   { "name": "e", "items": [], "end_label": [] }
+   { "name": [ [], "e" ], "items": [], "end_label": [ [], "e" ] }
    ```
+
+   `name` and `end_label` are `$2` / `$7` of the `entity_declaration`
+   sequence, both bound to the **un-annotated** `identifier` rule, so
+   they carry that rule's recursive envelope `[ <prefix>, "<text>" ]`
+   rather than a bare string. The text is at index `[1]`. When the
+   optional trailing label is omitted, `end_label` is `[]`.
 
 The `binop_chain` expression rules combine forms 1 and 3 — they carry both a `type` and a `level` plus the operand fields (see [the expression family](#the-expression-family-binop_chain)).
 
@@ -74,12 +80,12 @@ Carrier walk:
 - The root is the **typed root object** `{ "type": "vhdl_file", "design_units": [ … ] }`.
 - `design_units` is a **recursive-envelope array** (the `design_unit*` iteration) with one element.
 - That element is a **`kind`-tagged dispatch object** `{ "kind": "entity", "body": { … } }`.
-- `body` is the **named-field object** for `entity_declaration`: `{ "name": "e", "items": [], "end_label": [ … ] }`.
-- `name` is a **string** (the identifier text reached through the envelope).
+- `body` is the **named-field object** for `entity_declaration`: `{ "name": [ [], "e" ], "items": [], "end_label": [ [], "e" ] }`.
+- `name` is the **recursive envelope of the un-annotated `identifier` rule** (`[ <prefix>, "e" ]`), not a bare string — the identifier text is at index `[1]`.
 - `items` is an **empty array** (`entity_declarative_item*` matched zero items).
-- `end_label` is an **array** carrying the optional trailing `identifier?` (the `e` after `end`), or `[]` if omitted.
+- `end_label` is the same `identifier` envelope when the optional trailing label is present (`[ [], "e" ]`), or `[]` when it is omitted (`entity e is end;`) — never `null`.
 
-The per-rule field names come straight from the live inventory's `normalized_text`. See [Examples Minimal Entity](examples-minimal-entity.md) for a pinned end-to-end production AST.
+The per-rule field names come straight from the live inventory's `normalized_text`; the value shapes above are the real captured output of `generated/vhdl_parser.rs`. See [Worked Example: Minimal Entity](examples-minimal-entity.md) for the pinned end-to-end production AST and the text-extraction rule of thumb.
 
 ## The expression family (`binop_chain`)
 

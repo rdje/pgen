@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f39bedb2.js";
+            window.path_to_searchindex_js = "searchindex-35cc147d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -180,11 +180,183 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="examples-minimal-entity"><a class="header" href="#examples-minimal-entity">Examples Minimal Entity</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="worked-example-minimal-entity"><a class="header" href="#worked-example-minimal-entity">Worked Example: Minimal Entity</a></h1>
+<p>A “what does the AST actually look like” walkthrough for the simplest
+VHDL input that produces a complete design unit. Every JSON value shown
+here is the <strong>real, captured output</strong> of <code>generated/vhdl_parser.rs</code> —
+not a hypothetical shape — and it is the exact input the AST shape
+contract regression-locks (sample <code>minimal_entity</code> in
+<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>).</p>
+<h2 id="input"><a class="header" href="#input">Input</a></h2>
+<pre><code class="language-vhdl">entity e is end e;
+</code></pre>
+<p>(With a trailing newline. The whole input is 18 bytes:
+<code>entity e is end e;\n</code>.)</p>
+<p>This is the canonical first-test input because it is the smallest source
+that exercises <code>vhdl_file → design_unit → entity_declaration</code> — three
+layers of the top-level dispatch — while having no declarative items and
+no architecture, so the tree is shallow enough to reason about by hand.</p>
+<h2 id="reproducing-the-dump"><a class="header" href="#reproducing-the-dump">Reproducing the dump</a></h2>
+<p>The VHDL parser is on-demand-only (see <a href="build-recipe.html">Build Recipe</a>).
+With <code>generated/vhdl_parser.rs</code> in place, build the probe with the
+generated backend and dump the AST:</p>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf 'entity e is end e;\n' &gt; /tmp/min_entity.vhd
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty vhdl /tmp/min_entity.vhd /tmp/min_entity_ast.json
+# -&gt; parse_full passed for grammar 'vhdl' on '/tmp/min_entity.vhd'
+</code></pre>
+<h2 id="the-captured-ast-raw-probe-envelope"><a class="header" href="#the-captured-ast-raw-probe-envelope">The captured AST (raw probe envelope)</a></h2>
+<p><code>parseability_probe --parse-dump-ast</code> serialises the parser’s
+<code>ParseNode</code> directly, so the dump is wrapped in the parse-node envelope
+(<code>content</code> / <code>rule_name</code> / <code>span</code>) described in
+<a href="ast-envelope.html">AST Envelope Structure</a>:</p>
+<pre><code class="language-json">{
+  "content": {
+    "Json": {
+      "design_units": [
+        {
+          "body": {
+            "end_label": [
+              [],
+              "e"
+            ],
+            "items": [],
+            "name": [
+              [],
+              "e"
+            ]
+          },
+          "kind": "entity"
+        }
+      ],
+      "type": "vhdl_file"
+    }
+  },
+  "rule_name": "vhdl_file",
+  "span": {
+    "end": 18,
+    "start": 0
+  }
+}
+</code></pre>
+<p><code>content.Json</code> is the typed AST. <code>rule_name</code> is the entry rule
+(<code>vhdl_file</code>); <code>span</code> is the byte range the parse covered (<code>0..18</code> — the
+whole input).</p>
+<h2 id="the-consumer-facing-view-astdumppayloadroot"><a class="header" href="#the-consumer-facing-view-astdumppayloadroot">The consumer-facing view (<code>AstDumpPayload.root</code>)</a></h2>
+<p>Downstream code does not call the probe — it calls the public API
+(<a href="public-api.html">Public API Surface</a>), which hands back an
+<code>AstDumpPayload</code> whose <code>root</code> is the <strong>unwrapped</strong> <code>content.Json</code> value.
+That is the shape every per-rule chapter in this book describes:</p>
+<pre><code class="language-json">{
+  "type": "vhdl_file",
+  "design_units": [
+    {
+      "kind": "entity",
+      "body": {
+        "name": [ [], "e" ],
+        "items": [],
+        "end_label": [ [], "e" ]
+      }
+    }
+  ]
+}
+</code></pre>
+<h2 id="field-by-field-walk"><a class="header" href="#field-by-field-walk">Field-by-field walk</a></h2>
+<ul>
+<li><strong><code>type: "vhdl_file"</code></strong> — the typed root object from
+<code>vhdl_file := design_unit* -&gt; {type: "vhdl_file", design_units: $1}</code>.
+Dispatch on <code>obj["type"] == "vhdl_file"</code> at the root.</li>
+<li><strong><code>design_units</code></strong> — the <code>design_unit*</code> array, one element here.</li>
+<li><strong><code>design_units[0].kind: "entity"</code></strong> — the <code>design_unit</code> dispatcher
+matched the <code>entity_declaration</code> branch
+(<code>-&gt; {kind: "entity", body: $1}</code>). Dispatch on <code>obj["kind"]</code>.</li>
+<li><strong><code>body</code></strong> — the <code>entity_declaration</code> named-field object, from
+<code>entity_declaration := kw_entity identifier kw_is entity_declarative_item* kw_end kw_entity? identifier? semi -&gt; {name: $2, items: $4, end_label: $7}</code>:
+<ul>
+<li><strong><code>name: [ [], "e" ]</code></strong> — <code>$2</code> is the <code>identifier</code> rule. <code>identifier</code>
+is <strong>un-annotated</strong>, so it surfaces as its recursive-envelope shape,
+not a bare string. The two-element array is the envelope of the
+identifier’s internal sequence; the actual text is at <code>name[1]</code>
+(<code>"e"</code>). See <a href="json-carrier.html">The Json Carrier</a> for why un-annotated
+leaves carry an envelope and how to extract the text.</li>
+<li><strong><code>items: []</code></strong> — <code>$4</code> is <code>entity_declarative_item*</code>; this entity has
+no declarative items, so the quantified shape is the empty array.</li>
+<li><strong><code>end_label: [ [], "e" ]</code></strong> — <code>$7</code> is the optional trailing
+<code>identifier?</code> (the <code>e</code> after <code>end</code>). It is present here, so it
+carries the same <code>identifier</code> envelope as <code>name</code>. When the trailing
+label is omitted (<code>entity e is end;</code>), <code>end_label</code> is <code>[]</code> — the
+un-matched-optional shape, <strong>not</strong> <code>null</code>.</li>
+</ul>
+</li>
+</ul>
+<p>The text-extraction rule of thumb: a field typed as an <code>identifier</code>
+position is <code>[ &lt;prefix-envelope&gt;, "&lt;text&gt;" ]</code>; read index <code>[1]</code> (or walk
+to the trailing string) rather than expecting a bare string. This is the
+uniform behaviour of every un-annotated <code>identifier</code> position in the
+VHDL surface, confirmed against a second input
+(<code>entity foo is end;</code> → <code>name = [ [], "foo" ]</code>, <code>end_label = []</code>).</p>
+<h2 id="walker-code-for-this-input"><a class="header" href="#walker-code-for-this-input">Walker code for this input</a></h2>
+<p>Using the stable public API (<a href="public-api.html">Public API Surface</a>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{parse_vhdl_1076_2019_ast_dump, AstDumpOptions, ParseStatus};
+
+let outcome = parse_vhdl_1076_2019_ast_dump(
+    "entity e is end e;\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+match outcome.status {
+    ParseStatus::Success =&gt; {
+        let dump = outcome.ast_dump.expect("Success carries an AST dump");
+        assert_eq!(dump.schema_version, 1);
+
+        let root = &amp;dump.root;
+        assert_eq!(root["type"], "vhdl_file");
+
+        let unit = &amp;root["design_units"][0];
+        assert_eq!(unit["kind"], "entity");
+
+        // `name` is the un-annotated identifier envelope: read [1] for text.
+        let entity_name = unit["body"]["name"][1]
+            .as_str()
+            .expect("entity name text at name[1]");
+        assert_eq!(entity_name, "e");
+
+        // Absent optionals are `[]`, never null. Here the trailing
+        // label is present, so end_label[1] == "e".
+        let end_label = &amp;unit["body"]["end_label"];
+        let label_text = end_label.get(1).and_then(|v| v.as_str()); // Some("e")
+        assert_eq!(label_text, Some("e"));
+
+        assert!(unit["body"]["items"].as_array().unwrap().is_empty());
+    }
+    ParseStatus::Failure =&gt; {
+        eprintln!("parse failed: {:?}", outcome.diagnostic);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-example-is-the-canonical-first-test"><a class="header" href="#why-this-example-is-the-canonical-first-test">Why this example is the canonical first-test</a></h2>
+<ul>
+<li><strong>It exercises <code>vhdl_file → design_unit → entity_declaration</code></strong> —
+three layers of the top-level dispatch in 18 bytes.</li>
+<li><strong>It has no declarative items, generics, ports, or architecture</strong> — so
+the tree is shallow enough to verify by hand.</li>
+<li><strong>It is the regression-locked sample</strong> <code>minimal_entity</code> in
+<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>
+(<code>rule_under_test: "vhdl_file"</code>,
+<code>expected_content_kind: "json_object"</code>,
+<code>expected_json_object_keys_present: ["type", "design_units"]</code>). Drift
+in this shape fails the <code>vhdl_ast_shape_contract_holds_against_running_generated_parser</code>
+test immediately, surfacing the slice that introduced it.</li>
+</ul>
+<p>If your downstream integration cannot parse this input and reach
+<code>type == "vhdl_file"</code> with one <code>entity</code> design unit, the integration is
+broken upstream of any VHDL-specific concern. Start triage here, then
+move on to richer inputs and the <a href="rules-top-level.html">Top-Level Rules</a>
+shape reference.</p>
 
                     </main>
 

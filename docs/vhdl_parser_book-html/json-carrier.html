@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f39bedb2.js";
+            window.path_to_searchindex_js = "searchindex-35cc147d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -201,9 +201,14 @@
 </code></pre>
 </li>
 <li>
-<p><strong>Named-field object.</strong> Single-sequence rules emit a flat object of named fields. For example, <code>entity_declaration</code>:</p>
-<pre><code class="language-json">{ "name": "e", "items": [], "end_label": [] }
+<p><strong>Named-field object.</strong> Single-sequence rules emit a flat object of named fields. For example, <code>entity_declaration</code> for <code>entity e is end e;</code> (real captured shape — see <a href="examples-minimal-entity.html">Worked Example: Minimal Entity</a>):</p>
+<pre><code class="language-json">{ "name": [ [], "e" ], "items": [], "end_label": [ [], "e" ] }
 </code></pre>
+<p><code>name</code> and <code>end_label</code> are <code>$2</code> / <code>$7</code> of the <code>entity_declaration</code>
+sequence, both bound to the <strong>un-annotated</strong> <code>identifier</code> rule, so
+they carry that rule’s recursive envelope <code>[ &lt;prefix&gt;, "&lt;text&gt;" ]</code>
+rather than a bare string. The text is at index <code>[1]</code>. When the
+optional trailing label is omitted, <code>end_label</code> is <code>[]</code>.</p>
 </li>
 </ol>
 <p>The <code>binop_chain</code> expression rules combine forms 1 and 3 — they carry both a <code>type</code> and a <code>level</code> plus the operand fields (see <a href="#the-expression-family-binop_chain">the expression family</a>).</p>
@@ -248,12 +253,12 @@
 <li>The root is the <strong>typed root object</strong> <code>{ "type": "vhdl_file", "design_units": [ … ] }</code>.</li>
 <li><code>design_units</code> is a <strong>recursive-envelope array</strong> (the <code>design_unit*</code> iteration) with one element.</li>
 <li>That element is a <strong><code>kind</code>-tagged dispatch object</strong> <code>{ "kind": "entity", "body": { … } }</code>.</li>
-<li><code>body</code> is the <strong>named-field object</strong> for <code>entity_declaration</code>: <code>{ "name": "e", "items": [], "end_label": [ … ] }</code>.</li>
-<li><code>name</code> is a <strong>string</strong> (the identifier text reached through the envelope).</li>
+<li><code>body</code> is the <strong>named-field object</strong> for <code>entity_declaration</code>: <code>{ "name": [ [], "e" ], "items": [], "end_label": [ [], "e" ] }</code>.</li>
+<li><code>name</code> is the <strong>recursive envelope of the un-annotated <code>identifier</code> rule</strong> (<code>[ &lt;prefix&gt;, "e" ]</code>), not a bare string — the identifier text is at index <code>[1]</code>.</li>
 <li><code>items</code> is an <strong>empty array</strong> (<code>entity_declarative_item*</code> matched zero items).</li>
-<li><code>end_label</code> is an <strong>array</strong> carrying the optional trailing <code>identifier?</code> (the <code>e</code> after <code>end</code>), or <code>[]</code> if omitted.</li>
+<li><code>end_label</code> is the same <code>identifier</code> envelope when the optional trailing label is present (<code>[ [], "e" ]</code>), or <code>[]</code> when it is omitted (<code>entity e is end;</code>) — never <code>null</code>.</li>
 </ul>
-<p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>. See <a href="examples-minimal-entity.html">Examples Minimal Entity</a> for a pinned end-to-end production AST.</p>
+<p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>; the value shapes above are the real captured output of <code>generated/vhdl_parser.rs</code>. See <a href="examples-minimal-entity.html">Worked Example: Minimal Entity</a> for the pinned end-to-end production AST and the text-extraction rule of thumb.</p>
 <h2 id="the-expression-family-binop_chain"><a class="header" href="#the-expression-family-binop_chain">The expression family (<code>binop_chain</code>)</a></h2>
 <p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all carry the same <code>binop_chain</code> carrier so a single consumer fold handles the whole tree:</p>
 <pre><code class="language-json">{ "type": "binop_chain", "level": "logical", "lhs": &lt;relation-shape&gt;, "rest": [ /* (op, relation) iterations */ ] }

@@ -67,11 +67,11 @@ consumers can read first, paired with a tracked HTML rendering and a
   Commit: `VHDL-MDBOOK-Slice-4`
 
 - ID: `VHDL-MDBOOK.4`
-  Status: `pending`
+  Status: `done`
   Goal: `Add the minimal_entity worked example with annotated AST dump.`
   Acceptance: `docs/vhdl_parser_book/src/examples-minimal-entity.md exists with the parsed output validated against generated/vhdl_parser.rs.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: examples-minimal-entity.md authored with the REAL captured AST for the regression-locked input 'entity e is end e;\n' (probe ParseNode envelope + consumer AstDumpPayload.root view); doc JSON byte-identical to generated/vhdl_parser.rs output (python equality check). Surfaced + corrected a pre-existing accuracy defect in json-carrier.md (had claimed name was a bare string "e"; real shape is the un-annotated identifier envelope [[], "e"]). vhdl_parser_book_gate green.`
+  Commit: `VHDL-MDBOOK-Slice-5`
 
 - ID: `VHDL-MDBOOK.5`
   Status: `done`
@@ -91,8 +91,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `VHDL-MDBOOK.4` | `pending` | The minimal_entity worked example (annotated AST dump validated against generated/vhdl_parser.rs) comes next once the shape reference is in place. |
-| 2 | `VHDL-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book. |
+| 1 | `VHDL-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — the last leaf. |
 
 ## Decisions
 
@@ -118,6 +117,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 | `2026-05-15` | `VHDL-MDBOOK.5` | `make vhdl_parser_book_gate` | `pass — mdbook_build + tracked_html_check both green` |
 | `2026-05-15` | `VHDL-MDBOOK.2` | `make vhdl_parser_book_gate` | `pass — quickstart + build-recipe + public-api + ast-envelope authored; gate green` |
 | `2026-05-16` | `VHDL-MDBOOK.3` | `make vhdl_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters authored; content verified against generated/vhdl_return_annotations.json (249/110); gate green` |
+| `2026-05-16` | `VHDL-MDBOOK.4` | `make vhdl_parser_book_gate` + real-dump byte-equality check | `pass — examples-minimal-entity.md JSON byte-identical to generated/vhdl_parser.rs output; json-carrier.md accuracy defect corrected; gate green` |
 
 ## Commit Log
 
@@ -127,6 +127,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 | `VHDL-MDBOOK.5` | `VHDL-MDBOOK-Slice-2` | rust/scripts/vhdl_parser_book_gate.sh + Makefile target |
 | `VHDL-MDBOOK.2` | `VHDL-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 | `VHDL-MDBOOK.3` | `VHDL-MDBOOK-Slice-4` | rules-top-level + json-carrier + walking-the-ast + schema-versioning authored; inventory-verified (249/110) |
+| `VHDL-MDBOOK.4` | `VHDL-MDBOOK-Slice-5` | examples-minimal-entity.md (real captured AST, byte-verified) + json-carrier.md accuracy correction |
 
 ## Changelog
 
@@ -134,3 +135,4 @@ consumers can read first, paired with a tracked HTML rendering and a
 - `2026-05-14`: `VHDL-MDBOOK.1` completed; frontier advances to `VHDL-MDBOOK.2` (next reader content) and `VHDL-MDBOOK.5` (gate wiring, parallel).
 - `2026-05-15`: `VHDL-MDBOOK.2` completed; frontier advances to `VHDL-MDBOOK.3` (shape-reference chapters).
 - `2026-05-16`: `VHDL-MDBOOK.3` completed; frontier advances to `VHDL-MDBOOK.4` (minimal_entity worked example), then `VHDL-MDBOOK.6` (glossary/changelog/links).
+- `2026-05-16`: `VHDL-MDBOOK.4` completed (real captured AST, byte-verified; json-carrier.md accuracy defect corrected); frontier advances to `VHDL-MDBOOK.6` (final leaf — glossary/changelog/links).
