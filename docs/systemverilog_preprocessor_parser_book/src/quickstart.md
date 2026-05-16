@@ -40,7 +40,7 @@ let outcome = parse_grammar_profile_named(
 
 match outcome.status {
     ParseStatus::Success => {
-        // For the AST dump, call parse_grammar_profile_named_ast_dump
+        // For the AST dump, call parse_grammar_profile_ast_dump_named
         // (see Public API Surface).
     }
     ParseStatus::Failure => {

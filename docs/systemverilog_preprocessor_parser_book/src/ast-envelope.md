@@ -79,7 +79,7 @@ fn handle_pp_item(node: &serde_json::Value) {
 
 ## macro_body fragment dispatch
 
-`pp_define` bodies (the macro replacement text) are tokenized into a fragment list with 9 kinds (identifier, whitespace, default-atom, etc.). The default-atom dispatcher itself has 8 kinds. The 64-annotation surface (as of contract 1.0.1) covers all fragment kinds.
+`pp_define` bodies (the macro replacement text) are tokenized into a `macro_body_fragment` list with **9** `kind`-tagged kinds: `token_paste`, `stringize`, `macro_reference` (`{kind, body}`), `text` (`{kind, body}`), `lparen`, `rparen`, `comma`, `question`, `colon`. The separate `macro_default_atom` dispatcher (macro-formal default values) has **8** kinds. The 64-annotation surface (contract 1.0.1) covers all of these; the authoritative per-branch enumeration is in [Top-Level Rules](rules-top-level.md) and the live inventory `generated/systemverilog_preprocessor_return_annotations.json`.
 
 ## Two carrier kinds: typed and recursive-envelope
 

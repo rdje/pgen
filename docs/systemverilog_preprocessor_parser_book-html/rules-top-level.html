@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d10f080e.js";
+            window.path_to_searchindex_js = "searchindex-407f9d7b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -180,11 +180,277 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="rules-top-level"><a class="header" href="#rules-top-level">Rules Top Level</a></h1>
+                        <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
+<p>This chapter is the per-rule shape reference for the PGEN sv_preprocessor parser. It documents the <code>systemverilog_preprocessor_file</code> root, the <code>pp_item</code> dispatch, the seven directive shapes, the conditional-compilation tree, the condition / macro-formal / macro-body atom families, and the passthrough lines — grouped by rule family.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent SVPP-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/SVPP-MDBOOK.html">docs/tasks/SVPP-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Status:</strong> SVPP-Slice-1 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) landed the full grammar typing in one comprehensive batch — <strong>64 return annotations across 27 distinct rules</strong> in <code>grammars/systemverilog_preprocessor.ebnf</code>. Every shape in this chapter is drawn from the live inventory at <code>generated/systemverilog_preprocessor_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — identical content; the contract-embedded copy omits only the cosmetic <code>raw_text</code> field, the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples are byte-identical, 64 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
+<h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
+<p>This is a <strong>curated, grouped</strong> reference — not a raw 64-line dump and not a copy of any IEEE 1800 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
+<p>Two conventions appear throughout:</p>
+<ul>
+<li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or just <code>{kind: "&lt;branch&gt;"}</code> for bodyless branches). Consumers dispatch on <code>obj["kind"]</code>.</li>
+<li><strong>Absent optionals are <code>[]</code>, never <code>null</code>.</strong> An un-matched optional grammar element (<code>macro_formals?</code>, <code>macro_body?</code>, <code>directive_tail?</code>, the optional comment tail, …) surfaces as the empty array <code>[]</code>. This was verified empirically against the live parser — see <a href="json-carrier.html">The Json Carrier</a>.</li>
+</ul>
+<p>This grammar is <strong>directive- and line-oriented</strong>. Unlike the VHDL and rtl_frontend grammars, it has <strong>no</strong> operator-precedence cascade and <strong>no</strong> <code>binop_chain</code> carrier. <code>condition_expr</code> is a flat atom list (<code>condition_atom+</code>), not a precedence tree — the <code>||</code> / <code>&amp;&amp;</code> / <code>!</code> / <code>? :</code> tokens are carried as individual untyped atoms, not as a parsed expression.</p>
+<p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, <code>[...]</code>, string literals) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
+<h2 id="entry-point"><a class="header" href="#entry-point">Entry point</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Profile</th><th>Entry rule</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>default</code></td><td><code>systemverilog_preprocessor_file</code></td><td>The SystemVerilog preprocessor directive source surface. The only sv_preprocessor profile.</td></tr>
+</tbody>
+</table>
+</div>
+<p>There is no per-grammar convenience function for sv_preprocessor; the stable host surface is the generic <code>parse_grammar_profile*</code> family with <code>GrammarFamily::SystemverilogPreprocessor</code> + <code>GrammarProfile::Default</code> (and the <code>parse_grammar_profile_named</code> string overload with <code>"systemverilog_preprocessor"</code> / <code>"default"</code>). See <a href="public-api.html">Public API Surface</a>.</p>
+<h2 id="systemverilog_preprocessor_file-root"><a class="header" href="#systemverilog_preprocessor_file-root"><code>systemverilog_preprocessor_file</code> (root)</a></h2>
+<p>Per <code>grammars/systemverilog_preprocessor.ebnf</code>:</p>
+<pre><code class="language-ebnf">systemverilog_preprocessor_file := pp_item*
+                                -&gt; {type: "systemverilog_preprocessor_file", items: $1}
+</code></pre>
+<p>The annotation produces a typed JSON object at the root of every parse:</p>
+<pre><code class="language-json">{
+  "type": "systemverilog_preprocessor_file",
+  "items": [/* array of pp_item shapes */]
+}
+</code></pre>
+<p><code>items</code> is the array of typed <code>pp_item</code> objects, one per top-level line/directive in source order. Consumers walking the sv_preprocessor AST dispatch on <code>obj["type"] == "systemverilog_preprocessor_file"</code> at the root, then iterate <code>obj["items"]</code>. This is the only rule that carries a <code>type</code> discriminator; every other dispatcher uses <code>kind</code>.</p>
+<h2 id="pp_item-dispatch"><a class="header" href="#pp_item-dispatch"><code>pp_item</code> dispatch</a></h2>
+<p><code>pp_item</code> is the primary top-level dispatcher — a 10-branch <code>kind</code>-tagged shape covering every preprocessor line form:</p>
+<pre><code class="language-ebnf">pp_item := pp_define              -&gt; {kind: "define",              body: $1}
+         | pp_undef               -&gt; {kind: "undef",               body: $1}
+         | pp_include             -&gt; {kind: "include",             body: $1}
+         | pp_timescale           -&gt; {kind: "timescale",           body: $1}
+         | pp_default_nettype     -&gt; {kind: "default_nettype",     body: $1}
+         | pp_celldefine          -&gt; {kind: "celldefine"}
+         | pp_endcelldefine       -&gt; {kind: "endcelldefine"}
+         | pp_conditional         -&gt; {kind: "conditional",         body: $1}
+         | pp_non_directive_line  -&gt; {kind: "non_directive_line",  body: $1}
+         | pp_blank_line          -&gt; {kind: "blank_line"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>kind</code></th><th><code>body</code> shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"define"</code></td><td><code>pp_define</code> — <code>{name, formals, body}</code></td></tr>
+<tr><td><code>"undef"</code></td><td><code>pp_undef</code> — <code>{name, comment}</code></td></tr>
+<tr><td><code>"include"</code></td><td><code>pp_include</code> — <code>{path, comment}</code></td></tr>
+<tr><td><code>"timescale"</code></td><td><code>pp_timescale</code> — <code>{unit, precision, comment}</code></td></tr>
+<tr><td><code>"default_nettype"</code></td><td><code>pp_default_nettype</code> — <code>{nettype, comment}</code></td></tr>
+<tr><td><code>"celldefine"</code></td><td><em>(no body — <code> `celldefine</code> marker)</em></td></tr>
+<tr><td><code>"endcelldefine"</code></td><td><em>(no body — <code> `endcelldefine</code> marker)</em></td></tr>
+<tr><td><code>"conditional"</code></td><td><code>pp_conditional</code> — <code>{if_branch, elsif_branches, else_branch}</code></td></tr>
+<tr><td><code>"non_directive_line"</code></td><td><code>pp_non_directive_line</code> — <code>{text}</code></td></tr>
+<tr><td><code>"blank_line"</code></td><td><em>(no body — blank line)</em></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>"celldefine"</code>, <code>"endcelldefine"</code>, and <code>"blank_line"</code> branches are bodyless (<code>{kind: ...}</code> only); every other branch carries a <code>body</code>. Note that <code>pp_celldefine</code> / <code>pp_endcelldefine</code> / <code>pp_blank_line</code> are themselves typed rules (<code>{comment}</code> / <code>{comment}</code> / <code>{kind: "blank"}</code> — see below): their <code>body</code> is dropped at the <code>pp_item</code> dispatch level by the annotation, so a consumer that needs the celldefine comment must re-parse the line or treat the directive as state-only.</p>
+<h2 id="family-core-directives-7-shapes"><a class="header" href="#family-core-directives-7-shapes">Family: core directives (7 shapes)</a></h2>
+<pre><code class="language-ebnf">pp_define := kw_define macro_name macro_formals? macro_body? newline?
+          -&gt; {name: $2, formals: $3, body: $4}
+pp_undef := kw_undef macro_name directive_comment_tail newline?
+         -&gt; {name: $2, comment: $3}
+pp_include := kw_include include_path directive_comment_tail newline?
+           -&gt; {path: $2, comment: $3}
+pp_timescale := kw_timescale time_literal slash time_literal directive_comment_tail newline?
+             -&gt; {unit: $2, precision: $4, comment: $5}
+pp_default_nettype := kw_default_nettype nettype_value directive_comment_tail newline?
+                   -&gt; {nettype: $2, comment: $3}
+pp_celldefine := kw_celldefine directive_comment_tail newline?
+              -&gt; {comment: $2}
+pp_endcelldefine := kw_endcelldefine directive_comment_tail newline?
+                 -&gt; {comment: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pp_define</code></td><td><code>{name, formals, body}</code></td><td><code>name</code> is the un-annotated <code>macro_name</code>/<code>identifier</code> envelope; <code>formals</code> is the typed <code>macro_formals</code> or <code>[]</code> when absent; <code>body</code> is the typed <code>macro_body</code> or <code>[]</code> when absent.</td></tr>
+<tr><td><code>pp_undef</code></td><td><code>{name, comment}</code></td><td><code>comment</code> is the optional <code>directive_comment_tail</code> (inline trivia + optional line comment).</td></tr>
+<tr><td><code>pp_include</code></td><td><code>{path, comment}</code></td><td><code>path</code> is the typed <code>include_path</code>.</td></tr>
+<tr><td><code>pp_timescale</code></td><td><code>{unit, precision, comment}</code></td><td><code>unit</code> / <code>precision</code> are typed <code>time_literal</code> (<code>{value, unit}</code>); the <code>/</code> separator is consumed but not surfaced.</td></tr>
+<tr><td><code>pp_default_nettype</code></td><td><code>{nettype, comment}</code></td><td><code>nettype</code> is the typed <code>nettype_value</code>.</td></tr>
+<tr><td><code>pp_celldefine</code></td><td><code>{comment}</code></td><td>(<code>body</code> dropped at <code>pp_item</code>).</td></tr>
+<tr><td><code>pp_endcelldefine</code></td><td><code>{comment}</code></td><td>(<code>body</code> dropped at <code>pp_item</code>).</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="include-path--nettype--time-literal"><a class="header" href="#include-path--nettype--time-literal">Include path / nettype / time literal</a></h3>
+<pre><code class="language-ebnf">include_path := quoted_string -&gt; {kind: "quoted", text: $1}
+              | angle_path    -&gt; {kind: "angle",  text: $1}
+nettype_value := identifier -&gt; {kind: "identifier", body: $1}
+               | kw_none    -&gt; {kind: "none"}
+time_literal := unsigned_number time_unit -&gt; {value: $1, unit: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>include_path</code> (2 kinds)</td><td><code>{kind: "quoted", text}</code> (<code> `include "f.svh"</code>) / <code>{kind: "angle", text}</code> (<code> `include &lt;pkg.svh&gt;</code>).</td></tr>
+<tr><td><code>nettype_value</code> (2 kinds)</td><td><code>{kind: "identifier", body}</code> (e.g. <code>wire</code>) / <code>{kind: "none"}</code> (the <code>none</code> keyword, bodyless).</td></tr>
+<tr><td><code>time_literal</code></td><td><code>{value, unit}</code> — <code>value</code> is the un-annotated <code>unsigned_number</code> envelope; <code>unit</code> is the un-annotated <code>time_unit</code> envelope (<code>s</code>/<code>ms</code>/<code>us</code>/<code>ns</code>/<code>ps</code>/<code>fs</code>).</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-conditional-compilation-tree-5-nodes"><a class="header" href="#family-conditional-compilation-tree-5-nodes">Family: conditional-compilation tree (5 nodes)</a></h2>
+<pre><code class="language-ebnf">pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif
+               -&gt; {if_branch: $1, elsif_branches: $2, else_branch: $3}
+pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item*
+             -&gt; {keyword: $1, macro: $2, tail: $3, items: $5}
+pp_elsif_branch := kw_elsif condition_expr newline pp_item*
+                -&gt; {condition: $2, items: $4}
+pp_else_branch := kw_else directive_tail? newline pp_item*
+               -&gt; {tail: $2, items: $4}
+pp_endif := kw_endif directive_tail? newline?
+         -&gt; {tail: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pp_conditional</code></td><td><code>{if_branch, elsif_branches, else_branch}</code></td><td><code>elsif_branches</code> is the <code>pp_elsif_branch*</code> array (<code>[]</code> when none); <code>else_branch</code> is <code>[]</code> when there is no <code> `else</code>. The terminating <code>pp_endif</code> is matched (<code>$4</code>) but <strong>not</strong> surfaced in the annotation.</td></tr>
+<tr><td><code>pp_if_branch</code></td><td><code>{keyword, macro, tail, items}</code></td><td><code>keyword</code> is the matched <code> `ifdef</code>/<code> `ifndef</code> token envelope; <code>macro</code> is the macro-name envelope; <code>tail</code> is the optional <code>directive_tail</code> (<code>[]</code> when absent); <code>items</code> is the recursively-nested <code>pp_item*</code> body of the branch.</td></tr>
+<tr><td><code>pp_elsif_branch</code></td><td><code>{condition, items}</code></td><td><code>condition</code> is the typed <code>condition_expr</code>; <code>items</code> is the nested <code>pp_item*</code> body.</td></tr>
+<tr><td><code>pp_else_branch</code></td><td><code>{tail, items}</code></td><td><code>tail</code> is the optional <code>directive_tail</code> (<code>[]</code> when absent); <code>items</code> is the nested <code>pp_item*</code> body.</td></tr>
+<tr><td><code>pp_endif</code></td><td><code>{tail}</code></td><td><code>tail</code> is the optional <code>directive_tail</code> (<code>[]</code> when absent).</td></tr>
+</tbody>
+</table>
+</div>
+<p>The branch bodies (<code>items</code>) are themselves <code>pp_item*</code> arrays, so the conditional tree nests recursively: a <code>pp_conditional</code> can appear inside any branch’s <code>items</code>.</p>
+<h2 id="family-condition-expression-12-kind-atom"><a class="header" href="#family-condition-expression-12-kind-atom">Family: condition expression (12-kind atom)</a></h2>
+<pre><code class="language-ebnf">condition_expr := condition_atom+
+               -&gt; {atoms: $1}
+condition_atom := macro_token_paste -&gt; {kind: "token_paste"}
+                | macro_stringize   -&gt; {kind: "stringize"}
+                | macro_reference   -&gt; {kind: "macro_reference", body: $1}
+                | condition_text    -&gt; {kind: "text",     body: $1}
+                | lparen            -&gt; {kind: "lparen"}
+                | rparen            -&gt; {kind: "rparen"}
+                | comma             -&gt; {kind: "comma"}
+                | question          -&gt; {kind: "question"}
+                | colon             -&gt; {kind: "colon"}
+                | logical_or        -&gt; {kind: "logical_or"}
+                | logical_and       -&gt; {kind: "logical_and"}
+                | bang              -&gt; {kind: "bang"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>condition_expr</code></td><td><code>{atoms}</code> — <code>atoms</code> is the recursive-envelope <code>condition_atom+</code> array (at least one).</td></tr>
+<tr><td><code>condition_atom</code> (12 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> and <code>"text"</code>; bare <code>{kind}</code> for <code>"token_paste"</code>, <code>"stringize"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"comma"</code>, <code>"question"</code>, <code>"colon"</code>, <code>"logical_or"</code>, <code>"logical_and"</code>, <code>"bang"</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>This is a <strong>flat token list</strong>, not a parsed boolean expression. The <code> `elsif</code> condition is surfaced as an ordered sequence of atoms; the consumer is responsible for any expression evaluation. The <code>body</code> of the <code>"macro_reference"</code> atom is the un-annotated <code>macro_reference</code> (backtick-identifier) envelope; the <code>body</code> of the <code>"text"</code> atom is the un-annotated <code>condition_text</code> envelope.</p>
+<h2 id="family-macro-formals--default-values-8-kind-atom"><a class="header" href="#family-macro-formals--default-values-8-kind-atom">Family: macro formals + default values (8-kind atom)</a></h2>
+<pre><code class="language-ebnf">macro_formals := lparen macro_formal (comma macro_formal)* rparen
+              -&gt; {first: $2, rest: $3}
+macro_formal := macro_name (assign macro_default_value)?
+             -&gt; {name: $1, default: $2}
+macro_default_value := macro_default_atom+
+                    -&gt; {atoms: $1}
+macro_default_atom := macro_token_paste -&gt; {kind: "token_paste"}
+                    | macro_stringize   -&gt; {kind: "stringize"}
+                    | macro_reference   -&gt; {kind: "macro_reference", body: $1}
+                    | macro_default_text -&gt; {kind: "text",  body: $1}
+                    | lparen            -&gt; {kind: "lparen"}
+                    | rparen            -&gt; {kind: "rparen"}
+                    | question          -&gt; {kind: "question"}
+                    | colon             -&gt; {kind: "colon"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>macro_formals</code></td><td><code>{first, rest}</code></td><td>A <code>{first, rest}</code> separated-list shape: <code>first</code> is the leading <code>macro_formal</code>; <code>rest</code> is the recursive-envelope iteration of the <code>(comma macro_formal)*</code> tail. This grammar uses the <code>{first, rest}</code> wrap — it was <strong>not</strong> flattened to the <code>[$N, $M::2*]</code> form some other PGEN grammars adopted; see <a href="walking-the-ast.html#iterating-first-rest-lists">Walking the AST</a>.</td></tr>
+<tr><td><code>macro_formal</code></td><td><code>{name, default}</code></td><td><code>name</code> is the macro-name envelope; <code>default</code> is the typed <code>macro_default_value</code> or <code>[]</code> when there is no <code>= &lt;default&gt;</code>.</td></tr>
+<tr><td><code>macro_default_value</code></td><td><code>{atoms}</code></td><td><code>atoms</code> is the recursive-envelope <code>macro_default_atom+</code> array.</td></tr>
+<tr><td><code>macro_default_atom</code> (8 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"token_paste"</code>, <code>"stringize"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"question"</code>, <code>"colon"</code>. This atom set has <strong>no</strong> <code>"comma"</code>, <code>"logical_or"</code>, <code>"logical_and"</code>, or <code>"bang"</code> (commas separate formals, so a default value cannot contain a bare comma).</td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-macro-body-9-kind-fragment"><a class="header" href="#family-macro-body-9-kind-fragment">Family: macro body (9-kind fragment)</a></h2>
+<pre><code class="language-ebnf">macro_body := macro_body_fragment+
+           -&gt; {fragments: $1}
+macro_body_fragment := macro_token_paste -&gt; {kind: "token_paste"}
+                     | macro_stringize   -&gt; {kind: "stringize"}
+                     | macro_reference   -&gt; {kind: "macro_reference", body: $1}
+                     | macro_body_text   -&gt; {kind: "text",   body: $1}
+                     | lparen            -&gt; {kind: "lparen"}
+                     | rparen            -&gt; {kind: "rparen"}
+                     | comma             -&gt; {kind: "comma"}
+                     | question          -&gt; {kind: "question"}
+                     | colon             -&gt; {kind: "colon"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>macro_body</code></td><td><code>{fragments}</code></td><td><code>fragments</code> is the recursive-envelope <code>macro_body_fragment+</code> array (the macro replacement text, tokenized).</td></tr>
+<tr><td><code>macro_body_fragment</code> (9 kinds)</td><td><code>{kind, body}</code> for <code>"macro_reference"</code> / <code>"text"</code>; bare <code>{kind}</code> for <code>"token_paste"</code>, <code>"stringize"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"comma"</code>, <code>"question"</code>, <code>"colon"</code>. The macro-body atom set adds <code>"comma"</code> (vs the 8-kind <code>macro_default_atom</code>) but, like the default-atom set, has no <code>"logical_or"</code> / <code>"logical_and"</code> / <code>"bang"</code>.</td><td></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>"token_paste"</code> fragment is the SystemVerilog <code> </code> <code>paste operator; `"stringize"` is the</code> <code>" `` stringize operator. Each </code>“text”<code>fragment carries the un-annotated</code>macro_body_text` envelope (a run of literal replacement characters).</p>
+<h2 id="family-passthrough-lines"><a class="header" href="#family-passthrough-lines">Family: passthrough lines</a></h2>
+<pre><code class="language-ebnf">pp_non_directive_line := non_directive_text newline?
+                      -&gt; {text: $1}
+pp_blank_line := newline
+              -&gt; {kind: "blank"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td><code>pp_non_directive_line</code></td><td><code>{text}</code></td><td>Any source line that is not a preprocessor directive. <code>text</code> is the un-annotated <code>non_directive_text</code> envelope.</td></tr>
+<tr><td><code>pp_blank_line</code></td><td><code>{kind: "blank"}</code></td><td>A blank line. At the <code>pp_item</code> dispatch level this surfaces as <code>{kind: "blank_line"}</code> (the <code>pp_blank_line</code> rule’s own <code>{kind: "blank"}</code> body is dropped by the <code>pp_item</code> annotation, exactly like <code>pp_celldefine</code> / <code>pp_endcelldefine</code>).</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="atom-set-summary"><a class="header" href="#atom-set-summary">Atom-set summary</a></h2>
+<p>The three atom families differ only in which punctuation/operator branches they admit. All three share <code>"token_paste"</code>, <code>"stringize"</code>, <code>"macro_reference"</code>, <code>"text"</code>, <code>"lparen"</code>, <code>"rparen"</code>, <code>"question"</code>, <code>"colon"</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Branches</th><th>Extra branches beyond the shared 8</th></tr>
+</thead>
+<tbody>
+<tr><td><code>condition_atom</code></td><td>12</td><td><code>"comma"</code>, <code>"logical_or"</code>, <code>"logical_and"</code>, <code>"bang"</code></td></tr>
+<tr><td><code>macro_body_fragment</code></td><td>9</td><td><code>"comma"</code></td></tr>
+<tr><td><code>macro_default_atom</code></td><td>8</td><td><em>(none — exactly the shared 8)</em></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
+<p>The full typed surface as of contract <code>1.0.1</code> is <strong>64 return annotations across 27 distinct rules</strong> (independently re-counted from the inventory: 64 <code>annotations</code> entries, all <code>annotation_type: "return_object"</code>, over 27 distinct rule names). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<ul>
+<li><code>generated/systemverilog_preprocessor_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "systemverilog_preprocessor"</code>, <code>annotation_count: 64</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (<code>declared_annotation_inventory.annotations</code>, 64 entries; identical tuples — the contract-embedded copy omits only the cosmetic <code>raw_text</code> field).</li>
+</ul>
+<p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
+<h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
+<p>Each shape-affecting slice after SVPP-Slice-1 gets a row in <a href="schema-versioning.html">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="changelog-index.html">Changelog Index</a> ties them together.</p>
 
                     </main>
 

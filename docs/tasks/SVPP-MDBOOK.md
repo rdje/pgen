@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: sv_preprocessor deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-15`
+- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal
@@ -54,11 +54,11 @@ shape conventions.
   Commit: `SVPP-MDBOOK-Slice-3`
 
 - ID: `SVPP-MDBOOK.3`
-  Status: `pending`
+  Status: `done`
   Goal: `Author shape-reference chapters covering all 64 typed rules including pp_item dispatch, macro fragments, condition_atom.`
   Acceptance: `Each chapter enumerates typed shapes against the live inventory.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: 4 shape-reference chapters authored (rules-top-level, json-carrier, walking-the-ast, schema-versioning) — independently verified vs generated/systemverilog_preprocessor_return_annotations.json: 64 annotations / 27 distinct rules; pp_item 10 kinds, condition_atom 12, macro_body_fragment 9, macro_default_atom 8 all match; single_define real AST captured. Book-wide stale-content audit also reconciled 2 pre-existing sibling defects: quickstart.md transposed fn name (parse_grammar_profile_named_ast_dump -> parse_grammar_profile_ast_dump_named) and ast-envelope.md invented macro_body_fragment kind names (-> real token_paste/stringize/macro_reference/text/lparen/rparen/comma/question/colon). systemverilog_preprocessor_parser_book_gate green.`
+  Commit: `SVPP-MDBOOK-Slice-4`
 
 - ID: `SVPP-MDBOOK.4`
   Status: `pending`
@@ -85,9 +85,8 @@ shape conventions.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SVPP-MDBOOK.3` | `pending` | Shape-reference chapters (all 64 typed rules incl. pp_item dispatch, macro fragments, condition_atom) come next once core navigation is in place. |
-| 2 | `SVPP-MDBOOK.4` | `pending` | Worked examples (single_define + conditional-compilation) follow the shape reference. |
-| 3 | `SVPP-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book. |
+| 1 | `SVPP-MDBOOK.4` | `pending` | Worked examples (single_define + conditional-compilation) validated against generated/systemverilog_preprocessor_parser.rs. |
+| 2 | `SVPP-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — final leaf. |
 
 ## Decisions
 
@@ -109,6 +108,7 @@ shape conventions.
 | `2026-05-14` | `SVPP-MDBOOK.1` | `mdbook build` | `pass` |
 | `2026-05-15` | `SVPP-MDBOOK.5` | `make systemverilog_preprocessor_parser_book_gate` | `pass` |
 | `2026-05-15` | `SVPP-MDBOOK.2` | `make systemverilog_preprocessor_parser_book_gate` | `pass — quickstart + build-recipe + public-api + ast-envelope authored; mdbook_build + tracked_html_check both green` |
+| `2026-05-16` | `SVPP-MDBOOK.3` | `make systemverilog_preprocessor_parser_book_gate` + inventory cross-check + book-wide stale audit | `pass — 4 shape-reference chapters; verified 64/27, pp_item=10/condition_atom=12/macro_body_fragment=9/macro_default_atom=8; reconciled 2 stale .2-era sibling defects (quickstart fn name, ast-envelope invented fragment kinds); gate green` |
 
 ## Commit Log
 
@@ -117,9 +117,11 @@ shape conventions.
 | `SVPP-MDBOOK.1` | `SVPP-MDBOOK-Slice-1` | book.toml + 13-entry SUMMARY + welcome + chapter stubs |
 | `SVPP-MDBOOK.5` | `SVPP-MDBOOK-Slice-2` | gate script + Makefile target |
 | `SVPP-MDBOOK.2` | `SVPP-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
+| `SVPP-MDBOOK.3` | `SVPP-MDBOOK-Slice-4` | 4 shape-reference chapters (64/27, pp_item/condition_atom/macro fragments) + 2 stale-sibling reconciliations |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-14`: `.1` done; frontier → `.2` + `.5`.
 - `2026-05-15`: `.2` completed; frontier advances to `.3` (shape-reference chapters), then `.4` (worked examples), then `.6` (glossary/changelog/links).
+- `2026-05-16`: `.3` completed (4 shape chapters, 64/27 inventory-verified; reconciled 2 stale `.2`-era sibling defects); frontier advances to `.4` (worked examples), then `.6` (glossary/changelog/links).

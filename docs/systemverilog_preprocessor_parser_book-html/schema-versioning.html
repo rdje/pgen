@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d10f080e.js";
+            window.path_to_searchindex_js = "searchindex-407f9d7b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -181,10 +181,94 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
+<p>This chapter explains how the PGEN sv_preprocessor parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape. The authoritative numbers come from <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code>; where this chapter and the contract disagree, <strong>the contract wins</strong>.</p>
+<h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
+<p>The sv_preprocessor parser carries <strong>two</strong> version numbers:</p>
+<ol>
+<li><strong>Parser release version</strong> — currently <code>1.0.1</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>AST-dump schema version</strong> — currently <code>1</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+</ol>
+<p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.</p>
+<p>These numbers are taken from the integration contract’s “Contract Identity” section, which records:</p>
+<ul>
+<li>Contract version: <code>1.0.1</code></li>
+<li>Parser release version: <code>1.0.1</code></li>
+<li>systemverilog_preprocessor AST-dump schema version: <code>1</code></li>
+<li>Annotation count: <strong>64</strong> (SVPP-Slice-1 — the full grammar typed in one batch, across 27 distinct rules)</li>
+</ul>
+<p>The contract document <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for all of these per release.</p>
+<h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
+<p>Any of these triggers a schema version bump:</p>
+<ul>
+<li>A new return annotation lands on a previously-unannotated rule.</li>
+<li>An existing return annotation is restructured.</li>
+<li>A grammar rule changes shape in a way that’s user-visible (new branch added, branch removed, a sub-rule renamed in a way that affects shape, the <code>macro_formals</code> <code>{first, rest}</code> list flattened, etc.).</li>
+<li>The default fall-through behavior of unannotated rules changes.</li>
+</ul>
+<p>These do <strong>not</strong> trigger a schema bump:</p>
+<ul>
+<li>Pure performance optimizations that produce the same AST.</li>
+<li>Internal codegen reorganization that doesn’t reach the output.</li>
+<li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
+</ul>
+<p>The sv_preprocessor grammar was typed in a single comprehensive batch (SVPP-Slice-1, 64 annotations / 27 rules) rather than the long slice-by-slice cadence used by the main SystemVerilog campaign, so the sv_preprocessor schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a <a href="changelog-index.html">Changelog Index</a> entry.</p>
+<h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
+<p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical (alphabetical) order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value. Whitespace is configurable via <code>AstDumpOptions.pretty</code> but the underlying JSON value is the same.</p>
+<p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="schema-version-timeline"><a class="header" href="#schema-version-timeline">Schema version timeline</a></h2>
+<p>This table mirrors the “Schema Versioning” table in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code>. The contract is authoritative for the live state.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
+</thead>
+<tbody>
+<tr><td>1.0.0</td><td>1.0.1</td><td><strong>SVPP-Slice-1</strong> — initial 64-annotation baseline (27 distinct rules). <code>pp_item</code> dispatch (10 kinds), 7 directive shapes (<code>define</code> / <code>undef</code> / <code>include</code> / <code>timescale</code> / <code>default_nettype</code> / <code>celldefine</code> / <code>endcelldefine</code>), <code>include_path</code> / <code>nettype_value</code> / <code>time_literal</code>, conditional-compilation tree (5 nodes), <code>condition_expr</code> / <code>condition_atom</code> (12 kinds), <code>macro_formals</code> / <code>macro_formal</code> / <code>macro_default_value</code> / <code>macro_default_atom</code> (8 kinds) / <code>macro_body</code> / <code>macro_body_fragment</code> (9 kinds), passthrough lines — all typed in one comprehensive batch. Same accept set as the pre-typing baseline. AST-dump schema version field value: <code>1</code>.</td></tr>
+<tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Grammar (<code>grammars/systemverilog_preprocessor.ebnf</code>) un-annotated except for the <code>systemverilog_preprocessor_file -&gt; {type, items}</code> root. AST dump is the recursive-envelope shape across all other rules.</td></tr>
+</tbody>
+</table>
+</div>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent SVPP-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/SVPP-MDBOOK.html">docs/tasks/SVPP-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>1</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="walking-the-ast.html">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
+<h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
+<ol>
+<li>
+<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
+</li>
+<li>
+<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>1</code>. Reject or warn on an unexpected value rather than mis-parsing a newer shape:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match ast_dump_payload.schema_version {
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    other =&gt; return Err(format!("unsupported sv_preprocessor schema version: {other}")),
+}
+<span class="boring">}</span></code></pre>
+</li>
+<li>
+<p><strong>Vendor or pin the generated parser.</strong> The sv_preprocessor parser is on-demand-only (see <a href="build-recipe.html">Build Recipe</a>); vendor <code>generated/systemverilog_preprocessor_parser.rs</code> against the recorded parser-release version, or build it in CI from the pinned <code>grammars/systemverilog_preprocessor.ebnf</code>.</p>
+</li>
+<li>
+<p><strong>When you bump PGEN</strong>, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the directives you consume, and re-run your walker’s test corpus.</p>
+</li>
+</ol>
+<h2 id="additive-vs-breaking-changes"><a class="header" href="#additive-vs-breaking-changes">Additive vs breaking changes</a></h2>
+<p>Within a single integer schema version, shape changes are intended to be <strong>additive</strong> wherever possible:</p>
+<ul>
+<li><strong>Additive (no integer schema bump expected):</strong> a new optional field on an existing typed object, a new <code>kind</code> value on a dispatch rule for a previously-unparseable construct, a new typed shape on a rule that was previously raw envelope. Consumers using the unknown-shape fallthrough from <a href="walking-the-ast.html">Walking the AST</a> keep working; consumers that hard-match a closed <code>kind</code> set must extend it.</li>
+<li><strong>Breaking (integer schema bump):</strong> renaming or removing a field on an existing typed object, changing a <code>kind</code> discriminator value, restructuring the <code>macro_formals</code> <code>{first, rest}</code> list into a flat array, or changing the default fall-through of an unannotated rule in a way that moves data consumers were already reading.</li>
+</ul>
+<p>The contract’s bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on the integer <code>schema_version</code>, (b) treats absent optionals as <code>[]</code>, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.</p>
+<h2 id="reporting-drift"><a class="header" href="#reporting-drift">Reporting drift</a></h2>
+<p>If you observe an AST shape that disagrees with this book, the contract, or the live inventory <code>generated/systemverilog_preprocessor_return_annotations.json</code>:</p>
+<ol>
+<li>Confirm against the machine-checkable inventory (<code>generated/systemverilog_preprocessor_return_annotations.json</code> / <code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code>, 64 entries; identical tuples — the contract-embedded copy omits only the cosmetic <code>raw_text</code> field).</li>
+<li>If the inventory agrees with what you observe but the contract does not, the contract is authoritative for intended behavior — file via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</li>
+<li>Accepted released-parser bugs are tracked in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</li>
+</ol>
+<h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
+<p>A future schema milestone will land if and when the sv_preprocessor grammar’s remaining un-annotated rules (terminal/regex leaves like <code>identifier</code> / <code>macro_name</code>, and the literal-text runs <code>macro_body_text</code> / <code>condition_text</code> / <code>macro_default_text</code> / <code>non_directive_text</code>) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. Downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the <a href="changelog-index.html">Changelog Index</a>. Note that, per the integration contract, sv_preprocessor does <strong>not</strong> yet publish a dedicated general-purpose embedding API profile the way <code>systemverilog</code>, <code>vhdl</code>, or <code>regex</code> do — the stable surface is the generic <code>parse_grammar_profile*</code> family (see <a href="public-api.html">Public API Surface</a>).</p>
 
                     </main>
 
