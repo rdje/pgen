@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `RTL-FE-MDBOOK`
-- Status: `active`
+- Status: `done`
 - Roadmap lane: rtl_frontend deliverables
 - Created: `2026-05-14`
 - Last updated: `2026-05-16`
@@ -34,10 +34,11 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 ## Task Tree
 
 - ID: `RTL-FE-MDBOOK`
-  Status: `active`
+  Status: `done`
   Goal: `Stand up the rtl_frontend parser mdBook on parity with the SV book.`
   Children: `RTL-FE-MDBOOK.1`, `RTL-FE-MDBOOK.2`, `RTL-FE-MDBOOK.3`,
   `RTL-FE-MDBOOK.4`, `RTL-FE-MDBOOK.5`, `RTL-FE-MDBOOK.6`
+  Result: `All 6 children done. The rtl_frontend parser mdBook is fully stood up — scaffold + welcome, 4 core navigation chapters, 4 shape-reference chapters, the byte-verified empty_module worked example, the gate wiring, and the glossary + changelog-index closing leaf. README already lists the book (Per-Parser Integration Reference Books section); LIVE_ACHIEVEMENT_STATUS carries the completion tracker note. Tree complete 2026-05-16.`
 
 - ID: `RTL-FE-MDBOOK.1`
   Status: `done`
@@ -75,17 +76,15 @@ rendering and an `rtl_frontend_parser_book_gate` target.
   Commit: `RTL-FE-MDBOOK-Slice-2`
 
 - ID: `RTL-FE-MDBOOK.6`
-  Status: `pending`
+  Status: `done`
   Goal: `Wire glossary + changelog-index + link from README + LIVE_ACHIEVEMENT_STATUS.`
   Acceptance: `README and LIVE_ACHIEVEMENT_STATUS reference the book.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: glossary.md (16 terms, rtl_frontend-correct, rtl_frontend_v1.json manifest, RTL-FE-Slice-1..7 framing, generic-surface no-convenience-fn note) + changelog-index.md (short by design — pointer table + 2 real release rows + 164-vs-156 reconciliation note) authored and independently verified (links resolve, numbers 156/74/1.0.1/schema 1 correct). README "Per-Parser Integration Reference Books" section already lists this book + gate (added in VHDL-MDBOOK.6); LIVE_ACHIEVEMENT_STATUS.md gained a Live Snapshot tracker note for the completed RTL-FE-MDBOOK tree. rtl_frontend_parser_book_gate green (independently re-run).`
+  Commit: `RTL-FE-MDBOOK-Slice-6`
 
 ## Current Frontier
 
-| Order | Leaf | Status | Why next |
-| --- | --- | --- | --- |
-| 1 | `RTL-FE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — the final leaf. |
+_None — the `RTL-FE-MDBOOK` tree is complete. All leaves `.1`–`.6` are `done`._
 
 ## Decisions
 
@@ -111,6 +110,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | `2026-05-15` | `RTL-FE-MDBOOK.2` | `make rtl_frontend_parser_book_gate` | `pass — 4 chapters authored; gate green` |
 | `2026-05-16` | `RTL-FE-MDBOOK.3` | `make rtl_frontend_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters; verified 156/74, design_item=4, module_item=10, generate_item=11, package_item=3, binop_chain=10 levels vs generated/rtl_frontend_return_annotations.json; gate green` |
 | `2026-05-16` | `RTL-FE-MDBOOK.4` | `make rtl_frontend_parser_book_gate` + real-dump metric re-derivation | `pass — examples-empty-module.md prose metrics independently re-verified vs generated/rtl_frontend_parser.rs (name=41 elems, 0..39 [], idx40 [[],"m"]; all other body fields []); gate green` |
+| `2026-05-16` | `RTL-FE-MDBOOK.6` | `make rtl_frontend_parser_book_gate` + link/number cross-check | `pass — glossary + changelog-index authored; README already lists book, LIVE tracker note added; links resolve, numbers 156/74/1.0.1/schema 1 correct; gate green. Tree complete.` |
 
 ## Commit Log
 
@@ -121,6 +121,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | `RTL-FE-MDBOOK.2` | `RTL-FE-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 | `RTL-FE-MDBOOK.3` | `RTL-FE-MDBOOK-Slice-4` | rules-top-level + json-carrier + walking-the-ast + schema-versioning authored; inventory-verified (156/74, 10-level binop_chain) |
 | `RTL-FE-MDBOOK.4` | `RTL-FE-MDBOOK-Slice-5` | examples-empty-module.md authored from real captured AST (metrics byte-verified) |
+| `RTL-FE-MDBOOK.6` | `RTL-FE-MDBOOK-Slice-6` | glossary + changelog-index authored; LIVE tracker note (README already lists book); **tree complete** |
 
 ## Changelog
 
@@ -129,3 +130,4 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 - `2026-05-15`: `RTL-FE-MDBOOK.2` done; frontier advances to `.3` (shape-reference chapters).
 - `2026-05-16`: `RTL-FE-MDBOOK.3` done; frontier advances to `.4` (empty_module worked example), then `.6` (glossary/changelog/links).
 - `2026-05-16`: `RTL-FE-MDBOOK.4` done (real captured AST, metrics byte-verified); frontier advances to `.6` (final leaf — glossary/changelog/links).
+- `2026-05-16`: `RTL-FE-MDBOOK.6` done (glossary + changelog-index + LIVE tracker note; README already covered). All children `done`; **`RTL-FE-MDBOOK` tree closed** and moved to Completed Task Trees in `docs/TASK_TREE.md`.
