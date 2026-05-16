@@ -26,9 +26,11 @@ same commit.
 
 ## Active Task Trees
 
+_None active — all eight task trees are complete (`2026-05-16`). Remaining repo work proceeds as non-task-tree single-slice lanes (each its own `PGEN-<FAMILY>-<NNNN>` ID): the `systemverilog`-book `DOC-ENVELOPE-0001` closeout, the inline-alternation parser-correctness lane (`SVPP-0001` + rtl_frontend/vhdl `binop_chain`), and the `DOC-README-SHELL-0001` README/COMMIT.md `SHELL=` reconciliation. See `LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot._
+
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `SVPP-CONTRACT-BODY` | `active` | sv_preprocessor deliverables | `SVPP-CONTRACT-BODY.4` | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
+| _(none active)_ | | | | |
 
 ## Proposed Task Trees
 
@@ -50,6 +52,7 @@ PNT-eligible until explicitly activated.
 | `VHDL-CONTRACT-BODY` | `done` | vhdl deliverables | all leaves `.1`–`.4` `done` (`2026-05-16`); VHDL book DOC-ENVELOPE-0001 closed in lockstep | [docs/tasks/VHDL-CONTRACT-BODY.md](tasks/VHDL-CONTRACT-BODY.md) |
 | `RTL-FE-CONTRACT-BODY` | `done` | rtl_frontend deliverables | all leaves `.1`–`.4` `done` (`2026-05-16`); rtl_frontend book DOC-ENVELOPE-0001 closed in lockstep (7 chapters) | [docs/tasks/RTL-FE-CONTRACT-BODY.md](tasks/RTL-FE-CONTRACT-BODY.md) |
 | `RTL-CE-CONTRACT-BODY` | `done` | rtl_const_expr deliverables | all leaves `.1`–`.3` `done` (`2026-05-16`); rtl_const_expr book DOC-ENVELOPE-0001 closed in lockstep (7 chapters, Slice-2); .3 added literal/identifier shapes + Companion Documentation + Gate Recipe + Glossary | [docs/tasks/RTL-CE-CONTRACT-BODY.md](tasks/RTL-CE-CONTRACT-BODY.md) |
+| `SVPP-CONTRACT-BODY` | `done` | sv_preprocessor deliverables | all leaves `.1`–`.4` `done` (`2026-05-16`); sv_preprocessor book DOC-ENVELOPE-0001 closed in lockstep (8 chapters, Slice-2); .2 AST Envelope + pp_item dispatch, .3 conditional tree + macro fragments, .4 Companion Documentation + Gate Recipe + Glossary | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
 
 ## Coverage Note
 

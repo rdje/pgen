@@ -596,3 +596,260 @@ the inventory wins.
 - This document is intentionally explicit that `systemverilog_preprocessor` does not yet have the same published host-embedding shape as `systemverilog`, `vhdl`, or `regex`.
 - Downstream consumers should not couple themselves to internal generated parser modules as if they were already a stable public API.
 - If a downstream integrator still reports a reproducible preprocessor/runtime bug, use `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and log accepted released-parser issues in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+
+## Companion Documentation — sv_preprocessor Parser Integration mdBook
+
+This contract is the **downstream integration surface**: the host-API
+envelope, the `pp_item` dispatch / conditional-compilation / macro-body
+shapes a consumer compiles against, and the release/schema axes. It does
+not duplicate the per-rule walkthroughs or worked examples — those live
+in the companion artifacts below. Each surface is authoritative for a
+different thing; consult the matching one and respect the precedence
+order stated at the end of this section.
+
+| Surface | Path | Authoritative for |
+|---|---|---|
+| **This contract** | `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` | The downstream integration surface: AST-dump envelope, `systemverilog_preprocessor_file` root, the 10-branch `pp_item` dispatch, the conditional-compilation tree, and the macro-body / macro-default fragment streams. See [AST Envelope and pp_item Dispatch](#ast-envelope-and-pp_item-dispatch) and [Conditional Compilation and Macro Body Fragments](#conditional-compilation-and-macro-body-fragments). |
+| **Per-parser mdBook** | `docs/systemverilog_preprocessor_parser_book/` (source `src/*.md`; tracked HTML at `docs/systemverilog_preprocessor_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples (including the `SVPP-0001` conditional shown honestly), schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. Listed in `README.md` § "Per-Parser Integration Reference Books". |
+| **Shape-contract manifest** | `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
+| **Declared-annotation inventory** | `generated/systemverilog_preprocessor_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the systemverilog_preprocessor grammar emits (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 64`, **27 distinct rules**; all 64 `return_object`). The generator-side source of truth for the typed surface. |
+| **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released systemverilog_preprocessor parser; the known defect `SVPP-0001` lives there (status `Root Caused`, fix not yet landed). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+
+Precedence when surfaces disagree (highest first): the **embedding-API
+contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
+`AstDumpPayload` truth; the **declared-annotation inventory**
+(`generated/systemverilog_preprocessor_return_annotations.json`) and its
+embedded shape-contract manifest copy
+(`rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`)
+win for the exact typed-shape enumeration; **this integration contract**
+wins over the **per-parser mdBook** for downstream compliance. Report any
+disagreement as a documentation bug rather than silently coding to the
+lower-precedence surface.
+
+### Gate Recipe
+
+The exact, copy-pasteable per-family commands a downstream integrator or
+releaser runs. Each is verified against the repo (`rust/Makefile`,
+`docs/systemverilog_preprocessor_parser_book/src/build-recipe.md`,
+`rust/src/ast_shape_contract.rs`); none are invented — do not substitute
+flags.
+
+**1. On-demand parser regen.** The systemverilog_preprocessor parser is
+on-demand-only (not in the default `cargo test --features
+generated_parsers` build). Build `ast_pipeline`, then regenerate the
+parser from `grammars/systemverilog_preprocessor.ebnf` (run from
+`rust/`, per
+`docs/systemverilog_preprocessor_parser_book/src/build-recipe.md`
+§ "Cold-clone build"):
+
+```bash
+cd rust && cargo build --release --features ebnf_dual_run --bin ast_pipeline
+./target/release/ast_pipeline ../grammars/systemverilog_preprocessor.ebnf \
+    --generate-parser --output ../generated/systemverilog_preprocessor_parser.rs
+```
+
+To wire the regenerated parser into a cargo build, point
+`PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH` at the absolute path of the
+generated file before `cargo build --release --features
+generated_parsers` (see
+`docs/systemverilog_preprocessor_parser_book/src/build-recipe.md`
+§ "Wiring into a downstream Cargo build").
+
+**2. Per-family book gate.** Builds the sv_preprocessor parser book and
+verifies the tracked HTML landing pages (Makefile target
+`systemverilog_preprocessor_parser_book_gate`, `rust/Makefile`
+line 751, which runs
+`rust/scripts/systemverilog_preprocessor_parser_book_gate.sh`):
+
+```bash
+make -C rust SHELL=/opt/homebrew/bin/bash systemverilog_preprocessor_parser_book_gate
+```
+
+> Shell note: this contract (and the book's `build-recipe.md`)
+> deliberately use the Homebrew bash-4+ path
+> `SHELL=/opt/homebrew/bin/bash`, consistent with the other per-family
+> contracts. `README.md` § "Per-Parser Integration Reference Books"
+> still prints the `SHELL=/bin/bash systemverilog_preprocessor_parser_book_gate`
+> form; that README-wide discrepancy is tracked as
+> `DOC-README-SHELL-0001` — prefer the Homebrew path used here.
+
+**3. AST-shape-contract regression lock.** With the generated backend
+wired in (`PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_PATH` exported), run
+the shape-contract test that diffs the running generated parser against
+`rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
+(test fn
+`systemverilog_preprocessor_ast_shape_contract_holds_against_running_generated_parser`
+in the `pgen::ast_shape_contract` library module,
+`rust/src/ast_shape_contract.rs` line 817):
+
+```bash
+cargo test --lib --features generated_parsers systemverilog_preprocessor_ast_shape_contract
+```
+
+The substring `systemverilog_preprocessor_ast_shape_contract` selects
+exactly the
+`systemverilog_preprocessor_ast_shape_contract_holds_against_running_generated_parser`
+test (it does not match the `vhdl_*` / `rtl_*` shape-contract tests in
+the same module). Any drift between the running parser's emitted shapes
+and the locked manifest fails this test, surfacing the change before
+release. (The accepted `SVPP-0001` defect is part of the locked
+baseline — it is documented honestly, not masked; the schema version
+deliberately **stays `1`** until the systemic inline-alternation fix
+lands with a schema bump + lockstep.)
+
+**4. Validation / release gates.** Anyone publishing a parser-release
+version bump also runs the per-family gates enumerated in
+[Validation / Release Gates](#validation--release-gates) (the
+`sv_preprocessor_quality_gate`, `sv_preprocessor_curated_differential_gate`,
+and `sv_preprocessor_template_differential_gate` targets). That section
+is the canonical list; it is not repeated here.
+
+## Glossary
+
+Contract-scoped definitions of the terms a downstream integrator needs to
+read this document. Where a term has a normative definition, this
+contract is authoritative; the per-parser book's
+[glossary](../systemverilog_preprocessor_parser_book/src/glossary.md)
+paraphrases the same terms for quick lookup. Numbers below are pinned to
+contract `1.0.1` / AST-dump schema `1` / parser release `1.0.1` /
+**64 return annotations across 27 distinct rules** (all 64
+`return_object`).
+
+- **`AstDumpPayload`** — the success return of the
+  systemverilog_preprocessor AST-dump host entry points (defined in
+  `rust/src/embedding_api.rs`, contract in
+  `rust/docs/EMBEDDING_API_CONTRACT.md`). A canonical-JSON payload string
+  plus truncation metadata, with **exactly four fields**: `dump_json`,
+  `truncated`, `full_bytes`, `emitted_bytes`. It does **not** carry
+  `root` / `schema_version` / `grammar` / `profile` members — see
+  [The `AstDumpPayload` envelope](#the-astdumppayload-envelope) for the
+  precise accuracy note.
+- **`dump_json`** — the `AstDumpPayload` field holding the canonical
+  (key-sorted) JSON encoding of the typed systemverilog_preprocessor
+  AST. Parse this string to obtain the
+  `systemverilog_preprocessor_file` root object. When `truncated` is
+  `true` this string is replaced by the truncation diagnostic envelope,
+  not the AST.
+- **Truncation diagnostic envelope** — the deterministic JSON object
+  that replaces the AST in `dump_json` when `max_ast_bytes` is exceeded.
+  It carries `pgen_dump_contract_version` (currently `1`), `kind:
+  "pgen_ast_dump_truncation"`, `truncated: true`, `dump_kind:
+  "parser_return_ast"`, `max_bytes`, `full_bytes`, and `reason`.
+  Consumers must check `truncated` (or detect `kind ==
+  "pgen_ast_dump_truncation"`) before treating `dump_json` as a
+  systemverilog_preprocessor AST. `pgen_dump_contract_version` is a
+  member of **this envelope only**, never of `AstDumpPayload` itself.
+- **AST-dump schema version** — the integer version axis tracking the
+  AST output shape, currently `1`, pinned by this contract (see
+  [Schema Versioning](#schema-versioning)). It is **not** a field of
+  `AstDumpPayload`; it is the contract-tracked axis. Bumped only when
+  the emitted shape changes in a way consumers may need to adapt to (new
+  annotation on a previously-unannotated rule, restructured annotation,
+  user-visible grammar-shape change). The `SVPP-0001` fix is the
+  scheduled trigger for the next bump (`1 → 2`); it deliberately
+  **stays `1`** for release `1.0.1`.
+- **Parser release version** — the parser library's release identity,
+  currently `1.0.1`. Bumped on every functional change (bug fixes, perf
+  work, grammar changes). Moves independently of the schema version; the
+  `1.0.1` release carries AST-dump schema `1`.
+- **`pp_item` dispatch** — the primary top-level dispatcher: a
+  **10-branch** `kind`-tagged shape
+  (`grammars/systemverilog_preprocessor.ebnf` lines 18–27). Every parse
+  roots at `{type: "systemverilog_preprocessor_file", items: [...]}`;
+  each element of `items` is one typed `pp_item` object in source order.
+  The `systemverilog_preprocessor_file` root is the only `type`-tagged
+  dispatch object; `pp_item`, `condition_atom`, `macro_default_atom`,
+  and `macro_body_fragment` all dispatch on `kind`. See
+  [The 10-branch `pp_item` dispatch](#the-10-branch-pp_item-dispatch).
+- **The 10 `pp_item` kinds** — `"define"`, `"undef"`, `"include"`,
+  `"timescale"`, `"default_nettype"`, `"celldefine"`,
+  `"endcelldefine"`, `"conditional"`, `"non_directive_line"`,
+  `"blank_line"` (branch indices 0–9). Every kind except the three
+  bodyless ones (`"celldefine"`, `"endcelldefine"`, `"blank_line"`)
+  carries a `body` holding the underlying typed shape.
+- **The 7 directive shapes** — the seven non-conditional directive
+  rules below the `pp_item` dispatch, each a single-branch
+  `return_object`: `pp_define` (`{name, formals, body}`), `pp_undef`
+  (`{name, comment}`), `pp_include` (`{path, comment}`), `pp_timescale`
+  (`{unit, precision, comment}`), `pp_default_nettype`
+  (`{nettype, comment}`), `pp_celldefine` (`{comment}`),
+  `pp_endcelldefine` (`{comment}`). See [Per-directive shapes](#per-directive-shapes).
+- **Conditional-compilation tree** — the typed five-node tree the
+  `pp_item` `"conditional"` branch hands back: `pp_conditional`
+  (`{if_branch, elsif_branches, else_branch}`) over `pp_if_branch`
+  (`{keyword, macro, tail, items}`), `pp_elsif_branch`
+  (`{condition, items}`), `pp_else_branch` (`{tail, items}`), and
+  `pp_endif` (`{tail}`). Each branch's `items` is a nested `pp_item*`
+  array; the closing `pp_endif` is consumed positionally and is **not**
+  re-emitted as a `pp_conditional` field. See
+  [The conditional-compilation tree](#the-conditional-compilation-tree).
+- **`macro_body_fragment` / `macro_default_atom`** — the two
+  `kind`-tagged fragment-stream dispatchers. `macro_body` is
+  `{fragments}` over **9** `macro_body_fragment` kinds (`"token_paste"`,
+  `"stringize"`, `"macro_reference"`, `"text"`, `"lparen"`, `"rparen"`,
+  `"comma"`, `"question"`, `"colon"`); `macro_default_value` is
+  `{atoms}` over **8** `macro_default_atom` kinds (the same set **minus
+  `"comma"`**, whose text leaf is `macro_default_text`). Only the
+  `"macro_reference"` / `"text"` kinds carry a `body`; the others are
+  bare `{kind}`. See [The `macro_body` fragment kinds](#the-macro_body-fragment-kinds)
+  and [The `macro_default_atom` kinds](#the-macro_default_atom-kinds).
+- **Recursive envelope** — the default JSON shape produced by
+  un-annotated rules: a recursive composition of arrays (sequences,
+  quantified iterations such as a branch's nested `pp_item*` `items`),
+  strings (terminal/regex leaves — e.g. the `macro_name` / `identifier`
+  envelope, the `directive_comment_tail` / `directive_tail` tail), and
+  matched-branch passthroughs (for alternations). Un-matched optionals
+  are the empty array `[]`, never `null`. It is what a consumer reaches
+  when descending below the typed surface (the `name` / `comment` /
+  `tail` envelopes; the malformed `pp_if_branch.keyword` nested object
+  of `SVPP-0001`).
+- **Shape-contract manifest** — the embedded machine-checkable shape
+  lock `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`.
+  Content-identical to the declared-annotation inventory on the
+  `(rule, branch_index, annotation_type, normalized_text)` tuples (omits
+  only the diagnostic `raw_text` field). Drift fails the
+  `systemverilog_preprocessor_ast_shape_contract_holds_against_running_generated_parser`
+  regression test (see [Gate Recipe](#gate-recipe)).
+- **Declared-annotation inventory** — the live machine-checkable
+  enumeration of every typed-shape annotation the
+  systemverilog_preprocessor grammar emits:
+  `generated/systemverilog_preprocessor_return_annotations.json`
+  (`version: 1`, `grammar: "systemverilog_preprocessor"`,
+  `annotation_count: 64`, **27 distinct rules**; all 64
+  `return_object`). The generator-side source of truth for the typed
+  surface; mirrored by the embedded shape-contract manifest copy. (The
+  `version: 1` field is the inventory-file format version, distinct from
+  the AST-dump schema version `1` and the parser release version
+  `1.0.1`.)
+- **Generic host AST-dump surface** — the
+  `parse_grammar_profile_ast_dump*` family
+  (`parse_grammar_profile_ast_dump`, the `*_result` and `*_named`
+  forms). The grammar-agnostic entry points that, for the
+  `systemverilog_preprocessor` grammar + `default` profile, would return
+  the `AstDumpPayload`. systemverilog_preprocessor has **no**
+  named-convenience entry point and (per
+  [Stable Integration Surface](#stable-integration-surface)) does **not**
+  currently publish a dedicated general-purpose embedding-API profile in
+  `pgen::embedding_api`; the practical stable surface today is the
+  runtime module `rust/src/sv_preprocessor.rs` plus the executable
+  gates. Signatures are in `rust/docs/EMBEDDING_API_CONTRACT.md`.
+- **`SVPP-0001`** — the one accepted shape defect the released `1.0.1`
+  parser ships: `pp_if_branch.keyword` (the `$1` bound to the inline
+  alternation `(kw_ifdef | kw_ifndef)` at
+  `grammars/systemverilog_preprocessor.ebnf` line 64) surfaces, for any
+  `` `ifdef``/`` `ifndef`` input, a malformed nested object containing
+  three `"<invalid_sequence_access>"` strings instead of the keyword
+  token — the inline-alternation-`$N` emit-time defect class also fixed
+  for `rtl_const_expr` in RTL-CE-Slice-2 and tracked for
+  `rtl_frontend` / `vhdl` `binop_chain`. **NOT fixed in `1.0.1`**
+  (status `Root Caused`); tracked in
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` and documented at
+  [Known Defects (release 1.0.1)](#known-defects-release-101) and in the
+  [Known defect — `SVPP-0001`](#known-defect--svpp-0001) and
+  [`SVPP-0001` in the conditional-tree context](#svpp-0001-in-the-conditional-tree-context)
+  notes. Consumer workaround: read the guard from the correct outer
+  `if_branch.macro` and treat `if_branch.keyword` as opaque. The AST-dump
+  schema version deliberately **stays `1`** for this release; the fix is
+  deferred to the systemic inline-alternation correctness lane with a
+  schema bump + book/contract lockstep.

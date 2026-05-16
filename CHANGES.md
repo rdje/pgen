@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-05-16 - SVPP-CONTRACT-BODY-Slice-4 (PGEN-SVPP-CONTRACT-BODY-0004, leaf SVPP-CONTRACT-BODY.4): Companion Documentation + Gate Recipe + Glossary — closes the tree (8th completed; ALL task trees now complete)
+
+- sv_preprocessor integration contract, final leaf:
+  - **`## Companion Documentation`** — 6-row surface/authority table
+    (this contract / `docs/systemverilog_preprocessor_parser_book/`
+    + `-html` / `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
+    manifest / `generated/systemverilog_preprocessor_return_annotations.json`
+    inventory / `rust/docs/EMBEDDING_API_CONTRACT.md` / the released-parser
+    bug ledger noting `SVPP-0001` lives there) + precedence order
+    (EMBEDDING_API_CONTRACT > inventory/manifest > this contract > book).
+  - **`### Gate Recipe`** — book gate / AST-shape test / on-demand
+    regen, EACH source-verified: `rust/Makefile:750-753`,
+    `rust/src/ast_shape_contract.rs:817`
+    (`systemverilog_preprocessor_ast_shape_contract…` — unique fn),
+    `docs/systemverilog_preprocessor_parser_book/src/build-recipe.md`
+    flags; Validation/Release Gates referenced by anchor (not
+    duplicated). Uses `SHELL=/opt/homebrew/bin/bash` (consistent with
+    the other contracts + build-recipe) with an explicit
+    `DOC-README-SHELL-0001` note flagging README's divergent
+    `/bin/bash`.
+  - **`## Glossary`** — 15 contract-scoped terms (real 4-field
+    `AstDumpPayload`, dump_json, truncation envelope, pinned schema 1,
+    release 1.0.1, pp_item dispatch + 10 kinds, 7 directive shapes,
+    conditional tree, macro_body_fragment/macro_default_atom, recursive
+    envelope, manifest, inventory, generic host surface, `SVPP-0001`).
+- Independently verified: Companion Documentation / Glossary / Gate
+  Recipe ×1 each; **no duplicate `## ` headers**; **zero** fabricated-
+  struct reintroduction; numbers clean (`1.0.1` / schema `1` / 64 / 27,
+  **zero** `1.0.2` or schema-2 leak); `SVPP-0001` honest (18 refs,
+  never claimed fixed, schema not bumped); `README.md:237` lists the
+  book (read-only confirm; README not edited — `DOC-README-SHELL-0001`
+  divergence is the tracked cross-family WORKFLOW item).
+- **`SVPP-CONTRACT-BODY` tree complete** — root + all leaves `.1`–`.4`
+  `done`, frontier emptied, promoted to Completed in
+  `docs/TASK_TREE.md` (**8th completed tree**). **All eight task trees
+  are now complete** (VHDL/RTL-FE/RTL-CE/SVPP -MDBOOK +
+  VHDL/RTL-FE/RTL-CE/SVPP -CONTRACT-BODY). The TASK_TREE Active table
+  is now empty; remaining repo work proceeds as non-task-tree
+  single-slice lanes: (1) the **`systemverilog`-book
+  `DOC-ENVELOPE-0001`** closeout (the last remaining book —
+  rtl_frontend/vhdl/rtl_const_expr/sv_preprocessor all closed); (2) the
+  **inline-alternation parser-correctness** lane (`SVPP-0001` +
+  rtl_frontend/vhdl `binop_chain`); (3) **`DOC-README-SHELL-0001`**
+  (README/COMMIT.md `SHELL=` reconciliation).
+
 ## 2026-05-16 - SVPP-CONTRACT-BODY-Slice-3 (PGEN-SVPP-CONTRACT-BODY-0003, leaf SVPP-CONTRACT-BODY.3): Conditional Compilation and Macro Body Fragments
 
 - sv_preprocessor integration contract: added **`## Conditional

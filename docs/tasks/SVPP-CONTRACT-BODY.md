@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `SVPP-CONTRACT-BODY`
-- Status: `active`
+- Status: `done`
 - Roadmap lane: sv_preprocessor deliverables
 - Created: `2026-05-14`
 - Last updated: `2026-05-16`
@@ -33,7 +33,7 @@ public API, schema versioning, release identity, gate recipe, and the
 ## Task Tree
 
 - ID: `SVPP-CONTRACT-BODY`
-  Status: `active`
+  Status: `done`
   Goal: `Body out the sv_preprocessor integration contract.`
   Children: `SVPP-CONTRACT-BODY.1`, `SVPP-CONTRACT-BODY.2`,
   `SVPP-CONTRACT-BODY.3`, `SVPP-CONTRACT-BODY.4`
@@ -60,17 +60,15 @@ public API, schema versioning, release identity, gate recipe, and the
   Commit: `SVPP-CONTRACT-BODY-Slice-3`
 
 - ID: `SVPP-CONTRACT-BODY.4`
-  Status: `pending`
+  Status: `done`
   Goal: `Add gate recipe + manifest cross-reference + README/LIVE_ACHIEVEMENT_STATUS links.`
   Acceptance: `Contract references manifest + future book + lib API entry points.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: Added "## Companion Documentation" (6-row surface/authority table: this contract / book + -html / systemverilog_preprocessor_v1.json manifest / return-annotation inventory / EMBEDDING_API_CONTRACT / bug ledger w/ SVPP-0001 note; precedence EMBEDDING_API_CONTRACT > inventory/manifest > contract > book), "### Gate Recipe" (book gate / AST-shape test / on-demand regen — each source-verified: rust/Makefile:750-753, rust/src/ast_shape_contract.rs:817 unique fn, build-recipe.md flags; Validation/Release Gates by anchor; uses SHELL=/opt/homebrew/bin/bash + a DOC-README-SHELL-0001 note vs README's /bin/bash), "## Glossary" (15 contract-scoped terms incl. SVPP-0001). Independently verified: Companion Documentation/Glossary/Gate Recipe ×1 each; no dup ## headers; no fabricated-struct reintroduction; numbers clean (1.0.1 / schema 1 / 64 / 27, ZERO 1.0.2 or schema-2 leak); SVPP-0001 honest (NOT claimed fixed, 18 refs); README:237 lists the book (read-only confirm; not edited — DOC-README-SHELL-0001 divergence noted). Scope = contract file only.`
+  Commit: `SVPP-CONTRACT-BODY-Slice-4`
 
 ## Current Frontier
 
-| Order | Leaf | Status | Why next |
-| --- | --- | --- | --- |
-| 1 | `SVPP-CONTRACT-BODY.4` | `pending` | Gate recipe + manifest cross-reference + README/LIVE links close the contract — final leaf (closes the tree). |
+_Empty — tree complete. All leaves `.1`–`.4` `done` (`2026-05-16`)._
 
 ## Decisions
 
@@ -92,6 +90,7 @@ public API, schema versioning, release identity, gate recipe, and the
 | `2026-05-15` | `SVPP-CONTRACT-BODY.1` | manual review of inserted sections | `pass — Identity through Release 1.0.1 surface populated at the top of the existing scope-limited contract` |
 | `2026-05-16` | `SVPP-CONTRACT-BODY.2` | section-count + dup-`## `-header + no-fabricated-reintroduction grep on contract; inventory cross-check (annotation_count/array-len/distinct-rules/pp_item-branches); broad-audit targeted fabricated residual on book src; SVPP-0001 framing check; independent `systemverilog_preprocessor_parser_book_gate` re-run | `pass — AST Envelope + pp_item Dispatch section (real AstDumpPayload, 10 pp_item kinds, 7 directive shapes, SVPP-0001 honest/not-fixed/schema-1); inventory EXACT 64/27/10; sv_preprocessor book DOC-ENVELOPE-0001 comprehensively closed (8 chapters, targeted fabricated-residual 0, 5 legitimate disclaimers/truncation); gate green; HTML deterministic` |
 | `2026-05-16` | `SVPP-CONTRACT-BODY.3` | section-count + dup-`## `-header + no-fabricated-reintroduction grep; conditional-tree rule presence; inventory fragment/atom-count cross-check; numbers/SVPP-0001/scope check | `pass — Conditional Compilation and Macro Body Fragments section (5-rule conditional tree, macro_body_fragment 9, macro_default_atom 8, pp_define-body consumer walk, SVPP-0001 fragment-context honest/not-fixed/schema-1); inventory EXACT (9/8/5×1-branch); 1.0.1 uniform (2 "1.0.0" = pre-existing schema-table rows); no dup ## headers; scope = contract only` |
+| `2026-05-16` | `SVPP-CONTRACT-BODY.4` | section-count (Companion Documentation/Glossary/Gate Recipe ×1) + dup-`## `-header + no-fabricated-reintroduction grep; gate/test/regen command source-verification; numbers + SVPP-0001-not-claimed-fixed + README-listing + scope check | `pass — Companion Documentation (6-row authority table) + Gate Recipe (3 commands source-verified: Makefile:750-753, ast_shape_contract.rs:817 unique fn, build-recipe.md; SHELL=/opt/homebrew/bin/bash + DOC-README-SHELL-0001 note) + 15-term Glossary; no dup ## headers; numbers clean (1.0.1/schema 1/64/27, ZERO 1.0.2 or schema-2 leak); SVPP-0001 honest (18 refs, not claimed fixed); README:237 lists book; scope = contract only. Tree closed.` |
 
 ## Commit Log
 
@@ -100,9 +99,11 @@ public API, schema versioning, release identity, gate recipe, and the
 | `SVPP-CONTRACT-BODY.1` | `SVPP-CONTRACT-BODY-Slice-1` | Contract Identity + Schema Versioning + Release 1.0.1 Highlights (full 64-annotation surface) inserted at the top |
 | `SVPP-CONTRACT-BODY.2` | `SVPP-CONTRACT-BODY-Slice-2` | AST Envelope + pp_item Dispatch (10 kinds + 7 directive shapes, SVPP-0001 honest); sv_preprocessor book DOC-ENVELOPE-0001 comprehensively closed in lockstep (8 chapters, fabricated-residual 0, gate green) |
 | `SVPP-CONTRACT-BODY.3` | `SVPP-CONTRACT-BODY-Slice-3` | Conditional Compilation and Macro Body Fragments (5-rule conditional tree + macro_body_fragment 9 + macro_default_atom 8 + pp_define-body consumer walk; SVPP-0001 fragment-context honest); inventory cross-check EXACT; contract-only |
+| `SVPP-CONTRACT-BODY.4` | `SVPP-CONTRACT-BODY-Slice-4` | Companion Documentation 6-row authority table + source-verified Gate Recipe + 15-term Glossary; closes the tree (8th completed) |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-16`: `.2` done (AST Envelope + pp_item Dispatch section — 10 pp_item kinds + 7 directive shapes + SVPP-0001 honest/not-fixed/schema-1; inventory cross-check EXACT 64/27/10; sv_preprocessor book `DOC-ENVELOPE-0001` comprehensively closed in lockstep — 8 chapters, targeted fabricated-residual 0, independent gate re-run green). Frontier advances to `.3` (conditional-compilation tree + macro_body fragment + macro_default_atom). Tree stays `active` (`.3`, `.4` remain).
 - `2026-05-16`: `.3` done (Conditional Compilation and Macro Body Fragments section — 5-rule conditional tree + macro_body_fragment 9 kinds + macro_default_atom 8 kinds + pp_define-body consumer walk; SVPP-0001 framed in fragment context, honest/not-fixed/schema-1; inventory cross-check EXACT 9/8/5×1-branch; contract-only — sv_preprocessor book DOC-ENVELOPE already closed in `.2`). Frontier advances to `.4` (gate recipe + manifest cross-ref + README/LIVE links — final leaf, closes the tree). Tree stays `active` (`.4` remains).
+- `2026-05-16`: `.4` done (Companion Documentation 6-row authority table + source-verified Gate Recipe + 15-term Glossary; independently verified — sections ×1, no dup `## ` headers, no fabricated reintroduction, numbers clean, SVPP-0001 honest, commands source-verified, README lists the book). **Tree `SVPP-CONTRACT-BODY` complete** — root + all leaves `.1`–`.4` `done`; frontier emptied; promoted to Completed in `docs/TASK_TREE.md` (**8th completed tree — all task trees now complete**). DOC-README-SHELL-0001 noted in the Gate Recipe (contract uses the correct `/opt/homebrew/bin/bash`).
