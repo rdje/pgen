@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-05-16 - Declared-annotation inventory backfill: systemverilog_preprocessor + vhdl (PGEN-PIP-002)
+
+Continued the declared-annotation-inventory rollout (schema + gate
+enforcement introduced in `9a191563`, "optional during rollout") by
+backfilling the embedded `declared_annotation_inventory` block into the
+two remaining large parser-family manifests:
+
+- `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
+  — 64 tracked annotations; `pipeline_inventory_artifact` =
+  `generated/systemverilog_preprocessor_return_annotations.json`,
+  `optional_grammar_json_crosscheck` =
+  `generated/systemverilog_preprocessor.json`.
+- `rust/test_data/ast_shape_contract/vhdl_v1.json` — 249 tracked
+  annotations; `pipeline_inventory_artifact` =
+  `generated/vhdl_return_annotations.json`,
+  `optional_grammar_json_crosscheck` = `generated/vhdl.json`.
+
+Each manifest's existing per-sample shape rows are unchanged; the only
+edits are the additive `declared_annotation_inventory` section plus
+JSON-pretty reflow of the two top-level sample rows. Embedded counts
+match the pipeline-emitted artifacts exactly (svpp 64=64, vhdl 249=249).
+No parser regeneration, no `drift_status` change (manifests stay
+`aligned`).
+
+This was work-in-progress left uncommitted by a terminal crash;
+recovered and finalized per `COMMIT.md`. After this slice, only
+`semantic_annotation_v1.json` and `systemverilog_v1.json` remain without
+the optional inventory block.
+
+Validation: `make -C rust SHELL=/opt/homebrew/bin/bash
+ast_shape_contract_gate` — 8/8 family tests pass (the
+`systemverilog_preprocessor` and `vhdl` tests regression-lock the new
+embedded inventory against the pipeline artifacts via
+`run_manifest` → `diff_declared_annotation_inventory`).
+
 ## 2026-05-14 - Task-tree workflow installed (PGEN-WORKFLOW-0001)
 
 Adopted the FSMGen task-tree decomposition workflow for multi-slice lanes. New files:

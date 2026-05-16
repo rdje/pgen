@@ -1,4 +1,57 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-16 - Declared-annotation inventory backfill: systemverilog_preprocessor + vhdl (PGEN-PIP-002)
+
+### Context
+
+The declared-annotation-inventory mechanism (pipeline-emitted
+`generated/<grammar>_return_annotations.json` + manifest-embedded
+`declared_annotation_inventory` regression-locked at gate time) was
+introduced in `9a191563` and documented in the same commit's
+`DEVELOPMENT_NOTES.md` entry. The schema is "optional during rollout";
+families are backfilled one at a time (e.g. `e435b1ff` for
+`rtl_const_expr`). At HEAD before this slice, the inventory existed for
+`regex`, `return_annotation`, `rtl_const_expr`, `rtl_frontend`.
+
+### What landed
+
+Backfilled the `declared_annotation_inventory` block into the two
+remaining large manifests:
+
+- `systemverilog_preprocessor_v1.json` — 64 entries
+  (`condition_atom`, `condition_expr`, `include_path`, `macro_body`,
+  pp_item dispatch family, …).
+- `vhdl_v1.json` — 249 entries (the full VHDL return-annotation
+  surface).
+
+Mechanism unchanged — no `ast_shape_contract.rs` edit. The runner
+(`run_manifest`) already reads `pipeline_inventory_artifact`, diffs it
+against the embedded list via `diff_declared_annotation_inventory`, and
+routes any `(rule, branch_index, annotation_type, normalized_text)` or
+count drift onto `regression_lock_failures`, which `assert_report`
+fails. The two top-level sample rows were JSON-pretty-reflowed by the
+inventory tooling but their assertions are byte-equivalent.
+
+### Recovery note
+
+This was the uncommitted working-tree state left by a terminal crash.
+The mdBook portion of the crashed session (the four
+`systemverilog_preprocessor_parser_book/src/*.md` core navigation
+chapters, leaf `SVPP-MDBOOK.2`) was a distinct concern and was recovered
++ committed separately as `SVPP-MDBOOK-Slice-3` (`83fd2e7a`); the
+git-history of the parallel `*-MDBOOK-Slice-3` commits confirms mdBook
+slices never touch `*_v1.json`, so the two concerns were correctly
+split into two commits per `COMMIT.md` ("stage only intended tracked
+files").
+
+### Validation
+
+`make -C rust SHELL=/opt/homebrew/bin/bash ast_shape_contract_gate` →
+`running 8 tests … 8 passed; 0 failed`. The `systemverilog_preprocessor`
+and `vhdl` family tests are the ones that exercise the new embedded
+inventories against `generated/systemverilog_preprocessor_return_annotations.json`
+and `generated/vhdl_return_annotations.json` respectively. Counts verified
+independently: svpp 64 (artifact) = 64 (manifest); vhdl 249 = 249.
+
 ## 2026-05-03 - regex.ebnf slice 40/N — modifier_item per-branch typed (closes inline_modifiers spec end-to-end)
 
 Twelfth sub-rule typing slice. Closes the modifier subtree at all 4 sub-rule levels.
