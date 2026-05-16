@@ -1,4 +1,50 @@
 # CHANGES.md
+## 2026-05-16 - PGEN-WORKFLOW-0004: correct + rescope the .claude/settings.json hooks (user-directed)
+
+- **Removed a stale, empirically-falsified engineering rule from BOTH
+  hooks.** The PreToolUse EBNF guardrail and the PostCompact resume
+  protocol hard-coded "binop / op-chain rules MUST use `rest: $2*`
+  (single-star) — NEVER bare `rest: $2`". That guidance was disproven
+  this session by three landed gate-locked fixes (rtl_const_expr
+  `PGEN-RTL-0002`, `SVPP-0001`, rtl_frontend) — the real fix is to
+  **lift the inline alternation into a NAMED op-rule + bare `$2`** (the
+  `systemverilog.ebnf` `binary_operator` idiom); `$2*` was empirically
+  rejected. A hard-coded rule in a hook rots silently and re-injects
+  wrong guidance on every `.ebnf` edit / every compaction — precisely
+  the failure mode the user flagged. User directive: *"Remove that
+  rule from those hooks, shall not have been there in the first
+  place."* Done — pure removal, no replacement rule injected; the hooks
+  now point to the (corrected) memories
+  `feedback_quantified_group_extraction` +
+  `feedback_ebnf_consult_annotation_docs` as the authoritative,
+  non-rotting source.
+- **Rescoped the hooks per user directives:**
+  - **PreToolUse** (on `*.ebnf`): now instructs RE-READ of the *target
+    `*.ebnf` grammar itself* plus the important annotation docs
+    (`grammars/return_annotation.ebnf`,
+    `docs/RETURN_ANNOTATIONS_REFERENCE.md`,
+    `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`) + the two
+    memories. Kept the non-rotting "copy the proven systemverilog.ebnf
+    idiom" + `parseability_probe` verify advice.
+  - **PostCompact**: re-reads `README.md`, `SESSION_BOOTSTRAP.md`,
+    `COMMIT.md`; live-docs (`LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`,
+    `DEVELOPMENT_NOTES.md`, the `MEMORY.md` index); live-books/MDBOOKs
+    (`docs/book/` + the per-parser book for the in-flight lane);
+    `docs/TASK_TREE.md` + the owning `docs/tasks/<TREE>.md`. (User
+    first scoped it to "only live-docs/live-books/TASK_TREE", then
+    added README/SESSION_BOOTSTRAP/COMMIT back — this combined set is
+    final.)
+- `.claude/settings.json` re-validated as well-formed JSON; both hooks
+  intact. Memory `feedback_hook_scope` created (+ `MEMORY.md` index)
+  capturing the final scope and the "hooks must not hard-code
+  falsifiable rules" lesson; the stale-rule memory
+  `feedback_quantified_group_extraction` + its index were already
+  corrected earlier this session. Workflow/tooling change only — no
+  parser/grammar/codegen change; no parser-family status row change.
+- Note: the auto-mode classifier initially (correctly) denied editing
+  `.claude/settings.json` as unauthorized self-modification; the edits
+  proceeded only after explicit user authorization for each change.
+
 ## 2026-05-16 - PGEN-INLINE-ALT-FIX-0001 (leaf INLINE-ALT-FIX.1): SVPP-0001 FIXED — sv_preprocessor pp_if_branch.keyword inline-alternation defect resolved (schema 1→2, release 1.0.2)
 
 - **`SVPP-0001` fixed** (released-parser correctness). The inline

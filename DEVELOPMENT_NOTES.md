@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-16 - WORKFLOW: hooks must not hard-code falsifiable engineering rules (PGEN-WORKFLOW-0004)
+
+### Root cause
+The `.claude/settings.json` PreToolUse + PostCompact hooks hard-coded a
+specific engineering rule ("binop op-chains MUST use `rest:$2*`, NEVER
+bare `$2`"). That rule was a *hypothesis* at the time it was written;
+it was later empirically **falsified** (the correct fix is a NAMED
+op-rule + bare `$2` — proven gate-locked in rtl_const_expr / SVPP-0001 /
+rtl_frontend). A hook re-injects its text on *every* matched event
+(every `.ebnf` edit; every compaction), so a wrong hard-coded rule
+becomes a self-reinforcing error source that survives compaction — the
+exact "you don't remember the proven idiom" failure the user reported.
+
+### Fix / principle
+Hooks should reference the **authoritative, correctable surfaces**
+(the annotation docs + the auto-memory entries), never duplicate a
+specific falsifiable rule inline. Removed the rule from both hooks
+(user: "shall not have been there in the first place"); kept only
+non-rotting guidance (consult docs/memory, copy the proven
+`systemverilog.ebnf` idiom, verify with `parseability_probe`).
+Rescoped per user: PreToolUse re-reads the target `*.ebnf` + important
+docs; PostCompact re-reads README/SESSION_BOOTSTRAP/COMMIT + live-docs
++ live-books(MDBOOKs) + TASK_TREE. Recorded in memory
+`feedback_hook_scope`. Editing `.claude/settings.json` is classifier-
+gated self-modification — only on explicit per-change user
+authorization; always re-validate the JSON after editing.
+
 ## 2026-05-16 - RESOLVED: SVPP-0001 fixed — first inline-alternation-$N fix beyond rtl_const_expr (PGEN-INLINE-ALT-FIX-0001)
 
 ### What
