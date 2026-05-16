@@ -4,7 +4,7 @@ Terms used throughout this book. Where a term has a normative definition, the in
 
 ## AST envelope
 
-The JSON tree returned by the rtl_frontend AST-dump entry points. It is the `root` field of the `AstDumpPayload` carried by `GrammarAstDumpOutcome`. See [AST Envelope Structure](ast-envelope.md).
+The typed rtl_frontend AST. It is obtained by **parsing the `dump_json` string** of the `AstDumpPayload` (the real struct has exactly `dump_json`/`truncated`/`full_bytes`/`emitted_bytes` — there is **no** `root` field). After confirming `truncated == false`, `serde_json::from_str(&payload.dump_json)` yields the `rtl_frontend_file` root object this book's per-rule chapters describe. See [AST Envelope Structure](ast-envelope.md).
 
 ## AST shape contract manifest
 
@@ -48,7 +48,7 @@ A `-> ...` clause appended to a grammar rule definition in `grammars/rtl_fronten
 
 ## Schema version
 
-Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do **not** bump it. The integer `AstDumpPayload.schema_version` field consumers branch on at runtime is currently `1`. The contract's "Schema Versioning" table additionally uses `1.0.0` / `0.1.0` milestone labels for the typing-campaign timeline. See [Schema Versioning](schema-versioning.md).
+Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do **not** bump it. The AST-dump schema version is currently `1` — note it is **not** a field of `AstDumpPayload` (that struct has only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`); consumers **pin** the schema version they built against from `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" and re-check the contract's "Schema Versioning" table when bumping PGEN. That table additionally uses `1.0.0` / `0.1.0` milestone labels for the typing-campaign timeline. See [Schema Versioning](schema-versioning.md).
 
 ## Typed shape
 

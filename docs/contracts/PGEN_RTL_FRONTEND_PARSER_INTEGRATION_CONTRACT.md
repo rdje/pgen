@@ -171,6 +171,199 @@ The `binop_chain` shape is the consumer-facing left-fold contract; consumers fol
 
 Annotation count: **156** (was 1 / pre-typing baseline). Same accept set.
 
+> Header reconciliation: the Highlights header above reads "164 rules /
+> 156 annotations". `164` is the **total number of grammar rules** in
+> `grammars/rtl_frontend.ebnf`; the typed surface is **156 annotations on
+> 74 of those rules**. The inventory-accurate figure used throughout this
+> contract (and the per-family book) is **156 annotations / 74 distinct
+> rules**; this is a reconciled wording difference, not a contradiction —
+> the `156` is identical in both phrasings.
+
+## AST Envelope and Dispatch
+
+This section is the consumer-facing dispatch contract: how a downstream
+integrator goes from the host AST-dump call to a typed rtl_frontend tree,
+and how to branch on the top-level discriminators. Every shape below is
+transcribed from the live inventory
+`generated/rtl_frontend_return_annotations.json`
+(`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`,
+**74 distinct rules**), cross-checked against the embedded copy in
+`rust/test_data/ast_shape_contract/rtl_frontend_v1.json` (content-identical
+on the `(rule, branch_index, annotation_type, normalized_text)` tuples; the
+embedded copy omits only the diagnostic `raw_text` field), and is
+consistent with the curated per-rule reference at
+`docs/rtl_frontend_parser_book/src/rules-top-level.md`.
+
+### The `AstDumpPayload` envelope
+
+The AST-dump host entry points (the generic
+`parse_grammar_profile_ast_dump*` family and the named-result form
+`parse_grammar_profile_ast_dump_named`, used with grammar family
+`rtl_frontend` / profile `default`) return — on success — an
+`AstDumpPayload` (defined in `rust/src/embedding_api.rs`, contract in
+`rust/docs/EMBEDDING_API_CONTRACT.md`). It is a canonical-JSON payload
+string plus truncation metadata, with exactly four fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `dump_json` | string | The canonical (key-sorted) JSON encoding of the typed rtl_frontend AST. Parse this string to obtain the `rtl_frontend_file` root object described below. |
+| `truncated` | bool | `false` for a complete dump; `true` when `max_ast_bytes` was exceeded and `dump_json` instead carries the truncation diagnostic envelope. |
+| `full_bytes` | int | Byte length of the full encoded AST payload (before any truncation). |
+| `emitted_bytes` | int | Byte length actually placed in `dump_json`. Equals `full_bytes` when not truncated. |
+
+When `truncated` is `true`, `dump_json` is replaced by a deterministic
+truncation diagnostic envelope (not the AST). That envelope carries
+`pgen_dump_contract_version` (currently `1`), `kind:
+"pgen_ast_dump_truncation"`, `truncated: true`, `dump_kind:
+"parser_return_ast"`, `max_bytes`, `full_bytes`, and `reason`. Consumers
+must check `truncated` (or, equivalently, the presence of
+`pgen_dump_contract_version` / `kind == "pgen_ast_dump_truncation"` in the
+parsed `dump_json`) before treating `dump_json` as an rtl_frontend AST. If
+`max_ast_bytes` is too small to fit even the diagnostic envelope, the API
+returns `E_INVALID_LIMITS` instead.
+
+> Accuracy note: the live `AstDumpPayload` struct exposes precisely
+> `dump_json` / `truncated` / `full_bytes` / `emitted_bytes`. The
+> `pgen_dump_contract_version` / `schema_version` / `grammar` / `profile` /
+> `root` keys are **not** members of `AstDumpPayload` itself —
+> `pgen_dump_contract_version` appears only inside the truncation
+> diagnostic envelope, the schema axis is the **AST-dump schema version
+> `1`** tracked in [Schema Versioning](#schema-versioning), the grammar
+> family is the fixed `rtl_frontend` label, and the profile is the fixed
+> `default` profile (see [Stable Integration
+> Surface](#stable-integration-surface)). The "root" is the parsed
+> `rtl_frontend_file` object documented next. This contract documents the
+> surface as it exists in `rust/src/embedding_api.rs`, not an idealized
+> envelope.
+
+### The `rtl_frontend_file` root
+
+The parsed `dump_json` is, for a successful rtl_frontend parse, a single
+typed root object. Per `grammars/rtl_frontend.ebnf` (line 18–19):
+
+```ebnf
+rtl_frontend_file := trivia design_item* trivia
+                  -> {type: "rtl_frontend_file", items: $2}
+```
+
+```json
+{
+  "type": "rtl_frontend_file",
+  "items": [ /* array of design_item shapes, source order */ ]
+}
+```
+
+Consumers dispatch on `obj["type"] == "rtl_frontend_file"` at the root,
+then iterate `obj["items"]` — each element is one typed `design_item`
+object in source order. This is the only rule that carries a `type`
+discriminator at the dispatch level; every other dispatcher uses `kind`.
+
+### The 4-branch `design_item` dispatch
+
+`design_item` is the primary top-level dispatcher. It is a 4-branch
+`kind`-tagged shape (`grammars/rtl_frontend.ebnf` line 22). Consumers
+dispatch on `obj["kind"]`; every branch except `"semi"` carries a `body`
+holding the underlying typed shape:
+
+```ebnf
+design_item := typedef_declaration -> {kind: "typedef",  body: $1}
+             | package_declaration -> {kind: "package",  body: $1}
+             | module_declaration  -> {kind: "module",   body: $1}
+             | semi                -> {kind: "semi"}
+```
+
+| `kind` | `body` shape (fields) | Underlying rule (`grammars/rtl_frontend.ebnf`) |
+|---|---|---|
+| `"typedef"` | `{data_type, packed_range, name}` — `packed_range` is `[]` when no `[msb:lsb]` is present | `typedef_declaration` (line 117) |
+| `"package"` | `{name, items}` — `items` is the `package_item*` array | `package_declaration` (line 27) |
+| `"module"` | `{name, imports_pre, parameters, imports_post, ports, items}` — `parameters` / `ports` are `[]` when the optional header clause is absent; `items` is the `module_item*` array | `module_declaration` (line 35) |
+| `"semi"` | _(no `body` — a lone top-level `;` separator)_ | `semi` (line 372) |
+
+The `"semi"` branch is the only bodyless one: it carries solely
+`{kind: "semi"}` for a stray top-level `;`. Every other branch carries
+`{kind, body}` where `body` is the typed shape of the named rule.
+
+### The 10-branch `module_item` dispatch
+
+`module_item` is the in-module construct dispatcher
+(`grammars/rtl_frontend.ebnf` line 39). It is a 10-branch `kind`-tagged
+shape; every branch except `"semi"` carries `body: $1`:
+
+```ebnf
+module_item := parameter_declaration_statement -> {kind: "parameter",            body: $1}
+             | import_declaration               -> {kind: "import",              body: $1}
+             | typedef_declaration              -> {kind: "typedef",             body: $1}
+             | genvar_declaration               -> {kind: "genvar",              body: $1}
+             | module_instantiation             -> {kind: "module_instantiation", body: $1}
+             | net_declaration                  -> {kind: "net",                 body: $1}
+             | continuous_assign                -> {kind: "continuous_assign",   body: $1}
+             | procedural_block                 -> {kind: "procedural_block",    body: $1}
+             | generate_region                  -> {kind: "generate_region",     body: $1}
+             | semi                             -> {kind: "semi"}
+```
+
+| `kind` | `body` shape (fields) | Underlying rule (`grammars/rtl_frontend.ebnf`) |
+|---|---|---|
+| `"parameter"` | `{body}` — wraps a `parameter_declaration_sequence` | `parameter_declaration_statement` (line 76) |
+| `"import"` | `{package, member}` — `member` is the imported symbol or `*` wildcard | `import_declaration` (line 114) |
+| `"typedef"` | `{data_type, packed_range, name}` | `typedef_declaration` (line 117) |
+| `"genvar"` | `{first, rest}` — comma-separated genvar identifier list | `genvar_declaration` (line 120) |
+| `"module_instantiation"` | `{module_name, parameters, first, rest}` — `parameters` is `[]` when no `#(…)` override; `first` + `rest` are the `instance_item` instances | `module_instantiation` (line 123) |
+| `"net"` | `{data_type, packed_range, first, rest}` — `first` + `rest` are the `net_item` declarators | `net_declaration` (line 144) |
+| `"continuous_assign"` | `{lvalue, value}` — `assign lvalue = value;` | `continuous_assign` (line 150) |
+| `"procedural_block"` | 4-kind dispatch: `{kind: "always_comb", statement}` / `{kind: "always_latch", statement}` / `{kind: "always_ff", event_control, statement}` / `{kind: "always", event, statement}` | `procedural_block` (line 154) |
+| `"generate_region"` | `{items}` — the `generate_item*` array of a `generate … endgenerate` block | `generate_region` (line 50) |
+| `"semi"` | _(no `body` — a lone `;` separator)_ | `semi` (line 372) |
+
+### The 11-branch `generate_item` dispatch
+
+`generate_item` is the construct dispatcher used inside a generate region
+(`grammars/rtl_frontend.ebnf` line 54). It admits the same construct
+families as `module_item` but, instead of `"generate_region"`, admits
+`"generate_if"` / `"generate_for"` directly — 11 branches; every branch
+except `"semi"` carries `body: $1`:
+
+```ebnf
+generate_item := parameter_declaration_statement -> {kind: "parameter",            body: $1}
+               | import_declaration               -> {kind: "import",              body: $1}
+               | typedef_declaration              -> {kind: "typedef",             body: $1}
+               | genvar_declaration               -> {kind: "genvar",              body: $1}
+               | module_instantiation             -> {kind: "module_instantiation", body: $1}
+               | net_declaration                  -> {kind: "net",                 body: $1}
+               | continuous_assign                -> {kind: "continuous_assign",   body: $1}
+               | procedural_block                 -> {kind: "procedural_block",    body: $1}
+               | generate_if                      -> {kind: "generate_if",         body: $1}
+               | generate_for                     -> {kind: "generate_for",        body: $1}
+               | semi                             -> {kind: "semi"}
+```
+
+| `kind` | `body` shape (fields) | Underlying rule (`grammars/rtl_frontend.ebnf`) |
+|---|---|---|
+| `"parameter"` | `{body}` — wraps a `parameter_declaration_sequence` | `parameter_declaration_statement` (line 76) |
+| `"import"` | `{package, member}` | `import_declaration` (line 114) |
+| `"typedef"` | `{data_type, packed_range, name}` | `typedef_declaration` (line 117) |
+| `"genvar"` | `{first, rest}` | `genvar_declaration` (line 120) |
+| `"module_instantiation"` | `{module_name, parameters, first, rest}` | `module_instantiation` (line 123) |
+| `"net"` | `{data_type, packed_range, first, rest}` | `net_declaration` (line 144) |
+| `"continuous_assign"` | `{lvalue, value}` | `continuous_assign` (line 150) |
+| `"procedural_block"` | 4-kind dispatch (same as for `module_item`) | `procedural_block` (line 154) |
+| `"generate_if"` | `{cond, then_body, else_body}` — `else_body` is `[]` when there is no `else` | `generate_if` (line 66) |
+| `"generate_for"` | `{genvar, init_var, init_value, condition, step_var, step_value, body}` | `generate_for` (line 69) |
+| `"semi"` | _(no `body` — a lone `;` separator)_ | `semi` (line 372) |
+
+The full per-family shapes (declarations, ports, the ten-level
+`binop_chain` expression hierarchy, data types, literals) are enumerated
+in `docs/rtl_frontend_parser_book/src/rules-top-level.md`; the
+machine-checkable enumeration of every `(rule, branch_index,
+annotation_type, normalized_text)` tuple is
+`generated/rtl_frontend_return_annotations.json` and its embedded copy
+`rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. The above
+enumerates the full typed surface of contract `1.0.1`
+(**156 annotations across 74 distinct rules**, schema version `1`); this
+contract section is curated, the inventory artifact is the authoritative
+machine-checkable enumeration, and this integration contract wins over the
+per-family book if they ever disagree.
+
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
 - `rtl_frontend` is an `In Progress` family in the live tracker. The current grammar covers the synthesizable RTL subset; the full IEEE 1800 SystemVerilog surface is **out of scope** — see the `systemverilog` family for that.

@@ -82,12 +82,14 @@ exact, unabridged structure and how to regenerate it byte-for-byte.
 (`rtl_frontend_file`); `span` is the byte range covered (`0..19` — the
 whole input).
 
-## The consumer-facing view (`AstDumpPayload.root`)
+## The consumer-facing view (parsed `dump_json`)
 
 Downstream code does not call the probe — it calls the public API
 ([Public API Surface](public-api.md)), which hands back an
-`AstDumpPayload` whose `root` is the **unwrapped** `content.Json`
-value:
+`AstDumpPayload` (real fields: `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`
+— there is no `root` field). After confirming `truncated == false`,
+`serde_json::from_str(&payload.dump_json)` yields the **unwrapped**
+typed AST (the same value the probe shows under `content.Json`):
 
 ```json
 {
@@ -186,12 +188,20 @@ let outcome = parse_grammar_profile_ast_dump_named(
     &AstDumpOptions { pretty: true, max_ast_bytes: None },
 );
 
+// AST-dump schema version you integrated against, pinned from the
+// contract (NOT a field of AstDumpPayload):
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+
 match outcome.status {
     ParseStatus::Success => {
-        let dump = outcome.ast_dump.expect("Success carries an AST dump");
-        assert_eq!(dump.schema_version, 1);
+        let dump = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+        assert!(!dump.truncated, "dump_json would hold the truncation envelope");
+        let _ = RTL_FRONTEND_AST_SCHEMA_VERSION; // re-check vs the contract on PGEN bumps
 
-        let root = &dump.root;
+        // AstDumpPayload exposes dump_json/truncated/full_bytes/emitted_bytes;
+        // parse dump_json to get the typed root object.
+        let root: serde_json::Value =
+            serde_json::from_str(&dump.dump_json).expect("dump_json is valid JSON");
         assert_eq!(root["type"], "rtl_frontend_file");
 
         let unit = &root["items"][0];

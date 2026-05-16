@@ -72,7 +72,7 @@ Input:
 module m; endmodule
 ```
 
-This is the real captured output of the live `rtl_frontend` parser (`AstDumpPayload.root`):
+This is the real captured output of the live `rtl_frontend` parser (the value obtained by parsing the `AstDumpPayload.dump_json` string):
 
 - The root is the **typed root object** `{ "type": "rtl_frontend_file", "items": [ … ] }`.
 - `items` is a **recursive-envelope array** (the `design_item*` iteration) with one element.

@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: rtl_frontend deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-14`
+- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal
@@ -46,11 +46,11 @@ gate recipe — modeled on the SV contract.
   Commit: `RTL-FE-CONTRACT-BODY-Slice-1`
 
 - ID: `RTL-FE-CONTRACT-BODY.2`
-  Status: `pending`
+  Status: `done`
   Goal: `Document AST envelope + design_item / module_item / generate_item dispatch.`
   Acceptance: `Section enumerates 4/10/11 kinds with field lists and links to grammar lines.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: "AST Envelope and Dispatch" contract section added (real 4-field AstDumpPayload + truncation envelope + accuracy note, copied from the proven VHDL contract; rtl_frontend_file root; design_item=4 / module_item=10 / generate_item=11 kinds with field shapes + verified grammars/rtl_frontend.ebnf line refs). Verified 156/74 + 4/10/11 vs generated/rtl_frontend_return_annotations.json; no dup ## headers. Lockstep DOC-ENVELOPE-0001: the rtl_frontend book is now COMPREHENSIVELY 0-residual — fixed all 7 affected chapters (ast-envelope/glossary/schema-versioning/walking-the-ast/changelog-index via subagent; json-carrier + examples-empty-module added after a broad re-audit caught the worked-example dump.root/dump.schema_version vector the narrow grep missed). rtl_frontend_parser_book_gate green.`
+  Commit: `RTL-FE-CONTRACT-BODY-Slice-2`
 
 - ID: `RTL-FE-CONTRACT-BODY.3`
   Status: `pending`
@@ -70,7 +70,8 @@ gate recipe — modeled on the SV contract.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-CONTRACT-BODY.2` | `pending` | Deeper design_item / module_item dispatch documentation builds on the now-existing identity section. |
+| 1 | `RTL-FE-CONTRACT-BODY.3` | `pending` | Declarations/types/ports/statements/expressions (binop_chain left-fold) deepen the per-rule-family consumer surface. |
+| 2 | `RTL-FE-CONTRACT-BODY.4` | `pending` | Gate-recipe + manifest cross-ref + README/LIVE links close the contract. |
 
 ## Decisions
 
@@ -90,13 +91,16 @@ gate recipe — modeled on the SV contract.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-05-15` | `RTL-FE-CONTRACT-BODY.1` | manual review of created contract | `pass — 188-line contract created with full rule-by-rule surface for 156 annotations` |
+| `2026-05-16` | `RTL-FE-CONTRACT-BODY.2` | inventory cross-check + dup-header grep + comprehensive book residual audit + rtl_frontend_parser_book_gate | `pass — AST Envelope + Dispatch section (real AstDumpPayload, 4/10/11 kinds, grammar line refs, 156/74 verified, no dup ## headers); rtl_frontend book DOC-ENVELOPE-0001 comprehensively closed (7 chapters, 0 residual incl. worked-example vector); gate green` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `RTL-FE-CONTRACT-BODY.1` | `RTL-FE-CONTRACT-BODY-Slice-1` | new contract file: identity + source + stable surface + schema versioning + Release 1.0.1 full rule-by-rule |
+| `RTL-FE-CONTRACT-BODY.2` | `RTL-FE-CONTRACT-BODY-Slice-2` | AST Envelope + Dispatch section (4/10/11); rtl_frontend book DOC-ENVELOPE-0001 fully closed (7 chapters, 0 residual) |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
+- `2026-05-16`: `.2` done (AST Envelope + Dispatch section; rtl_frontend book `DOC-ENVELOPE-0001` comprehensively closed — 7 chapters, 0 residual, broad audit caught the worked-example `dump.root`/`dump.schema_version` vector the earlier narrow grep missed). Frontier advances to `.3` (declarations/types/ports/statements/expressions), then `.4`.

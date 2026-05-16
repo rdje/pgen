@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-429e521d.js";
+            window.path_to_searchindex_js = "searchindex-c7eff9da.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-440c5d76.js"></script>
@@ -390,15 +390,27 @@ fn walk_binop_chain(node: &amp;serde_json::Map&lt;String, serde_json::Value&gt;)
 <li><strong>For pure AST drop</strong>, use a non-recursive drop — <code>serde_json::Value</code>’s default <code>Drop</code> is recursive and can blow the stack on deeply-nested values. PGEN’s test path uses a large-stack worker to avoid this; downstream consumers should consider similar patterns.</li>
 </ol>
 <h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
-<p>If your tool needs to support multiple PGEN versions, branch on the payload’s schema version (<code>AstDumpPayload.schema_version</code>):</p>
+<p><code>AstDumpPayload</code> has <strong>no</strong> <code>schema_version</code> (or <code>root</code>) field — the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>. The AST-dump schema version is not discoverable at runtime from the payload; you <strong>pin</strong> it from <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” as a constant in your consumer and re-validate that pin against the contract’s “Schema Versioning” table whenever you bump PGEN. The shape-contract manifest (<code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>) is the machine-checkable lock that fails CI if the parser drifts from the pinned schema.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match ast_dump_payload.schema_version {
-    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
-    // (future) 2 =&gt; walk_schema_v2(...),
-    other =&gt; {
-        eprintln!("unsupported rtl_frontend schema version: {}", other);
-    }
+</span>// The AST-dump schema version you integrated against (from the contract):
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+
+let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+if payload.truncated {
+    // dump_json holds the truncation diagnostic envelope, not the AST.
+    return Err("rtl_frontend AST dump truncated".into());
+}
+let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
+
+// RTL_FRONTEND_AST_SCHEMA_VERSION selects which walker your code was built
+// for. When you bump PGEN, diff the contract's Schema Versioning table; if
+// the integer schema version moved, update the constant and the walker
+// together.
+match RTL_FRONTEND_AST_SCHEMA_VERSION {
+    1 =&gt; walk_schema_v1(&amp;root),
+    // (future) 2 =&gt; walk_schema_v2(&amp;root),
+    other =&gt; eprintln!("no walker compiled for rtl_frontend AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>
 <p>See <a href="schema-versioning.html">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>

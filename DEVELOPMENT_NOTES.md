@@ -26,33 +26,46 @@ inventory but not the `AstDumpPayload` struct against `embedding_api.rs`.
 Surfaced by the VHDL-CONTRACT-BODY.2 subagent (which I had verify the
 envelope against the Rust source for the contract).
 
-### Scope refinement (2026-05-16, VHDL-CONTRACT-BODY.4)
-The defect is NOT confined to `ast-envelope.md`. It recurs across **~5
-chapters per book** — `ast-envelope.md`, `glossary.md`,
-`schema-versioning.md`, `walking-the-ast.md`, `changelog-index.md` —
-anywhere the struct is shown or `payload.root` / `payload.schema_version`
-is referenced (incl. schema-version-aware-walking code snippets that
-`match ast_dump_payload.schema_version`). Per-book chapter counts with
-the ref: rtl_frontend 5, rtl_const_expr 5, systemverilog_preprocessor 5,
-systemverilog 2.
+### Scope refinement #2 (2026-05-16, RTL-FE-CONTRACT-BODY.2) — CORRECTS an earlier under-count + an inaccurate "VHDL fully closed" claim
+The defect is **~7 chapters/book**, NOT ~5. Beyond `ast-envelope.md` /
+`glossary.md` / `schema-versioning.md` / `walking-the-ast.md` /
+`changelog-index.md`, it also recurs in **`json-carrier.md`** (text
+`(`AstDumpPayload.root`)`) and the **worked-example chapters**
+(`examples-*.md`) whose walker snippets use `dump.root` / `d.root` /
+`ast_dump.root` / `dump.schema_version` (variable names other than
+`ast_dump_payload`, which the first audit grep missed). A comprehensive
+audit pattern must include `\bdump\.root\b`, `\bd\.root\b`,
+`ast_dump\.root`, `\.schema_version\b`, ``(`AstDumpPayload.root`)`` text,
+and the struct-def signatures.
+
+**Honesty correction:** the prior "FULLY fixed: the entire VHDL book"
+claim (VHDL-CONTRACT-BODY-Slice-4 commit/CHANGES/LIVE/task file) was
+**premature/inaccurate** — the narrow audit missed
+`docs/vhdl_parser_book/src/examples-minimal-entity.md` (lines ~81 heading
+`(`AstDumpPayload.root`)`, ~151 `assert_eq!(dump.schema_version, 1)`,
+~153 `let root = &dump.root`). VHDL is **not** fully closed; corrected in
+an immediate follow-up commit (DOC-ENVELOPE-0001 VHDL closeout) right
+after RTL-FE-CONTRACT-BODY-Slice-2.
 
 ### Status
-- **FULLY fixed: the entire VHDL book** (`ast-envelope.md` in Slice-2;
-  `glossary.md` / `schema-versioning.md` / `walking-the-ast.md` /
-  `changelog-index.md` in VHDL-CONTRACT-BODY-Slice-4) — 0 residual
-  fabricated-struct refs, `vhdl_parser_book_gate` green. The VHDL
-  contract's "The `AstDumpPayload` envelope" subsection +
-  `rust/docs/EMBEDDING_API_CONTRACT.md` are the signoff-quality
-  template; the corrected VHDL book chapters are now worked examples of
-  the fix to copy for the remaining books.
-- **Tracked (not yet fixed)** — the same fabricated struct + `.root` /
-  `.schema_version` prose/snippets across **~5 chapters each** in the
-  `rtl_const_expr`, `rtl_frontend`, `systemverilog_preprocessor`, and
-  `systemverilog` books (+ tracked `-html` mirrors). Plan: fold each
-  family's full-book fix into its `*-CONTRACT-BODY` slice in lockstep
-  (as done for VHDL); the `systemverilog` book is pre-existing and not
-  owned by any active task
-  tree.
+- **rtl_frontend book: FULLY closed (verified comprehensively)** —
+  RTL-FE-CONTRACT-BODY-Slice-2 fixed all 7 chapters (`ast-envelope`/
+  `glossary`/`schema-versioning`/`walking-the-ast`/`changelog-index`
+  via subagent; `json-carrier` + `examples-empty-module` after the
+  broad re-audit). Broad-pattern audit = 0 residual;
+  `rtl_frontend_parser_book_gate` green. The corrected rtl_frontend +
+  (soon) VHDL chapters are the copy templates.
+- **VHDL book: 6/7 chapters fixed; `examples-minimal-entity.md`
+  OUTSTANDING** — fixed in the immediate DOC-ENVELOPE-0001 VHDL
+  closeout commit (see honesty correction above).
+- **Tracked (not yet fixed)** — the fabricated struct + `.root` /
+  `.schema_version` prose/snippets across **~7 chapters each** in the
+  `rtl_const_expr`, `systemverilog_preprocessor`, and `systemverilog`
+  books (+ tracked `-html` mirrors). Plan: fold each family's
+  comprehensive (broad-audit-verified, 0-residual) full-book fix into
+  its `*-CONTRACT-BODY` slice in lockstep; the `systemverilog` book is
+  pre-existing and not owned by any active task tree (its own
+  closeout slice).
 
 ### Fix lane (recommended, focused, fresh context)
 Per book: replace the struct + the "root field" prose with the real

@@ -52,18 +52,25 @@ This table mirrors the "Schema Versioning" table in `docs/contracts/PGEN_RTL_FRO
 | 1.0.0 | 1.0.1 | **RTL-FE-Slice-1..7** — initial 156-annotation baseline (74 distinct rules). Dispatch wrappers (`design_item` / `package_item` / `module_item` / `generate_item`), keyword/operator leaves, expression dispatch + procedural blocks, the 10-rule `binop_chain` hierarchy (`logical_or_expr` → `logical_and_expr` → `bit_or_expr` → `bit_xor_expr` → `bit_and_expr` → `equality_expr` → `relational_expr` → `shift_expr` → `additive_expr` → `multiplicative_expr`), declarations + module structure, parameter/port rules, and the module-instantiation / ports / statements / signals / datatypes mass batch — all typed across seven slices. Same accept set as the pre-typing baseline. AST-dump schema version field value: `1`. |
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Grammar (`grammars/rtl_frontend.ebnf`) un-annotated except for the `rtl_frontend_file -> {type, items}` root. AST dump is the recursive-envelope shape across all rules. |
 
-> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones, while the `AstDumpPayload.schema_version` integer field consumers branch on is currently `1`. Pin against the integer schema-version field for runtime dispatch (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
+> Note on the version columns: the contract's "Schema version" column uses the `1.0.0` / `0.1.0` labels above for the typing-campaign milestones; the AST-dump schema version consumers pin against is the integer **`1`**. That integer is **not** a runtime field of `AstDumpPayload` (the real struct is `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`) — you pin it from this contract/book at integration time, not by reading the payload (see [Walking the AST](walking-the-ast.md)); use the contract's milestone labels when reading the changelog.
 
 ## How to pin to a known shape
 
 1. **Record the parser-release version** your downstream code was written against — `1.0.1` as of this writing. It is recorded in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity".
-2. **Branch on the integer schema version at runtime.** `AstDumpPayload.schema_version` is `1`. Reject or warn on an unexpected value rather than mis-parsing a newer shape:
+2. **Pin the AST-dump schema version you built against** — currently `1`, from `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". This is a *compile-time constant in your consumer*, **not** a field of `AstDumpPayload` (that struct exposes only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`). Check `truncated`, parse `dump_json`, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:
 
    ```rust
-   match ast_dump_payload.schema_version {
-       1 => walk_schema_v1(&ast_dump_payload.root),
-       other => return Err(format!("unsupported rtl_frontend schema version: {other}")),
+   // Schema version you integrated against, from the contract:
+   const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 1;
+
+   let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
+   if payload.truncated {
+       return Err("rtl_frontend AST dump truncated (dump_json holds the diagnostic envelope)".into());
    }
+   let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
+   // RTL_FRONTEND_AST_SCHEMA_VERSION drives which walker you compiled;
+   // re-check the contract's Schema Versioning table on every PGEN bump.
+   walk_schema_v1(&root);
    ```
 
 3. **Vendor or pin the generated parser.** The rtl_frontend parser is on-demand-only (see [Build Recipe](build-recipe.md)); vendor `generated/rtl_frontend_parser.rs` against the recorded parser-release version, or build it in CI from the pinned `grammars/rtl_frontend.ebnf`.

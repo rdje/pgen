@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-05-16 - RTL-FE-CONTRACT-BODY-Slice-2 (PGEN-RTL-FE-CONTRACT-BODY-0002): AST Envelope + Dispatch; rtl_frontend book DOC-ENVELOPE-0001 comprehensively closed
+
+- rtl_frontend integration contract: added "## AST Envelope and
+  Dispatch" — the real 4-field `AstDumpPayload` + truncation envelope +
+  accuracy note (copied from the proven VHDL contract), the
+  `rtl_frontend_file` root, and the `design_item` (4) / `module_item`
+  (10) / `generate_item` (11) dispatch with field shapes + verified
+  `grammars/rtl_frontend.ebnf` line refs. 156 annotations / 74 distinct
+  rules verified; no duplicate `## ` headers.
+- rtl_frontend book `DOC-ENVELOPE-0001` **comprehensively closed**: all
+  **7** affected chapters reconciled to the real `AstDumpPayload`
+  (`ast-envelope`/`glossary`/`schema-versioning`/`walking-the-ast`/
+  `changelog-index` + `json-carrier` + `examples-empty-module`). A
+  broad re-audit caught the worked-example `dump.root` /
+  `dump.schema_version` walker vector the first narrow grep missed;
+  book-wide audit now 0 residual, `rtl_frontend_parser_book_gate` green.
+
+**Honesty correction (tracked in DEVELOPMENT_NOTES):** the prior
+"VHDL book DOC-ENVELOPE-0001 fully closed" claim
+(VHDL-CONTRACT-BODY-Slice-3+4 entry below) was premature — the narrow
+audit missed `vhdl .../examples-minimal-entity.md`. VHDL is corrected in
+the immediately-following DOC-ENVELOPE-0001 VHDL-closeout commit.
+`DOC-ENVELOPE-0001` scope is ~7 chapters/book (not ~5); remaining:
+rtl_const_expr, sv_preprocessor, systemverilog books (folded into their
+CONTRACT-BODY slices / a systemverilog-book closeout).
+
 ## 2026-05-16 - VHDL-CONTRACT-BODY-Slice-3 + Slice-4 (PGEN-VHDL-CONTRACT-BODY-0003/0004): close the VHDL-CONTRACT-BODY tree; VHDL book DOC-ENVELOPE-0001 fully closed
 
 **Slice-3 (leaf .3):** added the "Declarations, Types, Statements, and

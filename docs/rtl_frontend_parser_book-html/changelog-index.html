@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-429e521d.js";
+            window.path_to_searchindex_js = "searchindex-c7eff9da.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-440c5d76.js"></script>
@@ -205,7 +205,7 @@
 <p>The initial typing campaign, covering the entire <code>grammars/rtl_frontend.ebnf</code> surface across <strong>seven grouped slices</strong> that landed together on 2026-05-14.</p>
 <ul>
 <li><strong>Schema-version milestone:</strong> <code>1.0.0</code> (first parser release: <code>1.0.1</code>).</li>
-<li><strong>AST-dump schema version field value:</strong> <code>1</code> — the integer consumers branch on at runtime (<code>AstDumpPayload.schema_version</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>1</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>).</li>
 <li><strong>Annotation count:</strong> <strong>156</strong> (was <code>1</code> / pre-typing baseline) on <strong>74 distinct rules</strong>. The campaign was structured as: dispatch wrappers (slice 1 — <code>design_item</code> / <code>package_item</code> / <code>module_item</code> / <code>generate_item</code>); keyword/operator leaves (slice 2); expression dispatch + procedural blocks (slice 3); the ten-rule <code>binop_chain</code> hierarchy (slice 4 — <code>logical_or_expr</code> → <code>logical_and_expr</code> → <code>bit_or_expr</code> → <code>bit_xor_expr</code> → <code>bit_and_expr</code> → <code>equality_expr</code> → <code>relational_expr</code> → <code>shift_expr</code> → <code>additive_expr</code> → <code>multiplicative_expr</code>); declarations + module structure (slice 5); parameter/port rules (slice 6); and the module-instantiation / ports / statements / signals / datatypes mass batch (slice 7).</li>
 <li><strong>Accept set:</strong> unchanged — same accepted inputs as the pre-typing baseline; only the AST shape became typed.</li>
 <li><strong>Contract section:</strong> <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.0.1 / Contract 1.0.1 Highlights — RTL-FE-Slice-1..7”. That section’s header reads “164 rules / 156 annotations”: <code>164</code> is the total number of grammar rules in <code>grammars/rtl_frontend.ebnf</code>, while the typed surface is <strong>156 annotations on 74 of those rules</strong>. The inventory-accurate figure used throughout this book is <strong>156 annotations / 74 distinct rules</strong>; this is a reconciled wording difference between the contract header and the inventory, not a contradiction (the same way the VHDL contract’s analogous header is reconciled in the VHDL book).</li>
