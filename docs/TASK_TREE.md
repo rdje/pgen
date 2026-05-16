@@ -28,7 +28,6 @@ same commit.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `RTL-CE-MDBOOK` | `active` | rtl_const_expr deliverables | `RTL-CE-MDBOOK.6` | [docs/tasks/RTL-CE-MDBOOK.md](tasks/RTL-CE-MDBOOK.md) |
 | `SVPP-MDBOOK` | `active` | sv_preprocessor deliverables | `SVPP-MDBOOK.3` | [docs/tasks/SVPP-MDBOOK.md](tasks/SVPP-MDBOOK.md) |
 | `VHDL-CONTRACT-BODY` | `active` | vhdl deliverables | `VHDL-CONTRACT-BODY.2` | [docs/tasks/VHDL-CONTRACT-BODY.md](tasks/VHDL-CONTRACT-BODY.md) |
 | `RTL-FE-CONTRACT-BODY` | `active` | rtl_frontend deliverables | `RTL-FE-CONTRACT-BODY.2` | [docs/tasks/RTL-FE-CONTRACT-BODY.md](tasks/RTL-FE-CONTRACT-BODY.md) |
@@ -50,6 +49,7 @@ PNT-eligible until explicitly activated.
 | --- | --- | --- | --- | --- |
 | `VHDL-MDBOOK` | `done` | vhdl deliverables | all leaves `.1`–`.6` `done` (`2026-05-16`) | [docs/tasks/VHDL-MDBOOK.md](tasks/VHDL-MDBOOK.md) |
 | `RTL-FE-MDBOOK` | `done` | rtl_frontend deliverables | all leaves `.1`–`.6` `done` (`2026-05-16`) | [docs/tasks/RTL-FE-MDBOOK.md](tasks/RTL-FE-MDBOOK.md) |
+| `RTL-CE-MDBOOK` | `done` | rtl_const_expr deliverables | all leaves `.1`–`.6` `done` (`2026-05-16`); .4 surfaced PGEN-RTL-0002 | [docs/tasks/RTL-CE-MDBOOK.md](tasks/RTL-CE-MDBOOK.md) |
 
 ## Coverage Note
 

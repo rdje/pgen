@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c1cc3e67.js";
+            window.path_to_searchindex_js = "searchindex-544de5fc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -220,20 +220,20 @@ match outcome.status {
 }
 <span class="boring">}</span></code></pre>
 <h2 id="4-walk-the-binop_chain-ast"><a class="header" href="#4-walk-the-binop_chain-ast">4. Walk the binop_chain AST</a></h2>
-<p>The rtl_const_expr grammar is essentially a precedence-climbing chain of left-associative binary operators (conditional → logical_or → … → multiplicative) plus prefix-unary plus primary. Each binary level is a <code>binop_chain</code> shape:</p>
+<p>The rtl_const_expr grammar is essentially a precedence-climbing chain of left-associative binary operators (conditional → logical_or → … → multiplicative) plus prefix-unary plus primary. Each binary level is a <code>binop_chain</code> shape (parser release <code>1.0.2</code>, schema version <code>2</code>):</p>
 <pre><code class="language-json">{
   "type": "binop_chain",
-  "level": "multiplicative_expr",
+  "level": "multiplicative",
   "lhs": &lt;left-shape&gt;,
   "rest": [
-    {"op": "*", "rhs": &lt;right-shape&gt;},
-    {"op": "*", "rhs": &lt;right-shape&gt;}
+    [ ["", "*"], &lt;right-shape&gt; ],
+    [ ["", "*"], &lt;right-shape&gt; ]
   ]
 }
 </code></pre>
-<p>Consumers fold <code>rest</code> left-associatively against <code>lhs</code> to recover the evaluation tree. See <a href="walking-the-ast.html">Walking the AST</a> for the full fold pattern.</p>
+<p><code>level</code> is the bare level name (<code>"multiplicative"</code>, not <code>"multiplicative_expr"</code>). <code>rest</code> is a <strong>clean array</strong> of <code>( &lt;named_op&gt; operand )</code> iteration entries — <strong>not</strong> a typed <code>{op, rhs}</code> object (the pre-<code>1.0.2</code> shape, which also emitted <code>&lt;invalid_sequence_access&gt;</code>; see <a href="schema-versioning.html">Schema Versioning</a>). Each entry is <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code>: <code>entry[0]</code> is the operator envelope (<code>["", "*"]</code> for a <code>trivia "*"</code> token — operator text at <code>entry[0][1]</code>) and <code>entry[1]</code> is the next-level operand. When there is no operator at a level, <code>rest</code> is <code>[]</code> and the consumer unwraps <code>lhs</code>. Consumers fold <code>rest</code> left-associatively against <code>lhs</code> to recover the evaluation tree. See <a href="walking-the-ast.html">Walking the AST</a> for the full fold pattern and <a href="examples-binary-addition.html">Binary Addition</a> for a worked <code>a + b</code>.</p>
 <h2 id="5-track-the-contract-version"><a class="header" href="#5-track-the-contract-version">5. Track the contract version</a></h2>
-<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.1</code>). When you bump to a new PGEN version, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
+<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.2</code>, AST-dump schema version <code>2</code>). When you bump to a new PGEN version, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
 
                     </main>
 

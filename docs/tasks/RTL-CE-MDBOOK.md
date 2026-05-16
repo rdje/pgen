@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `RTL-CE-MDBOOK`
-- Status: `active`
+- Status: `done`
 - Roadmap lane: rtl_const_expr deliverables
 - Created: `2026-05-14`
 - Last updated: `2026-05-16`
@@ -34,10 +34,11 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 ## Task Tree
 
 - ID: `RTL-CE-MDBOOK`
-  Status: `active`
+  Status: `done`
   Goal: `Stand up the rtl_const_expr parser mdBook.`
   Children: `RTL-CE-MDBOOK.1`, `RTL-CE-MDBOOK.2`, `RTL-CE-MDBOOK.3`,
   `RTL-CE-MDBOOK.4`, `RTL-CE-MDBOOK.5`, `RTL-CE-MDBOOK.6`
+  Result: `All 6 children done. The rtl_const_expr parser mdBook is fully stood up and aligned with the post-fix parser (release 1.0.2 / schema 2 / 26 annotations). Implementing .4 surfaced 3 real parser-correctness bugs, fixed under RTL-CE-Slice-2 / PGEN-RTL-0002; the book (incl. the .2-era quickstart.md) is internally consistent with the corrected shape. Tree complete 2026-05-16.`
 
 - ID: `RTL-CE-MDBOOK.1`
   Status: `done`
@@ -75,17 +76,15 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
   Commit: `RTL-CE-MDBOOK-Slice-2`
 
 - ID: `RTL-CE-MDBOOK.6`
-  Status: `pending`
+  Status: `done`
   Goal: `Wire glossary, changelog-index, README + LIVE_ACHIEVEMENT_STATUS links.`
   Acceptance: `README and LIVE_ACHIEVEMENT_STATUS reference the book.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: glossary.md (16 terms, schema 2 / 1.0.2 / 26, named-op-rules + <invalid_sequence_access> historical entry) + changelog-index.md (3 real schema rows) authored and independently verified (counts 26/18/19+7, links resolve, no stub). Also reconciled the .2-era quickstart.md which still carried the stale pre-1.0.2 {op,rhs} rest shape / "multiplicative_expr" level / 1.0.1 (outside the Slice-2 5-chapter re-sync) so the closed book is internally consistent. README already lists the book + gate; LIVE_ACHIEVEMENT_STATUS tracker note added. rtl_const_expr_parser_book_gate green.`
+  Commit: `RTL-CE-MDBOOK-Slice-6`
 
 ## Current Frontier
 
-| Order | Leaf | Status | Why next |
-| --- | --- | --- | --- |
-| 1 | `RTL-CE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE links close the book — final leaf. |
+_None — the `RTL-CE-MDBOOK` tree is complete. All leaves `.1`–`.6` are `done`._
 
 ## Decisions
 
@@ -109,6 +108,7 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | `2026-05-15` | `RTL-CE-MDBOOK.2` | `make rtl_const_expr_parser_book_gate` | `pass — 4 chapters authored; gate green` |
 | `2026-05-16` | `RTL-CE-MDBOOK.3` | `make rtl_const_expr_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters; verified 24/16, root/ternary/10-level binop_chain/unary/literal/identifier vs generated/rtl_const_expr_return_annotations.json; corrected confirmed ast-envelope.md inaccuracy (kind→type, 10→24, typed-rest→raw-envelope); gate green` |
 | `2026-05-16` | `RTL-CE-MDBOOK.4` | `make rtl_const_expr_parser_book_gate` + real-dump faithfulness check | `pass — literal_42 + binary_addition examples authored from FIXED parser (post PGEN-RTL-0002); doc JSON re-verified vs /tmp dumps (10-level stack→clean literal "42"; additive.rest[0]=[["","+"],id b]); gate green` |
+| `2026-05-16` | `RTL-CE-MDBOOK.6` | `make rtl_const_expr_parser_book_gate` + book-wide stale-content audit | `pass — glossary + changelog-index authored (26/18 verified); audited all chapters, reconciled stale .2-era quickstart.md ({op,rhs}→clean rest, level name, 1.0.1→1.0.2); links resolve; gate green. Tree complete.` |
 
 ## Commit Log
 
@@ -119,6 +119,7 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | `RTL-CE-MDBOOK.2` | `RTL-CE-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 | `RTL-CE-MDBOOK.3` | `RTL-CE-MDBOOK-Slice-4` | 4 shape-reference chapters (24/16, 10-level binop_chain) + ast-envelope.md accuracy correction |
 | `RTL-CE-MDBOOK.4` | `RTL-CE-MDBOOK-Slice-5` | literal_42 + binary_addition worked examples from the FIXED parser (real captured AST, byte-verified); surfaced PGEN-RTL-0002 |
+| `RTL-CE-MDBOOK.6` | `RTL-CE-MDBOOK-Slice-6` | glossary + changelog-index + stale quickstart.md reconciliation; **tree complete** |
 
 ## Changelog
 
@@ -128,3 +129,4 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 - `2026-05-16`: `.3` done (4 shape chapters + ast-envelope.md accuracy correction); frontier advances to `.4` (worked examples), then `.6` (glossary/changelog/links).
 - `2026-05-16`: while implementing `.4`, the worked examples surfaced 3 real `rtl_const_expr` parser-correctness bugs (binop_chain `<invalid_sequence_access>`, empty `identifier.text`, envelope `literal.text`). Fixed under RTL-CE-Slice-2 / `PGEN-RTL-0002` (parser regen + manifest tighten + contract `1.0.2`/schema `2`); all 5 `.3` book chapters re-synced to the corrected 26-annotation shape in lockstep. `.4` resumes against the now-clean parser output.
 - `2026-05-16`: `.4` done (literal_42 + binary_addition worked examples authored from the fixed parser, byte-verified); frontier advances to `.6` (final leaf — glossary/changelog/links).
+- `2026-05-16`: `.6` done (glossary + changelog-index; reconciled stale .2-era quickstart.md). All children `done`; **`RTL-CE-MDBOOK` tree closed** and moved to Completed Task Trees in `docs/TASK_TREE.md`.

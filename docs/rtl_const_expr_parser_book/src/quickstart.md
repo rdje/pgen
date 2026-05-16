@@ -51,22 +51,22 @@ match outcome.status {
 
 ## 4. Walk the binop_chain AST
 
-The rtl_const_expr grammar is essentially a precedence-climbing chain of left-associative binary operators (conditional → logical_or → ... → multiplicative) plus prefix-unary plus primary. Each binary level is a `binop_chain` shape:
+The rtl_const_expr grammar is essentially a precedence-climbing chain of left-associative binary operators (conditional → logical_or → ... → multiplicative) plus prefix-unary plus primary. Each binary level is a `binop_chain` shape (parser release `1.0.2`, schema version `2`):
 
 ```json
 {
   "type": "binop_chain",
-  "level": "multiplicative_expr",
+  "level": "multiplicative",
   "lhs": <left-shape>,
   "rest": [
-    {"op": "*", "rhs": <right-shape>},
-    {"op": "*", "rhs": <right-shape>}
+    [ ["", "*"], <right-shape> ],
+    [ ["", "*"], <right-shape> ]
   ]
 }
 ```
 
-Consumers fold `rest` left-associatively against `lhs` to recover the evaluation tree. See [Walking the AST](walking-the-ast.md) for the full fold pattern.
+`level` is the bare level name (`"multiplicative"`, not `"multiplicative_expr"`). `rest` is a **clean array** of `( <named_op> operand )` iteration entries — **not** a typed `{op, rhs}` object (the pre-`1.0.2` shape, which also emitted `<invalid_sequence_access>`; see [Schema Versioning](schema-versioning.md)). Each entry is `[ <op-envelope>, <operand> ]`: `entry[0]` is the operator envelope (`["", "*"]` for a `trivia "*"` token — operator text at `entry[0][1]`) and `entry[1]` is the next-level operand. When there is no operator at a level, `rest` is `[]` and the consumer unwraps `lhs`. Consumers fold `rest` left-associatively against `lhs` to recover the evaluation tree. See [Walking the AST](walking-the-ast.md) for the full fold pattern and [Binary Addition](examples-binary-addition.md) for a worked `a + b`.
 
 ## 5. Track the contract version
 
-Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.1`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the rules you consume.
+Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.2`, AST-dump schema version `2`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the rules you consume.
