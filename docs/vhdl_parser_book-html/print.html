@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c4777fc7.js";
+            window.path_to_searchindex_js = "searchindex-f39bedb2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -184,7 +184,7 @@
 <ul>
 <li><strong>How to build the generated parser and wire it into your project.</strong> See <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a>.</li>
 <li><strong>What the AST envelope looks like.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#walking-the-ast">Walking the AST</a>.</li>
-<li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="#rules-top-level">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/vhdl.ebnf</code>) has <strong>249 typed annotations</strong> covering design units, declarations, types, statements, expressions, and literals.</li>
+<li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/vhdl.ebnf</code>) has <strong>249 typed annotations</strong> covering design units, declarations, types, statements, expressions, and literals.</li>
 <li><strong>Worked examples by VHDL feature</strong> — what does the AST look like for a minimal entity, a basic architecture, a package? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.</li>
 <li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>. The schema is currently at version <code>1</code>.</li>
 <li><strong>A release-by-release index of what changed and why.</strong> See <a href="#changelog-index">Changelog Index</a>.</li>
@@ -596,23 +596,642 @@ pub struct ParserEmbeddingApiContract {
 <h2 id="truncation"><a class="header" href="#truncation">Truncation</a></h2>
 <p>If <code>AstDumpOptions.max_ast_bytes</code> is set and the encoded JSON exceeds it, the dump is truncated and <code>truncated: true</code> is set on the payload. The truncated payload is still valid JSON (the truncation happens at a node boundary). Consumers should check the <code>truncated</code> flag and either bail or note the truncation.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="json-carrier"><a class="header" href="#json-carrier">Json Carrier</a></h1>
+<h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
+<p>This chapter explains how the VHDL parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, and the determinism guarantee. It is the conceptual companion to <a href="#top-level-rules">Top-Level Rules</a>, which enumerates the concrete per-rule shapes.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Note:</strong> The VHDL return-annotation campaign landed in a single comprehensive batch — <strong>VHDL-Slice-1, 249 annotations across 110 rules</strong> (parser release <code>1.0.1</code>, schema version <code>1</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in <a href="#ast-envelope-structure">AST Envelope Structure</a>. The authoritative enumeration is <code>generated/vhdl_return_annotations.json</code> (mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>).</p>
 </blockquote>
+<h2 id="two-carrier-kinds"><a class="header" href="#two-carrier-kinds">Two carrier kinds</a></h2>
+<p>Every node in the VHDL AST dump is carried in one of exactly two shapes.</p>
+<h3 id="typed-shape-rules-with-a----return-annotation"><a class="header" href="#typed-shape-rules-with-a----return-annotation">Typed shape (rules with a <code>-&gt; ...</code> return annotation)</a></h3>
+<p>When a rule in <code>grammars/vhdl.ebnf</code> carries a return annotation, the parser emits a typed JSON value derived from that annotation. For VHDL this takes three sub-forms:</p>
+<ol>
+<li>
+<p><strong>Root object with <code>type</code>.</strong> Only <code>vhdl_file</code> carries a <code>type</code> discriminator at the dispatch level:</p>
+<pre><code class="language-json">{ "type": "vhdl_file", "design_units": [ /* ... */ ] }
+</code></pre>
+</li>
+<li>
+<p><strong><code>kind</code>-tagged dispatch object.</strong> Most VHDL dispatch rules use a <code>kind</code> discriminator (no <code>type</code>), reflecting the design choice of tightly-scoped per-rule dispatch. For example, <code>design_unit</code>:</p>
+<pre><code class="language-json">{ "kind": "entity", "body": { /* entity_declaration shape */ } }
+</code></pre>
+</li>
+<li>
+<p><strong>Named-field object.</strong> Single-sequence rules emit a flat object of named fields. For example, <code>entity_declaration</code>:</p>
+<pre><code class="language-json">{ "name": "e", "items": [], "end_label": [] }
+</code></pre>
+</li>
+</ol>
+<p>The <code>binop_chain</code> expression rules combine forms 1 and 3 — they carry both a <code>type</code> and a <code>level</code> plus the operand fields (see <a href="#the-expression-family-binop_chain">the expression family</a>).</p>
+<h3 id="recursive-envelope-shape-rules-without-annotations-1"><a class="header" href="#recursive-envelope-shape-rules-without-annotations-1">Recursive-envelope shape (rules without annotations)</a></h3>
+<p>When a rule has no return annotation, the parser emits a JSON value derived mechanically from the rule’s grammar shape:</p>
+<ul>
+<li>A <strong>terminal literal</strong> or <strong>regex literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>rule reference</strong> produces whatever shape that rule produces.</li>
+<li>A <strong>sequence</strong> <code>a b c</code> produces a JSON array <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</li>
+<li>An <strong>alternation</strong> produces the matched branch’s shape directly.</li>
+<li>A <strong>quantified rule</strong> (<code>x*</code>, <code>x+</code>) produces a JSON array of the per-iteration shapes.</li>
+<li>An <strong>optional rule</strong> (<code>x?</code>) produces the matched shape if matched, or <code>[]</code> if un-matched.</li>
+</ul>
+<p>In VHDL, the recursive-envelope shape is what you reach when you descend below the typed surface: VHDL identifier tokens, physical / bit-string / string / character literals, and the few utility rules that have no per-rule annotation. The <code>body</code> field of any <code>{kind, body}</code> dispatch object is whatever shape the matched sub-rule produces — typed if that sub-rule is itself annotated (it usually is), envelope otherwise.</p>
+<h2 id="object--array--string--scalar-mapping"><a class="header" href="#object--array--string--scalar-mapping">Object / array / string / scalar mapping</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>JSON value</th><th>Produced by</th></tr>
+</thead>
+<tbody>
+<tr><td>Object <code>{...}</code></td><td>A typed return annotation that is an object literal (<code>{kind: ...}</code>, <code>{name: ..., subtype: ...}</code>, <code>{type: "binop_chain", ...}</code>, etc.).</td></tr>
+<tr><td>Array <code>[...]</code></td><td>A recursive-envelope sequence/quantified shape, <strong>or</strong> an un-matched optional field (<code>[]</code>), <strong>or</strong> the trailing <code>rest</code> iteration of a <code>{first, rest}</code> list rule.</td></tr>
+<tr><td>String <code>"..."</code></td><td>A matched terminal or regex leaf (identifier text, literal text, keyword text reached through an envelope).</td></tr>
+<tr><td><code>true</code> / <code>false</code></td><td>A <code>BooleanLiteral</code> in a typed annotation. VHDL’s current 249-annotation surface uses no boolean literals; all annotations are object literals.</td></tr>
+<tr><td>Number</td><td>A <code>NumberLiteral</code> typed transform. Not used by the current VHDL surface.</td></tr>
+<tr><td><code>null</code></td><td>A <code>NullLiteral</code>. Not used by the current VHDL surface — absent optional fields are carried as the empty array <code>[]</code>, not <code>null</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two VHDL-specific points consumers must internalize:</p>
+<ul>
+<li><strong>Absent optionals are <code>[]</code>, never <code>null</code>.</strong> A <code>signal_declaration</code> with no initializer emits <code>"default": []</code>. A bare <code>return;</code> emits <code>"value": []</code>. Test for an empty array, not for <code>null</code> or a missing key.</li>
+<li><strong><code>{first, rest}</code> is the list convention.</strong> Separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …) emit <code>{first: &lt;head&gt;, rest: &lt;iteration-of-the-(sep X)*-tail&gt;}</code>. <code>rest</code> is a recursive-envelope array; each entry is the envelope of one <code>(separator element)</code> iteration. Unlike the SystemVerilog grammar — where a slice-58 audit flattened these to clean <code>[$N, $M::2*]</code> arrays — the VHDL grammar uses the <code>{first, rest}</code> shape uniformly across VHDL-Slice-1, so consumers should expect to descend through the separator wrap when iterating a VHDL list. (A future flattening slice, if it lands, will get its own <a href="#schema-versioning">Schema Versioning</a> row.)</li>
+</ul>
+<h2 id="worked-example-a-minimal-entity"><a class="header" href="#worked-example-a-minimal-entity">Worked example: a minimal entity</a></h2>
+<p>Input:</p>
+<pre><code class="language-vhdl">entity e is end e;
+</code></pre>
+<p>Carrier walk:</p>
+<ul>
+<li>The root is the <strong>typed root object</strong> <code>{ "type": "vhdl_file", "design_units": [ … ] }</code>.</li>
+<li><code>design_units</code> is a <strong>recursive-envelope array</strong> (the <code>design_unit*</code> iteration) with one element.</li>
+<li>That element is a <strong><code>kind</code>-tagged dispatch object</strong> <code>{ "kind": "entity", "body": { … } }</code>.</li>
+<li><code>body</code> is the <strong>named-field object</strong> for <code>entity_declaration</code>: <code>{ "name": "e", "items": [], "end_label": [ … ] }</code>.</li>
+<li><code>name</code> is a <strong>string</strong> (the identifier text reached through the envelope).</li>
+<li><code>items</code> is an <strong>empty array</strong> (<code>entity_declarative_item*</code> matched zero items).</li>
+<li><code>end_label</code> is an <strong>array</strong> carrying the optional trailing <code>identifier?</code> (the <code>e</code> after <code>end</code>), or <code>[]</code> if omitted.</li>
+</ul>
+<p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>. See <a href="#examples-minimal-entity">Examples Minimal Entity</a> for a pinned end-to-end production AST.</p>
+<h2 id="the-expression-family-binop_chain"><a class="header" href="#the-expression-family-binop_chain">The expression family (<code>binop_chain</code>)</a></h2>
+<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all carry the same <code>binop_chain</code> carrier so a single consumer fold handles the whole tree:</p>
+<pre><code class="language-json">{ "type": "binop_chain", "level": "logical", "lhs": &lt;relation-shape&gt;, "rest": [ /* (op, relation) iterations */ ] }
+</code></pre>
+<p><code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level, bottoming out at a typed <code>primary</code>). <code>rest</code> is a recursive-envelope array of <code>(operator, operand)</code> iterations; for <code>simple_expression</code> there is an additional leading <code>sign</code> field (<code>[]</code> when no unary <code>+</code>/<code>-</code>). Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>. The full level/field/operator table is in <a href="#family-expressions--the-binop_chain-contract">Top-Level Rules</a>; the fold code is in <a href="#walking-the-ast">Walking the AST</a>.</p>
+<h2 id="determinism-1"><a class="header" href="#determinism-1">Determinism</a></h2>
+<p>The AST dump is <strong>byte-deterministic</strong> for a given input + parser-release version:</p>
+<ul>
+<li>Object keys are emitted in canonical (alphabetical) order.</li>
+<li>Number formatting is canonical.</li>
+<li>No embedded timestamps or hashes.</li>
+<li>Whitespace is configurable via <code>AstDumpOptions.pretty</code> (compact vs pretty-printed), but the underlying JSON value is identical.</li>
+</ul>
+<p>Re-running the parse on the same input produces an identical JSON value. This is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — report it via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="un-annotated-on-purpose-rules"><a class="header" href="#un-annotated-on-purpose-rules">Un-annotated-on-purpose rules</a></h2>
+<p>Some rules remain un-annotated by design — typically terminal/regex leaves (identifiers, <code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, <code>character_literal</code>) and utility rules whose envelope shape is already the most useful representation. Their text is reachable through the recursive-envelope walk from the nearest typed parent (e.g. <code>literal.kind == "string"</code> → <code>body</code> is the matched string-literal text).</p>
+<h2 id="how-to-read-the-annotation-text"><a class="header" href="#how-to-read-the-annotation-text">How to read the annotation text</a></h2>
+<p>The <code>normalized_text</code> field of each inventory entry is the EBNF <code>-&gt; ...</code> clause:</p>
+<ul>
+<li><code>$N</code> — positional reference to the Nth body element (1-indexed).</li>
+<li><code>{field: value, ...}</code> — typed object literal.</li>
+<li><code>[v1, v2, ...]</code> — array literal.</li>
+<li><code>"text"</code> — string literal.</li>
+</ul>
+<p>The full annotation-language grammar is <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>. The per-rule shapes those annotations produce are tabulated in <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking The Ast</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+<h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/vhdl_return_annotations.json</code>, 249 annotations, schema version <code>1</code>).</p>
+<h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
+<p>Because the AST tree mixes typed objects (the VHDL-Slice-1 surface) and recursive-envelope arrays (terminal/regex leaves and a few un-annotated rules), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use serde_json::Value as JsonValue;
+
+fn walk(node: &amp;JsonValue) {
+    match node {
+        JsonValue::Object(obj) =&gt; {
+            // Typed-shape node. The root carries `type`; every other
+            // VHDL typed shape uses a `kind` discriminator.
+            if obj.get("type").and_then(|v| v.as_str()) == Some("vhdl_file") {
+                if let Some(units) = obj.get("design_units") {
+                    walk(units); // recursive-envelope array of design_unit shapes
+                }
+                return;
+            }
+            match obj.get("kind").and_then(|v| v.as_str()) {
+                Some("entity")        =&gt; walk_entity(obj.get("body")),
+                Some("architecture")  =&gt; walk_architecture(obj.get("body")),
+                Some("package")       =&gt; walk_package(obj.get("body")),
+                Some("process")       =&gt; walk_process(obj.get("body")),
+                // ... other design_unit / statement / declaration kinds
+                Some("semi")          =&gt; { /* lone `;` separator — nothing to do */ }
+                _ =&gt; {
+                    // Unknown or field-only typed object (e.g. a named-field
+                    // shape like entity_declaration, or binop_chain). Fall
+                    // through to a generic child walk so the walker stays
+                    // robust to shapes it doesn't special-case.
+                    for (_key, value) in obj.iter() {
+                        walk(value);
+                    }
+                }
+            }
+        }
+        JsonValue::Array(items) =&gt; {
+            // Recursive-envelope shape (sequence / quantified / `rest`
+            // iteration / un-matched optional `[]`) — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        JsonValue::String(_text) =&gt; {
+            // Terminal text — identifier / literal value. No children.
+        }
+        JsonValue::Bool(_) | JsonValue::Number(_) | JsonValue::Null =&gt; {
+            // Annotation-produced scalars. The current VHDL surface uses
+            // none of these (absent optionals are `[]`, not null), but
+            // handle them so future slices don't break the walker.
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-the-unknown-shape-fallback-matters"><a class="header" href="#why-the-unknown-shape-fallback-matters">Why the unknown-shape fallback matters</a></h2>
+<p>The fallthrough that walks the children of any typed object the walker doesn’t special-case is <strong>important</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>_ =&gt; {
+    for (_key, value) in obj.iter() {
+        walk(value);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The VHDL grammar landed its full surface in one batch (VHDL-Slice-1), but subsequent shape-affecting slices can add new <code>kind</code> values or restructure a shape. A walker that hard-fails on an unrecognized <code>kind</code> will break on every parser-release that extends the grammar. A walker that walks the children of unknown shapes degrades gracefully — it won’t extract structured info for shapes it doesn’t understand, but it will still reach descendants.</p>
+<p>Recommendation: only hard-fail on unknown shapes when you are explicitly pinning to a specific <code>schema_version</code> and your test corpus exercises every <code>kind</code> value in that schema (see <a href="#schema-versioning">Schema Versioning</a>).</p>
+<h2 id="dispatching-the-design-unit-list"><a class="header" href="#dispatching-the-design-unit-list">Dispatching the design-unit list</a></h2>
+<p>Every parse roots at <code>{ "type": "vhdl_file", "design_units": [ ... ] }</code>. The per-unit dispatch is the 10-kind <code>design_unit</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn handle_design_unit(node: &amp;serde_json::Value) {
+    let kind = node.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+    let body = node.get("body");
+    match kind {
+        "entity"            =&gt; handle_entity(body),            // {name, items, end_label}
+        "architecture"      =&gt; handle_architecture(body),      // {name, entity_name, items, statements, end_label}
+        "package"           =&gt; handle_package(body),           // {name, header, items, end_label}
+        "package_body"      =&gt; handle_package_body(body),      // {name, items, end_label}
+        "configuration"     =&gt; handle_configuration(body),     // {name, entity_name, items, end_label}
+        "context"           =&gt; handle_context(body),           // {name, items, end_label}
+        "context_reference" =&gt; handle_context_reference(body), // {name}
+        "library"           =&gt; handle_library_clause(body),    // {first, rest}
+        "use"               =&gt; handle_use_clause(body),        // {first, rest}
+        "semi"              =&gt; { /* lone `;` */ }
+        _                   =&gt; { /* unknown — degrade gracefully */ }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The same <code>{kind, body}</code> pattern recurs for the declarative-item dispatch rules (<code>architecture_declarative_item</code>, <code>package_declarative_item</code>, <code>process_declarative_item</code>, …), <code>sequential_statement</code> (13 kinds), and <code>concurrent_statement</code> (7 kinds). All use the bodyless <code>{kind: "semi"}</code> for a stray <code>;</code>, and <code>sequential_statement</code> additionally uses bodyless <code>{kind: "null"}</code> for the VHDL <code>null;</code> statement.</p>
+<h2 id="folding-the-binop_chain-expression-hierarchy"><a class="header" href="#folding-the-binop_chain-expression-hierarchy">Folding the <code>binop_chain</code> expression hierarchy</a></h2>
+<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all emit the same <code>binop_chain</code> shape. A single fold handles the whole hierarchy:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Folds one binop_chain level left-associatively. `lhs` is the leading
+/// operand (itself a binop_chain of the next-tighter level, bottoming out
+/// at a typed `primary`). `rest` is the recursive-envelope iteration of
+/// (operator, operand) pairs.
+fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
+    debug_assert_eq!(
+        node.get("type").and_then(|v| v.as_str()),
+        Some("binop_chain")
+    );
+
+    // `simple_expression` (level == "additive") carries an extra leading
+    // `sign` field for the optional unary +/- (`[]` when absent).
+    let unary_sign = node.get("sign"); // None for non-additive levels
+
+    let mut acc = lower_operand(node.get("lhs").expect("lhs present"));
+    if let Some(sign) = unary_sign {
+        acc = apply_unary_sign(sign, acc); // no-op if sign == []
+    }
+
+    // `rest` is an array of (op, operand) iterations. For `relation`
+    // (level == "relational") it holds at most one pair (grammar uses `?`,
+    // not `*`); every other level iterates `*`.
+    if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
+        for pair in rest {
+            let (op, rhs_node) = split_op_operand(pair);
+            acc = Expr::Binary {
+                op,
+                lhs: Box::new(acc),
+                rhs: Box::new(lower_operand(rhs_node)),
+            };
+        }
+    }
+    acc
+}
+<span class="boring">}</span></code></pre>
+<p><code>level</code> tells you which precedence tier you are at (<code>"logical"</code>, <code>"relational"</code>, <code>"additive"</code>, <code>"multiplicative"</code>, <code>"power"</code>) without re-deriving it from context. The leaf operand is a typed <code>primary</code> (<code>{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}</code>); dispatch on its <code>kind</code> to bottom out the recursion.</p>
+<h2 id="identifier-extraction"><a class="header" href="#identifier-extraction">Identifier extraction</a></h2>
+<p>VHDL identifiers (entity names, signal names, labels) surface as JSON strings once you reach the relevant named field. For a typed parent the field is direct:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn entity_name(entity_body: &amp;serde_json::Value) -&gt; Option&lt;&amp;str&gt; {
+    // entity_declaration -&gt; {name, items, end_label}
+    entity_body.get("name").and_then(|v| v.as_str())
+}
+<span class="boring">}</span></code></pre>
+<p>When the identifier is reached through an envelope (e.g. inside an un-annotated leaf), walk to the terminal text:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_identifier(node: &amp;serde_json::Value) -&gt; Option&lt;&amp;str&gt; {
+    match node {
+        serde_json::Value::String(text) =&gt; Some(text.as_str()),
+        serde_json::Value::Array(items) if items.len() == 1 =&gt; {
+            extract_identifier(&amp;items[0])
+        }
+        _ =&gt; None,
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The per-rule chapters (<a href="#top-level-rules">Top-Level Rules</a>) document the field that holds the identifier for each rule that produces one.</p>
+<h2 id="iterating-first-rest-lists"><a class="header" href="#iterating-first-rest-lists">Iterating <code>{first, rest}</code> lists</a></h2>
+<p>VHDL separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …) use the <code>{first, rest}</code> carrier. <code>rest</code> is the recursive-envelope iteration of the <code>(separator element)*</code> tail, so each <code>rest</code> entry wraps a separator token plus one element:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn iter_list&lt;'a&gt;(list: &amp;'a serde_json::Value) -&gt; Vec&lt;&amp;'a serde_json::Value&gt; {
+    let mut out = Vec::new();
+    if let Some(first) = list.get("first") {
+        out.push(first);
+    }
+    if let Some(rest) = list.get("rest").and_then(|v| v.as_array()) {
+        for entry in rest {
+            // `entry` is the envelope of one `(sep element)` iteration;
+            // the element is the last child. Walk to it rather than
+            // assuming a fixed index, so a grammar tweak to the
+            // separator doesn't break extraction.
+            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
+                out.push(elem);
+            } else {
+                out.push(entry);
+            }
+        }
+    }
+    out
+}
+<span class="boring">}</span></code></pre>
+<p>This <code>{first, rest}</code> shape is uniform across the VHDL surface (it was <strong>not</strong> flattened to <code>[$N, $M::2*]</code> the way the SystemVerilog grammar’s lists were in its slice-58 audit). If a future VHDL slice flattens these, it will get a <a href="#schema-versioning">Schema Versioning</a> row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
+<p>VHDL can produce deep AST trees — a large architecture with nested blocks, generate statements, and deeply-nested expressions can reach hundreds of levels.</p>
+<p>Recommendations:</p>
+<ol>
+<li><strong>Use an explicit stack-based walker</strong> (push children, pop work items in a loop) instead of recursive function calls. Stack depth becomes irrelevant.</li>
+<li><strong>Or grow the thread stack</strong> (e.g. the <code>stacker</code> crate). PGEN itself uses a large-stack worker internally for the parser; consumers can do the same for traversal.</li>
+<li><strong>For pure AST drop</strong>, use a non-recursive drop — <code>serde_json::Value</code>’s default <code>Drop</code> is recursive and can blow the stack on deeply-nested values. PGEN’s test path uses a large-stack worker to avoid this; downstream consumers should consider similar patterns.</li>
+</ol>
+<h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
+<p>If your tool needs to support multiple PGEN versions, branch on the payload’s schema version (<code>AstDumpPayload.schema_version</code>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match ast_dump_payload.schema_version {
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    // (future) 2 =&gt; walk_schema_v2(...),
+    other =&gt; {
+        eprintln!("unsupported VHDL schema version: {}", other);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="#schema-versioning">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="rules-top-level"><a class="header" href="#rules-top-level">Rules Top Level</a></h1>
+<h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
+<p>This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the <code>vhdl_file</code> root, the <code>design_unit</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) landed the full grammar typing in one comprehensive batch — <strong>110 distinct rules / 249 return annotations</strong> across <code>grammars/vhdl.ebnf</code>. Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 249 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
+<h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
+<p>This is a <strong>curated, grouped</strong> reference — not a raw 249-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
+<p>Two conventions appear throughout:</p>
+<ul>
+<li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>.</li>
+<li><strong><code>{first, rest}</code> list rules</strong> emit a head element plus the raw iteration of the <code>(sep X)*</code> tail. This is the VHDL grammar’s mini-mixed-array convention for separated lists (<code>identifier_list</code>, <code>association_list</code>, <code>selected_name</code>, etc.); the head is <code>first</code>, and <code>rest</code> is the trailing-iteration envelope.</li>
+</ul>
+<p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, <code>[...]</code>, string literals) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
+<h2 id="entry-point"><a class="header" href="#entry-point">Entry point</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Profile</th><th>Entry rule</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>vhdl_1076_2019</code></td><td><code>vhdl_file</code></td><td>IEEE 1076-2019 source file. The only stable VHDL profile.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The host entry points are <code>parse_vhdl_1076_2019</code> / <code>parse_vhdl_1076_2019_ast_dump</code> (and the generic <code>parse_grammar_profile*</code> family with <code>GrammarFamily::Vhdl</code> + <code>GrammarProfile::Vhdl1076_2019</code>). See <a href="#public-api-surface">Public API Surface</a>.</p>
+<h2 id="vhdl_file-root"><a class="header" href="#vhdl_file-root"><code>vhdl_file</code> (root)</a></h2>
+<p>Per <code>grammars/vhdl.ebnf</code>:</p>
+<pre><code class="language-ebnf">vhdl_file := design_unit*
+          -&gt; {type: "vhdl_file", design_units: $1}
+</code></pre>
+<p>The annotation produces a typed JSON object at the root of every parse:</p>
+<pre><code class="language-json">{
+  "type": "vhdl_file",
+  "design_units": [/* array of design_unit shapes */]
+}
+</code></pre>
+<p><code>design_units</code> is the array of typed <code>design_unit</code> objects, one per top-level library unit in source order. Consumers walking the VHDL AST dispatch on <code>obj["type"] == "vhdl_file"</code> at the root, then iterate <code>obj["design_units"]</code>.</p>
+<h2 id="design_unit-dispatch-1"><a class="header" href="#design_unit-dispatch-1"><code>design_unit</code> dispatch</a></h2>
+<p><code>design_unit</code> is the primary top-level dispatcher — a 10-branch <code>kind</code>-tagged shape covering every VHDL library-unit form:</p>
+<pre><code class="language-ebnf">design_unit := library_clause              -&gt; {kind: "library",            body: $1}
+             | use_clause                  -&gt; {kind: "use",                body: $1}
+             | context_reference_clause    -&gt; {kind: "context_reference",  body: $1}
+             | entity_declaration          -&gt; {kind: "entity",             body: $1}
+             | architecture_body           -&gt; {kind: "architecture",       body: $1}
+             | package_declaration         -&gt; {kind: "package",            body: $1}
+             | package_body                -&gt; {kind: "package_body",       body: $1}
+             | configuration_declaration   -&gt; {kind: "configuration",      body: $1}
+             | context_declaration         -&gt; {kind: "context",            body: $1}
+             | semi                        -&gt; {kind: "semi"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>kind</code></th><th><code>body</code> shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"library"</code></td><td><code>library_clause</code> — <code>{first, rest}</code></td></tr>
+<tr><td><code>"use"</code></td><td><code>use_clause</code> — <code>{first, rest}</code></td></tr>
+<tr><td><code>"context_reference"</code></td><td><code>context_reference_clause</code> — <code>{name}</code></td></tr>
+<tr><td><code>"entity"</code></td><td><code>entity_declaration</code> — <code>{name, items, end_label}</code></td></tr>
+<tr><td><code>"architecture"</code></td><td><code>architecture_body</code> — <code>{name, entity_name, items, statements, end_label}</code></td></tr>
+<tr><td><code>"package"</code></td><td><code>package_declaration</code> — <code>{name, header, items, end_label}</code></td></tr>
+<tr><td><code>"package_body"</code></td><td><code>package_body</code> — <code>{name, items, end_label}</code></td></tr>
+<tr><td><code>"configuration"</code></td><td><code>configuration_declaration</code> — <code>{name, entity_name, items, end_label}</code></td></tr>
+<tr><td><code>"context"</code></td><td><code>context_declaration</code> — <code>{name, items, end_label}</code></td></tr>
+<tr><td><code>"semi"</code></td><td><em>(no body — lone <code>;</code> separator)</em></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>"semi"</code> branch carries only <code>{kind: "semi"}</code> (a stray top-level <code>;</code>); every other branch carries a <code>body</code>.</p>
+<h2 id="family-context-clauses-and-selected-names"><a class="header" href="#family-context-clauses-and-selected-names">Family: context clauses and selected names</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>library_clause</code></td><td><code>{first, rest}</code> — first identifier + comma-separated iteration.</td></tr>
+<tr><td><code>use_clause</code></td><td><code>{first, rest}</code> — first selected name + comma-separated iteration.</td></tr>
+<tr><td><code>context_reference_clause</code></td><td><code>{name}</code> — the referenced context name.</td></tr>
+<tr><td><code>context_item</code> (4 kinds)</td><td><code>{kind, body}</code> for <code>"library"</code> / <code>"use"</code> / <code>"context_reference"</code>; <code>{kind: "semi"}</code> for the lone-<code>;</code> branch.</td></tr>
+<tr><td><code>selected_name</code></td><td><code>{first, rest}</code> — leading name segment + dotted-suffix iteration.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-design-units"><a class="header" href="#family-design-units">Family: design units</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>entity_declaration</code></td><td><code>{name, items, end_label}</code> — <code>items</code> is the <code>entity_declarative_item*</code> array; <code>end_label</code> is the optional trailing identifier after <code>end</code>.</td></tr>
+<tr><td><code>architecture_body</code></td><td><code>{name, entity_name, items, statements, end_label}</code> — <code>items</code> are declarative items, <code>statements</code> are concurrent statements.</td></tr>
+<tr><td><code>package_declaration</code></td><td><code>{name, header, items, end_label}</code> — <code>header</code> is the optional <code>package_header</code>.</td></tr>
+<tr><td><code>package_body</code></td><td><code>{name, items, end_label}</code>.</td></tr>
+<tr><td><code>configuration_declaration</code></td><td><code>{name, entity_name, items, end_label}</code> — <code>items</code> is the <code>configuration_item*</code> array.</td></tr>
+<tr><td><code>context_declaration</code></td><td><code>{name, items, end_label}</code> — <code>items</code> is the <code>context_item*</code> array.</td></tr>
+<tr><td><code>configuration_item</code> (3 kinds)</td><td><code>{kind: "for", target}</code> / <code>{kind: "use", body}</code> / <code>{kind: "semi"}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="declarative-item-dispatch-rules"><a class="header" href="#declarative-item-dispatch-rules">Declarative-item dispatch rules</a></h3>
+<p>Each declarative region uses a <code>kind</code>-tagged dispatch over the declarations it admits. All emit <code>{kind, body}</code> except the bodyless <code>"semi"</code> branch (<code>{kind: "semi"}</code>).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th><code>kind</code> values</th></tr>
+</thead>
+<tbody>
+<tr><td><code>entity_declarative_item</code> (5)</td><td><code>"generic"</code>, <code>"port"</code>, <code>"component"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>architecture_declarative_item</code> (12)</td><td><code>"signal"</code>, <code>"constant"</code>, <code>"file"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"component"</code>, <code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"package_instantiation"</code>, <code>"alias"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>package_declarative_item</code> (13)</td><td><code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"constant"</code>, <code>"signal"</code>, <code>"file"</code>, <code>"component"</code>, <code>"package_instantiation"</code>, <code>"view"</code>, <code>"alias"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>package_body_declarative_item</code> (8)</td><td><code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"constant"</code>, <code>"signal"</code>, <code>"file"</code>, <code>"alias"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>subprogram_declarative_item</code> (9)</td><td><code>"variable"</code>, <code>"file"</code>, <code>"constant"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>process_declarative_item</code> (9)</td><td><code>"variable"</code>, <code>"file"</code>, <code>"constant"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-generic--port--parameter-interfaces"><a class="header" href="#family-generic--port--parameter-interfaces">Family: generic / port / parameter interfaces</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>generic_clause</code></td><td><code>{list}</code> — the inner <code>generic_interface_list</code>.</td></tr>
+<tr><td><code>generic_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>generic_interface_element</code> (2 kinds)</td><td><code>{kind: "value", names, subtype, default}</code> / <code>{kind: "package", body}</code>.</td></tr>
+<tr><td><code>port_clause</code></td><td><code>{list}</code>.</td></tr>
+<tr><td><code>port_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>port_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>signal_mode</code>.</td></tr>
+<tr><td><code>parameter_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>parameter_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>parameter_mode</code>.</td></tr>
+<tr><td><code>generic_map_aspect</code></td><td><code>{associations}</code> — the inner <code>association_list</code>.</td></tr>
+<tr><td><code>port_map_aspect</code></td><td><code>{associations}</code>.</td></tr>
+<tr><td><code>association_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>association_element</code></td><td><code>{formal, actual}</code>.</td></tr>
+<tr><td><code>actual_part</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "open"}</code>.</td></tr>
+<tr><td><code>actual_parameter_part</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>actual_parameter_element</code> (2 kinds)</td><td><code>{kind: "association", body}</code> / <code>{kind: "range_expression", body}</code>.</td></tr>
+<tr><td><code>identifier_list</code></td><td><code>{first, rest}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="mode-keyword-leaves"><a class="header" href="#mode-keyword-leaves">Mode keyword leaves</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th><code>kind</code> values</th></tr>
+</thead>
+<tbody>
+<tr><td><code>signal_mode</code> (5)</td><td><code>"in"</code>, <code>"out"</code>, <code>"inout"</code>, <code>"buffer"</code>, <code>"linkage"</code></td></tr>
+<tr><td><code>view_mode</code> (5)</td><td><code>"in"</code>, <code>"out"</code>, <code>"inout"</code>, <code>"buffer"</code>, <code>"linkage"</code></td></tr>
+<tr><td><code>parameter_mode</code> (3)</td><td><code>"in"</code>, <code>"out"</code>, <code>"inout"</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Each is a bare <code>{kind}</code> object (no body) — the keyword token is redundant with <code>kind</code>.</p>
+<h2 id="family-declarations"><a class="header" href="#family-declarations">Family: declarations</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>signal_declaration</code></td><td><code>{names, subtype, default}</code> — <code>default</code> is <code>[]</code> when no <code>:= expr</code> initializer.</td></tr>
+<tr><td><code>constant_declaration</code></td><td><code>{names, subtype, value}</code>.</td></tr>
+<tr><td><code>variable_declaration</code></td><td><code>{names, subtype, default}</code>.</td></tr>
+<tr><td><code>file_declaration</code></td><td><code>{names, subtype, open_mode, filename}</code>.</td></tr>
+<tr><td><code>subtype_declaration</code></td><td><code>{name, subtype}</code>.</td></tr>
+<tr><td><code>component_declaration</code></td><td><code>{name, generic, port, end_label}</code>.</td></tr>
+<tr><td><code>type_declaration</code></td><td><code>{name, definition}</code> — <code>definition</code> is the typed <code>type_definition</code>.</td></tr>
+<tr><td><code>view_declaration</code></td><td><code>{name, subtype, elements}</code>.</td></tr>
+<tr><td><code>view_element</code></td><td><code>{name, mode}</code> — <code>mode</code> is the typed <code>view_mode</code>.</td></tr>
+<tr><td><code>alias_declaration</code></td><td><code>{name, target}</code>.</td></tr>
+<tr><td><code>package_header</code></td><td><code>{generic}</code>.</td></tr>
+<tr><td><code>package_generic_interface_element</code></td><td><code>{name, base, map}</code>.</td></tr>
+<tr><td><code>package_instantiation_declaration</code></td><td><code>{name, base, map}</code>.</td></tr>
+<tr><td><code>subprogram_declaration</code> (2 kinds)</td><td><code>{kind: "procedure", spec}</code> / <code>{kind: "function", spec}</code>.</td></tr>
+<tr><td><code>subprogram_body</code> (2 kinds)</td><td><code>{kind: "procedure", spec, items, statements, end_label}</code> / <code>{kind: "function", spec, items, statements, end_label}</code>.</td></tr>
+<tr><td><code>procedure_specification</code></td><td><code>{name, parameters}</code>.</td></tr>
+<tr><td><code>function_specification</code></td><td><code>{impure, name, parameters, return_type}</code> — <code>impure</code> is <code>[]</code> for a pure function, set when <code>impure</code> is present.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-types-and-constraints"><a class="header" href="#family-types-and-constraints">Family: types and constraints</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>type_definition</code> (3 kinds)</td><td><code>{kind: "enumeration", body}</code> / <code>{kind: "array", body}</code> / <code>{kind: "record", body}</code>.</td></tr>
+<tr><td><code>enumeration_type_definition</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>array_type_definition</code></td><td><code>{index_range, element_subtype}</code>.</td></tr>
+<tr><td><code>record_type_definition</code></td><td><code>{elements}</code>.</td></tr>
+<tr><td><code>record_element_declaration</code></td><td><code>{names, subtype}</code>.</td></tr>
+<tr><td><code>subtype_indication</code></td><td><code>{type_mark, constraint}</code> — <code>constraint</code> is <code>[]</code> when the subtype is unconstrained.</td></tr>
+<tr><td><code>constraint</code> (2 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "index", body}</code>.</td></tr>
+<tr><td><code>range_constraint</code></td><td><code>{range}</code>.</td></tr>
+<tr><td><code>index_constraint</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>discrete_range</code> (5 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "attribute", body}</code> / <code>{kind: "name", body}</code> / <code>{kind: "subtype_range", subtype, range}</code> / <code>{kind: "subtype_box", subtype}</code>.</td></tr>
+<tr><td><code>range_expression</code> (2 kinds)</td><td><code>{kind: "to", low, high}</code> / <code>{kind: "downto", high, low}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-concurrent-statements"><a class="header" href="#family-concurrent-statements">Family: concurrent statements</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>concurrent_statement</code> (7 kinds)</td><td><code>{kind, body}</code> for <code>"signal_assignment"</code> / <code>"assert"</code> / <code>"process"</code> / <code>"component_instantiation"</code> / <code>"generate"</code> / <code>"block"</code>; <code>{kind: "semi"}</code> for the lone-<code>;</code> branch.</td></tr>
+<tr><td><code>concurrent_signal_assignment_statement</code></td><td><code>{target, rhs}</code>.</td></tr>
+<tr><td><code>process_statement</code></td><td><code>{label, sensitivity, items, statements, end_label}</code>.</td></tr>
+<tr><td><code>process_label</code></td><td><code>{name}</code>.</td></tr>
+<tr><td><code>sensitivity_clause</code></td><td><code>{list}</code> — the inner <code>sensitivity_list</code>.</td></tr>
+<tr><td><code>sensitivity_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>component_instantiation_statement</code></td><td><code>{label, unit, generic_map, port_map}</code> — <code>unit</code> is the typed <code>instantiated_unit</code>.</td></tr>
+<tr><td><code>instantiated_unit</code> (3 kinds)</td><td><code>{kind: "component", name}</code> / <code>{kind: "entity", name}</code> / <code>{kind: "configuration", name}</code>.</td></tr>
+<tr><td><code>generate_statement</code> (2 kinds)</td><td><code>{kind: "for", label, var, range, statements}</code> / <code>{kind: "if", label, condition, statements}</code>.</td></tr>
+<tr><td><code>block_statement</code></td><td><code>{label, items, statements, end_label}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-sequential-statements"><a class="header" href="#family-sequential-statements">Family: sequential statements</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>sequential_statement</code> (13 kinds)</td><td><code>{kind, body}</code> for <code>"signal_assignment"</code> / <code>"variable_assignment"</code> / <code>"if"</code> / <code>"case"</code> / <code>"loop"</code> / <code>"exit"</code> / <code>"wait"</code> / <code>"assert"</code> / <code>"report"</code> / <code>"return"</code> / <code>"procedure_call"</code>; <code>{kind: "null"}</code> and <code>{kind: "semi"}</code> are bodyless.</td></tr>
+<tr><td><code>signal_assignment_statement</code></td><td><code>{target, rhs}</code>.</td></tr>
+<tr><td><code>signal_assignment_rhs</code></td><td><code>{value, conditional}</code> — <code>conditional</code> carries the optional <code>when</code>-clause tail.</td></tr>
+<tr><td><code>variable_assignment_statement</code></td><td><code>{target, value}</code>.</td></tr>
+<tr><td><code>target</code> (2 kinds)</td><td><code>{kind: "name", name, params}</code> / <code>{kind: "aggregate", first, rest}</code>.</td></tr>
+<tr><td><code>if_statement</code></td><td><code>{condition, then_body, elsif_branches, else_body}</code> — <code>elsif_branches</code> is the <code>(elsif … then …)*</code> iteration; <code>else_body</code> is <code>[]</code> when there is no <code>else</code>.</td></tr>
+<tr><td><code>case_statement</code></td><td><code>{value, alternatives}</code>.</td></tr>
+<tr><td><code>case_statement_alternative</code></td><td><code>{choices, body}</code>.</td></tr>
+<tr><td><code>loop_statement</code> (3 kinds)</td><td><code>{kind: "while", condition, body}</code> / <code>{kind: "for", var, range, body}</code> / <code>{kind: "infinite", body}</code>.</td></tr>
+<tr><td><code>exit_statement</code></td><td><code>{condition_or_label}</code>.</td></tr>
+<tr><td><code>wait_statement</code></td><td><code>{timeout}</code> — the optional <code>for expression</code> clause.</td></tr>
+<tr><td><code>assert_statement</code></td><td><code>{condition, report, severity}</code>.</td></tr>
+<tr><td><code>report_statement</code></td><td><code>{message, severity}</code>.</td></tr>
+<tr><td><code>return_statement</code></td><td><code>{value}</code> — <code>value</code> is <code>[]</code> for a bare <code>return;</code>.</td></tr>
+<tr><td><code>procedure_call_statement</code></td><td><code>{name, params}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-expressions--the-binop_chain-contract"><a class="header" href="#family-expressions--the-binop_chain-contract">Family: expressions — the <code>binop_chain</code> contract</a></h2>
+<p>VHDL’s expression grammar is a five-level operator-precedence cascade. Each level carries a <code>binop_chain</code> typed shape:</p>
+<pre><code class="language-ebnf">expression        := relation (logical_operator relation)*
+                  -&gt; {type: "binop_chain", level: "logical",         lhs: $1, rest: $2}
+relation          := simple_expression (relational_operator simple_expression)?
+                  -&gt; {type: "binop_chain", level: "relational",      lhs: $1, rest: $2}
+simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+                  -&gt; {type: "binop_chain", level: "additive",        sign: $1, lhs: $2, rest: $3}
+term              := factor ((star | slash | kw_mod | kw_rem) factor)*
+                  -&gt; {type: "binop_chain", level: "multiplicative",  lhs: $1, rest: $2}
+factor            := primary (power primary)?
+                  -&gt; {type: "binop_chain", level: "power",           lhs: $1, rest: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Level (<code>level</code>)</th><th>Rule</th><th>Fields</th><th>Operators</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"logical"</code></td><td><code>expression</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>and</code> / <code>or</code> / <code>xor</code> / <code>nand</code> / <code>nor</code> / <code>xnor</code></td></tr>
+<tr><td><code>"relational"</code></td><td><code>relation</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>=</code> / <code>/=</code> / <code>&lt;</code> / <code>&lt;=</code> / <code>&gt;</code> / <code>&gt;=</code></td></tr>
+<tr><td><code>"additive"</code></td><td><code>simple_expression</code></td><td><code>sign</code>, <code>lhs</code>, <code>rest</code></td><td>unary <code>+</code>/<code>-</code> (<code>sign</code>), binary <code>+</code> / <code>-</code> / <code>&amp;</code></td></tr>
+<tr><td><code>"multiplicative"</code></td><td><code>term</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>*</code> / <code>/</code> / <code>mod</code> / <code>rem</code></td></tr>
+<tr><td><code>"power"</code></td><td><code>factor</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>**</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the iteration array of <code>(op, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). The <code>"relational"</code> level’s <code>rest</code> is at most a single <code>(op, operand)</code> pair (the grammar uses <code>?</code>, not <code>*</code>); all other levels iterate <code>*</code>.</p>
+<p>This <code>binop_chain</code> shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See <a href="#walking-the-ast">Walking the AST</a> for a worked fold.</p>
+<h3 id="operators-bare-kind-leaves"><a class="header" href="#operators-bare-kind-leaves">Operators (bare <code>{kind}</code> leaves)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th><code>kind</code> values</th></tr>
+</thead>
+<tbody>
+<tr><td><code>logical_operator</code> (6)</td><td><code>"and"</code>, <code>"or"</code>, <code>"xor"</code>, <code>"nand"</code>, <code>"nor"</code>, <code>"xnor"</code></td></tr>
+<tr><td><code>relational_operator</code> (6)</td><td><code>"eq"</code>, <code>"ne"</code>, <code>"lt"</code>, <code>"le"</code>, <code>"gt"</code>, <code>"ge"</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>(<code>simple_expression</code>, <code>term</code>, and <code>factor</code> operators are matched inline as literal tokens within <code>rest</code>, not via a separate typed operator rule.)</p>
+<h3 id="primary-and-aggregates"><a class="header" href="#primary-and-aggregates"><code>primary</code> and aggregates</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary</code> (7 kinds)</td><td><code>{kind: "literal", body}</code> / <code>{kind: "aggregate", body}</code> / <code>{kind: "attribute_name", body}</code> / <code>{kind: "function_call", name, params}</code> / <code>{kind: "name", body}</code> / <code>{kind: "parens", expr}</code> / <code>{kind: "not", expr}</code>.</td></tr>
+<tr><td><code>attribute_name</code></td><td><code>{prefix, prefix_params, attribute, attribute_params}</code>.</td></tr>
+<tr><td><code>aggregate</code> (2 kinds)</td><td><code>{kind: "named_first", first_choices, first_value, rest}</code> / <code>{kind: "positional_first", first_value, second, rest}</code>.</td></tr>
+<tr><td><code>aggregate_element_association</code> (2 kinds)</td><td><code>{kind: "named", choices, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
+<tr><td><code>aggregate_choice_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>aggregate_choice</code> (5 kinds)</td><td><code>{kind: "others"}</code> / <code>{kind: "name", body}</code> / <code>{kind: "decimal", body}</code> / <code>{kind: "character", body}</code> / <code>{kind: "string", body}</code>.</td></tr>
+<tr><td><code>choices</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>choice</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "others"}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-literals"><a class="header" href="#family-literals">Family: literals</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>literal</code> (6 kinds)</td><td><code>{kind, body}</code> for <code>"physical"</code> / <code>"decimal"</code> / <code>"based"</code> / <code>"bit_string"</code> / <code>"string"</code> / <code>"character"</code>.</td></tr>
+<tr><td><code>decimal_literal</code></td><td><code>{value}</code>.</td></tr>
+<tr><td><code>based_literal</code></td><td><code>{base, value}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, and <code>character_literal</code> are matched as terminal/regex leaves and carried through the recursive-envelope shape (string of matched text); they have no per-rule annotation — only the dispatch in <code>literal</code> is typed.</p>
+<h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
+<p>The full typed surface as of contract <code>1.0.1</code> is <strong>249 annotations across 110 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<ul>
+<li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "vhdl"</code>, <code>annotation_count: 249</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 249 entries).</li>
+</ul>
+<p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
+<h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
+<p>Each shape-affecting slice after VHDL-Slice-1 gets a row in <a href="#schema-versioning">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="#changelog-index">Changelog Index</a> ties them together.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="examples-minimal-entity"><a class="header" href="#examples-minimal-entity">Examples Minimal Entity</a></h1>
 <blockquote>
@@ -621,10 +1240,94 @@ pub struct ParserEmbeddingApiContract {
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
+<p>This chapter explains how the PGEN VHDL parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape. The authoritative numbers come from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; where this chapter and the contract disagree, <strong>the contract wins</strong>.</p>
+<h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
+<p>The VHDL parser carries <strong>two</strong> version numbers:</p>
+<ol>
+<li><strong>Parser release version</strong> — currently <code>1.0.1</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>AST-dump schema version</strong> — currently <code>1</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+</ol>
+<p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.</p>
+<p>These numbers are taken from the integration contract’s “Contract Identity” section, which records:</p>
+<ul>
+<li>Contract version: <code>1.0.1</code></li>
+<li>Parser release version: <code>1.0.1</code></li>
+<li>VHDL AST-dump schema version: <code>1</code></li>
+<li>Annotation count: <strong>249</strong> (VHDL-Slice-1 — the full grammar typed in one batch)</li>
+</ul>
+<p>The contract document <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for all of these per release.</p>
+<h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
+<p>Any of these triggers a schema version bump:</p>
+<ul>
+<li>A new return annotation lands on a previously-unannotated rule.</li>
+<li>An existing return annotation is restructured.</li>
+<li>A grammar rule changes shape in a way that’s user-visible (new branch added, branch removed, a sub-rule renamed in a way that affects shape, a <code>{first, rest}</code> list flattened, etc.).</li>
+<li>The default fall-through behavior of unannotated rules changes.</li>
+</ul>
+<p>These do <strong>not</strong> trigger a schema bump:</p>
+<ul>
+<li>Pure performance optimizations that produce the same AST.</li>
+<li>Internal codegen reorganization that doesn’t reach the output.</li>
+<li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
+</ul>
+<p>The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
+<p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical (alphabetical) order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value. Whitespace is configurable via <code>AstDumpOptions.pretty</code> but the underlying JSON value is the same.</p>
+<p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="schema-version-timeline"><a class="header" href="#schema-version-timeline">Schema version timeline</a></h2>
+<p>This table mirrors the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>. The contract is authoritative for the live state.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
+</thead>
+<tbody>
+<tr><td>1.0.0</td><td>1.0.1</td><td><strong>VHDL-Slice-1</strong> — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (the <code>binop_chain</code> shape across the 5-level operator hierarchy <code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>), and literals all typed in one comprehensive batch. Same accept set as the pre-typing baseline. AST-dump schema version field value: <code>1</code>.</td></tr>
+<tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Grammar (<code>grammars/vhdl.ebnf</code>) un-annotated except for the <code>vhdl_file -&gt; {type, design_units}</code> root. AST dump is the recursive-envelope shape across all rules.</td></tr>
+</tbody>
+</table>
+</div>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.0</code> / <code>0.1.0</code> labels above for the typing-campaign milestones, while the <code>AstDumpPayload.schema_version</code> integer field consumers branch on is currently <code>1</code>. Pin against the integer schema-version field for runtime dispatch (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
+<h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
+<ol>
+<li>
+<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.1</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
+</li>
+<li>
+<p><strong>Branch on the integer schema version at runtime.</strong> <code>AstDumpPayload.schema_version</code> is <code>1</code>. Reject or warn on an unexpected value rather than mis-parsing a newer shape:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match ast_dump_payload.schema_version {
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    other =&gt; return Err(format!("unsupported VHDL schema version: {other}")),
+}
+<span class="boring">}</span></code></pre>
+</li>
+<li>
+<p><strong>Vendor or pin the generated parser.</strong> The VHDL parser is on-demand-only (see <a href="#build-recipe">Build Recipe</a>); vendor <code>generated/vhdl_parser.rs</code> against the recorded parser-release version, or build it in CI from the pinned <code>grammars/vhdl.ebnf</code>.</p>
+</li>
+<li>
+<p><strong>When you bump PGEN</strong>, scan the <a href="#changelog-index">Changelog Index</a> for shape-change rows that affect the rules you consume, and re-run your walker’s test corpus.</p>
+</li>
+</ol>
+<h2 id="additive-vs-breaking-changes"><a class="header" href="#additive-vs-breaking-changes">Additive vs breaking changes</a></h2>
+<p>Within a single integer schema version, shape changes are intended to be <strong>additive</strong> wherever possible:</p>
+<ul>
+<li><strong>Additive (no integer schema bump expected):</strong> a new optional field on an existing typed object, a new <code>kind</code> value on a dispatch rule for a previously-unparseable construct, a new typed shape on a rule that was previously raw envelope. Consumers using the unknown-shape fallthrough from <a href="#walking-the-ast">Walking the AST</a> keep working; consumers that hard-match a closed <code>kind</code> set must extend it.</li>
+<li><strong>Breaking (integer schema bump):</strong> renaming or removing a field on an existing typed object, changing a <code>kind</code> discriminator value, restructuring a <code>{first, rest}</code> list into a flat array, or changing the default fall-through of an unannotated rule in a way that moves data consumers were already reading.</li>
+</ul>
+<p>The contract’s bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on the integer <code>schema_version</code>, (b) treats absent optionals as <code>[]</code>, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.</p>
+<h2 id="reporting-drift"><a class="header" href="#reporting-drift">Reporting drift</a></h2>
+<p>If you observe an AST shape that disagrees with this book, the contract, or the live inventory <code>generated/vhdl_return_annotations.json</code>:</p>
+<ol>
+<li>Confirm against the machine-checkable inventory (<code>generated/vhdl_return_annotations.json</code> / <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>, 249 entries, identical content).</li>
+<li>If the inventory agrees with what you observe but the contract does not, the contract is authoritative for intended behavior — file via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</li>
+<li>Accepted released-parser bugs are tracked in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</li>
+</ol>
+<h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
+<p>A future schema milestone will land if and when the VHDL grammar’s remaining un-annotated rules (terminal/regex leaves and a few utility rules) are either annotated or given a deliberate decision to remain raw envelope, and the shape definitions move to a locked tier. The VHDL family is still an <code>In Progress</code> family in the live tracker (<code>LIVE_ACHIEVEMENT_STATUS.md</code>); downstream integrators should treat the embedding surface as real but keep an eye on the live blocker list and the <a href="#changelog-index">Changelog Index</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <blockquote>

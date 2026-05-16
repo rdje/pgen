@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: vhdl deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-15`
+- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal
@@ -60,11 +60,11 @@ consumers can read first, paired with a tracked HTML rendering and a
   Commit: `VHDL-MDBOOK-Slice-3`
 
 - ID: `VHDL-MDBOOK.3`
-  Status: `pending`
+  Status: `done`
   Goal: `Author the shape-reference chapters (rules-top-level, json-carrier, walking-the-ast, schema-versioning).`
   Acceptance: `Each chapter enumerates the 249 typed rules' shapes against the live inventory.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: 4 chapters authored — rules-top-level enumerates the vhdl_file root + 10-branch design_unit dispatch + all rule families grouped (249 annotations / 110 distinct rules), json-carrier, walking-the-ast (binop_chain left-fold), schema-versioning (1.0.1 / schema v1, contract-aligned). Content independently verified against generated/vhdl_return_annotations.json (branch counts, kinds, fields, binop_chain levels all match). vhdl_parser_book_gate passes (mdbook_build + tracked_html_check green).`
+  Commit: `VHDL-MDBOOK-Slice-4`
 
 - ID: `VHDL-MDBOOK.4`
   Status: `pending`
@@ -91,7 +91,8 @@ consumers can read first, paired with a tracked HTML rendering and a
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `VHDL-MDBOOK.3` | `pending` | Shape-reference chapters (rules-top-level, json-carrier, walking-the-ast, schema-versioning) come next once core navigation is in place. |
+| 1 | `VHDL-MDBOOK.4` | `pending` | The minimal_entity worked example (annotated AST dump validated against generated/vhdl_parser.rs) comes next once the shape reference is in place. |
+| 2 | `VHDL-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book. |
 
 ## Decisions
 
@@ -116,6 +117,7 @@ consumers can read first, paired with a tracked HTML rendering and a
 | `2026-05-14` | `VHDL-MDBOOK.1` | `mdbook build` | `pass — HTML rendered to docs/vhdl_parser_book-html` |
 | `2026-05-15` | `VHDL-MDBOOK.5` | `make vhdl_parser_book_gate` | `pass — mdbook_build + tracked_html_check both green` |
 | `2026-05-15` | `VHDL-MDBOOK.2` | `make vhdl_parser_book_gate` | `pass — quickstart + build-recipe + public-api + ast-envelope authored; gate green` |
+| `2026-05-16` | `VHDL-MDBOOK.3` | `make vhdl_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters authored; content verified against generated/vhdl_return_annotations.json (249/110); gate green` |
 
 ## Commit Log
 
@@ -124,9 +126,11 @@ consumers can read first, paired with a tracked HTML rendering and a
 | `VHDL-MDBOOK.1` | `VHDL-MDBOOK-Slice-1` | book.toml + 12-entry SUMMARY + welcome chapter + stubs for remaining chapters |
 | `VHDL-MDBOOK.5` | `VHDL-MDBOOK-Slice-2` | rust/scripts/vhdl_parser_book_gate.sh + Makefile target |
 | `VHDL-MDBOOK.2` | `VHDL-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
+| `VHDL-MDBOOK.3` | `VHDL-MDBOOK-Slice-4` | rules-top-level + json-carrier + walking-the-ast + schema-versioning authored; inventory-verified (249/110) |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-14`: `VHDL-MDBOOK.1` completed; frontier advances to `VHDL-MDBOOK.2` (next reader content) and `VHDL-MDBOOK.5` (gate wiring, parallel).
 - `2026-05-15`: `VHDL-MDBOOK.2` completed; frontier advances to `VHDL-MDBOOK.3` (shape-reference chapters).
+- `2026-05-16`: `VHDL-MDBOOK.3` completed; frontier advances to `VHDL-MDBOOK.4` (minimal_entity worked example), then `VHDL-MDBOOK.6` (glossary/changelog/links).

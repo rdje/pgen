@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c4777fc7.js";
+            window.path_to_searchindex_js = "searchindex-f39bedb2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -180,11 +180,105 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="json-carrier"><a class="header" href="#json-carrier">Json Carrier</a></h1>
+                        <h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
+<p>This chapter explains how the VHDL parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, and the determinism guarantee. It is the conceptual companion to <a href="rules-top-level.html">Top-Level Rules</a>, which enumerates the concrete per-rule shapes.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Note:</strong> The VHDL return-annotation campaign landed in a single comprehensive batch — <strong>VHDL-Slice-1, 249 annotations across 110 rules</strong> (parser release <code>1.0.1</code>, schema version <code>1</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in <a href="ast-envelope.html">AST Envelope Structure</a>. The authoritative enumeration is <code>generated/vhdl_return_annotations.json</code> (mirrored byte-for-byte by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>).</p>
 </blockquote>
+<h2 id="two-carrier-kinds"><a class="header" href="#two-carrier-kinds">Two carrier kinds</a></h2>
+<p>Every node in the VHDL AST dump is carried in one of exactly two shapes.</p>
+<h3 id="typed-shape-rules-with-a----return-annotation"><a class="header" href="#typed-shape-rules-with-a----return-annotation">Typed shape (rules with a <code>-&gt; ...</code> return annotation)</a></h3>
+<p>When a rule in <code>grammars/vhdl.ebnf</code> carries a return annotation, the parser emits a typed JSON value derived from that annotation. For VHDL this takes three sub-forms:</p>
+<ol>
+<li>
+<p><strong>Root object with <code>type</code>.</strong> Only <code>vhdl_file</code> carries a <code>type</code> discriminator at the dispatch level:</p>
+<pre><code class="language-json">{ "type": "vhdl_file", "design_units": [ /* ... */ ] }
+</code></pre>
+</li>
+<li>
+<p><strong><code>kind</code>-tagged dispatch object.</strong> Most VHDL dispatch rules use a <code>kind</code> discriminator (no <code>type</code>), reflecting the design choice of tightly-scoped per-rule dispatch. For example, <code>design_unit</code>:</p>
+<pre><code class="language-json">{ "kind": "entity", "body": { /* entity_declaration shape */ } }
+</code></pre>
+</li>
+<li>
+<p><strong>Named-field object.</strong> Single-sequence rules emit a flat object of named fields. For example, <code>entity_declaration</code>:</p>
+<pre><code class="language-json">{ "name": "e", "items": [], "end_label": [] }
+</code></pre>
+</li>
+</ol>
+<p>The <code>binop_chain</code> expression rules combine forms 1 and 3 — they carry both a <code>type</code> and a <code>level</code> plus the operand fields (see <a href="#the-expression-family-binop_chain">the expression family</a>).</p>
+<h3 id="recursive-envelope-shape-rules-without-annotations"><a class="header" href="#recursive-envelope-shape-rules-without-annotations">Recursive-envelope shape (rules without annotations)</a></h3>
+<p>When a rule has no return annotation, the parser emits a JSON value derived mechanically from the rule’s grammar shape:</p>
+<ul>
+<li>A <strong>terminal literal</strong> or <strong>regex literal</strong> produces a JSON string of the matched text.</li>
+<li>A <strong>rule reference</strong> produces whatever shape that rule produces.</li>
+<li>A <strong>sequence</strong> <code>a b c</code> produces a JSON array <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</li>
+<li>An <strong>alternation</strong> produces the matched branch’s shape directly.</li>
+<li>A <strong>quantified rule</strong> (<code>x*</code>, <code>x+</code>) produces a JSON array of the per-iteration shapes.</li>
+<li>An <strong>optional rule</strong> (<code>x?</code>) produces the matched shape if matched, or <code>[]</code> if un-matched.</li>
+</ul>
+<p>In VHDL, the recursive-envelope shape is what you reach when you descend below the typed surface: VHDL identifier tokens, physical / bit-string / string / character literals, and the few utility rules that have no per-rule annotation. The <code>body</code> field of any <code>{kind, body}</code> dispatch object is whatever shape the matched sub-rule produces — typed if that sub-rule is itself annotated (it usually is), envelope otherwise.</p>
+<h2 id="object--array--string--scalar-mapping"><a class="header" href="#object--array--string--scalar-mapping">Object / array / string / scalar mapping</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>JSON value</th><th>Produced by</th></tr>
+</thead>
+<tbody>
+<tr><td>Object <code>{...}</code></td><td>A typed return annotation that is an object literal (<code>{kind: ...}</code>, <code>{name: ..., subtype: ...}</code>, <code>{type: "binop_chain", ...}</code>, etc.).</td></tr>
+<tr><td>Array <code>[...]</code></td><td>A recursive-envelope sequence/quantified shape, <strong>or</strong> an un-matched optional field (<code>[]</code>), <strong>or</strong> the trailing <code>rest</code> iteration of a <code>{first, rest}</code> list rule.</td></tr>
+<tr><td>String <code>"..."</code></td><td>A matched terminal or regex leaf (identifier text, literal text, keyword text reached through an envelope).</td></tr>
+<tr><td><code>true</code> / <code>false</code></td><td>A <code>BooleanLiteral</code> in a typed annotation. VHDL’s current 249-annotation surface uses no boolean literals; all annotations are object literals.</td></tr>
+<tr><td>Number</td><td>A <code>NumberLiteral</code> typed transform. Not used by the current VHDL surface.</td></tr>
+<tr><td><code>null</code></td><td>A <code>NullLiteral</code>. Not used by the current VHDL surface — absent optional fields are carried as the empty array <code>[]</code>, not <code>null</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two VHDL-specific points consumers must internalize:</p>
+<ul>
+<li><strong>Absent optionals are <code>[]</code>, never <code>null</code>.</strong> A <code>signal_declaration</code> with no initializer emits <code>"default": []</code>. A bare <code>return;</code> emits <code>"value": []</code>. Test for an empty array, not for <code>null</code> or a missing key.</li>
+<li><strong><code>{first, rest}</code> is the list convention.</strong> Separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …) emit <code>{first: &lt;head&gt;, rest: &lt;iteration-of-the-(sep X)*-tail&gt;}</code>. <code>rest</code> is a recursive-envelope array; each entry is the envelope of one <code>(separator element)</code> iteration. Unlike the SystemVerilog grammar — where a slice-58 audit flattened these to clean <code>[$N, $M::2*]</code> arrays — the VHDL grammar uses the <code>{first, rest}</code> shape uniformly across VHDL-Slice-1, so consumers should expect to descend through the separator wrap when iterating a VHDL list. (A future flattening slice, if it lands, will get its own <a href="schema-versioning.html">Schema Versioning</a> row.)</li>
+</ul>
+<h2 id="worked-example-a-minimal-entity"><a class="header" href="#worked-example-a-minimal-entity">Worked example: a minimal entity</a></h2>
+<p>Input:</p>
+<pre><code class="language-vhdl">entity e is end e;
+</code></pre>
+<p>Carrier walk:</p>
+<ul>
+<li>The root is the <strong>typed root object</strong> <code>{ "type": "vhdl_file", "design_units": [ … ] }</code>.</li>
+<li><code>design_units</code> is a <strong>recursive-envelope array</strong> (the <code>design_unit*</code> iteration) with one element.</li>
+<li>That element is a <strong><code>kind</code>-tagged dispatch object</strong> <code>{ "kind": "entity", "body": { … } }</code>.</li>
+<li><code>body</code> is the <strong>named-field object</strong> for <code>entity_declaration</code>: <code>{ "name": "e", "items": [], "end_label": [ … ] }</code>.</li>
+<li><code>name</code> is a <strong>string</strong> (the identifier text reached through the envelope).</li>
+<li><code>items</code> is an <strong>empty array</strong> (<code>entity_declarative_item*</code> matched zero items).</li>
+<li><code>end_label</code> is an <strong>array</strong> carrying the optional trailing <code>identifier?</code> (the <code>e</code> after <code>end</code>), or <code>[]</code> if omitted.</li>
+</ul>
+<p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>. See <a href="examples-minimal-entity.html">Examples Minimal Entity</a> for a pinned end-to-end production AST.</p>
+<h2 id="the-expression-family-binop_chain"><a class="header" href="#the-expression-family-binop_chain">The expression family (<code>binop_chain</code>)</a></h2>
+<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all carry the same <code>binop_chain</code> carrier so a single consumer fold handles the whole tree:</p>
+<pre><code class="language-json">{ "type": "binop_chain", "level": "logical", "lhs": &lt;relation-shape&gt;, "rest": [ /* (op, relation) iterations */ ] }
+</code></pre>
+<p><code>lhs</code> is the leading operand (itself a <code>binop_chain</code> of the next-tighter level, bottoming out at a typed <code>primary</code>). <code>rest</code> is a recursive-envelope array of <code>(operator, operand)</code> iterations; for <code>simple_expression</code> there is an additional leading <code>sign</code> field (<code>[]</code> when no unary <code>+</code>/<code>-</code>). Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>. The full level/field/operator table is in <a href="rules-top-level.html#family-expressions--the-binop_chain-contract">Top-Level Rules</a>; the fold code is in <a href="walking-the-ast.html">Walking the AST</a>.</p>
+<h2 id="determinism"><a class="header" href="#determinism">Determinism</a></h2>
+<p>The AST dump is <strong>byte-deterministic</strong> for a given input + parser-release version:</p>
+<ul>
+<li>Object keys are emitted in canonical (alphabetical) order.</li>
+<li>Number formatting is canonical.</li>
+<li>No embedded timestamps or hashes.</li>
+<li>Whitespace is configurable via <code>AstDumpOptions.pretty</code> (compact vs pretty-printed), but the underlying JSON value is identical.</li>
+</ul>
+<p>Re-running the parse on the same input produces an identical JSON value. This is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — report it via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
+<h2 id="un-annotated-on-purpose-rules"><a class="header" href="#un-annotated-on-purpose-rules">Un-annotated-on-purpose rules</a></h2>
+<p>Some rules remain un-annotated by design — typically terminal/regex leaves (identifiers, <code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, <code>character_literal</code>) and utility rules whose envelope shape is already the most useful representation. Their text is reachable through the recursive-envelope walk from the nearest typed parent (e.g. <code>literal.kind == "string"</code> → <code>body</code> is the matched string-literal text).</p>
+<h2 id="how-to-read-the-annotation-text"><a class="header" href="#how-to-read-the-annotation-text">How to read the annotation text</a></h2>
+<p>The <code>normalized_text</code> field of each inventory entry is the EBNF <code>-&gt; ...</code> clause:</p>
+<ul>
+<li><code>$N</code> — positional reference to the Nth body element (1-indexed).</li>
+<li><code>{field: value, ...}</code> — typed object literal.</li>
+<li><code>[v1, v2, ...]</code> — array literal.</li>
+<li><code>"text"</code> — string literal.</li>
+</ul>
+<p>The full annotation-language grammar is <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>. The per-rule shapes those annotations produce are tabulated in <a href="rules-top-level.html">Top-Level Rules</a>.</p>
 
                     </main>
 

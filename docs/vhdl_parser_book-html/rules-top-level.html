@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c4777fc7.js";
+            window.path_to_searchindex_js = "searchindex-f39bedb2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -180,11 +180,341 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="rules-top-level"><a class="header" href="#rules-top-level">Rules Top Level</a></h1>
+                        <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
+<p>This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the <code>vhdl_file</code> root, the <code>design_unit</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) landed the full grammar typing in one comprehensive batch — <strong>110 distinct rules / 249 return annotations</strong> across <code>grammars/vhdl.ebnf</code>. Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 249 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
+<h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
+<p>This is a <strong>curated, grouped</strong> reference — not a raw 249-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
+<p>Two conventions appear throughout:</p>
+<ul>
+<li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>.</li>
+<li><strong><code>{first, rest}</code> list rules</strong> emit a head element plus the raw iteration of the <code>(sep X)*</code> tail. This is the VHDL grammar’s mini-mixed-array convention for separated lists (<code>identifier_list</code>, <code>association_list</code>, <code>selected_name</code>, etc.); the head is <code>first</code>, and <code>rest</code> is the trailing-iteration envelope.</li>
+</ul>
+<p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, <code>[...]</code>, string literals) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
+<h2 id="entry-point"><a class="header" href="#entry-point">Entry point</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Profile</th><th>Entry rule</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>vhdl_1076_2019</code></td><td><code>vhdl_file</code></td><td>IEEE 1076-2019 source file. The only stable VHDL profile.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The host entry points are <code>parse_vhdl_1076_2019</code> / <code>parse_vhdl_1076_2019_ast_dump</code> (and the generic <code>parse_grammar_profile*</code> family with <code>GrammarFamily::Vhdl</code> + <code>GrammarProfile::Vhdl1076_2019</code>). See <a href="public-api.html">Public API Surface</a>.</p>
+<h2 id="vhdl_file-root"><a class="header" href="#vhdl_file-root"><code>vhdl_file</code> (root)</a></h2>
+<p>Per <code>grammars/vhdl.ebnf</code>:</p>
+<pre><code class="language-ebnf">vhdl_file := design_unit*
+          -&gt; {type: "vhdl_file", design_units: $1}
+</code></pre>
+<p>The annotation produces a typed JSON object at the root of every parse:</p>
+<pre><code class="language-json">{
+  "type": "vhdl_file",
+  "design_units": [/* array of design_unit shapes */]
+}
+</code></pre>
+<p><code>design_units</code> is the array of typed <code>design_unit</code> objects, one per top-level library unit in source order. Consumers walking the VHDL AST dispatch on <code>obj["type"] == "vhdl_file"</code> at the root, then iterate <code>obj["design_units"]</code>.</p>
+<h2 id="design_unit-dispatch"><a class="header" href="#design_unit-dispatch"><code>design_unit</code> dispatch</a></h2>
+<p><code>design_unit</code> is the primary top-level dispatcher — a 10-branch <code>kind</code>-tagged shape covering every VHDL library-unit form:</p>
+<pre><code class="language-ebnf">design_unit := library_clause              -&gt; {kind: "library",            body: $1}
+             | use_clause                  -&gt; {kind: "use",                body: $1}
+             | context_reference_clause    -&gt; {kind: "context_reference",  body: $1}
+             | entity_declaration          -&gt; {kind: "entity",             body: $1}
+             | architecture_body           -&gt; {kind: "architecture",       body: $1}
+             | package_declaration         -&gt; {kind: "package",            body: $1}
+             | package_body                -&gt; {kind: "package_body",       body: $1}
+             | configuration_declaration   -&gt; {kind: "configuration",      body: $1}
+             | context_declaration         -&gt; {kind: "context",            body: $1}
+             | semi                        -&gt; {kind: "semi"}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>kind</code></th><th><code>body</code> shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"library"</code></td><td><code>library_clause</code> — <code>{first, rest}</code></td></tr>
+<tr><td><code>"use"</code></td><td><code>use_clause</code> — <code>{first, rest}</code></td></tr>
+<tr><td><code>"context_reference"</code></td><td><code>context_reference_clause</code> — <code>{name}</code></td></tr>
+<tr><td><code>"entity"</code></td><td><code>entity_declaration</code> — <code>{name, items, end_label}</code></td></tr>
+<tr><td><code>"architecture"</code></td><td><code>architecture_body</code> — <code>{name, entity_name, items, statements, end_label}</code></td></tr>
+<tr><td><code>"package"</code></td><td><code>package_declaration</code> — <code>{name, header, items, end_label}</code></td></tr>
+<tr><td><code>"package_body"</code></td><td><code>package_body</code> — <code>{name, items, end_label}</code></td></tr>
+<tr><td><code>"configuration"</code></td><td><code>configuration_declaration</code> — <code>{name, entity_name, items, end_label}</code></td></tr>
+<tr><td><code>"context"</code></td><td><code>context_declaration</code> — <code>{name, items, end_label}</code></td></tr>
+<tr><td><code>"semi"</code></td><td><em>(no body — lone <code>;</code> separator)</em></td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>"semi"</code> branch carries only <code>{kind: "semi"}</code> (a stray top-level <code>;</code>); every other branch carries a <code>body</code>.</p>
+<h2 id="family-context-clauses-and-selected-names"><a class="header" href="#family-context-clauses-and-selected-names">Family: context clauses and selected names</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>library_clause</code></td><td><code>{first, rest}</code> — first identifier + comma-separated iteration.</td></tr>
+<tr><td><code>use_clause</code></td><td><code>{first, rest}</code> — first selected name + comma-separated iteration.</td></tr>
+<tr><td><code>context_reference_clause</code></td><td><code>{name}</code> — the referenced context name.</td></tr>
+<tr><td><code>context_item</code> (4 kinds)</td><td><code>{kind, body}</code> for <code>"library"</code> / <code>"use"</code> / <code>"context_reference"</code>; <code>{kind: "semi"}</code> for the lone-<code>;</code> branch.</td></tr>
+<tr><td><code>selected_name</code></td><td><code>{first, rest}</code> — leading name segment + dotted-suffix iteration.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-design-units"><a class="header" href="#family-design-units">Family: design units</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>entity_declaration</code></td><td><code>{name, items, end_label}</code> — <code>items</code> is the <code>entity_declarative_item*</code> array; <code>end_label</code> is the optional trailing identifier after <code>end</code>.</td></tr>
+<tr><td><code>architecture_body</code></td><td><code>{name, entity_name, items, statements, end_label}</code> — <code>items</code> are declarative items, <code>statements</code> are concurrent statements.</td></tr>
+<tr><td><code>package_declaration</code></td><td><code>{name, header, items, end_label}</code> — <code>header</code> is the optional <code>package_header</code>.</td></tr>
+<tr><td><code>package_body</code></td><td><code>{name, items, end_label}</code>.</td></tr>
+<tr><td><code>configuration_declaration</code></td><td><code>{name, entity_name, items, end_label}</code> — <code>items</code> is the <code>configuration_item*</code> array.</td></tr>
+<tr><td><code>context_declaration</code></td><td><code>{name, items, end_label}</code> — <code>items</code> is the <code>context_item*</code> array.</td></tr>
+<tr><td><code>configuration_item</code> (3 kinds)</td><td><code>{kind: "for", target}</code> / <code>{kind: "use", body}</code> / <code>{kind: "semi"}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="declarative-item-dispatch-rules"><a class="header" href="#declarative-item-dispatch-rules">Declarative-item dispatch rules</a></h3>
+<p>Each declarative region uses a <code>kind</code>-tagged dispatch over the declarations it admits. All emit <code>{kind, body}</code> except the bodyless <code>"semi"</code> branch (<code>{kind: "semi"}</code>).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th><code>kind</code> values</th></tr>
+</thead>
+<tbody>
+<tr><td><code>entity_declarative_item</code> (5)</td><td><code>"generic"</code>, <code>"port"</code>, <code>"component"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>architecture_declarative_item</code> (12)</td><td><code>"signal"</code>, <code>"constant"</code>, <code>"file"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"component"</code>, <code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"package_instantiation"</code>, <code>"alias"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>package_declarative_item</code> (13)</td><td><code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"constant"</code>, <code>"signal"</code>, <code>"file"</code>, <code>"component"</code>, <code>"package_instantiation"</code>, <code>"view"</code>, <code>"alias"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>package_body_declarative_item</code> (8)</td><td><code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"constant"</code>, <code>"signal"</code>, <code>"file"</code>, <code>"alias"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>subprogram_declarative_item</code> (9)</td><td><code>"variable"</code>, <code>"file"</code>, <code>"constant"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+<tr><td><code>process_declarative_item</code> (9)</td><td><code>"variable"</code>, <code>"file"</code>, <code>"constant"</code>, <code>"type"</code>, <code>"subtype"</code>, <code>"subprogram_declaration"</code>, <code>"subprogram_body"</code>, <code>"use"</code>, <code>"semi"</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-generic--port--parameter-interfaces"><a class="header" href="#family-generic--port--parameter-interfaces">Family: generic / port / parameter interfaces</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>generic_clause</code></td><td><code>{list}</code> — the inner <code>generic_interface_list</code>.</td></tr>
+<tr><td><code>generic_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>generic_interface_element</code> (2 kinds)</td><td><code>{kind: "value", names, subtype, default}</code> / <code>{kind: "package", body}</code>.</td></tr>
+<tr><td><code>port_clause</code></td><td><code>{list}</code>.</td></tr>
+<tr><td><code>port_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>port_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>signal_mode</code>.</td></tr>
+<tr><td><code>parameter_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>parameter_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>parameter_mode</code>.</td></tr>
+<tr><td><code>generic_map_aspect</code></td><td><code>{associations}</code> — the inner <code>association_list</code>.</td></tr>
+<tr><td><code>port_map_aspect</code></td><td><code>{associations}</code>.</td></tr>
+<tr><td><code>association_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>association_element</code></td><td><code>{formal, actual}</code>.</td></tr>
+<tr><td><code>actual_part</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "open"}</code>.</td></tr>
+<tr><td><code>actual_parameter_part</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>actual_parameter_element</code> (2 kinds)</td><td><code>{kind: "association", body}</code> / <code>{kind: "range_expression", body}</code>.</td></tr>
+<tr><td><code>identifier_list</code></td><td><code>{first, rest}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="mode-keyword-leaves"><a class="header" href="#mode-keyword-leaves">Mode keyword leaves</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th><code>kind</code> values</th></tr>
+</thead>
+<tbody>
+<tr><td><code>signal_mode</code> (5)</td><td><code>"in"</code>, <code>"out"</code>, <code>"inout"</code>, <code>"buffer"</code>, <code>"linkage"</code></td></tr>
+<tr><td><code>view_mode</code> (5)</td><td><code>"in"</code>, <code>"out"</code>, <code>"inout"</code>, <code>"buffer"</code>, <code>"linkage"</code></td></tr>
+<tr><td><code>parameter_mode</code> (3)</td><td><code>"in"</code>, <code>"out"</code>, <code>"inout"</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Each is a bare <code>{kind}</code> object (no body) — the keyword token is redundant with <code>kind</code>.</p>
+<h2 id="family-declarations"><a class="header" href="#family-declarations">Family: declarations</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>signal_declaration</code></td><td><code>{names, subtype, default}</code> — <code>default</code> is <code>[]</code> when no <code>:= expr</code> initializer.</td></tr>
+<tr><td><code>constant_declaration</code></td><td><code>{names, subtype, value}</code>.</td></tr>
+<tr><td><code>variable_declaration</code></td><td><code>{names, subtype, default}</code>.</td></tr>
+<tr><td><code>file_declaration</code></td><td><code>{names, subtype, open_mode, filename}</code>.</td></tr>
+<tr><td><code>subtype_declaration</code></td><td><code>{name, subtype}</code>.</td></tr>
+<tr><td><code>component_declaration</code></td><td><code>{name, generic, port, end_label}</code>.</td></tr>
+<tr><td><code>type_declaration</code></td><td><code>{name, definition}</code> — <code>definition</code> is the typed <code>type_definition</code>.</td></tr>
+<tr><td><code>view_declaration</code></td><td><code>{name, subtype, elements}</code>.</td></tr>
+<tr><td><code>view_element</code></td><td><code>{name, mode}</code> — <code>mode</code> is the typed <code>view_mode</code>.</td></tr>
+<tr><td><code>alias_declaration</code></td><td><code>{name, target}</code>.</td></tr>
+<tr><td><code>package_header</code></td><td><code>{generic}</code>.</td></tr>
+<tr><td><code>package_generic_interface_element</code></td><td><code>{name, base, map}</code>.</td></tr>
+<tr><td><code>package_instantiation_declaration</code></td><td><code>{name, base, map}</code>.</td></tr>
+<tr><td><code>subprogram_declaration</code> (2 kinds)</td><td><code>{kind: "procedure", spec}</code> / <code>{kind: "function", spec}</code>.</td></tr>
+<tr><td><code>subprogram_body</code> (2 kinds)</td><td><code>{kind: "procedure", spec, items, statements, end_label}</code> / <code>{kind: "function", spec, items, statements, end_label}</code>.</td></tr>
+<tr><td><code>procedure_specification</code></td><td><code>{name, parameters}</code>.</td></tr>
+<tr><td><code>function_specification</code></td><td><code>{impure, name, parameters, return_type}</code> — <code>impure</code> is <code>[]</code> for a pure function, set when <code>impure</code> is present.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-types-and-constraints"><a class="header" href="#family-types-and-constraints">Family: types and constraints</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>type_definition</code> (3 kinds)</td><td><code>{kind: "enumeration", body}</code> / <code>{kind: "array", body}</code> / <code>{kind: "record", body}</code>.</td></tr>
+<tr><td><code>enumeration_type_definition</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>array_type_definition</code></td><td><code>{index_range, element_subtype}</code>.</td></tr>
+<tr><td><code>record_type_definition</code></td><td><code>{elements}</code>.</td></tr>
+<tr><td><code>record_element_declaration</code></td><td><code>{names, subtype}</code>.</td></tr>
+<tr><td><code>subtype_indication</code></td><td><code>{type_mark, constraint}</code> — <code>constraint</code> is <code>[]</code> when the subtype is unconstrained.</td></tr>
+<tr><td><code>constraint</code> (2 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "index", body}</code>.</td></tr>
+<tr><td><code>range_constraint</code></td><td><code>{range}</code>.</td></tr>
+<tr><td><code>index_constraint</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>discrete_range</code> (5 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "attribute", body}</code> / <code>{kind: "name", body}</code> / <code>{kind: "subtype_range", subtype, range}</code> / <code>{kind: "subtype_box", subtype}</code>.</td></tr>
+<tr><td><code>range_expression</code> (2 kinds)</td><td><code>{kind: "to", low, high}</code> / <code>{kind: "downto", high, low}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-concurrent-statements"><a class="header" href="#family-concurrent-statements">Family: concurrent statements</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>concurrent_statement</code> (7 kinds)</td><td><code>{kind, body}</code> for <code>"signal_assignment"</code> / <code>"assert"</code> / <code>"process"</code> / <code>"component_instantiation"</code> / <code>"generate"</code> / <code>"block"</code>; <code>{kind: "semi"}</code> for the lone-<code>;</code> branch.</td></tr>
+<tr><td><code>concurrent_signal_assignment_statement</code></td><td><code>{target, rhs}</code>.</td></tr>
+<tr><td><code>process_statement</code></td><td><code>{label, sensitivity, items, statements, end_label}</code>.</td></tr>
+<tr><td><code>process_label</code></td><td><code>{name}</code>.</td></tr>
+<tr><td><code>sensitivity_clause</code></td><td><code>{list}</code> — the inner <code>sensitivity_list</code>.</td></tr>
+<tr><td><code>sensitivity_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>component_instantiation_statement</code></td><td><code>{label, unit, generic_map, port_map}</code> — <code>unit</code> is the typed <code>instantiated_unit</code>.</td></tr>
+<tr><td><code>instantiated_unit</code> (3 kinds)</td><td><code>{kind: "component", name}</code> / <code>{kind: "entity", name}</code> / <code>{kind: "configuration", name}</code>.</td></tr>
+<tr><td><code>generate_statement</code> (2 kinds)</td><td><code>{kind: "for", label, var, range, statements}</code> / <code>{kind: "if", label, condition, statements}</code>.</td></tr>
+<tr><td><code>block_statement</code></td><td><code>{label, items, statements, end_label}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-sequential-statements"><a class="header" href="#family-sequential-statements">Family: sequential statements</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>sequential_statement</code> (13 kinds)</td><td><code>{kind, body}</code> for <code>"signal_assignment"</code> / <code>"variable_assignment"</code> / <code>"if"</code> / <code>"case"</code> / <code>"loop"</code> / <code>"exit"</code> / <code>"wait"</code> / <code>"assert"</code> / <code>"report"</code> / <code>"return"</code> / <code>"procedure_call"</code>; <code>{kind: "null"}</code> and <code>{kind: "semi"}</code> are bodyless.</td></tr>
+<tr><td><code>signal_assignment_statement</code></td><td><code>{target, rhs}</code>.</td></tr>
+<tr><td><code>signal_assignment_rhs</code></td><td><code>{value, conditional}</code> — <code>conditional</code> carries the optional <code>when</code>-clause tail.</td></tr>
+<tr><td><code>variable_assignment_statement</code></td><td><code>{target, value}</code>.</td></tr>
+<tr><td><code>target</code> (2 kinds)</td><td><code>{kind: "name", name, params}</code> / <code>{kind: "aggregate", first, rest}</code>.</td></tr>
+<tr><td><code>if_statement</code></td><td><code>{condition, then_body, elsif_branches, else_body}</code> — <code>elsif_branches</code> is the <code>(elsif … then …)*</code> iteration; <code>else_body</code> is <code>[]</code> when there is no <code>else</code>.</td></tr>
+<tr><td><code>case_statement</code></td><td><code>{value, alternatives}</code>.</td></tr>
+<tr><td><code>case_statement_alternative</code></td><td><code>{choices, body}</code>.</td></tr>
+<tr><td><code>loop_statement</code> (3 kinds)</td><td><code>{kind: "while", condition, body}</code> / <code>{kind: "for", var, range, body}</code> / <code>{kind: "infinite", body}</code>.</td></tr>
+<tr><td><code>exit_statement</code></td><td><code>{condition_or_label}</code>.</td></tr>
+<tr><td><code>wait_statement</code></td><td><code>{timeout}</code> — the optional <code>for expression</code> clause.</td></tr>
+<tr><td><code>assert_statement</code></td><td><code>{condition, report, severity}</code>.</td></tr>
+<tr><td><code>report_statement</code></td><td><code>{message, severity}</code>.</td></tr>
+<tr><td><code>return_statement</code></td><td><code>{value}</code> — <code>value</code> is <code>[]</code> for a bare <code>return;</code>.</td></tr>
+<tr><td><code>procedure_call_statement</code></td><td><code>{name, params}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-expressions--the-binop_chain-contract"><a class="header" href="#family-expressions--the-binop_chain-contract">Family: expressions — the <code>binop_chain</code> contract</a></h2>
+<p>VHDL’s expression grammar is a five-level operator-precedence cascade. Each level carries a <code>binop_chain</code> typed shape:</p>
+<pre><code class="language-ebnf">expression        := relation (logical_operator relation)*
+                  -&gt; {type: "binop_chain", level: "logical",         lhs: $1, rest: $2}
+relation          := simple_expression (relational_operator simple_expression)?
+                  -&gt; {type: "binop_chain", level: "relational",      lhs: $1, rest: $2}
+simple_expression := (plus | minus)? term ((plus | minus | ampersand) term)*
+                  -&gt; {type: "binop_chain", level: "additive",        sign: $1, lhs: $2, rest: $3}
+term              := factor ((star | slash | kw_mod | kw_rem) factor)*
+                  -&gt; {type: "binop_chain", level: "multiplicative",  lhs: $1, rest: $2}
+factor            := primary (power primary)?
+                  -&gt; {type: "binop_chain", level: "power",           lhs: $1, rest: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Level (<code>level</code>)</th><th>Rule</th><th>Fields</th><th>Operators</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"logical"</code></td><td><code>expression</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>and</code> / <code>or</code> / <code>xor</code> / <code>nand</code> / <code>nor</code> / <code>xnor</code></td></tr>
+<tr><td><code>"relational"</code></td><td><code>relation</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>=</code> / <code>/=</code> / <code>&lt;</code> / <code>&lt;=</code> / <code>&gt;</code> / <code>&gt;=</code></td></tr>
+<tr><td><code>"additive"</code></td><td><code>simple_expression</code></td><td><code>sign</code>, <code>lhs</code>, <code>rest</code></td><td>unary <code>+</code>/<code>-</code> (<code>sign</code>), binary <code>+</code> / <code>-</code> / <code>&amp;</code></td></tr>
+<tr><td><code>"multiplicative"</code></td><td><code>term</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>*</code> / <code>/</code> / <code>mod</code> / <code>rem</code></td></tr>
+<tr><td><code>"power"</code></td><td><code>factor</code></td><td><code>lhs</code>, <code>rest</code></td><td><code>**</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every level emits <code>{type: "binop_chain", level, lhs, rest}</code> where <code>lhs</code> is the leading operand and <code>rest</code> is the iteration array of <code>(op, operand)</code> pairs. <strong>Consumers fold <code>rest</code> left-associatively onto <code>lhs</code>.</strong> At the <code>"additive"</code> level there is an additional leading <code>sign</code> field carrying the optional unary <code>+</code>/<code>-</code> (<code>[]</code> when absent). The <code>"relational"</code> level’s <code>rest</code> is at most a single <code>(op, operand)</code> pair (the grammar uses <code>?</code>, not <code>*</code>); all other levels iterate <code>*</code>.</p>
+<p>This <code>binop_chain</code> shape is the same across all five levels precisely so that a single consumer fold routine handles the entire expression tree. See <a href="walking-the-ast.html">Walking the AST</a> for a worked fold.</p>
+<h3 id="operators-bare-kind-leaves"><a class="header" href="#operators-bare-kind-leaves">Operators (bare <code>{kind}</code> leaves)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th><code>kind</code> values</th></tr>
+</thead>
+<tbody>
+<tr><td><code>logical_operator</code> (6)</td><td><code>"and"</code>, <code>"or"</code>, <code>"xor"</code>, <code>"nand"</code>, <code>"nor"</code>, <code>"xnor"</code></td></tr>
+<tr><td><code>relational_operator</code> (6)</td><td><code>"eq"</code>, <code>"ne"</code>, <code>"lt"</code>, <code>"le"</code>, <code>"gt"</code>, <code>"ge"</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>(<code>simple_expression</code>, <code>term</code>, and <code>factor</code> operators are matched inline as literal tokens within <code>rest</code>, not via a separate typed operator rule.)</p>
+<h3 id="primary-and-aggregates"><a class="header" href="#primary-and-aggregates"><code>primary</code> and aggregates</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>primary</code> (7 kinds)</td><td><code>{kind: "literal", body}</code> / <code>{kind: "aggregate", body}</code> / <code>{kind: "attribute_name", body}</code> / <code>{kind: "function_call", name, params}</code> / <code>{kind: "name", body}</code> / <code>{kind: "parens", expr}</code> / <code>{kind: "not", expr}</code>.</td></tr>
+<tr><td><code>attribute_name</code></td><td><code>{prefix, prefix_params, attribute, attribute_params}</code>.</td></tr>
+<tr><td><code>aggregate</code> (2 kinds)</td><td><code>{kind: "named_first", first_choices, first_value, rest}</code> / <code>{kind: "positional_first", first_value, second, rest}</code>.</td></tr>
+<tr><td><code>aggregate_element_association</code> (2 kinds)</td><td><code>{kind: "named", choices, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
+<tr><td><code>aggregate_choice_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>aggregate_choice</code> (5 kinds)</td><td><code>{kind: "others"}</code> / <code>{kind: "name", body}</code> / <code>{kind: "decimal", body}</code> / <code>{kind: "character", body}</code> / <code>{kind: "string", body}</code>.</td></tr>
+<tr><td><code>choices</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>choice</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "others"}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="family-literals"><a class="header" href="#family-literals">Family: literals</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>literal</code> (6 kinds)</td><td><code>{kind, body}</code> for <code>"physical"</code> / <code>"decimal"</code> / <code>"based"</code> / <code>"bit_string"</code> / <code>"string"</code> / <code>"character"</code>.</td></tr>
+<tr><td><code>decimal_literal</code></td><td><code>{value}</code>.</td></tr>
+<tr><td><code>based_literal</code></td><td><code>{base, value}</code>.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, and <code>character_literal</code> are matched as terminal/regex leaves and carried through the recursive-envelope shape (string of matched text); they have no per-rule annotation — only the dispatch in <code>literal</code> is typed.</p>
+<h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
+<p>The full typed surface as of contract <code>1.0.1</code> is <strong>249 annotations across 110 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<ul>
+<li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "vhdl"</code>, <code>annotation_count: 249</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 249 entries).</li>
+</ul>
+<p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
+<h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
+<p>Each shape-affecting slice after VHDL-Slice-1 gets a row in <a href="schema-versioning.html">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="changelog-index.html">Changelog Index</a> ties them together.</p>
 
                     </main>
 

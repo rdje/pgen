@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c4777fc7.js";
+            window.path_to_searchindex_js = "searchindex-f39bedb2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-0734e4e4.js"></script>
@@ -180,11 +180,206 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking The Ast</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent VHDL-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/VHDL-MDBOOK.html">docs/tasks/VHDL-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/vhdl_return_annotations.json</code>, 249 annotations, schema version <code>1</code>).</p>
+<h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
+<p>Because the AST tree mixes typed objects (the VHDL-Slice-1 surface) and recursive-envelope arrays (terminal/regex leaves and a few un-annotated rules), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use serde_json::Value as JsonValue;
+
+fn walk(node: &amp;JsonValue) {
+    match node {
+        JsonValue::Object(obj) =&gt; {
+            // Typed-shape node. The root carries `type`; every other
+            // VHDL typed shape uses a `kind` discriminator.
+            if obj.get("type").and_then(|v| v.as_str()) == Some("vhdl_file") {
+                if let Some(units) = obj.get("design_units") {
+                    walk(units); // recursive-envelope array of design_unit shapes
+                }
+                return;
+            }
+            match obj.get("kind").and_then(|v| v.as_str()) {
+                Some("entity")        =&gt; walk_entity(obj.get("body")),
+                Some("architecture")  =&gt; walk_architecture(obj.get("body")),
+                Some("package")       =&gt; walk_package(obj.get("body")),
+                Some("process")       =&gt; walk_process(obj.get("body")),
+                // ... other design_unit / statement / declaration kinds
+                Some("semi")          =&gt; { /* lone `;` separator — nothing to do */ }
+                _ =&gt; {
+                    // Unknown or field-only typed object (e.g. a named-field
+                    // shape like entity_declaration, or binop_chain). Fall
+                    // through to a generic child walk so the walker stays
+                    // robust to shapes it doesn't special-case.
+                    for (_key, value) in obj.iter() {
+                        walk(value);
+                    }
+                }
+            }
+        }
+        JsonValue::Array(items) =&gt; {
+            // Recursive-envelope shape (sequence / quantified / `rest`
+            // iteration / un-matched optional `[]`) — walk children.
+            for item in items {
+                walk(item);
+            }
+        }
+        JsonValue::String(_text) =&gt; {
+            // Terminal text — identifier / literal value. No children.
+        }
+        JsonValue::Bool(_) | JsonValue::Number(_) | JsonValue::Null =&gt; {
+            // Annotation-produced scalars. The current VHDL surface uses
+            // none of these (absent optionals are `[]`, not null), but
+            // handle them so future slices don't break the walker.
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-the-unknown-shape-fallback-matters"><a class="header" href="#why-the-unknown-shape-fallback-matters">Why the unknown-shape fallback matters</a></h2>
+<p>The fallthrough that walks the children of any typed object the walker doesn’t special-case is <strong>important</strong>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>_ =&gt; {
+    for (_key, value) in obj.iter() {
+        walk(value);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The VHDL grammar landed its full surface in one batch (VHDL-Slice-1), but subsequent shape-affecting slices can add new <code>kind</code> values or restructure a shape. A walker that hard-fails on an unrecognized <code>kind</code> will break on every parser-release that extends the grammar. A walker that walks the children of unknown shapes degrades gracefully — it won’t extract structured info for shapes it doesn’t understand, but it will still reach descendants.</p>
+<p>Recommendation: only hard-fail on unknown shapes when you are explicitly pinning to a specific <code>schema_version</code> and your test corpus exercises every <code>kind</code> value in that schema (see <a href="schema-versioning.html">Schema Versioning</a>).</p>
+<h2 id="dispatching-the-design-unit-list"><a class="header" href="#dispatching-the-design-unit-list">Dispatching the design-unit list</a></h2>
+<p>Every parse roots at <code>{ "type": "vhdl_file", "design_units": [ ... ] }</code>. The per-unit dispatch is the 10-kind <code>design_unit</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn handle_design_unit(node: &amp;serde_json::Value) {
+    let kind = node.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+    let body = node.get("body");
+    match kind {
+        "entity"            =&gt; handle_entity(body),            // {name, items, end_label}
+        "architecture"      =&gt; handle_architecture(body),      // {name, entity_name, items, statements, end_label}
+        "package"           =&gt; handle_package(body),           // {name, header, items, end_label}
+        "package_body"      =&gt; handle_package_body(body),      // {name, items, end_label}
+        "configuration"     =&gt; handle_configuration(body),     // {name, entity_name, items, end_label}
+        "context"           =&gt; handle_context(body),           // {name, items, end_label}
+        "context_reference" =&gt; handle_context_reference(body), // {name}
+        "library"           =&gt; handle_library_clause(body),    // {first, rest}
+        "use"               =&gt; handle_use_clause(body),        // {first, rest}
+        "semi"              =&gt; { /* lone `;` */ }
+        _                   =&gt; { /* unknown — degrade gracefully */ }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The same <code>{kind, body}</code> pattern recurs for the declarative-item dispatch rules (<code>architecture_declarative_item</code>, <code>package_declarative_item</code>, <code>process_declarative_item</code>, …), <code>sequential_statement</code> (13 kinds), and <code>concurrent_statement</code> (7 kinds). All use the bodyless <code>{kind: "semi"}</code> for a stray <code>;</code>, and <code>sequential_statement</code> additionally uses bodyless <code>{kind: "null"}</code> for the VHDL <code>null;</code> statement.</p>
+<h2 id="folding-the-binop_chain-expression-hierarchy"><a class="header" href="#folding-the-binop_chain-expression-hierarchy">Folding the <code>binop_chain</code> expression hierarchy</a></h2>
+<p>The five expression-precedence rules (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>) all emit the same <code>binop_chain</code> shape. A single fold handles the whole hierarchy:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Folds one binop_chain level left-associatively. `lhs` is the leading
+/// operand (itself a binop_chain of the next-tighter level, bottoming out
+/// at a typed `primary`). `rest` is the recursive-envelope iteration of
+/// (operator, operand) pairs.
+fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
+    debug_assert_eq!(
+        node.get("type").and_then(|v| v.as_str()),
+        Some("binop_chain")
+    );
+
+    // `simple_expression` (level == "additive") carries an extra leading
+    // `sign` field for the optional unary +/- (`[]` when absent).
+    let unary_sign = node.get("sign"); // None for non-additive levels
+
+    let mut acc = lower_operand(node.get("lhs").expect("lhs present"));
+    if let Some(sign) = unary_sign {
+        acc = apply_unary_sign(sign, acc); // no-op if sign == []
+    }
+
+    // `rest` is an array of (op, operand) iterations. For `relation`
+    // (level == "relational") it holds at most one pair (grammar uses `?`,
+    // not `*`); every other level iterates `*`.
+    if let Some(rest) = node.get("rest").and_then(|v| v.as_array()) {
+        for pair in rest {
+            let (op, rhs_node) = split_op_operand(pair);
+            acc = Expr::Binary {
+                op,
+                lhs: Box::new(acc),
+                rhs: Box::new(lower_operand(rhs_node)),
+            };
+        }
+    }
+    acc
+}
+<span class="boring">}</span></code></pre>
+<p><code>level</code> tells you which precedence tier you are at (<code>"logical"</code>, <code>"relational"</code>, <code>"additive"</code>, <code>"multiplicative"</code>, <code>"power"</code>) without re-deriving it from context. The leaf operand is a typed <code>primary</code> (<code>{kind: "literal" | "aggregate" | "attribute_name" | "function_call" | "name" | "parens" | "not", ...}</code>); dispatch on its <code>kind</code> to bottom out the recursion.</p>
+<h2 id="identifier-extraction"><a class="header" href="#identifier-extraction">Identifier extraction</a></h2>
+<p>VHDL identifiers (entity names, signal names, labels) surface as JSON strings once you reach the relevant named field. For a typed parent the field is direct:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn entity_name(entity_body: &amp;serde_json::Value) -&gt; Option&lt;&amp;str&gt; {
+    // entity_declaration -&gt; {name, items, end_label}
+    entity_body.get("name").and_then(|v| v.as_str())
+}
+<span class="boring">}</span></code></pre>
+<p>When the identifier is reached through an envelope (e.g. inside an un-annotated leaf), walk to the terminal text:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn extract_identifier(node: &amp;serde_json::Value) -&gt; Option&lt;&amp;str&gt; {
+    match node {
+        serde_json::Value::String(text) =&gt; Some(text.as_str()),
+        serde_json::Value::Array(items) if items.len() == 1 =&gt; {
+            extract_identifier(&amp;items[0])
+        }
+        _ =&gt; None,
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The per-rule chapters (<a href="rules-top-level.html">Top-Level Rules</a>) document the field that holds the identifier for each rule that produces one.</p>
+<h2 id="iterating-first-rest-lists"><a class="header" href="#iterating-first-rest-lists">Iterating <code>{first, rest}</code> lists</a></h2>
+<p>VHDL separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …) use the <code>{first, rest}</code> carrier. <code>rest</code> is the recursive-envelope iteration of the <code>(separator element)*</code> tail, so each <code>rest</code> entry wraps a separator token plus one element:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn iter_list&lt;'a&gt;(list: &amp;'a serde_json::Value) -&gt; Vec&lt;&amp;'a serde_json::Value&gt; {
+    let mut out = Vec::new();
+    if let Some(first) = list.get("first") {
+        out.push(first);
+    }
+    if let Some(rest) = list.get("rest").and_then(|v| v.as_array()) {
+        for entry in rest {
+            // `entry` is the envelope of one `(sep element)` iteration;
+            // the element is the last child. Walk to it rather than
+            // assuming a fixed index, so a grammar tweak to the
+            // separator doesn't break extraction.
+            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
+                out.push(elem);
+            } else {
+                out.push(entry);
+            }
+        }
+    }
+    out
+}
+<span class="boring">}</span></code></pre>
+<p>This <code>{first, rest}</code> shape is uniform across the VHDL surface (it was <strong>not</strong> flattened to <code>[$N, $M::2*]</code> the way the SystemVerilog grammar’s lists were in its slice-58 audit). If a future VHDL slice flattens these, it will get a <a href="schema-versioning.html">Schema Versioning</a> row and a <a href="changelog-index.html">Changelog Index</a> entry.</p>
+<h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
+<p>VHDL can produce deep AST trees — a large architecture with nested blocks, generate statements, and deeply-nested expressions can reach hundreds of levels.</p>
+<p>Recommendations:</p>
+<ol>
+<li><strong>Use an explicit stack-based walker</strong> (push children, pop work items in a loop) instead of recursive function calls. Stack depth becomes irrelevant.</li>
+<li><strong>Or grow the thread stack</strong> (e.g. the <code>stacker</code> crate). PGEN itself uses a large-stack worker internally for the parser; consumers can do the same for traversal.</li>
+<li><strong>For pure AST drop</strong>, use a non-recursive drop — <code>serde_json::Value</code>’s default <code>Drop</code> is recursive and can blow the stack on deeply-nested values. PGEN’s test path uses a large-stack worker to avoid this; downstream consumers should consider similar patterns.</li>
+</ol>
+<h2 id="schema-version-aware-walking"><a class="header" href="#schema-version-aware-walking">Schema-version-aware walking</a></h2>
+<p>If your tool needs to support multiple PGEN versions, branch on the payload’s schema version (<code>AstDumpPayload.schema_version</code>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match ast_dump_payload.schema_version {
+    1 =&gt; walk_schema_v1(&amp;ast_dump_payload.root),
+    // (future) 2 =&gt; walk_schema_v2(...),
+    other =&gt; {
+        eprintln!("unsupported VHDL schema version: {}", other);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>See <a href="schema-versioning.html">Schema Versioning</a> for what triggers a schema bump and what stays stable within a single schema version.</p>
 
                     </main>
 
