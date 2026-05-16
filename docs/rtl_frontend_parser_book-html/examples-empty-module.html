@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-081add68.js";
+            window.path_to_searchindex_js = "searchindex-7452227a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-440c5d76.js"></script>
@@ -180,11 +180,218 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="examples-empty-module"><a class="header" href="#examples-empty-module">Examples Empty Module</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-FE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-FE-MDBOOK.html">docs/tasks/RTL-FE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+                        <h1 id="worked-example-empty-module"><a class="header" href="#worked-example-empty-module">Worked Example: Empty Module</a></h1>
+<p>A “what does the AST actually look like” walkthrough for the simplest
+rtl_frontend input that produces a complete design item. Every JSON
+value shown here is the <strong>real, captured output</strong> of
+<code>generated/rtl_frontend_parser.rs</code> — not a hypothetical shape — and it
+is the exact input the AST shape contract regression-locks (sample
+<code>empty_module</code> in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>).</p>
+<h2 id="input"><a class="header" href="#input">Input</a></h2>
+<pre><code class="language-verilog">module m; endmodule
+</code></pre>
+<p>(With a trailing newline. The whole input is 19 bytes:
+<code>module m; endmodule\n</code>.)</p>
+<p>This is the canonical first-test input because it is the smallest
+source that exercises <code>rtl_frontend_file → design_item → module_declaration</code> while having no parameters, ports, or module items,
+so the tree is shallow enough to reason about by hand — with one
+instructive exception (the <code>name</code> envelope, below).</p>
+<h2 id="reproducing-the-dump"><a class="header" href="#reproducing-the-dump">Reproducing the dump</a></h2>
+<p>The rtl_frontend parser is on-demand-only (see
+<a href="build-recipe.html">Build Recipe</a>). With <code>generated/rtl_frontend_parser.rs</code>
+in place, build the probe with the generated backend and dump the AST:</p>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf 'module m; endmodule\n' &gt; /tmp/empty_module.rtl
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty rtl_frontend /tmp/empty_module.rtl /tmp/empty_module_ast.json
+# -&gt; parse_full passed for grammar 'rtl_frontend' on '/tmp/empty_module.rtl'
+</code></pre>
+<h2 id="the-captured-ast-raw-probe-envelope"><a class="header" href="#the-captured-ast-raw-probe-envelope">The captured AST (raw probe envelope)</a></h2>
+<p><code>parseability_probe --parse-dump-ast</code> serialises the parser’s
+<code>ParseNode</code> directly, so the dump is wrapped in the parse-node envelope
+(<code>content</code> / <code>rule_name</code> / <code>span</code>) described in
+<a href="ast-envelope.html">AST Envelope Structure</a>. Below, the <code>name</code> array is
+shown with its 40 leading unmatched-alternative <code>[]</code> placeholders
+elided <strong>for readability only</strong> — see “The <code>name</code> envelope” for the
+exact, unabridged structure and how to regenerate it byte-for-byte.</p>
+<pre><code class="language-json">{
+  "content": {
+    "Json": {
+      "items": [
+        {
+          "body": {
+            "imports_post": [],
+            "imports_pre": [],
+            "items": [],
+            "name": [
+              /* indices 0..39: each element is exactly []  (40 entries) */
+              [ [], "m" ]
+            ],
+            "parameters": [],
+            "ports": []
+          },
+          "kind": "module"
+        }
+      ],
+      "type": "rtl_frontend_file"
+    }
+  },
+  "rule_name": "rtl_frontend_file",
+  "span": {
+    "end": 19,
+    "start": 0
+  }
+}
+</code></pre>
+<p><code>content.Json</code> is the typed AST. <code>rule_name</code> is the entry rule
+(<code>rtl_frontend_file</code>); <code>span</code> is the byte range covered (<code>0..19</code> — the
+whole input).</p>
+<h2 id="the-consumer-facing-view-astdumppayloadroot"><a class="header" href="#the-consumer-facing-view-astdumppayloadroot">The consumer-facing view (<code>AstDumpPayload.root</code>)</a></h2>
+<p>Downstream code does not call the probe — it calls the public API
+(<a href="public-api.html">Public API Surface</a>), which hands back an
+<code>AstDumpPayload</code> whose <code>root</code> is the <strong>unwrapped</strong> <code>content.Json</code>
+value:</p>
+<pre><code class="language-json">{
+  "type": "rtl_frontend_file",
+  "items": [
+    {
+      "kind": "module",
+      "body": {
+        "name": [ /* 40 × [] */ [ [], "m" ] ],
+        "imports_pre": [],
+        "parameters": [],
+        "imports_post": [],
+        "ports": [],
+        "items": []
+      }
+    }
+  ]
+}
+</code></pre>
+<h2 id="field-by-field-walk"><a class="header" href="#field-by-field-walk">Field-by-field walk</a></h2>
+<ul>
+<li><strong><code>type: "rtl_frontend_file"</code></strong> — the typed root object from the
+<code>rtl_frontend_file</code> root rule. Dispatch on
+<code>obj["type"] == "rtl_frontend_file"</code>.</li>
+<li><strong><code>items</code></strong> — the <code>design_item*</code> array, one element here.</li>
+<li><strong><code>items[0].kind: "module"</code></strong> — the <code>design_item</code> dispatcher matched
+the <code>module_declaration</code> branch (<code>-&gt; {kind: "module", body: $1}</code>).
+Dispatch on <code>obj["kind"]</code>.</li>
+<li><strong><code>body</code></strong> — the <code>module_declaration</code> named-field object:
+<ul>
+<li><strong><code>name</code></strong> — the un-annotated <code>identifier</code> envelope (see below).</li>
+<li><strong><code>imports_pre</code> / <code>imports_post</code></strong> — <code>[]</code> (no <code>import</code> clauses
+before/after the header).</li>
+<li><strong><code>parameters</code></strong> — <code>[]</code> (no <code>#(...)</code> parameter port list).</li>
+<li><strong><code>ports</code></strong> — <code>[]</code> (no <code>(...)</code> port list).</li>
+<li><strong><code>items</code></strong> — <code>[]</code> (<code>module_item*</code> matched zero items).</li>
+</ul>
+</li>
+</ul>
+<p>Every absent-optional / empty-iteration field is the empty array <code>[]</code>,
+<strong>never</strong> <code>null</code> — the uniform rtl_frontend convention documented in
+<a href="json-carrier.html">The Json Carrier</a>.</p>
+<h2 id="the-name-envelope-the-instructive-part"><a class="header" href="#the-name-envelope-the-instructive-part">The <code>name</code> envelope (the instructive part)</a></h2>
+<p><code>name</code> is <strong>not</strong> the bare string <code>"m"</code>. It is the recursive envelope
+of the <strong>un-annotated <code>identifier</code> rule</strong> at the
+<code>kw_module identifier</code> position. The grammar’s <code>identifier</code> rule is a
+large alternation (keyword-exclusion plus many alternative forms), so
+its envelope carries <strong>one <code>[]</code> slot per unmatched alternative</strong> and
+the matched text near the end.</p>
+<p>The exact, unabridged shape (regenerate it with the command above and
+inspect <code>/tmp/empty_module_ast.json</code>):</p>
+<ul>
+<li><code>name</code> is an array of <strong>exactly 41 elements</strong>.</li>
+<li>Indices <strong>0 through 39</strong> are each exactly <code>[]</code> (the 40 unmatched
+alternatives).</li>
+<li>Index <strong>40</strong> (the last) is <code>[ [], "m" ]</code> — a two-element pair whose
+index <code>[1]</code> is the identifier text <code>"m"</code>.</li>
+</ul>
+<p><strong>Do not hardcode index 40.</strong> That offset is an artifact of the current
+grammar’s alternative ordering and is exactly the kind of thing a
+schema bump may change. The robust consumer rule — identical to the one
+in <a href="walking-the-ast.html#identifier-extraction">Walking the AST</a> — is to
+walk to the terminal string: find the single non-<code>[]</code> element, then
+read its trailing string. This is the uniform behaviour of every
+un-annotated <code>identifier</code> position.</p>
+<h2 id="walker-code-for-this-input"><a class="header" href="#walker-code-for-this-input">Walker code for this input</a></h2>
+<p>The rtl_frontend family exposes the <strong>generic-by-grammar</strong> host surface
+(there is no <code>parse_rtl_frontend</code> convenience function — see
+<a href="public-api.html">Public API Surface</a>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+/// Walk to the identifier text inside an un-annotated `identifier`
+/// envelope, without assuming a fixed array depth or offset.
+fn identifier_text(node: &amp;serde_json::Value) -&gt; Option&lt;&amp;str&gt; {
+    match node {
+        serde_json::Value::String(s) =&gt; Some(s.as_str()),
+        serde_json::Value::Array(items) =&gt; items
+            .iter()
+            .find(|v| !matches!(v, serde_json::Value::Array(a) if a.is_empty()))
+            .and_then(identifier_text),
+        _ =&gt; None,
+    }
+}
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "rtl_frontend",
+    "default",
+    "module m; endmodule\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+match outcome.status {
+    ParseStatus::Success =&gt; {
+        let dump = outcome.ast_dump.expect("Success carries an AST dump");
+        assert_eq!(dump.schema_version, 1);
+
+        let root = &amp;dump.root;
+        assert_eq!(root["type"], "rtl_frontend_file");
+
+        let unit = &amp;root["items"][0];
+        assert_eq!(unit["kind"], "module");
+
+        // `name` is the un-annotated identifier envelope: walk to the
+        // terminal rather than indexing a fixed depth/offset.
+        let module_name = identifier_text(&amp;unit["body"]["name"]);
+        assert_eq!(module_name, Some("m"));
+
+        for empty in ["imports_pre", "imports_post", "parameters", "ports", "items"] {
+            assert!(unit["body"][empty].as_array().unwrap().is_empty());
+        }
+    }
+    ParseStatus::Failure =&gt; {
+        eprintln!("parse failed: {:?}", outcome.diagnostic);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-example-is-the-canonical-first-test"><a class="header" href="#why-this-example-is-the-canonical-first-test">Why this example is the canonical first-test</a></h2>
+<ul>
+<li><strong>It exercises <code>rtl_frontend_file → design_item → module_declaration</code></strong> in 19 bytes.</li>
+<li><strong>It has no parameters, ports, imports, or module items</strong> — so the
+tree is shallow and every field but <code>name</code> is the empty array.</li>
+<li><strong>It teaches the identifier-envelope rule of thumb early.</strong> The
+verbose <code>name</code> array is the single most common source of downstream
+surprise; meeting it on the smallest possible input is the point.</li>
+<li><strong>It is the regression-locked sample</strong> <code>empty_module</code> in
+<code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>
+(<code>rule_under_test: "rtl_frontend_file"</code>,
+<code>expected_content_kind: "json_object"</code>,
+<code>expected_json_object_keys_present: ["type", "items"]</code>). Drift in
+this shape fails the
+<code>rtl_frontend_ast_shape_contract_holds_against_running_generated_parser</code>
+test immediately.</li>
+</ul>
+<p>If your downstream integration cannot parse this input and reach
+<code>type == "rtl_frontend_file"</code> with one <code>module</code> design item, the
+integration is broken upstream of any rtl_frontend-specific concern.
+Start triage here, then move on to the
+<a href="rules-top-level.html">Top-Level Rules</a> shape reference.</p>
 
                     </main>
 

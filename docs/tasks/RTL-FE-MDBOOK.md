@@ -61,11 +61,11 @@ rendering and an `rtl_frontend_parser_book_gate` target.
   Commit: `RTL-FE-MDBOOK-Slice-4`
 
 - ID: `RTL-FE-MDBOOK.4`
-  Status: `pending`
+  Status: `done`
   Goal: `Add the empty_module worked example with annotated AST dump.`
   Acceptance: `examples-empty-module.md exists with output validated against generated/rtl_frontend_parser.rs.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: examples-empty-module.md authored from the REAL captured AST for the regression-locked input 'module m; endmodule\n' (probe ParseNode envelope + consumer root view + robust identifier-extraction walker using the generic parse_grammar_profile_ast_dump_named surface). All prose metrics independently re-verified vs generated/rtl_frontend_parser.rs output: name array = 41 elements (0..39 all [], index 40 = [[], "m"]), all other body fields [], type/kind/span correct. Verbose name envelope shown with an exactly-counted, clearly-marked elision (not fabrication) + byte-exact reproduction command. json-carrier.md already accurate (no correction needed, unlike VHDL.4). rtl_frontend_parser_book_gate green.`
+  Commit: `RTL-FE-MDBOOK-Slice-5`
 
 - ID: `RTL-FE-MDBOOK.5`
   Status: `done`
@@ -85,8 +85,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-MDBOOK.4` | `pending` | The empty_module worked example (annotated AST dump validated against generated/rtl_frontend_parser.rs) comes next once the shape reference is in place. |
-| 2 | `RTL-FE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — the final leaf. |
+| 1 | `RTL-FE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — the final leaf. |
 
 ## Decisions
 
@@ -111,6 +110,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | `2026-05-15` | `RTL-FE-MDBOOK.5` | `make rtl_frontend_parser_book_gate` | `pass` |
 | `2026-05-15` | `RTL-FE-MDBOOK.2` | `make rtl_frontend_parser_book_gate` | `pass — 4 chapters authored; gate green` |
 | `2026-05-16` | `RTL-FE-MDBOOK.3` | `make rtl_frontend_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters; verified 156/74, design_item=4, module_item=10, generate_item=11, package_item=3, binop_chain=10 levels vs generated/rtl_frontend_return_annotations.json; gate green` |
+| `2026-05-16` | `RTL-FE-MDBOOK.4` | `make rtl_frontend_parser_book_gate` + real-dump metric re-derivation | `pass — examples-empty-module.md prose metrics independently re-verified vs generated/rtl_frontend_parser.rs (name=41 elems, 0..39 [], idx40 [[],"m"]; all other body fields []); gate green` |
 
 ## Commit Log
 
@@ -120,6 +120,7 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 | `RTL-FE-MDBOOK.5` | `RTL-FE-MDBOOK-Slice-2` | gate script + Makefile target |
 | `RTL-FE-MDBOOK.2` | `RTL-FE-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 | `RTL-FE-MDBOOK.3` | `RTL-FE-MDBOOK-Slice-4` | rules-top-level + json-carrier + walking-the-ast + schema-versioning authored; inventory-verified (156/74, 10-level binop_chain) |
+| `RTL-FE-MDBOOK.4` | `RTL-FE-MDBOOK-Slice-5` | examples-empty-module.md authored from real captured AST (metrics byte-verified) |
 
 ## Changelog
 
@@ -127,3 +128,4 @@ rendering and an `rtl_frontend_parser_book_gate` target.
 - `2026-05-14`: `RTL-FE-MDBOOK.1` done; frontier → `.2` + `.5`.
 - `2026-05-15`: `RTL-FE-MDBOOK.2` done; frontier advances to `.3` (shape-reference chapters).
 - `2026-05-16`: `RTL-FE-MDBOOK.3` done; frontier advances to `.4` (empty_module worked example), then `.6` (glossary/changelog/links).
+- `2026-05-16`: `RTL-FE-MDBOOK.4` done (real captured AST, metrics byte-verified); frontier advances to `.6` (final leaf — glossary/changelog/links).

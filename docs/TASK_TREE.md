@@ -28,7 +28,7 @@ same commit.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `RTL-FE-MDBOOK` | `active` | rtl_frontend deliverables | `RTL-FE-MDBOOK.4` | [docs/tasks/RTL-FE-MDBOOK.md](tasks/RTL-FE-MDBOOK.md) |
+| `RTL-FE-MDBOOK` | `active` | rtl_frontend deliverables | `RTL-FE-MDBOOK.6` | [docs/tasks/RTL-FE-MDBOOK.md](tasks/RTL-FE-MDBOOK.md) |
 | `RTL-CE-MDBOOK` | `active` | rtl_const_expr deliverables | `RTL-CE-MDBOOK.3` | [docs/tasks/RTL-CE-MDBOOK.md](tasks/RTL-CE-MDBOOK.md) |
 | `SVPP-MDBOOK` | `active` | sv_preprocessor deliverables | `SVPP-MDBOOK.3` | [docs/tasks/SVPP-MDBOOK.md](tasks/SVPP-MDBOOK.md) |
 | `VHDL-CONTRACT-BODY` | `active` | vhdl deliverables | `VHDL-CONTRACT-BODY.2` | [docs/tasks/VHDL-CONTRACT-BODY.md](tasks/VHDL-CONTRACT-BODY.md) |
