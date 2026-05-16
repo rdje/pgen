@@ -61,11 +61,11 @@ shape conventions.
   Commit: `SVPP-MDBOOK-Slice-4`
 
 - ID: `SVPP-MDBOOK.4`
-  Status: `pending`
+  Status: `done`
   Goal: `Add the single_define worked example plus a conditional-compilation example.`
   Acceptance: `examples-*.md exist; outputs validated against generated/systemverilog_preprocessor_parser.rs.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: examples-single-define.md + examples-conditional.md authored from the REAL captured AST. single_define independently re-verified clean (no <invalid_sequence_access>). The conditional example surfaced a real released-parser defect — pp_if_branch.keyword <invalid_sequence_access> (same inline-alternation-$N root cause as RTL-CE-Slice-2); documented HONESTLY in examples-conditional.md (dedicated section + safe consumer workaround), filed as ledger SVPP-0001 (Root Caused), and a Known Defects note added to the sv_preprocessor contract. Parser NOT fixed in this leaf — it joins the tracked systemic inline-alternation correctness lane (rtl_frontend + vhdl + sv_preprocessor). systemverilog_preprocessor_parser_book_gate green.`
+  Commit: `SVPP-MDBOOK-Slice-5`
 
 - ID: `SVPP-MDBOOK.5`
   Status: `done`
@@ -85,8 +85,7 @@ shape conventions.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SVPP-MDBOOK.4` | `pending` | Worked examples (single_define + conditional-compilation) validated against generated/systemverilog_preprocessor_parser.rs. |
-| 2 | `SVPP-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — final leaf. |
+| 1 | `SVPP-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE_ACHIEVEMENT_STATUS links close the book — final leaf. |
 
 ## Decisions
 
@@ -109,6 +108,7 @@ shape conventions.
 | `2026-05-15` | `SVPP-MDBOOK.5` | `make systemverilog_preprocessor_parser_book_gate` | `pass` |
 | `2026-05-15` | `SVPP-MDBOOK.2` | `make systemverilog_preprocessor_parser_book_gate` | `pass — quickstart + build-recipe + public-api + ast-envelope authored; mdbook_build + tracked_html_check both green` |
 | `2026-05-16` | `SVPP-MDBOOK.3` | `make systemverilog_preprocessor_parser_book_gate` + inventory cross-check + book-wide stale audit | `pass — 4 shape-reference chapters; verified 64/27, pp_item=10/condition_atom=12/macro_body_fragment=9/macro_default_atom=8; reconciled 2 stale .2-era sibling defects (quickstart fn name, ast-envelope invented fragment kinds); gate green` |
+| `2026-05-16` | `SVPP-MDBOOK.4` | `make systemverilog_preprocessor_parser_book_gate` + real-dump capture + defect triage | `pass — single_define + conditional examples from real AST; single_define clean; conditional surfaced + honestly documented the SVPP-0001 pp_if_branch <invalid_sequence_access> defect (ledger + contract note added); gate green` |
 
 ## Commit Log
 
@@ -118,6 +118,7 @@ shape conventions.
 | `SVPP-MDBOOK.5` | `SVPP-MDBOOK-Slice-2` | gate script + Makefile target |
 | `SVPP-MDBOOK.2` | `SVPP-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
 | `SVPP-MDBOOK.3` | `SVPP-MDBOOK-Slice-4` | 4 shape-reference chapters (64/27, pp_item/condition_atom/macro fragments) + 2 stale-sibling reconciliations |
+| `SVPP-MDBOOK.4` | `SVPP-MDBOOK-Slice-5` | single_define + conditional worked examples (real AST); surfaced + tracked SVPP-0001 (ledger + contract note) |
 
 ## Changelog
 
@@ -125,3 +126,4 @@ shape conventions.
 - `2026-05-14`: `.1` done; frontier → `.2` + `.5`.
 - `2026-05-15`: `.2` completed; frontier advances to `.3` (shape-reference chapters), then `.4` (worked examples), then `.6` (glossary/changelog/links).
 - `2026-05-16`: `.3` completed (4 shape chapters, 64/27 inventory-verified; reconciled 2 stale `.2`-era sibling defects); frontier advances to `.4` (worked examples), then `.6` (glossary/changelog/links).
+- `2026-05-16`: `.4` completed (single_define + conditional worked examples from real AST). The conditional example surfaced released-parser defect `SVPP-0001` (`pp_if_branch.keyword` `<invalid_sequence_access>`, inline-alternation-`$N` class); documented honestly + filed to the bug ledger + contract Known Defects note; parser fix deferred to the tracked systemic inline-alternation correctness lane (rtl_frontend + vhdl + sv_preprocessor). Frontier advances to `.6` (final leaf — glossary/changelog/links).

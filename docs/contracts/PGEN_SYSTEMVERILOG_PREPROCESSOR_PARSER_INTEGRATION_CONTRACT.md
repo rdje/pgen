@@ -33,6 +33,27 @@ The systemverilog_preprocessor parser carries two version axes:
 | 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline. pp_item dispatch (10 kinds), 7 directive shapes (define/undef/include/timescale/default_nettype/celldefine/endcelldefine), include_path/nettype_value/time_literal, conditional-compilation tree (5 nodes), condition_expr/condition_atom (12 kinds), macro_formals/formal/default_value/default_atom (8 kinds) / body/body_fragment (9 kinds), passthrough lines. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/systemverilog_preprocessor.ebnf`) with the `systemverilog_preprocessor_file -> {type, items}` root only. AST dump is the recursive-envelope shape across all other rules. |
 
+## Known Defects (release 1.0.1)
+
+- **`SVPP-0001` — `pp_if_branch.keyword` `<invalid_sequence_access>`
+  (`Root Caused`, fix not yet landed).** For `` `ifdef`` / `` `ifndef``
+  conditional input, `items[].body.if_branch.keyword` is a malformed
+  nested object containing three `"<invalid_sequence_access>"` strings
+  instead of the keyword token. Root cause: `pp_if_branch := (kw_ifdef |
+  kw_ifndef) macro_name … -> {keyword: $1, …}` binds `$1` to an
+  **inline alternation group**, the same emit-time defect class fixed
+  for `rtl_const_expr` in RTL-CE-Slice-2 (and tracked for
+  `rtl_frontend` / `vhdl` `binop_chain`). The `` `define`` /
+  non-conditional surface is unaffected. **Consumer workaround:** read
+  the guard macro from the correct outer `if_branch.macro` (which is
+  correct); treat `if_branch.keyword` as token-text-only and do not
+  rely on its nested fields. Documented honestly in
+  [the conditional worked example](../systemverilog_preprocessor_parser_book/src/examples-conditional.md);
+  tracked in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+  (`SVPP-0001`). Scheduled fix: the systemic inline-alternation-`$N`
+  correctness lane (lift `(kw_ifdef | kw_ifndef)` into a named rule per
+  the proven RTL-CE-Slice-2 playbook; schema bump + lockstep).
+
 ## Release 1.0.1 / Contract 1.0.1 Highlights — SVPP-Slice-1: full grammar typed (40+ rules / 63 annotations)
 
 Single comprehensive slice landed on 2026-05-14 covering the entire grammar surface:

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-407f9d7b.js";
+            window.path_to_searchindex_js = "searchindex-fe7b600e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -185,7 +185,7 @@
 <li><strong>Build and integration.</strong> See <a href="#build-recipe">Build Recipe</a>, <a href="#public-api-surface">Public API Surface</a>.</li>
 <li><strong>AST envelope and walking conventions.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a>, <a href="#walking-the-ast">Walking the AST</a>.</li>
 <li><strong>Per-rule typed shapes.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The grammar (<code>grammars/systemverilog_preprocessor.ebnf</code>) carries <strong>64 typed annotations</strong> covering the pp_item dispatch (10 kinds), per-directive shapes (7), conditional branches (5), and macro-body / condition fragment shapes (12+8+9 kinds).</li>
-<li><strong>Worked examples</strong>: <a href="#examples-single-define">Single Define</a>, <a href="#examples-conditional">Conditional Compilation</a>.</li>
+<li><strong>Worked examples</strong>: <a href="#worked-example-single-define">Single Define</a>, <a href="#worked-example-conditional-compilation">Conditional Compilation</a>.</li>
 </ul>
 <h2 id="what-this-book-is-not"><a class="header" href="#what-this-book-is-not">What this book is NOT</a></h2>
 <ul>
@@ -633,7 +633,7 @@ pub struct ParserEmbeddingApiContract {
 <li>The inner <code>body</code> (the <code>pp_define</code> <code>body</code> field) is the typed <code>macro_body</code> object <code>{ "fragments": [ … ] }</code>.</li>
 <li><code>fragments</code> is a <strong>recursive-envelope array</strong> (the <code>macro_body_fragment+</code> iteration) with one element: <code>{ "kind": "text", "body": [ [ " " ], "1" ] }</code> — the <code>macro_body_fragment</code> <code>"text"</code> branch. Its <code>body</code> is the un-annotated <code>macro_body_text</code> envelope <code>[ [ " " ], "1" ]</code>; the replacement text <code>"1"</code> is at index <code>[1]</code>.</li>
 </ul>
-<p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>; the value shapes above are the real captured output of <code>generated/systemverilog_preprocessor_parser.rs</code> for this input. This grounds the rule of thumb: an un-annotated identifier-or-text field is the leaf rule’s recursive envelope, not a bare string — confirm structure against the inventory and the live parser, never assume a scalar. See <a href="#examples-single-define">Single Define</a> for the end-to-end worked example.</p>
+<p>The per-rule field names come straight from the live inventory’s <code>normalized_text</code>; the value shapes above are the real captured output of <code>generated/systemverilog_preprocessor_parser.rs</code> for this input. This grounds the rule of thumb: an un-annotated identifier-or-text field is the leaf rule’s recursive envelope, not a bare string — confirm structure against the inventory and the live parser, never assume a scalar. See <a href="#worked-example-single-define">Single Define</a> for the end-to-end worked example.</p>
 <h2 id="no-expression-cascade"><a class="header" href="#no-expression-cascade">No expression cascade</a></h2>
 <p>A consumer coming from the VHDL or rtl_frontend books should note: there is <strong>no <code>binop_chain</code> carrier</strong> here. The <code> `elsif</code> condition (<code>condition_expr</code>) is a flat <code>{atoms: [...]}</code> list of <code>condition_atom</code> objects — the <code>||</code> / <code>&amp;&amp;</code> / <code>!</code> / <code>?</code> / <code>:</code> tokens are individual untyped <code>{kind: "logical_or"}</code> / <code>{kind: "logical_and"}</code> / <code>{kind: "bang"}</code> / <code>{kind: "question"}</code> / <code>{kind: "colon"}</code> atoms in source order, not a parsed precedence tree. Any boolean evaluation of a conditional is the consumer’s responsibility. The same flat-list shape backs <code>macro_default_value.atoms</code> and <code>macro_body.fragments</code>.</p>
 <h2 id="determinism-1"><a class="header" href="#determinism-1">Determinism</a></h2>
@@ -1160,17 +1160,695 @@ pp_blank_line := newline
 <h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
 <p>Each shape-affecting slice after SVPP-Slice-1 gets a row in <a href="#schema-versioning">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="#changelog-index">Changelog Index</a> ties them together.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="examples-single-define"><a class="header" href="#examples-single-define">Examples Single Define</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent SVPP-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/SVPP-MDBOOK.html">docs/tasks/SVPP-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+<h1 id="worked-example-single-define"><a class="header" href="#worked-example-single-define">Worked Example: Single Define</a></h1>
+<p>A “what does the AST actually look like” walkthrough for the smallest
+sv_preprocessor input that produces a complete typed directive — a single
+<code> `define</code>. Every JSON value shown here is the <strong>real, captured output</strong>
+of <code>generated/systemverilog_preprocessor_parser.rs</code> (parser release
+<code>1.0.1</code>, AST-dump schema version <code>1</code>, 64 return annotations) — not a
+hypothetical shape — and it is the exact input the AST shape contract
+regression-locks (sample <code>single_define</code> in
+<code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code>).</p>
+<h2 id="input"><a class="header" href="#input">Input</a></h2>
+<pre><code class="language-systemverilog">`define FOO 1
+</code></pre>
+<p>(With a trailing newline. The whole input is 14 bytes:
+<code> `define FOO 1\n</code>.)</p>
+<p>This is the canonical first-test input because it is the smallest source
+that exercises <code>systemverilog_preprocessor_file → pp_item → pp_define → macro_body → macro_body_fragment</code> — five layers of the typed surface —
+while having no formal parameter list and a single-fragment body, so the
+tree is shallow enough to reason about by hand, with two instructive
+exceptions (the <code>name</code> and the fragment <code>body</code> envelopes, below).</p>
+<h2 id="reproducing-the-dump"><a class="header" href="#reproducing-the-dump">Reproducing the dump</a></h2>
+<p>The sv_preprocessor parser is on-demand-only (see
+<a href="#build-recipe">Build Recipe</a>). With
+<code>generated/systemverilog_preprocessor_parser.rs</code> in place, build the probe
+with the generated backend and dump the AST:</p>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf '`define FOO 1\n' &gt; /tmp/sd.svpp
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty systemverilog_preprocessor /tmp/sd.svpp /tmp/sd.json
+# -&gt; parse_full passed for grammar 'systemverilog_preprocessor' on '/tmp/sd.svpp'
+</code></pre>
+<h2 id="the-captured-ast-raw-probe-envelope"><a class="header" href="#the-captured-ast-raw-probe-envelope">The captured AST (raw probe envelope)</a></h2>
+<p><code>parseability_probe --parse-dump-ast-pretty</code> serialises the parser’s
+<code>ParseNode</code> directly, so the dump is wrapped in the parse-node envelope
+(<code>content</code> / <code>rule_name</code> / <code>span</code>) described in
+<a href="#ast-envelope-structure">AST Envelope Structure</a>. This is the byte-exact
+content of <code>/tmp/sd.json</code>:</p>
+<pre><code class="language-json">{
+  "content": {
+    "Json": {
+      "items": [
+        {
+          "body": {
+            "body": {
+              "fragments": [
+                {
+                  "body": [
+                    [
+                      " "
+                    ],
+                    "1"
+                  ],
+                  "kind": "text"
+                }
+              ]
+            },
+            "formals": [],
+            "name": [
+              [
+                " "
+              ],
+              "FOO"
+            ]
+          },
+          "kind": "define"
+        }
+      ],
+      "type": "systemverilog_preprocessor_file"
+    }
+  },
+  "rule_name": "systemverilog_preprocessor_file",
+  "span": {
+    "end": 14,
+    "start": 0
+  }
+}
+</code></pre>
+<p><code>content.Json</code> is the typed AST. <code>rule_name</code> is the entry rule
+(<code>systemverilog_preprocessor_file</code>); <code>span</code> is the byte range the parse
+covered (<code>0..14</code> — the whole input, including the trailing newline).</p>
+<h2 id="the-consumer-facing-view-astdumppayloadroot"><a class="header" href="#the-consumer-facing-view-astdumppayloadroot">The consumer-facing view (<code>AstDumpPayload.root</code>)</a></h2>
+<p>Downstream code does not call the probe — it calls the public API
+(<a href="#public-api-surface">Public API Surface</a>), which hands back a
+<code>NamedGrammarAstDumpOutcome</code> whose <code>ast_dump.root</code> is the <strong>unwrapped</strong>
+<code>content.Json</code> value. That is the shape every per-rule chapter in this
+book describes:</p>
+<pre><code class="language-json">{
+  "type": "systemverilog_preprocessor_file",
+  "items": [
+    {
+      "kind": "define",
+      "body": {
+        "name": [ [ " " ], "FOO" ],
+        "formals": [],
+        "body": {
+          "fragments": [
+            { "kind": "text", "body": [ [ " " ], "1" ] }
+          ]
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+<p>(This is byte-identical to the worked example in
+<a href="#worked-example-a-single-define-directive">The Json Carrier</a>;
+both are the same real capture. The object-key order differs only because
+the probe dump emits keys alphabetically — see
+<a href="#determinism-1">Determinism</a> — while the prose view above
+groups them readably; the JSON <em>value</em> is identical.)</p>
+<h2 id="field-by-field-walk"><a class="header" href="#field-by-field-walk">Field-by-field walk</a></h2>
+<ul>
+<li><strong><code>type: "systemverilog_preprocessor_file"</code></strong> — the typed root object
+from
+<code>systemverilog_preprocessor_file := pp_item* -&gt; {type: "systemverilog_preprocessor_file", items: $1}</code>.
+This is the only sv_preprocessor rule that carries a <code>type</code>
+discriminator; dispatch on <code>obj["type"]</code> at the root, then iterate
+<code>obj["items"]</code>.</li>
+<li><strong><code>items</code></strong> — the <code>pp_item*</code> array (a recursive-envelope iteration),
+one element here.</li>
+<li><strong><code>items[0].kind: "define"</code></strong> — the <code>pp_item</code> dispatcher matched the
+<code>pp_define</code> branch (<code>-&gt; {kind: "define", body: $1}</code>). Every
+sv_preprocessor dispatcher below the root uses <code>kind</code>, never <code>type</code>;
+dispatch on <code>obj["kind"]</code>.</li>
+<li><strong><code>body</code></strong> — the <code>pp_define</code> named-field object, from
+<code>pp_define := kw_define macro_name macro_formals? macro_body? newline? -&gt; {name: $2, formals: $3, body: $4}</code>:
+<ul>
+<li><strong><code>name: [ [ " " ], "FOO" ]</code></strong> — <code>$2</code> is the <strong>un-annotated</strong>
+<code>macro_name</code> → <code>identifier</code> rule, so it surfaces as that rule’s
+recursive envelope, <strong>not</strong> a bare string. The leading <code>[ " " ]</code> is
+the inline-trivia prefix (the space after <code> `define</code>); the
+identifier text <code>"FOO"</code> is at index <code>[1]</code>. See
+<a href="#recursive-envelope-shape-rules-without-annotations">The Json Carrier</a>
+for why un-annotated leaves carry an envelope, and
+<a href="#identifier-and-text-extraction">Walking the AST</a>
+for the robust walk-to-terminal extraction (do not hardcode <code>[1]</code>).</li>
+<li><strong><code>formals: []</code></strong> — <code>$3</code> is the optional <code>macro_formals?</code>. There is
+no <code>(...)</code> formal list, so it is the empty array <code>[]</code> — the
+absent-optional convention (<code>[]</code>, <strong>never</strong> <code>null</code>; see
+<a href="#object--array--string--scalar-mapping">The Json Carrier</a>).</li>
+<li><strong><code>body</code></strong> — <code>$4</code> is the optional <code>macro_body?</code>, present here, so it
+is the typed <code>macro_body</code> object <code>{ "fragments": [ … ] }</code> from
+<code>macro_body := macro_body_fragment+ -&gt; {fragments: $1}</code>. (When the
+body is absent — <code> `define MAX</code> — this field is <code>[]</code>, exactly like
+<code>formals</code>.)
+<ul>
+<li><strong><code>fragments</code></strong> — the <code>macro_body_fragment+</code> array (a
+recursive-envelope iteration), one element here.</li>
+<li><strong><code>fragments[0]: { "kind": "text", "body": [ [ " " ], "1" ] }</code></strong> —
+the <code>macro_body_fragment</code> <code>"text"</code> branch
+(<code>macro_body_text -&gt; {kind: "text", body: $1}</code>). <code>macro_body_fragment</code>
+is a 9-kind dispatcher (<code>token_paste</code>, <code>stringize</code>,
+<code>macro_reference</code>, <code>text</code>, <code>lparen</code>, <code>rparen</code>, <code>comma</code>, <code>question</code>,
+<code>colon</code>); only <code>"macro_reference"</code> and <code>"text"</code> carry a <code>body</code>. Its
+<code>body</code> is the un-annotated <code>macro_body_text</code> envelope
+<code>[ [ " " ], "1" ]</code> — same <code>[ &lt;trivia-prefix&gt;, "&lt;text&gt;" ]</code> shape as
+<code>name</code>; the replacement text <code>"1"</code> is at index <code>[1]</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>The text-extraction rule of thumb is uniform across the sv_preprocessor
+surface: any field bound to an un-annotated identifier-or-text rule
+(<code>name</code>, <code>macro</code>, every <code>"text"</code>/<code>"macro_reference"</code> atom’s <code>body</code>) is the
+leaf rule’s recursive envelope <code>[ &lt;trivia-prefix&gt;, "&lt;text&gt;" ]</code>, <strong>not</strong> a
+bare string. Walk to the terminal string rather than expecting a scalar.
+This was confirmed against a second input: <code> `define MAX</code> →
+<code>{ "name": [ [ " " ], "MAX" ], "formals": [], "body": [] }</code> (bare define,
+both optionals <code>[]</code>).</p>
+<h2 id="walker-code-for-this-input"><a class="header" href="#walker-code-for-this-input">Walker code for this input</a></h2>
+<p>The sv_preprocessor family exposes the <strong>generic-by-grammar</strong> host
+surface — there is <strong>no</strong> <code>parse_systemverilog_preprocessor</code> convenience
+function (see <a href="#public-api-surface">Public API Surface</a>). The stable entry
+point is <code>parse_grammar_profile_ast_dump_named</code> (string-name overload,
+grammar <code>"systemverilog_preprocessor"</code>, profile <code>"default"</code>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+/// Walk to the terminal text inside an un-annotated identifier/text
+/// envelope, without assuming a fixed array depth or offset.
+fn extract_text(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt; {
+    match node {
+        serde_json::Value::String(text) =&gt; Some(text.clone()),
+        serde_json::Value::Array(items) =&gt; items.iter().find_map(extract_text),
+        _ =&gt; None,
+    }
+}
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "systemverilog_preprocessor",
+    "default",
+    "`define FOO 1\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+match outcome.status {
+    ParseStatus::Success =&gt; {
+        let dump = outcome.ast_dump.expect("Success carries an AST dump");
+        assert_eq!(dump.schema_version, 1);
+
+        let root = &amp;dump.root;
+        assert_eq!(root["type"], "systemverilog_preprocessor_file");
+
+        let item = &amp;root["items"][0];
+        assert_eq!(item["kind"], "define");
+
+        let define = &amp;item["body"];
+
+        // `name` is the un-annotated macro_name/identifier envelope:
+        // walk to the terminal rather than indexing a fixed offset.
+        assert_eq!(extract_text(&amp;define["name"]).as_deref(), Some("FOO"));
+
+        // Absent optional `macro_formals?` is `[]`, never null/missing.
+        assert!(define["formals"].as_array().unwrap().is_empty());
+
+        // `body` is the typed macro_body { fragments: [...] }.
+        let fragments = define["body"]["fragments"].as_array().unwrap();
+        assert_eq!(fragments.len(), 1);
+        assert_eq!(fragments[0]["kind"], "text");
+        // The "text" fragment's body is the macro_body_text envelope.
+        assert_eq!(
+            extract_text(&amp;fragments[0]["body"]).as_deref(),
+            Some("1"),
+        );
+    }
+    ParseStatus::Failure =&gt; {
+        eprintln!("parse failed: {:?}", outcome.diagnostic);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="why-this-example-is-the-canonical-first-test"><a class="header" href="#why-this-example-is-the-canonical-first-test">Why this example is the canonical first-test</a></h2>
+<ul>
+<li><strong>It exercises <code>systemverilog_preprocessor_file → pp_item → pp_define → macro_body → macro_body_fragment</code></strong> — five layers of the typed surface
+in 14 bytes.</li>
+<li><strong>It has no formal parameter list and a single-fragment body</strong> — so the
+tree is shallow enough to verify by hand while still proving the
+<code>kind</code>-dispatch path and the absent-optional <code>[]</code> convention.</li>
+<li><strong>It teaches the identifier/text-envelope rule of thumb early.</strong> Both
+<code>name</code> and the fragment <code>body</code> are envelopes, not bare strings; meeting
+that on the smallest possible input is the point.</li>
+<li><strong>It is the regression-locked sample</strong> <code>single_define</code> in
+<code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code>
+(<code>rule_under_test: "systemverilog_preprocessor_file"</code>,
+<code>expected_content_kind: "json_object"</code>,
+<code>expected_json_object_keys_present: ["type", "items"]</code>,
+<code>expected_json_object_string_values: {"type": "systemverilog_preprocessor_file"}</code>, <code>drift_status: "aligned"</code>). Drift
+in this shape fails the sv_preprocessor AST shape-contract test
+immediately, surfacing the slice that introduced it.</li>
+</ul>
+<p>If your downstream integration cannot parse this input and reach
+<code>type == "systemverilog_preprocessor_file"</code> with one <code>define</code> <code>pp_item</code>,
+the integration is broken upstream of any sv_preprocessor-specific
+concern. Start triage here, then move on to
+<a href="#worked-example-conditional-compilation">Conditional Compilation</a> for the recursive
+<code> `ifdef</code> tree and the <a href="#top-level-rules">Top-Level Rules</a> shape
+reference.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="examples-conditional"><a class="header" href="#examples-conditional">Examples Conditional</a></h1>
-<blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent SVPP-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/SVPP-MDBOOK.html">docs/tasks/SVPP-MDBOOK.md</a> for the leaf that owns this chapter.</p>
-</blockquote>
+<h1 id="worked-example-conditional-compilation"><a class="header" href="#worked-example-conditional-compilation">Worked Example: Conditional Compilation</a></h1>
+<p>The companion to <a href="#worked-example-single-define">Single Define</a>: this one
+walks the <strong>recursive conditional-compilation tree</strong> — the one place the
+sv_preprocessor AST nests. Every JSON value here is the <strong>real, captured
+output</strong> of <code>generated/systemverilog_preprocessor_parser.rs</code> (parser
+release <code>1.0.1</code>, AST-dump schema version <code>1</code>, 64 return annotations) —
+including one real released-parser defect surfaced honestly (the
+<code>if_branch.keyword</code> <code>&lt;invalid_sequence_access&gt;</code> envelope, below). Nothing
+here is idealized.</p>
+<h2 id="input-1"><a class="header" href="#input-1">Input</a></h2>
+<pre><code class="language-systemverilog">`ifdef X
+`define A 1
+`else
+`define B 2
+`endif
+</code></pre>
+<p>(With a trailing newline. The whole input is 46 bytes:
+<code> `ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n</code>.)</p>
+<p>This input exercises the <code>pp_conditional</code> tree: an <code> `ifdef</code> guard with
+a <code> `define</code> in its body, an <code> `else</code> branch with a different
+<code> `define</code>, and the terminating <code> `endif</code> — no <code> `elsif</code>, so the
+<code>elsif_branches</code> array is empty. It is the smallest source that produces
+every node of the conditional family while keeping each branch body to a
+single, already-understood <code>pp_define</code> (see
+<a href="#worked-example-single-define">Single Define</a>).</p>
+<h2 id="reproducing-the-dump-1"><a class="header" href="#reproducing-the-dump-1">Reproducing the dump</a></h2>
+<p>The sv_preprocessor parser is on-demand-only (see
+<a href="#build-recipe">Build Recipe</a>). With
+<code>generated/systemverilog_preprocessor_parser.rs</code> in place, build the probe
+with the generated backend and dump the AST:</p>
+<pre><code class="language-bash">cd rust
+cargo build --release --features generated_parsers --bin parseability_probe
+printf '`ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n' &gt; /tmp/cc.svpp
+./target/release/parseability_probe \
+    --parse-dump-ast-pretty systemverilog_preprocessor /tmp/cc.svpp /tmp/cc.json
+# -&gt; parse_full passed for grammar 'systemverilog_preprocessor' on '/tmp/cc.svpp'
+</code></pre>
+<h2 id="the-captured-ast-raw-probe-envelope-1"><a class="header" href="#the-captured-ast-raw-probe-envelope-1">The captured AST (raw probe envelope)</a></h2>
+<p><code>parseability_probe --parse-dump-ast-pretty</code> serialises the parser’s
+<code>ParseNode</code> directly, so the dump is wrapped in the parse-node envelope
+(<code>content</code> / <code>rule_name</code> / <code>span</code>) described in
+<a href="#ast-envelope-structure">AST Envelope Structure</a>. This is the byte-exact
+content of <code>/tmp/cc.json</code> — including the <code>if_branch.keyword</code>
+<code>&lt;invalid_sequence_access&gt;</code> markers, which are shown honestly and
+explained in
+<a href="#the-if_branchkeyword-defect-shown-honestly">The <code>if_branch.keyword</code> defect</a>:</p>
+<pre><code class="language-json">{
+  "content": {
+    "Json": {
+      "items": [
+        {
+          "body": {
+            "else_branch": {
+              "items": [
+                {
+                  "body": {
+                    "body": {
+                      "fragments": [
+                        {
+                          "body": [
+                            [
+                              " "
+                            ],
+                            "2"
+                          ],
+                          "kind": "text"
+                        }
+                      ]
+                    },
+                    "formals": [],
+                    "name": [
+                      [
+                        " "
+                      ],
+                      "B"
+                    ]
+                  },
+                  "kind": "define"
+                }
+              ],
+              "tail": []
+            },
+            "elsif_branches": [],
+            "if_branch": {
+              "items": [
+                {
+                  "body": {
+                    "body": {
+                      "fragments": [
+                        {
+                          "body": [
+                            [
+                              " "
+                            ],
+                            "1"
+                          ],
+                          "kind": "text"
+                        }
+                      ]
+                    },
+                    "formals": [],
+                    "name": [
+                      [
+                        " "
+                      ],
+                      "A"
+                    ]
+                  },
+                  "kind": "define"
+                }
+              ],
+              "keyword": {
+                "items": "&lt;invalid_sequence_access&gt;",
+                "keyword": [
+                  [],
+                  "`ifdef"
+                ],
+                "macro": "&lt;invalid_sequence_access&gt;",
+                "tail": "&lt;invalid_sequence_access&gt;"
+              },
+              "macro": [
+                [
+                  " "
+                ],
+                "X"
+              ],
+              "tail": []
+            }
+          },
+          "kind": "conditional"
+        }
+      ],
+      "type": "systemverilog_preprocessor_file"
+    }
+  },
+  "rule_name": "systemverilog_preprocessor_file",
+  "span": {
+    "end": 46,
+    "start": 0
+  }
+}
+</code></pre>
+<p><code>content.Json</code> is the typed AST. <code>rule_name</code> is the entry rule
+(<code>systemverilog_preprocessor_file</code>); <code>span</code> is <code>0..46</code> — the whole input.</p>
+<h2 id="the-consumer-facing-view-astdumppayloadroot-1"><a class="header" href="#the-consumer-facing-view-astdumppayloadroot-1">The consumer-facing view (<code>AstDumpPayload.root</code>)</a></h2>
+<p>Downstream code calls the public API (<a href="#public-api-surface">Public API Surface</a>),
+which hands back a <code>NamedGrammarAstDumpOutcome</code> whose <code>ast_dump.root</code> is
+the <strong>unwrapped</strong> <code>content.Json</code> value. This is byte-identical to
+<code>content.Json</code> above (no abridgement, defect markers included):</p>
+<pre><code class="language-json">{
+  "type": "systemverilog_preprocessor_file",
+  "items": [
+    {
+      "kind": "conditional",
+      "body": {
+        "if_branch": {
+          "keyword": {
+            "keyword": [ [], "`ifdef" ],
+            "items": "&lt;invalid_sequence_access&gt;",
+            "macro": "&lt;invalid_sequence_access&gt;",
+            "tail": "&lt;invalid_sequence_access&gt;"
+          },
+          "macro": [ [ " " ], "X" ],
+          "tail": [],
+          "items": [
+            {
+              "kind": "define",
+              "body": {
+                "name": [ [ " " ], "A" ],
+                "formals": [],
+                "body": { "fragments": [ { "kind": "text", "body": [ [ " " ], "1" ] } ] }
+              }
+            }
+          ]
+        },
+        "elsif_branches": [],
+        "else_branch": {
+          "tail": [],
+          "items": [
+            {
+              "kind": "define",
+              "body": {
+                "name": [ [ " " ], "B" ],
+                "formals": [],
+                "body": { "fragments": [ { "kind": "text", "body": [ [ " " ], "2" ] } ] }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+</code></pre>
+<p>(Object-key order differs from the probe dump only because the probe
+emits keys alphabetically — see
+<a href="#determinism-1">Determinism</a> — while the view above follows
+grammar order for readability; the JSON <em>value</em> is identical, defect
+markers and all.)</p>
+<h2 id="field-by-field-walk-1"><a class="header" href="#field-by-field-walk-1">Field-by-field walk</a></h2>
+<ul>
+<li><strong><code>type: "systemverilog_preprocessor_file"</code></strong> — the typed root; one
+<code>pp_item</code> here.</li>
+<li><strong><code>items[0].kind: "conditional"</code></strong> — the <code>pp_item</code> dispatcher matched
+the <code>pp_conditional</code> branch (<code>-&gt; {kind: "conditional", body: $1}</code>).</li>
+<li><strong><code>body</code></strong> — the <code>pp_conditional</code> named-field object, from
+<code>pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif -&gt; {if_branch: $1, elsif_branches: $2, else_branch: $3}</code>.
+Note <code>pp_endif</code> (<code>$4</code>) is matched but <strong>not</strong> surfaced — there is no
+<code>endif</code> field; the branch list is exhaustive on its own.
+<ul>
+<li><strong><code>if_branch</code></strong> — <code>$1</code>, the <code>pp_if_branch</code> object from
+<code>pp_if_branch := (kw_ifdef | kw_ifndef) macro_name directive_tail? newline pp_item* -&gt; {keyword: $1, macro: $2, tail: $3, items: $5}</code>:
+<ul>
+<li><strong><code>keyword</code></strong> — <code>$1</code>, the <code>(kw_ifdef | kw_ifndef)</code> alternation
+group. <strong>This field is defective in release <code>1.0.1</code></strong> — see
+<a href="#the-if_branchkeyword-defect-shown-honestly">The <code>if_branch.keyword</code> defect</a>.
+The actual matched token <code> `ifdef</code> is recoverable at
+<code>keyword["keyword"][1]</code>; the three sibling keys
+(<code>items</code> / <code>macro</code> / <code>tail</code>) are the literal string
+<code>"&lt;invalid_sequence_access&gt;"</code>.</li>
+<li><strong><code>macro: [ [ " " ], "X" ]</code></strong> — <code>$2</code>, the un-annotated <code>macro_name</code>
+→ <code>identifier</code> envelope (the guard macro). Same
+<code>[ &lt;trivia-prefix&gt;, "&lt;text&gt;" ]</code> shape as in
+<a href="#worked-example-single-define">Single Define</a>; the name <code>"X"</code> is at
+index <code>[1]</code>. Walk to the terminal (see
+<a href="#identifier-and-text-extraction">Walking the AST</a>).</li>
+<li><strong><code>tail: []</code></strong> — <code>$3</code>, the optional <code>directive_tail?</code>. There is no
+trailing directive text after <code> `ifdef X</code>, so it is the empty
+array <code>[]</code> — the absent-optional convention (<code>[]</code>, never <code>null</code>).</li>
+<li><strong><code>items</code></strong> — <code>$5</code>, the branch’s recursively-nested <code>pp_item*</code>
+body. One element here: the already-familiar
+<code>{ "kind": "define", "body": { "name": [ [ " " ], "A" ], "formals": [], "body": { "fragments": [ { "kind": "text", "body": [ [ " " ], "1" ] } ] } } }</code> — the <code> `define A 1</code> from
+<a href="#worked-example-single-define">Single Define</a>, reached one level
+deeper. The same <code>handle_pp_item</code> dispatcher recurses here.</li>
+</ul>
+</li>
+<li><strong><code>elsif_branches: []</code></strong> — <code>$2</code>, the <code>pp_elsif_branch*</code> array. There
+is no <code> `elsif</code>, so it is the empty array <code>[]</code>. (When present, each
+entry is <code>pp_elsif_branch → {condition, items}</code>, where <code>condition</code> is
+the flat <code>condition_expr → {atoms: [...]}</code> atom list — <strong>not</strong> a
+parsed boolean tree; see
+<a href="#no-expression-cascade">The Json Carrier</a>.)</li>
+<li><strong><code>else_branch</code></strong> — <code>$3</code>, the optional <code>pp_else_branch?</code>, present
+here, so it is the typed <code>pp_else_branch</code> object from
+<code>pp_else_branch := kw_else directive_tail? newline pp_item* -&gt; {tail: $2, items: $4}</code>:
+<ul>
+<li><strong><code>tail: []</code></strong> — <code>$2</code>, the optional <code>directive_tail?</code> after
+<code> `else</code>; absent, so <code>[]</code>.</li>
+<li><strong><code>items</code></strong> — <code>$4</code>, the else body’s <code>pp_item*</code> array. One element:
+the <code> `define B 2</code> — <code>name</code> envelope <code>[ [ " " ], "B" ]</code>, single
+<code>"text"</code> fragment with <code>body</code> envelope <code>[ [ " " ], "2" ]</code>.</li>
+<li>When there is no <code> `else</code>, <code>else_branch</code> is the empty array <code>[]</code>
+(the absent-optional convention) — <strong>not</strong> <code>null</code> and <strong>not</strong> a
+missing key. Test <code>else_branch</code> for an empty array, not for null.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>The branch bodies (<code>if_branch.items</code>, each <code>elsif_branches[i].items</code>,
+<code>else_branch.items</code>) are themselves <code>pp_item*</code> arrays, so the conditional
+tree nests recursively: a <code>pp_conditional</code> can appear inside any branch’s
+<code>items</code>, and the same <code>handle_pp_item</code> dispatcher handles it.</p>
+<h2 id="the-if_branchkeyword-defect-shown-honestly"><a class="header" href="#the-if_branchkeyword-defect-shown-honestly">The <code>if_branch.keyword</code> defect (shown honestly)</a></h2>
+<p><code>pp_if_branch</code>’s <code>keyword: $1</code> points at the <strong>alternation group</strong>
+<code>(kw_ifdef | kw_ifndef)</code>. In release <code>1.0.1</code> the generated parser does
+not resolve a bare <code>$N</code> reference to an inline alternation group cleanly:
+instead of the matched keyword token’s envelope, <code>keyword</code> is captured as
+a <strong>malformed nested object</strong> where the matched alternative’s envelope is
+present under a <code>"keyword"</code> key but the other positional slots are filled
+with the literal sentinel string <code>"&lt;invalid_sequence_access&gt;"</code>:</p>
+<pre><code class="language-json">"keyword": {
+  "keyword": [ [], "`ifdef" ],
+  "items": "&lt;invalid_sequence_access&gt;",
+  "macro": "&lt;invalid_sequence_access&gt;",
+  "tail": "&lt;invalid_sequence_access&gt;"
+}
+</code></pre>
+<p><code>"&lt;invalid_sequence_access&gt;"</code> is PGEN’s emit-time sentinel for a
+return-annotation positional reference (<code>$N</code>) that could not be resolved
+to a sequence element — the same class of released-parser defect first
+documented for the rtl_const_expr <code>binop_chain</code> <code>rest</code> field (see that
+book’s schema-versioning chapter, repo path
+<code>docs/rtl_const_expr_parser_book/src/schema-versioning.md</code>, for the
+historical precedent). It is <strong>not</strong> valid AST data and <strong>not</strong> a shape a
+consumer should attempt to interpret beyond text recovery.</p>
+<p>What is and is not safe to rely on for this field, on the <strong>current</strong>
+release:</p>
+<ul>
+<li><strong>Recoverable:</strong> the matched directive token text is at
+<code>if_branch["keyword"]["keyword"][1]</code> (here <code> `ifdef</code>; for an
+<code> `ifndef</code> guard it would be <code> `ifndef</code>). The
+<a href="#identifier-and-text-extraction">walk-to-terminal</a>
+<code>extract_text</code> helper applied to <code>if_branch["keyword"]</code> reaches
+<code> `ifdef</code> and skips the sentinel strings (it returns the first
+string it finds; with alphabetical key order that is the sentinel —
+see the defensive variant in the walker code below).</li>
+<li><strong>Not recoverable from <code>keyword</code>:</strong> nothing else lives there. The
+<code>items</code> / <code>macro</code> / <code>tail</code> sibling keys inside <code>keyword</code> are sentinels,
+<strong>not</strong> the branch’s real <code>items</code> / <code>macro</code> / <code>tail</code> — those are the
+<em>outer</em> <code>if_branch.items</code> / <code>if_branch.macro</code> / <code>if_branch.tail</code>
+fields, which are correct (<code>macro = [ [ " " ], "X" ]</code>, <code>tail = []</code>,
+<code>items = [ &lt;the </code>define<code>&gt; ]</code>). Do <strong>not</strong> read branch data out of the
+<code>keyword</code> sub-object.</li>
+</ul>
+<p>This defect is reported, not hidden: it is surfaced verbatim in the
+captured AST above and called out here. The robust consumer reads the
+guard <em>macro name</em> (which it almost always needs) from the <strong>correct</strong>
+outer <code>if_branch["macro"]</code> field, and treats the <code>keyword</code> field as
+“directive token text only, via the nested <code>keyword</code> key”. A future
+correctness slice that lifts <code>(kw_ifdef | kw_ifndef)</code> into a named rule
+(the same fix pattern rtl_const_expr used for its operator alternations)
+would bump the schema version and get a
+<a href="#schema-versioning">Schema Versioning</a> row and a
+<a href="#changelog-index">Changelog Index</a> entry; until then this is the real
+schema-<code>1</code> shape and consumers must not target a cleaner one.</p>
+<h2 id="walker-code-for-this-input-1"><a class="header" href="#walker-code-for-this-input-1">Walker code for this input</a></h2>
+<p>The sv_preprocessor family exposes the <strong>generic-by-grammar</strong> host
+surface — there is <strong>no</strong> <code>parse_systemverilog_preprocessor</code> convenience
+function (see <a href="#public-api-surface">Public API Surface</a>). The stable entry
+point is <code>parse_grammar_profile_ast_dump_named</code> (string-name overload,
+grammar <code>"systemverilog_preprocessor"</code>, profile <code>"default"</code>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use pgen::embedding_api::{
+    parse_grammar_profile_ast_dump_named, AstDumpOptions, ParseStatus,
+};
+
+/// Walk to the terminal text inside an un-annotated identifier/text
+/// envelope, skipping empty-array placeholders AND the parser's
+/// `&lt;invalid_sequence_access&gt;` defect sentinel.
+fn extract_text(node: &amp;serde_json::Value) -&gt; Option&lt;String&gt; {
+    match node {
+        serde_json::Value::String(s) if s == "&lt;invalid_sequence_access&gt;" =&gt; None,
+        serde_json::Value::String(s) =&gt; Some(s.clone()),
+        serde_json::Value::Array(items) =&gt; items.iter().find_map(extract_text),
+        serde_json::Value::Object(map) =&gt; map.values().find_map(extract_text),
+        _ =&gt; None,
+    }
+}
+
+let outcome = parse_grammar_profile_ast_dump_named(
+    "systemverilog_preprocessor",
+    "default",
+    "`ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n",
+    &amp;AstDumpOptions { pretty: true, max_ast_bytes: None },
+);
+
+match outcome.status {
+    ParseStatus::Success =&gt; {
+        let dump = outcome.ast_dump.expect("Success carries an AST dump");
+        assert_eq!(dump.schema_version, 1);
+
+        let root = &amp;dump.root;
+        assert_eq!(root["type"], "systemverilog_preprocessor_file");
+
+        let cond = &amp;root["items"][0];
+        assert_eq!(cond["kind"], "conditional");
+        let body = &amp;cond["body"];
+
+        // --- if_branch ---
+        let ifb = &amp;body["if_branch"];
+        // The directive token is recoverable only via the nested
+        // `keyword` key; the other keyword sub-keys are defect sentinels.
+        assert_eq!(
+            extract_text(&amp;ifb["keyword"]["keyword"]).as_deref(),
+            Some("`ifdef"),
+        );
+        // The guard macro is the CORRECT outer field, not the sentinel
+        // inside `keyword`.
+        assert_eq!(extract_text(&amp;ifb["macro"]).as_deref(), Some("X"));
+        assert!(ifb["tail"].as_array().unwrap().is_empty());
+        let if_items = ifb["items"].as_array().unwrap();
+        assert_eq!(if_items.len(), 1);
+        assert_eq!(if_items[0]["kind"], "define");
+        assert_eq!(
+            extract_text(&amp;if_items[0]["body"]["name"]).as_deref(),
+            Some("A"),
+        );
+
+        // --- elsif_branches: [] (no `elsif) ---
+        assert!(body["elsif_branches"].as_array().unwrap().is_empty());
+
+        // --- else_branch: typed object (present), [] when absent ---
+        let elseb = &amp;body["else_branch"];
+        assert!(elseb["tail"].as_array().unwrap().is_empty());
+        let else_items = elseb["items"].as_array().unwrap();
+        assert_eq!(else_items.len(), 1);
+        assert_eq!(else_items[0]["kind"], "define");
+        assert_eq!(
+            extract_text(&amp;else_items[0]["body"]["name"]).as_deref(),
+            Some("B"),
+        );
+    }
+    ParseStatus::Failure =&gt; {
+        eprintln!("parse failed: {:?}", outcome.diagnostic);
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>The <code>extract_text</code> here adds an <code>Object</code> arm and an explicit
+<code>&lt;invalid_sequence_access&gt;</code> skip versus the
+<a href="#worked-example-single-define">Single Define</a> version, precisely so it stays
+correct over the defective <code>keyword</code> sub-object. The
+<a href="#walking-the-conditional-compilation-tree">Walking the AST</a>
+chapter has the full recursive <code>handle_conditional</code> dispatcher; this
+example is the concrete instantiation of it.</p>
+<h2 id="why-this-example-is-the-canonical-conditional-tree-test"><a class="header" href="#why-this-example-is-the-canonical-conditional-tree-test">Why this example is the canonical conditional-tree test</a></h2>
+<ul>
+<li><strong>It exercises every <code>pp_conditional</code> node</strong> —
+<code>pp_conditional → pp_if_branch</code> / <code>pp_else_branch</code>, the empty
+<code>elsif_branches</code>, the absent-optional <code>tail: []</code>, and the recursive
+<code>pp_item*</code> branch bodies — in 46 bytes.</li>
+<li><strong>It proves the recursion</strong> — each branch body is a full <code>pp_item</code>
+(here a <code>pp_define</code>), reached one level deeper, so the same dispatcher
+used at the root handles branch contents unchanged.</li>
+<li><strong>It surfaces a real released-parser defect honestly</strong> — the
+<code>if_branch.keyword</code> <code>&lt;invalid_sequence_access&gt;</code> shape is shown
+verbatim, explained, and given a safe consumer rule (read the <em>macro</em>
+from the correct outer field; treat <code>keyword</code> as token-text-only),
+rather than being idealized away. A book that hid this would mislead
+every downstream <code> `ifdef</code>-handling integration.</li>
+</ul>
+<p>For the non-recursive baseline shape see
+<a href="#worked-example-single-define">Single Define</a>; for the full per-rule field
+tables (including <code>pp_elsif_branch</code> / <code>condition_expr</code> / the atom
+families) see <a href="#top-level-rules">Top-Level Rules</a>; for what triggers a
+schema bump when the <code>keyword</code> defect is fixed see
+<a href="#schema-versioning">Schema Versioning</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="schema-versioning"><a class="header" href="#schema-versioning">Schema Versioning</a></h1>
 <p>This chapter explains how the PGEN sv_preprocessor parser’s AST shape is versioned, what guarantees consumers can rely on, and how to pin to a known shape. The authoritative numbers come from <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code>; where this chapter and the contract disagree, <strong>the contract wins</strong>.</p>
