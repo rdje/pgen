@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8a422829.js";
+            window.path_to_searchindex_js = "searchindex-fea28a93.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -196,82 +196,106 @@
 }
 <span class="boring">}</span></code></pre>
 <p>The <code>root</code> field is the rtl_const_expr AST as a <code>serde_json::Value</code>. It is what this book’s per-rule chapters describe.</p>
+<blockquote>
+<p><strong>Authoritative shapes.</strong> Every shape in this chapter is the live
+output of <code>generated/rtl_const_expr_parser.rs</code>, drawn from the
+return-annotation inventory <code>generated/rtl_const_expr_return_annotations.json</code>
+(content-mirrored by <code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code>).
+The per-rule enumeration and the consumer-facing fold live in
+<a href="rules-top-level.html">Top-Level Rules</a> and <a href="walking-the-ast.html">Walking the AST</a>;
+this chapter is the structural overview. Where prose and the
+inventory disagree, the inventory wins.</p>
+</blockquote>
 <h2 id="the-root-rule"><a class="header" href="#the-root-rule">The root rule</a></h2>
-<p>The rtl_const_expr grammar root is <code>rtl_const_expr</code>, which immediately delegates to <code>conditional_expr</code>:</p>
+<p>The rtl_const_expr grammar root is the <code>rtl_const_expr</code> rule. It is
+<strong>typed</strong> — it wraps the single <code>conditional_expr</code> child:</p>
 <pre><code class="language-ebnf">rtl_const_expr := conditional_expr
+              -&gt; {type: "rtl_const_expr", expr: $1}
 </code></pre>
-<h2 id="the-10-level-precedence-climbing-binop-chain"><a class="header" href="#the-10-level-precedence-climbing-binop-chain">The 10-level precedence-climbing binop chain</a></h2>
-<p>The rtl_const_expr grammar is a precedence-climbing chain of left-associative binary operators plus a prefix-unary plus primary. The 10 binary levels (highest to lowest precedence) are:</p>
-<ol>
-<li><code>multiplicative_expr</code> — <code>*</code>, <code>/</code>, <code>%</code></li>
-<li><code>additive_expr</code> — <code>+</code>, <code>-</code></li>
-<li><code>shift_expr</code> — <code>&lt;&lt;</code>, <code>&gt;&gt;</code></li>
-<li><code>relational_expr</code> — <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code></li>
-<li><code>equality_expr</code> — <code>==</code>, <code>!=</code></li>
-<li><code>bit_and_expr</code> — <code>&amp;</code></li>
-<li><code>bit_xor_expr</code> — <code>^</code></li>
-<li><code>bit_or_expr</code> — <code>|</code></li>
-<li><code>logical_and_expr</code> — <code>&amp;&amp;</code></li>
-<li><code>logical_or_expr</code> — <code>||</code></li>
-</ol>
-<p>Each level produces a typed <code>binop_chain</code> shape:</p>
-<pre><code class="language-json">{
-  "type": "binop_chain",
-  "level": "&lt;level-name&gt;",
-  "lhs": &lt;next-level-shape&gt;,
-  "rest": [
-    {"op": "&lt;operator&gt;", "rhs": &lt;next-level-shape&gt;},
-    {"op": "&lt;operator&gt;", "rhs": &lt;next-level-shape&gt;}
-  ]
-}
+<pre><code class="language-json">{ "type": "rtl_const_expr", "expr": { /* conditional_expr shape */ } }
 </code></pre>
-<p><code>rest</code> is empty when the input had no operator at that level — in that case the consumer simply unwraps <code>lhs</code>.</p>
+<p>Dispatch on <code>root["type"] == "rtl_const_expr"</code>, then descend into
+<code>root["expr"]</code>.</p>
+<h2 id="the-typed-surface-at-a-glance"><a class="header" href="#the-typed-surface-at-a-glance">The typed surface at a glance</a></h2>
+<p>The full typed surface as of contract <code>1.0.1</code> is <strong>24 return
+annotations across 16 distinct rules</strong> (19 <code>return_object</code>, 5
+<code>return_scalar</code> passthrough). It is <strong>not</strong> a <code>kind</code>-tagged surface:
+every typed object carries a <code>type</code> discriminator, never a bare <code>kind</code>.
+The five passthrough branches (<code>conditional_expr</code> branch 1,
+<code>primary_expr</code> branches 0/1/2, <code>unary_expr</code> branch 4) carry no wrapper
+of their own — they surface the matched sub-rule’s shape directly.</p>
 <h2 id="conditional_expr-ternary"><a class="header" href="#conditional_expr-ternary">conditional_expr (ternary)</a></h2>
-<p>Above the 10 binary levels is the ternary <code>?:</code>:</p>
+<p>The top of the expression hierarchy, two branches:</p>
 <pre><code class="language-ebnf">conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
+                 -&gt; {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
 conditional_expr := logical_or_expr
+                 -&gt; $1
 </code></pre>
-<p>The typed shape is a <code>kind</code>-tagged variant:</p>
 <ul>
-<li><code>{kind: "ternary", cond, then, else}</code> when <code>?:</code> is present.</li>
-<li><code>{kind: "passthrough", expr}</code> when only the LHS matched.</li>
+<li>Branch 0 (<code>?:</code> present): <code>{type: "ternary", condition, then_expr, else_expr}</code>. Both arms recurse into <code>conditional_expr</code>.</li>
+<li>Branch 1 (no <code>?:</code>): <strong>passthrough</strong> — the node <em>is</em> the inner
+<code>logical_or_expr</code> <code>binop_chain</code> value, with <strong>no</strong> <code>conditional_expr</code>
+wrapper (not a <code>{kind: "passthrough"}</code> object). Any expression slot
+may therefore hold a <code>ternary</code> object <em>or</em> directly a <code>binop_chain</code> —
+dispatch on <code>obj["type"]</code>.</li>
 </ul>
-<h2 id="unary_expr-prefix"><a class="header" href="#unary_expr-prefix">unary_expr (prefix)</a></h2>
-<p>Below the 10 binary levels is the unary prefix layer:</p>
-<pre><code class="language-ebnf">unary_expr := plus  unary_expr   -&gt; {kind: "plus",  expr: $2}
-            | minus unary_expr   -&gt; {kind: "minus", expr: $2}
-            | bang  unary_expr   -&gt; {kind: "bang",  expr: $2}
-            | tilde unary_expr   -&gt; {kind: "tilde", expr: $2}
-            | primary_expr       -&gt; {kind: "primary", expr: $1}
+<h2 id="the-ten-level-binop_chain-cascade"><a class="header" href="#the-ten-level-binop_chain-cascade">The ten-level binop_chain cascade</a></h2>
+<p>Below <code>conditional_expr</code> is a ten-level left-associative
+operator-precedence cascade. Each level emits the same <code>binop_chain</code>
+shape:</p>
+<pre><code class="language-ebnf">&lt;level&gt;_expr := &lt;next&gt; ( &lt;op&gt; &lt;next&gt; )*
+            -&gt; {type: "binop_chain", level: "&lt;level&gt;", lhs: $1, rest: $2}
 </code></pre>
-<h2 id="primary_expr"><a class="header" href="#primary_expr">primary_expr</a></h2>
-<p>The leaf layer is <code>primary_expr</code>, dispatching on literal vs identifier vs parenthesized expression.</p>
-<h2 id="consumer-fold-for-binop_chain"><a class="header" href="#consumer-fold-for-binop_chain">Consumer fold for binop_chain</a></h2>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn fold(node: &amp;serde_json::Value) -&gt; EvaluationTree {
-    let kind = node.get("type").and_then(|v| v.as_str()).unwrap_or("");
-    if kind != "binop_chain" {
-        return interpret_other(node);
-    }
-    let mut acc = fold(node.get("lhs").unwrap());
-    let rest = node.get("rest").and_then(|v| v.as_array()).unwrap();
-    for step in rest {
-        let op = step.get("op").and_then(|v| v.as_str()).unwrap();
-        let rhs = fold(step.get("rhs").unwrap());
-        acc = EvaluationTree::Binop { op: op.to_string(), lhs: Box::new(acc), rhs: Box::new(rhs) };
-    }
-    acc
-}
-<span class="boring">}</span></code></pre>
-<p>See <a href="walking-the-ast.html">Walking the AST</a> for the full walker pattern, including the binop_chain consumer-fold across the 10 levels.</p>
+<p>The ten levels (loosest to tightest binding, the order they nest):
+<code>logical_or</code> → <code>logical_and</code> → <code>bit_or</code> → <code>bit_xor</code> → <code>bit_and</code> →
+<code>equality</code> → <code>relational</code> → <code>shift</code> → <code>additive</code> → <code>multiplicative</code>.</p>
+<pre><code class="language-json">{ "type": "binop_chain", "level": "&lt;level&gt;", "lhs": &lt;next-level-shape&gt;, "rest": &lt;rest-envelope&gt; }
+</code></pre>
+<p><code>lhs</code> (<code>$1</code>) is the leading operand (itself the next tighter level,
+bottoming out at a typed <code>primary_expr</code> leaf). <code>rest</code> (<code>$2</code>) is the
+<strong>raw recursive-envelope iteration</strong> of the <code>( &lt;op&gt; &lt;next&gt; )*</code> tail —
+<strong>not</strong> an array of typed <code>{op, rhs}</code> objects. When the input had no
+operator at that level, <code>rest</code> is the empty-iteration envelope and the
+consumer simply unwraps <code>lhs</code>. Because <code>rest</code> is an envelope, the fold
+must walk it rather than read <code>step["op"]</code> / <code>step["rhs"]</code>; the single
+authoritative, inventory-accurate fold is in
+<a href="walking-the-ast.html#folding-the-binop_chain-expression-hierarchy">Walking the AST</a>
+— consumers should use that one rather than reimplement it here.</p>
+<h2 id="unary_expr-prefix"><a class="header" href="#unary_expr-prefix">unary_expr (prefix)</a></h2>
+<pre><code class="language-ebnf">unary_expr := plus     unary_expr -&gt; {type: "unary", op: "plus",        expr: $2}
+            | minus    unary_expr -&gt; {type: "unary", op: "minus",       expr: $2}
+            | bang     unary_expr -&gt; {type: "unary", op: "logical_not", expr: $2}
+            | tilde    unary_expr -&gt; {type: "unary", op: "bit_not",     expr: $2}
+            | primary_expr        -&gt; $1
+</code></pre>
+<p>Branches 0–3 emit <code>{type: "unary", op: &lt;"plus"|"minus"|"logical_not"|"bit_not"&gt;, expr}</code>.
+Branch 4 is <strong>passthrough</strong> — the node <em>is</em> the <code>primary_expr</code> value,
+with no <code>unary</code> wrapper.</p>
+<h2 id="primary_expr-literal-identifier-leaves"><a class="header" href="#primary_expr-literal-identifier-leaves">primary_expr, literal, identifier (leaves)</a></h2>
+<p><code>primary_expr</code> has three branches, <strong>all passthrough</strong> (<code>return_scalar</code>):
+it never contributes a wrapper of its own — it surfaces the matched
+literal, identifier, or parenthesized-expression shape directly. The two
+typed leaves it bottoms out at are:</p>
+<pre><code class="language-ebnf">literal    := ... -&gt; {type: "literal", kind: "based",   text: $1}
+            | ... -&gt; {type: "literal", kind: "decimal", text: $1}
+identifier := ... -&gt; {type: "identifier", text: $1}
+</code></pre>
+<p>Full per-branch field lists are in <a href="rules-top-level.html">Top-Level Rules</a>.</p>
 <h2 id="two-carrier-kinds-typed-and-recursive-envelope"><a class="header" href="#two-carrier-kinds-typed-and-recursive-envelope">Two carrier kinds: typed and recursive-envelope</a></h2>
 <p>Per-rule, the AST dump produces JSON in one of two shapes:</p>
 <ul>
-<li><strong>Typed shape</strong> — rules with <code>-&gt; {...}</code> annotations (binop_chain levels, unary_expr, primary_expr, etc.).</li>
-<li><strong>Recursive-envelope shape</strong> — rules without annotations produce a JSON value derived from grammar shape (sequence → array, alternation → matched-branch shape, etc.).</li>
+<li><strong>Typed shape</strong> — rules/branches with a <code>return_object</code> annotation
+(the root, <code>conditional_expr</code> branch 0, the ten <code>binop_chain</code> levels,
+<code>unary_expr</code> branches 0–3, <code>literal</code>, <code>identifier</code>).</li>
+<li><strong>Recursive-envelope shape</strong> — un-annotated rules and the
+<code>return_scalar</code> passthrough branches surface a JSON value derived
+from grammar shape (sequence → array, alternation → matched-branch
+shape, quantified → iteration array). The <code>binop_chain</code> <code>rest</code> field
+and every un-annotated leaf (operator tokens, etc.) are
+envelope-shaped; see <a href="json-carrier.html">The Json Carrier</a>.</li>
 </ul>
-<p>The 10-annotation surface (as of contract 1.0.1) covers all binary chain levels. The remaining rules produce recursive-envelope arrays.</p>
+<p>The 24-annotation / 16-distinct-rule surface (contract <code>1.0.1</code>) is
+enumerated authoritatively in <a href="rules-top-level.html">Top-Level Rules</a>.</p>
 <h2 id="determinism"><a class="header" href="#determinism">Determinism</a></h2>
 <p>The AST dump is <strong>deterministic</strong> for a given input + parser-release version:</p>
 <ul>

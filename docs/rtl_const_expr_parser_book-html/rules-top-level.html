@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8a422829.js";
+            window.path_to_searchindex_js = "searchindex-fea28a93.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-6441590f.js"></script>
@@ -180,11 +180,183 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="rules-top-level"><a class="header" href="#rules-top-level">Rules Top Level</a></h1>
+                        <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
+<p>This chapter is the per-rule shape reference for the PGEN rtl_const_expr parser. It documents the <code>rtl_const_expr</code> root, the conditional / <code>binop_chain</code> / unary / primary expression hierarchy, and the <code>literal</code> and <code>identifier</code> leaf shapes, grouped by rule family.</p>
 <blockquote>
-<p><strong>Status</strong>: scaffolding-only stub. Authored content lands in subsequent RTL-CE-MDBOOK frontier leaves.</p>
-<p>See <a href="../../tasks/RTL-CE-MDBOOK.html">docs/tasks/RTL-CE-MDBOOK.md</a> for the leaf that owns this chapter.</p>
+<p><strong>Status:</strong> RTL-CE-Slice-1 (parser release <code>1.0.1</code>, AST-dump schema version <code>1</code>) typed the full <code>grammars/rtl_const_expr.ebnf</code> expression surface in a single slice — <strong>24 return annotations on 16 distinct rules</strong>. Every shape in this chapter is drawn from the live inventory at <code>generated/rtl_const_expr_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code> — content-identical: the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples match exactly; the live inventory additionally carries a per-entry <code>raw_text</code> field). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
+<h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
+<p>This is a <strong>curated, grouped</strong> reference — not a raw 24-line dump and not a copy of any RTL language spec. For each family it gives the <code>type</code> / <code>kind</code> discriminators and field lists the parser actually emits, transcribed from each rule’s <code>normalized_text</code>. Where a rule has per-branch typing, the discriminator value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
+<p>Two conventions appear throughout:</p>
+<ul>
+<li><strong>Typed object rules</strong> emit an object literal with a <code>type</code> discriminator (<code>{type: "binop_chain", ...}</code>, <code>{type: "ternary", ...}</code>, <code>{type: "unary", ...}</code>, <code>{type: "literal", ...}</code>, <code>{type: "identifier", ...}</code>, <code>{type: "rtl_const_expr", ...}</code>). rtl_const_expr does <strong>not</strong> use a bare <code>kind</code> discriminator anywhere; every typed object carries <code>type</code>.</li>
+<li><strong>Passthrough branches</strong> carry a <code>return_scalar</code> annotation (<code>-&gt; $1</code> / <code>-&gt; $2</code>): the rule contributes no wrapper of its own and surfaces the matched sub-rule’s shape directly. rtl_const_expr has exactly <strong>five</strong> passthrough branches (<code>conditional_expr</code> branch 1, <code>primary_expr</code> branches 0/1/2, <code>unary_expr</code> branch 4).</li>
+</ul>
+<p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, string literals, <code>return_object</code> vs <code>return_scalar</code>) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
+<h2 id="entry-point"><a class="header" href="#entry-point">Entry point</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Profile</th><th>Entry rule</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>default</code></td><td><code>rtl_const_expr</code></td><td>The synthesizable RTL constant-expression root. The only rtl_const_expr profile.</td></tr>
+</tbody>
+</table>
+</div>
+<p>There is no per-grammar convenience function for rtl_const_expr; the stable host surface is the generic <code>parse_grammar_profile*</code> family with <code>GrammarFamily::RtlConstExpr</code> + <code>GrammarProfile::Default</code> (and the <code>parse_grammar_profile_named</code> string overload with <code>"rtl_const_expr"</code> / <code>"default"</code>). See <a href="public-api.html">Public API Surface</a>.</p>
+<h2 id="rtl_const_expr-root"><a class="header" href="#rtl_const_expr-root"><code>rtl_const_expr</code> (root)</a></h2>
+<p>Per <code>grammars/rtl_const_expr.ebnf</code>:</p>
+<pre><code class="language-ebnf">rtl_const_expr := conditional_expr
+              -&gt; {type: "rtl_const_expr", expr: $1}
+</code></pre>
+<p>The annotation produces a typed JSON object at the root of every parse:</p>
+<pre><code class="language-json">{
+  "type": "rtl_const_expr",
+  "expr": { /* conditional_expr shape */ }
+}
+</code></pre>
+<p><code>expr</code> is the single typed child — whatever shape <code>conditional_expr</code> produces. Consumers walking the rtl_const_expr AST dispatch on <code>obj["type"] == "rtl_const_expr"</code> at the root, then descend into <code>obj["expr"]</code>. This is the only rule whose <code>type</code> is <code>"rtl_const_expr"</code>; every interior expression node carries a different <code>type</code>.</p>
+<h2 id="family-the-conditional-head"><a class="header" href="#family-the-conditional-head">Family: the conditional head</a></h2>
+<p><code>conditional_expr</code> is the top of the expression hierarchy. It has two branches:</p>
+<pre><code class="language-ebnf">conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
+                 -&gt; {type: "ternary", condition: $1, then_expr: $3, else_expr: $5}
+conditional_expr := logical_or_expr
+                 -&gt; $1
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Branch</th><th><code>annotation_type</code></th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><code>return_object</code></td><td><code>{type: "ternary", condition: &lt;logical_or_expr&gt;, then_expr: &lt;conditional_expr&gt;, else_expr: &lt;conditional_expr&gt;}</code> — the <code>c ? t : e</code> form. Both arms (<code>then_expr</code>, <code>else_expr</code>) recurse into <code>conditional_expr</code>, so a ternary can nest.</td></tr>
+<tr><td>1</td><td><code>return_scalar</code> (<code>-&gt; $1</code>)</td><td><strong>Passthrough.</strong> A non-ternary expression surfaces directly as its <code>logical_or_expr</code> <code>binop_chain</code> with no <code>conditional_expr</code> wrapper.</td></tr>
+</tbody>
+</table>
+</div>
+<p>Because branch 1 is passthrough, consumers must accept that any expression slot (<code>rtl_const_expr.expr</code>, a ternary arm, a parenthesized sub-expression) may hold a <code>ternary</code> object <strong>or</strong> directly a <code>binop_chain</code> — dispatch on <code>obj["type"]</code> (see <a href="walking-the-ast.html">Walking the AST</a>).</p>
+<h2 id="family-expressions--the-binop_chain-contract"><a class="header" href="#family-expressions--the-binop_chain-contract">Family: expressions — the <code>binop_chain</code> contract</a></h2>
+<p>Below <code>conditional_expr</code> the rtl_const_expr grammar is a <strong>ten-level operator-precedence cascade</strong>. Each of the ten binary levels carries the same <code>binop_chain</code> typed shape (independently counted from the inventory: exactly ten rules emit <code>{type: "binop_chain", ...}</code>):</p>
+<pre><code class="language-ebnf">logical_or_expr     := logical_and_expr ( logical_or  logical_and_expr )*
+                    -&gt; {type: "binop_chain", level: "logical_or",     lhs: $1, rest: $2}
+logical_and_expr    := bit_or_expr      ( logical_and bit_or_expr     )*
+                    -&gt; {type: "binop_chain", level: "logical_and",    lhs: $1, rest: $2}
+bit_or_expr         := bit_xor_expr     ( bit_or      bit_xor_expr    )*
+                    -&gt; {type: "binop_chain", level: "bit_or",         lhs: $1, rest: $2}
+bit_xor_expr        := bit_and_expr     ( bit_xor     bit_and_expr    )*
+                    -&gt; {type: "binop_chain", level: "bit_xor",        lhs: $1, rest: $2}
+bit_and_expr        := equality_expr    ( bit_and     equality_expr   )*
+                    -&gt; {type: "binop_chain", level: "bit_and",        lhs: $1, rest: $2}
+equality_expr       := relational_expr  ( ( eqeq | ne ) relational_expr )*
+                    -&gt; {type: "binop_chain", level: "equality",       lhs: $1, rest: $2}
+relational_expr     := shift_expr       ( ( le | lt | ge | gt ) shift_expr )*
+                    -&gt; {type: "binop_chain", level: "relational",     lhs: $1, rest: $2}
+shift_expr          := additive_expr    ( ( shl | shr ) additive_expr )*
+                    -&gt; {type: "binop_chain", level: "shift",          lhs: $1, rest: $2}
+additive_expr       := multiplicative_expr ( ( plus | minus ) multiplicative_expr )*
+                    -&gt; {type: "binop_chain", level: "additive",       lhs: $1, rest: $2}
+multiplicative_expr := unary_expr       ( ( star | slash | percent ) unary_expr )*
+                    -&gt; {type: "binop_chain", level: "multiplicative", lhs: $1, rest: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Level (<code>level</code>)</th><th>Rule</th><th>Operators (lowest binding first; the table is in grammar/precedence order)</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"logical_or"</code></td><td><code>logical_or_expr</code></td><td><code>||</code></td></tr>
+<tr><td><code>"logical_and"</code></td><td><code>logical_and_expr</code></td><td><code>&amp;&amp;</code></td></tr>
+<tr><td><code>"bit_or"</code></td><td><code>bit_or_expr</code></td><td><code>|</code></td></tr>
+<tr><td><code>"bit_xor"</code></td><td><code>bit_xor_expr</code></td><td><code>^</code></td></tr>
+<tr><td><code>"bit_and"</code></td><td><code>bit_and_expr</code></td><td><code>&amp;</code></td></tr>
+<tr><td><code>"equality"</code></td><td><code>equality_expr</code></td><td><code>==</code> / <code>!=</code></td></tr>
+<tr><td><code>"relational"</code></td><td><code>relational_expr</code></td><td><code>&lt;=</code> / <code>&lt;</code> / <code>&gt;=</code> / <code>&gt;</code></td></tr>
+<tr><td><code>"shift"</code></td><td><code>shift_expr</code></td><td><code>&lt;&lt;</code> / <code>&gt;&gt;</code></td></tr>
+<tr><td><code>"additive"</code></td><td><code>additive_expr</code></td><td><code>+</code> / <code>-</code></td></tr>
+<tr><td><code>"multiplicative"</code></td><td><code>multiplicative_expr</code></td><td><code>*</code> / <code>/</code> / <code>%</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Consumer-facing left-fold contract</strong> (per the integration contract, Release 1.0.1 Highlights): every one of these ten rules emits <code>{type: "binop_chain", level, lhs, rest}</code> where:</p>
+<ul>
+<li><code>lhs</code> is the leading operand at this precedence level — the typed value from the next-tighter level (<code>logical_or_expr.lhs</code> is a <code>logical_and_expr</code> <code>binop_chain</code>, and so on down to <code>multiplicative_expr.lhs</code>, a <code>unary_expr</code>).</li>
+<li><code>rest</code> is the recursive-envelope iteration array of the <code>( op operand )*</code> tail. Each entry wraps one operator token plus one next-level operand. <strong>It is not a typed <code>{op, rhs}</code> object</strong> — it is the raw envelope of the iteration (see <a href="json-carrier.html">The Json Carrier</a>). When the input had no operator at this level, <code>rest</code> is the empty array <code>[]</code> and the consumer simply unwraps <code>lhs</code>.</li>
+<li><code>level</code> discriminates which operator family the node belongs to (e.g. <code>"logical_or"</code>, <code>"additive"</code>) so consumers can validate operator-vs-level conformance without re-deriving the tier from context.</li>
+</ul>
+<p>To evaluate, consumers fold <code>rest</code> left-associatively onto <code>lhs</code>:</p>
+<pre><code class="language-pseudocode">value = lhs
+for (op, operand) in rest:
+    value = apply(op, value, operand)
+</code></pre>
+<p>All ten levels iterate <code>*</code>, so <code>rest</code> may hold any number of pairs. There is <strong>no</strong> <code>sign</code> field on any rtl_const_expr level (unlike VHDL’s <code>simple_expression</code>); the prefix <code>+</code> / <code>-</code> / <code>!</code> / <code>~</code> operators live in <code>unary_expr</code>, below <code>multiplicative_expr</code>. The cascade bottoms out at <code>unary_expr</code> → <code>primary_expr</code>. This <code>binop_chain</code> shape is identical across all ten levels precisely so that a single consumer fold routine handles the entire binary-expression tree. See <a href="walking-the-ast.html">Walking the AST</a> for a worked left-fold.</p>
+<h2 id="family-the-unary-prefix-tier"><a class="header" href="#family-the-unary-prefix-tier">Family: the unary prefix tier</a></h2>
+<p><code>unary_expr</code> sits below <code>multiplicative_expr</code> and has five branches:</p>
+<pre><code class="language-ebnf">unary_expr := plus  unary_expr  -&gt; {type: "unary", op: "plus",        expr: $2}
+unary_expr := minus unary_expr  -&gt; {type: "unary", op: "minus",       expr: $2}
+unary_expr := bang  unary_expr  -&gt; {type: "unary", op: "logical_not", expr: $2}
+unary_expr := tilde unary_expr  -&gt; {type: "unary", op: "bit_not",     expr: $2}
+unary_expr := primary_expr      -&gt; $1
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Branch</th><th><code>annotation_type</code></th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><code>return_object</code></td><td><code>{type: "unary", op: "plus", expr: &lt;unary_expr&gt;}</code> (prefix <code>+</code>)</td></tr>
+<tr><td>1</td><td><code>return_object</code></td><td><code>{type: "unary", op: "minus", expr: &lt;unary_expr&gt;}</code> (prefix <code>-</code>)</td></tr>
+<tr><td>2</td><td><code>return_object</code></td><td><code>{type: "unary", op: "logical_not", expr: &lt;unary_expr&gt;}</code> (prefix <code>!</code>)</td></tr>
+<tr><td>3</td><td><code>return_object</code></td><td><code>{type: "unary", op: "bit_not", expr: &lt;unary_expr&gt;}</code> (prefix <code>~</code>)</td></tr>
+<tr><td>4</td><td><code>return_scalar</code> (<code>-&gt; $1</code>)</td><td><strong>Passthrough.</strong> A non-prefixed operand surfaces directly as its <code>primary_expr</code> shape with no <code>unary</code> wrapper.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The four operator branches recurse through <code>expr</code> into <code>unary_expr</code> again (so <code>--x</code>, <code>!~x</code> chains nest). The <code>op</code> value is the typed operator name — <code>"plus"</code>, <code>"minus"</code>, <code>"logical_not"</code>, <code>"bit_not"</code> — <strong>not</strong> the raw token. Because branch 4 is passthrough, a non-prefixed operand surfaces as its <code>primary_expr</code> directly.</p>
+<h2 id="family-the-primary-tier"><a class="header" href="#family-the-primary-tier">Family: the primary tier</a></h2>
+<p><code>primary_expr</code> is the leaf of the expression cascade. All three branches are <code>return_scalar</code> passthroughs:</p>
+<pre><code class="language-ebnf">primary_expr := literal                     -&gt; $1
+primary_expr := identifier                  -&gt; $1
+primary_expr := lparen conditional_expr rparen -&gt; $2
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Branch</th><th><code>annotation_type</code></th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td>0</td><td><code>return_scalar</code> (<code>-&gt; $1</code>)</td><td><strong>Passthrough</strong> to the <code>literal</code> typed object.</td></tr>
+<tr><td>1</td><td><code>return_scalar</code> (<code>-&gt; $1</code>)</td><td><strong>Passthrough</strong> to the <code>identifier</code> typed object.</td></tr>
+<tr><td>2</td><td><code>return_scalar</code> (<code>-&gt; $2</code>)</td><td><strong>Passthrough</strong> to the parenthesized inner <code>conditional_expr</code>. The surrounding <code>( )</code> tokens are dropped; the node surfaces as whatever <code>conditional_expr</code> produced.</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>primary_expr</code> therefore never appears as its own wrapper object in the dump — it always resolves to the typed shape of <code>literal</code>, <code>identifier</code>, or the parenthesized <code>conditional_expr</code>. Consumers must treat any operand slot as potentially holding a <code>literal</code>, an <code>identifier</code>, or any expression node (a parenthesized expression unwraps to the inner <code>conditional_expr</code>’s shape).</p>
+<h2 id="family-literals-and-identifiers"><a class="header" href="#family-literals-and-identifiers">Family: literals and identifiers</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Rule</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td><code>literal</code> (2 kinds)</td><td><code>{type: "literal", kind: "based", text: $1}</code> for a sized/based integer (branch 0; e.g. <code>8'hFF</code>, <code>4'b1010</code>, <code>12'sd5</code>); <code>{type: "literal", kind: "decimal", text: $1}</code> for a plain decimal integer (branch 1; e.g. <code>42</code>, <code>1_000</code>). <code>kind</code> is the literal-class discriminator; <code>text</code> is the matched literal source.</td></tr>
+<tr><td><code>identifier</code></td><td><code>{type: "identifier", text: $1}</code> — a single typed object. The grammar’s <code>identifier</code> regex covers plain, dotted (<code>a.b</code>), and package-qualified (<code>pkg::name</code>) names; the whole matched span is the <code>text</code> value.</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>text</code> field on <code>literal</code> and <code>identifier</code> is bound to <code>$1</code>, the matched terminal/regex span. Note this is the one place rtl_const_expr surfaces a leaf as a typed <code>{type, text}</code> object: <code>literal</code> and <code>identifier</code> are <strong>annotated</strong>, so reaching one yields a typed object whose <code>text</code> field carries the source text.</p>
+<blockquote>
+<p><strong>Un-annotated leaves are envelopes, not bare strings.</strong> Sub-rules without their own return annotation (the keyword/operator tokens <code>plus</code>, <code>question</code>, <code>lparen</code>, …, the regex leaves <code>based_integer</code> / <code>decimal_integer</code>, and <code>trivia</code>) surface as their <strong>recursive envelope</strong> when reached, not as a bare JSON string. In the typed surface those leaves are absorbed into their annotated parent (<code>literal.text</code>, <code>identifier.text</code>, the dropped <code>( )</code> of <code>primary_expr</code> branch 2). Do not assume a value is a bare string unless it is the <code>text</code> field of a <code>literal</code> / <code>identifier</code> object — see <a href="json-carrier.html">The Json Carrier</a> for the rule of thumb and a worked example.</p>
+</blockquote>
+<h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
+<p>The full typed surface as of contract <code>1.0.1</code> is <strong>24 return annotations across 16 distinct rules</strong> (independently re-counted from the inventory: 19 <code>return_object</code> + 5 <code>return_scalar</code>; 10 of the 16 rules emit <code>binop_chain</code>). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<ul>
+<li><code>generated/rtl_const_expr_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "rtl_const_expr"</code>, <code>annotation_count: 24</code>).</li>
+<li><code>rust/test_data/ast_shape_contract/rtl_const_expr_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (content-identical; 24 entries in <code>declared_annotation_inventory.annotations</code>, with a per-entry <code>raw_text</code> only on the live inventory).</li>
+</ul>
+<p>If this chapter and either artifact disagree, the artifact wins — and the integration contract <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code> wins over both.</p>
+<h2 id="how-to-follow-per-slice-changes"><a class="header" href="#how-to-follow-per-slice-changes">How to follow per-slice changes</a></h2>
+<p>Each shape-affecting slice after RTL-CE-Slice-1 gets a row in <a href="schema-versioning.html">Schema Versioning</a> and a Highlights section in <code>docs/contracts/PGEN_RTL_CONST_EXPR_PARSER_INTEGRATION_CONTRACT.md</code>. The <a href="changelog-index.html">Changelog Index</a> ties them together. For two end-to-end captured shapes, see <a href="examples-literal-42.html">Literal 42</a> and <a href="examples-binary-addition.html">Binary Addition</a>.</p>
 
                     </main>
 

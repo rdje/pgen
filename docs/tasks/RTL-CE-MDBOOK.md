@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: rtl_const_expr deliverables
 - Created: `2026-05-14`
-- Last updated: `2026-05-15`
+- Last updated: `2026-05-16`
 - Owner: repo-local workflow
 
 ## Goal
@@ -54,11 +54,11 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
   Commit: `RTL-CE-MDBOOK-Slice-3`
 
 - ID: `RTL-CE-MDBOOK.3`
-  Status: `pending`
+  Status: `done`
   Goal: `Author shape-reference chapters covering all 24 typed rules including the binop_chain shape.`
   Acceptance: `Each chapter enumerates typed shapes; binop_chain documented as the consumer-facing left-fold contract.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-16: 4 shape-reference chapters authored (rules-top-level, json-carrier, walking-the-ast, schema-versioning), independently verified vs generated/rtl_const_expr_return_annotations.json — 24 annotations / 16 distinct rules, root {type:rtl_const_expr,expr}, conditional_expr ternary+passthrough, 10-level binop_chain (rest=$2 raw envelope), unary 4 typed + passthrough, literal 2 kinds, identifier — all match. ALSO corrected a confirmed accuracy defect in the pre-existing sibling chapter ast-envelope.md (RTL-CE-MDBOOK-Slice-3 / 8ffcd78d, pushed): it claimed {kind:"ternary"}/{kind:"plus"}/typed {op,rhs} rest / "10-annotation surface" — rewritten to the live shapes so the book is internally consistent. rtl_const_expr_parser_book_gate green (independently re-run).`
+  Commit: `RTL-CE-MDBOOK-Slice-4`
 
 - ID: `RTL-CE-MDBOOK.4`
   Status: `pending`
@@ -85,7 +85,8 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-CE-MDBOOK.3` | `pending` | Shape-reference chapters next (rules-top-level, json-carrier, walking-the-ast, schema-versioning + binop_chain details). |
+| 1 | `RTL-CE-MDBOOK.4` | `pending` | The literal_42 + binary_addition worked examples (AST dumps validated against generated/rtl_const_expr_parser.rs) come next. |
+| 2 | `RTL-CE-MDBOOK.6` | `pending` | Glossary + changelog-index + README/LIVE links close the book — final leaf. |
 
 ## Decisions
 
@@ -107,6 +108,7 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | `2026-05-14` | `RTL-CE-MDBOOK.1` | `mdbook build` | `pass` |
 | `2026-05-15` | `RTL-CE-MDBOOK.5` | `make rtl_const_expr_parser_book_gate` | `pass` |
 | `2026-05-15` | `RTL-CE-MDBOOK.2` | `make rtl_const_expr_parser_book_gate` | `pass — 4 chapters authored; gate green` |
+| `2026-05-16` | `RTL-CE-MDBOOK.3` | `make rtl_const_expr_parser_book_gate` + inventory cross-check | `pass — 4 shape-reference chapters; verified 24/16, root/ternary/10-level binop_chain/unary/literal/identifier vs generated/rtl_const_expr_return_annotations.json; corrected confirmed ast-envelope.md inaccuracy (kind→type, 10→24, typed-rest→raw-envelope); gate green` |
 
 ## Commit Log
 
@@ -115,9 +117,11 @@ worked literal_42 / binary_addition examples already tracked in the manifest.
 | `RTL-CE-MDBOOK.1` | `RTL-CE-MDBOOK-Slice-1` | book.toml + 13-entry SUMMARY + welcome + chapter stubs |
 | `RTL-CE-MDBOOK.5` | `RTL-CE-MDBOOK-Slice-2` | gate script + Makefile target |
 | `RTL-CE-MDBOOK.2` | `RTL-CE-MDBOOK-Slice-3` | quickstart + build-recipe + public-api + ast-envelope authored at SV parity |
+| `RTL-CE-MDBOOK.3` | `RTL-CE-MDBOOK-Slice-4` | 4 shape-reference chapters (24/16, 10-level binop_chain) + ast-envelope.md accuracy correction |
 
 ## Changelog
 
 - `2026-05-14`: Created task tree.
 - `2026-05-14`: `.1` done; frontier → `.2` + `.5`.
 - `2026-05-15`: `.2` done; frontier advances to `.3` (shape-reference chapters).
+- `2026-05-16`: `.3` done (4 shape chapters + ast-envelope.md accuracy correction); frontier advances to `.4` (worked examples), then `.6` (glossary/changelog/links).
