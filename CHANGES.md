@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0084-0000 (leaf RGX-0084 setup): activate the PGEN-RGX-0084 released-parser bug-remediation task tree (docs/workflow-only)
+
+- **New active priority task tree `RGX-0084`** — user-directed
+  remediation of downstream report `PGEN-RGX-0084`
+  (`/Users/richarddje/Documents/github/rgx/pgen-issues/PGEN-RGX-0084.yaml`,
+  artifact `artifacts/PGEN-RGX-0084/ast_dump.json`): the released
+  `regex` parser (`1.1.74`, contract `1.1.76`) classifies a two-digit
+  numeric backslash escape `\NN` as `{kind:"numeric",
+  type:"backreference", index:N}` whenever the **whole pattern** has
+  ≥ N capturing groups, instead of PCRE2's compile-time rule (back
+  reference iff ≥ N groups opened **up to that parse position**, else
+  octal if it qualifies). Reproducer
+  `()()()()()()()()()(?:(?(10)\10a|b)(X|Y))+` — 9 groups precede
+  `\10`, group 10 is opened *after*, so `\10` must be octal `\010`
+  (U+0008), not a backref.
+- Decomposed into 3 leaves: `.1` pinpoint the backref↔octal
+  group-count decision locus + deterministic PGEN repro → `.2`
+  implement the PCRE2 groups-seen-so-far fix (probe-verified, no
+  regression) → `.3` `REGEX-00NN` bug-ledger + regex release/book/
+  contract/shape-contract lockstep + closeout. Tree
+  [docs/tasks/RGX-0084.md](docs/tasks/RGX-0084.md); added to
+  `docs/TASK_TREE.md` Active table as the priority tree.
+- `SV-EXH-PROOF` is **paused** (active but not the frontier) until
+  `RGX-0084` closes, then resumes at `.2.3.2`.
+- Code-Change-Doctrine-compliant precursor (user re-affirmed
+  "task-tree own it first"): no code changed in this setup slice;
+  the regex grammar/Rust fix is owned by `RGX-0084.2`.
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0009 (leaf SV-EXH-PROOF.2.3.2 root cause PINNED): the 2 remaining preprocessor self-rejections are closed-loop generator over-generation of the structural sigil in permissive content regexes (docs-only)
 
 - After `.2.3.1` (`SVPP-0002`) took `parser_rejections` 3 → 2, the
