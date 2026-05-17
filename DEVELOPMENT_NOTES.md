@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF.2.3 root-cause class — non-grammar generator-semantics drift (PGEN-SV-EXH-PROOF-0006)
+
+Having falsified the campaign-caused premise (`-0005`), I resolved
+*what actually* moved `parser_rejections` 0→3 with history evidence,
+not another inference:
+
+- The `==0` precondition exists only since `4d5b2d27` (= the
+  preprocessor's `Done` cross, 2026-04-01); the gate is unchanged
+  since — so 0→3 is a real change *somewhere* since then.
+- The grammar's `pp_conditional` recursive structure is
+  campaign-unchanged (so not the grammar).
+- `stimuli_generator.rs` has **24 commits** in that window — the
+  closed-loop generator's semantics drifted (recovery/probability,
+  OR-root overrides, replay-debt alignment, …).
+
+Diagnosis: a generator⊋parser asymmetry in recursive `pp_conditional`
+— the closed loop now over-generates an `ifdef`-family branch without
+a reparseable matching `pp_endif`, so `pp_item*` cannot consume it and
+the parser stops at the directive backtick. This is inherent to
+generating recursive balanced-delimiter grammars and is
+**seed/generator-semantics sensitive** — it was 0 at 2026-04-01 only
+because the generator then didn't emit an unbalanced conditional at
+seed 9101/count 16.
+
+### Carry-forward
+The "test the premise" discipline now has a positive complement:
+**resolve a root cause by triangulating primary history (when the
+invariant was set · what structurally changed · what churned in
+between), not by picking the most plausible story.** Cheap
+`git log -S` / `git log --since` on the three candidate surfaces
+(precondition, grammar production, generator) pinned the class
+decisively. Next: bisect the 24 generator commits to the exact
+semantics change; honest fix (constrain generation to
+balanced/reparseable `pp_conditional`, or grammar-harden) — never
+loosen the hard `==0`.
+
 ## 2026-05-17 - SV-EXH-PROOF.2.3 — test the premise before the work (PGEN-SV-EXH-PROOF-0005)
 
 I had recorded `.2.3` as a "genuine campaign-caused round-trip

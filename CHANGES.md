@@ -1,4 +1,44 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0006 (leaf SV-EXH-PROOF.2.3 root-cause class): the preprocessor parser_rejections 0→3 is non-grammar stimuli-generator semantics drift (docs-only)
+
+- Also (this turn, no commit needed): **all generated parser mdBooks
+  + the top-level mdBook verified up-to-date** per explicit user
+  directive — `regex` / `systemverilog_preprocessor` / `systemverilog`
+  / `vhdl` / `rtl_frontend` / `rtl_const_expr` `*_parser_book_gate`
+  and `mdbook_docs_gate` all pass green, zero drift, working tree
+  clean (verification only; nothing to change). The 35-commit
+  SV-EXH-PROOF batch was pushed to `origin/main`
+  (`f889b150..c9421655`) per explicit user authorization.
+- **`.2.3` root-cause class established (evidence-grounded), resolving
+  the `-0005` open question:**
+  - `git log -S` on the `parser_rejections == 0` precondition →
+    introduced in a single commit `4d5b2d27 "Close SV preprocessor
+    proof surface"` (= the gate that crossed the preprocessor to
+    `Done` 2026-04-01; gate file unchanged since).
+  - `pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch?
+    pp_endif` (recursive `pp_item*` in branches) is structurally
+    **unchanged** by the campaign.
+  - `rust/src/ast_pipeline/stimuli_generator.rs` has **24 commits
+    since 2026-04-01** (e.g. `d0a4f405 "restore recovery +
+    probability semantics"`, `110b7a2f "enable OR-root probe
+    overrides"`).
+  - The failing samples fail at the directive backtick (pos 18 = the
+    `ifdef` start): `pp_item*` cannot consume an unclosable
+    `pp_conditional`.
+  - **Conclusion:** the `parser_rejections` 0→3 move is **non-grammar
+    stimuli-generator semantics drift**, manifesting as the
+    closed-loop over-generating unbalanced/ill-formed `pp_conditional`
+    (ifdef-family without a reparseable matching structure) that the
+    parser correctly rejects — a generator⊋parser asymmetry, NOT a
+    grammar or campaign defect (consistent with `-0005`).
+- Remaining `.2.3` work: bisect the 24 `stimuli_generator.rs` commits
+  to the exact regressing generation-semantics change, then the
+  honest fix (constrain closed-loop generation to balanced/reparseable
+  `pp_conditional`, or grammar-harden the generate/parse agreement —
+  never loosen the `==0` precondition). Docs-only diagnostic
+  checkpoint; no code; tree/live-docs/memory lockstepped; frontier
+  stays `.2.3`.
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0005 (leaf SV-EXH-PROOF.2.3 premise correction): the 3 preprocessor self-rejections are NOT campaign-caused — premise falsified by the exact diffs (docs-only)
 
 - Before doing deep work on `.2.3`, the recorded premise ("genuine
