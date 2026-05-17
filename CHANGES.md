@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0000 (leaf SV-EXH-PROOF setup): activate the main-SV formally-exhaustive closure-proof task tree (docs/workflow-only)
+
+- **New active task tree `SV-EXH-PROOF`** — user-selected from the
+  post-`POST-SV-AUDIT` strategic fork as the largest open
+  parser-family debt: a **formally-exhaustive, machine-checkable
+  closure surface for `grammars/systemverilog.ebnf` itself** (not
+  bounded thresholds / corpus slices / curated suites), to re-earn
+  `Done` for the SV main-parser family under the strict live-tracker
+  doctrine.
+- Methodology is **the proven `systemverilog_preprocessor`
+  exhaustive-closure pattern**, not re-derived. Empirical scope
+  confirmed: SV already has the shared `sv_syntax_closure_gate.sh`,
+  the `sv_formal_exhaustive_closure_gate.sh` umbrella,
+  `sv_parser_family_status_gate.sh`, and
+  `systemverilog_formal_exhaustive_closure_contract.json`; SV is
+  **confirmed missing** `sv_reachability_closure_gate.sh`,
+  `sv_zero_plausible_gap_proof_gate.sh`, and their contracts (+ a
+  syntax-closure contract and the family-status `Done` flip). Those
+  missing pieces are the workstream.
+- Decomposed into 4 well-defined leaves: `.1` reachability-closure
+  gate + sidecar (frontier) → `.2` classify the syntax-unreachable SV
+  rule set (benign-pocket vs real-gap) → `.3` zero-plausible-gap proof
+  gate + contract → `.4` umbrella + family-status + `sota_exit_gate`
+  telemetry wiring + LIVE `Done` flip. Tree file
+  [docs/tasks/SV-EXH-PROOF.md](docs/tasks/SV-EXH-PROOF.md); added to
+  `docs/TASK_TREE.md` Active table.
+- Code-Change-Doctrine-compliant precursor: every gate script /
+  contract json / grammar fix in this tree is leaf-owned (real grammar
+  gaps split into their own sub-leaves). No code changed in this
+  setup slice. Memory + index updated (PNT is no longer terminal).
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0007 (leaf POST-SV-AUDIT.3): close-out — Cat-C/residual disposition + tree & TaskList #49 CLOSED (docs-only)
 
 - **The deferred holistic post-campaign AST-shape correctness audit

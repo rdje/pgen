@@ -1,4 +1,53 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF activated — the last open parser-family proof debt, scoped from the proven sv_preprocessor pattern (PGEN-SV-EXH-PROOF-0000)
+
+### Direction
+PNT is no longer terminal. With every bounded tree + POST-SV-AUDIT
+closed, the user selected the **largest open parser-family debt** from
+the post-`POST-SV-AUDIT` strategic fork: a **formally-exhaustive,
+machine-checkable closure surface for `grammars/systemverilog.ebnf`
+itself**, so the main-SV family re-earns `Done` under the strict
+live-tracker doctrine rather than resting on bounded thresholds /
+corpus slices / non-increasing target debt / curated suites.
+
+### Scope is empirical, not invented
+The methodology is **the exact pattern that crossed
+`systemverilog_preprocessor` from Mostly-Done → Done** — not
+re-derived. The exemplar gates/contracts already exist
+(`rust/scripts/sv_preprocessor_{reachability_closure,syntax_closure,zero_plausible_gap_proof,formal_exhaustive_closure}_gate.sh`).
+SV already HAS the shared `sv_syntax_closure_gate.sh`, the
+`sv_formal_exhaustive_closure_gate.sh` umbrella,
+`sv_parser_family_status_gate.sh`, and
+`systemverilog_formal_exhaustive_closure_contract.json`; SV is
+**confirmed missing** `sv_reachability_closure_gate.sh`,
+`sv_zero_plausible_gap_proof_gate.sh`, their contracts, a
+`systemverilog_syntax_closure_contract.json`, and the family-status
+`Done` flip. Those missing pieces are the entire workstream — a
+disciplined port of a proven design, not open-ended research.
+
+### Carry-forward design rules
+- **Reachability first (`.1`).** The reachability sidecar
+  (`summary.{covered,reachable}_{rules,branches}`) is the foundation
+  the syntax-closure classification (`.2`), the zero-gap proof (`.3`),
+  and the family-status flip (`.4`) all build on. Build the gate +
+  measure before classifying.
+- **Benign-pocket vs real-gap (`.2`).** Every syntax-unreachable SV
+  rule must be explicitly classified — the preprocessor's only
+  unreachable surface was the helper-only `trivia` pocket; SV's set is
+  far larger and must be enumerated + justified or closed, never
+  hand-waved.
+- **Honest closure (`.3`/`.4`).** A real (non-benign) reachability gap
+  is closed by a grammar fix that is **its own sub-leaf** under the
+  Code-Change Doctrine (probe-verified, lockstepped) — never absorbed
+  silently into the proof gate. The umbrella must *require* the
+  zero-gap proof, and the LIVE `Done` flip must cite the
+  machine-checkable surface, not narrative.
+
+### Doctrine compliance
+This setup slice changed no code (tree file + TASK_TREE.md + live-docs
++ memory only) — the Code-Change-Doctrine-required precursor before
+any gate script / contract / grammar edit in the tree.
+
 ## 2026-05-17 - CAPSTONE: POST-SV-AUDIT complete — the Category-A/B/C taxonomy applied repo-wide (PGEN-POST-SV-AUDIT-0007 / TaskList #49 closed)
 
 ### Outcome

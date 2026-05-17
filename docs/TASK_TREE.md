@@ -62,22 +62,23 @@ This doctrine is mirrored in `COMMIT.md` (Task-Tree Workflow Rule),
 ## Active Task Trees
 
 The 9 prior trees + the `INLINE-ALT-FIX` parser-correctness tree are
-complete (`2026-05-16`→`17`); `DOC-ENVELOPE-0001` (5 books) and
-`DOC-README-SHELL-0001` (closed — hypothesis empirically falsified)
-are likewise done. On `2026-05-17` the user explicitly **activated**
-the previously-`proposed` `POST-SV-AUDIT` tree (TaskList #49 holistic
-AST-shape audit) — **now also complete (`2026-05-17`)**. **No active
-task trees.** Every task tree, the `DOC-ENVELOPE-0001` book lane, the
-`DOC-README-SHELL-0001` investigation, the binding Code-Change
-Doctrine (`PGEN-WORKFLOW-0006`), and the deferred holistic
-post-campaign AST-shape audit (TaskList #49) are all done. See
-`LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot and the remaining
+complete (`2026-05-16`→`17`); `DOC-ENVELOPE-0001` (5 books),
+`DOC-README-SHELL-0001` (closed — hypothesis empirically falsified),
+and `POST-SV-AUDIT` (TaskList #49 holistic AST-shape audit,
+`2026-05-17`) are likewise done. On `2026-05-17` the user selected the
+largest open parser-family debt from the post-`POST-SV-AUDIT`
+strategic fork, and **`SV-EXH-PROOF`** was created + **activated**: a
+formally-exhaustive, machine-checkable closure proof for
+`grammars/systemverilog.ebnf` itself, mirroring the proven
+sv_preprocessor exhaustive-closure pattern, to re-earn `Done` for the
+SV main-parser family under the strict live-tracker doctrine. See
+`LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot and the other
 roadmap-level workstreams (which require user prioritization — they
 are large multi-week efforts, not bounded PNT slices).
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| _(none active)_ | | | | |
+| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.1` — build `sv_reachability_closure_gate.sh` + contract; emit SV reachability sidecar; quantify the gap | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
 
 ## Proposed Task Trees
 
