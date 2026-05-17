@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - CAPSTONE: POST-SV-AUDIT complete — the Category-A/B/C taxonomy applied repo-wide (PGEN-POST-SV-AUDIT-0007 / TaskList #49 closed)
+
+### Outcome
+The deferred holistic post-campaign AST-shape audit is finished. The
+`feedback_quantified_group_extraction` Category A/B/C taxonomy was
+applied to every `{first/lhs..rest:$N}` + raw-`$N`-over-iteration
+occurrence across all 6 product grammars (`docs/POST_SV_AUDIT_LEDGER.md`
+is the authoritative classified ledger):
+
+- **Cat-A raw-envelope misuse → FIXED** via extraction-spread
+  (`[$1,$2::2*]`) or, for multi-field repeated units, a **factored
+  named record rule + extraction-spread** (field names preserved):
+  svpp `macro_formals`; rtl_frontend 15; vhdl 17; sv `net_alias` + 11
+  structured. Each = a consumer-visible shape change → per-grammar
+  schema+release bump, full contract/book/manifest lockstep.
+- **Inline-alternation-`$N` corruption (Cat-B-adjacent) → FIXED** by
+  lifting the inline alternation into a named rule: the closed
+  systemic class `RTL-CE-0001`/`SVPP-0001`/`RTL-FE-0001`/`VHDL-0001`
+  (binop) + `RTL-FE-0002` (`event_control_list` separator-alt) +
+  sv 5 number rules (defensive — corruption structurally present but
+  unreachable via the strict SV root; honestly NOT bug-ledger'd).
+- **Cat-B-resolved / Cat-C benign / Cat-A-already-correct /
+  not-an-iteration → CONFIRMED or RECORDED-ACCEPTED**, no churn.
+
+### Carry-forward design rules (the durable taxonomy lessons)
+1. Pure separator list `X (SEP X)*` → `[$F, $R::2*]` (drop SEP); never
+   raw `{first,rest}`. Inventory count UNCHANGED (annotation flips
+   `return_object`→`return_array`).
+2. Multi-field repeated unit `X a b ( comma X a b )*` → factor
+   `X a b` into a named record rule `-> {…}` then list `[$1, $2::2*]`.
+   Inventory count **+N** (the factored rules are annotated) — a
+   deliberate, documented change (analogous to SVPP-0001's
+   `pp_if_keyword`); do NOT call it "unchanged".
+3. Inline `(a|b)` as a quantified-iteration lead feeding bare `$N` →
+   lift `(a|b)` to a named rule. Whether the corruption is a
+   bug-ledger entry depends on **consumer-reachability**: reachable +
+   reproducible `<invalid_sequence_access>` → ledger row; structurally
+   present but unreachable via the grammar root → defensive fix,
+   honestly NOT a ledger row (no unreproducible-defect claim).
+4. Lookaheads (`&x`, `!x`) DO occupy a positional slot — confirmed via
+   the rtl_frontend `&dot`/`!port_direction_token` probes; index
+   `::N*` accordingly and ALWAYS precise-probe-verify (a wrong index
+   is silently wrong — the coarse top-level shape-contract won't
+   catch it).
+5. Cat-C bare `X X*` (no separator, no per-iteration payload):
+   `{first,rest}` is correct — `$2` is already a clean array. Do not
+   churn.
+
 ## 2026-05-17 - DOCTRINE (binding, non-negotiable): no code change without task-tree ownership first (PGEN-WORKFLOW-0006)
 
 ### The doctrine

@@ -66,12 +66,18 @@ complete (`2026-05-16`→`17`); `DOC-ENVELOPE-0001` (5 books) and
 `DOC-README-SHELL-0001` (closed — hypothesis empirically falsified)
 are likewise done. On `2026-05-17` the user explicitly **activated**
 the previously-`proposed` `POST-SV-AUDIT` tree (TaskList #49 holistic
-AST-shape audit) — its campaign-complete precondition is now met. See
-`LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot.
+AST-shape audit) — **now also complete (`2026-05-17`)**. **No active
+task trees.** Every task tree, the `DOC-ENVELOPE-0001` book lane, the
+`DOC-README-SHELL-0001` investigation, the binding Code-Change
+Doctrine (`PGEN-WORKFLOW-0006`), and the deferred holistic
+post-campaign AST-shape audit (TaskList #49) are all done. See
+`LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot and the remaining
+roadmap-level workstreams (which require user prioritization — they
+are large multi-week efforts, not bounded PNT slices).
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `POST-SV-AUDIT` | `active` | shape audit (TaskList #49) | `POST-SV-AUDIT.3` (final: Cat-C review + close) | [docs/tasks/POST-SV-AUDIT.md](tasks/POST-SV-AUDIT.md) |
+| _(none active)_ | | | | |
 
 ## Proposed Task Trees
 
@@ -95,6 +101,7 @@ PNT-eligible until explicitly activated.
 | `RTL-CE-CONTRACT-BODY` | `done` | rtl_const_expr deliverables | all leaves `.1`–`.3` `done` (`2026-05-16`); rtl_const_expr book DOC-ENVELOPE-0001 closed in lockstep (7 chapters, Slice-2); .3 added literal/identifier shapes + Companion Documentation + Gate Recipe + Glossary | [docs/tasks/RTL-CE-CONTRACT-BODY.md](tasks/RTL-CE-CONTRACT-BODY.md) |
 | `SVPP-CONTRACT-BODY` | `done` | sv_preprocessor deliverables | all leaves `.1`–`.4` `done` (`2026-05-16`); sv_preprocessor book DOC-ENVELOPE-0001 closed in lockstep (8 chapters, Slice-2); .2 AST Envelope + pp_item dispatch, .3 conditional tree + macro fragments, .4 Companion Documentation + Gate Recipe + Glossary | [docs/tasks/SVPP-CONTRACT-BODY.md](tasks/SVPP-CONTRACT-BODY.md) |
 | `INLINE-ALT-FIX` | `done` | parser-correctness (released-parser defect class) | all leaves `.1`–`.3` `done` (`2026-05-16`→`17`); systemic inline-alternation-`$N` class fully resolved: `.1` SVPP-0001 (sv_preprocessor, +pp_if_keyword, 64→66), `.2` RTL-FE-0001 (rtl_frontend, 5 un-annotated op-rules, 156/74 unchanged), `.3` VHDL-0001 (vhdl, named {kind} op-rules, 249→256); all schema 1→2 / release 1.0.1→1.0.2, contract+book+ledger lockstep | [docs/tasks/INLINE-ALT-FIX.md](tasks/INLINE-ALT-FIX.md) |
+| `POST-SV-AUDIT` | `done` | shape audit (TaskList #49) | all leaves `.1`/`.2.1`–`.2.4b`/`.3` `done` (`2026-05-17`); deferred holistic post-campaign AST-shape audit complete. `.1` classified ledger; `.2` per-grammar Cat-A/inline-alt fixes (svpp macro_formals; rtl_frontend 15+RTL-FE-0002; vhdl 17; sv net_alias+5-number-defensive+11-structured); `.3` Cat-C/benign/already-correct/not-an-iteration confirmed + close. Every `{first/lhs..rest:$N}` occurrence across 6 product grammars FIXED / CONFIRMED-CORRECT / RECORDED-ACCEPTED. TaskList #49 closed | [docs/tasks/POST-SV-AUDIT.md](tasks/POST-SV-AUDIT.md) |
 
 ## Coverage Note
 

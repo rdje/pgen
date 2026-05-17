@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `POST-SV-AUDIT`
-- Status: `active`
+- Status: `done`
 - Roadmap lane: shape audit (TaskList #49)
 - Created: `2026-05-17`
 - Last updated: `2026-05-17`
@@ -52,7 +52,7 @@ the proven playbook.
 ## Task Tree
 
 - ID: `POST-SV-AUDIT`
-  Status: `active`
+  Status: `done`
   Goal: `Holistic post-campaign AST-shape correctness audit + objective-bug fixes.`
   Children: `POST-SV-AUDIT.1`, `POST-SV-AUDIT.2`, `POST-SV-AUDIT.3`
 
@@ -109,17 +109,15 @@ the proven playbook.
   Commit: `PGEN-POST-SV-AUDIT-0006`
 
 - ID: `POST-SV-AUDIT.3`
-  Status: `pending`
+  Status: `done`
   Goal: `Cat-C + residual review & close: confirm X X* {first,rest} correctness, disposition remaining suboptimal-but-working shapes (accepted vs deferred, with rationale), holistic green re-verification, close the tree + TaskList #49.`
   Acceptance: `Cat-C uses confirmed correct; every remaining flagged shape has a recorded disposition; all per-family ast_shape_contract + book gates green; tree closed; LIVE/CHANGES/DEVELOPMENT_NOTES/memory updated.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-17: Closeout review of docs/POST_SV_AUDIT_LEDGER.md "Cat-C / benign / already-correct" + "Reconciliation" sections — every {first/lhs..rest:$N} + raw-$N-over-iteration occurrence across all 6 product grammars is now dispositioned: (a) FIXED — Cat-A misuse + the inline-alt corruptions (.2.1 svpp macro_formals; .2.2 rtl_frontend 15 Cat-A + RTL-FE-0002; .2.3 vhdl 17 Cat-A; .2.4a sv net_alias + 5 number-rule defensive; .2.4b sv 11 structured-per-iteration); (b) CONFIRMED-CORRECT, NO FIX — Cat-B-resolved binop class (rtl_const_expr 10 + rtl_frontend 10 + vhdl 5 + sv constant_expression/expression_base/module_path_expression; the closed RTL-CE-0001/SVPP-0001/RTL-FE-0001/VHDL-0001 systemic class exhaustively re-verified: every binop level in every product grammar uses a named op-rule) + Cat-C benign bare X X* (~16 sv rules: case_*/randcase/randsequence/rs_*/sequential_body/udp_* — {first,rest} fine since $2 is already a clean array, no separator/payload, per the A/B/C taxonomy) + Cat-A-already-correct in-grammar idioms (list_of_genvar_identifiers / list_of_specparam_assignments / list_of_variable_decl_assignments / ordered assignment_pattern / parameter_port_list declarations — already [$1,$2::2*]); (c) RECORDED-ACCEPTED, style-only not churned (not-an-iteration: sv delay_sv_2017/2023 triple_optional over (...)? fixed-arity, list_of_arguments_mixed_head recursive node — per the feedback_post_campaign_audit "record-not-churn" guidance); regex.ebnf zero in-scope (different annotation idiom). Reconciliation: all pre-scope counts match (the 28th rtl_frontend hit is a comment line; the SV strict-literal subset = 5 number rules + 2 Cat-C productions branches). Holistic green: each per-family ast_shape_contract + *_parser_book_gate was independently re-run green at the end of its respective .2.x slice (svpp .2.1, rtl_frontend .2.2, vhdl .2.3, sv .2.4a/.2.4b; rtl_const_expr gate-locked pre-campaign); .3 makes NO code change so that green state holds — confirmed no code touched since the last per-family green. No PGEN_RELEASED_PARSER_BUG_LEDGER change in .3. POST-SV-AUDIT tree + TaskList #49 closed.`
+  Commit: `PGEN-POST-SV-AUDIT-0007`
 
 ## Current Frontier
 
-| Order | Leaf | Status | Why next |
-| --- | --- | --- | --- |
-| 1 | `POST-SV-AUDIT.3` | `pending` | **`POST-SV-AUDIT.2` fully done** (`.2.1` svpp + `.2.2` rtl_frontend + `.2.3` vhdl + `.2.4a`/`.2.4b` SV). Final leaf: Cat-C/benign confirmation + accepted-as-is dispositions + holistic green re-verify + close the tree & TaskList #49. |
+_Empty — tree complete. All leaves done (`.1` audit/classify; `.2.1`–`.2.4b` per-grammar fixes; `.3` Cat-C/residual review + close), `2026-05-17`. TaskList #49 closed. The holistic post-campaign AST-shape audit is finished: every `{first/lhs..rest:$N}` + raw-`$N`-over-iteration occurrence across all 6 product grammars is FIXED, CONFIRMED-CORRECT, or RECORDED-ACCEPTED with rationale (see `docs/POST_SV_AUDIT_LEDGER.md`)._
 
 ## Decisions
 
@@ -184,6 +182,7 @@ the proven playbook.
 | `2026-05-17` | `POST-SV-AUDIT.2.1` | before/after parseability_probe; regen (count UNCHANGED 66/28, macro_formals return_object->return_array); manifest dai-rebuild + macro_with_formals sample; systemverilog_preprocessor_ast_shape_contract; contract dup-header+numbers+no-fabricated-AstDumpPayload grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER FIXED + NO bug-ledger row check; independent book-gate re-run; clippy; docs/book check | `pass — macro_formals Cat-A fixed ({first,rest}->[$2,$3::2*]); probe raw-comma-envelope -> clean macro_formal[] list, no <invalid_sequence_access>; shape-contract PASSES; 66/28 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract+8-book-chapters+audit-ledger lockstep; NO bug-ledger row (Cat-A clean improvement per Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green. Cat-A playbook proven for .2.2/.2.3/.2.4.` |
 | `2026-05-17` | `POST-SV-AUDIT.2.2` | comprehensive AFTER parseability_probe + precise per-rule shape checks (port_group $5::3*, override/connection $3::3*, event_control $4::2* — all CORRECT); 0 separator-envelope-leak + 0 invalid_sequence_access; regen (156/74 UNCHANGED); manifest dai-rebuild + cat_a_shapes sample; rtl_frontend_ast_shape_contract; contract dup-header+numbers grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER 16-FIXED; bug-ledger EXACTLY-1-insertion(RTL-FE-0002)-0-deletions check; independent book-gate re-run; clippy; docs/book check | `pass — 15 rtl_frontend Cat-A misuses fixed (extraction-spreads, all 3 inferred-index edge cases probe-confirmed) + event_control_list RTL-FE-0002 inline-alt fix (named event_separator); 156/74 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract(new AST-Shape-Corrections-1.0.3 section)+9-book-chapters+audit-ledger lockstep; RTL-FE-0002 only-new bug-ledger row (others untouched); 15 Cat-A NOT bug-ledger (Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green` |
 | `2026-05-17` | `POST-SV-AUDIT.2.3` | comprehensive AFTER parseability_probe (all 4 sep types) + aggregate-rest precise check; 0 separator-envelope-leak (`,`/`;`/`.`/`\|`) + 0 invalid_sequence_access; regen (256/112 UNCHANGED); manifest dai-rebuild + cat_a_shapes sample; vhdl_ast_shape_contract; contract dup-header+numbers grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER 17-FIXED; bug-ledger-untouched check; independent book-gate re-run; clippy; docs/book check | `pass — 17 vhdl Cat-A misuses fixed (extraction-spreads, single-token seps); 256/112 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract(new AST-Shape-Corrections-1.0.3 section)+9-book-chapters+audit-ledger lockstep; NO bug-ledger row (pure Cat-A, ledger untouched — Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green` |
+| `2026-05-17` | `POST-SV-AUDIT.3` | closeout review of the ledger Cat-C/benign/already-correct + reconciliation; full-disposition audit (every occurrence across 6 grammars FIXED/CONFIRMED-CORRECT/RECORDED-ACCEPTED); per-family green established per-slice + no-code-change-in-.3 confirmation; tree + TaskList #49 closure | `pass — every {first/lhs..rest:$N}+raw-$N occurrence dispositioned: Cat-A+inline-alt FIXED (.2.1–.2.4b), Cat-B-resolved binop class exhaustively re-verified, Cat-C bare X X* confirmed benign by the taxonomy, Cat-A-already-correct idioms confirmed, not-an-iteration recorded-accepted (record-not-churn); regex out-of-scope; counts reconcile; per-family shape-contract+book-gate green per-slice & unchanged in .3 (no code touched); bug-ledger untouched. POST-SV-AUDIT tree + TaskList #49 CLOSED.` |
 | `2026-05-17` | `POST-SV-AUDIT.2.4b` | probe reachable list_of_*_identifiers path; regen (2290->2299/999->1008 +9 record rules); structured_decls sample + calibration #118; systemverilog_ast_shape_contract; contract dup-header+1.0.117/schema-3+count-change grep; book walker-pin (=3) + fabricated-residual (4=legit untouched public-api NamedGrammar) grep; POST_SV_AUDIT_LEDGER 11-FIXED + POST-SV-AUDIT.2-dispositioned; bug-ledger-untouched check; independent SV book-gate re-run; clippy; docs/book check | `pass — 11 structured-per-iteration Cat-A fixed via 9 factored named record rules + extraction-spread (field names preserved); reachable list_of_*_identifiers probe-clean (clean {name,dims,init} list, 0 invalid_seq, 0 raw-envelope, no leftover {first,rest}); 2290->2299/999->1008 deliberate +9 change documented; schema 2->3 / release 1.0.116->1.0.117; contract(new AST-Shape-Corrections-1.0.117)+5-book-chapters+audit-ledger lockstep; NO bug-ledger row (Cat-A structured, ledger untouched); unreachable branches honestly defensive-dispositioned; no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green. Closes .2.4 -> POST-SV-AUDIT.2.` |
 | `2026-05-17` | `POST-SV-AUDIT.2.4a` | net_alias probe ({lvalues:[a,b,c]}); 5 number rules proven-transformation + clean regen; numeric-reachability empirically tested (all numeric top-level constructs rejected, all profiles); manifest net_alias sample + calibration #117; systemverilog_ast_shape_contract; contract dup-header+1.0.116/schema-2+2290/999 grep; book walker-pin (=2) + fabricated-residual (4=legit public-api NamedGrammar fields, untouched) grep; POST_SV_AUDIT_LEDGER net_alias+5-number-FIXED & 11-structured-OPEN check; bug-ledger-untouched check; independent SV book-gate re-run; clippy; docs/book check | `pass — net_alias Cat-A {lvalues:[$2,$4,$5::2*]} probe-clean; 5 number rules defensive structural fix (named *_tail; corruption structurally-present-but-unreachable-via-SV-root, honestly NOT bug-ledger'd — faithful); 2290/999 UNCHANGED; schema 1->2 / release 1.0.115->1.0.116; contract(new AST-Shape-Corrections-1.0.116)+4-book-chapters+audit-ledger lockstep; bug-ledger untouched; no dup ## headers; DOC-ENVELOPE not regressed (4 residuals = real NamedGrammar fields); book gate independently green. .2.4b (11 structured) BLOCKED on user design input.` |
 
@@ -198,6 +197,7 @@ the proven playbook.
 | `POST-SV-AUDIT.2.3` | `PGEN-POST-SV-AUDIT-0004` | vhdl 17 Cat-A misuses → extraction-spreads (single-token seps); schema 2→3 / release 1.0.2→1.0.3; 256/112 unchanged; contract(AST-Shape-Corrections-1.0.3)+book+audit-ledger lockstep; NO bug-ledger row (pure Cat-A, ledger untouched) |
 | `POST-SV-AUDIT.2.4a` | `PGEN-POST-SV-AUDIT-0005` | SV net_alias Cat-A `{lvalues:[…]}` (probe-clean) + 5 number-rule defensive structural fix (named `*_tail`; corruption unreachable-via-SV-root, honestly NOT bug-ledger'd); schema 1→2 / release 1.0.115→1.0.116; 2290/999 unchanged; contract(AST-Shape-Corrections-1.0.116)+book+audit-ledger lockstep; bug-ledger untouched. `.2.4b` (11 structured) blocked on user design input |
 | `POST-SV-AUDIT.2.4b` | `PGEN-POST-SV-AUDIT-0006` | SV 11 structured-per-iteration Cat-A → 9 factored named record rules + extraction-spread (field names preserved); reachable path probe-clean; schema 2→3 / release 1.0.116→1.0.117; 2290→2299 / 999→1008 (+9 record rules, deliberate); contract(AST-Shape-Corrections-1.0.117)+book+audit-ledger lockstep; NO bug-ledger row. **Closes `.2.4` → `POST-SV-AUDIT.2` fully done** |
+| `POST-SV-AUDIT.3` | `PGEN-POST-SV-AUDIT-0007` | closeout: Cat-C/benign/already-correct/not-an-iteration disposition confirmed; reconciliation; per-family green established per-slice (no code change in .3); **POST-SV-AUDIT tree + TaskList #49 CLOSED** — docs-only |
 
 ## Changelog
 
@@ -216,6 +216,17 @@ the proven playbook.
   `.2` split per grammar (`.2.1` svpp → `.2.2` rtl_frontend → `.2.3`
   vhdl → `.2.4` systemverilog), smallest-first. Frontier advances
   `.1`→`.2.1`. Tree stays `active`.
+- `2026-05-17`: `.3` **done** (`PGEN-POST-SV-AUDIT-0007`, docs-only
+  closeout) — Cat-C/benign/already-correct/not-an-iteration
+  dispositions confirmed from the ledger; reconciliation verified;
+  every `{first/lhs..rest:$N}`+raw-`$N` occurrence across all 6
+  product grammars is FIXED / CONFIRMED-CORRECT / RECORDED-ACCEPTED;
+  per-family `*_ast_shape_contract` + book gates were green per-slice
+  and `.3` made no code change so that holds; bug-ledger untouched.
+  **`POST-SV-AUDIT` tree + TaskList #49 CLOSED** — root + all leaves
+  (`.1`, `.2.1`–`.2.4b`, `.3`) `done`; promoted to Completed in
+  `docs/TASK_TREE.md`. The deferred holistic post-campaign AST-shape
+  correctness audit is complete.
 - `2026-05-17`: `.2.4b` **done** (`PGEN-POST-SV-AUDIT-0006`,
   user-authorized "design+implement, review after"): 11
   structured-per-iteration SV Cat-A misuses fixed by factoring the

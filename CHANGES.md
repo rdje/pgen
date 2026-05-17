@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0007 (leaf POST-SV-AUDIT.3): close-out — Cat-C/residual disposition + tree & TaskList #49 CLOSED (docs-only)
+
+- **The deferred holistic post-campaign AST-shape correctness audit
+  (TaskList #49) is COMPLETE.** `.3` closeout review confirmed every
+  `{first/lhs..rest:$N}` + raw-`$N`-over-iteration occurrence across
+  all 6 product grammars (regex / systemverilog /
+  systemverilog_preprocessor / vhdl / rtl_frontend / rtl_const_expr)
+  is dispositioned:
+  - **FIXED** (Cat-A misuse + the inline-alt corruptions): `.2.1`
+    svpp `macro_formals`; `.2.2` rtl_frontend 15 Cat-A + `RTL-FE-0002`;
+    `.2.3` vhdl 17 Cat-A; `.2.4a` sv `net_alias` + 5 number-rule
+    defensive; `.2.4b` sv 11 structured-per-iteration.
+  - **CONFIRMED-CORRECT, no fix**: the Cat-B-resolved binop class
+    (rtl_const_expr/rtl_frontend/vhdl/sv — every binop level uses a
+    named op-rule; the closed `RTL-CE-0001`/`SVPP-0001`/`RTL-FE-0001`/
+    `VHDL-0001` systemic class exhaustively re-verified); Cat-C benign
+    bare `X X*` (~16 sv rules — `{first,rest}` is fine since `$2` is
+    already a clean array, per the A/B/C taxonomy); the in-grammar
+    Cat-A-already-correct idioms.
+  - **RECORDED-ACCEPTED, style-only** (per the `feedback_post_campaign_audit`
+    "record-not-churn" guidance): the not-an-iteration cases
+    (sv `delay_*` triple-optional over `(...)?`,
+    `list_of_arguments_mixed_head` recursive node).
+  - regex: zero in-scope occurrences (different annotation idiom).
+- Reconciliation: all pre-scope counts match (`docs/POST_SV_AUDIT_LEDGER.md`).
+  Holistic green: each per-family `*_ast_shape_contract` +
+  `*_parser_book_gate` was independently re-run green at the end of its
+  respective `.2.x` slice; `.3` makes **no code change**, so that
+  green state holds (confirmed nothing touched since the last
+  per-family green). `PGEN_RELEASED_PARSER_BUG_LEDGER.md` untouched in
+  `.3`.
+- **`POST-SV-AUDIT` tree CLOSED** — root + all leaves (`.1`,
+  `.2.1`–`.2.4b`, `.3`) `done`; promoted to Completed in
+  `docs/TASK_TREE.md` (Active table now empty); TaskList #49 closed.
+  Docs-only close-out slice (review + tree/ledger/tracker closure;
+  no parser/grammar/codegen change). Doctrine-compliant (`.3` is a
+  task-tree leaf). Push remains HELD per the user's explicit directive
+  (supersedes the 30-cap).
+- **PNT state:** with `POST-SV-AUDIT` closed, every bounded
+  task-tree/lane this campaign has surfaced is complete. Remaining
+  `LIVE_ACHIEVEMENT_STATUS.md` non-`Done` rows are large multi-week
+  roadmap workstreams (main-SV exhaustive-proof closure, rtl_frontend
+  parity, Liberty/SDC crates) — not bounded PNT slices; choosing among
+  them needs user prioritization.
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0006 (leaf POST-SV-AUDIT.2.4b): systemverilog — 11 structured-per-iteration Category-A misuses FIXED via factored record rules (schema 2→3, release 1.0.117). Closes POST-SV-AUDIT.2.
 
 - **11 structured-per-iteration Cat-A misuses** fixed by factoring
