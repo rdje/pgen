@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0002 (leaf SV-EXH-PROOF.1): measured baseline + scope lock + mandatory LIVE-tracker drift correction (docs-only)
+
+- **`SV-EXH-PROOF.1` measured baseline complete** —
+  [docs/SV_EXH_PROOF_BASELINE.md](docs/SV_EXH_PROOF_BASELINE.md),
+  produced from the canonical Makefile gate targets on `main`. Four
+  findings:
+  - **(A) preprocessor syntax-closure is REGRESSED on `main`** —
+    clean standalone `sv_preprocessor_syntax_closure_gate` exits 2
+    (`unreachable_branches=13 > max_unreachable_branches=3`). A real
+    lockstep defect from **this session's** `PGEN-POST-SV-AUDIT-0002`
+    + `PGEN-INLINE-ALT-FIX-0001` preprocessor grammar edits — the
+    matching `systemverilog_preprocessor_syntax_closure_contract.json`
+    was never re-baselined. Blocks `sv_parser_family_status_gate` +
+    `sv_formal_exhaustive_closure_gate` (they abort here). Hard
+    prerequisite → new leaf `SV-EXH-PROOF.2`.
+  - **(B)** SV-main static syntax-closure is healthy/pass (1447
+    rules, unreachable_rules:1, unreachable_branches:20, within
+    contract) — confirms `PGEN-SV-EXH-PROOF-0001`'s falsification.
+  - **(C)** external-corpus parse surface = **`0/14`** genuine
+    grammar rejections (preprocess 14/14 pass, 0 blocked), **not the
+    `10/14` the LIVE tracker claimed**. Proven-false tracker drift.
+  - **(D)** `sv_formal_exhaustive_closure_gate.sh:245` hard-codes
+    `external_corpus_backed_proof_surface_present=true` (unproven
+    literal).
+- **Mandatory LIVE-tracker drift correction (same-commit).** Both SV
+  rows in `LIVE_ACHIEVEMENT_STATUS.md` carry a dated authoritative
+  ⚠️ MEASURED CORRECTION block: row status `Mostly Done → In
+  Progress`; the false `parse_pass_total=10`/"scr1/friscv/el2 green"
+  figures explicitly superseded (retained only as historical
+  calibration trail); the regressed preprocessor closure + hard-coded
+  literal recorded. The tracker is the user's only window — no drift,
+  no compromise.
+- Tree **re-planned to 6 leaves** (`.1` done; `.2` preprocessor
+  regression remediation = new frontier → `.3` SV grammar hardening
+  `0/14→green` → `.4` derived honest proof surface → `.5` wiring →
+  `.6` LIVE `Done` + lockstep). `.1` changed no code
+  (Code-Change-Doctrine-compliant; only docs + the mandatory tracker
+  correction).
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0001 (leaf SV-EXH-PROOF re-scope): empirical audit falsified the preprocessor-trio-port hypothesis — re-decomposed to the real gap (docs/workflow-only)
 
 - **`SV-EXH-PROOF` re-scoped from checked-in ground truth.** A

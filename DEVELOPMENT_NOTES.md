@@ -1,4 +1,60 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF.1 measured baseline — the tracker overstated SV; a prior-campaign lockstep regression surfaced (PGEN-SV-EXH-PROOF-0002)
+
+### Why the baseline mattered
+`SV-EXH-PROOF.1` exists precisely to measure ground truth before
+building proof code. It paid off: the canonical gates on `main` told
+a very different story than `LIVE_ACHIEVEMENT_STATUS.md`.
+
+### The four findings
+- **A — preprocessor syntax-closure REGRESSED (this session's own
+  defect).** `sv_preprocessor_syntax_closure_gate` exits 2 on `main`
+  (`unreachable_branches=13 > 3`). Root cause: `PGEN-POST-SV-AUDIT-0002`
+  (POST-SV-AUDIT.2.1 Cat-A `macro_formals` factoring) +
+  `PGEN-INLINE-ALT-FIX-0001` (SVPP-0001 `pp_if_branch` inline-alt
+  lift) added named rules/branches and shifted the static reach-set;
+  `systemverilog_preprocessor_syntax_closure_contract.json`
+  (`max_unreachable_branches: 3`) was **never re-baselined in
+  lockstep**. The preprocessor's "`Done`/green" formal-closure claim
+  is therefore currently false on `main`, and it blocks the SV
+  family-status/formal-exhaustive umbrella entirely.
+- **B — SV-main static syntax-closure healthy** (1447 rules,
+  unreachable_rules:1, unreachable_branches:20, pass) — the
+  trio-port falsification holds.
+- **C — external-corpus parse surface `0/14`** genuine grammar
+  rejections, not the `10/14` the tracker asserted. Proven-false
+  drift, corrected same-commit.
+- **D — closure-green is a hard-coded literal**
+  (`sv_formal_exhaustive_closure_gate.sh:245`).
+
+### Carry-forward lessons (binding)
+1. **A campaign is not "Done" until its sibling proof gates are
+   re-run green, not just its own tests.** POST-SV-AUDIT /
+   INLINE-ALT-FIX edited `systemverilog_preprocessor.ebnf` and ran the
+   preprocessor *shape-contract* + book lockstep, but did **not**
+   re-run `sv_preprocessor_syntax_closure_gate` — whose checked-in
+   contract silently went stale. Grammar edits move the static
+   reach-set; the syntax-closure / zero-plausible-gap contracts must
+   be re-baselined in the **same** slice. (Reinforces the Code-Change
+   Doctrine: a grammar change owns *all* its downstream proof
+   surfaces, not just the obvious manifest.)
+2. **Measure before you build.** The "promote a mostly-green bounded
+   surface (`10/14`, 4 UVM fails) into a formal claim" framing was
+   wrong by an order of magnitude (`0/14`). A measured baseline leaf
+   before any proof code is mandatory for flagship-scale closure work.
+3. **Faithful tracker reconciliation is non-negotiable and
+   same-commit.** A proven-false behavioural figure in
+   `LIVE_ACHIEVEMENT_STATUS.md` is a tracked correctness defect; it
+   was superseded with an authoritative dated correction (history
+   retained as calibration trail), not quietly rewritten or left.
+
+### Disposition
+Tree re-planned to 6 leaves; frontier `.2` = remediate the
+preprocessor regression (likely the proven preprocessor
+zero-plausible-gap pattern: re-baseline the contract + classify the
+13 newly-unreachable branches as an allowed benign pocket — that is a
+leaf-owned code change, not done here). `.1` itself changed no code.
+
 ## 2026-05-17 - SV-EXH-PROOF RE-SCOPED — preprocessor-trio-port hypothesis falsified by checked-in ground truth (PGEN-SV-EXH-PROOF-0001)
 
 ### Correction to the entry below

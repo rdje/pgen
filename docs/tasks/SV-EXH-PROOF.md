@@ -6,97 +6,96 @@
 - Status: `active`
 - Roadmap lane: parser-family exhaustive-proof normalization (the last open parser-family proof debt)
 - Created: `2026-05-17`
-- Last updated: `2026-05-17` (re-scoped from empirical investigation — see Decisions/Verification)
+- Last updated: `2026-05-17` (`.1` measured baseline complete — tree re-planned to 6 leaves; see Decisions/Verification)
 - Owner: repo-local workflow
 
 ## Goal
 
-Re-earn `Done` for the `systemverilog` main-parser family
-(`LIVE_ACHIEVEMENT_STATUS.md` rows "`systemverilog` main parser
-(Phase P)" + "Parser-family exhaustive proof normalization") by
-closing the **single primary unmet closure criterion** that SV's own
-machine-checkable contract names: `formal_exhaustive_closure_surface_green`,
-which is blocked solely on the missing
-**`external_corpus_backed_proof_surface`** — a checked-in,
-deterministic, repeatable external-corpus-backed proof sidecar that
-promotes the bounded `sv_external_corpus_triage_gate` debt-discovery
-surface into a formal exhaustive-closure claim (matching the LIVE
-"Left To Close": *"promote the new external SV/UVM corpus triage
-surface from bounded debt discovery into broader repeatable
-realistic-corpus proof stages"*).
+Re-earn `Done` for the `systemverilog` main-parser family by closing
+the single primary unmet closure criterion that SV's own
+machine-checkable contract names (`formal_exhaustive_closure_surface_green`,
+blocked on the missing **`external_corpus_backed_proof_surface`**) —
+**honestly**: with a derived, checked-in, deterministic proof surface
+over a genuinely-green external-corpus parse state, not a hard-coded
+literal over a failing surface.
 
 ## Non-Goals
 
 - **NOT** porting the `systemverilog_preprocessor`
-  reachability/syntax/zero-plausible-gap trio — empirically falsified
-  as the SV gap (see Decisions `2026-05-17` re-scope): SV **already
-  has** `sv_syntax_closure_gate.sh` + `systemverilog_syntax_closure_contract.json`
-  (`max_unreachable_rules: 1`, `max_unreachable_branches: 25` — static
-  syntax-closure already essentially closed and consumed by
-  `sv_parser_family_status_gate`). That surface is a no-regression
-  baseline only, not a leaf.
-- Not changing parser/grammar acceptance behavior except where a real
-  external-corpus parse-failure must be closed to honestly assert the
-  proof surface (each such grammar fix is its own sub-leaf under the
-  Code-Change Doctrine).
+  reachability/syntax/zero-plausible-gap trio (falsified
+  `PGEN-SV-EXH-PROOF-0001`; SV-main static syntax-closure is already
+  closed — confirmed healthy by the `.1` baseline, Finding B).
 - Not the broader Phase-S build-out (Liberty/SDC crates, rtl_frontend
-  parity) — separate roadmap workstreams.
+  parity).
 
 ## Acceptance Criteria
 
-- A checked-in `external_corpus_backed_proof_surface` sidecar +
-  schema + contract: deterministic, repeatable, promoting
-  `sv_external_corpus_triage_gate` from bounded discovery into a
-  formal closure surface (declared == executed, zero blocked, every
-  external-corpus parse-fail explicitly dispositioned — closed, or
-  honestly recorded as a justified bounded carve-out with rationale;
-  no false closure claims).
-- `systemverilog_formal_exhaustive_closure_contract.json` flipped from
-  "`required_surface` missing" to "surface present + its proof path";
-  `sv_formal_exhaustive_closure_gate.sh` extended to *require* the
-  sidecar; `sv_parser_family_status_gate` closure criteria all
-  satisfied; `sota_exit_gate` + `sv_combined_telemetry_contract_gate`
-  parity preserved.
-- The two LIVE rows flip Mostly-Done / In-Progress → `Done` with the
-  machine-checkable surface (not narrative) as evidence; per-parser SV
-  book + integration contract in same-commit lockstep.
-- All new/changed gates deterministic + green; no regression to the
-  existing SV aggregate / roundtrip / stimuli / syntax-closure /
-  external-corpus / family-status gates; full COMMIT.md lockstep per
-  leaf.
+- The preprocessor syntax-closure regression (baseline Finding A) is
+  remediated; `sv_preprocessor_syntax_closure_gate` +
+  `sv_parser_family_status_gate` + `sv_formal_exhaustive_closure_gate`
+  run green.
+- The external-corpus parse surface is genuinely green (every declared
+  case parses full in both profiles) **or** every residual parse-fail
+  is explicitly dispositioned in a checked-in per-case contract with
+  honest rationale — no false closure claims.
+- `sv_formal_exhaustive_closure_gate.sh` derives
+  `external_corpus_backed_proof_surface_present` from that checked-in
+  contract (the hard-coded `true`, baseline Finding D, is removed);
+  `systemverilog_formal_exhaustive_closure_contract.json` flipped
+  "surface missing" → "surface present + proof path";
+  `sv_parser_family_status_gate` closure criteria all satisfied;
+  `sota_exit_gate` + `sv_combined_telemetry_contract_gate` parity.
+- The two LIVE rows flip to `Done` with the machine-checkable surface
+  (not narrative) as evidence; SV book + integration contract
+  same-commit lockstep; no regression to existing SV gates; full
+  COMMIT.md lockstep per leaf.
 
 ## Task Tree
 
 - ID: `SV-EXH-PROOF`
   Status: `active`
-  Goal: `Close SV's single primary unmet closure criterion (formal_exhaustive_closure_surface_green) by building the external_corpus_backed_proof_surface; re-earn Done for the SV main-parser family.`
-  Children: `SV-EXH-PROOF.1`, `SV-EXH-PROOF.2`, `SV-EXH-PROOF.3`, `SV-EXH-PROOF.4`
+  Goal: `Close SV's sole unmet closure criterion (formal_exhaustive_closure_surface_green) with a derived honest external_corpus_backed_proof_surface over a genuinely-green corpus parse state; re-earn Done for the SV main-parser family.`
+  Children: `SV-EXH-PROOF.1` … `SV-EXH-PROOF.6`
 
 - ID: `SV-EXH-PROOF.1`
-  Status: `pending`
-  Goal: `Measured baseline + scope lock: run the four existing gates (sv_syntax_closure_gate, sv_external_corpus_triage_gate, sv_parser_family_status_gate, sv_formal_exhaustive_closure_gate) and record a deterministic checked-in baseline proving (a) SV static syntax-closure already meets its contract (no-regression only), (b) the single primary unmet closure criterion is formal_exhaustive_closure_surface_green blocked on the missing external_corpus_backed_proof_surface, (c) the current external-corpus triage summary numbers.`
-  Acceptance: `All four gate measurements captured deterministically + the exact primary unmet criterion + required_surface_key + current triage summary recorded in a checked-in baseline; confirms the trio is NOT the gap and the external-corpus-backed proof surface IS.`
-  Verification: `pending`
-  Commit: `pending`
+  Status: `done`
+  Goal: `Deterministic measured baseline of the four existing gates + scope lock + mandatory LIVE-tracker drift correction (docs-only).`
+  Acceptance: `Checked-in measured baseline (docs/SV_EXH_PROOF_BASELINE.md) with the true numbers + 4 findings (A preprocessor syntax-closure REGRESSED/blocker; B SV-main static-closure healthy; C external-corpus 0/14 not 10/14; D hard-coded surface_present=true); LIVE drift corrected same-commit; tree re-planned.`
+  Verification: `done — see Verification Log 2026-05-17 (.1)`
+  Commit: `PGEN-SV-EXH-PROOF-0002`
 
 - ID: `SV-EXH-PROOF.2`
   Status: `pending`
-  Goal: `Design + build the external_corpus_backed_proof_surface: a checked-in deterministic generator + schema + contract that promotes sv_external_corpus_triage_gate bounded discovery into a formal closure surface (declared == executed, zero blocked, every parse-fail dispositioned/justified). Each real grammar fix required to close a corpus parse-fail is its own sub-leaf (Code-Change Doctrine).`
-  Acceptance: `Sidecar + schema + contract checked in; deterministic + repeatable gate; every external-corpus parse-fail explicitly accounted (closed or honestly justified-bounded with rationale — no false closure).`
+  Goal: `Remediate the preprocessor syntax-closure regression (baseline Finding A): the POST-SV-AUDIT.2.1 + INLINE-ALT-FIX.1 grammar edits raised systemverilog_preprocessor unreachable_branches 3 -> 13 without re-baselining systemverilog_preprocessor_syntax_closure_contract.json. Re-baseline the contract + honestly classify the newly-unreachable branches (the proven preprocessor zero-plausible-gap pattern: allowed-pocket enumeration), or fix the grammar; restore sv_preprocessor_syntax_closure_gate + the SV family-status/formal-exhaustive umbrella to green.`
+  Acceptance: `sv_preprocessor_syntax_closure_gate green; the 13 unreachable branches each classified (benign-pocket allowed in-contract, or closed); sv_parser_family_status_gate runs to completion; no regression to the preprocessor zero-plausible-gap proof / aggregate gates; contract+book+ledger lockstep.`
   Verification: `pending`
   Commit: `pending`
 
 - ID: `SV-EXH-PROOF.3`
   Status: `pending`
-  Goal: `Wire the surface in: flip systemverilog_formal_exhaustive_closure_contract.json "surface missing" -> "surface present + proof path"; extend sv_formal_exhaustive_closure_gate.sh to require the sidecar; sv_parser_family_status_gate + sota_exit_gate + sv_combined_telemetry_contract_gate parity.`
-  Acceptance: `Formal-exhaustive gate green requiring the real surface; family-status closure criteria all satisfied; telemetry parity machine-checked; no regression to existing SV gates.`
+  Goal: `SV grammar hardening: drive the external-corpus parse surface 0/14 -> green. Triage the regressing commit(s) behind baseline Finding C, then close per-corpus/per-defect parse-fails (uvm, scr1, friscv, veer_el2) across sv_2017+sv_2023. Multi-slice; each grammar fix is its own sub-leaf, probe-verified + lockstepped.`
+  Acceptance: `parse_pass_total == cases_executed (or every residual explicitly dispositioned for .4); each fix probe-verified; no AST-shape / aggregate / stimuli regression; per-fix contract+book lockstep.`
   Verification: `pending`
   Commit: `pending`
 
 - ID: `SV-EXH-PROOF.4`
   Status: `pending`
-  Goal: `Flip the two LIVE rows Mostly-Done / In-Progress -> Done with the machine-checkable surface as evidence; per-parser SV book + integration contract same-commit lockstep; full closeout + tree close.`
-  Acceptance: `LIVE "systemverilog main parser" + "Parser-family exhaustive proof normalization" rows Done with evidence; SV book + contract lockstepped; tree closed; promoted to Completed in TASK_TREE.md.`
+  Goal: `Build the real external_corpus_backed_proof_surface: a checked-in deterministic per-case disposition contract + generator; sv_external_corpus_triage_gate-derived surface_present (replace the hard-coded true, baseline Finding D); every parse-fail closed or honestly justified-bounded with rationale.`
+  Acceptance: `Sidecar + contract checked in; deterministic + repeatable; surface_present is derived, not literal; no false closure.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.5`
+  Status: `pending`
+  Goal: `Wire the surface in: flip systemverilog_formal_exhaustive_closure_contract.json "surface missing" -> "surface present + proof path"; sv_formal_exhaustive_closure_gate.sh consumes the derived surface; sv_parser_family_status_gate + sota_exit_gate + sv_combined_telemetry_contract_gate parity.`
+  Acceptance: `Formal-exhaustive gate green requiring the real derived surface; family-status closure criteria all satisfied; telemetry parity machine-checked; no regression.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.6`
+  Status: `pending`
+  Goal: `Flip the two LIVE rows -> Done with the machine-checkable surface as evidence; SV per-parser book + integration contract same-commit lockstep; full closeout + tree close.`
+  Acceptance: `LIVE "systemverilog main parser" + "Parser-family exhaustive proof normalization" rows Done with evidence; book + contract lockstepped; tree closed; promoted to Completed in TASK_TREE.md.`
   Verification: `pending`
   Commit: `pending`
 
@@ -104,80 +103,84 @@ realistic-corpus proof stages"*).
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-EXH-PROOF.1` | `pending` | A deterministic measured baseline of the four existing gates locks the honest scope (trio already closed; the external-corpus-backed proof surface is the sole gap) before any sidecar/contract code is written. |
-| 2 | `SV-EXH-PROOF.2` | `pending` | Build the external_corpus_backed_proof_surface sidecar + contract (needs `.1`'s measured baseline of the triage surface to promote). |
-| 3 | `SV-EXH-PROOF.3` | `pending` | Wire the surface into the formal-exhaustive contract/gate + family-status + telemetry (needs `.2`'s sidecar). |
-| 4 | `SV-EXH-PROOF.4` | `pending` | LIVE `Done` flip + book/contract lockstep + closeout (needs `.3` green). |
+| 1 | `SV-EXH-PROOF.2` | `pending` | Hard prerequisite blocker: the preprocessor syntax-closure regression (baseline Finding A) prevents the SV family-status/formal-exhaustive umbrella from running green at all; must be remediated before any SV proof-surface work. |
+| 2 | `SV-EXH-PROOF.3` | `pending` | SV grammar hardening 0/14 → green (the large multi-slice body; needs `.2` so the umbrella can validate progress). |
+| 3 | `SV-EXH-PROOF.4` | `pending` | Build the derived external-corpus-backed proof surface (needs `.3`'s genuinely-green/dispositioned state). |
+| 4 | `SV-EXH-PROOF.5` | `pending` | Wire it into the contract/gate/family-status/telemetry (needs `.4`). |
+| 5 | `SV-EXH-PROOF.6` | `pending` | LIVE `Done` flip + book/contract lockstep + closeout (needs `.5` green). |
 
 ## Decisions
 
-- `2026-05-17`: User selected this workstream (the largest open
-  parser-family debt) from the post-`POST-SV-AUDIT` strategic fork.
-- `2026-05-17` (initial): hypothesised the SV gap was a port of the
-  `systemverilog_preprocessor` reachability/syntax/zero-plausible-gap
-  trio (setup commit `PGEN-SV-EXH-PROOF-0000`).
-- `2026-05-17` (**re-scope — hypothesis partially falsified by
-  checked-in ground truth**): investigation of the actual proof stack
-  proved SV **already has** the shared `sv_syntax_closure_gate.sh` +
-  `systemverilog_syntax_closure_contract.json` (`max_unreachable_rules: 1`,
-  `max_unreachable_branches: 25`; consumed by
-  `sv_parser_family_status_gate` lines 274-275 — static syntax-closure
-  essentially closed). SV's own
-  `systemverilog_formal_exhaustive_closure_contract.json` names the
-  precise gap: `required_surface_key == "external_corpus_backed_proof_surface"`
-  with `required_surface_missing_detail` = *"SystemVerilog still lacks
-  an explicit checked-in external corpus-backed proof surface sidecar
-  that can promote the current bounded family evidence into a formal
-  exhaustive closure claim."* `sv_formal_exhaustive_closure_gate.sh`
-  validates exactly that key (lines 91-93); `sv_parser_family_status_gate.sh`
-  surfaces criterion `formal_exhaustive_closure_surface_green` (line
-  311). Conclusion: **the single primary unmet closure criterion is
-  the missing `external_corpus_backed_proof_surface`**, not the trio.
-  Tree re-decomposed accordingly. This is PNT-eligible engineering
-  judgement: the user fixed the *workstream*; correct decomposition is
-  the implementer's call and the ground truth is unambiguous + self
-  -documenting via SV's own contract.
-- `2026-05-17`: **Code-Change Doctrine compliance** — every sidecar
-  generator / schema / contract json / gate-script change / any
-  `grammars/systemverilog.ebnf` fix is task-tree-owned by its leaf (or
-  a sub-leaf split for a real external-corpus grammar gap). No
-  out-of-tree code changes.
+- `2026-05-17`: User selected this workstream from the
+  post-`POST-SV-AUDIT` strategic fork.
+- `2026-05-17` (`PGEN-SV-EXH-PROOF-0001`): preprocessor-trio-port
+  hypothesis falsified; SV-main static syntax-closure already present;
+  sole gap = the missing `external_corpus_backed_proof_surface`.
+- `2026-05-17` (`PGEN-SV-EXH-PROOF-0002`, **`.1` measured baseline**):
+  ground-truth measurement (`docs/SV_EXH_PROOF_BASELINE.md`) produced
+  four findings: **(A)** `sv_preprocessor_syntax_closure_gate` is
+  REGRESSED on `main` (`unreachable_branches=13 > 3`) — a real
+  lockstep defect from this session's POST-SV-AUDIT.2.1 +
+  INLINE-ALT-FIX.1 preprocessor grammar edits (contract never
+  re-baselined); blocks the SV family-status/formal-exhaustive
+  umbrella. **(B)** SV-main static syntax-closure is healthy/pass
+  (re-scope validated). **(C)** external-corpus parse surface is
+  `0/14` genuine grammar rejections, NOT the `10/14` the LIVE tracker
+  claimed (proven-false drift — corrected same-commit). **(D)**
+  `sv_formal_exhaustive_closure_gate.sh:245` hard-codes
+  `surface_present=true` (unproven literal). Tree re-planned to 6
+  leaves: prerequisite preprocessor remediation (`.2`) → SV grammar
+  hardening `0/14→green` (`.3`) → derived proof surface (`.4`) →
+  wiring (`.5`) → LIVE `Done` + lockstep (`.6`). PNT-eligible: the
+  workstream is user-fixed; decomposition + honest reporting of
+  discovered regressions is the implementer's call (ground truth
+  unambiguous; the discovered preprocessor regression is recorded as a
+  tracked defect, not silently fixed).
+- `2026-05-17`: **Code-Change Doctrine** — every grammar / contract /
+  gate-script change in `.2`–`.6` is leaf-owned (real grammar gaps in
+  `.3` split into sub-leaves).
 
 ## Open Questions
 
-- How many external-corpus parse-fails are real closable grammar gaps
-  vs honest justified-bounded carve-outs? Resolved empirically in
-  `.1` (measure) / `.2` (disposition). Does not block `.1`.
+- `.2`: is the right preprocessor remediation a contract re-baseline +
+  allowed-pocket classification (preferred — the POST-SV-AUDIT
+  factoring was legitimate structure), or a grammar change to lower
+  `unreachable_branches`? Resolved in `.2` design.
+- `.3`: which commit regressed the external-corpus parse surface to
+  `0/14`? Triage owned by `.3` (not the baseline).
 
 ## Blockers
 
-- None.
+- `SV-EXH-PROOF.3`–`.6` are blocked on `SV-EXH-PROOF.2` (preprocessor
+  syntax-closure regression must be remediated before the SV
+  family-status/formal-exhaustive umbrella can validate anything).
 
 ## Verification Log
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-17` | `SV-EXH-PROOF` (setup) | task-tree decomposition vs workflow splitting rules; Code-Change-Doctrine precursor compliance | `pass — tree created (initial preprocessor-trio-port hypothesis)` |
-| `2026-05-17` | `SV-EXH-PROOF` (re-scope) | empirical audit of the SV proof stack: `systemverilog_syntax_closure_contract.json` exists (`max_unreachable_rules:1`); `systemverilog_formal_exhaustive_closure_contract.json` `required_surface_key == external_corpus_backed_proof_surface` + missing-detail; `sv_formal_exhaustive_closure_gate.sh:91-93`; `sv_parser_family_status_gate.sh:274-275,311`; `sv_external_corpus_triage_gate.sh` summary shape | `pass — initial trio-port hypothesis FALSIFIED against checked-in ground truth; tree re-decomposed to the real single gap (external_corpus_backed_proof_surface); honest auditable re-scope recorded before any code leaf` |
+| `2026-05-17` | `SV-EXH-PROOF` (setup) | decomposition vs workflow rules; Code-Change-Doctrine precursor | `pass — tree created (initial trio-port hypothesis)` |
+| `2026-05-17` | `SV-EXH-PROOF` (re-scope) | empirical audit of the SV proof stack vs SV's own contracts | `pass — trio-port hypothesis falsified; re-decomposed to external_corpus_backed_proof_surface` |
+| `2026-05-17` | `SV-EXH-PROOF.1` | canonical-target measurement of `sv_external_corpus_triage_gate` (0/14, genuine rejections verified via parse logs + fresh probe), `sv_syntax_closure_gate` (pass, healthy), clean standalone `sv_preprocessor_syntax_closure_gate` (exit 2, `unreachable_branches=13>3`), `sv_formal_exhaustive_closure_gate` (fails — aborts at Finding A), code-read of the hard-coded literal at `sv_formal_exhaustive_closure_gate.sh:245`; git provenance of the preprocessor regression | `pass — deterministic baseline recorded (docs/SV_EXH_PROOF_BASELINE.md); 4 findings dispositioned; LIVE drift corrected same-commit; tree re-planned to 6 leaves; no code changed` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `SV-EXH-PROOF` (setup) | `PGEN-SV-EXH-PROOF-0000` | tree created + activated (initial trio-port hypothesis) |
-| `SV-EXH-PROOF` (re-scope) | `PGEN-SV-EXH-PROOF-0001` | hypothesis falsified by checked-in ground truth; re-decomposed to the real gap (external_corpus_backed_proof_surface); frontier still `.1` |
+| `SV-EXH-PROOF` (re-scope) | `PGEN-SV-EXH-PROOF-0001` | hypothesis falsified; re-decomposed to the real gap |
+| `SV-EXH-PROOF.1` | `PGEN-SV-EXH-PROOF-0002` | measured baseline + scope lock + LIVE drift correction + 6-leaf re-plan; frontier → `.2` (preprocessor regression prerequisite) |
 
 ## Changelog
 
-- `2026-05-17`: Created + activated the task tree (user-selected from
-  the strategic fork after POST-SV-AUDIT/TaskList #49 closed); initial
-  decomposition hypothesised a preprocessor-trio port.
-- `2026-05-17`: **Re-scoped.** Empirical audit of the SV proof stack
-  falsified the trio-port hypothesis: SV already has the static
-  syntax-closure surface; SV's own formal-exhaustive contract names
-  the sole gap as the missing `external_corpus_backed_proof_surface`.
-  Re-decomposed into `.1` measured baseline + scope lock → `.2` build
-  the external-corpus-backed proof surface sidecar/contract → `.3`
-  wire it into the formal-exhaustive contract/gate + family-status +
-  telemetry → `.4` LIVE `Done` flip + book/contract lockstep +
-  closeout. Frontier `.1`. Code-Change-Doctrine-compliant (tree-owned).
+- `2026-05-17`: Created + activated (initial trio-port hypothesis).
+- `2026-05-17`: Re-scoped — trio-port falsified; sole gap =
+  `external_corpus_backed_proof_surface`.
+- `2026-05-17`: **`.1` measured baseline complete.** Ground-truth
+  measurement surfaced a regressed preprocessor syntax-closure
+  (prerequisite blocker, this session's lockstep defect), a healthy
+  SV-main static-closure, a `0/14` (not `10/14`) external-corpus
+  parse surface (proven-false LIVE drift, corrected same-commit), and
+  a hard-coded `surface_present=true`. Tree re-planned to 6 leaves;
+  frontier → `.2` (preprocessor syntax-closure regression
+  remediation). Code-Change-Doctrine-compliant (`.1` changed no code).
