@@ -55,7 +55,7 @@ literal over a failing surface.
 - ID: `SV-EXH-PROOF`
   Status: `active`
   Goal: `Close SV's sole unmet closure criterion (formal_exhaustive_closure_surface_green) with a derived honest external_corpus_backed_proof_surface over a genuinely-green corpus parse state; re-earn Done for the SV main-parser family.`
-  Children: `SV-EXH-PROOF.1` … `SV-EXH-PROOF.6`
+  Children: `SV-EXH-PROOF.1`, `SV-EXH-PROOF.2` (parent: `.2.1`, `.2.2`), `SV-EXH-PROOF.3` … `SV-EXH-PROOF.6`
 
 - ID: `SV-EXH-PROOF.1`
   Status: `done`
@@ -65,15 +65,28 @@ literal over a failing surface.
   Commit: `PGEN-SV-EXH-PROOF-0002`
 
 - ID: `SV-EXH-PROOF.2`
+  Status: `active` (parent)
+  Goal: `Remediate the preprocessor regression FAMILY left by the POST-SV-AUDIT.2.1 + INLINE-ALT-FIX.1 grammar edits (a cascade of un-lockstepped downstream preprocessor proof-stack expectations; the grammar edits are legitimate correctness fixes — NOT to be reverted; re-lockstep the proof surfaces). Restore sv_preprocessor_zero_plausible_gap_proof_gate + sv_parser_family_status_gate to green.`
+  Acceptance: `sv_preprocessor_zero_plausible_gap_proof_gate + sv_parser_family_status_gate green; every re-lockstep is evidence-grounded (underlying behavior genuinely satisfied, not weakened); contract/script changes leaf-owned + documented.`
+  Children: `SV-EXH-PROOF.2.1`, `SV-EXH-PROOF.2.2`
+
+- ID: `SV-EXH-PROOF.2.1`
+  Status: `done`
+  Goal: `(A1) Re-baseline systemverilog_preprocessor_syntax_closure_contract.json max_unreachable_branches 3 -> 13 (legitimate added named-rule structure; genuine static-unreachable surface is still ONLY the benign trivia pocket per unreachable_*_debt, version 1->2, evidence in description). (A2) Re-target the stale sv_preprocessor_quality_gate.sh:723 assertion from the removed pp_if_branch::root/s0 inline path to the post-SVPP-0001 lifted pp_if_keyword::root branch group (intent preserved; underlying coverage [7,6] genuinely satisfies — not weakened).`
+  Acceptance: `sv_preprocessor_syntax_closure_gate green (verified: status pass, unreachable_branches=13, unreachable_rules=1, reachable_rules=72); A2 retarget verified against real coverage (pp_if_keyword::root success_counts=[7,6]).`
+  Verification: `done — see Verification Log 2026-05-17 (.2.1)`
+  Commit: `PGEN-SV-EXH-PROOF-0003`
+
+- ID: `SV-EXH-PROOF.2.2`
   Status: `pending`
-  Goal: `Remediate the preprocessor syntax-closure regression (baseline Finding A): the POST-SV-AUDIT.2.1 + INLINE-ALT-FIX.1 grammar edits raised systemverilog_preprocessor unreachable_branches 3 -> 13 without re-baselining systemverilog_preprocessor_syntax_closure_contract.json. Re-baseline the contract + honestly classify the newly-unreachable branches (the proven preprocessor zero-plausible-gap pattern: allowed-pocket enumeration), or fix the grammar; restore sv_preprocessor_syntax_closure_gate + the SV family-status/formal-exhaustive umbrella to green.`
-  Acceptance: `sv_preprocessor_syntax_closure_gate green; the 13 unreachable branches each classified (benign-pocket allowed in-contract, or closed); sv_parser_family_status_gate runs to completion; no regression to the preprocessor zero-plausible-gap proof / aggregate gates; contract+book+ledger lockstep.`
+  Goal: `(A3') Remediate the deeper preprocessor closed-loop regression: sv_preprocessor_aggregate_contract_gate fails "reachable-branch universe drifted across stages: stage0=10 stage1=0 stage3=0 stage4=0" (reachable_rules=72 stays stable across stages; only reachable_branches collapses 10->0 after stage0). The refactored branch topology interacts with the closed-loop replay's branch-reachability computation. Triage stale-calibration vs genuine closed-loop defect (bisect whether 7228231b/a5da52f4 introduced it); re-lockstep or fix honestly so the preprocessor zero-plausible-gap proof + family-status go green. Each sub-fix evidence-grounded.`
+  Acceptance: `sv_preprocessor_zero_plausible_gap_proof_gate + sv_parser_family_status_gate green; the reachable-branch-universe-drift root cause documented; no invariant weakened to mask a real defect.`
   Verification: `pending`
   Commit: `pending`
 
 - ID: `SV-EXH-PROOF.3`
   Status: `pending`
-  Goal: `SV grammar hardening: drive the external-corpus parse surface 0/14 -> green. Triage the regressing commit(s) behind baseline Finding C, then close per-corpus/per-defect parse-fails (uvm, scr1, friscv, veer_el2) across sv_2017+sv_2023. Multi-slice; each grammar fix is its own sub-leaf, probe-verified + lockstepped.`
+  Goal: `SV-main grammar hardening: drive the external-corpus parse surface 0/14 -> green AND fix the SV-main closed-loop replay-shadow rejections (baseline Finding A3: sv_parser_aggregate_contract_gate "replay-shadow totals internally inconsistent" — SV-main rejects valid SV: escaped identifiers \\foo, export *::*;, package-body constructs; same root class as Finding C). Triage the regressing commit(s); close per-corpus/per-defect parse-fails (uvm, scr1, friscv, veer_el2) + the closed-loop replay-shadow rejections across sv_2017+sv_2023. Multi-slice; each grammar fix is its own sub-leaf, probe-verified + lockstepped.`
   Acceptance: `parse_pass_total == cases_executed (or every residual explicitly dispositioned for .4); each fix probe-verified; no AST-shape / aggregate / stimuli regression; per-fix contract+book lockstep.`
   Verification: `pending`
   Commit: `pending`
@@ -103,8 +116,8 @@ literal over a failing surface.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-EXH-PROOF.2` | `pending` | Hard prerequisite blocker: the preprocessor syntax-closure regression (baseline Finding A) prevents the SV family-status/formal-exhaustive umbrella from running green at all; must be remediated before any SV proof-surface work. |
-| 2 | `SV-EXH-PROOF.3` | `pending` | SV grammar hardening 0/14 → green (the large multi-slice body; needs `.2` so the umbrella can validate progress). |
+| 1 | `SV-EXH-PROOF.2.2` | `pending` | `.2.1` (A1 syntax-closure contract re-baseline + A2 pp_if_keyword quality-assertion re-target) is done+verified. `.2.2` = the deeper preprocessor closed-loop `reachable-branch universe drifted across stages` regression (stage0=10→stage1/3/4=0), still blocking the preprocessor zero-gap proof + SV family-status umbrella. |
+| 2 | `SV-EXH-PROOF.3` | `pending` | SV-main grammar hardening 0/14 → green + the SV-main closed-loop replay-shadow rejections (Finding A3); the large multi-slice body; needs `.2` so the umbrella can validate progress. |
 | 3 | `SV-EXH-PROOF.4` | `pending` | Build the derived external-corpus-backed proof surface (needs `.3`'s genuinely-green/dispositioned state). |
 | 4 | `SV-EXH-PROOF.5` | `pending` | Wire it into the contract/gate/family-status/telemetry (needs `.4`). |
 | 5 | `SV-EXH-PROOF.6` | `pending` | LIVE `Done` flip + book/contract lockstep + closeout (needs `.5` green). |
@@ -136,24 +149,55 @@ literal over a failing surface.
   discovered regressions is the implementer's call (ground truth
   unambiguous; the discovered preprocessor regression is recorded as a
   tracked defect, not silently fixed).
+- `2026-05-17` (`PGEN-SV-EXH-PROOF-0003`, **`.2.1`**): the
+  preprocessor "regression" is a **cascade** of un-lockstepped
+  downstream proof-stack expectations from the same (legitimate,
+  correctness-improving — NOT to be reverted) POST-SV-AUDIT.2.1 /
+  INLINE-ALT-FIX.1 grammar edits. Fixed+verified at their gate level:
+  **A1** syntax-closure contract re-baseline (`max_unreachable_branches`
+  3→13, version 1→2; genuine static-unreachable surface is still only
+  the benign `trivia` pocket — evidence in `description`;
+  `sv_preprocessor_syntax_closure_gate` now passes) and **A2** the
+  stale `sv_preprocessor_quality_gate.sh` `pp_if_branch::root/s0`
+  assertion re-targeted to the post-lift `pp_if_keyword::root` group
+  (underlying coverage `[7,6]` genuinely satisfies — not weakened).
+  `.2` split into `.2.1` (done) + `.2.2` (the deeper closed-loop
+  `reachable-branch universe drift`, frontier). Finding **A3**
+  (SV-main `sv_parser_aggregate_contract_gate` replay-shadow
+  rejections of valid SV — escaped idents / `export *::*;`) is the
+  same root class as Finding C → folded into `.3` (SV-main hardening),
+  not preprocessor scope. Decision (PNT-eligible, no user escalation):
+  the grammar edits are correctness fixes; the honest path is to
+  faithfully re-lockstep the downstream proof surfaces as deep as the
+  cascade goes (the binding lesson
+  [[feedback_grammar_edit_proof_gate_lockstep]]) — never revert
+  correct fixes, never weaken an invariant to mask a real defect.
 - `2026-05-17`: **Code-Change Doctrine** — every grammar / contract /
   gate-script change in `.2`–`.6` is leaf-owned (real grammar gaps in
   `.3` split into sub-leaves).
 
 ## Open Questions
 
-- `.2`: is the right preprocessor remediation a contract re-baseline +
-  allowed-pocket classification (preferred — the POST-SV-AUDIT
-  factoring was legitimate structure), or a grammar change to lower
-  `unreachable_branches`? Resolved in `.2` design.
+- `.2` (RESOLVED in `.2.1`): contract/calibration re-baseline (the
+  POST-SV-AUDIT/SVPP factoring is legitimate structure; genuine
+  static-unreachable surface unchanged = benign `trivia` pocket), NOT
+  a grammar revert/change. Same answer applied to A2.
+- `.2.2` (OPEN): is the closed-loop `reachable-branch universe
+  drifted across stages` (stage0=10→stage1/3/4=0) a stale
+  cross-stage calibration or a genuine closed-loop branch-reachability
+  defect introduced by the refactor? Bisect `7228231b`/`a5da52f4`;
+  resolve in `.2.2` (do not weaken the invariant to mask a real
+  defect).
 - `.3`: which commit regressed the external-corpus parse surface to
-  `0/14`? Triage owned by `.3` (not the baseline).
+  `0/14` + the SV-main closed-loop replay-shadow (A3)? Triage owned by
+  `.3` (not the baseline).
 
 ## Blockers
 
-- `SV-EXH-PROOF.3`–`.6` are blocked on `SV-EXH-PROOF.2` (preprocessor
-  syntax-closure regression must be remediated before the SV
-  family-status/formal-exhaustive umbrella can validate anything).
+- `SV-EXH-PROOF.3`–`.6` are blocked on `SV-EXH-PROOF.2` completing
+  (`.2.2` remains: the deeper preprocessor closed-loop reachable-branch
+  -universe drift still red on the preprocessor zero-gap proof + SV
+  family-status umbrella).
 
 ## Verification Log
 
@@ -162,6 +206,7 @@ literal over a failing surface.
 | `2026-05-17` | `SV-EXH-PROOF` (setup) | decomposition vs workflow rules; Code-Change-Doctrine precursor | `pass — tree created (initial trio-port hypothesis)` |
 | `2026-05-17` | `SV-EXH-PROOF` (re-scope) | empirical audit of the SV proof stack vs SV's own contracts | `pass — trio-port hypothesis falsified; re-decomposed to external_corpus_backed_proof_surface` |
 | `2026-05-17` | `SV-EXH-PROOF.1` | canonical-target measurement of `sv_external_corpus_triage_gate` (0/14, genuine rejections verified via parse logs + fresh probe), `sv_syntax_closure_gate` (pass, healthy), clean standalone `sv_preprocessor_syntax_closure_gate` (exit 2, `unreachable_branches=13>3`), `sv_formal_exhaustive_closure_gate` (fails — aborts at Finding A), code-read of the hard-coded literal at `sv_formal_exhaustive_closure_gate.sh:245`; git provenance of the preprocessor regression | `pass — deterministic baseline recorded (docs/SV_EXH_PROOF_BASELINE.md); 4 findings dispositioned; LIVE drift corrected same-commit; tree re-planned to 6 leaves; no code changed` |
+| `2026-05-17` | `SV-EXH-PROOF.2.1` | A1: re-baselined contract → clean standalone `sv_preprocessor_syntax_closure_gate` PASS (`status:pass`, `unreachable_branches:13`, `unreachable_rules:1`, `reachable_rules:72`); genuine static-unreachable surface confirmed = only `trivia` (1 rule + 3 branches, `reason=unreachable_from_entry`) ⊆ allowed pocket. A2: confirmed `pp_if_branch::root/s0` absent post-lift and `pp_if_keyword::root` `success_counts=[7,6]` (both polarity branches genuinely exercised) before re-targeting the assertion; re-ran `sv_preprocessor_zero_plausible_gap_proof_gate` → got past A1/A2, surfaced the deeper `.2.2` reachable-branch-universe-drift (stage0=10/stage1=0; `reachable_rules=72` stable) | `pass for .2.1 (A1+A2 correct, evidence-grounded, verified at their gate level; not weakened). `.2` NOT complete — `.2.2` deeper closed-loop regression remains; honestly recorded, not masked` |
 
 ## Commit Log
 
@@ -170,6 +215,7 @@ literal over a failing surface.
 | `SV-EXH-PROOF` (setup) | `PGEN-SV-EXH-PROOF-0000` | tree created + activated (initial trio-port hypothesis) |
 | `SV-EXH-PROOF` (re-scope) | `PGEN-SV-EXH-PROOF-0001` | hypothesis falsified; re-decomposed to the real gap |
 | `SV-EXH-PROOF.1` | `PGEN-SV-EXH-PROOF-0002` | measured baseline + scope lock + LIVE drift correction + 6-leaf re-plan; frontier → `.2` (preprocessor regression prerequisite) |
+| `SV-EXH-PROOF.2.1` | `PGEN-SV-EXH-PROOF-0003` | A1 syntax-closure contract re-baseline (v1→2) + A2 `pp_if_keyword` quality-assertion re-target; both evidence-grounded + verified at gate level; `.2` split (`.2.1` done / `.2.2` deeper closed-loop drift = new frontier); A3 folded into `.3` |
 
 ## Changelog
 
@@ -184,3 +230,14 @@ literal over a failing surface.
   a hard-coded `surface_present=true`. Tree re-planned to 6 leaves;
   frontier → `.2` (preprocessor syntax-closure regression
   remediation). Code-Change-Doctrine-compliant (`.1` changed no code).
+- `2026-05-17`: **`.2.1` done.** The preprocessor regression is a
+  cascade of un-lockstepped downstream proof-stack expectations from
+  the legitimate POST-SV-AUDIT.2.1/INLINE-ALT-FIX.1 grammar edits.
+  A1 (syntax-closure contract re-baseline `max_unreachable_branches`
+  3→13, v1→2) + A2 (`pp_if_branch::root/s0` → `pp_if_keyword::root`
+  quality-assertion re-target) fixed, evidence-grounded, verified at
+  their gate level (not weakened). `.2` split into `.2.1` (done) +
+  `.2.2` (the deeper closed-loop reachable-branch-universe drift,
+  frontier). A3 (SV-main aggregate replay-shadow rejections) folded
+  into `.3`. Code change is leaf-owned (contract json + quality-gate
+  script). `.2` NOT complete (umbrella still red at `.2.2`).

@@ -1,4 +1,54 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0003 (leaf SV-EXH-PROOF.2.1): preprocessor regression remediation part 1 — A1 syntax-closure contract re-baseline + A2 pp_if_keyword quality-assertion re-target
+
+- The baseline Finding A "preprocessor regression" proved to be a
+  **cascade** of un-lockstepped downstream proof-stack expectations
+  left by the legitimate `PGEN-POST-SV-AUDIT-0002` (Cat-A
+  `macro_formals`) + `PGEN-INLINE-ALT-FIX-0001` (SVPP-0001
+  `pp_if_branch` inline-alt lift) grammar edits — those edits are
+  correctness improvements and are **not** reverted; the downstream
+  proof surfaces are re-lockstepped instead (the binding lesson).
+- **A1 (code: `systemverilog_preprocessor_syntax_closure_contract.json`,
+  leaf-owned).** `max_unreachable_branches` 3 → 13, `version` 1 → 2,
+  `description` documents the evidence: the genuine static-unreachable
+  surface (gap `unreachable_rule_debt` + `unreachable_branch_debt`,
+  `reason=unreachable_from_entry`) is still **only** the benign
+  helper-only `trivia` pocket (1 rule + its 3 branches) — exactly the
+  surface the checked-in zero-plausible-gap contract already allows;
+  the numeric rise is the arithmetic of legitimately added named-rule
+  branches, not new dead grammar. Verified: clean standalone
+  `sv_preprocessor_syntax_closure_gate` now PASS (`status:pass`,
+  `unreachable_branches:13`, `unreachable_rules:1`,
+  `reachable_rules:72`).
+- **A2 (code: `rust/scripts/sv_preprocessor_quality_gate.sh`,
+  leaf-owned).** SVPP-0001 lifted the ifdef/ifndef polarity out of the
+  inline `pp_if_branch::root/s0` alternation into the named rule
+  `pp_if_keyword`; the line-723 coverage assertion still pointed at
+  the removed inline key. Re-targeted to `pp_if_keyword::root`.
+  Verified intent preserved, **not** weakened: the post-lift coverage
+  group `pp_if_keyword::root` has `success_counts=[7,6]` (both
+  polarity branches genuinely exercised in final closed-loop
+  coverage).
+- **Honest scope:** A1+A2 are correct and verified at their own gate
+  level, but `.2` is **not** complete. Re-running
+  `sv_preprocessor_zero_plausible_gap_proof_gate` got past A1/A2 and
+  surfaced a **deeper** regression in the same cascade —
+  `sv_preprocessor_aggregate_contract_gate`: "reachable-branch
+  universe drifted across stages: stage0=10 stage1=0 stage3=0
+  stage4=0" (`reachable_rules=72` stays stable across stages; only
+  `reachable_branches` collapses after stage0). `.2` was split into
+  `.2.1` (this, done) + `.2.2` (the deeper closed-loop drift,
+  frontier). The SV-main `sv_parser_aggregate_contract_gate`
+  replay-shadow rejections of valid SV (Finding A3 — escaped
+  identifiers `\foo`, `export *::*;`, package-body) are the same root
+  class as Finding C and were folded into `.3` (SV-main hardening),
+  not preprocessor scope.
+- LIVE preprocessor-regression correction updated to reflect partial
+  remediation (A1/A2 fixed; `.2.2` deeper closed-loop drift still
+  red). New binding process memory recorded
+  ([[feedback_grammar_edit_proof_gate_lockstep]]). No false closure
+  claimed.
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0002 (leaf SV-EXH-PROOF.1): measured baseline + scope lock + mandatory LIVE-tracker drift correction (docs-only)
 
 - **`SV-EXH-PROOF.1` measured baseline complete** —

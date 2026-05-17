@@ -720,8 +720,15 @@ done
 
 assert_json "$coverage3" '.branch_groups["include_path::root"].success_counts | length >= 2 and all(.[]; . > 0)' \
     "include_path branch family not fully exercised in final coverage"
-assert_json "$coverage3" '.branch_groups["pp_if_branch::root/s0"].success_counts | length >= 2 and all(.[]; . > 0)' \
-    "pp_if_branch conditional family not fully exercised in final coverage"
+# Re-targeted 2026-05-17 (PGEN-SV-EXH-PROOF-0003, leaf SV-EXH-PROOF.2):
+# PGEN-INLINE-ALT-FIX-0001 (SVPP-0001) lifted the ifdef/ifndef polarity
+# out of the inline `pp_if_branch::root/s0` alternation into the NAMED
+# rule `pp_if_keyword`, so the conditional-family coverage now lives at
+# `pp_if_keyword::root` (the old key no longer exists). Intent unchanged
+# (both polarity branches exercised in final coverage); verified against
+# the post-lift branch group, not weakened.
+assert_json "$coverage3" '.branch_groups["pp_if_keyword::root"].success_counts | length >= 2 and all(.[]; . > 0)' \
+    "pp_if_keyword conditional family (ifdef/ifndef) not fully exercised in final coverage"
 
 run_logged "stage4_fuzz_replay_a" \
     "$AST_PIPELINE_BIN" "$GRAMMAR_JSON" \

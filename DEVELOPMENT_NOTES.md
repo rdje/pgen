@@ -1,4 +1,63 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF.2.1 — the preprocessor "regression" is a CASCADE, not a single stale contract (PGEN-SV-EXH-PROOF-0003)
+
+### What `.2` actually uncovered
+Baseline Finding A looked like one stale contract. Fixing it
+(evidence-grounded) and re-running the umbrella revealed a **cascade**
+of un-lockstepped downstream preprocessor proof-stack expectations,
+all rooted in the same legitimate `PGEN-POST-SV-AUDIT-0002` (Cat-A
+`macro_formals` factoring) + `PGEN-INLINE-ALT-FIX-0001` (SVPP-0001
+`pp_if_branch` inline-alt lift) grammar edits:
+
+- **A1 — `systemverilog_preprocessor_syntax_closure_contract.json`**
+  `max_unreachable_branches` 3→13 (v1→2). The genuine
+  static-unreachable surface (gap `unreachable_*_debt`,
+  `reason=unreachable_from_entry`) is still only the benign `trivia`
+  pocket (1 rule + 3 branches); the rise is the arithmetic of added
+  named-rule branches. Verified: syntax-closure gate PASS.
+- **A2 — `sv_preprocessor_quality_gate.sh:723`** asserted
+  `pp_if_branch::root/s0`; the lift moved the ifdef/ifndef polarity
+  into `pp_if_keyword`. Re-targeted to `pp_if_keyword::root`;
+  underlying coverage `[7,6]` proves both branches genuinely
+  exercised (re-targeted, **not** weakened).
+- **A2.2 (still open) — `sv_preprocessor_aggregate_contract_gate`**
+  "reachable-branch universe drifted across stages: stage0=10
+  stage1=0 ..." while `reachable_rules=72` is stable. A deeper
+  closed-loop branch-reachability interaction with the refactored
+  topology — owned by `.2.2` (bisect + honest fix; do not weaken the
+  cross-stage invariant to mask a real defect).
+- **A3 — SV-main `sv_parser_aggregate_contract_gate`** replay-shadow
+  rejects valid SV (escaped idents `\foo`, `export *::*;`,
+  package-body). Same root class as Finding C (broad SV-main
+  regression) → folded into `.3`, not preprocessor scope.
+
+### Reinforced binding lessons
+1. **A grammar edit owns its ENTIRE downstream proof stack, not the
+   nearest 1–2 contracts.** The cascade depth (syntax-closure
+   contract → quality-gate coverage assertion → closed-loop
+   cross-stage branch-reachability) shows the
+   [[feedback_grammar_edit_proof_gate_lockstep]] rule must be applied
+   exhaustively (run the full family proof umbrella, not just the
+   gate whose name matches the obvious surface) in the same slice.
+2. **Re-lockstep ≠ relax.** Every re-baseline here was justified by
+   re-deriving the *genuine* underlying property (trivia-only
+   unreachable; `[7,6]` polarity coverage) and proving it still holds
+   — never by loosening a threshold to make a number pass. A2.2 will
+   be held to the same bar.
+3. **Never claim the umbrella green when it isn't.** `.2.1` commits
+   real, verified, self-contained progress; `.2` stays open with
+   `.2.2` honestly recorded — the same discipline as the `.1`
+   baseline.
+
+### PNT decision (no user escalation)
+The grammar edits are correctness fixes (reverting would reintroduce
+known defects — against the quality mandate). The honest, determinable
+path is to faithfully re-lockstep the downstream proof surfaces as
+deep as the cascade goes. This is PNT-eligible decomposition/judgement
+(the workstream is user-fixed; ground truth is unambiguous); the user
+is not involved because there is no genuine undecidable trade-off —
+only laborious, faithful re-lockstep work, properly leaf-owned.
+
 ## 2026-05-17 - SV-EXH-PROOF.1 measured baseline — the tracker overstated SV; a prior-campaign lockstep regression surfaced (PGEN-SV-EXH-PROOF-0002)
 
 ### Why the baseline mattered

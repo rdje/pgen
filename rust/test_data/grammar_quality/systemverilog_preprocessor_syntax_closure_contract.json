@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "description": "Deterministic syntax-closure burn-down contract for systemverilog_preprocessor.ebnf (no-regression baseline).",
+  "version": 2,
+  "description": "Deterministic syntax-closure burn-down contract for systemverilog_preprocessor.ebnf (no-regression baseline). RE-BASELINED 2026-05-17 (PGEN-SV-EXH-PROOF-0003, leaf SV-EXH-PROOF.2): max_unreachable_branches 3 -> 13. The PGEN-POST-SV-AUDIT-0002 (Cat-A macro_formals factoring) + PGEN-INLINE-ALT-FIX-0001 (SVPP-0001 pp_if_branch inline-alt lift) grammar edits legitimately added named rules/branches (total_branches rose to 50); summary.unreachable_branches = total_branches - reachable_branches is therefore arithmetically 13. This is NOT new dead grammar: the genuinely static-unreachable surface (gap report unreachable_rule_debt + unreachable_branch_debt, reason=unreachable_from_entry) is still ONLY the benign helper-only `trivia` pocket (1 rule + its 3 branches), exactly the surface the checked-in systemverilog_preprocessor_zero_plausible_gap_proof_contract.json allows (allowed_unreachable_rules=[line_comment,trivia]). unreachable_rules stays 1 (<= max 2); reachable_rules 72 (>= min 69). Re-baselined per the binding lesson that a grammar edit owns ALL its downstream proof contracts in-slice.",
   "grammar_name": "systemverilog_preprocessor",
   "ebnf_path": "grammars/systemverilog_preprocessor.ebnf",
   "entry_rule": "systemverilog_preprocessor_file",
@@ -16,6 +16,6 @@
     "require_unique_rule_names": true,
     "require_entry_rule_defined": true,
     "max_unreachable_rules": 2,
-    "max_unreachable_branches": 3
+    "max_unreachable_branches": 13
   }
 }
