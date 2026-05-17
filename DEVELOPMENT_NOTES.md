@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF.2.2 — a mis-specified gate invariant (burn-down metric ≠ static universe) (PGEN-SV-EXH-PROOF-0004)
+
+### The trap, and how it was avoided
+`sv_preprocessor_aggregate_contract_gate` failed "reachable-branch
+universe drifted across stages: stage0=10 stage1=0". The lazy "fix"
+would have been to relax the cross-stage check to `<=`. That would
+have been **wrong reasoning even if it produced the right code**:
+before changing an invariant you must prove what the metric *means*.
+
+Reading `stimuli_generator.rs:1567-1733` showed
+`if deficit == 0 { continue; }` — `summary.reachable_branches` counts
+only reachable-AND-not-yet-threshold-covered branches: a **burn-down
+debt** metric, not the static reachable universe. So:
+- `total_rules=73` / `total_branches=50` / `reachable_rules=72` are
+  byte-stable across every stage — the genuine static universe is
+  invariant (the property the assertion's author actually wanted).
+- `reachable_branches` 10→0 with `covered_branches` 37→47 is the
+  closed loop *covering* the Cat-A-factored `macro_default_atom`
+  branches between stages — debt burning down, the desired direction.
+
+The byte-equality assertion (added generically by `a243bfeb`, green
+historically only because pre-refactor preprocessor branch coverage
+was coincidentally flat) treated a burn-down metric as a static
+universe. The honest fix is therefore a **correction**: pin the true
+static universe on `total_*` (a *strengthening* — adds a real
+invariant that genuinely holds) and assert `reachable_*`
+*non-increasing* (the real no-regression guarantee — debt must never
+GROW across stages). Verified `MAKE_RC=0`, not masked.
+
+### Carry-forward principle (binding)
+**Before relaxing/altering a failing invariant, prove the metric's
+semantics from the producing code.** A "relax `==` to `<=`" that
+happens to work is still a defect if you didn't establish *why* — and
+here the rigorous reading turned a suspected "weakening" into a
+provably-correct strengthening+correction. "Re-lockstep ≠ relax" has
+teeth only if every change is grounded in the metric's true meaning.
+This extends [[feedback_grammar_edit_proof_gate_lockstep]]: a grammar
+edit's downstream proof-gate fixes must each be justified from first
+principles (the metric definition), not pattern-matched.
+
+### Cascade status
+A1 (syntax-closure contract) ✓ · A2 (`pp_if_keyword` quality
+assertion) ✓ · **A3' (reachable-branch-universe-drift mis-spec) ✓
+(this)** · **A4 (`.2.3`, OPEN): preprocessor closed-loop
+`parser_rejections_total=3` — 3 self-rejected directive stimuli from
+the refactor; a genuine round-trip regression, not a calibration —
+needs grammar/generation triage + fix.** SV-main A3 (replay-shadow
+rejecting valid SV) stays in `.3`. `.2` is NOT complete; the
+zero-plausible-gap proof verdict stays red until `.2.3`.
+
 ## 2026-05-17 - SV-EXH-PROOF.2.1 — the preprocessor "regression" is a CASCADE, not a single stale contract (PGEN-SV-EXH-PROOF-0003)
 
 ### What `.2` actually uncovered

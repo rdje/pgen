@@ -68,7 +68,7 @@ literal over a failing surface.
   Status: `active` (parent)
   Goal: `Remediate the preprocessor regression FAMILY left by the POST-SV-AUDIT.2.1 + INLINE-ALT-FIX.1 grammar edits (a cascade of un-lockstepped downstream preprocessor proof-stack expectations; the grammar edits are legitimate correctness fixes — NOT to be reverted; re-lockstep the proof surfaces). Restore sv_preprocessor_zero_plausible_gap_proof_gate + sv_parser_family_status_gate to green.`
   Acceptance: `sv_preprocessor_zero_plausible_gap_proof_gate + sv_parser_family_status_gate green; every re-lockstep is evidence-grounded (underlying behavior genuinely satisfied, not weakened); contract/script changes leaf-owned + documented.`
-  Children: `SV-EXH-PROOF.2.1`, `SV-EXH-PROOF.2.2`
+  Children: `SV-EXH-PROOF.2.1`, `SV-EXH-PROOF.2.2`, `SV-EXH-PROOF.2.3`
 
 - ID: `SV-EXH-PROOF.2.1`
   Status: `done`
@@ -78,9 +78,16 @@ literal over a failing surface.
   Commit: `PGEN-SV-EXH-PROOF-0003`
 
 - ID: `SV-EXH-PROOF.2.2`
+  Status: `done`
+  Goal: `(A3') Remediate the "reachable-branch universe drifted across stages: stage0=10 stage1=0" sv_preprocessor_aggregate_contract_gate failure. Root cause (documented): summary.reachable_branches is a burn-down DEBT metric (stimuli_generator.rs:1589 skips deficit==0), NOT a static universe; the Cat-A macro_default_atom factoring made stage0 leave 10 uncovered that stage1 covers (covered_branches 37->47) — desirable burn-down wrongly flagged by a byte-equality assertion. The true static universe (total_rules=73/total_branches=50/reachable_rules=72) is stage-stable everywhere.`
+  Acceptance: `Mis-specified reachable_* cross-stage EQUALITY replaced by (a) total_* stage-equality (the true static universe — strengthened, holds) + (b) reachable_* non-increasing burn-down (genuine no-regression guarantee, catches real debt-growth). sv_preprocessor_aggregate_contract_gate no longer fails the drift check; sv_preprocessor_zero_plausible_gap_proof_gate runs to completion (verified MAKE_RC=0, unreachable surface confined to trivia pocket: observed=["trivia"] ⊆ allowed). Not weakened/masked.`
+  Verification: `done — see Verification Log 2026-05-17 (.2.2)`
+  Commit: `PGEN-SV-EXH-PROOF-0004`
+
+- ID: `SV-EXH-PROOF.2.3`
   Status: `pending`
-  Goal: `(A3') Remediate the deeper preprocessor closed-loop regression: sv_preprocessor_aggregate_contract_gate fails "reachable-branch universe drifted across stages: stage0=10 stage1=0 stage3=0 stage4=0" (reachable_rules=72 stays stable across stages; only reachable_branches collapses 10->0 after stage0). The refactored branch topology interacts with the closed-loop replay's branch-reachability computation. Triage stale-calibration vs genuine closed-loop defect (bisect whether 7228231b/a5da52f4 introduced it); re-lockstep or fix honestly so the preprocessor zero-plausible-gap proof + family-status go green. Each sub-fix evidence-grounded.`
-  Acceptance: `sv_preprocessor_zero_plausible_gap_proof_gate + sv_parser_family_status_gate green; the reachable-branch-universe-drift root cause documented; no invariant weakened to mask a real defect.`
+  Goal: `(A4) Remediate the next cascade layer surfaced once .2.2 let the gate complete: the preprocessor zero-plausible-gap proof's "Aggregate preconditions regressed: parseability_parser_rejections_total=3, parseability_rejected_total=3" — the closed-loop generates 3 preprocessor-directive stimuli (samples starting with backtick) the refactored preprocessor grammar self-rejects ("Parser did not consume full input"), across stage0_a/0_b/stage1/stage2. Genuine campaign-caused round-trip parseability regression (the proof requires parser_rejections_total=0, and was 0 when the preprocessor crossed Done 2026-04-01; only SVPP-0001 + POST-SV-AUDIT.2.1 preprocessor edits since). Bisect the exact regressing construct; fix the grammar/generation so closed-loop round-trips (each grammar fix its own sub-leaf, probe-verified + lockstepped).`
+  Acceptance: `parseability_parser_rejections_total=0 in the preprocessor closed-loop; sv_preprocessor_zero_plausible_gap_proof_gate proof verdict GREEN (helper_only_unreachable_surface_green=true, zero_plausible_grammar_level_gap_proof_surface=true); honest fix (no tolerance loosened to mask a real self-rejection).`
   Verification: `pending`
   Commit: `pending`
 
@@ -116,7 +123,7 @@ literal over a failing surface.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-EXH-PROOF.2.2` | `pending` | `.2.1` (A1 syntax-closure contract re-baseline + A2 pp_if_keyword quality-assertion re-target) is done+verified. `.2.2` = the deeper preprocessor closed-loop `reachable-branch universe drifted across stages` regression (stage0=10→stage1/3/4=0), still blocking the preprocessor zero-gap proof + SV family-status umbrella. |
+| 1 | `SV-EXH-PROOF.2.3` | `pending` | `.2.1` (A1+A2) + `.2.2` (A3' universe-drift mis-spec) done+verified. `.2.2` let the gate complete, surfacing the next cascade layer: the preprocessor zero-gap proof's `parseability_parser_rejections_total=3` — 3 closed-loop directive stimuli the refactored grammar self-rejects. Genuine campaign-caused round-trip regression; blocks the preprocessor zero-gap proof verdict. |
 | 2 | `SV-EXH-PROOF.3` | `pending` | SV-main grammar hardening 0/14 → green + the SV-main closed-loop replay-shadow rejections (Finding A3); the large multi-slice body; needs `.2` so the umbrella can validate progress. |
 | 3 | `SV-EXH-PROOF.4` | `pending` | Build the derived external-corpus-backed proof surface (needs `.3`'s genuinely-green/dispositioned state). |
 | 4 | `SV-EXH-PROOF.5` | `pending` | Wire it into the contract/gate/family-status/telemetry (needs `.4`). |
@@ -172,6 +179,26 @@ literal over a failing surface.
   cascade goes (the binding lesson
   [[feedback_grammar_edit_proof_gate_lockstep]]) — never revert
   correct fixes, never weaken an invariant to mask a real defect.
+- `2026-05-17` (`PGEN-SV-EXH-PROOF-0004`, **`.2.2`**): the
+  `reachable-branch universe drifted` failure is a **mis-specified
+  gate invariant**, not a real defect (root cause documented):
+  `summary.reachable_branches` is a burn-down DEBT metric
+  (`stimuli_generator.rs:1589` skips `deficit==0`), so the Cat-A
+  `macro_default_atom` factoring legitimately makes stage0 leave 10
+  uncovered that stage1 covers (`covered_branches` 37→47;
+  `reachable_branches` 10→0) — desirable, wrongly flagged by a
+  byte-equality assertion. The true static universe
+  (`total_rules=73`/`total_branches=50`/`reachable_rules=72`) is
+  stage-stable everywhere. Fix = a **correction not a relaxation**:
+  replaced the `reachable_*` cross-stage equality with (a) `total_*`
+  stage-equality (the genuine static-universe invariant the author
+  intended — strengthened, holds) + (b) `reachable_*` non-increasing
+  burn-down (the real no-regression guarantee — still catches debt
+  GROWING across stages). Verified: gate completes (`MAKE_RC=0`),
+  unreachable surface confined to `trivia` pocket. Cascade continues:
+  `.2` split adds `.2.3` (A4 — `parseability_parser_rejections_total=3`,
+  3 closed-loop directive stimuli the refactored grammar
+  self-rejects; genuine campaign-caused round-trip regression).
 - `2026-05-17`: **Code-Change Doctrine** — every grammar / contract /
   gate-script change in `.2`–`.6` is leaf-owned (real grammar gaps in
   `.3` split into sub-leaves).
@@ -182,12 +209,16 @@ literal over a failing surface.
   POST-SV-AUDIT/SVPP factoring is legitimate structure; genuine
   static-unreachable surface unchanged = benign `trivia` pocket), NOT
   a grammar revert/change. Same answer applied to A2.
-- `.2.2` (OPEN): is the closed-loop `reachable-branch universe
-  drifted across stages` (stage0=10→stage1/3/4=0) a stale
-  cross-stage calibration or a genuine closed-loop branch-reachability
-  defect introduced by the refactor? Bisect `7228231b`/`a5da52f4`;
-  resolve in `.2.2` (do not weaken the invariant to mask a real
-  defect).
+- `.2.2` (RESOLVED): mis-specified gate invariant (burn-down metric
+  treated as static universe), not a closed-loop defect — corrected
+  (true universe pinned on `total_*`; debt non-increasing on
+  `reachable_*`); not masked.
+- `.2.3` (OPEN): which exact refactored construct makes the
+  preprocessor closed-loop generate 3 self-rejected directive stimuli
+  (`parser_rejections_total=3`)? Bisect the SVPP-0001 /
+  POST-SV-AUDIT.2.1 preprocessor edits; fix grammar/generation so the
+  closed loop round-trips (no tolerance loosened to mask the
+  self-rejection).
 - `.3`: which commit regressed the external-corpus parse surface to
   `0/14` + the SV-main closed-loop replay-shadow (A3)? Triage owned by
   `.3` (not the baseline).
@@ -195,9 +226,10 @@ literal over a failing surface.
 ## Blockers
 
 - `SV-EXH-PROOF.3`–`.6` are blocked on `SV-EXH-PROOF.2` completing
-  (`.2.2` remains: the deeper preprocessor closed-loop reachable-branch
-  -universe drift still red on the preprocessor zero-gap proof + SV
-  family-status umbrella).
+  (`.2.3` remains: 3 preprocessor closed-loop self-rejected directive
+  stimuli keep the preprocessor zero-gap proof verdict red; SV-main A3
+  separately blocks `sv_parser_family_status_gate` and is owned by
+  `.3`).
 
 ## Verification Log
 
@@ -207,6 +239,7 @@ literal over a failing surface.
 | `2026-05-17` | `SV-EXH-PROOF` (re-scope) | empirical audit of the SV proof stack vs SV's own contracts | `pass — trio-port hypothesis falsified; re-decomposed to external_corpus_backed_proof_surface` |
 | `2026-05-17` | `SV-EXH-PROOF.1` | canonical-target measurement of `sv_external_corpus_triage_gate` (0/14, genuine rejections verified via parse logs + fresh probe), `sv_syntax_closure_gate` (pass, healthy), clean standalone `sv_preprocessor_syntax_closure_gate` (exit 2, `unreachable_branches=13>3`), `sv_formal_exhaustive_closure_gate` (fails — aborts at Finding A), code-read of the hard-coded literal at `sv_formal_exhaustive_closure_gate.sh:245`; git provenance of the preprocessor regression | `pass — deterministic baseline recorded (docs/SV_EXH_PROOF_BASELINE.md); 4 findings dispositioned; LIVE drift corrected same-commit; tree re-planned to 6 leaves; no code changed` |
 | `2026-05-17` | `SV-EXH-PROOF.2.1` | A1: re-baselined contract → clean standalone `sv_preprocessor_syntax_closure_gate` PASS (`status:pass`, `unreachable_branches:13`, `unreachable_rules:1`, `reachable_rules:72`); genuine static-unreachable surface confirmed = only `trivia` (1 rule + 3 branches, `reason=unreachable_from_entry`) ⊆ allowed pocket. A2: confirmed `pp_if_branch::root/s0` absent post-lift and `pp_if_keyword::root` `success_counts=[7,6]` (both polarity branches genuinely exercised) before re-targeting the assertion; re-ran `sv_preprocessor_zero_plausible_gap_proof_gate` → got past A1/A2, surfaced the deeper `.2.2` reachable-branch-universe-drift (stage0=10/stage1=0; `reachable_rules=72` stable) | `pass for .2.1 (A1+A2 correct, evidence-grounded, verified at their gate level; not weakened). `.2` NOT complete — `.2.2` deeper closed-loop regression remains; honestly recorded, not masked` |
+| `2026-05-17` | `SV-EXH-PROOF.2.2` | Root-caused the drift via `stimuli_generator.rs:1567-1733` (`deficit==0 continue` → `reachable_branches` is a burn-down debt count); confirmed per-stage `total_rules=73`/`total_branches=50`/`reachable_rules=72` stage-stable while `covered_branches` 37→47 (burn-down working); git-blamed the equality assertion (`a243bfeb`, generic, calibrated when pre-refactor branch coverage was flat). Replaced mis-spec equality with `total_*` stage-equality + `reachable_*` non-increasing. Re-ran `sv_preprocessor_zero_plausible_gap_proof_gate`: `MAKE_RC=0`, gate completes, drift error gone, `observed_unreachable_rules=["trivia"]` ⊆ allowed; next layer surfaced: `parseability_parser_rejections_total=3` | `pass for .2.2 (mis-spec corrected + true universe strengthened; not masked — verified). `.2` NOT complete — `.2.3` (3 closed-loop self-rejected directive stimuli) remains; honestly recorded` |
 
 ## Commit Log
 
@@ -216,6 +249,7 @@ literal over a failing surface.
 | `SV-EXH-PROOF` (re-scope) | `PGEN-SV-EXH-PROOF-0001` | hypothesis falsified; re-decomposed to the real gap |
 | `SV-EXH-PROOF.1` | `PGEN-SV-EXH-PROOF-0002` | measured baseline + scope lock + LIVE drift correction + 6-leaf re-plan; frontier → `.2` (preprocessor regression prerequisite) |
 | `SV-EXH-PROOF.2.1` | `PGEN-SV-EXH-PROOF-0003` | A1 syntax-closure contract re-baseline (v1→2) + A2 `pp_if_keyword` quality-assertion re-target; both evidence-grounded + verified at gate level; `.2` split (`.2.1` done / `.2.2` deeper closed-loop drift = new frontier); A3 folded into `.3` |
+| `SV-EXH-PROOF.2.2` | `PGEN-SV-EXH-PROOF-0004` | A3' reachable-branch-universe-drift = mis-specified gate invariant (burn-down metric treated as static universe); corrected (`total_*` stage-equality strengthened + `reachable_*` non-increasing), verified `MAKE_RC=0`/not masked; `.2` split adds `.2.3` (A4 — 3 closed-loop self-rejected directive stimuli, new frontier) |
 
 ## Changelog
 
@@ -241,3 +275,17 @@ literal over a failing surface.
   frontier). A3 (SV-main aggregate replay-shadow rejections) folded
   into `.3`. Code change is leaf-owned (contract json + quality-gate
   script). `.2` NOT complete (umbrella still red at `.2.2`).
+- `2026-05-17`: **`.2.2` done.** The `reachable-branch universe
+  drifted` failure was a **mis-specified gate invariant**, not a
+  defect: `summary.reachable_branches` is a burn-down debt count
+  (`stimuli_generator.rs:1589`), so the Cat-A factoring legitimately
+  burned it down 10→0 (covered_branches 37→47) — wrongly flagged by a
+  byte-equality assertion. Corrected (not relaxed): `total_*`
+  stage-equality (true static universe — strengthened) + `reachable_*`
+  non-increasing (genuine no-regression). Verified `MAKE_RC=0`, gate
+  completes, unreachable surface confined to `trivia`. Cascade
+  continues: `.2` split adds `.2.3` (A4 — preprocessor closed-loop
+  `parser_rejections_total=3`: 3 self-rejected directive stimuli from
+  the refactor, genuine round-trip regression, new frontier). Code
+  change leaf-owned (`sv_preprocessor_aggregate_contract_gate.sh`).
+  `.2` NOT complete (zero-gap proof verdict still red at `.2.3`).

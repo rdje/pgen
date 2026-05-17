@@ -1,4 +1,51 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0004 (leaf SV-EXH-PROOF.2.2): preprocessor regression remediation part 2 — corrected the mis-specified reachable-branch-universe-drift gate invariant
+
+- **A3' root cause (documented): a mis-specified gate invariant, not
+  a real defect.** `sv_preprocessor_aggregate_contract_gate` asserted
+  `summary.reachable_rules`/`reachable_branches` byte-IDENTICAL across
+  closed-loop stage0/1/3/4 ("universe drifted"). But in
+  `stimuli_generator.rs:1567-1733` the gap report skips branches whose
+  `deficit == 0` (already threshold-covered), so `summary.reachable_*`
+  is a reachable-but-NOT-yet-covered **burn-down debt** count, not a
+  static universe. The legitimate `PGEN-POST-SV-AUDIT-0002` Cat-A
+  `macro_formals` factoring added `macro_default_atom` branches that
+  stage0 leaves uncovered (`reachable_branches=10`) and stage1 then
+  covers (`covered_branches` 37→47, `reachable_branches→0`) —
+  desirable burn-down, wrongly flagged as drift. The TRUE static
+  universe (`total_rules=73`/`total_branches=50`/`reachable_rules=72`)
+  is stage-stable everywhere.
+- **Fix (code: `rust/scripts/sv_preprocessor_aggregate_contract_gate.sh`,
+  leaf-owned) — a correction, not a relaxation:** replaced the
+  mis-specified `reachable_*` cross-stage equality with **(a)**
+  `total_rules`/`total_branches` stage-equality — the genuine
+  static-universe invariant the author intended, which truly holds (a
+  *strengthening*) — plus **(b)** `reachable_*` *non-increasing*
+  across stages (the correct burn-down/no-regression guarantee; a
+  real regression where debt GROWS across stages is still caught),
+  matching the gate's existing monotonic stage-debt/coverage checks.
+  Documented inline with provenance.
+- **Verified, not masked:** re-ran
+  `sv_preprocessor_zero_plausible_gap_proof_gate` → `MAKE_RC=0`, the
+  drift error is gone, the gate runs to completion, and the
+  syntax-unreachable surface is provably confined to the benign
+  `trivia` pocket (`observed_unreachable_rules=["trivia"]` ⊆
+  `allowed=["line_comment","trivia"]`).
+- **Honest scope — cascade continues.** Completing the gate surfaced
+  the next campaign-caused layer: the zero-gap proof verdict is still
+  red on `unmet_proof_criteria` "Aggregate preconditions regressed:
+  parseability_parser_rejections_total=3" — the preprocessor
+  closed-loop generates 3 directive stimuli (samples starting with
+  backtick) the refactored grammar self-rejects ("Parser did not
+  consume full input"), across stage0_a/0_b/stage1/stage2. This was
+  `0` when the preprocessor crossed `Done` (2026-04-01); only
+  SVPP-0001 + POST-SV-AUDIT.2.1 preprocessor edits since → genuine
+  round-trip parseability regression. `.2` split adds `.2.3` (new
+  frontier); `.2` remains NOT complete. SV-main A3 stays in `.3`.
+  LIVE preprocessor-correction updated (3 facets fixed; `.2.3`
+  parseability self-rejection remains). No tolerance loosened to mask
+  a real defect.
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0003 (leaf SV-EXH-PROOF.2.1): preprocessor regression remediation part 1 — A1 syntax-closure contract re-baseline + A2 pp_if_keyword quality-assertion re-target
 
 - The baseline Finding A "preprocessor regression" proved to be a

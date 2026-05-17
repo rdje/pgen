@@ -78,12 +78,13 @@ same-commit), `sv_formal_exhaustive_closure_gate.sh:245` hard-codes
 the closure-green literal, and a prerequisite **preprocessor
 preprocessor proof-stack regression cascade** (lockstep defect from
 this session's POST-SV-AUDIT.2.1/INLINE-ALT-FIX.1) blocks the SV
-umbrella. `PGEN-SV-EXH-PROOF-0003` (leaf `.2.1`) remediated the
-syntax-closure (A1, contract re-baseline v1→2) + `pp_if_keyword`
-quality-coverage (A2) facets — both evidence-grounded + verified
-green; a deeper closed-loop facet (`.2.2`, "reachable-branch universe
-drifted across stages") remains the frontier. The tree (6 leaves,
-`.2` split into `.2.1` done / `.2.2`) re-earns `Done` for the SV
+umbrella. `PGEN-SV-EXH-PROOF-0003`/`-0004` (leaves `.2.1`/`.2.2`) remediated
+the syntax-closure (A1) + `pp_if_keyword` quality-coverage (A2) +
+reachable-branch-universe-drift mis-spec (A3') facets — all
+evidence-grounded + verified, not masked; a further campaign-caused
+facet (`.2.3`, preprocessor closed-loop self-rejects 3 generated
+directive stimuli) remains the frontier. The tree (6 leaves, `.2`
+split into `.2.1`/`.2.2` done + `.2.3`) re-earns `Done` for the SV
 main-parser family honestly. See
 `LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot and the other
 roadmap-level workstreams (which require user prioritization — they
@@ -91,7 +92,7 @@ are large multi-week efforts, not bounded PNT slices).
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.2.2` — deeper preprocessor closed-loop `reachable-branch universe drifted across stages` regression (`.2.1` A1 syntax-closure contract + A2 `pp_if_keyword` quality-assertion done+verified) | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
+| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.2.3` — preprocessor closed-loop self-rejects 3 generated directive stimuli (`parseability_parser_rejections_total=3`; `.2.1` A1+A2 and `.2.2` A3' universe-drift mis-spec done+verified) | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
 
 ## Proposed Task Trees
 

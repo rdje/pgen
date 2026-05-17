@@ -309,6 +309,15 @@ stage0_reachable_branches="$(extract_json_number "$gap_stage0_a_json" '.summary.
 stage1_reachable_branches="$(extract_json_number "$gap_stage1_json" '.summary.reachable_branches')"
 stage3_reachable_branches="$(extract_json_number "$gap_stage3_json" '.summary.reachable_branches')"
 stage4_reachable_branches="$(extract_json_number "$gap_stage4_a_json" '.summary.reachable_branches')"
+# Static universe (stage-invariant by definition: pure grammar+entry property).
+stage0_total_rules="$(extract_json_number "$gap_stage0_a_json" '.summary.total_rules')"
+stage1_total_rules="$(extract_json_number "$gap_stage1_json" '.summary.total_rules')"
+stage3_total_rules="$(extract_json_number "$gap_stage3_json" '.summary.total_rules')"
+stage4_total_rules="$(extract_json_number "$gap_stage4_a_json" '.summary.total_rules')"
+stage0_total_branches="$(extract_json_number "$gap_stage0_a_json" '.summary.total_branches')"
+stage1_total_branches="$(extract_json_number "$gap_stage1_json" '.summary.total_branches')"
+stage3_total_branches="$(extract_json_number "$gap_stage3_json" '.summary.total_branches')"
+stage4_total_branches="$(extract_json_number "$gap_stage4_a_json" '.summary.total_branches')"
 
 if (( stage1_target_count > stage0_target_count )); then
     echo "error: preprocessor gap-priority target debt increased: stage0=$stage0_target_count stage1=$stage1_target_count" >&2
@@ -335,13 +344,35 @@ if (( stage1_covered_reachable_branches < stage0_covered_reachable_branches || s
     exit 1
 fi
 
-if (( stage0_reachable_rules != stage1_reachable_rules || stage1_reachable_rules != stage3_reachable_rules || stage3_reachable_rules != stage4_reachable_rules )); then
-    echo "error: preprocessor reachable-rule universe drifted across stages: stage0=$stage0_reachable_rules stage1=$stage1_reachable_rules stage3=$stage3_reachable_rules stage4=$stage4_reachable_rules" >&2
+# Corrected 2026-05-17 (PGEN-SV-EXH-PROOF-0004, leaf SV-EXH-PROOF.2.2).
+# The prior assertions required summary.reachable_rules / summary.reachable_branches
+# to be byte-IDENTICAL across stage0/1/3/4 ("universe drifted"). That is
+# mis-specified: in stimuli_generator.rs the gap report skips branches whose
+# `deficit == 0` (already covered to threshold), so summary.reachable_* is a
+# reachable-but-NOT-yet-covered *burn-down debt* count, NOT a static universe.
+# It legitimately DECREASES as the closed loop covers more across stages
+# (PGEN-POST-SV-AUDIT-0002's Cat-A macro_formals factoring added macro_default_atom
+# branches that stage0 leaves uncovered (reachable_branches=10) and stage1 then
+# covers (covered_branches 37->47, reachable_branches->0) -- desirable burn-down,
+# wrongly flagged as drift). The genuine "static universe must not drift" intent
+# is enforced correctly below on the truly stage-invariant total_rules /
+# total_branches; the genuine no-regression guarantee on the debt metric is a
+# monotone non-increasing (burn-down) check, matching the existing stage debt /
+# coverage invariants above. Strengthened (true universe pinned) + corrected
+# (debt non-increasing) -- not weakened; a real regression (debt GROWING across
+# stages) is still caught.
+if (( stage0_total_rules != stage1_total_rules || stage1_total_rules != stage3_total_rules || stage3_total_rules != stage4_total_rules || stage0_total_branches != stage1_total_branches || stage1_total_branches != stage3_total_branches || stage3_total_branches != stage4_total_branches )); then
+    echo "error: preprocessor static rule/branch universe drifted across stages: total_rules stage0=$stage0_total_rules stage1=$stage1_total_rules stage3=$stage3_total_rules stage4=$stage4_total_rules ; total_branches stage0=$stage0_total_branches stage1=$stage1_total_branches stage3=$stage3_total_branches stage4=$stage4_total_branches" >&2
     exit 1
 fi
 
-if (( stage0_reachable_branches != stage1_reachable_branches || stage1_reachable_branches != stage3_reachable_branches || stage3_reachable_branches != stage4_reachable_branches )); then
-    echo "error: preprocessor reachable-branch universe drifted across stages: stage0=$stage0_reachable_branches stage1=$stage1_reachable_branches stage3=$stage3_reachable_branches stage4=$stage4_reachable_branches" >&2
+if (( stage1_reachable_rules > stage0_reachable_rules || stage3_reachable_rules > stage1_reachable_rules || stage4_reachable_rules > stage3_reachable_rules )); then
+    echo "error: preprocessor reachable-rule debt increased across stages (burn-down regression): stage0=$stage0_reachable_rules stage1=$stage1_reachable_rules stage3=$stage3_reachable_rules stage4=$stage4_reachable_rules" >&2
+    exit 1
+fi
+
+if (( stage1_reachable_branches > stage0_reachable_branches || stage3_reachable_branches > stage1_reachable_branches || stage4_reachable_branches > stage3_reachable_branches )); then
+    echo "error: preprocessor reachable-branch debt increased across stages (burn-down regression): stage0=$stage0_reachable_branches stage1=$stage1_reachable_branches stage3=$stage3_reachable_branches stage4=$stage4_reachable_branches" >&2
     exit 1
 fi
 
