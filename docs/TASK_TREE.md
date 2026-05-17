@@ -26,18 +26,17 @@ same commit.
 
 ## Active Task Trees
 
-All nine prior trees + the `INLINE-ALT-FIX` parser-correctness tree are
-complete (`2026-05-16`→`17`). The systemic inline-alternation-`$N`
-defect class is fully resolved across all four affected grammars
-(`RTL-CE-0001`/`SVPP-0001`/`RTL-FE-0001`/`VHDL-0001`). **No active task
-trees.** The remaining `DOC-README-SHELL-0001` README/COMMIT.md
-`SHELL=` reconciliation is the one open non-task-tree single-slice lane
-(`PGEN-WORKFLOW-<NNNN>`). See `LIVE_ACHIEVEMENT_STATUS.md` for the live
-snapshot.
+The 9 prior trees + the `INLINE-ALT-FIX` parser-correctness tree are
+complete (`2026-05-16`→`17`); `DOC-ENVELOPE-0001` (5 books) and
+`DOC-README-SHELL-0001` (closed — hypothesis empirically falsified)
+are likewise done. On `2026-05-17` the user explicitly **activated**
+the previously-`proposed` `POST-SV-AUDIT` tree (TaskList #49 holistic
+AST-shape audit) — its campaign-complete precondition is now met. See
+`LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot.
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| _(none active)_ | | | | |
+| `POST-SV-AUDIT` | `active` | shape audit (TaskList #49) | `POST-SV-AUDIT.1` | [docs/tasks/POST-SV-AUDIT.md](tasks/POST-SV-AUDIT.md) |
 
 ## Proposed Task Trees
 
@@ -46,7 +45,7 @@ PNT-eligible until explicitly activated.
 
 | Tree | Status | Roadmap lane | Proposed first leaf | File |
 | --- | --- | --- | --- | --- |
-| `POST-SV-AUDIT` | `proposed` | shape audit | `POST-SV-AUDIT.1` | (not created — see TaskList #49 placeholder) |
+| _(none proposed)_ | | | | |
 
 ## Completed Task Trees
 

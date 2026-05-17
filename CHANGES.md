@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0000 (POST-SV-AUDIT tree setup): activate the deferred holistic AST-shape audit (TaskList #49)
+
+- User explicitly **activated** the previously-`proposed`
+  `POST-SV-AUDIT` task tree (the campaign-complete precondition from
+  the deferral memory / TaskList #49 is now met). Created
+  `docs/tasks/POST-SV-AUDIT.md`; moved Proposed→Active in
+  `docs/TASK_TREE.md` (Proposed table now empty).
+- Tree decomposed into: `.1` **audit & classify** (enumerate every
+  `{first/lhs..rest:$N}` + raw-`$N`-over-iteration annotation across
+  all product grammars; classify Category A/B/C with
+  `parseability_probe` evidence; produce
+  `docs/POST_SV_AUDIT_LEDGER.md` + the prioritized objective-bug
+  worklist) → `.2` **fix the confirmed objective bugs** (Cat-A
+  raw-envelope misuse on pure separator lists; any residual Cat-B
+  inline-alternation-`$N` not covered by the closed `INLINE-ALT-FIX`
+  binop class), one commit per grammar via the proven
+  regen+manifest+schema/release-bump+book+contract+ledger playbook →
+  `.3` **Cat-C/residual review + close** (TaskList #49). Frontier
+  `.1`.
+- **Empirical pre-scope recorded** (so `.1` starts from evidence):
+  audit-surface `{first/lhs..rest:$N}` per grammar = rtl_const_expr
+  10, rtl_frontend 28, systemverilog_preprocessor 1, systemverilog
+  38, vhdl 22; raw `{first:$1, rest:$2}` candidates = rtl_frontend
+  3 / systemverilog 7 / vhdl 7; one **concrete known finding** —
+  `rtl_frontend.ebnf:162` `event_control_list := … ( ( comma |
+  kw_or ) event_control_item )*` is an inline-alternation-as-separator
+  NOT covered by the binop `INLINE-ALT-FIX` class (Cat-A-or-residual-B
+  — `.1` will probe + classify it first).
+- Lane-setup only — **no grammar/parser/codegen change in this
+  commit**; no parser-family status row change.
+
 ## 2026-05-17 - PGEN-WORKFLOW-0005: DOC-README-SHELL-0001 investigated → hypothesis empirically FALSIFIED → closed, no fix needed
 
 - `DOC-README-SHELL-0001` (filed earlier this session) hypothesised
