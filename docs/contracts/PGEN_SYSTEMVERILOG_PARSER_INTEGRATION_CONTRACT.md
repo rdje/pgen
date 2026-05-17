@@ -7,13 +7,13 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.116`
+  - `1.0.117`
 - Parser release version:
-  - `1.0.116`
+  - `1.0.117`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
-  - `2` (POST-SV-AUDIT.2.4a: the reachable, consumer-visible `net_alias` Category-A raw-envelope correction `{first, second, rest}` → `{lvalues: […]}` drives the bump; a defensive structural correction of 5 number rules — `unsigned_number` / `non_zero_unsigned_number` / `binary_value` / `octal_value` / `hex_value` — bundles in (annotation text unchanged). See "AST-Shape Corrections — 1.0.116 (POST-SV-AUDIT)". The `1.0.115`/schema `1` history and the DOC-ENVELOPE / earlier slice history are retained below.)
+  - `3` (POST-SV-AUDIT.2.4b: 11 structured-per-iteration Category-A misuses corrected by factoring each repeated multi-field unit into a new named record rule + an extraction-spread — `list_of_interface_identifiers` / `list_of_port_identifiers` / `list_of_variable_identifiers` / `list_of_tf_variable_identifiers` / `list_of_variable_port_identifiers`, the `let_` / `property_` / `sequence_list_of_arguments` mixed+named_only branches, `parameter_port_list` type_only, and the two `assignment_pattern` named branches. 9 new annotated record rules were added, so the inventory **deliberately changed 2290 → 2299 / 999 → 1008** (these factored record rules ARE annotated — analogous to SVPP-0001's `pp_if_keyword`; NOT "unchanged"). See "AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT)". The `1.0.116`/schema `2`, `1.0.115`/schema `1`, the AST-Shape-Corrections-1.0.116, the DOC-ENVELOPE / earlier slice history are retained below.)
 - Last updated:
   - `2026-05-17`
 - Current grammar family label:
@@ -35,6 +35,195 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.117 / Contract 1.0.117 Highlights — POST-SV-AUDIT.2.4b: 11 structured-per-iteration Category-A misuses corrected via factored record rules; schema 2 → 3
+
+Landed 2026-05-17. The POST-SV-AUDIT static classification pass
+(`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.4b, tracked
+`PGEN-POST-SV-AUDIT-0006`) dispositioned the final SystemVerilog
+worklist item — the **11 structured-per-iteration Category-A** rules in
+`grammars/systemverilog.ebnf`. Each repeated **multi-field** unit
+(`X field field … ( SEP X field field … )*`) was factored into a **new
+named record rule** that emits the per-iteration record, and the list /
+branch now uses an extraction-spread over that record rule. The field
+names of the prior `first` record (`{name, dims[, init]}`,
+`{name, value}`, `{name, pattern}`) are **preserved**.
+
+The parser is regenerated; the manifest
+`rust/test_data/ast_shape_contract/systemverilog_v1.json` is re-locked
+(new `structured_decls` sample + `calibration_history` entry #118);
+`systemverilog_ast_shape_contract` passes.
+
+Annotation count: **2299** (was 2290, **+9 — a deliberate count
+change, NOT "unchanged"**). The 9 new factored record rules
+(`interface_identifier_decl`, `port_identifier_decl`,
+`variable_identifier_decl`, `tf_variable_identifier_decl`,
+`variable_port_identifier_decl`, `let_named_arg`, `property_named_arg`,
+`sequence_named_arg`, `assignment_pattern_entry`) **are annotated** —
+unlike the pure-Cat-A `[$1, $2::2*]` rewrites, which add no annotations;
+this is the same kind of deliberate +N record-rule count change as
+SVPP-0001's `pp_if_keyword`. **1008** distinct annotated rules (was
+999, +9). Same accept set (no grammar-acceptance change — purely the
+factored record shape). AST-dump schema bumped `2 → 3` because the
+affected list / branch shapes change in a consumer-visible way.
+
+### Schema-Versioning row
+
+| AST-dump schema version | First parser release | Notable changes |
+|---|---|---|
+| `3` | `1.0.117` | **POST-SV-AUDIT.2.4b (`PGEN-POST-SV-AUDIT-0006`).** 11 structured-per-iteration Category-A misuses corrected — each repeated multi-field unit factored into a new annotated record rule + an extraction-spread; field names preserved. 9 new annotated record rules → inventory **2290 → 2299 / 999 → 1008** (a deliberate +9, NOT "unchanged"; analogous to SVPP-0001's `pp_if_keyword`). Reachable `list_of_*_identifiers` probe-verified; the `*_list_of_arguments` / `parameter_port_list` type_only / `assignment_pattern` named branches are defensively-correct-by-construction (likely unreachable via the strict SV root — pre-existing, out-of-scope), **not** a bug-ledger entry. Same accept set. See "AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT)". |
+
+## AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT) — 11 structured-per-iteration Category-A misuses → clean factored record lists; +9 annotated record rules (2290→2299 / 999→1008, a DELIBERATE count change); reachable list_of_*_identifiers probe-verified, the rest defensively-correct-by-construction (NOT a bug-ledger entry); schema 2 → 3
+
+Landed 2026-05-17. The POST-SV-AUDIT static classification pass
+(`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.4b, tracked
+`PGEN-POST-SV-AUDIT-0006`) dispositioned the **11
+structured-per-iteration Category-A** rules — `X field field …
+( SEP X field field … )*` rules whose `{first: {…}, rest: $N}` (or
+`{kind:…, first_name, first_value, rest}`) annotation surfaced the raw
+`[[SEP, field, field, …], …]` multi-field iteration envelope and forced
+every consumer to index past the separator and re-stitch
+`first`/`second` with the envelope. Unlike pure Category-A
+(`X ( SEP X )*` single-element, fixed one-liner `[$1, $2::2*]`), these
+need the repeated **multi-field** unit factored into a **named record
+rule** first. That is exactly the fix applied here: 9 new named record
+rules emit the per-iteration record, and the list / branch is an
+extraction-spread over them. **Field names are preserved** from the
+prior `first` record.
+
+**This is a clean Category-A structural improvement — no
+`<invalid_sequence_access>` corruption.** It is therefore **NOT** an
+entry in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (that
+ledger is reserved for consumer-reproducible released
+`<invalid_sequence_access>` corruption/crash defects). **This batch
+carries no bug-ledger row.**
+
+### Count change — +9 annotated record rules (2290 → 2299 / 999 → 1008; DELIBERATE, NOT "unchanged")
+
+This batch **deliberately changes the annotation inventory**. The 9 new
+factored record rules are themselves annotated (they each carry a
+`-> {…}` record annotation), so:
+
+| | Before (1.0.116) | After (1.0.117) | Delta |
+|---|---|---|---|
+| Annotation count | 2290 | 2299 | **+9** |
+| Distinct annotated rules | 999 | 1008 | **+9** |
+
+This is **categorically different** from the pure-Cat-A grammars (whose
+`{first, rest}` → `[$1, $2::2*]` rewrites add no annotations and so are
+"unchanged"). Here the corrective idiom *requires* a new annotated
+record rule per multi-field unit, so the +9 is **expected and
+intended** — directly analogous to SVPP-0001's `pp_if_keyword` (a
+factored annotated helper rule that legitimately moved the count). The
+9 new annotated record rules are: `interface_identifier_decl`,
+`port_identifier_decl`, `variable_identifier_decl`,
+`tf_variable_identifier_decl`, `variable_port_identifier_decl`,
+`let_named_arg`, `property_named_arg`, `sequence_named_arg`,
+`assignment_pattern_entry`. Verified against
+`generated/systemverilog_return_annotations.json`
+(`annotation_count: 2299`, 1008 distinct rules).
+
+### The 11 rules — old → new (field names preserved)
+
+The 5 `list_of_*_identifiers` rules each gained a dedicated
+`*_identifier_decl` record rule:
+
+```ebnf
+interface_identifier_decl     := interface_identifier unpacked_dimension*                       -> {name: $1, dims: $2}
+list_of_interface_identifiers := interface_identifier_decl ( comma interface_identifier_decl )*  -> [$1, $2::2*]
+port_identifier_decl          := port_identifier unpacked_dimension*                            -> {name: $1, dims: $2}
+list_of_port_identifiers      := port_identifier_decl ( comma port_identifier_decl )*           -> [$1, $2::2*]
+variable_identifier_decl      := variable_identifier variable_dimension*                        -> {name: $1, dims: $2}
+list_of_variable_identifiers  := variable_identifier_decl ( comma variable_identifier_decl )*   -> [$1, $2::2*]
+tf_variable_identifier_decl       := port_identifier variable_dimension* ( assign expression )?              -> {name: $1, dims: $2, init: $3}
+list_of_tf_variable_identifiers   := tf_variable_identifier_decl ( comma tf_variable_identifier_decl )*       -> [$1, $2::2*]
+variable_port_identifier_decl     := port_identifier variable_dimension* ( assign constant_expression )?     -> {name: $1, dims: $2, init: $3}
+list_of_variable_port_identifiers := variable_port_identifier_decl ( comma variable_port_identifier_decl )*   -> [$1, $2::2*]
+```
+
+The 3 `*_list_of_arguments` rules each gained a `*_named_arg` record
+rule; the **mixed** branch's `ordered_tail`/`named_tail` become clean
+extraction-spread arrays, and the **named_only** branch is now a single
+flat `items` list (was `{kind:"named_only", first_name, first_value,
+rest}`):
+
+```ebnf
+let_named_arg              := dot identifier lparen ( let_actual_arg )? rparen -> {name: $2, value: $4}
+let_list_of_arguments      := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma let_named_arg )*
+                                  -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
+                            | let_named_arg ( comma let_named_arg )*
+                                  -> {kind: "named_only", items: [$1, $2::2*]}
+# property_named_arg / sequence_named_arg + property_/sequence_list_of_arguments are the identical idiom
+```
+
+`parameter_port_list` type_only and the two `assignment_pattern` named
+branches:
+
+```ebnf
+# parameter_port_list type_only branch (entry [comma, kw_type, type_assignment] → type_assignment at pos 3)
+... | hash lparen kw_type type_assignment ( comma kw_type type_assignment )* rparen
+        -> {kind: "type_only", items: [$4, $5::3*]}
+# shared record rule for BOTH assignment_pattern named branches (sv_2017 + sv_2023)
+assignment_pattern_entry := member_identifier colon pattern -> {name: $1, pattern: $3}
+... | tick lbrace assignment_pattern_entry ( comma assignment_pattern_entry )* rbrace
+        -> {kind: "named", entries: [$3, $4::2*]}
+```
+
+| Rule (`grammars/systemverilog.ebnf`) | `≤ 1.0.116` / schema `≤ 2` shape (history) | `1.0.117` / schema `3` shape | New record rule |
+|---|---|---|---|
+| `list_of_interface_identifiers` | `{first: {name, dims}, rest: $3}` (raw `[[comma, iface_id, [udim…]], …]` `rest`) | `[$1, $2::2*]` → clean `[{name, dims}]` | `interface_identifier_decl -> {name, dims}` |
+| `list_of_port_identifiers` | `{first: {name, dims}, rest: $3}` | `[$1, $2::2*]` → clean `[{name, dims}]` | `port_identifier_decl -> {name, dims}` |
+| `list_of_variable_identifiers` | `{first: {name, dims}, rest: $3}` | `[$1, $2::2*]` → clean `[{name, dims}]` | `variable_identifier_decl -> {name, dims}` |
+| `list_of_tf_variable_identifiers` | `{first: {name, dims, init}, rest: $4}` | `[$1, $2::2*]` → clean `[{name, dims, init}]` | `tf_variable_identifier_decl -> {name, dims, init}` |
+| `list_of_variable_port_identifiers` | `{first: {name, dims, init}, rest: $4}` | `[$1, $2::2*]` → clean `[{name, dims, init}]` | `variable_port_identifier_decl -> {name, dims, init}` |
+| `let_list_of_arguments` (mixed / named_only) | mixed `{kind:"mixed", head, ordered_tail:$2, named_tail:$3}` (raw tails) / named_only `{kind:"named_only", first_name, first_value, rest:$6}` | mixed `{kind:"mixed", head, ordered_tail:[$2::2*], named_tail:[$3::2*]}` / named_only `{kind:"named_only", items:[$1, $2::2*]}` | `let_named_arg -> {name, value}` |
+| `property_list_of_arguments` (mixed / named_only) | same shape as `let_list_of_arguments` (history) | same new shape as `let_list_of_arguments` | `property_named_arg -> {name, value}` |
+| `sequence_list_of_arguments` (mixed / named_only) | same shape as `let_list_of_arguments` (history) | same new shape as `let_list_of_arguments` | `sequence_named_arg -> {name, value}` |
+| `parameter_port_list` (type_only branch) | `{kind:"type_only", first:$4, rest:$5}` (raw `[[comma, kw_type, type_assignment], …]`) | `{kind:"type_only", items:[$4, $5::3*]}` → clean `[type_assignment]` | (no new rule — `$5::3*` extracts `type_assignment` at entry pos 3) |
+| `assignment_pattern` named (sv_2017 occurrence) | `{kind:"named", entries:{first:{name, pattern}, rest:$6}}` | `{kind:"named", entries:[$3, $4::2*]}` → clean `[{name, pattern}]` | shared `assignment_pattern_entry -> {name, pattern}` |
+| `assignment_pattern` named (sv_2023 occurrence) | `{kind:"named", entries:{first:{name, pattern}, rest:$6}}` (identical 2nd occurrence) | `{kind:"named", entries:[$3, $4::2*]}` | shared `assignment_pattern_entry` (same rule) |
+
+(The `assignment_pattern` named shape lives in `pattern_sv_2017` /
+`pattern_sv_2023`'s `named` branch — both profile occurrences were
+fixed and share the one `assignment_pattern_entry` record rule.)
+
+### Honest reachability finding (reachable list_of_*_identifiers probe-verified; the rest defensively-correct-by-construction)
+
+A `list_of_*_identifiers` path **is** reachable via the strict SV
+`systemverilog_file` root. Parent probe-verified on
+`module m; wire a, b, c; logic x, y, z; endmodule`: the
+identifier-list nodes are clean `{name, dims, init}` record arrays —
+**0 `<invalid_sequence_access>`**, **0 raw `[[], ","]`
+separator-envelope leaks**, **no leftover `{first: {…}, rest: …}`
+structured envelope**.
+
+The remaining rules — the three `*_list_of_arguments` (let / property /
+sequence), `parameter_port_list` type_only, and the `assignment_pattern`
+named branches — are **likely NOT reachable** via the strict SV
+`systemverilog_file` root (it rejects most constructs in all profiles;
+this is a **pre-existing, out-of-scope SV-grammar-root coverage
+limitation**, separate from this defect). Their fix is the **identical,
+proven factor-record-rule idiom** (correct by construction — the same
+transformation applied to the reachable identifier lists), plus a clean
+parser regen and the `systemverilog_ast_shape_contract` manifest lock.
+They are documented here as **defensively-correct-by-construction**,
+**not** claimed as a fresh end-to-end probe (mirroring the .2.4a
+defensive-disposition precedent), and — because there is **no
+`<invalid_sequence_access>` corruption** (clean Category-A structural
+improvement) — they are **NOT** a
+`PGEN_RELEASED_PARSER_BUG_LEDGER` entry.
+
+### Counts and locking
+
+Annotation count: **2299** (was 2290 — **+9, a deliberate change**: the
+9 factored record rules are annotated; this is NOT "unchanged", unlike
+the pure-Cat-A grammars). **1008** distinct annotated rules (was 999,
++9). Same accept set (no grammar-acceptance change). AST-dump schema
+bumped `2 → 3` because the affected list / branch shapes change in a
+consumer-visible way. Gate-locked:
+`systemverilog_ast_shape_contract` passes (new `structured_decls`
+sample + `calibration_history` entry #118);
+`make -C rust SHELL=/opt/homebrew/bin/bash systemverilog_parser_book_gate`.
 
 ## Release 1.0.116 / Contract 1.0.116 Highlights — POST-SV-AUDIT.2.4a: net_alias Cat-A raw-envelope correction + 5-number-rule defensive structural fix; schema 1 → 2
 
@@ -66,6 +255,7 @@ consumer-visible way; the number-rule structural fix bundles in.
 
 | AST-dump schema version | First parser release | Notable changes |
 |---|---|---|
+| `3` | `1.0.117` | **POST-SV-AUDIT.2.4b (`PGEN-POST-SV-AUDIT-0006`).** 11 structured-per-iteration Category-A misuses corrected: each repeated multi-field unit factored into a **new named record rule** + an extraction-spread, so the affected lists/branches now emit clean flat record arrays (field names `{name, dims[, init]}` / `{name, value}` / `{name, pattern}` PRESERVED from the prior `first` record). Rules: `list_of_interface_identifiers` / `list_of_port_identifiers` / `list_of_variable_identifiers` (`{first:{name,dims},rest}` → `[record]` via new `interface_identifier_decl` / `port_identifier_decl` / `variable_identifier_decl`); `list_of_tf_variable_identifiers` / `list_of_variable_port_identifiers` (`{first:{name,dims,init},rest}` → `[record]` via new `tf_variable_identifier_decl` / `variable_port_identifier_decl`); `let_` / `property_` / `sequence_list_of_arguments` (new `let_named_arg` / `property_named_arg` / `sequence_named_arg := dot identifier lparen ( <x>_actual_arg )? rparen -> {name,value}`; mixed branch `{kind:"mixed", head, ordered_tail:[…], named_tail:[…]}`, named_only branch `{kind:"named_only", items:[…]}` — was `{kind:"named_only", first_name, first_value, rest}`); `parameter_port_list` type_only (`{kind:"type_only", first, rest}` → `{kind:"type_only", items:[$4, $5::3*]}`); `assignment_pattern` named (both profile occurrences; new shared `assignment_pattern_entry := member_identifier colon pattern -> {name,pattern}`; branch `{kind:"named", entries:[…]}` — was `{kind:"named", entries:{first:{name,pattern},rest}}`). **Counts deliberately changed 2290 → 2299 / 999 → 1008** (+9: the 9 factored record rules ARE annotated — unlike pure Cat-A; analogous to SVPP-0001's `pp_if_keyword`. This is NOT "unchanged".). Reachable `list_of_*_identifiers` path probe-verified on `module m; wire a, b, c; logic x, y, z; endmodule` (clean `{name,dims,init}` record list; 0 `<invalid_sequence_access>`; 0 raw `[[],","]` separator-envelope leaks; no leftover `{first:{…},rest:…}` envelope). The `*_list_of_arguments`, `parameter_port_list` type_only, and `assignment_pattern` named branches are likely NOT reachable via the strict SV `systemverilog_file` root (it rejects most constructs in all profiles — a pre-existing, out-of-scope coverage limitation); their fix is the identical proven factor-record-rule idiom (correct by construction) + clean regen + the shape-contract lock — documented as defensively-correct, **not** claimed as a fresh end-to-end probe and **NOT** a bug-ledger entry (Cat-A structured, no `<invalid_sequence_access>` corruption). Same accept set. |
 | `2` | `1.0.116` | **POST-SV-AUDIT.2.4a (`PGEN-POST-SV-AUDIT-0005`).** `net_alias` Category-A raw-envelope misuse corrected `{first, second, rest}` → `{lvalues: […]}` (reachable, consumer-visible — drives the bump). Defensive structural correction of 5 number rules (`unsigned_number` / `non_zero_unsigned_number` / `binary_value` / `octal_value` / `hex_value`): inline-alternation iteration-lead lifted into new un-annotated named `*_tail` rules so `$2` binds cleanly; the `{first: $1, rest: $2}` annotation text is **unchanged**. The number-rule corruption is structurally present but **NOT consumer-reproducible** (SV `systemverilog_file` root rejects every numeric-bearing top-level construct in all profiles) — defensive/latent, **no bug-ledger row**. Counts 2290 / 999 unchanged. |
 | `1` | `≤ 1.0.115` | Slice-campaign baseline (SV-Slice-1 … SV-Slice-115). The integer AST-dump schema stayed `1` across the additive annotation slices (additive shape changes within the major version tracked in the per-rule manifest, not the integer schema). Per-slice detail in the `Release 1.0.115` … `Release 1.0.0` Highlights sections below. |
 
@@ -1522,6 +1712,17 @@ variable_lvalue (concat branch), wait_order_statement (events).
 
 **Category B — multi-payload-per-iteration** rules (where the inner Sequence has multiple meaningful positions, e.g. `binary_operator attribute_instance* operand` or `port_identifier unpacked_dimension*`) keep their `{first, rest}` shape for now. These need helper-rule extractions to expose typed objects per iteration entry — queued for **SV-Slice-59**. Affected: `constant_expression`, `expression` operand_chain, `list_of_interface_identifiers`, `list_of_port_identifiers`, `list_of_tf_variable_identifiers`, `list_of_variable_identifiers`, `list_of_variable_port_identifiers`, `pattern_sv_2017/2023` named-branch entries.
 
+> **RESOLVED (1.0.117 / schema 3, POST-SV-AUDIT.2.4b).** The 5
+> `list_of_*_identifiers` rules and the `pattern_sv_2017/2023`
+> named-branch entries (`assignment_pattern` named) listed above were
+> corrected at `1.0.117` by factoring the repeated multi-field unit
+> into new annotated record rules + extraction-spreads (`+9`
+> annotations → `2290 → 2299` / `999 → 1008`). The remaining
+> `constant_expression` / `expression` operand_chain are the
+> separately-resolved Cat-B named-op-rule class (correct as-is). This
+> deferral note is kept as labeled history. See
+> [AST-Shape Corrections — 1.0.117](#ast-shape-corrections--10117-post-sv-audit--11-structured-per-iteration-category-a-misuses--clean-factored-record-lists-9-annotated-record-rules-22902299--9991008-a-deliberate-count-change-reachable-list_of__identifiers-probe-verified-the-rest-defensively-correct-by-construction-not-a-bug-ledger-entry-schema-2--3).
+
 **Category C — `X X*` (no separator)** rules already produce a clean array via `$M*`, but currently use `{first: $N, rest: $M}` for verbose-but-correct semantics. Flattening to a single array is queued for the post-campaign holistic shape-correctness audit (per user direction).
 
 **Post-campaign holistic shape-correctness audit** is also queued: review the entire shaped AST end-to-end after the SV typing campaign is complete and adjust shapes for downstream ergonomics where useful.
@@ -2468,6 +2669,21 @@ assignment_pattern := tick lbrace expression ( comma expression )* rbrace
                    -> {exprs: {first: $3, rest: $4}}
 ```
 
+> **Shape correction (1.0.117 / schema 3, POST-SV-AUDIT.2.4b).** The
+> `pattern_sv_2017` / `pattern_sv_2023` **`named` branch** shown above
+> (`{kind:"named", entries:{first:{name:$3,pattern:$5}, rest:$6}}` —
+> raw `[[comma, mid, colon, pattern], …]` `rest` envelope, present
+> identically in both profiles) was corrected at `1.0.117` to
+> `{kind:"named", entries:[$3, $4::2*]}` via a new shared annotated
+> record rule `assignment_pattern_entry := member_identifier colon
+> pattern -> {name:$1, pattern:$3}` (field names `{name, pattern}`
+> preserved). The `assignment_pattern` `exprs` branch above is the
+> separate, already-clean `'{e, e, …}` form (its `{first, rest}` here
+> is `≤ 1.0.45` history flattened to `[$3, $4::2*]` at slice 58 — out
+> of scope of 1.0.117). The `≤ 1.0.116` `named`-branch shape above is
+> kept as labeled history. See
+> [AST-Shape Corrections — 1.0.117](#ast-shape-corrections--10117-post-sv-audit--11-structured-per-iteration-category-a-misuses--clean-factored-record-lists-9-annotated-record-rules-22902299--9991008-a-deliberate-count-change-reachable-list_of__identifiers-probe-verified-the-rest-defensively-correct-by-construction-not-a-bug-ledger-entry-schema-2--3).
+
 ### Field semantics
 
 - `cond_predicate.first` / `.rest`: the LRM A.6.7.1 `&&&`-separated chain of expression-or-cond_pattern values used in conditional statement predicates and case-pattern guards.
@@ -2532,6 +2748,16 @@ list_of_variable_identifiers  := variable_identifier variable_dimension* (comma 
                               -> {first: {name: $1, dims: $2}, rest: $3}
 ```
 
+> **Shape correction (1.0.117 / schema 3, POST-SV-AUDIT.2.4b).** These
+> 3 rules' `≤ 1.0.116` `{first: {name, dims}, rest}` (raw
+> `[[comma, id, [dim…]], …]` `rest` envelope) was corrected to a clean
+> flat record list — each repeated unit factored into a new annotated
+> record rule (`interface_identifier_decl` / `port_identifier_decl` /
+> `variable_identifier_decl` `-> {name, dims}`), the list now
+> `[$1, $2::2*]`. Field names `{name, dims}` preserved. The `≤ 1.0.116`
+> shape above is kept as labeled history. See
+> [AST-Shape Corrections — 1.0.117](#ast-shape-corrections--10117-post-sv-audit--11-structured-per-iteration-category-a-misuses--clean-factored-record-lists-9-annotated-record-rules-22902299--9991008-a-deliberate-count-change-reachable-list_of__identifiers-probe-verified-the-rest-defensively-correct-by-construction-not-a-bug-ledger-entry-schema-2--3).
+
 #### `{first: {name, dims, init}, rest}` (2 rules with optional initializer)
 
 ```ebnf
@@ -2540,6 +2766,15 @@ list_of_tf_variable_identifiers   := port_identifier variable_dimension* (assign
 list_of_variable_port_identifiers := port_identifier variable_dimension* (assign constant_expression)? (comma port_identifier variable_dimension* (assign constant_expression)?)*
                                   -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
 ```
+
+> **Shape correction (1.0.117 / schema 3, POST-SV-AUDIT.2.4b).** These
+> 2 rules' `≤ 1.0.116` `{first: {name, dims, init}, rest}` raw
+> multi-field envelope was corrected to a clean flat record list via
+> new annotated record rules (`tf_variable_identifier_decl` /
+> `variable_port_identifier_decl` `-> {name, dims, init}`), the list now
+> `[$1, $2::2*]`. Field names `{name, dims, init}` preserved. The
+> `≤ 1.0.116` shape above is kept as labeled history. See
+> [AST-Shape Corrections — 1.0.117](#ast-shape-corrections--10117-post-sv-audit--11-structured-per-iteration-category-a-misuses--clean-factored-record-lists-9-annotated-record-rules-22902299--9991008-a-deliberate-count-change-reachable-list_of__identifiers-probe-verified-the-rest-defensively-correct-by-construction-not-a-bug-ledger-entry-schema-2--3).
 
 #### `{first, second, rest}` (1 rule — list with 2 required items)
 

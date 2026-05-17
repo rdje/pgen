@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d3141d0e.js";
+            window.path_to_searchindex_js = "searchindex-c942a986.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -269,7 +269,7 @@ fn walk(node: &amp;JsonValue) {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const SV_AST_SCHEMA_VERSION: u32 = 2;
+const SV_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -282,7 +282,8 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match SV_AST_SCHEMA_VERSION {
-    2 =&gt; walk_schema_v2(&amp;root), // current: net_alias is {lvalues: […]} (was {first, second, rest} at schema 1)
+    3 =&gt; walk_schema_v3(&amp;root), // current: list_of_*_identifiers / *_list_of_arguments / parameter_port_list type_only / assignment_pattern named are clean factored record lists (was structured {first:{…},rest} / {first_name,first_value,rest} at schema 2)
+    2 =&gt; walk_schema_v2(&amp;root), // legacy: net_alias is {lvalues: […]}; the above rules still {first:{…},rest}
     1 =&gt; walk_schema_v1(&amp;root), // legacy: net_alias was {first, second, rest}
     other =&gt; eprintln!("no walker compiled for systemverilog AST schema version {other}"),
 }

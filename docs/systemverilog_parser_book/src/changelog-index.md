@@ -19,6 +19,60 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.117 / Contract 1.0.117 — POST-SV-AUDIT.2.4b: 11 structured-per-iteration Category-A misuses corrected via factored record rules (schema 2 → 3)
+
+`PGEN-POST-SV-AUDIT-0006`, leaf POST-SV-AUDIT.2.4b (2026-05-17).
+**AST-dump schema bumped `2 → 3`** (the affected list / branch shapes
+change in a consumer-visible way).
+
+The 11 structured-per-iteration Category-A rules in
+`grammars/systemverilog.ebnf` were corrected. Each repeated
+**multi-field** unit was factored into a **new annotated record rule**
+and the list / branch became an extraction-spread over it. Field names
+of the prior `first` record are **preserved**.
+
+- 5 `list_of_*_identifiers`: `{first: {name, dims[, init]}, rest}`
+  (raw `[[comma, id, [dim…]], …]` envelope) → clean flat record array
+  via new `interface_identifier_decl` / `port_identifier_decl` /
+  `variable_identifier_decl` (`-> {name, dims}`) and
+  `tf_variable_identifier_decl` / `variable_port_identifier_decl`
+  (`-> {name, dims, init}`); list now `[$1, $2::2*]`.
+- `let_` / `property_` / `sequence_list_of_arguments`: new
+  `*_named_arg := dot identifier lparen ( <x>_actual_arg )? rparen
+  -> {name, value}`; **mixed** branch `{kind:"mixed", head,
+  ordered_tail:[…], named_tail:[…]}`; **named_only** branch
+  `{kind:"named_only", items:[…]}` (was `{kind:"named_only",
+  first_name, first_value, rest}`).
+- `parameter_port_list` type_only: `{kind:"type_only", first, rest}` →
+  `{kind:"type_only", items:[$4, $5::3*]}` (clean `[type_assignment]`).
+- `assignment_pattern` named (both `pattern_sv_2017` and
+  `pattern_sv_2023` occurrences): new shared `assignment_pattern_entry
+  := member_identifier colon pattern -> {name, pattern}`; branch
+  `{kind:"named", entries:[$3, $4::2*]}` (was `{kind:"named",
+  entries:{first:{name,pattern},rest}}`).
+
+Annotation inventory: **2299** (was 2290, **+9 — a DELIBERATE count
+change, NOT "unchanged"**). The 9 new factored record rules
+(`interface_identifier_decl`, `port_identifier_decl`,
+`variable_identifier_decl`, `tf_variable_identifier_decl`,
+`variable_port_identifier_decl`, `let_named_arg`, `property_named_arg`,
+`sequence_named_arg`, `assignment_pattern_entry`) **are annotated** —
+unlike the pure-Cat-A `[$1, $2::2*]` rewrites that add no annotations;
+this is the same kind of deliberate +N as SVPP-0001's `pp_if_keyword`.
+**1008** distinct annotated rules (was 999, +9). Same accept set. The
+reachable `list_of_*_identifiers` path is probe-verified on
+`module m; wire a, b, c; logic x, y, z; endmodule` (clean `{name,
+dims, init}` record list; 0 `<invalid_sequence_access>`; 0 raw `[[],
+","]` separator-envelope leaks). The `*_list_of_arguments`,
+`parameter_port_list` type_only, and `assignment_pattern` named
+branches are likely unreachable via the strict SV root (pre-existing,
+out-of-scope coverage limitation) — defensively-correct-by-construction
+(identical proven idiom), **not** claimed as a fresh probe and **NOT a
+bug-ledger entry** (clean Category-A, no `<invalid_sequence_access>`
+corruption). Full detail: contract §
+"AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT)" and
+`docs/POST_SV_AUDIT_LEDGER.md`.
+
 ### 1.0.116 / Contract 1.0.116 — POST-SV-AUDIT.2.4a: net_alias Cat-A raw-envelope correction + 5-number-rule defensive structural fix (schema 1 → 2)
 
 `PGEN-POST-SV-AUDIT-0005`, leaf POST-SV-AUDIT.2.4a (2026-05-17).

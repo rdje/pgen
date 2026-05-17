@@ -356,7 +356,11 @@ inventory — **no count delta**), **999** distinct annotated rules
 (UNCHANGED). Same accept set. **No bug-ledger row** (neither item is
 a consumer-reproducible released `<invalid_sequence_access>` defect).
 The **11 structured-per-iteration Cat-A SV rules remain OPEN**
-(POST-SV-AUDIT.2.4b — *not* touched/closed here).
+(POST-SV-AUDIT.2.4b — *not* touched/closed here). _(Update: those 11
+rules were subsequently RESOLVED — FIXED at leaf POST-SV-AUDIT.2.4b
+(`PGEN-POST-SV-AUDIT-0006`, systemverilog 1.0.117 / schema 3); see the
+"Structured-per-iteration Cat-A" RESOLVED block in the systemverilog
+section below. This .2.4a-era OPEN statement is kept as provenance.)_
 
 ## vhdl.ebnf
 
@@ -618,6 +622,99 @@ Parent to confirm the desired record shape per rule.
   assignment_pattern branch, `parameter_port_list` declarations
   branch) already use the correct `[$1, $2::2*]` — that is the
   reference idiom.
+
+**RESOLVED — FIXED (`PGEN-POST-SV-AUDIT-0006`, leaf
+POST-SV-AUDIT.2.4b, 2026-05-17). WORKLIST DONE.** The original
+classification above is kept verbatim as history. **All 11
+systemverilog structured-per-iteration Category-A rules were fixed**
+in `grammars/systemverilog.ebnf` by factoring each repeated
+multi-field unit into a **new named record rule** + an
+extraction-spread (the idiom the worklist itself prescribed). The
+parser was regenerated and the manifest
+`rust/test_data/ast_shape_contract/systemverilog_v1.json` re-locked
+(new `structured_decls` sample + `calibration_history` entry #118;
+`systemverilog_ast_shape_contract` passes). Fixed in **systemverilog
+parser release `1.0.117` / contract `1.0.117` / AST-dump schema `3`**
+(schema `2 → 3`; consumer-visible list/branch shape change).
+
+The 11 rules (old → new; field names of the prior `first` record
+PRESERVED):
+
+- `list_of_interface_identifiers` (2435-2436) — `{first:{name,dims},
+  rest:$3}` → new `interface_identifier_decl := interface_identifier
+  unpacked_dimension* -> {name:$1,dims:$2}`; list `-> [$1, $2::2*]`
+  (clean `[{name,dims}]`) (RESOLVED — FIXED)
+- `list_of_port_identifiers` (2490-2491) — new `port_identifier_decl
+  -> {name,dims}`; `[$1, $2::2*]` (RESOLVED — FIXED)
+- `list_of_variable_identifiers` (2514-2515) — new
+  `variable_identifier_decl -> {name,dims}`; `[$1, $2::2*]`
+  (RESOLVED — FIXED)
+- `list_of_tf_variable_identifiers` (2499-2500) — new
+  `tf_variable_identifier_decl -> {name,dims,init}`; `[$1, $2::2*]`
+  (RESOLVED — FIXED)
+- `list_of_variable_port_identifiers` (2517-2518) — new
+  `variable_port_identifier_decl -> {name,dims,init}`; `[$1, $2::2*]`
+  (RESOLVED — FIXED)
+- `let_list_of_arguments` / `property_list_of_arguments` /
+  `sequence_list_of_arguments` (2357-2358 / 3800-3801 / 4197-4198) —
+  each: new `<x>_named_arg := dot identifier lparen ( <x>_actual_arg )?
+  rparen -> {name:$2,value:$4}`; **mixed** branch `{kind:"mixed",
+  head:$1, ordered_tail:[$2::2*], named_tail:[$3::2*]}`; **named_only**
+  branch `{kind:"named_only", items:[$1,$2::2*]}` (was
+  `{kind:"named_only", first_name, first_value, rest}`) (RESOLVED —
+  FIXED)
+- `parameter_port_list` type_only (3327-3328) — `{kind:"type_only",
+  first:$4, rest:$5}` → `{kind:"type_only", items:[$4, $5::3*]}` (entry
+  `[comma, kw_type, type_assignment]` → `type_assignment` at pos 3)
+  (RESOLVED — FIXED)
+- `assignment_pattern` named (3385-3386 and 3401-3402, both profile
+  occurrences) — `{kind:"named", entries:{first:{name:$3,pattern:$5},
+  rest:$6}}` → new shared `assignment_pattern_entry :=
+  member_identifier colon pattern -> {name:$1,pattern:$3}`; branch
+  `{kind:"named", entries:[$3, $4::2*]}` (RESOLVED — FIXED)
+
+Counts: annotation **2299** (was 2290, **+9 — a DELIBERATE count
+change, NOT "unchanged"**: the 9 new factored record rules
+`interface_identifier_decl` / `port_identifier_decl` /
+`variable_identifier_decl` / `tf_variable_identifier_decl` /
+`variable_port_identifier_decl` / `let_named_arg` / `property_named_arg`
+/ `sequence_named_arg` / `assignment_pattern_entry` ARE annotated —
+unlike pure-Cat-A `[$1, $2::2*]` rewrites which add none; analogous to
+SVPP-0001's `pp_if_keyword`), **1008** distinct annotated rules (was
+999, +9). Verified vs `generated/systemverilog_return_annotations.json`
+(`annotation_count: 2299`, 1008 distinct). Same accept set.
+
+**Honest reachability split.** A `list_of_*_identifiers` path **is**
+reachable via the strict SV `systemverilog_file` root: parent
+probe-verified on `module m; wire a, b, c; logic x, y, z; endmodule`
+— clean `{name,dims,init}` record list, **0
+`<invalid_sequence_access>`**, **0 raw `[[],","]`
+separator-envelope leaks**, **no leftover `{first:{…},rest:…}`
+structured envelope**. The three `*_list_of_arguments`,
+`parameter_port_list` type_only, and the `assignment_pattern` named
+branches are **likely NOT reachable** via the strict SV root (it
+rejects most constructs in all profiles — a pre-existing,
+out-of-scope SV-grammar-root coverage limitation, separate from this
+defect); their fix is the **identical proven factor-record-rule
+idiom** (correct by construction) + clean regen + the
+shape-contract lock — documented as
+**defensively-correct-by-construction**, NOT claimed as a fresh
+end-to-end probe (mirroring the .2.4a defensive precedent). **NOT a
+`PGEN_RELEASED_PARSER_BUG_LEDGER` row** — this is a clean Category-A
+structural improvement with **no `<invalid_sequence_access>`
+corruption**; that ledger is reserved for consumer-reproducible
+released corruption/crash defects, so no row is added.
+
+**POST-SV-AUDIT.2 worklist now fully dispositioned.** With this leaf,
+all of POST-SV-AUDIT.2.1 (`PGEN-POST-SV-AUDIT-0002`),
+.2.2 (`PGEN-POST-SV-AUDIT-0003`), .2.3 (`PGEN-POST-SV-AUDIT-0004`),
+.2.4a (`PGEN-POST-SV-AUDIT-0005`), and .2.4b
+(`PGEN-POST-SV-AUDIT-0006`, this leaf) are RESOLVED — the entire
+POST-SV-AUDIT.2 (rtl_const_expr / rtl_frontend /
+systemverilog_preprocessor / vhdl / systemverilog) Category-A +
+inline-alternation-`$N` + structured-per-iteration worklist is
+complete. Remaining open scope is POST-SV-AUDIT.3 (Cat-C / benign /
+already-correct confirmation) below.
 
 ## Cat-C / benign / already-correct (for POST-SV-AUDIT.3 to confirm)
 

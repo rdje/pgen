@@ -120,7 +120,8 @@
   "2026-05-04 SV-Slice-3: `source_text_item` per-branch typed (8 branches). Each Or branch annotated with `{kind: \"<branch_name>\", body: $1}` — kinds: description, local_parameter_declaration, parameter_declaration, package_import_declaration, timeunits_declaration, compiler_directive, comment_only_source_region, semi (the last carries no body since it's just `;`). Pre-fix each source_text_item carried the matched-branch shape directly without a discriminator; post-fix consumers can dispatch on `item[\"kind\"]`. For the `module m; endmodule\\n` sample, source_text[0] is now `{\"kind\": \"description\", \"body\": <description envelope>}`. Annotation count: 11 (was 3). Same accept set.",
   "2026-05-04 SV-Slice-2: `source_text := source_text_item*` annotated `-> [$1**]`. Pre-fix `source_text` field of `systemverilog_file` was a nested Quantified envelope; post-fix it's a flat array of `source_text_item` shapes. For the `module m; endmodule\\n` sample, source_text now has length 1 (the single module_declaration's source_text_item envelope) instead of the Quantified wrapper. Annotation count: 3 (was 2). Same accept set; only the source_text array shape changed.",
   "2026-05-04 SV-Slice-1: dangling annotation `-> {type: \"systemverilog_file\", source_text: $2}` at grammars/systemverilog.ebnf line 195 was moved onto its target rule `systemverilog_file` (line 184). Pre-fix the annotation was lost (separated from its rule by a blank line + the `sv_multi_entry_root` helper definition + another blank line) and the parser registered 0 annotations effective on systemverilog_file. Post-fix the parser registers 2 annotations (systemverilog_file + systemverilog_parseable_file) and the AST root for `module m; endmodule\\n` is the typed `{type: \"systemverilog_file\", source_text: ...}` JSON object documented below.",
-  "2026-05-17 POST-SV-AUDIT.2.4a (PGEN-POST-SV-AUDIT-0005): net_alias Cat-A raw-envelope -> {lvalues:[$2,$4,$5::2*]} clean list (probe-verified [a,b,c]); 5 number rules (unsigned_number/non_zero_unsigned_number/binary_value/octal_value/hex_value) inline-alt-$N defensive structural fix via named *_tail rules (annotation unchanged; corruption structurally present but UNREACHABLE via systemverilog_file root — all numeric top-level constructs rejected in every profile, a pre-existing SV-root coverage limitation, separate from this fix, out of audit scope). Inventory count unchanged (net_alias return_object text-only change; *_tail rules un-annotated). Schema 1->2, release/contract 1.0.115->1.0.116. NO PGEN_RELEASED_PARSER_BUG_LEDGER row (number-rule corruption not consumer-reproducible; net_alias is a clean Cat-A improvement) — tracked via POST_SV_AUDIT_LEDGER + Schema-Versioning + contract AST-Shape-Corrections. net_alias sample added."
+  "2026-05-17 POST-SV-AUDIT.2.4a (PGEN-POST-SV-AUDIT-0005): net_alias Cat-A raw-envelope -> {lvalues:[$2,$4,$5::2*]} clean list (probe-verified [a,b,c]); 5 number rules (unsigned_number/non_zero_unsigned_number/binary_value/octal_value/hex_value) inline-alt-$N defensive structural fix via named *_tail rules (annotation unchanged; corruption structurally present but UNREACHABLE via systemverilog_file root — all numeric top-level constructs rejected in every profile, a pre-existing SV-root coverage limitation, separate from this fix, out of audit scope). Inventory count unchanged (net_alias return_object text-only change; *_tail rules un-annotated). Schema 1->2, release/contract 1.0.115->1.0.116. NO PGEN_RELEASED_PARSER_BUG_LEDGER row (number-rule corruption not consumer-reproducible; net_alias is a clean Cat-A improvement) — tracked via POST_SV_AUDIT_LEDGER + Schema-Versioning + contract AST-Shape-Corrections. net_alias sample added.",
+  "2026-05-17 POST-SV-AUDIT.2.4b (PGEN-POST-SV-AUDIT-0006): 11 structured-per-iteration Cat-A rules fixed by factoring the repeated multi-field unit into named record rules (interface/port/variable/tf_variable/variable_port _identifier_decl; let/property/sequence _named_arg; assignment_pattern_entry) + extraction-spread; list_of_* now clean flat [{name,dims[,init]}] / {kind,items:[...]} record lists; *_list_of_arguments mixed head + [$2::2*]/[$3::2*] tails & named_only items:[...]; parameter_port_list type_only items:[$4,$5::3*]; assignment_pattern named entries:[$3,$4::2*]. Probe-verified reachable list_of_*_identifiers path: clean {name,dims,init} record list, 0 invalid_sequence_access, 0 raw separator-envelope, no leftover {first,rest} structured envelope. Inventory 2290->2299 / 999->1008 (+9 annotated record rules — count CHANGES, documented; unlike pure Cat-A). Schema 2->3, release/contract 1.0.116->1.0.117. NOT bug-ledger (Cat-A structured, no <invalid_sequence_access> corruption). Unreachable-via-SV-root rules (let/property/sequence args, parameter_port_list type_only, assignment_pattern named) carry the same honest defensive-disposition as .2.4a number rules (proven idiom + clean regen + shape-contract lock). structured_decls sample added."
  ],
  "samples": [
   {
@@ -156,6 +157,23 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-POST-SV-AUDIT-0005 / POST-SV-AUDIT.2.4a: net_alias Cat-A {first,second,rest}->{lvalues:[$2,$4,$5::2*]} clean list; + 5 number-rule inline-alt-$N defensive structural fix (named tail rules; corruption unreachable via SV source_text in all profiles). AST-dump schema 1->2."
+  },
+  {
+   "name": "structured_decls",
+   "input": "module m;\n  wire a, b, c;\n  logic x, y, z;\nendmodule\n",
+   "rule_under_test": "systemverilog_file",
+   "declared_annotation": "{type: \"systemverilog_file\", source_text: $2}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "type",
+    "source_text"
+   ],
+   "expected_json_object_string_values": {
+    "type": "systemverilog_file"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-POST-SV-AUDIT-0006 / POST-SV-AUDIT.2.4b: 11 structured-per-iteration Cat-A rules -> factored named record rules + extraction-spread (clean flat record lists; field names preserved). +9 annotated record rules (2290->2299/999->1008). AST-dump schema 2->3."
   }
  ]
 }

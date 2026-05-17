@@ -1,4 +1,70 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0006 (leaf POST-SV-AUDIT.2.4b): systemverilog — 11 structured-per-iteration Category-A misuses FIXED via factored record rules (schema 2→3, release 1.0.117). Closes POST-SV-AUDIT.2.
+
+- **11 structured-per-iteration Cat-A misuses** fixed by factoring
+  each repeated multi-field unit into a NEW annotated named record
+  rule + an extraction-spread (field names preserved):
+  - 5 `list_of_*_identifiers` → new `interface_identifier_decl` /
+    `port_identifier_decl` / `variable_identifier_decl` /
+    `tf_variable_identifier_decl` / `variable_port_identifier_decl`
+    (`{name,dims[,init]}`); list `-> [$1, $2::2*]` (clean
+    `[{name,dims[,init]}]`).
+  - `let`/`property`/`sequence_list_of_arguments` → new
+    `<x>_named_arg` (`{name,value}`); **mixed** branch
+    `{kind:"mixed",head:$1,ordered_tail:[$2::2*],named_tail:[$3::2*]}`,
+    **named_only** branch `{kind:"named_only",items:[$1,$2::2*]}`.
+  - `parameter_port_list` type_only →
+    `{kind:"type_only",items:[$4,$5::3*]}`.
+  - `assignment_pattern` named (two identical occurrences) → shared
+    new `assignment_pattern_entry` (`{name,pattern}`);
+    `{kind:"named",entries:[$3,$4::2*]}`.
+- **Inventory 2290 → 2299 annotations / 999 → 1008 distinct rules** — a
+  **deliberate +9 change** (the 9 factored record rules ARE annotated;
+  unlike pure Cat-A, analogous to SVPP-0001's `pp_if_keyword`).
+  Stated explicitly as a change, not "unchanged".
+- **Probe-verified** the reachable `list_of_*_identifiers` path
+  (`module m; wire a, b, c; logic x, y, z; endmodule`): clean
+  `{name,dims,init}` record list, **0 `<invalid_sequence_access>`**,
+  **0 raw `[[],","]` separator-envelope leaks**, **no leftover
+  `{first:{…},rest:…}` structured envelope**. The
+  `*_list_of_arguments` / `parameter_port_list` type_only /
+  `assignment_pattern` named branches are likely unreachable via the
+  strict SV `systemverilog_file` root (pre-existing/out-of-scope
+  coverage limitation) → honest defensive-correct-by-construction
+  disposition (the identical proven factor-record-rule idiom + clean
+  regen + the shape-contract lock), exactly per the `.2.4a` precedent;
+  not claimed as a fresh end-to-end probe.
+- Manifest `systemverilog_v1.json`: new `structured_decls` sample +
+  `calibration_history` #118 → `systemverilog_ast_shape_contract`
+  **passes**.
+- **Lockstep:** AST-dump schema `2→3`, parser+contract release
+  `1.0.116→1.0.117`. Contract: new `## Release 1.0.117 Highlights`
+  (embedded Schema-Versioning `3 | 1.0.117` row) + `## AST-Shape
+  Corrections — 1.0.117 (POST-SV-AUDIT)` (11-rule old→new table +
+  the explicit 2290→2299/999→1008 +9 count-change rationale + the
+  reachability honesty); ≤1.0.116/earlier kept as labeled history.
+  Book: 5 chapters, all `SV_AST_SCHEMA_VERSION` walker pins `= 3`,
+  `schema-versioning.md` schema-3 row, count-change noted.
+  `docs/POST_SV_AUDIT_LEDGER.md`: all 11 RESOLVED-FIXED + worklist
+  DONE; **POST-SV-AUDIT.2 now fully dispositioned** (`.2.1`–`.2.4b`).
+- **No `PGEN_RELEASED_PARSER_BUG_LEDGER.md` row** (Cat-A structured,
+  no corruption — ledger verified untouched). DOC-ENVELOPE-0001 not
+  regressed (the 4 `public-api.md` `grammar/profile:String` matches
+  are the real `NamedGrammar*` fields, untouched/legitimate).
+- Independently verified: contract no dup `## ` headers,
+  `1.0.117`/schema-`3` current (1.0.116/earlier historical only),
+  2290→2299/999→1008 stated as +9; `systemverilog_parser_book_gate`
+  **independently re-run green** (searchindex deterministic);
+  `clippy_on_rust_change` strict source **passed**. `docs/book/` —
+  no drift, no edit.
+- **POST-SV-AUDIT.2 COMPLETE** (`.2.1` svpp + `.2.2` rtl_frontend +
+  `.2.3` vhdl + `.2.4a`/`.2.4b` systemverilog — all per-grammar Cat-A
+  / inline-alt fixes landed & dispositioned). Tree frontier → `.3`
+  (the final leaf: Cat-C/benign confirmation + holistic green
+  re-verify + close TaskList #49). Doctrine-compliant: `.2.4b` was a
+  task-tree leaf throughout. Push remains HELD per the user's
+  explicit directive (supersedes the 30-cap).
+
 ## 2026-05-17 - PGEN-WORKFLOW-0006: binding Code-Change Doctrine — no code change without task-tree ownership first (recorded across workflow authority + live-docs + live-book)
 
 - **New binding, non-negotiable doctrine (user, 2026-05-17):** it is

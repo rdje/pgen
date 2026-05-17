@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d3141d0e.js";
+            window.path_to_searchindex_js = "searchindex-c942a986.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,55 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10117--contract-10117--post-sv-audit24b-11-structured-per-iteration-category-a-misuses-corrected-via-factored-record-rules-schema-2--3"><a class="header" href="#10117--contract-10117--post-sv-audit24b-11-structured-per-iteration-category-a-misuses-corrected-via-factored-record-rules-schema-2--3">1.0.117 / Contract 1.0.117 — POST-SV-AUDIT.2.4b: 11 structured-per-iteration Category-A misuses corrected via factored record rules (schema 2 → 3)</a></h3>
+<p><code>PGEN-POST-SV-AUDIT-0006</code>, leaf POST-SV-AUDIT.2.4b (2026-05-17).
+<strong>AST-dump schema bumped <code>2 → 3</code></strong> (the affected list / branch shapes
+change in a consumer-visible way).</p>
+<p>The 11 structured-per-iteration Category-A rules in
+<code>grammars/systemverilog.ebnf</code> were corrected. Each repeated
+<strong>multi-field</strong> unit was factored into a <strong>new annotated record rule</strong>
+and the list / branch became an extraction-spread over it. Field names
+of the prior <code>first</code> record are <strong>preserved</strong>.</p>
+<ul>
+<li>5 <code>list_of_*_identifiers</code>: <code>{first: {name, dims[, init]}, rest}</code>
+(raw <code>[[comma, id, [dim…]], …]</code> envelope) → clean flat record array
+via new <code>interface_identifier_decl</code> / <code>port_identifier_decl</code> /
+<code>variable_identifier_decl</code> (<code>-&gt; {name, dims}</code>) and
+<code>tf_variable_identifier_decl</code> / <code>variable_port_identifier_decl</code>
+(<code>-&gt; {name, dims, init}</code>); list now <code>[$1, $2::2*]</code>.</li>
+<li><code>let_</code> / <code>property_</code> / <code>sequence_list_of_arguments</code>: new
+<code>*_named_arg := dot identifier lparen ( &lt;x&gt;_actual_arg )? rparen -&gt; {name, value}</code>; <strong>mixed</strong> branch <code>{kind:"mixed", head, ordered_tail:[…], named_tail:[…]}</code>; <strong>named_only</strong> branch
+<code>{kind:"named_only", items:[…]}</code> (was <code>{kind:"named_only", first_name, first_value, rest}</code>).</li>
+<li><code>parameter_port_list</code> type_only: <code>{kind:"type_only", first, rest}</code> →
+<code>{kind:"type_only", items:[$4, $5::3*]}</code> (clean <code>[type_assignment]</code>).</li>
+<li>
+<dl>
+<dt id="assignment_pattern-named-both-pattern_sv_2017-and-pattern_sv_2023-occurrences-new-shared-assignment_pattern_entry"><a class="header" href="#assignment_pattern-named-both-pattern_sv_2017-and-pattern_sv_2023-occurrences-new-shared-assignment_pattern_entry"><code>assignment_pattern</code> named (both <code>pattern_sv_2017</code> and
+<code>pattern_sv_2023</code> occurrences): new shared `assignment_pattern_entry</a></dt>
+<dd>= member_identifier colon pattern -&gt; {name, pattern}<code>; branch </code>{kind:“named”, entries:[$3, $4::2*]}<code>(was</code>{kind:“named”,
+entries:{first:{name,pattern},rest}}`).</dd>
+</dl>
+</li>
+</ul>
+<p>Annotation inventory: <strong>2299</strong> (was 2290, <strong>+9 — a DELIBERATE count
+change, NOT “unchanged”</strong>). The 9 new factored record rules
+(<code>interface_identifier_decl</code>, <code>port_identifier_decl</code>,
+<code>variable_identifier_decl</code>, <code>tf_variable_identifier_decl</code>,
+<code>variable_port_identifier_decl</code>, <code>let_named_arg</code>, <code>property_named_arg</code>,
+<code>sequence_named_arg</code>, <code>assignment_pattern_entry</code>) <strong>are annotated</strong> —
+unlike the pure-Cat-A <code>[$1, $2::2*]</code> rewrites that add no annotations;
+this is the same kind of deliberate +N as SVPP-0001’s <code>pp_if_keyword</code>.
+<strong>1008</strong> distinct annotated rules (was 999, +9). Same accept set. The
+reachable <code>list_of_*_identifiers</code> path is probe-verified on
+<code>module m; wire a, b, c; logic x, y, z; endmodule</code> (clean <code>{name, dims, init}</code> record list; 0 <code>&lt;invalid_sequence_access&gt;</code>; 0 raw <code>[[], ","]</code> separator-envelope leaks). The <code>*_list_of_arguments</code>,
+<code>parameter_port_list</code> type_only, and <code>assignment_pattern</code> named
+branches are likely unreachable via the strict SV root (pre-existing,
+out-of-scope coverage limitation) — defensively-correct-by-construction
+(identical proven idiom), <strong>not</strong> claimed as a fresh probe and <strong>NOT a
+bug-ledger entry</strong> (clean Category-A, no <code>&lt;invalid_sequence_access&gt;</code>
+corruption). Full detail: contract §
+“AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT)” and
+<code>docs/POST_SV_AUDIT_LEDGER.md</code>.</p>
 <h3 id="10116--contract-10116--post-sv-audit24a-net_alias-cat-a-raw-envelope-correction--5-number-rule-defensive-structural-fix-schema-1--2"><a class="header" href="#10116--contract-10116--post-sv-audit24a-net_alias-cat-a-raw-envelope-correction--5-number-rule-defensive-structural-fix-schema-1--2">1.0.116 / Contract 1.0.116 — POST-SV-AUDIT.2.4a: net_alias Cat-A raw-envelope correction + 5-number-rule defensive structural fix (schema 1 → 2)</a></h3>
 <p><code>PGEN-POST-SV-AUDIT-0005</code>, leaf POST-SV-AUDIT.2.4a (2026-05-17).
 <strong>AST-dump schema bumped <code>1 → 2</code></strong> (the reachable, consumer-visible

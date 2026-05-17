@@ -64,9 +64,9 @@ the proven playbook.
   Commit: `PGEN-POST-SV-AUDIT-0001`
 
 - ID: `POST-SV-AUDIT.2`
-  Status: `active`
+  Status: `done`
   Goal: `Fix the confirmed objective bugs from the .1 ledger (Cat-A raw-envelope misuse on pure separator lists; residual Cat-B inline-alternation-$N), one commit per grammar via the proven regen+manifest+schema/release-bump+book+contract+ledger playbook. Split per grammar (.1 quantified a large per-grammar worklist).`
-  Children: `POST-SV-AUDIT.2.1`, `POST-SV-AUDIT.2.2`, `POST-SV-AUDIT.2.3`, `POST-SV-AUDIT.2.4` (→ `.2.4a` done, `.2.4b` pending)
+  Children: `POST-SV-AUDIT.2.1`, `POST-SV-AUDIT.2.2`, `POST-SV-AUDIT.2.3`, `POST-SV-AUDIT.2.4` (all `done`: `.2.4`→`.2.4a`+`.2.4b` both done)
 
 - ID: `POST-SV-AUDIT.2.1`
   Status: `done`
@@ -90,7 +90,7 @@ the proven playbook.
   Commit: `PGEN-POST-SV-AUDIT-0004`
 
 - ID: `POST-SV-AUDIT.2.4`
-  Status: `active`
+  Status: `done`
   Goal: `systemverilog (flagship, released 1.0.115) Cat-A/inline-alt fixes. Split: .2.4a (net_alias + 5 number rules — proven playbooks, decidable) + .2.4b (11 structured-per-iteration — per-rule record-rule design, ledger-flagged "needs parent judgement").`
   Children: `POST-SV-AUDIT.2.4a`, `POST-SV-AUDIT.2.4b`
 
@@ -102,11 +102,11 @@ the proven playbook.
   Commit: `PGEN-POST-SV-AUDIT-0005`
 
 - ID: `POST-SV-AUDIT.2.4b`
-  Status: `pending`
-  Goal: `systemverilog: the 11 structured-per-iteration Cat-A rules (list_of_*identifiers family etc.) — each repeated unit (e.g. \`comma identifier dims*\`, \`comma .id(arg)\`) must be factored into a named record-emitting rule first; the exact per-rule record shape is a flagship-released-parser public-contract DESIGN decision the .1 ledger explicitly flagged "needs parent judgement". GATED ON USER DESIGN INPUT.`
-  Acceptance: `Per-rule record-rule design agreed; parseability_probe before/after clean structured lists; systemverilog_ast_shape_contract + book gate green; lockstep; independently verified.`
-  Verification: `pending — surfacing the design fork to the user (the 11 record-rule shapes change the flagship SV parser's public AST contract; ledger-flagged needs-judgement).`
-  Commit: `pending`
+  Status: `done`
+  Goal: `systemverilog: the 11 structured-per-iteration Cat-A rules (list_of_*identifiers family etc.) — factor each repeated unit into a named record-emitting rule + extraction-spread; regen + manifest + schema/release bump + book + contract lockstep.`
+  Acceptance: `Per-rule record-rule design (proven idioms, fields mirroring macro_formal/net_lvalue precedents); parseability_probe before/after clean structured-record lists (no raw multi-field envelope); systemverilog_ast_shape_contract + book gate green; lockstep; independently verified; user reviews the committed result.`
+  Verification: `2026-05-17 (user-authorized "design+implement, review after"): 11 structured-per-iteration Cat-A misuses fixed by factoring the repeated multi-field unit into 9 NEW annotated named record rules + extraction-spread, field names preserved. 5 list_of_*_identifiers -> new *_identifier_decl ({name,dims[,init]}) + list [$1,$2::2*]; let/property/sequence_list_of_arguments -> new <x>_named_arg ({name,value}) + mixed {kind:"mixed",head:$1,ordered_tail:[$2::2*],named_tail:[$3::2*]} & named_only {kind:"named_only",items:[$1,$2::2*]}; parameter_port_list type_only {kind:"type_only",items:[$4,$5::3*]}; assignment_pattern named (x2 occurrences) -> shared assignment_pattern_entry ({name,pattern}) + entries:[$3,$4::2*]. Probe-verified reachable list_of_*_identifiers path (module m; wire a,b,c; logic x,y,z;): clean {name,dims,init} record list, 0 invalid_sequence_access, 0 raw [[],","] envelope, no leftover {first:{...},rest} structured envelope. Inventory 2290->2299 / 999->1008 (+9 annotated record rules — DELIBERATE count change, documented; the *_list_of_arguments/parameter_port_list-type_only/assignment_pattern-named branches are likely SV-root-unreachable -> honest defensive-correct-by-construction disposition like .2.4a, not a fresh probe, NOT bug-ledger'd). Manifest structured_decls sample + calibration #118 -> systemverilog_ast_shape_contract PASSES. Schema 2->3, release/contract 1.0.116->1.0.117. Contract (new "## AST-Shape Corrections — 1.0.117" + Release-1.0.117-Highlights w/ embedded schema-3 row, 1.0.116/earlier historical kept) + 5 book chapters (walker pins =3) + POST_SV_AUDIT_LEDGER (11 RESOLVED + worklist DONE; POST-SV-AUDIT.2 fully dispositioned) lockstep. NO PGEN_RELEASED_PARSER_BUG_LEDGER row (Cat-A structured, no corruption — ledger untouched, verified). Independently verified: contract no dup ## headers, 1.0.117/schema-3 current (1.0.116 historical only), 2290->2299/999->1008 stated as +9 change, no fabricated AstDumpPayload (the 4 public-api.md residuals = real NamedGrammar* fields, untouched, legit); SV book gate independently re-run green (searchindex deterministic); clippy strict source passed; docs/book/ no drift.`
+  Commit: `PGEN-POST-SV-AUDIT-0006`
 
 - ID: `POST-SV-AUDIT.3`
   Status: `pending`
@@ -119,8 +119,7 @@ the proven playbook.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `POST-SV-AUDIT.2.4b` | `blocked` | **Blocked on user design input.** `.2.4a` done (net_alias + 5 number rules). `.2.4b` = the 11 structured-per-iteration SV rules — each needs a named record-rule whose exact shape changes the flagship released-SV parser's public AST contract; the `.1` ledger explicitly flagged these "needs parent judgement". Per the PNT directive this is a genuine can't-decide-unilaterally fork → surfaced to the user. |
-| 2 | `POST-SV-AUDIT.3` | `pending` | Cat-C/residual review + close TaskList #49 — after `.2.4b` resolves. |
+| 1 | `POST-SV-AUDIT.3` | `pending` | **`POST-SV-AUDIT.2` fully done** (`.2.1` svpp + `.2.2` rtl_frontend + `.2.3` vhdl + `.2.4a`/`.2.4b` SV). Final leaf: Cat-C/benign confirmation + accepted-as-is dispositions + holistic green re-verify + close the tree & TaskList #49. |
 
 ## Decisions
 
@@ -167,17 +166,14 @@ the proven playbook.
 
 ## Blockers
 
-- `POST-SV-AUDIT.2.4b` — **blocked on user design input** (2026-05-17).
-  The 11 structured-per-iteration SV Cat-A rules
-  (`list_of_*identifiers` family etc.) each need a named
-  record-emitting rule whose exact field shape changes the **flagship
-  released SystemVerilog parser's public AST contract**; the `.1`
-  ledger explicitly flagged these "needs parent judgement on the exact
-  extraction shape". Per the PNT directive ("involve me [only] when you
-  can't decide"), the per-rule record-rule design is a genuine
-  consequential fork where user preference plausibly matters → surfaced
-  via AskUserQuestion. Unblock condition: user chooses the
-  design-approach option. `.3` (Cat-C close) waits on this.
+- None. (`POST-SV-AUDIT.2.4b` was blocked on user design input
+  2026-05-17 → **RESOLVED same day**: user chose "Design + implement,
+  you review after"; `.2.4b` proceeds autonomously with the proven
+  named-record-rule idiom + rigorous probe verification, user reviews
+  the committed result. Push: user chose "keep holding" past the
+  30-cap — recorded in memory `feedback_push_pacing`.)
+
+  (`.3` Cat-C close still waits until `.2.4b` lands.)
 
 ## Verification Log
 
@@ -188,6 +184,7 @@ the proven playbook.
 | `2026-05-17` | `POST-SV-AUDIT.2.1` | before/after parseability_probe; regen (count UNCHANGED 66/28, macro_formals return_object->return_array); manifest dai-rebuild + macro_with_formals sample; systemverilog_preprocessor_ast_shape_contract; contract dup-header+numbers+no-fabricated-AstDumpPayload grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER FIXED + NO bug-ledger row check; independent book-gate re-run; clippy; docs/book check | `pass — macro_formals Cat-A fixed ({first,rest}->[$2,$3::2*]); probe raw-comma-envelope -> clean macro_formal[] list, no <invalid_sequence_access>; shape-contract PASSES; 66/28 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract+8-book-chapters+audit-ledger lockstep; NO bug-ledger row (Cat-A clean improvement per Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green. Cat-A playbook proven for .2.2/.2.3/.2.4.` |
 | `2026-05-17` | `POST-SV-AUDIT.2.2` | comprehensive AFTER parseability_probe + precise per-rule shape checks (port_group $5::3*, override/connection $3::3*, event_control $4::2* — all CORRECT); 0 separator-envelope-leak + 0 invalid_sequence_access; regen (156/74 UNCHANGED); manifest dai-rebuild + cat_a_shapes sample; rtl_frontend_ast_shape_contract; contract dup-header+numbers grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER 16-FIXED; bug-ledger EXACTLY-1-insertion(RTL-FE-0002)-0-deletions check; independent book-gate re-run; clippy; docs/book check | `pass — 15 rtl_frontend Cat-A misuses fixed (extraction-spreads, all 3 inferred-index edge cases probe-confirmed) + event_control_list RTL-FE-0002 inline-alt fix (named event_separator); 156/74 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract(new AST-Shape-Corrections-1.0.3 section)+9-book-chapters+audit-ledger lockstep; RTL-FE-0002 only-new bug-ledger row (others untouched); 15 Cat-A NOT bug-ledger (Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green` |
 | `2026-05-17` | `POST-SV-AUDIT.2.3` | comprehensive AFTER parseability_probe (all 4 sep types) + aggregate-rest precise check; 0 separator-envelope-leak (`,`/`;`/`.`/`\|`) + 0 invalid_sequence_access; regen (256/112 UNCHANGED); manifest dai-rebuild + cat_a_shapes sample; vhdl_ast_shape_contract; contract dup-header+numbers grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER 17-FIXED; bug-ledger-untouched check; independent book-gate re-run; clippy; docs/book check | `pass — 17 vhdl Cat-A misuses fixed (extraction-spreads, single-token seps); 256/112 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract(new AST-Shape-Corrections-1.0.3 section)+9-book-chapters+audit-ledger lockstep; NO bug-ledger row (pure Cat-A, ledger untouched — Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green` |
+| `2026-05-17` | `POST-SV-AUDIT.2.4b` | probe reachable list_of_*_identifiers path; regen (2290->2299/999->1008 +9 record rules); structured_decls sample + calibration #118; systemverilog_ast_shape_contract; contract dup-header+1.0.117/schema-3+count-change grep; book walker-pin (=3) + fabricated-residual (4=legit untouched public-api NamedGrammar) grep; POST_SV_AUDIT_LEDGER 11-FIXED + POST-SV-AUDIT.2-dispositioned; bug-ledger-untouched check; independent SV book-gate re-run; clippy; docs/book check | `pass — 11 structured-per-iteration Cat-A fixed via 9 factored named record rules + extraction-spread (field names preserved); reachable list_of_*_identifiers probe-clean (clean {name,dims,init} list, 0 invalid_seq, 0 raw-envelope, no leftover {first,rest}); 2290->2299/999->1008 deliberate +9 change documented; schema 2->3 / release 1.0.116->1.0.117; contract(new AST-Shape-Corrections-1.0.117)+5-book-chapters+audit-ledger lockstep; NO bug-ledger row (Cat-A structured, ledger untouched); unreachable branches honestly defensive-dispositioned; no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green. Closes .2.4 -> POST-SV-AUDIT.2.` |
 | `2026-05-17` | `POST-SV-AUDIT.2.4a` | net_alias probe ({lvalues:[a,b,c]}); 5 number rules proven-transformation + clean regen; numeric-reachability empirically tested (all numeric top-level constructs rejected, all profiles); manifest net_alias sample + calibration #117; systemverilog_ast_shape_contract; contract dup-header+1.0.116/schema-2+2290/999 grep; book walker-pin (=2) + fabricated-residual (4=legit public-api NamedGrammar fields, untouched) grep; POST_SV_AUDIT_LEDGER net_alias+5-number-FIXED & 11-structured-OPEN check; bug-ledger-untouched check; independent SV book-gate re-run; clippy; docs/book check | `pass — net_alias Cat-A {lvalues:[$2,$4,$5::2*]} probe-clean; 5 number rules defensive structural fix (named *_tail; corruption structurally-present-but-unreachable-via-SV-root, honestly NOT bug-ledger'd — faithful); 2290/999 UNCHANGED; schema 1->2 / release 1.0.115->1.0.116; contract(new AST-Shape-Corrections-1.0.116)+4-book-chapters+audit-ledger lockstep; bug-ledger untouched; no dup ## headers; DOC-ENVELOPE not regressed (4 residuals = real NamedGrammar fields); book gate independently green. .2.4b (11 structured) BLOCKED on user design input.` |
 
 ## Commit Log
@@ -200,6 +197,7 @@ the proven playbook.
 | `POST-SV-AUDIT.2.2` | `PGEN-POST-SV-AUDIT-0003` | rtl_frontend 15 Cat-A misuses → extraction-spreads + `event_control_list` `RTL-FE-0002` inline-alt fix (named `event_separator`); schema 2→3 / release 1.0.2→1.0.3; 156/74 unchanged; contract(AST-Shape-Corrections-1.0.3)+book+audit-ledger lockstep; `RTL-FE-0002` only-new bug-ledger row; 15 Cat-A not bug-ledger |
 | `POST-SV-AUDIT.2.3` | `PGEN-POST-SV-AUDIT-0004` | vhdl 17 Cat-A misuses → extraction-spreads (single-token seps); schema 2→3 / release 1.0.2→1.0.3; 256/112 unchanged; contract(AST-Shape-Corrections-1.0.3)+book+audit-ledger lockstep; NO bug-ledger row (pure Cat-A, ledger untouched) |
 | `POST-SV-AUDIT.2.4a` | `PGEN-POST-SV-AUDIT-0005` | SV net_alias Cat-A `{lvalues:[…]}` (probe-clean) + 5 number-rule defensive structural fix (named `*_tail`; corruption unreachable-via-SV-root, honestly NOT bug-ledger'd); schema 1→2 / release 1.0.115→1.0.116; 2290/999 unchanged; contract(AST-Shape-Corrections-1.0.116)+book+audit-ledger lockstep; bug-ledger untouched. `.2.4b` (11 structured) blocked on user design input |
+| `POST-SV-AUDIT.2.4b` | `PGEN-POST-SV-AUDIT-0006` | SV 11 structured-per-iteration Cat-A → 9 factored named record rules + extraction-spread (field names preserved); reachable path probe-clean; schema 2→3 / release 1.0.116→1.0.117; 2290→2299 / 999→1008 (+9 record rules, deliberate); contract(AST-Shape-Corrections-1.0.117)+book+audit-ledger lockstep; NO bug-ledger row. **Closes `.2.4` → `POST-SV-AUDIT.2` fully done** |
 
 ## Changelog
 
@@ -218,6 +216,24 @@ the proven playbook.
   `.2` split per grammar (`.2.1` svpp → `.2.2` rtl_frontend → `.2.3`
   vhdl → `.2.4` systemverilog), smallest-first. Frontier advances
   `.1`→`.2.1`. Tree stays `active`.
+- `2026-05-17`: `.2.4b` **done** (`PGEN-POST-SV-AUDIT-0006`,
+  user-authorized "design+implement, review after"): 11
+  structured-per-iteration SV Cat-A misuses fixed by factoring the
+  repeated multi-field unit into **9 new annotated named record rules**
+  + extraction-spread (field names preserved). Reachable
+  `list_of_*_identifiers` path probe-verified clean; 0
+  `<invalid_sequence_access>`, 0 raw-envelope, no leftover
+  `{first,rest}` structured envelope. Inventory **2290→2299 /
+  999→1008** (deliberate +9 record-rule change, documented honestly —
+  unlike pure Cat-A; SV-root-unreachable branches defensive-disposition
+  per the .2.4a precedent). Schema `2→3`, release/contract
+  `1.0.116→1.0.117`; manifest `structured_decls` sample +
+  calibration #118 → `systemverilog_ast_shape_contract` passes;
+  contract + 5 book chapters + `POST_SV_AUDIT_LEDGER` lockstep; NO
+  bug-ledger row (Cat-A structured). Independently verified; SV book
+  gate re-run green. **This closes `.2.4` and `POST-SV-AUDIT.2`
+  entirely** (`.2.1`–`.2.4` all done). Frontier advances to `.3`
+  (Cat-C review + close TaskList #49 — the final leaf).
 - `2026-05-17`: `.2.4` split into `.2.4a` (net_alias + 5 number rules
   — proven playbooks, decidable) + `.2.4b` (11 structured-per-iteration
   — ledger-flagged design fork). `.2.4a` **done** (`PGEN-POST-SV-AUDIT-0005`):

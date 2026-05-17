@@ -485,6 +485,10 @@ assertion_item_declaration := property_declaration -> {kind: "property", body: $
 assertion_variable_declaration := var_data_type list_of_variable_decl_assignments semi
                                -> {data_type: $1, items: $2}
 
+# POST-SV-AUDIT.2.4b Cat-A: shared record rule for the named
+# assignment-pattern entries (used by every assignment_pattern named
+# branch); the branch becomes a clean flat {name,pattern} record list.
+assignment_pattern_entry := member_identifier colon pattern -> {name: $1, pattern: $3}
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
                    -> {exprs: [$3, $4::2*]}
                     | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
@@ -2360,10 +2364,13 @@ known_unscoped_let_identifier := let_identifier
 
 scoped_let_identifier := non_typedef_package_scope let_identifier -> {scope: $1, name: $2}
 
-let_list_of_arguments := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma dot identifier lparen ( let_actual_arg )? rparen )*
-                                -> {kind: "mixed",      head: $1, ordered_tail: $2, named_tail: $3}
-                       | dot identifier lparen ( let_actual_arg )? rparen ( comma dot identifier lparen ( let_actual_arg )? rparen )*
-                                -> {kind: "named_only", first_name: $2, first_value: $4, rest: $6}
+# POST-SV-AUDIT.2.4b Cat-A: factor the named-argument unit into a
+# record rule; ordered/named tails become clean extraction-spread lists.
+let_named_arg := dot identifier lparen ( let_actual_arg )? rparen -> {name: $2, value: $4}
+let_list_of_arguments := ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma let_named_arg )*
+                                -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
+                       | let_named_arg ( comma let_named_arg )*
+                                -> {kind: "named_only", items: [$1, $2::2*]}
 
 let_port_item := attribute_instance* let_formal_type formal_port_identifier variable_dimension* ( assign expression )?
               -> {attributes: $1, type: $2, name: $3, dims: $4, init: $5}
@@ -2440,8 +2447,12 @@ list_of_defparam_assignments := defparam_assignment ( comma defparam_assignment 
 list_of_genvar_identifiers := genvar_identifier ( comma genvar_identifier )*
                            -> [$1, $2::2*]
 
-list_of_interface_identifiers := interface_identifier unpacked_dimension* ( comma interface_identifier unpacked_dimension* )*
-                              -> {first: {name: $1, dims: $2}, rest: $3}
+# POST-SV-AUDIT.2.4b Cat-A: factor the repeated multi-field unit into a
+# named record rule; the list becomes a clean flat record array (field
+# names {name,dims[,init]} preserved from the prior `first` record).
+interface_identifier_decl := interface_identifier unpacked_dimension* -> {name: $1, dims: $2}
+list_of_interface_identifiers := interface_identifier_decl ( comma interface_identifier_decl )*
+                              -> [$1, $2::2*]
 
 list_of_net_assignments := net_assignment ( comma net_assignment )*
                         -> [$1, $2::2*]
@@ -2495,8 +2506,9 @@ list_of_port_connections := named_port_connection ( comma named_port_connection 
 list_of_port_declarations := lparen ( attribute_instance* ansi_port_declaration ( comma attribute_instance* ansi_port_declaration )* )? rparen
                           -> $2
 
-list_of_port_identifiers := port_identifier unpacked_dimension* ( comma port_identifier unpacked_dimension* )*
-                         -> {first: {name: $1, dims: $2}, rest: $3}
+port_identifier_decl := port_identifier unpacked_dimension* -> {name: $1, dims: $2}
+list_of_port_identifiers := port_identifier_decl ( comma port_identifier_decl )*
+                         -> [$1, $2::2*]
 
 list_of_ports := lparen port ( comma port )* rparen
               -> [$2, $3::2*]
@@ -2504,8 +2516,9 @@ list_of_ports := lparen port ( comma port )* rparen
 list_of_specparam_assignments := specparam_assignment ( comma specparam_assignment )*
                               -> [$1, $2::2*]
 
-list_of_tf_variable_identifiers := port_identifier variable_dimension* ( assign expression )? ( comma port_identifier variable_dimension* ( assign expression )? )*
-                                -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
+tf_variable_identifier_decl := port_identifier variable_dimension* ( assign expression )? -> {name: $1, dims: $2, init: $3}
+list_of_tf_variable_identifiers := tf_variable_identifier_decl ( comma tf_variable_identifier_decl )*
+                                -> [$1, $2::2*]
 
 list_of_type_assignments := type_assignment ( !( comma kw_type_d0a3e7f8 ) comma type_assignment )*
                          -> [$1, $2::2*]
@@ -2519,11 +2532,13 @@ list_of_variable_assignments := variable_assignment ( comma variable_assignment 
 list_of_variable_decl_assignments := variable_decl_assignment ( comma variable_decl_assignment )*
                                   -> [$1, $2::2*]
 
-list_of_variable_identifiers := variable_identifier variable_dimension* ( comma variable_identifier variable_dimension* )*
-                             -> {first: {name: $1, dims: $2}, rest: $3}
+variable_identifier_decl := variable_identifier variable_dimension* -> {name: $1, dims: $2}
+list_of_variable_identifiers := variable_identifier_decl ( comma variable_identifier_decl )*
+                             -> [$1, $2::2*]
 
-list_of_variable_port_identifiers := port_identifier variable_dimension* ( assign constant_expression )? ( comma port_identifier variable_dimension* ( assign constant_expression )? )*
-                                  -> {first: {name: $1, dims: $2, init: $3}, rest: $4}
+variable_port_identifier_decl := port_identifier variable_dimension* ( assign constant_expression )? -> {name: $1, dims: $2, init: $3}
+list_of_variable_port_identifiers := variable_port_identifier_decl ( comma variable_port_identifier_decl )*
+                                  -> [$1, $2::2*]
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]
@@ -3337,7 +3352,7 @@ parameter_port_list := hash lparen mixed_string_parameter_port_list rparen
                      | hash lparen mixed_parameter_port_list rparen
                               -> {kind: "mixed",             body: $3}
                      | hash lparen kw_type_d0a3e7f8 type_assignment ( comma kw_type_d0a3e7f8 type_assignment )* rparen
-                              -> {kind: "type_only",         first: $4, rest: $5}
+                              -> {kind: "type_only",         items: [$4, $5::3*]}
                      | hash lparen parameter_port_declaration ( comma parameter_port_declaration )* rparen
                               -> {kind: "declarations",      items: [$3, $4::2*]}
                      | hash lparen list_of_param_assignments ( comma parameter_port_declaration )* rparen
@@ -3394,8 +3409,8 @@ pattern_sv_2017 := dot variable_identifier
                         -> {kind: "tagged",           name: $2, sub_pattern: $3}
                 | tick lbrace pattern ( comma pattern )* rbrace
                         -> {kind: "ordered",          patterns: [$3, $4::2*]}
-                | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
-                        -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
+                | tick lbrace assignment_pattern_entry ( comma assignment_pattern_entry )* rbrace
+                        -> {kind: "named",            entries: [$3, $4::2*]}
 
 @profiles: ["sv_2023"]
 pattern_sv_2023 := lparen pattern rparen
@@ -3410,8 +3425,8 @@ pattern_sv_2023 := lparen pattern rparen
                         -> {kind: "tagged",           name: $2, sub_pattern: $3}
                 | tick lbrace pattern ( comma pattern )* rbrace
                         -> {kind: "ordered",          patterns: [$3, $4::2*]}
-                | tick lbrace member_identifier colon pattern ( comma member_identifier colon pattern )* rbrace
-                        -> {kind: "named",            entries: {first: {name: $3, pattern: $5}, rest: $6}}
+                | tick lbrace assignment_pattern_entry ( comma assignment_pattern_entry )* rbrace
+                        -> {kind: "named",            entries: [$3, $4::2*]}
 
 pattern := pattern_sv_2017 -> {kind: "sv_2017", body: $1}
          | pattern_sv_2023 -> {kind: "sv_2023", body: $1}
@@ -3807,10 +3822,11 @@ declared_property_identifier := property_identifier
 property_instance := ps_or_hierarchical_property_identifier ( lparen ( property_list_of_arguments )? rparen )?
                   -> {name: $1, args: $2}
 
-property_list_of_arguments := ( property_actual_arg )? ( comma ( property_actual_arg )? )* ( comma dot identifier lparen ( property_actual_arg )? rparen )*
-                                    -> {kind: "mixed",      head: $1, ordered_tail: $2, named_tail: $3}
-                            | dot identifier lparen ( property_actual_arg )? rparen ( comma dot identifier lparen ( property_actual_arg )? rparen )*
-                                    -> {kind: "named_only", first_name: $2, first_value: $4, rest: $6}
+property_named_arg := dot identifier lparen ( property_actual_arg )? rparen -> {name: $2, value: $4}
+property_list_of_arguments := ( property_actual_arg )? ( comma ( property_actual_arg )? )* ( comma property_named_arg )*
+                                    -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
+                            | property_named_arg ( comma property_named_arg )*
+                                    -> {kind: "named_only", items: [$1, $2::2*]}
 
 property_lvar_port_direction := kw_input_140f86aa
                              -> {kind: "input"}
@@ -4204,10 +4220,11 @@ declared_sequence_identifier := sequence_identifier
 sequence_instance := ps_or_hierarchical_sequence_identifier ( lparen ( sequence_list_of_arguments )? rparen )?
                   -> {name: $1, args: $2}
 
-sequence_list_of_arguments := ( sequence_actual_arg )? ( comma ( sequence_actual_arg )? )* ( comma dot identifier lparen ( sequence_actual_arg )? rparen )*
-                                    -> {kind: "mixed",      head: $1, ordered_tail: $2, named_tail: $3}
-                            | dot identifier lparen ( sequence_actual_arg )? rparen ( comma dot identifier lparen ( sequence_actual_arg )? rparen )*
-                                    -> {kind: "named_only", first_name: $2, first_value: $4, rest: $6}
+sequence_named_arg := dot identifier lparen ( sequence_actual_arg )? rparen -> {name: $2, value: $4}
+sequence_list_of_arguments := ( sequence_actual_arg )? ( comma ( sequence_actual_arg )? )* ( comma sequence_named_arg )*
+                                    -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
+                            | sequence_named_arg ( comma sequence_named_arg )*
+                                    -> {kind: "named_only", items: [$1, $2::2*]}
 
 sequence_lvar_port_direction := kw_input_140f86aa  -> {kind: "input"}
                               | kw_inout_c900aaa9  -> {kind: "inout"}

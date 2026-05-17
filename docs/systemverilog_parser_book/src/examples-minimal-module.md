@@ -73,7 +73,7 @@ let outcome = parse_grammar_profile_ast_dump_named(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const SV_AST_SCHEMA_VERSION: u32 = 2;
+const SV_AST_SCHEMA_VERSION: u32 = 3;
 
 match outcome.status {
     ParseStatus::Success => {
