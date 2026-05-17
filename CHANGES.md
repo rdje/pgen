@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-WORKFLOW-0006: binding Code-Change Doctrine — no code change without task-tree ownership first (recorded across workflow authority + live-docs + live-book)
+
+- **New binding, non-negotiable doctrine (user, 2026-05-17):** it is
+  strictly forbidden to make any code change unless it is first
+  tracked/owned by a task-tree leaf. "Code change" = `grammars/*.ebnf`
+  (grammars are code), Rust, codegen, generated artifacts,
+  shape-contract manifests, or anything altering parser/codegen/
+  generated behavior. A task-tree leaf must exist and own the change
+  *before* code is touched; implement only that leaf + full COMMIT.md
+  workflow. Rationale: task-tree ownership improved code review and
+  code quality tremendously.
+- Recorded in lock-step across: `docs/TASK_TREE.md` (new
+  "## Code-Change Doctrine (binding, non-negotiable)" section — the
+  workflow authority), `COMMIT.md` (Task-Tree Workflow Rule
+  strengthened; supersedes the prior "one-shot code fix may skip the
+  tree" reading), the **live-book**
+  `docs/book/src/quality-and-closure-model.md` (new
+  "## Task-Tree Ownership Is Mandatory For Code Changes" section),
+  `DEVELOPMENT_NOTES.md`, this `CHANGES.md`,
+  `LIVE_ACHIEVEMENT_STATUS.md`, and the auto-memory
+  `feedback_task_tree_workflow`.
+- Pure non-code edits (live-docs/contracts/books/trackers/workflow
+  docs) keep the lighter `PGEN-<FAMILY>-<NNNN>` single-slice
+  convention; mixed changes are treated as code (require a leaf).
+- Docs-only doctrine-recording slice — no code/grammar/codegen change.
+  `mdbook_docs_gate` re-run for the live-book edit. In-flight
+  `POST-SV-AUDIT.2.4b` is already a task-tree leaf → doctrine-compliant;
+  it resumes under this doctrine. Push remains HELD per the user's
+  explicit "keep holding" (recorded in `feedback_push_pacing`).
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0005 (leaf POST-SV-AUDIT.2.4a): systemverilog — net_alias Cat-A FIXED + 5 number-rule inline-alt-$N defensive structural fix (schema 1→2, release 1.0.116)
 
 - **`net_alias` Category-A raw-envelope misuse FIXED** (flagship SV,

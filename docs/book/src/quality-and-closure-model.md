@@ -40,6 +40,39 @@ PGEN targets domains where parser behavior materially affects downstream tooling
 
 In those environments, parser novelty is not enough. Predictability, observability, and repeatable proof matter.
 
+## Task-Tree Ownership Is Mandatory For Code Changes
+
+PGEN enforces a binding, non-negotiable doctrine (adopted 2026-05-17):
+
+> **No code change is made unless it is first tracked by, or owned by,
+> a task-tree leaf.**
+
+A "code change" is any edit to the grammars (`grammars/*.ebnf` — the
+grammar files are code), the Rust sources, codegen, generated
+artifacts, or the machine-checkable shape-contract manifests — anything
+that alters parser, codegen, or generated behavior.
+
+Before any such change, a task-tree leaf must exist that owns it. That
+leaf — with its explicit goal, acceptance criteria, independent
+verification, blockers, and single owning commit — is the unit of
+review. The change is then implemented as exactly that leaf and run
+through the full commit workflow, lock-stepped with the contracts and
+books.
+
+This is not bureaucracy for its own sake: task-tree ownership has
+demonstrably and tremendously improved code review and code quality.
+The structure forces every behavior-affecting change to be scoped,
+justified, independently verified, and documentation-synchronized
+*before* it lands — which is exactly the proof-first closure model this
+chapter describes, applied at the granularity of every individual
+change.
+
+Pure documentation changes (this book, the contracts, the live-status
+trackers, the workflow docs) may still use the lighter
+`PGEN-<FAMILY>-<NNNN>` single-slice convention; the doctrine governs
+code specifically. The authoritative statement lives in
+`docs/TASK_TREE.md` ("Code-Change Doctrine") and `COMMIT.md`.
+
 ## Closure Is Normalized Across Families
 
 PGEN does not use different quality philosophies for different parser families.

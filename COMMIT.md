@@ -16,7 +16,9 @@ When the completed activity belongs to a task-tree leaf (i.e. a leaf node from a
 - The commit subject or first body line must name the leaf ID alongside the PGEN slice ID (example: `VHDL-MDBOOK-Slice-1 (PGEN-VHDL-MDBOOK-0001, leaf VHDL-MDBOOK.1): scaffold book.toml + SUMMARY`).
 - One commit per completed leaf before selecting another leaf.
 
-When the activity is NOT task-tree-managed (e.g. a one-shot fix, a single mechanical slice not promoted to a tree), the standard slice-ID convention `PGEN-<FAMILY>-<NNNN>` is sufficient and no `docs/tasks/` update is required.
+**Code-Change Doctrine (binding, non-negotiable — 2026-05-17):** it is strictly forbidden to make ANY code change (`grammars/*.ebnf`, Rust, codegen, generated artifacts, `rust/test_data/ast_shape_contract/*.json` manifests, or anything altering parser/codegen/generated behavior) unless it is first tracked/owned by a task-tree leaf. A task-tree leaf MUST exist and own the change before code is touched; then implement only that leaf and run this workflow. Rationale: task-tree ownership improved code review and code quality tremendously (user, 2026-05-17). See `docs/TASK_TREE.md` "Code-Change Doctrine".
+
+When the activity is NOT a code change (pure live-docs/contracts/books/tracker/workflow-doc edits — a one-shot doc fix or single mechanical doc slice not promoted to a tree), the standard slice-ID convention `PGEN-<FAMILY>-<NNNN>` is sufficient and no `docs/tasks/` update is required. This carve-out does **not** apply to code changes — those always require a task-tree leaf first (the prior "a one-shot code fix may skip the tree" reading is superseded).
 
 ## Files Involved
 - `README.md` (tracked)

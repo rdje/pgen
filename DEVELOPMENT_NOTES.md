@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - DOCTRINE (binding, non-negotiable): no code change without task-tree ownership first (PGEN-WORKFLOW-0006)
+
+### The doctrine
+User directive, 2026-05-17, verbatim intent: *"From now on it is
+strictly forbidden to make any code change without it being task-tree
+tracked or task-tree owned first. Task-tree ownership improved code
+review, code quality tremendously. That's the new doctrine going
+forward, no compromise, non-negotiable."*
+
+### What it means / how applied
+- Any edit to `grammars/*.ebnf` (grammars are code), Rust (`rust/`),
+  codegen, generated artifacts, or shape-contract manifests REQUIRES a
+  task-tree leaf that owns it, created/identified **before** the code
+  is touched. Implement only that leaf; full `COMMIT.md` workflow.
+- Supersedes the prior "a one-shot code fix not promoted to a tree may
+  use the bare `PGEN-<FAMILY>-<NNNN>` convention" reading — one-shot
+  code fixes now need a leaf too. Pure doc/tracker/contract/book/
+  workflow-doc edits keep the lighter single-slice convention; mixed
+  changes are treated as code (require a leaf).
+- Recorded in lock-step across the workflow authority + live surfaces:
+  `docs/TASK_TREE.md` ("Code-Change Doctrine" section), `COMMIT.md`
+  (Task-Tree Workflow Rule), the live-book
+  `docs/book/src/quality-and-closure-model.md` ("Task-Tree Ownership
+  Is Mandatory For Code Changes"), `CHANGES.md`,
+  `LIVE_ACHIEVEMENT_STATUS.md`, and the auto-memory
+  `feedback_task_tree_workflow`.
+- In-flight compliance: `POST-SV-AUDIT.2.4b` (the active code work) is
+  a task-tree leaf of the `POST-SV-AUDIT` tree → already
+  doctrine-compliant; it resumes under this doctrine. Recording the
+  doctrine is itself a pure-docs `PGEN-WORKFLOW-0006` slice (no code).
+
 ## 2026-05-17 - RTL-FE-0002 + lookahead-positional-slot confirmation (POST-SV-AUDIT.2.2 / PGEN-POST-SV-AUDIT-0003)
 
 ### RTL-FE-0002 — the inline-alt-$N class extends beyond binop chains

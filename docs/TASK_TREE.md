@@ -24,6 +24,41 @@ leaf, the commit subject or first body line also names the leaf ID
 (e.g. `VHDL-MDBOOK.2`), so the slice ID and the tree-node ID coexist on the
 same commit.
 
+## Code-Change Doctrine (binding, non-negotiable — 2026-05-17)
+
+**It is strictly forbidden to make any code change unless that change is
+first tracked by, or owned by, a task-tree leaf.** This is the standing
+doctrine going forward — no compromise, non-negotiable.
+
+- "Code change" means any edit to: `grammars/*.ebnf`, Rust sources
+  (`rust/`), codegen, generated artifacts, shape-contract manifests
+  (`rust/test_data/ast_shape_contract/*.json`), or anything that alters
+  parser/codegen/generated behavior. The grammar `.ebnf` files are code.
+- Before touching code, a task-tree leaf must exist that owns the change
+  (create/extend a tree, or add a leaf to an active one). The leaf —
+  its goal, acceptance, verification, and commit — is the unit of
+  review. Then implement only that leaf and run the full `COMMIT.md`
+  workflow.
+- **Rationale (user, 2026-05-17):** task-tree ownership improved code
+  review and code quality *tremendously*. The tree's explicit
+  goal/acceptance/verification/blocker structure forces the change to
+  be scoped, justified, independently verified, and lock-stepped with
+  docs before it lands.
+- Pure non-code changes (live-docs, contracts, the books, tracker
+  files, this workflow doc itself) may still use the
+  `PGEN-<FAMILY>-<NNNN>` single-slice convention without a task tree —
+  the doctrine governs **code** changes specifically. When in doubt
+  (a change touches both), treat it as a code change and require a
+  task-tree leaf.
+- This supersedes the looser "a one-shot code fix not promoted to a
+  tree may use the slice-ID convention" reading: one-shot code fixes
+  now require a task-tree leaf too.
+
+This doctrine is mirrored in `COMMIT.md` (Task-Tree Workflow Rule),
+`DEVELOPMENT_NOTES.md`, the live-book
+(`docs/book/src/quality-and-closure-model.md`), and the auto-memory
+(`feedback_task_tree_workflow`).
+
 ## Active Task Trees
 
 The 9 prior trees + the `INLINE-ALT-FIX` parser-correctness tree are
