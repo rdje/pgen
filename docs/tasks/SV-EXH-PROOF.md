@@ -101,10 +101,10 @@ literal over a failing surface.
 
 - ID: `SV-EXH-PROOF.2.3.2`
   Status: `pending`
-  Goal: `Eliminate the 2 remaining preprocessor closed-loop self-rejections so sv_preprocessor_zero_plausible_gap_proof_gate verdict goes GREEN (parser_rejections_total -> 0). Minimal repro of the remaining class = "/****/\`" (a block comment then a bare dangling backtick): this is GENUINELY-INVALID SystemVerilog that the parser CORRECTLY rejects (a bare backtick not followed by a directive/identifier). Distinct disposition from .2.3.1 (which was valid SV wrongly rejected = grammar bug): .2.3.2 is the closed-loop GENERATOR over-generating invalid output (a generator-side asymmetry — NOT a parser/grammar bug; do NOT bug-ledger it; do NOT loosen the ==0 precondition). Triage which generator path emits the bare/dangling backtick (candidate: directive_tail/non_directive_text-class regexes that allow backtick, or a truncated directive); honest fix = constrain the closed-loop stimuli generator so it does not emit a grammar-significant bare backtick in invalid position (a stimuli_generator.rs change — parser-agnostic, all-lanes-safe, leaf-owned), OR if that is an inherent unconstrainable property, an explicit honest disposition (NOT gate-loosening).`
-  Acceptance: `parseability_parser_rejections_total=0; sv_preprocessor_zero_plausible_gap_proof_gate verdict GREEN (helper_only_unreachable_surface_green=true, zero_plausible_grammar_level_gap_proof_surface=true); no parser/grammar weakened, no tolerance loosened; the generator constraint is all-lanes-safe (cargo test stimuli_generator:: + no regression across the other parser book/closure gates).`
-  Verification: `pending`
-  Commit: `pending`
+  Goal: `Eliminate the 2 remaining preprocessor closed-loop self-rejections so sv_preprocessor_zero_plausible_gap_proof_gate verdict goes GREEN (parser_rejections_total -> 0). ROOT CAUSE PINNED (PGEN-SV-EXH-PROOF-0009, decisive): the 2 failing samples have BALANCED \`if*/\`endif counts (stage1 3/3, stage2 1/1) — so it is NOT missing-endif. The real generator⊋parser asymmetry: the closed-loop's PERMISSIVE regex content rules — directive_tail := inline_trivia /[^\r\n]+/ and non_directive_text := inline_trivia /[^\`\r\n][^\r\n]*/ — generate free-text that embeds the grammar's STRUCTURAL SIGIL \` (either a \`<directive-keyword> sequence mid-text, or a trailing/bare \`), which the parser re-lexes as a real directive (or, at EOF, as the bare-dangling-backtick symptom whose minimal trim is "/****/\`"). Both .2.3.2 symptoms (unbalanced-looking conditional + bare backtick) share ONE cause: the generator emits \` inside permissive content regexes. GENUINELY-INVALID output (parser correctly rejects) = closed-loop GENERATOR over-generation, NOT a parser/grammar bug (do NOT bug-ledger; do NOT loosen ==0). Fix locus (high blast radius — all-grammars): stimuli_generator.rs regex-content generation (generate_from_regex_class:5179 / generate_regex_sample:4770, which already has a control-char-exclusion precedent — regex_negated_class_avoids_control_character_samples), OR scoped per-rule generation steering via effective_regex_pattern:5625, OR a grammar tightening of directive_tail/non_directive_text. Honest fix = constrain the closed-loop stimuli generator so a permissive/negated content class does not emit the grammar's structural prefix sigil where it re-lexes as structure — derived/generalizable, NOT hardcoded; parser-agnostic, all-lanes-safe, leaf-owned.`
+  Acceptance: `parseability_parser_rejections_total=0; sv_preprocessor_zero_plausible_gap_proof_gate verdict GREEN (helper_only_unreachable_surface_green=true, zero_plausible_grammar_level_gap_proof_surface=true); no parser/grammar weakened, no ==0 tolerance loosened, not bug-ledger'd; the generator constraint is all-lanes-safe — cargo test --lib stimuli_generator:: green + NO regression across every parser book/closure gate (regex/vhdl/rtl_frontend/rtl_const_expr/systemverilog/sv_preprocessor).`
+  Verification: `root cause pinned 2026-05-18 (see Verification Log .2.3.2 root-cause-pinned)`
+  Commit: `PGEN-SV-EXH-PROOF-0009 (root-cause checkpoint)`
 
 - ID: `SV-EXH-PROOF.3`
   Status: `pending`
@@ -299,14 +299,23 @@ literal over a failing surface.
   non-comment-aware grammar bug is **fixed** (`SVPP-0002`, release
   1.0.4, schema-unchanged 3); verified, full lockstep;
   `parser_rejections` 3→2, no regression.
-- `.2.3.2` (OPEN): the remaining 2 self-rejections are
-  **genuinely-invalid** SV (minimal `/****/\`` — a bare dangling
-  backtick the parser correctly rejects). This is **closed-loop
-  generator over-generation** (a generator-side asymmetry, NOT a
-  parser/grammar bug). Which generator path emits the invalid bare
-  backtick (a backtick-permitting regex like `directive_tail`, or a
-  truncated directive)? Honest fix = constrain the generator
-  (all-lanes-safe `stimuli_generator.rs`), never loosen `==0`, never
+- `.2.3.2` (root cause PINNED `-0009`; fix OPEN): the remaining 2
+  self-rejections have **balanced** `` `if*``/`` `endif `` counts —
+  NOT missing-endif. Decisive root cause: the closed-loop's permissive
+  regex content rules (`directive_tail /[^\r\n]+/`,
+  `non_directive_text /[^\`\r\n][^\r\n]*/`) generate free-text that
+  embeds the grammar's structural sigil `` ` `` (a `` `<keyword> ``
+  mid-text, or a trailing/bare `` ` `` at EOF — minimal trim
+  `/****/\``), which the parser re-lexes as a real directive →
+  genuinely-invalid output (parser correct) = **closed-loop generator
+  over-generation**, NOT a parser/grammar bug. Fix locus (all-grammars
+  high blast radius): `stimuli_generator.rs` regex-content generation
+  (`generate_from_regex_class:5179`/`generate_regex_sample:4770`, with
+  the control-char-exclusion precedent) / scoped
+  `effective_regex_pattern:5625` steering / grammar tightening. Honest
+  fix = constrain a permissive/negated content class from emitting the
+  grammar's structural prefix sigil where it re-lexes as structure
+  (derived, not hardcoded; all-lanes-safe); never loosen `==0`, never
   bug-ledger (not a parser bug).
 - `.3`: which commit regressed the external-corpus parse surface to
   `0/14` + the SV-main closed-loop replay-shadow (A3)? Triage owned by
@@ -335,6 +344,8 @@ literal over a failing surface.
 | `2026-05-17` | `SV-EXH-PROOF.2.3` (root cause PINNED) | Delta-debugged the smallest failing sample (312B) → 151B; isolated to a `\`define` macro; hand-minimized to ``\`define X a /*\`*/`` FAIL vs ``\`define X a /*c*/`` PASS (byte-identical sans backtick), ``\`define X(a=/*\`*/) y`` FAIL vs ``\`define X(a=/*c*/) y`` PASS; control: backtick-in-comment outside macro region (``\`celldefine /*x\`y*/``, `module m; /*x\`y*/ endmodule`) PASS. Read grammar: `macro_body_text`/`macro_default_text := inline_trivia /[^\`(),?:\r\n]+/` (backtick-excluding, not comment-aware); `block_comment` predates the campaign | `ROOT CAUSE PINNED — a genuine PRE-EXISTING grammar bug: the macro body/default content regex is not comment-aware → block-comment-with-backtick wrongly rejected (valid SV). Supersedes the `-0006` "unbalanced pp_conditional" framing; generator bisect moot (generator correctly surfaces a real grammar defect). Consistent with -0005/-0006 (not campaign-caused). Fix = grammar-harden sub-leaf `.2.3.1`. No code in this checkpoint` |
 | `2026-05-18` | `SV-EXH-PROOF.2.3.1` | Grammar fix landed (`macro_default_text`/`macro_body_text` comment-aware). Regen required `--features ebnf_dual_run` (first attempt's stale-parser artifact caught by mtime/regex verification, not mistaken for a failed fix). AFTER-probe on freshly-rebuilt probe: 4 reproducers + multi-formal variant PASS, 16 controls/regression unchanged, negative bare-backtick still FAILS, annotation inventory 66 (unchanged); `--parse-dump-ast-pretty` = standard `{kind:"text",body:[<trivia>,<text>]}`, zero `<invalid_sequence_access>`, byte-identical shape for previously-parseable inputs. End-to-end `sv_preprocessor_zero_plausible_gap_proof_gate`: `parser_rejections` 3→2, MAKE_RC=0, `observed_unreachable_rules=["trivia"]` ⊆ allowed, no syntax-closure/aggregate/reachability regression. Final lockstep gate (`systemverilog_preprocessor_parser_book_gate` mdbook build + tracked-HTML + `systemverilog_preprocessor_ast_shape_contract` with the new `macro_body_comment_backtick` sample) is the commit gate — `PGEN-SV-EXH-PROOF-0008` is only made once it confirms green (independently checked, never on assumed success) | `pass for .2.3.1 (real pre-existing grammar bug SVPP-0002 fixed; probe + AST-shape + end-to-end zero-gap proof verified, not masked; release 1.0.4, schema unchanged 3; full lockstep; final book-gate/shape-contract is the commit gate). `.2` NOT complete — `.2.3.2` (2 remaining = genuinely-invalid bare-backtick generator over-generation) honestly recorded` |
 
+| `2026-05-18` | `SV-EXH-PROOF.2.3.2` (root cause PINNED) | Extracted the 2 remaining post-`.2.3.1` counterexamples; delta-debugged (minimal `/****/\`` + `/*j**/ /*g**/\``); inspected the REAL pre-minimization failure positions (stage1 pos=125, stage2 pos=41 — both at a `` `ifndef ``/`` `ifdef `` opener); `re.findall` on the full samples → `` `if*``/`` `endif `` counts are **BALANCED** (3/3, 1/1); empirical per-rule generation (`--entry-rule non_directive_text`) reproduced trailing-backtick text; read `generate_from_regex_class:5179` / `generate_regex_sample:4770` (existing control-char-exclusion precedent) | `ROOT CAUSE PINNED — balanced counts disprove "missing endif". The permissive content regexes (directive_tail /[^\\r\\n]+/, non_directive_text /[^\`\\r\\n][^\\r\\n]*/) generate free-text embedding the structural sigil \` (re-lexed as a directive / bare-backtick at EOF) = closed-loop GENERATOR over-generation, NOT a parser/grammar bug. Both .2.3.2 symptoms share this one cause. Fix locus = stimuli_generator.rs regex-content / scoped steering / grammar tightening (all-grammars high blast radius). No code in this checkpoint` |
+
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
@@ -348,6 +359,7 @@ literal over a failing surface.
 | `SV-EXH-PROOF.2.3` (root-cause class) | `PGEN-SV-EXH-PROOF-0006` | history evidence resolves `-0005`'s open question: 0→3 = non-grammar stimuli-generator semantics drift (24 commits since `4d5b2d27`/2026-04-01) over-generating unbalanced `pp_conditional`; exact-commit bisect + honest fix remain. Docs-only diagnostic checkpoint; frontier stays `.2.3` |
 | `SV-EXH-PROOF.2.3` (root cause PINNED) | `PGEN-SV-EXH-PROOF-0007` | delta-debugged to the exact pre-existing grammar bug: `macro_body_text`/`macro_default_text` content regex not comment-aware → block-comment-with-backtick in macro body/default wrongly rejected (valid SV). Supersedes `-0006` framing; generator bisect moot. `.2.3` → parent; fix = sub-leaf `.2.3.1`. Docs-only; frontier → `.2.3.1` |
 | `SV-EXH-PROOF.2.3.1` | `PGEN-SV-EXH-PROOF-0008` | grammar fix: `macro_default_text`/`macro_body_text` comment-aware (`SVPP-0002`, valid SV wrongly rejected — real released-parser bug). Release/contract 1.0.3→1.0.4, AST-dump schema UNCHANGED 3 (strictly-more-permissive; byte-identical AST for previously-parseable inputs). Probe + AST-shape + end-to-end verified; `parser_rejections` 3→2, no regression. Full lockstep (grammar + shape-contract sample + bug-ledger + contract + book schema-versioning/changelog-index + CHANGES/DEV/LIVE/memory). `.2` split adds `.2.3.2` (remaining 2 = genuinely-invalid bare-backtick generator over-generation, new frontier) |
+| `SV-EXH-PROOF.2.3.2` (root cause PINNED) | `PGEN-SV-EXH-PROOF-0009` | balanced `` `if*``/`` `endif `` counts disprove missing-endif; root cause = permissive content regexes (`directive_tail`/`non_directive_text`) emit the structural sigil `` ` `` in free-text → re-lexed as a directive = closed-loop generator over-generation (NOT a parser/grammar bug). Both `.2.3.2` symptoms share this cause. Fix locus = `stimuli_generator.rs` regex-content / scoped steering / grammar tightening (all-grammars, high blast radius — careful design + cross-parser regression next). Docs-only checkpoint; frontier stays `.2.3.2` |
 
 ## Changelog
 
@@ -443,3 +455,19 @@ literal over a failing surface.
   -invalid bare-backtick **generator over-generation**, a
   generator-side asymmetry NOT a grammar bug — new frontier; never
   loosen `==0`, never bug-ledger). `.2` still NOT green.
+- `2026-05-18`: **`.2.3.2` root cause PINNED (no code).** The 2
+  remaining preprocessor self-rejections have **balanced**
+  `` `if*``/`` `endif `` counts — NOT missing-endif. Decisive cause:
+  the closed-loop's permissive content regexes (`directive_tail
+  /[^\r\n]+/`, `non_directive_text /[^\`\r\n][^\r\n]*/`) generate
+  free-text embedding the grammar's structural sigil `` ` `` (a
+  `` `<keyword> `` mid-text or trailing/bare `` ` `` at EOF), re-lexed
+  by the parser as a real directive → genuinely-invalid output the
+  parser *correctly* rejects = **closed-loop generator
+  over-generation** (a generator-side asymmetry, NOT a parser/grammar
+  bug — do not bug-ledger, do not loosen `==0`). Both `.2.3.2`
+  symptoms share this one cause. Fix locus (all-grammars, high blast
+  radius): `stimuli_generator.rs` regex-content generation /
+  scoped `effective_regex_pattern` steering / grammar tightening —
+  careful design + cross-parser regression is the next focused unit.
+  Frontier stays `.2.3.2`.

@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-18 - SV-EXH-PROOF.2.3.2 root cause PINNED — "balanced counts" + the real failure position beat the trimmed artifact (PGEN-SV-EXH-PROOF-0009)
+
+After `.2.3.1`, the 2 residual preprocessor self-rejections looked
+like the same bare-backtick story the minimizer kept producing
+(`/****/\``). The faithful move was to **not trust the trimmed
+artifact** and instead read the *real* pre-minimization failure
+position + a structural invariant:
+
+- Real failure positions (stage1 pos=125, stage2 pos=41) are at a
+  `` `ifndef ``/`` `ifdef `` opener, not a bare EOF backtick.
+- `re.findall` on the full samples: `` `if*``/`` `endif `` counts are
+  **balanced** (3/3, 1/1) → the "unbalanced/missing-endif" theory
+  (and the `-0006` framing) is **disproved for this residual class**.
+- The actual cause: the permissive content regexes (`directive_tail
+  /[^\r\n]+/`, `non_directive_text /[^\`\r\n][^\r\n]*/`) generate
+  free-text embedding the structural sigil `` ` `` — re-lexed by the
+  parser as a real directive. The "bare dangling backtick" the
+  minimizer kept showing is just the EOF projection of the same one
+  cause.
+
+### Carry-forward principle (binding)
+**The minimizer's trimmed artifact answers "what's a small failing
+input," not "what did the generator actually do wrong." For
+generator⊋parser disputes, read the real (un-minimized) failure
+position and a structural invariant (here: balanced delimiter
+counts) before theorizing.** This is the third time this session a
+plausible symptom-level story was beaten by primary evidence
+(trio-port; "drift is a real defect"; now "missing endif"); the
+discriminator that finally held: *is the rejected input valid SV?*
+(`.2.3.1` yes → grammar bug + ledger; `.2.3.2` no → generator
+over-generation, no ledger, never loosen `==0`).
+
+### The fix is the riskiest change in the workstream
+The fix locus — `stimuli_generator.rs` regex-content generation — is
+**parser-agnostic and affects every grammar's stimuli generation**
+(regex/vhdl/rtl_frontend/rtl_const_expr/systemverilog/sv_preprocessor
+closed-loops). A naive "exclude backtick" hardcode is unacceptable
+(not generalizable, would skew other grammars). The fix must derive
+"the grammar's structural prefix sigil" and constrain only
+permissive/negated content classes, with the existing
+control-char-exclusion precedent as the model, gated by
+`cargo test stimuli_generator::` + a full cross-parser book/closure
+no-regression sweep. Recorded as a root-cause checkpoint (no code)
+before that high-care change — the established discipline.
+
 ## 2026-05-18 - SV-EXH-PROOF.2.3.1 — the macro-comment grammar fix; "release bump, no schema bump"; stale-artifact discipline (PGEN-SV-EXH-PROOF-0008)
 
 The pinned pre-existing grammar bug (`SVPP-0002`) is fixed:

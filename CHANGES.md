@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0009 (leaf SV-EXH-PROOF.2.3.2 root cause PINNED): the 2 remaining preprocessor self-rejections are closed-loop generator over-generation of the structural sigil in permissive content regexes (docs-only)
+
+- After `.2.3.1` (`SVPP-0002`) took `parser_rejections` 3 → 2, the
+  remaining 2 self-rejections were root-caused (delta-debug +
+  inspection of the **real** pre-minimization failure positions, not
+  the trimmed artifact):
+  - The 2 failing samples have **balanced** `` `if*``/`` `endif ``
+    counts (stage1 3/3, stage2 1/1) → it is **not** missing-endif /
+    unbalanced-conditional.
+  - Real cause: the closed-loop's **permissive regex content rules** —
+    `directive_tail := inline_trivia /[^\r\n]+/` and
+    `non_directive_text := inline_trivia /[^`\r\n][^\r\n]*/` —
+    generate free-text that embeds the grammar's **structural sigil
+    `` ` ``** (a `` `<directive-keyword> `` mid-text, or a
+    trailing/bare `` ` `` at EOF whose minimal trim is `/****/\``),
+    which the parser correctly re-lexes as a real directive — so the
+    generated stimulus does not round-trip.
+  - Both `.2.3.2` symptoms (the "unbalanced-looking conditional" and
+    the "bare dangling backtick") are **one cause**: the closed-loop
+    emits `` ` `` inside permissive content regexes. This is
+    **genuinely-invalid output the parser correctly rejects** =
+    closed-loop **generator over-generation**, NOT a parser/grammar
+    bug → deliberately **not** bug-ledger'd, `==0` precondition
+    **not** loosened.
+- Fix locus (decided, not yet implemented — high blast radius,
+  all-grammars): `stimuli_generator.rs` regex-content generation
+  (`generate_from_regex_class:5179`/`generate_regex_sample:4770`,
+  which already has a control-char-exclusion precedent —
+  `regex_negated_class_avoids_control_character_samples`), or scoped
+  per-rule `effective_regex_pattern:5625` steering, or a grammar
+  tightening of `directive_tail`/`non_directive_text`. Honest fix =
+  constrain a permissive/negated content class from emitting the
+  grammar's structural prefix sigil where it re-lexes as structure
+  (derived, not hardcoded; parser-agnostic, all-lanes-safe). Careful
+  design + `cargo test stimuli_generator::` + cross-parser
+  no-regression (regex/vhdl/rtl_frontend/rtl_const_expr/systemverilog/
+  sv_preprocessor) is the next focused unit.
+- Docs-only root-cause checkpoint (no code); tree
+  (`.2.3.2` root cause pinned, fix-locus recorded) +
+  DEVELOPMENT_NOTES + LIVE + memory lockstepped; frontier stays
+  `.2.3.2`.
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0008 (leaf SV-EXH-PROOF.2.3.1): SVPP-0002 — macro body/default content rules made comment-aware (release 1.0.4, AST-dump schema unchanged 3)
 
 - **Grammar fix (`grammars/systemverilog_preprocessor.ebnf`,
