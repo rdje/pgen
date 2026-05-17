@@ -1,4 +1,44 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - PLAYBOOK: the Category-A AST-shape-fix lockstep (POST-SV-AUDIT.2.1 / PGEN-POST-SV-AUDIT-0002)
+
+### What
+First objective-bug fix from the POST-SV-AUDIT ledger: sv_preprocessor
+`macro_formals` Category-A raw-envelope misuse
+(`{first:$2,rest:$3}` → `[$2,$3::2*]`). Establishes the reusable
+**Cat-A fix lockstep playbook** for `.2.2` (rtl_frontend) / `.2.3`
+(vhdl) / `.2.4` (systemverilog).
+
+### The Cat-A playbook (carry forward to .2.2/.2.3/.2.4)
+1. BEFORE `parseability_probe` (on-demand parser → rebuild probe wired
+   to the current generated parser) capturing the raw
+   `{first,rest}`/`[[sep,item],…]` envelope.
+2. Grammar edit: pure separator list `X (SEP X)* -> {first:$N,rest:$M}`
+   → `-> [$N, $M::2*]` (the `object_properties` reference idiom; drop
+   the semantically-irrelevant SEP). Annotation-doc consultation is
+   satisfied by the corrected [[feedback_quantified_group_extraction]]
+   Cat-A rule.
+3. Regen parser + frontend JSON + inventory. The annotation **count is
+   unchanged** (still one rule/one annotation) — only `annotation_type`
+   flips `return_object` → `return_array`. Do NOT fabricate a count
+   delta (contrast: the SVPP-0001/`{kind}`-op-rule fixes DID add
+   annotations).
+4. Manifest dai rebuilt via `dump_declared_annotation_inventory` + a
+   new sample exercising the rule → `*_ast_shape_contract` passes.
+5. **Schema + release bump** (the `{first,rest}`→`[…]` shape is
+   consumer-visible) — even though the count is unchanged.
+6. Contract + book + `docs/POST_SV_AUDIT_LEDGER.md` lockstep;
+   **NO `PGEN_RELEASED_PARSER_BUG_LEDGER` row**.
+
+### Decision — Cat-A vs the bug ledger (binding for the whole tree)
+A Category-A raw-envelope→clean-list improvement is a *deliberate
+audit-driven shape correction* — tracked via the Schema-Versioning
+row + `POST_SV_AUDIT_LEDGER` + an "AST-Shape Corrections" contract
+section. It is **NOT** a `PGEN_RELEASED_PARSER_BUG_LEDGER` entry: that
+ledger is reserved for the `<invalid_sequence_access>` corruption/crash
+class (SVPP-0001/RTL-FE-0001/VHDL-0001 etc.). The `.2.2`
+`event_control_list` + `.2.4` 5-SV-number-rule inline-alt-`$N` HIGH
+finds DO emit the corruption sentinel → those get bug-ledger rows.
+
 ## 2026-05-17 - CLASS CLOSED: inline-alternation-$N defect fully resolved across all 4 grammars (PGEN-INLINE-ALT-FIX-0003 / VHDL-0001)
 
 ### Summary

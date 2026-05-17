@@ -5,15 +5,15 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 ## Contract Identity
 - Contract version:
-  - `1.0.2`
+  - `1.0.3`
 - Parser release version:
-  - `1.0.2`
+  - `1.0.3`
 - systemverilog_preprocessor AST-dump schema version:
-  - `2` (breaking shape correction — see Release 1.0.2 Highlights)
+  - `3` (Category-A AST-shape correction — see Release 1.0.3 Highlights)
 - Annotation count:
-  - `66` (all `return_object`; 28 distinct rules)
+  - `66` (65 `return_object` + 1 `return_array`; 28 distinct rules)
 - Last updated:
-  - `2026-05-16`
+  - `2026-05-17`
 - Current grammar family label:
   - `systemverilog_preprocessor`
 - Per-family mdBook:
@@ -27,11 +27,12 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 The systemverilog_preprocessor parser carries two version axes:
 
-1. **Parser release version** (`1.0.2`). Tracks the parser library's release identity.
-2. **AST-dump schema version** (`2`). Tracks the AST output shape.
+1. **Parser release version** (`1.0.3`). Tracks the parser library's release identity.
+2. **AST-dump schema version** (`3`). Tracks the AST output shape.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
+| 3 | 1.0.3 | **`macro_formals` Category-A AST-shape correction (POST-SV-AUDIT, consumer-visible).** `macro_formals` no longer exposes the raw `{first, rest}` iteration envelope — the POST-SV-AUDIT.2.1 audit (`PGEN-POST-SV-AUDIT-0002`) found `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> {first: $2, rest: $3}` was a static-conclusive Category-A raw-envelope misuse: `rest` surfaced the raw `[[comma, macro_formal], …]` separator envelope, forcing every consumer to walk past the `comma` separator. Corrected to the canonical extraction-spread `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> [$2, $3::2*]` (drop the semantically-irrelevant `comma`; emit a clean flat `macro_formal` list — the `object_properties` reference idiom). For input `` `define M(a, b, c) a+b+c `` `pp_define.formals` was the raw `{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}` envelope; it is now the clean list `[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]` of `macro_formal` `{name, default}` objects. No `<invalid_sequence_access>` (this is a clean Category-A shape improvement, **not** the inline-alternation-`$N` corruption class of `SVPP-0001`). Surface counts **unchanged** (66 annotations / 28 distinct rules): `macro_formals` is still one rule / one annotation — only its `annotation_type` changed `return_object` → `return_array` and `normalized_text` `{first: $2, rest: $3}` → `[$2, $3::2*]`, so the surface is now **65 `return_object` + 1 `return_array`** (was all 66 `return_object`). Same accept set (no grammar acceptance change — only the annotation form). Gate-locked. |
 | 2 | 1.0.2 | **SVPP-0001 correctness fix (breaking).** `pp_if_branch.keyword` no longer emits the malformed `"<invalid_sequence_access>"` object for `` `ifdef`` / `` `ifndef`` conditional input. The inline alternation `(kw_ifdef \| kw_ifndef)` that was the lead element of `pp_if_branch` (and corrupted the positional model so the bare `keyword: $1` mis-recursed) is lifted into a **named** rule `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} \| kw_ifndef -> {kind: "ifndef"}`, mirroring the proven `systemverilog.ebnf` op-chain / `rtl_const_expr` RTL-CE-Slice-2 idiom. `pp_if_branch`'s annotation is **unchanged** (`{keyword: $1, macro: $2, tail: $3, items: $5}`); only `$1` now binds the clean named rule, so `if_branch.keyword` is now `{kind: "ifdef"}` (or `{kind: "ifndef"}`) — a real typed polarity discriminator. Annotation count `64 → 66` (the 2 new `pp_if_keyword` `return_object` branches); distinct rules `27 → 28` (the new `pp_if_keyword`). All annotations remain `return_object`. Same accept set (no grammar acceptance change — purely the alternation lift + its 2 branch annotations). Gate-locked. |
 | 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline. pp_item dispatch (10 kinds), 7 directive shapes (define/undef/include/timescale/default_nettype/celldefine/endcelldefine), include_path/nettype_value/time_literal, conditional-compilation tree (5 nodes), condition_expr/condition_atom (12 kinds), macro_formals/formal/default_value/default_atom (8 kinds) / body/body_fragment (9 kinds), passthrough lines. **NOTE:** the `pp_if_branch.keyword` shape in this baseline was defective (`SVPP-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation) — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/systemverilog_preprocessor.ebnf`) with the `systemverilog_preprocessor_file -> {type, items}` root only. AST dump is the recursive-envelope shape across all other rules. |
@@ -67,6 +68,88 @@ The systemverilog_preprocessor parser carries two version axes:
   (status `Released`) in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
   (`SVPP-0001`). Documented in
   [the conditional worked example](../systemverilog_preprocessor_parser_book/src/examples-conditional.md).
+
+## AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT) — `macro_formals` Category-A raw-envelope → clean list; schema 2 → 3
+
+Landed 2026-05-17. The POST-SV-AUDIT static classification pass
+(`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.1, tracked
+`PGEN-POST-SV-AUDIT-0002`) found one static-conclusive Category-A
+raw-envelope misuse in `grammars/systemverilog_preprocessor.ebnf`. It
+is corrected, the parser is regenerated, and the manifest inventory is
+re-locked. This is **not** a released-parser bug (no
+`<invalid_sequence_access>`, no crash) — it is a deliberate
+audit-driven AST-shape correction, so it carries a schema bump but is
+**not** logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+(that ledger is reserved for the `<invalid_sequence_access>`
+corruption/crash class — `SVPP-0001` et al.).
+
+- **`macro_formals` raw `{first, rest}` envelope (Category-A,
+  `PGEN-POST-SV-AUDIT-0002`).** For a parameterised `` `define``,
+  `pp_define.formals` is the typed `macro_formals` object. The
+  `1.0.1`/`1.0.2` grammar was
+
+  ```ebnf
+  macro_formals := lparen macro_formal (comma macro_formal)* rparen
+                -> {first: $2, rest: $3}
+  ```
+
+  which bound `rest` to the **raw iteration envelope**
+  `[[comma, macro_formal], …]` — every consumer had to index past the
+  `comma` separator on each iteration to reach the next `macro_formal`.
+  This is a static-conclusive Category-A pure-single-token-separator
+  list misuse (the `comma` carries no payload a consumer needs). **Fix
+  (the canonical `object_properties` extraction-spread idiom):** drop
+  the separator and emit a clean flat list:
+
+  ```ebnf
+  macro_formals := lparen macro_formal (comma macro_formal)* rparen
+                -> [$2, $3::2*]
+  ```
+
+  `macro_formals` is still one rule with one annotation — only its
+  annotation form changed (`annotation_type` `return_object` →
+  `return_array`; `normalized_text` `{first: $2, rest: $3}` →
+  `[$2, $3::2*]`). Real captured before→after for input
+  `` `define M(a, b, c) a+b+c `` (verified via `parseability_probe`), at
+  `pp_define.formals`:
+
+  - **Before (≤ schema 2 / release 1.0.2):**
+    `{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}`
+  - **After (schema 3 / release 1.0.3):**
+    `[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]`
+    — a clean flat list of `macro_formal` `{name, default}` objects, in
+    source order. No `<invalid_sequence_access>` anywhere (this is a
+    clean Category-A shape improvement, **not** the inline-alternation
+    corruption class of `SVPP-0001`).
+
+  Consumers now iterate `pp_define.formals` directly as the
+  `macro_formal` array — no `.first` / `.rest` split, no separator to
+  skip. A consumer written against `1.0.2` that walked
+  `formals.first` + `formals.rest[][1]` must repin to schema `3` and
+  treat `formals` as a flat `macro_formal[]`.
+
+Annotation count: **66** (unchanged — `macro_formals` was, and remains,
+one rule / one annotation; no count delta). **28** distinct rules
+(unchanged). The annotation-type mix is now **65 `return_object` + 1
+`return_array`** (the single `return_array` is `macro_formals`; it was
+the only `return_object` → `return_array` change). Same accept set (no
+grammar acceptance change — purely the annotation-form change). Schema
+bumped `2 → 3` because `pp_define.formals` (`macro_formals`) changed
+shape in a consumer-visible way. Gate-locked:
+`cargo test --lib --features generated_parsers systemverilog_preprocessor_ast_shape_contract`
+and
+`make -C rust SHELL=/opt/homebrew/bin/bash systemverilog_preprocessor_parser_book_gate`.
+
+> **Audit-campaign note:** POST-SV-AUDIT.2.1 is the first Category-A
+> fix of the POST-SV-AUDIT.2 worklist
+> (`docs/POST_SV_AUDIT_LEDGER.md`). The remaining Category-A
+> raw-envelope list rules in `rtl_frontend.ebnf`, `vhdl.ebnf`, and
+> `systemverilog.ebnf` are tracked separately as their own
+> POST-SV-AUDIT.2.x slices; this release corrects
+> systemverilog_preprocessor only. Distinct from the `SVPP-0001`
+> inline-alternation-`$N` corruption class — that was a released-parser
+> bug (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`); this
+> Category-A correction is not.
 
 ## Release 1.0.2 / Contract 1.0.2 Highlights — SVPP-0001 correctness fix (pp_if_branch.keyword); schema 1 → 2
 
@@ -175,7 +258,7 @@ condition_atom                   -> {kind: "token_paste"|"stringize"|"macro_refe
                                           |"logical_or"|"logical_and"|"bang", body?}
 
 # Macro formals + default values (8-kind atom)
-macro_formals                    -> {first, rest}
+macro_formals                    -> {first, rest}   # 1.0.1/1.0.2 shape; corrected to [$2, $3::2*] (clean macro_formal list) in 1.0.3 / schema 3 — see "AST-Shape Corrections — 1.0.3"
 macro_formal                     -> {name, default}
 macro_default_value              -> {atoms}
 macro_default_atom               -> {kind: "token_paste"|"stringize"|"macro_reference"|"text"
@@ -244,7 +327,7 @@ instead.
 > `root` keys are **not** members of `AstDumpPayload` itself —
 > `pgen_dump_contract_version` appears only inside the truncation
 > diagnostic envelope, the schema axis is the **AST-dump schema version
-> `2`** tracked in [Schema Versioning](#schema-versioning), the grammar
+> `3`** tracked in [Schema Versioning](#schema-versioning), the grammar
 > family is the fixed `systemverilog_preprocessor` label, and the profile
 > is the fixed `default` profile (see [Stable Integration
 > Surface](#stable-integration-surface)). The "root" is the parsed
@@ -346,7 +429,7 @@ pp_endcelldefine   := kw_endcelldefine directive_comment_tail newline?
 
 | Rule (`grammars/systemverilog_preprocessor.ebnf`) | Shape | Notes |
 |---|---|---|
-| `pp_define` (line 33) | `{name, formals, body}` | `name` is the un-annotated `macro_name`/`identifier` envelope; `formals` is `[]` when no `(...)` formal list; `body` is `[]` for a bodyless macro, else the typed `macro_body` `{fragments}` object. |
+| `pp_define` (line 33) | `{name, formals, body}` | `name` is the un-annotated `macro_name`/`identifier` envelope; `formals` is `[]` when no `(...)` formal list, else the clean `macro_formal[]` list (the `1.0.3` / schema `3` POST-SV-AUDIT Category-A `[$2, $3::2*]` extraction-spread — was the raw `{first, rest}` envelope at ≤ `1.0.2` / schema `2`; see [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--macro_formals-category-a-raw-envelope--clean-list-schema-2--3)); `body` is `[]` for a bodyless macro, else the typed `macro_body` `{fragments}` object. |
 | `pp_undef` (line 35) | `{name, comment}` | `comment` is the `directive_comment_tail` envelope (`[]` when no trailing comment). |
 | `pp_include` (line 37) | `{path, comment}` | `path` is the typed `include_path` (`{kind: "quoted"\|"angle", text}`). |
 | `pp_timescale` (line 39) | `{unit, precision, comment}` | `unit` / `precision` are typed `time_literal` (`{value, unit}`). |
@@ -367,29 +450,36 @@ The conditional-compilation tree (`pp_conditional` →
 (`{tail, items}`, line 68), and `pp_endif` (`{tail}`, line 70); each
 branch's `items` is a nested `pp_item*` array. The condition / macro
 formal / macro body atom dispatchers (`condition_expr` /
-`condition_atom`, `macro_formals` / `macro_formal` /
-`macro_default_value` / `macro_default_atom`, `macro_body` /
-`macro_body_fragment`) and the passthrough lines (`pp_non_directive_line`
-→ `{text}`, `pp_blank_line` → `{kind: "blank"}`) round out the
-27-distinct-rule typed surface; their full per-branch field lists are in
+`condition_atom`, `macro_formals` (the clean `macro_formal[]` list as of
+`1.0.3` / schema `3`) / `macro_formal` / `macro_default_value` /
+`macro_default_atom`, `macro_body` / `macro_body_fragment`) and the
+passthrough lines (`pp_non_directive_line` → `{text}`, `pp_blank_line`
+→ `{kind: "blank"}`) round out the 28-distinct-rule typed surface; their
+full per-branch field lists are in
 `docs/systemverilog_preprocessor_parser_book/src/rules-top-level.md`.
 
 ### Verified surface totals
 
-The full typed surface of contract `1.0.2` is **66 return annotations
-across 28 distinct rules** (all 66 are `annotation_type:
-"return_object"`), AST-dump schema version `2`, parser release `1.0.2`.
-These exact numbers are transcribed from
+The full typed surface of contract `1.0.3` is **66 return annotations
+across 28 distinct rules** (**65 `annotation_type: "return_object"` + 1
+`annotation_type: "return_array"`** — the single `return_array` is
+`macro_formals`, the `1.0.3` POST-SV-AUDIT Category-A correction;
+historically all 66 were `return_object` through `1.0.2`/schema `2`),
+AST-dump schema version `3`, parser release `1.0.3`. These exact numbers
+are transcribed from
 `generated/systemverilog_preprocessor_return_annotations.json`
 (`version: 1`, `grammar: "systemverilog_preprocessor"`,
 `annotation_count: 66`; 28 distinct `rule` values) and its embedded copy
 `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`.
 (The inventory-file `version: 1` is the inventory format version,
-distinct from the AST-dump schema version `2` and the parser release
-version `1.0.2`.) The `1.0.2` `SVPP-0001` fix added the new
+distinct from the AST-dump schema version `3` and the parser release
+version `1.0.3`.) The `1.0.2` `SVPP-0001` fix added the new
 `pp_if_keyword` rule (2 `return_object` branches, `{kind: "ifdef"}` /
 `{kind: "ifndef"}`), taking the count `64 → 66` and distinct rules
-`27 → 28`. The machine-checkable enumeration of every
+`27 → 28`; the `1.0.3` POST-SV-AUDIT `macro_formals` correction did
+**not** change the count (it is still one rule / one annotation) —
+only its `annotation_type` `return_object` → `return_array` and
+`normalized_text` `{first: $2, rest: $3}` → `[$2, $3::2*]`. The machine-checkable enumeration of every
 `(rule, branch_index, annotation_type, normalized_text)` tuple is those
 two artifacts; this contract section is curated; if this section and
 either artifact disagree, the artifact wins, and this integration
@@ -589,9 +679,12 @@ without re-lexing. Only `"macro_reference"` and `"text"` carry a
 ### The `macro_default_atom` kinds
 
 For a parameterised macro, `pp_define.formals` is the typed
-`macro_formals` (`{first, rest}`, line 94); each `macro_formal`
-(`{name, default}`, line 96) may carry a `default` that is the typed
-`macro_default_value` object. Per
+`macro_formals` — a clean `[macro_formal, …]` array (line 110, the
+`1.0.3` POST-SV-AUDIT Category-A extraction-spread `[$2, $3::2*]`; at
+≤ release `1.0.2` / schema `2` it was the raw `{first, rest}` iteration
+envelope — see [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--macro_formals-category-a-raw-envelope--clean-list-schema-2--3));
+each `macro_formal` (`{name, default}`, line 112) may carry a `default`
+that is the typed `macro_default_value` object. Per
 `grammars/systemverilog_preprocessor.ebnf` (lines 99–110):
 
 ```ebnf
@@ -634,8 +727,11 @@ not part of an atom stream), and its text leaf is `macro_default_text`
 
 **Consumer guidance — composing default-argument atoms.** A
 default-argument value is the `atoms` array of a `macro_default_value`,
-reached via `pp_define.formals` → `macro_formals.first` /
-`macro_formals.rest[]` (each a `macro_formal`) → `macro_formal.default`
+reached via `pp_define.formals` (the clean `macro_formal[]` list as of
+`1.0.3` / schema `3` — at ≤ `1.0.2` / schema `2` this was the raw
+`macro_formals.first` / `macro_formals.rest[]` `{first, rest}` envelope;
+see [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--macro_formals-category-a-raw-envelope--clean-list-schema-2--3))
+→ each `macro_formal` → `macro_formal.default`
 (`[]` when the formal has no `= default`). Concatenate the atoms in
 order, dispatching each on `kind`: `"text"` / `"macro_reference"`
 contribute their `body`; `"lparen"` / `"rparen"` / `"question"` /
@@ -651,8 +747,14 @@ To walk a `` `define`` end to end: dispatch a `pp_item` on
 `kind == "define"` and take `body` — the typed `pp_define`
 (`{name, formals, body}`, line 33). `name` is the macro identifier
 envelope. `formals` is `[]` for an object-like macro, else the typed
-`macro_formals` (`{first, rest}`); iterate `first` then each element of
-`rest` (both typed `macro_formal` `{name, default}`), recursing into
+`macro_formals` — a clean flat `macro_formal[]` array (the `1.0.3` /
+schema `3` POST-SV-AUDIT Category-A `[$2, $3::2*]` extraction-spread; at
+≤ `1.0.2` / schema `2` this was the raw `{first, rest}` envelope where a
+consumer had to walk `formals.first` then `formals.rest[][1]` past the
+`comma` separator — see
+[AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--macro_formals-category-a-raw-envelope--clean-list-schema-2--3)).
+Iterate `pp_define.formals` directly (each element a typed
+`macro_formal` `{name, default}`), recursing into
 `macro_default_value.atoms` (the `macro_default_atom` stream above) for
 any non-`[]` `default`. `pp_define.body` is `[]` for a bodyless macro,
 else the typed `macro_body` (`{fragments}`); iterate `fragments`,
@@ -664,11 +766,15 @@ body in source order. The only `type`-discriminated object on this
 whole path is the `systemverilog_preprocessor_file` root; `pp_item`,
 `macro_body_fragment`, and `macro_default_atom` all dispatch on `kind`.
 This contract documents the surface as it exists in the inventory; the
-schema axis is the AST-dump schema version **`2`** (see
+schema axis is the AST-dump schema version **`3`** (see
 [Schema Versioning](#schema-versioning)) and the parser release is
-**`1.0.2`**, with **66 return annotations across 28 distinct rules** —
-unchanged by this section (the `1.0.2` `SVPP-0001` fix touched only the
-conditional tree's `pp_if_branch.keyword` / new `pp_if_keyword` rule).
+**`1.0.3`**, with **66 return annotations across 28 distinct rules**
+(65 `return_object` + 1 `return_array`) — the count is unchanged by the
+`1.0.3` POST-SV-AUDIT correction (`macro_formals` is still one rule /
+one annotation; only its annotation form changed `return_object` →
+`return_array`, `{first, rest}` → `[$2, $3::2*]`). The `1.0.2`
+`SVPP-0001` fix touched only the conditional tree's
+`pp_if_branch.keyword` / new `pp_if_keyword` rule.
 Where this prose and the inventory disagree, the inventory wins.
 
 ## Source Of Truth
@@ -720,7 +826,7 @@ order stated at the end of this section.
 | **This contract** | `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` | The downstream integration surface: AST-dump envelope, `systemverilog_preprocessor_file` root, the 10-branch `pp_item` dispatch, the conditional-compilation tree, and the macro-body / macro-default fragment streams. See [AST Envelope and pp_item Dispatch](#ast-envelope-and-pp_item-dispatch) and [Conditional Compilation and Macro Body Fragments](#conditional-compilation-and-macro-body-fragments). |
 | **Per-parser mdBook** | `docs/systemverilog_preprocessor_parser_book/` (source `src/*.md`; tracked HTML at `docs/systemverilog_preprocessor_parser_book-html/`) | The per-rule reference and teaching surface: build recipe, public API, AST-envelope walkthrough, every rule shape, per-feature worked examples (including the conditional worked example with the `SVPP-0001` schema-`1`→`2` fix transition), schema-versioning timeline, glossary, changelog index. Curated, not machine-checked. Listed in `README.md` § "Per-Parser Integration Reference Books". |
 | **Shape-contract manifest** | `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
-| **Declared-annotation inventory** | `generated/systemverilog_preprocessor_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the systemverilog_preprocessor grammar emits (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 66`, **28 distinct rules**; all 66 `return_object`). The generator-side source of truth for the typed surface. |
+| **Declared-annotation inventory** | `generated/systemverilog_preprocessor_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the systemverilog_preprocessor grammar emits (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 66`, **28 distinct rules**; 65 `return_object` + 1 `return_array` — the `return_array` is `macro_formals`, the `1.0.3` POST-SV-AUDIT Category-A correction). The generator-side source of truth for the typed surface. |
 | **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
 | **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released systemverilog_preprocessor parser; the `SVPP-0001` defect lives there (status `Released`, fixed in parser release `1.0.2` / schema `2`). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
 
@@ -821,9 +927,10 @@ read this document. Where a term has a normative definition, this
 contract is authoritative; the per-parser book's
 [glossary](../systemverilog_preprocessor_parser_book/src/glossary.md)
 paraphrases the same terms for quick lookup. Numbers below are pinned to
-contract `1.0.2` / AST-dump schema `2` / parser release `1.0.2` /
-**66 return annotations across 28 distinct rules** (all 66
-`return_object`).
+contract `1.0.3` / AST-dump schema `3` / parser release `1.0.3` /
+**66 return annotations across 28 distinct rules** (65 `return_object`
++ 1 `return_array` — the `return_array` is `macro_formals`, the `1.0.3`
+POST-SV-AUDIT Category-A correction).
 
 - **`AstDumpPayload`** — the success return of the
   systemverilog_preprocessor AST-dump host entry points (defined in
@@ -850,7 +957,7 @@ contract `1.0.2` / AST-dump schema `2` / parser release `1.0.2` /
   systemverilog_preprocessor AST. `pgen_dump_contract_version` is a
   member of **this envelope only**, never of `AstDumpPayload` itself.
 - **AST-dump schema version** — the integer version axis tracking the
-  AST output shape, currently `2`, pinned by this contract (see
+  AST output shape, currently `3`, pinned by this contract (see
   [Schema Versioning](#schema-versioning)). It is **not** a field of
   `AstDumpPayload`; it is the contract-tracked axis. Bumped only when
   the emitted shape changes in a way consumers may need to adapt to (new
@@ -859,11 +966,16 @@ contract `1.0.2` / AST-dump schema `2` / parser release `1.0.2` /
   `1.0.2` `SVPP-0001` correctness fix because `pp_if_branch.keyword`
   changed shape in a consumer-visible way (was the malformed
   `<invalid_sequence_access>` object at schema `1`, now the typed
-  `{kind: "ifdef"|"ifndef"}` `pp_if_keyword` polarity discriminator).
+  `{kind: "ifdef"|"ifndef"}` `pp_if_keyword` polarity discriminator),
+  and bumped `2 → 3` by the `1.0.3` POST-SV-AUDIT Category-A correction
+  because `pp_define.formals` (`macro_formals`) changed from the raw
+  `{first, rest}` iteration envelope to the clean `[macro_formal, …]`
+  list (`PGEN-POST-SV-AUDIT-0002`; a deliberate audit-driven shape
+  correction, **not** a released-parser bug).
 - **Parser release version** — the parser library's release identity,
-  currently `1.0.2`. Bumped on every functional change (bug fixes, perf
+  currently `1.0.3`. Bumped on every functional change (bug fixes, perf
   work, grammar changes). Moves independently of the schema version; the
-  `1.0.2` release carries AST-dump schema `2`.
+  `1.0.3` release carries AST-dump schema `3`.
 - **`pp_item` dispatch** — the primary top-level dispatcher: a
   **10-branch** `kind`-tagged shape
   (`grammars/systemverilog_preprocessor.ebnf` lines 18–27). Every parse
@@ -931,12 +1043,13 @@ contract `1.0.2` / AST-dump schema `2` / parser release `1.0.2` /
   systemverilog_preprocessor grammar emits:
   `generated/systemverilog_preprocessor_return_annotations.json`
   (`version: 1`, `grammar: "systemverilog_preprocessor"`,
-  `annotation_count: 66`, **28 distinct rules**; all 66
-  `return_object`). The generator-side source of truth for the typed
-  surface; mirrored by the embedded shape-contract manifest copy. (The
-  `version: 1` field is the inventory-file format version, distinct from
-  the AST-dump schema version `2` and the parser release version
-  `1.0.2`.)
+  `annotation_count: 66`, **28 distinct rules**; 65 `return_object` + 1
+  `return_array` — the `return_array` is `macro_formals`, the `1.0.3`
+  POST-SV-AUDIT Category-A correction). The generator-side source of
+  truth for the typed surface; mirrored by the embedded shape-contract
+  manifest copy. (The `version: 1` field is the inventory-file format
+  version, distinct from the AST-dump schema version `3` and the parser
+  release version `1.0.3`.)
 - **Generic host AST-dump surface** — the
   `parse_grammar_profile_ast_dump*` family
   (`parse_grammar_profile_ast_dump`, the `*_result` and `*_named`

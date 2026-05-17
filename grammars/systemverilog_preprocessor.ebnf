@@ -101,8 +101,14 @@ condition_text := inline_trivia /[^`(),?:!|&\r\n]+/
 # Macro declaration support
 # ---------------------------------------------------------------------------
 
+# Cat-A fix (POST-SV-AUDIT.2.1): a pure comma-separated list. The old
+# `{first:$2, rest:$3}` exposed the raw `[[comma,formal],…]` iteration
+# envelope (consumers had to walk past every comma). The canonical
+# extraction-spread `[$2, $3::2*]` (the `object_properties` reference
+# idiom in return_annotation.ebnf) drops the separator and yields a
+# clean flat `macro_formal` list.
 macro_formals := lparen macro_formal (comma macro_formal)* rparen
-              -> {first: $2, rest: $3}
+              -> [$2, $3::2*]
 macro_formal := macro_name (assign macro_default_value)?
              -> {name: $1, default: $2}
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-36a4a501.js";
+            window.path_to_searchindex_js = "searchindex-5899a3ab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -372,32 +372,20 @@ fn walk(node: &amp;JsonValue) {
 }
 <span class="boring">}</span></code></pre>
 <p>For <code>pp_define</code> the macro name lives at <code>body["name"]</code>; the replacement text is each <code>body["body"]["fragments"][i]["body"]</code> for fragments whose <code>kind == "text"</code>. For the captured input <code> `define FOO 1</code> (see <a href="json-carrier.html#worked-example-a-single-define-directive">The Json Carrier</a>), <code>name</code> is <code>[ [ " " ], "FOO" ]</code> and the single fragment’s <code>body</code> is <code>[ [ " " ], "1" ]</code> — <code>extract_text</code> returns <code>"FOO"</code> and <code>"1"</code> respectively. The per-rule chapters (<a href="rules-top-level.html">Top-Level Rules</a>) document the field that holds the identifier/text for each rule that produces one. Always treat these as envelopes, never assume a scalar.</p>
-<h2 id="iterating-first-rest-lists"><a class="header" href="#iterating-first-rest-lists">Iterating <code>{first, rest}</code> lists</a></h2>
-<p><code>macro_formals</code> is the <strong>only</strong> separated-list rule on the sv_preprocessor surface. It uses the <code>{first, rest}</code> carrier: <code>first</code> is the leading <code>macro_formal</code>, <code>rest</code> is the recursive-envelope iteration of the <code>(comma macro_formal)*</code> tail, so each <code>rest</code> entry wraps a comma token plus one <code>macro_formal</code>:</p>
+<h2 id="iterating-the-macro_formals-list"><a class="header" href="#iterating-the-macro_formals-list">Iterating the <code>macro_formals</code> list</a></h2>
+<p><code>macro_formals</code> is the <strong>only</strong> separated-list rule on the sv_preprocessor surface. As of release <code>1.0.3</code> / AST-dump schema <code>3</code> it is a <strong>clean flat <code>macro_formal[]</code> array</strong> (the canonical <code>[$2, $3::2*]</code> extraction-spread — the only <code>return_array</code> annotation on the surface), so you iterate it directly with no <code>.first</code> / <code>.rest</code> split and no separator to skip:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn iter_macro_formals&lt;'a&gt;(formals: &amp;'a serde_json::Value) -&gt; Vec&lt;&amp;'a serde_json::Value&gt; {
-    let mut out = Vec::new();
-    if let Some(first) = formals.get("first") {
-        out.push(first);
-    }
-    if let Some(rest) = formals.get("rest").and_then(|v| v.as_array()) {
-        for entry in rest {
-            // `entry` is the envelope of one `(comma macro_formal)`
-            // iteration; the formal is the last child. Walk to it rather
-            // than assuming a fixed index, so a grammar tweak to the
-            // separator doesn't break extraction.
-            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
-                out.push(elem);
-            } else {
-                out.push(entry);
-            }
-        }
-    }
-    out
+    // Schema 3 (release 1.0.3, POST-SV-AUDIT.2.1): `pp_define.formals`
+    // is a clean flat array of `macro_formal` objects. Just iterate it.
+    formals.as_array().map(|a| a.iter().collect()).unwrap_or_default()
 }
 <span class="boring">}</span></code></pre>
-<p>Each yielded element is a <code>macro_formal</code> <code>{name, default}</code> object (<code>default</code> is <code>[]</code> when the formal has no <code>= &lt;default&gt;</code>). The atom/fragment lists (<code>condition_expr.atoms</code>, <code>macro_default_value.atoms</code>, <code>macro_body.fragments</code>) are <strong>plain <code>x+</code> arrays</strong>, not <code>{first, rest}</code> — iterate them directly with <code>handle_atoms</code> above. This <code>{first, rest}</code> shape was <strong>not</strong> flattened to <code>[$N, $M::2*]</code> the way the SystemVerilog grammar’s lists were in its slice-58 audit; a future flattening slice, if it lands, will get a <a href="schema-versioning.html">Schema Versioning</a> row.</p>
+<blockquote>
+<p>Schema <code>3</code> note: at ≤ release <code>1.0.2</code> / schema <code>2</code> <code>macro_formals</code> emitted the raw <code>{first, rest}</code> separator envelope — <code>first</code> was the leading <code>macro_formal</code>, <code>rest</code> was the raw <code>[[comma, macro_formal], …]</code> iteration a consumer had to walk past (e.g. <code>formals.get("first")</code> plus <code>formals.get("rest")[i].as_array().last()</code>). For input <code>`define M(a, b, c) a+b+c</code> <code>pp_define.formals</code> was <code>{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}</code>; it is now the clean list <code>[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]</code>. That raw <code>{first, rest}</code> shape was a Category-A raw-envelope misuse corrected in <code>1.0.3</code> / schema <code>3</code> by the extraction-spread (POST-SV-AUDIT.2.1, <code>PGEN-POST-SV-AUDIT-0002</code>); the shape above is the corrected, gate-locked output. A <code>1.0.2</code> consumer that walked <code>formals.first</code> + <code>formals.rest[][1]</code> must repin to schema <code>3</code>. See <a href="schema-versioning.html">Schema Versioning</a>.</p>
+</blockquote>
+<p>Each yielded element is a <code>macro_formal</code> <code>{name, default}</code> object (<code>default</code> is <code>[]</code> when the formal has no <code>= &lt;default&gt;</code>). The atom/fragment lists (<code>condition_expr.atoms</code>, <code>macro_default_value.atoms</code>, <code>macro_body.fragments</code>) are <strong>plain <code>x+</code> arrays</strong> of typed atom objects — iterate them directly with <code>handle_atoms</code> above; <code>macro_formals</code> is now likewise a plain array (the <code>1.0.3</code> POST-SV-AUDIT flatten, mirroring the SystemVerilog grammar’s slice-58 list audit).</p>
 <h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
 <p>A pathologically deep nest of <code> `ifdef</code> / <code> `elsif</code> / <code> `else</code> blocks produces a deep AST tree (each branch’s <code>items</code> recurses through <code>pp_item</code> → <code>pp_conditional</code>). It is much shallower than the VHDL/rtl_frontend expression cascades (there is no per-operator-level descent here), but defensive consumers should still:</p>
 <ol>
@@ -410,7 +398,7 @@ fn walk(node: &amp;JsonValue) {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const SVPP_AST_SCHEMA_VERSION: u32 = 2;
+const SVPP_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -423,8 +411,9 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match SVPP_AST_SCHEMA_VERSION {
-    2 =&gt; walk_schema_v2(&amp;root), // schema 2: if_branch.keyword is {kind: "ifdef"|"ifndef"}
-    // schema 1 (pre-1.0.2) had the SVPP-0001 malformed keyword object.
+    3 =&gt; walk_schema_v3(&amp;root), // schema 3: pp_define.formals is a clean macro_formal[] list
+    // schema 2 (1.0.2) had the raw macro_formals {first, rest} envelope;
+    // schema 1 (pre-1.0.2) also had the SVPP-0001 malformed keyword object.
     other =&gt; eprintln!("no walker compiled for sv_preprocessor AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>

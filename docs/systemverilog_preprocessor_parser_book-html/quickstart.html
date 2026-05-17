@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-36a4a501.js";
+            window.path_to_searchindex_js = "searchindex-5899a3ab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -234,7 +234,7 @@ match outcome.status {
 </code></pre>
 <p>See <a href="walking-the-ast.html">Walking the AST</a> for the full walker pattern.</p>
 <h2 id="5-track-the-contract-version"><a class="header" href="#5-track-the-contract-version">5. Track the contract version</a></h2>
-<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.2</code>, AST-dump schema <code>2</code>). When you bump to a new PGEN version, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the directives you consume (e.g. the <code>1.0.2</code> <code>SVPP-0001</code> fix changed <code>pp_if_branch.keyword</code> to <code>{kind: "ifdef"|"ifndef"}</code>).</p>
+<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.3</code>, AST-dump schema <code>3</code>). When you bump to a new PGEN version, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the directives you consume (e.g. the <code>1.0.2</code> <code>SVPP-0001</code> fix changed <code>pp_if_branch.keyword</code> to <code>{kind: "ifdef"|"ifndef"}</code>; the <code>1.0.3</code> POST-SV-AUDIT fix changed <code>pp_define.formals</code> from the raw <code>{first, rest}</code> envelope to a clean <code>macro_formal[]</code> list).</p>
 
                     </main>
 

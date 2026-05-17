@@ -37,12 +37,29 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-INLINE-ALT-FIX-0001: SVPP-0001 fixed (pp_if_keyword named rule); locks the post-fix conditional path. AST-dump schema 1->2."
+  },
+  {
+   "name": "macro_with_formals",
+   "input": "`define M(a, b, c) a+b+c\n",
+   "rule_under_test": "systemverilog_preprocessor_file",
+   "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "type",
+    "items"
+   ],
+   "expected_json_object_string_values": {
+    "type": "systemverilog_preprocessor_file"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-POST-SV-AUDIT-0002 / POST-SV-AUDIT.2.1: macro_formals Cat-A raw-envelope misuse fixed -> [$2,$3::2*] clean list; locks the post-fix shape. AST-dump schema 2->3."
   }
  ],
  "declared_annotation_inventory": {
   "pipeline_inventory_artifact": "generated/systemverilog_preprocessor_return_annotations.json",
   "optional_grammar_json_crosscheck": "generated/systemverilog_preprocessor.json",
-  "extracted_at": "2026-05-16",
+  "extracted_at": "2026-05-17",
   "annotations": [
    {
     "annotation_type": "return_object",
@@ -255,9 +272,9 @@
     "rule": "macro_formal"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "macro_formals"
    },
    {

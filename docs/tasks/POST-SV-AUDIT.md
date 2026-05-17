@@ -69,11 +69,11 @@ the proven playbook.
   Children: `POST-SV-AUDIT.2.1`, `POST-SV-AUDIT.2.2`, `POST-SV-AUDIT.2.3`, `POST-SV-AUDIT.2.4`
 
 - ID: `POST-SV-AUDIT.2.1`
-  Status: `pending`
+  Status: `done`
   Goal: `sv_preprocessor: fix macro_formals Cat-A raw-envelope misuse (-> extraction-spread); regen + manifest + schema/release bump + book + contract lockstep. SMALLEST blast radius — proves the Cat-A shape-change lockstep playbook before the larger grammars.`
   Acceptance: `parseability_probe before/after on a multi-formal \`define; macro_formals emits a clean item list (no raw [[comma,item],...] envelope); systemverilog_preprocessor_ast_shape_contract + book gate green; lockstep complete; independently verified.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-17: macro_formals := lparen macro_formal (comma macro_formal)* rparen -> {first:$2,rest:$3} (Cat-A raw-envelope misuse) fixed to -> [$2, $3::2*] (canonical object_properties extraction-spread, drop comma). BEFORE probe (\`define M(a, b, c) a+b+c): pp_define.formals = {first:{..a},rest:[[[[],","],{..b}],[[[],","],{..c}]]} (raw comma-envelope). AFTER: [{..a},{..b},{..c}] clean flat macro_formal list; no <invalid_sequence_access> (clean Cat-A, not corruption). Parser+frontend-JSON+inventory regenerated; count UNCHANGED 66/28 (macro_formals annotation_type return_object->return_array only). Manifest dai rebuilt via dump_declared_annotation_inventory + new macro_with_formals sample + extracted_at 2026-05-17 -> systemverilog_preprocessor_ast_shape_contract PASSES. Schema 2->3, release/contract 1.0.2->1.0.3. Contract (new "AST-Shape Corrections — 1.0.3" section + schema-3 row + macro_formals loci, 1.0.2/schema-2 kept historical) + book (8 chapters, walker pins =3, schema-versioning 2->3 row, 66/28 unchanged) + docs/POST_SV_AUDIT_LEDGER.md (macro_formals RESOLVED-FIXED + worklist DONE, original kept as history) lockstep. NO PGEN_RELEASED_PARSER_BUG_LEDGER row (Cat-A clean shape improvement, not corruption — per the recorded Decision). Independently verified: contract no dup ## headers, 1.0.3/schema-3 current (1.0.2/schema-2 historical only), 66/28 unchanged, no fabricated AstDumpPayload (DOC-ENVELOPE not regressed), book gate independently re-run green (searchindex deterministic), clippy strict source passed. docs/book/ checked — no sv_preprocessor mention, no edit. Subagent honestly flagged pre-existing grammar-line-ref drift (predates this fix, partial-corrected in edited loci) + a stale "27-distinct" corrected to verified 28 — both acceptable, not blockers.`
+  Commit: `PGEN-POST-SV-AUDIT-0002`
 
 - ID: `POST-SV-AUDIT.2.2`
   Status: `pending`
@@ -107,11 +107,10 @@ the proven playbook.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `POST-SV-AUDIT.2.1` | `pending` | `.1` done (ledger produced + verified). `.2` split per grammar; `.2.1` (sv_preprocessor `macro_formals`, 1 rule) is the smallest blast radius — proves the Cat-A `{first,rest}`→extraction-spread + schema/release-bump lockstep playbook before the larger rtl_frontend/vhdl/sv grammars. |
-| 2 | `POST-SV-AUDIT.2.2` | `pending` | rtl_frontend (16 Cat-A + event_control_list inline-alt-$N) — parser-regen mechanism already proven this session. |
-| 3 | `POST-SV-AUDIT.2.3` | `pending` | vhdl (17 Cat-A). |
-| 4 | `POST-SV-AUDIT.2.4` | `pending` | systemverilog (flagship, released 1.0.115; net_alias + 5 number-rule inline-alt + 11 structured-per-iteration needing record-rule design) — last, largest, most careful. |
-| 5 | `POST-SV-AUDIT.3` | `pending` | Cat-C/residual review + close TaskList #49 after all `.2.*` fixes land. |
+| 1 | `POST-SV-AUDIT.2.2` | `pending` | `.2.1` done — the Cat-A `{first,rest}`→`[$2,$3::2*]` + schema/release-bump lockstep playbook is proven (sv_preprocessor 1.0.3/schema 3). rtl_frontend next (16 Cat-A + event_control_list inline-alt-$N HIGH) — parser-regen mechanism already proven this session. |
+| 2 | `POST-SV-AUDIT.2.3` | `pending` | vhdl (17 Cat-A). |
+| 3 | `POST-SV-AUDIT.2.4` | `pending` | systemverilog (flagship, released 1.0.115; net_alias + 5 number-rule inline-alt + 11 structured-per-iteration needing record-rule design) — last, largest, most careful. |
+| 4 | `POST-SV-AUDIT.3` | `pending` | Cat-C/residual review + close TaskList #49 after all `.2.*` fixes land. |
 
 ## Decisions
 
@@ -166,6 +165,7 @@ the proven playbook.
 | --- | --- | --- | --- |
 | `2026-05-17` | `POST-SV-AUDIT` (setup) | tree decomposition vs workflow splitting rules; empirical pre-scope; precondition (campaign complete) confirmed | `pass — activated on explicit user direction; decomposed into audit→fix→close; pre-scope recorded with one concrete known finding` |
 | `2026-05-17` | `POST-SV-AUDIT.1` | ledger structure (12 ## headers, no dups) + scope justification + count reconciliation vs pre-scope + independent classification spot-checks vs grammar (event_control_list/unsigned_number/net_alias/vhdl) | `pass — docs/POST_SV_AUDIT_LEDGER.md accurate; ~35 static-conclusive Cat-A + 6 HIGH inline-alt-$N + 11 structured-Cat-A + 30 Cat-B-resolved + 16 Cat-C; worklist concrete & per-grammar; .2 split per grammar; inline-alt-$N probe-confirm deferred to .2-start per the proven playbook (on-demand-parser infra)` |
+| `2026-05-17` | `POST-SV-AUDIT.2.1` | before/after parseability_probe; regen (count UNCHANGED 66/28, macro_formals return_object->return_array); manifest dai-rebuild + macro_with_formals sample; systemverilog_preprocessor_ast_shape_contract; contract dup-header+numbers+no-fabricated-AstDumpPayload grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER FIXED + NO bug-ledger row check; independent book-gate re-run; clippy; docs/book check | `pass — macro_formals Cat-A fixed ({first,rest}->[$2,$3::2*]); probe raw-comma-envelope -> clean macro_formal[] list, no <invalid_sequence_access>; shape-contract PASSES; 66/28 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract+8-book-chapters+audit-ledger lockstep; NO bug-ledger row (Cat-A clean improvement per Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green. Cat-A playbook proven for .2.2/.2.3/.2.4.` |
 
 ## Commit Log
 
@@ -173,6 +173,7 @@ the proven playbook.
 | --- | --- | --- |
 | `POST-SV-AUDIT` (setup) | `PGEN-POST-SV-AUDIT-0000` | tree created + activated (Proposed→Active); frontier `.1`; empirical pre-scope recorded |
 | `POST-SV-AUDIT.1` | `PGEN-POST-SV-AUDIT-0001` | ledger `docs/POST_SV_AUDIT_LEDGER.md` (all 6 product grammars classified A/B/C, verified accurate); `.2` split per grammar; frontier → `.2.1` |
+| `POST-SV-AUDIT.2.1` | `PGEN-POST-SV-AUDIT-0002` | sv_preprocessor `macro_formals` Cat-A fix (`{first,rest}`→`[$2,$3::2*]`); schema 2→3 / release 1.0.2→1.0.3; 66/28 unchanged; contract+book+audit-ledger lockstep, NO bug-ledger row; Cat-A playbook proven |
 
 ## Changelog
 
@@ -191,3 +192,17 @@ the proven playbook.
   `.2` split per grammar (`.2.1` svpp → `.2.2` rtl_frontend → `.2.3`
   vhdl → `.2.4` systemverilog), smallest-first. Frontier advances
   `.1`→`.2.1`. Tree stays `active`.
+- `2026-05-17`: `.2.1` done — sv_preprocessor `macro_formals` Cat-A
+  raw-envelope misuse fixed (`{first:$2,rest:$3}` → `[$2,$3::2*]`).
+  Before/after probe: raw `[[comma,formal],…]` envelope → clean
+  `macro_formal[]` list. Count UNCHANGED 66/28
+  (`return_object`→`return_array` only). Schema `2→3`, release/contract
+  `1.0.2→1.0.3`; manifest + `macro_with_formals` sample →
+  `systemverilog_preprocessor_ast_shape_contract` passes;
+  contract + 8 book chapters + `POST_SV_AUDIT_LEDGER` lockstep; **NO
+  `PGEN_RELEASED_PARSER_BUG_LEDGER` row** (Cat-A clean improvement, not
+  the corruption class — recorded Decision). Independently verified;
+  book gate re-run green. **The Cat-A `{first,rest}`→extraction-spread
+  + schema/release-bump lockstep playbook is now proven** — `.2.2`
+  (rtl_frontend), `.2.3` (vhdl), `.2.4` (systemverilog) follow it.
+  Frontier advances `.2.1`→`.2.2`. Tree stays `active`.

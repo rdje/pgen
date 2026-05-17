@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-36a4a501.js";
+            window.path_to_searchindex_js = "searchindex-5899a3ab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -185,7 +185,7 @@
 walks the <strong>recursive conditional-compilation tree</strong> — the one place the
 sv_preprocessor AST nests. Every JSON value here is the <strong>real, captured
 output</strong> of <code>generated/systemverilog_preprocessor_parser.rs</code> (parser
-release <code>1.0.2</code>, AST-dump schema version <code>2</code>, 66 return annotations) and
+release <code>1.0.3</code>, AST-dump schema version <code>3</code>, 66 return annotations) and
 is the regression-locked <code>conditional</code> sample in
 <code>rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json</code>.
 Nothing here is idealized.</p>
@@ -524,7 +524,7 @@ let outcome = parse_grammar_profile_ast_dump_named(
 
 // The AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const SVPP_AST_SCHEMA_VERSION: u32 = 2;
+const SVPP_AST_SCHEMA_VERSION: u32 = 3;
 
 match outcome.status {
     ParseStatus::Success =&gt; {

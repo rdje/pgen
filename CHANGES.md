@@ -1,4 +1,62 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0002 (leaf POST-SV-AUDIT.2.1): sv_preprocessor macro_formals Category-A raw-envelope misuse FIXED (schema 2→3, release 1.0.3)
+
+- **`macro_formals` Category-A fix.** `macro_formals := lparen
+  macro_formal (comma macro_formal)* rparen -> {first: $2, rest: $3}`
+  exposed the raw `{first:<formal>, rest:[[comma,formal],…]}`
+  iteration envelope (every consumer had to walk past the `comma`
+  separator). Fixed to the canonical extraction-spread
+  `-> [$2, $3::2*]` (drop the semantically-irrelevant comma; emit a
+  clean flat `macro_formal` list — the `object_properties` reference
+  idiom).
+- **Verified before→after** with `parseability_probe` on
+  `` `define M(a, b, c) a+b+c `` at `pp_define.formals`:
+  `{"first":{…a},"rest":[[[[],","],{…b}],[[[],","],{…c}]]}` →
+  `[{…a},{…b},{…c}]` (clean flat list of `macro_formal {name,default}`).
+  **No `<invalid_sequence_access>`** — this is a clean Category-A shape
+  improvement, NOT the inline-alternation-`$N` corruption class.
+- **Surface counts UNCHANGED 66 / 28** — `macro_formals` is still one
+  rule/one annotation; only its `annotation_type` changed
+  `return_object` → `return_array` (now 65 `return_object` + 1
+  `return_array`). Manifest `systemverilog_preprocessor_v1.json` dai
+  rebuilt via the canonical bin + new `macro_with_formals` regression
+  sample + `extracted_at` 2026-05-17 → `systemverilog_preprocessor_ast_shape_contract`
+  **passes**.
+- **Lockstep:** AST-dump schema `2→3`, parser+contract release
+  `1.0.2→1.0.3`. Contract: new `## AST-Shape Corrections — 1.0.3
+  (POST-SV-AUDIT)` section + Schema-Versioning `3 | 1.0.3` row +
+  `macro_formals` loci updated to the clean list (1.0.1/1.0.2 raw
+  `{first,rest}` kept as labeled history; SVPP-0001 1.0.2 section
+  intact). Book: 8 chapters bumped, all walker pins
+  `SVPP_AST_SCHEMA_VERSION = 3`, `schema-versioning.md` `2→3` row,
+  66/28 unchanged. `docs/POST_SV_AUDIT_LEDGER.md`: `macro_formals`
+  marked RESOLVED-FIXED + worklist DONE (original classification kept
+  as history).
+- **No `PGEN_RELEASED_PARSER_BUG_LEDGER.md` row** — per the recorded
+  Decision, a Cat-A raw-envelope→clean-list improvement is a
+  deliberate audit-driven shape correction tracked via
+  schema-versioning + the audit ledger, NOT the
+  `<invalid_sequence_access>` corruption/crash class (which gets bug-
+  ledger rows: SVPP-0001/RTL-FE-0001/etc.). The `.2.2`/`.2.4`
+  inline-alt-`$N` HIGH finds WILL get bug-ledger rows.
+- DOC-ENVELOPE-0001 not regressed (real 4-field `AstDumpPayload`
+  preserved; only the pinned constant bumped 2→3). Independently
+  verified: contract no dup `## ` headers, 1.0.3/schema-3 current
+  (1.0.2/schema-2 historical only), 66/28 unchanged, no fabricated
+  `AstDumpPayload`; `systemverilog_preprocessor_parser_book_gate`
+  **independently re-run green** (searchindex deterministic);
+  `clippy_on_rust_change` strict source **passed** (generated
+  non-strict debt pre-existing/tolerated). Subagent honestly flagged
+  pre-existing grammar-line-ref drift (predates this fix) + a stale
+  "27-distinct" corrected to the verified 28 — both noted, not
+  blockers.
+- **This establishes the Cat-A fix lockstep playbook** (grammar
+  extraction-spread → regen → manifest+sample → schema/release bump →
+  contract+book+audit-ledger, no bug-ledger) for the remaining `.2`
+  per-grammar leaves: `.2.2` rtl_frontend (16 Cat-A + event_control_list
+  inline-alt-`$N`) → `.2.3` vhdl (17 Cat-A) → `.2.4` systemverilog
+  (net_alias + 5 number-rule inline-alt + 11 structured).
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0001 (leaf POST-SV-AUDIT.1): AST-shape classification ledger delivered + verified
 
 - **`docs/POST_SV_AUDIT_LEDGER.md` created** — the holistic

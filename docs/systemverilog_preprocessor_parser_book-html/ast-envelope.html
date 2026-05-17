@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-36a4a501.js";
+            window.path_to_searchindex_js = "searchindex-5899a3ab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -268,7 +268,7 @@ of this for consumers.</p>
 <h2 id="conditional-compilation-tree"><a class="header" href="#conditional-compilation-tree">Conditional-compilation tree</a></h2>
 <p><code>pp_conditional</code> describes the recursive <code> `ifdef / `elsif / `else / `endif</code> (and <code> `ifndef</code>) chain. The body is a typed shape mirroring the grammar’s recursive layout. The <code> `ifdef</code>/<code> `ifndef</code> polarity is a typed <code>pp_if_keyword</code> object — <code>pp_if_branch.keyword</code> is <code>{kind: "ifdef"}</code> or <code>{kind: "ifndef"}</code> as of the <code>1.0.2</code> <code>SVPP-0001</code> correctness fix (was the malformed <code>&lt;invalid_sequence_access&gt;</code> object at <code>1.0.1</code> / schema <code>1</code>; see <a href="schema-versioning.html">Schema Versioning</a> and the <a href="examples-conditional.html">Conditional Compilation</a> worked example). See <a href="walking-the-ast.html">Walking the AST</a> for the full tree shape.</p>
 <h2 id="macro_body-fragment-dispatch"><a class="header" href="#macro_body-fragment-dispatch">macro_body fragment dispatch</a></h2>
-<p><code>pp_define</code> bodies (the macro replacement text) are tokenized into a <code>macro_body_fragment</code> list with <strong>9</strong> <code>kind</code>-tagged kinds: <code>token_paste</code>, <code>stringize</code>, <code>macro_reference</code> (<code>{kind, body}</code>), <code>text</code> (<code>{kind, body}</code>), <code>lparen</code>, <code>rparen</code>, <code>comma</code>, <code>question</code>, <code>colon</code>. The separate <code>macro_default_atom</code> dispatcher (macro-formal default values) has <strong>8</strong> kinds. The 66-annotation surface (contract 1.0.2) covers all of these; the authoritative per-branch enumeration is in <a href="rules-top-level.html">Top-Level Rules</a> and the live inventory <code>generated/systemverilog_preprocessor_return_annotations.json</code>.</p>
+<p><code>pp_define</code> bodies (the macro replacement text) are tokenized into a <code>macro_body_fragment</code> list with <strong>9</strong> <code>kind</code>-tagged kinds: <code>token_paste</code>, <code>stringize</code>, <code>macro_reference</code> (<code>{kind, body}</code>), <code>text</code> (<code>{kind, body}</code>), <code>lparen</code>, <code>rparen</code>, <code>comma</code>, <code>question</code>, <code>colon</code>. The separate <code>macro_default_atom</code> dispatcher (macro-formal default values) has <strong>8</strong> kinds. The 66-annotation surface (contract 1.0.3; 65 <code>return_object</code> + 1 <code>return_array</code>) covers all of these; the authoritative per-branch enumeration is in <a href="rules-top-level.html">Top-Level Rules</a> and the live inventory <code>generated/systemverilog_preprocessor_return_annotations.json</code>.</p>
 <h2 id="two-carrier-kinds-typed-and-recursive-envelope"><a class="header" href="#two-carrier-kinds-typed-and-recursive-envelope">Two carrier kinds: typed and recursive-envelope</a></h2>
 <p>Per-rule, the AST dump produces JSON in one of two shapes:</p>
 <ul>

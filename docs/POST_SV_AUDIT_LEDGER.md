@@ -100,12 +100,45 @@ op-rule idiom). No bug. No churn.
 
 | Rule | Grammar:Line | RHS shape (brief) | Category | Objective bug? | Priority | Probe evidence needed | Recommended fix |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `macro_formals` | systemverilog_preprocessor.ebnf:104-105 | `lparen macro_formal ( comma macro_formal )* rparen` → `{first:$2, rest:$3}`; SEP = single token `comma` | A | yes | med | probe `\`define M(a, b, c)` and inspect `macro_formals` node — confirm `rest` is raw `[[comma,macro_formal],…]` envelope | `[$2, $3::2*]` (drop comma; clean macro_formal list) |
+| `macro_formals` | systemverilog_preprocessor.ebnf:104-105 (now 110-111) | `lparen macro_formal ( comma macro_formal )* rparen` → `{first:$2, rest:$3}`; SEP = single token `comma` | A | yes | med | probe `\`define M(a, b, c)` and inspect `macro_formals` node — confirm `rest` is raw `[[comma,macro_formal],…]` envelope | `[$2, $3::2*]` (drop comma; clean macro_formal list) |
+
+**RESOLVED — FIXED (`PGEN-POST-SV-AUDIT-0002`, leaf POST-SV-AUDIT.2.1,
+2026-05-17).** Original classification above kept verbatim as history.
+`macro_formals` was changed in `grammars/systemverilog_preprocessor.ebnf`
+from `{first:$2, rest:$3}` (raw-envelope misuse) to the canonical
+extraction-spread `[$2, $3::2*]` (now at grammar lines 110-111). Fixed
+in sv_preprocessor **parser release `1.0.3` / contract `1.0.3` /
+AST-dump schema `3`** (schema `2 → 3`; consumer-visible shape change).
+Real captured before→after for input `` `define M(a, b, c) a+b+c ``
+(verified via `parseability_probe`), at `pp_define.formals`:
+- BEFORE (≤ schema 2 / release 1.0.2):
+  `{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}`
+- AFTER (schema 3 / release 1.0.3):
+  `[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]`
+  — a clean flat list of `macro_formal` `{name, default}` objects.
+Surface counts UNCHANGED 66 annotations / 28 distinct rules — only
+`macro_formals`'s `annotation_type` changed `return_object` →
+`return_array` and `normalized_text` `{first:$2, rest:$3}` →
+`[$2, $3::2*]` (surface now 65 `return_object` + 1 `return_array`). No
+`<invalid_sequence_access>` (clean Category-A shape improvement, NOT the
+inline-alt corruption class). This is **not** a released-parser bug — it
+is **not** logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
+(that ledger is reserved for the `<invalid_sequence_access>`
+corruption/crash class — SVPP-0001 et al.); it is tracked via this
+ledger + the schema-`3` Schema-Versioning row +
+`docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
+"AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT)" + the sv_preprocessor
+parser book. Manifest
+`rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
+re-locked (`macro_formals` `return_array`/`[$2, $3::2*]`, new
+`macro_with_formals` sample); `systemverilog_preprocessor_ast_shape_contract`
+passes.
 
 (The session SVPP-0001 binop fix was in `sv_pp_const_expr`; this
 `macro_formals` rule is a separate, still-raw pure-comma list — NOT a
 binop, not covered by the closed inline-alt class. It is plain
-raw-separator-envelope, no `<invalid_sequence_access>` risk.)
+raw-separator-envelope, no `<invalid_sequence_access>` risk. **Now
+resolved — see RESOLVED note above.**)
 
 ## rtl_frontend.ebnf
 
@@ -219,7 +252,10 @@ consumer must walk past `[[SEP,item],…]`. Fix = extraction-spread
 `[$N, $M::2*]` (keep any sibling fields like `kind`). These are
 static-conclusive Cat-A misuse:
 
-- systemverilog_preprocessor.ebnf: `macro_formals` (104-105).
+- systemverilog_preprocessor.ebnf: `macro_formals` (104-105). **DONE
+  — fixed in sv_preprocessor 1.0.3 / schema 3, `PGEN-POST-SV-AUDIT-0002`
+  (leaf POST-SV-AUDIT.2.1, 2026-05-17); `[$2, $3::2*]`. See the RESOLVED
+  note in the systemverilog_preprocessor.ebnf section above.**
 - rtl_frontend.ebnf: `parameter_declaration_sequence` (79-80),
   `port_list` (98-99), `port_group` (101-102, comma-after `!`
   lookahead — parent confirms index), `genvar_declaration` (120-121),

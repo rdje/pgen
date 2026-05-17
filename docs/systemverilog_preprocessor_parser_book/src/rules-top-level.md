@@ -2,7 +2,7 @@
 
 This chapter is the per-rule shape reference for the PGEN sv_preprocessor parser. It documents the `systemverilog_preprocessor_file` root, the `pp_item` dispatch, the seven directive shapes, the conditional-compilation tree, the condition / macro-formal / macro-body atom families, and the passthrough lines — grouped by rule family.
 
-> **Status:** SVPP-Slice-1 landed the full grammar typing in one comprehensive batch; the `1.0.2` `SVPP-0001` correctness fix then lifted the inline `(kw_ifdef | kw_ifndef)` alternation into the named `pp_if_keyword` rule. As of parser release `1.0.2` / AST-dump schema version `2` the surface is **66 return annotations across 28 distinct rules** in `grammars/systemverilog_preprocessor.ebnf`. Every shape in this chapter is drawn from the live inventory at `generated/systemverilog_preprocessor_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — identical content; the contract-embedded copy omits only the cosmetic `raw_text` field, the `(rule, branch_index, annotation_type, normalized_text)` tuples are byte-identical, 66 entries). That artifact, not this prose, is the machine-checkable source of truth.
+> **Status:** SVPP-Slice-1 landed the full grammar typing in one comprehensive batch; the `1.0.2` `SVPP-0001` correctness fix then lifted the inline `(kw_ifdef | kw_ifndef)` alternation into the named `pp_if_keyword` rule; the `1.0.3` POST-SV-AUDIT Category-A fix corrected `macro_formals` from the raw `{first, rest}` envelope to the clean `[$2, $3::2*]` list. As of parser release `1.0.3` / AST-dump schema version `3` the surface is **66 return annotations across 28 distinct rules** in `grammars/systemverilog_preprocessor.ebnf` (65 `return_object` + 1 `return_array` — the `return_array` is `macro_formals`). Every shape in this chapter is drawn from the live inventory at `generated/systemverilog_preprocessor_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — identical content; the contract-embedded copy omits only the cosmetic `raw_text` field, the `(rule, branch_index, annotation_type, normalized_text)` tuples are byte-identical, 66 entries). That artifact, not this prose, is the machine-checkable source of truth.
 
 ## How to read this chapter
 
@@ -98,7 +98,7 @@ pp_endcelldefine := kw_endcelldefine directive_comment_tail newline?
 
 | Rule | Shape | Notes |
 |---|---|---|
-| `pp_define` | `{name, formals, body}` | `name` is the un-annotated `macro_name`/`identifier` envelope; `formals` is the typed `macro_formals` or `[]` when absent; `body` is the typed `macro_body` or `[]` when absent. |
+| `pp_define` | `{name, formals, body}` | `name` is the un-annotated `macro_name`/`identifier` envelope; `formals` is the typed `macro_formals` — a clean flat `macro_formal[]` list as of `1.0.3` / schema `3` (the POST-SV-AUDIT Category-A `[$2, $3::2*]` extraction-spread; was the raw `{first, rest}` envelope at ≤ `1.0.2` / schema `2`) — or `[]` when absent; `body` is the typed `macro_body` or `[]` when absent. |
 | `pp_undef` | `{name, comment}` | `comment` is the optional `directive_comment_tail` (inline trivia + optional line comment). |
 | `pp_include` | `{path, comment}` | `path` is the typed `include_path`. |
 | `pp_timescale` | `{unit, precision, comment}` | `unit` / `precision` are typed `time_literal` (`{value, unit}`); the `/` separator is consumed but not surfaced. |
@@ -187,7 +187,7 @@ This is a **flat token list**, not a parsed boolean expression. The `` `elsif`` 
 
 ```ebnf
 macro_formals := lparen macro_formal (comma macro_formal)* rparen
-              -> {first: $2, rest: $3}
+              -> [$2, $3::2*]
 macro_formal := macro_name (assign macro_default_value)?
              -> {name: $1, default: $2}
 macro_default_value := macro_default_atom+
@@ -204,7 +204,7 @@ macro_default_atom := macro_token_paste -> {kind: "token_paste"}
 
 | Rule | Shape | Notes |
 |---|---|---|
-| `macro_formals` | `{first, rest}` | A `{first, rest}` separated-list shape: `first` is the leading `macro_formal`; `rest` is the recursive-envelope iteration of the `(comma macro_formal)*` tail. This grammar uses the `{first, rest}` wrap — it was **not** flattened to the `[$N, $M::2*]` form some other PGEN grammars adopted; see [Walking the AST](walking-the-ast.md#iterating-first-rest-lists). |
+| `macro_formals` | `[macro_formal, …]` | A **clean flat list** of typed `macro_formal` objects, in source order — the canonical `[$2, $3::2*]` extraction-spread (`object_properties` idiom). `annotation_type: "return_array"` (the only `return_array` on the sv_preprocessor surface; every other rule is `return_object`). At ≤ release `1.0.2` / schema `2` this was the raw `{first, rest}` separator envelope (`first` = leading `macro_formal`; `rest` = the raw `[[comma, macro_formal], …]` iteration a consumer had to walk past) — a Category-A raw-envelope misuse corrected in `1.0.3` / schema `3` by the extraction-spread (POST-SV-AUDIT.2.1, `PGEN-POST-SV-AUDIT-0002`); the shape here is the corrected, gate-locked output. See [Walking the AST](walking-the-ast.md#iterating-the-macro_formals-list) and [Schema Versioning](schema-versioning.md). |
 | `macro_formal` | `{name, default}` | `name` is the macro-name envelope; `default` is the typed `macro_default_value` or `[]` when there is no `= <default>`. |
 | `macro_default_value` | `{atoms}` | `atoms` is the recursive-envelope `macro_default_atom+` array. |
 | `macro_default_atom` (8 kinds) | `{kind, body}` for `"macro_reference"` / `"text"`; bare `{kind}` for `"token_paste"`, `"stringize"`, `"lparen"`, `"rparen"`, `"question"`, `"colon"`. This atom set has **no** `"comma"`, `"logical_or"`, `"logical_and"`, or `"bang"` (commas separate formals, so a default value cannot contain a bare comma). |
@@ -258,7 +258,7 @@ The three atom families differ only in which punctuation/operator branches they 
 
 ## Total surface and the machine-checkable source
 
-The full typed surface as of contract `1.0.2` is **66 return annotations across 28 distinct rules** (independently re-counted from the inventory: 66 `annotations` entries, all `annotation_type: "return_object"`, over 28 distinct rule names; the `1.0.2` `SVPP-0001` fix added the 2 `pp_if_keyword` branches / +1 distinct rule, taking 64→66 / 27→28). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
+The full typed surface as of contract `1.0.3` is **66 return annotations across 28 distinct rules** (independently re-counted from the inventory: 66 `annotations` entries — **65 `annotation_type: "return_object"` + 1 `annotation_type: "return_array"`** (the `return_array` is `macro_formals`, the `1.0.3` POST-SV-AUDIT Category-A correction; historically all 66 were `return_object` through `1.0.2`/schema `2`) — over 28 distinct rule names; the `1.0.2` `SVPP-0001` fix added the 2 `pp_if_keyword` branches / +1 distinct rule, taking 64→66 / 27→28; the `1.0.3` POST-SV-AUDIT `macro_formals` fix changed only that rule's annotation form, not the count). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
 
 - `generated/systemverilog_preprocessor_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "systemverilog_preprocessor"`, `annotation_count: 66`).
 - `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json` — the embedded inventory used by the AST shape-contract regression lock (`declared_annotation_inventory.annotations`, 66 entries; identical tuples — the contract-embedded copy omits only the cosmetic `raw_text` field).

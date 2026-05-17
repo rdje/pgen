@@ -210,34 +210,21 @@ fn extract_text(node: &serde_json::Value) -> Option<String> {
 
 For `pp_define` the macro name lives at `body["name"]`; the replacement text is each `body["body"]["fragments"][i]["body"]` for fragments whose `kind == "text"`. For the captured input `` `define FOO 1`` (see [The Json Carrier](json-carrier.md#worked-example-a-single-define-directive)), `name` is `[ [ " " ], "FOO" ]` and the single fragment's `body` is `[ [ " " ], "1" ]` — `extract_text` returns `"FOO"` and `"1"` respectively. The per-rule chapters ([Top-Level Rules](rules-top-level.md)) document the field that holds the identifier/text for each rule that produces one. Always treat these as envelopes, never assume a scalar.
 
-## Iterating `{first, rest}` lists
+## Iterating the `macro_formals` list
 
-`macro_formals` is the **only** separated-list rule on the sv_preprocessor surface. It uses the `{first, rest}` carrier: `first` is the leading `macro_formal`, `rest` is the recursive-envelope iteration of the `(comma macro_formal)*` tail, so each `rest` entry wraps a comma token plus one `macro_formal`:
+`macro_formals` is the **only** separated-list rule on the sv_preprocessor surface. As of release `1.0.3` / AST-dump schema `3` it is a **clean flat `macro_formal[]` array** (the canonical `[$2, $3::2*]` extraction-spread — the only `return_array` annotation on the surface), so you iterate it directly with no `.first` / `.rest` split and no separator to skip:
 
 ```rust
 fn iter_macro_formals<'a>(formals: &'a serde_json::Value) -> Vec<&'a serde_json::Value> {
-    let mut out = Vec::new();
-    if let Some(first) = formals.get("first") {
-        out.push(first);
-    }
-    if let Some(rest) = formals.get("rest").and_then(|v| v.as_array()) {
-        for entry in rest {
-            // `entry` is the envelope of one `(comma macro_formal)`
-            // iteration; the formal is the last child. Walk to it rather
-            // than assuming a fixed index, so a grammar tweak to the
-            // separator doesn't break extraction.
-            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
-                out.push(elem);
-            } else {
-                out.push(entry);
-            }
-        }
-    }
-    out
+    // Schema 3 (release 1.0.3, POST-SV-AUDIT.2.1): `pp_define.formals`
+    // is a clean flat array of `macro_formal` objects. Just iterate it.
+    formals.as_array().map(|a| a.iter().collect()).unwrap_or_default()
 }
 ```
 
-Each yielded element is a `macro_formal` `{name, default}` object (`default` is `[]` when the formal has no `= <default>`). The atom/fragment lists (`condition_expr.atoms`, `macro_default_value.atoms`, `macro_body.fragments`) are **plain `x+` arrays**, not `{first, rest}` — iterate them directly with `handle_atoms` above. This `{first, rest}` shape was **not** flattened to `[$N, $M::2*]` the way the SystemVerilog grammar's lists were in its slice-58 audit; a future flattening slice, if it lands, will get a [Schema Versioning](schema-versioning.md) row.
+> Schema `3` note: at ≤ release `1.0.2` / schema `2` `macro_formals` emitted the raw `{first, rest}` separator envelope — `first` was the leading `macro_formal`, `rest` was the raw `[[comma, macro_formal], …]` iteration a consumer had to walk past (e.g. `formals.get("first")` plus `formals.get("rest")[i].as_array().last()`). For input `` `define M(a, b, c) a+b+c `` `pp_define.formals` was `{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}`; it is now the clean list `[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]`. That raw `{first, rest}` shape was a Category-A raw-envelope misuse corrected in `1.0.3` / schema `3` by the extraction-spread (POST-SV-AUDIT.2.1, `PGEN-POST-SV-AUDIT-0002`); the shape above is the corrected, gate-locked output. A `1.0.2` consumer that walked `formals.first` + `formals.rest[][1]` must repin to schema `3`. See [Schema Versioning](schema-versioning.md).
+
+Each yielded element is a `macro_formal` `{name, default}` object (`default` is `[]` when the formal has no `= <default>`). The atom/fragment lists (`condition_expr.atoms`, `macro_default_value.atoms`, `macro_body.fragments`) are **plain `x+` arrays** of typed atom objects — iterate them directly with `handle_atoms` above; `macro_formals` is now likewise a plain array (the `1.0.3` POST-SV-AUDIT flatten, mirroring the SystemVerilog grammar's slice-58 list audit).
 
 ## Avoiding deep recursion
 
@@ -253,7 +240,7 @@ A pathologically deep nest of `` `ifdef`` / `` `elsif`` / `` `else`` blocks prod
 
 ```rust
 // The AST-dump schema version you integrated against (from the contract):
-const SVPP_AST_SCHEMA_VERSION: u32 = 2;
+const SVPP_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -266,8 +253,9 @@ let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match SVPP_AST_SCHEMA_VERSION {
-    2 => walk_schema_v2(&root), // schema 2: if_branch.keyword is {kind: "ifdef"|"ifndef"}
-    // schema 1 (pre-1.0.2) had the SVPP-0001 malformed keyword object.
+    3 => walk_schema_v3(&root), // schema 3: pp_define.formals is a clean macro_formal[] list
+    // schema 2 (1.0.2) had the raw macro_formals {first, rest} envelope;
+    // schema 1 (pre-1.0.2) also had the SVPP-0001 malformed keyword object.
     other => eprintln!("no walker compiled for sv_preprocessor AST schema version {other}"),
 }
 ```

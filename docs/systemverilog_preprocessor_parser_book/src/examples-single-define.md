@@ -4,7 +4,7 @@ A "what does the AST actually look like" walkthrough for the smallest
 sv_preprocessor input that produces a complete typed directive — a single
 `` `define``. Every JSON value shown here is the **real, captured output**
 of `generated/systemverilog_preprocessor_parser.rs` (parser release
-`1.0.2`, AST-dump schema version `2`, 66 return annotations) — not a
+`1.0.3`, AST-dump schema version `3`, 66 return annotations) — not a
 hypothetical shape — and it is the exact input the AST shape contract
 regression-locks (sample `single_define` in
 `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`).
@@ -219,7 +219,7 @@ let outcome = parse_grammar_profile_ast_dump_named(
 
 // The AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const SVPP_AST_SCHEMA_VERSION: u32 = 2;
+const SVPP_AST_SCHEMA_VERSION: u32 = 3;
 
 match outcome.status {
     ParseStatus::Success => {

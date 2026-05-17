@@ -4,7 +4,7 @@ The companion to [Single Define](examples-single-define.md): this one
 walks the **recursive conditional-compilation tree** — the one place the
 sv_preprocessor AST nests. Every JSON value here is the **real, captured
 output** of `generated/systemverilog_preprocessor_parser.rs` (parser
-release `1.0.2`, AST-dump schema version `2`, 66 return annotations) and
+release `1.0.3`, AST-dump schema version `3`, 66 return annotations) and
 is the regression-locked `conditional` sample in
 `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`.
 Nothing here is idealized.
@@ -389,7 +389,7 @@ let outcome = parse_grammar_profile_ast_dump_named(
 
 // The AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const SVPP_AST_SCHEMA_VERSION: u32 = 2;
+const SVPP_AST_SCHEMA_VERSION: u32 = 3;
 
 match outcome.status {
     ParseStatus::Success => {
