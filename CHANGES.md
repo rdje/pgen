@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0084-0001 (leaf RGX-0084.1): pinpoint + family characterization + 3 premise corrections (docs-only)
+
+- Reproduced `PGEN-RGX-0084` via `parseability_probe
+  --parse-dump-ast-pretty regex` and characterized the **family**
+  scope: PGEN has **no** `\NN` octal-vs-backref disambiguation at all
+  — `backreference = "\\" /([1-9][0-9]*)/ -> {kind:"numeric",
+  index:$2}` unconditionally emits a numeric backref for *every*
+  `\<nonzero-digit>…` (`\10`, `\12`, `\99`, `\101`, `\8` all → numeric
+  backref regardless of capturing-group count or source position;
+  `\1`-with-group-1 → backref OK; `\0`/`\07` → octal OK via the
+  separate `octal_escape` path). The report's "uses the *total*
+  count" premise is refined: it uses *no* count.
+- **Three premise corrections (user-caught, recorded honestly
+  pre-commit):**
+  1. **Family fix**, not reproducer-only (user-directed) — the fix
+     implements PCRE2's general rule for the whole `\<digit>…`
+     numeric-escape family.
+  2. **"EBNF is context-free → must be a Rust AST post-pass"
+     RETRACTED** — an unverified assumption, wrong. PGEN's
+     `@predicate`/`@emit_fact`/`@open_scope` semantic annotations are
+     typed, validated, and *always-on with active generated-parser
+     runtime behavior* (`PGEN_ANNOTATION_NORMATIVE_SPEC.md:191-196`,
+     `parser-hooks.md:211`); `systemverilog.ebnf` proves the
+     `@emit_fact`+`@predicate has_fact` idiom for parse-time,
+     source-order, context-sensitive decisions. Fix locus =
+     **grammar-level semantic annotations**, not a Rust post-pass.
+  3. **Books-first** — the regex book
+     `docs/regex_parser_book/src/examples-escapes.md:112-121`
+     *already documents* the unconditional-numeric-backref behavior
+     with a now-**superseded** rationale ("PCRE2 disambiguates
+     contextually … which PEG cannot express directly. Disambiguation
+     is left to consumers via post-parse semantic analysis"). The fix
+     is therefore a documented-contract change: `.3` must correct
+     that passage + bump the regex AST-dump schema/contract
+     (consumer-visible: non-backref `\NNN` becomes octal), same-commit
+     lockstep.
+- Frontier → `RGX-0084.2` (implement the grammar-level family fix:
+  `@emit_fact` capture-group ordinal + `@predicate has_fact` gating
+  `backreference`'s numeric branch, octal as the fallback — the
+  proven `systemverilog.ebnf` idiom). No code in `.1`.
+
 ## 2026-05-18 - PGEN-RGX-0084-0000 (leaf RGX-0084 setup): activate the PGEN-RGX-0084 released-parser bug-remediation task tree (docs/workflow-only)
 
 - **New active priority task tree `RGX-0084`** — user-directed

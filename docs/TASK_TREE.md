@@ -95,7 +95,7 @@ are large multi-week efforts, not bounded PNT slices).
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `RGX-0084` | `active` (priority) | released-parser bug remediation (`regex`; downstream `PGEN-RGX-0084`) | `RGX-0084.1` — pinpoint the `\NN` backref↔octal group-count decision locus + deterministic PGEN repro (then `.2` PCRE2 groups-seen-so-far fix → `.3` ledger/release/book lockstep) | [docs/tasks/RGX-0084.md](tasks/RGX-0084.md) |
+| `RGX-0084` | `active` (priority) | released-parser bug remediation (`regex`; downstream `PGEN-RGX-0084`) | `RGX-0084.2` — implement the grammar-level **family** fix: `@emit_fact` capture-group ordinal + `@predicate has_fact` gating `backreference`'s numeric branch (octal fallback) — the proven `systemverilog.ebnf` idiom (`.1` done: PGEN has *no* `\NN` disambiguation; "EBNF context-free" retracted; `.3` corrects the regex book's superseded "PEG cannot / left to consumers" passage + schema bump) | [docs/tasks/RGX-0084.md](tasks/RGX-0084.md) |
 | `SV-EXH-PROOF` | `active` (PAUSED for `RGX-0084`) | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.2.3.2` — 2 remaining preprocessor closed-loop self-rejections = genuinely-invalid bare-backtick **generator over-generation** (`.2.1` A1+A2 ✓, `.2.2` A3' mis-spec ✓, `.2.3.1` `SVPP-0002` macro-comment grammar bug ✓ fixed `1.0.4`/schema-3 → `parser_rejections` 3→2); resumes when `RGX-0084` closes | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
 
 ## Proposed Task Trees
