@@ -172,6 +172,86 @@ resolved — see RESOLVED note above.**)
 | `enum_type` | rtl_frontend.ebnf:289-290 | `kw_enum (base)? pr? lbrace enum_item ( comma enum_item )* ( comma )? rbrace` → `{…, first:$5, rest:$6}`; SEP `comma` | A | yes | med | probe `enum {A, B}`; confirm raw envelope | keep base/packed_range, `[$5, $6::2*]` |
 | `struct_union_field` | rtl_frontend.ebnf:305-306 | `dt pr? name ( comma name )* semi` → `{…, first:$3, rest:$4}`; SEP `comma` | A | yes | med | probe `logic a, b;` field; confirm raw envelope | keep dt/pr, `[$3, $4::2*]` |
 
+**RESOLVED — FIXED (`PGEN-POST-SV-AUDIT-0003`, leaf POST-SV-AUDIT.2.2,
+2026-05-17).** The original classifications above are kept verbatim as
+history. All **15 rtl_frontend Category-A raw-envelope list rules** plus
+the `event_control_list` inline-alternation-`$N` corruption were fixed in
+`grammars/rtl_frontend.ebnf`, the parser regenerated, and the manifest
+`rust/test_data/ast_shape_contract/rtl_frontend_v1.json` re-locked
+(`rtl_frontend_ast_shape_contract` passes). Fixed in **rtl_frontend
+parser release `1.0.3` / contract `1.0.3` / AST-dump schema `3`**
+(schema `2 → 3`; consumer-visible shape change). Parent
+probe-verified all: zero `[[], ","]` separator-envelope leaks remain,
+`invalid_sequence_access count: 0`, every edge-case extraction index
+correct.
+
+- The **15 Category-A** rules — old `{first/…,rest}` → new
+  extraction-spread (parent probe-confirmed; the lookahead-bearing rules
+  carry the proven positional offset):
+  - `parameter_declaration_sequence` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `port_list` `{first:$1,rest:$2}` → `[$1, $2::2*]` (RESOLVED — FIXED)
+  - `port_group` `{direction:$1,data_type:$2,packed_range:$3,first:$4,rest:$5}`
+    → `{direction:$1,data_type:$2,packed_range:$3,ports:[$4, $5::3*]}`
+    (the `!port_direction_token` negative-lookahead occupies a positional
+    slot — probe-confirmed) (RESOLVED — FIXED)
+  - `genvar_declaration` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `module_instantiation` `{module_name:$1,parameters:$2,first:$3,rest:$4}`
+    → `{module_name:$1,parameters:$2,instances:[$3, $4::2*]}`
+    (RESOLVED — FIXED)
+  - `parameter_override_list` (named & positional)
+    `{kind:…,first:$2,rest:$3}` → `{kind:…,items:[$2, $3::3*]}`
+    (the `&dot`/`!dot` lookahead occupies a positional slot —
+    probe-confirmed) (RESOLVED — FIXED)
+  - `port_connection_list` (named & positional)
+    `{kind:…,first:$2,rest:$3}` → `{kind:…,items:[$2, $3::3*]}`
+    (the `&dot`/`!dot` lookahead occupies a positional slot —
+    probe-confirmed) (RESOLVED — FIXED)
+  - `net_declaration` `{data_type:$1,packed_range:$2,first:$3,rest:$4}`
+    → `{data_type:$1,packed_range:$2,items:[$3, $4::2*]}`
+    (RESOLVED — FIXED)
+  - `assignment_target` concat `{kind:"concat",first:$2,rest:$3}`
+    → `{kind:"concat",items:[$2, $3::2*]}` (RESOLVED — FIXED)
+  - `repetition_expr` `{count:$2,first:$4,rest:$5}`
+    → `{count:$2,items:[$4, $5::2*]}` (RESOLVED — FIXED)
+  - `concatenation_expr` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `scoped_identifier` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `enum_type` `{base:$2,packed_range:$3,first:$5,rest:$6}`
+    → `{base:$2,packed_range:$3,items:[$5, $6::2*]}` (RESOLVED — FIXED)
+  - `struct_union_field` `{data_type:$1,packed_range:$2,first:$3,rest:$4}`
+    → `{data_type:$1,packed_range:$2,names:[$3, $4::2*]}`
+    (RESOLVED — FIXED)
+- `event_control_list` (162-163, the HIGH-priority inline-alt-`$N`
+  finding) — **RESOLVED — FIXED.** The inline `( comma | kw_or )`
+  alternation was lifted into the new **un-annotated** named rule
+  `event_separator := comma | kw_or` and `event_control_list` rewritten
+  to `at lparen event_control_item ( event_separator event_control_item )* rparen -> [$3, $4::2*]`
+  (separator dropped; clean `event_control_item` list). Probe-verified
+  for `always_ff @(posedge clk or negedge rst) ;`:
+  `procedural_block.event_control` is now a clean `[{edge,expr},…]` list,
+  zero `<invalid_sequence_access>`.
+
+The 15 Category-A corrections are a clean shape improvement and are
+**not** logged in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (per the recorded
+Decision in DEVELOPMENT_NOTES — that ledger is reserved for the
+`<invalid_sequence_access>` corruption/crash class). The
+`event_control_list` inline-alt-`$N` corruption **is** an
+`<invalid_sequence_access>` defect and **is** logged there as the new
+row `RTL-FE-0002` (status `Released`, fixed in rtl_frontend 1.0.3 /
+schema 3). Annotation inventory **unchanged at 156 annotations / 74
+distinct rules** (bare-list Cat-A rules flip `return_object` →
+`return_array`; the `{…,items/ports/names:[…]}` ones stay
+`return_object` with new `normalized_text`; `event_separator` is
+un-annotated → not in the inventory; no count delta). Tracked via this
+ledger + the schema-`3` Schema-Versioning row +
+`docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md`
+"AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT)" + the rtl_frontend
+parser book.
+
 ## systemverilog.ebnf
 
 | Rule | Grammar:Line | RHS shape (brief) | Category | Objective bug? | Priority | Probe evidence needed | Recommended fix |
@@ -266,6 +346,11 @@ static-conclusive Cat-A misuse:
   `assignment_target` concat (189), `repetition_expr` (249-250),
   `concatenation_expr` (252-253), `scoped_identifier` (261-262),
   `enum_type` (289-290), `struct_union_field` (305-306).
+  **DONE — all 15 fixed in rtl_frontend 1.0.3 / schema 3,
+  `PGEN-POST-SV-AUDIT-0003` (leaf POST-SV-AUDIT.2.2, 2026-05-17);
+  extraction-spreads `[$N, $M::K*]` (lookahead-bearing rules carry the
+  proven positional offset). See the RESOLVED note in the
+  rtl_frontend.ebnf section above.**
 - vhdl.ebnf: `library_clause` (30), `use_clause` (32),
   `selected_name` (43), `identifier_list` (45),
   `generic_interface_list` (63), `port_interface_list` (74),
@@ -301,6 +386,20 @@ clean `rest:$N` or extraction-spread.
   Probe inputs: `always_ff @(posedge clk or negedge rst) ;` and
   `always_ff @(a, b) ;` — confirm current `rest` emits
   `<invalid_sequence_access>` (corruption) vs merely a raw envelope.
+  **DONE — fixed in rtl_frontend 1.0.3 / schema 3,
+  `PGEN-POST-SV-AUDIT-0003` (leaf POST-SV-AUDIT.2.2, 2026-05-17).** The
+  inline `( comma | kw_or )` was lifted into the new **un-annotated**
+  named rule `event_separator := comma | kw_or` (the separator carries
+  no payload a consumer needs, so it is dropped rather than `{kind}`-
+  tagged) and `event_control_list` rewritten to
+  `at lparen event_control_item ( event_separator event_control_item )* rparen -> [$3, $4::2*]`.
+  Probe-verified for `always_ff @(posedge clk or negedge rst) ;`:
+  `procedural_block.event_control` is now a clean `[{edge,expr},…]`
+  list, zero `<invalid_sequence_access>`. This is the
+  `<invalid_sequence_access>` corruption class, so it **is** logged in
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` as the new row
+  `RTL-FE-0002` (status `Released`). See the RESOLVED note in the
+  rtl_frontend.ebnf section above.
 - systemverilog.ebnf number rules — all five share
   `digit ( kw_sv_rule_c82a06f6 | digit )*` → `{first:$1, rest:$2}`
   where `kw_sv_rule_c82a06f6 := trivia /sv_rule\b/` is a literal

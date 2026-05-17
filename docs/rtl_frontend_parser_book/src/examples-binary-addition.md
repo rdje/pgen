@@ -4,10 +4,13 @@ The companion to [Empty Module](examples-empty-module.md): this one shows
 the **non-empty `rest`** (operator) shape of the ten-level
 `binop_chain` cascade and the consumer left-fold. Every JSON value here
 is the **real captured output** of `generated/rtl_frontend_parser.rs`
-(parser release `1.0.2`, AST-dump schema version `2`) for the
+(parser release `1.0.3`, AST-dump schema version `3`) for the
 regression-locked `assignment_expr` sample in
-`rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. Nothing here
-is idealized.
+`rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. The
+`binop_chain` shape shown here is **unchanged** between schema `2`
+(`RTL-FE-0001` fix) and schema `3` (the `1.0.3` POST-SV-AUDIT batch +
+`RTL-FE-0002` touched the Category-A list rules and `event_control_list`,
+not the expression cascade). Nothing here is idealized.
 
 > Schema `2` note: at `1.0.1` (schema `1`) this exact input emitted
 > `"rest": "<invalid_sequence_access>"` plus a malformed nested
@@ -175,7 +178,7 @@ let outcome = parse_grammar_profile_ast_dump_named(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 3;
 
 if let ParseStatus::Success = outcome.status {
     let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");

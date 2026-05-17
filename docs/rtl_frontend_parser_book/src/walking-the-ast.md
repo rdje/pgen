@@ -1,6 +1,6 @@
 # Walking the AST
 
-This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and `kind` names from the live return-annotation inventory (`generated/rtl_frontend_return_annotations.json`, 156 annotations on 74 rules, schema version `2`).
+This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and `kind` names from the live return-annotation inventory (`generated/rtl_frontend_return_annotations.json`, 156 annotations on 74 rules, schema version `3`).
 
 ## The dual-shape walker
 
@@ -248,7 +248,7 @@ Recommendations:
 
 ```rust
 // The AST-dump schema version you integrated against (from the contract):
-const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -262,9 +262,14 @@ let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
 // the integer schema version moved, update the constant and the walker
 // together.
 match RTL_FRONTEND_AST_SCHEMA_VERSION {
-    2 => walk_schema_v2(&root),
-    // schema 1 (pre-RTL-FE-0001) is superseded — binop_chain.rest there
-    // could surface "<invalid_sequence_access>"; repin to schema 2.
+    3 => walk_schema_v3(&root),
+    // schema 2 (RTL-FE-0001 binop fix) and schema 1 (pre-RTL-FE-0001)
+    // are superseded. At schema 1 binop_chain.rest could surface
+    // "<invalid_sequence_access>". At schema 2 the 15 Category-A list
+    // rules (e.g. port_list, net_declaration, scoped_identifier) still
+    // emitted the raw {first, rest} envelope and event_control_list
+    // surfaced "<invalid_sequence_access>" (RTL-FE-0002); schema 3
+    // flattened them to clean lists — repin to schema 3.
     other => eprintln!("no walker compiled for rtl_frontend AST schema version {other}"),
 }
 ```

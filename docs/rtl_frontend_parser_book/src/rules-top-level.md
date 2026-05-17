@@ -2,7 +2,7 @@
 
 This chapter is the per-rule shape reference for the PGEN rtl_frontend parser. It documents the `rtl_frontend_file` root, the `design_item` dispatch, and then enumerates the typed rule shapes grouped by rule family.
 
-> **Status:** RTL-FE-Slice-1..7 typed the full `grammars/rtl_frontend.ebnf` surface across seven slices — **156 return annotations on 74 distinct rules**. The current parser release is `1.0.2` / AST-dump schema version `2` (the `1.0.2` `RTL-FE-0001` correctness fix to `binop_chain.rest` — see [Schema Versioning](schema-versioning.md); the annotation inventory is **unchanged at 156 / 74**, since the five new `*_op` rules are un-annotated alternations). Every shape in this chapter is drawn from the live inventory at `generated/rtl_frontend_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.
+> **Status:** RTL-FE-Slice-1..7 typed the full `grammars/rtl_frontend.ebnf` surface across seven slices — **156 return annotations on 74 distinct rules**. The current parser release is `1.0.3` / AST-dump schema version `3` (the `1.0.2` `RTL-FE-0001` correctness fix to `binop_chain.rest`, then the `1.0.3` POST-SV-AUDIT batch: 15 Category-A list-shape corrections + the `RTL-FE-0002` `event_control_list` inline-alternation fix — see [Schema Versioning](schema-versioning.md); the annotation inventory is **unchanged at 156 / 74**, since the `*_op` / `event_separator` rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count). Every shape in this chapter is drawn from the live inventory at `generated/rtl_frontend_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.
 
 ## How to read this chapter
 
@@ -11,7 +11,7 @@ This is a **curated, grouped** reference — not a raw 156-line dump and not a c
 Three conventions appear throughout:
 
 - **Dispatch rules** emit `{kind: "<branch>", body: $N}` (or named fields per branch). Consumers dispatch on `obj["kind"]`. The bodyless `{kind: "semi"}` branch carries a stray `;` with no `body`.
-- **`{first, rest}` list rules** emit a head element plus the raw recursive-envelope iteration of the `(sep X)*` tail. This is the rtl_frontend grammar's separated-list convention (`port_list`, `parameter_declaration_sequence`, `scoped_identifier`, `genvar_declaration`, …); the head is `first`, and `rest` is the trailing-iteration envelope. The rtl_frontend grammar uses this shape uniformly — it was **not** flattened to a clean `[$N, $M::2*]` array the way the SystemVerilog grammar's lists were in its slice-58 audit.
+- **Separated-list rules** emit a **clean flat array** of the element type in source order — the canonical extraction-spread `[$N, $M::K*]` idiom (the semantically-irrelevant `,` / `or` / `::` separator is dropped). The five bare-list rules (`parameter_declaration_sequence`, `port_list`, `genvar_declaration`, `concatenation_expr`, `scoped_identifier`) emit a **top-level array**; the rules with a leading discriminator/type field (`port_group`, `module_instantiation`, `parameter_override_list`, `port_connection_list`, `net_declaration`, `assignment_target` concat, `repetition_expr`, `enum_type`, `struct_union_field`) keep those fields and carry the element list in a single named field (`ports` / `instances` / `items` / `names`). This is the `1.0.3` / schema `3` shape — the POST-SV-AUDIT.2.2 Category-A correction (`PGEN-POST-SV-AUDIT-0003`). At ≤ `1.0.2` / schema `2` these rules emitted the raw `{first, rest}` (resp. `{…, first, rest}`) envelope where `rest` was the raw `[[sep, item], …]` recursive iteration a consumer had to walk past; that history is kept in [Schema Versioning](schema-versioning.md). Consumers repinning to schema `3` treat the field (or the rule's whole value, for the bare-list rules) as a flat element array — no `.first` / `.rest` split, no separator to skip.
 - **`binop_chain` expression rules** emit `{type: "binop_chain", level, lhs, rest}` — the consumer-facing left-fold contract documented below.
 
 The annotation-language conventions (`$N`, `{field: value}`, `[...]`, string literals) follow `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`.
@@ -97,13 +97,13 @@ Below `design_item` the grammar uses three more `{kind, body?}` dispatchers. All
 | Rule | Shape |
 |---|---|
 | `parameter_declaration_statement` | `{body}` — wraps a `parameter_declaration_sequence`. |
-| `parameter_declaration_sequence` | `{first, rest}` — comma-separated `parameter_declaration_group` list. |
+| `parameter_declaration_sequence` | `[parameter_declaration_group, …]` — clean flat array of the comma-separated `parameter_declaration_group` list (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `parameter_declaration_group` | `{head, tail}` — `head` carries the leading flavor/type, `tail` carries the continued declarators. |
 | `parameter_declaration_head` (2 kinds) | `{kind: "typed", flavor, data_type, name, default}` / `{kind: "untyped", flavor, name, default}`. |
 | `parameter_declaration_tail` (4 kinds) | `{kind: "typed_with_flavor", flavor, data_type, name, default}` / `{kind: "untyped_with_flavor", flavor, name, default}` / `{kind: "typed", data_type, name, default}` / `{kind: "untyped", name, default}`. |
 | `parameter_flavor` (2 kinds) | `{kind: "parameter"}` / `{kind: "localparam"}` — bare `{kind}` keyword leaf. |
 | `parameter_override` (2 kinds) | `{kind: "named", name, value}` / `{kind: "positional", value}`. |
-| `parameter_override_list` (2 kinds) | `{kind: "named", first, rest}` / `{kind: "positional", first, rest}` — a `kind`-tagged `{first, rest}` list. |
+| `parameter_override_list` (2 kinds) | `{kind: "named", items}` / `{kind: "positional", items}` — `items` is the clean flat `parameter_override[]` list (`1.0.3` / schema `3`; was `{kind, first, rest}` at ≤ `1.0.2`). |
 
 The `default` field on every parameter shape is `[]` when no `= <expr>` initializer is present.
 
@@ -111,8 +111,8 @@ The `default` field on every parameter shape is `[]` when no `= <expr>` initiali
 
 | Rule | Shape |
 |---|---|
-| `port_list` | `{first, rest}` — comma-separated `port_group` list. |
-| `port_group` | `{direction, data_type, packed_range, first, rest}` — `direction` is the typed `port_direction`; `data_type` / `packed_range` are `[]` when omitted; `first` + `rest` are the `port_item` declarators. |
+| `port_list` | `[port_group, …]` — clean flat array of the comma-separated `port_group` list (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
+| `port_group` | `{direction, data_type, packed_range, ports}` — `direction` is the typed `port_direction`; `data_type` / `packed_range` are `[]` when omitted; `ports` is the clean flat `port_item[]` declarator list (`1.0.3` / schema `3`; was `{direction, data_type, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `port_item` | `{name, dims}` — `dims` is `[]` when the port is unpacked-scalar. |
 | `port_direction` (3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — bare `{kind}` keyword leaf. |
 | `port_direction_token` (3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — the negative-lookahead guard token used in the port-continuation iteration; same `kind` set as `port_direction`. |
@@ -121,18 +121,18 @@ The `default` field on every parameter shape is `[]` when no `= <expr>` initiali
 
 | Rule | Shape |
 |---|---|
-| `net_declaration` | `{data_type, packed_range, first, rest}` — `first` + `rest` are the `net_item` declarators. |
+| `net_declaration` | `{data_type, packed_range, items}` — `items` is the clean flat `net_item[]` declarator list (`1.0.3` / schema `3`; was `{data_type, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `net_item` | `{name, dims}` — `dims` is `[]` for a scalar net. |
-| `genvar_declaration` | `{first, rest}` — comma-separated genvar identifier list. |
+| `genvar_declaration` | `[identifier, …]` — clean flat array of the comma-separated genvar identifiers (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `continuous_assign` | `{lvalue, value}` — `assign lvalue = value;`. |
-| `module_instantiation` | `{module_name, parameters, first, rest}` — `parameters` is the optional `#( parameter_override_list? )` envelope (`[]` when absent); `first` + `rest` are the `instance_item` instances. |
+| `module_instantiation` | `{module_name, parameters, instances}` — `parameters` is the optional `#( parameter_override_list? )` envelope (`[]` when absent); `instances` is the clean flat `instance_item[]` list (`1.0.3` / schema `3`; was `{module_name, parameters, first, rest}` at ≤ `1.0.2`). |
 | `instance_item` | `{name, dims, connections}` — `dims` is `[]` for a non-array instance; `connections` is the `port_connection_list`. |
 
 ## Family: module instantiation port connections
 
 | Rule | Shape |
 |---|---|
-| `port_connection_list` (2 kinds) | `{kind: "named", first, rest}` / `{kind: "positional", first, rest}`. |
+| `port_connection_list` (2 kinds) | `{kind: "named", items}` / `{kind: "positional", items}` — `items` is the clean flat `port_connection[]` list (`1.0.3` / schema `3`; was `{kind, first, rest}` at ≤ `1.0.2`). |
 | `port_connection` (3 kinds) | `{kind: "wildcard"}` (the `.*` form, bodyless) / `{kind: "named", name, value}` / `{kind: "positional", value}`. |
 
 ## Family: procedural / always blocks
@@ -141,13 +141,13 @@ The `default` field on every parameter shape is `[]` when no `= <expr>` initiali
 |---|---|
 | `procedural_block` (4 kinds) | `{kind: "always_comb", statement}` / `{kind: "always_latch", statement}` / `{kind: "always_ff", event_control, statement}` / `{kind: "always", event, statement}`. |
 | `always_star_event` (2 kinds) | `{kind: "at_paren_star"}` (`@(*)`) / `{kind: "bare_star"}` (`@*`). |
-| `event_control_list` | `{first, rest}` — comma/`or`-separated `event_control_item` list. |
+| `event_control_list` | `[event_control_item, …]` — clean flat array of the comma/`or`-separated `event_control_item` list (`1.0.3` / schema `3`; was the corrupt `{first, rest}` that surfaced `"<invalid_sequence_access>"` for multi-entry sensitivity input at ≤ `1.0.2` — the `RTL-FE-0002` inline-alternation fix, the inline `( comma \| kw_or )` lifted to the un-annotated `event_separator` rule and dropped; see [Schema Versioning](schema-versioning.md)). |
 | `event_control_item` | `{edge, expr}` — `edge` is the typed `event_edge` (`[]` for a level-sensitive signal). |
 | `event_edge` (2 kinds) | `{kind: "posedge"}` / `{kind: "negedge"}` — bare `{kind}` keyword leaf. |
 | `statement` (4 kinds) | `{kind: "semi"}` / `{kind: "block", label, items}` / `{kind: "if", cond, then_body, else_body}` / `{kind: "assignment", lvalue, operator, value}`. |
 | `always_ff_statement` (4 kinds) | Same 4-kind shape as `statement` (`"semi"` / `"block"` / `"if"` / `"assignment"`); the `always_ff` body grammar restricts the assignment operator to the nonblocking arrow. |
 | `assignment_operator` (2 kinds) | `{kind: "blocking"}` (`=`) / `{kind: "nonblocking"}` (`<=`) — bare `{kind}` keyword leaf. |
-| `assignment_target` (3 kinds) | `{kind: "concat", first, rest}` (`{a, b}` LHS) / `{kind: "ranged", body}` / `{kind: "signal", body}`. |
+| `assignment_target` (3 kinds) | `{kind: "concat", items}` (`{a, b}` LHS — `items` is the clean flat target list; `1.0.3` / schema `3`, was `{kind: "concat", first, rest}` at ≤ `1.0.2`) / `{kind: "ranged", body}` / `{kind: "signal", body}`. |
 
 For `"if"` shapes (`statement` / `always_ff_statement`), `else_body` is `[]` when there is no `else`. For `"block"`, `label` is `[]` when the `begin` has no `: label`.
 
@@ -245,10 +245,10 @@ Because `conditional_expr` and `unary_expr` are passthrough when their distingui
 |---|---|
 | `signal_reference` | `{name, path}` — `name` is the `scoped_identifier`; `path` is the `signal_path_op*` array (`[]` for a plain signal). |
 | `ranged_signal_reference` | `{name, path, msb, lsb}` — a part-select `sig[msb:lsb]`. |
-| `scoped_identifier` | `{first, rest}` — `pkg::name` scope-resolution chain; `rest` is `[]` for an unqualified identifier. |
+| `scoped_identifier` | `[identifier, …]` — clean flat array of the `pkg::name` scope-resolution chain; a single-element array for an unqualified identifier (`1.0.3` / schema `3`; was `{first, rest}` with `rest` `[]` for an unqualified identifier at ≤ `1.0.2`). |
 | `signal_path_op` (2 kinds) | `{kind: "member", name}` (`.field`) / `{kind: "index", index}` (`[expr]`). |
-| `concatenation_expr` | `{first, rest}` — `{a, b, …}`. |
-| `repetition_expr` | `{count, first, rest}` — `{count{a, …}}`. |
+| `concatenation_expr` | `[operand, …]` — clean flat array of the `{a, b, …}` operands (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
+| `repetition_expr` | `{count, items}` — `{count{a, …}}`; `items` is the clean flat operand list (`1.0.3` / schema `3`; was `{count, first, rest}` at ≤ `1.0.2`). |
 | `literal` (3 kinds) | `{kind: "based", text}` / `{kind: "decimal", text}` / `{kind: "real", body}`. |
 
 ## Family: data types
@@ -258,12 +258,12 @@ Because `conditional_expr` and `unary_expr` are passthrough when their distingui
 | `data_type` (6 kinds) | `{kind: "enum", body}` / `{kind: "union", body}` / `{kind: "struct", body}` / `{kind: "builtin", body}` / `{kind: "package", body}` / `{kind: "named", body}`. |
 | `builtin_data_type` (9 kinds) | bare `{kind}` for `"bit"`, `"byte"`, `"shortint"`, `"int"`, `"integer"`, `"longint"`, `"logic"`, `"reg"`, `"wire"`. |
 | `package_qualified_type` | `{package, name}` — `pkg::type_name`. |
-| `enum_type` | `{base, packed_range, first, rest}` — `base` is the typed `enum_base_type`; `first` + `rest` are the `enum_item` list. |
+| `enum_type` | `{base, packed_range, items}` — `base` is the typed `enum_base_type`; `items` is the clean flat `enum_item[]` list (`1.0.3` / schema `3`; was `{base, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `enum_base_type` (3 kinds) | `{kind: "builtin", body}` / `{kind: "package", body}` / `{kind: "named", body}`. |
 | `enum_item` | `{name, value}` — `value` is `[]` when there is no `= <expr>`. |
 | `struct_type` | `{packed, fields}` — `packed` is `[]` when the struct is unpacked; `fields` is the `struct_union_field` list. |
 | `union_type` | `{packed, fields}` — same shape as `struct_type`. |
-| `struct_union_field` | `{data_type, packed_range, first, rest}` — `first` + `rest` are the field-name declarators. |
+| `struct_union_field` | `{data_type, packed_range, names}` — `names` is the clean flat field-name declarator list (`1.0.3` / schema `3`; was `{data_type, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `struct_union_field_name` (2 kinds) | `{kind: "identifier", body}` / `{kind: "byte"}` (the `byte` reserved-word field-name form, bodyless). |
 | `packed_range` | `{msb, lsb}` — `[msb:lsb]`. |
 
@@ -271,7 +271,7 @@ Because `conditional_expr` and `unary_expr` are passthrough when their distingui
 
 ## Total surface and the machine-checkable source
 
-The full typed surface as of contract `1.0.2` is **156 return annotations across 74 distinct rules** (independently re-counted from the inventory below; the `1.0.2` `RTL-FE-0001` fix did not change this count — the five `*_op` rules are un-annotated alternations). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
+The full typed surface as of contract `1.0.3` is **156 return annotations across 74 distinct rules** (independently re-counted from the inventory below; neither the `1.0.2` `RTL-FE-0001` fix nor the `1.0.3` POST-SV-AUDIT batch — the 15 Category-A list-shape corrections + the `RTL-FE-0002` `event_control_list` fix — changed this count: the `*_op` / `event_separator` rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
 
 - `generated/rtl_frontend_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`).
 - `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — the embedded inventory used by the AST shape-contract regression lock (identical content; 156 entries in `declared_annotation_inventory.annotations`).

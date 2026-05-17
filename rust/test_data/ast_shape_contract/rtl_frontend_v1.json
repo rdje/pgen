@@ -37,948 +37,965 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-INLINE-ALT-FIX-0002 / RTL-FE-0001: binop_chain inline-alternation defect fixed (named op-rules); locks the post-fix operator-expression path. AST-dump schema 1->2."
+  },
+  {
+   "name": "cat_a_shapes",
+   "input": "module top #(parameter W = 8) (input wire clk, rst, output reg [1:0] q);\n  genvar gi, gj;\n  wire a, b, c;\n  sub #(.P(1), .Q(2)) u_named (.a(a), .b(b));\n  always_ff @(posedge clk or negedge rst) q <= {a, b};\n  assign {a, b} = {2{c}};\nendmodule\n",
+   "rule_under_test": "rtl_frontend_file",
+   "declared_annotation": "{type: \"rtl_frontend_file\", items: $2}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "type",
+    "items"
+   ],
+   "expected_json_object_string_values": {
+    "type": "rtl_frontend_file"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-POST-SV-AUDIT-0003 / POST-SV-AUDIT.2.2: 15 rtl_frontend Cat-A raw-envelope misuses -> extraction-spread + event_control_list RTL-FE-0002 inline-alt fix; locks the post-fix clean-list shapes. AST-dump schema 2->3."
   }
  ],
  "declared_annotation_inventory": {
   "pipeline_inventory_artifact": "generated/rtl_frontend_return_annotations.json",
-  "extracted_at": "2026-05-16",
+  "extracted_at": "2026-05-17",
   "optional_grammar_json_crosscheck": "generated/rtl_frontend.json",
   "annotations": [
    {
-    "rule": "additive_expr",
-    "branch_index": 0,
     "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"additive\", lhs: $1, rest: $2}"
+    "branch_index": 0,
+    "normalized_text": "{type: \"binop_chain\", level: \"additive\", lhs: $1, rest: $2}",
+    "rule": "additive_expr"
    },
    {
-    "rule": "always_ff_statement",
-    "branch_index": 0,
     "annotation_type": "return_object",
-    "normalized_text": "{kind: \"semi\"}"
+    "branch_index": 0,
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "always_ff_statement"
    },
    {
-    "rule": "always_ff_statement",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"block\", label: $2, items: $3}"
+    "normalized_text": "{kind: \"block\", label: $2, items: $3}",
+    "rule": "always_ff_statement"
    },
    {
-    "rule": "always_ff_statement",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"if\", cond: $3, then_body: $5, else_body: $6}"
+    "normalized_text": "{kind: \"if\", cond: $3, then_body: $5, else_body: $6}",
+    "rule": "always_ff_statement"
    },
    {
-    "rule": "always_ff_statement",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"assignment\", lvalue: $1, operator: $2, value: $3}"
+    "normalized_text": "{kind: \"assignment\", lvalue: $1, operator: $2, value: $3}",
+    "rule": "always_ff_statement"
    },
    {
-    "rule": "always_star_event",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"at_paren_star\"}"
+    "normalized_text": "{kind: \"at_paren_star\"}",
+    "rule": "always_star_event"
    },
    {
-    "rule": "always_star_event",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"bare_star\"}"
+    "normalized_text": "{kind: \"bare_star\"}",
+    "rule": "always_star_event"
    },
    {
-    "rule": "assignment_operator",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"blocking\"}"
+    "normalized_text": "{kind: \"blocking\"}",
+    "rule": "assignment_operator"
    },
    {
-    "rule": "assignment_operator",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"nonblocking\"}"
+    "normalized_text": "{kind: \"nonblocking\"}",
+    "rule": "assignment_operator"
    },
    {
-    "rule": "assignment_target",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"concat\", first: $2, rest: $3}"
+    "normalized_text": "{kind: \"concat\", items: [$2, $3::2*]}",
+    "rule": "assignment_target"
    },
    {
-    "rule": "assignment_target",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"ranged\", body: $1}"
+    "normalized_text": "{kind: \"ranged\", body: $1}",
+    "rule": "assignment_target"
    },
    {
-    "rule": "assignment_target",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"signal\", body: $1}"
+    "normalized_text": "{kind: \"signal\", body: $1}",
+    "rule": "assignment_target"
    },
    {
-    "rule": "bit_and_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"bit_and\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"bit_and\", lhs: $1, rest: $2}",
+    "rule": "bit_and_expr"
    },
    {
-    "rule": "bit_or_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"bit_or\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"bit_or\", lhs: $1, rest: $2}",
+    "rule": "bit_or_expr"
    },
    {
-    "rule": "bit_xor_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"bit_xor\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"bit_xor\", lhs: $1, rest: $2}",
+    "rule": "bit_xor_expr"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"bit\"}"
+    "normalized_text": "{kind: \"bit\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"byte\"}"
+    "normalized_text": "{kind: \"byte\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"shortint\"}"
+    "normalized_text": "{kind: \"shortint\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"int\"}"
+    "normalized_text": "{kind: \"int\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 4,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"integer\"}"
+    "normalized_text": "{kind: \"integer\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 5,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"longint\"}"
+    "normalized_text": "{kind: \"longint\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 6,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"logic\"}"
+    "normalized_text": "{kind: \"logic\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 7,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"reg\"}"
+    "normalized_text": "{kind: \"reg\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "builtin_data_type",
+    "annotation_type": "return_object",
     "branch_index": 8,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"wire\"}"
+    "normalized_text": "{kind: \"wire\"}",
+    "rule": "builtin_data_type"
    },
    {
-    "rule": "concatenation_expr",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{first: $2, rest: $3}"
+    "normalized_text": "[$2, $3::2*]",
+    "rule": "concatenation_expr"
    },
    {
-    "rule": "conditional_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"ternary\", condition: $1, then_expr: $3, else_expr: $5}"
+    "normalized_text": "{type: \"ternary\", condition: $1, then_expr: $3, else_expr: $5}",
+    "rule": "conditional_expr"
    },
    {
-    "rule": "conditional_expr",
-    "branch_index": 1,
     "annotation_type": "return_scalar",
-    "normalized_text": "$1"
-   },
-   {
-    "rule": "continuous_assign",
-    "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{lvalue: $2, value: $4}"
-   },
-   {
-    "rule": "data_type",
-    "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"enum\", body: $1}"
-   },
-   {
-    "rule": "data_type",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"union\", body: $1}"
+    "normalized_text": "$1",
+    "rule": "conditional_expr"
    },
    {
-    "rule": "data_type",
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{lvalue: $2, value: $4}",
+    "rule": "continuous_assign"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 0,
+    "normalized_text": "{kind: \"enum\", body: $1}",
+    "rule": "data_type"
+   },
+   {
+    "annotation_type": "return_object",
+    "branch_index": 1,
+    "normalized_text": "{kind: \"union\", body: $1}",
+    "rule": "data_type"
+   },
+   {
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"struct\", body: $1}"
+    "normalized_text": "{kind: \"struct\", body: $1}",
+    "rule": "data_type"
    },
    {
-    "rule": "data_type",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"builtin\", body: $1}"
+    "normalized_text": "{kind: \"builtin\", body: $1}",
+    "rule": "data_type"
    },
    {
-    "rule": "data_type",
+    "annotation_type": "return_object",
     "branch_index": 4,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"package\", body: $1}"
+    "normalized_text": "{kind: \"package\", body: $1}",
+    "rule": "data_type"
    },
    {
-    "rule": "data_type",
+    "annotation_type": "return_object",
     "branch_index": 5,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"named\", body: $1}"
+    "normalized_text": "{kind: \"named\", body: $1}",
+    "rule": "data_type"
    },
    {
-    "rule": "design_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"typedef\", body: $1}"
+    "normalized_text": "{kind: \"typedef\", body: $1}",
+    "rule": "design_item"
    },
    {
-    "rule": "design_item",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"package\", body: $1}"
+    "normalized_text": "{kind: \"package\", body: $1}",
+    "rule": "design_item"
    },
    {
-    "rule": "design_item",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"module\", body: $1}"
+    "normalized_text": "{kind: \"module\", body: $1}",
+    "rule": "design_item"
    },
    {
-    "rule": "design_item",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"semi\"}"
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "design_item"
    },
    {
-    "rule": "enum_base_type",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"builtin\", body: $1}"
+    "normalized_text": "{kind: \"builtin\", body: $1}",
+    "rule": "enum_base_type"
    },
    {
-    "rule": "enum_base_type",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"package\", body: $1}"
+    "normalized_text": "{kind: \"package\", body: $1}",
+    "rule": "enum_base_type"
    },
    {
-    "rule": "enum_base_type",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"named\", body: $1}"
+    "normalized_text": "{kind: \"named\", body: $1}",
+    "rule": "enum_base_type"
    },
    {
-    "rule": "enum_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $1, value: $2}"
+    "normalized_text": "{name: $1, value: $2}",
+    "rule": "enum_item"
    },
    {
-    "rule": "enum_type",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{base: $2, packed_range: $3, first: $5, rest: $6}"
+    "normalized_text": "{base: $2, packed_range: $3, items: [$5, $6::2*]}",
+    "rule": "enum_type"
    },
    {
-    "rule": "equality_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"equality\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"equality\", lhs: $1, rest: $2}",
+    "rule": "equality_expr"
    },
    {
-    "rule": "event_control_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{edge: $1, expr: $2}"
+    "normalized_text": "{edge: $1, expr: $2}",
+    "rule": "event_control_item"
    },
    {
-    "rule": "event_control_list",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{first: $3, rest: $4}"
+    "normalized_text": "[$3, $4::2*]",
+    "rule": "event_control_list"
    },
    {
-    "rule": "event_edge",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"posedge\"}"
+    "normalized_text": "{kind: \"posedge\"}",
+    "rule": "event_edge"
    },
    {
-    "rule": "event_edge",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"negedge\"}"
+    "normalized_text": "{kind: \"negedge\"}",
+    "rule": "event_edge"
    },
    {
-    "rule": "generate_body",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"block\", label: $2, items: $3}"
+    "normalized_text": "{kind: \"block\", label: $2, items: $3}",
+    "rule": "generate_body"
    },
    {
-    "rule": "generate_body",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"single\", body: $1}"
+    "normalized_text": "{kind: \"single\", body: $1}",
+    "rule": "generate_body"
    },
    {
-    "rule": "generate_for",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{genvar: $3, init_var: $4, init_value: $6, condition: $8, step_var: $10, step_value: $12, body: $14}"
+    "normalized_text": "{genvar: $3, init_var: $4, init_value: $6, condition: $8, step_var: $10, step_value: $12, body: $14}",
+    "rule": "generate_for"
    },
    {
-    "rule": "generate_if",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{cond: $3, then_body: $5, else_body: $6}"
+    "normalized_text": "{cond: $3, then_body: $5, else_body: $6}",
+    "rule": "generate_if"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"parameter\", body: $1}"
+    "normalized_text": "{kind: \"parameter\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"import\", body: $1}"
+    "normalized_text": "{kind: \"import\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"typedef\", body: $1}"
+    "normalized_text": "{kind: \"typedef\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"genvar\", body: $1}"
+    "normalized_text": "{kind: \"genvar\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 4,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"module_instantiation\", body: $1}"
+    "normalized_text": "{kind: \"module_instantiation\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 5,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"net\", body: $1}"
+    "normalized_text": "{kind: \"net\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 6,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"continuous_assign\", body: $1}"
+    "normalized_text": "{kind: \"continuous_assign\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 7,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"procedural_block\", body: $1}"
+    "normalized_text": "{kind: \"procedural_block\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 8,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"generate_if\", body: $1}"
+    "normalized_text": "{kind: \"generate_if\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 9,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"generate_for\", body: $1}"
+    "normalized_text": "{kind: \"generate_for\", body: $1}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_item",
+    "annotation_type": "return_object",
     "branch_index": 10,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"semi\"}"
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "generate_item"
    },
    {
-    "rule": "generate_region",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{items: $2}"
+    "normalized_text": "{items: $2}",
+    "rule": "generate_region"
    },
    {
-    "rule": "genvar_declaration",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{first: $2, rest: $3}"
+    "normalized_text": "[$2, $3::2*]",
+    "rule": "genvar_declaration"
    },
    {
-    "rule": "import_declaration",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{package: $2, member: $4}"
+    "normalized_text": "{package: $2, member: $4}",
+    "rule": "import_declaration"
    },
    {
-    "rule": "instance_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $1, dims: $2, connections: $4}"
+    "normalized_text": "{name: $1, dims: $2, connections: $4}",
+    "rule": "instance_item"
    },
    {
-    "rule": "literal",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"based\", text: $1}"
+    "normalized_text": "{kind: \"based\", text: $1}",
+    "rule": "literal"
    },
    {
-    "rule": "literal",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"decimal\", text: $1}"
+    "normalized_text": "{kind: \"decimal\", text: $1}",
+    "rule": "literal"
    },
    {
-    "rule": "literal",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"real\", body: $1}"
+    "normalized_text": "{kind: \"real\", body: $1}",
+    "rule": "literal"
    },
    {
-    "rule": "logical_and_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"logical_and\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"logical_and\", lhs: $1, rest: $2}",
+    "rule": "logical_and_expr"
    },
    {
-    "rule": "logical_or_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"logical_or\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"logical_or\", lhs: $1, rest: $2}",
+    "rule": "logical_or_expr"
    },
    {
-    "rule": "module_declaration",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $2, imports_pre: $3, parameters: $4, imports_post: $5, ports: $6, items: $8}"
+    "normalized_text": "{name: $2, imports_pre: $3, parameters: $4, imports_post: $5, ports: $6, items: $8}",
+    "rule": "module_declaration"
    },
    {
-    "rule": "module_instantiation",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{module_name: $1, parameters: $2, first: $3, rest: $4}"
+    "normalized_text": "{module_name: $1, parameters: $2, instances: [$3, $4::2*]}",
+    "rule": "module_instantiation"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"parameter\", body: $1}"
+    "normalized_text": "{kind: \"parameter\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"import\", body: $1}"
+    "normalized_text": "{kind: \"import\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"typedef\", body: $1}"
+    "normalized_text": "{kind: \"typedef\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"genvar\", body: $1}"
+    "normalized_text": "{kind: \"genvar\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 4,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"module_instantiation\", body: $1}"
+    "normalized_text": "{kind: \"module_instantiation\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 5,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"net\", body: $1}"
+    "normalized_text": "{kind: \"net\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 6,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"continuous_assign\", body: $1}"
+    "normalized_text": "{kind: \"continuous_assign\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 7,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"procedural_block\", body: $1}"
+    "normalized_text": "{kind: \"procedural_block\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 8,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"generate_region\", body: $1}"
+    "normalized_text": "{kind: \"generate_region\", body: $1}",
+    "rule": "module_item"
    },
    {
-    "rule": "module_item",
+    "annotation_type": "return_object",
     "branch_index": 9,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"semi\"}"
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "module_item"
    },
    {
-    "rule": "multiplicative_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"multiplicative\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"multiplicative\", lhs: $1, rest: $2}",
+    "rule": "multiplicative_expr"
    },
    {
-    "rule": "net_declaration",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{data_type: $1, packed_range: $2, first: $3, rest: $4}"
+    "normalized_text": "{data_type: $1, packed_range: $2, items: [$3, $4::2*]}",
+    "rule": "net_declaration"
    },
    {
-    "rule": "net_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $1, dims: $2}"
+    "normalized_text": "{name: $1, dims: $2}",
+    "rule": "net_item"
    },
    {
-    "rule": "package_declaration",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $2, items: $4}"
+    "normalized_text": "{name: $2, items: $4}",
+    "rule": "package_declaration"
    },
    {
-    "rule": "package_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"typedef\", body: $1}"
+    "normalized_text": "{kind: \"typedef\", body: $1}",
+    "rule": "package_item"
    },
    {
-    "rule": "package_item",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"parameter\", body: $1}"
+    "normalized_text": "{kind: \"parameter\", body: $1}",
+    "rule": "package_item"
    },
    {
-    "rule": "package_item",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"semi\"}"
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "package_item"
    },
    {
-    "rule": "package_qualified_type",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{package: $1, name: $3}"
+    "normalized_text": "{package: $1, name: $3}",
+    "rule": "package_qualified_type"
    },
    {
-    "rule": "packed_range",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{msb: $2, lsb: $4}"
+    "normalized_text": "{msb: $2, lsb: $4}",
+    "rule": "packed_range"
    },
    {
-    "rule": "parameter_declaration_group",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{head: $1, tail: $2}"
+    "normalized_text": "{head: $1, tail: $2}",
+    "rule": "parameter_declaration_group"
    },
    {
-    "rule": "parameter_declaration_head",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"typed\", flavor: $1, data_type: $3, name: $4, default: $5}"
+    "normalized_text": "{kind: \"typed\", flavor: $1, data_type: $3, name: $4, default: $5}",
+    "rule": "parameter_declaration_head"
    },
    {
-    "rule": "parameter_declaration_head",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"untyped\", flavor: $1, name: $2, default: $3}"
+    "normalized_text": "{kind: \"untyped\", flavor: $1, name: $2, default: $3}",
+    "rule": "parameter_declaration_head"
    },
    {
-    "rule": "parameter_declaration_sequence",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{first: $1, rest: $2}"
+    "normalized_text": "[$1, $2::2*]",
+    "rule": "parameter_declaration_sequence"
    },
    {
-    "rule": "parameter_declaration_statement",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{body: $1}"
+    "normalized_text": "{body: $1}",
+    "rule": "parameter_declaration_statement"
    },
    {
-    "rule": "parameter_declaration_tail",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"typed_with_flavor\", flavor: $1, data_type: $3, name: $4, default: $5}"
+    "normalized_text": "{kind: \"typed_with_flavor\", flavor: $1, data_type: $3, name: $4, default: $5}",
+    "rule": "parameter_declaration_tail"
    },
    {
-    "rule": "parameter_declaration_tail",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"untyped_with_flavor\", flavor: $1, name: $2, default: $3}"
+    "normalized_text": "{kind: \"untyped_with_flavor\", flavor: $1, name: $2, default: $3}",
+    "rule": "parameter_declaration_tail"
    },
    {
-    "rule": "parameter_declaration_tail",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"typed\", data_type: $2, name: $3, default: $4}"
+    "normalized_text": "{kind: \"typed\", data_type: $2, name: $3, default: $4}",
+    "rule": "parameter_declaration_tail"
    },
    {
-    "rule": "parameter_declaration_tail",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"untyped\", name: $1, default: $2}"
+    "normalized_text": "{kind: \"untyped\", name: $1, default: $2}",
+    "rule": "parameter_declaration_tail"
    },
    {
-    "rule": "parameter_flavor",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"parameter\"}"
+    "normalized_text": "{kind: \"parameter\"}",
+    "rule": "parameter_flavor"
    },
    {
-    "rule": "parameter_flavor",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"localparam\"}"
+    "normalized_text": "{kind: \"localparam\"}",
+    "rule": "parameter_flavor"
    },
    {
-    "rule": "parameter_override",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"named\", name: $2, value: $4}"
+    "normalized_text": "{kind: \"named\", name: $2, value: $4}",
+    "rule": "parameter_override"
    },
    {
-    "rule": "parameter_override",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"positional\", value: $1}"
+    "normalized_text": "{kind: \"positional\", value: $1}",
+    "rule": "parameter_override"
    },
    {
-    "rule": "parameter_override_list",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"named\", first: $2, rest: $3}"
+    "normalized_text": "{kind: \"named\", items: [$2, $3::3*]}",
+    "rule": "parameter_override_list"
    },
    {
-    "rule": "parameter_override_list",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"positional\", first: $2, rest: $3}"
+    "normalized_text": "{kind: \"positional\", items: [$2, $3::3*]}",
+    "rule": "parameter_override_list"
    },
    {
-    "rule": "port_connection",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"wildcard\"}"
+    "normalized_text": "{kind: \"wildcard\"}",
+    "rule": "port_connection"
    },
    {
-    "rule": "port_connection",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"named\", name: $2, value: $4}"
+    "normalized_text": "{kind: \"named\", name: $2, value: $4}",
+    "rule": "port_connection"
    },
    {
-    "rule": "port_connection",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"positional\", value: $1}"
+    "normalized_text": "{kind: \"positional\", value: $1}",
+    "rule": "port_connection"
    },
    {
-    "rule": "port_connection_list",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"named\", first: $2, rest: $3}"
+    "normalized_text": "{kind: \"named\", items: [$2, $3::3*]}",
+    "rule": "port_connection_list"
    },
    {
-    "rule": "port_connection_list",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"positional\", first: $2, rest: $3}"
+    "normalized_text": "{kind: \"positional\", items: [$2, $3::3*]}",
+    "rule": "port_connection_list"
    },
    {
-    "rule": "port_direction",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"input\"}"
+    "normalized_text": "{kind: \"input\"}",
+    "rule": "port_direction"
    },
    {
-    "rule": "port_direction",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"output\"}"
+    "normalized_text": "{kind: \"output\"}",
+    "rule": "port_direction"
    },
    {
-    "rule": "port_direction",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"inout\"}"
+    "normalized_text": "{kind: \"inout\"}",
+    "rule": "port_direction"
    },
    {
-    "rule": "port_direction_token",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"input\"}"
+    "normalized_text": "{kind: \"input\"}",
+    "rule": "port_direction_token"
    },
    {
-    "rule": "port_direction_token",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"output\"}"
+    "normalized_text": "{kind: \"output\"}",
+    "rule": "port_direction_token"
    },
    {
-    "rule": "port_direction_token",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"inout\"}"
+    "normalized_text": "{kind: \"inout\"}",
+    "rule": "port_direction_token"
    },
    {
-    "rule": "port_group",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{direction: $1, data_type: $2, packed_range: $3, first: $4, rest: $5}"
+    "normalized_text": "{direction: $1, data_type: $2, packed_range: $3, ports: [$4, $5::3*]}",
+    "rule": "port_group"
    },
    {
-    "rule": "port_item",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $1, dims: $2}"
+    "normalized_text": "{name: $1, dims: $2}",
+    "rule": "port_item"
    },
    {
-    "rule": "port_list",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{first: $1, rest: $2}"
+    "normalized_text": "[$1, $2::2*]",
+    "rule": "port_list"
    },
    {
-    "rule": "primary_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"repetition\", body: $1}"
+    "normalized_text": "{kind: \"repetition\", body: $1}",
+    "rule": "primary_expr"
    },
    {
-    "rule": "primary_expr",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"concatenation\", body: $1}"
+    "normalized_text": "{kind: \"concatenation\", body: $1}",
+    "rule": "primary_expr"
    },
    {
-    "rule": "primary_expr",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"ranged_signal\", body: $1}"
+    "normalized_text": "{kind: \"ranged_signal\", body: $1}",
+    "rule": "primary_expr"
    },
    {
-    "rule": "primary_expr",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"signal\", body: $1}"
+    "normalized_text": "{kind: \"signal\", body: $1}",
+    "rule": "primary_expr"
    },
    {
-    "rule": "primary_expr",
+    "annotation_type": "return_object",
     "branch_index": 4,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"literal\", body: $1}"
+    "normalized_text": "{kind: \"literal\", body: $1}",
+    "rule": "primary_expr"
    },
    {
-    "rule": "primary_expr",
+    "annotation_type": "return_object",
     "branch_index": 5,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"parens\", expr: $2}"
+    "normalized_text": "{kind: \"parens\", expr: $2}",
+    "rule": "primary_expr"
    },
    {
-    "rule": "procedural_block",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"always_comb\", statement: $2}"
+    "normalized_text": "{kind: \"always_comb\", statement: $2}",
+    "rule": "procedural_block"
    },
    {
-    "rule": "procedural_block",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"always_latch\", statement: $2}"
+    "normalized_text": "{kind: \"always_latch\", statement: $2}",
+    "rule": "procedural_block"
    },
    {
-    "rule": "procedural_block",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"always_ff\", event_control: $2, statement: $3}"
+    "normalized_text": "{kind: \"always_ff\", event_control: $2, statement: $3}",
+    "rule": "procedural_block"
    },
    {
-    "rule": "procedural_block",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"always\", event: $2, statement: $3}"
+    "normalized_text": "{kind: \"always\", event: $2, statement: $3}",
+    "rule": "procedural_block"
    },
    {
-    "rule": "ranged_signal_reference",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $1, path: $2, msb: $4, lsb: $6}"
+    "normalized_text": "{name: $1, path: $2, msb: $4, lsb: $6}",
+    "rule": "ranged_signal_reference"
    },
    {
-    "rule": "relational_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"relational\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"relational\", lhs: $1, rest: $2}",
+    "rule": "relational_expr"
    },
    {
-    "rule": "repetition_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{count: $2, first: $4, rest: $5}"
+    "normalized_text": "{count: $2, items: [$4, $5::2*]}",
+    "rule": "repetition_expr"
    },
    {
-    "rule": "rtl_frontend_file",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"rtl_frontend_file\", items: $2}"
+    "normalized_text": "{type: \"rtl_frontend_file\", items: $2}",
+    "rule": "rtl_frontend_file"
    },
    {
-    "rule": "scoped_identifier",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{first: $1, rest: $2}"
+    "normalized_text": "[$1, $2::2*]",
+    "rule": "scoped_identifier"
    },
    {
-    "rule": "shift_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"binop_chain\", level: \"shift\", lhs: $1, rest: $2}"
+    "normalized_text": "{type: \"binop_chain\", level: \"shift\", lhs: $1, rest: $2}",
+    "rule": "shift_expr"
    },
    {
-    "rule": "signal_path_op",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"member\", name: $2}"
+    "normalized_text": "{kind: \"member\", name: $2}",
+    "rule": "signal_path_op"
    },
    {
-    "rule": "signal_path_op",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"index\", index: $2}"
+    "normalized_text": "{kind: \"index\", index: $2}",
+    "rule": "signal_path_op"
    },
    {
-    "rule": "signal_reference",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{name: $1, path: $2}"
+    "normalized_text": "{name: $1, path: $2}",
+    "rule": "signal_reference"
    },
    {
-    "rule": "statement",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"semi\"}"
+    "normalized_text": "{kind: \"semi\"}",
+    "rule": "statement"
    },
    {
-    "rule": "statement",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"block\", label: $2, items: $3}"
+    "normalized_text": "{kind: \"block\", label: $2, items: $3}",
+    "rule": "statement"
    },
    {
-    "rule": "statement",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"if\", cond: $3, then_body: $5, else_body: $6}"
+    "normalized_text": "{kind: \"if\", cond: $3, then_body: $5, else_body: $6}",
+    "rule": "statement"
    },
    {
-    "rule": "statement",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"assignment\", lvalue: $1, operator: $2, value: $3}"
+    "normalized_text": "{kind: \"assignment\", lvalue: $1, operator: $2, value: $3}",
+    "rule": "statement"
    },
    {
-    "rule": "struct_type",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{packed: $2, fields: $4}"
+    "normalized_text": "{packed: $2, fields: $4}",
+    "rule": "struct_type"
    },
    {
-    "rule": "struct_union_field",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{data_type: $1, packed_range: $2, first: $3, rest: $4}"
+    "normalized_text": "{data_type: $1, packed_range: $2, names: [$3, $4::2*]}",
+    "rule": "struct_union_field"
    },
    {
-    "rule": "struct_union_field_name",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"identifier\", body: $1}"
+    "normalized_text": "{kind: \"identifier\", body: $1}",
+    "rule": "struct_union_field_name"
    },
    {
-    "rule": "struct_union_field_name",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{kind: \"byte\"}"
+    "normalized_text": "{kind: \"byte\"}",
+    "rule": "struct_union_field_name"
    },
    {
-    "rule": "typedef_declaration",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{data_type: $2, packed_range: $3, name: $4}"
+    "normalized_text": "{data_type: $2, packed_range: $3, name: $4}",
+    "rule": "typedef_declaration"
    },
    {
-    "rule": "unary_expr",
+    "annotation_type": "return_object",
     "branch_index": 0,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"unary\", op: \"plus\", expr: $2}"
+    "normalized_text": "{type: \"unary\", op: \"plus\", expr: $2}",
+    "rule": "unary_expr"
    },
    {
-    "rule": "unary_expr",
+    "annotation_type": "return_object",
     "branch_index": 1,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"unary\", op: \"minus\", expr: $2}"
+    "normalized_text": "{type: \"unary\", op: \"minus\", expr: $2}",
+    "rule": "unary_expr"
    },
    {
-    "rule": "unary_expr",
+    "annotation_type": "return_object",
     "branch_index": 2,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"unary\", op: \"logical_not\", expr: $2}"
+    "normalized_text": "{type: \"unary\", op: \"logical_not\", expr: $2}",
+    "rule": "unary_expr"
    },
    {
-    "rule": "unary_expr",
+    "annotation_type": "return_object",
     "branch_index": 3,
-    "annotation_type": "return_object",
-    "normalized_text": "{type: \"unary\", op: \"bit_not\", expr: $2}"
+    "normalized_text": "{type: \"unary\", op: \"bit_not\", expr: $2}",
+    "rule": "unary_expr"
    },
    {
-    "rule": "unary_expr",
-    "branch_index": 4,
     "annotation_type": "return_scalar",
-    "normalized_text": "$1"
+    "branch_index": 4,
+    "normalized_text": "$1",
+    "rule": "unary_expr"
    },
    {
-    "rule": "union_type",
-    "branch_index": 0,
     "annotation_type": "return_object",
-    "normalized_text": "{packed: $2, fields: $4}"
+    "branch_index": 0,
+    "normalized_text": "{packed: $2, fields: $4}",
+    "rule": "union_type"
    }
   ]
  }

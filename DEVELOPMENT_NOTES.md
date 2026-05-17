@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - RTL-FE-0002 + lookahead-positional-slot confirmation (POST-SV-AUDIT.2.2 / PGEN-POST-SV-AUDIT-0003)
+
+### RTL-FE-0002 — the inline-alt-$N class extends beyond binop chains
+`rtl_frontend` `event_control_list := … ( ( comma | kw_or )
+event_control_item )* -> {first:$3,rest:$4}` was the **same
+inline-alternation-`$N` corruption class** as the closed
+`INLINE-ALT-FIX` binop instances, but the `INLINE-ALT-FIX` tree scoped
+only to `binop_chain` *operator* levels and never inspected
+*separator* alternations — so it slipped through. The POST-SV-AUDIT
+holistic ledger caught it. **Carry-forward lesson:** the inline-alt-`$N`
+corruption is triggered by ANY inline `( a | b )` as the lead element
+of a quantified iteration feeding a bare positional `$N` — operator
+*or* separator. Fix is identical: lift to a named rule. When auditing
+a grammar for this class, scan ALL `( ( a | b ) X )*` iterations, not
+just operator chains.
+
+### Lookahead occupies a positional slot (confirmed)
+The port_group / parameter_override_list / port_connection_list fixes
+hinged on whether a lookahead (`&dot`, `!dot`, `!port_direction_token`)
+occupies a position in the return-transform's positional model.
+Inferred from the grammar's own `&dot parameter_override -> first:$2`
+(⇒ `&dot`=$1) and the `| !dot … -> first:$2` branch (⇒ `!dot`=$1);
+**precise AFTER `parseability_probe` confirmed it**: port_item at
+iteration pos 3 (`$5::3*`, past `comma`+`!port_direction_token`),
+parameter_override/port_connection at pos 3 (`$3::3*`, past
+`comma`+`&dot`/`!dot`). So BOTH positive (`&`) and negative (`!`)
+lookaheads ARE positionally counted. A wrong `::N*` index is *silent*
+(no crash, no shape-contract failure with the coarse top-level check)
+— per-rule precise probe inspection of the extracted element type is
+the mandatory safety net for every `::N*` extraction fix.
+
 ## 2026-05-17 - PLAYBOOK: the Category-A AST-shape-fix lockstep (POST-SV-AUDIT.2.1 / PGEN-POST-SV-AUDIT-0002)
 
 ### What

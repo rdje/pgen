@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-018ab0b2.js";
+            window.path_to_searchindex_js = "searchindex-edc6d362.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b4e659eb.js"></script>
@@ -246,7 +246,7 @@ fn walk(node: &amp;JsonValue) {
 }
 <span class="boring">}</span></code></pre>
 <h2 id="5-track-the-contract-version"><a class="header" href="#5-track-the-contract-version">5. Track the contract version</a></h2>
-<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.2</code> / AST-dump schema version <code>2</code>). When you bump to a new PGEN version, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
+<p>Pin your downstream code to the parser-release version recorded in <code>docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” (currently <code>1.0.3</code> / AST-dump schema version <code>3</code>). When you bump to a new PGEN version, scan the <a href="changelog-index.html">Changelog Index</a> for shape-change rows that affect the rules you consume.</p>
 <p>For the binop_chain shape used across the 10-level expression hierarchy (<code>expression</code> → <code>conditional</code> → … → <code>unary</code>), see <a href="walking-the-ast.html">Walking the AST</a> for the consumer-facing left-fold contract.</p>
 
                     </main>

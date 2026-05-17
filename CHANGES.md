@@ -1,4 +1,65 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0003 (leaf POST-SV-AUDIT.2.2): rtl_frontend — 15 Category-A misuses FIXED + event_control_list RTL-FE-0002 inline-alt corruption FIXED (schema 2→3, release 1.0.3)
+
+- **15 `rtl_frontend` Category-A raw-envelope misuses** fixed to
+  extraction-spreads: bare lists → `[$N, $M::2*]`
+  (`parameter_declaration_sequence`, `port_list`, `genvar_declaration`,
+  `scoped_identifier`, `concatenation_expr`); field-bearing →
+  `{…siblings, items/ports/names:[$F, $R::K*]}` (`port_group` ports
+  `$5::3*`, `module_instantiation` instances, `net_declaration`,
+  `repetition_expr`, `enum_type`, `struct_union_field`,
+  `assignment_target` concat, `parameter_override_list` +
+  `port_connection_list` named&positional `$3::3*`).
+- **`event_control_list` `RTL-FE-0002`** — inline `( comma | kw_or )`
+  alternation as the `( … )*` iteration lead feeding bare `$4` was the
+  inline-alternation-`$N` corruption class (`<invalid_sequence_access>`,
+  same systemic class as RTL-FE-0001/SVPP-0001/VHDL-0001 but NOT a
+  binop level). Fixed by lifting the separator into a NEW un-annotated
+  `event_separator := comma | kw_or` rule + the Cat-A extraction-spread
+  `[$3, $4::2*]`.
+- **Comprehensive AFTER `parseability_probe`** (module exercising
+  ports/genvar/override named+positional/event_control/concat/
+  repetition): **`invalid_sequence_access count: 0`**, **zero `[[],
+  ","]` separator-envelope leaks**; precise per-rule checks confirm
+  every fix correct — incl. the 3 inferred-index edge cases:
+  `port_group.ports` is a clean port_item list (the `!port_direction_token`
+  negative-lookahead occupies a positional slot → `$5::3*` correct),
+  `parameter_override_list`/`port_connection_list` `.items` clean (the
+  `&dot`/`!dot` lookahead occupies a slot → `$3::3*` correct),
+  `event_control` clean `[{edge,expr},…]`.
+- **Inventory UNCHANGED 156 / 74** (bare-list Cat-A rules flip
+  `return_object`→`return_array`; field-bearing stay `return_object`
+  with new `normalized_text`; `event_separator` un-annotated). Manifest
+  `rtl_frontend_v1.json` dai rebuilt + new `cat_a_shapes` sample +
+  `extracted_at` 2026-05-17 → `rtl_frontend_ast_shape_contract`
+  **passes**.
+- **Lockstep:** AST-dump schema `2→3`, parser+contract release
+  `1.0.2→1.0.3`. Contract: new `## AST-Shape Corrections — 1.0.3
+  (POST-SV-AUDIT)` section (15-row old→new table + RTL-FE-0002
+  subsection) + Schema-Versioning `3 | 1.0.3` row + per-rule loci
+  updated (1.0.1/1.0.2/RTL-FE-0001 kept as labeled history). Book: 9
+  chapters, all walker pins `RTL_FRONTEND_AST_SCHEMA_VERSION = 3`,
+  `schema-versioning.md` `2→3` row, 156/74 unchanged.
+  `docs/POST_SV_AUDIT_LEDGER.md`: all 16 rtl_frontend rows
+  RESOLVED-FIXED + worklist DONE (originals kept as history).
+- **`PGEN_RELEASED_PARSER_BUG_LEDGER.md`: exactly one new row
+  `RTL-FE-0002`** (1 insertion, 0 deletions — RTL-FE-0001 / SVPP-0001 /
+  VHDL-0001 and all other rows untouched). The 15 Cat-A rules are
+  **not** bug-ledger entries (recorded Decision: clean shape
+  improvement ≠ the `<invalid_sequence_access>` corruption class).
+- DOC-ENVELOPE-0001 not regressed (real 4-field `AstDumpPayload`
+  preserved). Independently verified: contract no dup `## ` headers,
+  1.0.3/schema-3 current (1.0.2 historical only), 156/74 unchanged, no
+  fabricated `AstDumpPayload`; `rtl_frontend_parser_book_gate`
+  **independently re-run green** (searchindex deterministic, no toc
+  rename); `clippy_on_rust_change` strict source **passed** (generated
+  non-strict debt pre-existing/tolerated). `docs/book/` checked — no
+  drifting rtl_frontend fact, no edit.
+- POST-SV-AUDIT.2 progress: `.2.1` (svpp) + `.2.2` (rtl_frontend)
+  done; frontier `.2.2`→`.2.3` (vhdl, 17 Cat-A) → `.2.4` systemverilog
+  → `.3` close. The Cat-A extraction-spread lockstep playbook is now
+  proven at scale (1 rule .2.1; 15 rules + 1 corruption .2.2).
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0002 (leaf POST-SV-AUDIT.2.1): sv_preprocessor macro_formals Category-A raw-envelope misuse FIXED (schema 2→3, release 1.0.3)
 
 - **`macro_formals` Category-A fix.** `macro_formals := lparen

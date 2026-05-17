@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-018ab0b2.js";
+            window.path_to_searchindex_js = "searchindex-edc6d362.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b4e659eb.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
-<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/rtl_frontend_return_annotations.json</code>, 156 annotations on 74 rules, schema version <code>2</code>).</p>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/rtl_frontend_return_annotations.json</code>, 156 annotations on 74 rules, schema version <code>3</code>).</p>
 <h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
 <p>Because the AST tree mixes typed objects (the RTL-FE-Slice-1..7 surface) and recursive-envelope arrays (terminal/regex leaves, <code>named_data_type</code>, and the passthrough expression forms), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -406,7 +406,7 @@ fn walk_binop_chain(node: &amp;serde_json::Map&lt;String, serde_json::Value&gt;)
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 2;
+const RTL_FRONTEND_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -420,9 +420,14 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // the integer schema version moved, update the constant and the walker
 // together.
 match RTL_FRONTEND_AST_SCHEMA_VERSION {
-    2 =&gt; walk_schema_v2(&amp;root),
-    // schema 1 (pre-RTL-FE-0001) is superseded — binop_chain.rest there
-    // could surface "&lt;invalid_sequence_access&gt;"; repin to schema 2.
+    3 =&gt; walk_schema_v3(&amp;root),
+    // schema 2 (RTL-FE-0001 binop fix) and schema 1 (pre-RTL-FE-0001)
+    // are superseded. At schema 1 binop_chain.rest could surface
+    // "&lt;invalid_sequence_access&gt;". At schema 2 the 15 Category-A list
+    // rules (e.g. port_list, net_declaration, scoped_identifier) still
+    // emitted the raw {first, rest} envelope and event_control_list
+    // surfaced "&lt;invalid_sequence_access&gt;" (RTL-FE-0002); schema 3
+    // flattened them to clean lists — repin to schema 3.
     other =&gt; eprintln!("no walker compiled for rtl_frontend AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>

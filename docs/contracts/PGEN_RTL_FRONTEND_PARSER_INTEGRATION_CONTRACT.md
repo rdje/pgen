@@ -7,15 +7,15 @@ This is the document downstream projects (primarily RTLSyn) embedding the PGEN r
 
 ## Contract Identity
 - Contract version:
-  - `1.0.2`
+  - `1.0.3`
 - Parser release version:
-  - `1.0.2`
+  - `1.0.3`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
 - rtl_frontend AST-dump schema version:
-  - `2` (breaking shape correction — see Release 1.0.2 Highlights)
+  - `3` (POST-SV-AUDIT Category-A AST-shape corrections + the `RTL-FE-0002` `event_control_list` inline-alternation fix — see "AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT)"; the `1.0.2`/schema `2` `RTL-FE-0001` and `1.0.1`/schema `1` history is retained below)
 - Last updated:
-  - `2026-05-16`
+  - `2026-05-17`
 - Current grammar family label:
   - `rtl_frontend`
 - Per-family mdBook:
@@ -71,11 +71,12 @@ This is the document downstream projects (primarily RTLSyn) embedding the PGEN r
 
 The rtl_frontend parser carries two version axes:
 
-1. **Parser release version** (`1.0.2`). Tracks the parser library's release identity. Bumped on every functional change.
-2. **AST-dump schema version** (`2`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+1. **Parser release version** (`1.0.3`). Tracks the parser library's release identity. Bumped on every functional change.
+2. **AST-dump schema version** (`3`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
+| 3 | 1.0.3 | **POST-SV-AUDIT Category-A AST-shape corrections + `RTL-FE-0002` `event_control_list` inline-alternation fix (consumer-visible).** The POST-SV-AUDIT.2.2 static classification pass (`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.2, tracked `PGEN-POST-SV-AUDIT-0003`) found **15 static-conclusive Category-A raw-envelope misuses** in `grammars/rtl_frontend.ebnf` plus one inline-alternation-`$N` corruption (`RTL-FE-0002`, `event_control_list`). The 15 Category-A list rules no longer expose the raw `{first, rest}` (resp. `{…, first, rest}`) iteration envelope: each is corrected to the canonical extraction-spread `[$N, $M::K*]` (a clean flat list — bare-list rules now emit a top-level array; `kind`/`direction`/`data_type`/etc.-bearing rules keep their leading fields and replace `{first, rest}` with a clean named list field — `ports`/`instances`/`items`/`names`). The rules: `parameter_declaration_sequence`, `port_list`, `port_group`, `genvar_declaration`, `module_instantiation`, `parameter_override_list` (named + positional), `port_connection_list` (named + positional), `net_declaration`, `assignment_target` (concat), `repetition_expr`, `concatenation_expr`, `scoped_identifier`, `enum_type`, `struct_union_field`. Separately, `RTL-FE-0002`: `event_control_list := at lparen event_control_item ( ( comma \| kw_or ) event_control_item )* rparen -> {first: $3, rest: $4}` bound the bare positional `$4` to an **inline alternation** `( comma \| kw_or )` iteration lead — the same emit-time corruption class as `RTL-FE-0001`/`SVPP-0001`/`VHDL-0001` (but **not** a binop level) — so `procedural_block`'s `always_ff`/`always` `event_control` surfaced `"<invalid_sequence_access>"`; the inline alternation is lifted into a new **un-annotated** named rule `event_separator := comma \| kw_or` and `event_control_list` rewritten to `at lparen event_control_item ( event_separator event_control_item )* rparen -> [$3, $4::2*]` (clean `event_control_item` list, no `<invalid_sequence_access>`). Annotation inventory **unchanged at 156 annotations / 74 distinct rules** (the bare-list Category-A rules flip `return_object` → `return_array`; the `{…, items/ports/names: […]}` ones stay `return_object` with a new `normalized_text`; `event_separator` is **un-annotated** so it is not in the inventory — no count delta). Same accept set (no grammar acceptance change — purely the annotation form + the separator lift). The 15 Category-A corrections are a clean shape improvement and are **not** logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`; only `RTL-FE-0002` (the `<invalid_sequence_access>` corruption) is a bug-ledger row. Gate-locked. |
 | 2 | 1.0.2 | **RTL-FE-0001 correctness fix (breaking).** The ten `binop_chain` levels no longer emit `"<invalid_sequence_access>"` (and a malformed nested `{level, lhs:["","<op>"], rest:<invalid>}` object) in `rest` for multi-operand input. The five inline operator alternations that were the iteration lead of `( ( a \| b ) next )*` (and corrupted the positional model so the bare `rest: $2` mis-recursed) are lifted into **named** rules `equality_op := eqeq \| ne`, `relational_op := less_equal \| lt \| ge \| gt`, `shift_op := shl \| shr`, `additive_op := plus \| minus`, `multiplicative_op := star \| slash \| percent`, mirroring the gate-locked `rtl_const_expr` RTL-CE-Slice-2 fix and the `systemverilog.ebnf` `binary_operator` op-chain idiom. The five level rules' `binop_chain` annotations are **unchanged** (`{type: "binop_chain", level, lhs: $1, rest: $2}`); only the inline `( a \| b )` became a named op-rule, so `rest` is now the clean `[ [op-envelope, operand] … ]` array (operator token text at `entry[0][1]`, `[]` when no operator). The five `*_op` rules are **un-annotated** alternations, so the annotation inventory is **unchanged at 156 annotations / 74 distinct rules** — only the `binop_chain.rest` shape changed. Same accept set (no grammar acceptance change — purely the alternation lift). Gate-locked. |
 | 1.0.0 | 1.0.1 | **RTL-FE-Slice-1..7** — initial 156-annotation baseline. Dispatch wrappers (design_item/package_item/module_item/generate_item), keyword leaves, expression dispatch + 10-rule binop_chain hierarchy, declarations + module structure, parameter/port rules, module instantiation/ports/statements/signals/datatypes mass batch. **NOTE:** the ten `binop_chain` levels' `rest` shape in this baseline was defective for multi-operand input (`RTL-FE-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation) — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/rtl_frontend.ebnf`) un-annotated except for `rtl_frontend_file -> {type, items}` root. AST dump is the recursive-envelope shape across all rules. |
@@ -134,6 +135,136 @@ The rtl_frontend parser carries two version axes:
   `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`RTL-FE-0001`).
   Documented in
   [the binary-addition worked example](../rtl_frontend_parser_book/src/examples-binary-addition.md).
+
+## AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT) — 15 Category-A raw-envelope list rules → clean lists; `RTL-FE-0002` `event_control_list` inline-alternation fix; schema 2 → 3
+
+Landed 2026-05-17. The POST-SV-AUDIT static classification pass
+(`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.2, tracked
+`PGEN-POST-SV-AUDIT-0003`) found **15 static-conclusive Category-A
+raw-envelope misuses** plus one inline-alternation-`$N` corruption
+(`RTL-FE-0002`) in `grammars/rtl_frontend.ebnf`. They are corrected, the
+parser is regenerated, and the manifest inventory is re-locked.
+
+The 15 Category-A corrections are a **clean AST-shape improvement** (no
+`<invalid_sequence_access>`, no crash) and are **not** logged in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (that ledger is
+reserved for the `<invalid_sequence_access>` corruption/crash class).
+`RTL-FE-0002` **is** a released-parser bug (it emitted
+`<invalid_sequence_access>` in `procedural_block.event_control`) and is
+logged there as its own row.
+
+### The 15 Category-A list rules (raw `{first, rest}` → extraction-spread)
+
+Each rule was a static-conclusive Category-A
+pure-single-token-separator (or zero-payload inline-separator) list
+rendered as the raw recursive-envelope `{first, rest}` (resp.
+`{…, first, rest}`) — `rest` surfaced the raw `[[sep, item], …]`
+separator envelope, forcing every consumer to index past the separator
+on each iteration. The fix is the canonical extraction-spread idiom
+(drop the semantically-irrelevant separator; emit a clean flat list).
+Bare-list rules now emit a **top-level array** (`return_object` →
+`return_array`); rules with leading discriminator/type fields keep those
+fields and replace the `{first, rest}` pair with a single clean named
+list field. `≤ 1.0.2` (schema `≤ 2`) shapes are kept as labeled history.
+
+| Rule (`grammars/rtl_frontend.ebnf`) | `≤ 1.0.2` / schema `≤ 2` shape (history) | `1.0.3` / schema `3` shape | Annotation form |
+|---|---|---|---|
+| `parameter_declaration_sequence` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level `parameter_declaration_group` array) |
+| `port_list` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level `port_group` array) |
+| `port_group` | `{direction: $1, data_type: $2, packed_range: $3, first: $4, rest: $5}` | `{direction: $1, data_type: $2, packed_range: $3, ports: [$4, $5::3*]}` (the `!port_direction_token` negative-lookahead occupies a positional slot — probe-confirmed) | stays `return_object`, new `normalized_text` |
+| `genvar_declaration` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level identifier array) |
+| `module_instantiation` | `{module_name: $1, parameters: $2, first: $3, rest: $4}` | `{module_name: $1, parameters: $2, instances: [$3, $4::2*]}` | stays `return_object`, new `normalized_text` |
+| `parameter_override_list` (named) | `{kind: "named", first: $2, rest: $3}` | `{kind: "named", items: [$2, $3::3*]}` (the `&dot` zero-width lookahead occupies a positional slot — probe-confirmed) | stays `return_object`, new `normalized_text` |
+| `parameter_override_list` (positional) | `{kind: "positional", first: $2, rest: $3}` | `{kind: "positional", items: [$2, $3::3*]}` (the `!dot` lookahead occupies a positional slot — probe-confirmed) | stays `return_object`, new `normalized_text` |
+| `port_connection_list` (named) | `{kind: "named", first: $2, rest: $3}` | `{kind: "named", items: [$2, $3::3*]}` (the `&dot` lookahead occupies a positional slot — probe-confirmed) | stays `return_object`, new `normalized_text` |
+| `port_connection_list` (positional) | `{kind: "positional", first: $2, rest: $3}` | `{kind: "positional", items: [$2, $3::3*]}` (the `!dot` lookahead occupies a positional slot — probe-confirmed) | stays `return_object`, new `normalized_text` |
+| `net_declaration` | `{data_type: $1, packed_range: $2, first: $3, rest: $4}` | `{data_type: $1, packed_range: $2, items: [$3, $4::2*]}` | stays `return_object`, new `normalized_text` |
+| `assignment_target` (concat) | `{kind: "concat", first: $2, rest: $3}` | `{kind: "concat", items: [$2, $3::2*]}` | stays `return_object`, new `normalized_text` |
+| `repetition_expr` | `{count: $2, first: $4, rest: $5}` | `{count: $2, items: [$4, $5::2*]}` | stays `return_object`, new `normalized_text` |
+| `concatenation_expr` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level operand array) |
+| `scoped_identifier` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level identifier array) |
+| `enum_type` | `{base: $2, packed_range: $3, first: $5, rest: $6}` | `{base: $2, packed_range: $3, items: [$5, $6::2*]}` | stays `return_object`, new `normalized_text` |
+| `struct_union_field` | `{data_type: $1, packed_range: $2, first: $3, rest: $4}` | `{data_type: $1, packed_range: $2, names: [$3, $4::2*]}` | stays `return_object`, new `normalized_text` |
+
+In every case the `1.0.3` list is a **clean flat array** of the element
+type in source order — there is **no** raw `[[sep, item], …]` envelope,
+no `.first` / `.rest` split, and no separator to skip. A consumer
+written against `≤ 1.0.2` that walked `.first` + `.rest[][1]` (or, for
+the bare-list rules, treated the value as a `{first, rest}` object) must
+repin to schema `3` and treat the field (or the rule's whole value, for
+the five bare-list rules) as a flat element array. The two
+`parameter_override_list` and two `port_connection_list` branches keep
+their `kind` discriminator; `port_group`, `module_instantiation`,
+`net_declaration`, `assignment_target`, `repetition_expr`, `enum_type`,
+and `struct_union_field` keep their leading typed fields and only the
+list pair changed.
+
+### `RTL-FE-0002` — `event_control_list` inline-alternation-`$N` corruption (bug-ledger row)
+
+`event_control_list` is the sensitivity-list rule reached as
+`procedural_block.event_control` for the `always_ff` / `always` forms.
+The `≤ 1.0.2` grammar was
+
+```ebnf
+event_control_list := at lparen event_control_item
+                       ( ( comma | kw_or ) event_control_item )* rparen
+                    -> {first: $3, rest: $4}
+```
+
+The bare positional `$4` referenced an **inline alternation**
+`( comma | kw_or )` as the lead element of the `( … )*` iteration. This
+is the same emit-time root cause as `RTL-FE-0001` / `SVPP-0001` /
+`VHDL-0001` (it corrupts the positional model in
+`rust/src/ast_pipeline/ast_return_transform.rs` so the rule's own
+annotation is mis-recursed) — but it is **not** a `binop_chain` level
+(so it was not covered by the closed RTL-FE-0001 binop fix). For
+multi-entry sensitivity input (e.g.
+`always_ff @(posedge clk or negedge rst) ;`) `event_control` surfaced
+`"<invalid_sequence_access>"` instead of the clean event-item list.
+**Fix:** the inline alternation is lifted into a new **un-annotated**
+named rule and the separator (semantically irrelevant — both `,` and
+`or` merely join sensitivity entries) is dropped:
+
+```ebnf
+event_separator    := comma | kw_or
+event_control_list := at lparen event_control_item
+                       ( event_separator event_control_item )* rparen
+                    -> [$3, $4::2*]
+```
+
+`procedural_block.event_control` is now a clean
+`[{edge, expr}, …]` array of `event_control_item` objects (probe-verified
+for `always_ff @(posedge clk or negedge rst) ;` — no
+`<invalid_sequence_access>` anywhere). `event_separator` is **un-annotated**,
+so it does not enter the inventory. `RTL-FE-0002` is tracked (status
+`Released`, fixed in parser release `1.0.3` / schema `3`) in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+
+### Counts and locking
+
+Annotation count: **156** (UNCHANGED — the bare-list Category-A rules
+flip `return_object` → `return_array`; the `{…, items/ports/names: […]}`
+ones stay `return_object` with a new `normalized_text`; the new
+`event_separator` is an **un-annotated** alternation and is not in the
+inventory — there is **no count delta**). **74** distinct rules
+(UNCHANGED). Same accept set (no grammar acceptance change — purely the
+annotation form + the `event_separator` lift). Schema bumped `2 → 3`
+because the 15 Category-A rule shapes and
+`procedural_block.event_control` changed in a consumer-visible way.
+Gate-locked:
+`cargo test --lib --features generated_parsers rtl_frontend_ast_shape_contract`
+and
+`make -C rust SHELL=/opt/homebrew/bin/bash rtl_frontend_parser_book_gate`.
+
+> **Audit-campaign note:** POST-SV-AUDIT.2.2 follows POST-SV-AUDIT.2.1
+> (`systemverilog_preprocessor` `macro_formals`, `PGEN-POST-SV-AUDIT-0002`,
+> sv_preprocessor 1.0.3 / schema 3). The remaining Category-A
+> raw-envelope list rules in `vhdl.ebnf` and `systemverilog.ebnf` are
+> tracked separately as their own POST-SV-AUDIT.2.x slices; this release
+> corrects `rtl_frontend` only. The 15 Category-A corrections here are a
+> clean shape improvement (**not** bug-ledger entries); only the
+> `RTL-FE-0002` inline-alternation-`$N` corruption is a released-parser
+> bug logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 
 ## Release 1.0.2 / Contract 1.0.2 Highlights — RTL-FE-0001 correctness fix (binop_chain.rest); schema 1 → 2
 
@@ -362,7 +493,7 @@ returns `E_INVALID_LIMITS` instead.
 > `root` keys are **not** members of `AstDumpPayload` itself —
 > `pgen_dump_contract_version` appears only inside the truncation
 > diagnostic envelope, the schema axis is the **AST-dump schema version
-> `2`** tracked in [Schema Versioning](#schema-versioning), the grammar
+> `3`** tracked in [Schema Versioning](#schema-versioning), the grammar
 > family is the fixed `rtl_frontend` label, and the profile is the fixed
 > `default` profile (see [Stable Integration
 > Surface](#stable-integration-surface)). The "root" is the parsed
@@ -441,9 +572,9 @@ module_item := parameter_declaration_statement -> {kind: "parameter",           
 | `"parameter"` | `{body}` — wraps a `parameter_declaration_sequence` | `parameter_declaration_statement` (line 76) |
 | `"import"` | `{package, member}` — `member` is the imported symbol or `*` wildcard | `import_declaration` (line 114) |
 | `"typedef"` | `{data_type, packed_range, name}` | `typedef_declaration` (line 117) |
-| `"genvar"` | `{first, rest}` — comma-separated genvar identifier list | `genvar_declaration` (line 120) |
-| `"module_instantiation"` | `{module_name, parameters, first, rest}` — `parameters` is `[]` when no `#(…)` override; `first` + `rest` are the `instance_item` instances | `module_instantiation` (line 123) |
-| `"net"` | `{data_type, packed_range, first, rest}` — `first` + `rest` are the `net_item` declarators | `net_declaration` (line 144) |
+| `"genvar"` | `[identifier, …]` — clean flat array of the comma-separated genvar identifiers (`1.0.3` / schema `3` — was the raw `{first, rest}` envelope at ≤ `1.0.2` / schema `2`; see [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--15-category-a-raw-envelope-list-rules--clean-lists-rtl-fe-0002-event_control_list-inline-alternation-fix-schema-2--3)) | `genvar_declaration` (line 120) |
+| `"module_instantiation"` | `{module_name, parameters, instances}` — `parameters` is `[]` when no `#(…)` override; `instances` is the clean flat `instance_item[]` list (`1.0.3` / schema `3` — was `{module_name, parameters, first, rest}` at ≤ `1.0.2` / schema `2`) | `module_instantiation` (line 123) |
+| `"net"` | `{data_type, packed_range, items}` — `items` is the clean flat `net_item[]` declarator list (`1.0.3` / schema `3` — was `{data_type, packed_range, first, rest}` at ≤ `1.0.2` / schema `2`) | `net_declaration` (line 144) |
 | `"continuous_assign"` | `{lvalue, value}` — `assign lvalue = value;` | `continuous_assign` (line 150) |
 | `"procedural_block"` | 4-kind dispatch: `{kind: "always_comb", statement}` / `{kind: "always_latch", statement}` / `{kind: "always_ff", event_control, statement}` / `{kind: "always", event, statement}` | `procedural_block` (line 154) |
 | `"generate_region"` | `{items}` — the `generate_item*` array of a `generate … endgenerate` block | `generate_region` (line 50) |
@@ -476,9 +607,9 @@ generate_item := parameter_declaration_statement -> {kind: "parameter",         
 | `"parameter"` | `{body}` — wraps a `parameter_declaration_sequence` | `parameter_declaration_statement` (line 76) |
 | `"import"` | `{package, member}` | `import_declaration` (line 114) |
 | `"typedef"` | `{data_type, packed_range, name}` | `typedef_declaration` (line 117) |
-| `"genvar"` | `{first, rest}` | `genvar_declaration` (line 120) |
-| `"module_instantiation"` | `{module_name, parameters, first, rest}` | `module_instantiation` (line 123) |
-| `"net"` | `{data_type, packed_range, first, rest}` | `net_declaration` (line 144) |
+| `"genvar"` | `[identifier, …]` (clean flat array — `1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`) | `genvar_declaration` (line 120) |
+| `"module_instantiation"` | `{module_name, parameters, instances}` (`1.0.3` / schema `3`; was `{module_name, parameters, first, rest}` at ≤ `1.0.2`) | `module_instantiation` (line 123) |
+| `"net"` | `{data_type, packed_range, items}` (`1.0.3` / schema `3`; was `{data_type, packed_range, first, rest}` at ≤ `1.0.2`) | `net_declaration` (line 144) |
 | `"continuous_assign"` | `{lvalue, value}` | `continuous_assign` (line 150) |
 | `"procedural_block"` | 4-kind dispatch (same as for `module_item`) | `procedural_block` (line 154) |
 | `"generate_if"` | `{cond, then_body, else_body}` — `else_body` is `[]` when there is no `else` | `generate_if` (line 66) |
@@ -492,8 +623,8 @@ machine-checkable enumeration of every `(rule, branch_index,
 annotation_type, normalized_text)` tuple is
 `generated/rtl_frontend_return_annotations.json` and its embedded copy
 `rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. The above
-enumerates the full typed surface of contract `1.0.2`
-(**156 annotations across 74 distinct rules**, schema version `2`); this
+enumerates the full typed surface of contract `1.0.3`
+(**156 annotations across 74 distinct rules**, schema version `3`); this
 contract section is curated, the inventory artifact is the authoritative
 machine-checkable enumeration, and this integration contract wins over the
 per-family book if they ever disagree.
@@ -525,11 +656,25 @@ Two emission conventions recur:
   `{kind: "semi"}` (and, for `port_connection`, `{kind: "wildcard"}`; for
   `struct_union_field_name`, `{kind: "byte"}`) marks a branch with no
   `body`.
-- **`{first, rest}` list rules** emit a head element plus the raw
-  recursive-envelope iteration of the `(sep X)*` tail. This is the
-  rtl_frontend separated-list convention; `first` is the head, `rest` is
-  the trailing-iteration envelope. rtl_frontend uses this shape uniformly
-  — it was **not** flattened to a clean `[$N, $M::2*]` array.
+- **Separated-list rules** emit a **clean flat array** of the element
+  type in source order — the canonical extraction-spread `[$N, $M::K*]`
+  idiom (the semantically-irrelevant `,` / `or` / `::` separator is
+  dropped). Bare-list rules (`parameter_declaration_sequence`,
+  `port_list`, `genvar_declaration`, `concatenation_expr`,
+  `scoped_identifier`) emit a **top-level array**; rules with a leading
+  discriminator/type field (`port_group`, `module_instantiation`,
+  `parameter_override_list`, `port_connection_list`, `net_declaration`,
+  `assignment_target` concat, `repetition_expr`, `enum_type`,
+  `struct_union_field`) keep those fields and carry the element list in a
+  single named field (`ports` / `instances` / `items` / `names`). This is
+  the `1.0.3` / schema `3` shape — the POST-SV-AUDIT Category-A
+  correction. At ≤ `1.0.2` / schema `2` these rules emitted the raw
+  `{first, rest}` (resp. `{…, first, rest}`) envelope where `rest` was
+  the raw `[[sep, item], …]` recursive iteration; that history is kept in
+  [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--15-category-a-raw-envelope-list-rules--clean-lists-rtl-fe-0002-event_control_list-inline-alternation-fix-schema-2--3).
+  Consumers must repin to schema `3` and treat the field (or the rule's
+  whole value, for the bare-list rules) as a flat element array — no
+  `.first` / `.rest` split, no separator to skip.
 
 Field selectors below name JSON keys exactly as emitted; a field bound to
 an optional grammar element is `[]` when that element is absent (e.g.
@@ -554,13 +699,13 @@ an optional grammar element is `[]` when that element is absent (e.g.
 | Rule (`grammars/rtl_frontend.ebnf`) | Shape |
 |---|---|
 | `parameter_declaration_statement` (line 76) | `{body}` — wraps a `parameter_declaration_sequence`. |
-| `parameter_declaration_sequence` (line 79) | `{first, rest}` — comma-separated `parameter_declaration_group` list. |
+| `parameter_declaration_sequence` (line 79) | `[parameter_declaration_group, …]` — clean flat array of the comma-separated `parameter_declaration_group` list (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `parameter_declaration_group` (line 82) | `{head, tail}` — `head` carries the leading flavor/type, `tail` the continued declarators. |
 | `parameter_declaration_head` (line 86, 2 kinds) | `{kind: "typed", flavor, data_type, name, default}` / `{kind: "untyped", flavor, name, default}`. |
 | `parameter_declaration_tail` (line 90, 4 kinds) | `{kind: "typed_with_flavor", flavor, data_type, name, default}` / `{kind: "untyped_with_flavor", flavor, name, default}` / `{kind: "typed", data_type, name, default}` / `{kind: "untyped", name, default}`. |
 | `parameter_flavor` (line 95, 2 kinds) | `{kind: "parameter"}` / `{kind: "localparam"}` — bare `{kind}` keyword leaf. |
 | `parameter_override` (line 133, 2 kinds) | `{kind: "named", name, value}` / `{kind: "positional", value}`. |
-| `parameter_override_list` (line 129, 2 kinds) | `{kind: "named", first, rest}` / `{kind: "positional", first, rest}` — a `kind`-tagged `{first, rest}` list. |
+| `parameter_override_list` (line 129, 2 kinds) | `{kind: "named", items}` / `{kind: "positional", items}` — `items` is the clean flat `parameter_override[]` list (`1.0.3` / schema `3`; was `{kind, first, rest}` at ≤ `1.0.2`). |
 
 The `default` field on every parameter shape is `[]` when no
 `= <expr>` initializer is present.
@@ -569,8 +714,8 @@ The `default` field on every parameter shape is `[]` when no
 
 | Rule (`grammars/rtl_frontend.ebnf`) | Shape |
 |---|---|
-| `port_list` (line 98) | `{first, rest}` — comma-separated `port_group` list. |
-| `port_group` (line 101) | `{direction, data_type, packed_range, first, rest}` — `direction` is the typed `port_direction`; `data_type` / `packed_range` are `[]` when omitted; `first` + `rest` are the `port_item` declarators. |
+| `port_list` (line 98) | `[port_group, …]` — clean flat array of the comma-separated `port_group` list (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
+| `port_group` (line 101) | `{direction, data_type, packed_range, ports}` — `direction` is the typed `port_direction`; `data_type` / `packed_range` are `[]` when omitted; `ports` is the clean flat `port_item[]` declarator list (`1.0.3` / schema `3`; was `{direction, data_type, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `port_item` (line 104) | `{name, dims}` — `dims` is `[]` for an unpacked-scalar port. |
 | `port_direction` (line 107, 3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — bare `{kind}` keyword leaf. |
 | `port_direction_token` (line 110, 3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — the negative-lookahead guard token used in the port-continuation iteration; same `kind` set as `port_direction`. |
@@ -579,13 +724,13 @@ The `default` field on every parameter shape is `[]` when no
 
 | Rule (`grammars/rtl_frontend.ebnf`) | Shape |
 |---|---|
-| `net_declaration` (line 144) | `{data_type, packed_range, first, rest}` — `first` + `rest` are the `net_item` declarators. |
+| `net_declaration` (line 144) | `{data_type, packed_range, items}` — `items` is the clean flat `net_item[]` declarator list (`1.0.3` / schema `3`; was `{data_type, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `net_item` (line 147) | `{name, dims}` — `dims` is `[]` for a scalar net. |
-| `genvar_declaration` (line 120) | `{first, rest}` — comma-separated genvar identifier list. |
+| `genvar_declaration` (line 120) | `[identifier, …]` — clean flat array of the comma-separated genvar identifiers (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `continuous_assign` (line 150) | `{lvalue, value}` — `assign lvalue = value;`. |
-| `module_instantiation` (line 123) | `{module_name, parameters, first, rest}` — `parameters` is the optional `#( parameter_override_list? )` envelope (`[]` when absent); `first` + `rest` are the `instance_item` instances. |
+| `module_instantiation` (line 123) | `{module_name, parameters, instances}` — `parameters` is the optional `#( parameter_override_list? )` envelope (`[]` when absent); `instances` is the clean flat `instance_item[]` list (`1.0.3` / schema `3`; was `{module_name, parameters, first, rest}` at ≤ `1.0.2`). |
 | `instance_item` (line 126) | `{name, dims, connections}` — `dims` is `[]` for a non-array instance; `connections` is the `port_connection_list`. |
-| `port_connection_list` (line 136, 2 kinds) | `{kind: "named", first, rest}` / `{kind: "positional", first, rest}`. |
+| `port_connection_list` (line 136, 2 kinds) | `{kind: "named", items}` / `{kind: "positional", items}` — `items` is the clean flat `port_connection[]` list (`1.0.3` / schema `3`; was `{kind, first, rest}` at ≤ `1.0.2`). |
 | `port_connection` (line 140, 3 kinds) | `{kind: "wildcard"}` (the `.*` form, **bodyless**) / `{kind: "named", name, value}` / `{kind: "positional", value}`. |
 
 ### Procedural / always blocks and statements
@@ -594,13 +739,13 @@ The `default` field on every parameter shape is `[]` when no
 |---|---|
 | `procedural_block` (line 154, 4 kinds) | `{kind: "always_comb", statement}` / `{kind: "always_latch", statement}` / `{kind: "always_ff", event_control, statement}` / `{kind: "always", event, statement}`. |
 | `always_star_event` (line 159, 2 kinds) | `{kind: "at_paren_star"}` (`@(*)`) / `{kind: "bare_star"}` (`@*`). |
-| `event_control_list` (line 162) | `{first, rest}` — comma/`or`-separated `event_control_item` list. |
+| `event_control_list` (line 162) | `[event_control_item, …]` — clean flat array of the comma/`or`-separated `event_control_item` list (`1.0.3` / schema `3`; was the corrupt `{first, rest}` that surfaced `"<invalid_sequence_access>"` at ≤ `1.0.2` — the `RTL-FE-0002` inline-alternation fix, separator lifted to the un-annotated `event_separator` rule; see [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--15-category-a-raw-envelope-list-rules--clean-lists-rtl-fe-0002-event_control_list-inline-alternation-fix-schema-2--3)). |
 | `event_control_item` (line 165) | `{edge, expr}` — `edge` is the typed `event_edge` (`[]` for a level-sensitive signal). |
 | `event_edge` (line 168, 2 kinds) | `{kind: "posedge"}` / `{kind: "negedge"}` — bare `{kind}` keyword leaf. |
 | `statement` (line 172, 4 kinds) | `{kind: "semi"}` (bodyless) / `{kind: "block", label, items}` / `{kind: "if", cond, then_body, else_body}` / `{kind: "assignment", lvalue, operator, value}`. |
 | `always_ff_statement` (line 178, 4 kinds) | Same 4-kind shape as `statement` (`"semi"` / `"block"` / `"if"` / `"assignment"`); the `always_ff` body grammar restricts the assignment operator to the nonblocking arrow. |
 | `assignment_operator` (line 185, 2 kinds) | `{kind: "blocking"}` (`=`) / `{kind: "nonblocking"}` (`<=`) — bare `{kind}` keyword leaf. |
-| `assignment_target` (line 189, 3 kinds) | `{kind: "concat", first, rest}` (`{a, b}` LHS) / `{kind: "ranged", body}` / `{kind: "signal", body}`. |
+| `assignment_target` (line 189, 3 kinds) | `{kind: "concat", items}` (`{a, b}` LHS — `items` is the clean flat target list; `1.0.3` / schema `3`, was `{kind: "concat", first, rest}` at ≤ `1.0.2`) / `{kind: "ranged", body}` / `{kind: "signal", body}`. |
 
 For `"if"` shapes (`statement` / `always_ff_statement`), `else_body` is
 `[]` when there is no `else`. For `"block"`, `label` is `[]` when the
@@ -755,10 +900,10 @@ selects the corresponding shape, while an object carrying `kind` (no
 |---|---|
 | `signal_reference` (line 244) | `{name, path}` — `name` is the `scoped_identifier`; `path` is the `signal_path_op*` array (`[]` for a plain signal). |
 | `ranged_signal_reference` (line 241) | `{name, path, msb, lsb}` — a part-select `sig[msb:lsb]`. |
-| `scoped_identifier` (line 247) | `{first, rest}` — `pkg::name` scope-resolution chain; `rest` is `[]` for an unqualified identifier. |
+| `scoped_identifier` (line 247) | `[identifier, …]` — clean flat array of the `pkg::name` scope-resolution chain; a single-element array for an unqualified identifier (`1.0.3` / schema `3`; was `{first, rest}` with `rest` `[]` for an unqualified identifier at ≤ `1.0.2`). |
 | `signal_path_op` (line 250, 2 kinds) | `{kind: "member", name}` (`.field`) / `{kind: "index", index}` (`[expr]`). |
-| `concatenation_expr` (line 238) | `{first, rest}` — `{a, b, …}`. |
-| `repetition_expr` (line 235) | `{count, first, rest}` — `{count{a, …}}`. |
+| `concatenation_expr` (line 238) | `[operand, …]` — clean flat array of the `{a, b, …}` operands (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
+| `repetition_expr` (line 235) | `{count, items}` — `{count{a, …}}`; `items` is the clean flat operand list (`1.0.3` / schema `3`; was `{count, first, rest}` at ≤ `1.0.2`). |
 | `literal` (line 301, 3 kinds) | `{kind: "based", text}` / `{kind: "decimal", text}` / `{kind: "real", body}`. |
 
 ### Data types
@@ -768,12 +913,12 @@ selects the corresponding shape, while an object carrying `kind` (no
 | `data_type` (line 253, 6 kinds) | `{kind: "enum", body}` / `{kind: "union", body}` / `{kind: "struct", body}` / `{kind: "builtin", body}` / `{kind: "package", body}` / `{kind: "named", body}`. |
 | `builtin_data_type` (line 265, 9 kinds) | bare `{kind}` for `"bit"`, `"byte"`, `"shortint"`, `"int"`, `"integer"`, `"longint"`, `"logic"`, `"reg"`, `"wire"`. |
 | `package_qualified_type` (line 260) | `{package, name}` — `pkg::type_name`. |
-| `enum_type` (line 275) | `{base, packed_range, first, rest}` — `base` is the typed `enum_base_type`; `first` + `rest` are the `enum_item` list. |
+| `enum_type` (line 275) | `{base, packed_range, items}` — `base` is the typed `enum_base_type`; `items` is the clean flat `enum_item[]` list (`1.0.3` / schema `3`; was `{base, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `enum_base_type` (line 278, 3 kinds) | `{kind: "builtin", body}` / `{kind: "package", body}` / `{kind: "named", body}`. |
 | `enum_item` (line 282) | `{name, value}` — `value` is `[]` when there is no `= <expr>`. |
 | `struct_type` (line 288) | `{packed, fields}` — `packed` is `[]` when the struct is unpacked; `fields` is the `struct_union_field` list. |
 | `union_type` (line 285) | `{packed, fields}` — same shape as `struct_type`. |
-| `struct_union_field` (line 291) | `{data_type, packed_range, first, rest}` — `first` + `rest` are the field-name declarators. |
+| `struct_union_field` (line 291) | `{data_type, packed_range, names}` — `names` is the clean flat field-name declarator list (`1.0.3` / schema `3`; was `{data_type, packed_range, first, rest}` at ≤ `1.0.2`). |
 | `struct_union_field_name` (line 294, 2 kinds) | `{kind: "identifier", body}` / `{kind: "byte"}` (the `byte` reserved-word field-name form, **bodyless**). |
 | `packed_range` (line 297) | `{msb, lsb}` — `[msb:lsb]`. |
 
@@ -782,8 +927,8 @@ selects the corresponding shape, while an object carrying `kind` (no
 through the recursive envelope of its `identifier`, reached as
 `data_type.body` when `data_type.kind == "named"`.
 
-The above enumerates the full typed surface of contract `1.0.2`
-(**156 annotations across 74 distinct rules**, schema version `2`).
+The above enumerates the full typed surface of contract `1.0.3`
+(**156 annotations across 74 distinct rules**, schema version `3`).
 This contract section is curated; the authoritative machine-checkable
 enumeration of every `(rule, branch_index, annotation_type,
 normalized_text)` tuple is
@@ -809,7 +954,7 @@ the precedence order stated at the end of this section.
 | **Shape-contract manifest** | `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` | The machine-checkable shape lock embedded in the regression test. Content-identical to the live inventory on the `(rule, branch_index, annotation_type, normalized_text)` tuples (the embedded copy omits only the diagnostic `raw_text` field). Drift fails the AST-shape-contract test. |
 | **Declared-annotation inventory** | `generated/rtl_frontend_return_annotations.json` | The live machine-checkable enumeration of every typed-shape annotation the rtl_frontend grammar emits (`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`, **74 distinct rules**). The generator-side source of truth for the typed surface. |
 | **Embedding-API contract** | `rust/docs/EMBEDDING_API_CONTRACT.md` | The canonical host-API truth: the `AstDumpPayload` struct (`dump_json` / `truncated` / `full_bytes` / `emitted_bytes`), the entry-point signatures, the truncation diagnostic envelope, and the stable diagnostics. The struct shape this contract documents is transcribed from there. |
-| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released rtl_frontend parser; the `RTL-FE-0001` defect lives there (status `Released`, fixed in parser release `1.0.2` / schema `2`). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
+| **Released-parser bug ledger** | `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` | The accepted-bug log for the released rtl_frontend parser; `RTL-FE-0001` (status `Released`, fixed in parser release `1.0.2` / schema `2`) and `RTL-FE-0002` (the `event_control_list` inline-alternation-`$N` corruption, status `Released`, fixed in parser release `1.0.3` / schema `3`) live there. The 15 POST-SV-AUDIT Category-A list-shape corrections are a clean shape improvement and are **not** bug-ledger rows (see [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--15-category-a-raw-envelope-list-rules--clean-lists-rtl-fe-0002-event_control_list-inline-alternation-fix-schema-2--3)). Consult before integrating around a suspected parser defect; file new accepted bugs here per `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`. |
 
 Precedence when surfaces disagree (highest first): the **embedding-API
 contract** (`rust/docs/EMBEDDING_API_CONTRACT.md`) wins for the host-API /
@@ -885,8 +1030,8 @@ Contract-scoped definitions of the terms a downstream integrator needs to
 read this document. Where a term has a normative definition, this contract
 is authoritative; the per-parser book's
 [glossary](../rtl_frontend_parser_book/src/glossary.md) paraphrases the
-same terms for quick lookup. Numbers below are pinned to contract `1.0.2` /
-schema `2` / **156 annotations across 74 distinct rules**.
+same terms for quick lookup. Numbers below are pinned to contract `1.0.3` /
+schema `3` / **156 annotations across 74 distinct rules**.
 
 - **`AstDumpPayload`** — the success return of the rtl_frontend AST-dump
   host entry points (defined in `rust/src/embedding_api.rs`, contract in
@@ -910,7 +1055,7 @@ schema `2` / **156 annotations across 74 distinct rules**.
   "pgen_ast_dump_truncation"`) before treating `dump_json` as an
   rtl_frontend AST.
 - **AST-dump schema version** — the integer version axis tracking the AST
-  output shape, currently `2`, pinned by this contract (see
+  output shape, currently `3`, pinned by this contract (see
   [Schema Versioning](#schema-versioning)). It is **not** a field of
   `AstDumpPayload`; it is the contract-tracked axis. Bumped only when the
   emitted shape changes in a way consumers may need to adapt to (new
@@ -918,7 +1063,7 @@ schema `2` / **156 annotations across 74 distinct rules**.
   user-visible grammar-shape change). Pure perf work / internal codegen
   reorganization do not bump it.
 - **Parser release version** — the parser library's release identity,
-  currently `1.0.2`. Bumped on every functional change (bug fixes, perf
+  currently `1.0.3`. Bumped on every functional change (bug fixes, perf
   work, grammar changes). Moves independently of the schema version.
 - **`design_item` / `module_item` / `generate_item` dispatch** — the
   three top-level `kind`-tagged dispatchers. `design_item` is the primary
@@ -961,7 +1106,7 @@ schema `2` / **156 annotations across 74 distinct rules**.
   the Highlights header-reconciliation note.)
 - **Recursive envelope** — the default JSON shape produced by
   un-annotated rules: a recursive composition of arrays (sequences,
-  quantified iterations, the `rest` tail of a `{first, rest}` list),
+  quantified iterations, the `binop_chain` `rest` op-iteration tail),
   strings (terminal/regex leaves), and matched-branch passthroughs (for
   alternations). Un-matched optionals are the empty array `[]`, never
   `null`. It is what a consumer reaches when descending below the typed

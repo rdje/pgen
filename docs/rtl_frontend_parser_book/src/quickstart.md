@@ -79,6 +79,6 @@ fn walk(node: &JsonValue) {
 
 ## 5. Track the contract version
 
-Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.2` / AST-dump schema version `2`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the rules you consume.
+Pin your downstream code to the parser-release version recorded in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" (currently `1.0.3` / AST-dump schema version `3`). When you bump to a new PGEN version, scan the [Changelog Index](changelog-index.md) for shape-change rows that affect the rules you consume.
 
 For the binop_chain shape used across the 10-level expression hierarchy (`expression` → `conditional` → ... → `unary`), see [Walking the AST](walking-the-ast.md) for the consumer-facing left-fold contract.

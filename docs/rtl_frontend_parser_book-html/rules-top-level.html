@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-018ab0b2.js";
+            window.path_to_searchindex_js = "searchindex-edc6d362.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b4e659eb.js"></script>
@@ -183,14 +183,14 @@
                         <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter is the per-rule shape reference for the PGEN rtl_frontend parser. It documents the <code>rtl_frontend_file</code> root, the <code>design_item</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status:</strong> RTL-FE-Slice-1..7 typed the full <code>grammars/rtl_frontend.ebnf</code> surface across seven slices — <strong>156 return annotations on 74 distinct rules</strong>. The current parser release is <code>1.0.2</code> / AST-dump schema version <code>2</code> (the <code>1.0.2</code> <code>RTL-FE-0001</code> correctness fix to <code>binop_chain.rest</code> — see <a href="schema-versioning.html">Schema Versioning</a>; the annotation inventory is <strong>unchanged at 156 / 74</strong>, since the five new <code>*_op</code> rules are un-annotated alternations). Every shape in this chapter is drawn from the live inventory at <code>generated/rtl_frontend_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
+<p><strong>Status:</strong> RTL-FE-Slice-1..7 typed the full <code>grammars/rtl_frontend.ebnf</code> surface across seven slices — <strong>156 return annotations on 74 distinct rules</strong>. The current parser release is <code>1.0.3</code> / AST-dump schema version <code>3</code> (the <code>1.0.2</code> <code>RTL-FE-0001</code> correctness fix to <code>binop_chain.rest</code>, then the <code>1.0.3</code> POST-SV-AUDIT batch: 15 Category-A list-shape corrections + the <code>RTL-FE-0002</code> <code>event_control_list</code> inline-alternation fix — see <a href="schema-versioning.html">Schema Versioning</a>; the annotation inventory is <strong>unchanged at 156 / 74</strong>, since the <code>*_op</code> / <code>event_separator</code> rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count). Every shape in this chapter is drawn from the live inventory at <code>generated/rtl_frontend_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
 <h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
 <p>This is a <strong>curated, grouped</strong> reference — not a raw 156-line dump and not a copy of any SystemVerilog LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
 <p>Three conventions appear throughout:</p>
 <ul>
 <li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>. The bodyless <code>{kind: "semi"}</code> branch carries a stray <code>;</code> with no <code>body</code>.</li>
-<li><strong><code>{first, rest}</code> list rules</strong> emit a head element plus the raw recursive-envelope iteration of the <code>(sep X)*</code> tail. This is the rtl_frontend grammar’s separated-list convention (<code>port_list</code>, <code>parameter_declaration_sequence</code>, <code>scoped_identifier</code>, <code>genvar_declaration</code>, …); the head is <code>first</code>, and <code>rest</code> is the trailing-iteration envelope. The rtl_frontend grammar uses this shape uniformly — it was <strong>not</strong> flattened to a clean <code>[$N, $M::2*]</code> array the way the SystemVerilog grammar’s lists were in its slice-58 audit.</li>
+<li><strong>Separated-list rules</strong> emit a <strong>clean flat array</strong> of the element type in source order — the canonical extraction-spread <code>[$N, $M::K*]</code> idiom (the semantically-irrelevant <code>,</code> / <code>or</code> / <code>::</code> separator is dropped). The five bare-list rules (<code>parameter_declaration_sequence</code>, <code>port_list</code>, <code>genvar_declaration</code>, <code>concatenation_expr</code>, <code>scoped_identifier</code>) emit a <strong>top-level array</strong>; the rules with a leading discriminator/type field (<code>port_group</code>, <code>module_instantiation</code>, <code>parameter_override_list</code>, <code>port_connection_list</code>, <code>net_declaration</code>, <code>assignment_target</code> concat, <code>repetition_expr</code>, <code>enum_type</code>, <code>struct_union_field</code>) keep those fields and carry the element list in a single named field (<code>ports</code> / <code>instances</code> / <code>items</code> / <code>names</code>). This is the <code>1.0.3</code> / schema <code>3</code> shape — the POST-SV-AUDIT.2.2 Category-A correction (<code>PGEN-POST-SV-AUDIT-0003</code>). At ≤ <code>1.0.2</code> / schema <code>2</code> these rules emitted the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) envelope where <code>rest</code> was the raw <code>[[sep, item], …]</code> recursive iteration a consumer had to walk past; that history is kept in <a href="schema-versioning.html">Schema Versioning</a>. Consumers repinning to schema <code>3</code> treat the field (or the rule’s whole value, for the bare-list rules) as a flat element array — no <code>.first</code> / <code>.rest</code> split, no separator to skip.</li>
 <li><strong><code>binop_chain</code> expression rules</strong> emit <code>{type: "binop_chain", level, lhs, rest}</code> — the consumer-facing left-fold contract documented below.</li>
 </ul>
 <p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, <code>[...]</code>, string literals) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
@@ -289,13 +289,13 @@
 </thead>
 <tbody>
 <tr><td><code>parameter_declaration_statement</code></td><td><code>{body}</code> — wraps a <code>parameter_declaration_sequence</code>.</td></tr>
-<tr><td><code>parameter_declaration_sequence</code></td><td><code>{first, rest}</code> — comma-separated <code>parameter_declaration_group</code> list.</td></tr>
+<tr><td><code>parameter_declaration_sequence</code></td><td><code>[parameter_declaration_group, …]</code> — clean flat array of the comma-separated <code>parameter_declaration_group</code> list (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>parameter_declaration_group</code></td><td><code>{head, tail}</code> — <code>head</code> carries the leading flavor/type, <code>tail</code> carries the continued declarators.</td></tr>
 <tr><td><code>parameter_declaration_head</code> (2 kinds)</td><td><code>{kind: "typed", flavor, data_type, name, default}</code> / <code>{kind: "untyped", flavor, name, default}</code>.</td></tr>
 <tr><td><code>parameter_declaration_tail</code> (4 kinds)</td><td><code>{kind: "typed_with_flavor", flavor, data_type, name, default}</code> / <code>{kind: "untyped_with_flavor", flavor, name, default}</code> / <code>{kind: "typed", data_type, name, default}</code> / <code>{kind: "untyped", name, default}</code>.</td></tr>
 <tr><td><code>parameter_flavor</code> (2 kinds)</td><td><code>{kind: "parameter"}</code> / <code>{kind: "localparam"}</code> — bare <code>{kind}</code> keyword leaf.</td></tr>
 <tr><td><code>parameter_override</code> (2 kinds)</td><td><code>{kind: "named", name, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
-<tr><td><code>parameter_override_list</code> (2 kinds)</td><td><code>{kind: "named", first, rest}</code> / <code>{kind: "positional", first, rest}</code> — a <code>kind</code>-tagged <code>{first, rest}</code> list.</td></tr>
+<tr><td><code>parameter_override_list</code> (2 kinds)</td><td><code>{kind: "named", items}</code> / <code>{kind: "positional", items}</code> — <code>items</code> is the clean flat <code>parameter_override[]</code> list (<code>1.0.3</code> / schema <code>3</code>; was <code>{kind, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 </tbody>
 </table>
 </div>
@@ -307,8 +307,8 @@
 <tr><th>Rule</th><th>Shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>port_list</code></td><td><code>{first, rest}</code> — comma-separated <code>port_group</code> list.</td></tr>
-<tr><td><code>port_group</code></td><td><code>{direction, data_type, packed_range, first, rest}</code> — <code>direction</code> is the typed <code>port_direction</code>; <code>data_type</code> / <code>packed_range</code> are <code>[]</code> when omitted; <code>first</code> + <code>rest</code> are the <code>port_item</code> declarators.</td></tr>
+<tr><td><code>port_list</code></td><td><code>[port_group, …]</code> — clean flat array of the comma-separated <code>port_group</code> list (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
+<tr><td><code>port_group</code></td><td><code>{direction, data_type, packed_range, ports}</code> — <code>direction</code> is the typed <code>port_direction</code>; <code>data_type</code> / <code>packed_range</code> are <code>[]</code> when omitted; <code>ports</code> is the clean flat <code>port_item[]</code> declarator list (<code>1.0.3</code> / schema <code>3</code>; was <code>{direction, data_type, packed_range, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>port_item</code></td><td><code>{name, dims}</code> — <code>dims</code> is <code>[]</code> when the port is unpacked-scalar.</td></tr>
 <tr><td><code>port_direction</code> (3 kinds)</td><td><code>{kind: "input"}</code> / <code>{kind: "output"}</code> / <code>{kind: "inout"}</code> — bare <code>{kind}</code> keyword leaf.</td></tr>
 <tr><td><code>port_direction_token</code> (3 kinds)</td><td><code>{kind: "input"}</code> / <code>{kind: "output"}</code> / <code>{kind: "inout"}</code> — the negative-lookahead guard token used in the port-continuation iteration; same <code>kind</code> set as <code>port_direction</code>.</td></tr>
@@ -322,11 +322,11 @@
 <tr><th>Rule</th><th>Shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>net_declaration</code></td><td><code>{data_type, packed_range, first, rest}</code> — <code>first</code> + <code>rest</code> are the <code>net_item</code> declarators.</td></tr>
+<tr><td><code>net_declaration</code></td><td><code>{data_type, packed_range, items}</code> — <code>items</code> is the clean flat <code>net_item[]</code> declarator list (<code>1.0.3</code> / schema <code>3</code>; was <code>{data_type, packed_range, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>net_item</code></td><td><code>{name, dims}</code> — <code>dims</code> is <code>[]</code> for a scalar net.</td></tr>
-<tr><td><code>genvar_declaration</code></td><td><code>{first, rest}</code> — comma-separated genvar identifier list.</td></tr>
+<tr><td><code>genvar_declaration</code></td><td><code>[identifier, …]</code> — clean flat array of the comma-separated genvar identifiers (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>continuous_assign</code></td><td><code>{lvalue, value}</code> — <code>assign lvalue = value;</code>.</td></tr>
-<tr><td><code>module_instantiation</code></td><td><code>{module_name, parameters, first, rest}</code> — <code>parameters</code> is the optional <code>#( parameter_override_list? )</code> envelope (<code>[]</code> when absent); <code>first</code> + <code>rest</code> are the <code>instance_item</code> instances.</td></tr>
+<tr><td><code>module_instantiation</code></td><td><code>{module_name, parameters, instances}</code> — <code>parameters</code> is the optional <code>#( parameter_override_list? )</code> envelope (<code>[]</code> when absent); <code>instances</code> is the clean flat <code>instance_item[]</code> list (<code>1.0.3</code> / schema <code>3</code>; was <code>{module_name, parameters, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>instance_item</code></td><td><code>{name, dims, connections}</code> — <code>dims</code> is <code>[]</code> for a non-array instance; <code>connections</code> is the <code>port_connection_list</code>.</td></tr>
 </tbody>
 </table>
@@ -338,7 +338,7 @@
 <tr><th>Rule</th><th>Shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>port_connection_list</code> (2 kinds)</td><td><code>{kind: "named", first, rest}</code> / <code>{kind: "positional", first, rest}</code>.</td></tr>
+<tr><td><code>port_connection_list</code> (2 kinds)</td><td><code>{kind: "named", items}</code> / <code>{kind: "positional", items}</code> — <code>items</code> is the clean flat <code>port_connection[]</code> list (<code>1.0.3</code> / schema <code>3</code>; was <code>{kind, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>port_connection</code> (3 kinds)</td><td><code>{kind: "wildcard"}</code> (the <code>.*</code> form, bodyless) / <code>{kind: "named", name, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
 </tbody>
 </table>
@@ -352,13 +352,13 @@
 <tbody>
 <tr><td><code>procedural_block</code> (4 kinds)</td><td><code>{kind: "always_comb", statement}</code> / <code>{kind: "always_latch", statement}</code> / <code>{kind: "always_ff", event_control, statement}</code> / <code>{kind: "always", event, statement}</code>.</td></tr>
 <tr><td><code>always_star_event</code> (2 kinds)</td><td><code>{kind: "at_paren_star"}</code> (<code>@(*)</code>) / <code>{kind: "bare_star"}</code> (<code>@*</code>).</td></tr>
-<tr><td><code>event_control_list</code></td><td><code>{first, rest}</code> — comma/<code>or</code>-separated <code>event_control_item</code> list.</td></tr>
+<tr><td><code>event_control_list</code></td><td><code>[event_control_item, …]</code> — clean flat array of the comma/<code>or</code>-separated <code>event_control_item</code> list (<code>1.0.3</code> / schema <code>3</code>; was the corrupt <code>{first, rest}</code> that surfaced <code>"&lt;invalid_sequence_access&gt;"</code> for multi-entry sensitivity input at ≤ <code>1.0.2</code> — the <code>RTL-FE-0002</code> inline-alternation fix, the inline <code>( comma | kw_or )</code> lifted to the un-annotated <code>event_separator</code> rule and dropped; see <a href="schema-versioning.html">Schema Versioning</a>).</td></tr>
 <tr><td><code>event_control_item</code></td><td><code>{edge, expr}</code> — <code>edge</code> is the typed <code>event_edge</code> (<code>[]</code> for a level-sensitive signal).</td></tr>
 <tr><td><code>event_edge</code> (2 kinds)</td><td><code>{kind: "posedge"}</code> / <code>{kind: "negedge"}</code> — bare <code>{kind}</code> keyword leaf.</td></tr>
 <tr><td><code>statement</code> (4 kinds)</td><td><code>{kind: "semi"}</code> / <code>{kind: "block", label, items}</code> / <code>{kind: "if", cond, then_body, else_body}</code> / <code>{kind: "assignment", lvalue, operator, value}</code>.</td></tr>
 <tr><td><code>always_ff_statement</code> (4 kinds)</td><td>Same 4-kind shape as <code>statement</code> (<code>"semi"</code> / <code>"block"</code> / <code>"if"</code> / <code>"assignment"</code>); the <code>always_ff</code> body grammar restricts the assignment operator to the nonblocking arrow.</td></tr>
 <tr><td><code>assignment_operator</code> (2 kinds)</td><td><code>{kind: "blocking"}</code> (<code>=</code>) / <code>{kind: "nonblocking"}</code> (<code>&lt;=</code>) — bare <code>{kind}</code> keyword leaf.</td></tr>
-<tr><td><code>assignment_target</code> (3 kinds)</td><td><code>{kind: "concat", first, rest}</code> (<code>{a, b}</code> LHS) / <code>{kind: "ranged", body}</code> / <code>{kind: "signal", body}</code>.</td></tr>
+<tr><td><code>assignment_target</code> (3 kinds)</td><td><code>{kind: "concat", items}</code> (<code>{a, b}</code> LHS — <code>items</code> is the clean flat target list; <code>1.0.3</code> / schema <code>3</code>, was <code>{kind: "concat", first, rest}</code> at ≤ <code>1.0.2</code>) / <code>{kind: "ranged", body}</code> / <code>{kind: "signal", body}</code>.</td></tr>
 </tbody>
 </table>
 </div>
@@ -463,10 +463,10 @@ captured schema-<code>2</code> shape and the kept pre-fix history; tracked
 <tbody>
 <tr><td><code>signal_reference</code></td><td><code>{name, path}</code> — <code>name</code> is the <code>scoped_identifier</code>; <code>path</code> is the <code>signal_path_op*</code> array (<code>[]</code> for a plain signal).</td></tr>
 <tr><td><code>ranged_signal_reference</code></td><td><code>{name, path, msb, lsb}</code> — a part-select <code>sig[msb:lsb]</code>.</td></tr>
-<tr><td><code>scoped_identifier</code></td><td><code>{first, rest}</code> — <code>pkg::name</code> scope-resolution chain; <code>rest</code> is <code>[]</code> for an unqualified identifier.</td></tr>
+<tr><td><code>scoped_identifier</code></td><td><code>[identifier, …]</code> — clean flat array of the <code>pkg::name</code> scope-resolution chain; a single-element array for an unqualified identifier (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> with <code>rest</code> <code>[]</code> for an unqualified identifier at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>signal_path_op</code> (2 kinds)</td><td><code>{kind: "member", name}</code> (<code>.field</code>) / <code>{kind: "index", index}</code> (<code>[expr]</code>).</td></tr>
-<tr><td><code>concatenation_expr</code></td><td><code>{first, rest}</code> — <code>{a, b, …}</code>.</td></tr>
-<tr><td><code>repetition_expr</code></td><td><code>{count, first, rest}</code> — <code>{count{a, …}}</code>.</td></tr>
+<tr><td><code>concatenation_expr</code></td><td><code>[operand, …]</code> — clean flat array of the <code>{a, b, …}</code> operands (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
+<tr><td><code>repetition_expr</code></td><td><code>{count, items}</code> — <code>{count{a, …}}</code>; <code>items</code> is the clean flat operand list (<code>1.0.3</code> / schema <code>3</code>; was <code>{count, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>literal</code> (3 kinds)</td><td><code>{kind: "based", text}</code> / <code>{kind: "decimal", text}</code> / <code>{kind: "real", body}</code>.</td></tr>
 </tbody>
 </table>
@@ -481,12 +481,12 @@ captured schema-<code>2</code> shape and the kept pre-fix history; tracked
 <tr><td><code>data_type</code> (6 kinds)</td><td><code>{kind: "enum", body}</code> / <code>{kind: "union", body}</code> / <code>{kind: "struct", body}</code> / <code>{kind: "builtin", body}</code> / <code>{kind: "package", body}</code> / <code>{kind: "named", body}</code>.</td></tr>
 <tr><td><code>builtin_data_type</code> (9 kinds)</td><td>bare <code>{kind}</code> for <code>"bit"</code>, <code>"byte"</code>, <code>"shortint"</code>, <code>"int"</code>, <code>"integer"</code>, <code>"longint"</code>, <code>"logic"</code>, <code>"reg"</code>, <code>"wire"</code>.</td></tr>
 <tr><td><code>package_qualified_type</code></td><td><code>{package, name}</code> — <code>pkg::type_name</code>.</td></tr>
-<tr><td><code>enum_type</code></td><td><code>{base, packed_range, first, rest}</code> — <code>base</code> is the typed <code>enum_base_type</code>; <code>first</code> + <code>rest</code> are the <code>enum_item</code> list.</td></tr>
+<tr><td><code>enum_type</code></td><td><code>{base, packed_range, items}</code> — <code>base</code> is the typed <code>enum_base_type</code>; <code>items</code> is the clean flat <code>enum_item[]</code> list (<code>1.0.3</code> / schema <code>3</code>; was <code>{base, packed_range, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>enum_base_type</code> (3 kinds)</td><td><code>{kind: "builtin", body}</code> / <code>{kind: "package", body}</code> / <code>{kind: "named", body}</code>.</td></tr>
 <tr><td><code>enum_item</code></td><td><code>{name, value}</code> — <code>value</code> is <code>[]</code> when there is no <code>= &lt;expr&gt;</code>.</td></tr>
 <tr><td><code>struct_type</code></td><td><code>{packed, fields}</code> — <code>packed</code> is <code>[]</code> when the struct is unpacked; <code>fields</code> is the <code>struct_union_field</code> list.</td></tr>
 <tr><td><code>union_type</code></td><td><code>{packed, fields}</code> — same shape as <code>struct_type</code>.</td></tr>
-<tr><td><code>struct_union_field</code></td><td><code>{data_type, packed_range, first, rest}</code> — <code>first</code> + <code>rest</code> are the field-name declarators.</td></tr>
+<tr><td><code>struct_union_field</code></td><td><code>{data_type, packed_range, names}</code> — <code>names</code> is the clean flat field-name declarator list (<code>1.0.3</code> / schema <code>3</code>; was <code>{data_type, packed_range, first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>struct_union_field_name</code> (2 kinds)</td><td><code>{kind: "identifier", body}</code> / <code>{kind: "byte"}</code> (the <code>byte</code> reserved-word field-name form, bodyless).</td></tr>
 <tr><td><code>packed_range</code></td><td><code>{msb, lsb}</code> — <code>[msb:lsb]</code>.</td></tr>
 </tbody>
@@ -494,7 +494,7 @@ captured schema-<code>2</code> shape and the kept pre-fix history; tracked
 </div>
 <p><code>named_data_type</code> (a bare identifier type reference) is <strong>un-annotated</strong> — it surfaces through the recursive envelope of its <code>identifier</code>, reached as <code>data_type.body</code> when <code>data_type.kind == "named"</code>. See <a href="json-carrier.html">The Json Carrier</a>.</p>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.2</code> is <strong>156 return annotations across 74 distinct rules</strong> (independently re-counted from the inventory below; the <code>1.0.2</code> <code>RTL-FE-0001</code> fix did not change this count — the five <code>*_op</code> rules are un-annotated alternations). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.3</code> is <strong>156 return annotations across 74 distinct rules</strong> (independently re-counted from the inventory below; neither the <code>1.0.2</code> <code>RTL-FE-0001</code> fix nor the <code>1.0.3</code> POST-SV-AUDIT batch — the 15 Category-A list-shape corrections + the <code>RTL-FE-0002</code> <code>event_control_list</code> fix — changed this count: the <code>*_op</code> / <code>event_separator</code> rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
 <li><code>generated/rtl_frontend_return_annotations.json</code> — the live return-annotation inventory (<code>version: 1</code>, <code>grammar: "rtl_frontend"</code>, <code>annotation_count: 156</code>).</li>
 <li><code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 156 entries in <code>declared_annotation_inventory.annotations</code>).</li>

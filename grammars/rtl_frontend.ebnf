@@ -76,8 +76,9 @@ generate_body := kw_begin ( colon identifier )? generate_item* kw_end  -> {kind:
 parameter_declaration_statement := parameter_declaration_sequence semi
                                 -> {body: $1}
 
+# POST-SV-AUDIT.2.2 Cat-A: pure comma list → clean extraction-spread.
 parameter_declaration_sequence := parameter_declaration_group ( comma parameter_declaration_group )*
-                               -> {first: $1, rest: $2}
+                               -> [$1, $2::2*]
 
 parameter_declaration_group := parameter_declaration_head ( comma parameter_declaration_tail )*
                             -> {head: $1, tail: $2}
@@ -96,10 +97,10 @@ parameter_flavor := kw_parameter   -> {kind: "parameter"}
                  | kw_localparam  -> {kind: "localparam"}
 
 port_list := port_group ( comma port_group )*
-          -> {first: $1, rest: $2}
+          -> [$1, $2::2*]
 
 port_group := port_direction data_type? packed_range? port_item ( comma !port_direction_token port_item )*
-           -> {direction: $1, data_type: $2, packed_range: $3, first: $4, rest: $5}
+           -> {direction: $1, data_type: $2, packed_range: $3, ports: [$4, $5::3*]}
 
 port_item := identifier unpacked_dimension*
           -> {name: $1, dims: $2}
@@ -118,23 +119,23 @@ typedef_declaration := kw_typedef data_type packed_range? identifier semi
                    -> {data_type: $2, packed_range: $3, name: $4}
 
 genvar_declaration := kw_genvar identifier ( comma identifier )* semi
-                  -> {first: $2, rest: $3}
+                  -> [$2, $3::2*]
 
 module_instantiation := identifier ( hash lparen ( parameter_override_list )? rparen )? instance_item ( comma instance_item )* semi
-                     -> {module_name: $1, parameters: $2, first: $3, rest: $4}
+                     -> {module_name: $1, parameters: $2, instances: [$3, $4::2*]}
 
 instance_item := identifier unpacked_dimension? lparen ( port_connection_list )? rparen
               -> {name: $1, dims: $2, connections: $4}
 
-parameter_override_list := &dot parameter_override ( comma &dot parameter_override )*   -> {kind: "named",      first: $2, rest: $3}
-                         | !dot parameter_override ( comma !dot parameter_override )*   -> {kind: "positional", first: $2, rest: $3}
+parameter_override_list := &dot parameter_override ( comma &dot parameter_override )*   -> {kind: "named",      items: [$2, $3::3*]}
+                         | !dot parameter_override ( comma !dot parameter_override )*   -> {kind: "positional", items: [$2, $3::3*]}
 
 @branch_policy: priority_first
 parameter_override := dot identifier lparen rtl_expr rparen  -> {kind: "named",     name: $2, value: $4}
                     | rtl_expr                                -> {kind: "positional", value: $1}
 
-port_connection_list := &dot port_connection ( comma &dot port_connection )*   -> {kind: "named",      first: $2, rest: $3}
-                      | !dot port_connection ( comma !dot port_connection )*   -> {kind: "positional", first: $2, rest: $3}
+port_connection_list := &dot port_connection ( comma &dot port_connection )*   -> {kind: "named",      items: [$2, $3::3*]}
+                      | !dot port_connection ( comma !dot port_connection )*   -> {kind: "positional", items: [$2, $3::3*]}
 
 @branch_policy: priority_first
 port_connection := dot star                                       -> {kind: "wildcard"}
@@ -142,7 +143,7 @@ port_connection := dot star                                       -> {kind: "wil
                  | value_expr                                      -> {kind: "positional", value: $1}
 
 net_declaration := data_type packed_range? net_item ( comma net_item )* semi
-                -> {data_type: $1, packed_range: $2, first: $3, rest: $4}
+                -> {data_type: $1, packed_range: $2, items: [$3, $4::2*]}
 
 net_item := identifier unpacked_dimension*
          -> {name: $1, dims: $2}
@@ -159,8 +160,15 @@ procedural_block := kw_always_comb statement                              -> {ki
 always_star_event := at lparen star rparen   -> {kind: "at_paren_star"}
                   | star                    -> {kind: "bare_star"}
 
-event_control_list := at lparen event_control_item ( ( comma | kw_or ) event_control_item )* rparen
-                   -> {first: $3, rest: $4}
+# POST-SV-AUDIT.2.2 RTL-FE-0002: ( comma | kw_or ) was an inline
+# alternation as the iteration lead feeding bare $4 → the
+# inline-alternation-$N corruption class (<invalid_sequence_access>).
+# Lift the separator into a named rule (Cat-A: the separator is
+# semantically irrelevant — both join sensitivity entries) and emit a
+# clean event_control_item list.
+event_separator := comma | kw_or
+event_control_list := at lparen event_control_item ( event_separator event_control_item )* rparen
+                   -> [$3, $4::2*]
 
 event_control_item := event_edge? rtl_expr
                   -> {edge: $1, expr: $2}
@@ -186,7 +194,7 @@ assignment_operator := equals      -> {kind: "blocking"}
                     | less_equal  -> {kind: "nonblocking"}
 
 @branch_policy: priority_first
-assignment_target := lbrace assignment_target ( comma assignment_target )+ rbrace  -> {kind: "concat",  first: $2, rest: $3}
+assignment_target := lbrace assignment_target ( comma assignment_target )+ rbrace  -> {kind: "concat",  items: [$2, $3::2*]}
                    | ranged_signal_reference                                         -> {kind: "ranged",  body: $1}
                    | signal_reference                                                -> {kind: "signal",  body: $1}
 
@@ -247,10 +255,10 @@ primary_expr := repetition_expr             -> {kind: "repetition",    body: $1}
              | lparen rtl_expr rparen       -> {kind: "parens",        expr: $2}
 
 repetition_expr := lbrace rtl_expr lbrace rtl_expr ( comma rtl_expr )* rbrace rbrace
-                -> {count: $2, first: $4, rest: $5}
+                -> {count: $2, items: [$4, $5::2*]}
 
 concatenation_expr := lbrace rtl_expr ( comma rtl_expr )+ rbrace
-                   -> {first: $2, rest: $3}
+                   -> [$2, $3::2*]
 
 ranged_signal_reference := scoped_identifier signal_path_op* lbrack rtl_expr colon rtl_expr rbrack
                         -> {name: $1, path: $2, msb: $4, lsb: $6}
@@ -259,7 +267,7 @@ signal_reference := scoped_identifier signal_path_op*
                  -> {name: $1, path: $2}
 
 scoped_identifier := identifier ( scope_resolution identifier )*
-                  -> {first: $1, rest: $2}
+                  -> [$1, $2::2*]
 
 signal_path_op := dot identifier        -> {kind: "member", name: $2}
                | lbrack rtl_expr rbrack -> {kind: "index",  index: $2}
@@ -287,7 +295,7 @@ builtin_data_type := kw_bit       -> {kind: "bit"}
                    | kw_wire      -> {kind: "wire"}
 
 enum_type := kw_enum ( enum_base_type )? packed_range? lbrace enum_item ( comma enum_item )* ( comma )? rbrace
-          -> {base: $2, packed_range: $3, first: $5, rest: $6}
+          -> {base: $2, packed_range: $3, items: [$5, $6::2*]}
 
 enum_base_type := builtin_data_type      -> {kind: "builtin", body: $1}
                | package_qualified_type -> {kind: "package", body: $1}
@@ -303,7 +311,7 @@ struct_type := kw_struct ( kw_packed )? lbrace struct_union_field* rbrace
             -> {packed: $2, fields: $4}
 
 struct_union_field := data_type packed_range? struct_union_field_name ( comma struct_union_field_name )* semi
-                   -> {data_type: $1, packed_range: $2, first: $3, rest: $4}
+                   -> {data_type: $1, packed_range: $2, names: [$3, $4::2*]}
 
 struct_union_field_name := identifier   -> {kind: "identifier", body: $1}
                         | kw_byte      -> {kind: "byte"}
