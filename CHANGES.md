@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0001 (leaf POST-SV-AUDIT.1): AST-shape classification ledger delivered + verified
+
+- **`docs/POST_SV_AUDIT_LEDGER.md` created** — the holistic
+  AST-shape-correctness classification of every
+  `{first/lhs..rest:$N}` + raw-`$N`-over-iteration annotation across
+  the 6 product grammars (regex / systemverilog /
+  systemverilog_preprocessor / vhdl / rtl_frontend / rtl_const_expr),
+  with the 11 non-product/meta/LRM-extracted grammars justified
+  out-of-scope. Static analysis (delegated) + **independent parent
+  verification**: counts reconcile vs the pre-scope, 12 `## ` headers
+  no dups, and classifications spot-checked directly against the
+  grammar (`rtl_frontend` `event_control_list:162-163`, `sv`
+  `unsigned_number:345`, `sv` `net_alias:2889`, `vhdl`
+  `{first,rest}` 30/32/43) — all accurate.
+- **Findings (the POST-SV-AUDIT.2 worklist):**
+  - **~35 static-conclusive Cat-A misuse** (pure single-token-separator
+    `X (SEP X)*` rendered as raw `{first/lhs,rest}` envelope; fix =
+    extraction-spread `[$N,$M::2*]`): sv_preprocessor 1 (`macro_formals`),
+    rtl_frontend 16, vhdl 17, systemverilog 1 (`net_alias`).
+  - **6 HIGH-priority inline-alternation-`$N`** (inline `(a|b)` as
+    iteration lead feeding bare `$N` — same systemic corruption class
+    as the closed binop fixes but NOT binop levels): `rtl_frontend`
+    `event_control_list` (`( comma | kw_or )`) + 5 `systemverilog`
+    number rules (`digit ( kw_sv_rule_c82a06f6 | digit )*`). Probe-
+    confirmed at each fix-slice start (the proven before/after
+    playbook step — SV/rtl_frontend are on-demand parsers needing
+    `.2`-time regen+wire; structural signature is identical to the 4
+    empirically-confirmed binop fixes this session).
+  - **11 structured-per-iteration Cat-A** (sv `list_of_*identifiers`
+    family — need per-rule record-rule design judgement).
+  - **30 Cat-B-resolved confirmed** (the closed binop class
+    exhaustively re-verified clean across all product grammars), **16
+    Cat-C benign** (`X X*`), Cat-A-already-correct idioms identified
+    for `.3`.
+- `.2` **split per grammar** (workflow-mandated — `.1` quantified a
+  large per-grammar worklist): `.2.1` sv_preprocessor (smallest —
+  proves the Cat-A→extraction-spread + schema/release-bump lockstep
+  playbook) → `.2.2` rtl_frontend → `.2.3` vhdl → `.2.4`
+  systemverilog (flagship, last). Frontier `.1`→`.2.1`. Each `.2.x`
+  is a full per-grammar lockstep slice (the `{first,rest}`→
+  `[$1,$2::2*]` shape change is consumer-visible → schema/release
+  bump). `docs/TASK_TREE.md` frontier updated.
+- Audit/analysis only — **no grammar/parser/codegen change in this
+  commit**; no parser-family status row change.
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0000 (POST-SV-AUDIT tree setup): activate the deferred holistic AST-shape audit (TaskList #49)
 
 - User explicitly **activated** the previously-`proposed`

@@ -36,7 +36,7 @@ AST-shape audit) — its campaign-complete precondition is now met. See
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `POST-SV-AUDIT` | `active` | shape audit (TaskList #49) | `POST-SV-AUDIT.1` | [docs/tasks/POST-SV-AUDIT.md](tasks/POST-SV-AUDIT.md) |
+| `POST-SV-AUDIT` | `active` | shape audit (TaskList #49) | `POST-SV-AUDIT.2.1` | [docs/tasks/POST-SV-AUDIT.md](tasks/POST-SV-AUDIT.md) |
 
 ## Proposed Task Trees
 

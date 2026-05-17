@@ -57,16 +57,42 @@ the proven playbook.
   Children: `POST-SV-AUDIT.1`, `POST-SV-AUDIT.2`, `POST-SV-AUDIT.3`
 
 - ID: `POST-SV-AUDIT.1`
-  Status: `pending`
+  Status: `done`
   Goal: `Audit & classify: enumerate every {first/lhs..rest:$N} + raw-$N-over-iteration annotation across all product grammars; classify A/B/C with parseability_probe evidence; produce the prioritized objective-bug fix worklist (docs/POST_SV_AUDIT_LEDGER.md).`
   Acceptance: `Ledger covers all occurrences in regex/systemverilog/systemverilog_preprocessor/vhdl/rtl_frontend/rtl_const_expr (others justified out-of-scope); each classified A/B/C with evidence; Cat-A misuse + residual Cat-B candidates explicitly listed (incl. the known rtl_frontend event_control_list ( comma|kw_or ) finding); .2 frontier populated from the findings.`
+  Verification: `2026-05-17: docs/POST_SV_AUDIT_LEDGER.md created (static analysis; subagent + independent parent verification). 12 ## headers, no dups; counts reconcile vs pre-scope (rtl_const_expr 10, rtl_frontend 28[=27+1 doc-comment], svpp 1, sv 38, vhdl 22; raw {first:$1,rest:$2} rtl_frontend 3/sv 7/vhdl 7); scope = 6 product grammars, 11 non-product/meta/LRM-extracted grammars justified-excluded. Classifications independently spot-checked against the grammar (rtl_frontend event_control_list:162-163, sv unsigned_number:345, sv net_alias:2889, vhdl {first,rest} 30/32/43) — all ACCURATE. Findings: ~35 static-conclusive Cat-A misuse (svpp 1 macro_formals, rtl_frontend 16, vhdl 17, sv 1 net_alias); 6 HIGH inline-alt-$N suspects (rtl_frontend event_control_list + 5 sv number rules digit(kw_sv_rule_c82a06f6|digit)*) — structurally the EXACT signature that empirically produced <invalid_sequence_access> 4× this session, marked "probe-confirm at .2-start" (the proven before/after playbook step, not a .1 gap; SV/rtl_frontend are on-demand parsers needing .2-time regen+wire); 11 structured-per-iteration Cat-A (sv list_of_*identifiers family — need per-rule record-rule design judgement); 30 Cat-B-resolved confirmed (binop class exhaustively re-verified clean across all product grammars); 16 Cat-C benign; Cat-A-already-correct idioms identified for .3. Worklist is concrete, prioritized, per-grammar.`
+  Commit: `PGEN-POST-SV-AUDIT-0001`
+
+- ID: `POST-SV-AUDIT.2`
+  Status: `active`
+  Goal: `Fix the confirmed objective bugs from the .1 ledger (Cat-A raw-envelope misuse on pure separator lists; residual Cat-B inline-alternation-$N), one commit per grammar via the proven regen+manifest+schema/release-bump+book+contract+ledger playbook. Split per grammar (.1 quantified a large per-grammar worklist).`
+  Children: `POST-SV-AUDIT.2.1`, `POST-SV-AUDIT.2.2`, `POST-SV-AUDIT.2.3`, `POST-SV-AUDIT.2.4`
+
+- ID: `POST-SV-AUDIT.2.1`
+  Status: `pending`
+  Goal: `sv_preprocessor: fix macro_formals Cat-A raw-envelope misuse (-> extraction-spread); regen + manifest + schema/release bump + book + contract lockstep. SMALLEST blast radius — proves the Cat-A shape-change lockstep playbook before the larger grammars.`
+  Acceptance: `parseability_probe before/after on a multi-formal \`define; macro_formals emits a clean item list (no raw [[comma,item],...] envelope); systemverilog_preprocessor_ast_shape_contract + book gate green; lockstep complete; independently verified.`
   Verification: `pending`
   Commit: `pending`
 
-- ID: `POST-SV-AUDIT.2`
+- ID: `POST-SV-AUDIT.2.2`
   Status: `pending`
-  Goal: `Fix the confirmed objective bugs from the .1 ledger (Cat-A raw-envelope misuse on pure separator lists; residual Cat-B inline-alternation-$N), one commit per grammar via the proven regen+manifest+schema/release-bump+book+contract+ledger playbook.`
-  Acceptance: `Each fixed grammar: parseability_probe clean (no <invalid_sequence_access>, no raw separator envelope where a clean list is contractually expected); *_ast_shape_contract + *_parser_book_gate green; lockstep complete; independently verified. (May split per grammar once .1 quantifies the worklist.)`
+  Goal: `rtl_frontend: fix the 16 static-conclusive Cat-A misuses + the event_control_list inline-alt-$N HIGH finding (named event_separator rule + extraction-spread); regen + manifest + schema/release bump + book + contract + ledger lockstep.`
+  Acceptance: `parseability_probe before/after: event_control_list no <invalid_sequence_access>, all 16 Cat-A rules emit clean item lists; rtl_frontend_ast_shape_contract + book gate green; lockstep complete; independently verified.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `POST-SV-AUDIT.2.3`
+  Status: `pending`
+  Goal: `vhdl: fix the 17 static-conclusive Cat-A misuses (-> extraction-spread, vhdl convention); regen + manifest + schema/release bump + book + contract lockstep.`
+  Acceptance: `parseability_probe before/after: all 17 vhdl Cat-A rules emit clean item lists; vhdl_ast_shape_contract + book gate green; lockstep complete; independently verified.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `POST-SV-AUDIT.2.4`
+  Status: `pending`
+  Goal: `systemverilog (flagship, released 1.0.115): fix net_alias (single-token-sep Cat-A) + the 5 number-rule inline-alt-$N HIGH finds + the 11 structured-per-iteration Cat-A (per-rule record-rule design); regen + manifest + schema/release bump + book + contract + ledger lockstep. LAST — largest, most careful, flagship.`
+  Acceptance: `parseability_probe before/after: number rules no <invalid_sequence_access>, net_alias + structured rules emit clean lists; systemverilog_ast_shape_contract + book gate green; lockstep complete; independently verified.`
   Verification: `pending`
   Commit: `pending`
 
@@ -81,7 +107,11 @@ the proven playbook.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `POST-SV-AUDIT.1` | `pending` | The audit/classify pass produces the evidence-based worklist that `.2` (fixes) and `.3` (closeout) depend on. Cannot fix before classifying. |
+| 1 | `POST-SV-AUDIT.2.1` | `pending` | `.1` done (ledger produced + verified). `.2` split per grammar; `.2.1` (sv_preprocessor `macro_formals`, 1 rule) is the smallest blast radius — proves the Cat-A `{first,rest}`→extraction-spread + schema/release-bump lockstep playbook before the larger rtl_frontend/vhdl/sv grammars. |
+| 2 | `POST-SV-AUDIT.2.2` | `pending` | rtl_frontend (16 Cat-A + event_control_list inline-alt-$N) — parser-regen mechanism already proven this session. |
+| 3 | `POST-SV-AUDIT.2.3` | `pending` | vhdl (17 Cat-A). |
+| 4 | `POST-SV-AUDIT.2.4` | `pending` | systemverilog (flagship, released 1.0.115; net_alias + 5 number-rule inline-alt + 11 structured-per-iteration needing record-rule design) — last, largest, most careful. |
+| 5 | `POST-SV-AUDIT.3` | `pending` | Cat-C/residual review + close TaskList #49 after all `.2.*` fixes land. |
 
 ## Decisions
 
@@ -100,6 +130,23 @@ the proven playbook.
 - `2026-05-17`: Cat-A misuse is the objective-bug priority; Cat-B
   systemic binop class is already closed (confirm exhaustiveness only);
   Cat-C `{first,rest}` is benign (verify, do not churn).
+- `2026-05-17`: `.1` complete → `.2` **split per grammar**
+  (`.2.1` svpp → `.2.2` rtl_frontend → `.2.3` vhdl → `.2.4`
+  systemverilog) because `.1` quantified a large per-grammar worklist
+  (~35 static-conclusive Cat-A + 6 inline-alt-$N + 11 structured).
+  Order = smallest-blast-radius-first (svpp `macro_formals` proves the
+  Cat-A→extraction-spread + schema/release-bump lockstep playbook)
+  then ascending size, flagship `systemverilog` last. Each `.2.x` is a
+  full per-grammar lockstep slice (regen + manifest + schema/release
+  bump + book + contract + ledger), schema bump because the
+  `{first,rest}`→`[$1,$2::2*]` shape change is consumer-visible.
+- `2026-05-17`: inline-alt-$N suspects (event_control_list, 5 sv
+  number rules) are probe-confirmed at the START of their `.2.x`
+  slice (the proven before/after playbook step), not in `.1` — SV /
+  rtl_frontend are on-demand parsers requiring `.2`-time regen+wire;
+  the structural signature is identical to the 4 empirically-confirmed
+  binop fixes this session, so the static classification is
+  high-confidence.
 
 ## Open Questions
 
@@ -118,12 +165,14 @@ the proven playbook.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-05-17` | `POST-SV-AUDIT` (setup) | tree decomposition vs workflow splitting rules; empirical pre-scope; precondition (campaign complete) confirmed | `pass — activated on explicit user direction; decomposed into audit→fix→close; pre-scope recorded with one concrete known finding` |
+| `2026-05-17` | `POST-SV-AUDIT.1` | ledger structure (12 ## headers, no dups) + scope justification + count reconciliation vs pre-scope + independent classification spot-checks vs grammar (event_control_list/unsigned_number/net_alias/vhdl) | `pass — docs/POST_SV_AUDIT_LEDGER.md accurate; ~35 static-conclusive Cat-A + 6 HIGH inline-alt-$N + 11 structured-Cat-A + 30 Cat-B-resolved + 16 Cat-C; worklist concrete & per-grammar; .2 split per grammar; inline-alt-$N probe-confirm deferred to .2-start per the proven playbook (on-demand-parser infra)` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `POST-SV-AUDIT` (setup) | `PGEN-POST-SV-AUDIT-0000` | tree created + activated (Proposed→Active); frontier `.1`; empirical pre-scope recorded |
+| `POST-SV-AUDIT.1` | `PGEN-POST-SV-AUDIT-0001` | ledger `docs/POST_SV_AUDIT_LEDGER.md` (all 6 product grammars classified A/B/C, verified accurate); `.2` split per grammar; frontier → `.2.1` |
 
 ## Changelog
 
@@ -134,3 +183,11 @@ the proven playbook.
   Cat-C/residual review + close. Frontier `.1`. Empirical pre-scope +
   one known concrete finding (`rtl_frontend` `event_control_list`)
   recorded.
+- `2026-05-17`: `.1` done — `docs/POST_SV_AUDIT_LEDGER.md` produced
+  (subagent) + independently verified (counts reconcile, no dup
+  headers, classifications spot-checked accurate vs grammar). Findings:
+  ~35 static-conclusive Cat-A misuse + 6 HIGH inline-alt-$N + 11
+  structured-Cat-A + 30 Cat-B-resolved-confirmed + 16 Cat-C-benign.
+  `.2` split per grammar (`.2.1` svpp → `.2.2` rtl_frontend → `.2.3`
+  vhdl → `.2.4` systemverilog), smallest-first. Frontier advances
+  `.1`→`.2.1`. Tree stays `active`.
