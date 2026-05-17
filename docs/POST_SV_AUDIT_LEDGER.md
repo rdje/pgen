@@ -295,6 +295,69 @@ parser book.
 | `udp_declaration_sv_2017` (nonansi) | systemverilog.ebnf:4789-4790 | `udp_nonansi pd pd* udp_body kw_endprimitive (…)?` → `{…, port_decls:{first:$2, rest:$3}, …}`; bare repeat `pd pd*` | C | no | none | static-conclusive | none — Cat C benign |
 | `udp_declaration_sv_2023` (nonansi) | systemverilog.ebnf:4801-4802 | same, sv_2023 profile; bare repeat | C | no | none | static-conclusive | none — Cat C benign |
 
+**RESOLVED — FIXED (`PGEN-POST-SV-AUDIT-0005`, leaf POST-SV-AUDIT.2.4a,
+2026-05-17).** The original classifications above are kept verbatim as
+history. Two systemverilog worklist items were dispositioned and fixed
+in `grammars/systemverilog.ebnf`; the parser was regenerated and the
+manifest `rust/test_data/ast_shape_contract/systemverilog_v1.json`
+re-locked (new `net_alias` sample + `calibration_history` entry #117;
+`systemverilog_ast_shape_contract` passes). Fixed in **systemverilog
+parser release `1.0.116` / contract `1.0.116` / AST-dump schema `2`**
+(schema `1 → 2`; the reachable `net_alias` consumer-visible shape change
+drives the bump).
+
+- **`net_alias` (2889-2890) — RESOLVED — FIXED (Category-A,
+  reachable, consumer-visible).** Old `{first: $2, second: $4, rest: $5}`
+  (raw `[[assign, net_lvalue], …]` single-token-`assign`-separator
+  `rest` envelope) → new `{lvalues: [$2, $4, $5::2*]}` (clean flat
+  `net_lvalue[]` list of **all** aliased lvalues; `=` separators
+  dropped). Stays `return_object` (object with one array field), new
+  `normalized_text` only. Parent probe-verified on
+  `module m; wire a, b, c; alias a = b = c; endmodule`:
+  `net_alias` = `{"lvalues":[{…a…},{…b…},{…c…}]}`. Single-token
+  separator, **no** inline alternation, **no**
+  `<invalid_sequence_access>` — clean Category-A improvement, **NOT a
+  bug-ledger row**.
+- **5 number rules (`unsigned_number` 345, `binary_value` 544,
+  `hex_value` 2062, `non_zero_unsigned_number` 3064, `octal_value`
+  3099) — RESOLVED — FIXED-DEFENSIVE.** Each was
+  `<digit> ( kw_sv_rule_c82a06f6 | <digit> )* -> {first: $1, rest: $2}`
+  — an inline alternation as the `( … )*` iteration lead feeding bare
+  `$2` (the systemic inline-alternation-`$N` corruption class). Fixed
+  by lifting the inline alternation into a new **un-annotated** named
+  tail rule (`unsigned_number_tail := kw_sv_rule_c82a06f6 | decimal_digit`,
+  etc.) so the iteration becomes `( <rule>_tail )*` and `$2` binds
+  cleanly; the `{first: $1, rest: $2}` annotation **text is
+  unchanged**. This is the identical transformation empirically proven
+  6× this session (RTL-CE / SVPP-0001 / RTL-FE-0001 / VHDL-0001 /
+  RTL-FE-0002) — correct by construction. **Honest disposition: the
+  corruption is structurally present but NOT consumer-reproducible.**
+  The parent empirically established that the SV `systemverilog_file`
+  root **rejects every numeric-bearing top-level construct**
+  (`parameter` / `localparam` / `assign` / `$display` / packed ranges
+  `[15:0]` / module-parameter headers) in **all** profiles
+  (`default` / `sv_2017` / `sv_2023`); only minimal constructs
+  (`module m; endmodule`,
+  `module m; wire a, b, c; alias a = b = c; endmodule`) parse. A
+  multi-digit number is therefore unreachable via valid `source_text`
+  (a pre-existing SV-grammar-root coverage limitation, **separate from
+  this defect and explicitly out of POST-SV-AUDIT scope**). This is a
+  **defensive structural correction**, **NOT** a
+  `PGEN_RELEASED_PARSER_BUG_LEDGER` row — we do not claim a released
+  defect that no valid input can trigger; this is the honest
+  disposition. `kw_sv_rule_c82a06f6 := trivia /sv_rule\b/` is itself a
+  degenerate LRM-extraction artifact (a separate grammar-quality
+  matter, out of scope here — noted as observation only).
+
+Counts: annotation **2290** (UNCHANGED — `net_alias` text-only
+`normalized_text` change; the 5 number rules' annotation text is
+unchanged; the 5 `*_tail` rules are un-annotated and not in the
+inventory — **no count delta**), **999** distinct annotated rules
+(UNCHANGED). Same accept set. **No bug-ledger row** (neither item is
+a consumer-reproducible released `<invalid_sequence_access>` defect).
+The **11 structured-per-iteration Cat-A SV rules remain OPEN**
+(POST-SV-AUDIT.2.4b — *not* touched/closed here).
+
 ## vhdl.ebnf
 
 | Rule | Grammar:Line | RHS shape (brief) | Category | Objective bug? | Priority | Probe evidence needed | Recommended fix |
@@ -443,7 +506,12 @@ static-conclusive Cat-A misuse:
   `<invalid_sequence_access>`, NO bug-ledger row. 256/112 unchanged.
   See the RESOLVED note in the vhdl.ebnf section above.**
 - systemverilog.ebnf: `net_alias` (2889-2890, SEP = single token
-  `assign`).
+  `assign`). **DONE — fixed in systemverilog 1.0.116 / schema 2,
+  `PGEN-POST-SV-AUDIT-0005` (leaf POST-SV-AUDIT.2.4a, 2026-05-17);
+  `{first, second, rest}` → `{lvalues: [$2, $4, $5::2*]}` (clean flat
+  list, stays `return_object`, new `normalized_text`). Reachable,
+  consumer-visible, probe-verified — clean Category-A, NO bug-ledger
+  row. See the RESOLVED note in the systemverilog.ebnf section above.**
 
 ### HIGH-priority — suspected inline-alternation-$N corruption (needs parent probe-confirmation of `<invalid_sequence_access>`)
 
@@ -498,6 +566,30 @@ clean `rest:$N` or extraction-spread.
   bare-`rest:$2` named-lead idiom (parent confirms whether the
   `sv_rule` group-separator token should appear in the digit list or
   be dropped).
+  **DONE — RESOLVED — FIXED-DEFENSIVE in systemverilog 1.0.116 /
+  schema 2, `PGEN-POST-SV-AUDIT-0005` (leaf POST-SV-AUDIT.2.4a,
+  2026-05-17).** The inline alternation in each rule was lifted into a
+  new **un-annotated** named tail rule
+  (`unsigned_number_tail := kw_sv_rule_c82a06f6 | decimal_digit`, …) so
+  `( <rule>_tail )*` lets bare `$2` bind cleanly; the
+  `{first: $1, rest: $2}` annotation text is **unchanged** (identical
+  transformation proven 6× this session — correct by construction).
+  **Honest disposition:** the parent empirically established the
+  corruption is **structurally present but NOT consumer-reproducible**
+  — the SV `systemverilog_file` root **rejects every numeric-bearing
+  top-level construct** (`parameter`/`localparam`/`assign`/`$display`/
+  packed ranges/module-param headers) in **all** profiles
+  (`default`/`sv_2017`/`sv_2023`); only minimal constructs parse, so a
+  multi-digit number is unreachable via valid `source_text` (a
+  pre-existing SV-grammar-root coverage limitation, separate from this
+  defect and explicitly out of POST-SV-AUDIT scope). This is therefore
+  a **defensive structural correction**, **NOT** a
+  `PGEN_RELEASED_PARSER_BUG_LEDGER` row (we do not claim a released
+  defect that no valid input can trigger — this is the honest
+  disposition). `kw_sv_rule_c82a06f6 := trivia /sv_rule\b/` is a
+  degenerate LRM-extraction artifact (separate grammar-quality matter,
+  out of scope — observation only). See the RESOLVED note in the
+  systemverilog.ebnf section above.
 
 ### Structured-per-iteration Cat-A (objective bug, medium, needs parent judgement on the exact extraction shape)
 

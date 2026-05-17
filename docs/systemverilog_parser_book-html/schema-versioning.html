@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-405fdf9d.js";
+            window.path_to_searchindex_js = "searchindex-d3141d0e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -209,6 +209,16 @@
 <p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value.</p>
 <p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
 <h2 id="schema-version-timeline"><a class="header" href="#schema-version-timeline">Schema version timeline</a></h2>
+<blockquote>
+<p><strong>Schema-version notation.</strong> The contract’s authoritative AST-dump
+schema version is an <strong>integer</strong> (Contract Identity § “SystemVerilog
+AST-dump schema version”). It stayed <code>1</code> across the additive
+slice-campaign rows below (whose <code>1.x.0</code> minor-notation tracked
+per-slice progress under integer schema <code>1</code>). It is now <strong><code>2</code></strong> —
+bumped by POST-SV-AUDIT.2.4a (release <code>1.0.116</code>). Pin the integer
+from the contract; the historical <code>1.x.0</code> rows are retained as
+slice-campaign history.</p>
+</blockquote>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -216,6 +226,7 @@
 </thead>
 <tbody>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Initial mdbook + integration contract Highlights structure landed. Grammar (<code>grammars/systemverilog.ebnf</code>) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (<code>systemverilog_v1.json</code>) carries one stub sample (<code>minimal_module</code>) calibrated against the placeholder <code>current_content_kind: "sequence"</code>. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest.</td></tr>
+<tr><td><strong>2</strong> (integer)</td><td><strong>1.0.116</strong></td><td><strong>POST-SV-AUDIT.2.4a (<code>PGEN-POST-SV-AUDIT-0005</code>, 2026-05-17).</strong> Integer AST-dump schema bumped <code>1 → 2</code>. <code>net_alias</code> Category-A raw-envelope misuse corrected <code>{first, second, rest}</code> (raw <code>[[assign, net_lvalue], …]</code> <code>rest</code> envelope) → clean flat <code>{lvalues: [$2, $4, $5::2*]}</code> list — <strong>reachable, consumer-visible</strong>, drives the bump (stays <code>return_object</code>, new <code>normalized_text</code>; probe-verified on <code>module m; wire a, b, c; alias a = b = c; endmodule</code> → <code>{"lvalues":[{…a…},{…b…},{…c…}]}</code>). Bundled defensive structural correction of 5 number rules — <code>unsigned_number</code> / <code>non_zero_unsigned_number</code> / <code>binary_value</code> / <code>octal_value</code> / <code>hex_value</code>: the inline-alternation iteration lead `( kw_sv_rule_c82a06f6</td></tr>
 <tr><td>1.16.0</td><td>1.0.115</td><td><strong>SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed</strong> (codegen drop fixed). 2 rules / 2 annotations. `( a</td></tr>
 <tr><td>1.15.0</td><td>1.0.114</td><td><strong>SV-Slice-114 batch: Pattern-A number-value sequence rules typed</strong> (codegen drop fixed). 5 rules / 5 annotations. `digit ( sep</td></tr>
 <tr><td>1.14.0</td><td>1.0.113</td><td><strong>SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed.</strong> 2 rules / 26 annotations. 14 distinct kinds per rule (<code>hierarchical</code> branch dropped by codegen on both). Annotation inventory: 2256 entries (was 2231).</td></tr>

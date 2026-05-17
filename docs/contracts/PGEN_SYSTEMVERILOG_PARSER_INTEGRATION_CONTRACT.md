@@ -7,15 +7,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.115`
+  - `1.0.116`
 - Parser release version:
-  - `1.0.115`
+  - `1.0.116`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
-  - `1`
+  - `2` (POST-SV-AUDIT.2.4a: the reachable, consumer-visible `net_alias` Category-A raw-envelope correction `{first, second, rest}` → `{lvalues: […]}` drives the bump; a defensive structural correction of 5 number rules — `unsigned_number` / `non_zero_unsigned_number` / `binary_value` / `octal_value` / `hex_value` — bundles in (annotation text unchanged). See "AST-Shape Corrections — 1.0.116 (POST-SV-AUDIT)". The `1.0.115`/schema `1` history and the DOC-ENVELOPE / earlier slice history are retained below.)
 - Last updated:
-  - `2026-05-07`
+  - `2026-05-17`
 - Current grammar family label:
   - `systemverilog`
 - Current stable host profiles:
@@ -35,6 +35,181 @@ This is the document downstream projects such as Nexsim should read first when d
 - The book documents: build recipe, public API, the AST envelope, every annotated/un-annotated rule shape (as the annotation campaign progresses), per-feature worked examples, schema versioning, glossary, and a release-by-release index.
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.0.116 / Contract 1.0.116 Highlights — POST-SV-AUDIT.2.4a: net_alias Cat-A raw-envelope correction + 5-number-rule defensive structural fix; schema 1 → 2
+
+Landed 2026-05-17. The POST-SV-AUDIT static classification pass
+(`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.4a, tracked
+`PGEN-POST-SV-AUDIT-0005`) dispositioned two SystemVerilog worklist
+items in `grammars/systemverilog.ebnf`:
+
+1. **`net_alias` — reachable, consumer-visible Category-A correction.**
+2. **5 number rules — defensive structural correction (NOT a
+   consumer-reproducible released bug; NO bug-ledger row).**
+
+The parser is regenerated; the manifest
+`rust/test_data/ast_shape_contract/systemverilog_v1.json` is re-locked
+(new `net_alias` sample + `calibration_history` entry #117);
+`systemverilog_ast_shape_contract` passes.
+
+Annotation count: **2290** (UNCHANGED — `net_alias` stays
+`return_object` with a new `normalized_text` only; the 5 number rules'
+annotation text is unchanged; the 5 new `*_tail` rules are
+**un-annotated** and not in the inventory — there is **no count
+delta**). **999** distinct annotated rules (UNCHANGED). Same accept set
+(no grammar acceptance change — purely the `net_alias` annotation form
+and the inline-alternation lift into named tail rules). AST-dump schema
+bumped `1 → 2` because the reachable `net_alias` shape changed in a
+consumer-visible way; the number-rule structural fix bundles in.
+
+### Schema-Versioning row
+
+| AST-dump schema version | First parser release | Notable changes |
+|---|---|---|
+| `2` | `1.0.116` | **POST-SV-AUDIT.2.4a (`PGEN-POST-SV-AUDIT-0005`).** `net_alias` Category-A raw-envelope misuse corrected `{first, second, rest}` → `{lvalues: […]}` (reachable, consumer-visible — drives the bump). Defensive structural correction of 5 number rules (`unsigned_number` / `non_zero_unsigned_number` / `binary_value` / `octal_value` / `hex_value`): inline-alternation iteration-lead lifted into new un-annotated named `*_tail` rules so `$2` binds cleanly; the `{first: $1, rest: $2}` annotation text is **unchanged**. The number-rule corruption is structurally present but **NOT consumer-reproducible** (SV `systemverilog_file` root rejects every numeric-bearing top-level construct in all profiles) — defensive/latent, **no bug-ledger row**. Counts 2290 / 999 unchanged. |
+| `1` | `≤ 1.0.115` | Slice-campaign baseline (SV-Slice-1 … SV-Slice-115). The integer AST-dump schema stayed `1` across the additive annotation slices (additive shape changes within the major version tracked in the per-rule manifest, not the integer schema). Per-slice detail in the `Release 1.0.115` … `Release 1.0.0` Highlights sections below. |
+
+## AST-Shape Corrections — 1.0.116 (POST-SV-AUDIT) — `net_alias` Cat-A raw-envelope → clean list (reachable, consumer-visible); 5 number rules defensive structural fix (latent, NOT a bug-ledger entry); schema 1 → 2
+
+Landed 2026-05-17. The POST-SV-AUDIT static classification pass
+(`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.4a, tracked
+`PGEN-POST-SV-AUDIT-0005`) found one **reachable, consumer-visible
+static-conclusive Category-A raw-envelope misuse** (`net_alias`) and one
+class of **structurally-present-but-not-consumer-reproducible**
+inline-alternation-`$N` corruption (5 number rules) in
+`grammars/systemverilog.ebnf`. They are corrected, the parser is
+regenerated, and the manifest inventory is re-locked.
+
+`net_alias` is a **clean Category-A shape improvement** — the separator
+is a single token (`assign` / `=`), there is **no** inline alternation,
+and the rule never emitted `<invalid_sequence_access>`. The 5-number-rule
+inline-alternation-`$N` corruption **is** structurally the same
+emit-time defect class as the closed `RTL-FE-0001` / `RTL-FE-0002` /
+`SVPP-0001` / `VHDL-0001` family, **but** the parent empirically
+established it is **NOT consumer-reproducible** via valid `source_text`
+(see the honest reachability finding below). **Neither item is logged in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`** — that ledger is
+reserved for *consumer-reproducible* released `<invalid_sequence_access>`
+corruption/crash defects; `net_alias` is a clean Category-A improvement
+(no corruption), and the number-rule corruption is unreachable through
+the SV grammar root, so claiming a released defect would be inaccurate.
+**This batch carries no bug-ledger row.**
+
+### `net_alias` — Category-A raw-envelope misuse (reachable, consumer-visible)
+
+`net_alias` is reached as the `net_alias` branch of `module_common_item`
+(and its profile/elaboration siblings). The `≤ 1.0.115` grammar was
+
+```ebnf
+net_alias := kw_alias_cdb6fdbe net_lvalue assign net_lvalue
+             ( assign net_lvalue )* semi
+          -> {first: $2, second: $4, rest: $5}
+```
+
+`rest` (`$5`) surfaced the raw `[[assign, net_lvalue], …]`
+single-token-separator iteration envelope, forcing every consumer to
+index past the `=` separator on each iteration **and** to stitch
+`first` + `second` + the envelope back into one alias chain. The fix is
+the canonical extraction-spread idiom — drop the semantically-irrelevant
+`=` separators and emit one clean flat list of **all** aliased
+`net_lvalue`s in source order:
+
+```ebnf
+net_alias := kw_alias_cdb6fdbe net_lvalue assign net_lvalue
+             ( assign net_lvalue )* semi
+          -> {lvalues: [$2, $4, $5::2*]}
+```
+
+| Rule (`grammars/systemverilog.ebnf`) | `≤ 1.0.115` / schema `1` shape (history) | `1.0.116` / schema `2` shape | Annotation form |
+|---|---|---|---|
+| `net_alias` | `{first: $2, second: $4, rest: $5}` (raw `[[assign, net_lvalue], …]` `rest` envelope) | `{lvalues: [$2, $4, $5::2*]}` (clean flat `net_lvalue[]` list) | stays `return_object` (object with one array field), new `normalized_text` only (sep `assign`) |
+
+Parent probe-verified on
+`module m; wire a, b, c; alias a = b = c; endmodule`: the `net_alias`
+node is `{"lvalues": [{…a…}, {…b…}, {…c…}]}` — a clean 3-element
+`net_lvalue[]` list, no `[[assign, net_lvalue], …]` envelope, no
+separator to skip. A consumer written against `≤ 1.0.115` that read
+`.first` / `.second` / `.rest[][1]` must repin to schema `2` and read
+the single `.lvalues` flat array. `net_alias`'s annotation type stays
+`return_object` (it is `{lvalues: […]}`, an object with one array
+field); only the `normalized_text` changed.
+
+### Defensive structural correction — 5 number rules (latent inline-alternation-`$N`; NOT a consumer-reproducible released bug)
+
+`unsigned_number`, `non_zero_unsigned_number`, `binary_value`,
+`octal_value`, and `hex_value` each had the shape
+
+```ebnf
+<digit> ( kw_sv_rule_c82a06f6 | <digit> )* -> {first: $1, rest: $2}
+```
+
+where `kw_sv_rule_c82a06f6 := trivia /sv_rule\b/`. The inline
+alternation `( kw_sv_rule_c82a06f6 | <digit> )` is the **lead element**
+of the `( … )*` iteration feeding bare positional `$2` — the systemic
+inline-alternation-`$N` corruption class (the same emit-time root cause
+fixed for `rtl_const_expr`, `systemverilog_preprocessor` (`SVPP-0001`),
+`rtl_frontend` (`RTL-FE-0001`/`RTL-FE-0002`), and `vhdl`
+(`VHDL-0001`)). The fix is the identical, empirically-proven
+transformation: lift the inline alternation into a **new un-annotated
+named tail rule** so the iteration becomes `( <rule>_tail )*` and `$2`
+binds cleanly. The `{first: $1, rest: $2}` annotation text is
+**UNCHANGED**.
+
+```ebnf
+unsigned_number_tail         := kw_sv_rule_c82a06f6 | decimal_digit
+unsigned_number              := decimal_digit ( unsigned_number_tail )* -> {first: $1, rest: $2}
+non_zero_unsigned_number_tail := kw_sv_rule_c82a06f6 | decimal_digit
+non_zero_unsigned_number     := non_zero_decimal_digit ( non_zero_unsigned_number_tail )* -> {first: $1, rest: $2}
+binary_value_tail            := kw_sv_rule_c82a06f6 | binary_digit
+binary_value                 := binary_digit ( binary_value_tail )* -> {first: $1, rest: $2}
+octal_value_tail             := kw_sv_rule_c82a06f6 | octal_digit
+octal_value                  := octal_digit ( octal_value_tail )* -> {first: $1, rest: $2}
+hex_value_tail               := kw_sv_rule_c82a06f6 | hex_digit
+hex_value                    := hex_digit ( hex_value_tail )* -> {first: $1, rest: $2}
+```
+
+The 5 `*_tail` rules are **un-annotated** and therefore do not enter the
+return-annotation inventory; the 5 number rules' annotations are
+**textually unchanged** (`{first: $1, rest: $2}`, `return_object`).
+
+**Honest reachability finding (critical — why this is NOT a bug-ledger
+entry).** The corruption is **structurally present but NOT
+consumer-reproducible**. The parent empirically established that the SV
+`systemverilog_file` root **rejects every numeric-bearing top-level
+construct** — `parameter` / `localparam` / `assign` / `$display` /
+packed ranges (`[15:0]`) / module-parameter headers — in **all**
+profiles (`default` / `sv_2017` / `sv_2023`); only minimal constructs
+(e.g. `module m; endmodule` and
+`module m; wire a, b, c; alias a = b = c; endmodule`) parse. A
+multi-digit number is therefore **unreachable via valid `source_text`**.
+This is a pre-existing SV-grammar-root coverage limitation that is
+**separate from this defect and explicitly out of POST-SV-AUDIT scope**.
+Consequently this is a **defensive structural correction** (correct by
+construction — the identical transformation was empirically proven 6×
+this session across RTL-CE / SVPP-0001 / RTL-FE-0001 / VHDL-0001 /
+RTL-FE-0002), **NOT** a `PGEN_RELEASED_PARSER_BUG_LEDGER` row. We do not
+claim a released defect that no valid input can trigger; the latent
+corruption is documented honestly here with the reachability finding
+stated plainly.
+
+`kw_sv_rule_c82a06f6 := trivia /sv_rule\b/` is itself a degenerate
+LRM-extraction artifact (the digit-group "separator" token is a literal
+`sv_rule` keyword, not a real SystemVerilog digit separator). That is a
+**separate grammar-quality matter, out of scope here** — noted as an
+observation only; not proposed for fix in this batch.
+
+### Counts and locking
+
+Annotation count: **2290** (UNCHANGED — `net_alias` stays
+`return_object` with a new `normalized_text`; the 5 number rules'
+annotation text is unchanged; the 5 new `*_tail` rules are
+**un-annotated** and not in the inventory — there is **no count
+delta**). **999** distinct annotated rules (UNCHANGED). Same accept set
+(no grammar acceptance change). AST-dump schema bumped `1 → 2` because
+the reachable `net_alias` shape changed in a consumer-visible way; the
+number-rule defensive structural fix bundles in. Gate-locked:
+`systemverilog_ast_shape_contract` passes;
+`make -C rust SHELL=/opt/homebrew/bin/bash systemverilog_parser_book_gate`.
 
 ## Release 1.0.115 / Contract 1.0.115 Highlights — SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed (2 rules / 2 annotations)
 
@@ -61,6 +236,19 @@ unsigned_number / non_zero_unsigned_number / binary_value / hex_value / octal_va
 `first` is the leading digit; `rest` is the iteration array of alternating digit / underscore-separator entries — consumers can either consume the raw array or skip separators by `kind`.
 
 Annotation count: **2288** (was 2283, +5). Same accept set.
+
+> **Structural correction (1.0.116 / schema 2, POST-SV-AUDIT.2.4a).**
+> The `{first: $1, rest: $2}` annotation **text is unchanged**, but the
+> grammar shape was a latent inline-alternation-`$N` corruption (the
+> `( kw_sv_rule_c82a06f6 | <digit> )` iteration lead fed bare `$2`).
+> At `1.0.116` the inline alternation is lifted into new
+> **un-annotated** named `*_tail` rules (`unsigned_number_tail`, …) so
+> `$2` binds a clean `( <rule>_tail )*` iteration. This is a
+> **defensive** fix: the corruption is structurally present but **NOT
+> consumer-reproducible** (the SV `systemverilog_file` root rejects
+> every numeric-bearing top-level construct in all profiles), so it is
+> **not** a bug-ledger entry. See
+> [AST-Shape Corrections — 1.0.116](#ast-shape-corrections--10116-post-sv-audit--net_alias-cat-a-raw-envelope--clean-list-reachable-consumer-visible-5-number-rules-defensive-structural-fix-latent-not-a-bug-ledger-entry-schema-1--2).
 
 > Baseline note: the 2283 floor reflects the codegen fix's +27 recovery from previously-suppressed inner branches across earlier slices. Pre-fix baseline at slice 113 head was 2256.
 
@@ -515,11 +703,18 @@ type_declaration_sv_2017/2023          -> 6 kinds each (class_alias / data_type 
 type_declaration                       -> 2 kinds
 type_identifier_or_class_type_sv_2023  -> 2 kinds (type_identifier / class_type)
 type_reference                         -> 2 kinds (sv_2017 / sv_2023)
-net_alias                              -> {first, second, rest}
+net_alias                              -> {first, second, rest}   ← ≤ 1.0.115 / schema 1 shape (HISTORY); corrected to {lvalues: […]} at 1.0.116 / schema 2 — see [AST-Shape Corrections — 1.0.116](#ast-shape-corrections--10116-post-sv-audit--net_alias-cat-a-raw-envelope--clean-list-reachable-consumer-visible-5-number-rules-defensive-structural-fix-latent-not-a-bug-ledger-entry-schema-1--2)
 net_declaration                        -> 2 kinds
 ```
 
 Annotation count: **1640** (was 1621, +19). Same accept set.
+
+> **Shape correction (1.0.116 / schema 2, POST-SV-AUDIT.2.4a).**
+> `net_alias`'s `≤ 1.0.115` `{first, second, rest}` (raw
+> `[[assign, net_lvalue], …]` `rest` envelope) was corrected to the
+> clean flat `{lvalues: [$2, $4, $5::2*]}` list. The `≤ 1.0.115` shape
+> above is kept as labeled history. See
+> [AST-Shape Corrections — 1.0.116](#ast-shape-corrections--10116-post-sv-audit--net_alias-cat-a-raw-envelope--clean-list-reachable-consumer-visible-5-number-rules-defensive-structural-fix-latent-not-a-bug-ledger-entry-schema-1--2).
 
 ## Release 1.0.84 / Contract 1.0.84 Highlights — SV-Slice-84 batch: net_assignment + param_expression + struct_union + inst_name typed (5 rules / 10 annotations)
 

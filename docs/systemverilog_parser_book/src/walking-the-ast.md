@@ -101,7 +101,7 @@ Recommendations:
 
 ```rust
 // The AST-dump schema version you integrated against (from the contract):
-const SV_AST_SCHEMA_VERSION: u32 = 1;
+const SV_AST_SCHEMA_VERSION: u32 = 2;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -114,8 +114,8 @@ let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match SV_AST_SCHEMA_VERSION {
-    1 => walk_schema_v1(&root),
-    // (future) 2 => walk_schema_v2(&root),
+    2 => walk_schema_v2(&root), // current: net_alias is {lvalues: […]} (was {first, second, rest} at schema 1)
+    1 => walk_schema_v1(&root), // legacy: net_alias was {first, second, rest}
     other => eprintln!("no walker compiled for systemverilog AST schema version {other}"),
 }
 ```

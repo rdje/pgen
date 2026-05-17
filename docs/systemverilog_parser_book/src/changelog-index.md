@@ -19,6 +19,37 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.116 / Contract 1.0.116 — POST-SV-AUDIT.2.4a: net_alias Cat-A raw-envelope correction + 5-number-rule defensive structural fix (schema 1 → 2)
+
+`PGEN-POST-SV-AUDIT-0005`, leaf POST-SV-AUDIT.2.4a (2026-05-17).
+**AST-dump schema bumped `1 → 2`** (the reachable, consumer-visible
+`net_alias` shape change drives it).
+
+- `net_alias` Category-A raw-envelope misuse corrected:
+  `{first, second, rest}` (raw `[[assign, net_lvalue], …]` `rest`
+  envelope) → clean flat `{lvalues: [$2, $4, $5::2*]}` list. Stays
+  `return_object`, new `normalized_text` only. Probe-verified on
+  `module m; wire a, b, c; alias a = b = c; endmodule` →
+  `{"lvalues":[{…a…},{…b…},{…c…}]}`.
+- Defensive structural correction of 5 number rules
+  (`unsigned_number` / `non_zero_unsigned_number` / `binary_value` /
+  `octal_value` / `hex_value`): the inline-alternation iteration lead
+  `( kw_sv_rule_c82a06f6 | <digit> )` lifted into new **un-annotated**
+  named `*_tail` rules so bare `$2` binds cleanly; the
+  `{first, rest}` annotation text is **unchanged**. The corruption is
+  **structurally present but NOT consumer-reproducible** (SV
+  `systemverilog_file` root rejects every numeric-bearing top-level
+  construct in all profiles — pre-existing, out-of-scope root coverage
+  limitation), so this is a **defensive/latent** fix and is **NOT a
+  bug-ledger entry**.
+
+Annotation inventory: **2290** (UNCHANGED — `net_alias` is a text-only
+`normalized_text` change; the number-rule annotation text is unchanged;
+the 5 `*_tail` rules are un-annotated). **999** distinct rules
+(UNCHANGED). Same accept set. Full detail: contract §
+"AST-Shape Corrections — 1.0.116 (POST-SV-AUDIT)" and
+`docs/POST_SV_AUDIT_LEDGER.md`.
+
 ### 1.0.115 / Contract 1.0.115 — SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed (2 rules / 2 annotations)
 
 Annotation inventory: **2290** (was 2288, +2). Same accept set.

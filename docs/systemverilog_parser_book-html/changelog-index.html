@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-405fdf9d.js";
+            window.path_to_searchindex_js = "searchindex-d3141d0e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,35 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10116--contract-10116--post-sv-audit24a-net_alias-cat-a-raw-envelope-correction--5-number-rule-defensive-structural-fix-schema-1--2"><a class="header" href="#10116--contract-10116--post-sv-audit24a-net_alias-cat-a-raw-envelope-correction--5-number-rule-defensive-structural-fix-schema-1--2">1.0.116 / Contract 1.0.116 — POST-SV-AUDIT.2.4a: net_alias Cat-A raw-envelope correction + 5-number-rule defensive structural fix (schema 1 → 2)</a></h3>
+<p><code>PGEN-POST-SV-AUDIT-0005</code>, leaf POST-SV-AUDIT.2.4a (2026-05-17).
+<strong>AST-dump schema bumped <code>1 → 2</code></strong> (the reachable, consumer-visible
+<code>net_alias</code> shape change drives it).</p>
+<ul>
+<li><code>net_alias</code> Category-A raw-envelope misuse corrected:
+<code>{first, second, rest}</code> (raw <code>[[assign, net_lvalue], …]</code> <code>rest</code>
+envelope) → clean flat <code>{lvalues: [$2, $4, $5::2*]}</code> list. Stays
+<code>return_object</code>, new <code>normalized_text</code> only. Probe-verified on
+<code>module m; wire a, b, c; alias a = b = c; endmodule</code> →
+<code>{"lvalues":[{…a…},{…b…},{…c…}]}</code>.</li>
+<li>Defensive structural correction of 5 number rules
+(<code>unsigned_number</code> / <code>non_zero_unsigned_number</code> / <code>binary_value</code> /
+<code>octal_value</code> / <code>hex_value</code>): the inline-alternation iteration lead
+<code>( kw_sv_rule_c82a06f6 | &lt;digit&gt; )</code> lifted into new <strong>un-annotated</strong>
+named <code>*_tail</code> rules so bare <code>$2</code> binds cleanly; the
+<code>{first, rest}</code> annotation text is <strong>unchanged</strong>. The corruption is
+<strong>structurally present but NOT consumer-reproducible</strong> (SV
+<code>systemverilog_file</code> root rejects every numeric-bearing top-level
+construct in all profiles — pre-existing, out-of-scope root coverage
+limitation), so this is a <strong>defensive/latent</strong> fix and is <strong>NOT a
+bug-ledger entry</strong>.</li>
+</ul>
+<p>Annotation inventory: <strong>2290</strong> (UNCHANGED — <code>net_alias</code> is a text-only
+<code>normalized_text</code> change; the number-rule annotation text is unchanged;
+the 5 <code>*_tail</code> rules are un-annotated). <strong>999</strong> distinct rules
+(UNCHANGED). Same accept set. Full detail: contract §
+“AST-Shape Corrections — 1.0.116 (POST-SV-AUDIT)” and
+<code>docs/POST_SV_AUDIT_LEDGER.md</code>.</p>
 <h3 id="10115--contract-10115--sv-slice-115-batch-pattern-b-ps_type_identifier_sv_20172023-typed-2-rules--2-annotations"><a class="header" href="#10115--contract-10115--sv-slice-115-batch-pattern-b-ps_type_identifier_sv_20172023-typed-2-rules--2-annotations">1.0.115 / Contract 1.0.115 — SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed (2 rules / 2 annotations)</a></h3>
 <p>Annotation inventory: <strong>2290</strong> (was 2288, +2). Same accept set.</p>
 <h3 id="10114--contract-10114--sv-slice-114-batch-pattern-a-number-value-sequence-rules-typed-5-rules--5-annotations"><a class="header" href="#10114--contract-10114--sv-slice-114-batch-pattern-a-number-value-sequence-rules-typed-5-rules--5-annotations">1.0.114 / Contract 1.0.114 — SV-Slice-114 batch: Pattern-A number-value sequence rules typed (5 rules / 5 annotations)</a></h3>

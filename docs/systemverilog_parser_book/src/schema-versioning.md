@@ -38,10 +38,20 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 
 ## Schema version timeline
 
+> **Schema-version notation.** The contract's authoritative AST-dump
+> schema version is an **integer** (Contract Identity § "SystemVerilog
+> AST-dump schema version"). It stayed `1` across the additive
+> slice-campaign rows below (whose `1.x.0` minor-notation tracked
+> per-slice progress under integer schema `1`). It is now **`2`** —
+> bumped by POST-SV-AUDIT.2.4a (release `1.0.116`). Pin the integer
+> from the contract; the historical `1.x.0` rows are retained as
+> slice-campaign history.
+
 | Schema version | First parser release | Notable changes |
 |---|---|---|
 | 0.1.0 | 1.0.0 | **Foundation baseline.** Initial mdbook + integration contract Highlights structure landed. Grammar (`grammars/systemverilog.ebnf`) is un-annotated except for one commented-out trial annotation at line 200. AST dump is the recursive-envelope shape across all rules. Manifest (`systemverilog_v1.json`) carries one stub sample (`minimal_module`) calibrated against the placeholder `current_content_kind: "sequence"`. First post-foundation slice will run the parser, observe the actual content kind, and either confirm or update the manifest. |
-| 1.16.0 | 1.0.115 | **SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed** (codegen drop fixed). 2 rules / 2 annotations. `( a | b | c )? id -> {scope, name}`. Annotation inventory: 2290 entries (was 2288). |
+| **2** (integer) | **1.0.116** | **POST-SV-AUDIT.2.4a (`PGEN-POST-SV-AUDIT-0005`, 2026-05-17).** Integer AST-dump schema bumped `1 → 2`. `net_alias` Category-A raw-envelope misuse corrected `{first, second, rest}` (raw `[[assign, net_lvalue], …]` `rest` envelope) → clean flat `{lvalues: [$2, $4, $5::2*]}` list — **reachable, consumer-visible**, drives the bump (stays `return_object`, new `normalized_text`; probe-verified on `module m; wire a, b, c; alias a = b = c; endmodule` → `{"lvalues":[{…a…},{…b…},{…c…}]}`). Bundled defensive structural correction of 5 number rules — `unsigned_number` / `non_zero_unsigned_number` / `binary_value` / `octal_value` / `hex_value`: the inline-alternation iteration lead `( kw_sv_rule_c82a06f6 | <digit> )` lifted into new **un-annotated** named `*_tail` rules so bare `$2` binds cleanly; the `{first, rest}` annotation text is **unchanged**. That number-rule corruption is **structurally present but NOT consumer-reproducible** (the SV `systemverilog_file` root rejects every numeric-bearing top-level construct in all profiles — a pre-existing, out-of-scope root coverage limitation), so it is a **defensive/latent** fix and **NOT a bug-ledger entry**. Annotation inventory: **2290** (UNCHANGED — `net_alias` text-only `normalized_text` change; number-rule text unchanged; `*_tail` rules un-annotated). 999 distinct rules unchanged. Same accept set. |
+| 1.16.0 | 1.0.115 | **SV-Slice-115 batch: Pattern-B ps_type_identifier_sv_2017/2023 typed** (codegen drop fixed). 2 rules / 2 annotations. `( a | b | c )? id -> {scope, name}`. Annotation inventory: 2290 entries (was 2288). (Integer AST-dump schema was `1` here.) |
 | 1.15.0 | 1.0.114 | **SV-Slice-114 batch: Pattern-A number-value sequence rules typed** (codegen drop fixed). 5 rules / 5 annotations. `digit ( sep | digit )* -> {first, rest}` on unsigned_number, non_zero_unsigned_number, binary_value, hex_value, octal_value. Annotation inventory: 2288 entries (was 2283 — post codegen-fix baseline). |
 | 1.14.0 | 1.0.113 | **SV-Slice-113 batch: method_call_receiver_sv_2017/2023 per-branch typed.** 2 rules / 26 annotations. 14 distinct kinds per rule (`hierarchical` branch dropped by codegen on both). Annotation inventory: 2256 entries (was 2231). |
 | 1.13.0 | 1.0.112 | **SV-Slice-112 batch: hierarchical_tf_identifier + ansi_port_declaration typed.** 2 rules / 4 annotations. Per-branch discriminators on task-#38 deferred rules. `ansi_port_declaration.named_dot` annotation dropped by codegen. Annotation inventory: 2231 entries (was 2227). |

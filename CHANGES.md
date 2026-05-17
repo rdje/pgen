@@ -1,4 +1,70 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0005 (leaf POST-SV-AUDIT.2.4a): systemverilog — net_alias Cat-A FIXED + 5 number-rule inline-alt-$N defensive structural fix (schema 1→2, release 1.0.116)
+
+- **`net_alias` Category-A raw-envelope misuse FIXED** (flagship SV,
+  reachable, consumer-visible). `net_alias := … net_lvalue assign
+  net_lvalue ( assign net_lvalue )* … -> {first:$2, second:$4,
+  rest:$5}` (raw `[[assign,net_lvalue],…]` `rest`) → `-> {lvalues:
+  [$2, $4, $5::2*]}` (clean flat list of ALL aliased net_lvalues).
+  Probe-verified on `module m; wire a, b, c; alias a = b = c;
+  endmodule` → `net_alias = {"lvalues":[{a},{b},{c}]}` (clean
+  3-element list).
+- **5 number rules** (`unsigned_number`, `non_zero_unsigned_number`,
+  `binary_value`, `octal_value`, `hex_value`) — inline-alternation-`$N`
+  pattern (`<digit> ( kw_sv_rule_c82a06f6 | <digit> )* ->
+  {first:$1,rest:$2}`) **defensively fixed** by lifting the inline
+  alternation into NEW un-annotated named `*_tail` rules (annotation
+  text UNCHANGED; the 6×-proven inline-alt-`$N` transformation,
+  correct by construction + clean regen).
+  **Honest finding (faithful reporting):** the corruption is
+  *structurally present but NOT consumer-reproducible* — the SV
+  `systemverilog_file` root **rejects every numeric-bearing top-level
+  construct** (parameter/localparam/assign/$display/packed-ranges/
+  module-#-headers) in **all** profiles (default/sv_2017/sv_2023),
+  empirically established; a multi-digit number is unreachable via
+  valid `source_text`. This is a pre-existing SV-root coverage
+  limitation, **separate from and out of scope for** POST-SV-AUDIT.
+  Therefore it is a **defensive structural correction, NOT a
+  `PGEN_RELEASED_PARSER_BUG_LEDGER` entry** (no unreproducible-defect
+  claim). `kw_sv_rule_c82a06f6 := /sv_rule\b/` is itself a degenerate
+  LRM-extraction artifact — noted as an out-of-scope observation.
+- **Inventory UNCHANGED 2290 / 999** (net_alias stays `return_object`,
+  text-only change; the 5 number-rule annotations textually unchanged;
+  the 5 `*_tail` rules un-annotated). Manifest
+  `systemverilog_v1.json` got a new `net_alias` sample +
+  `calibration_history` entry #117 → `systemverilog_ast_shape_contract`
+  **passes**.
+- **Lockstep:** AST-dump schema `1→2`, parser+contract release
+  `1.0.115→1.0.116`. Contract: new `## Release 1.0.116 / Contract
+  1.0.116 Highlights` (embedded Schema-Versioning `2 | 1.0.116` row)
+  + `## AST-Shape Corrections — 1.0.116 (POST-SV-AUDIT)` section
+  (net_alias Cat-A + the clearly-separated honest "defensive
+  structural correction — 5 number rules, unreachable, not
+  bug-ledger'd" subsection); ≤1.0.115/schema-1 kept as labeled
+  history. Book: 4 chapters, all `SV_AST_SCHEMA_VERSION` walker pins
+  `= 2`, `schema-versioning.md` schema-2 row, 2290/999 unchanged.
+  `docs/POST_SV_AUDIT_LEDGER.md`: net_alias + 5 number rules
+  RESOLVED-FIXED (number rules with the honest defensive/unreachable
+  disposition); the **11 structured-per-iteration SV rules left
+  untouched/OPEN** (that is `POST-SV-AUDIT.2.4b`).
+- **No `PGEN_RELEASED_PARSER_BUG_LEDGER.md` row** (verified untouched —
+  net_alias is clean Cat-A; the number-rule corruption is not
+  consumer-reproducible). DOC-ENVELOPE-0001 not regressed (the 4
+  `public-api.md` `grammar/profile: String` matches are the real
+  `NamedGrammarParseOutcome`/`NamedGrammarAstDumpOutcome` fields,
+  untouched, legitimate per the DOC-ENVELOPE closeout).
+- Independently verified: contract no dup `## ` headers,
+  `1.0.116`/schema-`2` current (1.0.115/schema-1 historical only),
+  2290/999 unchanged; `systemverilog_parser_book_gate` **independently
+  re-run green** (searchindex deterministic); `clippy_on_rust_change`
+  strict source **passed**. `docs/book/` — no drift, no edit.
+- **`POST-SV-AUDIT.2.4b` (the 11 structured-per-iteration SV rules) is
+  BLOCKED on user design input** — each needs a named record-rule
+  whose exact shape changes the flagship released-SV parser's public
+  AST contract; the `.1` ledger explicitly flagged these "needs parent
+  judgement". Per the PNT directive this is a genuine
+  can't-decide-unilaterally fork → surfaced to the user.
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0004 (leaf POST-SV-AUDIT.2.3): vhdl — 17 Category-A raw-envelope misuses FIXED (schema 2→3, release 1.0.3)
 
 - **17 `vhdl` Category-A raw-envelope misuses** fixed to
