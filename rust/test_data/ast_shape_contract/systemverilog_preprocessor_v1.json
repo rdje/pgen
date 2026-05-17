@@ -1,462 +1,479 @@
 {
- "version": 1,
- "grammar": "systemverilog_preprocessor",
- "purpose": "Per-parser-family AST-shape contract for the SystemVerilog preprocessor grammar. Same default-build gating as `systemverilog_v1.json`: the parser is on-demand-only and the cfg `has_generated_systemverilog_preprocessor_parser` stays off in default builds.",
- "doctrine": "First run after the parser becomes available may hit a regression-lock failure because `current_content_kind` is a placeholder. Update on first calibration.",
- "samples": [
-  {
-   "name": "single_define",
-   "input": "`define FOO 1\n",
-   "rule_under_test": "systemverilog_preprocessor_file",
-   "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
-   "expected_content_kind": "json_object",
-   "expected_json_object_keys_present": [
-    "type",
-    "items"
-   ],
-   "expected_json_object_string_values": {
-    "type": "systemverilog_preprocessor_file"
-   },
-   "current_content_kind": "json_object",
-   "drift_status": "aligned",
-   "drift_tracked_in": "PGEN: SV-preprocessor per-family contract calibration on first parser availability + regen coordination follow-up"
-  },
-  {
-   "name": "conditional",
-   "input": "`ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n",
-   "rule_under_test": "systemverilog_preprocessor_file",
-   "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
-   "expected_content_kind": "json_object",
-   "expected_json_object_keys_present": [
-    "type",
-    "items"
-   ],
-   "expected_json_object_string_values": {
-    "type": "systemverilog_preprocessor_file"
-   },
-   "current_content_kind": "json_object",
-   "drift_status": "aligned",
-   "drift_tracked_in": "PGEN-INLINE-ALT-FIX-0001: SVPP-0001 fixed (pp_if_keyword named rule); locks the post-fix conditional path. AST-dump schema 1->2."
-  },
-  {
-   "name": "macro_with_formals",
-   "input": "`define M(a, b, c) a+b+c\n",
-   "rule_under_test": "systemverilog_preprocessor_file",
-   "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
-   "expected_content_kind": "json_object",
-   "expected_json_object_keys_present": [
-    "type",
-    "items"
-   ],
-   "expected_json_object_string_values": {
-    "type": "systemverilog_preprocessor_file"
-   },
-   "current_content_kind": "json_object",
-   "drift_status": "aligned",
-   "drift_tracked_in": "PGEN-POST-SV-AUDIT-0002 / POST-SV-AUDIT.2.1: macro_formals Cat-A raw-envelope misuse fixed -> [$2,$3::2*] clean list; locks the post-fix shape. AST-dump schema 2->3."
+  "version": 1,
+  "grammar": "systemverilog_preprocessor",
+  "purpose": "Per-parser-family AST-shape contract for the SystemVerilog preprocessor grammar. Same default-build gating as `systemverilog_v1.json`: the parser is on-demand-only and the cfg `has_generated_systemverilog_preprocessor_parser` stays off in default builds.",
+  "doctrine": "First run after the parser becomes available may hit a regression-lock failure because `current_content_kind` is a placeholder. Update on first calibration.",
+  "samples": [
+    {
+      "name": "single_define",
+      "input": "`define FOO 1\n",
+      "rule_under_test": "systemverilog_preprocessor_file",
+      "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "items"
+      ],
+      "expected_json_object_string_values": {
+        "type": "systemverilog_preprocessor_file"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "PGEN: SV-preprocessor per-family contract calibration on first parser availability + regen coordination follow-up"
+    },
+    {
+      "name": "conditional",
+      "input": "`ifdef X\n`define A 1\n`else\n`define B 2\n`endif\n",
+      "rule_under_test": "systemverilog_preprocessor_file",
+      "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "items"
+      ],
+      "expected_json_object_string_values": {
+        "type": "systemverilog_preprocessor_file"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "PGEN-INLINE-ALT-FIX-0001: SVPP-0001 fixed (pp_if_keyword named rule); locks the post-fix conditional path. AST-dump schema 1->2."
+    },
+    {
+      "name": "macro_with_formals",
+      "input": "`define M(a, b, c) a+b+c\n",
+      "rule_under_test": "systemverilog_preprocessor_file",
+      "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "items"
+      ],
+      "expected_json_object_string_values": {
+        "type": "systemverilog_preprocessor_file"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "PGEN-POST-SV-AUDIT-0002 / POST-SV-AUDIT.2.1: macro_formals Cat-A raw-envelope misuse fixed -> [$2,$3::2*] clean list; locks the post-fix shape. AST-dump schema 2->3."
+    },
+    {
+      "name": "macro_body_comment_backtick",
+      "input": "`define X a /*`*/\n",
+      "rule_under_test": "systemverilog_preprocessor_file",
+      "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "items"
+      ],
+      "expected_json_object_string_values": {
+        "type": "systemverilog_preprocessor_file"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "PGEN-SV-EXH-PROOF-0008 / SV-EXH-PROOF.2.3.1: SVPP-0002 fixed (macro_body_text/macro_default_text made comment-aware); a backtick inside a block comment in a macro body/default is valid SystemVerilog and now parses to the standard {type,items} shape (was wrongly rejected at release 1.0.3). Release 1.0.3->1.0.4; AST-dump schema unchanged (3); annotation inventory unchanged (66/28)."
+    }
+  ],
+  "declared_annotation_inventory": {
+    "pipeline_inventory_artifact": "generated/systemverilog_preprocessor_return_annotations.json",
+    "optional_grammar_json_crosscheck": "generated/systemverilog_preprocessor.json",
+    "extracted_at": "2026-05-17",
+    "annotations": [
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"token_paste\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"stringize\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 2,
+        "normalized_text": "{kind: \"macro_reference\", body: $1}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 3,
+        "normalized_text": "{kind: \"text\", body: $1}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 4,
+        "normalized_text": "{kind: \"lparen\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 5,
+        "normalized_text": "{kind: \"rparen\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 6,
+        "normalized_text": "{kind: \"comma\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 7,
+        "normalized_text": "{kind: \"question\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 8,
+        "normalized_text": "{kind: \"colon\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 9,
+        "normalized_text": "{kind: \"logical_or\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 10,
+        "normalized_text": "{kind: \"logical_and\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 11,
+        "normalized_text": "{kind: \"bang\"}",
+        "rule": "condition_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{atoms: $1}",
+        "rule": "condition_expr"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"quoted\", text: $1}",
+        "rule": "include_path"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"angle\", text: $1}",
+        "rule": "include_path"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{fragments: $1}",
+        "rule": "macro_body"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"token_paste\"}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"stringize\"}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 2,
+        "normalized_text": "{kind: \"macro_reference\", body: $1}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 3,
+        "normalized_text": "{kind: \"text\", body: $1}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 4,
+        "normalized_text": "{kind: \"lparen\"}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 5,
+        "normalized_text": "{kind: \"rparen\"}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 6,
+        "normalized_text": "{kind: \"comma\"}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 7,
+        "normalized_text": "{kind: \"question\"}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 8,
+        "normalized_text": "{kind: \"colon\"}",
+        "rule": "macro_body_fragment"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"token_paste\"}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"stringize\"}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 2,
+        "normalized_text": "{kind: \"macro_reference\", body: $1}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 3,
+        "normalized_text": "{kind: \"text\", body: $1}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 4,
+        "normalized_text": "{kind: \"lparen\"}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 5,
+        "normalized_text": "{kind: \"rparen\"}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 6,
+        "normalized_text": "{kind: \"question\"}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 7,
+        "normalized_text": "{kind: \"colon\"}",
+        "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{atoms: $1}",
+        "rule": "macro_default_value"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{name: $1, default: $2}",
+        "rule": "macro_formal"
+      },
+      {
+        "annotation_type": "return_array",
+        "branch_index": 0,
+        "normalized_text": "[$2, $3::2*]",
+        "rule": "macro_formals"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"identifier\", body: $1}",
+        "rule": "nettype_value"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"none\"}",
+        "rule": "nettype_value"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"blank\"}",
+        "rule": "pp_blank_line"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{comment: $2}",
+        "rule": "pp_celldefine"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{if_branch: $1, elsif_branches: $2, else_branch: $3}",
+        "rule": "pp_conditional"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{nettype: $2, comment: $3}",
+        "rule": "pp_default_nettype"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{name: $2, formals: $3, body: $4}",
+        "rule": "pp_define"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{tail: $2, items: $4}",
+        "rule": "pp_else_branch"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{condition: $2, items: $4}",
+        "rule": "pp_elsif_branch"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{comment: $2}",
+        "rule": "pp_endcelldefine"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{tail: $2}",
+        "rule": "pp_endif"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{keyword: $1, macro: $2, tail: $3, items: $5}",
+        "rule": "pp_if_branch"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"ifdef\"}",
+        "rule": "pp_if_keyword"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"ifndef\"}",
+        "rule": "pp_if_keyword"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{path: $2, comment: $3}",
+        "rule": "pp_include"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"define\", body: $1}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"undef\", body: $1}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 2,
+        "normalized_text": "{kind: \"include\", body: $1}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 3,
+        "normalized_text": "{kind: \"timescale\", body: $1}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 4,
+        "normalized_text": "{kind: \"default_nettype\", body: $1}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 5,
+        "normalized_text": "{kind: \"celldefine\"}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 6,
+        "normalized_text": "{kind: \"endcelldefine\"}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 7,
+        "normalized_text": "{kind: \"conditional\", body: $1}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 8,
+        "normalized_text": "{kind: \"non_directive_line\", body: $1}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 9,
+        "normalized_text": "{kind: \"blank_line\"}",
+        "rule": "pp_item"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{text: $1}",
+        "rule": "pp_non_directive_line"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{unit: $2, precision: $4, comment: $5}",
+        "rule": "pp_timescale"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{name: $2, comment: $3}",
+        "rule": "pp_undef"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+        "rule": "systemverilog_preprocessor_file"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{value: $1, unit: $2}",
+        "rule": "time_literal"
+      }
+    ]
   }
- ],
- "declared_annotation_inventory": {
-  "pipeline_inventory_artifact": "generated/systemverilog_preprocessor_return_annotations.json",
-  "optional_grammar_json_crosscheck": "generated/systemverilog_preprocessor.json",
-  "extracted_at": "2026-05-17",
-  "annotations": [
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"token_paste\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 1,
-    "normalized_text": "{kind: \"stringize\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 2,
-    "normalized_text": "{kind: \"macro_reference\", body: $1}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 3,
-    "normalized_text": "{kind: \"text\", body: $1}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 4,
-    "normalized_text": "{kind: \"lparen\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 5,
-    "normalized_text": "{kind: \"rparen\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 6,
-    "normalized_text": "{kind: \"comma\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 7,
-    "normalized_text": "{kind: \"question\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 8,
-    "normalized_text": "{kind: \"colon\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 9,
-    "normalized_text": "{kind: \"logical_or\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 10,
-    "normalized_text": "{kind: \"logical_and\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 11,
-    "normalized_text": "{kind: \"bang\"}",
-    "rule": "condition_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{atoms: $1}",
-    "rule": "condition_expr"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"quoted\", text: $1}",
-    "rule": "include_path"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 1,
-    "normalized_text": "{kind: \"angle\", text: $1}",
-    "rule": "include_path"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{fragments: $1}",
-    "rule": "macro_body"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"token_paste\"}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 1,
-    "normalized_text": "{kind: \"stringize\"}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 2,
-    "normalized_text": "{kind: \"macro_reference\", body: $1}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 3,
-    "normalized_text": "{kind: \"text\", body: $1}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 4,
-    "normalized_text": "{kind: \"lparen\"}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 5,
-    "normalized_text": "{kind: \"rparen\"}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 6,
-    "normalized_text": "{kind: \"comma\"}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 7,
-    "normalized_text": "{kind: \"question\"}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 8,
-    "normalized_text": "{kind: \"colon\"}",
-    "rule": "macro_body_fragment"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"token_paste\"}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 1,
-    "normalized_text": "{kind: \"stringize\"}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 2,
-    "normalized_text": "{kind: \"macro_reference\", body: $1}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 3,
-    "normalized_text": "{kind: \"text\", body: $1}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 4,
-    "normalized_text": "{kind: \"lparen\"}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 5,
-    "normalized_text": "{kind: \"rparen\"}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 6,
-    "normalized_text": "{kind: \"question\"}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 7,
-    "normalized_text": "{kind: \"colon\"}",
-    "rule": "macro_default_atom"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{atoms: $1}",
-    "rule": "macro_default_value"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{name: $1, default: $2}",
-    "rule": "macro_formal"
-   },
-   {
-    "annotation_type": "return_array",
-    "branch_index": 0,
-    "normalized_text": "[$2, $3::2*]",
-    "rule": "macro_formals"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"identifier\", body: $1}",
-    "rule": "nettype_value"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 1,
-    "normalized_text": "{kind: \"none\"}",
-    "rule": "nettype_value"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"blank\"}",
-    "rule": "pp_blank_line"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{comment: $2}",
-    "rule": "pp_celldefine"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{if_branch: $1, elsif_branches: $2, else_branch: $3}",
-    "rule": "pp_conditional"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{nettype: $2, comment: $3}",
-    "rule": "pp_default_nettype"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{name: $2, formals: $3, body: $4}",
-    "rule": "pp_define"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{tail: $2, items: $4}",
-    "rule": "pp_else_branch"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{condition: $2, items: $4}",
-    "rule": "pp_elsif_branch"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{comment: $2}",
-    "rule": "pp_endcelldefine"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{tail: $2}",
-    "rule": "pp_endif"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{keyword: $1, macro: $2, tail: $3, items: $5}",
-    "rule": "pp_if_branch"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"ifdef\"}",
-    "rule": "pp_if_keyword"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 1,
-    "normalized_text": "{kind: \"ifndef\"}",
-    "rule": "pp_if_keyword"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{path: $2, comment: $3}",
-    "rule": "pp_include"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{kind: \"define\", body: $1}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 1,
-    "normalized_text": "{kind: \"undef\", body: $1}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 2,
-    "normalized_text": "{kind: \"include\", body: $1}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 3,
-    "normalized_text": "{kind: \"timescale\", body: $1}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 4,
-    "normalized_text": "{kind: \"default_nettype\", body: $1}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 5,
-    "normalized_text": "{kind: \"celldefine\"}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 6,
-    "normalized_text": "{kind: \"endcelldefine\"}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 7,
-    "normalized_text": "{kind: \"conditional\", body: $1}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 8,
-    "normalized_text": "{kind: \"non_directive_line\", body: $1}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 9,
-    "normalized_text": "{kind: \"blank_line\"}",
-    "rule": "pp_item"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{text: $1}",
-    "rule": "pp_non_directive_line"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{unit: $2, precision: $4, comment: $5}",
-    "rule": "pp_timescale"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{name: $2, comment: $3}",
-    "rule": "pp_undef"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{type: \"systemverilog_preprocessor_file\", items: $1}",
-    "rule": "systemverilog_preprocessor_file"
-   },
-   {
-    "annotation_type": "return_object",
-    "branch_index": 0,
-    "normalized_text": "{value: $1, unit: $2}",
-    "rule": "time_literal"
-   }
-  ]
- }
 }

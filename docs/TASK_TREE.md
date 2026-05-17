@@ -95,7 +95,7 @@ are large multi-week efforts, not bounded PNT slices).
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.2.3` — preprocessor closed-loop self-rejects 3 generated directive stimuli (`parseability_parser_rejections_total=3`; `.2.1` A1+A2 and `.2.2` A3' universe-drift mis-spec done+verified) | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
+| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.2.3.2` — 2 remaining preprocessor closed-loop self-rejections = genuinely-invalid bare-backtick **generator over-generation** (`.2.1` A1+A2 ✓, `.2.2` A3' mis-spec ✓, `.2.3.1` `SVPP-0002` macro-comment grammar bug ✓ fixed `1.0.4`/schema-3 → `parser_rejections` 3→2) | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
 
 ## Proposed Task Trees
 

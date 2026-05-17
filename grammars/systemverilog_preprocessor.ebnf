@@ -123,7 +123,16 @@ macro_default_atom := macro_token_paste -> {kind: "token_paste"}
                     | question          -> {kind: "question"}
                     | colon             -> {kind: "colon"}
 
-macro_default_text := inline_trivia /[^`(),?:\r\n]+/
+# Comment-aware (SV-EXH-PROOF.2.3.1, PGEN-SV-EXH-PROOF-0008): a run of
+# allowed chars, but a `/* ... */` block comment is matched ATOMICALLY
+# (alternative tried first) so a backtick *inside* a comment no longer
+# splits the run. Without this the bare `[^`...]` char-class swallowed
+# a comment's `/*` then halted at the comment's internal backtick,
+# wrongly rejecting valid SV like ``\`define X(a=/*\`*/) y``. Mirrors
+# the proven systemverilog.ebnf `timeunit_separator_trivia` /
+# `block_comment` idiom; accepts strictly more, narrows nothing; the
+# `{kind:"text", body:$1}` AST shape is unchanged.
+macro_default_text := inline_trivia /(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:\r\n])+/
 
 macro_body := macro_body_fragment+
            -> {fragments: $1}
@@ -137,7 +146,9 @@ macro_body_fragment := macro_token_paste -> {kind: "token_paste"}
                      | question          -> {kind: "question"}
                      | colon             -> {kind: "colon"}
 
-macro_body_text := inline_trivia /[^`(),?:\r\n]+/
+# Comment-aware — same fix + rationale as macro_default_text above
+# (SV-EXH-PROOF.2.3.1, PGEN-SV-EXH-PROOF-0008).
+macro_body_text := inline_trivia /(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:\r\n])+/
 macro_reference := bt_identifier
 macro_token_paste := inline_trivia /``/
 macro_stringize := inline_trivia /`"/

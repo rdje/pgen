@@ -5,15 +5,15 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 ## Contract Identity
 - Contract version:
-  - `1.0.3`
+  - `1.0.4`
 - Parser release version:
-  - `1.0.3`
+  - `1.0.4`
 - systemverilog_preprocessor AST-dump schema version:
-  - `3` (Category-A AST-shape correction — see Release 1.0.3 Highlights)
+  - `3` (unchanged across `1.0.3`–`1.0.4`; the `1.0.4` `SVPP-0002` fix is a strictly-more-permissive correctness fix with no observable output-shape change — see Release 1.0.4 Highlights)
 - Annotation count:
-  - `66` (65 `return_object` + 1 `return_array`; 28 distinct rules)
+  - `66` (65 `return_object` + 1 `return_array`; 28 distinct rules) — **unchanged** by `1.0.4` (`SVPP-0002` touched only the un-annotated `macro_body_text`/`macro_default_text` regex rules)
 - Last updated:
-  - `2026-05-17`
+  - `2026-05-18`
 - Current grammar family label:
   - `systemverilog_preprocessor`
 - Per-family mdBook:
@@ -27,12 +27,12 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 The systemverilog_preprocessor parser carries two version axes:
 
-1. **Parser release version** (`1.0.3`). Tracks the parser library's release identity.
-2. **AST-dump schema version** (`3`). Tracks the AST output shape.
+1. **Parser release version** (`1.0.4`). Tracks the parser library's release identity.
+2. **AST-dump schema version** (`3`). Tracks the AST output shape. Schema `3` spans releases `1.0.3`–`1.0.4`: the `1.0.4` `SVPP-0002` correctness fix changed no observable output shape (a strictly-more-permissive fix — see the schema-`3` row's `1.0.4` addendum and Release 1.0.4 Highlights).
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 3 | 1.0.3 | **`macro_formals` Category-A AST-shape correction (POST-SV-AUDIT, consumer-visible).** `macro_formals` no longer exposes the raw `{first, rest}` iteration envelope — the POST-SV-AUDIT.2.1 audit (`PGEN-POST-SV-AUDIT-0002`) found `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> {first: $2, rest: $3}` was a static-conclusive Category-A raw-envelope misuse: `rest` surfaced the raw `[[comma, macro_formal], …]` separator envelope, forcing every consumer to walk past the `comma` separator. Corrected to the canonical extraction-spread `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> [$2, $3::2*]` (drop the semantically-irrelevant `comma`; emit a clean flat `macro_formal` list — the `object_properties` reference idiom). For input `` `define M(a, b, c) a+b+c `` `pp_define.formals` was the raw `{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}` envelope; it is now the clean list `[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]` of `macro_formal` `{name, default}` objects. No `<invalid_sequence_access>` (this is a clean Category-A shape improvement, **not** the inline-alternation-`$N` corruption class of `SVPP-0001`). Surface counts **unchanged** (66 annotations / 28 distinct rules): `macro_formals` is still one rule / one annotation — only its `annotation_type` changed `return_object` → `return_array` and `normalized_text` `{first: $2, rest: $3}` → `[$2, $3::2*]`, so the surface is now **65 `return_object` + 1 `return_array`** (was all 66 `return_object`). Same accept set (no grammar acceptance change — only the annotation form). Gate-locked. |
+| 3 | 1.0.3 (also spans 1.0.4) | **`1.0.4` addendum — `SVPP-0002` macro-comment correctness fix (schema-neutral, non-breaking).** `macro_default_text` / `macro_body_text` were `:= inline_trivia /[^`(),?:\r\n]+/` — the content regex was **not comment-aware**, greedily eating a `/*` then halting at a backtick *inside* the `block_comment`, so valid SystemVerilog with a backtick inside a comment in a macro body / function-macro default (e.g. `` `define X a /*`*/ ``) was wrongly rejected at `1.0.3`. Fixed in `1.0.4` by making both rules comment-aware (`/(?:\/\*([^*]\|\*+[^*\/])*\*+\/\|[^`(),?:\r\n])+/` — the proven `systemverilog.ebnf` `timeunit_separator_trivia`/`block_comment` idiom): a `/* … */` comment is matched atomically (its internal backtick no longer splits the run); the unchanged `[^`(),?:\r\n]` branch still excludes a bare backtick. **No schema bump**: the rules are un-annotated, the annotation inventory is unchanged (66/28), and every input that parsed at `1.0.3` yields a byte-identical AST at `1.0.4` — only previously-*erroring* inputs now succeed with the standard `{kind:"text", body:$1}` shape (strictly more permissive). Tracked `SVPP-0002` (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`); locked by the `macro_body_comment_backtick` sample in `systemverilog_preprocessor_v1.json`. **`1.0.3` (original schema-`3` change — `macro_formals` Category-A AST-shape correction, POST-SV-AUDIT, consumer-visible):** `macro_formals` no longer exposes the raw `{first, rest}` iteration envelope — the POST-SV-AUDIT.2.1 audit (`PGEN-POST-SV-AUDIT-0002`) found `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> {first: $2, rest: $3}` was a static-conclusive Category-A raw-envelope misuse: `rest` surfaced the raw `[[comma, macro_formal], …]` separator envelope, forcing every consumer to walk past the `comma` separator. Corrected to the canonical extraction-spread `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> [$2, $3::2*]` (drop the semantically-irrelevant `comma`; emit a clean flat `macro_formal` list — the `object_properties` reference idiom). For input `` `define M(a, b, c) a+b+c `` `pp_define.formals` was the raw `{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}` envelope; it is now the clean list `[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]` of `macro_formal` `{name, default}` objects. No `<invalid_sequence_access>` (this is a clean Category-A shape improvement, **not** the inline-alternation-`$N` corruption class of `SVPP-0001`). Surface counts **unchanged** (66 annotations / 28 distinct rules): `macro_formals` is still one rule / one annotation — only its `annotation_type` changed `return_object` → `return_array` and `normalized_text` `{first: $2, rest: $3}` → `[$2, $3::2*]`, so the surface is now **65 `return_object` + 1 `return_array`** (was all 66 `return_object`). Same accept set (no grammar acceptance change — only the annotation form). Gate-locked. |
 | 2 | 1.0.2 | **SVPP-0001 correctness fix (breaking).** `pp_if_branch.keyword` no longer emits the malformed `"<invalid_sequence_access>"` object for `` `ifdef`` / `` `ifndef`` conditional input. The inline alternation `(kw_ifdef \| kw_ifndef)` that was the lead element of `pp_if_branch` (and corrupted the positional model so the bare `keyword: $1` mis-recursed) is lifted into a **named** rule `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} \| kw_ifndef -> {kind: "ifndef"}`, mirroring the proven `systemverilog.ebnf` op-chain / `rtl_const_expr` RTL-CE-Slice-2 idiom. `pp_if_branch`'s annotation is **unchanged** (`{keyword: $1, macro: $2, tail: $3, items: $5}`); only `$1` now binds the clean named rule, so `if_branch.keyword` is now `{kind: "ifdef"}` (or `{kind: "ifndef"}`) — a real typed polarity discriminator. Annotation count `64 → 66` (the 2 new `pp_if_keyword` `return_object` branches); distinct rules `27 → 28` (the new `pp_if_keyword`). All annotations remain `return_object`. Same accept set (no grammar acceptance change — purely the alternation lift + its 2 branch annotations). Gate-locked. |
 | 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline. pp_item dispatch (10 kinds), 7 directive shapes (define/undef/include/timescale/default_nettype/celldefine/endcelldefine), include_path/nettype_value/time_literal, conditional-compilation tree (5 nodes), condition_expr/condition_atom (12 kinds), macro_formals/formal/default_value/default_atom (8 kinds) / body/body_fragment (9 kinds), passthrough lines. **NOTE:** the `pp_if_branch.keyword` shape in this baseline was defective (`SVPP-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation) — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/systemverilog_preprocessor.ebnf`) with the `systemverilog_preprocessor_file -> {type, items}` root only. AST dump is the recursive-envelope shape across all other rules. |
@@ -68,6 +68,48 @@ The systemverilog_preprocessor parser carries two version axes:
   (status `Released`) in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
   (`SVPP-0001`). Documented in
   [the conditional worked example](../systemverilog_preprocessor_parser_book/src/examples-conditional.md).
+
+## Resolved Defects — `SVPP-0002` (fixed in release 1.0.4, schema unchanged 3)
+
+- **`SVPP-0002` — macro body / default-value content rules were not
+  comment-aware; valid SystemVerilog with a backtick inside a block
+  comment in a macro body or function-macro default was wrongly
+  rejected (`Released`, fixed in parser release `1.0.4`, AST-dump
+  schema **unchanged** `3`).**
+  *Historical (releases `1.0.1`–`1.0.3`):* `macro_default_text` and
+  `macro_body_text` were `:= inline_trivia /[^`(),?:\r\n]+/`. That
+  content regex excludes a backtick **and is not comment-aware**, so
+  it greedily consumed a comment's opening `/*` then halted at a
+  backtick *inside* the `block_comment`, splitting it; nothing could
+  resume at the dangling `` `*/ ``, so `macro_body+` /
+  `macro_default_value+` ended short and `pp_define` could not reach
+  `newline`. Repro (against `1.0.3`):
+  `printf '`define X a /*`*/\n' | parseability_probe --parse
+  systemverilog_preprocessor /dev/stdin` → "Parser did not consume
+  full input". The byte-identical input without the backtick parsed;
+  the defect did not reproduce outside the macro body/default region.
+  A comment is lexically transparent, so this was **valid SV wrongly
+  rejected**. Pre-existing (the rules predate `SVPP-0001` /
+  POST-SV-AUDIT.2.1; not campaign-caused — proven generatively inert
+  by `PGEN-SV-EXH-PROOF-0005`/`-0006`); surfaced by the SV-EXH-PROOF.2.3
+  preprocessor closed-loop.
+  *Fixed (`1.0.4`):* both rules made comment-aware —
+  `/(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:\r\n])+/` (the proven
+  `systemverilog.ebnf` `timeunit_separator_trivia` / `block_comment`
+  idiom, no lookahead). A `/* … */` comment is matched **atomically**
+  by the leading alternative; the unchanged `[^`(),?:\r\n]` branch
+  still excludes a bare backtick (so `macro_token_paste` /
+  `macro_stringize` / `macro_reference` still split real
+  `` ` ``-tokens). Accepts strictly more, narrows nothing; the rules
+  are un-annotated so the annotation inventory is unchanged (`66`/`28`)
+  and every previously-parseable input yields a byte-identical AST —
+  hence **no schema bump** (schema `3` spans `1.0.3`–`1.0.4`). Tracked
+  (status `Released`) in
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0002`);
+  locked by the `macro_body_comment_backtick` sample in
+  `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
+  and `make -C rust SHELL=/opt/homebrew/bin/bash
+  systemverilog_preprocessor_parser_book_gate`.
 
 ## AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT) — `macro_formals` Category-A raw-envelope → clean list; schema 2 → 3
 

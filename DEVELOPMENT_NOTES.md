@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-18 - SV-EXH-PROOF.2.3.1 — the macro-comment grammar fix; "release bump, no schema bump"; stale-artifact discipline (PGEN-SV-EXH-PROOF-0008)
+
+The pinned pre-existing grammar bug (`SVPP-0002`) is fixed:
+`macro_default_text`/`macro_body_text` made comment-aware via the
+proven `systemverilog.ebnf` `timeunit_separator_trivia`/`block_comment`
+idiom (ordered alternation matches a whole block comment before the
+char-class; no lookahead — none is supported, confirmed by surveying
+all `.ebnf`).
+
+### Three carry-forward lessons
+1. **Stale-artifact discipline.** The first AFTER-probe showed the
+   reproducers still failing. The faithful move was *not* "the fix is
+   wrong" but "verify the probe actually used the regenerated parser":
+   mtime + embedded-regex inspection proved the regen had **errored**
+   (`ast_pipeline --generate-parser` for EBNF input needs
+   `--features ebnf_dual_run`, which the gates pass and I had omitted).
+   The fix was never tested. Re-run correctly → all green. *Never
+   conclude a fix failed without confirming the artifact under test is
+   the fixed one.*
+2. **"Release bump, no schema bump" is a real, distinct category.**
+   `SVPP-0002` is a strictly-more-permissive correctness fix: every
+   input that parsed at `1.0.3` yields a byte-identical AST at
+   `1.0.4`; only previously-*erroring* inputs now succeed (standard
+   `{kind,body}` shape). Unlike `SVPP-0001`/the POST-SV-AUDIT
+   `macro_formals` fix (which restructured observable output → schema
+   bump), this changes no observable shape, so release `1.0.3`→`1.0.4`
+   with **schema unchanged `3`** (schema 3 spans both). The
+   un-annotated nature of the touched rules (inventory unchanged
+   66/28) is the tell. The book/contract now document this category
+   explicitly (the "do not trigger a schema bump" list gained a
+   "strictly-more-permissive correctness fix" bullet).
+3. **A fix can be correct and complete-for-its-class yet leave the
+   umbrella red — say so.** `.2.3.1` removed the
+   valid-SV-wrongly-rejected class (`parser_rejections` 3→2). The
+   remaining 2 are a *different* disposition: `/****/\`` is
+   **genuinely-invalid** SV (bare dangling backtick) the parser
+   *correctly* rejects — closed-loop **generator over-generation**, a
+   generator-side asymmetry, NOT a parser/grammar bug. It gets its own
+   sub-leaf `.2.3.2` (constrain the generator; never loosen `==0`;
+   never bug-ledger it — it is not a parser defect). The honest
+   discriminator throughout `.2.3`: *is the rejected input valid SV?*
+   Yes → grammar bug (fix grammar, bug-ledger). No → generator
+   over-generation (fix/constrain generator, no ledger).
+
 ## 2026-05-17 - SV-EXH-PROOF.2.3 root cause PINNED — delta-debug beats successive theories (PGEN-SV-EXH-PROOF-0007)
 
 `.2.3` went through three causal theories this session: "trio-port"

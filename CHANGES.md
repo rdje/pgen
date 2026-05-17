@@ -1,4 +1,68 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0008 (leaf SV-EXH-PROOF.2.3.1): SVPP-0002 — macro body/default content rules made comment-aware (release 1.0.4, AST-dump schema unchanged 3)
+
+- **Grammar fix (`grammars/systemverilog_preprocessor.ebnf`,
+  leaf-owned).** `macro_default_text` and `macro_body_text` were
+  `:= inline_trivia /[^`(),?:\r\n]+/`. The content regex excludes a
+  backtick **and is not comment-aware**, so it greedily consumed a
+  comment's opening `/*` then halted at a backtick *inside* the
+  `block_comment`, splitting it — so valid SystemVerilog with a
+  backtick inside a block comment in a macro body / function-macro
+  default (e.g. `` `define X a /*`*/ ``, `` `define X(a=/*`*/) y ``)
+  was **wrongly rejected** at releases `1.0.1`–`1.0.3`. Both rules are
+  now comment-aware:
+  `/(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:\r\n])+/` — the proven
+  `systemverilog.ebnf` `timeunit_separator_trivia` / `block_comment`
+  idiom (no lookahead): a `/* … */` comment is matched **atomically**
+  by the leading alternative (its internal backtick no longer splits
+  the run); the unchanged `[^`(),?:\r\n]` branch still excludes a bare
+  backtick (so `macro_token_paste`/`macro_stringize`/`macro_reference`
+  still split real `` ` ``-tokens, and a genuinely-invalid bare
+  backtick is still correctly rejected). Accepts strictly more,
+  narrows nothing.
+- **Released-parser bug `SVPP-0002`** (consumer-reproducible: valid SV
+  rejected at `1.0.3`) added to
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`. **Pre-existing**
+  (the `macro_*_text` + `block_comment` rules predate the
+  SVPP-0001/POST-SV-AUDIT.2.1 edits; `PGEN-SV-EXH-PROOF-0005`/`-0006`
+  proved the campaign grammar edits generatively inert) — the
+  SV-EXH-PROOF.2.3 closed-loop merely surfaced it.
+- **Release/contract `1.0.3` → `1.0.4`; AST-dump schema UNCHANGED
+  `3`.** The two rules are un-annotated → annotation inventory
+  unchanged (66/28); the `{kind:"text", body:$1}` shape of every
+  previously-parseable input is byte-identical; only previously
+  -*erroring* inputs now succeed (with that standard shape). This is
+  the canonical "release bump, no schema bump" case (strictly more
+  permissive, non-breaking).
+- **Verified (not on assumed success).** A first regen attempt left a
+  stale parser (regen needs `--features ebnf_dual_run`); caught by
+  mtime/embedded-regex verification, **not** mistaken for a failed
+  fix — re-run correctly. Then: 4 minimal reproducers + a multi-formal
+  variant PASS; 16 controls/regression unchanged; negative bare
+  -backtick still correctly FAILS; `--parse-dump-ast-pretty` yields
+  the standard `{kind:"text", body:[<trivia>,<text>]}` with zero
+  `<invalid_sequence_access>`; end-to-end
+  `sv_preprocessor_zero_plausible_gap_proof_gate`
+  `parser_rejections_total` **3 → 2** with **no**
+  syntax-closure/aggregate/reachability regression
+  (`observed_unreachable_rules=["trivia"]` ⊆ allowed).
+- **Full lockstep:** shape-contract `macro_body_comment_backtick`
+  sample (`systemverilog_preprocessor_v1.json`); contract Identity +
+  schema-versioning table + new "Resolved Defects — `SVPP-0002`"
+  section (release `1.0.4`); per-parser book `schema-versioning.md` +
+  `changelog-index.md` (release `1.0.4`, schema-neutral, with the
+  concrete post-fix AST example); tree (`.2.3.1` done, `.2.3.2` added)
+  + DEVELOPMENT_NOTES + LIVE + memory.
+- **Honest scope — `.2` still not green.** `.2.3.1` fixed the
+  valid-SV-wrongly-rejected class. The 2 remaining preprocessor
+  closed-loop self-rejections (minimal `/****/\``) are a **distinct
+  non-bug disposition**: a bare dangling backtick is **genuinely
+  invalid** SV the parser *correctly* rejects → **closed-loop
+  generator over-generation** (a generator-side asymmetry, NOT a
+  parser/grammar bug). Tracked as new sub-leaf `SV-EXH-PROOF.2.3.2`
+  (constrain the generator, all-lanes-safe; never loosen the `==0`
+  precondition; deliberately **not** bug-ledger'd).
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0007 (leaf SV-EXH-PROOF.2.3 root cause PINNED): a pre-existing grammar bug — macro body/default content regex is not comment-aware (docs-only)
 
 - Empirical delta-debugging of the smallest failing closed-loop
