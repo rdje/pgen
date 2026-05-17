@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0001 (leaf SV-EXH-PROOF re-scope): empirical audit falsified the preprocessor-trio-port hypothesis — re-decomposed to the real gap (docs/workflow-only)
+
+- **`SV-EXH-PROOF` re-scoped from checked-in ground truth.** A
+  pre-implementation audit of the SV proof stack falsified the
+  initial hypothesis (port the `systemverilog_preprocessor`
+  reachability/syntax/zero-plausible-gap trio):
+  - SV **already has** `sv_syntax_closure_gate.sh` +
+    `systemverilog_syntax_closure_contract.json`
+    (`max_unreachable_rules: 1`, `max_unreachable_branches: 25`) —
+    static syntax-closure is essentially closed and already consumed
+    by `sv_parser_family_status_gate`. It is a no-regression baseline,
+    not a leaf.
+  - SV's own `systemverilog_formal_exhaustive_closure_contract.json`
+    names the precise gap: `required_surface_key ==
+    "external_corpus_backed_proof_surface"`, reported MISSING; the
+    gate validates exactly that key
+    (`sv_formal_exhaustive_closure_gate.sh:91-93`) and the
+    family-status gate surfaces criterion
+    `formal_exhaustive_closure_surface_green`.
+  - **Conclusion:** the single primary unmet closure criterion is the
+    missing `external_corpus_backed_proof_surface` (a checked-in,
+    deterministic, repeatable external-corpus-backed proof sidecar
+    promoting `sv_external_corpus_triage_gate` bounded discovery into
+    a formal closure claim), not the trio.
+- Tree re-decomposed: `.1` measured baseline + scope lock → `.2`
+  build the external-corpus-backed proof surface sidecar/contract →
+  `.3` wire it into the formal-exhaustive contract/gate +
+  family-status + telemetry → `.4` LIVE `Done` flip + book/contract
+  lockstep + closeout. Frontier `.1`. Honest auditable re-scope
+  recorded *before any code leaf* (Decisions + Verification log in
+  [docs/tasks/SV-EXH-PROOF.md](docs/tasks/SV-EXH-PROOF.md)).
+- PNT-eligible engineering judgement: the user fixed the *workstream*;
+  correct decomposition is the implementer's call and the ground
+  truth is unambiguous + self-documenting via SV's own contract. No
+  code changed in this re-scope slice (tree + TASK_TREE + live-docs +
+  memory only) — Code-Change-Doctrine-compliant precursor.
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0000 (leaf SV-EXH-PROOF setup): activate the main-SV formally-exhaustive closure-proof task tree (docs/workflow-only)
 
 - **New active task tree `SV-EXH-PROOF`** — user-selected from the

@@ -67,18 +67,22 @@ complete (`2026-05-16`→`17`); `DOC-ENVELOPE-0001` (5 books),
 and `POST-SV-AUDIT` (TaskList #49 holistic AST-shape audit,
 `2026-05-17`) are likewise done. On `2026-05-17` the user selected the
 largest open parser-family debt from the post-`POST-SV-AUDIT`
-strategic fork, and **`SV-EXH-PROOF`** was created + **activated**: a
-formally-exhaustive, machine-checkable closure proof for
-`grammars/systemverilog.ebnf` itself, mirroring the proven
-sv_preprocessor exhaustive-closure pattern, to re-earn `Done` for the
-SV main-parser family under the strict live-tracker doctrine. See
+strategic fork, and **`SV-EXH-PROOF`** was created + **activated**, then
+**re-scoped from a checked-in empirical audit** (`PGEN-SV-EXH-PROOF-0001`):
+the initial preprocessor-trio-port hypothesis was falsified — SV
+already has the static syntax-closure surface; SV's own
+`systemverilog_formal_exhaustive_closure_contract.json` names the sole
+gap as the missing **`external_corpus_backed_proof_surface`**. The
+tree now closes that single primary unmet closure criterion to
+re-earn `Done` for the SV main-parser family under the strict
+live-tracker doctrine. See
 `LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot and the other
 roadmap-level workstreams (which require user prioritization — they
 are large multi-week efforts, not bounded PNT slices).
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.1` — build `sv_reachability_closure_gate.sh` + contract; emit SV reachability sidecar; quantify the gap | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
+| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.1` — deterministic measured baseline of the 4 existing gates locking the honest scope (SV static syntax-closure already closed; sole gap = the missing `external_corpus_backed_proof_surface`) | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
 
 ## Proposed Task Trees
 

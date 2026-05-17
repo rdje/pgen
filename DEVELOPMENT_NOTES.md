@@ -1,4 +1,54 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF RE-SCOPED — preprocessor-trio-port hypothesis falsified by checked-in ground truth (PGEN-SV-EXH-PROOF-0001)
+
+### Correction to the entry below
+The `0000` entry (immediately following) scoped SV-EXH-PROOF as "a
+disciplined port of a proven design" — the `systemverilog_preprocessor`
+reachability/syntax/zero-plausible-gap trio. A pre-implementation
+audit of the actual SV proof stack **falsified that** before any code
+was written:
+
+- SV **already has** the static syntax-closure surface:
+  `sv_syntax_closure_gate.sh` (shared engine) +
+  `systemverilog_syntax_closure_contract.json`
+  (`max_unreachable_rules: 1`, `max_unreachable_branches: 25`),
+  already consumed by `sv_parser_family_status_gate.sh` (reads
+  `.metrics.unreachable_rules/branches`). The "build the SV
+  reachability/syntax/zero-gap trio" framing was wrong: the trio is a
+  no-regression baseline, not the debt.
+- SV's *own* `systemverilog_formal_exhaustive_closure_contract.json`
+  is a different design than the preprocessor's: a family-status
+  gating contract whose `required_surface_key` is literally
+  `"external_corpus_backed_proof_surface"`, with
+  `required_surface_missing_detail` stating SV "still lacks an
+  explicit checked-in external corpus-backed proof surface sidecar."
+  `sv_formal_exhaustive_closure_gate.sh:91-93` validates exactly that
+  key; `sv_parser_family_status_gate.sh:311` surfaces criterion
+  `formal_exhaustive_closure_surface_green`.
+
+### The real, honest scope
+SV's `Done` has a **single primary unmet closure criterion**: the
+missing `external_corpus_backed_proof_surface` — a checked-in,
+deterministic, repeatable external-corpus-backed proof sidecar that
+promotes the bounded `sv_external_corpus_triage_gate` debt-discovery
+surface into a formal exhaustive-closure claim (every declared corpus
+case executed, zero blocked, every parse-fail dispositioned — closed
+or honestly justified-bounded). This matches the LIVE "Left To Close"
+verbatim ("promote the new external SV/UVM corpus triage surface from
+bounded debt discovery into broader repeatable realistic-corpus proof
+stages").
+
+### Carry-forward principle (the actual lesson)
+**Audit the checked-in proof stack against the family's own contract
+before decomposing — do not assume a sibling family's pattern
+transfers.** The preprocessor crossed via a static zero-gap pocket
+proof; SV's contract demands an external-corpus-backed surface. The
+re-scope was recorded honestly (tree Decisions + Verification log,
+CHANGES, this note) *before any code leaf* — the disciplined
+task-tree practice the Code-Change Doctrine exists to enforce. This is
+PNT-eligible: the user fixed the workstream; correct decomposition is
+the implementer's call when ground truth is unambiguous.
+
 ## 2026-05-17 - SV-EXH-PROOF activated — the last open parser-family proof debt, scoped from the proven sv_preprocessor pattern (PGEN-SV-EXH-PROOF-0000)
 
 ### Direction
