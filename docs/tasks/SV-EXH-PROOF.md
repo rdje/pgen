@@ -85,9 +85,17 @@ literal over a failing surface.
   Commit: `PGEN-SV-EXH-PROOF-0004`
 
 - ID: `SV-EXH-PROOF.2.3`
+  Status: `active` (parent — root cause pinned `-0007`; fix = sub-leaf `.2.3.1`)
+  Goal: `(A4) The preprocessor zero-plausible-gap proof verdict is red on "Aggregate preconditions regressed: parseability_parser_rejections_total=3" (hard ==0 requirement, sv_preprocessor_zero_plausible_gap_proof_gate.sh:234) — the closed-loop generates 3 directive stimuli the preprocessor grammar self-rejects ("Parser did not consume full input"; shrunk repro for all 3 = a bare backtick "\`", which the grammar correctly rejects: non_directive_text excludes "\`" and no rule accepts a lone backtick → a generator⊋parser asymmetry). **Premise correction (PGEN-SV-EXH-PROOF-0005): NOT campaign-caused.** The exact diffs of a5da52f4 (SVPP-0001) and 7228231b (POST-SV-AUDIT.2.1) are generatively INERT — a5da52f4 lifts (kw_ifdef|kw_ifndef) into the structurally-equivalent named rule pp_if_keyword (identical generated/parsed language); 7228231b changes ONLY the macro_formals -> annotation ({first,rest} -> [$2,$3::2*]), the production is unchanged. The earlier "genuine campaign-caused round-trip regression / was 0 at preproc Done 2026-04-01" was an UNVERIFIED inference now falsified. **Root-cause class established (PGEN-SV-EXH-PROOF-0006, evidence-grounded):** the ==0 precondition was added in a single commit 4d5b2d27 "Close SV preprocessor proof surface" (= the gate that crossed the preprocessor to Done 2026-04-01; gate file unchanged since); pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif (recursive pp_item* in branches) is structurally UNCHANGED by the campaign; but stimuli_generator.rs has 24 commits since 2026-04-01 (e.g. d0a4f405 "restore recovery + probability semantics", 110b7a2f "enable OR-root probe overrides"). So the 0->3 move is **non-grammar stimuli-generator semantics drift**, manifesting as the closed-loop over-generating unbalanced/ill-formed pp_conditional (e.g. an ifdef-family branch without a reparseable matching pp_endif; failure at the directive backtick because pp_item* cannot consume an unclosable pp_conditional) which the parser correctly rejects — a generator⊋parser asymmetry, NOT a grammar/campaign defect. **ROOT CAUSE PINNED (PGEN-SV-EXH-PROOF-0007, decisive minimal reproducer):** the "unbalanced pp_conditional" framing was itself superseded by empirical delta-debugging. Minimal reproducers: ``\`define X a /*\`*/`` and ``\`define X(a=/*\`*/) y`` FAIL ("Parser did not consume full input"); the byte-identical inputs WITHOUT the backtick PASS; it does NOT repro outside the macro body/default region (``\`celldefine /*x\`y*/``, ``module m; /*x\`y*/ endmodule`` both pass). Mechanism: macro_body_text / macro_default_text := `inline_trivia /[^\`(),?:\r\n]+/` — the content regex **excludes the backtick and is not comment-aware**, so it greedily swallows a comment's opening `/*` then halts at a backtick INSIDE the block_comment, splitting it; no macro_*_fragment can resume at the dangling `` \`*/ `` (token_paste needs ``\`\``, stringize ``\`"``, bt_identifier ``\`ident``, and the text regex / inline_trivia both can't start on a bare `` \` ``), so macro_body+/macro_default_value+ ends short and pp_define cannot reach newline → full input not consumed. A macro body/default containing a block comment with a backtick is **valid SystemVerilog wrongly rejected** — a genuine, **pre-existing** grammar defect (the macro_*_text + block_comment rules predate the campaign; consistent with -0005/-0006 "NOT campaign-caused"; the generator-semantics drift since 4d5b2d27 merely started exercising it). Consumer-reproducible ⇒ candidate PGEN_RELEASED_PARSER_BUG_LEDGER row. Fix = grammar-harden (own sub-leaf .2.3.1; NEVER loosen the ==0 precondition).`
+  Acceptance: `parseability_parser_rejections_total=0 in the preprocessor closed-loop; sv_preprocessor_zero_plausible_gap_proof_gate verdict GREEN; root cause honestly fixed (grammar), not masked.`
+  Children: `SV-EXH-PROOF.2.3.1`
+  Verification: `root cause pinned 2026-05-17 (see Verification Log .2.3 root-cause-pinned)`
+  Commit: `PGEN-SV-EXH-PROOF-0007 (root-cause checkpoint)`
+
+- ID: `SV-EXH-PROOF.2.3.1`
   Status: `pending`
-  Goal: `(A4) The preprocessor zero-plausible-gap proof verdict is red on "Aggregate preconditions regressed: parseability_parser_rejections_total=3" (hard ==0 requirement, sv_preprocessor_zero_plausible_gap_proof_gate.sh:234) — the closed-loop generates 3 directive stimuli the preprocessor grammar self-rejects ("Parser did not consume full input"; shrunk repro for all 3 = a bare backtick "\`", which the grammar correctly rejects: non_directive_text excludes "\`" and no rule accepts a lone backtick → a generator⊋parser asymmetry). **Premise correction (PGEN-SV-EXH-PROOF-0005): NOT campaign-caused.** The exact diffs of a5da52f4 (SVPP-0001) and 7228231b (POST-SV-AUDIT.2.1) are generatively INERT — a5da52f4 lifts (kw_ifdef|kw_ifndef) into the structurally-equivalent named rule pp_if_keyword (identical generated/parsed language); 7228231b changes ONLY the macro_formals -> annotation ({first,rest} -> [$2,$3::2*]), the production is unchanged. The earlier "genuine campaign-caused round-trip regression / was 0 at preproc Done 2026-04-01" was an UNVERIFIED inference now falsified. **Root-cause class established (PGEN-SV-EXH-PROOF-0006, evidence-grounded):** the ==0 precondition was added in a single commit 4d5b2d27 "Close SV preprocessor proof surface" (= the gate that crossed the preprocessor to Done 2026-04-01; gate file unchanged since); pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif (recursive pp_item* in branches) is structurally UNCHANGED by the campaign; but stimuli_generator.rs has 24 commits since 2026-04-01 (e.g. d0a4f405 "restore recovery + probability semantics", 110b7a2f "enable OR-root probe overrides"). So the 0->3 move is **non-grammar stimuli-generator semantics drift**, manifesting as the closed-loop over-generating unbalanced/ill-formed pp_conditional (e.g. an ifdef-family branch without a reparseable matching pp_endif; failure at the directive backtick because pp_item* cannot consume an unclosable pp_conditional) which the parser correctly rejects — a generator⊋parser asymmetry, NOT a grammar/campaign defect. Remaining task: pin the exact generator-semantics change (bisect the 24 stimuli_generator commits) and apply the honest fix (constrain closed-loop generation so it emits balanced/reparseable pp_conditional, OR grammar-harden the generative/parsing agreement — NEVER loosen the ==0 precondition to mask a real self-rejection).`
-  Acceptance: `parseability_parser_rejections_total=0 in the preprocessor closed-loop; sv_preprocessor_zero_plausible_gap_proof_gate verdict GREEN (helper_only_unreachable_surface_green=true, zero_plausible_grammar_level_gap_proof_surface=true); root cause of the 0->3 move identified + honestly fixed (no tolerance loosened).`
+  Goal: `Grammar-harden grammars/systemverilog_preprocessor.ebnf so a block_comment containing a backtick is correctly consumed as inline_trivia in the macro body / macro default-value region (the macro_body_text / macro_default_text content-regex / block_comment interaction). Honest fix: valid SV (\`define X a /*\`*/) must parse; no ==0 tolerance loosened. Full Code-Change-Doctrine lockstep: consult annotation docs before any -> change, regen preprocessor parser + frontend JSON + inventory, AFTER-probe verify the minimal reproducers + a non-backtick control, rebuild shape-contract dai + sample, re-run sv_preprocessor_zero_plausible_gap_proof_gate (parser_rejections->0, verdict GREEN) + sv_preprocessor_aggregate/syntax-closure no-regression, PGEN_RELEASED_PARSER_BUG_LEDGER row (consumer-reproducible), contract+book+CHANGES/DEV/LIVE/memory lockstep.`
+  Acceptance: `Minimal reproducers parse; sv_preprocessor_zero_plausible_gap_proof_gate GREEN (parser_rejections_total=0); no regression to preprocessor syntax-closure/aggregate/quality or any other parser-book gate; bug-ledger + full lockstep; schema/release bump per the per-parser convention if AST shape changes.`
   Verification: `pending`
   Commit: `pending`
 
@@ -123,7 +131,7 @@ literal over a failing surface.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-EXH-PROOF.2.3` | `pending` | `.2.1` (A1+A2) + `.2.2` (A3' universe-drift mis-spec) done+verified. `.2.2` let the gate complete, surfacing the next cascade layer: the preprocessor zero-gap proof's `parseability_parser_rejections_total=3` — 3 closed-loop directive stimuli the refactored grammar self-rejects. Genuine campaign-caused round-trip regression; blocks the preprocessor zero-gap proof verdict. |
+| 1 | `SV-EXH-PROOF.2.3.1` | `pending` | `.2.3` root cause **pinned** (`-0007`): a pre-existing grammar bug — `macro_body_text`/`macro_default_text` content regex `/[^\`(),?:\r\n]+/` is not comment-aware → a `block_comment` containing a backtick in the macro body/default region is wrongly rejected (valid SV: ``\`define X a /*\`*/``). `.2.3.1` = the grammar-harden fix (Code-Change-Doctrine sub-leaf, full lockstep + bug-ledger). |
 | 2 | `SV-EXH-PROOF.3` | `pending` | SV-main grammar hardening 0/14 → green + the SV-main closed-loop replay-shadow rejections (Finding A3); the large multi-slice body; needs `.2` so the umbrella can validate progress. |
 | 3 | `SV-EXH-PROOF.4` | `pending` | Build the derived external-corpus-backed proof surface (needs `.3`'s genuinely-green/dispositioned state). |
 | 4 | `SV-EXH-PROOF.5` | `pending` | Wire it into the contract/gate/family-status/telemetry (needs `.4`). |
@@ -227,6 +235,24 @@ literal over a failing surface.
   parser asymmetry), not grammar/campaign. Remaining work: bisect the
   exact generator commit + honest fix. Recorded before remediation
   (test-the-premise discipline).
+- `2026-05-17` (`PGEN-SV-EXH-PROOF-0007`, **`.2.3` root cause
+  PINNED**): empirical delta-debugging of the smallest failing sample
+  superseded even the `-0006` "unbalanced `pp_conditional`" framing.
+  The actual defect: `macro_body_text` / `macro_default_text :=
+  inline_trivia /[^\`(),?:\r\n]+/` is **not comment-aware** — the
+  content regex swallows a `/*` then halts at a backtick inside the
+  `block_comment`, so a macro body/default containing a comment with a
+  backtick (valid SV: ``\`define X a /*\`*/``) is wrongly rejected.
+  Minimal reproducers + byte-identical no-backtick controls confirm
+  it; it does not repro outside the macro region. **Pre-existing
+  grammar bug** (`macro_*_text`/`block_comment` predate the campaign)
+  — fully consistent with `-0005`/`-0006` "NOT campaign-caused"; the
+  generator-semantics drift merely started exercising it.
+  Consumer-reproducible → bug-ledger candidate. Fix = grammar-harden,
+  own sub-leaf `.2.3.1`. (Lesson: delta-debug the smallest real
+  failing artifact to the exact rule before designing the fix; the
+  bisect of the 24 generator commits is now moot — the generator is
+  correctly surfacing a real grammar defect.)
 - `2026-05-17`: **Code-Change Doctrine** — every grammar / contract /
   gate-script change in `.2`–`.6` is leaf-owned (real grammar gaps in
   `.3` split into sub-leaves).
@@ -241,17 +267,16 @@ literal over a failing surface.
   treated as static universe), not a closed-loop defect — corrected
   (true universe pinned on `total_*`; debt non-increasing on
   `reachable_*`); not masked.
-- `.2.3` (root-cause class RESOLVED `-0006`; exact-commit + fix
-  OPEN): not campaign-caused (`-0005`); the 0→3 move is **non-grammar
-  stimuli-generator semantics drift** (24 `stimuli_generator.rs`
-  commits since the `==0` precondition was set at `4d5b2d27` /
-  2026-04-01; `pp_conditional` recursive structure unchanged),
-  manifesting as the closed-loop over-generating unbalanced
-  `pp_conditional` the parser correctly rejects. Remaining: bisect
-  the 24 generator commits to the exact regressing
-  generation-semantics change, then honest fix (constrain generation
-  to balanced/reparseable `pp_conditional`, or grammar-harden the
-  generate/parse agreement; never loosen `==0`).
+- `.2.3` (root cause PINNED `-0007`; fix OPEN as `.2.3.1`): not
+  campaign-caused (`-0005`); not actually about `pp_conditional`
+  balance (`-0006` superseded). Decisive: `macro_body_text` /
+  `macro_default_text`'s content regex is **not comment-aware** →
+  block-comment-with-backtick in the macro body/default region is
+  wrongly rejected (valid SV). Pre-existing grammar bug. The 24-commit
+  generator bisect is **moot** — the generator correctly surfaces a
+  real grammar defect. Remaining: the grammar-harden fix (`.2.3.1`,
+  full Code-Change-Doctrine lockstep + bug-ledger; never loosen
+  `==0`).
 - `.3`: which commit regressed the external-corpus parse surface to
   `0/14` + the SV-main closed-loop replay-shadow (A3)? Triage owned by
   `.3` (not the baseline).
@@ -259,10 +284,10 @@ literal over a failing surface.
 ## Blockers
 
 - `SV-EXH-PROOF.3`–`.6` are blocked on `SV-EXH-PROOF.2` completing
-  (`.2.3` remains: 3 preprocessor closed-loop self-rejected directive
-  stimuli keep the preprocessor zero-gap proof verdict red; SV-main A3
-  separately blocks `sv_parser_family_status_gate` and is owned by
-  `.3`).
+  (`.2.3.1` remains: grammar-harden the macro body/default
+  block-comment-with-backtick defect so the preprocessor zero-gap
+  proof verdict goes green; SV-main A3 separately blocks
+  `sv_parser_family_status_gate` and is owned by `.3`).
 
 ## Verification Log
 
@@ -275,6 +300,7 @@ literal over a failing surface.
 | `2026-05-17` | `SV-EXH-PROOF.2.2` | Root-caused the drift via `stimuli_generator.rs:1567-1733` (`deficit==0 continue` → `reachable_branches` is a burn-down debt count); confirmed per-stage `total_rules=73`/`total_branches=50`/`reachable_rules=72` stage-stable while `covered_branches` 37→47 (burn-down working); git-blamed the equality assertion (`a243bfeb`, generic, calibrated when pre-refactor branch coverage was flat). Replaced mis-spec equality with `total_*` stage-equality + `reachable_*` non-increasing. Re-ran `sv_preprocessor_zero_plausible_gap_proof_gate`: `MAKE_RC=0`, gate completes, drift error gone, `observed_unreachable_rules=["trivia"]` ⊆ allowed; next layer surfaced: `parseability_parser_rejections_total=3` | `pass for .2.2 (mis-spec corrected + true universe strengthened; not masked — verified). `.2` NOT complete — `.2.3` (3 closed-loop self-rejected directive stimuli) remains; honestly recorded` |
 | `2026-05-17` | `SV-EXH-PROOF.2.3` (premise test) | Inspected `git show a5da52f4` + `git show 7228231b` (the only campaign preprocessor edits): a5da52f4 = structurally-equivalent inline-alt→named-rule lift (identical language); 7228231b = `->` annotation-only change (production unchanged). Probe-confirmed bare `` ` `` is correctly rejected (`Parser did not consume full input at position 0`). Read `sv_preprocessor_zero_plausible_gap_proof_gate.sh:234` (hard `==0`, no baseline) | `premise FALSIFIED — campaign grammar edits generatively inert; `.2.3` is NOT a campaign grammar regression. Re-characterized (root cause = non-grammar pipeline change or pre-existing seed-sensitive asymmetry; deep bisect next). No code; honest correction before proceeding` |
 | `2026-05-17` | `SV-EXH-PROOF.2.3` (root-cause class) | `git log -S` on the `==0` precondition → single commit `4d5b2d27` (= preproc-Done 2026-04-01, gate unchanged since); `pp_conditional`/`pp_if_branch` recursive structure campaign-unchanged; `git log --since=2026-04-01 stimuli_generator.rs` → 24 commits; failing sample fails at the directive backtick (pos 18 = `ifdef` start) = `pp_item*` cannot consume an unclosable `pp_conditional` | `root-cause CLASS established: non-grammar stimuli-generator semantics drift over-generating unbalanced `pp_conditional` (generator⊋parser asymmetry), NOT grammar/campaign. Exact-commit bisect + honest fix remain. No code; evidence-grounded resolution of the `-0005` open question` |
+| `2026-05-17` | `SV-EXH-PROOF.2.3` (root cause PINNED) | Delta-debugged the smallest failing sample (312B) → 151B; isolated to a `\`define` macro; hand-minimized to ``\`define X a /*\`*/`` FAIL vs ``\`define X a /*c*/`` PASS (byte-identical sans backtick), ``\`define X(a=/*\`*/) y`` FAIL vs ``\`define X(a=/*c*/) y`` PASS; control: backtick-in-comment outside macro region (``\`celldefine /*x\`y*/``, `module m; /*x\`y*/ endmodule`) PASS. Read grammar: `macro_body_text`/`macro_default_text := inline_trivia /[^\`(),?:\r\n]+/` (backtick-excluding, not comment-aware); `block_comment` predates the campaign | `ROOT CAUSE PINNED — a genuine PRE-EXISTING grammar bug: the macro body/default content regex is not comment-aware → block-comment-with-backtick wrongly rejected (valid SV). Supersedes the `-0006` "unbalanced pp_conditional" framing; generator bisect moot (generator correctly surfaces a real grammar defect). Consistent with -0005/-0006 (not campaign-caused). Fix = grammar-harden sub-leaf `.2.3.1`. No code in this checkpoint` |
 
 ## Commit Log
 
@@ -287,6 +313,7 @@ literal over a failing surface.
 | `SV-EXH-PROOF.2.2` | `PGEN-SV-EXH-PROOF-0004` | A3' reachable-branch-universe-drift = mis-specified gate invariant (burn-down metric treated as static universe); corrected (`total_*` stage-equality strengthened + `reachable_*` non-increasing), verified `MAKE_RC=0`/not masked; `.2` split adds `.2.3` (A4 — 3 closed-loop self-rejected directive stimuli, new frontier) |
 | `SV-EXH-PROOF.2.3` (premise correction) | `PGEN-SV-EXH-PROOF-0005` | exact campaign diffs prove a5da52f4/7228231b generatively inert → `.2.3` is NOT a campaign grammar regression; re-characterized (root cause = non-grammar pipeline / pre-existing seed-sensitive asymmetry; bisect next). Docs-only honest correction; frontier stays `.2.3` |
 | `SV-EXH-PROOF.2.3` (root-cause class) | `PGEN-SV-EXH-PROOF-0006` | history evidence resolves `-0005`'s open question: 0→3 = non-grammar stimuli-generator semantics drift (24 commits since `4d5b2d27`/2026-04-01) over-generating unbalanced `pp_conditional`; exact-commit bisect + honest fix remain. Docs-only diagnostic checkpoint; frontier stays `.2.3` |
+| `SV-EXH-PROOF.2.3` (root cause PINNED) | `PGEN-SV-EXH-PROOF-0007` | delta-debugged to the exact pre-existing grammar bug: `macro_body_text`/`macro_default_text` content regex not comment-aware → block-comment-with-backtick in macro body/default wrongly rejected (valid SV). Supersedes `-0006` framing; generator bisect moot. `.2.3` → parent; fix = sub-leaf `.2.3.1`. Docs-only; frontier → `.2.3.1` |
 
 ## Changelog
 
@@ -349,3 +376,17 @@ literal over a failing surface.
   because `pp_item*` cannot consume an unclosable conditional) — a
   generator⊋parser asymmetry, not a grammar/campaign defect. Exact
   generator-commit bisect + honest fix remain; frontier stays `.2.3`.
+- `2026-05-17`: **`.2.3` root cause PINNED (no code).** Empirical
+  delta-debugging of the smallest failing sample superseded the
+  `-0006` "unbalanced `pp_conditional`" framing. The real, **pre
+  -existing** grammar bug: `macro_body_text` / `macro_default_text :=
+  inline_trivia /[^\`(),?:\r\n]+/` is not comment-aware → it swallows
+  a `/*` then halts at a backtick inside the `block_comment`, so a
+  macro body/default containing a comment with a backtick (valid SV:
+  ``\`define X a /*\`*/``) is wrongly rejected. Minimal reproducers +
+  byte-identical no-backtick controls + an out-of-macro-region
+  control confirm it. Consistent with `-0005`/`-0006` (not
+  campaign-caused); the generator bisect is moot (the generator
+  correctly surfaces a real grammar defect). `.2.3` → parent; the
+  grammar-harden fix is sub-leaf `.2.3.1` (full Code-Change-Doctrine
+  lockstep + bug-ledger). Frontier → `.2.3.1`.

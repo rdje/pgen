@@ -1,4 +1,41 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0007 (leaf SV-EXH-PROOF.2.3 root cause PINNED): a pre-existing grammar bug — macro body/default content regex is not comment-aware (docs-only)
+
+- Empirical delta-debugging of the smallest failing closed-loop
+  sample (312B → 151B → minimal) **pinned the exact defect**, and it
+  supersedes the `-0006` "unbalanced `pp_conditional`" framing:
+  - `` `define X a /*`*/ `` and `` `define X(a=/*`*/) y `` **FAIL**
+    ("Parser did not consume full input"); the **byte-identical
+    inputs without the backtick PASS**; backtick-in-comment **outside**
+    the macro region (`` `celldefine /*x`y*/ ``,
+    `module m; /*x`y*/ endmodule`) PASSES.
+  - Mechanism: `macro_body_text` / `macro_default_text :=
+    inline_trivia /[^`(),?:\r\n]+/` — the content regex **excludes
+    the backtick and is not comment-aware**, so it greedily swallows a
+    comment's opening `/*` then halts at a backtick *inside* the
+    `block_comment`, splitting it; no `macro_*_fragment` can resume at
+    the dangling `` `*/ `` → `macro_body+`/`macro_default_value+` ends
+    short and `pp_define` cannot reach `newline` → full input not
+    consumed.
+  - A macro body/default containing a `/* … ` … */` comment is
+    **valid SystemVerilog wrongly rejected** — a genuine,
+    **pre-existing** grammar defect (`macro_*_text` + `block_comment`
+    predate the campaign). Fully consistent with `-0005`/`-0006`
+    (NOT campaign-caused); the generator-semantics drift merely began
+    exercising it. The 24-commit generator bisect is now **moot** —
+    the closed-loop is correctly surfacing a real grammar bug.
+- Consumer-reproducible ⇒ PGEN_RELEASED_PARSER_BUG_LEDGER candidate.
+  `.2.3` → parent; the grammar-harden fix is the new sub-leaf
+  **`.2.3.1`** (frontier) with full Code-Change-Doctrine lockstep
+  (annotation-doc consult, regen, AFTER-probe, shape-contract, book,
+  bug-ledger, zero-gap re-verify + no-regression). Docs-only
+  root-cause checkpoint; no code; tree/live-docs/memory lockstepped.
+- Carry-forward: delta-debug the smallest real failing artifact to
+  the exact rule **before** designing a fix — it converted three
+  successive mischaracterizations ("trio port" → "unbalanced
+  pp_conditional" → the real macro-comment regex bug) into a pinned
+  root cause with a one-line reproducer.
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0006 (leaf SV-EXH-PROOF.2.3 root-cause class): the preprocessor parser_rejections 0→3 is non-grammar stimuli-generator semantics drift (docs-only)
 
 - Also (this turn, no commit needed): **all generated parser mdBooks

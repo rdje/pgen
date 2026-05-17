@@ -1,4 +1,51 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF.2.3 root cause PINNED — delta-debug beats successive theories (PGEN-SV-EXH-PROOF-0007)
+
+`.2.3` went through three causal theories this session: "trio-port"
+(`-0001`, falsified) → "campaign-caused round-trip regression"
+(`-0005`, falsified) → "non-grammar generator over-generates
+unbalanced `pp_conditional`" (`-0006`, root-cause *class*). All three
+were plausible and history-grounded — and **delta-debugging the
+smallest real failing artifact through the actual parser** beat all
+of them to the truth in one focused pass:
+
+- Extract the smallest of the 3 failing samples (312B), shrink
+  through the probe to 151B, isolate to a `\`define` macro, then
+  hand-bisect to a one-line reproducer:
+  - ``\`define X a /*\`*/`` FAILS · ``\`define X a /*c*/`` PASSES
+    (byte-identical sans backtick)
+  - ``\`define X(a=/*\`*/) y`` FAILS · `…/*c*/…` PASSES
+  - ``\`celldefine /*x\`y*/``, `module m; /*x\`y*/ endmodule` PASS
+    (not the lexer/global comment handling — macro-region-specific)
+- Grammar read pinned it: `macro_body_text` / `macro_default_text :=
+  inline_trivia /[^\`(),?:\r\n]+/`. The content regex is **not
+  comment-aware**; it eats `/*` and stops at a backtick *inside* the
+  `block_comment`. `block_comment` is only reachable as
+  `inline_trivia` (leading), so a trailing/embedded comment-with-tick
+  can't be re-consumed → `pp_define` can't finish. **Pre-existing**
+  (rules predate the campaign); the generator merely started emitting
+  comments-with-ticks in the macro region.
+
+### Carry-forward principle (binding)
+**Delta-debug the smallest real failing artifact to the exact
+producing rule before theorizing about cause.** History
+triangulation (`-0006`) narrowed the *class* but still mis-framed it
+("`pp_conditional` balance"); the empirical minimal-reproducer
+nailed the *actual* rule. When a closed-loop/generator self-rejects,
+the default hypothesis should be "the generator is correctly
+surfacing a real grammar bug" — verified by minimizing the artifact —
+not "the generator regressed." This complements the `.2.2` "prove the
+metric's semantics from code" and the `-0005` "test the premise"
+notes: primary-evidence reduction > plausible narrative, every time.
+
+### Disposition
+`.2.3` → parent; the grammar-harden fix is sub-leaf `.2.3.1` (the
+next frontier): make the macro body/default content rules
+comment-aware so a `block_comment` containing a backtick parses
+(valid SV), full Code-Change-Doctrine lockstep + a
+PGEN_RELEASED_PARSER_BUG_LEDGER row (consumer-reproducible), never
+loosening the `==0` precondition.
+
 ## 2026-05-17 - SV-EXH-PROOF.2.3 root-cause class — non-grammar generator-semantics drift (PGEN-SV-EXH-PROOF-0006)
 
 Having falsified the campaign-caused premise (`-0005`), I resolved
