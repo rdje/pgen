@@ -81,11 +81,14 @@ this session's POST-SV-AUDIT.2.1/INLINE-ALT-FIX.1) blocks the SV
 umbrella. `PGEN-SV-EXH-PROOF-0003`/`-0004` (leaves `.2.1`/`.2.2`) remediated
 the syntax-closure (A1) + `pp_if_keyword` quality-coverage (A2) +
 reachable-branch-universe-drift mis-spec (A3') facets — all
-evidence-grounded + verified, not masked; a further campaign-caused
-facet (`.2.3`, preprocessor closed-loop self-rejects 3 generated
-directive stimuli) remains the frontier. The tree (6 leaves, `.2`
-split into `.2.1`/`.2.2` done + `.2.3`) re-earns `Done` for the SV
-main-parser family honestly. See
+evidence-grounded + verified, not masked; a further facet (`.2.3`,
+preprocessor closed-loop self-rejects 3 generated directive stimuli)
+remains the frontier — `PGEN-SV-EXH-PROOF-0005` proved via the exact
+diffs that `.2.3` is **not** campaign-caused (both campaign edits are
+generatively inert; root cause = a separate not-yet-identified
+non-grammar / seed-sensitive generator⊋parser asymmetry, bisect
+pending). The tree (6 leaves, `.2` split into `.2.1`/`.2.2` done +
+`.2.3`) re-earns `Done` for the SV main-parser family honestly. See
 `LIVE_ACHIEVEMENT_STATUS.md` for the live snapshot and the other
 roadmap-level workstreams (which require user prioritization — they
 are large multi-week efforts, not bounded PNT slices).

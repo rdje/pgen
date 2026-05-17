@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-17 - SV-EXH-PROOF.2.3 — test the premise before the work (PGEN-SV-EXH-PROOF-0005)
+
+I had recorded `.2.3` as a "genuine campaign-caused round-trip
+parseability regression" and was about to bisect/fix it as such.
+Before sinking that effort I tested the premise against the only
+evidence that could confirm it — the exact campaign diffs:
+
+- `a5da52f4` (SVPP-0001): `(kw_ifdef|kw_ifndef) C` → `pp_if_keyword
+  C` with `pp_if_keyword := kw_ifdef | kw_ifndef`. Structurally
+  equivalent: identical generated/parsed language; only the `->` AST
+  shape changed.
+- `7228231b` (POST-SV-AUDIT.2.1): `macro_formals` `->` annotation
+  only; production unchanged.
+
+Both are **generatively inert**. The campaign grammar edits cannot
+have created a generator⊋parser hole, so `parser_rejections=3` is
+**not** a campaign grammar regression. The "was 0 at preprocessor
+Done 2026-04-01 / only campaign edits since" claim was an *unverified
+inference* — falsified.
+
+### Carry-forward principle (binding, reinforced)
+This is the third premise this session that careful testing
+falsified before it could mislead the work: the trio-port hypothesis
+(`-0001`), the "reachable-branch drift is a real defect" assumption
+(`.2.2`), and now the "campaign-caused parseability regression"
+premise (`.2.3`). **Pattern: every causal attribution gets verified
+against primary evidence (the diff, the producing code, the metric
+definition) before any remediation is built on it.** Recording a
+plausible-sounding cause in the tree is not the same as establishing
+it; the tree must say "premise, untested" until proven, and a
+falsified premise is corrected transparently with its own slice — not
+quietly overwritten. Cheap to test, expensive to build on a wrong
+basis. Extends [[feedback_grammar_edit_proof_gate_lockstep]] and the
+`.2.2` "prove the metric's semantics first" note.
+
+### `.2.3` re-characterized
+Root cause of `parser_rejections` 0→3 is a separate,
+not-yet-identified change — a non-grammar pipeline evolution this
+session (stimuli_generator / codegen / parser-gen) or a pre-existing
+seed-sensitive generator⊋parser asymmetry (the closed loop can emit a
+dangling bare `` ` `` the parser rightly rejects). Next: bisect the
+non-grammar pipeline; honest fix (grammar-harden or fix the
+generator), never loosen the hard `parser_rejections==0` precondition.
+
 ## 2026-05-17 - SV-EXH-PROOF.2.2 — a mis-specified gate invariant (burn-down metric ≠ static universe) (PGEN-SV-EXH-PROOF-0004)
 
 ### The trap, and how it was avoided

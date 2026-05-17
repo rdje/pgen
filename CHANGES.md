@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-SV-EXH-PROOF-0005 (leaf SV-EXH-PROOF.2.3 premise correction): the 3 preprocessor self-rejections are NOT campaign-caused — premise falsified by the exact diffs (docs-only)
+
+- Before doing deep work on `.2.3`, the recorded premise ("genuine
+  campaign-caused round-trip parseability regression; was 0 at
+  preprocessor Done 2026-04-01") was **tested against the exact
+  campaign diffs and falsified**:
+  - `git show a5da52f4` (SVPP-0001): replaced
+    `(kw_ifdef | kw_ifndef) macro_name …` with `pp_if_keyword
+    macro_name …` where `pp_if_keyword := kw_ifdef | kw_ifndef` — a
+    **structurally-equivalent** lift; the generated/parsed language
+    is identical (only the `->` AST shape differs).
+  - `git show 7228231b` (POST-SV-AUDIT.2.1): changed **only** the
+    `macro_formals` `->` annotation (`{first,rest}` → `[$2,$3::2*]`);
+    the production `macro_formals := lparen macro_formal (comma
+    macro_formal)* rparen` is unchanged.
+  - Both edits are **generatively inert** → they cannot have
+    introduced a generator⊋parser round-trip hole.
+- The shrunk reproducer for all 3 self-rejections is a bare backtick
+  `` ` ``, which the preprocessor grammar **correctly** rejects
+  (`non_directive_text := … /[^`\r\n]…/` excludes `` ` ``; no rule
+  accepts a lone backtick) — a generator⊋parser asymmetry, not a
+  grammar defect introduced by the campaign.
+- The zero-gap proof requires `parser_rejections_total == 0` as a
+  **hard** precondition (`sv_preprocessor_zero_plausible_gap_proof_gate.sh:234`,
+  no baseline/tolerance).
+- **Disposition:** `.2.3` re-characterized — it is NOT a campaign
+  grammar regression. The `parser_rejections` 0→3 move has a separate
+  not-yet-identified root cause (a non-grammar pipeline change this
+  session — stimuli_generator / codegen / parser-gen — or a
+  pre-existing seed-sensitive bare-backtick generator⊋parser
+  asymmetry). Deep bisect is the next step; the honest fix will
+  grammar-harden / fix the generator, never loosen the `==0`
+  precondition. No code changed; tree + live-docs corrected before
+  proceeding on a falsified basis (same test-the-premise discipline
+  as the `-0001` re-scope and the `.2.2` mis-spec finding).
+
 ## 2026-05-17 - PGEN-SV-EXH-PROOF-0004 (leaf SV-EXH-PROOF.2.2): preprocessor regression remediation part 2 — corrected the mis-specified reachable-branch-universe-drift gate invariant
 
 - **A3' root cause (documented): a mis-specified gate invariant, not
