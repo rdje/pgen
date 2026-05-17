@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
+            window.path_to_searchindex_js = "searchindex-ae6ac680.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -183,14 +183,14 @@
                         <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the <code>vhdl_file</code> root, the <code>design_unit</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>) landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix (AST-dump schema version <code>1</code> → <code>2</code>) added the two named operator rules. The current typed surface is <strong>112 distinct rules / 256 return annotations</strong> across <code>grammars/vhdl.ebnf</code> (parser release <code>1.0.2</code>, AST-dump schema version <code>2</code>). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
+<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>) landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix (AST-dump schema version <code>1</code> → <code>2</code>) added the two named operator rules; the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (AST-dump schema version <code>2</code> → <code>3</code>) corrected 17 list-shape rules to clean flat arrays. The current typed surface is <strong>112 distinct rules / 256 return annotations</strong> across <code>grammars/vhdl.ebnf</code> (parser release <code>1.0.3</code>, AST-dump schema version <code>3</code>; the annotation inventory is <strong>unchanged at 256 / 112</strong> — the 17 Category-A rules changed annotation form not count). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
 <h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
 <p>This is a <strong>curated, grouped</strong> reference — not a raw 256-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
 <p>Two conventions appear throughout:</p>
 <ul>
 <li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>.</li>
-<li><strong><code>{first, rest}</code> list rules</strong> emit a head element plus the raw iteration of the <code>(sep X)*</code> tail. This is the VHDL grammar’s mini-mixed-array convention for separated lists (<code>identifier_list</code>, <code>association_list</code>, <code>selected_name</code>, etc.); the head is <code>first</code>, and <code>rest</code> is the trailing-iteration envelope.</li>
+<li><strong>Separated-list rules</strong> emit a <strong>clean flat array</strong> of the element type in source order — the canonical extraction-spread <code>[$F, $R::2*]</code> idiom (the semantically-irrelevant single-token separator — <code>,</code> / <code>;</code> / <code>.</code> / <code>|</code> — is dropped). This is the <code>1.0.3</code> / schema <code>3</code> shape — the POST-SV-AUDIT.2.3 Category-A correction (<code>PGEN-POST-SV-AUDIT-0004</code>). The 14 bare-list rules (<code>library_clause</code>, <code>use_clause</code>, <code>selected_name</code>, <code>identifier_list</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>parameter_list</code>, <code>enumeration_type_definition</code>, <code>index_constraint</code>, <code>association_list</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>choices</code>, <code>aggregate_choice_list</code>) emit a <strong>top-level array</strong>; the <code>target</code> aggregate branch and the two <code>aggregate</code> branches keep their meaningful discriminator/value fields and carry the cleaned trailing list in <code>items</code> / <code>rest</code>. At ≤ <code>1.0.2</code> / schema <code>2</code> these rules emitted the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) envelope where <code>rest</code> was the raw <code>[[sep, item], …]</code> recursive iteration a consumer had to walk past; that history is kept in <a href="schema-versioning.html">Schema Versioning</a>. Consumers repinning to schema <code>3</code> treat the field (or the rule’s whole value, for the 14 bare-list rules) as a flat element array — no <code>.first</code> / <code>.rest</code> split, no separator to skip.</li>
 </ul>
 <p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, <code>[...]</code>, string literals) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
 <h2 id="entry-point"><a class="header" href="#entry-point">Entry point</a></h2>
@@ -236,8 +236,8 @@
 <tr><th><code>kind</code></th><th><code>body</code> shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>"library"</code></td><td><code>library_clause</code> — <code>{first, rest}</code></td></tr>
-<tr><td><code>"use"</code></td><td><code>use_clause</code> — <code>{first, rest}</code></td></tr>
+<tr><td><code>"library"</code></td><td><code>library_clause</code> — <code>[identifier, …]</code> clean flat array (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>)</td></tr>
+<tr><td><code>"use"</code></td><td><code>use_clause</code> — <code>[selected_name, …]</code> clean flat array (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>)</td></tr>
 <tr><td><code>"context_reference"</code></td><td><code>context_reference_clause</code> — <code>{name}</code></td></tr>
 <tr><td><code>"entity"</code></td><td><code>entity_declaration</code> — <code>{name, items, end_label}</code></td></tr>
 <tr><td><code>"architecture"</code></td><td><code>architecture_body</code> — <code>{name, entity_name, items, statements, end_label}</code></td></tr>
@@ -257,11 +257,11 @@
 <tr><th>Rule</th><th>Shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>library_clause</code></td><td><code>{first, rest}</code> — first identifier + comma-separated iteration.</td></tr>
-<tr><td><code>use_clause</code></td><td><code>{first, rest}</code> — first selected name + comma-separated iteration.</td></tr>
+<tr><td><code>library_clause</code></td><td><code>[identifier, …]</code> — clean flat array of the comma-separated library identifiers (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
+<tr><td><code>use_clause</code></td><td><code>[selected_name, …]</code> — clean flat array of the comma-separated selected names (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>context_reference_clause</code></td><td><code>{name}</code> — the referenced context name.</td></tr>
 <tr><td><code>context_item</code> (4 kinds)</td><td><code>{kind, body}</code> for <code>"library"</code> / <code>"use"</code> / <code>"context_reference"</code>; <code>{kind: "semi"}</code> for the lone-<code>;</code> branch.</td></tr>
-<tr><td><code>selected_name</code></td><td><code>{first, rest}</code> — leading name segment + dotted-suffix iteration.</td></tr>
+<tr><td><code>selected_name</code></td><td><code>[name_segment, …]</code> — clean flat array of the dotted name segments (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 </tbody>
 </table>
 </div>
@@ -307,21 +307,21 @@
 </thead>
 <tbody>
 <tr><td><code>generic_clause</code></td><td><code>{list}</code> — the inner <code>generic_interface_list</code>.</td></tr>
-<tr><td><code>generic_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>generic_interface_list</code></td><td><code>[generic_interface_element, …]</code> — clean flat array of the semi-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>generic_interface_element</code> (2 kinds)</td><td><code>{kind: "value", names, subtype, default}</code> / <code>{kind: "package", body}</code>.</td></tr>
 <tr><td><code>port_clause</code></td><td><code>{list}</code>.</td></tr>
-<tr><td><code>port_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>port_interface_list</code></td><td><code>[port_interface_element, …]</code> — clean flat array of the semi-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>port_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>signal_mode</code>.</td></tr>
-<tr><td><code>parameter_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>parameter_list</code></td><td><code>[parameter_interface_element, …]</code> — clean flat array of the semi-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>parameter_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>parameter_mode</code>.</td></tr>
 <tr><td><code>generic_map_aspect</code></td><td><code>{associations}</code> — the inner <code>association_list</code>.</td></tr>
 <tr><td><code>port_map_aspect</code></td><td><code>{associations}</code>.</td></tr>
-<tr><td><code>association_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>association_list</code></td><td><code>[association_element, …]</code> — clean flat array of the comma-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>association_element</code></td><td><code>{formal, actual}</code>.</td></tr>
 <tr><td><code>actual_part</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "open"}</code>.</td></tr>
-<tr><td><code>actual_parameter_part</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>actual_parameter_part</code></td><td><code>[actual_parameter_element, …]</code> — clean flat array of the comma-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>actual_parameter_element</code> (2 kinds)</td><td><code>{kind: "association", body}</code> / <code>{kind: "range_expression", body}</code>.</td></tr>
-<tr><td><code>identifier_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>identifier_list</code></td><td><code>[identifier, …]</code> — clean flat array of the comma-separated identifiers (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 </tbody>
 </table>
 </div>
@@ -374,14 +374,14 @@
 </thead>
 <tbody>
 <tr><td><code>type_definition</code> (3 kinds)</td><td><code>{kind: "enumeration", body}</code> / <code>{kind: "array", body}</code> / <code>{kind: "record", body}</code>.</td></tr>
-<tr><td><code>enumeration_type_definition</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>enumeration_type_definition</code></td><td><code>[identifier, …]</code> — clean flat array of the comma-separated enumeration literals (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>array_type_definition</code></td><td><code>{index_range, element_subtype}</code>.</td></tr>
 <tr><td><code>record_type_definition</code></td><td><code>{elements}</code>.</td></tr>
 <tr><td><code>record_element_declaration</code></td><td><code>{names, subtype}</code>.</td></tr>
 <tr><td><code>subtype_indication</code></td><td><code>{type_mark, constraint}</code> — <code>constraint</code> is <code>[]</code> when the subtype is unconstrained.</td></tr>
 <tr><td><code>constraint</code> (2 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "index", body}</code>.</td></tr>
 <tr><td><code>range_constraint</code></td><td><code>{range}</code>.</td></tr>
-<tr><td><code>index_constraint</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>index_constraint</code></td><td><code>[discrete_range, …]</code> — clean flat array of the comma-separated discrete ranges (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>discrete_range</code> (5 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "attribute", body}</code> / <code>{kind: "name", body}</code> / <code>{kind: "subtype_range", subtype, range}</code> / <code>{kind: "subtype_box", subtype}</code>.</td></tr>
 <tr><td><code>range_expression</code> (2 kinds)</td><td><code>{kind: "to", low, high}</code> / <code>{kind: "downto", high, low}</code>.</td></tr>
 </tbody>
@@ -399,7 +399,7 @@
 <tr><td><code>process_statement</code></td><td><code>{label, sensitivity, items, statements, end_label}</code>.</td></tr>
 <tr><td><code>process_label</code></td><td><code>{name}</code>.</td></tr>
 <tr><td><code>sensitivity_clause</code></td><td><code>{list}</code> — the inner <code>sensitivity_list</code>.</td></tr>
-<tr><td><code>sensitivity_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>sensitivity_list</code></td><td><code>[name, …]</code> — clean flat array of the comma-separated sensitivity names (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>component_instantiation_statement</code></td><td><code>{label, unit, generic_map, port_map}</code> — <code>unit</code> is the typed <code>instantiated_unit</code>.</td></tr>
 <tr><td><code>instantiated_unit</code> (3 kinds)</td><td><code>{kind: "component", name}</code> / <code>{kind: "entity", name}</code> / <code>{kind: "configuration", name}</code>.</td></tr>
 <tr><td><code>generate_statement</code> (2 kinds)</td><td><code>{kind: "for", label, var, range, statements}</code> / <code>{kind: "if", label, condition, statements}</code>.</td></tr>
@@ -418,7 +418,7 @@
 <tr><td><code>signal_assignment_statement</code></td><td><code>{target, rhs}</code>.</td></tr>
 <tr><td><code>signal_assignment_rhs</code></td><td><code>{value, conditional}</code> — <code>conditional</code> carries the optional <code>when</code>-clause tail.</td></tr>
 <tr><td><code>variable_assignment_statement</code></td><td><code>{target, value}</code>.</td></tr>
-<tr><td><code>target</code> (2 kinds)</td><td><code>{kind: "name", name, params}</code> / <code>{kind: "aggregate", first, rest}</code>.</td></tr>
+<tr><td><code>target</code> (2 kinds)</td><td><code>{kind: "name", name, params}</code> / <code>{kind: "aggregate", items}</code> — <code>items</code> is the clean flat comma-separated target list (<code>1.0.3</code> / schema <code>3</code>; the aggregate branch was <code>{kind: "aggregate", first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>if_statement</code></td><td><code>{condition, then_body, elsif_branches, else_body}</code> — <code>elsif_branches</code> is the <code>(elsif … then …)*</code> iteration; <code>else_body</code> is <code>[]</code> when there is no <code>else</code>.</td></tr>
 <tr><td><code>case_statement</code></td><td><code>{value, alternatives}</code>.</td></tr>
 <tr><td><code>case_statement_alternative</code></td><td><code>{choices, body}</code>.</td></tr>
@@ -500,11 +500,11 @@ and the <a href="examples-binary-addition.html">Binary Addition</a> worked examp
 <tbody>
 <tr><td><code>primary</code> (7 kinds)</td><td><code>{kind: "literal", body}</code> / <code>{kind: "aggregate", body}</code> / <code>{kind: "attribute_name", body}</code> / <code>{kind: "function_call", name, params}</code> / <code>{kind: "name", body}</code> / <code>{kind: "parens", expr}</code> / <code>{kind: "not", expr}</code>.</td></tr>
 <tr><td><code>attribute_name</code></td><td><code>{prefix, prefix_params, attribute, attribute_params}</code>.</td></tr>
-<tr><td><code>aggregate</code> (2 kinds)</td><td><code>{kind: "named_first", first_choices, first_value, rest}</code> / <code>{kind: "positional_first", first_value, second, rest}</code>.</td></tr>
+<tr><td><code>aggregate</code> (2 kinds)</td><td><code>{kind: "named_first", first_choices, first_value, rest}</code> / <code>{kind: "positional_first", first_value, second, rest}</code> — the meaningful <code>first_choices</code> / <code>first_value</code> / <code>second</code> fields are unchanged; only the trailing comma-separated <code>rest</code> iteration is now a clean flat <code>aggregate_element_association[]</code> (<code>1.0.3</code> / schema <code>3</code>; <code>rest</code> was the raw <code>[[comma, aea], …]</code> envelope at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>aggregate_element_association</code> (2 kinds)</td><td><code>{kind: "named", choices, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
-<tr><td><code>aggregate_choice_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>aggregate_choice_list</code></td><td><code>[aggregate_choice, …]</code> — clean flat array of the `</td></tr>
 <tr><td><code>aggregate_choice</code> (5 kinds)</td><td><code>{kind: "others"}</code> / <code>{kind: "name", body}</code> / <code>{kind: "decimal", body}</code> / <code>{kind: "character", body}</code> / <code>{kind: "string", body}</code>.</td></tr>
-<tr><td><code>choices</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>choices</code></td><td><code>[choice, …]</code> — clean flat array of the `</td></tr>
 <tr><td><code>choice</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "others"}</code>.</td></tr>
 </tbody>
 </table>
@@ -524,7 +524,7 @@ and the <a href="examples-binary-addition.html">Binary Addition</a> worked examp
 </div>
 <p><code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, and <code>character_literal</code> are matched as terminal/regex leaves and carried through the recursive-envelope shape (string of matched text); they have no per-rule annotation — only the dispatch in <code>literal</code> is typed.</p>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.2</code> is <strong>256 annotations across 112 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.3</code> is <strong>256 annotations across 112 distinct rules</strong> (the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch corrected 17 list shapes but left the count unchanged — the 14 bare-list rules changed <code>return_object</code> → <code>return_array</code> and the <code>target</code>-aggregate + <code>aggregate</code> rules changed <code>normalized_text</code> only). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
 <li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (inventory-file <code>version: 1</code> — the inventory format version, not the AST-dump schema; <code>grammar: "vhdl"</code>, <code>annotation_count: 256</code>).</li>
 <li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 256 entries).</li>

@@ -22,9 +22,9 @@ The machine-checkable enumeration of every typed-shape annotation the VHDL gramm
 
 The primary top-level dispatcher of the VHDL AST. `design_unit` is a 10-branch `kind`-tagged shape — `"library"`, `"use"`, `"context_reference"`, `"entity"`, `"architecture"`, `"package"`, `"package_body"`, `"configuration"`, `"context"`, `"semi"` — each carrying a `body` (the `"semi"` branch is bodyless). Every parse roots at `{type: "vhdl_file", design_units: [...]}`; each element of `design_units` is a `design_unit` object. See [AST Envelope Structure](ast-envelope.md) and [Top-Level Rules](rules-top-level.md).
 
-## {first, rest} list convention
+## Separated-list convention (clean flat array, schema 3)
 
-The uniform carrier for VHDL separated lists (`identifier_list`, `selected_name`, `association_list`, `library_clause`, `use_clause`, `parameter_list`, `choices`, `enumeration_type_definition`, …). Each list emits `{first: <head-element>, rest: <iteration-of-the-(separator element)*-tail>}`. `rest` is a recursive-envelope array; each entry is the envelope of one `(separator element)` iteration. Unlike the SystemVerilog grammar — whose lists were flattened to clean `[$N, $M::2*]` arrays in its slice-58 audit — the VHDL grammar uses `{first, rest}` uniformly across VHDL-Slice-1. A future flattening slice, if it lands, gets its own [Changelog Index](changelog-index.md) row. See [Walking the AST](walking-the-ast.md) for the iteration helper.
+The carrier for VHDL separated lists (`identifier_list`, `selected_name`, `association_list`, `library_clause`, `use_clause`, `parameter_list`, `choices`, `enumeration_type_definition`, `generic_interface_list`, `port_interface_list`, `index_constraint`, `sensitivity_list`, `actual_parameter_part`, `aggregate_choice_list`, …). As of the `1.0.3` POST-SV-AUDIT.2.3 Category-A batch (schema `3`, `PGEN-POST-SV-AUDIT-0004`), each emits a **clean flat array** of the element type in source order — the canonical extraction-spread `[$F, $R::2*]` idiom (the semantically-irrelevant single-token `,` / `;` / `.` / `|` separator is dropped); the `target` aggregate branch and the two `aggregate` branches carry the cleaned list in `items` / `rest`. At ≤ `1.0.2` / schema `2` these rules emitted the raw `{first: <head-element>, rest: <recursive-envelope-iteration-of-the-(separator element)*-tail>}` carrier a consumer had to descend through the separator wrap to read; a schema-`2` consumer must repin to schema `3` and treat the value (or its element field) as a flat array. This is a clean Category-A shape improvement (single-token separators, no `<invalid_sequence_access>`, no inline alternation) tracked via `docs/POST_SV_AUDIT_LEDGER.md` and the contract's "AST-Shape Corrections — 1.0.3" section, **not** the bug ledger. See [Schema Versioning](schema-versioning.md) and [Walking the AST](walking-the-ast.md) for the iteration helper.
 
 ## parseability_probe
 
@@ -32,7 +32,7 @@ The CLI wrapper around `pgen::embedding_api` used for terminal-side verification
 
 ## Parser release version
 
-The parser library's release identity, currently `1.0.2`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).
+The parser library's release identity, currently `1.0.3`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).
 
 ## Profile
 
@@ -40,7 +40,7 @@ A named configuration of the grammar that selects which top-level entry rule to 
 
 ## Recursive envelope
 
-The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences, quantified iterations, and the `rest` tail of a `{first, rest}` list), strings (for terminal and regex leaves), and matched-branch passthroughs (for alternations). Un-matched optionals are the empty array `[]`, never `null`. In VHDL the recursive envelope is what you reach when you descend below the typed surface: identifier tokens, physical / bit-string / string / character literals, and the few utility rules with no per-rule annotation. See [AST Envelope Structure](ast-envelope.md) and [The Json Carrier](json-carrier.md).
+The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences, quantified iterations, and the trailing `rest` iteration of the `aggregate` / `target`-aggregate list), strings (for terminal and regex leaves), and matched-branch passthroughs (for alternations). Un-matched optionals are the empty array `[]`, never `null`. In VHDL the recursive envelope is what you reach when you descend below the typed surface: identifier tokens, physical / bit-string / string / character literals, and the few utility rules with no per-rule annotation. See [AST Envelope Structure](ast-envelope.md) and [The Json Carrier](json-carrier.md).
 
 ## Return annotation
 
@@ -48,7 +48,7 @@ A `-> ...` clause appended to a grammar rule definition in `grammars/vhdl.ebnf` 
 
 ## Schema version
 
-Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do **not** bump it. The AST-dump schema version is currently `2` (bumped `1 → 2` by the `1.0.2` `VHDL-0001` correctness fix) — note it is **not** a field of `AstDumpPayload` (that struct has only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`); consumers **pin** the schema version they built against from `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" and re-check the contract's "Schema Versioning" table when bumping PGEN. That table additionally uses `1.0.2` / `1.0.0` / `0.1.0` milestone labels for the timeline. See [Schema Versioning](schema-versioning.md).
+Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do **not** bump it. The AST-dump schema version is currently `3` (bumped `1 → 2` by the `1.0.2` `VHDL-0001` correctness fix, then `2 → 3` by the `1.0.3` POST-SV-AUDIT.2.3 Category-A list-shape batch) — note it is **not** a field of `AstDumpPayload` (that struct has only `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`); consumers **pin** the schema version they built against from `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity" and re-check the contract's "Schema Versioning" table when bumping PGEN. That table additionally uses `1.0.3` / `1.0.2` / `1.0.0` / `0.1.0` milestone labels for the timeline. See [Schema Versioning](schema-versioning.md).
 
 ## Typed shape
 

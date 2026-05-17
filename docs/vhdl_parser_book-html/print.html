@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
+            window.path_to_searchindex_js = "searchindex-ae6ac680.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -204,7 +204,7 @@
 </ol>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>The PGEN VHDL parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers design units (library/use/entity/architecture/package/package body/configuration/context), entity generics/ports, architecture declarations and concurrent statements, process + core sequential statements, and the expression/type/literal baseline. See <code>LIVE_ACHIEVEMENT_STATUS.md</code> for the live closure status and <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
-<p>The VHDL return-annotation campaign landed <code>VHDL-Slice-1</code> (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. A follow-up correctness fix (<code>VHDL-0001</code>, parser release <code>1.0.2</code>, AST-dump schema <code>1</code> → <code>2</code>, landed 2026-05-17) lifted the <code>simple_expression</code> / <code>term</code> inline operator alternations into the named <code>adding_operator</code> / <code>multiplying_operator</code> rules, bringing the surface to <strong>256 annotations / 112 rules</strong> — see the <a href="#changelog-index">Changelog Index</a> and <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a>. Subsequent shape-affecting slices get their own changelog entries here.</p>
+<p>The VHDL return-annotation campaign landed <code>VHDL-Slice-1</code> (110+ rules / 249 annotations) on 2026-05-14 in one comprehensive batch. A follow-up correctness fix (<code>VHDL-0001</code>, parser release <code>1.0.2</code>, AST-dump schema <code>1</code> → <code>2</code>, landed 2026-05-17) lifted the <code>simple_expression</code> / <code>term</code> inline operator alternations into the named <code>adding_operator</code> / <code>multiplying_operator</code> rules (256 annotations / 112 rules). The <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (AST-dump schema <code>2</code> → <code>3</code>, landed 2026-05-17) corrected 17 separated-list rules from the raw <code>{first, rest}</code> envelope to clean flat arrays, with the inventory <strong>unchanged</strong> at <strong>256 annotations / 112 rules</strong> — see the <a href="#changelog-index">Changelog Index</a> and <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a>. Subsequent shape-affecting slices get their own changelog entries here.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN VHDL parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
@@ -582,7 +582,7 @@ restatement of this for consumers.</p>
 </ul>
 <p>For a 3-element sequence rule like <code>a b c</code>, the envelope shape is <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</p>
 <h2 id="mixing-typed-and-envelope-shapes"><a class="header" href="#mixing-typed-and-envelope-shapes">Mixing typed and envelope shapes</a></h2>
-<p>The 256-annotation surface (as of contract 1.0.2) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>, including the named <code>adding_operator</code> / <code>multiplying_operator</code> op rules added by the <code>1.0.2</code> <code>VHDL-0001</code> fix), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.</p>
+<p>The 256-annotation surface (as of contract 1.0.3) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>, including the named <code>adding_operator</code> / <code>multiplying_operator</code> op rules added by the <code>1.0.2</code> <code>VHDL-0001</code> fix), entity/architecture/package internals, statement family, the separated-list rules (clean flat arrays as of the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch — schema <code>3</code>), and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.</p>
 <p>Consumers need to handle both:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -622,7 +622,7 @@ restatement of this for consumers.</p>
 <h1 id="the-json-carrier"><a class="header" href="#the-json-carrier">The Json Carrier</a></h1>
 <p>This chapter explains how the VHDL parser carries AST shapes in the JSON dump: the two carrier kinds, how typed shapes and recursive-envelope shapes coexist, the object / array / string / scalar mapping, and the determinism guarantee. It is the conceptual companion to <a href="#top-level-rules">Top-Level Rules</a>, which enumerates the concrete per-rule shapes.</p>
 <blockquote>
-<p><strong>Note:</strong> The VHDL return-annotation campaign landed in a single comprehensive batch — VHDL-Slice-1 (249 annotations / 110 rules, parser release <code>1.0.1</code>, schema version <code>1</code>); the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix then added the named <code>adding_operator</code> / <code>multiplying_operator</code> operator rules, bringing the <strong>current</strong> surface to <strong>256 annotations across 112 rules</strong> (parser release <code>1.0.2</code>, schema version <code>2</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in <a href="#ast-envelope-structure">AST Envelope Structure</a>. The authoritative enumeration is <code>generated/vhdl_return_annotations.json</code> (mirrored by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>).</p>
+<p><strong>Note:</strong> The VHDL return-annotation campaign landed in a single comprehensive batch — VHDL-Slice-1 (249 annotations / 110 rules, parser release <code>1.0.1</code>, schema version <code>1</code>); the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix then added the named <code>adding_operator</code> / <code>multiplying_operator</code> operator rules (256 annotations / 112 rules, schema <code>2</code>); the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch corrected 17 list shapes to clean flat arrays with the inventory <strong>unchanged</strong>, bringing the <strong>current</strong> surface to <strong>256 annotations across 112 rules</strong> (parser release <code>1.0.3</code>, schema version <code>3</code>). Almost every load-bearing rule is typed; the remaining un-annotated rules (terminal/regex leaves and a few utility rules) produce the recursive-envelope shape described in <a href="#ast-envelope-structure">AST Envelope Structure</a>. The authoritative enumeration is <code>generated/vhdl_return_annotations.json</code> (mirrored by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>).</p>
 </blockquote>
 <h2 id="two-carrier-kinds"><a class="header" href="#two-carrier-kinds">Two carrier kinds</a></h2>
 <p>Every node in the VHDL AST dump is carried in one of exactly two shapes.</p>
@@ -670,7 +670,7 @@ optional trailing label is omitted, <code>end_label</code> is <code>[]</code>.</
 </thead>
 <tbody>
 <tr><td>Object <code>{...}</code></td><td>A typed return annotation that is an object literal (<code>{kind: ...}</code>, <code>{name: ..., subtype: ...}</code>, <code>{type: "binop_chain", ...}</code>, etc.).</td></tr>
-<tr><td>Array <code>[...]</code></td><td>A recursive-envelope sequence/quantified shape, <strong>or</strong> an un-matched optional field (<code>[]</code>), <strong>or</strong> the trailing <code>rest</code> iteration of a <code>{first, rest}</code> list rule.</td></tr>
+<tr><td>Array <code>[...]</code></td><td>A recursive-envelope sequence/quantified shape, <strong>or</strong> an un-matched optional field (<code>[]</code>), <strong>or</strong> a clean flat separated-list rule value (schema <code>3</code>; the 14 bare-list Category-A rules are top-level arrays), <strong>or</strong> the trailing <code>rest</code> iteration of an <code>aggregate</code> / <code>target</code>-aggregate list.</td></tr>
 <tr><td>String <code>"..."</code></td><td>A matched terminal or regex leaf (identifier text, literal text, keyword text reached through an envelope).</td></tr>
 <tr><td><code>true</code> / <code>false</code></td><td>A <code>BooleanLiteral</code> in a typed annotation. VHDL’s current 256-annotation surface uses no boolean literals; all annotations are object literals.</td></tr>
 <tr><td>Number</td><td>A <code>NumberLiteral</code> typed transform. Not used by the current VHDL surface.</td></tr>
@@ -681,7 +681,7 @@ optional trailing label is omitted, <code>end_label</code> is <code>[]</code>.</
 <p>Two VHDL-specific points consumers must internalize:</p>
 <ul>
 <li><strong>Absent optionals are <code>[]</code>, never <code>null</code>.</strong> A <code>signal_declaration</code> with no initializer emits <code>"default": []</code>. A bare <code>return;</code> emits <code>"value": []</code>. Test for an empty array, not for <code>null</code> or a missing key.</li>
-<li><strong><code>{first, rest}</code> is the list convention.</strong> Separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …) emit <code>{first: &lt;head&gt;, rest: &lt;iteration-of-the-(sep X)*-tail&gt;}</code>. <code>rest</code> is a recursive-envelope array; each entry is the envelope of one <code>(separator element)</code> iteration. Unlike the SystemVerilog grammar — where a slice-58 audit flattened these to clean <code>[$N, $M::2*]</code> arrays — the VHDL grammar uses the <code>{first, rest}</code> shape uniformly across VHDL-Slice-1, so consumers should expect to descend through the separator wrap when iterating a VHDL list. (A future flattening slice, if it lands, will get its own <a href="#schema-versioning">Schema Versioning</a> row.)</li>
+<li><strong>Separated lists are clean flat arrays (schema <code>3</code>).</strong> As of the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch, separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>index_constraint</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>aggregate_choice_list</code>) emit a <strong>clean flat array</strong> of the element type in source order — the canonical extraction-spread <code>[$F, $R::2*]</code> idiom (the semantically-irrelevant single-token <code>,</code> / <code>;</code> / <code>.</code> / <code>|</code> separator is dropped); the <code>target</code> aggregate branch and the two <code>aggregate</code> branches carry the cleaned list in <code>items</code> / <code>rest</code>. At ≤ <code>1.0.2</code> / schema <code>2</code> these rules emitted the raw <code>{first: &lt;head&gt;, rest: &lt;iteration-of-the-(sep X)*-tail&gt;}</code> carrier where <code>rest</code> was a recursive-envelope array a consumer had to descend through the separator wrap to read; a schema-<code>2</code> consumer must repin to schema <code>3</code> and treat the value (or its element field) as a flat array. (The <code>1.0.3</code> batch is a clean Category-A shape improvement — no <code>&lt;invalid_sequence_access&gt;</code>, no inline alternation — tracked via <code>docs/POST_SV_AUDIT_LEDGER.md</code> and the contract, not the bug ledger; see <a href="#schema-versioning">Schema Versioning</a>.)</li>
 </ul>
 <h2 id="worked-example-a-minimal-entity"><a class="header" href="#worked-example-a-minimal-entity">Worked example: a minimal entity</a></h2>
 <p>Input:</p>
@@ -806,8 +806,8 @@ fn walk(node: &amp;JsonValue) {
         "configuration"     =&gt; handle_configuration(body),     // {name, entity_name, items, end_label}
         "context"           =&gt; handle_context(body),           // {name, items, end_label}
         "context_reference" =&gt; handle_context_reference(body), // {name}
-        "library"           =&gt; handle_library_clause(body),    // {first, rest}
-        "use"               =&gt; handle_use_clause(body),        // {first, rest}
+        "library"           =&gt; handle_library_clause(body),    // [identifier, …]   (schema 3 clean array)
+        "use"               =&gt; handle_use_clause(body),        // [selected_name, …] (schema 3 clean array)
         "semi"              =&gt; { /* lone `;` */ }
         _                   =&gt; { /* unknown — degrade gracefully */ }
     }
@@ -882,32 +882,16 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
 }
 <span class="boring">}</span></code></pre>
 <p>The per-rule chapters (<a href="#top-level-rules">Top-Level Rules</a>) document the field that holds the identifier for each rule that produces one.</p>
-<h2 id="iterating-first-rest-lists"><a class="header" href="#iterating-first-rest-lists">Iterating <code>{first, rest}</code> lists</a></h2>
-<p>VHDL separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …) use the <code>{first, rest}</code> carrier. <code>rest</code> is the recursive-envelope iteration of the <code>(separator element)*</code> tail, so each <code>rest</code> entry wraps a separator token plus one element:</p>
+<h2 id="iterating-separated-lists-schema-3--clean-flat-arrays"><a class="header" href="#iterating-separated-lists-schema-3--clean-flat-arrays">Iterating separated lists (schema 3 — clean flat arrays)</a></h2>
+<p>As of the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (schema <code>3</code>), VHDL separated lists are <strong>clean flat arrays</strong> of the element type in source order. The 14 bare-list rules — <code>library_clause</code>, <code>use_clause</code>, <code>selected_name</code>, <code>identifier_list</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>parameter_list</code>, <code>enumeration_type_definition</code>, <code>index_constraint</code>, <code>association_list</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>choices</code>, <code>aggregate_choice_list</code> — emit a <strong>top-level array</strong>; the <code>target</code> aggregate branch and the two <code>aggregate</code> branches carry the cleaned list in <code>items</code> / <code>rest</code>. The semantically-irrelevant single-token separator (<code>,</code> / <code>;</code> / <code>.</code> / <code>|</code>) was dropped, so iteration is just:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn iter_list&lt;'a&gt;(list: &amp;'a serde_json::Value) -&gt; Vec&lt;&amp;'a serde_json::Value&gt; {
-    let mut out = Vec::new();
-    if let Some(first) = list.get("first") {
-        out.push(first);
-    }
-    if let Some(rest) = list.get("rest").and_then(|v| v.as_array()) {
-        for entry in rest {
-            // `entry` is the envelope of one `(sep element)` iteration;
-            // the element is the last child. Walk to it rather than
-            // assuming a fixed index, so a grammar tweak to the
-            // separator doesn't break extraction.
-            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
-                out.push(elem);
-            } else {
-                out.push(entry);
-            }
-        }
-    }
-    out
+    // schema 3: a separated-list rule is already a flat element array.
+    list.as_array().map(|a| a.iter().collect()).unwrap_or_default()
 }
 <span class="boring">}</span></code></pre>
-<p>This <code>{first, rest}</code> shape is uniform across the VHDL surface (it was <strong>not</strong> flattened to <code>[$N, $M::2*]</code> the way the SystemVerilog grammar’s lists were in its slice-58 audit). If a future VHDL slice flattens these, it will get a <a href="#schema-versioning">Schema Versioning</a> row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<p>At ≤ <code>1.0.2</code> / schema <code>2</code> these rules emitted the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) carrier where <code>rest</code> was the recursive <code>[[separator, element], …]</code> iteration a consumer had to walk past — a schema-<code>2</code> consumer that read <code>.first</code> + <code>.rest[][last]</code> (or treated a bare-list value as a <code>{first, rest}</code> object) must repin to schema <code>3</code> and treat the field, or the rule’s whole value, as a flat element array. This is the POST-SV-AUDIT.2.3 correction (<code>PGEN-POST-SV-AUDIT-0004</code>); it is a clean Category-A shape improvement (single-token separators, no <code>&lt;invalid_sequence_access&gt;</code>) tracked via <code>docs/POST_SV_AUDIT_LEDGER.md</code> and the contract’s “AST-Shape Corrections — 1.0.3” section — see <a href="#schema-versioning">Schema Versioning</a> and the <a href="#changelog-index">Changelog Index</a>.</p>
 <h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
 <p>VHDL can produce deep AST trees — a large architecture with nested blocks, generate statements, and deeply-nested expressions can reach hundreds of levels.</p>
 <p>Recommendations:</p>
@@ -921,7 +905,7 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -934,9 +918,14 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match VHDL_AST_SCHEMA_VERSION {
-    2 =&gt; walk_schema_v2(&amp;root),
-    // schema 1 (pre-`VHDL-0001`) emitted "&lt;invalid_sequence_access&gt;" in
-    // simple_expression / term binop_chain.rest — do not target it.
+    3 =&gt; walk_schema_v3(&amp;root),
+    // schema 3: the 17 Category-A list rules (library_clause,
+    // identifier_list, association_list, choices, …) are clean flat
+    // arrays, not the ≤ 1.0.2 {first, rest} envelope (POST-SV-AUDIT.2.3).
+    // schema 2 (pre-POST-SV-AUDIT) carried those as {first, rest};
+    // schema 1 (pre-`VHDL-0001`) additionally emitted
+    // "&lt;invalid_sequence_access&gt;" in simple_expression / term
+    // binop_chain.rest — do not target the older schemas.
     other =&gt; eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>
@@ -945,14 +934,14 @@ match VHDL_AST_SCHEMA_VERSION {
 <h1 id="top-level-rules"><a class="header" href="#top-level-rules">Top-Level Rules</a></h1>
 <p>This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the <code>vhdl_file</code> root, the <code>design_unit</code> dispatch, and then enumerates the typed rule shapes grouped by rule family.</p>
 <blockquote>
-<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>) landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix (AST-dump schema version <code>1</code> → <code>2</code>) added the two named operator rules. The current typed surface is <strong>112 distinct rules / 256 return annotations</strong> across <code>grammars/vhdl.ebnf</code> (parser release <code>1.0.2</code>, AST-dump schema version <code>2</code>). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
+<p><strong>Status:</strong> VHDL-Slice-1 (parser release <code>1.0.1</code>) landed the full grammar typing in one comprehensive batch; the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix (AST-dump schema version <code>1</code> → <code>2</code>) added the two named operator rules; the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (AST-dump schema version <code>2</code> → <code>3</code>) corrected 17 list-shape rules to clean flat arrays. The current typed surface is <strong>112 distinct rules / 256 return annotations</strong> across <code>grammars/vhdl.ebnf</code> (parser release <code>1.0.3</code>, AST-dump schema version <code>3</code>; the annotation inventory is <strong>unchanged at 256 / 112</strong> — the 17 Category-A rules changed annotation form not count). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at <code>generated/vhdl_return_annotations.json</code> (cross-checked against the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.</p>
 </blockquote>
 <h2 id="how-to-read-this-chapter"><a class="header" href="#how-to-read-this-chapter">How to read this chapter</a></h2>
 <p>This is a <strong>curated, grouped</strong> reference — not a raw 256-line dump and not a copy of the IEEE 1076 LRM. For each family it gives the <code>kind</code> discriminators and field lists that the parser actually emits, as transcribed from each rule’s normalized return-annotation text. Where a rule has per-branch typing, the <code>kind</code> value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.</p>
 <p>Two conventions appear throughout:</p>
 <ul>
 <li><strong>Dispatch rules</strong> emit <code>{kind: "&lt;branch&gt;", body: $N}</code> (or named fields per branch). Consumers dispatch on <code>obj["kind"]</code>.</li>
-<li><strong><code>{first, rest}</code> list rules</strong> emit a head element plus the raw iteration of the <code>(sep X)*</code> tail. This is the VHDL grammar’s mini-mixed-array convention for separated lists (<code>identifier_list</code>, <code>association_list</code>, <code>selected_name</code>, etc.); the head is <code>first</code>, and <code>rest</code> is the trailing-iteration envelope.</li>
+<li><strong>Separated-list rules</strong> emit a <strong>clean flat array</strong> of the element type in source order — the canonical extraction-spread <code>[$F, $R::2*]</code> idiom (the semantically-irrelevant single-token separator — <code>,</code> / <code>;</code> / <code>.</code> / <code>|</code> — is dropped). This is the <code>1.0.3</code> / schema <code>3</code> shape — the POST-SV-AUDIT.2.3 Category-A correction (<code>PGEN-POST-SV-AUDIT-0004</code>). The 14 bare-list rules (<code>library_clause</code>, <code>use_clause</code>, <code>selected_name</code>, <code>identifier_list</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>parameter_list</code>, <code>enumeration_type_definition</code>, <code>index_constraint</code>, <code>association_list</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>choices</code>, <code>aggregate_choice_list</code>) emit a <strong>top-level array</strong>; the <code>target</code> aggregate branch and the two <code>aggregate</code> branches keep their meaningful discriminator/value fields and carry the cleaned trailing list in <code>items</code> / <code>rest</code>. At ≤ <code>1.0.2</code> / schema <code>2</code> these rules emitted the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) envelope where <code>rest</code> was the raw <code>[[sep, item], …]</code> recursive iteration a consumer had to walk past; that history is kept in <a href="#schema-versioning">Schema Versioning</a>. Consumers repinning to schema <code>3</code> treat the field (or the rule’s whole value, for the 14 bare-list rules) as a flat element array — no <code>.first</code> / <code>.rest</code> split, no separator to skip.</li>
 </ul>
 <p>The annotation-language conventions (<code>$N</code>, <code>{field: value}</code>, <code>[...]</code>, string literals) follow <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
 <h2 id="entry-point"><a class="header" href="#entry-point">Entry point</a></h2>
@@ -998,8 +987,8 @@ match VHDL_AST_SCHEMA_VERSION {
 <tr><th><code>kind</code></th><th><code>body</code> shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>"library"</code></td><td><code>library_clause</code> — <code>{first, rest}</code></td></tr>
-<tr><td><code>"use"</code></td><td><code>use_clause</code> — <code>{first, rest}</code></td></tr>
+<tr><td><code>"library"</code></td><td><code>library_clause</code> — <code>[identifier, …]</code> clean flat array (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>)</td></tr>
+<tr><td><code>"use"</code></td><td><code>use_clause</code> — <code>[selected_name, …]</code> clean flat array (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>)</td></tr>
 <tr><td><code>"context_reference"</code></td><td><code>context_reference_clause</code> — <code>{name}</code></td></tr>
 <tr><td><code>"entity"</code></td><td><code>entity_declaration</code> — <code>{name, items, end_label}</code></td></tr>
 <tr><td><code>"architecture"</code></td><td><code>architecture_body</code> — <code>{name, entity_name, items, statements, end_label}</code></td></tr>
@@ -1019,11 +1008,11 @@ match VHDL_AST_SCHEMA_VERSION {
 <tr><th>Rule</th><th>Shape</th></tr>
 </thead>
 <tbody>
-<tr><td><code>library_clause</code></td><td><code>{first, rest}</code> — first identifier + comma-separated iteration.</td></tr>
-<tr><td><code>use_clause</code></td><td><code>{first, rest}</code> — first selected name + comma-separated iteration.</td></tr>
+<tr><td><code>library_clause</code></td><td><code>[identifier, …]</code> — clean flat array of the comma-separated library identifiers (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
+<tr><td><code>use_clause</code></td><td><code>[selected_name, …]</code> — clean flat array of the comma-separated selected names (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>context_reference_clause</code></td><td><code>{name}</code> — the referenced context name.</td></tr>
 <tr><td><code>context_item</code> (4 kinds)</td><td><code>{kind, body}</code> for <code>"library"</code> / <code>"use"</code> / <code>"context_reference"</code>; <code>{kind: "semi"}</code> for the lone-<code>;</code> branch.</td></tr>
-<tr><td><code>selected_name</code></td><td><code>{first, rest}</code> — leading name segment + dotted-suffix iteration.</td></tr>
+<tr><td><code>selected_name</code></td><td><code>[name_segment, …]</code> — clean flat array of the dotted name segments (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 </tbody>
 </table>
 </div>
@@ -1069,21 +1058,21 @@ match VHDL_AST_SCHEMA_VERSION {
 </thead>
 <tbody>
 <tr><td><code>generic_clause</code></td><td><code>{list}</code> — the inner <code>generic_interface_list</code>.</td></tr>
-<tr><td><code>generic_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>generic_interface_list</code></td><td><code>[generic_interface_element, …]</code> — clean flat array of the semi-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>generic_interface_element</code> (2 kinds)</td><td><code>{kind: "value", names, subtype, default}</code> / <code>{kind: "package", body}</code>.</td></tr>
 <tr><td><code>port_clause</code></td><td><code>{list}</code>.</td></tr>
-<tr><td><code>port_interface_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>port_interface_list</code></td><td><code>[port_interface_element, …]</code> — clean flat array of the semi-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>port_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>signal_mode</code>.</td></tr>
-<tr><td><code>parameter_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>parameter_list</code></td><td><code>[parameter_interface_element, …]</code> — clean flat array of the semi-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>parameter_interface_element</code></td><td><code>{names, mode, subtype, default}</code> — <code>mode</code> is the typed <code>parameter_mode</code>.</td></tr>
 <tr><td><code>generic_map_aspect</code></td><td><code>{associations}</code> — the inner <code>association_list</code>.</td></tr>
 <tr><td><code>port_map_aspect</code></td><td><code>{associations}</code>.</td></tr>
-<tr><td><code>association_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>association_list</code></td><td><code>[association_element, …]</code> — clean flat array of the comma-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>association_element</code></td><td><code>{formal, actual}</code>.</td></tr>
 <tr><td><code>actual_part</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "open"}</code>.</td></tr>
-<tr><td><code>actual_parameter_part</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>actual_parameter_part</code></td><td><code>[actual_parameter_element, …]</code> — clean flat array of the comma-separated elements (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>actual_parameter_element</code> (2 kinds)</td><td><code>{kind: "association", body}</code> / <code>{kind: "range_expression", body}</code>.</td></tr>
-<tr><td><code>identifier_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>identifier_list</code></td><td><code>[identifier, …]</code> — clean flat array of the comma-separated identifiers (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 </tbody>
 </table>
 </div>
@@ -1136,14 +1125,14 @@ match VHDL_AST_SCHEMA_VERSION {
 </thead>
 <tbody>
 <tr><td><code>type_definition</code> (3 kinds)</td><td><code>{kind: "enumeration", body}</code> / <code>{kind: "array", body}</code> / <code>{kind: "record", body}</code>.</td></tr>
-<tr><td><code>enumeration_type_definition</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>enumeration_type_definition</code></td><td><code>[identifier, …]</code> — clean flat array of the comma-separated enumeration literals (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>array_type_definition</code></td><td><code>{index_range, element_subtype}</code>.</td></tr>
 <tr><td><code>record_type_definition</code></td><td><code>{elements}</code>.</td></tr>
 <tr><td><code>record_element_declaration</code></td><td><code>{names, subtype}</code>.</td></tr>
 <tr><td><code>subtype_indication</code></td><td><code>{type_mark, constraint}</code> — <code>constraint</code> is <code>[]</code> when the subtype is unconstrained.</td></tr>
 <tr><td><code>constraint</code> (2 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "index", body}</code>.</td></tr>
 <tr><td><code>range_constraint</code></td><td><code>{range}</code>.</td></tr>
-<tr><td><code>index_constraint</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>index_constraint</code></td><td><code>[discrete_range, …]</code> — clean flat array of the comma-separated discrete ranges (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>discrete_range</code> (5 kinds)</td><td><code>{kind: "range", body}</code> / <code>{kind: "attribute", body}</code> / <code>{kind: "name", body}</code> / <code>{kind: "subtype_range", subtype, range}</code> / <code>{kind: "subtype_box", subtype}</code>.</td></tr>
 <tr><td><code>range_expression</code> (2 kinds)</td><td><code>{kind: "to", low, high}</code> / <code>{kind: "downto", high, low}</code>.</td></tr>
 </tbody>
@@ -1161,7 +1150,7 @@ match VHDL_AST_SCHEMA_VERSION {
 <tr><td><code>process_statement</code></td><td><code>{label, sensitivity, items, statements, end_label}</code>.</td></tr>
 <tr><td><code>process_label</code></td><td><code>{name}</code>.</td></tr>
 <tr><td><code>sensitivity_clause</code></td><td><code>{list}</code> — the inner <code>sensitivity_list</code>.</td></tr>
-<tr><td><code>sensitivity_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>sensitivity_list</code></td><td><code>[name, …]</code> — clean flat array of the comma-separated sensitivity names (<code>1.0.3</code> / schema <code>3</code>; was <code>{first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>component_instantiation_statement</code></td><td><code>{label, unit, generic_map, port_map}</code> — <code>unit</code> is the typed <code>instantiated_unit</code>.</td></tr>
 <tr><td><code>instantiated_unit</code> (3 kinds)</td><td><code>{kind: "component", name}</code> / <code>{kind: "entity", name}</code> / <code>{kind: "configuration", name}</code>.</td></tr>
 <tr><td><code>generate_statement</code> (2 kinds)</td><td><code>{kind: "for", label, var, range, statements}</code> / <code>{kind: "if", label, condition, statements}</code>.</td></tr>
@@ -1180,7 +1169,7 @@ match VHDL_AST_SCHEMA_VERSION {
 <tr><td><code>signal_assignment_statement</code></td><td><code>{target, rhs}</code>.</td></tr>
 <tr><td><code>signal_assignment_rhs</code></td><td><code>{value, conditional}</code> — <code>conditional</code> carries the optional <code>when</code>-clause tail.</td></tr>
 <tr><td><code>variable_assignment_statement</code></td><td><code>{target, value}</code>.</td></tr>
-<tr><td><code>target</code> (2 kinds)</td><td><code>{kind: "name", name, params}</code> / <code>{kind: "aggregate", first, rest}</code>.</td></tr>
+<tr><td><code>target</code> (2 kinds)</td><td><code>{kind: "name", name, params}</code> / <code>{kind: "aggregate", items}</code> — <code>items</code> is the clean flat comma-separated target list (<code>1.0.3</code> / schema <code>3</code>; the aggregate branch was <code>{kind: "aggregate", first, rest}</code> at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>if_statement</code></td><td><code>{condition, then_body, elsif_branches, else_body}</code> — <code>elsif_branches</code> is the <code>(elsif … then …)*</code> iteration; <code>else_body</code> is <code>[]</code> when there is no <code>else</code>.</td></tr>
 <tr><td><code>case_statement</code></td><td><code>{value, alternatives}</code>.</td></tr>
 <tr><td><code>case_statement_alternative</code></td><td><code>{choices, body}</code>.</td></tr>
@@ -1262,11 +1251,11 @@ and the <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a> wo
 <tbody>
 <tr><td><code>primary</code> (7 kinds)</td><td><code>{kind: "literal", body}</code> / <code>{kind: "aggregate", body}</code> / <code>{kind: "attribute_name", body}</code> / <code>{kind: "function_call", name, params}</code> / <code>{kind: "name", body}</code> / <code>{kind: "parens", expr}</code> / <code>{kind: "not", expr}</code>.</td></tr>
 <tr><td><code>attribute_name</code></td><td><code>{prefix, prefix_params, attribute, attribute_params}</code>.</td></tr>
-<tr><td><code>aggregate</code> (2 kinds)</td><td><code>{kind: "named_first", first_choices, first_value, rest}</code> / <code>{kind: "positional_first", first_value, second, rest}</code>.</td></tr>
+<tr><td><code>aggregate</code> (2 kinds)</td><td><code>{kind: "named_first", first_choices, first_value, rest}</code> / <code>{kind: "positional_first", first_value, second, rest}</code> — the meaningful <code>first_choices</code> / <code>first_value</code> / <code>second</code> fields are unchanged; only the trailing comma-separated <code>rest</code> iteration is now a clean flat <code>aggregate_element_association[]</code> (<code>1.0.3</code> / schema <code>3</code>; <code>rest</code> was the raw <code>[[comma, aea], …]</code> envelope at ≤ <code>1.0.2</code>).</td></tr>
 <tr><td><code>aggregate_element_association</code> (2 kinds)</td><td><code>{kind: "named", choices, value}</code> / <code>{kind: "positional", value}</code>.</td></tr>
-<tr><td><code>aggregate_choice_list</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>aggregate_choice_list</code></td><td><code>[aggregate_choice, …]</code> — clean flat array of the `</td></tr>
 <tr><td><code>aggregate_choice</code> (5 kinds)</td><td><code>{kind: "others"}</code> / <code>{kind: "name", body}</code> / <code>{kind: "decimal", body}</code> / <code>{kind: "character", body}</code> / <code>{kind: "string", body}</code>.</td></tr>
-<tr><td><code>choices</code></td><td><code>{first, rest}</code>.</td></tr>
+<tr><td><code>choices</code></td><td><code>[choice, …]</code> — clean flat array of the `</td></tr>
 <tr><td><code>choice</code> (2 kinds)</td><td><code>{kind: "expression", body}</code> / <code>{kind: "others"}</code>.</td></tr>
 </tbody>
 </table>
@@ -1286,7 +1275,7 @@ and the <a href="#worked-example-binary-addition-b--c--d">Binary Addition</a> wo
 </div>
 <p><code>physical_literal</code>, <code>bit_string_literal</code>, <code>string_literal</code>, and <code>character_literal</code> are matched as terminal/regex leaves and carried through the recursive-envelope shape (string of matched text); they have no per-rule annotation — only the dispatch in <code>literal</code> is typed.</p>
 <h2 id="total-surface-and-the-machine-checkable-source"><a class="header" href="#total-surface-and-the-machine-checkable-source">Total surface and the machine-checkable source</a></h2>
-<p>The full typed surface as of contract <code>1.0.2</code> is <strong>256 annotations across 112 distinct rules</strong>. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
+<p>The full typed surface as of contract <code>1.0.3</code> is <strong>256 annotations across 112 distinct rules</strong> (the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch corrected 17 list shapes but left the count unchanged — the 14 bare-list rules changed <code>return_object</code> → <code>return_array</code> and the <code>target</code>-aggregate + <code>aggregate</code> rules changed <code>normalized_text</code> only). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every <code>(rule, branch_index, annotation_type, normalized_text)</code> tuple is:</p>
 <ul>
 <li><code>generated/vhdl_return_annotations.json</code> — the live return-annotation inventory (inventory-file <code>version: 1</code> — the inventory format version, not the AST-dump schema; <code>grammar: "vhdl"</code>, <code>annotation_count: 256</code>).</li>
 <li><code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> — the embedded inventory used by the AST shape-contract regression lock (identical content; 256 entries).</li>
@@ -1428,7 +1417,7 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 match outcome.status {
     ParseStatus::Success =&gt; {
@@ -1490,9 +1479,12 @@ shows the top-level dispatch on a declaration; this one shows the
 <strong>non-empty <code>binop_chain.rest</code></strong> (operator) shape and the consumer
 left-fold across two precedence levels. Every JSON value here is the
 <strong>real captured output</strong> of <code>generated/vhdl_parser.rs</code> (parser release
-<code>1.0.2</code>, AST-dump schema version <code>2</code>) and is the regression-locked
+<code>1.0.3</code>, AST-dump schema version <code>3</code>) and is the regression-locked
 sample <code>arithmetic_expr</code> in
-<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>.</p>
+<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>. The <code>binop_chain</code>
+shape shown here is <strong>unchanged</strong> between schema <code>2</code> (the <code>VHDL-0001</code>
+fix) and schema <code>3</code> (the <code>1.0.3</code> POST-SV-AUDIT.2.3 batch touched the 17
+Category-A list rules, <strong>not</strong> the expression cascade).</p>
 <blockquote>
 <p>Schema <code>2</code> note (<code>VHDL-0001</code>): at <code>1.0.1</code> / schema <code>1</code> the <code>additive</code>
 (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code>
@@ -1671,7 +1663,7 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 if let ParseStatus::Success = outcome.status {
     let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");
@@ -1712,16 +1704,16 @@ and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p
 <h2 id="two-versioning-axes"><a class="header" href="#two-versioning-axes">Two versioning axes</a></h2>
 <p>The VHDL parser carries <strong>two</strong> version numbers:</p>
 <ol>
-<li><strong>Parser release version</strong> — currently <code>1.0.2</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
-<li><strong>AST-dump schema version</strong> — currently <code>2</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
+<li><strong>Parser release version</strong> — currently <code>1.0.3</code>. Tracks the parser library’s release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.</li>
+<li><strong>AST-dump schema version</strong> — currently <code>3</code>. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.</li>
 </ol>
 <p>A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.</p>
 <p>These numbers are taken from the integration contract’s “Contract Identity” section, which records:</p>
 <ul>
-<li>Contract version: <code>1.0.2</code></li>
-<li>Parser release version: <code>1.0.2</code></li>
-<li>VHDL AST-dump schema version: <code>2</code></li>
-<li>Annotation count: <strong>256</strong> (VHDL-Slice-1’s 249-annotation baseline plus the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix’s 7 new operator-rule branches; on 112 distinct rules)</li>
+<li>Contract version: <code>1.0.3</code></li>
+<li>Parser release version: <code>1.0.3</code></li>
+<li>VHDL AST-dump schema version: <code>3</code></li>
+<li>Annotation count: <strong>256</strong> (VHDL-Slice-1’s 249-annotation baseline plus the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix’s 7 new operator-rule branches; the <code>1.0.3</code> POST-SV-AUDIT Category-A batch — 17 list-shape corrections — did <strong>not</strong> change this count: the 14 bare-list rules flip <code>return_object</code> → <code>return_array</code> and the <code>target</code>-aggregate + <code>aggregate</code> rules change <code>normalized_text</code> only. On 112 distinct rules)</li>
 </ul>
 <p>The contract document <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> is the authoritative source for all of these per release.</p>
 <h2 id="what-shape-change-means"><a class="header" href="#what-shape-change-means">What “shape change” means</a></h2>
@@ -1738,8 +1730,9 @@ and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p
 <li>Internal codegen reorganization that doesn’t reach the output.</li>
 <li>Parser-side bug fixes that produce the same shape consumers were already relying on.</li>
 </ul>
-<p>The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. A follow-up correctness fix (parser release <code>1.0.2</code>, schema <code>2</code>, landed 2026-05-17) brought the inventory to <strong>256 annotations / 112 rules</strong> — see the schema-<code>2</code> row below and the contract’s Release 1.0.2 Highlights. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
+<p>The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. A follow-up correctness fix (parser release <code>1.0.2</code>, schema <code>2</code>, landed 2026-05-17) brought the inventory to <strong>256 annotations / 112 rules</strong> — see the schema-<code>2</code> row below and the contract’s Release 1.0.2 Highlights. The POST-SV-AUDIT batch (parser release <code>1.0.3</code>, schema <code>3</code>, landed 2026-05-17) corrected 17 Category-A list shapes with the inventory <strong>unchanged at 256 / 112</strong> — see the schema-<code>3</code> row below and the contract’s “AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT)”. Subsequent shape-affecting slices each get their own contract-version row and a <a href="#changelog-index">Changelog Index</a> entry.</p>
 <p>The <code>1.0.2</code> correctness fix <strong>did</strong> bump the schema (<code>1</code> → <code>2</code>): although it fixed a bug, it changed a user-visible shape — the <code>additive</code> (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code> <code>rest</code> (was <code>"&lt;invalid_sequence_access&gt;"</code> on multi-operand input, now a clean <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> array with a typed <code>{kind}</code> op-envelope) — and added seven return annotations. It restructured a shape a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix.</p>
+<p>The <code>1.0.3</code> POST-SV-AUDIT batch <strong>also</strong> bumped the schema (<code>2</code> → <code>3</code>). The POST-SV-AUDIT.2.3 static classification (<code>docs/POST_SV_AUDIT_LEDGER.md</code>, <code>PGEN-POST-SV-AUDIT-0004</code>) found <strong>17 static-conclusive Category-A raw-envelope list rules</strong> in <code>grammars/vhdl.ebnf</code> (<code>library_clause</code>, <code>use_clause</code>, <code>selected_name</code>, <code>identifier_list</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>parameter_list</code>, <code>enumeration_type_definition</code>, <code>index_constraint</code>, <code>association_list</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>choices</code>, <code>aggregate_choice_list</code>, plus the <code>target</code> aggregate branch and the two <code>aggregate</code> branches) that exposed the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) iteration envelope — <code>rest</code> was the raw <code>[[sep, item], …]</code> single-token-separator envelope a consumer had to walk past. Each was corrected to the canonical extraction-spread <code>[$F, $R::2*]</code> so the value (or its element field) is now a <strong>clean flat list</strong>. The 14 bare-list rules now emit a <strong>top-level array</strong>; the <code>target</code> aggregate branch and the two <code>aggregate</code> branches keep their meaningful discriminator/value fields and carry the cleaned trailing list in <code>items</code> / <code>rest</code>. These restructured consumer-visible shapes (a <code>1.0.2</code> consumer that walked <code>.first</code> + <code>.rest[][1]</code> must repin), so they are breaking changes. They did <strong>not</strong> change the annotation count: the 14 bare-list rules flip <code>return_object</code> → <code>return_array</code>, the <code>target</code>-aggregate + <code>aggregate</code> ones stay <code>return_object</code> with a new <code>normalized_text</code> — so the count stays <strong>256 annotations / 112 distinct rules</strong>. Every separator is a single token (comma / semi / dot / bar); there is <strong>no</strong> inline alternation and <strong>no</strong> <code>&lt;invalid_sequence_access&gt;</code> — this is a clean Category-A shape improvement, <strong>not</strong> a parser bug, and is <strong>not</strong> logged in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> (that ledger is reserved for the <code>&lt;invalid_sequence_access&gt;</code> corruption/crash class — <code>VHDL-0001</code>, the systemic inline-alternation defect, lives there). Tracked via <code>docs/POST_SV_AUDIT_LEDGER.md</code> and the contract.</p>
 <h2 id="byte-equivalence-guarantee"><a class="header" href="#byte-equivalence-guarantee">Byte-equivalence guarantee</a></h2>
 <p>For any input the parser accepts, the AST dump is <strong>byte-deterministic</strong> for a given parser-release version: object keys in canonical (alphabetical) order, canonical number formatting, no embedded timestamps or hashes. Re-running the parse on the same input produces an identical JSON value. Whitespace is configurable via <code>AstDumpOptions.pretty</code> but the underlying JSON value is the same.</p>
 <p>This determinism is a <strong>hard guarantee</strong> of the schema. Any non-determinism is a bug — please report via <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code>.</p>
@@ -1751,6 +1744,7 @@ and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p
 <tr><th>Schema version</th><th>First parser release</th><th>Notable changes</th></tr>
 </thead>
 <tbody>
+<tr><td>1.0.3</td><td>1.0.3</td><td><strong>POST-SV-AUDIT Category-A list-shape batch (POST-SV-AUDIT.2.3, breaking, not a parser bug).</strong> 17 static-conclusive Category-A raw-envelope list rules — <code>library_clause</code>, <code>use_clause</code>, <code>selected_name</code>, <code>identifier_list</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>parameter_list</code>, <code>enumeration_type_definition</code>, <code>index_constraint</code>, <code>association_list</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>choices</code>, <code>aggregate_choice_list</code>, plus the <code>target</code> aggregate branch and both <code>aggregate</code> branches — no longer expose the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) iteration envelope. The POST-SV-AUDIT.2.3 static classification (<code>docs/POST_SV_AUDIT_LEDGER.md</code>, <code>PGEN-POST-SV-AUDIT-0004</code>) found these were static-conclusive Category-A raw-envelope misuses (<code>rest</code> surfaced the raw <code>[[sep, item], …]</code> single-token-separator envelope). Each is corrected to the canonical extraction-spread <code>[$F, $R::2*]</code> (drop the semantically-irrelevant separator — comma / semi / dot / bar; emit a clean flat list). The 14 bare-list rules now emit a <strong>top-level array</strong> (<code>return_object</code> → <code>return_array</code>); the <code>target</code> aggregate branch and the two <code>aggregate</code> branches keep their meaningful discriminator/value fields and carry the cleaned trailing list in <code>items</code> / <code>rest</code> (<code>return_object</code>, new <code>normalized_text</code>). No <code>&lt;invalid_sequence_access&gt;</code>, no inline alternation (clean shape improvement, <strong>not</strong> logged in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>). Annotation inventory <strong>unchanged at 256 / 112</strong>. Same accept set as <code>1.0.2</code>. AST-dump schema version field value: <code>3</code>.</td></tr>
 <tr><td>1.0.2</td><td>1.0.2</td><td><strong><code>VHDL-0001</code> correctness fix (breaking).</strong> The <code>additive</code> (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code> <code>rest</code> no longer emits <code>"&lt;invalid_sequence_access&gt;"</code> for multi-operand input. The two iteration-lead inline operator alternations — <code>(plus | minus | ampersand)</code> in <code>simple_expression</code> and <code>(star | slash | kw_mod | kw_rem)</code> in <code>term</code> — were lifted into the <strong>named</strong> rules <code>adding_operator := plus -&gt; {kind: "plus"} | minus -&gt; {kind: "minus"} | ampersand -&gt; {kind: "concat"}</code> and <code>multiplying_operator := star -&gt; {kind: "mul"} | slash -&gt; {kind: "div"} | kw_mod -&gt; {kind: "mod"} | kw_rem -&gt; {kind: "rem"}</code>, matching vhdl’s own <code>logical_operator</code> / <code>relational_operator</code> <code>{kind}</code> idiom. The <code>simple_expression</code> / <code>term</code> <code>binop_chain</code> annotations are <strong>unchanged</strong> (only the inline group became a named rule), so each level’s <code>rest</code> is now a clean <code>[ &lt;op-envelope&gt;, &lt;operand&gt; ]</code> array where the op-envelope is the typed <code>{kind: …}</code> object (uniform with the <code>logical</code> / <code>relational</code> levels). The leading <code>(plus | minus)?</code> <code>sign</code> is <strong>not</strong> an iteration lead and was empirically unaffected — left as-is. Annotation inventory <strong>249 → 256</strong> (the 3 new <code>adding_operator</code> + 4 new <code>multiplying_operator</code> <code>return_object</code> branches); distinct rules <strong>110 → 112</strong> (the new <code>adding_operator</code> / <code>multiplying_operator</code>). Same accept set as <code>1.0.1</code>. AST-dump schema version field value: <code>2</code>.</td></tr>
 <tr><td>1.0.0</td><td>1.0.1</td><td><strong>VHDL-Slice-1</strong> — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (the <code>binop_chain</code> shape across the 5-level operator hierarchy <code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>), and literals all typed in one comprehensive batch. Same accept set as the pre-typing baseline. Pre-correctness shapes: the <code>additive</code> (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code> <code>rest</code> could surface <code>"&lt;invalid_sequence_access&gt;"</code> on multi-operand input (<code>VHDL-0001</code>). AST-dump schema version field value: <code>1</code>.</td></tr>
 <tr><td>0.1.0</td><td>1.0.0</td><td><strong>Foundation baseline.</strong> Grammar (<code>grammars/vhdl.ebnf</code>) un-annotated except for the <code>vhdl_file -&gt; {type, design_units}</code> root. AST dump is the recursive-envelope shape across all rules.</td></tr>
@@ -1758,19 +1752,19 @@ and <a href="#top-level-rules">Top-Level Rules</a> for every level’s shape.</p
 </table>
 </div>
 <blockquote>
-<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> labels above for the milestones; the AST-dump schema version consumers pin against is the integer <strong><code>2</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
+<p>Note on the version columns: the contract’s “Schema version” column uses the <code>1.0.3</code> / <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> labels above for the milestones; the AST-dump schema version consumers pin against is the integer <strong><code>3</code></strong>. That integer is <strong>not</strong> a runtime field of <code>AstDumpPayload</code> (the real struct is <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>) — you pin it from this contract/book at integration time, not by reading the payload (see <a href="#walking-the-ast">Walking the AST</a>); use the contract’s milestone labels when reading the changelog.</p>
 </blockquote>
 <h2 id="how-to-pin-to-a-known-shape"><a class="header" href="#how-to-pin-to-a-known-shape">How to pin to a known shape</a></h2>
 <ol>
 <li>
-<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.2</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
+<p><strong>Record the parser-release version</strong> your downstream code was written against — <code>1.0.3</code> as of this writing. It is recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”.</p>
 </li>
 <li>
-<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>2</code>, from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
+<p><strong>Pin the AST-dump schema version you built against</strong> — currently <code>3</code>, from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. This is a <em>compile-time constant in your consumer</em>, <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct exposes only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>). Check <code>truncated</code>, parse <code>dump_json</code>, then walk against the schema you pinned; re-validate the pin against the contract whenever you bump PGEN:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Schema version you integrated against, from the contract:
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -1779,7 +1773,10 @@ if payload.truncated {
 let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // VHDL_AST_SCHEMA_VERSION drives which walker you compiled; re-check the
 // contract's Schema Versioning table on every PGEN bump.
-walk_schema_v2(&amp;root);
+// (schema 3: the 17 Category-A list rules — e.g. library_clause,
+//  identifier_list, association_list, choices — are clean flat
+//  arrays, not the ≤ 1.0.2 {first, rest} envelope; POST-SV-AUDIT.2.3.)
+walk_schema_v3(&amp;root);
 <span class="boring">}</span></code></pre>
 </li>
 <li>
@@ -1793,7 +1790,7 @@ walk_schema_v2(&amp;root);
 <p>Within a single integer schema version, shape changes are intended to be <strong>additive</strong> wherever possible:</p>
 <ul>
 <li><strong>Additive (no integer schema bump expected):</strong> a new optional field on an existing typed object, a new <code>kind</code> value on a dispatch rule for a previously-unparseable construct, a new typed shape on a rule that was previously raw envelope. Consumers using the unknown-shape fallthrough from <a href="#walking-the-ast">Walking the AST</a> keep working; consumers that hard-match a closed <code>kind</code> set must extend it.</li>
-<li><strong>Breaking (integer schema bump):</strong> renaming or removing a field on an existing typed object, changing a <code>kind</code> discriminator value, restructuring a <code>{first, rest}</code> list into a flat array, or changing the default fall-through of an unannotated rule in a way that moves data consumers were already reading.</li>
+<li><strong>Breaking (integer schema bump):</strong> renaming or removing a field on an existing typed object, changing a <code>kind</code> discriminator value, restructuring a <code>{first, rest}</code> list into a flat array (the <code>1.0.3</code> POST-SV-AUDIT schema-<code>2</code>→<code>3</code> change did exactly this for the 17 Category-A list rules), or changing the default fall-through of an unannotated rule in a way that moves data consumers were already reading.</li>
 </ul>
 <p>The contract’s bump-trigger guidance is the binding policy; this section paraphrases it for walker authors. A consumer that (a) branches on the integer <code>schema_version</code>, (b) treats absent optionals as <code>[]</code>, and (c) uses the unknown-shape fallthrough is resilient to additive changes and fails loudly — not silently — on breaking ones.</p>
 <h2 id="reporting-drift"><a class="header" href="#reporting-drift">Reporting drift</a></h2>
@@ -1818,20 +1815,20 @@ walk_schema_v2(&amp;root);
 <p>The machine-checkable enumeration of every typed-shape annotation the VHDL grammar emits: <code>generated/vhdl_return_annotations.json</code> (inventory-file <code>version: 1</code> — the inventory format version, not the AST-dump schema; <code>grammar: "vhdl"</code>, <code>annotation_count: 256</code>). It is the live source of truth for the typed surface and is mirrored by the embedded inventory in <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> (identical content on the <code>(rule, branch_index, annotation_type, normalized_text)</code> tuples; the embedded copy omits only the diagnostic <code>raw_text</code> field). If this book’s prose disagrees with the inventory, the inventory wins; if the inventory disagrees with the integration contract, the contract wins.</p>
 <h2 id="design_unit-dispatch-2"><a class="header" href="#design_unit-dispatch-2">design_unit dispatch</a></h2>
 <p>The primary top-level dispatcher of the VHDL AST. <code>design_unit</code> is a 10-branch <code>kind</code>-tagged shape — <code>"library"</code>, <code>"use"</code>, <code>"context_reference"</code>, <code>"entity"</code>, <code>"architecture"</code>, <code>"package"</code>, <code>"package_body"</code>, <code>"configuration"</code>, <code>"context"</code>, <code>"semi"</code> — each carrying a <code>body</code> (the <code>"semi"</code> branch is bodyless). Every parse roots at <code>{type: "vhdl_file", design_units: [...]}</code>; each element of <code>design_units</code> is a <code>design_unit</code> object. See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
-<h2 id="first-rest-list-convention"><a class="header" href="#first-rest-list-convention">{first, rest} list convention</a></h2>
-<p>The uniform carrier for VHDL separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …). Each list emits <code>{first: &lt;head-element&gt;, rest: &lt;iteration-of-the-(separator element)*-tail&gt;}</code>. <code>rest</code> is a recursive-envelope array; each entry is the envelope of one <code>(separator element)</code> iteration. Unlike the SystemVerilog grammar — whose lists were flattened to clean <code>[$N, $M::2*]</code> arrays in its slice-58 audit — the VHDL grammar uses <code>{first, rest}</code> uniformly across VHDL-Slice-1. A future flattening slice, if it lands, gets its own <a href="#changelog-index">Changelog Index</a> row. See <a href="#walking-the-ast">Walking the AST</a> for the iteration helper.</p>
+<h2 id="separated-list-convention-clean-flat-array-schema-3"><a class="header" href="#separated-list-convention-clean-flat-array-schema-3">Separated-list convention (clean flat array, schema 3)</a></h2>
+<p>The carrier for VHDL separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>index_constraint</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>aggregate_choice_list</code>, …). As of the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (schema <code>3</code>, <code>PGEN-POST-SV-AUDIT-0004</code>), each emits a <strong>clean flat array</strong> of the element type in source order — the canonical extraction-spread <code>[$F, $R::2*]</code> idiom (the semantically-irrelevant single-token <code>,</code> / <code>;</code> / <code>.</code> / <code>|</code> separator is dropped); the <code>target</code> aggregate branch and the two <code>aggregate</code> branches carry the cleaned list in <code>items</code> / <code>rest</code>. At ≤ <code>1.0.2</code> / schema <code>2</code> these rules emitted the raw <code>{first: &lt;head-element&gt;, rest: &lt;recursive-envelope-iteration-of-the-(separator element)*-tail&gt;}</code> carrier a consumer had to descend through the separator wrap to read; a schema-<code>2</code> consumer must repin to schema <code>3</code> and treat the value (or its element field) as a flat array. This is a clean Category-A shape improvement (single-token separators, no <code>&lt;invalid_sequence_access&gt;</code>, no inline alternation) tracked via <code>docs/POST_SV_AUDIT_LEDGER.md</code> and the contract’s “AST-Shape Corrections — 1.0.3” section, <strong>not</strong> the bug ledger. See <a href="#schema-versioning">Schema Versioning</a> and <a href="#walking-the-ast">Walking the AST</a> for the iteration helper.</p>
 <h2 id="parseability_probe"><a class="header" href="#parseability_probe">parseability_probe</a></h2>
 <p>The CLI wrapper around <code>pgen::embedding_api</code> used for terminal-side verification, AST inspection, and bug-report reproducers. Sub-commands include <code>--parse</code>, <code>--parse-dump-ast</code>, and <code>--parse-dump-ast-pretty</code>. For VHDL the parser is on-demand-only, so the probe must be built with the generated backend before use (see <a href="#build-recipe">Build Recipe</a>). The full flag set, exit codes, and registered grammars are in the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a>.</p>
 <h2 id="parser-release-version"><a class="header" href="#parser-release-version">Parser release version</a></h2>
-<p>The parser library’s release identity, currently <code>1.0.2</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>The parser library’s release identity, currently <code>1.0.3</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
 <p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. VHDL has exactly <strong>one</strong> stable profile: <code>vhdl_1076_2019</code> (IEEE 1076-2019), whose entry rule is <code>vhdl_file</code>. The host entry points for it are <code>parse_vhdl_1076_2019</code> and <code>parse_vhdl_1076_2019_ast_dump</code>. Recognized profile-name aliases: <code>"vhdl_1076_2019"</code>, <code>"1076-2019"</code>, <code>"ieee1076-2019"</code>, <code>"ieee_1076_2019"</code>. See <a href="#public-api-surface">Public API Surface</a>.</p>
 <h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
-<p>The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences, quantified iterations, and the <code>rest</code> tail of a <code>{first, rest}</code> list), strings (for terminal and regex leaves), and matched-branch passthroughs (for alternations). Un-matched optionals are the empty array <code>[]</code>, never <code>null</code>. In VHDL the recursive envelope is what you reach when you descend below the typed surface: identifier tokens, physical / bit-string / string / character literals, and the few utility rules with no per-rule annotation. See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#the-json-carrier">The Json Carrier</a>.</p>
+<p>The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences, quantified iterations, and the trailing <code>rest</code> iteration of the <code>aggregate</code> / <code>target</code>-aggregate list), strings (for terminal and regex leaves), and matched-branch passthroughs (for alternations). Un-matched optionals are the empty array <code>[]</code>, never <code>null</code>. In VHDL the recursive envelope is what you reach when you descend below the typed surface: identifier tokens, physical / bit-string / string / character literals, and the few utility rules with no per-rule annotation. See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#the-json-carrier">The Json Carrier</a>.</p>
 <h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>
 <p>A <code>-&gt; ...</code> clause appended to a grammar rule definition in <code>grammars/vhdl.ebnf</code> that overrides the default recursive-envelope shape with a typed JSON value. Example: <code>vhdl_file := design_unit* -&gt; {type: "vhdl_file", design_units: $1}</code>. The annotation language (<code>$N</code> positional references, <code>{field: value}</code> object literals, <code>[...]</code> array literals, string literals) is specified in <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>.</p>
 <h2 id="schema-version"><a class="header" href="#schema-version">Schema version</a></h2>
-<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>2</code> (bumped <code>1 → 2</code> by the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix) — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to (a new annotation on a previously-unannotated rule, a restructured annotation, a user-visible grammar-shape change). Pure performance work and internal codegen reorganization do <strong>not</strong> bump it. The AST-dump schema version is currently <code>3</code> (bumped <code>1 → 2</code> by the <code>1.0.2</code> <code>VHDL-0001</code> correctness fix, then <code>2 → 3</code> by the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A list-shape batch) — note it is <strong>not</strong> a field of <code>AstDumpPayload</code> (that struct has only <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>); consumers <strong>pin</strong> the schema version they built against from <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity” and re-check the contract’s “Schema Versioning” table when bumping PGEN. That table additionally uses <code>1.0.3</code> / <code>1.0.2</code> / <code>1.0.0</code> / <code>0.1.0</code> milestone labels for the timeline. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="typed-shape"><a class="header" href="#typed-shape">Typed shape</a></h2>
 <p>The JSON value produced by an annotated rule. In VHDL it takes three sub-forms: a root object carrying <code>type</code> (only <code>vhdl_file</code>); a <code>kind</code>-tagged dispatch object (<code>{kind, body}</code> or per-branch named fields); and a named-field object for single-sequence rules. The <code>binop_chain</code> expression rules combine the <code>type</code> and named-field forms. Consumers dispatch on <code>obj["type"]</code> at the root and <code>obj["kind"]</code> for variants. See <a href="#the-json-carrier">The Json Carrier</a> and <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <h2 id="vhdl-slice-1"><a class="header" href="#vhdl-slice-1">VHDL-Slice-1</a></h2>
@@ -1855,9 +1852,22 @@ walk_schema_v2(&amp;root);
 </div>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the bug ledger for specific accepted bugs, and fall back to git for diffs.</p>
 <h2 id="why-this-index-is-short-by-design"><a class="header" href="#why-this-index-is-short-by-design">Why this index is short by design</a></h2>
-<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A single follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
+<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry, and the <code>1.0.3</code> POST-SV-AUDIT Category-A list-shape batch (schema <code>3</code>) added the fourth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
-<p>This book is <strong>live</strong> and tracks current main HEAD. The three entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<p>This book is <strong>live</strong> and tracks current main HEAD. The four entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="103--contract-103--post-sv-audit-category-a-list-shape-batch-schema-2--3"><a class="header" href="#103--contract-103--post-sv-audit-category-a-list-shape-batch-schema-2--3">1.0.3 / Contract 1.0.3 — POST-SV-AUDIT Category-A list-shape batch (schema 2 → 3)</a></h3>
+<p>The POST-SV-AUDIT.2.3 static classification pass (<code>docs/POST_SV_AUDIT_LEDGER.md</code>, tracked <code>PGEN-POST-SV-AUDIT-0004</code>) found <strong>17 static-conclusive Category-A raw-envelope list rules</strong> in <code>grammars/vhdl.ebnf</code>. Landed 2026-05-17. Follows POST-SV-AUDIT.2.1 (<code>systemverilog_preprocessor</code> <code>macro_formals</code>, <code>PGEN-POST-SV-AUDIT-0002</code>, sv_preprocessor 1.0.3 / schema 3) and POST-SV-AUDIT.2.2 (<code>rtl_frontend</code> 15 Category-A + <code>RTL-FE-0002</code>, <code>PGEN-POST-SV-AUDIT-0003</code>, rtl_frontend 1.0.3 / schema 3).</p>
+<ul>
+<li><strong>Schema-version milestone:</strong> <code>1.0.3</code> (first parser release: <code>1.0.3</code>).</li>
+<li><strong>AST-dump schema version:</strong> <code>3</code> — the integer consumers <strong>pin</strong> from the contract (it is <strong>not</strong> a field of <code>AstDumpPayload</code>, whose real fields are <code>dump_json</code>/<code>truncated</code>/<code>full_bytes</code>/<code>emitted_bytes</code>).</li>
+<li><strong>What changed:</strong> 17 Category-A raw-envelope list rules — <code>library_clause</code>, <code>use_clause</code>, <code>selected_name</code>, <code>identifier_list</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>parameter_list</code>, <code>enumeration_type_definition</code>, <code>index_constraint</code>, <code>association_list</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>choices</code>, <code>aggregate_choice_list</code>, plus the <code>target</code> aggregate branch and both <code>aggregate</code> branches — no longer expose the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) iteration envelope (<code>rest</code> was the raw <code>[[sep, item], …]</code> single-token-separator envelope a consumer had to walk past). Each is corrected to the canonical extraction-spread <code>[$F, $R::2*]</code> (drop the semantically-irrelevant separator — comma / semi / dot / bar; emit a clean flat list). The 14 bare-list rules now emit a <strong>top-level array</strong>; the <code>target</code> aggregate branch and the two <code>aggregate</code> branches keep their meaningful discriminator/value fields and carry the cleaned trailing list in <code>items</code> / <code>rest</code>. Every separator is a single token; <strong>no</strong> inline alternation and <strong>no</strong> <code>&lt;invalid_sequence_access&gt;</code> — this is a clean Category-A shape improvement, <strong>not</strong> a parser bug.</li>
+<li><strong>Annotation count:</strong> <strong>256</strong> (UNCHANGED — the 14 bare-list rules flip <code>return_object</code> → <code>return_array</code>; the <code>target</code>-aggregate + <code>aggregate</code> rules stay <code>return_object</code> with a new <code>normalized_text</code>; no count delta). <strong>112</strong> distinct rules (UNCHANGED).</li>
+<li><strong>Accept set:</strong> unchanged — no grammar acceptance change, purely the 17 annotation-form changes.</li>
+<li><strong>Contract section:</strong> <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> → “AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT) — 17 Category-A raw-envelope list rules → clean lists; schema 2 → 3”.</li>
+<li><strong>Bug ledger:</strong> none. The 17 Category-A corrections are a clean shape improvement (single-token separators, no <code>&lt;invalid_sequence_access&gt;</code>) and are deliberately <strong>not</strong> bug-ledger rows — tracked via <code>docs/POST_SV_AUDIT_LEDGER.md</code> and the contract’s “AST-Shape Corrections — 1.0.3” section. (<code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is reserved for the <code>&lt;invalid_sequence_access&gt;</code> corruption/crash class — <code>VHDL-0001</code> lives there; this batch adds nothing.)</li>
+<li><strong>Machine-checkable inventory:</strong> <code>generated/vhdl_return_annotations.json</code> (256 entries) and its embedded mirror <code>rust/test_data/ast_shape_contract/vhdl_v1.json</code> (new <code>cat_a_shapes</code> regression sample).</li>
+<li><strong>Per-rule shapes:</strong> <a href="#top-level-rules">Top-Level Rules</a>.</li>
+</ul>
 <h3 id="102--contract-102--vhdl-0001-correctness-fix-simple_expression--term-binop_chainrest-schema-1--2"><a class="header" href="#102--contract-102--vhdl-0001-correctness-fix-simple_expression--term-binop_chainrest-schema-1--2">1.0.2 / Contract 1.0.2 — VHDL-0001 correctness fix: simple_expression / term binop_chain.rest (schema 1 → 2)</a></h3>
 <p>A targeted, bug-ledger-driven correctness fix landed 2026-05-17. A worked-example pass surfaced that the <code>1.0.1</code> baseline shipped one systemic return-annotation defect (<code>VHDL-0001</code>) the root-keys-only shape-contract lock did not catch.</p>
 <ul>
@@ -1890,7 +1900,7 @@ walk_schema_v2(&amp;root);
 <li><strong>Contract section:</strong> the <code>0.1.0</code> row of the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>.</li>
 </ul>
 <h2 id="bug-ledger-status"><a class="header" href="#bug-ledger-status">Bug ledger status</a></h2>
-<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries <strong>one VHDL row — <code>VHDL-0001</code></strong> (status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code>): the systemic inline-alternation-<code>$N</code> <code>simple_expression</code> / <code>term</code> <code>binop_chain.rest</code> <code>&lt;invalid_sequence_access&gt;</code> defect, with its before/after <code>parseability_probe</code> reproducer, root cause, and fix proof. It points at the contract’s “Release 1.0.2 / Contract 1.0.2 Highlights” section for the accompanying schema-<code>1</code>→<code>2</code> shape change. Future accepted VHDL bugs get their own <code>VHDL-NNNN</code> rows the same way.</p>
+<p><code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> is the canonical per-bug tracker. As of this writing it carries <strong>one VHDL row — <code>VHDL-0001</code></strong> (status <code>Released</code>, fixed in parser release <code>1.0.2</code> / schema <code>2</code>): the systemic inline-alternation-<code>$N</code> <code>simple_expression</code> / <code>term</code> <code>binop_chain.rest</code> <code>&lt;invalid_sequence_access&gt;</code> defect, with its before/after <code>parseability_probe</code> reproducer, root cause, and fix proof. It points at the contract’s “Release 1.0.2 / Contract 1.0.2 Highlights” section for the accompanying schema-<code>1</code>→<code>2</code> shape change. The 17 POST-SV-AUDIT Category-A list-shape corrections that landed in the <code>1.0.3</code> release are a clean shape improvement (single-token separators, no <code>&lt;invalid_sequence_access&gt;</code>) and are deliberately <strong>not</strong> bug-ledger rows — they are tracked via <code>docs/POST_SV_AUDIT_LEDGER.md</code> and the contract’s “AST-Shape Corrections — 1.0.3” section, not the bug ledger. Future accepted VHDL bugs get their own <code>VHDL-NNNN</code> rows the same way.</p>
 <h2 id="how-to-follow-per-slice-changes-1"><a class="header" href="#how-to-follow-per-slice-changes-1">How to follow per-slice changes</a></h2>
 <p>Each shape-affecting slice after VHDL-Slice-1 gets:</p>
 <ol>

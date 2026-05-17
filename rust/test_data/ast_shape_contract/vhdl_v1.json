@@ -37,12 +37,29 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-INLINE-ALT-FIX-0003 / VHDL-0001: simple_expression+term inline-alternation defect fixed (named adding_operator/multiplying_operator rules); locks the post-fix arithmetic path. AST-dump schema 1->2."
+  },
+  {
+   "name": "cat_a_shapes",
+   "input": "library ieee;\nuse ieee.std_logic_1164.all;\nentity e is\n  generic ( G1 : integer := 1 );\n  port ( a, b : in bit; q : out bit );\nend entity e;\narchitecture rtl of e is\n  type col is (red, green, blue);\nbegin\n  process (a, b)\n  begin\n    q <= a;\n  end process;\nend architecture rtl;\n",
+   "rule_under_test": "vhdl_file",
+   "declared_annotation": "{type: \"vhdl_file\", design_units: $1}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "type",
+    "design_units"
+   ],
+   "expected_json_object_string_values": {
+    "type": "vhdl_file"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-POST-SV-AUDIT-0004 / POST-SV-AUDIT.2.3: 17 vhdl Cat-A raw-envelope misuses -> extraction-spreads; locks the post-fix clean-list shapes. AST-dump schema 2->3."
   }
  ],
  "declared_annotation_inventory": {
   "pipeline_inventory_artifact": "generated/vhdl_return_annotations.json",
   "optional_grammar_json_crosscheck": "generated/vhdl.json",
-  "extracted_at": "2026-05-16",
+  "extracted_at": "2026-05-17",
   "annotations": [
    {
     "annotation_type": "return_object",
@@ -57,9 +74,9 @@
     "rule": "actual_parameter_element"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "actual_parameter_part"
    },
    {
@@ -95,13 +112,13 @@
    {
     "annotation_type": "return_object",
     "branch_index": 0,
-    "normalized_text": "{kind: \"named_first\", first_choices: $2, first_value: $4, rest: $5}",
+    "normalized_text": "{kind: \"named_first\", first_choices: $2, first_value: $4, rest: [$5::2*]}",
     "rule": "aggregate"
    },
    {
     "annotation_type": "return_object",
     "branch_index": 1,
-    "normalized_text": "{kind: \"positional_first\", first_value: $2, second: $4, rest: $5}",
+    "normalized_text": "{kind: \"positional_first\", first_value: $2, second: $4, rest: [$5::2*]}",
     "rule": "aggregate"
    },
    {
@@ -135,9 +152,9 @@
     "rule": "aggregate_choice"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $1, rest: $2}",
+    "normalized_text": "[$1, $2::2*]",
     "rule": "aggregate_choice_list"
    },
    {
@@ -255,9 +272,9 @@
     "rule": "association_element"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "association_list"
    },
    {
@@ -303,9 +320,9 @@
     "rule": "choice"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $1, rest: $2}",
+    "normalized_text": "[$1, $2::2*]",
     "rule": "choices"
    },
    {
@@ -579,9 +596,9 @@
     "rule": "entity_declarative_item"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "enumeration_type_definition"
    },
    {
@@ -645,9 +662,9 @@
     "rule": "generic_interface_element"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $1, rest: $2}",
+    "normalized_text": "[$1, $2::2*]",
     "rule": "generic_interface_list"
    },
    {
@@ -657,9 +674,9 @@
     "rule": "generic_map_aspect"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $1, rest: $2}",
+    "normalized_text": "[$1, $2::2*]",
     "rule": "identifier_list"
    },
    {
@@ -669,9 +686,9 @@
     "rule": "if_statement"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "index_constraint"
    },
    {
@@ -693,9 +710,9 @@
     "rule": "instantiated_unit"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "library_clause"
    },
    {
@@ -975,9 +992,9 @@
     "rule": "parameter_interface_element"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "parameter_list"
    },
    {
@@ -1011,9 +1028,9 @@
     "rule": "port_interface_element"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $1, rest: $2}",
+    "normalized_text": "[$1, $2::2*]",
     "rule": "port_interface_list"
    },
    {
@@ -1227,9 +1244,9 @@
     "rule": "return_statement"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $1, rest: $2}",
+    "normalized_text": "[$1, $2::2*]",
     "rule": "selected_name"
    },
    {
@@ -1239,9 +1256,9 @@
     "rule": "sensitivity_clause"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $1, rest: $2}",
+    "normalized_text": "[$1, $2::2*]",
     "rule": "sensitivity_list"
    },
    {
@@ -1475,7 +1492,7 @@
    {
     "annotation_type": "return_object",
     "branch_index": 1,
-    "normalized_text": "{kind: \"aggregate\", first: $2, rest: $3}",
+    "normalized_text": "{kind: \"aggregate\", items: [$2, $3::2*]}",
     "rule": "target"
    },
    {
@@ -1509,9 +1526,9 @@
     "rule": "type_definition"
    },
    {
-    "annotation_type": "return_object",
+    "annotation_type": "return_array",
     "branch_index": 0,
-    "normalized_text": "{first: $2, rest: $3}",
+    "normalized_text": "[$2, $3::2*]",
     "rule": "use_clause"
    },
    {

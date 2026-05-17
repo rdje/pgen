@@ -26,10 +26,11 @@ design_unit := library_clause              -> {kind: "library",                 
 # Context clauses and selected names
 # ---------------------------------------------------------------------------
 
+# POST-SV-AUDIT.2.3 Cat-A: pure separator lists → clean extraction-spreads.
 library_clause := kw_library identifier (comma identifier)* semi
-               -> {first: $2, rest: $3}
+               -> [$2, $3::2*]
 use_clause := kw_use selected_name (comma selected_name)* semi
-           -> {first: $2, rest: $3}
+           -> [$2, $3::2*]
 context_reference_clause := kw_context selected_name semi
                          -> {name: $2}
 context_declaration := kw_context identifier kw_is context_item* kw_end kw_context? identifier? semi
@@ -40,9 +41,9 @@ context_item := library_clause              -> {kind: "library",            body
               | semi                        -> {kind: "semi"}
 
 selected_name := identifier (dot identifier)*
-              -> {first: $1, rest: $2}
+              -> [$1, $2::2*]
 identifier_list := identifier (comma identifier)*
-                -> {first: $1, rest: $2}
+                -> [$1, $2::2*]
 
 # ---------------------------------------------------------------------------
 # Design units
@@ -60,7 +61,7 @@ entity_declarative_item := generic_clause         -> {kind: "generic",        bo
 generic_clause := kw_generic lparen generic_interface_list rparen semi
                -> {list: $3}
 generic_interface_list := generic_interface_element (semi generic_interface_element)*
-                       -> {first: $1, rest: $2}
+                       -> [$1, $2::2*]
 generic_interface_element := identifier_list colon subtype_indication (assign expression)?  -> {kind: "value",   names: $1, subtype: $3, default: $4}
                            | package_generic_interface_element                                 -> {kind: "package", body: $1}
 package_generic_interface_element := kw_package identifier kw_is kw_new selected_name generic_map_aspect?
@@ -71,7 +72,7 @@ generic_map_aspect := kw_generic kw_map association_list
 port_clause := kw_port lparen port_interface_list rparen semi
             -> {list: $3}
 port_interface_list := port_interface_element (semi port_interface_element)*
-                    -> {first: $1, rest: $2}
+                    -> [$1, $2::2*]
 port_interface_element := identifier_list colon signal_mode subtype_indication (assign expression)?
                        -> {names: $1, mode: $3, subtype: $4, default: $5}
 
@@ -169,7 +170,7 @@ subprogram_declarative_item := variable_declaration       -> {kind: "variable", 
                              | semi                       -> {kind: "semi"}
 
 parameter_list := lparen parameter_interface_element (semi parameter_interface_element)* rparen
-               -> {first: $2, rest: $3}
+               -> [$2, $3::2*]
 parameter_interface_element := identifier_list colon parameter_mode? subtype_indication (assign expression)?
                             -> {names: $1, mode: $3, subtype: $4, default: $5}
 
@@ -201,7 +202,7 @@ type_definition := enumeration_type_definition  -> {kind: "enumeration", body: $
                  | record_type_definition        -> {kind: "record",      body: $1}
 
 enumeration_type_definition := lparen identifier (comma identifier)* rparen
-                            -> {first: $2, rest: $3}
+                            -> [$2, $3::2*]
 array_type_definition := kw_array lparen discrete_range rparen kw_of subtype_indication
                      -> {index_range: $3, element_subtype: $6}
 record_type_definition := kw_record record_element_declaration+ kw_end kw_record
@@ -216,7 +217,7 @@ constraint := range_constraint  -> {kind: "range", body: $1}
 range_constraint := kw_range range_expression
                  -> {range: $2}
 index_constraint := lparen discrete_range (comma discrete_range)* rparen
-                 -> {first: $2, rest: $3}
+                 -> [$2, $3::2*]
 discrete_range := range_expression                                  -> {kind: "range",        body: $1}
                 | attribute_name                                     -> {kind: "attribute",    body: $1}
                 | selected_name                                      -> {kind: "name",         body: $1}
@@ -241,7 +242,7 @@ concurrent_statement := concurrent_signal_assignment_statement   -> {kind: "sign
 concurrent_signal_assignment_statement := target lte signal_assignment_rhs semi
                                        -> {target: $1, rhs: $3}
 target := selected_name actual_parameter_part?              -> {kind: "name",      name: $1, params: $2}
-        | lparen target (comma target)+ rparen              -> {kind: "aggregate", first: $2, rest: $3}
+        | lparen target (comma target)+ rparen              -> {kind: "aggregate", items: [$2, $3::2*]}
 
 component_instantiation_statement := identifier colon instantiated_unit generic_map_aspect? port_map_aspect? semi
                                   -> {label: $1, unit: $3, generic_map: $4, port_map: $5}
@@ -251,7 +252,7 @@ instantiated_unit := selected_name                          -> {kind: "component
 port_map_aspect := kw_port kw_map association_list
                 -> {associations: $3}
 association_list := lparen association_element (comma association_element)* rparen
-                 -> {first: $2, rest: $3}
+                 -> [$2, $3::2*]
 association_element := (identifier arrow)? actual_part
                     -> {formal: $1, actual: $2}
 actual_part := expression  -> {kind: "expression", body: $1}
@@ -274,7 +275,7 @@ process_label := identifier colon
 sensitivity_clause := lparen sensitivity_list rparen
                   -> {list: $2}
 sensitivity_list := selected_name (comma selected_name)*
-                 -> {first: $1, rest: $2}
+                 -> [$1, $2::2*]
 
 process_declarative_item := variable_declaration       -> {kind: "variable",                body: $1}
                           | file_declaration           -> {kind: "file",                    body: $1}
@@ -307,7 +308,7 @@ variable_assignment_statement := target assign expression semi
 procedure_call_statement := selected_name actual_parameter_part? semi
                          -> {name: $1, params: $2}
 actual_parameter_part := lparen actual_parameter_element (comma actual_parameter_element)* rparen
-                     -> {first: $2, rest: $3}
+                     -> [$2, $3::2*]
 actual_parameter_element := association_element  -> {kind: "association",     body: $1}
                           | range_expression      -> {kind: "range_expression", body: $1}
 signal_assignment_rhs := expression (kw_when expression kw_else expression (kw_when expression kw_else expression)*)?
@@ -321,7 +322,7 @@ case_statement := kw_case expression kw_is case_statement_alternative+ kw_end kw
 case_statement_alternative := kw_when choices arrow sequential_statement*
                            -> {choices: $2, body: $4}
 choices := choice (bar choice)*
-        -> {first: $1, rest: $2}
+        -> [$1, $2::2*]
 choice := expression  -> {kind: "expression", body: $1}
         | kw_others   -> {kind: "others"}
 
@@ -376,12 +377,12 @@ primary := literal                                  -> {kind: "literal",        
 attribute_name := selected_name actual_parameter_part? tick identifier actual_parameter_part?
               -> {prefix: $1, prefix_params: $2, attribute: $4, attribute_params: $5}
 
-aggregate := lparen aggregate_choice_list arrow expression (comma aggregate_element_association)* rparen          -> {kind: "named_first",       first_choices: $2, first_value: $4, rest: $5}
-           | lparen expression comma aggregate_element_association (comma aggregate_element_association)* rparen   -> {kind: "positional_first",  first_value: $2, second: $4, rest: $5}
+aggregate := lparen aggregate_choice_list arrow expression (comma aggregate_element_association)* rparen          -> {kind: "named_first",       first_choices: $2, first_value: $4, rest: [$5::2*]}
+           | lparen expression comma aggregate_element_association (comma aggregate_element_association)* rparen   -> {kind: "positional_first",  first_value: $2, second: $4, rest: [$5::2*]}
 aggregate_element_association := aggregate_choice_list arrow expression   -> {kind: "named",      choices: $1, value: $3}
                                | expression                                -> {kind: "positional", value: $1}
 aggregate_choice_list := aggregate_choice (bar aggregate_choice)*
-                     -> {first: $1, rest: $2}
+                     -> [$1, $2::2*]
 aggregate_choice := kw_others           -> {kind: "others"}
                   | selected_name        -> {kind: "name",       body: $1}
                   | decimal_literal      -> {kind: "decimal",    body: $1}

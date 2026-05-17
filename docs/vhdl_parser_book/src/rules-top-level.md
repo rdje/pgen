@@ -2,7 +2,7 @@
 
 This chapter is the per-rule shape reference for the PGEN VHDL parser. It documents the `vhdl_file` root, the `design_unit` dispatch, and then enumerates the typed rule shapes grouped by rule family.
 
-> **Status:** VHDL-Slice-1 (parser release `1.0.1`) landed the full grammar typing in one comprehensive batch; the `1.0.2` `VHDL-0001` correctness fix (AST-dump schema version `1` → `2`) added the two named operator rules. The current typed surface is **112 distinct rules / 256 return annotations** across `grammars/vhdl.ebnf` (parser release `1.0.2`, AST-dump schema version `2`). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at `generated/vhdl_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/vhdl_v1.json` — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.
+> **Status:** VHDL-Slice-1 (parser release `1.0.1`) landed the full grammar typing in one comprehensive batch; the `1.0.2` `VHDL-0001` correctness fix (AST-dump schema version `1` → `2`) added the two named operator rules; the `1.0.3` POST-SV-AUDIT.2.3 Category-A batch (AST-dump schema version `2` → `3`) corrected 17 list-shape rules to clean flat arrays. The current typed surface is **112 distinct rules / 256 return annotations** across `grammars/vhdl.ebnf` (parser release `1.0.3`, AST-dump schema version `3`; the annotation inventory is **unchanged at 256 / 112** — the 17 Category-A rules changed annotation form not count). Unlike the SystemVerilog campaign, which types rules slice-by-slice, the VHDL grammar was annotated line-by-line in a single pass. Every shape in this chapter is drawn from the live inventory at `generated/vhdl_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/vhdl_v1.json` — identical content, 256 entries). That artifact, not this prose, is the machine-checkable source of truth.
 
 ## How to read this chapter
 
@@ -11,7 +11,7 @@ This is a **curated, grouped** reference — not a raw 256-line dump and not a c
 Two conventions appear throughout:
 
 - **Dispatch rules** emit `{kind: "<branch>", body: $N}` (or named fields per branch). Consumers dispatch on `obj["kind"]`.
-- **`{first, rest}` list rules** emit a head element plus the raw iteration of the `(sep X)*` tail. This is the VHDL grammar's mini-mixed-array convention for separated lists (`identifier_list`, `association_list`, `selected_name`, etc.); the head is `first`, and `rest` is the trailing-iteration envelope.
+- **Separated-list rules** emit a **clean flat array** of the element type in source order — the canonical extraction-spread `[$F, $R::2*]` idiom (the semantically-irrelevant single-token separator — `,` / `;` / `.` / `|` — is dropped). This is the `1.0.3` / schema `3` shape — the POST-SV-AUDIT.2.3 Category-A correction (`PGEN-POST-SV-AUDIT-0004`). The 14 bare-list rules (`library_clause`, `use_clause`, `selected_name`, `identifier_list`, `generic_interface_list`, `port_interface_list`, `parameter_list`, `enumeration_type_definition`, `index_constraint`, `association_list`, `sensitivity_list`, `actual_parameter_part`, `choices`, `aggregate_choice_list`) emit a **top-level array**; the `target` aggregate branch and the two `aggregate` branches keep their meaningful discriminator/value fields and carry the cleaned trailing list in `items` / `rest`. At ≤ `1.0.2` / schema `2` these rules emitted the raw `{first, rest}` (resp. `{…, first, rest}`) envelope where `rest` was the raw `[[sep, item], …]` recursive iteration a consumer had to walk past; that history is kept in [Schema Versioning](schema-versioning.md). Consumers repinning to schema `3` treat the field (or the rule's whole value, for the 14 bare-list rules) as a flat element array — no `.first` / `.rest` split, no separator to skip.
 
 The annotation-language conventions (`$N`, `{field: value}`, `[...]`, string literals) follow `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`.
 
@@ -62,8 +62,8 @@ design_unit := library_clause              -> {kind: "library",            body:
 
 | `kind` | `body` shape |
 |---|---|
-| `"library"` | `library_clause` — `{first, rest}` |
-| `"use"` | `use_clause` — `{first, rest}` |
+| `"library"` | `library_clause` — `[identifier, …]` clean flat array (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`) |
+| `"use"` | `use_clause` — `[selected_name, …]` clean flat array (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`) |
 | `"context_reference"` | `context_reference_clause` — `{name}` |
 | `"entity"` | `entity_declaration` — `{name, items, end_label}` |
 | `"architecture"` | `architecture_body` — `{name, entity_name, items, statements, end_label}` |
@@ -79,11 +79,11 @@ The `"semi"` branch carries only `{kind: "semi"}` (a stray top-level `;`); every
 
 | Rule | Shape |
 |---|---|
-| `library_clause` | `{first, rest}` — first identifier + comma-separated iteration. |
-| `use_clause` | `{first, rest}` — first selected name + comma-separated iteration. |
+| `library_clause` | `[identifier, …]` — clean flat array of the comma-separated library identifiers (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
+| `use_clause` | `[selected_name, …]` — clean flat array of the comma-separated selected names (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `context_reference_clause` | `{name}` — the referenced context name. |
 | `context_item` (4 kinds) | `{kind, body}` for `"library"` / `"use"` / `"context_reference"`; `{kind: "semi"}` for the lone-`;` branch. |
-| `selected_name` | `{first, rest}` — leading name segment + dotted-suffix iteration. |
+| `selected_name` | `[name_segment, …]` — clean flat array of the dotted name segments (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 
 ## Family: design units
 
@@ -115,21 +115,21 @@ Each declarative region uses a `kind`-tagged dispatch over the declarations it a
 | Rule | Shape |
 |---|---|
 | `generic_clause` | `{list}` — the inner `generic_interface_list`. |
-| `generic_interface_list` | `{first, rest}`. |
+| `generic_interface_list` | `[generic_interface_element, …]` — clean flat array of the semi-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `generic_interface_element` (2 kinds) | `{kind: "value", names, subtype, default}` / `{kind: "package", body}`. |
 | `port_clause` | `{list}`. |
-| `port_interface_list` | `{first, rest}`. |
+| `port_interface_list` | `[port_interface_element, …]` — clean flat array of the semi-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `port_interface_element` | `{names, mode, subtype, default}` — `mode` is the typed `signal_mode`. |
-| `parameter_list` | `{first, rest}`. |
+| `parameter_list` | `[parameter_interface_element, …]` — clean flat array of the semi-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `parameter_interface_element` | `{names, mode, subtype, default}` — `mode` is the typed `parameter_mode`. |
 | `generic_map_aspect` | `{associations}` — the inner `association_list`. |
 | `port_map_aspect` | `{associations}`. |
-| `association_list` | `{first, rest}`. |
+| `association_list` | `[association_element, …]` — clean flat array of the comma-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `association_element` | `{formal, actual}`. |
 | `actual_part` (2 kinds) | `{kind: "expression", body}` / `{kind: "open"}`. |
-| `actual_parameter_part` | `{first, rest}`. |
+| `actual_parameter_part` | `[actual_parameter_element, …]` — clean flat array of the comma-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `actual_parameter_element` (2 kinds) | `{kind: "association", body}` / `{kind: "range_expression", body}`. |
-| `identifier_list` | `{first, rest}`. |
+| `identifier_list` | `[identifier, …]` — clean flat array of the comma-separated identifiers (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 
 ### Mode keyword leaves
 
@@ -168,14 +168,14 @@ Each is a bare `{kind}` object (no body) — the keyword token is redundant with
 | Rule | Shape |
 |---|---|
 | `type_definition` (3 kinds) | `{kind: "enumeration", body}` / `{kind: "array", body}` / `{kind: "record", body}`. |
-| `enumeration_type_definition` | `{first, rest}`. |
+| `enumeration_type_definition` | `[identifier, …]` — clean flat array of the comma-separated enumeration literals (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `array_type_definition` | `{index_range, element_subtype}`. |
 | `record_type_definition` | `{elements}`. |
 | `record_element_declaration` | `{names, subtype}`. |
 | `subtype_indication` | `{type_mark, constraint}` — `constraint` is `[]` when the subtype is unconstrained. |
 | `constraint` (2 kinds) | `{kind: "range", body}` / `{kind: "index", body}`. |
 | `range_constraint` | `{range}`. |
-| `index_constraint` | `{first, rest}`. |
+| `index_constraint` | `[discrete_range, …]` — clean flat array of the comma-separated discrete ranges (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `discrete_range` (5 kinds) | `{kind: "range", body}` / `{kind: "attribute", body}` / `{kind: "name", body}` / `{kind: "subtype_range", subtype, range}` / `{kind: "subtype_box", subtype}`. |
 | `range_expression` (2 kinds) | `{kind: "to", low, high}` / `{kind: "downto", high, low}`. |
 
@@ -188,7 +188,7 @@ Each is a bare `{kind}` object (no body) — the keyword token is redundant with
 | `process_statement` | `{label, sensitivity, items, statements, end_label}`. |
 | `process_label` | `{name}`. |
 | `sensitivity_clause` | `{list}` — the inner `sensitivity_list`. |
-| `sensitivity_list` | `{first, rest}`. |
+| `sensitivity_list` | `[name, …]` — clean flat array of the comma-separated sensitivity names (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `component_instantiation_statement` | `{label, unit, generic_map, port_map}` — `unit` is the typed `instantiated_unit`. |
 | `instantiated_unit` (3 kinds) | `{kind: "component", name}` / `{kind: "entity", name}` / `{kind: "configuration", name}`. |
 | `generate_statement` (2 kinds) | `{kind: "for", label, var, range, statements}` / `{kind: "if", label, condition, statements}`. |
@@ -202,7 +202,7 @@ Each is a bare `{kind}` object (no body) — the keyword token is redundant with
 | `signal_assignment_statement` | `{target, rhs}`. |
 | `signal_assignment_rhs` | `{value, conditional}` — `conditional` carries the optional `when`-clause tail. |
 | `variable_assignment_statement` | `{target, value}`. |
-| `target` (2 kinds) | `{kind: "name", name, params}` / `{kind: "aggregate", first, rest}`. |
+| `target` (2 kinds) | `{kind: "name", name, params}` / `{kind: "aggregate", items}` — `items` is the clean flat comma-separated target list (`1.0.3` / schema `3`; the aggregate branch was `{kind: "aggregate", first, rest}` at ≤ `1.0.2`). |
 | `if_statement` | `{condition, then_body, elsif_branches, else_body}` — `elsif_branches` is the `(elsif … then …)*` iteration; `else_body` is `[]` when there is no `else`. |
 | `case_statement` | `{value, alternatives}`. |
 | `case_statement_alternative` | `{choices, body}`. |
@@ -276,11 +276,11 @@ The 3 `adding_operator` + 4 `multiplying_operator` `return_object` branches are 
 |---|---|
 | `primary` (7 kinds) | `{kind: "literal", body}` / `{kind: "aggregate", body}` / `{kind: "attribute_name", body}` / `{kind: "function_call", name, params}` / `{kind: "name", body}` / `{kind: "parens", expr}` / `{kind: "not", expr}`. |
 | `attribute_name` | `{prefix, prefix_params, attribute, attribute_params}`. |
-| `aggregate` (2 kinds) | `{kind: "named_first", first_choices, first_value, rest}` / `{kind: "positional_first", first_value, second, rest}`. |
+| `aggregate` (2 kinds) | `{kind: "named_first", first_choices, first_value, rest}` / `{kind: "positional_first", first_value, second, rest}` — the meaningful `first_choices` / `first_value` / `second` fields are unchanged; only the trailing comma-separated `rest` iteration is now a clean flat `aggregate_element_association[]` (`1.0.3` / schema `3`; `rest` was the raw `[[comma, aea], …]` envelope at ≤ `1.0.2`). |
 | `aggregate_element_association` (2 kinds) | `{kind: "named", choices, value}` / `{kind: "positional", value}`. |
-| `aggregate_choice_list` | `{first, rest}`. |
+| `aggregate_choice_list` | `[aggregate_choice, …]` — clean flat array of the `|`-separated aggregate choices (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `aggregate_choice` (5 kinds) | `{kind: "others"}` / `{kind: "name", body}` / `{kind: "decimal", body}` / `{kind: "character", body}` / `{kind: "string", body}`. |
-| `choices` | `{first, rest}`. |
+| `choices` | `[choice, …]` — clean flat array of the `|`-separated choices (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `choice` (2 kinds) | `{kind: "expression", body}` / `{kind: "others"}`. |
 
 ## Family: literals
@@ -295,7 +295,7 @@ The 3 `adding_operator` + 4 `multiplying_operator` `return_object` branches are 
 
 ## Total surface and the machine-checkable source
 
-The full typed surface as of contract `1.0.2` is **256 annotations across 112 distinct rules**. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
+The full typed surface as of contract `1.0.3` is **256 annotations across 112 distinct rules** (the `1.0.3` POST-SV-AUDIT.2.3 Category-A batch corrected 17 list shapes but left the count unchanged — the 14 bare-list rules changed `return_object` → `return_array` and the `target`-aggregate + `aggregate` rules changed `normalized_text` only). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
 
 - `generated/vhdl_return_annotations.json` — the live return-annotation inventory (inventory-file `version: 1` — the inventory format version, not the AST-dump schema; `grammar: "vhdl"`, `annotation_count: 256`).
 - `rust/test_data/ast_shape_contract/vhdl_v1.json` — the embedded inventory used by the AST shape-contract regression lock (identical content; 256 entries).

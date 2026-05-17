@@ -5,9 +5,12 @@ shows the top-level dispatch on a declaration; this one shows the
 **non-empty `binop_chain.rest`** (operator) shape and the consumer
 left-fold across two precedence levels. Every JSON value here is the
 **real captured output** of `generated/vhdl_parser.rs` (parser release
-`1.0.2`, AST-dump schema version `2`) and is the regression-locked
+`1.0.3`, AST-dump schema version `3`) and is the regression-locked
 sample `arithmetic_expr` in
-`rust/test_data/ast_shape_contract/vhdl_v1.json`.
+`rust/test_data/ast_shape_contract/vhdl_v1.json`. The `binop_chain`
+shape shown here is **unchanged** between schema `2` (the `VHDL-0001`
+fix) and schema `3` (the `1.0.3` POST-SV-AUDIT.2.3 batch touched the 17
+Category-A list rules, **not** the expression cascade).
 
 > Schema `2` note (`VHDL-0001`): at `1.0.1` / schema `1` the `additive`
 > (`simple_expression`) and `multiplicative` (`term`) `binop_chain`
@@ -202,7 +205,7 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 if let ParseStatus::Success = outcome.status {
     let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");

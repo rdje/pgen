@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
+            window.path_to_searchindex_js = "searchindex-ae6ac680.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -287,7 +287,7 @@ restatement of this for consumers.</p>
 </ul>
 <p>For a 3-element sequence rule like <code>a b c</code>, the envelope shape is <code>[&lt;a-shape&gt;, &lt;b-shape&gt;, &lt;c-shape&gt;]</code>.</p>
 <h2 id="mixing-typed-and-envelope-shapes"><a class="header" href="#mixing-typed-and-envelope-shapes">Mixing typed and envelope shapes</a></h2>
-<p>The 256-annotation surface (as of contract 1.0.2) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>, including the named <code>adding_operator</code> / <code>multiplying_operator</code> op rules added by the <code>1.0.2</code> <code>VHDL-0001</code> fix), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.</p>
+<p>The 256-annotation surface (as of contract 1.0.3) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (<code>expression</code> → <code>relation</code> → <code>simple_expression</code> → <code>term</code> → <code>factor</code>, including the named <code>adding_operator</code> / <code>multiplying_operator</code> op rules added by the <code>1.0.2</code> <code>VHDL-0001</code> fix), entity/architecture/package internals, statement family, the separated-list rules (clean flat arrays as of the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch — schema <code>3</code>), and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.</p>
 <p>Consumers need to handle both:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

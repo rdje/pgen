@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
+            window.path_to_searchindex_js = "searchindex-ae6ac680.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -186,9 +186,12 @@ shows the top-level dispatch on a declaration; this one shows the
 <strong>non-empty <code>binop_chain.rest</code></strong> (operator) shape and the consumer
 left-fold across two precedence levels. Every JSON value here is the
 <strong>real captured output</strong> of <code>generated/vhdl_parser.rs</code> (parser release
-<code>1.0.2</code>, AST-dump schema version <code>2</code>) and is the regression-locked
+<code>1.0.3</code>, AST-dump schema version <code>3</code>) and is the regression-locked
 sample <code>arithmetic_expr</code> in
-<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>.</p>
+<code>rust/test_data/ast_shape_contract/vhdl_v1.json</code>. The <code>binop_chain</code>
+shape shown here is <strong>unchanged</strong> between schema <code>2</code> (the <code>VHDL-0001</code>
+fix) and schema <code>3</code> (the <code>1.0.3</code> POST-SV-AUDIT.2.3 batch touched the 17
+Category-A list rules, <strong>not</strong> the expression cascade).</p>
 <blockquote>
 <p>Schema <code>2</code> note (<code>VHDL-0001</code>): at <code>1.0.1</code> / schema <code>1</code> the <code>additive</code>
 (<code>simple_expression</code>) and <code>multiplicative</code> (<code>term</code>) <code>binop_chain</code>
@@ -367,7 +370,7 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 if let ParseStatus::Success = outcome.status {
     let d = outcome.ast_dump.expect("Success carries an AstDumpPayload");

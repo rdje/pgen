@@ -83,11 +83,11 @@ the proven playbook.
   Commit: `PGEN-POST-SV-AUDIT-0003`
 
 - ID: `POST-SV-AUDIT.2.3`
-  Status: `pending`
+  Status: `done`
   Goal: `vhdl: fix the 17 static-conclusive Cat-A misuses (-> extraction-spread, vhdl convention); regen + manifest + schema/release bump + book + contract lockstep.`
   Acceptance: `parseability_probe before/after: all 17 vhdl Cat-A rules emit clean item lists; vhdl_ast_shape_contract + book gate green; lockstep complete; independently verified.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-05-17: 17 vhdl Cat-A raw-envelope misuses fixed to extraction-spreads (14 bare-list {first,rest}->[$F,$R::2*]: library_clause/use_clause/selected_name/identifier_list/generic_interface_list/port_interface_list/parameter_list/enumeration_type_definition/index_constraint/association_list/sensitivity_list/actual_parameter_part/choices/aggregate_choice_list; target aggregate-branch ->{kind:"aggregate",items:[$2,$3::2*]}; aggregate 2 branches keep first_choices/first_value/second, rest:$5->rest:[$5::2*]). All single-token separators (comma/semi/dot/bar) — NO inline-alternation, NO corruption. Comprehensive AFTER parseability_probe (library/use/entity+generics+ports/process/case/aggregate/instantiation): invalid_sequence_access 0; ZERO separator-envelope leaks for ALL 4 sep types ([[],","]/[[],";"]/[[],"."]/[[],"|"] all 0); aggregate named_first rest = clean aggregate_element_association[] list; no leftover {first,rest}-only objects. Inventory UNCHANGED 256/112 (bare-list return_object->return_array; target-agg+aggregate stay return_object). Manifest dai rebuilt + cat_a_shapes sample + extracted_at 2026-05-17 -> vhdl_ast_shape_contract PASSES. Schema 2->3, release/contract 1.0.2->1.0.3. Contract (new "## AST-Shape Corrections — 1.0.3" section + schema-3 row + 17 rule loci, 1.0.1/1.0.2/VHDL-0001 kept historical) + 9 book chapters (walker pins =3) + POST_SV_AUDIT_LEDGER (17 FIXED + worklist DONE) lockstep. NO PGEN_RELEASED_PARSER_BUG_LEDGER row (pure Cat-A, no corruption — per recorded Decision; ledger git-diff empty/untouched). Independently verified: contract no dup ## headers, 1.0.3/schema-3 current (1.0.2 historical only), 256/112 unchanged, no fabricated AstDumpPayload (DOC-ENVELOPE not regressed); book gate independently re-run green (searchindex deterministic); clippy strict source passed. docs/book/ checked — no drift, no edit.`
+  Commit: `PGEN-POST-SV-AUDIT-0004`
 
 - ID: `POST-SV-AUDIT.2.4`
   Status: `pending`
@@ -107,9 +107,8 @@ the proven playbook.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `POST-SV-AUDIT.2.3` | `pending` | `.2.1` (svpp) + `.2.2` (rtl_frontend, 15 Cat-A + RTL-FE-0002) done — the Cat-A extraction-spread + schema/release-bump lockstep playbook is proven at scale. vhdl next (17 Cat-A). |
-| 2 | `POST-SV-AUDIT.2.4` | `pending` | systemverilog (flagship, released 1.0.115; net_alias + 5 number-rule inline-alt + 11 structured-per-iteration needing record-rule design) — last, largest, most careful. |
-| 3 | `POST-SV-AUDIT.3` | `pending` | Cat-C/residual review + close TaskList #49 after all `.2.*` fixes land. |
+| 1 | `POST-SV-AUDIT.2.4` | `pending` | `.2.1`(svpp)+`.2.2`(rtl_frontend)+`.2.3`(vhdl) done — Cat-A playbook proven at scale (1+15+1+17 rules). systemverilog last (flagship, released 1.0.115; net_alias single-token Cat-A + 5 number-rule inline-alt-$N HIGH + 11 structured-per-iteration needing per-rule record-rule design) — largest, most careful. |
+| 2 | `POST-SV-AUDIT.3` | `pending` | Cat-C/residual review + close TaskList #49 after `.2.4` lands. |
 
 ## Decisions
 
@@ -166,6 +165,7 @@ the proven playbook.
 | `2026-05-17` | `POST-SV-AUDIT.1` | ledger structure (12 ## headers, no dups) + scope justification + count reconciliation vs pre-scope + independent classification spot-checks vs grammar (event_control_list/unsigned_number/net_alias/vhdl) | `pass — docs/POST_SV_AUDIT_LEDGER.md accurate; ~35 static-conclusive Cat-A + 6 HIGH inline-alt-$N + 11 structured-Cat-A + 30 Cat-B-resolved + 16 Cat-C; worklist concrete & per-grammar; .2 split per grammar; inline-alt-$N probe-confirm deferred to .2-start per the proven playbook (on-demand-parser infra)` |
 | `2026-05-17` | `POST-SV-AUDIT.2.1` | before/after parseability_probe; regen (count UNCHANGED 66/28, macro_formals return_object->return_array); manifest dai-rebuild + macro_with_formals sample; systemverilog_preprocessor_ast_shape_contract; contract dup-header+numbers+no-fabricated-AstDumpPayload grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER FIXED + NO bug-ledger row check; independent book-gate re-run; clippy; docs/book check | `pass — macro_formals Cat-A fixed ({first,rest}->[$2,$3::2*]); probe raw-comma-envelope -> clean macro_formal[] list, no <invalid_sequence_access>; shape-contract PASSES; 66/28 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract+8-book-chapters+audit-ledger lockstep; NO bug-ledger row (Cat-A clean improvement per Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green. Cat-A playbook proven for .2.2/.2.3/.2.4.` |
 | `2026-05-17` | `POST-SV-AUDIT.2.2` | comprehensive AFTER parseability_probe + precise per-rule shape checks (port_group $5::3*, override/connection $3::3*, event_control $4::2* — all CORRECT); 0 separator-envelope-leak + 0 invalid_sequence_access; regen (156/74 UNCHANGED); manifest dai-rebuild + cat_a_shapes sample; rtl_frontend_ast_shape_contract; contract dup-header+numbers grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER 16-FIXED; bug-ledger EXACTLY-1-insertion(RTL-FE-0002)-0-deletions check; independent book-gate re-run; clippy; docs/book check | `pass — 15 rtl_frontend Cat-A misuses fixed (extraction-spreads, all 3 inferred-index edge cases probe-confirmed) + event_control_list RTL-FE-0002 inline-alt fix (named event_separator); 156/74 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract(new AST-Shape-Corrections-1.0.3 section)+9-book-chapters+audit-ledger lockstep; RTL-FE-0002 only-new bug-ledger row (others untouched); 15 Cat-A NOT bug-ledger (Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green` |
+| `2026-05-17` | `POST-SV-AUDIT.2.3` | comprehensive AFTER parseability_probe (all 4 sep types) + aggregate-rest precise check; 0 separator-envelope-leak (`,`/`;`/`.`/`\|`) + 0 invalid_sequence_access; regen (256/112 UNCHANGED); manifest dai-rebuild + cat_a_shapes sample; vhdl_ast_shape_contract; contract dup-header+numbers grep; book walker-pin + fabricated-residual grep; POST_SV_AUDIT_LEDGER 17-FIXED; bug-ledger-untouched check; independent book-gate re-run; clippy; docs/book check | `pass — 17 vhdl Cat-A misuses fixed (extraction-spreads, single-token seps); 256/112 UNCHANGED; schema 2->3 / release 1.0.2->1.0.3; contract(new AST-Shape-Corrections-1.0.3 section)+9-book-chapters+audit-ledger lockstep; NO bug-ledger row (pure Cat-A, ledger untouched — Decision); no dup ## headers; DOC-ENVELOPE not regressed; book gate independently green` |
 
 ## Commit Log
 
@@ -175,6 +175,7 @@ the proven playbook.
 | `POST-SV-AUDIT.1` | `PGEN-POST-SV-AUDIT-0001` | ledger `docs/POST_SV_AUDIT_LEDGER.md` (all 6 product grammars classified A/B/C, verified accurate); `.2` split per grammar; frontier → `.2.1` |
 | `POST-SV-AUDIT.2.1` | `PGEN-POST-SV-AUDIT-0002` | sv_preprocessor `macro_formals` Cat-A fix (`{first,rest}`→`[$2,$3::2*]`); schema 2→3 / release 1.0.2→1.0.3; 66/28 unchanged; contract+book+audit-ledger lockstep, NO bug-ledger row; Cat-A playbook proven |
 | `POST-SV-AUDIT.2.2` | `PGEN-POST-SV-AUDIT-0003` | rtl_frontend 15 Cat-A misuses → extraction-spreads + `event_control_list` `RTL-FE-0002` inline-alt fix (named `event_separator`); schema 2→3 / release 1.0.2→1.0.3; 156/74 unchanged; contract(AST-Shape-Corrections-1.0.3)+book+audit-ledger lockstep; `RTL-FE-0002` only-new bug-ledger row; 15 Cat-A not bug-ledger |
+| `POST-SV-AUDIT.2.3` | `PGEN-POST-SV-AUDIT-0004` | vhdl 17 Cat-A misuses → extraction-spreads (single-token seps); schema 2→3 / release 1.0.2→1.0.3; 256/112 unchanged; contract(AST-Shape-Corrections-1.0.3)+book+audit-ledger lockstep; NO bug-ledger row (pure Cat-A, ledger untouched) |
 
 ## Changelog
 
@@ -193,6 +194,22 @@ the proven playbook.
   `.2` split per grammar (`.2.1` svpp → `.2.2` rtl_frontend → `.2.3`
   vhdl → `.2.4` systemverilog), smallest-first. Frontier advances
   `.1`→`.2.1`. Tree stays `active`.
+- `2026-05-17`: `.2.3` done — vhdl: 17 Cat-A raw-envelope misuses
+  fixed to extraction-spreads (all single-token separators
+  comma/semi/dot/bar; 14 bare-list `[$F,$R::2*]`, `target`-aggregate
+  `{kind,items:[…]}`, `aggregate` 2 branches `rest:[$5::2*]`).
+  Comprehensive AFTER probe: 0 `<invalid_sequence_access>`, **zero
+  separator-envelope leaks across ALL 4 sep types**; aggregate.rest
+  clean list. Inventory **256/112 unchanged**. Schema `2→3`,
+  release/contract `1.0.2→1.0.3`; manifest + `cat_a_shapes` sample →
+  `vhdl_ast_shape_contract` passes; contract (new
+  `## AST-Shape Corrections — 1.0.3`) + 9 book chapters +
+  `POST_SV_AUDIT_LEDGER` (17 FIXED) lockstep. **NO bug-ledger row**
+  (pure Cat-A, no corruption — `PGEN_RELEASED_PARSER_BUG_LEDGER`
+  untouched, per the recorded Decision). Independently verified; book
+  gate re-run green. Frontier advances `.2.3`→`.2.4` (systemverilog,
+  flagship — net_alias + 5 number-rule inline-alt-$N + 11 structured).
+  Tree stays `active`.
 - `2026-05-17`: `.2.2` done — rtl_frontend: 15 Cat-A raw-envelope
   misuses fixed to extraction-spreads + `event_control_list`
   `RTL-FE-0002` inline-alternation-`$N` corruption fixed (lifted

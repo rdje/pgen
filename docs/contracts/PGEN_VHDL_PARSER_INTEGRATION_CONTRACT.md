@@ -7,13 +7,13 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 ## Contract Identity
 - Contract version:
-  - `1.0.2`
+  - `1.0.3`
 - Parser release version:
-  - `1.0.2`
+  - `1.0.3`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
 - VHDL AST-dump schema version:
-  - `2` (breaking shape correction — see Release 1.0.2 Highlights)
+  - `3` (breaking shape correction — see AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT))
 - Last updated:
   - `2026-05-17`
 - Current grammar family label:
@@ -27,13 +27,14 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 The VHDL parser carries two version axes:
 
-1. **Parser release version** (`1.0.2`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
-2. **AST-dump schema version** (`2`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
+1. **Parser release version** (`1.0.3`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
+2. **AST-dump schema version** (`3`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
+| 3 | 1.0.3 | **POST-SV-AUDIT Category-A batch (breaking, not a parser bug).** 17 static-conclusive Category-A raw-envelope list-shape corrections in `grammars/vhdl.ebnf` from the POST-SV-AUDIT.2.3 static classification (`docs/POST_SV_AUDIT_LEDGER.md`, `PGEN-POST-SV-AUDIT-0004`). 14 bare-list rules — `library_clause`, `use_clause`, `selected_name`, `identifier_list`, `generic_interface_list`, `port_interface_list`, `parameter_list`, `enumeration_type_definition`, `index_constraint`, `association_list`, `sensitivity_list`, `actual_parameter_part`, `choices`, `aggregate_choice_list` — no longer expose the raw `{first, rest}` envelope (`rest` was the raw `[[sep, item], …]` single-token-separator iteration a consumer had to walk past); each is corrected to the canonical extraction-spread `[$F, $R::2*]` and now emits a **top-level clean flat array** (`return_object` → `return_array`). The `target` aggregate branch (`{kind: "aggregate", first, rest}` → `{kind: "aggregate", items: [$2, $3::2*]}`) and both `aggregate` branches (`named_first` / `positional_first` — only the trailing iteration `rest` cleaned to `rest: [$5::2*]`, the meaningful `first_choices` / `first_value` / `second` fields kept) stay `return_object` with a new `normalized_text`. All separators are single tokens (comma / semi / dot / bar); **no** inline-alternation, **no** `<invalid_sequence_access>` corruption — this is a clean Category-A shape improvement and is **not** logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (that ledger is reserved for the `<invalid_sequence_access>` corruption/crash class). Annotation count **256** (UNCHANGED — the bare-list rules flip `return_object` → `return_array`; the `target`-aggregate + `aggregate` ones stay `return_object` with a new `normalized_text`; no count delta). **112** distinct rules (UNCHANGED). Same accept set (no grammar acceptance change — purely the annotation form). Schema bumped `2 → 3` because the 17 rule shapes changed in a consumer-visible way. Gate-locked. |
 | 2 | 1.0.2 | **VHDL-0001 correctness fix (breaking).** The `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` levels no longer emit `"<invalid_sequence_access>"` for multi-operand input. The two iteration-lead inline operator alternations — `(plus \| minus \| ampersand)` in `simple_expression` and `(star \| slash \| kw_mod \| kw_rem)` in `term` — that were the lead element of a `( … term )* ` / `( … factor )* ` iteration (and corrupted the positional model so the bare `rest: $N` mis-recursed) are lifted into **named** rules `adding_operator := plus -> {kind: "plus"} \| minus -> {kind: "minus"} \| ampersand -> {kind: "concat"}` and `multiplying_operator := star -> {kind: "mul"} \| slash -> {kind: "div"} \| kw_mod -> {kind: "mod"} \| kw_rem -> {kind: "rem"}`, matching vhdl's own `logical_operator` / `relational_operator` `{kind: …}` idiom. The `simple_expression` / `term` `binop_chain` annotations are **unchanged** (`{type: "binop_chain", level, sign, lhs, rest}` / `{type: "binop_chain", level, lhs, rest}`); only the inline group became a named rule, so each level's `rest` is now a clean `[ <op-envelope>, <operand> ]` array where the **op-envelope is the typed `{kind: …}` object** (uniform with the `logical` / `relational` levels — vhdl's op-envelope is the `{kind}` object, not a raw token array). The leading `(plus \| minus)?` sign in `simple_expression` is **not** an iteration lead and was empirically unaffected — left as-is. Annotation count `249 → 256` (the 3 new `adding_operator` + 4 new `multiplying_operator` `return_object` branches); distinct rules `110 → 112` (the new `adding_operator` / `multiplying_operator`). All annotations remain `return_object`. Same accept set (no grammar acceptance change — purely the two alternation lifts + their 7 branch annotations). Gate-locked. |
 | 1.0.0 | 1.0.1 | **VHDL-Slice-1** — initial 249-annotation baseline (110 distinct rules). Design units, declarations, types, statements, expressions (binop_chain shape across the 5-level operator hierarchy), and literals all typed. **NOTE:** the `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` `rest` shapes in this baseline were defective (`VHDL-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation on multi-operand input) — see schema `2` for the correction. |
 | 0.1.0 | 1.0.0 | Foundation baseline. Grammar (`grammars/vhdl.ebnf`) un-annotated except for `vhdl_file -> {type, design_units}` root. AST dump is the recursive-envelope shape across all rules. |
@@ -97,6 +98,100 @@ Bump-trigger guidance:
   `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`VHDL-0001`).
   Documented in
   [the binary-addition worked example](../vhdl_parser_book/src/examples-binary-addition.md).
+
+## AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT) — 17 Category-A raw-envelope list rules → clean lists; schema 2 → 3
+
+Landed 2026-05-17. The POST-SV-AUDIT static classification pass
+(`docs/POST_SV_AUDIT_LEDGER.md`, leaf POST-SV-AUDIT.2.3, tracked
+`PGEN-POST-SV-AUDIT-0004`) found **17 static-conclusive Category-A
+raw-envelope misuses** in `grammars/vhdl.ebnf`. They are corrected, the
+parser is regenerated, and the manifest inventory is re-locked.
+
+All 17 are a **clean AST-shape improvement** — every separator is a
+single token (comma / semi / dot / bar), there is **no** inline
+alternation, and **no** rule emitted `<invalid_sequence_access>`. They
+are therefore **not** logged in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (that ledger is
+reserved for the `<invalid_sequence_access>` corruption/crash class —
+`VHDL-0001`, the systemic inline-alternation-`$N` defect, lives there;
+this Category-A batch carries **no bug-ledger row**). This is distinct
+from `VHDL-0001`: that was a released-parser bug (the inline-alternation
+corruption that emitted `<invalid_sequence_access>` in
+`simple_expression` / `term` `binop_chain.rest`); these 17 are deliberate
+audit-driven shape corrections, so they carry a schema bump only.
+
+### The 17 Category-A list rules (raw `{first, rest}` → extraction-spread)
+
+Each rule was a static-conclusive Category-A
+pure-single-token-separator list rendered as the raw recursive-envelope
+`{first, rest}` (resp. `{…, first, rest}`) — `rest` surfaced the raw
+`[[sep, item], …]` separator envelope, forcing every consumer to index
+past the separator on each iteration. The fix is the canonical
+extraction-spread idiom (drop the semantically-irrelevant separator;
+emit a clean flat list). The 14 bare-list rules now emit a **top-level
+array** (`return_object` → `return_array`); the `target` aggregate
+branch and the two `aggregate` branches keep their meaningful
+discriminator/value fields and only the trailing iteration list pair
+changed (they stay `return_object` with a new `normalized_text`).
+`≤ 1.0.2` (schema `≤ 2`) shapes are kept as labeled history.
+
+| Rule (`grammars/vhdl.ebnf`) | `≤ 1.0.2` / schema `≤ 2` shape (history) | `1.0.3` / schema `3` shape | Annotation form |
+|---|---|---|---|
+| `library_clause` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level identifier array; sep `comma`) |
+| `use_clause` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level `selected_name` array; sep `comma`) |
+| `selected_name` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level name-segment array; sep `dot`) |
+| `identifier_list` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level identifier array; sep `comma`) |
+| `generic_interface_list` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level element array; sep `semi`) |
+| `port_interface_list` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level element array; sep `semi`) |
+| `parameter_list` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level element array; sep `semi`) |
+| `enumeration_type_definition` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level identifier array; sep `comma`) |
+| `index_constraint` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level `discrete_range` array; sep `comma`) |
+| `association_list` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level `association_element` array; sep `comma`) |
+| `sensitivity_list` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level name array; sep `comma`) |
+| `actual_parameter_part` | `{first: $2, rest: $3}` | `[$2, $3::2*]` | `return_object` → `return_array` (top-level element array; sep `comma`) |
+| `choices` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level `choice` array; sep `bar`) |
+| `aggregate_choice_list` | `{first: $1, rest: $2}` | `[$1, $2::2*]` | `return_object` → `return_array` (top-level `aggregate_choice` array; sep `bar`) |
+| `target` (aggregate branch) | `{kind: "aggregate", first: $2, rest: $3}` | `{kind: "aggregate", items: [$2, $3::2*]}` | stays `return_object`, new `normalized_text` (sep `comma`) |
+| `aggregate` (`named_first`) | `{kind: "named_first", first_choices: $2, first_value: $4, rest: $5}` | `{kind: "named_first", first_choices: $2, first_value: $4, rest: [$5::2*]}` | stays `return_object`, new `normalized_text` (only the trailing `rest` iteration cleaned; `first_choices` / `first_value` kept; sep `comma`) |
+| `aggregate` (`positional_first`) | `{kind: "positional_first", first_value: $2, second: $4, rest: $5}` | `{kind: "positional_first", first_value: $2, second: $4, rest: [$5::2*]}` | stays `return_object`, new `normalized_text` (only the trailing `rest` iteration cleaned; `first_value` / `second` kept; sep `comma`) |
+
+In every case the `1.0.3` list is a **clean flat array** of the element
+type in source order — there is **no** raw `[[sep, item], …]` envelope
+and no separator to skip. A consumer written against `≤ 1.0.2` that
+walked `.first` + `.rest[][1]` (or, for the 14 bare-list rules, treated
+the rule's value as a `{first, rest}` object) must repin to schema `3`
+and treat the field (or the rule's whole value, for the 14 bare-list
+rules) as a flat element array. The `target` aggregate branch keeps its
+`kind` discriminator; the two `aggregate` branches keep their
+`first_choices` / `first_value` / `second` meaningful fields and only
+the trailing `rest` iteration changed.
+
+### Counts and locking
+
+Annotation count: **256** (UNCHANGED — the 14 bare-list Category-A
+rules flip `return_object` → `return_array`; the `target` aggregate
+branch and the two `aggregate` branches stay `return_object` with a new
+`normalized_text`; there is **no count delta**). **112** distinct rules
+(UNCHANGED — no rule added or removed; only annotation form changed).
+Same accept set (no grammar acceptance change — purely the 17
+annotation-form changes). Schema bumped `2 → 3` because the 17
+Category-A rule shapes changed in a consumer-visible way. Gate-locked:
+`cargo test --lib --features generated_parsers vhdl_ast_shape_contract`
+and
+`make -C rust SHELL=/opt/homebrew/bin/bash vhdl_parser_book_gate`.
+
+> **Audit-campaign note:** POST-SV-AUDIT.2.3 follows POST-SV-AUDIT.2.1
+> (`systemverilog_preprocessor` `macro_formals`,
+> `PGEN-POST-SV-AUDIT-0002`, sv_preprocessor 1.0.3 / schema 3) and
+> POST-SV-AUDIT.2.2 (`rtl_frontend` 15 Category-A + `RTL-FE-0002`,
+> `PGEN-POST-SV-AUDIT-0003`, rtl_frontend 1.0.3 / schema 3). Unlike
+> POST-SV-AUDIT.2.2 — whose `RTL-FE-0002` `event_control_list`
+> inline-alternation corruption *was* an `<invalid_sequence_access>`
+> defect and *did* get a bug-ledger row — every one of these 17 vhdl
+> rules is a pure single-token-separator Category-A correction with no
+> corruption, so **no** bug-ledger row is added; the batch is tracked
+> via `docs/POST_SV_AUDIT_LEDGER.md`, this section, and the schema-`3`
+> Schema-Versioning row only.
 
 ## Release 1.0.2 / Contract 1.0.2 Highlights — VHDL-0001 correctness fix (simple_expression / term binop_chain.rest); schema 1 → 2
 
@@ -346,7 +441,7 @@ returns `E_INVALID_LIMITS` instead.
 > `pgen_dump_contract_version` / `schema_version` / `grammar` / `profile` /
 > `root` keys are **not** members of `AstDumpPayload` itself —
 > `pgen_dump_contract_version` appears only inside the truncation diagnostic
-> envelope, the schema axis is the **AST-dump schema version `2`** tracked in
+> envelope, the schema axis is the **AST-dump schema version `3`** tracked in
 > [Schema Versioning](#schema-versioning) (and surfaced for the regex sibling
 > via `parser_embedding_api_contract().regex_ast_dump_schema_version`), the
 > grammar family is the fixed `vhdl` label, and the profile is the fixed
@@ -398,8 +493,8 @@ design_unit := library_clause              -> {kind: "library",            body:
 
 | `kind` | `body` shape (fields) | Underlying rule (`grammars/vhdl.ebnf`) |
 |---|---|---|
-| `"library"` | `{first, rest}` — first identifier + comma-separated identifier iteration | `library_clause` (line 29) |
-| `"use"` | `{first, rest}` — first selected name + comma-separated iteration | `use_clause` (line 31) |
+| `"library"` | `[identifier, …]` — clean flat array of the comma-separated library identifiers (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`) | `library_clause` (line 29) |
+| `"use"` | `[selected_name, …]` — clean flat array of the comma-separated selected names (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`) | `use_clause` (line 31) |
 | `"context_reference"` | `{name}` — the referenced context name | `context_reference_clause` (line 33) |
 | `"entity"` | `{name, items, end_label}` — `items` is the `entity_declarative_item*` array; `end_label` is the optional trailing identifier | `entity_declaration` (line 51) |
 | `"architecture"` | `{name, entity_name, items, statements, end_label}` — `items` are declarative items, `statements` are concurrent statements | `architecture_body` (line 84) |
@@ -443,9 +538,24 @@ Two emission conventions recur:
   named fields). Consumers dispatch on `obj["kind"]`. A bodyless
   `{kind: "semi"}` (and, for `sequential_statement`, `{kind: "null"}`)
   marks the lone-`;` / `null` branch — there is no `body`.
-- **`{first, rest}` list rules** emit a head element plus the raw
-  iteration envelope of the `(sep X)*` tail. This is VHDL's separated-list
-  convention; `first` is the head, `rest` is the trailing-iteration array.
+- **Separated-list rules** emit a **clean flat array** of the element
+  type in source order — the canonical extraction-spread `[$F, $R::2*]`
+  idiom (the semantically-irrelevant single-token separator — `,` / `;`
+  / `.` / `|` — is dropped). This is the `1.0.3` / schema `3` shape from
+  the POST-SV-AUDIT.2.3 Category-A correction
+  (`PGEN-POST-SV-AUDIT-0004`). The 14 bare-list rules
+  (`library_clause`, `use_clause`, `selected_name`, `identifier_list`,
+  `generic_interface_list`, `port_interface_list`, `parameter_list`,
+  `enumeration_type_definition`, `index_constraint`, `association_list`,
+  `sensitivity_list`, `actual_parameter_part`, `choices`,
+  `aggregate_choice_list`) emit a **top-level array**; the `target`
+  aggregate branch and the two `aggregate` branches keep their
+  meaningful discriminator/value fields and carry the cleaned trailing
+  list in `items` / `rest`. At `≤ 1.0.2` / schema `≤ 2` these rules
+  emitted the raw `{first, rest}` (resp. `{…, first, rest}`) envelope
+  where `rest` was the raw `[[sep, item], …]` recursive iteration a
+  consumer had to walk past; that history is kept in
+  [AST-Shape Corrections — 1.0.3](#ast-shape-corrections--103-post-sv-audit--17-category-a-raw-envelope-list-rules--clean-lists-schema-2--3).
 
 Field selectors below name JSON keys exactly as emitted; a field bound to
 an optional grammar element is `[]` when that element is absent (e.g.
@@ -456,11 +566,11 @@ an optional grammar element is `[]` when that element is absent (e.g.
 
 | Rule (`grammars/vhdl.ebnf`) | Shape |
 |---|---|
-| `library_clause` (line 29) | `{first, rest}` — first identifier + comma-separated identifier iteration. |
-| `use_clause` (line 31) | `{first, rest}` — first selected name + comma-separated iteration. |
+| `library_clause` (line 29) | `[identifier, …]` — clean flat array of the comma-separated library identifiers (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
+| `use_clause` (line 31) | `[selected_name, …]` — clean flat array of the comma-separated selected names (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `context_reference_clause` (line 33) | `{name}` — the referenced context name. |
 | `context_item` (line 37, 4 kinds) | `{kind: "library", body}` / `{kind: "use", body}` / `{kind: "context_reference", body}` / `{kind: "semi"}` (bodyless). |
-| `selected_name` (line 42) | `{first, rest}` — leading name segment + dotted-suffix iteration. |
+| `selected_name` (line 42) | `[name_segment, …]` — clean flat array of the dotted name segments (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 
 ### Design units
 
@@ -494,21 +604,21 @@ it admits. Every branch emits `{kind, body}` except the bodyless
 | Rule (`grammars/vhdl.ebnf`) | Shape |
 |---|---|
 | `generic_clause` (line 60) | `{list}` — the inner `generic_interface_list`. |
-| `generic_interface_list` | `{first, rest}`. |
+| `generic_interface_list` | `[generic_interface_element, …]` — clean flat array of the semi-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `generic_interface_element` (2 kinds) | `{kind: "value", names, subtype, default}` / `{kind: "package", body}`. |
 | `port_clause` (line 71) | `{list}` — the inner `port_interface_list`. |
-| `port_interface_list` | `{first, rest}`. |
+| `port_interface_list` | `[port_interface_element, …]` — clean flat array of the semi-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `port_interface_element` | `{names, mode, subtype, default}` — `mode` is the typed `signal_mode`. |
-| `parameter_list` | `{first, rest}`. |
+| `parameter_list` | `[parameter_interface_element, …]` — clean flat array of the semi-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `parameter_interface_element` | `{names, mode, subtype, default}` — `mode` is the typed `parameter_mode`. |
 | `generic_map_aspect` | `{associations}` — the inner `association_list`. |
 | `port_map_aspect` | `{associations}`. |
-| `association_list` | `{first, rest}`. |
+| `association_list` | `[association_element, …]` — clean flat array of the comma-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `association_element` | `{formal, actual}`. |
 | `actual_part` (2 kinds) | `{kind: "expression", body}` / `{kind: "open"}` (bodyless). |
-| `actual_parameter_part` | `{first, rest}`. |
+| `actual_parameter_part` | `[actual_parameter_element, …]` — clean flat array of the comma-separated elements (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `actual_parameter_element` (2 kinds) | `{kind: "association", body}` / `{kind: "range_expression", body}`. |
-| `identifier_list` | `{first, rest}`. |
+| `identifier_list` | `[identifier, …]` — clean flat array of the comma-separated identifiers (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 
 #### Mode keyword leaves
 
@@ -548,14 +658,14 @@ redundant with `kind`.
 | Rule (`grammars/vhdl.ebnf`) | Shape |
 |---|---|
 | `type_definition` (3 kinds) | `{kind: "enumeration", body}` / `{kind: "array", body}` / `{kind: "record", body}`. |
-| `enumeration_type_definition` | `{first, rest}`. |
+| `enumeration_type_definition` | `[identifier, …]` — clean flat array of the comma-separated enumeration literals (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `array_type_definition` | `{index_range, element_subtype}`. |
 | `record_type_definition` | `{elements}`. |
 | `record_element_declaration` | `{names, subtype}`. |
 | `subtype_indication` (line 212) | `{type_mark, constraint}` — `constraint` is `[]` when the subtype is unconstrained. |
 | `constraint` (line 214, 2 kinds) | `{kind: "range", body}` / `{kind: "index", body}`. |
 | `range_constraint` | `{range}`. |
-| `index_constraint` | `{first, rest}`. |
+| `index_constraint` | `[discrete_range, …]` — clean flat array of the comma-separated discrete ranges (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `discrete_range` (line 220, 5 kinds) | `{kind: "range", body}` / `{kind: "attribute", body}` / `{kind: "name", body}` / `{kind: "subtype_range", subtype, range}` / `{kind: "subtype_box", subtype}`. |
 | `range_expression` (line 226, 2 kinds) | `{kind: "to", low, high}` / `{kind: "downto", high, low}`. |
 
@@ -568,7 +678,7 @@ redundant with `kind`.
 | `process_statement` (line 270) | `{label, sensitivity, items, statements, end_label}`. |
 | `process_label` | `{name}`. |
 | `sensitivity_clause` | `{list}` — the inner `sensitivity_list`. |
-| `sensitivity_list` | `{first, rest}`. |
+| `sensitivity_list` | `[name, …]` — clean flat array of the comma-separated sensitivity names (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `component_instantiation_statement` | `{label, unit, generic_map, port_map}` — `unit` is the typed `instantiated_unit`. |
 | `instantiated_unit` (3 kinds) | `{kind: "component", name}` / `{kind: "entity", name}` / `{kind: "configuration", name}`. |
 | `generate_statement` (2 kinds) | `{kind: "for", label, var, range, statements}` / `{kind: "if", label, condition, statements}`. |
@@ -582,7 +692,7 @@ redundant with `kind`.
 | `signal_assignment_statement` | `{target, rhs}`. |
 | `signal_assignment_rhs` | `{value, conditional}` — `conditional` carries the optional `when`-clause tail. |
 | `variable_assignment_statement` | `{target, value}`. |
-| `target` (2 kinds) | `{kind: "name", name, params}` / `{kind: "aggregate", first, rest}`. |
+| `target` (2 kinds) | `{kind: "name", name, params}` / `{kind: "aggregate", items}` — `items` is the clean flat comma-separated target list (`1.0.3` / schema `3`; the aggregate branch was `{kind: "aggregate", first, rest}` at ≤ `1.0.2`). |
 | `if_statement` (line 316) | `{condition, then_body, elsif_branches, else_body}` — `elsif_branches` is the `(elsif … then …)*` iteration; `else_body` is `[]` when there is no `else`. |
 | `case_statement` (line 319) | `{value, alternatives}`. |
 | `case_statement_alternative` | `{choices, body}`. |
@@ -706,11 +816,11 @@ and the distinct-rule count `110 → 112` at the `1.0.2` `VHDL-0001` fix.
 |---|---|
 | `primary` (line 359, 7 kinds) | `{kind: "literal", body}` / `{kind: "aggregate", body}` / `{kind: "attribute_name", body}` / `{kind: "function_call", name, params}` / `{kind: "name", body}` / `{kind: "parens", expr}` / `{kind: "not", expr}`. |
 | `attribute_name` | `{prefix, prefix_params, attribute, attribute_params}`. |
-| `aggregate` (line 370, 2 kinds) | `{kind: "named_first", first_choices, first_value, rest}` / `{kind: "positional_first", first_value, second, rest}`. |
+| `aggregate` (line 370, 2 kinds) | `{kind: "named_first", first_choices, first_value, rest}` / `{kind: "positional_first", first_value, second, rest}` — the meaningful `first_choices` / `first_value` / `second` fields are unchanged; only the trailing comma-separated `rest` iteration is now a clean flat `aggregate_element_association[]` (`1.0.3` / schema `3`; `rest` was the raw `[[comma, aea], …]` envelope at ≤ `1.0.2`). |
 | `aggregate_element_association` (2 kinds) | `{kind: "named", choices, value}` / `{kind: "positional", value}`. |
-| `aggregate_choice_list` | `{first, rest}`. |
+| `aggregate_choice_list` | `[aggregate_choice, …]` — clean flat array of the `|`-separated aggregate choices (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `aggregate_choice` (5 kinds) | `{kind: "others"}` (bodyless) / `{kind: "name", body}` / `{kind: "decimal", body}` / `{kind: "character", body}` / `{kind: "string", body}`. |
-| `choices` | `{first, rest}`. |
+| `choices` | `[choice, …]` — clean flat array of the `|`-separated choices (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
 | `choice` (2 kinds) | `{kind: "expression", body}` / `{kind: "others"}` (bodyless). |
 
 ### Literals
@@ -726,8 +836,8 @@ and the distinct-rule count `110 → 112` at the `1.0.2` `VHDL-0001` fix.
 through the recursive-envelope shape (the string of matched text); they
 carry no per-rule annotation — only the dispatch in `literal` is typed.
 
-The above enumerates the full typed surface of contract `1.0.2`
-(**256 annotations across 112 distinct rules**, schema version `2`).
+The above enumerates the full typed surface of contract `1.0.3`
+(**256 annotations across 112 distinct rules**, schema version `3`).
 This contract section is curated; the authoritative machine-checkable
 enumeration of every `(rule, branch_index, annotation_type,
 normalized_text)` tuple is `generated/vhdl_return_annotations.json` and
@@ -879,8 +989,8 @@ Contract-scoped definitions of the terms a downstream integrator needs to
 read this document. Where a term has a normative definition, this contract
 is authoritative; the per-parser book's
 [glossary](../vhdl_parser_book/src/glossary.md) paraphrases the same terms
-for quick lookup. Numbers below are pinned to contract `1.0.2` /
-schema `2` / **256 annotations across 112 distinct rules**.
+for quick lookup. Numbers below are pinned to contract `1.0.3` /
+schema `3` / **256 annotations across 112 distinct rules**.
 
 - **`AstDumpPayload`** — the success return of the VHDL AST-dump host
   entry points (defined in `rust/src/embedding_api.rs`, contract in
@@ -902,14 +1012,15 @@ schema `2` / **256 annotations across 112 distinct rules**.
   Consumers must check `truncated` (or detect `kind ==
   "pgen_ast_dump_truncation"`) before treating `dump_json` as a VHDL AST.
 - **AST-dump schema version** — the integer version axis tracking the AST
-  output shape, currently `2` (bumped `1 → 2` by the `1.0.2` `VHDL-0001`
-  correctness fix). Bumped only when the emitted shape changes
+  output shape, currently `3` (bumped `1 → 2` by the `1.0.2` `VHDL-0001`
+  correctness fix, then `2 → 3` by the `1.0.3` POST-SV-AUDIT.2.3
+  Category-A list-shape batch). Bumped only when the emitted shape changes
   in a way consumers may need to adapt to (new annotation on a
   previously-unannotated rule, restructured annotation, user-visible
   grammar-shape change). Pure perf work / internal codegen
   reorganization do not bump it. See [Schema Versioning](#schema-versioning).
 - **Parser release version** — the parser library's release identity,
-  currently `1.0.2`. Bumped on every functional change (bug fixes, perf
+  currently `1.0.3`. Bumped on every functional change (bug fixes, perf
   work, grammar changes). Moves independently of the schema version.
 - **`design_unit` dispatch** — the primary top-level dispatcher: a
   10-branch `kind`-tagged shape (`"library"`, `"use"`,

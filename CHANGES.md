@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-05-17 - PGEN-POST-SV-AUDIT-0004 (leaf POST-SV-AUDIT.2.3): vhdl — 17 Category-A raw-envelope misuses FIXED (schema 2→3, release 1.0.3)
+
+- **17 `vhdl` Category-A raw-envelope misuses** fixed to
+  extraction-spreads, all single-token separators (comma/semi/dot/bar)
+  — NO inline-alternation, NO corruption class: 14 bare-list
+  `{first,rest}`→`[$F, $R::2*]` (`library_clause`, `use_clause`,
+  `selected_name`, `identifier_list`, `generic_interface_list`,
+  `port_interface_list`, `parameter_list`,
+  `enumeration_type_definition`, `index_constraint`,
+  `association_list`, `sensitivity_list`, `actual_parameter_part`,
+  `choices`, `aggregate_choice_list`); `target` aggregate-branch
+  `{kind:"aggregate",first,rest}`→`{kind:"aggregate",items:[$2,$3::2*]}`;
+  `aggregate` 2 branches keep the distinct `first_choices`/
+  `first_value`/`second` fields, only the trailing `rest:$5`→
+  `rest:[$5::2*]` (clean `aggregate_element_association[]`).
+- **Comprehensive AFTER `parseability_probe`** (library/use/entity+
+  generics+ports/process/case/aggregate/instantiation):
+  `invalid_sequence_access: 0`; **zero separator-envelope leaks across
+  ALL 4 separator types** (`[[],","]`/`[[],";"]`/`[[],"."]`/
+  `[[],"|"]` all 0); `aggregate` `rest` confirmed a clean
+  `aggregate_element_association[]` list; no leftover `{first,rest}`
+  objects.
+- **Inventory UNCHANGED 256 / 112** (14 bare-list rules flip
+  `return_object`→`return_array`; `target`-aggregate + `aggregate`
+  stay `return_object` with new `normalized_text`). Manifest
+  `vhdl_v1.json` dai rebuilt + new `cat_a_shapes` sample +
+  `extracted_at` 2026-05-17 → `vhdl_ast_shape_contract` **passes**.
+- **Lockstep:** AST-dump schema `2→3`, parser+contract release
+  `1.0.2→1.0.3`. Contract: new `## AST-Shape Corrections — 1.0.3
+  (POST-SV-AUDIT)` section (17-row old→new table) + Schema-Versioning
+  `3 | 1.0.3` row + per-rule loci (1.0.1/1.0.2/VHDL-0001 kept as
+  labeled history). Book: 9 chapters, all walker pins
+  `VHDL_AST_SCHEMA_VERSION = 3`, `schema-versioning.md` `2→3` row,
+  256/112 unchanged. `docs/POST_SV_AUDIT_LEDGER.md`: all 17 vhdl rows
+  RESOLVED-FIXED + worklist DONE (originals kept as history).
+- **No `PGEN_RELEASED_PARSER_BUG_LEDGER.md` row** — all 17 are clean
+  Cat-A (no `<invalid_sequence_access>`, no inline-alternation); ledger
+  git-diff empty/untouched (contrast .2.2's RTL-FE-0002, which WAS the
+  corruption class and DID get a row). Per the recorded Decision.
+- DOC-ENVELOPE-0001 not regressed. Independently verified: contract no
+  dup `## ` headers, 1.0.3/schema-3 current (1.0.2 historical only),
+  256/112 unchanged, no fabricated `AstDumpPayload`;
+  `vhdl_parser_book_gate` **independently re-run green** (searchindex
+  deterministic); `clippy_on_rust_change` strict source **passed**
+  (generated non-strict debt pre-existing/tolerated). `docs/book/`
+  checked — no drifting vhdl fact, no edit.
+- POST-SV-AUDIT.2 progress: `.2.1` (svpp) + `.2.2` (rtl_frontend) +
+  `.2.3` (vhdl) done; frontier `.2.3`→`.2.4` (systemverilog —
+  flagship, last: net_alias single-token Cat-A + 5 number-rule
+  inline-alt-`$N` HIGH + 11 structured-per-iteration) → `.3` close.
+
 ## 2026-05-17 - PGEN-POST-SV-AUDIT-0003 (leaf POST-SV-AUDIT.2.2): rtl_frontend — 15 Category-A misuses FIXED + event_control_list RTL-FE-0002 inline-alt corruption FIXED (schema 2→3, release 1.0.3)
 
 - **15 `rtl_frontend` Category-A raw-envelope misuses** fixed to

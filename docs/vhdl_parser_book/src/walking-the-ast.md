@@ -89,8 +89,8 @@ fn handle_design_unit(node: &serde_json::Value) {
         "configuration"     => handle_configuration(body),     // {name, entity_name, items, end_label}
         "context"           => handle_context(body),           // {name, items, end_label}
         "context_reference" => handle_context_reference(body), // {name}
-        "library"           => handle_library_clause(body),    // {first, rest}
-        "use"               => handle_use_clause(body),        // {first, rest}
+        "library"           => handle_library_clause(body),    // [identifier, …]   (schema 3 clean array)
+        "use"               => handle_use_clause(body),        // [selected_name, …] (schema 3 clean array)
         "semi"              => { /* lone `;` */ }
         _                   => { /* unknown — degrade gracefully */ }
     }
@@ -174,34 +174,18 @@ fn extract_identifier(node: &serde_json::Value) -> Option<&str> {
 
 The per-rule chapters ([Top-Level Rules](rules-top-level.md)) document the field that holds the identifier for each rule that produces one.
 
-## Iterating `{first, rest}` lists
+## Iterating separated lists (schema 3 — clean flat arrays)
 
-VHDL separated lists (`identifier_list`, `selected_name`, `association_list`, `library_clause`, `use_clause`, `parameter_list`, `choices`, `enumeration_type_definition`, …) use the `{first, rest}` carrier. `rest` is the recursive-envelope iteration of the `(separator element)*` tail, so each `rest` entry wraps a separator token plus one element:
+As of the `1.0.3` POST-SV-AUDIT.2.3 Category-A batch (schema `3`), VHDL separated lists are **clean flat arrays** of the element type in source order. The 14 bare-list rules — `library_clause`, `use_clause`, `selected_name`, `identifier_list`, `generic_interface_list`, `port_interface_list`, `parameter_list`, `enumeration_type_definition`, `index_constraint`, `association_list`, `sensitivity_list`, `actual_parameter_part`, `choices`, `aggregate_choice_list` — emit a **top-level array**; the `target` aggregate branch and the two `aggregate` branches carry the cleaned list in `items` / `rest`. The semantically-irrelevant single-token separator (`,` / `;` / `.` / `|`) was dropped, so iteration is just:
 
 ```rust
 fn iter_list<'a>(list: &'a serde_json::Value) -> Vec<&'a serde_json::Value> {
-    let mut out = Vec::new();
-    if let Some(first) = list.get("first") {
-        out.push(first);
-    }
-    if let Some(rest) = list.get("rest").and_then(|v| v.as_array()) {
-        for entry in rest {
-            // `entry` is the envelope of one `(sep element)` iteration;
-            // the element is the last child. Walk to it rather than
-            // assuming a fixed index, so a grammar tweak to the
-            // separator doesn't break extraction.
-            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
-                out.push(elem);
-            } else {
-                out.push(entry);
-            }
-        }
-    }
-    out
+    // schema 3: a separated-list rule is already a flat element array.
+    list.as_array().map(|a| a.iter().collect()).unwrap_or_default()
 }
 ```
 
-This `{first, rest}` shape is uniform across the VHDL surface (it was **not** flattened to `[$N, $M::2*]` the way the SystemVerilog grammar's lists were in its slice-58 audit). If a future VHDL slice flattens these, it will get a [Schema Versioning](schema-versioning.md) row and a [Changelog Index](changelog-index.md) entry.
+At ≤ `1.0.2` / schema `2` these rules emitted the raw `{first, rest}` (resp. `{…, first, rest}`) carrier where `rest` was the recursive `[[separator, element], …]` iteration a consumer had to walk past — a schema-`2` consumer that read `.first` + `.rest[][last]` (or treated a bare-list value as a `{first, rest}` object) must repin to schema `3` and treat the field, or the rule's whole value, as a flat element array. This is the POST-SV-AUDIT.2.3 correction (`PGEN-POST-SV-AUDIT-0004`); it is a clean Category-A shape improvement (single-token separators, no `<invalid_sequence_access>`) tracked via `docs/POST_SV_AUDIT_LEDGER.md` and the contract's "AST-Shape Corrections — 1.0.3" section — see [Schema Versioning](schema-versioning.md) and the [Changelog Index](changelog-index.md).
 
 ## Avoiding deep recursion
 
@@ -219,7 +203,7 @@ Recommendations:
 
 ```rust
 // The AST-dump schema version you integrated against (from the contract):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -232,9 +216,14 @@ let root: serde_json::Value = serde_json::from_str(&payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match VHDL_AST_SCHEMA_VERSION {
-    2 => walk_schema_v2(&root),
-    // schema 1 (pre-`VHDL-0001`) emitted "<invalid_sequence_access>" in
-    // simple_expression / term binop_chain.rest — do not target it.
+    3 => walk_schema_v3(&root),
+    // schema 3: the 17 Category-A list rules (library_clause,
+    // identifier_list, association_list, choices, …) are clean flat
+    // arrays, not the ≤ 1.0.2 {first, rest} envelope (POST-SV-AUDIT.2.3).
+    // schema 2 (pre-POST-SV-AUDIT) carried those as {first, rest};
+    // schema 1 (pre-`VHDL-0001`) additionally emitted
+    // "<invalid_sequence_access>" in simple_expression / term
+    // binop_chain.rest — do not target the older schemas.
     other => eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 ```

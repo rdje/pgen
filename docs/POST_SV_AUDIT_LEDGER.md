@@ -322,6 +322,79 @@ parser book.
 | `term` | vhdl.ebnf:363-364 | `factor ( multiplying_operator factor )*`; NAMED `multiplying_operator` (l.409) | B (resolved) | no | none | static-conclusive | none — correct |
 | `factor` | vhdl.ebnf:365-366 | `primary ( power primary )?`; NAMED single-token `power` (l.463) | B (resolved) | no | none | static-conclusive | none — correct |
 
+**RESOLVED — FIXED (`PGEN-POST-SV-AUDIT-0004`, leaf POST-SV-AUDIT.2.3,
+2026-05-17).** The original classifications above are kept verbatim as
+history. All **17 vhdl Category-A raw-envelope list rules** were fixed
+in `grammars/vhdl.ebnf`, the parser regenerated, and the manifest
+`rust/test_data/ast_shape_contract/vhdl_v1.json` re-locked (new
+`cat_a_shapes` sample; `vhdl_ast_shape_contract` passes). Fixed in
+**vhdl parser release `1.0.3` / contract `1.0.3` / AST-dump schema `3`**
+(schema `2 → 3`; consumer-visible shape change). Parent
+probe-verified all: zero `[[],","]` / `[[],";"]` / `[[],"."]` /
+`[[],"|"]` separator-envelope leaks, `invalid_sequence_access: 0`,
+aggregate `rest` now a clean list, no leftover `{first, rest}` objects.
+The 17 rules — old `{first/…,rest}` → new extraction-spread:
+
+- The 14 bare-list rules — old `{first,rest}` (resp. `{…,first,rest}`)
+  → new top-level `[$F, $R::2*]` (`return_object` → `return_array`):
+  - `library_clause` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `use_clause` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `selected_name` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `identifier_list` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `generic_interface_list` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `port_interface_list` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `parameter_list` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `enumeration_type_definition` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `index_constraint` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `association_list` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `sensitivity_list` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `actual_parameter_part` `{first:$2,rest:$3}` → `[$2, $3::2*]`
+    (RESOLVED — FIXED)
+  - `choices` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+  - `aggregate_choice_list` `{first:$1,rest:$2}` → `[$1, $2::2*]`
+    (RESOLVED — FIXED)
+- `target` aggregate branch
+  `{kind:"aggregate",first:$2,rest:$3}` →
+  `{kind:"aggregate",items:[$2, $3::2*]}` (stays `return_object`, new
+  `normalized_text`) (RESOLVED — FIXED)
+- `aggregate` (both branches — kept the meaningful
+  `first_choices`/`first_value`/`second` fields, only the trailing
+  iteration `rest` cleaned):
+  `{kind:"named_first",first_choices:$2,first_value:$4,rest:$5}` →
+  `{kind:"named_first",first_choices:$2,first_value:$4,rest:[$5::2*]}`;
+  `{kind:"positional_first",first_value:$2,second:$4,rest:$5}` →
+  `{kind:"positional_first",first_value:$2,second:$4,rest:[$5::2*]}`
+  (stays `return_object`, new `normalized_text`) (RESOLVED — FIXED)
+
+All 17 are clean Category-A shape improvements — every separator is a
+single token (comma / semi / dot / bar), there is **no** inline
+alternation and **no** `<invalid_sequence_access>`. They are therefore
+**not** logged in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (per the recorded
+Decision in DEVELOPMENT_NOTES — that ledger is reserved for the
+`<invalid_sequence_access>` corruption/crash class; `VHDL-0001`, the
+systemic inline-alternation defect, lives there; this Category-A batch
+adds **no** bug-ledger row, unlike POST-SV-AUDIT.2.2's `RTL-FE-0002`
+which *was* corruption). Annotation inventory **unchanged at 256
+annotations / 112 distinct rules** (the 14 bare-list Cat-A rules flip
+`return_object` → `return_array`; the `target`-aggregate + `aggregate`
+ones stay `return_object` with new `normalized_text`; no count delta).
+Tracked via this ledger + the schema-`3` Schema-Versioning row +
+`docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
+"AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT)" + the vhdl parser book.
+
 ## Objective-bug worklist (for POST-SV-AUDIT.2)
 
 ### Static-conclusive objective bugs (no probe needed to confirm the class; probe only to capture the before/after artifact)
@@ -360,6 +433,15 @@ static-conclusive Cat-A misuse:
   `actual_parameter_part` (310), `choices` (324),
   `aggregate` named_first (379) + positional_first (380),
   `aggregate_choice_list` (384).
+  **DONE — all 17 fixed in vhdl 1.0.3 / schema 3,
+  `PGEN-POST-SV-AUDIT-0004` (leaf POST-SV-AUDIT.2.3, 2026-05-17);
+  the 14 bare-list rules → top-level `[$F, $R::2*]`
+  (`return_object` → `return_array`), the `target` aggregate branch →
+  `{kind:"aggregate",items:[$2,$3::2*]}` and both `aggregate`
+  branches → `rest:[$5::2*]` (stay `return_object`, new
+  `normalized_text`). All single-token-separator Cat-A — NO
+  `<invalid_sequence_access>`, NO bug-ledger row. 256/112 unchanged.
+  See the RESOLVED note in the vhdl.ebnf section above.**
 - systemverilog.ebnf: `net_alias` (2889-2890, SEP = single token
   `assign`).
 

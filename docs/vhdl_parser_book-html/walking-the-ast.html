@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f9ad1046.js";
+            window.path_to_searchindex_js = "searchindex-ae6ac680.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -262,8 +262,8 @@ fn walk(node: &amp;JsonValue) {
         "configuration"     =&gt; handle_configuration(body),     // {name, entity_name, items, end_label}
         "context"           =&gt; handle_context(body),           // {name, items, end_label}
         "context_reference" =&gt; handle_context_reference(body), // {name}
-        "library"           =&gt; handle_library_clause(body),    // {first, rest}
-        "use"               =&gt; handle_use_clause(body),        // {first, rest}
+        "library"           =&gt; handle_library_clause(body),    // [identifier, …]   (schema 3 clean array)
+        "use"               =&gt; handle_use_clause(body),        // [selected_name, …] (schema 3 clean array)
         "semi"              =&gt; { /* lone `;` */ }
         _                   =&gt; { /* unknown — degrade gracefully */ }
     }
@@ -338,32 +338,16 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
 }
 <span class="boring">}</span></code></pre>
 <p>The per-rule chapters (<a href="rules-top-level.html">Top-Level Rules</a>) document the field that holds the identifier for each rule that produces one.</p>
-<h2 id="iterating-first-rest-lists"><a class="header" href="#iterating-first-rest-lists">Iterating <code>{first, rest}</code> lists</a></h2>
-<p>VHDL separated lists (<code>identifier_list</code>, <code>selected_name</code>, <code>association_list</code>, <code>library_clause</code>, <code>use_clause</code>, <code>parameter_list</code>, <code>choices</code>, <code>enumeration_type_definition</code>, …) use the <code>{first, rest}</code> carrier. <code>rest</code> is the recursive-envelope iteration of the <code>(separator element)*</code> tail, so each <code>rest</code> entry wraps a separator token plus one element:</p>
+<h2 id="iterating-separated-lists-schema-3--clean-flat-arrays"><a class="header" href="#iterating-separated-lists-schema-3--clean-flat-arrays">Iterating separated lists (schema 3 — clean flat arrays)</a></h2>
+<p>As of the <code>1.0.3</code> POST-SV-AUDIT.2.3 Category-A batch (schema <code>3</code>), VHDL separated lists are <strong>clean flat arrays</strong> of the element type in source order. The 14 bare-list rules — <code>library_clause</code>, <code>use_clause</code>, <code>selected_name</code>, <code>identifier_list</code>, <code>generic_interface_list</code>, <code>port_interface_list</code>, <code>parameter_list</code>, <code>enumeration_type_definition</code>, <code>index_constraint</code>, <code>association_list</code>, <code>sensitivity_list</code>, <code>actual_parameter_part</code>, <code>choices</code>, <code>aggregate_choice_list</code> — emit a <strong>top-level array</strong>; the <code>target</code> aggregate branch and the two <code>aggregate</code> branches carry the cleaned list in <code>items</code> / <code>rest</code>. The semantically-irrelevant single-token separator (<code>,</code> / <code>;</code> / <code>.</code> / <code>|</code>) was dropped, so iteration is just:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn iter_list&lt;'a&gt;(list: &amp;'a serde_json::Value) -&gt; Vec&lt;&amp;'a serde_json::Value&gt; {
-    let mut out = Vec::new();
-    if let Some(first) = list.get("first") {
-        out.push(first);
-    }
-    if let Some(rest) = list.get("rest").and_then(|v| v.as_array()) {
-        for entry in rest {
-            // `entry` is the envelope of one `(sep element)` iteration;
-            // the element is the last child. Walk to it rather than
-            // assuming a fixed index, so a grammar tweak to the
-            // separator doesn't break extraction.
-            if let Some(elem) = entry.as_array().and_then(|a| a.last()) {
-                out.push(elem);
-            } else {
-                out.push(entry);
-            }
-        }
-    }
-    out
+    // schema 3: a separated-list rule is already a flat element array.
+    list.as_array().map(|a| a.iter().collect()).unwrap_or_default()
 }
 <span class="boring">}</span></code></pre>
-<p>This <code>{first, rest}</code> shape is uniform across the VHDL surface (it was <strong>not</strong> flattened to <code>[$N, $M::2*]</code> the way the SystemVerilog grammar’s lists were in its slice-58 audit). If a future VHDL slice flattens these, it will get a <a href="schema-versioning.html">Schema Versioning</a> row and a <a href="changelog-index.html">Changelog Index</a> entry.</p>
+<p>At ≤ <code>1.0.2</code> / schema <code>2</code> these rules emitted the raw <code>{first, rest}</code> (resp. <code>{…, first, rest}</code>) carrier where <code>rest</code> was the recursive <code>[[separator, element], …]</code> iteration a consumer had to walk past — a schema-<code>2</code> consumer that read <code>.first</code> + <code>.rest[][last]</code> (or treated a bare-list value as a <code>{first, rest}</code> object) must repin to schema <code>3</code> and treat the field, or the rule’s whole value, as a flat element array. This is the POST-SV-AUDIT.2.3 correction (<code>PGEN-POST-SV-AUDIT-0004</code>); it is a clean Category-A shape improvement (single-token separators, no <code>&lt;invalid_sequence_access&gt;</code>) tracked via <code>docs/POST_SV_AUDIT_LEDGER.md</code> and the contract’s “AST-Shape Corrections — 1.0.3” section — see <a href="schema-versioning.html">Schema Versioning</a> and the <a href="changelog-index.html">Changelog Index</a>.</p>
 <h2 id="avoiding-deep-recursion"><a class="header" href="#avoiding-deep-recursion">Avoiding deep recursion</a></h2>
 <p>VHDL can produce deep AST trees — a large architecture with nested blocks, generate statements, and deeply-nested expressions can reach hundreds of levels.</p>
 <p>Recommendations:</p>
@@ -377,7 +361,7 @@ fn fold_binop_chain(node: &amp;serde_json::Value) -&gt; Expr {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// The AST-dump schema version you integrated against (from the contract):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 let payload = outcome.ast_dump.expect("Success carries an AstDumpPayload");
 if payload.truncated {
@@ -390,9 +374,14 @@ let root: serde_json::Value = serde_json::from_str(&amp;payload.dump_json)?;
 // When you bump PGEN, diff the contract's Schema Versioning table; if the
 // integer schema version moved, update the constant and the walker together.
 match VHDL_AST_SCHEMA_VERSION {
-    2 =&gt; walk_schema_v2(&amp;root),
-    // schema 1 (pre-`VHDL-0001`) emitted "&lt;invalid_sequence_access&gt;" in
-    // simple_expression / term binop_chain.rest — do not target it.
+    3 =&gt; walk_schema_v3(&amp;root),
+    // schema 3: the 17 Category-A list rules (library_clause,
+    // identifier_list, association_list, choices, …) are clean flat
+    // arrays, not the ≤ 1.0.2 {first, rest} envelope (POST-SV-AUDIT.2.3).
+    // schema 2 (pre-POST-SV-AUDIT) carried those as {first, rest};
+    // schema 1 (pre-`VHDL-0001`) additionally emitted
+    // "&lt;invalid_sequence_access&gt;" in simple_expression / term
+    // binop_chain.rest — do not target the older schemas.
     other =&gt; eprintln!("no walker compiled for VHDL AST schema version {other}"),
 }
 <span class="boring">}</span></code></pre>

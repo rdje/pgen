@@ -150,7 +150,7 @@ let outcome = parse_vhdl_1076_2019_ast_dump(
 
 // AST-dump schema version you integrated against, pinned from the
 // contract (NOT a field of AstDumpPayload):
-const VHDL_AST_SCHEMA_VERSION: u32 = 2;
+const VHDL_AST_SCHEMA_VERSION: u32 = 3;
 
 match outcome.status {
     ParseStatus::Success => {

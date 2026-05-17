@@ -15,11 +15,25 @@ When investigating "what changed and why," start with the contract document, dro
 
 ## Why this index is short by design
 
-The SystemVerilog parser's changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. **The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.** A single follow-up correctness fix (`1.0.2`, schema `2`, `VHDL-0001`) added the third entry. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a [Schema Versioning](schema-versioning.md) row, and an entry below.
+The SystemVerilog parser's changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. **The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.** A follow-up correctness fix (`1.0.2`, schema `2`, `VHDL-0001`) added the third entry, and the `1.0.3` POST-SV-AUDIT Category-A list-shape batch (schema `3`) added the fourth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a [Schema Versioning](schema-versioning.md) row, and an entry below.
 
 ## Releases relevant to this book
 
-This book is **live** and tracks current main HEAD. The three entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
+This book is **live** and tracks current main HEAD. The four entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
+
+### 1.0.3 / Contract 1.0.3 — POST-SV-AUDIT Category-A list-shape batch (schema 2 → 3)
+
+The POST-SV-AUDIT.2.3 static classification pass (`docs/POST_SV_AUDIT_LEDGER.md`, tracked `PGEN-POST-SV-AUDIT-0004`) found **17 static-conclusive Category-A raw-envelope list rules** in `grammars/vhdl.ebnf`. Landed 2026-05-17. Follows POST-SV-AUDIT.2.1 (`systemverilog_preprocessor` `macro_formals`, `PGEN-POST-SV-AUDIT-0002`, sv_preprocessor 1.0.3 / schema 3) and POST-SV-AUDIT.2.2 (`rtl_frontend` 15 Category-A + `RTL-FE-0002`, `PGEN-POST-SV-AUDIT-0003`, rtl_frontend 1.0.3 / schema 3).
+
+- **Schema-version milestone:** `1.0.3` (first parser release: `1.0.3`).
+- **AST-dump schema version:** `3` — the integer consumers **pin** from the contract (it is **not** a field of `AstDumpPayload`, whose real fields are `dump_json`/`truncated`/`full_bytes`/`emitted_bytes`).
+- **What changed:** 17 Category-A raw-envelope list rules — `library_clause`, `use_clause`, `selected_name`, `identifier_list`, `generic_interface_list`, `port_interface_list`, `parameter_list`, `enumeration_type_definition`, `index_constraint`, `association_list`, `sensitivity_list`, `actual_parameter_part`, `choices`, `aggregate_choice_list`, plus the `target` aggregate branch and both `aggregate` branches — no longer expose the raw `{first, rest}` (resp. `{…, first, rest}`) iteration envelope (`rest` was the raw `[[sep, item], …]` single-token-separator envelope a consumer had to walk past). Each is corrected to the canonical extraction-spread `[$F, $R::2*]` (drop the semantically-irrelevant separator — comma / semi / dot / bar; emit a clean flat list). The 14 bare-list rules now emit a **top-level array**; the `target` aggregate branch and the two `aggregate` branches keep their meaningful discriminator/value fields and carry the cleaned trailing list in `items` / `rest`. Every separator is a single token; **no** inline alternation and **no** `<invalid_sequence_access>` — this is a clean Category-A shape improvement, **not** a parser bug.
+- **Annotation count:** **256** (UNCHANGED — the 14 bare-list rules flip `return_object` → `return_array`; the `target`-aggregate + `aggregate` rules stay `return_object` with a new `normalized_text`; no count delta). **112** distinct rules (UNCHANGED).
+- **Accept set:** unchanged — no grammar acceptance change, purely the 17 annotation-form changes.
+- **Contract section:** `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` → "AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT) — 17 Category-A raw-envelope list rules → clean lists; schema 2 → 3".
+- **Bug ledger:** none. The 17 Category-A corrections are a clean shape improvement (single-token separators, no `<invalid_sequence_access>`) and are deliberately **not** bug-ledger rows — tracked via `docs/POST_SV_AUDIT_LEDGER.md` and the contract's "AST-Shape Corrections — 1.0.3" section. (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` is reserved for the `<invalid_sequence_access>` corruption/crash class — `VHDL-0001` lives there; this batch adds nothing.)
+- **Machine-checkable inventory:** `generated/vhdl_return_annotations.json` (256 entries) and its embedded mirror `rust/test_data/ast_shape_contract/vhdl_v1.json` (new `cat_a_shapes` regression sample).
+- **Per-rule shapes:** [Top-Level Rules](rules-top-level.md).
 
 ### 1.0.2 / Contract 1.0.2 — VHDL-0001 correctness fix: simple_expression / term binop_chain.rest (schema 1 → 2)
 
@@ -57,7 +71,7 @@ The pre-typing baseline.
 
 ## Bug ledger status
 
-`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` is the canonical per-bug tracker. As of this writing it carries **one VHDL row — `VHDL-0001`** (status `Released`, fixed in parser release `1.0.2` / schema `2`): the systemic inline-alternation-`$N` `simple_expression` / `term` `binop_chain.rest` `<invalid_sequence_access>` defect, with its before/after `parseability_probe` reproducer, root cause, and fix proof. It points at the contract's "Release 1.0.2 / Contract 1.0.2 Highlights" section for the accompanying schema-`1`→`2` shape change. Future accepted VHDL bugs get their own `VHDL-NNNN` rows the same way.
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` is the canonical per-bug tracker. As of this writing it carries **one VHDL row — `VHDL-0001`** (status `Released`, fixed in parser release `1.0.2` / schema `2`): the systemic inline-alternation-`$N` `simple_expression` / `term` `binop_chain.rest` `<invalid_sequence_access>` defect, with its before/after `parseability_probe` reproducer, root cause, and fix proof. It points at the contract's "Release 1.0.2 / Contract 1.0.2 Highlights" section for the accompanying schema-`1`→`2` shape change. The 17 POST-SV-AUDIT Category-A list-shape corrections that landed in the `1.0.3` release are a clean shape improvement (single-token separators, no `<invalid_sequence_access>`) and are deliberately **not** bug-ledger rows — they are tracked via `docs/POST_SV_AUDIT_LEDGER.md` and the contract's "AST-Shape Corrections — 1.0.3" section, not the bug ledger. Future accepted VHDL bugs get their own `VHDL-NNNN` rows the same way.
 
 ## How to follow per-slice changes
 

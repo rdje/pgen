@@ -132,7 +132,7 @@ For a 3-element sequence rule like `a b c`, the envelope shape is `[<a-shape>, <
 
 ## Mixing typed and envelope shapes
 
-The 256-annotation surface (as of contract 1.0.2) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (`expression` → `relation` → `simple_expression` → `term` → `factor`, including the named `adding_operator` / `multiplying_operator` op rules added by the `1.0.2` `VHDL-0001` fix), entity/architecture/package internals, statement family, and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.
+The 256-annotation surface (as of contract 1.0.3) covers the most-load-bearing rules — design_unit dispatch, the 5-level expression hierarchy (`expression` → `relation` → `simple_expression` → `term` → `factor`, including the named `adding_operator` / `multiplying_operator` op rules added by the `1.0.2` `VHDL-0001` fix), entity/architecture/package internals, statement family, the separated-list rules (clean flat arrays as of the `1.0.3` POST-SV-AUDIT.2.3 Category-A batch — schema `3`), and the data-type dispatch. The remaining rules still produce recursive-envelope arrays.
 
 Consumers need to handle both:
 
