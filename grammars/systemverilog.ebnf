@@ -784,9 +784,22 @@ checker_generate_item := checker_generate_item_sv_2017 -> {kind: "sv_2017", body
 
 checker_identifier := declaration_identifier
 
-@emit_fact: { kind: checker_name, name: $checker_identifier, declaration_family: checker }
-@predicate: { name: has_fact, args: [checker_name, $checker_identifier], phase: post }
-declared_checker_identifier := checker_identifier
+# PGEN-SV-EXH-PROOF-0016 (.3.1): the `declared_*_identifier` family.
+# Body is a flattened single-rule-ref chain (`*_identifier :=
+# declaration_identifier := … := identifier -> {body:$1}`); the
+# intermediate refs are NOT materialized as named ParseNodes, so a
+# bare `$<X>_identifier` directive ref cannot resolve. Fix (proven,
+# evidence-grounded — SEMREF-SHAPED, PGEN_ANNOTATION_NORMATIVE_SPEC
+# .md:479-484): give the rule its own `-> { body: $1.body }` so its
+# root content is `ParseContent::Json` (SEMREF-SHAPED fires) and
+# `$1.body` drills the chain into the shaped `identifier` leaf scalar;
+# the directives then ref `$body` (a key-path into this rule's own
+# shaped output). `{body:…}` mirrors `identifier`'s shape so parent
+# rules consuming a declared identifier are undisturbed. Same pattern
+# applied uniformly to all 13 declared_*_identifier families.
+@emit_fact: { kind: checker_name, name: $body, declaration_family: checker }
+@predicate: { name: has_fact, args: [checker_name, $body], phase: post }
+declared_checker_identifier := checker_identifier -> { body: $1.body }
 
 checker_instantiation := ps_checker_identifier name_of_instance lparen ( list_of_checker_port_connections )? rparen semi
                       -> {name: $1, instance: $2, connections: $4}
@@ -884,13 +897,13 @@ class_declaration := class_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
 
 class_identifier := declaration_identifier
 
-@emit_fact: { kind: type_name, name: $class_identifier, declaration_family: class }
-@predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
-declared_class_identifier := class_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: class }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_class_identifier := class_identifier -> { body: $1.body }
 
-@emit_fact: { kind: type_name, name: $class_identifier, declaration_family: interface_class }
-@predicate: { name: has_fact, args: [type_name, $class_identifier], phase: post }
-declared_interface_class_identifier := class_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: interface_class }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_interface_class_identifier := class_identifier -> { body: $1.body }
 
 @profiles: ["sv_2017"]
 class_item_sv_2017 := attribute_instance* class_property              -> {kind: "property",         attributes: $1, body: $2}
@@ -1345,9 +1358,9 @@ covergroup_expression := @probe_sample: "1" expression
 
 covergroup_identifier := declaration_identifier
 
-@emit_fact: { kind: type_name, name: $covergroup_identifier, declaration_family: covergroup }
-@predicate: { name: has_fact, args: [type_name, $covergroup_identifier], phase: post }
-declared_covergroup_identifier := covergroup_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: covergroup }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_covergroup_identifier := covergroup_identifier -> { body: $1.body }
 
 covergroup_range_list := covergroup_value_range ( comma covergroup_value_range )*
                       -> [$1, $2::2*]
@@ -2355,9 +2368,9 @@ let_formal_type := data_type_or_implicit  -> {kind: "data_type", body: $1}
 
 let_identifier := identifier
 
-@emit_fact: { kind: let_name, name: $let_identifier, declaration_family: let }
-@predicate: { name: has_fact, args: [let_name, $let_identifier], phase: post }
-declared_let_identifier := let_identifier
+@emit_fact: { kind: let_name, name: $body, declaration_family: let }
+@predicate: { name: has_fact, args: [let_name, $body], phase: post }
+declared_let_identifier := let_identifier -> { body: $1.body }
 
 @predicate: { name: has_fact, args: [let_name, $let_identifier], phase: post }
 known_unscoped_let_identifier := let_identifier
@@ -3301,9 +3314,9 @@ parameter_declaration := parameter_declaration_sv_2017 -> {kind: "sv_2017", body
 
 parameter_identifier := non_keyword_identifier
 
-@emit_fact: { kind: parameter_name, name: $parameter_identifier, declaration_family: parameter }
-@predicate: { name: has_fact, args: [parameter_name, $parameter_identifier], phase: post }
-declared_parameter_identifier := parameter_identifier
+@emit_fact: { kind: parameter_name, name: $body, declaration_family: parameter }
+@predicate: { name: has_fact, args: [parameter_name, $body], phase: post }
+declared_parameter_identifier := parameter_identifier -> { body: $1.body }
 
 parameter_override := kw_defparam_83d3c70e list_of_defparam_assignments semi
                    -> {items: $2}
@@ -3815,9 +3828,9 @@ property_formal_type := sequence_formal_type   -> {kind: "sequence", body: $1}
 
 property_identifier := declaration_identifier
 
-@emit_fact: { kind: property_name, name: $property_identifier, declaration_family: property }
-@predicate: { name: has_fact, args: [property_name, $property_identifier], phase: post }
-declared_property_identifier := property_identifier
+@emit_fact: { kind: property_name, name: $body, declaration_family: property }
+@predicate: { name: has_fact, args: [property_name, $body], phase: post }
+declared_property_identifier := property_identifier -> { body: $1.body }
 
 property_instance := ps_or_hierarchical_property_identifier ( lparen ( property_list_of_arguments )? rparen )?
                   -> {name: $1, args: $2}
@@ -4213,9 +4226,9 @@ sequence_formal_type := data_type_or_implicit -> {kind: "data_type", body: $1}
 
 sequence_identifier := declaration_identifier
 
-@emit_fact: { kind: sequence_name, name: $sequence_identifier, declaration_family: sequence }
-@predicate: { name: has_fact, args: [sequence_name, $sequence_identifier], phase: post }
-declared_sequence_identifier := sequence_identifier
+@emit_fact: { kind: sequence_name, name: $body, declaration_family: sequence }
+@predicate: { name: has_fact, args: [sequence_name, $body], phase: post }
+declared_sequence_identifier := sequence_identifier -> { body: $1.body }
 
 sequence_instance := ps_or_hierarchical_sequence_identifier ( lparen ( sequence_list_of_arguments )? rparen )?
                   -> {name: $1, args: $2}
@@ -4715,26 +4728,26 @@ type_assignment_sv_2023 := !kw_type_d0a3e7f8 declared_type_parameter_identifier 
 type_assignment := type_assignment_sv_2017 -> {kind: "sv_2017", body: $1}
                  | type_assignment_sv_2023 -> {kind: "sv_2023", body: $1}
 
-@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: type_parameter }
-@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
-declared_type_parameter_identifier := type_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: type_parameter }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_type_parameter_identifier := type_identifier -> { body: $1.body }
 
-@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: typedef }
-@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
-declared_type_identifier := type_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: typedef }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_type_identifier := type_identifier -> { body: $1.body }
 
-@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: typedef }
-@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: class }
-@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
-declared_class_alias_identifier := type_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: typedef }
+@emit_fact: { kind: type_name, name: $body, declaration_family: class }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_class_alias_identifier := type_identifier -> { body: $1.body }
 
-@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: class }
-@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
-declared_forward_class_identifier := type_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: class }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_forward_class_identifier := type_identifier -> { body: $1.body }
 
-@emit_fact: { kind: type_name, name: $type_identifier, declaration_family: interface_class }
-@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
-declared_forward_interface_class_identifier := type_identifier
+@emit_fact: { kind: type_name, name: $body, declaration_family: interface_class }
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+declared_forward_interface_class_identifier := type_identifier -> { body: $1.body }
 
 @profiles: ["sv_2017"]
 type_declaration_sv_2017 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi

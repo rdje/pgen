@@ -1,4 +1,74 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0016 (SV-EXH-PROOF.3.1 ROLLOUT — leaf DONE): declaration-site EmitFact defect fixed across all 13 `declared_*_identifier` families
+
+- **Grammar fix (leaf-owned, `grammars/systemverilog.ebnf`):** rolled
+  the validated grammar-only pattern to **all 13** `declared_*_identifier`
+  families (task said 10; grep found 13 — checker/class/interface_class/
+  covergroup/let/parameter/property/sequence/type_parameter/typedef/
+  class_alias[2 `@emit_fact`]/forward_class/forward_interface_class):
+  each rule gets `-> { body: $1.body }` (root content becomes
+  `ParseContent::Json` so SEMREF-SHAPED fires; `$1.body` drills the
+  flattened single-ref chain into the shaped `identifier` leaf scalar)
+  and its `@emit_fact`/`@predicate` refs change `$<X>_identifier` →
+  `$body` (key-path into the rule's own shaped output). Annotation
+  docs consulted first (binding, hook-gated); one explanatory comment
+  added at the first family.
+- **Verified (probe-per-family, not assumed):** regen `make -C rust
+  focus_systemverilog` + `parseability_probe --parse`; **all 13
+  declaration-site minimal repros PASS** (`class c; endclass`,
+  `interface class ic; endclass`, `checker ck; endchecker`, `module m
+  #(parameter W=1); endmodule` — the original `.3`-triage blocker —
+  `#(parameter type T=int)`, `typedef int t;`, `let l=1;`,
+  `property pr;1;endproperty`, `sequence sq;1;endsequence`,
+  `covergroup cg;endgroup`); they all REJECTED pre-fix with the
+  EmitFact "could not resolve fact name" hard-error. Controls
+  (`module m; logic x; endmodule`, `module m; endmodule`) unaffected.
+- **External-corpus still 0/14** (`sv_external_corpus_triage_gate`,
+  preprocess 14/14): every corpus file hits a **distinct earlier**
+  gap, NOT the declaration-site defect — `veer_el2_lsu_2017` fails at
+  byte 947 = the module ANSI header `module el2_lsu \n import
+  el2_pkg::*; \n #(…)` (package-import-before-paramlist), verified by
+  `--trace` (same pos 947 as the pre-fix baseline ⇒ the parse never
+  reached a declaration). Pinned + sub-leaved as **`SV-EXH-PROOF.3.2`**
+  exactly per the task acceptance ("each residual newly-distinct
+  failure pinned + sub-leaved"). The 18 use-site `known_unscoped_*`
+  `$X_identifier` refs share the root-cause class but several are
+  multi-element rules where `-> {body:$1.body}` would destroy
+  structure ⇒ separate careful sub-leaf, deliberately NOT this
+  rollout.
+- **AST-shape-change lockstep (same commit):** SV shape-contract
+  regression-lock `systemverilog_ast_shape_contract_holds_against
+  _running_generated_parser` **GREEN** (samples=3 aligned=3 drift=0
+  regression_lock_failures=0 — top-level `systemverilog_file` shapes
+  unaffected; `{body:…}` mirrors `identifier`'s already-emitted
+  shape); annotation-inventory regen 2299→2312 (+13 new `->`, no
+  inventory pin tripped). Schema **unchanged** — strictly-more-
+  permissive (these 13 rules previously HARD-ERRORED; no input that
+  parsed before is affected; external 0/14 unchanged), the
+  "release-bump, no schema-bump" category. SV per-parser book + top-
+  level `parser-families.md` have **no** `declared_*_identifier`
+  references (grep-confirmed) ⇒ no stale book content.
+- **Proof-gate lockstep — honest, non-masking:** the SV
+  formal-exhaustive closure gate is infrastructurally
+  un-completable in the harness window (>560s SV closed-loop stimuli
+  pipeline; killed at the timeout on two attempts — an infra limit,
+  NOT a gate failure) AND is **expected non-green on baseline `main`
+  by this tree's own design** (it is the very gate SV-EXH-PROOF.4–.6
+  exist to fix; `sv_formal_exhaustive_closure_gate.sh:245` hard-codes
+  `external_corpus_backed_proof_surface_present=true`). No-regression
+  for this strictly-more-permissive change is evidenced decisively by
+  the *fast* binding regression-lock (SV shape-contract GREEN — the
+  mechanism that catches grammar-edit shape/closure regression) + the
+  strictly-additive-reachability argument (the 13 rules previously
+  hard-errored, so syntax-closure/reachability cannot decrease) +
+  external 0/14 unchanged + controls unaffected + 13/13 repros. A
+  full baseline-vs-change closure-gate comparison is explicitly
+  flagged as a follow-up when that gate can run unbounded — **not
+  claimed done, not masked.**
+- Tree: `SV-EXH-PROOF.3.1` **DONE**; frontier → `SV-EXH-PROOF.3.2`
+  (the pinned veer module-header gap). No push (standing rule: push
+  every 30; 3 unpushed, far from 30).
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0015 (SV-EXH-PROOF.3.1 FIX DESIGN VALIDATED; docs-only, probe reverted): grammar-only Locus A proven on the minimal repro
 
 - Continued `SV-EXH-PROOF.3.1` from the instrumentation checkpoint
