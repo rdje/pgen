@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0087-FIX2-0001 (RGX-0087-FIX2.1+.2): scope the `[89]`-leading hard-reject to non-character-class context; release 1.1.79/contract 1.1.81
+
+- **Fix (grammar-level, parser-agnostic — `grammars/regex.ebnf`):**
+  rel-1.1.78's `[89]`-leading multi-digit hard-reject
+  (`PGEN-RGX-0087-0001`) was over-broad — its `simple_escape`
+  `!"0"…!"9"` guard also fired inside `[...]` character classes
+  (single class-member escapes route via `class_escape = escape`,
+  which reused the digit-guarded outer `simple_escape`), so PGEN
+  1.1.78 `E_PARSE_FAILURE`d `[\8]`/`[\9]`/`^[A\8B\9C]+$`/`[\88]`
+  where PCRE2 10.47 **ACCEPTs** (a character class has no
+  back-references ⇒ `\8`/`\9`/`\<digit>` are octal/literal). The
+  class-range path's separate already-unguarded
+  `class_range_simple_escape` still accepted `[\8-\9]` ⇒
+  inconsistency. Net RGX PCRE2 ratchet **−4** (12,805/5 → 12,801/9),
+  not adoptable. Scoped fix: `class_escape` now has its own
+  `class_escape_unit` (mirroring the proven `class_range_escape_unit`
+  precedent) with an UNGUARDED `class_simple_escape` (the
+  pre-RGX-0087 form, `char:$5`). Annotation docs consulted first
+  (binding, hook-gated).
+- **Verified — empirical before/after (regression from own fix ⇒
+  extra rigor):** reproduced the 1.1.78 baseline (`[\8]` etc. REJECT;
+  originals correct), then post-fix the **full PCRE2 10.47 oracle
+  matrix**: all 6 class-context cases now ACCEPT; the non-class
+  `[89]`-leading rejects (`\81`/`\82`/`\91`@8g, `\89`/`\80`@0g,
+  `(x)\81`@1g) + `[1-7]`-led octal-degrade (`\199`/`\10`) are
+  **byte-identical** (grammar diff confined to the `class_escape`
+  block ⇒ `numeric_backreference_single`/`simple_escape`/`atom`
+  untouched — decisive no-regression by construction). New pin
+  `regex_parser_pgen_rgx_0087_fix2_class_context_digit_escapes
+  _accepted`. No-regression: `regex` lib 103/0 (RGX-0079..0087
+  pins green), `regex_ast_shape_contract…` (manifest +2
+  `class_escape`/`class_simple_escape` declared-annotation entries
+  lockstepped same-slice at their alphabetical slots), cross-parser
+  `ast_shape_contract` 8/0, `regex_parser_integration_contract_gate`
+  ✅, RGX-0086 drift gate + metadata-stable green at 1.1.79/1.1.81.
+- **Schema unchanged** — class context restored byte-identical to
+  pre-1.1.78 (same `{escape,kind:"shorthand",char}` shape, no new
+  vocab); release-only bump.
+- **Lockstep (binding, same-commit):** ledger row `REGEX-0086`
+  updated (Fixed-in 1.1.78→1.1.79, label + FIX2 narrative, the
+  over-broad attempt recorded); embedding consts +
+  `regex_parser_integration_contract_v1.json` → `1.1.79`/`1.1.81`;
+  integration-contract doc (Identity + Release 1.1.79 Highlights);
+  regex book changelog-index + escapes-chapter FIX2 section +
+  regenerated tracked HTML; top-level `parser-families.md`;
+  CHANGES/LIVE/memory.
+- **Known residual (sub-leaved `RGX-0087-FIX2.3`; `PGEN-RGX-0087`
+  stays open):** `(?i:A{1,}\6666666666)` (testinput9:287) — PGEN's
+  `octal_escape` has no PCRE2 octal `>\377` (8-bit) range check;
+  ACCEPTed where PCRE2 rejects (err 151). Distinct mechanism (octal
+  range, not class/backref scoping) touching the RGX-0084 octal path
+  ⇒ its own oracle-matrix + RGX-0084-no-regression leaf. The 1.1.79
+  release is net-positive & adoptable (12,801/9 → 12,806/4, >
+  pre-1.1.78 12,805/5; original 4671/4674 stay closed).
+- Tree `RGX-0087-FIX2`: `.1`+`.2` DONE; frontier → `.3` (octal
+  overflow). Standing push rule (push every 30).
+
 ## 2026-05-18 - PGEN-RGX-0087-FIX2-0000 (RGX-0087-FIX2 setup; docs-only, no code): rel-1.1.78 RGX-0087 fix is OVER-BROAD — tree created, root cause grounded
 
 - RGX reports `PGEN-RGX-0087` stays **`open`**: the rel-1.1.78

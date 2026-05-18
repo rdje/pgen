@@ -284,6 +284,42 @@ bump, same category as `REGEX-0083`/`REGEX-0084`). Bug ledger:
 > (`\199` → `\x01` + "99") is spec-correct and now matches PGEN's
 > `{escape, octal, digits:"1"}` + "99".
 
+### FIX2 (release 1.1.79): the hard-reject is scoped to NON-character-class context
+
+The `[89]`-leading multi-digit hard-reject above is a **pattern-body
+(atom)** concern: it is about `\NN` being neither a valid
+back-reference nor a valid octal escape. **A character class has no
+back-references** — inside `[...]`, `\8`/`\9`/`\<digit>` are
+octal/literal characters and PCRE2 (oracle: `pcre2test` 10.47)
+**ACCEPTs** them. Release 1.1.78 implemented the hard-reject by
+guarding `simple_escape`, but a single class-member escape (`[\8]`,
+`[A\8B\9C]`) is reached via `class_escape = escape`, which reused
+that same digit-guarded `simple_escape` — so 1.1.78 wrongly rejected
+class-context `\8`/`\9`. Release 1.1.79 gives `class_escape` its own
+`class_escape_unit` with an **unguarded** `class_simple_escape` (the
+pre-1.1.78 form), mirroring the existing `class_range_escape_unit`
+precedent. Class context is now byte-identical to pre-1.1.78 (same
+`{type:"escape", kind:"shorthand", char:…}` shape; **schema stays
+`1`**); the non-class hard-reject is unchanged.
+
+| pattern | result | why |
+| --- | --- | --- |
+| `[\8]` `[\9]` `^[A\8B\9C]+$` `[\88]` `[\89]` | ACCEPT | inside `[...]`: octal/literal, no back-references (PCRE2 10.47) |
+| `[\8-\9]` `[\377]` | ACCEPT | class-range / octal, unchanged (now consistent with `[\8]`) |
+| `((((((((x))))))))\81` `\82` `\91` ; `\89`@0g ; `\80`@0g ; `(x)\81`@1g | REJECT | **non-class** `[89]`-leading hard-reject — unchanged from 1.1.78 |
+| `\199`@0g → `{escape,octal,digits:"1"}`+"99" ; `\10`@9g → octal | ACCEPT | `[1-7]`-led octal-degrade — unchanged from 1.1.78 |
+
+> **RGX maintainer note (FIX2).** `(?i:A{1,}\6666666666)`
+> (testinput9:287) is still ACCEPTed where PCRE2 10.47 rejects
+> (error 151, octal value `>\377` in 8-bit non-UTF) — PGEN's
+> `octal_escape` does no octal-range check. This is a **distinct
+> mechanism** (octal overflow, not the class/back-ref scoping),
+> exposed by the 1.1.78 guard rerouting `[1-7]`-led long runs onto
+> octal. Tracked separately as `RGX-0087-FIX2.3` (its own oracle
+> matrix + RGX-0084-no-regression); `PGEN-RGX-0087` stays open until
+> it lands. The 1.1.79 release is net-positive & adoptable
+> regardless (RGX PCRE2 ratchet 12,801/9 → 12,806/4).
+
 ## `digits` is a string for octal too
 
 Same convention as hex/unicode — consumers parse with `usize::from_str_radix(obj.digits, 8)`.

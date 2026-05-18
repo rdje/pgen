@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.80`
+  - `1.1.81`
 - Parser release version:
-  - `1.1.78`
+  - `1.1.79`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,66 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.79 / Contract 1.1.81 Highlights — PGEN-RGX-0087 FIX2: scope the `[89]`-leading hard-reject to non-character-class context (rel-1.1.78 was over-broad)
+
+**Bug ledger:** `REGEX-0086` (downstream `PGEN-RGX-0087`, stays
+`open` until the testinput9:287 octal-overflow sub-leaf
+`RGX-0087-FIX2.3`).
+
+**What changed (scope correction; no new shape vocab; schema stays
+`1`).** Release 1.1.78's `[89]`-leading multi-digit hard-reject
+(Release 1.1.78 Highlights below) was **over-broad**: its
+`simple_escape` `!"0"…!"9"` negative-lookahead guard also fired
+**inside `[...]` character classes** (single class-member escapes are
+reached via `class_escape = escape`, which reused the digit-guarded
+outer `simple_escape`). A character class has **no back-references**,
+so `\8`/`\9`/`\<digit>` there are octal/literal characters and PCRE2
+(authoritative oracle: `pcre2test` 10.47) **ACCEPTs** them. PGEN
+1.1.78 wrongly `E_PARSE_FAILURE`d them. (The class-*range* path has a
+separate, already-unguarded `class_range_simple_escape`, so
+`[\8-\9]` still accepted ⇒ an internal inconsistency.) Net RGX PCRE2
+differential ratchet −4 (12,805/5 → 12,801/9) — **not adoptable**.
+
+1.1.79 scopes the fix: `class_escape` no longer reuses the outer
+`escape`; it gets its own `class_escape_unit` (mirroring the proven
+`class_range_escape_unit` precedent) whose catch-all
+`class_simple_escape` is the **pre-RGX-0087 UNGUARDED** form. The
+non-class `[89]`-leading hard-reject and the `[1-7]`-led octal-degrade
+are **untouched** (the grammar diff is confined to the `class_escape`
+block).
+
+**Consumer-visible behavior (verified against the PCRE2 10.47 oracle,
+not the fix):**
+
+| Pattern | 1.1.78 | 1.1.79 (= PCRE2 10.47) |
+|---|---|---|
+| `[\8]` `[\9]` `^[A\8B\9C]+$` `[\88]` `[\89]` | REJECT (WRONG) | **ACCEPT** |
+| `[\8-\9]` `[\377]` | ACCEPT | ACCEPT (now consistent) |
+| `((((((((x))))))))\81` / `\82` / `\91` | REJECT | REJECT (byte-identical) |
+| `\89`@0g / `\80`@0g / `(x)\81`@1g | REJECT | REJECT (byte-identical) |
+| `\199`@0g | `\x01`+"99" | `\x01`+"99" (byte-identical) |
+| `(((((((((x)))))))))\10` | octal | octal (byte-identical) |
+
+Only the over-broad class-context rejection is reverted to PCRE2-
+correct ACCEPT; everything the 1.1.78 fix got right is byte-identical.
+No new AST `kind`/shape ⇒ **AST-dump schema stays `1`** (release-only
+bump). Grammar-level, parser-agnostic; engine/codegen untouched.
+
+**Known residual (sub-leaved, `PGEN-RGX-0087` stays open):**
+`(?i:A{1,}\6666666666)` (testinput9:287) — PGEN's `octal_escape`
+performs no PCRE2 octal `>\377` (8-bit non-UTF) range check, so this
+is ACCEPTed where PCRE2 10.47 rejects (error 151). A distinct
+mechanism (octal range, not the backref/class scoping) touching the
+RGX-0084 octal path; tracked as `RGX-0087-FIX2.3` with its own
+oracle matrix + RGX-0084-no-regression requirement. The 1.1.79
+release is nonetheless net-positive & adoptable (ratchet
+12,801/9 → 12,806/4, better than pre-1.1.78 12,805/5; the original
+`testinput2:4671`/`:4674` `\81`/`\80` cases stay closed).
+
+**Behaviour + example:** this book's escapes chapter
+(`docs/regex_parser_book/src/examples-escapes.md` → "PGEN-RGX-0087")
+and its FIX2 class-context note.
 
 ## Release 1.1.78 / Contract 1.1.80 Highlights — PGEN-RGX-0087 fix: `[89]`-leading multi-digit escape now hard-rejects (PCRE2-faithful), not a degrade-resplit
 

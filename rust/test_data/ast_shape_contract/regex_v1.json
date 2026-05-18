@@ -313,6 +313,12 @@
         "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: $2, initial_close: $3, body: $4}"
       },
       {
+        "rule": "class_escape",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
         "rule": "class_initial_close",
         "branch_index": 0,
         "annotation_type": "return_scalar",
@@ -329,6 +335,12 @@
         "branch_index": 0,
         "annotation_type": "return_scalar",
         "normalized_text": "$2"
+      },
+      {
+        "rule": "class_simple_escape",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $5}"
       },
       {
         "rule": "code_block_lang",

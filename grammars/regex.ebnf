@@ -411,7 +411,31 @@ class_safe_special = /([\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_])/
     "\\t": "ch == '\\t'",
     "\\r": "ch == '\\r'"
 }
-class_escape   = escape
+# PGEN-RGX-0087-FIX2: a single class-member escape (e.g. `[\8]`,
+# `[A\8B\9C]`) must NOT route through the digit-guarded outer
+# `simple_escape`. Inside a `[...]` class there are no
+# back-references, so `\8`/`\9`/`\<digit>` are octal/literal
+# characters and PCRE2 (oracle: pcre2test 10.47) ACCEPTs them; the
+# `[89]`-leading multi-digit hard-reject (PGEN-RGX-0087) is a
+# pattern-BODY (atom) concern only. Pre-fix `class_escape = escape`
+# reused the digit-guarded `simple_escape` ⇒ `[\8]` E_PARSE_FAILUREd
+# (rel-1.1.78 over-broad regression; the range path's separate
+# `class_range_simple_escape` stayed unguarded ⇒ `[\8-\9]`
+# inconsistency). Mirror the proven `class_range_escape_unit`
+# precedent: a class-context escape unit identical to `escape_unit`
+# but whose catch-all `class_simple_escape` is the pre-RGX-0087
+# UNGUARDED form (accepts `\<digit>`), restoring class context
+# byte-identical to pre-1.1.78 (same `{escape,kind:shorthand,char}`
+# shape — no new vocab).
+class_escape   = "\\" class_escape_unit -> $2
+class_escape_unit = single_byte_escape
+                  | hex_escape
+                  | unicode_escape
+                  | octal_escape
+                  | control_escape
+                  | property_escape
+                  | class_simple_escape
+class_simple_escape = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
 
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}

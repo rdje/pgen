@@ -44,10 +44,10 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // integration contract 1.1.79.
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.80";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.81";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.78";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.79";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -4444,6 +4444,61 @@ mod tests {
                  outcome: {:#?}",
                 input,
                 outcome
+            );
+        }
+    }
+
+    /// PGEN-RGX-0087-FIX2: the rel-1.1.78 `[89]`-leading multi-digit
+    /// hard-reject (`PGEN-RGX-0087-0001`) was OVER-BROAD — its
+    /// `simple_escape` digit-guard also fired inside `[...]` character
+    /// classes (reached via `class_escape = escape`), where there are
+    /// no back-references so `\8`/`\9`/`\<digit>` are octal/literal and
+    /// PCRE2 (oracle: `pcre2test` 10.47) ACCEPTs them. Scoped fix:
+    /// `class_escape` gets its own `class_escape_unit` with an
+    /// UNGUARDED `class_simple_escape` (the pre-RGX-0087 form),
+    /// mirroring the `class_range_escape_unit` precedent. Expecteds
+    /// from the PCRE2 10.47 oracle (feedback_corpus_expected_from_spec
+    /// _not_fix / feedback_report_expected_verify_against_oracle).
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0087_fix2_class_context_digit_escapes_accepted() {
+        // Inside `[...]`: `\8`/`\9` (single, multi-digit, mixed,
+        // range) are octal/literal — PCRE2 10.47 ACCEPTs. rel-1.1.78
+        // wrongly E_PARSE_FAILUREd the non-range forms.
+        let class_accept = [
+            r"[\8]", r"[\9]", r"^[A\8B\9C]+$", r"[\8-\9]", r"[\88]",
+            r"[\89]", r"[\377]", r"[\8\9]", r"[0-9\8]",
+        ];
+        for input in class_accept {
+            let o = parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                o.status,
+                ParseStatus::Success,
+                "class-context {:?} must ACCEPT (no backrefs in `[...]`; \
+                 PCRE2 10.47 accepts) — PGEN-RGX-0087-FIX2 regressed / \
+                 rel-1.1.78 over-broad guard not scoped?\n{:#?}",
+                input, o
+            );
+        }
+        // REGRESSION GUARD — the correct part of PGEN-RGX-0087-0001
+        // (non-class `[89]`-leading multi-digit hard-reject) MUST stay.
+        let g = |n: usize| format!("{}x{}", "(".repeat(n), ")".repeat(n));
+        let nonclass_reject: &[String] = &[
+            format!("{}\\81", g(8)),
+            format!("{}\\82", g(8)),
+            format!("{}\\91", g(8)),
+            "\\89".to_string(),
+            "\\80".to_string(),
+            "(x)\\81".to_string(),
+        ];
+        for input in nonclass_reject {
+            let o = parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                o.status,
+                ParseStatus::Failure,
+                "non-class {:?} must still REJECT (PGEN-RGX-0087 core \
+                 fix must survive the FIX2 scoping)\n{:#?}",
+                input, o
             );
         }
     }

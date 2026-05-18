@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-685b4280.js";
+            window.path_to_searchindex_js = "searchindex-d1453c70.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -417,6 +417,47 @@ PCRE2 10.47</strong> (which errors 115). Re-enable the test expecting a
 clean parse <strong>REJECT</strong>, not “literal 89”. Its second assertion
 (<code>\199</code> → <code>\x01</code> + “99”) is spec-correct and now matches PGEN’s
 <code>{escape, octal, digits:"1"}</code> + “99”.</p>
+</blockquote>
+<h3 id="fix2-release-1179-the-hard-reject-is-scoped-to-non-character-class-context"><a class="header" href="#fix2-release-1179-the-hard-reject-is-scoped-to-non-character-class-context">FIX2 (release 1.1.79): the hard-reject is scoped to NON-character-class context</a></h3>
+<p>The <code>[89]</code>-leading multi-digit hard-reject above is a <strong>pattern-body
+(atom)</strong> concern: it is about <code>\NN</code> being neither a valid
+back-reference nor a valid octal escape. <strong>A character class has no
+back-references</strong> — inside <code>[...]</code>, <code>\8</code>/<code>\9</code>/<code>\&lt;digit&gt;</code> are
+octal/literal characters and PCRE2 (oracle: <code>pcre2test</code> 10.47)
+<strong>ACCEPTs</strong> them. Release 1.1.78 implemented the hard-reject by
+guarding <code>simple_escape</code>, but a single class-member escape (<code>[\8]</code>,
+<code>[A\8B\9C]</code>) is reached via <code>class_escape = escape</code>, which reused
+that same digit-guarded <code>simple_escape</code> — so 1.1.78 wrongly rejected
+class-context <code>\8</code>/<code>\9</code>. Release 1.1.79 gives <code>class_escape</code> its own
+<code>class_escape_unit</code> with an <strong>unguarded</strong> <code>class_simple_escape</code> (the
+pre-1.1.78 form), mirroring the existing <code>class_range_escape_unit</code>
+precedent. Class context is now byte-identical to pre-1.1.78 (same
+<code>{type:"escape", kind:"shorthand", char:…}</code> shape; <strong>schema stays
+<code>1</code></strong>); the non-class hard-reject is unchanged.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>pattern</th><th>result</th><th>why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[\8]</code> <code>[\9]</code> <code>^[A\8B\9C]+$</code> <code>[\88]</code> <code>[\89]</code></td><td>ACCEPT</td><td>inside <code>[...]</code>: octal/literal, no back-references (PCRE2 10.47)</td></tr>
+<tr><td><code>[\8-\9]</code> <code>[\377]</code></td><td>ACCEPT</td><td>class-range / octal, unchanged (now consistent with <code>[\8]</code>)</td></tr>
+<tr><td><code>((((((((x))))))))\81</code> <code>\82</code> <code>\91</code> ; <code>\89</code>@0g ; <code>\80</code>@0g ; <code>(x)\81</code>@1g</td><td>REJECT</td><td><strong>non-class</strong> <code>[89]</code>-leading hard-reject — unchanged from 1.1.78</td></tr>
+<tr><td><code>\199</code>@0g → <code>{escape,octal,digits:"1"}</code>+“99” ; <code>\10</code>@9g → octal</td><td>ACCEPT</td><td><code>[1-7]</code>-led octal-degrade — unchanged from 1.1.78</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>RGX maintainer note (FIX2).</strong> <code>(?i:A{1,}\6666666666)</code>
+(testinput9:287) is still ACCEPTed where PCRE2 10.47 rejects
+(error 151, octal value <code>&gt;\377</code> in 8-bit non-UTF) — PGEN’s
+<code>octal_escape</code> does no octal-range check. This is a <strong>distinct
+mechanism</strong> (octal overflow, not the class/back-ref scoping),
+exposed by the 1.1.78 guard rerouting <code>[1-7]</code>-led long runs onto
+octal. Tracked separately as <code>RGX-0087-FIX2.3</code> (its own oracle
+matrix + RGX-0084-no-regression); <code>PGEN-RGX-0087</code> stays open until
+it lands. The 1.1.79 release is net-positive &amp; adoptable
+regardless (RGX PCRE2 ratchet 12,801/9 → 12,806/4).</p>
 </blockquote>
 <h2 id="digits-is-a-string-for-octal-too"><a class="header" href="#digits-is-a-string-for-octal-too"><code>digits</code> is a string for octal too</a></h2>
 <p>Same convention as hex/unicode — consumers parse with <code>usize::from_str_radix(obj.digits, 8)</code>.</p>
