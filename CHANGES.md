@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0087-FIX2-0002 (RGX-0087-FIX2.3 oracle matrix + precise design pinned; docs-only, no code)
+
+- Continued `RGX-0087-FIX2` to its remaining frontier `.3`
+  (testinput9:287 `(?i:A{1,}\6666666666)` — PGEN's `octal_escape`
+  accepts octal `>0o377` where PCRE2 10.47 rejects, err 151).
+- **Authoritative PCRE2 10.47 octal oracle matrix derived**
+  (independent — `feedback_corpus_expected_from_spec_not_fix` /
+  `feedback_report_expected_verify_against_oracle`): the
+  `>0o377` overflow rejects in **both** non-class **and** character-
+  class context (`\666`, `[\666]`, `\400`, `\777`, `\7777`,
+  `\6666666666` → err 151; `\377`/`\3777`/`\10`/`\012`/`\07`/`\0`/
+  `\77`/`\199`@0g/`[\377]` ACCEPT; `\7`@0g → err 115 single-digit
+  **backref**, RGX-0084 N<10 Non-Goal, never reaches octal). Braced
+  `\o{400}`/`\o{777}` reject with a **different** error (134,
+  distinct production `octal_digits`) — NOT testinput9:287, not in
+  any report ⇒ scoped OUT (RGX-0079 owns `\o{}`), noted not bundled.
+- **Precise two-coordinated-edit design pinned + byte-identical-
+  traced** against every RGX-0084 octal-family / RGX-0087 / FIX2.1
+  case: (A) split `octal_escape_short_payload` so a 3-octal-digit run
+  must be `[0-3]`-led (≤0o377) and a 1-2-digit run must be octal-
+  complete (the proven `!"0"…!"7"` string-lookahead idiom, `-> $1`
+  per branch — an overflow triple matches neither ⇒ `octal_escape`
+  fails ⇒ reject); (B) add `!"0"…!"7"` octal-digit guards to FIX2.1's
+  `class_simple_escape` so an octal-overflow `\<octal-digit>` is not
+  class-shorthand-rescued (PCRE2 rejects `[\666]`) while `\8`/`\9`
+  (∉[0-7]) stay rescued (FIX2.1 `[\8]`/`[\9]` preserved). Hand-traced
+  byte-identical: `\10`/`\012`/`\07`/`\0`/`\77`/`\377`/`\199`@0g/
+  `\3777`/`\7`@0g unchanged; `\400`/`\666`/`\6666666666` (non-class &
+  class) REJECT.
+- **No code** (Code-Change Doctrine — leaf `.3` owns the forthcoming
+  `.ebnf` edit; this is its oracle/design deliverable). Implementation
+  is a focused **RGX-0084-released-octal-family high-risk** unit:
+  mandatory empirical byte-identical-AST proof across the 23-case
+  octal family ×2 contexts + `\199`/`\3777` + FIX2.1/RGX-0087 cases
+  before commit; release 1.1.80/contract 1.1.82; then
+  `PGEN-RGX-0087` CLOSES (ratchet → 12,807/3) and `SV-EXH-PROOF.3.2`
+  resumes. Checkpoint rationale: the hard analytical work (oracle
+  truth + precise design) is DONE + pinned with zero re-derivation;
+  not rushed at session depth (a subtle octal regex would regress
+  RGX-0084's released family). Standing push rule (push every 30).
+
 ## 2026-05-18 - PGEN-RGX-0087-FIX2-0001 (RGX-0087-FIX2.1+.2): scope the `[89]`-leading hard-reject to non-character-class context; release 1.1.79/contract 1.1.81
 
 - **Fix (grammar-level, parser-agnostic — `grammars/regex.ebnf`):**
