@@ -880,7 +880,7 @@
         "rule": "simple_escape",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $5}"
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $15}"
       },
       {
         "rule": "single_byte_escape",

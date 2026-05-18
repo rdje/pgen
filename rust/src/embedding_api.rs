@@ -44,10 +44,10 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // integration contract 1.1.79.
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.79";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.80";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.77";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.78";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -4351,6 +4351,101 @@ mod tests {
             .expect("spawn 2 MiB PGEN-RGX-0085 verification thread")
             .join()
             .expect("PGEN-RGX-0085 verification must NOT abort the host process");
+    }
+
+    /// PGEN-RGX-0087: the `[89]`-leading multi-digit escape sub-family
+    /// (`\8N`/`\9N`, N≥10, not a valid full backreference) must be a
+    /// clean PCRE2-faithful parse REJECT, not a degrade-resplit. This
+    /// is a family-linked residual the PGEN-RGX-0084 fix did not cover.
+    ///
+    /// Pre-fix: the GATED multi-digit `numeric_backreference` failed
+    /// its `fact_count_at_least` predicate (e.g. `\81` with 8 groups)
+    /// and the PEG backtracked to the UNGATED
+    /// `numeric_backreference_single`, matching the lone `8` as a valid
+    /// single backref + leaving `1` literal — PGEN ACCEPTed a pattern
+    /// PCRE2 rejects. Fix: two negative-lookahead guards (proven
+    /// RGX-0079 idiom) — `numeric_backreference_single` only matches a
+    /// COMPLETE one-digit run, and `simple_escape` never matches
+    /// `\<digit>` (PCRE2: a `\`+digit is always backref/octal/error,
+    /// never a shorthand). `[1-7]`-led runs still degrade to
+    /// `octal_escape` (RGX-0084 byte-identical); `[89]`-led runs can't
+    /// octal (`[89]∉[0-7]`) ⇒ hard reject.
+    ///
+    /// **Expecteds are derived from the authoritative PCRE2 oracle**
+    /// (`pcre2test` 10.47, the version family RGX vendors), NOT from
+    /// the fix and NOT from the RGX report's stale literal — the
+    /// report's `\89`@0grp→"literal 89" claim is itself wrong vs PCRE2
+    /// 10.47 (which errors 115). (feedback_corpus_expected_from_spec
+    /// _not_fix.) This is the report's verification step 2 surface
+    /// (`parse_grammar_profile_named`).
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0087_eighty_nine_leading_multidigit_rejected() {
+        // N nested capturing groups around an `x`.
+        let g = |n: usize| format!("{}x{}", "(".repeat(n), ")".repeat(n));
+
+        // `[89]`-leading multi-digit run, not a valid full backref:
+        // PCRE2 10.47 → compile error 115 (reference to non-existent
+        // subpattern). PGEN must hard-REJECT at parse (no degrade).
+        let must_reject: &[String] = &[
+            format!("{}\\81", g(8)), // testinput2:4671 — THE primary bug
+            format!("{}\\82", g(8)),
+            format!("{}\\91", g(8)), // \9 = missing group 9 (already)
+            "\\89".to_string(),      // 0 groups (RGX unit-test case;
+            // PCRE2 10.47 = REJECT, NOT "literal 89")
+            "\\80".to_string(),      // 0 groups
+            "(x)\\81".to_string(),   // 1 group
+        ];
+        for input in must_reject {
+            let outcome =
+                parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                outcome.status,
+                ParseStatus::Failure,
+                "input {:?} expected REJECT (PCRE2 10.47 oracle: \
+                 [89]-leading multi-digit non-backref = compile error) \
+                 — PGEN-RGX-0087 regressed?\noutcome: {:#?}",
+                input,
+                outcome
+            );
+        }
+
+        // Regression guards — must stay byte-identical / accepted
+        // (RGX-0084 octal path + single-digit N<10 Non-Goal + `[1-7]`
+        // -led octal degrade). PCRE2 10.47: all ACCEPT.
+        //   \10@9g  -> octal 0o10 (RGX-0084, byte-identical)
+        //   \199@0g -> octal 0o1 + literal "99" (PCRE2-faithful;
+        //              the RGX unit test's spec-correct 2nd assertion)
+        //   \8@8g   -> backref grp8 ; (x)\1@1g -> backref grp1
+        //   \12@15g -> valid multi-digit backref
+        //   \012/\07 -> octal (\0-led, untouched)
+        //   \8@0g   -> single-digit Non-Goal: grammar emits backref-8
+        //              (the missing-group rejection is the consumer's
+        //              semantic step, unchanged by this fix).
+        let must_accept: &[String] = &[
+            format!("{}\\10", g(9)),
+            "\\199".to_string(),
+            format!("{}\\8", g(8)),
+            "(x)\\1".to_string(),
+            format!("{}\\12", g(15)),
+            "\\012".to_string(),
+            "\\07".to_string(),
+            "\\8".to_string(),
+        ];
+        for input in must_accept {
+            let outcome =
+                parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                outcome.status,
+                ParseStatus::Success,
+                "input {:?} expected PARSE-SUCCESS (RGX-0084 / N<10 \
+                 Non-Goal / [1-7]-led octal degrade must stay \
+                 byte-identical) — PGEN-RGX-0087 fix over-rejected?\n\
+                 outcome: {:#?}",
+                input,
+                outcome
+            );
+        }
     }
 
     #[test]

@@ -1,4 +1,54 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0087-0001 (RGX-0087.1+.2, leaf RGX-0087): `[89]`-leading multi-digit escape hard-rejects (PCRE2-faithful); REGEX-0086 ledger + release 1.1.78/contract 1.1.80; books↔code lockstep; tree CLOSED
+
+- **Fix (grammar-level, parser-agnostic — `grammars/regex.ebnf`):**
+  the `[89]`-leading multi-digit escape sub-family (`\8N`/`\9N`,
+  `N≥10`, not a valid full back-reference) the `PGEN-RGX-0084` fix did
+  not cover. `\8`/`\9` are not octal digits, so PCRE2 (authoritative
+  oracle `pcre2test` 10.47, the version family RGX vendors) **rejects**
+  such a pattern at compile (error 115); PGEN's post-0084 PEG instead
+  backtracked the GATED multi-digit `numeric_backreference` to the
+  UNGATED `numeric_backreference_single`, re-splitting `\81` into a
+  valid single back-ref `\8` + literal `1` ⇒ accepted a pattern PCRE2
+  rejects. Two negative-lookahead guards (proven RGX-0079 `!"string"`
+  idiom): `numeric_backreference_single` matches only a **complete**
+  one-digit run, and `simple_escape` **never** matches `\<digit>`
+  (PCRE2: `\`+digit is always backref/octal/error, never a shorthand
+  — the `simple_escape` catch-all was the second degrade path the
+  single-guard candidate missed). `[1-7]`-leading runs still degrade
+  to `octal_escape` (RGX-0084 byte-identical: `\199`@0g → `\x01`+"99",
+  `\10`@9g → octal); single-digit `N<10` unchanged.
+- **Empirical verification (no-assumed-fix; regression from this
+  session's own RGX-0084 fix ⇒ extra rigor):** the task-file
+  single-guard candidate AND the RGX report's `\89`@0g→"literal 89"
+  claim were both **falsified** before any edit — PCRE2 10.47 errors
+  115 on `\89`@0g, NOT literal (`feedback_corpus_expected_from_spec
+  _not_fix`). Full 13/14-case PCRE2-oracle matrix confirmed post-fix
+  (the 1 `XX` is a probe-surface artifact — `\8`@0g grammar-accepts
+  backref-8, the missing-group reject is the downstream semantic
+  step, byte-identical & a documented Non-Goal). AST-dump schema
+  stays `1` (accept-set tightening + one corrected classification —
+  `\199`@0g was wrongly `{backreference,index:1}`, now correct
+  `{escape,octal,digits:"1"}` — no new shape vocab).
+- **No-regression:** `regex` lib 102/0 (RGX-0079..0085 pins green);
+  shape contract 4 aligned/0 drift (manifest `simple_escape`
+  annotation `$5`→`$15` updated same-slice); cross-parser
+  `ast_shape_contract` 8/0; `regex_parser_integration_contract_gate`
+  ✅; RGX-0086 drift gate + metadata-stable green at the new pair.
+- **Lockstep (binding, same-commit):** ledger row `REGEX-0086`
+  (downstream `PGEN-RGX-0087`, family-linked `REGEX-0083`); embedding
+  consts + `regex_parser_integration_contract_v1.json` →
+  `1.1.78`/`1.1.80`; integration-contract doc (Identity + Highlights);
+  regex book changelog-index + escapes-chapter worked-family table;
+  top-level `parser-families.md` handoff; new pin
+  `regex_parser_pgen_rgx_0087_eighty_nine_leading_multidigit_rejected`.
+- **RGX consumer note (in ledger/contract/book/handoff):** the
+  `#[ignore]`d RGX unit test's `\89`→literal expectation is wrong vs
+  PCRE2 10.47 — re-enable expecting REJECT (its `\199`→`\x01`+"99"
+  assertion is spec-correct and now matches).
+- Tree `RGX-0087` CLOSED (`.1`+`.2`). `SV-EXH-PROOF.3.1` resumes next.
+  No push (pacing).
+
 ## 2026-05-18 - PGEN-RGX-0087-0000 (RGX-0087 setup; docs-only, no code): RGX-0084 family residual — `\8N`/`\9N` non-octal multi-digit escape; tree created, root cause grounded
 
 - RGX filed `PGEN-RGX-0087`, a **family-linked regression from this

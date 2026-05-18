@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.79`
+  - `1.1.80`
 - Parser release version:
-  - `1.1.77`
+  - `1.1.78`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,64 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.78 / Contract 1.1.80 Highlights — PGEN-RGX-0087 fix: `[89]`-leading multi-digit escape now hard-rejects (PCRE2-faithful), not a degrade-resplit
+
+**Bug ledger:** `REGEX-0086` (downstream `PGEN-RGX-0087`); family-linked
+to `REGEX-0083` (the `\NN…` octal-vs-backref disambiguation —
+**`REGEX-0083` stays closed/correct**, this is a separate residual it
+did not cover, not a reopen).
+
+**What changed (accept-set tightening; one corrected classification;
+no new shape vocabulary).** `REGEX-0083` split numeric back-references
+into a GATED multi-digit rule + an UNGATED single-digit rule (`N<10`
+Non-Goal). For an `[89]`-leading **multi-digit** run that is *not* a
+valid full back-reference (e.g. `((((((((x))))))))\81` — 8 groups,
+`N=81`), the GATED branch's `fact_count_at_least` predicate failed and
+the PEG **backtracked**, re-splitting `\81` into a single-digit
+back-reference `\8` (valid — group 8 exists) + a literal `1` (and even
+with the single-digit rule guarded, the `simple_escape` catch-all
+would still consume `\8` as a shorthand). `\8`/`\9` are **not octal
+digits**, so PCRE2's octal fallback is unavailable and PCRE2
+(authoritative oracle: `pcre2test` 10.47, the version family RGX
+vendors) **rejects** such a pattern at compile (error 115, reference
+to non-existent subpattern). PGEN now likewise **hard-rejects** it at
+parse time.
+
+**Consumer-visible behavior (verified against the PCRE2 10.47 oracle,
+not the fix — `feedback_corpus_expected_from_spec_not_fix`):**
+
+| Pattern | Groups | Before (PGEN) | After (PGEN, = PCRE2 10.47) |
+|---|---|---|---|
+| `((((((((x))))))))\81` | 8 | ACCEPT (`\8` backref + `1` lit) | **REJECT** (`E_PARSE_FAILURE`) |
+| `((((((((x))))))))\82` / `\91` | 8 | ACCEPT / REJECT | **REJECT** |
+| `\89` | 0 | ACCEPT (`\8` backref + `9` lit) | **REJECT** |
+| `\80` / `(x)\81` | 0 / 1 | REJECT | REJECT (unchanged) |
+| `\199` | 0 | `{backreference,index:1}` + `99` (wrong) | `{escape,octal,digits:"1"}` + `99` (PCRE2: `\x01`+"99") |
+| `(((((((((x)))))))))\10` | 9 | octal | octal (**byte-identical**, RGX-0083) |
+| `((((((((x))))))))\8` / `(x)\1` | 8 / 1 | backref | backref (**byte-identical**, N<10 Non-Goal) |
+| `\012` / `\07` | 0 | octal | octal (unchanged) |
+
+Only the `[89]`-leading multi-digit non-backref accept-set is tightened
+(now rejects, matching PCRE2), plus `\199`@0-groups is corrected from a
+wrong numeric-backref classification to the correct octal escape. No
+new AST `kind`/shape is introduced ⇒ **AST-dump schema stays `1`**
+(release bump, no schema bump — same category as `REGEX-0083` /
+`REGEX-0084`). The fix is grammar-level (two negative-lookahead guards
+in `grammars/regex.ebnf`, the proven RGX-0079 idiom) and
+parser-agnostic; the engine/codegen are untouched.
+
+**RGX maintainer note.** The `#[ignore]`d RGX unit test
+`parser_multi_digit_non_octal_backref_becomes_literal` asserts
+`\89`@0-groups compiles as the literal `"89"`. That expectation is
+**wrong vs PCRE2 10.47** (which errors 115). On this fix `\89`@0-groups
+is a clean parse REJECT — re-enable the test with a **corrected**
+expectation (REJECT), not the stale "literal 89". Its second assertion
+(`\199` → `\x01` + "99") is spec-correct and now matches PGEN.
+
+**Behaviour + example:** this book's escapes chapter
+(`docs/regex_parser_book/src/examples-escapes.md` → "PGEN-RGX-0087:
+`[89]`-leading multi-digit escape hard-rejects").
 
 ## Release 1.1.77 / Contract 1.1.79 Highlights — PGEN-RGX-0085 fix: parenthesis-nesting ceiling (deeply nested patterns return a clean error, never abort the host)
 

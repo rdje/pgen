@@ -217,6 +217,73 @@ predicate is grammar-agnostic.
 
 That is `[\377]` parses with the bare-octal escape typed inside the class body.
 
+## PGEN-RGX-0087: `[89]`-leading multi-digit escape hard-rejects (PCRE2-faithful)
+
+This is a **family-linked residual** of the `PGEN-RGX-0084` fix above
+(`REGEX-0083` stays closed and correct — this is a separate sub-family
+it did not cover, **not a reopen**). The disambiguation above degrades
+an `N≥10` run that is not a valid full back-reference to an
+octal/literal escape. That degrade is only correct when the digit run
+can form an octal escape — i.e. its **first digit is `0`–`7`**. The
+digits **`8` and `9` are not octal digits**, so an `[89]`-leading
+multi-digit run (`\8N`/`\9N`, `N≥10`) that is *not* a valid full
+back-reference is **neither** a valid back-reference **nor** a valid
+octal escape. PCRE2 (authoritative oracle: `pcre2test` 10.47, the
+version family RGX vendors) therefore **rejects such a pattern at
+compile** (error 115, *reference to non-existent subpattern*) — it
+does **not** silently re-split it into a shorter escape plus literals.
+
+Before this fix PGEN re-split it: for `((((((((x))))))))\81` (8
+groups) the gated multi-digit `numeric_backreference` predicate failed
+(`8 < 81`), the PEG backtracked, and the **ungated**
+`numeric_backreference_single` matched the lone leading `8` as a
+*valid* single back-reference (group 8 exists) leaving `1` literal —
+so PGEN accepted a pattern PCRE2 rejects. (Even with the single-digit
+rule guarded, the `simple_escape` *catch-all* `\<any-char>` would
+still consume `\8` as a `{kind:"shorthand"}` escape — so the fix needs
+**two** guards.)
+
+The fix adds two negative-lookahead guards (the proven
+`PGEN-RGX-0079` `!"string"` idiom) in `grammars/regex.ebnf`:
+`numeric_backreference_single` only matches a **complete** one-digit
+run, and `simple_escape` **never** matches `\<digit>` (a backslash
+followed by a digit is *always* a back-reference / octal escape /
+compile error in PCRE2 — never a shorthand literal). `[1-7]`-leading
+runs still degrade to `octal_escape` (tried before `simple_escape`),
+so the `REGEX-0083` behaviour is **byte-identical**; `[89]`-leading
+runs can't octal, can't single-degrade, can't shorthand-degrade ⇒
+`atom` exhausts ⇒ a clean hard parse **REJECT** (`E_PARSE_FAILURE`),
+exactly matching PCRE2.
+
+Worked family (verified end-to-end against the PCRE2 10.47 oracle —
+expecteds derived from the spec, not the fix):
+
+| pattern | groups | result | why |
+| --- | --- | --- | --- |
+| `((((((((x))))))))\81` | 8 | **REJECT** | `[89]`-led, `N=81 > 8` groups, `8` not octal ⇒ PCRE2 error 115 (was: `\8` backref + `1` lit) |
+| `((((((((x))))))))\82` | 8 | **REJECT** | same family |
+| `((((((((x))))))))\91` | 8 | **REJECT** | `\9` family; group 9 missing |
+| `\89` | 0 | **REJECT** | `[89]`-led, `N=89 > 0`; PCRE2 10.47 = error 115 (**not** literal "89") |
+| `\80` (0) / `(x)\81` (1) | 0 / 1 | REJECT | unchanged |
+| `\199` | 0 | `{escape, octal, digits:"1"}` + `9` `9` | `[1-7]`-led: `\1` = octal `0o1`, then literal "99" (PCRE2-faithful; was wrongly `{backreference,index:1}`) |
+| `(((((((((x)))))))))\10` | 9 | `{escape, octal, digits:"10"}` | `[1-7]`-led octal — **byte-identical** to `REGEX-0083` |
+| `((((((((x))))))))\8` | 8 | `{backreference, numeric, index:8}` | single digit `N<10` — Non-Goal, **unchanged** |
+| `(x)\1` | 1 | `{backreference, numeric, index:1}` | single digit — **unchanged** |
+| `\012` / `\07` | 0 | `{escape, octal, …}` | `\0`-led octal — **unchanged** |
+
+Accept-set tightening + one corrected classification (`\199`@0-groups);
+no new AST `kind`/shape ⇒ **AST-dump schema stays `1`** (release-only
+bump, same category as `REGEX-0083`/`REGEX-0084`). Bug ledger:
+`REGEX-0086` (downstream `PGEN-RGX-0087`).
+
+> **RGX maintainer note.** The `#[ignore]`d RGX unit test
+> `parser_multi_digit_non_octal_backref_becomes_literal` asserts
+> `\89`@0-groups compiles as the literal `"89"`. That is **wrong vs
+> PCRE2 10.47** (which errors 115). Re-enable the test expecting a
+> clean parse **REJECT**, not "literal 89". Its second assertion
+> (`\199` → `\x01` + "99") is spec-correct and now matches PGEN's
+> `{escape, octal, digits:"1"}` + "99".
+
 ## `digits` is a string for octal too
 
 Same convention as hex/unicode — consumers parse with `usize::from_str_radix(obj.digits, 8)`.

@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "integration_contract_version": "1.1.79",
-  "parser_release_version": "1.1.77",
+  "integration_contract_version": "1.1.80",
+  "parser_release_version": "1.1.78",
   "grammar": "regex",
   "profile": "regex_default",
   "required_generated_backend_flag": "supports_regex_generated_backend",

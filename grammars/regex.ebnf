@@ -250,7 +250,27 @@ numeric_backreference = "\\" backreference_digits                       -> {type
 # the disambiguation rule never applies — RGX-0084 Non-Goal, pre-fix
 # behavior preserved exactly). NO `@predicate`: never gated, never
 # octal. Same `{type,kind,index}` shape as the multi-digit rule.
-numeric_backreference_single = "\\" backreference_digits_single         -> {type: "backreference", kind: "numeric", index: $2}
+#
+# PGEN-RGX-0087: the trailing `!"0"…!"9"` negative-lookahead guards
+# (proven RGX-0079 `!"string"` idiom; meta-grammar
+# `lookahead_operator primary_element`) require the single digit to
+# be a COMPLETE one-digit run — NOT the leading digit of a
+# multi-digit `\NN…` run. Without this, when the GATED multi-digit
+# `numeric_backreference` backtracks for an `[89]`-leading run that
+# is not a valid full backref (e.g. `\81` with 8 groups), this rule
+# would otherwise match the lone `8` as a *valid* single backref and
+# leave `1` literal — PGEN ACCEPTs a pattern PCRE2 (authoritative
+# oracle: `pcre2test` 10.47) REJECTs (error 115, reference to
+# non-existent subpattern). With the guard, `\8N`/`\9N` runs that
+# fail the GATED branch fall through: `[1-7]`-led → `octal_escape`
+# (RGX-0084, byte-identical); `[89]`-led → no octal (`[89]∉[0-7]`),
+# no single-digit match, no shorthand (see the `simple_escape`
+# PGEN-RGX-0087 guard) ⇒ clean hard REJECT (PCRE2-faithful). The
+# lookaheads occupy positional slots but APPEND after `$2`, so
+# `index: $2` (the matched single digit) is unchanged. A single
+# `\8`/`\1` followed by a non-digit still matches (always-backref,
+# N<10 — RGX-0084 Non-Goal preserved exactly).
+numeric_backreference_single = "\\" backreference_digits_single !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" !"8" !"9"  -> {type: "backreference", kind: "numeric", index: $2}
 
 # `backreference_digits` (the GATED, N ≥ 10 family) is now TWO+ digits
 # (`[1-9][0-9]+`, so its value is always ≥ 10 — no leading zero;
@@ -505,7 +525,25 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 # match as simple_escape since the lookahead requires both chars.
 # `\u{...}` is already rejected by the host-side compile validator
 # (slice 15 note); no negative lookahead needed for `u`.
-simple_escape  = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
+#
+# PGEN-RGX-0087: the `!"0"…!"9"` guards make `simple_escape` NEVER
+# match `\<digit>`. Per PCRE2 (authoritative oracle: `pcre2test`
+# 10.47) a backslash followed by a digit is ALWAYS a backreference,
+# an octal escape, or a compile error — it is *never* a "shorthand"
+# literal escape of the digit. Every `\<digit>` construct is fully
+# handled upstream of this catch-all: `backreference` (single +
+# GATED multi-digit) and `octal_escape` (`[0-7]`-led, tried before
+# `simple_escape` in `escape_unit`). Without these guards an
+# `[89]`-leading multi-digit run that is not a valid full backref
+# (e.g. `\81`@8groups) — which cannot be octal (`[89]∉[0-7]`) and is
+# blocked from the single-digit rule by its own PGEN-RGX-0087 guard
+# — would fall through to this catch-all, matching `\8` as
+# `{kind:"shorthand",char:"8"}` + literal `1`, so PGEN ACCEPTs a
+# pattern PCRE2 REJECTs (error 115). With the guards, `escape_unit`
+# exhausts (octal already failed on the `[89]` lead) ⇒ `atom` fails
+# ⇒ clean hard REJECT (PCRE2-faithful). 14 lookaheads now precede
+# `any_char`, so its positional ref is `$15` (was `$5`).
+simple_escape  = !"o{" !"x{" !"p{" !"P{" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" !"8" !"9" any_char -> {type: "escape", kind: "shorthand", char: $15}
 
 @type: "hexadecimal_escape"
 @description: "Hex escape sequences \xFF or \x{FFFF}"

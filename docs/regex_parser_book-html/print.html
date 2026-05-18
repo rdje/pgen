@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d08f22a2.js";
+            window.path_to_searchindex_js = "searchindex-685b4280.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -4361,6 +4361,74 @@ predicate is grammar-agnostic.</p>
 }
 </code></pre>
 <p>That is <code>[\377]</code> parses with the bare-octal escape typed inside the class body.</p>
+<h2 id="pgen-rgx-0087-89-leading-multi-digit-escape-hard-rejects-pcre2-faithful"><a class="header" href="#pgen-rgx-0087-89-leading-multi-digit-escape-hard-rejects-pcre2-faithful">PGEN-RGX-0087: <code>[89]</code>-leading multi-digit escape hard-rejects (PCRE2-faithful)</a></h2>
+<p>This is a <strong>family-linked residual</strong> of the <code>PGEN-RGX-0084</code> fix above
+(<code>REGEX-0083</code> stays closed and correct — this is a separate sub-family
+it did not cover, <strong>not a reopen</strong>). The disambiguation above degrades
+an <code>N≥10</code> run that is not a valid full back-reference to an
+octal/literal escape. That degrade is only correct when the digit run
+can form an octal escape — i.e. its <strong>first digit is <code>0</code>–<code>7</code></strong>. The
+digits <strong><code>8</code> and <code>9</code> are not octal digits</strong>, so an <code>[89]</code>-leading
+multi-digit run (<code>\8N</code>/<code>\9N</code>, <code>N≥10</code>) that is <em>not</em> a valid full
+back-reference is <strong>neither</strong> a valid back-reference <strong>nor</strong> a valid
+octal escape. PCRE2 (authoritative oracle: <code>pcre2test</code> 10.47, the
+version family RGX vendors) therefore <strong>rejects such a pattern at
+compile</strong> (error 115, <em>reference to non-existent subpattern</em>) — it
+does <strong>not</strong> silently re-split it into a shorter escape plus literals.</p>
+<p>Before this fix PGEN re-split it: for <code>((((((((x))))))))\81</code> (8
+groups) the gated multi-digit <code>numeric_backreference</code> predicate failed
+(<code>8 &lt; 81</code>), the PEG backtracked, and the <strong>ungated</strong>
+<code>numeric_backreference_single</code> matched the lone leading <code>8</code> as a
+<em>valid</em> single back-reference (group 8 exists) leaving <code>1</code> literal —
+so PGEN accepted a pattern PCRE2 rejects. (Even with the single-digit
+rule guarded, the <code>simple_escape</code> <em>catch-all</em> <code>\&lt;any-char&gt;</code> would
+still consume <code>\8</code> as a <code>{kind:"shorthand"}</code> escape — so the fix needs
+<strong>two</strong> guards.)</p>
+<p>The fix adds two negative-lookahead guards (the proven
+<code>PGEN-RGX-0079</code> <code>!"string"</code> idiom) in <code>grammars/regex.ebnf</code>:
+<code>numeric_backreference_single</code> only matches a <strong>complete</strong> one-digit
+run, and <code>simple_escape</code> <strong>never</strong> matches <code>\&lt;digit&gt;</code> (a backslash
+followed by a digit is <em>always</em> a back-reference / octal escape /
+compile error in PCRE2 — never a shorthand literal). <code>[1-7]</code>-leading
+runs still degrade to <code>octal_escape</code> (tried before <code>simple_escape</code>),
+so the <code>REGEX-0083</code> behaviour is <strong>byte-identical</strong>; <code>[89]</code>-leading
+runs can’t octal, can’t single-degrade, can’t shorthand-degrade ⇒
+<code>atom</code> exhausts ⇒ a clean hard parse <strong>REJECT</strong> (<code>E_PARSE_FAILURE</code>),
+exactly matching PCRE2.</p>
+<p>Worked family (verified end-to-end against the PCRE2 10.47 oracle —
+expecteds derived from the spec, not the fix):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>pattern</th><th>groups</th><th>result</th><th>why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>((((((((x))))))))\81</code></td><td>8</td><td><strong>REJECT</strong></td><td><code>[89]</code>-led, <code>N=81 &gt; 8</code> groups, <code>8</code> not octal ⇒ PCRE2 error 115 (was: <code>\8</code> backref + <code>1</code> lit)</td></tr>
+<tr><td><code>((((((((x))))))))\82</code></td><td>8</td><td><strong>REJECT</strong></td><td>same family</td></tr>
+<tr><td><code>((((((((x))))))))\91</code></td><td>8</td><td><strong>REJECT</strong></td><td><code>\9</code> family; group 9 missing</td></tr>
+<tr><td><code>\89</code></td><td>0</td><td><strong>REJECT</strong></td><td><code>[89]</code>-led, <code>N=89 &gt; 0</code>; PCRE2 10.47 = error 115 (<strong>not</strong> literal “89”)</td></tr>
+<tr><td><code>\80</code> (0) / <code>(x)\81</code> (1)</td><td>0 / 1</td><td>REJECT</td><td>unchanged</td></tr>
+<tr><td><code>\199</code></td><td>0</td><td><code>{escape, octal, digits:"1"}</code> + <code>9</code> <code>9</code></td><td><code>[1-7]</code>-led: <code>\1</code> = octal <code>0o1</code>, then literal “99” (PCRE2-faithful; was wrongly <code>{backreference,index:1}</code>)</td></tr>
+<tr><td><code>(((((((((x)))))))))\10</code></td><td>9</td><td><code>{escape, octal, digits:"10"}</code></td><td><code>[1-7]</code>-led octal — <strong>byte-identical</strong> to <code>REGEX-0083</code></td></tr>
+<tr><td><code>((((((((x))))))))\8</code></td><td>8</td><td><code>{backreference, numeric, index:8}</code></td><td>single digit <code>N&lt;10</code> — Non-Goal, <strong>unchanged</strong></td></tr>
+<tr><td><code>(x)\1</code></td><td>1</td><td><code>{backreference, numeric, index:1}</code></td><td>single digit — <strong>unchanged</strong></td></tr>
+<tr><td><code>\012</code> / <code>\07</code></td><td>0</td><td><code>{escape, octal, …}</code></td><td><code>\0</code>-led octal — <strong>unchanged</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>Accept-set tightening + one corrected classification (<code>\199</code>@0-groups);
+no new AST <code>kind</code>/shape ⇒ <strong>AST-dump schema stays <code>1</code></strong> (release-only
+bump, same category as <code>REGEX-0083</code>/<code>REGEX-0084</code>). Bug ledger:
+<code>REGEX-0086</code> (downstream <code>PGEN-RGX-0087</code>).</p>
+<blockquote>
+<p><strong>RGX maintainer note.</strong> The <code>#[ignore]</code>d RGX unit test
+<code>parser_multi_digit_non_octal_backref_becomes_literal</code> asserts
+<code>\89</code>@0-groups compiles as the literal <code>"89"</code>. That is <strong>wrong vs
+PCRE2 10.47</strong> (which errors 115). Re-enable the test expecting a
+clean parse <strong>REJECT</strong>, not “literal 89”. Its second assertion
+(<code>\199</code> → <code>\x01</code> + “99”) is spec-correct and now matches PGEN’s
+<code>{escape, octal, digits:"1"}</code> + “99”.</p>
+</blockquote>
 <h2 id="digits-is-a-string-for-octal-too"><a class="header" href="#digits-is-a-string-for-octal-too"><code>digits</code> is a string for octal too</a></h2>
 <p>Same convention as hex/unicode — consumers parse with <code>usize::from_str_radix(obj.digits, 8)</code>.</p>
 <h2 id="control-escape--ca"><a class="header" href="#control-escape--ca">Control escape — <code>\cA</code></a></h2>
@@ -4845,6 +4913,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1178--contract-1180--pgen-rgx-0087-fix-89-leading-multi-digit-escape-hard-rejects-pcre2-faithful-not-a-degrade-resplit"><a class="header" href="#1178--contract-1180--pgen-rgx-0087-fix-89-leading-multi-digit-escape-hard-rejects-pcre2-faithful-not-a-degrade-resplit">1.1.78 / Contract 1.1.80 — PGEN-RGX-0087 fix: <code>[89]</code>-leading multi-digit escape hard-rejects (PCRE2-faithful), not a degrade-resplit</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: family-linked residual of <code>PGEN-RGX-0084</code> (the <code>\NN…</code> octal-vs-backref disambiguation — that fix stays closed &amp; correct; this is a separate sub-family it did not cover, <strong>not a reopen</strong>). An <code>[89]</code>-leading <strong>multi-digit</strong> escape that is not a valid full back-reference (e.g. <code>((((((((x))))))))\81</code> — 8 groups) used to be <strong>accepted</strong>: the GATED multi-digit rule’s predicate failed and the PEG backtracked, re-splitting <code>\81</code> into single-digit back-reference <code>\8</code> + literal <code>1</code> (and even guarded, the <code>simple_escape</code> catch-all would consume <code>\8</code> as a shorthand). <code>\8</code>/<code>\9</code> are <strong>not octal digits</strong> so PCRE2’s octal fallback is unavailable and PCRE2 (authoritative oracle: <code>pcre2test</code> 10.47, the version family RGX vendors) <strong>rejects</strong> the pattern at compile (error 115, reference to non-existent subpattern). PGEN now likewise <strong>hard-rejects</strong> (<code>E_PARSE_FAILURE</code>). <code>[1-7]</code>-leading runs that fail the GATED branch still degrade to octal — <code>\199</code>@0-groups → <code>\x01</code> + “99”, <code>\10</code>@9-groups → octal — <strong>byte-identical</strong> to the RGX-0084 (<code>REGEX-0083</code>) behaviour; single-digit <code>\1</code>…<code>\9</code> (<code>N&lt;10</code> Non-Goal) <strong>unchanged</strong>. Accept-set tightening + one corrected classification (<code>\199</code>@0-groups was wrongly a numeric back-reference, now the correct octal escape); <strong>no new shape ⇒ schema stays <code>1</code></strong> (release-only bump — same category as 1.1.76/1.1.77). Fix is grammar-level (two negative-lookahead guards in <code>grammars/regex.ebnf</code>, the proven RGX-0079 idiom), parser-agnostic; engine/codegen untouched. <strong>The <code>#[ignore]</code>d RGX unit test asserting <code>\89</code>@0-groups → literal “89” is wrong vs PCRE2 10.47 (which errors 115); re-enable it expecting REJECT</strong> (its <code>\199</code> → <code>\x01</code>+“99” second assertion is spec-correct and now matches). Bug ledger: <code>REGEX-0086</code> (downstream <code>PGEN-RGX-0087</code>). <strong>Contract section:</strong> <code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.1.78 / Contract 1.1.80 Highlights — PGEN-RGX-0087”. Behaviour + example: this book’s escapes chapter (<code>examples-escapes.md</code> → “PGEN-RGX-0087”).</p>
+</blockquote>
 <h3 id="1177--contract-1179--pgen-rgx-0085-fix-regex-parenthesis-nesting-ceiling-no-more-host-sigabrt-on-deeply-nested-patterns"><a class="header" href="#1177--contract-1179--pgen-rgx-0085-fix-regex-parenthesis-nesting-ceiling-no-more-host-sigabrt-on-deeply-nested-patterns">1.1.77 / Contract 1.1.79 — PGEN-RGX-0085 fix: regex parenthesis-nesting ceiling (no more host SIGABRT on deeply nested patterns)</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: a deeply nested pattern (<code>(((…(a)*…)*)*</code>) used to overflow the thread stack and <strong>hard-abort the host process</strong> (SIGABRT, uncatchable) instead of returning a recoverable error — the worst failure mode for a parsing library and a trivial DoS vector. Fixed by a configurable <strong>parenthesis-nesting ceiling</strong> = <strong>250</strong> (exact PCRE2 <code>PCRE2_CONFIG_PARENSLIMIT</code> / Rust <code>regex</code> <code>nest_limit</code> default), enforced at the embedding-API boundary <em>before</em> the recursive-descent parser is ever invoked: a pattern whose <code>(</code>-group nesting exceeds 250 now returns a clean <code>E_PARSE_FAILURE</code> <code>ParseDiagnostic</code> whose <code>location</code> points at the <code>(</code> that crossed the limit (PCRE2’s “parentheses are too deeply nested” model). <strong>No behaviour change for any pattern within the limit</strong> — the AST/dump is byte-identical; only previously-<em>aborting</em> input now returns a clean error ⇒ strictly-more-graceful, <strong>schema stays <code>1</code></strong> (release-only bump, no schema change — same category as 1.1.76). The global engine recursion guard is untouched (SV/VHDL unaffected). Bug ledger: <code>REGEX-0084</code> (downstream <code>PGEN-RGX-0085</code>). <strong>Contract section:</strong> <code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.1.77 / Contract 1.1.79 Highlights — PGEN-RGX-0085”. Behaviour + example: this book’s groups chapter (<code>rules-groups.md</code> → “Parenthesis nesting limit”).</p>
