@@ -1,4 +1,56 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0085-0001 (RGX-0085.1+.2; tree CLOSED): regex parenthesis-nesting ceiling — deeply nested patterns return a clean error, never abort the host
+
+- **Fixed `PGEN-RGX-0085`** (high severity: a deeply nested regex
+  SIGABRTed the host process — uncatchable — instead of a recoverable
+  error; trivial DoS for any service compiling user regexes).
+- **Fix (robustness; parser-agnostic-correct locus):** a configurable
+  parenthesis-nesting ceiling `REGEX_MAX_NESTING_DEPTH = 250` (exact
+  PCRE2 `PCRE2_CONFIG_PARENSLIMIT` / Rust `regex` `nest_limit` default
+  — the report's own reference), enforced in
+  `run_generated_regex_on_dedicated_stack` (the single chokepoint
+  every public regex entrypoint funnels through) **before the
+  recursive-descent parser is invoked**. Over-ceiling input → a clean
+  located `ParseDiagnostic` (`E_PARSE_FAILURE`, `location` at the
+  offending `(`); the parser never recurses ⇒ a process abort is
+  structurally impossible. `GENERATED_REGEX_INLINE_DEPTH_THRESHOLD`
+  lowered `16 → 4` (bench-corpus max depth 4; stale comment
+  corrected) so no overflow-capable depth runs inline on an unknown
+  caller stack. The **global engine `RecursionGuard` is left
+  untouched** ⇒ provably zero SV/VHDL regression risk.
+- **Root cause (verified from code):** the guard ceiling existed and
+  returned a clean error, but at `GENERATED_RECURSION_GUARD_MAX_DEPTH
+  = 4096` frames (~512 nesting) — above what even the 64 MiB regex
+  worker stack holds in debug, so the OS guard page faulted first;
+  plus the inline path ran shallow nesting on the caller stack.
+- **Verification:** `regex_parser_pgen_rgx_0085_deep_nesting_clean_error_not_abort`
+  on a 2 MiB-stack thread (guardless build deterministically aborts):
+  depth-200k/2000/251 (plain + faithful `(X)*`) → clean Failure +
+  located diagnostic; depths 1,2,4,5,16,30,64,250 → Success;
+  AST-dump (manifestation A) faithful(2000) → clean Failure,
+  faithful(64) → Success. Report §A `parseability_probe` on the
+  actual 200,000-level `repro_input.txt` → clean rejection, exit 0,
+  no SIGABRT (pre-fix: abort). No-regression: regex integration
+  contract gate ✅; all `regex_parser_pgen_rgx_*` 7/0; cross-parser
+  `embedding_api` 46/0, lib 448/0, `ebnf_dual_run` lib 468/0; regex
+  parser book gate + mdBook docs gate ✅.
+- **No AST-shape/schema change** (within-limit byte-identical; only
+  previously-aborting input now errors cleanly) — "release bump, no
+  schema bump". Lockstep (binding, same-commit): ledger row
+  `REGEX-0084` (downstream `PGEN-RGX-0085`); regex release
+  `1.1.77` / integration contract `1.1.79`; regex book
+  changelog-index + `rules-groups.md` "Parenthesis nesting limit"
+  (example-rich) + integration-contract Highlights; top-level book
+  `parser-families.md` handoff synced; LIVE; memory. Scope decision:
+  the configurable knob is a documented single-source-of-truth const
+  (PCRE2's `--with-parens-nest-limit` model); exposing it as a
+  `parser_embedding_api_contract()` JSON field is a deliberate
+  follow-up (a contract-shape change warranting its own lockstep) —
+  recorded, not omitted. `RGX-0086` (the `embedding_api.rs`
+  version-const drift) is ordered next; it syncs the consts to this
+  ledger-latest `1.1.77`/`1.1.79` + adds a drift gate. Tree
+  `RGX-0085` closed. No push (pacing).
+
 ## 2026-05-18 - PGEN-RGX-0085-0000 (RGX-0085 setup; docs-only, no code): regex nesting-ceiling crash — tree created, root cause PINNED from code, design locked
 
 - User-directed priority interrupt (ordered: `PGEN-RGX-0085` then

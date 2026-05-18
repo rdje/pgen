@@ -34,6 +34,45 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Release 1.1.77 / Contract 1.1.79 Highlights — PGEN-RGX-0085 fix: parenthesis-nesting ceiling (deeply nested patterns return a clean error, never abort the host)
+
+**Bug ledger:** `REGEX-0084` (downstream `PGEN-RGX-0085`).
+
+**What changed (robustness; no parse-result change within the limit).**
+Before this release, a deeply nested pattern
+(`(((…(a)*…)*)*`) overflowed the parser's thread stack and
+**hard-aborted the host process** (`SIGABRT` on the stack guard page,
+uncatchable even via `catch_unwind`) instead of returning a
+recoverable diagnostic — for both the parse path and the AST-dump
+serialization path.
+
+This release adds a **configurable parenthesis-nesting ceiling**:
+
+- `REGEX_MAX_NESTING_DEPTH = 250` — the exact PCRE2
+  `PCRE2_CONFIG_PARENSLIMIT` / Rust `regex` crate `nest_limit`
+  default. Beyond any sane real-world pattern.
+- Enforced at the embedding-API boundary **before the
+  recursive-descent parser is invoked**. A pattern whose `(`-group
+  nesting exceeds 250 returns a clean `ParseDiagnostic`:
+  `code = "E_PARSE_FAILURE"`, `location.byte_offset`/`line`/`column`
+  pointing at the `(` that crossed the limit (PCRE2's "parentheses
+  are too deeply nested" model). The parser never recurses on
+  over-nested input, so a process abort is structurally impossible.
+
+**Compatibility.** No behaviour change for any pattern whose
+parenthesis nesting is ≤ 250 — the typed AST / dump is **byte-identical**;
+only previously-*aborting* input now returns a clean error. This is
+strictly-more-graceful: **AST-dump schema stays `1`** (release-only
+bump, no schema change). The change is scoped to the regex
+embedding path; the global parser-engine recursion guard is
+untouched, so SystemVerilog/VHDL are unaffected.
+
+**Downstream guidance.** Consumers that accept untrusted patterns can
+now rely on PGEN itself to bound nesting (a clean compile error, not
+a crash). A downstream pre-PGEN ceiling (e.g. RGX's
+`MAX_NESTING_DEPTH = 1000`) is now belt-and-suspenders rather than
+the sole protection; since PGEN's 250 is stricter it triggers first.
+
 ## Release 1.1.76 / Contract 1.1.78 Highlights — PGEN-RGX-0084 fix: bare `\NN…` octal-vs-backreference disambiguation now PCRE2-compliant at parse time
 
 Downstream report `PGEN-RGX-0084`: the released regex parser classified a bare numeric escape `\NN…` as `{type:"backreference", kind:"numeric", index:N}` **unconditionally**, regardless of how many capturing groups existed. PCRE2 (`pcre2pattern(3)` BACKREFERENCES) disambiguates by the numeric value `N`:

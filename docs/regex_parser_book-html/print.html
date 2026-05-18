@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d178f093.js";
+            window.path_to_searchindex_js = "searchindex-d08f22a2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -2398,6 +2398,50 @@ class_escape = escape
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="group-family"><a class="header" href="#group-family">Group Family</a></h1>
 <p>PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. None are currently annotated in <code>regex.ebnf</code>. All emit raw envelope shapes.</p>
+<h2 id="parenthesis-nesting-limit-since-release-1177-pgen-rgx-0085"><a class="header" href="#parenthesis-nesting-limit-since-release-1177-pgen-rgx-0085">Parenthesis nesting limit (since release 1.1.77, PGEN-RGX-0085)</a></h2>
+<p>Every <code>(</code> form drives one recursive-descent frame-chain
+(<code>parse_group → parse_capturing_group → parse_pattern → …</code>), so the
+parser’s recursion depth tracks the pattern’s <code>(</code>-nesting 1:1. To
+bound that recursion deterministically, the regex embedding API
+enforces a <strong>parenthesis-nesting ceiling</strong> <em>before</em> the parser is
+invoked:</p>
+<ul>
+<li><strong>Limit: 250</strong> — the exact PCRE2 <code>PCRE2_CONFIG_PARENSLIMIT</code> and
+Rust <code>regex</code> crate <code>nest_limit</code> default. This is far beyond any
+realistic pattern (real-world regexes rarely nest more than a
+handful of parentheses).</li>
+<li>A pattern whose <code>(</code>-group nesting <strong>exceeds 250</strong> is rejected with
+a clean <code>ParseDiagnostic</code> (<code>code: "E_PARSE_FAILURE"</code>) whose
+<code>location</code> (<code>byte_offset</code> / <code>line</code> / <code>column</code>) points at the <code>(</code>
+that crossed the limit — exactly PCRE2’s “parentheses are too
+deeply nested” behaviour. The recursive-descent parser is <strong>never
+invoked</strong> on over-nested input, so it cannot overflow the stack or
+abort the host process.</li>
+<li>Escaped parentheses (<code>\(</code>, <code>\)</code>) and parentheses inside a <code>[...]</code>
+character class are literals and do <strong>not</strong> count toward the
+nesting depth (character classes cannot nest).</li>
+<li>Nesting <strong>≤ 250 is unaffected</strong>: the typed AST / JSON dump is
+byte-identical to prior releases. This is purely a robustness
+guard — it converts a former host-process abort into a recoverable
+error; it changes no successful parse.</li>
+</ul>
+<p>Examples:</p>
+<pre><code class="language-text"># Within the limit — parses normally (depth 64):
+((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((a)*)*)*…
+  →  ParseStatus::Success  (AST/dump identical to any prior release)
+
+# Over the limit (251+ nested groups):
+(((… 251 levels …(a)*…)*)*
+  →  ParseStatus::Failure
+     diagnostic.code     = "E_PARSE_FAILURE"
+     diagnostic.message  = "regex parenthesis nesting exceeds the
+                            maximum supported depth of 250 …"
+     diagnostic.location = { byte_offset: &lt;offset of the 251st `(`&gt;,
+                             line, column }
+</code></pre>
+<p>Prior to 1.1.77 the over-limit case overflowed the thread stack and
+aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0084</code>
+(downstream <code>PGEN-RGX-0085</code>).</p>
 <h2 id="group-1"><a class="header" href="#group-1"><code>group</code></a></h2>
 <pre><code class="language-ebnf">group = capturing_group | noncapturing_group | named_group | python_named_group
 </code></pre>
@@ -4801,6 +4845,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1177--contract-1179--pgen-rgx-0085-fix-regex-parenthesis-nesting-ceiling-no-more-host-sigabrt-on-deeply-nested-patterns"><a class="header" href="#1177--contract-1179--pgen-rgx-0085-fix-regex-parenthesis-nesting-ceiling-no-more-host-sigabrt-on-deeply-nested-patterns">1.1.77 / Contract 1.1.79 — PGEN-RGX-0085 fix: regex parenthesis-nesting ceiling (no more host SIGABRT on deeply nested patterns)</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: a deeply nested pattern (<code>(((…(a)*…)*)*</code>) used to overflow the thread stack and <strong>hard-abort the host process</strong> (SIGABRT, uncatchable) instead of returning a recoverable error — the worst failure mode for a parsing library and a trivial DoS vector. Fixed by a configurable <strong>parenthesis-nesting ceiling</strong> = <strong>250</strong> (exact PCRE2 <code>PCRE2_CONFIG_PARENSLIMIT</code> / Rust <code>regex</code> <code>nest_limit</code> default), enforced at the embedding-API boundary <em>before</em> the recursive-descent parser is ever invoked: a pattern whose <code>(</code>-group nesting exceeds 250 now returns a clean <code>E_PARSE_FAILURE</code> <code>ParseDiagnostic</code> whose <code>location</code> points at the <code>(</code> that crossed the limit (PCRE2’s “parentheses are too deeply nested” model). <strong>No behaviour change for any pattern within the limit</strong> — the AST/dump is byte-identical; only previously-<em>aborting</em> input now returns a clean error ⇒ strictly-more-graceful, <strong>schema stays <code>1</code></strong> (release-only bump, no schema change — same category as 1.1.76). The global engine recursion guard is untouched (SV/VHDL unaffected). Bug ledger: <code>REGEX-0084</code> (downstream <code>PGEN-RGX-0085</code>). <strong>Contract section:</strong> <code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.1.77 / Contract 1.1.79 Highlights — PGEN-RGX-0085”. Behaviour + example: this book’s groups chapter (<code>rules-groups.md</code> → “Parenthesis nesting limit”).</p>
+</blockquote>
 <h3 id="1176--contract-1178--pgen-rgx-0084-fix-bare-nn-octal-vs-backreference-pcre2-disambiguation-at-parse-time"><a class="header" href="#1176--contract-1178--pgen-rgx-0084-fix-bare-nn-octal-vs-backreference-pcre2-disambiguation-at-parse-time">1.1.76 / Contract 1.1.78 — PGEN-RGX-0084 fix: bare <code>\NN…</code> octal-vs-backreference PCRE2 disambiguation at parse time</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: bare numeric <code>\N…</code> was an <em>unconditional</em> numeric backreference. Now PCRE2-compliant <strong>at parse time</strong>: single-digit <code>\1</code>…<code>\9</code> (N&lt;10) is always a numeric back reference (<strong>unchanged</strong>); a two+-digit <code>\NN…</code> (N≥10) is a back reference only when ≥ N capturing groups (plain <em>or</em> named) were opened <em>up to that source position</em>, otherwise it re-splits to an octal/literal escape. AST shape is <strong>byte-identical</strong> (<code>{type:"backreference",kind:"numeric",index:N}</code> / <code>{type:"escape",kind:"octal",digits:"…"}</code> unchanged); only the <em>classification</em> of a previously-misclassified two+-digit <code>\NN…</code> changes. No new shape vocabulary ⇒ <strong>schema stays <code>1</code></strong> (atom re-classification — same category as REGEX-0002/0004; consumers pinned to “all <code>\NNN</code> are backreferences” should repin to this release). Bug ledger: <code>REGEX-0083</code> (downstream <code>PGEN-RGX-0084</code>). <strong>Contract section:</strong> <code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.1.76 / Contract 1.1.78 Highlights — PGEN-RGX-0084”. Worked-family table: this book’s escapes chapter (<code>examples-escapes.md</code>).</p>

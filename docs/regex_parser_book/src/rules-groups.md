@@ -2,6 +2,55 @@
 
 PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. None are currently annotated in `regex.ebnf`. All emit raw envelope shapes.
 
+## Parenthesis nesting limit (since release 1.1.77, PGEN-RGX-0085)
+
+Every `(` form drives one recursive-descent frame-chain
+(`parse_group → parse_capturing_group → parse_pattern → …`), so the
+parser's recursion depth tracks the pattern's `(`-nesting 1:1. To
+bound that recursion deterministically, the regex embedding API
+enforces a **parenthesis-nesting ceiling** *before* the parser is
+invoked:
+
+- **Limit: 250** — the exact PCRE2 `PCRE2_CONFIG_PARENSLIMIT` and
+  Rust `regex` crate `nest_limit` default. This is far beyond any
+  realistic pattern (real-world regexes rarely nest more than a
+  handful of parentheses).
+- A pattern whose `(`-group nesting **exceeds 250** is rejected with
+  a clean `ParseDiagnostic` (`code: "E_PARSE_FAILURE"`) whose
+  `location` (`byte_offset` / `line` / `column`) points at the `(`
+  that crossed the limit — exactly PCRE2's "parentheses are too
+  deeply nested" behaviour. The recursive-descent parser is **never
+  invoked** on over-nested input, so it cannot overflow the stack or
+  abort the host process.
+- Escaped parentheses (`\(`, `\)`) and parentheses inside a `[...]`
+  character class are literals and do **not** count toward the
+  nesting depth (character classes cannot nest).
+- Nesting **≤ 250 is unaffected**: the typed AST / JSON dump is
+  byte-identical to prior releases. This is purely a robustness
+  guard — it converts a former host-process abort into a recoverable
+  error; it changes no successful parse.
+
+Examples:
+
+```text
+# Within the limit — parses normally (depth 64):
+((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((a)*)*)*…
+  →  ParseStatus::Success  (AST/dump identical to any prior release)
+
+# Over the limit (251+ nested groups):
+(((… 251 levels …(a)*…)*)*
+  →  ParseStatus::Failure
+     diagnostic.code     = "E_PARSE_FAILURE"
+     diagnostic.message  = "regex parenthesis nesting exceeds the
+                            maximum supported depth of 250 …"
+     diagnostic.location = { byte_offset: <offset of the 251st `(`>,
+                             line, column }
+```
+
+Prior to 1.1.77 the over-limit case overflowed the thread stack and
+aborted the host process (`SIGABRT`) — see bug ledger `REGEX-0084`
+(downstream `PGEN-RGX-0085`).
+
 ## `group`
 
 ```ebnf

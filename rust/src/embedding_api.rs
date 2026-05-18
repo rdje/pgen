@@ -1595,16 +1595,94 @@ fn generated_regex_worker() -> &'static GeneratedRegexWorker {
     })
 }
 
-// Conservative depth threshold: any input whose `(`/`[` nesting stays at or
-// below this can safely run on the caller's stack (typical macOS main thread
-// 8MB, even on the 2MB cargo test runner thread the 16-deep recursive descent
-// + AST Drop is well under 1MB in debug build). Above this we fall back to
-// the cached worker thread for the 64MB safety margin. The 8-pattern bench
-// corpus has max depth 4 so it always takes the inline fast path; the
-// integration contract's stress samples (`nested_capturing_groups_50`,
-// `deep_nested_backreference_80`) exceed it and use the worker.
+// PGEN-RGX-0085: configurable parenthesis-nesting ceiling for the regex
+// embedding path. Any pattern whose `(`-group nesting exceeds this returns a
+// clean located `ParseDiagnostic` *before the recursive-descent parser is
+// ever invoked* — so unbounded recursion (and the host-process SIGABRT it
+// caused) is structurally impossible. The value is the exact PCRE2
+// `PCRE2_CONFIG_PARENSLIMIT` / Rust `regex` crate `nest_limit` default of
+// 250 (the downstream report's own reference behaviour) — beyond any sane
+// real pattern, and comfortably within the 64 MiB dedicated worker stack
+// (~512 nesting in debug) with a >2x margin. This is the integration-
+// boundary analogue of PCRE2's compile-time parens-nest limit; it does NOT
+// touch the *global* engine `RecursionGuard`
+// (`GENERATED_RECURSION_GUARD_MAX_DEPTH`), so SV/VHDL recursion is provably
+// unaffected. Single-source-of-truth knob: to change the ceiling, change
+// this one const (PCRE2's build-time `--with-parens-nest-limit` model);
+// also surfaced in `parser_embedding_api_contract()` for downstream
+// discoverability.
 #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
-const GENERATED_REGEX_INLINE_DEPTH_THRESHOLD: usize = 16;
+pub(crate) const REGEX_MAX_NESTING_DEPTH: usize = 250;
+
+// First byte offset of the `(` group-open that crosses
+// `REGEX_MAX_NESTING_DEPTH`, or `None` if the pattern's parenthesis nesting
+// stays within the ceiling. Parenthesis-specific (PCRE2 PARENSLIMIT
+// semantics: every `(` form — capturing, `(?:`, `(?<name>`, `(?#…`, … —
+// drives one `parse_group` recursion frame-chain, so the unescaped-`(`
+// depth IS the parser recursion depth). Escaped `\(`/`\)` are literals;
+// `(`/`)` inside a `[...]` character class are literals (classes cannot
+// nest) and are skipped. O(n), allocation-free, runs before any parse.
+#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+fn regex_paren_nesting_violation(input: &str) -> Option<usize> {
+    let bytes = input.as_bytes();
+    let mut depth: usize = 0;
+    let mut i = 0usize;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'\\' => {
+                // Escaped byte: `\(`/`\)`/`\[` etc. are literals.
+                i += 2;
+                continue;
+            }
+            b'[' => {
+                // Character class: `(`/`)` within are literals; classes do
+                // not nest. Skip to the matching `]`, honoring a leading
+                // `^`, a leading literal `]`, and `\]` escapes.
+                i += 1;
+                if i < bytes.len() && bytes[i] == b'^' {
+                    i += 1;
+                }
+                if i < bytes.len() && bytes[i] == b']' {
+                    i += 1; // leading `]` is a literal class member (PCRE2)
+                }
+                while i < bytes.len() && bytes[i] != b']' {
+                    if bytes[i] == b'\\' {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+                // i is at the closing `]` (or end); fall through to i += 1.
+            }
+            b'(' => {
+                depth += 1;
+                if depth > REGEX_MAX_NESTING_DEPTH {
+                    return Some(i);
+                }
+            }
+            b')' => {
+                depth = depth.saturating_sub(1);
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    None
+}
+
+// Conservative inline-vs-worker threshold: a pattern whose `(`/`[` nesting
+// stays at or below this runs the recursive descent + AST serialization
+// inline on the caller's stack (zero cross-thread dispatch). PGEN-RGX-0085:
+// lowered 16 -> 4. The previous comment ("16-deep ... well under 1 MB in
+// debug") was empirically FALSE — RGX's
+// `compile_patterns_of_increasing_complexity` SIGABRTed at ≈16 on a 2 MiB
+// libtest worker stack in debug. The PGEN-RGX-0073 8-pattern bench corpus
+// has max depth 4, so depth ≤ 4 keeps the zero-overhead fast path for every
+// real-world pattern; anything deeper goes to the dedicated 64 MiB worker
+// (whose capacity is now bounded by `REGEX_MAX_NESTING_DEPTH` ≪ what 64 MiB
+// holds), so no over-deep recursion ever runs on an unknown/small caller
+// stack.
+#[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+const GENERATED_REGEX_INLINE_DEPTH_THRESHOLD: usize = 4;
 
 #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
 fn estimate_max_grouping_nesting(input: &str) -> usize {
@@ -1638,6 +1716,25 @@ where
     T: Send + 'static,
     F: FnOnce(String) -> Result<T, ParseDiagnostic> + Send + 'static,
 {
+    // PGEN-RGX-0085: enforce the configurable parenthesis-nesting ceiling
+    // BEFORE any recursive-descent parse (and before the inline/worker
+    // dispatch). Over-nested input gets a clean, located `ParseDiagnostic`
+    // and the parser is never invoked, so unbounded recursion — and the
+    // host-process SIGABRT it caused — is structurally impossible. This is
+    // the integration-boundary analogue of PCRE2's compile-time parens-nest
+    // limit returning "parentheses are too deeply nested".
+    if let Some(offset) = regex_paren_nesting_violation(input) {
+        return Err(ParseDiagnostic::with_location(
+            "E_PARSE_FAILURE",
+            format!(
+                "regex parenthesis nesting exceeds the maximum supported depth of {} \
+                 (PGEN-RGX-0085 ceiling; PCRE2 / Rust-`regex` parity)",
+                REGEX_MAX_NESTING_DEPTH
+            ),
+            parse_diagnostic_location(input, offset),
+        ));
+    }
+
     // Fast path: shallow inputs run inline on the caller's stack with zero
     // cross-thread dispatch overhead. The vast majority of real-world regex
     // patterns are shallow (the PGEN-RGX-0073 8-pattern bench corpus has max
@@ -4138,6 +4235,110 @@ mod tests {
                 serde_json::from_str(&ast_dump.dump_json).expect("dump json");
             assert!(parsed.is_object());
         }
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0085_deep_nesting_clean_error_not_abort() {
+        // PGEN-RGX-0085: a deeply nested regex must yield a clean, located
+        // ParseDiagnostic — it must NEVER overflow the stack and SIGABRT the
+        // host. Expectations are derived from the SPEC (PCRE2
+        // PCRE2_CONFIG_PARENSLIMIT / Rust `regex` `nest_limit` default =
+        // 250: nesting <= 250 parses, > 250 is a clean compile error), NOT
+        // from the fix. The whole matrix runs on a 2 MiB-stack thread so a
+        // guardless/regressed build deterministically ABORTS the test
+        // process (cannot falsely pass on a large main stack).
+        std::thread::Builder::new()
+            .stack_size(2 * 1024 * 1024)
+            .spawn(|| {
+                // Faithful report shape: a group AND a quantifier per level
+                // (`compile_patterns_of_increasing_complexity`).
+                let faithful = |d: usize| {
+                    let mut p = String::from("a");
+                    for _ in 0..d {
+                        p = format!("({p})*");
+                    }
+                    p
+                };
+                // Plain nested-group shape (host_call_site.md repro).
+                let plain = |n: usize| format!("{}a{}", "(".repeat(n), ")".repeat(n));
+
+                assert_eq!(
+                    REGEX_MAX_NESTING_DEPTH, 250,
+                    "ceiling must be the PCRE2 / Rust-`regex` ecosystem default"
+                );
+
+                // Manifestation B (parse path) — the exact entry RGX's
+                // adapter calls. Over-ceiling => clean Failure with a located
+                // diagnostic; the recursive-descent parser is never invoked.
+                for pat in [
+                    plain(200_000),
+                    plain(2_000),
+                    faithful(2_000),
+                    faithful(251),
+                    plain(251),
+                ] {
+                    let o = parse_grammar_profile_named("regex", "regex_default", &pat);
+                    assert_eq!(
+                        o.status,
+                        ParseStatus::Failure,
+                        "deep nesting must be a clean parse FAILURE (not abort, not success)"
+                    );
+                    let d = o
+                        .diagnostic
+                        .expect("over-ceiling input must carry a ParseDiagnostic");
+                    assert_eq!(d.code, "E_PARSE_FAILURE");
+                    assert!(
+                        d.location.is_some(),
+                        "diagnostic must locate the offending `(`"
+                    );
+                }
+
+                // Within-ceiling still parses (depth 250 == limit is allowed
+                // per PCRE2 semantics; the exact RGX cargo-test depths
+                // 1..=30; depth 64; the boundary 250) — was SIGABRT pre-fix.
+                for d in [1usize, 2, 4, 5, 16, 30, 64, 250] {
+                    let o =
+                        parse_grammar_profile_named("regex", "regex_default", &faithful(d));
+                    assert_eq!(
+                        o.status,
+                        ParseStatus::Success,
+                        "within-ceiling depth {d} must parse cleanly (pre-fix: SIGABRT)"
+                    );
+                }
+                assert_eq!(
+                    parse_grammar_profile_named("regex", "regex_default", &plain(64))
+                        .status,
+                    ParseStatus::Success
+                );
+
+                // Manifestation A (AST-dump serialize path) — the deep
+                // serde_json serialization must not overflow either.
+                let over = parse_regex_default_ast_dump(
+                    &faithful(2_000),
+                    &AstDumpOptions {
+                        pretty: false,
+                        max_ast_bytes: None,
+                    },
+                );
+                assert_eq!(
+                    over.status,
+                    ParseStatus::Failure,
+                    "deep AST-dump must be a clean failure, not a serialize-overflow abort"
+                );
+                let ok = parse_regex_default_ast_dump(
+                    &faithful(64),
+                    &AstDumpOptions {
+                        pretty: false,
+                        max_ast_bytes: None,
+                    },
+                );
+                assert_eq!(ok.status, ParseStatus::Success);
+                assert!(ok.ast_dump.is_some());
+            })
+            .expect("spawn 2 MiB PGEN-RGX-0085 verification thread")
+            .join()
+            .expect("PGEN-RGX-0085 verification must NOT abort the host process");
     }
 
     #[cfg(not(feature = "generated_parsers"))]

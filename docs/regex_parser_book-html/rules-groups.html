@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d178f093.js";
+            window.path_to_searchindex_js = "searchindex-d08f22a2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -182,6 +182,50 @@
                     <main>
                         <h1 id="group-family"><a class="header" href="#group-family">Group Family</a></h1>
 <p>PCRE2 has a rich set of group constructs — capturing, non-capturing, named, atomic, branch-reset, lookarounds, conditionals, scan-substring groups, script-run groups, and subroutine calls. None are currently annotated in <code>regex.ebnf</code>. All emit raw envelope shapes.</p>
+<h2 id="parenthesis-nesting-limit-since-release-1177-pgen-rgx-0085"><a class="header" href="#parenthesis-nesting-limit-since-release-1177-pgen-rgx-0085">Parenthesis nesting limit (since release 1.1.77, PGEN-RGX-0085)</a></h2>
+<p>Every <code>(</code> form drives one recursive-descent frame-chain
+(<code>parse_group → parse_capturing_group → parse_pattern → …</code>), so the
+parser’s recursion depth tracks the pattern’s <code>(</code>-nesting 1:1. To
+bound that recursion deterministically, the regex embedding API
+enforces a <strong>parenthesis-nesting ceiling</strong> <em>before</em> the parser is
+invoked:</p>
+<ul>
+<li><strong>Limit: 250</strong> — the exact PCRE2 <code>PCRE2_CONFIG_PARENSLIMIT</code> and
+Rust <code>regex</code> crate <code>nest_limit</code> default. This is far beyond any
+realistic pattern (real-world regexes rarely nest more than a
+handful of parentheses).</li>
+<li>A pattern whose <code>(</code>-group nesting <strong>exceeds 250</strong> is rejected with
+a clean <code>ParseDiagnostic</code> (<code>code: "E_PARSE_FAILURE"</code>) whose
+<code>location</code> (<code>byte_offset</code> / <code>line</code> / <code>column</code>) points at the <code>(</code>
+that crossed the limit — exactly PCRE2’s “parentheses are too
+deeply nested” behaviour. The recursive-descent parser is <strong>never
+invoked</strong> on over-nested input, so it cannot overflow the stack or
+abort the host process.</li>
+<li>Escaped parentheses (<code>\(</code>, <code>\)</code>) and parentheses inside a <code>[...]</code>
+character class are literals and do <strong>not</strong> count toward the
+nesting depth (character classes cannot nest).</li>
+<li>Nesting <strong>≤ 250 is unaffected</strong>: the typed AST / JSON dump is
+byte-identical to prior releases. This is purely a robustness
+guard — it converts a former host-process abort into a recoverable
+error; it changes no successful parse.</li>
+</ul>
+<p>Examples:</p>
+<pre><code class="language-text"># Within the limit — parses normally (depth 64):
+((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((a)*)*)*…
+  →  ParseStatus::Success  (AST/dump identical to any prior release)
+
+# Over the limit (251+ nested groups):
+(((… 251 levels …(a)*…)*)*
+  →  ParseStatus::Failure
+     diagnostic.code     = "E_PARSE_FAILURE"
+     diagnostic.message  = "regex parenthesis nesting exceeds the
+                            maximum supported depth of 250 …"
+     diagnostic.location = { byte_offset: &lt;offset of the 251st `(`&gt;,
+                             line, column }
+</code></pre>
+<p>Prior to 1.1.77 the over-limit case overflowed the thread stack and
+aborted the host process (<code>SIGABRT</code>) — see bug ledger <code>REGEX-0084</code>
+(downstream <code>PGEN-RGX-0085</code>).</p>
 <h2 id="group"><a class="header" href="#group"><code>group</code></a></h2>
 <pre><code class="language-ebnf">group = capturing_group | noncapturing_group | named_group | python_named_group
 </code></pre>
