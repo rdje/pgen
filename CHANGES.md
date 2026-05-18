@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0085-0000 (RGX-0085 setup; docs-only, no code): regex nesting-ceiling crash — tree created, root cause PINNED from code, design locked
+
+- User-directed priority interrupt (ordered: `PGEN-RGX-0085` then
+  `PGEN-RGX-0086`, before resuming `SV-EXH-PROOF.3.1`; "be extremely
+  careful"). `SV-EXH-PROOF` paused (`.3.1` root cause pinned +
+  committed `2b9b50b2`).
+- `PGEN-RGX-0085`: `pgen::embedding_api`'s regex parse + AST-dump path
+  has no effective nesting ceiling → a deeply nested pattern
+  SIGABRTs the host (uncatchable) instead of a clean `ParseDiagnostic`.
+- **Root cause PINNED (verified from code, not assumed):** the
+  `RecursionGuard` ceiling exists and returns a clean
+  `Err(ParseError::RecursionDepthExceeded)`, but at
+  `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096` parse-stack frames
+  (≈512 regex nesting); debug ≈128 KB/level ⇒ even the 64 MiB regex
+  worker stack holds only ~512 nesting, so the OS guard page faults
+  *before* the clean ceiling fires; `GENERATED_REGEX_INLINE_DEPTH_THRESHOLD=16`
+  runs shallow nesting inline on a possibly-2 MiB caller stack
+  (stale comment); `parse_generated_regex_ast_json` runs parse +
+  serialize together on the one worker stack.
+- **Design locked (Code-Change Doctrine — leaf owns the forthcoming
+  fix):** an embedding-API **configurable** pre-parse paren-nesting
+  ceiling (`REGEX_MAX_NESTING_DEPTH` = 250, exact PCRE2 /
+  Rust-`regex` parity, the report's own reference) returning a clean
+  located `ParseDiagnostic`, + lower the inline threshold. The
+  **global engine recursion guard is left untouched** ⇒ provably
+  zero SV/VHDL regression risk. Tree `RGX-0085` created + activated;
+  `RGX-0086` proposed (ordered second). Docs-only. No push (pacing).
+
 ## 2026-05-18 - Push state record (docs-only, no code): held campaign batch pushed to origin/main on user go-ahead
 
 - `git push origin main` fast-forwarded `c9421655..2b9b50b2` — the 15
