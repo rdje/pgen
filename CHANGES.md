@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0014 (SV-EXH-PROOF.3.1 instrumentation checkpoint; docs-only, no code): residual gap RESOLVED — root cause decisively instrumented
+
+- Resumed `SV-EXH-PROOF.3.1` after the RGX-0087 interrupt (closed +
+  pushed `a81d7317`). Executed the pinned next step — **instrument
+  `node.content` at the `@emit_fact` eval, NOT a 4th blind regen-guess**
+  (3 fix-shapes already falsified at `c0177eff`).
+- Method: temporary `eprintln!` in the codegen `quote!{}` template at
+  the `SemanticRuntimeDirective::EmitFact` arm
+  (`ast_based_generator.rs:1091`), `make -C rust focus_systemverilog`
+  regen, `parseability_probe --parse systemverilog` on `class c;
+  endclass`; full static resolver-chain trace
+  (`ast_based_generator.rs:3530-3758`) + codegen-ordering read
+  (`f(self)` :945 applies `->` before the effect-directive loop
+  :951-960). Instrumentation REVERTED; SV regen→baseline;
+  baseline-restore VERIFIED (`class c; endclass` → original REJECT, no
+  INSTR; control `module m; logic x; endmodule` → PASS; source `git
+  diff` clean; `generated/` untracked build artifact).
+- **Decisive instrumented output:** `root_content =
+  Alternative(ParseNode{ rule_name:"identifier",
+  content:Json(Object{"body":String("c")}) })`. The 3-falsified
+  residual gap is now CLOSED:
+  - (a) FALSE — content IS shaped (leaf `identifier := … -> {body:$1}`
+    @`systemverilog.ebnf:305`); `declared_class_identifier` has no `->`
+    so its own content is the raw passthrough `Alternative(<identifier
+    node>)`.
+  - True cause: `$class_identifier` names the FLATTENED rule
+    `class_identifier` (`:= declaration_identifier` @885 → … →
+    `identifier`; single-ref chain intermediates are NOT materialized
+    as named nodes). Only the leaf `identifier` node exists, scalar
+    buried in shaped `Json({"body":…})`. `resolve_named_semantic
+    _reference`: root `Alternative`≠`Json` ⇒ SEMREF-SHAPED skipped;
+    `find_semantic_named_descendant` finds no `class_identifier` node,
+    descends into the `identifier` node's `Json`, hits `:3728
+    _ => None` (never descends `Json`). All 3 prior candidates fail
+    for this one reason; grep-confirmed no working dotted-`$x.y`
+    idiom in SV (uniformly broken; pre-existing).
+- **Fix is a high-blast-radius design fork (next focused unit, NOT
+  rushed at this depth):** (A) grammar — give `declared_*_identifier`
+  its own `->` so root becomes `Json` & SEMREF-SHAPED fires (must
+  first instrument the SEPARATE `ast_return_transform.rs` resolver's
+  `$1`-on-single-ref behavior — don't assume); (B) engine,
+  parser-agnostic — make SEMREF-SHAPED compose through nesting
+  (descend a nested node's `Json`), high value but mandatory
+  cross-parser no-regression + 115-slice SV-campaign lockstep.
+- Docs-only checkpoint (instrumentation reverted, baseline restored +
+  verified — same discipline as `c0177eff`). The instrumented root
+  cause + 2 grounded loci are the value. No push (pacing).
+
 ## 2026-05-18 - PGEN-RGX-0087-0001 (RGX-0087.1+.2, leaf RGX-0087): `[89]`-leading multi-digit escape hard-rejects (PCRE2-faithful); REGEX-0086 ledger + release 1.1.78/contract 1.1.80; books↔code lockstep; tree CLOSED
 
 - **Fix (grammar-level, parser-agnostic — `grammars/regex.ebnf`):**
