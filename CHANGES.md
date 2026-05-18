@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0015 (SV-EXH-PROOF.3.1 FIX DESIGN VALIDATED; docs-only, probe reverted): grammar-only Locus A proven on the minimal repro
+
+- Continued `SV-EXH-PROOF.3.1` from the instrumentation checkpoint
+  (`e9b0c6e2`). Consulted the annotation references
+  (`RETURN_ANNOTATIONS_REFERENCE.md`: `-> $1` is the *implicit
+  default* ⇒ explicit `-> $1` is a no-op, content stays raw
+  `Alternative` passthrough; `PGEN_ANNOTATION_NORMATIVE_SPEC.md:479-484`:
+  SEMREF-SHAPED resolves `$name`/`$a.b` by key-path into a `->`-object
+  rule's shaped Json down to a **scalar leaf**, `$2.field` positional
+  supported) + `ast_return_transform.rs:128-177` (`$1` with one
+  captured var = the WHOLE child content ⇒ exactly why candidate-3's
+  `-> {name:$1}` made `name` a non-scalar Object → SEMREF `_ => None`).
+- **Evidence-grounded candidate (NOT a blind 4th guess — a class the
+  prior 3 never tried: `$N.field` drilling into the shaped leaf),
+  probed on the minimal-repro family ONLY (`declared_class_identifier`):**
+
+      @emit_fact: { kind: type_name, name: $body, declaration_family: class }
+      @predicate: { name: has_fact, args: [type_name, $body], phase: post }
+      declared_class_identifier := class_identifier -> { body: $1.body }
+
+  `make -C rust focus_systemverilog` regen + `parseability_probe
+  --parse`: **`class c; endclass` → `parse_full passed`** (was REJECT
+  through the entire 3-falsified investigation); control `module m;
+  logic x; endmodule` → PASS.
+- **DECISIVE: Locus A (grammar-only, low blast radius) CONFIRMED.**
+  `-> {body:$1.body}` makes the rule's root content `Json` (SEMREF
+  -SHAPED fires); `$1.body` drills the flattened single-ref chain into
+  the shaped `identifier` leaf scalar; `@emit_fact name:$body`
+  resolves via the root-Json key path. The high-blast-radius
+  parser-agnostic engine change (**Locus B**) is **NOT needed**.
+  `{body:…}` mirrors `identifier`'s own shape (the parent parses
+  end-to-end ⇒ parents accept the new shape on the parse path).
+- Probe REVERTED (`git checkout grammars/systemverilog.ebnf`); SV
+  regen→baseline; baseline-restore VERIFIED (`class c; endclass`→
+  REJECT, control→PASS; `git diff rust/src grammars/` clean;
+  `generated/` untracked). Docs-only — the **validated fix design** is
+  the value (`.3.1` is no longer a design fork: a working concrete
+  grammar pattern is proven).
+- **Remaining (next focused unit, NOT rushed at this depth):** roll
+  the proven `-> {body:$1.body}` + `$body`-ref pattern to ALL 10
+  `declared_*_identifier` families; verify the broader acceptance set
+  (parameterized modules, veer/scr1/friscv headers, external-corpus
+  parse_pass_total → toward 14); mandatory same-commit AST-shape-change
+  lockstep (shape-contract manifest + annotation-inventory +
+  aggregate/stimuli/closure gates re-baselined no-regression + SV book
+  + CHANGES/LIVE/memory — 115-slice campaign discipline). No push
+  (pacing).
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0014 (SV-EXH-PROOF.3.1 instrumentation checkpoint; docs-only, no code): residual gap RESOLVED — root cause decisively instrumented
 
 - Resumed `SV-EXH-PROOF.3.1` after the RGX-0087 interrupt (closed +
