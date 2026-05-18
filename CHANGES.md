@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-05-18 - Push state record (docs-only, no code): held campaign batch pushed to origin/main on user go-ahead
+
+- `git push origin main` fast-forwarded `c9421655..2b9b50b2` — the 15
+  held commits (`RGX-0084` + `SEMREF-SHAPED` + `SV-EXH-PROOF-0006..0012`).
+  Post-push verified `origin/main == local HEAD == 2b9b50b2`, 0 ahead;
+  working tree clean; untracked build/scratch correctly excluded; no
+  non-campaign/WIP commits in the batch (verified pre-push). The
+  push-pacing rule is unchanged and still binding — future commits
+  remain HELD until the next explicit go-ahead. Docs-only
+  state-transition record (LIVE snapshot updated).
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0012 (leaf SV-EXH-PROOF.3.1 root cause PINNED; docs-only, no code): SV-main external-corpus 0/14 root-caused to a systemic declaration-site `@emit_fact` defect (pre-existing, decisively proven)
 
 - `.2` closed (`-0011`) ⇒ frontier `SV-EXH-PROOF.3` opened: live
