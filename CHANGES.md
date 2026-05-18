@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0087-0000 (RGX-0087 setup; docs-only, no code): RGX-0084 family residual — `\8N`/`\9N` non-octal multi-digit escape; tree created, root cause grounded
+
+- RGX filed `PGEN-RGX-0087`, a **family-linked regression from this
+  session's RGX-0084 fix** (`b5036c4e`): the `\NN` family fix did not
+  cover the `[89]`-leading multi-digit sub-family. `\8`/`\9` are not
+  octal digits, so the octal fallback is unavailable and PCRE2
+  **rejects** `\8N`/`\9N` (N≥10, insufficient groups) at compile;
+  PGEN's post-0084 PEG instead backtracks from the GATED multi-digit
+  `numeric_backreference` to the UNGATED `numeric_backreference_single`,
+  matching the lone leading `8`/`9` as a backref + trailing digit(s)
+  literal ⇒ accepts a pattern PCRE2 rejects (e.g.
+  `((((((((x))))))))\81`, 8 groups → `\8` backref + `1` literal).
+  **RGX-0084 stays FIXED + CLOSED** (its `\10` case is and remains
+  correct); 0087 is a separate family-linked follow-on, NOT a reopen.
+- User directed task-tree ownership first (Code-Change Doctrine).
+  Tree `RGX-0087` created + activated; root cause grounded against
+  the report + current `regex.ebnf:195-253`; candidate fix =
+  negative-lookahead so single-digit `numeric_backreference_single`
+  only matches a *complete* one-digit run (proven RGX-0079
+  negative-lookahead-guard idiom) ⇒ `\8N`/`\9N` falls through to the
+  octal/error path (octal-digit `\10` stays the RGX-0084 path,
+  byte-identical; `[89]`-leading non-octal ⇒ clean reject,
+  PCRE2-faithful). Empirical verification + fix deferred to
+  `RGX-0087.1` (extra rigor: a regression from my own fix ⇒ probe the
+  whole PCRE2 family matrix before/after, no assumed fix). Docs-only.
+  `SV-EXH-PROOF.3.1` paused at `c0177eff`. No push (pacing).
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0013 (leaf SV-EXH-PROOF.3.1 investigation checkpoint; docs-only, no code): 3 fix-shapes empirically falsified, residual gap pinned
 
 - Resumed `SV-EXH-PROOF.3.1` (RGX-0085/0086 interrupt closed+pushed).
