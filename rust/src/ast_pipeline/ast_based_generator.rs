@@ -3596,6 +3596,46 @@ impl AstBasedGenerator {
                 root_content: &ParseContent<'input>,
                 reference: &str,
             ) -> Option<String> {
+                // SEMREF-SHAPED: when the rule's content is a shaped
+                // `->` return-annotation structure (`ParseContent::Json`),
+                // a semantic-annotation `$name` / `$a.b` reference
+                // resolves **against that produced structure** — a
+                // JSON object-key path lookup down to a scalar leaf —
+                // rather than the raw parse tree. This is the
+                // "shaped-only for `->` rules" contract: the rule's
+                // declared output is its semantic surface. The branch
+                // is keyed purely on the content variant, so rules
+                // without a `->` (raw `Sequence`/`Quantified`/
+                // `Alternative` content) fall straight through to the
+                // unchanged raw sub-rule-name resolution below and are
+                // byte-identical. A missing key, a non-object
+                // intermediate, or a non-scalar / null leaf yields
+                // `None` — surfaced upstream as the same hard
+                // `ContextualError` an unresolved ref already raises
+                // (referencing a field the `->` does not produce, or a
+                // non-scalar, is an author/grammar bug — fail loud,
+                // never silently mis-parse, never panic).
+                if let ParseContent::Json(value) = root_content {
+                    let mut current = value;
+                    for segment in reference
+                        .split('.')
+                        .map(str::trim)
+                        .filter(|segment| !segment.is_empty())
+                    {
+                        if !self.semantic_identifier(segment) {
+                            return None;
+                        }
+                        current = current.get(segment)?;
+                    }
+                    return match current {
+                        serde_json::Value::String(text) => Some(text.clone()),
+                        serde_json::Value::Number(number) => Some(number.to_string()),
+                        serde_json::Value::Bool(boolean) => Some(boolean.to_string()),
+                        // Null / Array / Object: not a scalar leaf →
+                        // resolution failure (loud upstream).
+                        _ => None,
+                    };
+                }
                 let mut path_segments = reference
                     .split('.')
                     .map(str::trim)
@@ -6379,6 +6419,26 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("rejected by post predicate"),
             "generated parser should log which post predicate blocked a rule, got: {}",
+            rendered
+        );
+        // SEMREF-SHAPED.2: a `$name`/`$a.b` ref on a rule whose
+        // content is a shaped `->` `ParseContent::Json` resolves
+        // against that produced structure (object-key path → scalar),
+        // keyed purely on the content variant so the raw (no-`->`)
+        // path is untouched.
+        assert!(
+            rendered.contains("ParseContent::Json(value) = root_content"),
+            "generated resolver should resolve named refs against a shaped -> Json structure, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("current.get(segment)"),
+            "generated resolver should walk the ref as a JSON object-key path, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("serde_json::Value::Number(number) => Some(number.to_string())"),
+            "generated resolver should coerce scalar shaped fields (Number) to a string, got: {}",
             rendered
         );
     }

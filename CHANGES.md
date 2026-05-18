@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SEMREF-SHAPED-0002 (leaf SEMREF-SHAPED.2): resolver resolves semantic refs against a `->` rule's produced shaped structure (parser-agnostic engine)
+
+- **Engine change (`rust/src/ast_pipeline/ast_based_generator.rs`,
+  inside the generated-parser helper `quote!`):** added a leading
+  `ParseContent::Json` branch to `resolve_named_semantic_reference`.
+  When a rule's content is a shaped `->` return-annotation structure,
+  a semantic-annotation `$name` / `$a.b` reference now resolves
+  **against that produced structure** — a serde JSON object-key path
+  walk down to a scalar leaf (`String`→clone, `Number`/`Bool`→string;
+  `Null`/`Array`/`Object`/absent/non-object-intermediate → `None` →
+  the existing hard `ContextualError`, loud + consistent with today's
+  unresolved-ref behavior; never silent, never panic). Rules with no
+  `->` (raw `Sequence`/`Quantified`/`Alternative` content) fall
+  straight through to the **unchanged** raw sub-rule-name resolution —
+  the branch is keyed purely on the `ParseContent` variant, so no-`->`
+  resolution is byte-identical by construction.
+- **Parser-agnostic:** zero grammar-specific identifiers; any
+  grammar's `->`-object rule can now have a content-ref'ing
+  `@predicate`/`@emit_fact` read its declared output. Strictly
+  more-capable (a previously-erroring combination now resolves);
+  "release bump, no schema bump" category.
+- **Proof:** `resolve_named_semantic_reference` is emitted only inside
+  the generated-parser helper `quote!` (no directly-callable crate
+  fn) — `.1`'s planned direct unit test was impossible and is
+  corrected here (honest, pre-commit). Proof = 3 new assertions in the
+  existing `generated_parser_runtime_contract_emits_post_predicate_content_flow`
+  codegen-contract test (the `ParseContent::Json(value)=root_content`
+  branch, the `current.get(segment)` path-walk, the `Number`→string
+  coercion — the test renders + prettyplease-parses the full generated
+  parser, so it also proves the emitted tokens are valid Rust) +
+  `cargo test --lib ast_pipeline::` → **311 passed, 0 failed**. The
+  behavioral parse-time proof + cross-parser differential +
+  SC-01..SC-07 + book/spec/contract lockstep + closeout are
+  `SEMREF-SHAPED.3` (a generated-only resolver can only be exercised
+  via generated parsers / SC gates / the RGX-0084 consumer).
+- P1 (`fact_count_at_least` in `semantic_runtime.rs`, RGX-0084.2-owned
+  & dependency-blocked) intentionally **not** in this commit.
+
 ## 2026-05-18 - PGEN-SEMREF-SHAPED-0001 (leaf SEMREF-SHAPED.1; tree setup -0000): semantic-ref ↔ return-annotation resolver gap tracked + design locked (docs-only)
 
 - **New active task tree `SEMREF-SHAPED`** (renamed from the initial,
