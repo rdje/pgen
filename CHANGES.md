@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SEMREF-SHAPED-0003 (leaf SEMREF-SHAPED.3; tree COMPLETED): cross-parser no-regression proven + shaped-resolution contract lockstep (docs-only close)
+
+- **`SEMREF-SHAPED` tree COMPLETED.** The parser-agnostic
+  shaped-structure semantic-ref resolution (a `@predicate`/`@emit_fact`
+  `$name`/`$a.b` on a rule with a `->` resolves against that rule's
+  *produced* object; no-`->` rules unchanged) — engine code committed
+  in `79dc494e` (SEMREF-SHAPED.2) — is now no-regression-proven and
+  documented.
+- **No-regression proof:** `make annotation_contract_gate` **fully
+  green — 41 ✅** (SC-01..SC-13 + annotation_validator + return/semantic
+  builtin + annotation_shared + annotation_stimuli_quality, zero
+  failures): the additive resolver `ParseContent::Json` branch is
+  regression-free across the entire semantic-runtime cross-parser
+  contract surface. Cross-parser source differential vs the
+  pre-change baseline: 5 generated parsers byte-identical (unaffected);
+  `return_annotation`/`semantic_annotation` = ONLY the additive
+  resolver branch + a pre-existing behaviorally-inert serde-Map
+  key-order non-determinism in unrelated annotation-template strings
+  (the resolver edit provably cannot touch template serialization; the
+  all-green gate is the behavioral proof).
+- **Behavioral proof:** the RGX-0084 regex consumer (a real `->`-rule
+  with a content-`$ref` `@predicate` reading its own produced `index`)
+  parses correctly end-to-end on the generated parser.
+- **Lockstep (docs-only, same commit):** shaped-resolution contract
+  added to `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+  (parser-side reference-resolution section) and
+  `docs/book/src/annotation-system.md` (### Semantic annotations).
+  `SEMREF-SHAPED` promoted to Completed in `docs/TASK_TREE.md`;
+  `RGX-0084` unblocked. No code in this commit (engine code already
+  landed in `79dc494e`).
+
 ## 2026-05-18 - PGEN-SEMREF-SHAPED-0002 (leaf SEMREF-SHAPED.2): resolver resolves semantic refs against a `->` rule's produced shaped structure (parser-agnostic engine)
 
 - **Engine change (`rust/src/ast_pipeline/ast_based_generator.rs`,

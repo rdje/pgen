@@ -34,6 +34,15 @@ PGEN also now has a narrower replay-only variant: `@probe_sample`.
 
 That widened the annotation system from "token-shape nudges" into a real narrow branch-steering surface for coverage-guided replay, while still keeping the project rule that sample hints must be justified by parser-backed evidence rather than sprayed across a grammar blindly.
 
+#### Semantic refs resolve against the rule's *produced* structure (SEMREF-SHAPED)
+
+A semantic-directive argument reference (`$name`, `$a.b`) on rule **X** resolves against **the structure X produces** — not X's internal parse plumbing:
+
+- if X has a `->` return annotation that yields an object, `$name` is a field/path lookup into that **shaped** structure down to a scalar leaf. This is **shaped-only**: the rule's declared output *is* its semantic surface; the engine does not reach back into raw parse content for a `->` rule (an absent/non-scalar field is an unresolved ref — a grammar-author error, surfaced loudly, never silently mis-parsed).
+- if X has **no** `->`, resolution is the unchanged raw sub-rule-name search.
+
+This lets a single rule legitimately carry both a `->` and a content-`$ref`-bearing `@predicate`/`@emit_fact` (e.g. `numeric_backreference … -> {…, index:$2}` gated by `@predicate fact_count_at_least(regex_capture_group, $index)` reading its own produced `index`). The capability is parser-agnostic and keyed purely on the content variant, so no-`->` rules are byte-identical to prior behavior. First consumer: the regex `\NN` PCRE2 octal-vs-backref disambiguation (downstream report `PGEN-RGX-0084`).
+
 Together, these two annotation families make PGEN a parser platform rather than only a parser emitter.
 
 ## Semantic Seeds, Linters, And Front-End Workbenches

@@ -477,6 +477,10 @@ Normative runtime leverage behavior for semantic annotations:
       - `@constraint`: relational expression is evaluated against captures/references,
       - `@implies`: antecedent truth implies consequent truth.
     - parser-side reference resolution supports positional (`$1`, `$2.field`) and named dotted paths (`lhs.id`), including `.len` suffix.
+    - **shaped-structure resolution (SEMREF-SHAPED, 2026-05-18):** a semantic-directive (`@predicate`/`@emit_fact`/…) argument reference (`$name` / `$a.b`) on a rule **X** resolves against **the structure rule X produces**:
+      - if X has a `->` return annotation that produces an object (`ParseContent::Json`), `$name` is a key/path lookup into that **shaped** structure down to a scalar leaf (`String`→as-is, `Number`/`Bool`→string; absent key / non-object intermediate / `Null` / non-scalar leaf → unresolved). This is **shaped-only** for `->` rules — the rule's declared output is its semantic surface (the engine does not fall back to raw parse content for a `->` rule).
+      - if X has no `->`, resolution is unchanged: the existing raw sub-rule-name descendant search over `Sequence`/`Quantified`/`Alternative`.
+      - the behavior is keyed purely on the `ParseContent` variant (`Json` ⇒ object-producing `->`), so rules without a `->` are byte-identical to prior behavior. The capability is parser-agnostic (any grammar's `->`-object rule may have a content-`$ref` directive read its declared output; first consumer: the regex `\NN` PCRE2 disambiguation, `PGEN-RGX-0084`).
     - parser unresolved references or failed relational checks return generated contextual parse errors.
     - relational hints remain inactive when `@constraint` is missing (validator still emits `W_SEM_RELATIONAL_HINT_WITHOUT_CONSTRAINT`).
     - stimuli runtime baseline is active for root sequence synthesis when `@constraint` is present:
