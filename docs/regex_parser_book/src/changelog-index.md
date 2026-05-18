@@ -23,6 +23,10 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).
 
+### 1.1.76 / Contract 1.1.78 — PGEN-RGX-0084 fix: bare `\NN…` octal-vs-backreference PCRE2 disambiguation at parse time
+
+> **For RGX maintainers**: bare numeric `\N…` was an *unconditional* numeric backreference. Now PCRE2-compliant **at parse time**: single-digit `\1`…`\9` (N<10) is always a numeric back reference (**unchanged**); a two+-digit `\NN…` (N≥10) is a back reference only when ≥ N capturing groups (plain *or* named) were opened *up to that source position*, otherwise it re-splits to an octal/literal escape. AST shape is **byte-identical** (`{type:"backreference",kind:"numeric",index:N}` / `{type:"escape",kind:"octal",digits:"…"}` unchanged); only the *classification* of a previously-misclassified two+-digit `\NN…` changes. No new shape vocabulary ⇒ **schema stays `1`** (atom re-classification — same category as REGEX-0002/0004; consumers pinned to "all `\NNN` are backreferences" should repin to this release). Bug ledger: `REGEX-0083` (downstream `PGEN-RGX-0084`). **Contract section:** `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md` → "Release 1.1.76 / Contract 1.1.78 Highlights — PGEN-RGX-0084". Worked-family table: this book's escapes chapter (`examples-escapes.md`).
+
 ### 1.1.75 / Contract 1.1.77 — PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration
 
 > **For RGX maintainers**: this section explains the two AST-shape bugs that landed during the slice-11/12/13 (named-ref family) and code_block typing slice campaigns, and the post-fix shapes you should walk against. Both fixes are additive in spirit — schema stays at `1`, accept set unchanged, only the `kind` discriminator and one positional-ref change.

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d902c4ac.js";
+            window.path_to_searchindex_js = "searchindex-d178f093.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -4801,6 +4801,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="1176--contract-1178--pgen-rgx-0084-fix-bare-nn-octal-vs-backreference-pcre2-disambiguation-at-parse-time"><a class="header" href="#1176--contract-1178--pgen-rgx-0084-fix-bare-nn-octal-vs-backreference-pcre2-disambiguation-at-parse-time">1.1.76 / Contract 1.1.78 — PGEN-RGX-0084 fix: bare <code>\NN…</code> octal-vs-backreference PCRE2 disambiguation at parse time</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: bare numeric <code>\N…</code> was an <em>unconditional</em> numeric backreference. Now PCRE2-compliant <strong>at parse time</strong>: single-digit <code>\1</code>…<code>\9</code> (N&lt;10) is always a numeric back reference (<strong>unchanged</strong>); a two+-digit <code>\NN…</code> (N≥10) is a back reference only when ≥ N capturing groups (plain <em>or</em> named) were opened <em>up to that source position</em>, otherwise it re-splits to an octal/literal escape. AST shape is <strong>byte-identical</strong> (<code>{type:"backreference",kind:"numeric",index:N}</code> / <code>{type:"escape",kind:"octal",digits:"…"}</code> unchanged); only the <em>classification</em> of a previously-misclassified two+-digit <code>\NN…</code> changes. No new shape vocabulary ⇒ <strong>schema stays <code>1</code></strong> (atom re-classification — same category as REGEX-0002/0004; consumers pinned to “all <code>\NNN</code> are backreferences” should repin to this release). Bug ledger: <code>REGEX-0083</code> (downstream <code>PGEN-RGX-0084</code>). <strong>Contract section:</strong> <code>docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md</code> → “Release 1.1.76 / Contract 1.1.78 Highlights — PGEN-RGX-0084”. Worked-family table: this book’s escapes chapter (<code>examples-escapes.md</code>).</p>
+</blockquote>
 <h3 id="1175--contract-1177--pgen-rgx-0081--0082-fixes-typed-shape-regressions-surfaced-by-rgx-walker-migration"><a class="header" href="#1175--contract-1177--pgen-rgx-0081--0082-fixes-typed-shape-regressions-surfaced-by-rgx-walker-migration">1.1.75 / Contract 1.1.77 — PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: this section explains the two AST-shape bugs that landed during the slice-11/12/13 (named-ref family) and code_block typing slice campaigns, and the post-fix shapes you should walk against. Both fixes are additive in spirit — schema stays at <code>1</code>, accept set unchanged, only the <code>kind</code> discriminator and one positional-ref change.</p>

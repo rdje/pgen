@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0084-0004 (leaf RGX-0084.3; tree COMPLETED): REGEX-0083 ledger + release/changelog process closure (docs-only)
+
+- **`RGX-0084` tree COMPLETED.** Released-parser-bug process closure
+  for `PGEN-RGX-0084` (the fix itself landed in `b5036c4e`).
+- `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`: new **`REGEX-0083`**
+  row — downstream `PGEN-RGX-0084`; Reported-Against `1.1.74`/`1.1.76`;
+  Fixed-In `regex parser release 1.1.76; regex integration contract
+  1.1.78`; full root-cause/fix-proof; class "parses but returns the
+  wrong AST/dump".
+- `docs/regex_parser_book/src/changelog-index.md`: `1.1.76 / Contract
+  1.1.78 — PGEN-RGX-0084` entry (the contract section + worked-family
+  table landed in `b5036c4e`).
+- **Schema decision (corrects this tree's earlier "schema bump"
+  assumption):** AST-dump schema **stays `1`** — no shape vocabulary
+  change, only re-classification of a previously-misclassified
+  two+-digit `\NN…`; per the REGEX-0002/REGEX-0004 precedent
+  (atom re-classification → release bump, schema unchanged,
+  "downstream should repin"). `schema-versioning.md` is policy
+  doctrine (no per-release row) — unchanged.
+- **Pre-existing drift surfaced (not papered over):** `embedding_api.rs`
+  `REGEX_PARSER_RELEASE_VERSION`/`REGEX_PARSER_INTEGRATION_CONTRACT_VERSION`
+  (`1.1.29`/`1.1.31`) are out of sync with the authoritative
+  ledger/book release scheme (`1.1.75`/`1.1.77`+). Unrelated to this
+  bug; left untouched (not silently bumped); flagged for a separate
+  follow-up.
+- Docs-only (no code). `SV-EXH-PROOF` (paused for the RGX-0084
+  priority interrupt) RESUMES at `.2.3.2`.
+
 ## 2026-05-18 - PGEN-RGX-0084-0003 (leaf RGX-0084.2): PGEN-RGX-0084 FIXED — bare `\NN…` octal-vs-backref PCRE2 disambiguation at parse time (code + full books↔code lockstep)
 
 - **Reported bug `PGEN-RGX-0084` FIXED.** Bare numeric `\N…` was an
