@@ -44,10 +44,10 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // integration contract 1.1.79.
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.81";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.82";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.79";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.80";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -4498,6 +4498,54 @@ mod tests {
                 ParseStatus::Failure,
                 "non-class {:?} must still REJECT (PGEN-RGX-0087 core \
                  fix must survive the FIX2 scoping)\n{:#?}",
+                input, o
+            );
+        }
+    }
+
+    /// PGEN-RGX-0087-FIX2.3: PCRE2 (oracle: `pcre2test` 10.47) bare
+    /// `\ddd` octal is limited to value <= 0o377 (255) in 8-bit
+    /// non-UTF; a run > 0o377 is a HARD compile error (err 151) in
+    /// BOTH pattern-body and `[...]` class context — PCRE2 does NOT
+    /// truncate to a shorter run. PGEN's `octal_escape_short_payload`
+    /// `/([0-7]{1,3})/` had no range check (testinput9:287). Fix:
+    /// split it (3-digit run must be `[0-3]`-led; 1-2-digit run must
+    /// be octal-complete) + an octal-digit guard on FIX2.1's
+    /// `class_simple_escape`. Expecteds from the PCRE2 10.47 oracle.
+    #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
+    #[test]
+    fn regex_parser_pgen_rgx_0087_fix2_octal_overflow_rejected() {
+        // Octal value > 0o377: PCRE2 10.47 err 151, BOTH contexts.
+        let must_reject = [
+            r"\400", r"\666", r"\777", r"\7777",
+            r"[\666]", r"[\400]", r"(?i:A{1,}\6666666666)",
+        ];
+        for input in must_reject {
+            let o = parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                o.status,
+                ParseStatus::Failure,
+                "octal-overflow {:?} must REJECT (PCRE2 10.47 err 151, \
+                 octal > \\377; both pattern-body & class context) — \
+                 PGEN-RGX-0087-FIX2.3 regressed?\n{:#?}",
+                input, o
+            );
+        }
+        // REGRESSION GUARD — RGX-0084/RGX-0087 octal family <= 0o377
+        // must stay byte-identical-ACCEPT (verified separately via
+        // --parse-dump-ast-pretty; here the accept-set boundary).
+        let must_accept = [
+            r"\377", r"\3777", r"\10", r"\012", r"\07", r"\0",
+            r"\00", r"\000", r"\77", r"\199", r"[\377]", r"[\012]",
+            r"[\0]", r"[\8]", r"[\9]", r"[\88]",
+        ];
+        for input in must_accept {
+            let o = parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                o.status,
+                ParseStatus::Success,
+                "{:?} must ACCEPT (octal <= 0o377 / RGX-0084/0087 / \
+                 FIX2.1 class — must stay byte-identical)\n{:#?}",
                 input, o
             );
         }

@@ -309,16 +309,42 @@ precedent. Class context is now byte-identical to pre-1.1.78 (same
 | `((((((((x))))))))\81` `\82` `\91` ; `\89`@0g ; `\80`@0g ; `(x)\81`@1g | REJECT | **non-class** `[89]`-leading hard-reject — unchanged from 1.1.78 |
 | `\199`@0g → `{escape,octal,digits:"1"}`+"99" ; `\10`@9g → octal | ACCEPT | `[1-7]`-led octal-degrade — unchanged from 1.1.78 |
 
-> **RGX maintainer note (FIX2).** `(?i:A{1,}\6666666666)`
-> (testinput9:287) is still ACCEPTed where PCRE2 10.47 rejects
-> (error 151, octal value `>\377` in 8-bit non-UTF) — PGEN's
-> `octal_escape` does no octal-range check. This is a **distinct
-> mechanism** (octal overflow, not the class/back-ref scoping),
-> exposed by the 1.1.78 guard rerouting `[1-7]`-led long runs onto
-> octal. Tracked separately as `RGX-0087-FIX2.3` (its own oracle
-> matrix + RGX-0084-no-regression); `PGEN-RGX-0087` stays open until
-> it lands. The 1.1.79 release is net-positive & adoptable
-> regardless (RGX PCRE2 ratchet 12,801/9 → 12,806/4).
+### FIX2.3 (release 1.1.80): octal `>\377` overflow now rejects — `PGEN-RGX-0087` CLOSED
+
+PCRE2 (oracle: `pcre2test` 10.47) limits the bare `\ddd` octal escape
+to value **≤ 0o377 (255)** in 8-bit non-UTF mode; a `>0o377` run is a
+**hard compile error** (error 151) in **both** pattern-body **and**
+`[...]` class context, and PCRE2 does **not** truncate the offending
+3-octal-digit run to a shorter one. PGEN's
+`octal_escape_short_payload` `/([0-7]{1,3})/` had no range check, so
+`\6666666666` (testinput9:287 `(?i:A{1,}\6666666666)`), `\400`,
+`\666`, `\777`, `\7777`, and the class forms `[\666]`/`[\400]` were
+wrongly ACCEPTed. Release 1.1.80 fixes it grammar-only:
+`octal_escape_short_payload` is split so a 3-octal-digit run is valid
+only if its value ≤ 0o377 (first digit `[0-3]`) and a 1-2-digit run
+only if it is octal-**complete** (the proven `!"0"…!"7"`
+negative-lookahead idiom); an overflow triple matches neither ⇒
+`octal_escape` fails ⇒ hard reject. FIX2.1's `class_simple_escape`
+gained `!"0"…!"7"` octal-digit guards (not `8`/`9`) so an
+octal-overflow `\<octal-digit>` is not class-shorthand-rescued, while
+`\8`/`\9` stay (FIX2.1 preserved).
+
+| pattern | result | why |
+| --- | --- | --- |
+| `\400` `\666` `\777` `\7777` `(?i:A{1,}\6666666666)` | REJECT | octal `>0o377` — PCRE2 10.47 err 151 |
+| `[\666]` `[\400]` | REJECT | octal `>0o377` rejects **inside `[...]`** too |
+| `\377` `\3777`(=`\377`+lit`7`) `\10` `\012` `\07` `\0` `\77` `\199`@0g | accept | octal ≤ 0o377 — **byte-identical** (RGX-0084/RGX-0087) |
+| `[\377]` `[\012]` `[\0]` `[\8]` `[\9]` `[\88]` | accept | class octal/literal — **byte-identical** (RGX-0084/FIX2.1) |
+
+Empirical `--parse-dump-ast-pretty` proof confirmed the entire
+RGX-0084 octal family / RGX-0087 / FIX2.1 set is **byte-identical**
+pre vs post (only the previously-wrongly-accepted overflow set now
+rejects); no new shape ⇒ **schema stays `1`**. With this,
+**`PGEN-RGX-0087` is fully resolved & closed** (all FIX2 sub-leaves
+done; RGX PCRE2 differential ratchet reaches the report's full target
+**12,807/3**). The braced `\o{...}` overflow (PCRE2 err 134, a
+distinct production never reported) is out of scope — `RGX-0079`
+owns `\o{...}`.
 
 ## `digits` is a string for octal too
 

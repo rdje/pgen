@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.81`
+  - `1.1.82`
 - Parser release version:
-  - `1.1.79`
+  - `1.1.80`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,60 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.80 / Contract 1.1.82 Highlights — PGEN-RGX-0087 FIX2.3: octal escape `>\377` overflow now rejects (PCRE2-faithful); `PGEN-RGX-0087` CLOSED
+
+**Bug ledger:** `REGEX-0086` (downstream `PGEN-RGX-0087` — now fully
+**resolved + closed**: all FIX2 sub-leaves done).
+
+**What changed (accept-set tightening; no new shape vocab; schema
+stays `1`).** The remaining `PGEN-RGX-0087` residual: PGEN's bare
+`\ddd` octal payload `/([0-7]{1,3})/` had **no octal-range check**,
+so `\6666666666` (testinput9:287 `(?i:A{1,}\6666666666)`), `\400`,
+`\666`, `\777`, `\7777` and the class forms `[\666]`/`[\400]`
+were ACCEPTed where PCRE2 (authoritative oracle: `pcre2test` 10.47)
+**hard-errors** (error 151, "octal value is greater than \377 in
+8-bit non-UTF-8 mode") — in **both** pattern-body and `[...]` class
+context. PCRE2 does NOT truncate a `>0o377` triple to a shorter run.
+
+1.1.80 fixes it grammar-only: `octal_escape_short_payload` is split
+so a 3-octal-digit run is valid only if `[0-3]`-led (value <= 0o377)
+and a 1-2-digit run only if octal-**complete** (the proven
+`!"0"…!"7"` negative-lookahead idiom, `-> $1` per branch); an
+overflow triple matches neither ⇒ `octal_escape` fails ⇒ the
+construct hard-rejects. FIX2.1's `class_simple_escape` gains
+`!"0"…!"7"` octal-digit guards (NOT `8`/`9`) so an octal-overflow
+`\<octal-digit>` is not class-shorthand-rescued, while `\8`/`\9`
+stay (FIX2.1 `[\8]`/`[\9]` preserved).
+
+**Consumer-visible behavior (verified against the PCRE2 10.47
+oracle):**
+
+| Pattern | <=1.1.79 | 1.1.80 (= PCRE2 10.47) |
+|---|---|---|
+| `\400` `\666` `\777` `\7777` `(?i:A{1,}\6666666666)` | ACCEPT (WRONG) | **REJECT** (err 151) |
+| `[\666]` `[\400]` | ACCEPT (WRONG) | **REJECT** (err 151, in-class) |
+| `\377` `\3777`(=`\377`+lit`7`) `\10` `\012` `\07` `\0` `\77` `\199`@0g `[\377]` `[\012]` `[\0]` | accept | accept (**byte-identical AST**) |
+| `[\8]` `[\9]` `[\88]` | accept | accept (**byte-identical**, FIX2.1) |
+| `\81`@8g (RGX-0087) ; `\7`@0g (RGX-0084 backref) | reject ; backref | unchanged |
+
+Empirical `--parse-dump-ast-pretty` proof confirmed the entire
+RGX-0084 octal family / RGX-0087 / FIX2.1 set is **byte-identical**
+pre vs post; only the previously-wrongly-accepted overflow set now
+rejects. No new AST `kind`/shape ⇒ **schema stays `1`** (release-only
+bump). Grammar-level, parser-agnostic.
+
+**`PGEN-RGX-0087` is now fully resolved & closed.** All FIX2
+sub-leaves done (`.1` class scope, `.2` lockstep, `.3` octal
+overflow); RGX PCRE2 differential ratchet reaches the report's full
+target **12,807/3** (`testinput2:4671`/`:4674` + `testinput9:287`
+closed; RGX-0084's `\10` stays closed). The braced `\o{...}`
+overflow (PCRE2 err 134, a distinct production never reported) is
+out of scope (RGX-0079 owns `\o{}`).
+
+**Behaviour + example:** this book's escapes chapter
+(`docs/regex_parser_book/src/examples-escapes.md` → "PGEN-RGX-0087"
+FIX2.3 octal-overflow note).
 
 ## Release 1.1.79 / Contract 1.1.81 Highlights — PGEN-RGX-0087 FIX2: scope the `[89]`-leading hard-reject to non-character-class context (rel-1.1.78 was over-broad)
 

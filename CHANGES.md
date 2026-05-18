@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0087-FIX2-0003 (RGX-0087-FIX2.3): octal `>\377` overflow now rejects (PCRE2-faithful); release 1.1.80/contract 1.1.82; **PGEN-RGX-0087 CLOSED**
+
+- **Fix (grammar-only, parser-agnostic — `grammars/regex.ebnf`):**
+  the last `PGEN-RGX-0087` residual (testinput9:287
+  `(?i:A{1,}\6666666666)`). PGEN's `octal_escape_short_payload`
+  `/([0-7]{1,3})/` had **no octal-range check**, so `\6666666666`,
+  `\400`, `\666`, `\777`, `\7777` and class `[\666]`/`[\400]` were
+  ACCEPTed where PCRE2 10.47 **hard-errors** (err 151, octal `>\377`
+  8-bit non-UTF — in **both** pattern-body and `[...]` context;
+  PCRE2 does not truncate a `>0o377` triple). Two coordinated edits
+  (executed from the `PGEN-RGX-0087-FIX2-0002` pinned design):
+  (A) split `octal_escape_short_payload` — a 3-octal-digit run valid
+  only if `[0-3]`-led (≤0o377), a 1-2-digit run only if
+  octal-complete (proven `!"0"…!"7"` lookahead idiom, `-> $1` per
+  branch ⇒ `octal_escape`'s `digits:$1` unchanged; an overflow
+  triple matches neither ⇒ `octal_escape` fails ⇒ reject);
+  (B) FIX2.1's `class_simple_escape` gains `!"0"…!"7"` octal-digit
+  guards (NOT 8/9) so an octal-overflow `\<octal-digit>` is not
+  class-shorthand-rescued while `\8`/`\9` stay (FIX2.1 preserved).
+  Annotation docs consulted (binding, hook-gated).
+- **Decisive empirical byte-identical proof** (`--parse-dump-ast
+  -pretty`, pre vs post): the entire RGX-0084 octal family + `\10`@9g
+  / `\199`@0g / `(a)\12` / `\3777` / `\377` / `\012` / `\07` / `\0` /
+  `\00` / `\000` / `\77` / `\7`-backref + FIX2.1 `[\8]`/`[\9]`/`[\88]`
+  / `[\377]`/`[\012]`/`[\0]` + RGX-0087 `\81`@8g — **ALL
+  byte-identical**; only the previously-wrongly-accepted overflow set
+  (`\400`/`\666`/`\777`/`\7777`/`[\666]`/`[\400]`/testinput9:287) now
+  REJECTs; `\3777`→octal"377"+lit"7". Schema unchanged (accept-set
+  tightening, no new vocab).
+- **No-regression:** `regex` lib **104/0** (RGX-0079..0087 pins +
+  shape contract + integration contract), manifest +2
+  `octal_escape_short_payload` declared-annotation entries +
+  `class_simple_escape` `$5`→`$13` lockstepped same-slice,
+  cross-parser `ast_shape_contract` 8/0,
+  `regex_parser_integration_contract_gate` ✅, RGX-0086 drift gate +
+  metadata-stable green @ 1.1.80/1.1.82. New pin
+  `regex_parser_pgen_rgx_0087_fix2_octal_overflow_rejected`.
+- **Lockstep (binding, same-commit):** ledger `REGEX-0086`
+  (Fixed-in 1.1.79→1.1.80, FIX2.3 narrative, `PGEN-RGX-0087` marked
+  fully RESOLVED+CLOSED), consts +
+  `regex_parser_integration_contract_v1.json` → `1.1.80`/`1.1.82`,
+  integration-contract doc (Identity + Release 1.1.80 Highlights),
+  regex book changelog-index + escapes-chapter FIX2.3 section +
+  regenerated tracked HTML, `parser-families.md`, CHANGES, LIVE,
+  memory.
+- **`PGEN-RGX-0087` is now fully resolved & CLOSED** — all FIX2
+  sub-leaves done (`.1` class scope / `.2` lockstep / `.3` octal
+  overflow); RGX PCRE2 differential ratchet reaches the report's
+  full target **12,807/3** (`testinput2:4671`/`:4674` +
+  `testinput9:287` closed; RGX-0084's `\10` stays closed). Braced
+  `\o{}` overflow (err 134, distinct production, never reported)
+  out of scope (RGX-0079 owns `\o{}`).
+- Tree `RGX-0087-FIX2` **CLOSED**; frontier → `SV-EXH-PROOF.3.2`
+  (the veer module-header gap) resumes. Standing push rule (push
+  every 30).
+
 ## 2026-05-18 - PGEN-RGX-0087-FIX2-0002 (RGX-0087-FIX2.3 oracle matrix + precise design pinned; docs-only, no code)
 
 - Continued `RGX-0087-FIX2` to its remaining frontier `.3`

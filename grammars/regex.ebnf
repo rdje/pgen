@@ -435,7 +435,16 @@ class_escape_unit = single_byte_escape
                   | control_escape
                   | property_escape
                   | class_simple_escape
-class_simple_escape = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
+# PGEN-RGX-0087-FIX2.3: the `!"0"…!"7"` guards (octal digits ONLY —
+# NOT 8/9) stop a `\<octal-digit>` that `octal_escape` rejected as an
+# overflow (`[\666]`, `[\400]`) from being shorthand-rescued here:
+# PCRE2 10.47 rejects octal `>0o377` INSIDE classes too (err 151), so
+# the construct must hard-reject, not degrade to `\6`+literal.
+# `\8`/`\9` (∉[0-7]) and `\<letter>` stay rescued (FIX2.1 `[\8]`/
+# `[\9]`/`[\88]` preserved); a valid in-range `\<octal-digit>` never
+# reaches here (handled by `octal_escape`, tried first in
+# `class_escape_unit`). 12 lookaheads now precede `any_char` ⇒ `$13`.
+class_simple_escape = !"o{" !"x{" !"p{" !"P{" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" any_char -> {type: "escape", kind: "shorthand", char: $13}
 
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
@@ -612,7 +621,27 @@ unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits
 # expression.
 octal_escape   = "o{" brace_ws? octal_digits brace_ws? "}"  -> {type: "escape", kind: "octal", digits: $3}
                | octal_escape_short_payload                  -> {type: "escape", kind: "octal", digits: $1}
-octal_escape_short_payload = /([0-7]{1,3})/
+# PGEN-RGX-0087-FIX2.3: PCRE2 (oracle: pcre2test 10.47) bare `\ddd`
+# octal is limited to value <= 0o377 (255) in 8-bit non-UTF; a
+# 3-octal-digit run > 0o377 is a HARD compile error (err 151) — PCRE2
+# does NOT truncate to a shorter run, and the overflow rejects in
+# BOTH pattern-body and `[...]` class context. A single greedy regex
+# (or a longest-valid-prefix alternation) cannot express this (it
+# would wrongly accept `\666` as `\66`+literal). Split so: a
+# 3-octal-digit run is valid only if its value <= 0o377 (first digit
+# in [0-3]); a 1-2 octal-digit run is valid only if COMPLETE (not
+# followed by a further octal digit — the proven RGX-0079/0087
+# `!"string"` negative-lookahead idiom). An octal-overflow triple
+# (`[4-7][0-7][0-7]`, value >= 0o400) matches NEITHER branch ⇒
+# `octal_escape` fails ⇒ the construct hard-rejects (PCRE2-faithful;
+# non-class via the `simple_escape` `!"0"…!"9"` guard, class via the
+# `class_simple_escape` `!"0"…!"7"` guard added below). `-> $1` per
+# branch yields the octal-string Terminal unambiguously so
+# `octal_escape`'s `digits: $1` is unchanged (byte-identical AST for
+# every <=0o377 case: `\10`/`\012`/`\07`/`\0`/`\77`/`\377`/`\3777`/
+# `\199`@0g — RGX-0084/RGX-0087 octal family preserved).
+octal_escape_short_payload = /([0-3][0-7][0-7])/ -> $1
+                           | /([0-7][0-7]?)/ !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" -> $1
 
 @type: "control_escape"
 @description: "Control character escape \cA"

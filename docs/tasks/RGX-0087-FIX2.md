@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `RGX-0087-FIX2`
-- Status: `active` (`.1`+`.2` DONE 2026-05-18 — class-context scope fix landed, release 1.1.79/contract 1.1.81, net-positive & adoptable; frontier → `.3` testinput9:287 octal-overflow, the remaining piece before `PGEN-RGX-0087` can close)
+- Status: `complete` (`.1`+`.2`+`.3` DONE 2026-05-18/19 — class-context scope fix + octal-overflow fix landed; release 1.1.80/contract 1.1.82; **`PGEN-RGX-0087` fully resolved & CLOSED**, RGX PCRE2 ratchet at the report's full target 12,807/3; `SV-EXH-PROOF.3.2` resumes)
 - Roadmap lane: released-parser bug remediation (`regex` family; downstream `PGEN-RGX-0087`, still `status:open`)
 - Created: `2026-05-18`
 - Owner: repo-local workflow
@@ -102,16 +102,16 @@ byte-identical.
 ## Task Tree
 
 - ID: `RGX-0087-FIX2`
-  Status: `active`
+  Status: `complete`
   Goal: `Scope the [89]-leading multi-digit hard-reject to non-character-class pattern-body context; cover the testinput9:287 octal-overflow; zero new divergence vs PCRE2 10.47; remediate PGEN-RGX-0087 end to end. RGX-0084 + the correct part of RGX-0087-0001 stay intact.`
-  Children: `RGX-0087-FIX2.1` (done), `RGX-0087-FIX2.2` (done), `RGX-0087-FIX2.3` (frontier — octal-overflow)
+  Children: `RGX-0087-FIX2.1` (done), `RGX-0087-FIX2.2` (done), `RGX-0087-FIX2.3` (done) — tree COMPLETE
 
 - ID: `RGX-0087-FIX2.1`
   Status: `done` (`PGEN-RGX-0087-FIX2-0001` — class-context scope fix landed + full oracle matrix verified before/after)
   Goal: `Empirically pin the rel-1.1.78 baseline on the full oracle matrix; design + implement the scoped regex.ebnf fix (class-member escape path must accept \8/\9 octal-literal; non-class [89]-led hard-reject preserved; testinput9:287 octal>\377 — scoped or sibling); regen; probe-verify the WHOLE matrix byte-identical-where-required + RGX-0084/0079..0086 no-regression + cross-parser + gates. Consult annotation docs + proven idiom + SEMREF-SHAPED contract FIRST (binding, hook-enforced).`
   Acceptance: `behavior half of Acceptance Criteria; zero new divergence; the 4671/4674/\89/\199/\10 set byte-identical.`
-  Verification: `root cause grounded 2026-05-18 (report + regex.ebnf:273/414/443/449/485/490/546 + pcre2test 10.47 matrix); empirical verify + fix is .1`
-  Commit: `pending`
+  Verification: `class-context scope fix landed + full PCRE2 10.47 oracle matrix verified before/after; 6/6 class cases ACCEPT, non-class + [1-7]-octal byte-identical`
+  Commit: `PGEN-RGX-0087-FIX2-0001`
 
 - ID: `RGX-0087-FIX2.2`
   Status: `done` (`PGEN-RGX-0087-FIX2-0001`, same commit as `.1` — books↔code same-commit lockstep is binding)
@@ -121,11 +121,11 @@ byte-identical.
   Commit: `PGEN-RGX-0087-FIX2-0001`
 
 - ID: `RGX-0087-FIX2.3`
-  Status: `pending` (frontier; **the remaining piece before `PGEN-RGX-0087` can close** — distinct mechanism, pinned by oracle)
+  Status: `done` (`PGEN-RGX-0087-FIX2-0003` — octal-overflow fix landed; full byte-identical no-regression proof + lockstep; `PGEN-RGX-0087` CLOSED)
   Goal: `Make PGEN's octal escape reject octal values > \377 (8-bit non-UTF), matching PCRE2 10.47 error 151. Pinned: (?i:A{1,}\6666666666) (testinput9:287) — PGEN's octal_escape_short_payload /([0-7]{1,3})/ accepts \666 (0o666=438) where PCRE2 rejects the whole pattern. Distinct from the class/backref scoping; exposed (not caused) by the 1.1.78 numeric_backreference_single guard rerouting [1-7]-led long runs onto octal. Touches the RGX-0084 octal path ⇒ its OWN oracle matrix (\377 ACCEPT, \400/\666 REJECT, \10/\012/\07/\199 ACCEPT byte-identical) + RGX-0084 23-case no-regression. Careful: PCRE2 hard-errors on a 3-octal-digit value >0o377 (does NOT truncate to a shorter run), so a longest-valid-octal regex is insufficient — needs a guard/validation that fails the parse.`
   Acceptance: `testinput9:287 REJECTs; \377 ACCEPTs; RGX-0084 23-case octal family + \10/\199/\012/\07 byte-identical; oracle-derived; no-regression + lockstep; RGX PCRE2 ratchet → 12,807/3 (report's full target); PGEN-RGX-0087 then closes.`
   Verification: `pinned 2026-05-18. AUTHORITATIVE PCRE2 10.47 ORACLE MATRIX (independent — feedback_corpus_expected_from_spec_not_fix): \377 ACCEPT; \400/\666/\777/\7777 REJECT (err 151 octal>\377); \3777 ACCEPT (reads "377"=255 + "7" literal); \6666666666(testinput9:287 ctx) REJECT; \10/\012/\07/\0/\00/\000/\77 ACCEPT; \7@0g REJECT (err 115 — single-digit BACKREF, RGX-0084 N<10 Non-Goal, NEVER reaches octal); \199@0g ACCEPT (\1=0o1 + "99"); class: [\377] ACCEPT, [\666]/[\400] REJECT (err 151 — octal-overflow rejects INSIDE classes too, offset inside [...]). Braced \o{400}/\o{777} REJECT (err 134, DIFFERENT mechanism/production octal_digits — NOT testinput9:287, NOT in any report ⇒ noted-but-out-of-scope, RGX-0079 owns \o{}). PRECISE TWO-COORDINATED-EDIT DESIGN (byte-identical-traced vs every RGX-0084/RGX-0087/FIX2.1 case): EDIT-A grammars/regex.ebnf:615 `octal_escape_short_payload = /([0-7]{1,3})/` → `= /([0-3][0-7][0-7])/ -> $1 | /([0-7][0-7]?)/ !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" -> $1` (3-digit run must be ≤0o377 i.e. first ∈[0-3]; 1-2-digit run must be COMPLETE i.e. not followed by an 8th-bit... octal digit — proven `!"string"` idiom, 8 string lookaheads; explicit `-> $1` so each branch yields the octal-string Terminal unambiguously, octal_escape's `digits:$1` unchanged. An overflow triple [4-7][0-7][0-7] matches NEITHER ⇒ octal_escape fails). EDIT-B class_simple_escape (FIX2.1) add `!"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7"` (octal digits ONLY, NOT 8/9) before any_char, char:$5→$13 — so a `\<octal-digit>` that octal_escape rejected (overflow) is NOT rescued as class-shorthand (PCRE2 rejects [\666] err 151), while `\8`/`\9` (∉[0-7]) stay rescued (FIX2.1 [\8]/[\9] preserved); non-class already covered by simple_escape's existing `!"0"…!"9"` guard. Hand-traced byte-identical: \10@9g→octal"10", \012→"012", \07→"07", \0→"0", \000→"000", \77→"77", \377→"377", \199@0g→octal"1"+"99", \3777→"377"+lit"7", \7@0g→backref-7(untouched); overflow \400/\666/\6666666666 (non-class & class) → REJECT. MANDATORY before commit: empirical --parse-dump-ast-pretty byte-identical proof vs pre-FIX2.3 baseline for the RGX-0084 23-case octal family + \199/\3777 + FIX2.1 [\8]/[\9]/[\88] + RGX-0087 \81@8g + the new overflow matrix; regex lib (RGX-0079..0087 pins) + cross-parser + integration-contract + drift gate; manifest +N declared-annotation entries lockstepped; release 1.1.79→1.1.80 / contract 1.1.81→1.1.82; full books↔code lockstep; PGEN-RGX-0087 then CLOSES (ratchet → 12,807/3). Fix is .3's work — design fully pinned, zero re-derivation needed; execute as a focused unit (RGX-0084-released-octal-family high-risk ⇒ byte-identical verification is non-negotiable, not rushed).`
-  Commit: `pending`
+  Commit: `PGEN-RGX-0087-FIX2-0003`
 
 ## Current Frontier
 
@@ -133,7 +133,7 @@ byte-identical.
 | --- | --- | --- | --- |
 | — | `RGX-0087-FIX2.1` | `done` | Class-context scope fix landed (`class_escape` → own `class_escape_unit`/unguarded `class_simple_escape`); full PCRE2 10.47 oracle matrix verified before/after; 6/6 class cases ACCEPT; non-class + `[1-7]`-octal byte-identical. `PGEN-RGX-0087-FIX2-0001`. |
 | — | `RGX-0087-FIX2.2` | `done` | Ledger/release(1.1.79/1.1.81)/book/contract/CHANGES/LIVE/memory same-commit lockstep; drift gate green. `PGEN-RGX-0087-FIX2-0001` (same commit as `.1`). |
-| 1 | `RGX-0087-FIX2.3` | `pending` (**frontier**) | testinput9:287 octal `>\377` overflow — distinct mechanism (octal range, RGX-0084 octal path), own oracle matrix + RGX-0084-no-regression. `PGEN-RGX-0087` stays open until this lands; then `SV-EXH-PROOF.3.2` resumes. |
+| — | `RGX-0087-FIX2.3` | `done` | Octal `>\377` overflow now rejects (both contexts) via the pinned two-edit design; full byte-identical no-regression proof; `PGEN-RGX-0087-FIX2-0003`. **Tree CLOSED; `PGEN-RGX-0087` fully resolved (ratchet 12,807/3); `SV-EXH-PROOF.3.2` is the resumed frontier.** |
 
 ## Decisions
 

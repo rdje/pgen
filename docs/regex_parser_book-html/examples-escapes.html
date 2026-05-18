@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d1453c70.js";
+            window.path_to_searchindex_js = "searchindex-1c8a3dd9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -447,18 +447,46 @@ precedent. Class context is now byte-identical to pre-1.1.78 (same
 </tbody>
 </table>
 </div>
-<blockquote>
-<p><strong>RGX maintainer note (FIX2).</strong> <code>(?i:A{1,}\6666666666)</code>
-(testinput9:287) is still ACCEPTed where PCRE2 10.47 rejects
-(error 151, octal value <code>&gt;\377</code> in 8-bit non-UTF) — PGEN’s
-<code>octal_escape</code> does no octal-range check. This is a <strong>distinct
-mechanism</strong> (octal overflow, not the class/back-ref scoping),
-exposed by the 1.1.78 guard rerouting <code>[1-7]</code>-led long runs onto
-octal. Tracked separately as <code>RGX-0087-FIX2.3</code> (its own oracle
-matrix + RGX-0084-no-regression); <code>PGEN-RGX-0087</code> stays open until
-it lands. The 1.1.79 release is net-positive &amp; adoptable
-regardless (RGX PCRE2 ratchet 12,801/9 → 12,806/4).</p>
-</blockquote>
+<h3 id="fix23-release-1180-octal-377-overflow-now-rejects--pgen-rgx-0087-closed"><a class="header" href="#fix23-release-1180-octal-377-overflow-now-rejects--pgen-rgx-0087-closed">FIX2.3 (release 1.1.80): octal <code>&gt;\377</code> overflow now rejects — <code>PGEN-RGX-0087</code> CLOSED</a></h3>
+<p>PCRE2 (oracle: <code>pcre2test</code> 10.47) limits the bare <code>\ddd</code> octal escape
+to value <strong>≤ 0o377 (255)</strong> in 8-bit non-UTF mode; a <code>&gt;0o377</code> run is a
+<strong>hard compile error</strong> (error 151) in <strong>both</strong> pattern-body <strong>and</strong>
+<code>[...]</code> class context, and PCRE2 does <strong>not</strong> truncate the offending
+3-octal-digit run to a shorter one. PGEN’s
+<code>octal_escape_short_payload</code> <code>/([0-7]{1,3})/</code> had no range check, so
+<code>\6666666666</code> (testinput9:287 <code>(?i:A{1,}\6666666666)</code>), <code>\400</code>,
+<code>\666</code>, <code>\777</code>, <code>\7777</code>, and the class forms <code>[\666]</code>/<code>[\400]</code> were
+wrongly ACCEPTed. Release 1.1.80 fixes it grammar-only:
+<code>octal_escape_short_payload</code> is split so a 3-octal-digit run is valid
+only if its value ≤ 0o377 (first digit <code>[0-3]</code>) and a 1-2-digit run
+only if it is octal-<strong>complete</strong> (the proven <code>!"0"…!"7"</code>
+negative-lookahead idiom); an overflow triple matches neither ⇒
+<code>octal_escape</code> fails ⇒ hard reject. FIX2.1’s <code>class_simple_escape</code>
+gained <code>!"0"…!"7"</code> octal-digit guards (not <code>8</code>/<code>9</code>) so an
+octal-overflow <code>\&lt;octal-digit&gt;</code> is not class-shorthand-rescued, while
+<code>\8</code>/<code>\9</code> stay (FIX2.1 preserved).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>pattern</th><th>result</th><th>why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\400</code> <code>\666</code> <code>\777</code> <code>\7777</code> <code>(?i:A{1,}\6666666666)</code></td><td>REJECT</td><td>octal <code>&gt;0o377</code> — PCRE2 10.47 err 151</td></tr>
+<tr><td><code>[\666]</code> <code>[\400]</code></td><td>REJECT</td><td>octal <code>&gt;0o377</code> rejects <strong>inside <code>[...]</code></strong> too</td></tr>
+<tr><td><code>\377</code> <code>\3777</code>(=<code>\377</code>+lit<code>7</code>) <code>\10</code> <code>\012</code> <code>\07</code> <code>\0</code> <code>\77</code> <code>\199</code>@0g</td><td>accept</td><td>octal ≤ 0o377 — <strong>byte-identical</strong> (RGX-0084/RGX-0087)</td></tr>
+<tr><td><code>[\377]</code> <code>[\012]</code> <code>[\0]</code> <code>[\8]</code> <code>[\9]</code> <code>[\88]</code></td><td>accept</td><td>class octal/literal — <strong>byte-identical</strong> (RGX-0084/FIX2.1)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Empirical <code>--parse-dump-ast-pretty</code> proof confirmed the entire
+RGX-0084 octal family / RGX-0087 / FIX2.1 set is <strong>byte-identical</strong>
+pre vs post (only the previously-wrongly-accepted overflow set now
+rejects); no new shape ⇒ <strong>schema stays <code>1</code></strong>. With this,
+<strong><code>PGEN-RGX-0087</code> is fully resolved &amp; closed</strong> (all FIX2 sub-leaves
+done; RGX PCRE2 differential ratchet reaches the report’s full target
+<strong>12,807/3</strong>). The braced <code>\o{...}</code> overflow (PCRE2 err 134, a
+distinct production never reported) is out of scope — <code>RGX-0079</code>
+owns <code>\o{...}</code>.</p>
 <h2 id="digits-is-a-string-for-octal-too"><a class="header" href="#digits-is-a-string-for-octal-too"><code>digits</code> is a string for octal too</a></h2>
 <p>Same convention as hex/unicode — consumers parse with <code>usize::from_str_radix(obj.digits, 8)</code>.</p>
 <h2 id="control-escape--ca"><a class="header" href="#control-escape--ca">Control escape — <code>\cA</code></a></h2>
