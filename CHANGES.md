@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0010 (leaf SV-EXH-PROOF.2.3.2): resumed (RGX-0084 priority interrupt closed) + design investigation (docs-only, no code)
+
+- The `RGX-0084` priority interrupt is **closed** (`PGEN-RGX-0084`
+  fixed; `RGX-0084` + `SEMREF-SHAPED` trees COMPLETED). `SV-EXH-PROOF`
+  RESUMES; frontier leaf `SV-EXH-PROOF.2.3.2` → `in_progress`.
+- **Design investigation (no code)** for the pinned root cause (2
+  remaining preprocessor closed-loop self-rejections = closed-loop
+  generator emitting the structural sigil `` ` `` inside permissive
+  content regexes; NOT a grammar bug; never loosen `==0`, never
+  bug-ledger): studied the derived-exclusion precedent
+  (`generate_from_regex_class:5179` clamps materialized regex classes
+  to `[0x20,0x7e]` — a universal parser-agnostic hazard exclusion),
+  characterized the 3 fix-locus trade-offs (regex-class materialization
+  / `effective_regex_pattern` per-rule steering / grammar tightening),
+  and 2 candidate **derived, parser-agnostic** principles: (P-a)
+  leading-negation-extends-to-whole-content (covers `non_directive_text`,
+  not `directive_tail`); (P-b) grammar-structural-prefix-set / round-trip
+  stability (fully general, deeper mechanism). Recorded in the leaf's
+  Verification Log. Next: design-lock (P-a vs P-b vs hybrid + locus)
+  then implement with `cargo test stimuli_generator::` + cross-parser
+  closed-loop no-regression. High blast radius ⇒ unhurried design.
+- Docs-only (Code-Change-Doctrine design-first precursor; no code).
+
 ## 2026-05-18 - PGEN-RGX-0084-0004 (leaf RGX-0084.3; tree COMPLETED): REGEX-0083 ledger + release/changelog process closure (docs-only)
 
 - **`RGX-0084` tree COMPLETED.** Released-parser-bug process closure
