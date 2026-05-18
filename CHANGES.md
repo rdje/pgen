@@ -1,4 +1,57 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SEMREF-SHAPED-0001 (leaf SEMREF-SHAPED.1; tree setup -0000): semantic-ref ↔ return-annotation resolver gap tracked + design locked (docs-only)
+
+- **New active task tree `SEMREF-SHAPED`** (renamed from the initial,
+  mis-framed `CODEGEN-RAWCAP`), user-directed: *"We shouldn't allow
+  workaround … Any gap in the way [return & semantic annotations]
+  interact shall be addressed head on."* It owns, as a
+  **parser-agnostic** engine fix, the gap that a semantic annotation
+  (`@predicate`/`@emit_fact`) on a rule X cannot read a value out of
+  the structure X's `->` return annotation produces.
+- **Gap (exact):** `resolve_named_semantic_reference` →
+  `find_semantic_named_descendant`
+  (`rust/src/ast_pipeline/ast_based_generator.rs:3594/3662`) only
+  walks raw `Sequence`/`Quantified`/`Alternative` and returns `None`
+  on `ParseContent::Json`; a `->`-object rule's `node.content` *is*
+  that `Json`, so every `$name` ref on such a rule errors
+  (`"could not resolve attribute reference '<name>'"`). Compounding
+  evidence: `grep -c 'semantic_raw_content = Some(' generated/
+  {regex,systemverilog}_parser.rs` → `0`/`0` (single-branch rules
+  never capture raw; only the multi-branch `best_raw_content` path
+  does) — so the assumed-proven SV `declared_X` content-ref idiom is
+  itself non-functional for positive resolution, i.e. there is no
+  working workaround idiom (vindicates "no workaround").
+- **User-decided contract (binding):** for a rule with a `->`, a
+  `$name` ref resolves **shaped-only** — strictly against the
+  produced structure's fields (no raw fallback); rules with no `->`
+  keep raw sub-rule-name resolution **byte-identical**.
+- **`SEMREF-SHAPED.1` (done, no code):** locus + minimal additive
+  design pinned — add a leading `ParseContent::Json` branch to
+  `resolve_named_semantic_reference` (dotted reference → serde
+  object-key path → scalar; `String`→clone, `Number`/`Bool`→string,
+  `Null`/`Object`/`Array`/absent → `None` → the existing hard
+  `ContextualError`, loud, consistent with today); raw path
+  **unchanged**. Content-variant-keyed (`Json` ⟺ object-producing
+  `->`); the existing `semantic_raw_content.unwrap_or(&node.content)`
+  already delivers the `Json` — **no codegen / `view` / raw-capture
+  change**. Parser-agnostic; no-`->` invariance provable by
+  construction + `.3` differential regen.
+- **RGX-0084 re-sequenced:** `RGX-0084.2`'s clean same-rule form
+  (`@predicate fact_count_at_least(regex_capture_group, $index)` on
+  `numeric_backreference`, reading its own `-> {…index:$2}` output)
+  is **dependency-blocked on `SEMREF-SHAPED`**. The interim
+  `gated_backreference_digits` no-`->` wrapper is **rejected**
+  (empirically non-functional anyway) and the workaround grammar was
+  reverted (`git checkout grammars/regex.ebnf`); P1
+  (`fact_count_at_least`, parser-agnostic engine predicate) stays
+  in-tree, verified+green, inert without grammar wiring. `SEMREF-SHAPED`
+  is the active frontier; `RGX-0084` dependency-blocked;
+  `SV-EXH-PROOF` still paused.
+- Docs-only (no code): `docs/tasks/SEMREF-SHAPED.md` (new),
+  `docs/TASK_TREE.md` (Active table), `docs/tasks/RGX-0084.md`
+  (dependency/blocker/decision tracking). Code-Change-Doctrine
+  precursor — `.2` owns the engine edit.
+
 ## 2026-05-18 - PGEN-RGX-0084-0002 (leaf RGX-0084.2 design-lock): parser-agnostic semantic-annotation design locked + execution premise verified (docs-only)
 
 - **Binding user mandate (recorded `feedback_ast_pipeline_parser_agnostic`):**
