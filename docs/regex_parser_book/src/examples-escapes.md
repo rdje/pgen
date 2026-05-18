@@ -109,16 +109,94 @@ For `\o{7777}` (longer): `digits:"7777"`. For `\o{1}`: `digits:"1"`.
 
 ## Octal escape (bare 1-3 digit) — `\377`
 
-**At atom-level**, bare `\NNN` is parsed as a numeric backreference (PEG-ordering: the `backreference` branch in `atom` precedes `escape`):
+**At atom-level**, bare `\N…` is disambiguated **at parse time** per
+PCRE2's compile-time rule (`pcre2pattern(3)` BACKREFERENCES), which is
+keyed on the numeric **value** `N` (longest digit run, no leading
+zero — `\0…` is always octal via `octal_escape`):
+
+- **`N` < 10 (a single digit `\1`…`\9`): ALWAYS a numeric back
+  reference.** The "groups opened so far" rule never applies to a
+  single digit (the report states this verbatim: *"Here `\1` is a
+  single digit, so the 'up to that point' rule never applies"*). This
+  is unchanged pre-existing behavior.
+- **`N` ≥ 10 (two+ digits `\10`, `\377`, …): a back reference iff
+  there are ≥ N capturing groups opened *up to that source
+  position*; otherwise an octal escape** (re-split through `escape` →
+  `octal_escape`/`simple_escape`).
+
+This fixes downstream report `PGEN-RGX-0084`: bare two+-digit `\NN…`
+was previously an *unconditional* numeric backreference regardless of
+group count.
+
+> **Superseded note (was true before this fix):** earlier editions of
+> this book stated atom-level bare `\NNN` is always
+> `{"type":"backreference","kind":"numeric","index":NNN}` and that
+> "PCRE2 disambiguation … PEG cannot express directly … left to
+> consumers via post-parse semantic analysis." That is **no longer
+> true and no longer accurate**: PGEN expresses the disambiguation
+> directly in the grammar via its always-on semantic-annotation
+> mechanism (a parse-time decision, **not** a post-parse consumer
+> concern). Single-digit `\1`…`\9` behavior is unchanged.
+
+So `\377` (two+ digits, N=377) with fewer than 377 capturing groups
+opened so far is an octal escape, **not** backref index 377:
 
 ```json
 {
-  "atom": {"type": "backreference", "kind": "numeric", "index": 377},
+  "atom": {"type": "escape", "kind": "octal", "digits": "377"},
   ...
 }
 ```
 
-This is pre-existing behavior — PCRE2 disambiguates `\NNN` between numeric backref and bare octal contextually ("if NNN ≤ 9 OR there are NNN capture groups, treat as backref; else octal"), which PEG cannot express directly. Disambiguation is left to consumers via post-parse semantic analysis if/when atom-level bare-octal support is needed.
+…while a single-digit `\1`, or a two+-digit `\10` with ≥ 10 groups
+opened, is a back reference (shape unchanged):
+
+```json
+// (a)\1   →   the \1 atom (single digit → always backref):
+{"type": "backreference", "kind": "numeric", "index": 1}
+```
+
+Worked family (verified end-to-end):
+
+| pattern | `\N…` atom | why |
+| --- | --- | --- |
+| `\1` (0 groups) | `{backreference, numeric, index:1}` | single digit → always backref (N<10) |
+| `\8` (0 groups) | `{backreference, numeric, index:8}` | single digit → always backref (N<10) |
+| `(a)\1` | `{backreference, numeric, index:1}` | single digit (N<10) |
+| `(a)\2` | `{backreference, numeric, index:2}` | single digit → always backref even with 1 group |
+| `(?:abc)\1` | `{backreference, numeric, index:1}` | single digit (N<10) — non-capturing irrelevant |
+| `(\1)` | `{backreference, numeric, index:1}` | single digit (N<10) |
+| `(?<n>x)\1` | `{backreference, numeric, index:1}` | single digit (N<10) |
+| `\377` (0 groups) | `{escape, octal, digits:"377"}` | N≥10, 0 < 377 |
+| `(a)\12` | `{escape, octal, digits:"12"}` | N≥10, only 1 group < 12 |
+| `(a)(b)\10` | `{escape, octal, digits:"10"}` | N≥10, only 2 groups < 10 |
+| `(a)…(j)\10` (10 groups) | `{backreference, numeric, index:10}` | N≥10, 10 groups ≥ 10 |
+| `(?<a>…)…(?<j>…)\10` (10 named) | `{backreference, numeric, index:10}` | PCRE2 numbers named groups too |
+| `()()()()()()()()()(?:(?(10)\10a\|b)(X\|Y))+` | `\10` → `{escape, octal, digits:"10"}` | N≥10, only 9 groups precede `\10`; group 10 opens *after* (the reported reproducer) |
+
+**Mechanism (grammar-level, parser-agnostic):** the single-vs-multi
+digit split *is* the N<10 vs N≥10 boundary. `numeric_backreference_single`
+(`\` + one `[1-9]`) is **ungated** — always a numeric backref.
+`numeric_backreference` (`\` + `[1-9][0-9]+`, value always ≥ 10) is
+**gated**: every capturing-group **open** marker (`capture_open` for
+`(…)`, plus the named / python-named open markers) carries
+`@emit_fact: {kind: regex_capture_group, …}`, recording one generic
+fact the instant the group's `(` is consumed (emit-at-OPEN, so a
+self/forward ref like `(\1)` sees its own group). `numeric_backreference`
+carries `@predicate: {name: fact_count_at_least, args:
+[regex_capture_group, $index], phase: post}` — a *generic* engine
+predicate (a strict generalization of `has_fact`) true iff the
+running `regex_capture_group` fact count ≥ the matched digit value.
+`$index` reads `numeric_backreference`'s own `->` output field (the
+`SEMREF-SHAPED` shaped-structure semantic-ref resolution). When false
+the rule backtracks and `atom` falls through to `escape` →
+`octal_escape`/`simple_escape` — PCRE2's octal/literal fallback,
+automatic via PEG ordered choice (`numeric_backreference` is tried
+before `numeric_backreference_single` so the longest digit run wins).
+Non-capturing / lookaround / atomic / conditional / verb groups
+deliberately do **not** emit, so they are correctly not counted. The
+"capture group" knowledge lives only in `regex.ebnf`; the engine
+predicate is grammar-agnostic.
 
 **Inside character classes**, the `class_range_escape_unit` path reaches the bare-octal branch and emits the typed shape:
 

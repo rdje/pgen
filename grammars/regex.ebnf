@@ -192,7 +192,8 @@ anchor         = "^"   -> {type: "anchor", kind: "start_of_line"}
 #                       consumers may want to treat both the same.
 #   - "subroutine"   → \g<...> / \g'...' / \g{...} / \g+digit. `ref`
 #                       carries the raw `subroutine_ref` shape.
-backreference  = "\\" backreference_digits                              -> {type: "backreference", kind: "numeric",                index: $2}
+backreference  = numeric_backreference                                  -> $1
+               | numeric_backreference_single                            -> $1
                | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
                | "\\k" braced_name_ref                                   -> {type: "backreference", kind: "named_braced",           ref:   $2}
                | "\\g" "<" name ">"                                      -> {type: "backreference", kind: "subroutine_named",       ref:   $3}
@@ -203,13 +204,65 @@ backreference  = "\\" backreference_digits                              -> {type
                | "\\g" "{" brace_ws? signed_digits brace_ws? "}"         -> {type: "backreference", kind: "numeric_backreference",  ref:   $4}
                | "\\g" signed_digits                                     -> {type: "backreference", kind: "numeric_backreference",  ref:   $2}
 
-# `backreference_digits` rewritten as a single regex with an
-# `@transform`, mirroring how `digits` was typed. The regex disallows
-# a leading zero (PCRE2 reserves `\0...` for octal escapes, handled by
-# the separate `simple_escape`/`octal_escape` paths). The transform
+# PCRE2's `\N…` octal-vs-backref disambiguation (pcre2pattern(3)
+# BACKREFERENCES) is keyed on the numeric VALUE N:
+#
+#   • N < 10  (a SINGLE digit `\1`…`\9`, no leading zero): **always a
+#     back reference** — the "groups opened up to here" rule never
+#     applies (confirmed verbatim by the PGEN-RGX-0084 report:
+#     "Here `\1` is a single digit, so the 'up to that point' rule
+#     never applies"). This is the existing pre-fix behavior and is an
+#     explicit RGX-0084 Non-Goal ("not changing single-digit `\1`
+#     behavior; the bug is exclusively the two+-digit path"). Handled
+#     by the UNGATED `numeric_backreference_single` rule below.
+#
+#   • N ≥ 10 (TWO+ digits `\10`, `\101`, …): a back reference iff there
+#     are ≥ N capturing groups *opened up to this source position*;
+#     otherwise the digit run re-splits through `escape` →
+#     `octal_escape`/`simple_escape` (PCRE2's octal/literal fallback,
+#     automatic via PEG ordered choice once this gated rule
+#     backtracks). This is the actual PGEN-RGX-0084 bug. Handled by
+#     the GATED `numeric_backreference` rule.
+#
+# The single-vs-multi digit split *is* the N<10 vs N≥10 distinction
+# exactly (no leading zeros ⇒ 1 digit ⟺ 1–9 ⟺ <10; ≥2 digits ⟺ ≥10).
+# `numeric_backreference` (multi) is tried before
+# `numeric_backreference_single` in `backreference` so PCRE2's
+# "longest digit run" is honored.
+#
+# `fact_count_at_least` is the GENERIC parser-agnostic engine
+# predicate (a strict generalization of `has_fact` = count ≥ 1): it
+# counts `regex_capture_group` facts emitted by the `capture_open`
+# (and named/python-named) OPEN markers and is true iff that running
+# count ≥ the matched digit value. The engine knows nothing about
+# regex / capture groups — the regex-specific decision lives only
+# here. Binding/resolution (verified): a standalone `@…` directive
+# binds to the rule that immediately FOLLOWS it; predicate-arg refs
+# resolve by NAME against the bound rule's *produced structure* —
+# `$index` reads this rule's own `->` object field `index` (the
+# matched digit value, `@transform`-typed). That shaped-structure
+# resolution is the `SEMREF-SHAPED` engine capability. Phase `post`:
+# `index` is only bound after the body parses.
+@predicate: { name: fact_count_at_least, args: [regex_capture_group, $index], phase: post }
+numeric_backreference = "\\" backreference_digits                       -> {type: "backreference", kind: "numeric", index: $2}
+
+# SINGLE-digit `\1`…`\9` — always a numeric back reference (N < 10;
+# the disambiguation rule never applies — RGX-0084 Non-Goal, pre-fix
+# behavior preserved exactly). NO `@predicate`: never gated, never
+# octal. Same `{type,kind,index}` shape as the multi-digit rule.
+numeric_backreference_single = "\\" backreference_digits_single         -> {type: "backreference", kind: "numeric", index: $2}
+
+# `backreference_digits` (the GATED, N ≥ 10 family) is now TWO+ digits
+# (`[1-9][0-9]+`, so its value is always ≥ 10 — no leading zero;
+# PCRE2 reserves `\0…` for octal, handled by `simple_escape`/
+# `octal_escape`). `backreference_digits_single` is exactly one
+# nonzero digit (the UNGATED N < 10 family). The transform on each
 # parses the matched digit string to a typed integer.
 @transform: str::parse::<usize>().unwrap_or(0)
-backreference_digits = /([1-9][0-9]*)/
+backreference_digits = /([1-9][0-9]+)/
+
+@transform: str::parse::<usize>().unwrap_or(0)
+backreference_digits_single = /([1-9])/
 # Named-reference forms — surface the matched name string directly so
 # consumers don't walk the raw `["<", <name>, ">"]` Sequence wrapping.
 name_ref       = "<" name ">"  -> $2
@@ -542,21 +595,56 @@ prop_name_chars = letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^
 # PCRE2 treats them as semantically equivalent.
 group          = capturing_group | noncapturing_group | named_group | python_named_group
 
-capturing_group      = "(" pattern? ")"               -> {type: "atom", kind: "capturing_group", body: $2}
+# Capture-group OPEN marker. PCRE2 numbers a capturing group from its
+# opening parenthesis, so the `regex_capture_group` fact is emitted at
+# group-OPEN: `@emit_fact` binds to the FOLLOWING rule and its effect
+# applies right after that rule's body parses, so binding it to
+# `capture_open` (body = just the opening token) emits the instant `(`
+# is consumed — before the group body / any inner self-ref `\N` — so
+# `(\1)` keeps `\1` a backref (no regression of valid self-backrefs).
+# `!"?" !"*"` reject every `(?…)` / `(*…)` form *before* the
+# side-effecting emit, so a fact can never leak onto a non-capturing
+# construct (`capture_open` only succeeds — and only then emits — for
+# a real numbered capturing group). Recognized language unchanged: a
+# `(` followed by `?`/`*` was never a plain `capturing_group`.
+# `@emit_fact` args are literal scalars (no `$ref`) so emit needs no
+# content resolution. `regex_capture_group` is a generic semantic
+# fact; the regex-specific knowledge lives only here.
+@emit_fact: { kind: regex_capture_group, name: capture }
+capture_open         = "(" !"?" !"*"                  -> {type: "atom", kind: "capture_open"}
+capturing_group      = capture_open pattern? ")"      -> {type: "atom", kind: "capturing_group", body: $2}
 noncapturing_group   = "(?:" pattern? ")"             -> {type: "atom", kind: "noncapturing_group", body: $2}
 # Both `(?<name>...)` (angle) and `(?'name'...)` (quote) syntactic
 # forms produce the same `kind:"named_group"` typed shape; PCRE2
 # treats them as semantically equivalent, paralleling the
 # `atomic_group` 2-form collapse in slice 21.
-named_group          = "(?<" name ">" pattern? ")"    -> {type: "atom", kind: "named_group", name: $2, body: $4}
-                     | "(?'" name "'" pattern? ")"    -> {type: "atom", kind: "named_group", name: $2, body: $4}
+# PCRE2 numbers NAMED capturing groups too, so `(?<n>…)` / `(?'n'…)`
+# must also emit a `regex_capture_group` fact at group-OPEN (same
+# proven `capture_open` idiom: `@emit_fact` binds to the FOLLOWING
+# rule; bind it to an open-marker whose body is just the opening
+# `(?<name>` / `(?'name'` so the fact emits the instant the group
+# opens, before its body / any inner self-ref). The marker surfaces
+# the name via `-> $2` so the parent's `name:$1` is shape-preserving
+# (was `name:$2` over `"(?<" name ">" …`). `body:$2` = `pattern?`
+# (was `body:$4`). `@emit_fact` args are literal scalars (no `$ref`).
+@emit_fact: { kind: regex_capture_group, name: capture }
+named_group_open_angle = "(?<" name ">"               -> $2
+@emit_fact: { kind: regex_capture_group, name: capture }
+named_group_open_quote = "(?'" name "'"               -> $2
+named_group          = named_group_open_angle pattern? ")"    -> {type: "atom", kind: "named_group", name: $1, body: $2}
+                     | named_group_open_quote pattern? ")"    -> {type: "atom", kind: "named_group", name: $1, body: $2}
 # Python-style `(?P<name>...)`. Distinct `kind:"python_named_group"`
 # preserves the syntactic origin (paralleling
 # `python_named_backreference` in slice 19, which used
 # `kind:"python_named"` rather than collapsing into `"named"`).
 # Consumers that don't care about syntactic origin can normalize:
 # `kind in {"named_group", "python_named_group"}` → name-based group.
-python_named_group   = "(?P<" name ">" pattern? ")"   -> {type: "atom", kind: "python_named_group", name: $2, body: $4}
+# Python-style `(?P<name>…)` is also a numbered capturing group in
+# PCRE2 — same emit-at-OPEN marker idiom. Shape preserved
+# (`name:$1` via the marker's `-> $2`; `body:$2` = `pattern?`).
+@emit_fact: { kind: regex_capture_group, name: capture }
+python_named_group_open = "(?P<" name ">"             -> $2
+python_named_group   = python_named_group_open pattern? ")"   -> {type: "atom", kind: "python_named_group", name: $1, body: $2}
 
 atomic_group         = "(?>" pattern? ")"             -> {type: "atom", kind: "atomic_group", body: $2}
                      | "(*atomic:" pattern? ")"       -> {type: "atom", kind: "atomic_group", body: $2}

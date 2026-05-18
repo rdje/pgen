@@ -34,6 +34,36 @@ This is the document downstream projects such as RGX should read first when deci
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Release 1.1.76 / Contract 1.1.78 Highlights — PGEN-RGX-0084 fix: bare `\NN…` octal-vs-backreference disambiguation now PCRE2-compliant at parse time
+
+Downstream report `PGEN-RGX-0084`: the released regex parser classified a bare numeric escape `\NN…` as `{type:"backreference", kind:"numeric", index:N}` **unconditionally**, regardless of how many capturing groups existed. PCRE2 (`pcre2pattern(3)` BACKREFERENCES) disambiguates by the numeric value `N`:
+
+- **`N` < 10 (single digit `\1`…`\9`): always a numeric back reference** — the "groups opened so far" rule never applies (unchanged pre-existing behavior; explicit Non-Goal of this fix).
+- **`N` ≥ 10 (two+ digits): a back reference iff ≥ N capturing groups (plain *or* named) have been opened up to that source position; otherwise an octal escape** (re-split through `escape` → `octal_escape`/`simple_escape`), or a literal digit per PCRE2.
+
+Reproducer `()()()()()()()()()(?:(?(10)\10a|b)(X|Y))+`: only 9 groups precede `\10`, group 10 opens *after*, so `\10` is the octal escape `\010` (U+0008), not backref index 10.
+
+This is a parse-time grammar-level fix via PGEN's always-on, **parser-agnostic** semantic-annotation mechanism (capability `SEMREF-SHAPED`), not a downstream post-parse concern (superseding the earlier "PEG cannot express; left to consumers" framing). Grammar shape (the numeric-backref branch is lifted; capturing-group open markers emit a generic fact; the multi-digit rule is gated by a generic running-count predicate that reads its own produced `index`):
+
+```ebnf
+backreference  = numeric_backreference                  -> $1     # multi-digit (N≥10), GATED
+               | numeric_backreference_single            -> $1     # single digit (N<10), UNGATED — always backref
+               | "\\k" name_ref                          -> {type: "backreference", kind: "named", ref: $2}
+               | …                                                  # \k / \g forms unchanged
+
+@predicate: { name: fact_count_at_least, args: [regex_capture_group, $index], phase: post }
+numeric_backreference        = "\\" backreference_digits        -> {type: "backreference", kind: "numeric", index: $2}
+numeric_backreference_single = "\\" backreference_digits_single -> {type: "backreference", kind: "numeric", index: $2}
+backreference_digits        = /([1-9][0-9]+)/   # N ≥ 10
+backreference_digits_single = /([1-9])/         # N 1–9
+
+@emit_fact: { kind: regex_capture_group, name: capture }
+capture_open = "(" !"?" !"*" -> {type: "atom", kind: "capture_open"}
+# named / python-named capturing groups carry the same emit-at-OPEN marker (PCRE2 numbers them too)
+```
+
+**Accept set / AST shape:** unchanged. A numeric back reference is still byte-identical `{type:"backreference", kind:"numeric", index:N}` (verified `(a)\1` → `{"index":1,"kind":"numeric","type":"backreference"}`); an octal escape is still `{type:"escape", kind:"octal", digits:"…"}`. Only the **classification** of a previously-misclassified two+-digit `\NN…` changes (backref → octal when < N groups). No new shape vocabulary ⇒ **AST-dump schema stays `1`** (atom re-classification only — same category as `REGEX-0002`/`REGEX-0004`; downstream consumers that pinned to "all `\NNN` are backreferences" should repin to this release). Verified: full PCRE2 family table (single-digit always-backref incl. `\1`/`\8`/`(a)\2`/`(?:abc)\1`; N≥10 gated incl. reported reproducer→octal, 10-group/named-10-group `\10`→backref, `(a)(b)\10`→octal); `regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form` green; `regex_parser_integration_contract_gate` + `regex_ast_shape_contract` + 97/0 `cargo test regex` + `annotation_contract_gate` (41 ✅) all green.
+
 ## Release 1.1.75 / Contract 1.1.77 Highlights — PGEN-RGX-0081 + 0082 fixes: typed shape regressions surfaced by RGX walker migration
 
 Two RGX-reported AST shape bugs landed in slices 11+12+13 (parser releases 1.1.41–43) and the code_block typing slice. Both are pure shape fixes; same accept set; schema stays at `1`.

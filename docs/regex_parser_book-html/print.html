@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-197984b4.js";
+            window.path_to_searchindex_js = "searchindex-d902c4ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -4216,13 +4216,92 @@ comment_char = letter | digit | whitespace | comment_special | unicode_char
 </code></pre>
 <p>For <code>\o{7777}</code> (longer): <code>digits:"7777"</code>. For <code>\o{1}</code>: <code>digits:"1"</code>.</p>
 <h2 id="octal-escape-bare-1-3-digit--377"><a class="header" href="#octal-escape-bare-1-3-digit--377">Octal escape (bare 1-3 digit) — <code>\377</code></a></h2>
-<p><strong>At atom-level</strong>, bare <code>\NNN</code> is parsed as a numeric backreference (PEG-ordering: the <code>backreference</code> branch in <code>atom</code> precedes <code>escape</code>):</p>
+<p><strong>At atom-level</strong>, bare <code>\N…</code> is disambiguated <strong>at parse time</strong> per
+PCRE2’s compile-time rule (<code>pcre2pattern(3)</code> BACKREFERENCES), which is
+keyed on the numeric <strong>value</strong> <code>N</code> (longest digit run, no leading
+zero — <code>\0…</code> is always octal via <code>octal_escape</code>):</p>
+<ul>
+<li><strong><code>N</code> &lt; 10 (a single digit <code>\1</code>…<code>\9</code>): ALWAYS a numeric back
+reference.</strong> The “groups opened so far” rule never applies to a
+single digit (the report states this verbatim: <em>“Here <code>\1</code> is a
+single digit, so the ‘up to that point’ rule never applies”</em>). This
+is unchanged pre-existing behavior.</li>
+<li><strong><code>N</code> ≥ 10 (two+ digits <code>\10</code>, <code>\377</code>, …): a back reference iff
+there are ≥ N capturing groups opened <em>up to that source
+position</em>; otherwise an octal escape</strong> (re-split through <code>escape</code> →
+<code>octal_escape</code>/<code>simple_escape</code>).</li>
+</ul>
+<p>This fixes downstream report <code>PGEN-RGX-0084</code>: bare two+-digit <code>\NN…</code>
+was previously an <em>unconditional</em> numeric backreference regardless of
+group count.</p>
+<blockquote>
+<p><strong>Superseded note (was true before this fix):</strong> earlier editions of
+this book stated atom-level bare <code>\NNN</code> is always
+<code>{"type":"backreference","kind":"numeric","index":NNN}</code> and that
+“PCRE2 disambiguation … PEG cannot express directly … left to
+consumers via post-parse semantic analysis.” That is <strong>no longer
+true and no longer accurate</strong>: PGEN expresses the disambiguation
+directly in the grammar via its always-on semantic-annotation
+mechanism (a parse-time decision, <strong>not</strong> a post-parse consumer
+concern). Single-digit <code>\1</code>…<code>\9</code> behavior is unchanged.</p>
+</blockquote>
+<p>So <code>\377</code> (two+ digits, N=377) with fewer than 377 capturing groups
+opened so far is an octal escape, <strong>not</strong> backref index 377:</p>
 <pre><code class="language-json">{
-  "atom": {"type": "backreference", "kind": "numeric", "index": 377},
+  "atom": {"type": "escape", "kind": "octal", "digits": "377"},
   ...
 }
 </code></pre>
-<p>This is pre-existing behavior — PCRE2 disambiguates <code>\NNN</code> between numeric backref and bare octal contextually (“if NNN ≤ 9 OR there are NNN capture groups, treat as backref; else octal”), which PEG cannot express directly. Disambiguation is left to consumers via post-parse semantic analysis if/when atom-level bare-octal support is needed.</p>
+<p>…while a single-digit <code>\1</code>, or a two+-digit <code>\10</code> with ≥ 10 groups
+opened, is a back reference (shape unchanged):</p>
+<pre><code class="language-json">// (a)\1   →   the \1 atom (single digit → always backref):
+{"type": "backreference", "kind": "numeric", "index": 1}
+</code></pre>
+<p>Worked family (verified end-to-end):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>pattern</th><th><code>\N…</code> atom</th><th>why</th></tr>
+</thead>
+<tbody>
+<tr><td><code>\1</code> (0 groups)</td><td><code>{backreference, numeric, index:1}</code></td><td>single digit → always backref (N&lt;10)</td></tr>
+<tr><td><code>\8</code> (0 groups)</td><td><code>{backreference, numeric, index:8}</code></td><td>single digit → always backref (N&lt;10)</td></tr>
+<tr><td><code>(a)\1</code></td><td><code>{backreference, numeric, index:1}</code></td><td>single digit (N&lt;10)</td></tr>
+<tr><td><code>(a)\2</code></td><td><code>{backreference, numeric, index:2}</code></td><td>single digit → always backref even with 1 group</td></tr>
+<tr><td><code>(?:abc)\1</code></td><td><code>{backreference, numeric, index:1}</code></td><td>single digit (N&lt;10) — non-capturing irrelevant</td></tr>
+<tr><td><code>(\1)</code></td><td><code>{backreference, numeric, index:1}</code></td><td>single digit (N&lt;10)</td></tr>
+<tr><td><code>(?&lt;n&gt;x)\1</code></td><td><code>{backreference, numeric, index:1}</code></td><td>single digit (N&lt;10)</td></tr>
+<tr><td><code>\377</code> (0 groups)</td><td><code>{escape, octal, digits:"377"}</code></td><td>N≥10, 0 &lt; 377</td></tr>
+<tr><td><code>(a)\12</code></td><td><code>{escape, octal, digits:"12"}</code></td><td>N≥10, only 1 group &lt; 12</td></tr>
+<tr><td><code>(a)(b)\10</code></td><td><code>{escape, octal, digits:"10"}</code></td><td>N≥10, only 2 groups &lt; 10</td></tr>
+<tr><td><code>(a)…(j)\10</code> (10 groups)</td><td><code>{backreference, numeric, index:10}</code></td><td>N≥10, 10 groups ≥ 10</td></tr>
+<tr><td><code>(?&lt;a&gt;…)…(?&lt;j&gt;…)\10</code> (10 named)</td><td><code>{backreference, numeric, index:10}</code></td><td>PCRE2 numbers named groups too</td></tr>
+<tr><td><code>()()()()()()()()()(?:(?(10)\10a|b)(X|Y))+</code></td><td><code>\10</code> → <code>{escape, octal, digits:"10"}</code></td><td>N≥10, only 9 groups precede <code>\10</code>; group 10 opens <em>after</em> (the reported reproducer)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Mechanism (grammar-level, parser-agnostic):</strong> the single-vs-multi
+digit split <em>is</em> the N&lt;10 vs N≥10 boundary. <code>numeric_backreference_single</code>
+(<code>\</code> + one <code>[1-9]</code>) is <strong>ungated</strong> — always a numeric backref.
+<code>numeric_backreference</code> (<code>\</code> + <code>[1-9][0-9]+</code>, value always ≥ 10) is
+<strong>gated</strong>: every capturing-group <strong>open</strong> marker (<code>capture_open</code> for
+<code>(…)</code>, plus the named / python-named open markers) carries
+<code>@emit_fact: {kind: regex_capture_group, …}</code>, recording one generic
+fact the instant the group’s <code>(</code> is consumed (emit-at-OPEN, so a
+self/forward ref like <code>(\1)</code> sees its own group). <code>numeric_backreference</code>
+carries <code>@predicate: {name: fact_count_at_least, args: [regex_capture_group, $index], phase: post}</code> — a <em>generic</em> engine
+predicate (a strict generalization of <code>has_fact</code>) true iff the
+running <code>regex_capture_group</code> fact count ≥ the matched digit value.
+<code>$index</code> reads <code>numeric_backreference</code>’s own <code>-&gt;</code> output field (the
+<code>SEMREF-SHAPED</code> shaped-structure semantic-ref resolution). When false
+the rule backtracks and <code>atom</code> falls through to <code>escape</code> →
+<code>octal_escape</code>/<code>simple_escape</code> — PCRE2’s octal/literal fallback,
+automatic via PEG ordered choice (<code>numeric_backreference</code> is tried
+before <code>numeric_backreference_single</code> so the longest digit run wins).
+Non-capturing / lookaround / atomic / conditional / verb groups
+deliberately do <strong>not</strong> emit, so they are correctly not counted. The
+“capture group” knowledge lives only in <code>regex.ebnf</code>; the engine
+predicate is grammar-agnostic.</p>
 <p><strong>Inside character classes</strong>, the <code>class_range_escape_unit</code> path reaches the bare-octal branch and emits the typed shape:</p>
 <pre><code class="language-json">{
   "atom": [

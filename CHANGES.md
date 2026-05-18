@@ -1,4 +1,53 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0084-0003 (leaf RGX-0084.2): PGEN-RGX-0084 FIXED — bare `\NN…` octal-vs-backref PCRE2 disambiguation at parse time (code + full books↔code lockstep)
+
+- **Reported bug `PGEN-RGX-0084` FIXED.** Bare numeric `\N…` was an
+  *unconditional* numeric backreference. Now PCRE2-compliant at parse
+  time: single-digit `\1`…`\9` (N<10) always a numeric backref
+  (unchanged — Non-Goal); two+-digit `\NN…` (N≥10) a backref iff ≥ N
+  capturing groups (plain *or* named) opened up to that source
+  position, else re-split to octal/literal. Reproducer `\10` with 9
+  preceding groups → octal `\010`.
+- **Code (`grammars/regex.ebnf`):** `backreference` numeric alt lifted
+  to `numeric_backreference` (GATED multi-digit `[1-9][0-9]+`) +
+  `numeric_backreference_single` (UNGATED `[1-9]`, N<10). The
+  single/multi-digit split *is* the PCRE2 N<10/N≥10 boundary. New
+  capturing-group emit-at-OPEN markers `capture_open = "(" !"?" !"*"`
+  and named/python-named open markers carry
+  `@emit_fact: {kind: regex_capture_group, …}`; `numeric_backreference`
+  carries `@predicate: {name: fact_count_at_least, args:
+  [regex_capture_group, $index], phase: post}` (`$index` reads its own
+  `->` output — the `SEMREF-SHAPED` shaped-resolution capability). The
+  octal/literal fallback is automatic via PEG ordered choice.
+- **P1 (`rust/src/ast_pipeline/semantic_runtime.rs`):** the generic,
+  parser-agnostic `fact_count_at_least(kind, M)` engine predicate (a
+  strict generalization of `has_fact`) + its unit test. The regex
+  "capture group" knowledge lives only in `regex.ebnf`.
+- **Single-digit over-gating error caught + corrected pre-commit:** an
+  intermediate version gated *every* numeric backref (incl. `\1`); the
+  non-negotiable no-regression gate
+  (`regex_parser_pgen_rgx_0081_g_prefixed_backref_preserves_bracket_form`,
+  which correctly expects `\1`→numeric) FAILED and caught it. Fixed by
+  the single/multi-digit split; recorded honestly as a retracted false
+  pass (the discipline worked).
+- **Verified:** full 23-case PCRE2 family table all correct;
+  `(a)\1` AST byte-identical baseline shape (no AST regression);
+  `regex_parser_integration_contract_gate` ✅;
+  `regex_ast_shape_contract` ✅ (`regex_v1.json` declared-annotation
+  inventory re-baselined 142→149 for the new rules);
+  `cargo test regex` 97 passed / 0 failed;
+  `annotation_contract_gate` 41 ✅ (engine no-regression, unchanged).
+- **Books↔code same-commit lockstep (binding):** regex parser book
+  `examples-escapes.md` superseded "PEG cannot express / left to
+  consumers" passage replaced with the implemented behavior +
+  verified worked-family table; tracked `docs/regex_parser_book-html`
+  regenerated; top-level `docs/book/src/parser-families.md`
+  maintenance-track note; `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
+  new "Release 1.1.76 / Contract 1.1.78 — PGEN-RGX-0084" section
+  (schema stays `1` — atom re-classification, REGEX-0002/0004
+  precedent); `regex_v1.json`. RGX-0084.3 carries the REGEX-0083
+  ledger row + the formal release/version cut + changelog-index.
+
 ## 2026-05-18 - PGEN-SEMREF-SHAPED-0003 (leaf SEMREF-SHAPED.3; tree COMPLETED): cross-parser no-regression proven + shaped-resolution contract lockstep (docs-only close)
 
 - **`SEMREF-SHAPED` tree COMPLETED.** The parser-agnostic

@@ -602,6 +602,32 @@ impl SemanticRuntimeState {
                     .ok()?;
                 Some(self.scopes.len().saturating_sub(1) >= minimum_depth)
             }
+            // Parser-agnostic, general context-steering primitive: is the
+            // number of facts of `kind` emitted so far (in source order, as
+            // the parser has progressed) at least the integer threshold?
+            // A strict generalization of `has_fact` (which is the
+            // `count(kind, name) >= 1` special case): `fact_count_at_least`
+            // counts by `kind` only, so `name` is irrelevant. Usable by ANY
+            // grammar for context-sensitive decisions — declaration-count
+            // -before-use, nesting/recursion bounds, ordinal-sensitive
+            // parsing, etc. No parser-specific concept lives here; a grammar
+            // chooses which rule `@emit_fact`s which `kind` and which rule
+            // `@predicate`-gates on the running count (e.g. the regex grammar
+            // emits a capture-group fact and gates `\NN` backref-vs-octal
+            // per PCRE2 — `PGEN-RGX-0084`).
+            "fact_count_at_least" => {
+                let expected_kind = scalar_text(predicate.args.first()?)?;
+                let minimum = scalar_text(predicate.args.get(1)?)?
+                    .trim()
+                    .parse::<usize>()
+                    .ok()?;
+                let count = self
+                    .facts
+                    .iter()
+                    .filter(|fact| fact.kind.eq_ignore_ascii_case(expected_kind))
+                    .count();
+                Some(count >= minimum)
+            }
             _ => None,
         }
     }
@@ -1025,9 +1051,10 @@ fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        CompiledSemanticRuntimeAnnotations, SemanticPredicateContentView, SemanticPredicatePhase,
-        SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState,
-        SemanticRuntimeValue, SemanticScopeKind, compile_rule_semantic_runtime_directives,
+        CompiledSemanticRuntimeAnnotations, SemanticFactSpec, SemanticPredicateContentView,
+        SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeDirective,
+        SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
+        compile_rule_semantic_runtime_directives,
         compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
         parse_semantic_runtime_directives,
     };
@@ -2525,5 +2552,74 @@ mod tests {
 
         assert_eq!(state.scopes().len(), 1);
         assert!(state.facts().is_empty());
+    }
+
+    #[test]
+    fn fact_count_at_least_is_parser_agnostic_generalization_of_has_fact() {
+        // `fact_count_at_least` counts facts by `kind` only — a strict
+        // generalization of `has_fact` (the `count(kind, name) >= 1`
+        // special case). It is a GENERAL context-steering primitive: any
+        // grammar may emit a fact and gate on its running count. This test
+        // deliberately uses a neutral kind (NOT a regex/capture-group
+        // concept) to assert the engine stays parser-agnostic; the
+        // PGEN-RGX-0084 regex fix is just one consumer.
+        let mut state = SemanticRuntimeState::new();
+        let pred = |kind: &str, n: &str| SemanticPredicateSpec {
+            name: "fact_count_at_least".to_string(),
+            args: vec![
+                UnifiedSemanticValue::Identifier(kind.to_string()),
+                UnifiedSemanticValue::Identifier(n.to_string()),
+            ],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        };
+
+        // No facts yet → count 0.
+        assert_eq!(
+            state.evaluate_predicate(&pred("opened_construct", "1")),
+            Some(false)
+        );
+
+        // Emit two facts of the kind (names differ — count is by `kind`).
+        for nm in ["a", "b"] {
+            state.emit_fact(SemanticFactSpec {
+                kind: "opened_construct".to_string(),
+                name: SemanticRuntimeValue::Identifier(nm.to_string()),
+                attributes: Vec::new(),
+            });
+        }
+
+        assert_eq!(
+            state.evaluate_predicate(&pred("opened_construct", "1")),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&pred("opened_construct", "2")),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&pred("opened_construct", "3")),
+            Some(false)
+        );
+        // A different kind is independent (parser-agnostic: `kind` is an
+        // arbitrary grammar-chosen string the engine never interprets).
+        assert_eq!(
+            state.evaluate_predicate(&pred("other_kind", "1")),
+            Some(false)
+        );
+
+        // Strict generalization: count >= 1 ⟺ has_fact(kind, <a name>).
+        assert_eq!(
+            state.evaluate_predicate(&SemanticPredicateSpec {
+                name: "has_fact".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier("opened_construct".to_string()),
+                    UnifiedSemanticValue::Identifier("a".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Pre,
+                view: SemanticPredicateContentView::Raw,
+            }),
+            Some(true)
+        );
     }
 }
