@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-SV-EXH-PROOF-0017 (SV-EXH-PROOF.3.2 root cause DECISIVELY RE-PINNED; docs-only, no code): per-digit lexical tokens carry a spurious `\b` — breaks ALL multi-digit SV numbers
+
+- Resumed `SV-EXH-PROOF.3.2` after `RGX-0087-FIX2` (fully closed +
+  pushed, `5fd20609`; `PGEN-RGX-0087` resolved, RGX ratchet 12,807/3).
+- **Prior `.3.2` hypothesis FALSIFIED (binding verify-don't-assume /
+  smallest-real-artifact):** `module_ansi_header` already allows
+  `package_import_declaration*` before `( parameter_port_list )?`
+  (systemverilog.ebnf:2723); every synthetic veer-header-shape repro
+  PASSES. Delta-debugged the REAL veer preprocessed file: the failing
+  construct is not the module header / user type / huge size — it is
+  **any multi-digit number** (`parameter int W = 1` PASS, `= 42` /
+  `= 'hFF` / `= 8'h09` / `= 4'b10` FAIL; `$display(1)` PASS,
+  `$display(11)` FAIL, `$display(1 )` PASS).
+- **DECISIVE ROOT CAUSE:** the 10 per-digit lexical tokens
+  `kw_n_0_b6589fc6` … `kw_n_9_0ade7c2c` are `:= trivia /<d>\b/`
+  (systemverilog.ebnf:5369-5411; identical in
+  systemverilog_lrm_profiled_generated.ebnf:2541+). The `\b`
+  word-boundary — correct for alphabetic keyword tokens
+  (`module`≠`modulex`) — is catastrophic for single-digit tokens
+  that concatenate into multi-digit numbers: `/4\b/` cannot match
+  the `4` in `42` (no boundary before `2`), so `decimal_digit` only
+  matches a digit at a word boundary ⇒ **every multi-digit number /
+  sized literal `N'hHH` in any SV expression (params, localparams,
+  args, body exprs) is unparseable.** *This* is THE external-corpus
+  0/14 root cause; veer was merely one instance.
+- `.3.2` re-scoped from "module-header package_import" to the
+  per-digit-token `\b` defect (root cause now artifact-confirmed,
+  not assumed). **Fix locus (next focused unit, high blast radius —
+  core SV number lexing):** suppress the `\b`-append for numeric
+  single-char digit tokens used by `decimal_digit`/`hex_digit`/
+  `octal_digit`/`binary_digit`/`size`/value rules in BOTH grammar
+  files, and at the GENERATOR if these `kw_*_<hash>` tokens are
+  tool-emitted (the `_<8hex>` suffix ⇒ likely generated; fixing only
+  the `.ebnf` may be regenerated away — verify the generator/profile
+  source first). Requires an LRM number-form oracle (`42`, `1_000`,
+  `8'h09`, `2294'h…`, `4'b1010`, `16'd42`, `'hFF`, `1.5`, `1e6`,
+  `'0`/`'1`) + full SV shape-contract/annotation-inventory/aggregate/
+  stimuli/closure lockstep + re-measure external-corpus.
+- No code (Code-Change Doctrine: leaf `.3.2` owns the forthcoming
+  grammar fix; this is its corrected root-cause grounding —
+  converting a falsified hypothesis into THE precisely-pinned core
+  defect with a clear fix plan). Checkpoint, not rushed at session
+  depth (a botched core-number-lexing change = catastrophic
+  regression). Standing push rule (push every 30).
+
 ## 2026-05-18 - PGEN-RGX-0087-FIX2-0003 (RGX-0087-FIX2.3): octal `>\377` overflow now rejects (PCRE2-faithful); release 1.1.80/contract 1.1.82; **PGEN-RGX-0087 CLOSED**
 
 - **Fix (grammar-only, parser-agnostic — `grammars/regex.ebnf`):**
