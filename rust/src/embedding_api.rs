@@ -31,11 +31,23 @@ pub const EMBEDDING_API_VERSION: &str = "1.2.0";
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 
+// PGEN-RGX-0086: these two constants are the canonical downstream
+// handoff surface (`parser_embedding_api_contract()`), which the
+// reporting protocol tells consumers to copy verbatim. They MUST equal
+// the latest regex "Fixed in" labels in
+// `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` for the built
+// tree. Enforced by the drift gate
+// `regex_parser_pgen_rgx_0086_embedding_version_consts_match_ledger`
+// (parses the ledger; fails if a future ledger row's Fixed-in is not
+// reflected here). Last synced 2026-05-18 to ledger row `REGEX-0084`
+// (downstream `PGEN-RGX-0085`): regex parser release 1.1.77; regex
+// integration contract 1.1.79.
+
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.31";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.79";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.29";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.77";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -4339,6 +4351,76 @@ mod tests {
             .expect("spawn 2 MiB PGEN-RGX-0085 verification thread")
             .join()
             .expect("PGEN-RGX-0085 verification must NOT abort the host process");
+    }
+
+    #[test]
+    fn regex_parser_pgen_rgx_0086_embedding_version_consts_match_ledger() {
+        // PGEN-RGX-0086 drift gate: the embedding-API regex version
+        // constants (the canonical downstream handoff the reporting
+        // protocol says to copy verbatim) MUST equal the LATEST regex
+        // "Fixed in" labels in PGEN_RELEASED_PARSER_BUG_LEDGER.md.
+        // Spec-derived oracle: parse the ledger, take the max-by-release
+        // over its table-row "Fixed in" cells — NOT a hardcoded literal
+        // (so a future ledger row that forgets the const bump fails
+        // here deterministically).
+        let ledger = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md"
+        ));
+        fn ver_tuple(s: &str) -> (u32, u32, u32) {
+            let mut it = s.split('.').map(|x| x.trim().parse::<u32>().unwrap_or(0));
+            (
+                it.next().unwrap_or(0),
+                it.next().unwrap_or(0),
+                it.next().unwrap_or(0),
+            )
+        }
+        fn leading_version(s: &str) -> String {
+            s.chars()
+                .take_while(|c| c.is_ascii_digit() || *c == '.')
+                .collect()
+        }
+        const REL: &str = "regex parser release ";
+        const CON: &str = "regex integration contract ";
+        let mut best: Option<((u32, u32, u32), String, String)> = None;
+        // Restrict to ledger TABLE ROWS (lines beginning with `|`) so
+        // prose paragraphs cannot inject a phantom version.
+        for line in ledger.lines().filter(|l| l.trim_start().starts_with('|')) {
+            for (idx, _) in line.match_indices(REL) {
+                let rest = &line[idx + REL.len()..];
+                let rel = leading_version(rest);
+                if rel.is_empty() {
+                    continue;
+                }
+                let Some(mpos) = rest.find(CON) else {
+                    continue;
+                };
+                let con = leading_version(&rest[mpos + CON.len()..]);
+                if con.is_empty() {
+                    continue;
+                }
+                let v = ver_tuple(&rel);
+                if best.as_ref().map_or(true, |(bv, _, _)| v > *bv) {
+                    best = Some((v, rel, con));
+                }
+            }
+        }
+        let (_, latest_rel, latest_con) = best.expect(
+            "ledger must contain at least one `regex parser release X; regex integration contract Y` Fixed-in cell",
+        );
+        assert_eq!(
+            REGEX_PARSER_RELEASE_VERSION, latest_rel,
+            "PGEN-RGX-0086 drift gate: REGEX_PARSER_RELEASE_VERSION (`{}`) must equal the \
+             ledger's latest regex 'Fixed in' release (`{}`). Bump the const in lockstep \
+             with every PGEN_RELEASED_PARSER_BUG_LEDGER.md regex row.",
+            REGEX_PARSER_RELEASE_VERSION, latest_rel
+        );
+        assert_eq!(
+            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, latest_con,
+            "PGEN-RGX-0086 drift gate: REGEX_PARSER_INTEGRATION_CONTRACT_VERSION (`{}`) must \
+             equal the ledger's latest regex 'Fixed in' contract (`{}`).",
+            REGEX_PARSER_INTEGRATION_CONTRACT_VERSION, latest_con
+        );
     }
 
     #[cfg(not(feature = "generated_parsers"))]

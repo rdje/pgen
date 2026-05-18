@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0086-0001 (RGX-0086; tree CLOSED): embedding-API regex version consts synced to ledger-latest + drift gate
+
+- **Fixed `PGEN-RGX-0086`** (metadata-integrity; not a parse-result
+  bug): `embedding_api.rs` `REGEX_PARSER_RELEASE_VERSION` (`1.1.29`) /
+  `REGEX_PARSER_INTEGRATION_CONTRACT_VERSION` (`1.1.31`) — and the
+  mirror `test_data/grammar_quality/regex_parser_integration_contract_v1.json`
+  — were ~46 minors stale vs the ledger's regex "Fixed in" labels,
+  making the canonical downstream handoff (`parser_embedding_api_contract()`)
+  wrong-by-construction.
+- **Fix:** synced both consts + the JSON mirror to the ledger's
+  **latest** regex "Fixed in" = **`1.1.77` / `1.1.79`** (= ledger row
+  `REGEX-0084`, which `PGEN-RGX-0085` established immediately prior —
+  exactly why the user ordered these two). The target value is
+  derived from the ledger (spec), NOT the report's stale `1.1.75`
+  literal (which was captured against an older pin) —
+  `feedback_corpus_expected_from_spec_not_fix`. No parser/AST/schema
+  change (the built tree already embodied 1.1.77/1.1.79; only the
+  labels were stale).
+- **Drift gate (the report's explicit recommendation):**
+  `regex_parser_pgen_rgx_0086_embedding_version_consts_match_ledger`
+  parses `PGEN_RELEASED_PARSER_BUG_LEDGER.md`'s table-row "Fixed in"
+  cells, takes the max-by-release, and asserts both consts equal it —
+  a spec-derived oracle (not a hardcoded literal), so a future ledger
+  row that forgets the const bump fails deterministically. The
+  pre-existing `regex_parser_integration_contract_metadata_is_stable`
+  (JSON↔const consistency) — which had been *pinning the stale
+  values* — now passes against the corrected values (the test
+  encoded the defect; corrected per the binding "is the test wrong or
+  the change wrong?" rule — the change is spec-correct).
+- **Verification / no-regression:** drift gate green; `_is_stable`
+  green; `make -C rust regex_parser_integration_contract_gate` ✅;
+  `embedding_api` 47/0; lib 449/0.
+- Lockstep (binding, same-commit): ledger row `REGEX-0085` (downstream
+  `PGEN-RGX-0086`); the `REGEX-0084` row's "fixed next" note +
+  top-level `parser-families.md`'s "fixed next" note updated to
+  "fixed"; LIVE; memory. Tree `RGX-0086` closed (single-leaf; setup
+  folded in). **Both user-ordered RGX bugs done; `SV-EXH-PROOF.3.1`
+  resumes next.** No push (pacing).
+
 ## 2026-05-18 - PGEN-RGX-0085-0001 (RGX-0085.1+.2; tree CLOSED): regex parenthesis-nesting ceiling — deeply nested patterns return a clean error, never abort the host
 
 - **Fixed `PGEN-RGX-0085`** (high severity: a deeply nested regex
