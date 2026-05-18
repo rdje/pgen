@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0012 (leaf SV-EXH-PROOF.3.1 root cause PINNED; docs-only, no code): SV-main external-corpus 0/14 root-caused to a systemic declaration-site `@emit_fact` defect (pre-existing, decisively proven)
+
+- `.2` closed (`-0011`) ⇒ frontier `SV-EXH-PROOF.3` opened: live
+  `sv_external_corpus_triage_gate` = `preprocess_pass 14/14` (the
+  `.2.3.2` effect), `parse_pass 0/14` — all 14 real-corpus cases fail
+  at SV-main parse. Decomposed `.3` → `.3.1`.
+- **`.3.1` ROOT CAUSE PINNED (trace artifact + discriminator;
+  supersedes two earlier partial framings — a truncated-`grep` premise
+  was caught + retracted, then a "parameter_port_list structural /
+  data_type" framing superseded):** `parseability_probe --trace` shows
+  the parse fails inside `SemanticRuntimeDirective::EmitFact`
+  (`ast_based_generator.rs:1099` "Semantic runtime could not resolve
+  fact name for directive") at `declared_parameter_identifier`.
+  `systemverilog.ebnf:3304-3306`: `@emit_fact {name:$parameter_identifier}`
+  + `@predicate {has_fact,…$parameter_identifier}` bind to
+  `declared_parameter_identifier := parameter_identifier` which has NO
+  `->` shaping ⇒ `$parameter_identifier` unresolvable (SEMREF-SHAPED:
+  `$name` resolves vs a rule's shaped `->` Json; unshaped → none) ⇒
+  EmitFact hard-errors ⇒ every parameter/declaration fails.
+  Discriminator-verified SYSTEMIC: `class c; endclass` also rejects
+  (identical `declared_class_identifier`); `module m; logic x;
+  endmodule` passes. Affects all 10 `declared_*_identifier` families
+  ⇒ every real SV file rejects ⇒ external-corpus 0/14.
+- **PRE-EXISTING decisively proven (committed artifact, not reasoning,
+  per the binding decisive-baseline discipline):** `docs/SV_EXH_PROOF_BASELINE.md`
+  committed `0bdb515a` (2026-05-17, BEFORE the first SEMREF-SHAPED
+  commit) records the identical `parse 0/14` + the exact
+  `veer_el2_lsu@2017 pos 947`; SEMREF-SHAPED.2 (`79dc494e`) diff is
+  purely additive. My recent committed SEMREF-SHAPED/RGX-0084 work is
+  EXONERATED.
+- Docs-only (Code-Change-Doctrine: root cause pinned, leaf owns the
+  forthcoming fix; the SV-grammar-wide shaped-`->`/ref-correction
+  across the 115-slice return-annotation campaign is careful focused
+  work, not rushed). `.3` parent active; `.3.1` frontier, root cause
+  pinned. No push (pacing).
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0011 (leaf SV-EXH-PROOF.2.3.2; tree node closed): closed-loop round-trip-stability hardening — preprocessor `parser_rejections` → 0, zero-plausible-gap proof surface ESTABLISHED
 
 - **Closed the SV-EXH-PROOF.2.3.2 acceptance**, gate-verified on a
