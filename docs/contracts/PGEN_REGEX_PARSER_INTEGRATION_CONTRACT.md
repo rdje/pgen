@@ -7,15 +7,15 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.77`
+  - `1.1.79`
 - Parser release version:
-  - `1.1.75`
+  - `1.1.77`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-05-05`
+  - `2026-05-18`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -2037,7 +2037,8 @@ use pgen::embedding_api::{
 
 let contract = parser_embedding_api_contract();
 assert!(contract.supports_regex_generated_backend);
-assert_eq!(contract.regex_parser_release_version, "1.1.29");
+assert_eq!(contract.regex_parser_release_version, "1.1.77");
+assert_eq!(contract.regex_integration_contract_version, "1.1.79");
 
 parse_regex_default_result(r"https?://[^\s]+")?;
 ```
