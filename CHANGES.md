@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0087-FIX2-0000 (RGX-0087-FIX2 setup; docs-only, no code): rel-1.1.78 RGX-0087 fix is OVER-BROAD — tree created, root cause grounded
+
+- RGX reports `PGEN-RGX-0087` stays **`open`**: the rel-1.1.78
+  `PGEN-RGX-0087-0001` fix (`a81d7317`) **closed the two
+  originally-reported cases** (`testinput2:4671` `\81`, `:4674` `\80`
+  now correctly REJECT) **but is over-broad** — net **−4** on the RGX
+  PCRE2 differential ratchet (12,805/5 → 12,801/9), NOT adoptable.
+- **Root cause grounded (report + read-only `regex.ebnf` + independent
+  `pcre2test` 10.47):** the two `!"0"…!"9"` negative-lookahead guards
+  fire too widely. (1) `class_escape = escape` (`regex.ebnf:414`)
+  reuses the shared outer `escape → escape_unit → simple_escape`, so
+  the `simple_escape` digit-guard makes a single class-member `\8`/
+  `\9` (`[\8]`, `[\9]`, `^[A\8B\9C]+$`) `E_PARSE_FAILURE` where PCRE2
+  10.47 **ACCEPTs** (no back-references inside `[...]`); the range
+  path's separate unguarded `class_range_simple_escape` (`:449`)
+  still accepts `[\8-\9]` ⇒ the flagged inconsistency. (2) the
+  `numeric_backreference_single` guard (`:273`) rerouted `[1-7]`-led
+  long runs off an accidental single-backref-reject onto PGEN's
+  unvalidated `octal_escape`, so `(?i:A{1,}\6666666666)`
+  (testinput9:287) is now ACCEPTed where PCRE2 **REJECTs** (err 151
+  octal > \377 in 8-bit non-UTF — PGEN does no octal-range check).
+- The originally-targeted non-class `[89]`-leading rejects + the
+  `[1-7]`-led octal-degrade (`\199`→`\x01`+"99", `\10`→octal) are
+  CORRECT and must stay byte-identical.
+- **Task tree `RGX-0087-FIX2` created + activated** (Code-Change
+  Doctrine — owns the forthcoming scoped `.ebnf` edit). Authoritative
+  PCRE2 10.47 oracle matrix pinned in the tree doc
+  (`feedback_corpus_expected_from_spec_not_fix` /
+  `feedback_report_expected_verify_against_oracle`). Empirical
+  before/after + the scoped fix is `.1`. `SV-EXH-PROOF.3.2` paused
+  for this priority interrupt. Docs-only; standing push rule (push
+  every 30).
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0016 (SV-EXH-PROOF.3.1 ROLLOUT — leaf DONE): declaration-site EmitFact defect fixed across all 13 `declared_*_identifier` families
 
 - **Grammar fix (leaf-owned, `grammars/systemverilog.ebnf`):** rolled
