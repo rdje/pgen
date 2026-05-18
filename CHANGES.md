@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-RGX-0088-0000 (RGX-0088 setup; docs-only, no code): RGX-0087-FIX2.3 octal `>0o377` reject is mode-blind / over-broad under UTF — tree created, root cause grounded
+
+- RGX filed `PGEN-RGX-0088`: this session's `PGEN-RGX-0087-FIX2-0003`
+  (rel 1.1.80, `5fd20609`) made the bare `\ddd` octal `>0o377` an
+  **unconditional grammar-level parse-time hard-reject**. Correct
+  for 8-bit non-UTF (PCRE2 err 151) but **WRONG under UTF / 16-/
+  32-bit** — `pcre2test` 10.47 ACCEPTs `\777` (U+01FF), `\400`,
+  `\6666666666`, `[\666]`, `[\777]` under `,utf`. PGEN parses
+  **mode-agnostically** ⇒ a blanket parse-time octal-range reject is
+  the wrong locus (`feedback_ast_pipeline_parser_agnostic`: mode is
+  parser-context the grammar lacks).
+- **Root cause grounded** (report + my `5fd20609` diff + independent
+  `pcre2test` 10.47 8-bit-vs-UTF matrix). Fix = **scoped revert of
+  exactly FIX2.3's two `grammars/regex.ebnf` edits**
+  (`octal_escape_short_payload` split + `class_simple_escape`
+  `!"0"…!"7"`/`$13`) → mode-agnostic octal-atom emission; the
+  8-bit `>0o377` rejection is the **mode-aware consumer's**
+  responsibility (report-prescribed; explicitly NOT a workaround).
+  `PGEN-RGX-0087-FIX2-0001` (`.1`/`.2` class-context scope) +
+  `PGEN-RGX-0087-0001` (non-class `[89]`-backref reject) +
+  `PGEN-RGX-0084` are FIX2.3-INDEPENDENT ⇒ stay byte-identical;
+  `PGEN-RGX-0087` stays CLOSED (family-linked follow-on, not a
+  reopen).
+- RGX **ADOPTED** `5fd20609` (net improvement, ratchet 12,805/5 →
+  12,806/4) and rebaselined; the residual −1 (testinput10:218
+  `/\777/,utf`) is this report.
+- Task tree `RGX-0088` created + activated (Code-Change Doctrine —
+  owns the forthcoming scoped-revert edit). Authoritative oracle
+  matrix pinned in the tree doc. Empirical before/after + fix is
+  `.1`. `SV-EXH-PROOF.3.2` paused (cleanly checkpointed `b4c0b96e`:
+  digit-`\b` fix CORRECT-but-INSUFFICIENT, deeper number-token
+  corruption pinned). Docs-only; standing push rule (push @30).
+
 ## 2026-05-19 - PGEN-SV-EXH-PROOF-0017 (SV-EXH-PROOF.3.2 root cause DECISIVELY RE-PINNED; docs-only, no code): per-digit lexical tokens carry a spurious `\b` — breaks ALL multi-digit SV numbers
 
 - Resumed `SV-EXH-PROOF.3.2` after `RGX-0087-FIX2` (fully closed +
