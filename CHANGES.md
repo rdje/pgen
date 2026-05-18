@@ -1,4 +1,37 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0013 (leaf SV-EXH-PROOF.3.1 investigation checkpoint; docs-only, no code): 3 fix-shapes empirically falsified, residual gap pinned
+
+- Resumed `SV-EXH-PROOF.3.1` (RGX-0085/0086 interrupt closed+pushed).
+  Consulted the authoritative annotation spec first (binding
+  `feedback_ebnf_consult_annotation_docs`), read the SEMREF-SHAPED
+  resolver chain + the codegen fact that `@emit_fact` resolves its
+  `name $ref` against `&node.content` (post-parse node).
+- **Empirically FALSIFIED three candidate fixes** on the minimal
+  repro `class c; endclass` → `declared_class_identifier` (regen +
+  `parseability_probe --trace` each): (1) ref `$class_identifier` →
+  `$1` (positional); (2) `-> { name: $1 }` + ref `$name` (the
+  SEMREF-SHAPED Json-object idiom). Both → the IDENTICAL "Semantic
+  runtime could not resolve fact name" error at
+  `declared_class_identifier` (verified by trace: same
+  message/position/rule_stack — not a downstream/shape error).
+- **Residual gap pinned (decisive, not guessed — 3 falsified):**
+  even the Json-object shape doesn't resolve despite `@emit_fact`
+  reading `&node.content` — so either the `->` transform runs AFTER
+  effect-directive eval (node.content still raw), or `$1` cannot
+  extract a scalar from a single-rule-ref `X:=Y` chain (flattened
+  content ⇒ `{name:null}`), or `$name`/`$1` SemanticRuntimeValue
+  parsing. NEXT step pinned (instrument node.content at @emit_fact
+  eval; read the `->`-transform-vs-directive ordering + single-ref
+  `$N` extraction) — explicitly NOT a 4th blind-regen guess.
+- Probe edits reverted to the committed baseline; SV parser
+  regen→baseline; baseline-restore VERIFIED (`class c; endclass`
+  back to its original error, control `module m; logic x; endmodule`
+  still PASS); repo tree clean (`generated/` untracked). The value
+  of this checkpoint is the recorded negative results so future work
+  does not re-try the 3 falsified shapes. High-blast-radius
+  (115-slice SV campaign) + extreme context-exhaustion ⇒ disciplined
+  checkpoint, not a rushed 4th attempt. Docs-only; no push (pacing).
+
 ## 2026-05-18 - PGEN-RGX-0086-0001 (RGX-0086; tree CLOSED): embedding-API regex version consts synced to ledger-latest + drift gate
 
 - **Fixed `PGEN-RGX-0086`** (metadata-integrity; not a parse-result
