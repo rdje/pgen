@@ -95,7 +95,7 @@ are large multi-week efforts, not bounded PNT slices).
 
 | Tree | Status | Roadmap lane | Current frontier | File |
 | --- | --- | --- | --- | --- |
-| `SV-EXH-PROOF` | `active` (RESUMED — `RGX-0084` closed) | parser-family exhaustive-proof normalization (last open parser-family proof debt) | `SV-EXH-PROOF.2.3.2` — 2 remaining preprocessor closed-loop self-rejections = genuinely-invalid bare-backtick **generator over-generation** (`.2.1` A1+A2 ✓, `.2.2` A3' mis-spec ✓, `.2.3.1` `SVPP-0002` macro-comment grammar bug ✓ fixed `1.0.4`/schema-3 → `parser_rejections` 3→2); constrain the closed-loop stimuli generator's structural-sigil over-generation in permissive content regexes (parser-agnostic, all-lanes-safe, never loosen `==0`, never bug-ledger) | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
+| `SV-EXH-PROOF` | `active` | parser-family exhaustive-proof normalization (last open parser-family proof debt) | **`.2` CLOSED** (`PGEN-SV-EXH-PROOF-0011`): preprocessor regression family fully remediated — `.2.1` A1+A2 ✓, `.2.2` A3' mis-spec ✓, `.2.3.1` `SVPP-0002` grammar bug ✓ (3→2), `.2.3.2` parser/EBNF-agnostic closed-loop generator hardening ✓ (2→0) → `sv_preprocessor_zero_plausible_gap_proof_gate` verdict **GREEN** gate-verified FRESH, cross-parser no-regression, 2 downstream proof contracts re-baselined in-slice (non-masking), full lockstep. **Frontier → `SV-EXH-PROOF.3`**: SV-main grammar hardening (external-corpus 0/14 → green + replay-shadow Finding A3) — a large multi-slice workstream | [docs/tasks/SV-EXH-PROOF.md](tasks/SV-EXH-PROOF.md) |
 
 ## Proposed Task Trees
 

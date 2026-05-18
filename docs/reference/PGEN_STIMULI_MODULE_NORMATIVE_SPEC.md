@@ -227,6 +227,44 @@ Use the exported metadata constants as compatibility guardrails:
 - use `GENERATION_SEED`/`ENTRY_RULE`/`REQUESTED_SAMPLE_COUNT` for deterministic replay in CI/debug flows.
 - when you need the full replay-relevant invocation shape plus emitted corpus, prefer `--stimuli-corpus-json` over reconstructing context from module constants alone.
 
+## Current Round-Trip Stability Contract (2026-05-18)
+When parseability validation is enabled, the closed-loop generator is
+**round-trip self-consistent**: a generated sample must re-parse to the
+structure the generator intended. The following generation invariants
+are normative and **parser/EBNF-agnostic** (derived from grammar AST /
+regex HIR shape; no grammar identifiers in the engine):
+
+- **Scoped structural-closer guard.** While generating the body of a
+  rule shaped `R := … item* CLOSE` (a quantified/optional body then a
+  required fixed-literal closer), a *free* terminal (variable-HIR
+  regex) must not emit text containing the active closer lexeme;
+  re-roll then clean-discard on collision. Fixed-literal terminals are
+  exempt (nesting-safe); the scope is empty when no such construct is
+  open (coverage-preserving).
+- **Structural-sigil hazard gate.** The closer guard engages only when
+  the closer lexeme begins with a grammar-declared structural sigil
+  (a character some content rule leading-negates — the
+  `grammar_content_sigils` set). Ordinary-punctuation closers (e.g. a
+  `)` that cannot be re-lexed out of a comment/string) do not engage
+  it.
+- **Hint-route parity.** The same closer-collision check applies to the
+  `@sample`/`@probe_sample` literal-hint return path.
+- **Line-terminator completeness.** A sequence shaped `… <line-greedy
+  content terminal> … <optional newline terminator>` force-emits the
+  trailing newline (HIR-derived: line-greedy = unbounded repetition
+  over a `\n`-excluding class; newline terminator = language ⊆
+  `{\r,\n}`, non-nullable), so line-greedy content cannot absorb a
+  following structural element on reparse.
+
+Acceptance is `parser_rejections == 0` on the enabled sidecars; this
+precondition is never loosened and output the parser correctly rejects
+is treated as generator over-generation (constrain the generator),
+never as a parser/grammar bug. When such an agnostic correctness fix
+legitimately shifts a downstream count=N probe-coverage burn-down
+metric while the genuine static-reachable surface is provably intact,
+the affected proof contract is re-baselined honestly **in the same
+slice** (a generator change owns all its downstream proof contracts).
+
 ## Non-Goals (Current Contract Boundary)
 - This contract does not require zero parser rejects for arbitrary grammars unless parseability validation is explicitly enabled.
 - This contract does not mandate semantic meaning of stimuli content beyond grammar-valid generation and gate-verified parity outcomes.

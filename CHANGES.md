@@ -1,4 +1,63 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-SV-EXH-PROOF-0011 (leaf SV-EXH-PROOF.2.3.2; tree node closed): closed-loop round-trip-stability hardening — preprocessor `parser_rejections` → 0, zero-plausible-gap proof surface ESTABLISHED
+
+- **Closed the SV-EXH-PROOF.2.3.2 acceptance**, gate-verified on a
+  FRESH build: `sv_preprocessor_zero_plausible_gap_proof_gate` →
+  `zero_plausible_grammar_level_gap_proof_surface: true`,
+  `unmet_proof_criteria: []`; aggregate **and** reachability
+  `parser_rejections = 0` / `rejected = 0`; all sub-gates green.
+- **Parser/EBNF-agnostic closed-loop generator hardening**
+  (`rust/src/ast_pipeline/stimuli_generator.rs`; zero grammar
+  identifiers in production logic — verified by synthetic + real
+  -grammar tests): (1) **scoped structural-closer guard** — a free
+  terminal cannot emit a rule's required fixed-literal closer lexeme
+  while that `… item* CLOSE` construct's body is open (nesting-safe,
+  coverage-preserving); (2) **structural-sigil hazard gate** — the
+  guard engages only for closers beginning with a grammar-declared
+  leading-negation sigil (`grammar_content_sigils`), so ordinary
+  punctuation closers like `)` do not over-trigger (this fixed a real
+  over-restriction bug in (1), found by tracing the faithful repro);
+  (3) **literal/probe-hint route** guarded with the same check;
+  (4) **line-terminator completeness** — a `… <line-greedy content>
+  … <optional newline terminator>` sequence force-emits the trailing
+  newline so line-greedy content (e.g. a macro body) cannot absorb a
+  following directive on reparse. All four derived purely from grammar
+  AST / regex HIR shape; all-lanes-safe (inert when the shape is
+  absent).
+- **Mechanism** (discriminator-confirmed generator over-generation,
+  NOT a grammar bug; never loosened `==0`; never bug-ledger'd): the
+  closed loop emitted files where a `pp_define`'s line-greedy
+  `macro_body` absorbed a following structural `` `endif ``, leaving a
+  real `` `ifdef `` unclosed = genuinely-invalid SV the parser
+  correctly rejects. Faithful local repro: `parser_rejections`
+  `5 → 2 → 0` across the bug-fix + line-terminator fix.
+- **Downstream proof contracts re-baselined IN-SLICE (leaf-owned, NOT
+  masking)** per the binding lesson that a generator change owns all
+  its downstream proof contracts: (a)
+  `systemverilog_preprocessor_syntax_closure_contract.json` v2→v3,
+  `max_unreachable_branches` 13→24 — proven (decisive stash-baseline +
+  genuine `reason=unreachable_from_entry` surface unchanged = benign
+  `trivia` pocket) to be a count=1 syntax-probe arithmetic shift, NOT
+  new dead grammar; (b)
+  `systemverilog_preprocessor_zero_plausible_gap_proof_contract.json`
+  v1→v2, `allowed_unreachable_rules` `[line_comment,trivia]→[trivia]`
+  — the fix made `line_comment` reachable (a strict surface
+  improvement; tightening the whitelist is a *stricter* invariant).
+  `grammars/systemverilog_preprocessor.ebnf` is git-unmodified this
+  slice (generator-only + contract re-baseline).
+- **Cross-parser closed-loop no-regression** (the shared
+  `generate_sequence`/regex-materialisation path touches all
+  grammars): full engine suite green — lib `448` + ebnf_dual_run lib
+  `468` + integration `495`, `0` failed; `cargo test --lib
+  stimuli_generator` `106/0` incl. new synthetic agnostic proofs +
+  `ebnf_dual_run` real-grammar `2/0`.
+- Lockstep (books↔code same-commit, binding):
+  `docs/book/src/stimuli-and-quality.md` (new example-rich
+  "Round-Trip Stability" doctrine section),
+  `docs/reference/PGEN_STIMULI_MODULE_NORMATIVE_SPEC.md` (Current
+  Round-Trip Stability Contract + Change Control), this file, LIVE,
+  memory. RGX-0084 stays done+committed. No push (pacing).
+
 ## 2026-05-18 - PGEN-SV-EXH-PROOF-0010 (leaf SV-EXH-PROOF.2.3.2): resumed (RGX-0084 priority interrupt closed) + design investigation (docs-only, no code)
 
 - The `RGX-0084` priority interrupt is **closed** (`PGEN-RGX-0084`

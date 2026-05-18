@@ -439,3 +439,169 @@ That is a small but real replay improvement over the retained `3878` baseline, a
 - `Or`-root rule-level probes are now a valid runtime tool
 - still spend them on the narrowest helper seam that actually lowers replay debt
 - do not keep a broader probe just because the runtime now supports it
+
+## Round-Trip Stability: The Closed Loop Must Not Out-Generate Its Own Parser
+
+The closed-loop generator's most important contract is the one that is
+easiest to violate silently: **every sample it emits must parse back.**
+A grammar-driven generator can produce a token sequence that is locally
+valid at every production step yet, when the parser re-lexes the whole
+string left-to-right, re-associates tokens differently than the
+generator intended — yielding a structurally-invalid file the parser
+*correctly* rejects. That is **generator over-generation**, not a
+parser or grammar bug. The fix is always to constrain the generator (we
+never loosen the `parser_rejections == 0` precondition, and we never
+file a parser bug for output the parser is right to reject).
+
+This section documents the parser/EBNF-agnostic round-trip-stability
+hardening landed for the SystemVerilog preprocessor closed loop
+(`SV-EXH-PROOF.2.3.2`). Every mechanism below is a **general property
+of grammar structure or regex shape** — there is not one grammar rule
+name, sigil, or parser identifier in the production logic. They benefit
+*any* grammar with the same shape.
+
+### The failure shape, by example
+
+The preprocessor closed loop was emitting files like (minimised):
+
+```text
+`ifdef X
+`define Y `endif
+```
+
+Each line is locally valid: `` `ifdef X `` opens a conditional,
+`` `define Y … `` defines a macro whose body is the rest of the line.
+But a macro body is line-greedy text, so on re-parse the only
+`` `endif `` is **swallowed into `Y`'s macro body** — the conditional
+is never closed, the file is invalid SV, the parser rejects it. A
+seven-sample matrix pinned the mechanism precisely:
+
+| Sample | Parses? | Why |
+| --- | --- | --- |
+| `` `ifdef X⏎`define Y `endif `` | **reject** | only `` `endif `` absorbed by the macro body ⇒ unclosed |
+| `` `ifdef X⏎`define Y z⏎`endif `` | pass | a real newline ends the macro body; `` `endif `` is its own line |
+| `` `define Y `endif `` (no open conditional) | pass | the lexeme is valid *in isolation* — the defect is **contextual** |
+| `` `ifdef X⏎`endif `` | pass | plain balanced |
+| `` `ifdef X⏎`define Y `endif⏎`endif `` | pass | the *second* `` `endif `` closes it — proving first-match closer-stealing |
+| `` `ifdef X⏎`define Y `notakw⏎`endif `` | pass | a non-closer macro-ref is harmless |
+| `` `ifdef X⏎`define Y `notakw `` | reject | genuinely unclosed (control) |
+
+The decisive lesson from the matrix: the same lexeme is fine standalone
+and fatal inside an open construct, so the constraint must be
+**contextual**, never a blanket ban (a blanket ban would also delete
+legitimate language coverage).
+
+### Mechanism 1 — scoped structural-closer guard
+
+When a rule has the shape `R := … item* CLOSE` (a quantified/optional
+body followed by a *required fixed-literal closer*), the generator now
+pushes `CLOSE`'s literal onto a dynamically-scoped forbidden set while
+it generates the body, and pops it before generating `CLOSE` itself.
+Any **free** terminal (a regex whose HIR has a class / repetition /
+alternation — e.g. an identifier-like macro reference) materialised
+anywhere in that open body is re-rolled, then cleanly discarded, if its
+text contains an active closer lexeme.
+
+- Fixed-literal terminals are *exempt* — a legitimately-nested
+  same-construct's own closer still generates ⇒ **nesting-safe**.
+- The set is empty when no closer-bearing construct is open ⇒ the
+  lexeme is still freely generatable standalone ⇒
+  **coverage-preserving** (this is what the `` `define Y `endif ``
+  standalone case above requires).
+
+The closer literal is resolved purely structurally (rule reference →
+sequence → regex HIR), so a rule like
+`pp_endif := kw_endif directive_tail? newline?` correctly resolves to
+`` `endif `` (the optional trailing parts are nullable-skipped).
+
+### Mechanism 2 — the structural-sigil hazard gate (the subtle one)
+
+The first cut of Mechanism 1 over-fired. Consider a macro-parameter
+list `macro_formals := lparen … rparen`: its closer lexeme is `)`. A
+substring guard would then forbid *any* free terminal containing `)` —
+including a block comment `/*N)*/` — even though a `)` inside a
+`/*…*/` comment is **never re-lexed as the closer** (the comment is one
+token). Forbidding it is pure, harmful over-restriction.
+
+The agnostic fix: a closer is a genuine round-trip hazard for free
+content **only when its lexeme begins with a grammar-declared
+structural sigil** — a character some content rule's author
+*leading-negated* (the same `grammar_content_sigils` set used by the
+permissive-content rule). `` `endif `` begins with `` ` ``, and
+`non_directive_text := /[^`\r\n]…/` leading-negates `` ` ``, so it *is*
+a sigil; `)` is ordinary punctuation no content rule negates, so it is
+*not*. The guard engages for `` `endif ``, stays inert for `)`. This is
+derived entirely from the grammar the author wrote.
+
+> Discipline note: this bug was found by **tracing the actual
+> generator decisions on a faithful reproduction**, not by reasoning.
+> The first four root-cause theories were each falsified by the gate or
+> by a decisive experiment. The rule we keep relearning: *verify the
+> mechanism on the failing artifact; the gate is the arbiter, not the
+> argument.*
+
+### Mechanism 3 — literal/probe-hint route also guarded
+
+`@sample` / `@probe_sample` literal hints return their string directly
+from `generate_rule` / `generate_or`, bypassing the terminal
+materialisation path. Under target-drive those routes are active, so
+the same closer-collision check is applied there too (skip the hint,
+fall through to normal guarded generation). Same principle, every
+generation route.
+
+### Mechanism 4 — line-terminator completeness
+
+The deepest case: `pp_define := … macro_body? newline?`. The trailing
+newline is *optional* in the grammar, but `macro_body` is line-greedy,
+so when the generator skips the newline and another directive follows,
+the macro body absorbs it (the failure shape above). The agnostic rule:
+a sequence of the form `… <line-greedy content terminal> … <optional
+newline terminator>` must **force-emit** that trailing newline
+(generate the quantified inner exactly once). "Line-greedy" and
+"newline terminator" are both decided from regex HIR
+(`regex_is_line_greedy` = an unbounded repetition over a class that
+excludes `\n`; `regex_is_newline_only` = language ⊆ `{\r,\n}`,
+non-nullable). A trailing newline is universally benign, and the
+detector fires *only* on that shape, so grammars without it are
+untouched.
+
+This one has a real trade-off, documented here because the trade-off
+is the interesting part: forcing the newline removes the
+`newline?` = 0 (no-trailing-newline, EOF) variant from the *single
+deterministic syntax-probe sample*. That is **not** new dead grammar —
+every branch stays statically reachable from entry; the genuine
+unreachable surface (gap-report `reason=unreachable_from_entry`) stayed
+exactly the benign `trivia` pocket, *and shrank* (`line_comment` became
+reachable). The count=1 burn-down arithmetic shifted, so the two
+downstream proof contracts were re-baselined **in the same slice**
+(syntax-closure `max_unreachable_branches` 13→24 with the arithmetic
+spelled out; zero-plausible-gap `allowed_unreachable_rules`
+`[line_comment,trivia]→[trivia]`, a *stricter* invariant). A generator
+change owns all its downstream proof contracts in-slice — re-baselining
+honestly with the genuine surface verified is the doctrine, not
+masking.
+
+### Results
+
+- Closed-loop `parser_rejections` for the SV preprocessor:
+  `5 / 3 → 0` on both the aggregate and reachability sidecars
+  (gate-verified, fresh build).
+- `zero_plausible_grammar_level_gap_proof_surface: true`,
+  `unmet_proof_criteria: []` — the zero-plausible-gap proof surface is
+  established.
+- Cross-parser closed loop: full engine test suite green
+  (`448` + `468` lib, integration suite green) — the shared
+  `generate_sequence` / regex-materialisation path is all-lanes-safe.
+
+### The portable rule
+
+> A closed-loop generator must be **round-trip self-consistent**: a
+> generated artifact has to re-parse to the structure the generator
+> intended. The hazards are general and recur across grammars — a free
+> terminal spelling a structural closer; a line-greedy content terminal
+> not newline-terminated before following structure. Detect them from
+> grammar/HIR shape, constrain generation contextually (never a blanket
+> ban, never loosen `== 0`), and when a correctness fix legitimately
+> shifts a downstream burn-down metric, re-baseline that contract
+> honestly in the same slice after proving the genuine reachable
+> surface is intact.

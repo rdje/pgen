@@ -905,6 +905,50 @@ pub struct StimuliGenerator<'a> {
     mutation_replay: Option<ActiveGrammarMutationReplay>,
     mutation_site_visit_counters: HashMap<String, u64>,
     active_generation_deadline: Option<ActiveGenerationDeadline>,
+    // SV-EXH-PROOF.2.3.2 (P-a): per-`generate_regex_sample` set of
+    // chars to exclude from ALL regex-class materialization, derived
+    // from a permissive *leading* negated class in the rule's own
+    // pattern (e.g. `[^\`\r\n]…` ⇒ {`` ` ``}). The grammar author's
+    // anchored leading negation declares those chars structurally
+    // hazardous for that content; the closed-loop must not emit them
+    // anywhere in the run, else the parser re-lexes them as structure
+    // and the round-trip fails. Empty except during a qualifying
+    // `generate_regex_sample` call. Parser-agnostic, all-lanes-safe.
+    regex_content_forbidden: HashSet<char>,
+    // SV-EXH-PROOF.2.3.2: grammar-scoped structural-sigil set `G`
+    // (union of every permissive leading-negated content class's
+    // printable complement across the whole grammar). Derived once
+    // from the grammar's own author-written leading negations;
+    // parser/EBNF-agnostic. `None` until first computed.
+    grammar_content_sigils: Option<HashSet<char>>,
+    // SV-EXH-PROOF.2.3.2 (Mode B): dynamic stack of *required
+    // fixed-literal structural-closer* lexemes for every
+    // closer-bearing recursive/quantified construct currently OPEN
+    // (its body being generated). Pushed before generating the
+    // pre-closer elements of a `… item* CLOSE`-shaped sequence,
+    // popped before the CLOSE element itself. A *free* terminal
+    // (variable-HIR regex: class/repetition/alternation) materialized
+    // anywhere in that open body must not produce a string containing
+    // an active closer lexeme — else the parser consumes it
+    // (first-match) as body content and the construct never closes
+    // (generated sample fails its own round-trip). Fixed-literal
+    // terminals are exempt (so a legitimately-nested same-construct's
+    // own structural CLOSE is unaffected ⇒ nesting-safe); empty when
+    // no closer-bearing construct is open (so the lexeme is still
+    // freely generatable standalone ⇒ coverage-preserving). Derived
+    // purely from grammar structure + terminal HIR ⇒
+    // parser/EBNF-agnostic, all-lanes-safe.
+    structural_closer_forbidden: Vec<String>,
+    // SV-EXH-PROOF.2.3.2: always-on observability of the round-trip
+    // stability guard — how many times a closer-bearing construct's
+    // body scope was entered (a `… item* CLOSE` push fired), and how
+    // many free-terminal candidates were discarded for colliding with
+    // an active closer lexeme. Cheap counters; expose generation-path
+    // ground truth (decisively separates "generator never builds the
+    // construct" from "construct built, guard engaged"). Parser/EBNF
+    // -agnostic.
+    closer_scopes_entered: usize,
+    free_terminal_closer_discards: usize,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -982,7 +1026,67 @@ impl<'a> StimuliGenerator<'a> {
             mutation_replay: None,
             mutation_site_visit_counters: HashMap::new(),
             active_generation_deadline: None,
+            regex_content_forbidden: HashSet::new(),
+            grammar_content_sigils: None,
+            structural_closer_forbidden: Vec::new(),
+            closer_scopes_entered: 0,
+            free_terminal_closer_discards: 0,
         }
+    }
+
+    /// SV-EXH-PROOF.2.3.2 observability: how many closer-bearing
+    /// construct bodies were entered (a `… item* CLOSE` push fired).
+    /// `0` over many samples ⇒ the generator never builds that
+    /// construct (the structural sigil must be arriving via free
+    /// text the parser re-lexes).
+    pub fn closer_scopes_entered(&self) -> usize {
+        self.closer_scopes_entered
+    }
+
+    /// SV-EXH-PROOF.2.3.2 observability: free-terminal candidates
+    /// discarded for colliding with an active closer lexeme.
+    pub fn free_terminal_closer_discards(&self) -> usize {
+        self.free_terminal_closer_discards
+    }
+
+    /// SV-EXH-PROOF.2.3.2 (Mode B, hint route): a literal/probe hint
+    /// in `generate_rule`/`generate_or` returns its string DIRECTLY,
+    /// bypassing `generate_atom`'s structural-closer consult-point.
+    /// Under target-drive steering those hint routes are active (they
+    /// are inert under Baseline), so a hint emitted while a
+    /// closer-bearing construct is open can re-introduce the absorbed
+    /// -closer round-trip break the terminal consult prevents. Same
+    /// agnostic round-trip-stability rule, applied to the hint route:
+    /// a hint that *contains* an active closer lexeme must be skipped
+    /// (fall through to normal — guarded — generation). Empty stack
+    /// ⇒ inert (coverage-preserving). Zero grammar identifiers.
+    fn hint_collides_with_active_closer(&self, hint: &str) -> bool {
+        !self.structural_closer_forbidden.is_empty()
+            && self
+                .structural_closer_forbidden
+                .iter()
+                .any(|c| hint.contains(c.as_str()))
+    }
+
+    /// SV-EXH-PROOF.2.3.2 (Mode B, hazard gate — decisive fix): a
+    /// `… item* CLOSE` closer is a genuine round-trip hazard for free
+    /// content ONLY when its lexeme begins with a **grammar-declared
+    /// structural sigil** — a char some content rule's author
+    /// leading-negated (P-a's `grammar_content_sigils`, e.g. `` ` ``
+    /// for `` `endif ``). Such a char forces a NEW token on re-lex, so
+    /// free text containing it IS mis-lexed as structure. A closer
+    /// whose lexeme is ordinary punctuation (e.g. `)` closing
+    /// `macro_formals`) is NOT a hazard: a `)` inside a `/*…*/`
+    /// comment / string / identifier is absorbed by that token, never
+    /// re-lexed as the closer — so the substring guard there is
+    /// spuriously over-broad and corrupts generation. Gating on the
+    /// grammar's own leading-negation set keeps this parser/EBNF
+    /// -agnostic and surgical (zero grammar identifiers).
+    fn closer_lexeme_is_structural_hazard(&mut self, lexeme: &str) -> bool {
+        let Some(first) = lexeme.chars().next() else {
+            return false;
+        };
+        self.grammar_content_sigils().contains(&first)
     }
 
     #[track_caller]
@@ -3430,6 +3534,7 @@ impl<'a> StimuliGenerator<'a> {
             if let Some(sample_hint) = self
                 .literalish_hint_for_rule(rule_name)
                 .or_else(|| self.probe_literalish_hint_for_rule(rule_name))
+                .filter(|hint| !self.hint_collides_with_active_closer(hint))
             {
                 self.trace(
                     TraceLevel::Debug,
@@ -3759,6 +3864,7 @@ impl<'a> StimuliGenerator<'a> {
             if let Some(sample_hint) = self
                 .literalish_hint_for_branch(current_rule, selected_global)
                 .or_else(|| self.probe_literalish_hint_for_branch(current_rule, selected_global))
+                .filter(|hint| !self.hint_collides_with_active_closer(hint))
             {
                 self.record_or_mutation_choice(
                     &mutation_site_key,
@@ -3921,6 +4027,43 @@ impl<'a> StimuliGenerator<'a> {
         }))
     }
 
+    /// SV-EXH-PROOF.2.3.2: generate one sequence element, but when it
+    /// is the force-line-terminator slot (`force_nl_idx`) generate
+    /// the quantified element's INNER exactly once — guaranteeing the
+    /// optional newline terminator is emitted so a preceding
+    /// line-greedy content terminal cannot absorb the following
+    /// structural element on reparse. Otherwise behaves exactly like
+    /// `generate_node` on the element. Parser/EBNF-agnostic.
+    fn generate_sequence_element(
+        &mut self,
+        elements: &[ASTNode],
+        idx: usize,
+        force_nl_idx: Option<usize>,
+        current_rule: &str,
+        depth: usize,
+        call_stack: &mut Vec<String>,
+        element_path: &str,
+    ) -> Result<String> {
+        if Some(idx) == force_nl_idx {
+            if let ASTNode::Quantified { element, .. } = &elements[idx] {
+                return self.generate_node(
+                    element,
+                    current_rule,
+                    depth,
+                    call_stack,
+                    element_path,
+                );
+            }
+        }
+        self.generate_node(
+            &elements[idx],
+            current_rule,
+            depth,
+            call_stack,
+            element_path,
+        )
+    }
+
     fn generate_sequence(
         &mut self,
         elements: &[ASTNode],
@@ -3935,12 +4078,96 @@ impl<'a> StimuliGenerator<'a> {
             StimuliRelationalConstraintPolicy::default()
         };
 
+        // SV-EXH-PROOF.2.3.2 (line-terminator completeness): if this
+        // sequence is `… <line-greedy content> … <optional newline
+        // terminator>`, the trailing optional newline must be
+        // force-emitted (generated as exactly one inner repetition)
+        // so the line-greedy content cannot absorb the following
+        // structural element on reparse. Derived from regex HIR +
+        // sequence shape ⇒ parser/EBNF-agnostic, all-lanes-safe.
+        let force_nl_idx =
+            Self::sequence_force_line_terminator_idx(self.grammar_tree, elements);
+
         if relational_policy.constraint_expression.is_none() {
             let mut output = String::new();
-            for (idx, element) in elements.iter().enumerate() {
+            // SV-EXH-PROOF.2.3.2 (Mode B): if this sequence is the
+            // `… item* CLOSE` idiom (a quantified/optional body region
+            // followed by a *required fixed-literal structural
+            // closer*), the closer's lexeme must be unspellable by any
+            // *free* terminal materialized while the pre-closer body
+            // (incl. recursive descent) is generated — else the parser
+            // consumes that text (first-match) as body content and the
+            // construct never closes (sample fails its own
+            // round-trip). Pushed only over `[0, closer)`, popped
+            // before the closer element itself (fixed-literal closers
+            // are exempt anyway ⇒ nesting-safe; empty stack when no
+            // such construct is open ⇒ the lexeme stays freely
+            // generatable standalone ⇒ coverage-preserving). Derived
+            // from grammar structure + terminal HIR ⇒
+            // parser/EBNF-agnostic, all-lanes-safe.
+            let closer = match Self::sequence_closer_split(self.grammar_tree, elements) {
+                Some((idx, lex)) if self.closer_lexeme_is_structural_hazard(&lex) => Some((idx, lex)),
+                _ => None,
+            };
+            if let Some((closer_idx, closer_lexeme)) = closer {
+                self.trace(
+                    TraceLevel::Low,
+                    format_args!(
+                        "SV-EXH-PROOF.2.3.2 closer-scope ENTER (pure): rule='{}' path='{}' closer_idx={} lexeme={:?}",
+                        current_rule, node_path, closer_idx, closer_lexeme
+                    ),
+                );
+                self.structural_closer_forbidden.push(closer_lexeme);
+                self.closer_scopes_entered += 1;
+                let mut body_err: Option<anyhow::Error> = None;
+                for idx in 0..closer_idx {
+                    let element_path = format!("{}/s{}", node_path, idx);
+                    match self.generate_sequence_element(
+                        elements,
+                        idx,
+                        force_nl_idx,
+                        current_rule,
+                        depth,
+                        call_stack,
+                        &element_path,
+                    ) {
+                        Ok(generated) => self.append_generated_segment(&mut output, &generated),
+                        Err(err) => {
+                            body_err = Some(err);
+                            break;
+                        }
+                    }
+                }
+                self.structural_closer_forbidden.pop();
+                if let Some(err) = body_err {
+                    return Err(err);
+                }
+                for idx in closer_idx..elements.len() {
+                    let element_path = format!("{}/s{}", node_path, idx);
+                    let generated = self.generate_sequence_element(
+                        elements,
+                        idx,
+                        force_nl_idx,
+                        current_rule,
+                        depth,
+                        call_stack,
+                        &element_path,
+                    )?;
+                    self.append_generated_segment(&mut output, &generated);
+                }
+                return Ok(output);
+            }
+            for idx in 0..elements.len() {
                 let element_path = format!("{}/s{}", node_path, idx);
-                let generated =
-                    self.generate_node(element, current_rule, depth, call_stack, &element_path)?;
+                let generated = self.generate_sequence_element(
+                    elements,
+                    idx,
+                    force_nl_idx,
+                    current_rule,
+                    depth,
+                    call_stack,
+                    &element_path,
+                )?;
                 self.append_generated_segment(&mut output, &generated);
             }
             return Ok(output);
@@ -3959,11 +4186,49 @@ impl<'a> StimuliGenerator<'a> {
             let mut captures = Vec::with_capacity(elements.len());
             let mut named_captures = HashMap::new();
 
+            // SV-EXH-PROOF.2.3.2 (Mode B): identical closer-scoping as
+            // the pure path, applied per relational attempt. Pushed at
+            // attempt start, popped exactly when the closer element is
+            // reached (or on early failure / attempt end) so the stack
+            // is balanced across every exit, retry, and discard.
+            let closer = match Self::sequence_closer_split(self.grammar_tree, elements) {
+                Some((idx, lex)) if self.closer_lexeme_is_structural_hazard(&lex) => Some((idx, lex)),
+                _ => None,
+            };
+            let mut closer_active = false;
+            if let Some((_, closer_lexeme)) = &closer {
+                self.trace(
+                    TraceLevel::Low,
+                    format_args!(
+                        "SV-EXH-PROOF.2.3.2 closer-scope ENTER (relational): rule='{}' path='{}' lexeme={:?}",
+                        current_rule, node_path, closer_lexeme
+                    ),
+                );
+                self.structural_closer_forbidden.push(closer_lexeme.clone());
+                self.closer_scopes_entered += 1;
+                closer_active = true;
+            }
             let mut generation_failed = false;
             for (idx, element) in elements.iter().enumerate() {
+                if closer_active {
+                    if let Some((closer_idx, _)) = &closer {
+                        if idx == *closer_idx {
+                            self.structural_closer_forbidden.pop();
+                            closer_active = false;
+                        }
+                    }
+                }
                 let element_path = format!("{}/s{}", node_path, idx);
                 let capture_name = Self::sequence_element_capture_name(element);
-                match self.generate_node(element, current_rule, depth, call_stack, &element_path) {
+                match self.generate_sequence_element(
+                    elements,
+                    idx,
+                    force_nl_idx,
+                    current_rule,
+                    depth,
+                    call_stack,
+                    &element_path,
+                ) {
                     Ok(generated) => {
                         if let Some(name) = capture_name {
                             named_captures.insert(name, generated.clone());
@@ -3978,6 +4243,9 @@ impl<'a> StimuliGenerator<'a> {
                         break;
                     }
                 }
+            }
+            if closer_active {
+                self.structural_closer_forbidden.pop();
             }
 
             if generation_failed {
@@ -4071,7 +4339,88 @@ impl<'a> StimuliGenerator<'a> {
                     "regex" => {
                         let effective_pattern =
                             self.effective_regex_pattern(current_rule, token_value);
-                        Ok(self.generate_regex_sample(&effective_pattern, current_rule))
+                        let mut sample =
+                            self.generate_regex_sample(&effective_pattern, current_rule);
+                        // SV-EXH-PROOF.2.3.2 (Mode B): consult/discard.
+                        // A *free* terminal (variable-HIR regex —
+                        // class/repetition/alternation) materialized
+                        // while a closer-bearing construct is OPEN
+                        // (its required fixed-literal closer is on the
+                        // `structural_closer_forbidden` stack) must
+                        // not yield text *containing* an active closer
+                        // lexeme: the parser would consume it
+                        // (first-match) as body content, the construct
+                        // would never close, and the generated sample
+                        // would fail its own round-trip. Fixed-literal
+                        // terminals are exempt (so a legitimately-
+                        // nested same-construct's own structural CLOSE
+                        // is unaffected ⇒ nesting-safe). On collision
+                        // re-materialize a bounded number of times
+                        // (free content is stochastic), then DISCARD
+                        // the whole attempt via the existing clean-
+                        // discard contract (`Err` → the closed-loop
+                        // drops it) — never loosen `==0`, never emit a
+                        // round-trip-unstable sample. Empty stack
+                        // (no open construct) ⇒ this is inert, so the
+                        // lexeme stays freely generatable standalone
+                        // ⇒ coverage-preserving. Zero grammar
+                        // identifiers — the lexeme is derived from the
+                        // grammar's own structural shape.
+                        if !self.structural_closer_forbidden.is_empty()
+                            && Self::regex_fixed_literal(token_value).is_none()
+                        {
+                            let collides = |s: &str, set: &[String]| {
+                                set.iter().any(|c| s.contains(c.as_str()))
+                            };
+                            if collides(&sample, &self.structural_closer_forbidden) {
+                                self.trace(
+                                    TraceLevel::Low,
+                                    format_args!(
+                                        "SV-EXH-PROOF.2.3.2 consult COLLISION: rule='{}' path='{}' token={:?} sample={:?} forbidden={:?}",
+                                        current_rule, node_path, token_value, sample, self.structural_closer_forbidden
+                                    ),
+                                );
+                            }
+                            let mut tries = 0;
+                            while collides(&sample, &self.structural_closer_forbidden) {
+                                if tries >= 24 {
+                                    self.free_terminal_closer_discards += 1;
+                                    return Err(anyhow!(
+                                        "SV-EXH-PROOF.2.3.2: free terminal in rule '{}' (path '{}') would emit an active structural-closer lexeme inside an open closer-bearing construct; discarding attempt (round-trip stability)",
+                                        current_rule,
+                                        node_path
+                                    ));
+                                }
+                                self.enforce_generation_deadline(
+                                    current_rule,
+                                    node_path,
+                                )?;
+                                sample = self.generate_regex_sample(
+                                    &effective_pattern,
+                                    current_rule,
+                                );
+                                tries += 1;
+                            }
+                        }
+                        // SV-EXH-PROOF.2.3.2: a generation deadline that
+                        // fires DURING regex materialization makes
+                        // generate_regex_sample / generate_from_regex_hir
+                        // return a SILENTLY-TRUNCATED partial — e.g. a
+                        // literal `` ` `` prefix (bt_identifier/kw_*/
+                        // macro_token_paste/…) emitted, then the
+                        // following class/keyword cut to "" — yielding a
+                        // structurally-invalid dangling sigil the parser
+                        // correctly rejects. Honor the SAME deadline-
+                        // DISCARD contract every other generate_node
+                        // element already uses
+                        // (`enforce_generation_deadline(...)?`): a
+                        // timed-out attempt is discarded (Err → the
+                        // closed-loop drops the whole attempt), never
+                        // emitted as a truncated partial. Parser/EBNF-
+                        // agnostic — deadline-handling consistency only,
+                        // zero grammar identifiers.
+                        self.enforce_generation_deadline(current_rule, node_path)?;
+                        Ok(sample)
                     }
                     "probability" => Ok(String::new()),
                     "number" | "include_dir" | "include_file" | "rule" => {
@@ -4855,6 +5204,27 @@ impl<'a> StimuliGenerator<'a> {
             }
         };
 
+        // SV-EXH-PROOF.2.3.2: if this pattern's leading atom is a
+        // PERMISSIVE free-text content class, exclude — from ALL its
+        // class materialization — both this rule's own author-declared
+        // content-hazard set AND the grammar-scoped structural-sigil
+        // set `G` (a sigil any content rule's author negated at
+        // content-start is structural for the whole grammar; covers a
+        // permissive content rule like `directive_tail` that negates
+        // nothing of its own). Restrictive/positive leading classes
+        // (`[a-z]`) ⇒ `None` ⇒ untouched (all-lanes-safe). Derived
+        // purely from the grammar's own leading negations ⇒
+        // parser/EBNF-agnostic.
+        let regex_content_forbidden = match parsed_hir
+            .as_ref()
+            .and_then(|hir| Self::leading_permissive_negation_chars(hir))
+        {
+            Some(mut own) => {
+                own.extend(self.grammar_content_sigils());
+                own
+            }
+            None => HashSet::new(),
+        };
         for _ in 0..64 {
             if self.generation_deadline_exceeded() {
                 break;
@@ -4862,7 +5232,9 @@ impl<'a> StimuliGenerator<'a> {
             let Some(hir) = parsed_hir.as_ref() else {
                 break;
             };
+            self.regex_content_forbidden = regex_content_forbidden.clone();
             let candidate = self.generate_from_regex_hir(hir);
+            self.regex_content_forbidden.clear();
             if self.regex_candidate_satisfies_contract(trimmed, &candidate, &constraints) {
                 self.trace(
                     TraceLevel::Debug,
@@ -5176,6 +5548,639 @@ impl<'a> StimuliGenerator<'a> {
         out
     }
 
+    /// SV-EXH-PROOF.2.3.2 (P-a): derive the structural-hazard set from
+    /// a *permissive leading negated* class in the rule's own regex.
+    /// A grammar author who anchors `[^X…]` at content-start is
+    /// declaring X structurally significant for that content type; the
+    /// closed-loop must therefore not emit X *anywhere* in the run
+    /// (not just position 1), else the parser re-lexes it as structure
+    /// and the generated sample fails its own round-trip.
+    ///
+    /// Returns the small printable-ASCII complement of the first
+    /// emission atom **only when** that atom is a class that matches
+    /// most of printable ASCII while excluding just a few chars (a
+    /// negation of a small structural set) — distinguishing it from a
+    /// restrictive *positive* leading class like `[a-z]` (whose huge
+    /// complement is NOT the author's intent). Otherwise empty ⇒
+    /// no-op. Derived from the grammar, parser-agnostic,
+    /// all-lanes-safe.
+    /// `Some(printable_complement)` iff the first emission atom is a
+    /// **permissive** class — one that matches the vast majority of
+    /// printable ASCII (a free-text content class, e.g. `[^\r\n]+`,
+    /// `[^\`\r\n]…`). The returned set is the printable chars that
+    /// class excludes (its own author-declared content-hazard set —
+    /// *may be empty*, e.g. `directive_tail`'s `[^\r\n]`). `None` iff
+    /// the leading atom is a *restrictive positive* class (`[a-z]`),
+    /// not a class, or ambiguous — those are NOT free-text content
+    /// and must be left untouched (all-lanes-safe).
+    ///
+    /// SV-EXH-PROOF.2.3.2: a permissive-leading content rule must not
+    /// emit, *anywhere* in its run, the grammar's structural sigils
+    /// (this rule's own complement ∪ the grammar-scoped set `G`) —
+    /// else the parser re-lexes the free-text as structure and the
+    /// closed-loop round-trip fails. Returning `Some(∅)` (vs `None`)
+    /// is load-bearing: it marks the rule as free-text content so the
+    /// caller still applies `G` even when the rule negates nothing of
+    /// its own (the `directive_tail` case).
+    fn leading_permissive_negation_chars(hir: &Hir) -> Option<HashSet<char>> {
+        fn first_atom(h: &Hir) -> Option<&Hir> {
+            match h.kind() {
+                HirKind::Empty | HirKind::Look(_) => None,
+                HirKind::Concat(parts) => parts.iter().find_map(first_atom),
+                HirKind::Capture(c) => first_atom(&c.sub),
+                HirKind::Repetition(r) => first_atom(&r.sub),
+                // Ambiguous leading (branch-dependent) — be
+                // conservative: not classified as content.
+                HirKind::Alternation(_) => None,
+                _ => Some(h),
+            }
+        }
+        let atom = first_atom(hir)?;
+        let HirKind::Class(class) = atom.kind() else {
+            return None;
+        };
+        let matches = |c: char| -> bool {
+            match class {
+                Class::Unicode(u) => u
+                    .ranges()
+                    .iter()
+                    .any(|r| r.start() <= c && c <= r.end()),
+                Class::Bytes(b) => {
+                    (c as u32) <= 0xff && {
+                        let cb = c as u8;
+                        b.ranges().iter().any(|r| r.start() <= cb && cb <= r.end())
+                    }
+                }
+            }
+        };
+        // Printable ASCII universe (mirrors the [0x20,0x7e]
+        // materialization clamp the precedent already uses).
+        let complement: HashSet<char> = (0x20u8..=0x7e)
+            .map(char::from)
+            .filter(|c| !matches(*c))
+            .collect();
+        let matched = (0x7eusize - 0x20 + 1) - complement.len();
+        // Permissive free-text content class: matches the vast
+        // majority of printable (excludes only a handful — line
+        // terminators ± a structural sigil). Restrictive positive
+        // classes (`[a-z]`, ~26 matched) are NOT content ⇒ `None`.
+        if matched >= 80 && complement.len() <= 8 {
+            Some(complement)
+        } else {
+            None
+        }
+    }
+
+    /// Parse-then-classify wrapper used to derive the grammar-scoped
+    /// structural-sigil set `G` from every rule's regex pattern.
+    fn leading_permissive_negation_chars_of_pattern(pattern: &str) -> Option<HashSet<char>> {
+        regex_syntax::parse(pattern.trim())
+            .ok()
+            .and_then(|hir| Self::leading_permissive_negation_chars(&hir))
+    }
+
+    /// Recursively collect every `regex`-token pattern string in a
+    /// grammar AST node (parser/EBNF-agnostic structural walk).
+    fn collect_regex_patterns(node: &ASTNode, out: &mut Vec<String>) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for a in alternatives {
+                    Self::collect_regex_patterns(a, out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for e in elements {
+                    Self::collect_regex_patterns(e, out);
+                }
+            }
+            ASTNode::Quantified { element, .. } | ASTNode::Lookahead { element, .. } => {
+                Self::collect_regex_patterns(element, out);
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(n) => Self::collect_regex_patterns(n, out),
+                ASTValue::Token(parts) => {
+                    if let Some(("regex", pat)) = Self::extract_token_pair(parts) {
+                        out.push(pat.to_string());
+                    }
+                }
+            },
+        }
+    }
+
+    /// SV-EXH-PROOF.2.3.2 — the grammar-scoped structural-sigil set
+    /// `G`: the union of the printable complements of EVERY permissive
+    /// leading-negated content class across the whole grammar. A char
+    /// any content rule's author negated at content-start is a
+    /// structural sigil for *that grammar*; no permissive content
+    /// rule may emit it (even one — like `directive_tail` — that
+    /// negates nothing of its own). Derived purely from the grammar's
+    /// own author-written leading negations ⇒ parser/EBNF-agnostic,
+    /// all-lanes-safe. Computed once, cached.
+    fn grammar_content_sigils(&mut self) -> HashSet<char> {
+        if let Some(cached) = &self.grammar_content_sigils {
+            return cached.clone();
+        }
+        let mut patterns = Vec::new();
+        for node in self.grammar_tree.values() {
+            Self::collect_regex_patterns(node, &mut patterns);
+        }
+        let mut sigils: HashSet<char> = HashSet::new();
+        for pat in &patterns {
+            if let Some(complement) = Self::leading_permissive_negation_chars_of_pattern(pat) {
+                sigils.extend(complement);
+            }
+        }
+        self.grammar_content_sigils = Some(sigils.clone());
+        sigils
+    }
+
+    // ── SV-EXH-PROOF.2.3.2 (Mode B): parser/EBNF-agnostic structural
+    // helpers. Pure functions of the grammar AST + regex HIR; they
+    // contain ZERO grammar/parser/EBNF identifiers (no rule names, no
+    // sigils) — every value is *derived* from the grammar the author
+    // wrote. ────────────────────────────────────────────────────────
+
+    /// `Some(literal)` iff the regex pattern denotes exactly ONE
+    /// fixed string (modulo zero-width anchors / look-around).
+    /// `None` for any *variable* terminal (class / repetition /
+    /// alternation). This is the free-vs-fixed-literal terminal
+    /// discriminator: structural keyword terminals are fixed-literal
+    /// (exempt from the closer check ⇒ nesting-safe); content /
+    /// identifier terminals are free (subject to it).
+    fn regex_fixed_literal(pattern: &str) -> Option<String> {
+        regex_syntax::parse(pattern.trim())
+            .ok()
+            .and_then(|hir| Self::hir_fixed_literal(&hir))
+    }
+
+    fn hir_fixed_literal(hir: &Hir) -> Option<String> {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => Some(String::new()),
+            HirKind::Literal(Literal(bytes)) => {
+                Some(String::from_utf8_lossy(bytes).into_owned())
+            }
+            HirKind::Capture(capture) => Self::hir_fixed_literal(&capture.sub),
+            HirKind::Concat(parts) => {
+                let mut out = String::new();
+                for part in parts {
+                    out.push_str(&Self::hir_fixed_literal(part)?);
+                }
+                Some(out)
+            }
+            HirKind::Repetition(rep) => {
+                if rep.min == 1 && rep.max == Some(1) {
+                    Self::hir_fixed_literal(&rep.sub)
+                } else {
+                    None
+                }
+            }
+            HirKind::Alternation(parts) => {
+                if parts.len() == 1 {
+                    Self::hir_fixed_literal(&parts[0])
+                } else {
+                    None
+                }
+            }
+            HirKind::Class(_) => None,
+        }
+    }
+
+    fn hir_matches_empty(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => true,
+            HirKind::Literal(Literal(bytes)) => bytes.is_empty(),
+            HirKind::Class(_) => false,
+            HirKind::Capture(capture) => Self::hir_matches_empty(&capture.sub),
+            HirKind::Repetition(rep) => {
+                rep.min == 0 || Self::hir_matches_empty(&rep.sub)
+            }
+            HirKind::Concat(parts) => {
+                parts.iter().all(|p| Self::hir_matches_empty(p))
+            }
+            HirKind::Alternation(parts) => {
+                parts.iter().any(|p| Self::hir_matches_empty(p))
+            }
+        }
+    }
+
+    /// Generic nullability (does the node's language include ε?) over
+    /// the grammar AST, with a rule-reference cycle/depth guard (an
+    /// unresolved cycle is treated as NON-nullable — conservatively
+    /// keeping such an element *required*). Fully agnostic; used to
+    /// skip nullable parts (e.g. optional leading trivia) when
+    /// resolving a construct's mandatory closer lexeme.
+    fn node_is_nullable(
+        tree: &HashMap<String, ASTNode>,
+        node: &ASTNode,
+        depth: usize,
+        visiting: &mut HashSet<String>,
+    ) -> bool {
+        if depth > 32 {
+            return false;
+        }
+        match node {
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .any(|a| Self::node_is_nullable(tree, a, depth + 1, visiting)),
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .all(|e| Self::node_is_nullable(tree, e, depth + 1, visiting)),
+            ASTNode::Lookahead { .. } => true,
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                let q = quantifier.trim();
+                if q.starts_with('?') || q.starts_with('*') || q.starts_with("{0") {
+                    true
+                } else {
+                    Self::node_is_nullable(tree, element, depth + 1, visiting)
+                }
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(n) => {
+                    Self::node_is_nullable(tree, n, depth + 1, visiting)
+                }
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("rule_reference", name)) => {
+                        if !visiting.insert(name.to_string()) {
+                            return false;
+                        }
+                        let r = tree
+                            .get(name)
+                            .map(|n| {
+                                Self::node_is_nullable(tree, n, depth + 1, visiting)
+                            })
+                            .unwrap_or(false);
+                        visiting.remove(name);
+                        r
+                    }
+                    Some(("quoted_string", s)) => s.is_empty(),
+                    Some(("regex", pat)) => regex_syntax::parse(pat.trim())
+                        .ok()
+                        .map(|hir| Self::hir_matches_empty(&hir))
+                        .unwrap_or(false),
+                    _ => false,
+                },
+            },
+        }
+    }
+
+    /// The *mandatory* fixed-literal lexeme a node always contributes
+    /// (nullable sub-parts — e.g. optional leading trivia — skipped),
+    /// or `None` if the node has any required *variable* sub-part
+    /// (⇒ not a deterministic fixed-literal structural closer).
+    /// Resolves rule references with a cycle/depth guard. Agnostic.
+    fn terminal_literal_of_node(
+        tree: &HashMap<String, ASTNode>,
+        node: &ASTNode,
+        depth: usize,
+        visiting: &mut HashSet<String>,
+    ) -> Option<String> {
+        if depth > 32 {
+            return None;
+        }
+        match node {
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(n) => {
+                    Self::terminal_literal_of_node(tree, n, depth + 1, visiting)
+                }
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("quoted_string", s)) => Some(s.to_string()),
+                    Some(("regex", pat)) => Self::regex_fixed_literal(pat),
+                    Some(("rule_reference", name)) => {
+                        if !visiting.insert(name.to_string()) {
+                            return None;
+                        }
+                        let r = tree.get(name).and_then(|n| {
+                            Self::terminal_literal_of_node(tree, n, depth + 1, visiting)
+                        });
+                        visiting.remove(name);
+                        r
+                    }
+                    _ => None,
+                },
+            },
+            ASTNode::Sequence { elements } => {
+                let mut out = String::new();
+                for e in elements {
+                    if let Some(lit) =
+                        Self::terminal_literal_of_node(tree, e, depth + 1, visiting)
+                    {
+                        out.push_str(&lit);
+                    } else if Self::node_is_nullable(tree, e, 0, &mut HashSet::new()) {
+                        // nullable (e.g. optional leading trivia) ⇒ skip
+                    } else {
+                        return None;
+                    }
+                }
+                if out.is_empty() {
+                    None
+                } else {
+                    Some(out)
+                }
+            }
+            // An alternation / quantified / lookahead element is not a
+            // single deterministic fixed lexeme.
+            _ => None,
+        }
+    }
+
+    /// Detect the `… <quantified/optional body> … CLOSE` idiom:
+    /// returns `(closer_index, closer_lexeme)` iff (a) the LAST
+    /// element is *required* (not `?`/`*`-quantified) and resolves to
+    /// a non-empty fixed-literal lexeme (the structural closer), and
+    /// (b) some earlier element is `*`/`+`/`?`-quantified (the
+    /// open-ended body that — possibly via recursion — can host free
+    /// content). Purely structural ⇒ parser/EBNF-agnostic; the
+    /// Quantified gate keeps the blast radius to exactly the
+    /// closer-bearing-construct idiom.
+    fn sequence_closer_split(
+        tree: &HashMap<String, ASTNode>,
+        elements: &[ASTNode],
+    ) -> Option<(usize, String)> {
+        if elements.len() < 2 {
+            return None;
+        }
+        let last = elements.len() - 1;
+        if matches!(
+            &elements[last],
+            ASTNode::Quantified { quantifier, .. }
+                if { let q = quantifier.trim(); q.starts_with('?') || q.starts_with('*') }
+        ) {
+            return None;
+        }
+        let has_quantified_body = elements[..last].iter().any(|e| {
+            matches!(
+                e,
+                ASTNode::Quantified { quantifier, .. }
+                    if {
+                        let q = quantifier.trim();
+                        q.starts_with('*') || q.starts_with('+') || q.starts_with('?')
+                    }
+            )
+        });
+        if !has_quantified_body {
+            return None;
+        }
+        let lexeme = Self::terminal_literal_of_node(
+            tree,
+            &elements[last],
+            0,
+            &mut HashSet::new(),
+        )?;
+        if lexeme.is_empty() {
+            None
+        } else {
+            Some((last, lexeme))
+        }
+    }
+
+    // ── SV-EXH-PROOF.2.3.2 (line-terminator completeness): a
+    // line-oriented construct whose content terminal greedily
+    // consumes to end-of-line, followed by an *optional* newline
+    // terminator, must EMIT that newline when generated — else, on
+    // reparse, the line-greedy content absorbs whatever structural
+    // element follows (e.g. a `pp_define` macro body swallowing a
+    // following `` `endif ``, leaving a real `` `ifdef `` unclosed =
+    // genuinely-invalid output the parser correctly rejects =
+    // generator over-generation). Pure functions of regex HIR + the
+    // grammar AST; zero grammar/parser/EBNF identifiers; all-lanes
+    // -safe (a trailing newline is universally benign, and the
+    // detector fires ONLY on the line-greedy-content → optional
+    // -newline-terminator shape, so grammars without it are
+    // untouched). ───────────────────────────────────────────────────
+
+    fn hir_is_newline_only(hir: &Hir) -> bool {
+        let only_nl = |c: char| c == '\r' || c == '\n';
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => true,
+            HirKind::Literal(Literal(bytes)) => {
+                String::from_utf8_lossy(bytes).chars().all(only_nl)
+            }
+            HirKind::Class(Class::Unicode(u)) => u
+                .ranges()
+                .iter()
+                .all(|r| only_nl(r.start()) && only_nl(r.end()) && r.start() == r.end()),
+            HirKind::Class(Class::Bytes(b)) => b.ranges().iter().all(|r| {
+                (r.start() == b'\r' || r.start() == b'\n')
+                    && (r.end() == b'\r' || r.end() == b'\n')
+            }),
+            HirKind::Repetition(rep) => Self::hir_is_newline_only(&rep.sub),
+            HirKind::Capture(c) => Self::hir_is_newline_only(&c.sub),
+            HirKind::Concat(parts) | HirKind::Alternation(parts) => {
+                parts.iter().all(Self::hir_is_newline_only)
+            }
+        }
+    }
+
+    /// `true` iff the pattern's language is non-empty and consists
+    /// only of newline characters (e.g. `\r?\n`, `\n`).
+    fn regex_is_newline_only(pattern: &str) -> bool {
+        regex_syntax::parse(pattern.trim())
+            .ok()
+            .map(|hir| Self::hir_is_newline_only(&hir) && !Self::hir_matches_empty(&hir))
+            .unwrap_or(false)
+    }
+
+    fn hir_can_match_nonnewline(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => false,
+            HirKind::Literal(Literal(bytes)) => String::from_utf8_lossy(bytes)
+                .chars()
+                .any(|c| c != '\r' && c != '\n'),
+            HirKind::Class(Class::Unicode(u)) => u.ranges().iter().any(|r| {
+                // any code point in [start,end] other than CR/LF
+                !(r.start() == r.end()
+                    && (r.start() == '\r' || r.start() == '\n'))
+            }),
+            HirKind::Class(Class::Bytes(b)) => b
+                .ranges()
+                .iter()
+                .any(|r| !(r.start() >= b'\r' && r.end() <= b'\n')),
+            HirKind::Repetition(rep) => {
+                rep.max != Some(0) && Self::hir_can_match_nonnewline(&rep.sub)
+            }
+            HirKind::Capture(c) => Self::hir_can_match_nonnewline(&c.sub),
+            HirKind::Concat(parts) | HirKind::Alternation(parts) => {
+                parts.iter().any(Self::hir_can_match_nonnewline)
+            }
+        }
+    }
+
+    fn hir_has_unbounded_nonnewline_repetition(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Repetition(rep) => {
+                (rep.max.is_none() && Self::hir_can_match_nonnewline(&rep.sub))
+                    || Self::hir_has_unbounded_nonnewline_repetition(&rep.sub)
+            }
+            HirKind::Capture(c) => {
+                Self::hir_has_unbounded_nonnewline_repetition(&c.sub)
+            }
+            HirKind::Concat(parts) | HirKind::Alternation(parts) => parts
+                .iter()
+                .any(Self::hir_has_unbounded_nonnewline_repetition),
+            _ => false,
+        }
+    }
+
+    /// `true` iff the pattern can greedily consume an unbounded run
+    /// of non-newline characters (a line-to-EOL content terminal,
+    /// e.g. `[^\r\n]*`, `[^\`(),?:\r\n]+`, the comment-aware macro
+    /// body regex).
+    fn regex_is_line_greedy(pattern: &str) -> bool {
+        regex_syntax::parse(pattern.trim())
+            .ok()
+            .map(|hir| Self::hir_has_unbounded_nonnewline_repetition(&hir))
+            .unwrap_or(false)
+    }
+
+    fn node_is_newline_terminator(
+        tree: &HashMap<String, ASTNode>,
+        node: &ASTNode,
+        depth: usize,
+        visiting: &mut HashSet<String>,
+    ) -> bool {
+        if depth > 32 {
+            return false;
+        }
+        match node {
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(n) => {
+                    Self::node_is_newline_terminator(tree, n, depth + 1, visiting)
+                }
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("regex", pat)) => Self::regex_is_newline_only(pat),
+                    Some(("rule_reference", name)) => {
+                        if !visiting.insert(name.to_string()) {
+                            return false;
+                        }
+                        let r = tree
+                            .get(name)
+                            .map(|n| {
+                                Self::node_is_newline_terminator(
+                                    tree,
+                                    n,
+                                    depth + 1,
+                                    visiting,
+                                )
+                            })
+                            .unwrap_or(false);
+                        visiting.remove(name);
+                        r
+                    }
+                    _ => false,
+                },
+            },
+            ASTNode::Sequence { elements } => {
+                let mut found = false;
+                for e in elements {
+                    if Self::node_is_newline_terminator(tree, e, depth + 1, visiting) {
+                        found = true;
+                    } else if Self::node_is_nullable(tree, e, 0, &mut HashSet::new()) {
+                        // nullable (e.g. optional leading trivia) ⇒ skip
+                    } else {
+                        return false;
+                    }
+                }
+                found
+            }
+            _ => false,
+        }
+    }
+
+    fn node_contains_line_greedy(
+        tree: &HashMap<String, ASTNode>,
+        node: &ASTNode,
+        depth: usize,
+        visiting: &mut HashSet<String>,
+    ) -> bool {
+        if depth > 64 {
+            return false;
+        }
+        match node {
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .any(|a| Self::node_contains_line_greedy(tree, a, depth + 1, visiting)),
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .any(|e| Self::node_contains_line_greedy(tree, e, depth + 1, visiting)),
+            ASTNode::Quantified { element, .. }
+            | ASTNode::Lookahead { element, .. } => {
+                Self::node_contains_line_greedy(tree, element, depth + 1, visiting)
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(n) => {
+                    Self::node_contains_line_greedy(tree, n, depth + 1, visiting)
+                }
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("regex", pat)) => Self::regex_is_line_greedy(pat),
+                    Some(("rule_reference", name)) => {
+                        if !visiting.insert(name.to_string()) {
+                            return false;
+                        }
+                        let r = tree
+                            .get(name)
+                            .map(|n| {
+                                Self::node_contains_line_greedy(
+                                    tree,
+                                    n,
+                                    depth + 1,
+                                    visiting,
+                                )
+                            })
+                            .unwrap_or(false);
+                        visiting.remove(name);
+                        r
+                    }
+                    _ => false,
+                },
+            },
+        }
+    }
+
+    /// Returns the index of a trailing element that is an *optional*
+    /// (`?`/`*`) newline terminator, when an EARLIER element in the
+    /// same sequence (transitively) contains a line-greedy content
+    /// terminal. That trailing newline must then be force-emitted
+    /// (generated as exactly one inner repetition) so the line-greedy
+    /// content cannot absorb the following structural element on
+    /// reparse. Purely structural ⇒ parser/EBNF-agnostic,
+    /// all-lanes-safe.
+    fn sequence_force_line_terminator_idx(
+        tree: &HashMap<String, ASTNode>,
+        elements: &[ASTNode],
+    ) -> Option<usize> {
+        if elements.len() < 2 {
+            return None;
+        }
+        let last = elements.len() - 1;
+        let inner = match &elements[last] {
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } if {
+                let q = quantifier.trim();
+                q.starts_with('?') || q.starts_with('*')
+            } =>
+            {
+                element.as_ref()
+            }
+            _ => return None,
+        };
+        if !Self::node_is_newline_terminator(tree, inner, 0, &mut HashSet::new()) {
+            return None;
+        }
+        let preceded_by_line_greedy = elements[..last].iter().any(|e| {
+            Self::node_contains_line_greedy(tree, e, 0, &mut HashSet::new())
+        });
+        if preceded_by_line_greedy {
+            Some(last)
+        } else {
+            None
+        }
+    }
+
     fn generate_from_regex_class(&mut self, class: &Class) -> String {
         match class {
             Class::Unicode(unicode_class) => {
@@ -5188,6 +6193,13 @@ impl<'a> StimuliGenerator<'a> {
                             printable.push(ch);
                         }
                     }
+                }
+                // SV-EXH-PROOF.2.3.2 (P-a): never materialize a char
+                // the rule's own leading negated class declared
+                // structurally hazardous (else it re-lexes as
+                // structure and the closed-loop round-trip fails).
+                if !self.regex_content_forbidden.is_empty() {
+                    printable.retain(|ch| !self.regex_content_forbidden.contains(ch));
                 }
                 if !printable.is_empty() {
                     let idx = self.rng.gen_range(0..printable.len());
@@ -5203,7 +6215,9 @@ impl<'a> StimuliGenerator<'a> {
                         start
                     };
                     if let Some(ch) = char::from_u32(sampled) {
-                        return ch.to_string();
+                        if !self.regex_content_forbidden.contains(&ch) {
+                            return ch.to_string();
+                        }
                     }
                 }
 
@@ -5220,6 +6234,11 @@ impl<'a> StimuliGenerator<'a> {
                         }
                     }
                 }
+                // SV-EXH-PROOF.2.3.2 (P-a): see the Unicode arm.
+                if !self.regex_content_forbidden.is_empty() {
+                    printable
+                        .retain(|b| !self.regex_content_forbidden.contains(&char::from(*b)));
+                }
                 if !printable.is_empty() {
                     let idx = self.rng.gen_range(0..printable.len());
                     return char::from(printable[idx]).to_string();
@@ -5233,7 +6252,10 @@ impl<'a> StimuliGenerator<'a> {
                     } else {
                         start
                     };
-                    return char::from(sampled).to_string();
+                    let ch = char::from(sampled);
+                    if !self.regex_content_forbidden.contains(&ch) {
+                        return ch.to_string();
+                    }
                 }
 
                 "a".to_string()
@@ -7943,6 +8965,506 @@ mod tests {
             "regex sample should avoid ASCII control characters: {:?}",
             value[0]
         );
+    }
+
+    #[test]
+    fn regex_leading_negation_excludes_structural_sigil_from_whole_content() {
+        // SV-EXH-PROOF.2.3.2 (P-a): a permissive *leading* negated
+        // class (`[^`\r\n]…` — the `non_directive_text` shape) must
+        // keep its negated sigil out of the WHOLE generated run, not
+        // just position 1; otherwise the closed-loop emits `` ` ``
+        // mid-text and the parser re-lexes it as a directive, breaking
+        // the sample's own round-trip.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "[^`\\r\\n][^\\r\\n]*"));
+        let rule_order = vec!["start".to_string()];
+        for seed in [7u64, 42, 99, 123, 2024, 31337] {
+            let mut generator = simple_generator(&grammar_tree, &rule_order, seed);
+            let value = generator
+                .generate_many(8, None)
+                .expect("permissive leading-negation regex generation should succeed");
+            for v in &value {
+                assert!(
+                    !v.contains('`'),
+                    "leading [^`…] must exclude the backtick sigil from the ENTIRE content \
+                     (seed {seed}): {v:?}"
+                );
+            }
+        }
+
+        // All-lanes-safe: a *restrictive positive* leading class
+        // (`[a-z][a-z0-9]*`) is NOT a structural negation — P-a must
+        // NOT over-restrict it (digits from the tail must still
+        // appear across samples).
+        let mut positive_tree = HashMap::new();
+        positive_tree.insert("start".to_string(), token("regex", "[a-z][a-z0-9]*"));
+        let positive_order = vec!["start".to_string()];
+        let mut saw_digit = false;
+        for seed in 0u64..40 {
+            let mut generator = simple_generator(&positive_tree, &positive_order, seed);
+            if let Ok(vals) = generator.generate_many(4, None) {
+                if vals
+                    .iter()
+                    .any(|v| v.chars().any(|c| c.is_ascii_digit()))
+                {
+                    saw_digit = true;
+                    break;
+                }
+            }
+        }
+        assert!(
+            saw_digit,
+            "P-a must not strip digits from a restrictive positive leading class \
+             [a-z][a-z0-9]* (all-lanes-safe)"
+        );
+
+        // GRAMMAR-SCOPED `G`: a permissive content rule that negates
+        // NOTHING of its own (`[^\r\n]+` — the `directive_tail` shape)
+        // must STILL exclude a structural sigil that a *sibling*
+        // content rule's author declared (`[^`\r\n]…`). This is the
+        // generalization that covers `directive_tail`.
+        let mut g_tree = HashMap::new();
+        g_tree.insert("start".to_string(), token("regex", "[^\\r\\n]+"));
+        g_tree.insert(
+            "sibling_declares_sigil".to_string(),
+            token("regex", "[^`\\r\\n][^\\r\\n]*"),
+        );
+        let g_order = vec!["start".to_string()];
+        for seed in [1u64, 8, 64, 512, 4096, 65535] {
+            let mut generator = simple_generator(&g_tree, &g_order, seed);
+            let value = generator
+                .generate_many(8, None)
+                .expect("directive_tail-shape generation should succeed");
+            for v in &value {
+                assert!(
+                    !v.contains('`'),
+                    "grammar-scoped G: a permissive content rule ([^\\r\\n]+) must exclude a \
+                     sigil declared by a sibling content rule ([^`…]) (seed {seed}): {v:?}"
+                );
+            }
+        }
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn real_sv_preprocessor_in_process_closer_scope_observation() {
+        // SV-EXH-PROOF.2.3.2 — DECISIVE H2a-vs-H2b observation
+        // (verify, do not reason — 5 mis-fires). Generate the real
+        // `systemverilog_preprocessor_file` in-process and read the
+        // ground-truth counters:
+        //   closer_scopes_entered == 0  ⇒ H2a: the generator NEVER
+        //     builds a `pp_conditional`; the failing samples'
+        //     `` `ifdef ``/`` `endif `` are free-text the parser
+        //     re-lexes (the original -0009 mode) — Mode-B targets a
+        //     path the generator does not take.
+        //   closer_scopes_entered  > 0  ⇒ the construct IS built; if
+        //     the ce0 signature still appears the gap is H2b
+        //     (consult bypass: cross-terminal concat / steering /
+        //     literal-hint path).
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../grammars/systemverilog_preprocessor.ebnf"
+        );
+        let envelope = parse_ebnf_file_to_raw_ast_envelope(grammar_path)
+            .expect("parse systemverilog_preprocessor.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+
+        let entry = "systemverilog_preprocessor_file";
+        assert!(
+            grammar_tree.contains_key(entry),
+            "grammar must define the file entry rule"
+        );
+
+        // CORRECTED signature (the gate `shrunk_sample` is a bare
+        // dangling `` ` ``, NOT an absorbed closer): every valid
+        // backtick token in this grammar is `\`<ident>` /  `\`\`` /
+        // `\`"`. A `\`` NOT followed by [A-Za-z_`"] (incl. trailing
+        // or whitespace-followed) is a structurally-invalid dangling
+        // sigil the parser correctly rejects = generator
+        // over-generation. No parser needed.
+        let kw_re = regex::Regex::new(r#"`(?:[^A-Za-z_`"]|$)"#).unwrap();
+
+        let mut total = 0usize;
+        let mut dangling_bt = 0usize;
+        let mut first_example: Option<String> = None;
+        let mut last_scopes = 0usize;
+        for seed in [3u64, 17, 71, 256, 1024, 9001, 65537, 424242] {
+            let mut generator = simple_generator(&grammar_tree, &rule_order, seed);
+            for _ in 0..1200 {
+                if let Ok(sample) = generator.generate_from_entry(entry) {
+                    total += 1;
+                    if kw_re.is_match(&sample) {
+                        dangling_bt += 1;
+                        if first_example.is_none() {
+                            first_example = Some(sample);
+                        }
+                    }
+                }
+            }
+            last_scopes = generator.closer_scopes_entered();
+        }
+
+        eprintln!(
+            "SV-EXH-PROOF.2.3.2 dangling-backtick observation: samples={} \
+             dangling_bt={} closer_scopes_entered(last)={} first={:?}",
+            total, dangling_bt, last_scopes, first_example
+        );
+
+        assert!(total > 0, "in-process generation must produce samples");
+        // Decisive: does the PRIMARY Baseline path itself emit a bare
+        // dangling backtick (the actual gate shrunk-sample shape)? If
+        // YES → fast in-process repro of the real defect; if NO → the
+        // defect is target-drive-steering-specific.
+        assert_eq!(
+            dangling_bt, 0,
+            "PRIMARY path emits a structurally-invalid dangling backtick \
+             ({dangling_bt}/{total}) — fast in-process reproduction of the \
+             gate's `shrunk_sample` defect; first example: {first_example:?}"
+        );
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn real_sv_preprocessor_grammar_closer_split_fires_for_pp_conditional() {
+        // SV-EXH-PROOF.2.3.2 — DECISIVE H1 check (verify, do not
+        // assume): load the REAL systemverilog_preprocessor.ebnf and
+        // confirm `sequence_closer_split` actually fires for
+        // `pp_conditional` and resolves the closer through
+        // `pp_endif := kw_endif directive_tail? newline?` →
+        // `kw_endif := inline_trivia /\`endif\b/` to the fixed
+        // literal. If this fails, the detector is a no-op on the real
+        // AST shape (root cause = detection); if it passes, the
+        // detector fires and the remaining gap is elsewhere
+        // (generator never builds the construct / consult bypass).
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../grammars/systemverilog_preprocessor.ebnf"
+        );
+        let envelope = parse_ebnf_file_to_raw_ast_envelope(grammar_path)
+            .expect("parse systemverilog_preprocessor.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, _rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+
+        let pp_conditional = grammar_tree
+            .get("pp_conditional")
+            .expect("grammar must define pp_conditional");
+
+        // The generator reaches a rule body via generate_node, which
+        // dispatches Or→(pick alt)→generate_sequence. Mirror that:
+        // collect every top-level Sequence the generator could land
+        // in (the node itself, or each Or alternative / unwrapped
+        // single-child), then assert the detector fires on one.
+        fn candidate_sequences(node: &ASTNode) -> Vec<&[ASTNode]> {
+            match node {
+                ASTNode::Sequence { elements } => vec![elements.as_slice()],
+                ASTNode::Or { alternatives } => alternatives
+                    .iter()
+                    .flat_map(candidate_sequences)
+                    .collect(),
+                ASTNode::Atom {
+                    value: ASTValue::Node(inner),
+                } => candidate_sequences(inner),
+                _ => Vec::new(),
+            }
+        }
+
+        let detections: Vec<(usize, String)> = candidate_sequences(pp_conditional)
+            .into_iter()
+            .filter_map(|els| {
+                StimuliGenerator::sequence_closer_split(&grammar_tree, els)
+            })
+            .collect();
+
+        assert!(
+            !detections.is_empty(),
+            "H1: sequence_closer_split MUST fire for the real pp_conditional \
+             (`pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif`); \
+             node shape = {:?}",
+            pp_conditional
+        );
+        assert!(
+            detections.iter().any(|(_, lex)| lex.contains("`endif")),
+            "the resolved closer lexeme must be the fixed literal `endif` \
+             (through pp_endif := kw_endif directive_tail? newline?); got {:?}",
+            detections
+        );
+    }
+
+    #[test]
+    fn structural_closer_unspellable_by_free_terminal_while_construct_open() {
+        // SV-EXH-PROOF.2.3.2 (Mode B), parser/EBNF-agnostic proof on a
+        // SYNTHETIC grammar (no SV/preprocessor identifiers — the fix
+        // is a general property of grammar structure):
+        //
+        //   wrap     := open  body*  close      (the `… item* CLOSE` idiom)
+        //   open     := /OPEN/                  (fixed-literal opener)
+        //   close    := /#END/                  (REQUIRED fixed-literal
+        //                                        closer; STARTS with the
+        //                                        structural sigil `#`)
+        //   body     := free_tok | wrap         (recursive ⇒ nesting)
+        //   free_tok := /#END|[a-z]+/           (FREE alternation — one
+        //                                        alt IS the closer)
+        //   content  := /[^#\r\n][^\r\n]*/      (a content rule whose
+        //                                        author leading-negates
+        //                                        `#` ⇒ declares `#` a
+        //                                        grammar structural
+        //                                        sigil, exactly like SV
+        //                                        `non_directive_text`
+        //                                        leading-negating `` ` ``)
+        //
+        // The hazard gate engages the closer-scope ONLY because the
+        // closer `#END` begins with a grammar-declared structural
+        // sigil (`#`, from `content`'s leading negation) — mirroring
+        // the real `` `endif `` / `` ` `` relationship. Without the
+        // fix the closed-loop freely picks the `#END` alternative
+        // inside the body and the parser re-lexes it as the structural
+        // closer; with it, the ONLY `#END` occurrences are genuine
+        // structural closes ⇒ #opens == #closes in every sample
+        // (balanced, round-trip-stable), nesting included.
+        let close_kw = "#END";
+        let open_kw = "OPEN";
+        let wrap_seq = ASTNode::Sequence {
+            elements: vec![
+                token("rule_reference", "open"),
+                ASTNode::Quantified {
+                    element: Box::new(token("rule_reference", "body")),
+                    quantifier: "*".to_string(),
+                },
+                token("rule_reference", "close"),
+            ],
+        };
+        let body_or = ASTNode::Or {
+            alternatives: vec![
+                token("rule_reference", "free_tok"),
+                token("rule_reference", "wrap"),
+            ],
+        };
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("wrap".to_string(), wrap_seq);
+        grammar_tree.insert("open".to_string(), token("regex", open_kw));
+        grammar_tree.insert("close".to_string(), token("regex", close_kw));
+        grammar_tree.insert("body".to_string(), body_or);
+        grammar_tree.insert("free_tok".to_string(), token("regex", "#END|[a-z]+"));
+        // Declares `#` a grammar structural sigil (leading negation),
+        // gating the hazard check on — parser/EBNF-agnostically.
+        grammar_tree.insert(
+            "content".to_string(),
+            token("regex", r"[^#\r\n][^\r\n]*"),
+        );
+        let rule_order = vec![
+            "wrap".to_string(),
+            "open".to_string(),
+            "close".to_string(),
+            "body".to_string(),
+            "free_tok".to_string(),
+            "content".to_string(),
+        ];
+
+        // The closer-shape detector must fire on `wrap` and resolve
+        // the closer lexeme purely structurally (rule-ref → regex).
+        let detected = StimuliGenerator::sequence_closer_split(
+            &grammar_tree,
+            match grammar_tree.get("wrap").unwrap() {
+                ASTNode::Sequence { elements } => elements,
+                _ => unreachable!(),
+            },
+        );
+        assert_eq!(
+            detected,
+            Some((2usize, close_kw.to_string())),
+            "sequence_closer_split must detect `open body* close` and resolve \
+             the fixed-literal closer through the rule reference"
+        );
+        // A fixed-literal terminal is exempt (nesting-safe); a free
+        // terminal is subject to the check.
+        assert!(
+            StimuliGenerator::regex_fixed_literal(close_kw).is_some(),
+            "the structural closer terminal must classify as fixed-literal (exempt)"
+        );
+        assert!(
+            StimuliGenerator::regex_fixed_literal("#END|[a-z]+").is_none(),
+            "the body's alternation terminal must classify as a FREE terminal"
+        );
+
+        let mut saw_nesting = false;
+        for seed in [3u64, 17, 71, 256, 1024, 9001, 65537] {
+            let mut generator = simple_generator(&grammar_tree, &rule_order, seed);
+            let samples = generator
+                .generate_many(12, None)
+                .expect("closer-bearing recursive grammar generation should succeed");
+            for s in &samples {
+                let opens = s.matches(open_kw).count();
+                let closes = s.matches(close_kw).count();
+                assert!(
+                    opens >= 1 && opens == closes,
+                    "every emitted `wrap` must be structurally balanced — the \
+                     closer lexeme must never be spelled by a free terminal while \
+                     a construct is open (seed {seed}): opens={opens} closes={closes} {s:?}"
+                );
+                if opens >= 2 {
+                    saw_nesting = true;
+                }
+            }
+        }
+        assert!(
+            saw_nesting,
+            "the recursive grammar must exercise NESTED constructs (whose own \
+             fixed-literal structural closers stay generatable ⇒ nesting-safe)"
+        );
+
+        // Coverage-preserving: with NO closer-bearing construct open
+        // (entry = the free terminal itself, empty forbidden stack),
+        // the very same lexeme is still freely generatable — the fix
+        // is strictly contextual, it does not shrink the language.
+        let free_order = vec!["free_tok".to_string()];
+        let mut saw_kw_standalone = false;
+        for seed in 0u64..60 {
+            let mut generator = simple_generator(&grammar_tree, &free_order, seed);
+            if let Ok(vals) = generator.generate_many(6, None) {
+                if vals.iter().any(|v| v == close_kw) {
+                    saw_kw_standalone = true;
+                    break;
+                }
+            }
+        }
+        assert!(
+            saw_kw_standalone,
+            "coverage-preserving: a free terminal must STILL be able to emit the \
+             closer lexeme when no closer-bearing construct is open"
+        );
+    }
+
+    #[test]
+    fn line_greedy_content_forces_optional_newline_terminator() {
+        // SV-EXH-PROOF.2.3.2 (line-terminator completeness),
+        // parser/EBNF-agnostic proof on a SYNTHETIC grammar (no
+        // SV/preprocessor identifiers — a general grammar-structure
+        // property):
+        //
+        //   file      := directive+
+        //   directive := kw content nl?     (line-greedy content +
+        //                                    OPTIONAL newline terminator)
+        //   kw        := /D/
+        //   content   := /[^D\r\n]+/        (line-greedy: unbounded
+        //                                    run of non-newline chars)
+        //   nl        := /\r?\n/            (newline-only terminator)
+        //
+        // Without the fix the generator may skip `nl?`, so on reparse
+        // `content` (line-greedy) absorbs the following `directive`
+        // — exactly the `pp_define` macro-body-swallows-`` `endif ``
+        // shape. The fix detects the `line-greedy … optional-newline
+        // -terminator` sequence and force-emits the newline, so every
+        // directive is newline-terminated (#newlines == #directives,
+        // since `content` cannot produce `D` or `\n`).
+        let directive_seq = ASTNode::Sequence {
+            elements: vec![
+                token("rule_reference", "kw"),
+                token("rule_reference", "content"),
+                ASTNode::Quantified {
+                    element: Box::new(token("rule_reference", "nl")),
+                    quantifier: "?".to_string(),
+                },
+            ],
+        };
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "file".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(token("rule_reference", "directive")),
+                quantifier: "+".to_string(),
+            },
+        );
+        grammar_tree.insert("directive".to_string(), directive_seq);
+        grammar_tree.insert("kw".to_string(), token("regex", "D"));
+        grammar_tree.insert("content".to_string(), token("regex", r"[^D\r\n]+"));
+        grammar_tree.insert("nl".to_string(), token("regex", r"\r?\n"));
+        let rule_order = vec![
+            "file".to_string(),
+            "directive".to_string(),
+            "kw".to_string(),
+            "content".to_string(),
+            "nl".to_string(),
+        ];
+
+        // HIR classifiers (necessary, not sufficient — purely
+        // structural, agnostic):
+        assert!(StimuliGenerator::regex_is_newline_only(r"\r?\n"));
+        assert!(StimuliGenerator::regex_is_newline_only(r"\n"));
+        assert!(!StimuliGenerator::regex_is_newline_only(r"[^D\r\n]+"));
+        assert!(!StimuliGenerator::regex_is_newline_only("D"));
+        assert!(StimuliGenerator::regex_is_line_greedy(r"[^D\r\n]+"));
+        assert!(StimuliGenerator::regex_is_line_greedy(r"[^\r\n]*"));
+        assert!(!StimuliGenerator::regex_is_line_greedy(r"\r?\n"));
+        assert!(!StimuliGenerator::regex_is_line_greedy("D"));
+
+        // The detector must fire on `directive` (last elem = `nl?`
+        // newline terminator; an earlier elem `content` is
+        // line-greedy) and target the trailing index.
+        let directive_elems = match grammar_tree.get("directive").unwrap() {
+            ASTNode::Sequence { elements } => elements.as_slice(),
+            _ => unreachable!(),
+        };
+        assert_eq!(
+            StimuliGenerator::sequence_force_line_terminator_idx(
+                &grammar_tree,
+                directive_elems
+            ),
+            Some(2),
+            "must detect `<line-greedy content> <optional newline terminator>` \
+             and force the trailing newline"
+        );
+        // All-lanes-safe: a sequence WITHOUT a preceding line-greedy
+        // element must NOT be forced (no spurious newline injection).
+        let no_greedy = vec![
+            token("rule_reference", "kw"),
+            ASTNode::Quantified {
+                element: Box::new(token("rule_reference", "nl")),
+                quantifier: "?".to_string(),
+            },
+        ];
+        assert_eq!(
+            StimuliGenerator::sequence_force_line_terminator_idx(&grammar_tree, &no_greedy),
+            None,
+            "all-lanes-safe: no line-greedy predecessor ⇒ the optional \
+             newline must stay optional (no forced injection)"
+        );
+
+        // Generation: every directive is newline-terminated ⇒ the
+        // line-greedy `content` can never absorb the next directive.
+        for seed in [2u64, 19, 88, 313, 2718, 99991] {
+            let mut generator = simple_generator(&grammar_tree, &rule_order, seed);
+            let samples = generator
+                .generate_many(16, None)
+                .expect("line-oriented grammar generation should succeed");
+            for s in &samples {
+                let directives = s.matches('D').count();
+                let newlines = s.matches('\n').count();
+                assert!(
+                    directives >= 1 && newlines == directives,
+                    "every directive must be newline-terminated (seed {seed}): \
+                     directives={directives} newlines={newlines} {s:?}"
+                );
+            }
+        }
     }
 
     #[test]
