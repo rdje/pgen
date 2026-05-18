@@ -435,16 +435,18 @@ class_escape_unit = single_byte_escape
                   | control_escape
                   | property_escape
                   | class_simple_escape
-# PGEN-RGX-0087-FIX2.3: the `!"0"…!"7"` guards (octal digits ONLY —
-# NOT 8/9) stop a `\<octal-digit>` that `octal_escape` rejected as an
-# overflow (`[\666]`, `[\400]`) from being shorthand-rescued here:
-# PCRE2 10.47 rejects octal `>0o377` INSIDE classes too (err 151), so
-# the construct must hard-reject, not degrade to `\6`+literal.
-# `\8`/`\9` (∉[0-7]) and `\<letter>` stay rescued (FIX2.1 `[\8]`/
-# `[\9]`/`[\88]` preserved); a valid in-range `\<octal-digit>` never
-# reaches here (handled by `octal_escape`, tried first in
-# `class_escape_unit`). 12 lookaheads now precede `any_char` ⇒ `$13`.
-class_simple_escape = !"o{" !"x{" !"p{" !"P{" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" any_char -> {type: "escape", kind: "shorthand", char: $13}
+# PGEN-RGX-0088: the `PGEN-RGX-0087-FIX2.3` octal-digit guards here
+# were REVERTED. They stopped a class-context octal-overflow
+# `\<octal-digit>` from being shorthand-rescued so `[\666]`/`[\400]`
+# hard-rejected — PCRE2-faithful only for **8-bit non-UTF**. Under
+# UTF/16-/32-bit PCRE2 10.47 ACCEPTs `[\666]`/`[\777]` (octal up to
+# the codepoint max). PGEN parses **mode-agnostically**, so this is
+# back to the FIX2.1 unguarded form: `\<octal-digit>` in a class is
+# emitted (octal via `octal_escape`, else shorthand); the
+# mode-dependent `>0o377` range check is the mode-aware consumer's
+# job, not a parse-time grammar decision
+# (`feedback_ast_pipeline_parser_agnostic`).
+class_simple_escape = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
 
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
@@ -621,27 +623,22 @@ unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits
 # expression.
 octal_escape   = "o{" brace_ws? octal_digits brace_ws? "}"  -> {type: "escape", kind: "octal", digits: $3}
                | octal_escape_short_payload                  -> {type: "escape", kind: "octal", digits: $1}
-# PGEN-RGX-0087-FIX2.3: PCRE2 (oracle: pcre2test 10.47) bare `\ddd`
-# octal is limited to value <= 0o377 (255) in 8-bit non-UTF; a
-# 3-octal-digit run > 0o377 is a HARD compile error (err 151) — PCRE2
-# does NOT truncate to a shorter run, and the overflow rejects in
-# BOTH pattern-body and `[...]` class context. A single greedy regex
-# (or a longest-valid-prefix alternation) cannot express this (it
-# would wrongly accept `\666` as `\66`+literal). Split so: a
-# 3-octal-digit run is valid only if its value <= 0o377 (first digit
-# in [0-3]); a 1-2 octal-digit run is valid only if COMPLETE (not
-# followed by a further octal digit — the proven RGX-0079/0087
-# `!"string"` negative-lookahead idiom). An octal-overflow triple
-# (`[4-7][0-7][0-7]`, value >= 0o400) matches NEITHER branch ⇒
-# `octal_escape` fails ⇒ the construct hard-rejects (PCRE2-faithful;
-# non-class via the `simple_escape` `!"0"…!"9"` guard, class via the
-# `class_simple_escape` `!"0"…!"7"` guard added below). `-> $1` per
-# branch yields the octal-string Terminal unambiguously so
-# `octal_escape`'s `digits: $1` is unchanged (byte-identical AST for
-# every <=0o377 case: `\10`/`\012`/`\07`/`\0`/`\77`/`\377`/`\3777`/
-# `\199`@0g — RGX-0084/RGX-0087 octal family preserved).
-octal_escape_short_payload = /([0-3][0-7][0-7])/ -> $1
-                           | /([0-7][0-7]?)/ !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" -> $1
+# PGEN-RGX-0088: the `PGEN-RGX-0087-FIX2.3` split (3-digit run must
+# be `[0-3]`-led / 1-2-digit must be octal-complete, making an
+# `>0o377` triple a hard parse REJECT) was REVERTED to this single
+# greedy form. FIX2.3 was PCRE2-faithful only for **8-bit non-UTF**
+# (error 151); under UTF / 16-/32-bit a bare octal escape is valid
+# up to the Unicode codepoint max — `pcre2test` 10.47 ACCEPTs
+# `\777`(U+01FF)/`\400`/`\6666666666`. PGEN parses **mode-agnostically**
+# (it never sees `utf`/8-bit/width), so a blanket parse-time octal
+# range reject is the wrong locus. This emits the octal atom for any
+# 1-3 octal digit run (greedy, longest-PCRE2-run = up to 3); the
+# `>0o377` 8-bit-non-UTF rejection is the **mode-aware consumer's**
+# range check by width (report-prescribed; `feedback_ast_pipeline
+# _parser_agnostic`). RGX-0084/RGX-0087 (`\10`@9g/`\012`/`\199`@0g)
+# stay byte-identical; FIX2.1/.2 + the non-class `[89]`-backref
+# reject are FIX2.3-independent and unchanged.
+octal_escape_short_payload = /([0-7]{1,3})/
 
 @type: "control_escape"
 @description: "Control character escape \cA"

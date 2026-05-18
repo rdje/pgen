@@ -346,6 +346,20 @@ done; RGX PCRE2 differential ratchet reaches the report's full target
 distinct production never reported) is out of scope — `RGX-0079`
 owns `\o{...}`.
 
+### RGX-0088 (release 1.1.81): FIX2.3's blanket octal-`>0o377` reject was REVERTED — octal range is mode-dependent
+
+FIX2.3 (above) rejected octal `>0o377` at **parse time, unconditionally**. That is PCRE2-faithful only in **8-bit non-UTF** mode (error 151). Under **UTF / 16-/32-bit** a bare octal escape is valid up to the Unicode codepoint maximum, and PCRE2 10.47 **ACCEPTs** `\777` (U+01FF), `\400`, `\6666666666`, `[\666]`, `[\777]` under `,utf` (downstream `PGEN-RGX-0088`, conformance `testinput10:218` `/\777/,utf`). PGEN's parser is **mode-agnostic** — it never sees `utf` / 8-bit / 16-/32-bit width at parse time — so a blanket parse-time octal-range reject is the wrong locus.
+
+Release 1.1.81 **reverts exactly FIX2.3's two grammar edits**: `octal_escape_short_payload` is back to `/([0-7]{1,3})/` and `class_simple_escape` to its FIX2.1 unguarded form (the grammar's non-comment diff vs 1.1.79 is zero — a pure revert). PGEN again emits the **octal atom** for any 1-3-octal-digit run, mode-agnostically (`\6666666666` → `{type:"escape",kind:"octal",digits:"666"}` + literal `6`s, as pre-FIX2.3). The 8-bit-non-UTF `>0o377` rejection is now the **mode-aware consumer's** range check by width — the report-prescribed division of labour, and the correct layering (a mode-agnostic grammar must not make a mode-dependent range decision; not a consumer workaround).
+
+| pattern | 1.1.80 | 1.1.81 (mode-agnostic) |
+| --- | --- | --- |
+| `\400` `\777` `\666` `\6666666666` `[\666]` `[\777]` | REJECT | **ACCEPT** (octal atom; range = consumer/mode) |
+| `\377` `[\377]` `\10`@9g `\199`@0g `\012` `\07` `[\8]` `[\9]` `[\88]` | accept | accept (byte-identical) |
+| `((((((((x))))))))\81` `\89`@0g | reject | reject (byte-identical — RGX-0087 backref reject is FIX2.3-independent) |
+
+FIX2.1/.2 (class-context scope), the non-class `[89]`-leading backref hard-reject (`PGEN-RGX-0087`), and `PGEN-RGX-0084` are all FIX2.3-independent ⇒ **byte-identical**. AST-dump **schema stays `1`**. `PGEN-RGX-0087` stays CLOSED (`PGEN-RGX-0088` is a family-linked follow-on). The `(?u)` inline modifier remaining unsupported is a separate pre-existing gap (`(?u)a` also rejects), not this bug.
+
 ## `digits` is a string for octal too
 
 Same convention as hex/unicode — consumers parse with `usize::from_str_radix(obj.digits, 8)`.

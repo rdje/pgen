@@ -7,9 +7,9 @@ This is the document downstream projects such as RGX should read first when deci
 
 ## Contract Identity
 - Contract version:
-  - `1.1.82`
+  - `1.1.83`
 - Parser release version:
-  - `1.1.80`
+  - `1.1.81`
 - Embedding API contract baseline:
   - `1.2.0`
 - Regex AST-dump schema version:
@@ -33,6 +33,25 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Release 1.1.81 / Contract 1.1.83 Highlights — PGEN-RGX-0088: octal `>0o377` is mode-dependent — FIX2.3's blanket parse-time reject REVERTED (mode-agnostic emission)
+
+**Bug ledger:** `REGEX-0087` (downstream `PGEN-RGX-0088`; family-linked `REGEX-0086`/`PGEN-RGX-0087`, which stays CLOSED — NOT a reopen).
+
+**What changed (scoped revert; no shape vocab; schema stays `1`).** Release 1.1.80's `PGEN-RGX-0087-FIX2.3` made the bare `\ddd` octal `>0o377` an **unconditional grammar-level parse-time hard-reject**. That is PCRE2-faithful only for **8-bit non-UTF** (error 151); under **UTF / 16-/32-bit** a bare octal escape is valid up to the Unicode codepoint max — `pcre2test` 10.47 ACCEPTs `\777` (U+01FF), `\400`, `\6666666666`, `[\666]`, `[\777]` under `,utf`. PGEN's parser is **mode-agnostic** (it never sees `utf`/8-bit/width at parse time), so a blanket parse-time octal-range reject is the wrong locus. 1.1.81 **reverts exactly FIX2.3's two grammar edits** (`octal_escape_short_payload` → `/([0-7]{1,3})/`; `class_simple_escape` → the FIX2.1 unguarded form) — the grammar's non-comment diff vs the 1.1.79 (`b18cf39f`) state is **zero** (pure revert).
+
+PGEN now emits the **octal atom** for any 1-3-octal-digit run, mode-agnostically; the 8-bit-non-UTF `>0o377` rejection is the **mode-aware consumer's** range check by width (the report-prescribed resolution; `feedback_ast_pipeline_parser_agnostic` — a mode-agnostic grammar must not make a mode-dependent range decision; not a consumer workaround).
+
+| Pattern | 1.1.80 | 1.1.81 (mode-agnostic; = PCRE2 `,utf`) |
+|---|---|---|
+| `\400` `\777` `\666` `\6666666666` `[\666]` `[\777]` | REJECT | **ACCEPT** (octal atom; range = consumer/mode) |
+| `\377` `[\377]` `\10`@9g `\199`@0g `\012` `\07` | ACCEPT | ACCEPT (byte-identical) |
+| `[\8]` `[\9]` `[\88]` (FIX2.1) | ACCEPT | ACCEPT (byte-identical) |
+| `((((((((x))))))))\81` `\89`@0g (RGX-0087 backref) | REJECT | REJECT (byte-identical — FIX2.3-independent) |
+
+`PGEN-RGX-0087-FIX2-0001` (`.1`/`.2` class scope), `PGEN-RGX-0087-0001` (non-class `[89]`-backref reject), `PGEN-RGX-0084` are FIX2.3-independent ⇒ byte-identical. AST-dump **schema stays `1`** (the in-range/`>0o377` boundary is no longer a parse decision; `\6666666666` again emits `{escape,octal,digits:"666"}`+lits). RGX ADOPTED 1.1.80 (ratchet 12,805/5 → 12,806/4) and rebaselined; this closes the residual testinput10:218 `/\777/,utf` → **12,807/3**. The unsupported `(?u)` inline modifier is a separate pre-existing gap (NOT this bug; `(?u)a` also rejects).
+
+**Behaviour + example:** this book's escapes chapter (`docs/regex_parser_book/src/examples-escapes.md` → "PGEN-RGX-0087" FIX2.3 + RGX-0088 note).
 
 ## Release 1.1.80 / Contract 1.1.82 Highlights — PGEN-RGX-0087 FIX2.3: octal escape `>\377` overflow now rejects (PCRE2-faithful); `PGEN-RGX-0087` CLOSED
 

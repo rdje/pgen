@@ -340,7 +340,7 @@
         "rule": "class_simple_escape",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $13}"
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $5}"
       },
       {
         "rule": "code_block_lang",
@@ -683,18 +683,6 @@
         "branch_index": 1,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"octal\", digits: $1}"
-      },
-      {
-        "rule": "octal_escape_short_payload",
-        "branch_index": 0,
-        "annotation_type": "return_scalar",
-        "normalized_text": "$1"
-      },
-      {
-        "rule": "octal_escape_short_payload",
-        "branch_index": 1,
-        "annotation_type": "return_scalar",
-        "normalized_text": "$1"
       },
       {
         "rule": "pattern",

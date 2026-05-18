@@ -44,10 +44,10 @@ pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
 // integration contract 1.1.79.
 
 /// Stable downstream contract version for the published regex parser handoff.
-pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.82";
+pub const REGEX_PARSER_INTEGRATION_CONTRACT_VERSION: &str = "1.1.83";
 
 /// Stable release version for the published regex parser.
-pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.80";
+pub const REGEX_PARSER_RELEASE_VERSION: &str = "1.1.81";
 
 /// Stable schema version for regex AST-dump JSON payloads.
 pub const REGEX_AST_DUMP_SCHEMA_VERSION: u32 = 1;
@@ -4503,38 +4503,29 @@ mod tests {
         }
     }
 
-    /// PGEN-RGX-0087-FIX2.3: PCRE2 (oracle: `pcre2test` 10.47) bare
-    /// `\ddd` octal is limited to value <= 0o377 (255) in 8-bit
-    /// non-UTF; a run > 0o377 is a HARD compile error (err 151) in
-    /// BOTH pattern-body and `[...]` class context — PCRE2 does NOT
-    /// truncate to a shorter run. PGEN's `octal_escape_short_payload`
-    /// `/([0-7]{1,3})/` had no range check (testinput9:287). Fix:
-    /// split it (3-digit run must be `[0-3]`-led; 1-2-digit run must
-    /// be octal-complete) + an octal-digit guard on FIX2.1's
-    /// `class_simple_escape`. Expecteds from the PCRE2 10.47 oracle.
+    /// PGEN-RGX-0088: `PGEN-RGX-0087-FIX2.3`'s grammar-level
+    /// octal-`>0o377` hard-reject was REVERTED. It was PCRE2-faithful
+    /// only for 8-bit non-UTF (error 151); under UTF / 16-/32-bit a
+    /// bare octal escape is valid up to the Unicode codepoint max —
+    /// `pcre2test` 10.47 ACCEPTs `\777`(U+01FF)/`\400`/`\6666666666`/
+    /// `[\666]`/`[\777]` under `,utf`. PGEN parses **mode-agnostically**
+    /// (no `utf`/8-bit/width at parse time), so it must emit the octal
+    /// atom for ANY `\ddd` run; the 8-bit `>0o377` rejection is the
+    /// mode-aware consumer's range check by width (report-prescribed;
+    /// `feedback_ast_pipeline_parser_agnostic`). Expecteds from the
+    /// PCRE2 10.47 oracle (both 8-bit and `,utf`).
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]
-    fn regex_parser_pgen_rgx_0087_fix2_octal_overflow_rejected() {
-        // Octal value > 0o377: PCRE2 10.47 err 151, BOTH contexts.
-        let must_reject = [
-            r"\400", r"\666", r"\777", r"\7777",
-            r"[\666]", r"[\400]", r"(?i:A{1,}\6666666666)",
-        ];
-        for input in must_reject {
-            let o = parse_grammar_profile_named("regex", "regex_default", input);
-            assert_eq!(
-                o.status,
-                ParseStatus::Failure,
-                "octal-overflow {:?} must REJECT (PCRE2 10.47 err 151, \
-                 octal > \\377; both pattern-body & class context) — \
-                 PGEN-RGX-0087-FIX2.3 regressed?\n{:#?}",
-                input, o
-            );
-        }
-        // REGRESSION GUARD — RGX-0084/RGX-0087 octal family <= 0o377
-        // must stay byte-identical-ACCEPT (verified separately via
-        // --parse-dump-ast-pretty; here the accept-set boundary).
+    fn regex_parser_pgen_rgx_0088_octal_overflow_mode_agnostic_accept() {
+        // Octal `>0o377` is REJECT in 8-bit (err 151) but ACCEPT under
+        // UTF; a mode-agnostic parser MUST emit the octal atom (accept
+        // at parse) for all of these — range is the consumer's call.
+        // (rel-1.1.80 wrongly hard-rejected them at parse time.)
         let must_accept = [
+            // octal > 0o377 — mode-agnostic emit (was REJECT @1.1.80)
+            r"\400", r"\666", r"\777", r"\7777",
+            r"[\666]", r"[\400]", r"[\777]", r"(?i:A{1,}\6666666666)",
+            // in-range octal + RGX-0084/0087 + FIX2.1 — byte-identical
             r"\377", r"\3777", r"\10", r"\012", r"\07", r"\0",
             r"\00", r"\000", r"\77", r"\199", r"[\377]", r"[\012]",
             r"[\0]", r"[\8]", r"[\9]", r"[\88]",
@@ -4544,8 +4535,28 @@ mod tests {
             assert_eq!(
                 o.status,
                 ParseStatus::Success,
-                "{:?} must ACCEPT (octal <= 0o377 / RGX-0084/0087 / \
-                 FIX2.1 class — must stay byte-identical)\n{:#?}",
+                "{:?} must ACCEPT — PGEN parses mode-agnostically so \
+                 octal `>0o377` is emitted as an octal atom (range is \
+                 the mode-aware consumer's call); in-range / RGX-0084 / \
+                 RGX-0087 / FIX2.1 stay byte-identical. PGEN-RGX-0088 \
+                 regressed (FIX2.3 mode-blind reject not reverted)?\n{:#?}",
+                input, o
+            );
+        }
+        // REGRESSION GUARD — the non-class `[89]`-leading backref
+        // hard-reject (PGEN-RGX-0087, FIX2.3-INDEPENDENT) must survive.
+        for input in [
+            "((((((((x))))))))\\81",
+            "((((((((x))))))))\\82",
+            "\\89",
+        ] {
+            let o = parse_grammar_profile_named("regex", "regex_default", input);
+            assert_eq!(
+                o.status,
+                ParseStatus::Failure,
+                "non-class [89]-leading {:?} must still REJECT \
+                 (PGEN-RGX-0087 backref reject is FIX2.3-independent; \
+                 the RGX-0088 revert must not touch it)\n{:#?}",
                 input, o
             );
         }

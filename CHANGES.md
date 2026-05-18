@@ -1,4 +1,49 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-RGX-0088-0001 (RGX-0088.1+.2): scoped revert of FIX2.3's mode-blind octal-`>0o377` parse-reject; release 1.1.81/contract 1.1.83; PGEN-RGX-0088 RESOLVED
+
+- **Fix (grammar-only, parser-agnostic — `grammars/regex.ebnf`):**
+  this session's `PGEN-RGX-0087-FIX2-0003` (rel 1.1.80) made bare
+  `\ddd` octal `>0o377` an **unconditional parse-time hard-reject**
+  — PCRE2-faithful only for 8-bit non-UTF (err 151); `pcre2test`
+  10.47 ACCEPTs `\777`(U+01FF)/`\400`/`\6666666666`/`[\666]`/
+  `[\777]` under `,utf`. PGEN parses **mode-agnostically** ⇒ wrong
+  locus. **Scoped revert of exactly FIX2.3's two grammar edits**
+  (`octal_escape_short_payload`→`/([0-7]{1,3})/`; `class_simple
+  _escape`→FIX2.1 unguarded form): the grammar non-comment diff vs
+  the 1.1.79 (`b18cf39f`) state is **0** (pure revert; rule bodies
+  byte-identical, only RGX-0088 comments differ).
+- **Empirical before/after (regression-from-own-fix ⇒ extra
+  rigor):** `\777`/`\400`/`\666`/`\6666666666`/`[\666]`/`[\777]`
+  now ACCEPT (octal atom emitted; were REJECT @1.1.80); the 8-bit
+  `>0o377` reject is now the mode-aware consumer's range check
+  (report-prescribed; `feedback_ast_pipeline_parser_agnostic`).
+  `\377`/`[\377]`/`\10`@9g/`\199`@0g/`\012`/`\07`/`[\8]`/`[\9]`/
+  `[\88]` byte-identical; non-class `\81`@8g/`\89`@0g still REJECT
+  (RGX-0087 backref reject is FIX2.3-independent). `(?u)\777` stays
+  REJECT — an INDEPENDENT pre-existing unsupported-`(?u)`-inline
+  -modifier gap (`b18cf39f`-baseline-proven NOT a regression; the
+  conformance case is `/\777/` + the pcre2test `,utf` modifier =
+  pattern `\777`, which ACCEPTs).
+- **No-regression:** `regex` lib **105/0** (RGX-0079..0087 pins),
+  manifest reverted same-slice (drop FIX2.3's 2 `octal_escape
+  _short_payload` entries + `class_simple_escape` `$13`→`$5`),
+  cross-parser `ast_shape_contract` 8/0,
+  `regex_parser_integration_contract_gate` ✅, RGX-0086 drift gate +
+  metadata-stable green @ 1.1.81/1.1.83. Repurposed pin
+  `regex_parser_pgen_rgx_0088_octal_overflow_mode_agnostic_accept`.
+  Schema unchanged.
+- **Lockstep (binding, same-commit):** new ledger row `REGEX-0087`
+  (downstream `PGEN-RGX-0088`, family-linked `REGEX-0086`), consts +
+  JSON → `1.1.81`/`1.1.83`, integration-contract doc (Identity +
+  Release 1.1.81 Highlights), regex book changelog + escapes-chapter
+  RGX-0088 section + regenerated tracked HTML, `parser-families.md`,
+  CHANGES, LIVE, memory.
+- `PGEN-RGX-0088` RESOLVED; `PGEN-RGX-0087` stays CLOSED (family
+  -linked follow-on, not a reopen). RGX adopted 1.1.80
+  (12,805/5→12,806/4) & rebaselined; this closes testinput10:218 →
+  **12,807/3**. Tree `RGX-0088` CLOSED; frontier → `SV-EXH-PROOF.3.2`
+  resumes. Standing push rule (push every 30).
+
 ## 2026-05-19 - PGEN-RGX-0088-0000 (RGX-0088 setup; docs-only, no code): RGX-0087-FIX2.3 octal `>0o377` reject is mode-blind / over-broad under UTF — tree created, root cause grounded
 
 - RGX filed `PGEN-RGX-0088`: this session's `PGEN-RGX-0087-FIX2-0003`
