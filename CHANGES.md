@@ -1,4 +1,47 @@
 # CHANGES.md
+## 2026-05-18 - PGEN-RGX-0084-0002 (leaf RGX-0084.2 design-lock): parser-agnostic semantic-annotation design locked + execution premise verified (docs-only)
+
+- **Binding user mandate (recorded `feedback_ast_pipeline_parser_agnostic`):**
+  any AST-pipeline / semantic-annotation-runtime change must be
+  **parser-agnostic** — a general primitive usable by *any* parser;
+  parser-specific concepts (regex capture-groups, …) stay in the
+  `.ebnf` grammar, never the engine. Context-steered parsing = the
+  semantic-annotation mechanism (preferred); new general steering
+  strategies may be added.
+- **Confirmed 100% + locked design** for the RGX-0084 family fix:
+  - **P1 — parser-agnostic engine:** add a generic running-fact-count
+    predicate (`fact_count_at_least(kind, M)`) to
+    `rust/src/ast_pipeline/semantic_runtime.rs::evaluate_predicate`
+    over the existing generic fact store — a strict generalization of
+    `has_fact` (= `count(kind,name) ≥ 1`). No regex/capture-group
+    concept enters the pipeline. Benefits any parser
+    (declaration-count-before-use, nesting/recursion bounds, ordinal
+    -sensitive SV/VHDL parsing, …); regex is merely the first
+    consumer.
+  - **P2 — regex grammar only:** `grammars/regex.ebnf` `@emit_fact`s a
+    generic-kind fact on `capturing_group` and `@predicate`-gates
+    `backreference`'s numeric branch on `fact_count_at_least(<kind>,
+    $N)` (group N opened ⟺ ≥ N such facts so far), octal as the
+    PCRE2 fallback (re-split ≤3 octal digits + trailing literal;
+    `\8`/`\9`-no-group → literal). "Capture group" knowledge lives
+    only in `regex.ebnf`.
+- **Feasibility + execution premise verified (not assumed):**
+  `semantic_runtime.rs:513-606` has no count/Nth predicate and
+  `@emit_fact.name` is scalar-or-`$ref` only → the generic count
+  predicate is the needed new general strategy; and
+  `ast_based_generator.rs:723/4402-4580` compiles semantic-runtime
+  directives into the **generated** parser with SC-01..SC-07 gates
+  differentially contract-testing predicate runtime → `@predicate`/
+  `@emit_fact` *are* executed at parse time (the `ParsedAndValidated`
+  registry label is a tier marker, not "inert").
+- The earlier "EBNF context-free → Rust post-pass" remains retracted;
+  a regex-AST post-pass is rejected (would bypass the
+  semantic-annotation mechanism the user mandated). No code in this
+  design-lock checkpoint; the engine + grammar implementation is the
+  next `.2` code commit. `.3` carries the `REGEX-00NN` ledger + regex
+  book correction (`examples-escapes.md:112-121` superseded passage)
+  + schema/contract bump + SC-gate/semantic-annotation-book lockstep.
+
 ## 2026-05-18 - PGEN-RGX-0084-0001 (leaf RGX-0084.1): pinpoint + family characterization + 3 premise corrections (docs-only)
 
 - Reproduced `PGEN-RGX-0084` via `parseability_probe
