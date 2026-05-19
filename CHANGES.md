@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-SV-EXH-PROOF-0022 (SV-EXH-PROOF.3.3.1 — DONE, leaf complete): declaration-site identifier directive fixed (`non_keyword_identifier -> {body:$2.body}`); class/package/typedef/parameter/localparam declarations now parse; external-corpus 4/14 → 6/14; release 1.0.119 (schema stays 3); grammar-only, engine untouched
+
+Root cause (pinned via `--trace` + compiled-parser read; pre-existing, independent of `.3.2`).
+`non_keyword_identifier := !reserved_non_keyword_identifier identifier -> $2` is the foundation
+rule for every declaration-site name (class/package/typedef/parameter/localparam, via
+`declaration_identifier`). The positional `-> $N` extraction codegen leaves the value as an
+`Alternative`-wrapped node (the implicit-passthrough codegen has an `Alternative(node) =>
+node.content` unwrap arm; positional extraction does not). So every `declared_*_identifier ->
+{body:$1.body}` `@emit_fact`/`@predicate has_fact` directive routed through it failed
+"Semantic runtime could not resolve fact name" ⇒ all such declarations 100% unparseable.
+`.3.2` only revealed it (numbers were so broken the parser never reached declarations).
+`let_identifier := identifier` worked only because its bare-alias passthrough unwraps.
+
+Fix (grammar-only; engine untouched per user standing preference).
+`non_keyword_identifier := !reserved_non_keyword_identifier identifier -> {body: $2.body}`
+— reconstruct the engine-proven `{body:…}` object (same shape as `identifier :=
+simple_identifier -> {body:$1}`) so downstream `$1.body` resolves a concrete object, not a
+bare `Alternative`. One-line EBNF change; no codegen/runtime change.
+
+Verification. external-corpus parse **4/14 → 6/14** (`friscv_pipeline` ×{2017,2023} now
+fully parse; scr1 ×4 no-regression). SV shape-contract GREEN (samples=3 aligned=3 drift=0
+regression_lock_failures=0 — value consumed internally by directives, emitted AST envelope
+unchanged). `.3.2` 13-form number oracle 13/13 intact; `.3.1` declared-id family green
+(`class`/`typedef`/`let`/`interface`/`program`/`#(parameter…)`/`localparam` all parse).
+Annotation inventory unchanged (existing entry's shape change, not a count change).
+
+Release bump 1.0.118 → 1.0.119, AST-dump schema STAYS 3 — strictly-more-permissive: the
+affected declarations were 100% unparseable so NO such AST was ever emitted; previously-
+parseable inputs byte-identical (SVPP-0002/REGEX-0083 "release bump, no schema bump").
+
+Binding same-commit lockstep: grammar + SV integration contract (1.0.119, schema-3 note,
+notable-changes row) + SV book changelog-index + schema-versioning + regenerated tracked
+HTML + CHANGES + LIVE + TASK_TREE + SV-EXH-PROOF.3.3.1 DONE / .3.3.2-.3.3.4 categorized
+sub-leaves + memory. NOT pushed (user absolute no-push override active). Restore tag
+`checkpoint/sv-exh-proof-3.2-clean` @ 41bef35e.
+
+Residual 8 corpus fails categorized → next sub-leaves: `.3.3.2` package `@emit_fact
+name:$package_identifier`; `.3.3.3` use-site `known_unscoped_*` type-id "attribute
+reference" resolution (veer); `.3.3.4` statement-level `conditional_statement` + labeled
+`seq_block` (friscv_rv32i, uvm_pkg, uvm_compat_pkg).
+
 ## 2026-05-19 - PGEN-SV-EXH-PROOF-0021 (SV-EXH-PROOF.3.2 — DONE, leaf complete): number-rule decomposition restored to the generator's clean IEEE-1800 form; external-corpus 0/14 → 4/14; release 1.0.118 (schema stays 3)
 
 - **Grammar fix (leaf-owned, `grammars/systemverilog.ebnf`, Strategy 1):**

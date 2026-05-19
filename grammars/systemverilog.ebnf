@@ -305,8 +305,16 @@ expression := @probe_sample: "1" expression_base -> {kind: "base",        body: 
 identifier := escaped_identifier -> {body: $1}
            | simple_identifier  -> {body: $1}
 
+# SV-EXH-PROOF.3.3.1: raw `-> $2` returns the Alternative-wrapped
+# identifier node (positional-extraction codegen lacks the
+# Alternative-unwrap arm that implicit-passthrough has), so every
+# declared_*_identifier `-> {body:$1.body}` directive routed through
+# this rule fails "could not resolve fact name". Reconstruct the
+# engine-proven `{body:…}` object (same shape as
+# `identifier := simple_identifier -> {body:$1}`) so downstream
+# `$1.body` resolves a concrete object, not a bare Alternative.
 non_keyword_identifier := !reserved_non_keyword_identifier identifier
-                       -> $2
+                       -> {body: $2.body}
 
 declaration_identifier := non_keyword_identifier
 
