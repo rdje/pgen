@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-SV-EXH-PROOF-0019 (SV-EXH-PROOF.3.2 resumed: full number-token corruption map + Strategy-1 decided; docs-only, no code)
+
+- Resumed `SV-EXH-PROOF.3.2` after the `PGEN-RGX-0088` priority
+  pivot (resolved + pushed `db6f8c68`; regex 1.1.81, RGX ratchet
+  12,807/3).
+- **Complete corruption map (read-only re-grounding):** (A) all
+  digit-class rules (`decimal_digit`/`hex_digit`/`octal_digit`/
+  `binary_digit`) reuse the same `\b`-broken `kw_n_0..9` tokens
+  (one shared root — the `.3.1` digit-`\b` fix must be re-applied);
+  (B) the number underscore separator is mangled to
+  `kw_sv_rule_c82a06f6 := /sv_rule\b/` (a markdown `__SV_RULE__`
+  sentinel artifact; `1_000`/`DE_AD` unparseable); (C) number rules
+  aren't shape-contract-sample-pinned; (D) the generator's
+  `MANUAL_RULE_BODIES` ALREADY has the CORRECT clean regex form.
+- **Strategy decided: Strategy 1 — restore the generator's clean
+  number-regex form for the leaf rules, keep the top `number ->
+  {kind,body}` typed shape.** The live broken per-digit tree is a
+  115-slice-campaign + POST-SV-AUDIT decomposition artifact; `.3.1`
+  proved the digit-`\b` fix alone insufficient (Strategy 2 =
+  whack-a-mole). Strategy 1 eliminates the `\b`, `sv_rule`
+  -underscore, AND base-marker corruptions in one coherent
+  spec-aligned change + aligns the live grammar with the generator's
+  documented intent.
+- **No code** (Code-Change Doctrine: `.3.2` leaf owns the forthcoming
+  fix; this is its corrected root-cause/Strategy deliverable). The
+  fix is a high-blast-radius focused unit (core SV number lexing +
+  a deliberate AST-shape change reverting the 115-slice number-rule
+  typed `{first,rest}` shapes ⇒ shape-contract/inventory/schema/book
+  lockstep + LRM number-form oracle + full SV no-regression). The
+  complete map + Strategy-1 decision + exact plan are pinned in the
+  `.3.2` node (zero re-derivation for `.3.2`-execute). Not rushed at
+  session depth — the binding discipline mandates a fresh focused
+  unit for a core-number-subsystem + schema change. Standing push
+  rule (push every 30).
+
 ## 2026-05-19 - PGEN-RGX-0088-0001 (RGX-0088.1+.2): scoped revert of FIX2.3's mode-blind octal-`>0o377` parse-reject; release 1.1.81/contract 1.1.83; PGEN-RGX-0088 RESOLVED
 
 - **Fix (grammar-only, parser-agnostic — `grammars/regex.ebnf`):**
