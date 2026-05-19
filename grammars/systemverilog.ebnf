@@ -332,51 +332,67 @@ scope_free_identifier := simple_identifier_no_scope                -> {body: $1}
 number := real_number     -> {kind: "real",     body: $1}
         | integral_number -> {kind: "integral", body: $1}
 
-integral_number := decimal_number -> {kind: "decimal", body: $1}
-                 | octal_number   -> {kind: "octal",   body: $1}
-                 | binary_number  -> {kind: "binary",  body: $1}
-                 | hex_number     -> {kind: "hex",     body: $1}
+# PGEN-SV-EXH-PROOF-0021 (.3.2 Strategy 1): the 115-slice campaign +
+# POST-SV-AUDIT decomposed these into a per-digit-token tree
+# (decimal_digit ( unsigned_number_tail )*, size '? base value, …)
+# that the generator's blanket `\b`-append on every single-char
+# alnum token (digits 0-9, base letters h/b/d/o/s/S, x/z) + the
+# `__SV_RULE__`-sentinel-mangled `_` separator made 100% unparseable
+# for any multi-digit / underscore / sized / based number — the
+# external-corpus 0/14 root cause. Empirically proven Strategy-2
+# (patch each corrupt token) is unbounded whack-a-mole. Strategy 1:
+# restore the clean single-regex lexical form (IEEE 1800 A.8.7
+# number BNF — NOT the generator's MANUAL_RULE_BODIES verbatim,
+# which has a plain-before-sized PEG-order bug + mandatory-size
+# bug). SIZED alternative FIRST (PEG longest-match), size OPTIONAL
+# (`'hFF` unsized based is valid SV). Value class
+# `[0-9a-fA-FxXzZ?_]` is the LRM superset over hex/bin/oct/dec digits
+# + x/z/? + `_` separators (intentionally pragmatic, per the
+# generator's own design note). The typed `number := real_number ->
+# {kind:"real",body:$1} | integral_number -> {kind:"integral",
+# body:$1}` top shape is KEPT — real_number/integral_number are now
+# clean Terminals so `$1` = the matched number string ⇒ a clean flat
+# `{kind, body:"<number>"}` (the prior nested decomposed shapes never
+# emitted — numbers were 100% unparseable — so no working consumer).
+integral_number := /([0-9][0-9_]*)?'[sS]?[dDhHoObB][0-9a-fA-FxXzZ?_]+/
+                 | /[0-9][0-9_]*/
 
-real_number := fixed_point_number
-                     -> {kind: "fixed_point", body: $1}
-             | unsigned_number ( dot unsigned_number )? exp ( sign )? unsigned_number
-                     -> {kind: "exponential", mantissa: $1, fraction: $2, sign: $4, exponent: $5}
+real_number := /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
+             | /[0-9][0-9_]*[eE][+-]?[0-9][0-9_]*/
 
-# POST-SV-AUDIT.2.4a SV-0001: ( kw_sv_rule_c82a06f6 | <digit> ) was an
-# inline alternation as the ( … )* iteration lead feeding bare $2 → the
-# inline-alternation-$N corruption class (<invalid_sequence_access> on
-# any multi-digit literal). Lift the alternation into a named tail rule
-# (annotation unchanged; $2 now binds a clean ( tail )* iteration).
-unsigned_number_tail := kw_sv_rule_c82a06f6 | decimal_digit
-unsigned_number := decimal_digit ( unsigned_number_tail )* -> {first: $1, rest: $2}
+# PGEN-SV-EXH-PROOF-0021 (.3.2 Strategy 1): the POST-SV-AUDIT.2.4a
+# `unsigned_number_tail` lift is SUPERSEDED — `unsigned_number` is
+# the LRM plain decimal literal (`decimal_digit { _ | decimal_digit }`
+# = `[0-9][0-9_]*`), a clean Terminal. The decomposed per-digit-token
+# tree (with the `\b`-broken digit tokens + the `__SV_RULE__`-mangled
+# `_`) is gone. `unsigned_number` is referenced broadly (delays,
+# ranges, replication, sizes) so it stays a named rule.
+unsigned_number := /[0-9][0-9_]*/
 
 string_literal := trivia /"""([^"]|"(?!""))*"""/ -> {kind: "triple_quoted", body: $2}
                 | trivia /"([^"\\]|\\.)*"/        -> {kind: "double_quoted", body: $2}
 
 unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
 
-binary_number := ( size )? binary_base binary_value
-              -> {size: $1, base: $2, value: $3}
+# PGEN-SV-EXH-PROOF-0021 (.3.2 Strategy 1): the based-number kinds
+# are now fully covered by `integral_number`'s clean sized/based
+# regex; these stay as named passthroughs (referenced only via the
+# former decomposed `integral_number`, now orphaned-but-harmless —
+# RGX-0081 orphan-rule precedent). `size` is the LRM non-zero
+# decimal literal (`[1-9][0-9_]*`); `fixed_point_number` the LRM
+# `unsigned_number . unsigned_number`. Clean Terminals, no `\b`/
+# sentinel mangling.
+binary_number := integral_number
 
-octal_number := ( size )? octal_base octal_value
-             -> {size: $1, base: $2, value: $3}
+octal_number := integral_number
 
-decimal_number := unsigned_number
-                        -> {kind: "unsized", body: $1}
-                | ( size )? decimal_base unsigned_number
-                        -> {kind: "sized",   size: $1, base: $2, value: $3}
-                | ( size )? decimal_base x_digit ( kw_sv_rule_c82a06f6 )*
-                        -> {kind: "x_digit", size: $1, base: $2}
-                | ( size )? decimal_base z_digit ( kw_sv_rule_c82a06f6 )*
-                        -> {kind: "z_digit", size: $1, base: $2}
+decimal_number := integral_number
 
-hex_number := ( size )? hex_base hex_value
-           -> {size: $1, base: $2, value: $3}
+hex_number := integral_number
 
-size := non_zero_unsigned_number
+size := /[1-9][0-9_]*/
 
-fixed_point_number := unsigned_number dot unsigned_number
-                   -> {whole: $1, fractional: $3}
+fixed_point_number := /[0-9][0-9_]*\.[0-9][0-9_]*/
 
 time_literal := number time_unit
              -> {value: $1, unit: $2}

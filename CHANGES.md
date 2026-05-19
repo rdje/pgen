@@ -1,4 +1,54 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-SV-EXH-PROOF-0021 (SV-EXH-PROOF.3.2 — DONE, leaf complete): number-rule decomposition restored to the generator's clean IEEE-1800 form; external-corpus 0/14 → 4/14; release 1.0.118 (schema stays 3)
+
+- **Grammar fix (leaf-owned, `grammars/systemverilog.ebnf`, Strategy 1):**
+  the 115-slice + POST-SV-AUDIT per-digit-token number decomposition
+  + the generator's blanket `\b`-append on every single-char alnum
+  token (digits, base letters `h/b/d/o/s`, `x/z`) + a `__SV_RULE__`
+  -sentinel-mangled `_` separator made **every** multi-digit /
+  underscore / sized / based SV number unparseable — THE
+  external-corpus `0/14` root cause. Replaced `integral_number`/
+  `real_number`/`unsigned_number`/`decimal_number`/`binary_number`/
+  `octal_number`/`hex_number`/`size`/`fixed_point_number` with the
+  clean single-regex IEEE-1800 (A.8.7) form (sized-FIRST for PEG,
+  size OPTIONAL — derived from the LRM, not the generator's
+  plain-first/mandatory-size `MANUAL_RULE_BODIES` verbatim, per
+  `feedback_corpus_expected_from_spec_not_fix`), keeping the typed
+  top `number := real_number -> {kind:"real",body:$1} | integral
+  _number -> {kind:"integral",body:$1}`.
+- **Evidence-driven Strategy** (binding verify-don't-assume):
+  Strategy-2 token-patching was empirically proven unbounded
+  whack-a-mole (digit-`\b` fixed → base-letter `\b` broke → …);
+  the generator's `MANUAL_RULE_BODIES` + the profiled variant
+  already carry the CLEAN form (the live decomposed tree is the
+  115-slice/POST-SV-AUDIT artifact) — corroborating Strategy 1.
+- **Verified:** full LRM number-form oracle ALL PASS (decimal/
+  `1_000`/`8'h09`/`4'b1010`/`16'd42`/`8'o17`/`'hFF`/`8'shFF`/
+  `4'b1x0z`/`12'hDE_AD`/`1.5`/`1.0e6`/`1e-3`/veer `2294'h…`);
+  `.3.1` 13-family + controls no-regression; SV shape-contract
+  GREEN (samples=3 aligned=3 drift=0; −15 dead-rule annotations
+  absorbed, SV has no inventory regression-lock); SV lib 8/0;
+  **external-corpus parse `0/14 → 4/14`** (scr1 family — first
+  non-zero corpus parse since the SV-EXH-PROOF tree began).
+  Profiled variant UNCHANGED (already the clean generator form).
+- **Release bump 1.0.117 → 1.0.118, schema STAYS 3** —
+  strictly-more-permissive: numbers were 100% unparseable so NO
+  number AST was ever emitted (no prior realized shape / no
+  consumer of the never-emitted decomposed shapes); previously
+  -parseable inputs byte-identical; only previously-erroring
+  numbers now succeed (SVPP-0002/REGEX-0083 "release bump, no
+  schema bump" category).
+- **Same-commit lockstep (binding):** SV integration contract
+  (Identity 1.0.118, schema-3 note, notable-changes row, the
+  long-DEFERRED `*_value`/`unsigned_number` shaping note RESOLVED),
+  SV book changelog-index + schema-versioning + regenerated tracked
+  HTML, `.3.2` node DONE + Verification Log, `.3.3` sub-leaf
+  (10 residual uvm/friscv/veer), TASK_TREE, LIVE, memory.
+- `SV-EXH-PROOF.3.2` leaf COMPLETE; frontier → `.3.3` (the 10
+  remaining external-corpus fails: uvm_pkg/uvm_compat_pkg/
+  friscv_rv32i_core/friscv_pipeline/veer_el2_lsu ×{2017,2023}).
+  Standing push rule (push every 30).
+
 ## 2026-05-19 - PGEN-SV-EXH-PROOF-0020 (SV-EXH-PROOF.3.2: Strategy-2 empirically proven unbounded ⇒ Strategy-1 decided by evidence; docs-only, reverted)
 
 - Executed Strategy-2 (token fixes preserving 115-slice typed

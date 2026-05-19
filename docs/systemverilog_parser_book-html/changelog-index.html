@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c942a986.js";
+            window.path_to_searchindex_js = "searchindex-b83c593b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -202,6 +202,10 @@
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10118--contract-10118--sv-exh-proof32-number-rule-decomposition-restored-to-the-generators-clean-ieee-1800-lexical-form-release-bump-schema-stays-3"><a class="header" href="#10118--contract-10118--sv-exh-proof32-number-rule-decomposition-restored-to-the-generators-clean-ieee-1800-lexical-form-release-bump-schema-stays-3">1.0.118 / Contract 1.0.118 — SV-EXH-PROOF.3.2: number-rule decomposition restored to the generator’s clean IEEE-1800 lexical form (release bump, schema stays 3)</a></h3>
+<blockquote>
+<p>The 115-slice campaign + POST-SV-AUDIT had decomposed the number rules into a per-digit-token tree; the generator’s blanket <code>\b</code>-append on every single-char alnum token (digits, base letters <code>h/b/d/o/s</code>, <code>x/z</code>) + a <code>__SV_RULE__</code>-sentinel-mangled <code>_</code> separator made <strong>every</strong> multi-digit / underscore / sized / based SV number unparseable — the external-corpus <code>0/14</code> root cause. <code>PGEN-SV-EXH-PROOF-0021</code> restores <code>integral_number</code>/<code>real_number</code>/<code>unsigned_number</code>/<code>decimal_number</code>/<code>binary_number</code>/<code>octal_number</code>/<code>hex_number</code>/<code>size</code>/<code>fixed_point_number</code> to the generator’s clean single-regex IEEE-1800 (A.8.7) form (sized-first for PEG, size optional for unsized-based), keeping the typed top <code>number := real_number -&gt; {kind:"real",body:$1} | integral_number -&gt; {kind:"integral",body:$1}</code> (now clean Terminals ⇒ first realized number shape = flat <code>{kind,body:"&lt;number&gt;"}</code>). <strong>Release bump, NO schema bump</strong> — numbers were 100% unparseable so no number AST was ever emitted (no prior realized shape / no consumer); previously-parseable inputs byte-identical; only previously-erroring numbers now succeed (strictly-more-permissive — SVPP-0002/REGEX-0083 category). Full LRM number-form oracle (decimal/<code>1_000</code>/<code>8'h09</code>/<code>4'b1010</code>/<code>16'd42</code>/<code>8'o17</code>/<code>'hFF</code>/<code>8'shFF</code>/<code>4'b1x0z</code>/<code>12'hDE_AD</code>/<code>1.5</code>/<code>1.0e6</code>/<code>1e-3</code>/veer <code>2294'h…</code>) + <code>.3.1</code> 13-family no-regression + SV shape-contract GREEN + SV lib 8/0. <strong>external-corpus parse <code>0/14 → 4/14</code></strong> (scr1 family now fully parses — first non-zero corpus parse since the SV-EXH-PROOF tree began); residual uvm/friscv/veer (10) pinned as <code>.3.3</code>. Resolves the long-DEFERRED <code>*_value</code>/<code>unsigned_number</code> shaping note.</p>
+</blockquote>
 <h3 id="10117--contract-10117--post-sv-audit24b-11-structured-per-iteration-category-a-misuses-corrected-via-factored-record-rules-schema-2--3"><a class="header" href="#10117--contract-10117--post-sv-audit24b-11-structured-per-iteration-category-a-misuses-corrected-via-factored-record-rules-schema-2--3">1.0.117 / Contract 1.0.117 — POST-SV-AUDIT.2.4b: 11 structured-per-iteration Category-A misuses corrected via factored record rules (schema 2 → 3)</a></h3>
 <p><code>PGEN-POST-SV-AUDIT-0006</code>, leaf POST-SV-AUDIT.2.4b (2026-05-17).
 <strong>AST-dump schema bumped <code>2 → 3</code></strong> (the affected list / branch shapes

@@ -7,15 +7,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.117`
+  - `1.0.118`
 - Parser release version:
-  - `1.0.117`
+  - `1.0.118`
 - Embedding API contract baseline:
   - `1.2.0`
 - SystemVerilog AST-dump schema version:
-  - `3` (POST-SV-AUDIT.2.4b: 11 structured-per-iteration Category-A misuses corrected by factoring each repeated multi-field unit into a new named record rule + an extraction-spread — `list_of_interface_identifiers` / `list_of_port_identifiers` / `list_of_variable_identifiers` / `list_of_tf_variable_identifiers` / `list_of_variable_port_identifiers`, the `let_` / `property_` / `sequence_list_of_arguments` mixed+named_only branches, `parameter_port_list` type_only, and the two `assignment_pattern` named branches. 9 new annotated record rules were added, so the inventory **deliberately changed 2290 → 2299 / 999 → 1008** (these factored record rules ARE annotated — analogous to SVPP-0001's `pp_if_keyword`; NOT "unchanged"). See "AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT)". The `1.0.116`/schema `2`, `1.0.115`/schema `1`, the AST-Shape-Corrections-1.0.116, the DOC-ENVELOPE / earlier slice history are retained below.)
+  - `3` (POST-SV-AUDIT.2.4b: 11 structured-per-iteration Category-A misuses corrected by factoring each repeated multi-field unit into a new named record rule + an extraction-spread — `list_of_interface_identifiers` / `list_of_port_identifiers` / `list_of_variable_identifiers` / `list_of_tf_variable_identifiers` / `list_of_variable_port_identifiers`, the `let_` / `property_` / `sequence_list_of_arguments` mixed+named_only branches, `parameter_port_list` type_only, and the two `assignment_pattern` named branches. 9 new annotated record rules were added, so the inventory **deliberately changed 2290 → 2299 / 999 → 1008** (these factored record rules ARE annotated — analogous to SVPP-0001's `pp_if_keyword`; NOT "unchanged"). See "AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT)". **1.0.118 (SV-EXH-PROOF.3.2, `PGEN-SV-EXH-PROOF-0021`) keeps schema `3`** — the broken 115-slice/POST-SV-AUDIT per-digit-token number decomposition (`integral_number`/`real_number`/`unsigned_number`/`decimal_number`/`binary_number`/`octal_number`/`hex_number`/`size`/`fixed_point_number`) was restored to the generator's clean single-regex IEEE-1800 lexical form (eliminating the blanket-`\b`-on-single-char-token + `__SV_RULE__`-mangled-`_` corruption that made EVERY multi-digit/underscore/sized/based number unparseable — the external-corpus 0/14 root cause). **Canonical "release bump, no schema bump"**: numbers were 100% unparseable pre-fix so NO number AST was ever emitted (no prior realized shape / no consumer of the never-emitted decomposed shapes); every previously-PARSEABLE input is byte-identical; only previously-erroring numbers now succeed (strictly-more-permissive — same category as SVPP-0002/REGEX-0083). The typed top `number := real_number -> {kind:"real",body:$1} | integral_number -> {kind:"integral",body:$1}` is kept (now clean Terminals ⇒ first realized number shape = flat `{kind,body:"<number>"}`). Inventory **2312 → 2297** (−15: the dead decomposed-rule annotations dropped; SV shape-contract GREEN, no inventory regression-lock). external-corpus parse **0/14 → 4/14** (scr1 family). The `1.0.116`/schema `2`, `1.0.115`/schema `1`, the AST-Shape-Corrections-1.0.116, the DOC-ENVELOPE / earlier slice history are retained below.)
 - Last updated:
-  - `2026-05-17`
+  - `2026-05-19`
 - Current grammar family label:
   - `systemverilog`
 - Current stable host profiles:
@@ -72,6 +72,7 @@ affected list / branch shapes change in a consumer-visible way.
 | AST-dump schema version | First parser release | Notable changes |
 |---|---|---|
 | `3` | `1.0.117` | **POST-SV-AUDIT.2.4b (`PGEN-POST-SV-AUDIT-0006`).** 11 structured-per-iteration Category-A misuses corrected — each repeated multi-field unit factored into a new annotated record rule + an extraction-spread; field names preserved. 9 new annotated record rules → inventory **2290 → 2299 / 999 → 1008** (a deliberate +9, NOT "unchanged"; analogous to SVPP-0001's `pp_if_keyword`). Reachable `list_of_*_identifiers` probe-verified; the `*_list_of_arguments` / `parameter_port_list` type_only / `assignment_pattern` named branches are defensively-correct-by-construction (likely unreachable via the strict SV root — pre-existing, out-of-scope), **not** a bug-ledger entry. Same accept set. See "AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT)". |
+| `3` (unchanged) | `1.0.118` | **SV-EXH-PROOF.3.2 (`PGEN-SV-EXH-PROOF-0021`).** Restored the broken per-digit-token number decomposition to the generator's clean single-regex IEEE-1800 form (blanket-`\b` + `__SV_RULE__`-`_` corruption ⇒ every multi-digit/underscore/sized/based number unparseable = the external-corpus 0/14 root cause). **Release bump, NO schema bump** — numbers were 100% unparseable (no number AST ever emitted; previously-parseable byte-identical; strictly-more-permissive, SVPP-0002/REGEX-0083 category). Inventory 2312→2297 (−15 dead decomposed-rule annotations; SV shape-contract GREEN). external-corpus **0/14 → 4/14** (scr1 family); residual uvm/friscv/veer pinned `.3.3`. Full LRM number-form oracle + `.3.1` 13-family no-regression verified. Resolves the long-DEFERRED `*_value`/`unsigned_number` shaping note. See "AST-Shape Corrections — 1.0.118 (SV-EXH-PROOF.3.2)". |
 
 ## AST-Shape Corrections — 1.0.117 (POST-SV-AUDIT) — 11 structured-per-iteration Category-A misuses → clean factored record lists; +9 annotated record rules (2290→2299 / 999→1008, a DELIBERATE count change); reachable list_of_*_identifiers probe-verified, the rest defensively-correct-by-construction (NOT a bug-ledger entry); schema 2 → 3
 
@@ -652,7 +653,7 @@ zero_or_one   -> {kind: "0" | "1"}
 
 Per-branch (not rule-level) annotation chosen because rule-level `-> {body}` on an Or hits task #38 (parens-grouped-Or trailing-annotation attribution).
 
-DEFERRED: `*_value` rules (binary_value, hex_value, octal_value, unsigned_number, non_zero_unsigned_number) — sequence-with-repetition shape needs different shaping.
+RESOLVED (SV-EXH-PROOF.3.2, 1.0.118): the `*_value` / `unsigned_number` / `non_zero_unsigned_number` decomposed shaping is no longer DEFERRED — Strategy-1 restored these to the generator's clean single-regex IEEE-1800 lexical form (clean Terminals), removing the broken decomposition entirely. The number rules are no longer per-element sequence-with-repetition; the top `number` keeps its typed `{kind,body}`.
 
 Annotation count: **2044** (was 1981, +63). Same accept set.
 
