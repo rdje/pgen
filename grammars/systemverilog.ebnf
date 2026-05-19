@@ -3209,8 +3209,17 @@ output_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
 output_terminal := net_lvalue
                 -> {body: $1}
 
-@emit_fact: { kind: package_name, name: $package_identifier }
-package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
+# SV-EXH-PROOF.3.3.2: package was the only declaration NOT using the
+# proven `declared_X_identifier := X_identifier -> {body:$1.body}` +
+# `@emit_fact {name:$body}` idiom — it put `@emit_fact {name:
+# $package_identifier}` directly on this multi-element rule, and
+# `package_identifier` occurs twice (decl + trailing label), so the
+# named ref resolved to the `{body:…}` object / was unresolvable ⇒
+# "could not resolve fact name". Mirror the family idiom: route the
+# decl-site through `declared_package_identifier` (below), trailing
+# `( colon package_identifier )?` stays the plain label use-site
+# (exactly as class/module do `( colon class_identifier )?`).
+package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? declared_package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
                     -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
 
 package_export_declaration := kw_export_51713409 star scope_resolution star semi
@@ -3219,6 +3228,14 @@ package_export_declaration := kw_export_51713409 star scope_resolution star semi
                                  -> {kind: "explicit", items: [$2, $3::2*]}
 
 package_identifier := declaration_identifier
+
+# SV-EXH-PROOF.3.3.2: the proven declared-id idiom (mirrors
+# `declared_class_identifier := class_identifier -> {body:$1.body}`)
+# so `@emit_fact name:$body` resolves a scalar. Package originally
+# had ONLY `@emit_fact` (no `@predicate has_fact` — a package is not
+# a type, unlike class); that behavior is preserved (emit-only).
+@emit_fact: { kind: package_name, name: $body }
+declared_package_identifier := package_identifier -> { body: $1.body }
 
 package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma package_import_item )* semi
                             -> {items: [$2, $3::2*]}

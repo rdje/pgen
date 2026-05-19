@@ -1,4 +1,45 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-SV-EXH-PROOF-0023 (SV-EXH-PROOF.3.3.2 — DONE, leaf complete): package declaration directive fixed (`declared_package_identifier`); `package … endpackage` now parses; release 1.0.120 (schema stays 3); grammar-only, engine untouched; external-corpus stays 6/14 (honest — onion peeled to .3.3.3)
+
+Root cause (pinned via --trace; package was the sole declaration missing its declared-id rule).
+`package_declaration` carried `@emit_fact: { kind: package_name, name: $package_identifier }`
+directly on the multi-element rule, referencing the named element `package_identifier` — which
+occurs twice (the declaration name + the trailing `endpackage : label`) and, after .3.3.1, is
+`{body:…}`. The named ref resolved to the object / was unresolvable ⇒ "Semantic runtime could
+not resolve fact name", making package declarations unparseable. Every OTHER declared-id
+(class/typedef/parameter/…) uses the proven `declared_X_identifier := X_identifier ->
+{body:$1.body}` + `@emit_fact {name:$body}` idiom; package was the lone exception.
+
+Fix (grammar-only; engine untouched). Added
+  @emit_fact: { kind: package_name, name: $body }
+  declared_package_identifier := package_identifier -> { body: $1.body }
+(mirrors `declared_class_identifier` — EMIT-ONLY: package's original directive had NO
+`@predicate has_fact` since a package is not a type; that behavior is preserved), routed the
+`package_declaration` declaration-site through `declared_package_identifier`, and left the
+trailing `( colon package_identifier )?` as the plain label use-site (exactly as class/module
+do `( colon class_identifier )?`).
+
+Verification. `package pp; endpackage`, `package pp; endpackage : pp`,
+`package pp; localparam int W=8; endpackage` now parse (were 100% unparseable). SV
+shape-contract GREEN (samples=3 aligned=3 drift=0 regression_lock_failures=0).
+class/typedef/localparam/let + .3.3.1/.3.2/.3.1 no-regression. **external-corpus parse stays
+6/14 — HONEST**: the minimal package repro now parses, but uvm_pkg/uvm_compat_pkg
+×{2017,2023} fail DEEPER at the .3.3.3 use-site `known_unscoped_*` type-id defect (~118257,
+"could not resolve attribute reference 'type_identifier'") — .3.3.2 peeled one onion layer
+(forward progress; the aggregate binary count is gated by the deeper defect). Evidence
+refined the categorization: .3.3.3 (use-site type-id resolution) is the dominant residual
+(veer + uvm ×4 + uvm_compat ×2).
+
+Release bump 1.0.119 → 1.0.120, AST-dump schema STAYS 3 — strictly-more-permissive:
+package declarations were unparseable so NO such AST was ever emitted; previously-parseable
+byte-identical (SVPP-0002/REGEX-0083 "release bump, no schema bump").
+
+Binding same-commit lockstep: grammar + SV integration contract (1.0.120, schema-3 note,
+notable-changes row) + SV book changelog-index + schema-versioning + regenerated tracked
+HTML + CHANGES + LIVE + TASK_TREE + SV-EXH-PROOF.3.3.2 DONE / .3.3.3-.3.3.4 refined +
+memory. generated/ + runtime lock excluded. NOT pushed (user absolute no-push override).
+Restore tag checkpoint/sv-exh-proof-3.2-clean @ 41bef35e. Frontier → .3.3.3.
+
 ## 2026-05-19 - PGEN-SV-EXH-PROOF-0022 (SV-EXH-PROOF.3.3.1 — DONE, leaf complete): declaration-site identifier directive fixed (`non_keyword_identifier -> {body:$2.body}`); class/package/typedef/parameter/localparam declarations now parse; external-corpus 4/14 → 6/14; release 1.0.119 (schema stays 3); grammar-only, engine untouched
 
 Root cause (pinned via `--trace` + compiled-parser read; pre-existing, independent of `.3.2`).
