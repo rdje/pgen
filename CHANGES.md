@@ -1,4 +1,39 @@
 # CHANGES.md
+## 2026-05-19 - PGEN-SV-EXH-PROOF-0020 (SV-EXH-PROOF.3.2: Strategy-2 empirically proven unbounded ⇒ Strategy-1 decided by evidence; docs-only, reverted)
+
+- Executed Strategy-2 (token fixes preserving 115-slice typed
+  shapes): `kw_n_0..9` digit-`\b` removal + the `sv_rule`-mangled
+  underscore token fixed (`kw_sv_rule_c82a06f6 := /sv_rule\b/` →
+  `trivia "_"`) + generator digit-`\b` guard, both grammar files.
+- **Result:** `42`/`1_000`/`1.5`/`1e-3` now PASS + ALL `.3.1`
+  13-family + controls PASS (no-regression holds) — those token
+  fixes are correct. BUT every sized/based form (`8'h09`/`4'b1010`/
+  `16'd42`/`'hFF`/`8'shFF`/`4'b1x0z`/`12'hDE_AD`) + `1.0e6` STILL
+  FAIL. `--trace 8'h09` pins it to `kw_h_27d5482e := /h\b/`: the
+  **base-letter tokens `kw_h`/`kw_b`/`kw_d`/`kw_o`/`kw_s`/`kw_S` all
+  carry the same spurious `\b`** (`/h\b/` can't match `h` before
+  the `0` in `h09`). The generator blindly `\b`-appends to EVERY
+  single-char alnum token; the number grammar's decomposed tree uses
+  many (`0-9`, base `h/b/d/o/s/S`, `x/z`, `_`) — Strategy 2 is
+  **unbounded whack-a-mole**.
+- **Decision (evidence-based, overturning the earlier
+  "Strategy-2 proportionate"): Strategy 1** — replace the broken
+  decomposed number leaf rules with the generator's
+  `MANUAL_RULE_BODIES` clean single-regex form, keeping the top
+  `number -> {kind,body}` typed shape (real_number/integral_number
+  become clean Terminals). Eliminates the entire per-token-`\b`+
+  sentinel-mangle class at once. AST-shape blast radius acceptable:
+  numbers are currently 100% unparseable ⇒ no working consumer of
+  the broken shape; the new `{kind,body}` is clean+flat (deliberate
+  lockstepped schema bump).
+- Edits REVERTED to a clean tree (no churn — Strategy 1 supersedes
+  the decomposed-tree token edits). The decisive Strategy
+  determination + fully-specified Strategy-1 plan are pinned in the
+  `.3.2` node (zero re-derivation). No net code (Code-Change
+  Doctrine: `.3.2` leaf owns the forthcoming Strategy-1 fix). Not
+  rushed at session depth — a core-number-subsystem + AST-schema
+  change is a fresh focused unit. Standing push rule (push @30).
+
 ## 2026-05-19 - PGEN-SV-EXH-PROOF-0019 (SV-EXH-PROOF.3.2 resumed: full number-token corruption map + Strategy-1 decided; docs-only, no code)
 
 - Resumed `SV-EXH-PROOF.3.2` after the `PGEN-RGX-0088` priority
