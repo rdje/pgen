@@ -45,6 +45,34 @@ This lets a single rule legitimately carry both a `->` and a content-`$ref`-bear
 
 Together, these two annotation families make PGEN a parser platform rather than only a parser emitter.
 
+#### Rule-reference syntax in semantic-directive payloads (SEMREF-SYNTAX)
+
+Semantic-directive payloads (`@emit_fact: { … }`, `@predicate: { … }`, `@export_to_library: { … }`, `@import_from_library: { … }`, `@open_scope: { … }`, `@close_scope: { … }`) can reference values via four shapes — all four are accepted to **unbounded depth** with no static cap:
+
+| Form | Meaning | Example |
+|---|---|---|
+| `$<ident>` | Named ref into the current rule's shaped output (`->` rule) OR sub-rule-name descendant search (raw rule) | `$body` |
+| `$<int>` | Positional ref to the N'th child (1-indexed) of the current rule's parse content | `$1` |
+| `$<head>.<ident>(\.<ident>)*` | Dotted property-access chain over the shaped JSON object-key path / raw sub-rule tree | `$name.body`, `$1.body.subkey` |
+| `$<head>(\.<ident>\|\[<int>\])*` | Mixed dotted + non-negative-integer indexed-access chain | `$items[0].name`, `$matrix[0][1]`, `$a.b[0].c[1].d.e[2].r.z` |
+
+**Subset boundary** is fixed: dotted property access + non-negative integer array indexing only. **NOT** full JSONPath — no filters (`[?(@.foo)]`), no wildcards (`*`), no recursive descent (`..`). Each of those would be its own future leaf with its own runtime semantics and depth analysis.
+
+**Durable no-depth-limit guarantee.** The reference depth is structurally unbounded at every layer of the implementation — EBNF regex `*` quantifier (strict-math unbounded), hand-rolled `parse_rule_reference` loop with no max-iteration cap, runtime resolver iterator-based walk over the lexed segment vector. Locked by two regression tests (one for pure-dotted depth at 64 segments, one for mixed dotted + indexed at 64 segments) — any future "cap the depth for safety/perf" proposal must fire those tests and justify the cap in its own leaf, or back off.
+
+**Strict-bracket / strict-trailing-dot policy.** Malformed forms — a bare `.` not followed by an identifier, or a `[` not followed by `<digits>]` — roll back to before the offending segment, leaving the leftover for the surrounding parser to handle. The reference parser never silently swallows a malformed segment; the surrounding payload parser then errors or falls back to `Raw`.
+
+**Resolution path.** Resolution dispatches on the rule's content variant: shaped-JSON content (rules with `->`) walks the object/array via `serde_json::Value::get`, which polymorphically accepts both `&str` (property) and `usize` (index); raw-tree content (rules without `->`) uses `find_semantic_named_descendant` for property segments and `find_semantic_indexed_child` for `[N]` segments. The walk is iterative across the lexed segment vector — no recursion on the reference depth itself.
+
+#### Architecture note: which parser parses what
+
+There are **two distinct surfaces** for parsing semantic-annotation source, and they are easy to confuse:
+
+1. **`grammars/semantic_annotation.ebnf` → `generated/semantic_annotation_parser.rs`** — this is the **EBNF-language surface**: it parses semantic-annotation `*.ebnf` source text (or freestanding annotation strings passed through the `parse_annotation` embedding API). This is what `grammars/semantic_annotation.ebnf` formally defines.
+2. **`rust/src/ast_pipeline/unified_semantic_ast.rs::StructuredSemanticValueParser`** (hand-rolled) — this is the **runtime path for grammar directive payloads** (the `{ … }` after `@directive:` inside any grammar `.ebnf` file). It is invoked via `UnifiedSemanticAST::parse_bootstrap` → `parse_structured_payload` whenever the AST pipeline reads a grammar's annotations during parser generation.
+
+Changes to "what `$<ref>` accepts" must therefore touch **both** surfaces in lockstep so the language definition (the EBNF) stays consistent with the runtime that actually parses payloads from real grammars. The `SV-EXH-PROOF.3.3.4.a.1` slice surfaced this distinction — initial regex-only edits to `semantic_annotation.ebnf` were no-ops for grammar directive payloads until the hand-rolled `parse_rule_reference` was also extended. Full bootstrap-mode details: see `docs/BOOTSTRAP_MODE_SPECIFICATION.md`.
+
 ## Semantic Seeds, Linters, And Front-End Workbenches
 
 The next major widening for semantic annotations is not "more random annotation flexibility." It is a disciplined semantic-seed layer that downstream tools can trust.

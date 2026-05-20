@@ -8,6 +8,16 @@ Bootstrap mode provides built-in annotation parsing for the Rust AST pipeline to
 - Provide essential annotation parsing capabilities during bootstrap phase
 - Graceful fallback when full parsers are unavailable
 
+## Two Surfaces, One Language
+
+There are two distinct parser surfaces for semantic-annotation source. Both are kept consistent in lockstep — what one accepts the other accepts.
+
+1. **EBNF-language surface — `grammars/semantic_annotation.ebnf` → `generated/semantic_annotation_parser.rs`.** Parses semantic-annotation `*.ebnf` source text and freestanding annotation strings passed through the `parse_annotation` embedding API. This is the formal language definition.
+
+2. **Grammar directive-payload runtime — `rust/src/ast_pipeline/unified_semantic_ast.rs::StructuredSemanticValueParser` (hand-rolled).** Invoked via `UnifiedSemanticAST::parse_bootstrap` → `parse_structured_payload` whenever the AST pipeline reads a grammar's `@directive: { … }` annotations during parser generation. This is the surface real grammar authors hit when adding directives to their `.ebnf`.
+
+When the two diverge, the runtime is what actually parses grammar payloads — surface (1) is silent. Changes to "what `$<ref>` accepts" must touch BOTH surfaces in lockstep. The `SV-EXH-PROOF.3.3.4.a.1` slice (`PGEN-SV-EXH-PROOF-0026`, 2026-05-20) surfaced this asymmetry — regex-only edits to the EBNF were no-ops for grammar directive payloads until the hand-rolled `parse_rule_reference` was also extended.
+
 ## Semantic Annotation Bootstrap Parser
 
 ### ✅ Supported Patterns
@@ -18,11 +28,21 @@ Bootstrap mode provides built-in annotation parsing for the Rust AST pipeline to
   - `check($1, $2)`  
   - `transform($1, $2, $3)`
   - `analyze($1, $2, $3, $4)` (maximum)
+- **Rule references — depth-unbounded** (SV-EXH-PROOF.3.3.4.a.1 / .a.2, 2026-05-20):
+  - Simple named: `$name`, `$body`, `$pkg`
+  - Simple positional (1-indexed): `$1`, `$42`
+  - Dotted property-access chains, unbounded depth: `$name.body`, `$1.body.subkey`, `$a.b.c.d.e.f.g.h…`
+  - Non-negative integer indexed-access chains, unbounded depth: `$items[0]`, `$1[0]`, `$matrix[0][1][2]`
+  - Mixed dotted + indexed chains, unbounded depth: `$items[0].name`, `$a.b[0].c[1].d.e[2].r.z`
+  - Strict-bracket / strict-trailing-dot policy: malformed forms (bare `.`, `[` with no `<digits>]`) roll back to before the offending segment; the surrounding payload parser then handles the leftover or falls back to `Raw`.
+  - Durable no-depth-limit guarantee locked by two regression tests in `rust/src/ast_pipeline/unified_semantic_ast.rs::tests` exercising 64 segments each (one pure-dotted, one mixed dotted + indexed).
+  - Subset boundary: dotted property + non-negative integer indexing ONLY. NOT full JSONPath (no filters `[?(@.foo)]`, no wildcards `*`, no recursive descent `..`).
 
 ### ❌ Unsupported Patterns (Fall Back to Raw)
 - **Functions with >4 arguments**: `complex($1, $2, $3, $4, $5)`
 - **Nested function calls**: `outer(inner($1))`
 - **Complex expressions**: Method calls, chained operations, etc.
+- **JSONPath features beyond the subset**: filters `[?(@.foo > 0)]`, wildcards `*`, recursive descent `..`, negative indices `[-1]`, range slices `[0:5]`.
 
 ## Return Annotation Bootstrap Parser
 

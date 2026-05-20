@@ -404,25 +404,30 @@ optional_type := type_reference /\s*/ "?"
     -> {type: "optional_type", base_type: $1}
 
 # Rule references (references to other grammar rules)
-# Supports named refs ($rule_name), positional refs ($1, $2, ...), and
-# dotted property-access chains ($rule_name.field, $1.body, $name.foo.bar).
+# Supports named refs ($rule_name), positional refs ($1, $2, ...), dotted
+# property-access chains ($rule_name.field, $1.body, $name.foo.bar), AND
+# non-negative integer indexed-access chains ($items[0], $matrix[0][1],
+# mixed $a.b[0].c[1].d.e[2].r.z). Depth is structurally unbounded.
 #
-# SV-EXH-PROOF.3.3.4.a.1 (2026-05-20, PGEN-SV-EXH-PROOF-0026): the regex
-# now allows an optional `(\.<identifier>)*` suffix. The runtime resolver
+# SV-EXH-PROOF.3.3.4.a.1 (2026-05-20, PGEN-SV-EXH-PROOF-0026): added
+# `(\.<identifier>)*` suffix. The runtime resolver
 # (`resolve_named_semantic_reference` in `rust/src/ast_pipeline/
 # ast_based_generator.rs:3912` and `resolve_positional_semantic_reference`
 # at :3886) already splits the reference on `.` and walks either the
 # shaped JSON object-key path (for rules with `->`) or the raw sub-rule-
-# named descendant tree (rules without `->`), so this is purely a
-# bootstrap-parser-surface gap close — strictly additive: every prior
-# `$name` / `$1` reference parses byte-identically; only previously
-# rejected dotted forms now succeed. Removes the need for the SV
-# `.3.3.4.a` `body: $4.body` shape workarounds on `package_declaration`
-# and `package_import_item`.
+# named descendant tree (rules without `->`).
+#
+# SV-EXH-PROOF.3.3.4.a.2 (2026-05-20, PGEN-SV-EXH-PROOF-0027): extends
+# the chain to ALSO accept `[<digits>]` indexed-access segments. Subset
+# boundary: dotted property + non-negative integer indexing only — NOT
+# full JSONPath (no filters `[?(@.foo)]`, no wildcards `*`, no recursive
+# descent `..`). Strictly additive over `.3.3.4.a.1`: every prior
+# `$name` / `$1` / `$name.body` reference parses byte-identically; only
+# previously-rejected bracketed forms now succeed.
 rule_reference := "$" rule_reference_name
     -> {type: "rule_reference", name: $2}
 
-rule_reference_name := /([a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*|[0-9]+(\.[a-zA-Z_][a-zA-Z0-9_]*)*)/
+rule_reference_name := /([a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*|\[[0-9]+\])*|[0-9]+(\.[a-zA-Z_][a-zA-Z0-9_]*|\[[0-9]+\])*)/
     -> $1
 
 # Symbol references (references to tokens/symbols)

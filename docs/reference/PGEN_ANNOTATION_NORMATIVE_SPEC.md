@@ -156,6 +156,41 @@ Source contract references:
 - `rust/src/ast_pipeline/unified_semantic_ast.rs`
 - `rust/src/ebnf_frontend.rs`
 
+## Rule Reference Syntax (Normative)
+
+Normative grammar for `$<ref>` references inside semantic-annotation directive payloads — accepted by both the EBNF surface (`grammars/semantic_annotation.ebnf::rule_reference_name`) and the hand-rolled grammar-directive-payload parser (`StructuredSemanticValueParser::parse_rule_reference` in `unified_semantic_ast.rs`).
+
+```
+rule_reference   ::= "$" head segment*
+head             ::= /[a-zA-Z_][a-zA-Z0-9_]*/        # named
+                  |  /[0-9]+/                          # positional, 1-indexed
+segment          ::= "." /[a-zA-Z_][a-zA-Z0-9_]*/     # dotted property
+                  |  "[" /[0-9]+/ "]"                  # non-negative integer index
+```
+
+Normative invariants:
+
+1. **Depth is structurally unbounded.** The Kleene `*` on `segment` is mathematically unbounded; no implementation layer may introduce a static depth cap without an explicit normative leaf that justifies the cap and updates this spec. Locked by `bootstrap_semantic_dotted_rule_reference_depth_is_structurally_unbounded` (64 dotted segments) and `bootstrap_semantic_indexed_rule_reference_depth_is_structurally_unbounded` (32 dotted + 32 indexed = 64 mixed) regression tests in `rust/src/ast_pipeline/unified_semantic_ast.rs::tests`.
+
+2. **Strict trailing-dot / strict-bracket policy.** A bare `.` not followed by an identifier, or a `[` not followed by `<digits>` then `]`, MUST roll back to before the offending segment. The reference parser MUST NOT silently swallow a malformed segment, MUST NOT error on malformed input directly, and MUST leave the malformed leftover for the surrounding payload parser to handle (which typically then falls back to `Raw` via the bootstrap classification order).
+
+3. **Resolution dispatches on rule content variant.** For shaped-JSON content (`ParseContent::Json` — rules with `->` return annotations), the resolver walks via `serde_json::Value::get`, which polymorphically accepts both `&str` (property) and `usize` (index). For raw-tree content (rules without `->`), the resolver uses `find_semantic_named_descendant` for property segments and `find_semantic_indexed_child` for `[N]` segments. The walk is iterative across the lexed segment vector — there is no recursion on the reference depth itself.
+
+4. **Subset boundary is fixed.** Dotted property access + non-negative integer array indexing only. NOT full JSONPath. The following are explicitly OUT OF SCOPE and would require their own normative leaf:
+   - Filters: `[?(@.foo > 0)]`
+   - Wildcards: `*`, `**`
+   - Recursive descent: `..`
+   - Negative indices: `[-1]`
+   - Range slices: `[0:5]`
+   - Function calls in references: `$length(items)`
+
+5. **Two-surface lockstep.** The EBNF-language surface (`semantic_annotation.ebnf` → `semantic_annotation_parser.rs`) and the runtime grammar-directive-payload surface (`StructuredSemanticValueParser::parse_rule_reference`) MUST stay consistent. A change to one is not normative until the other is also updated. This asymmetry was surfaced by `SV-EXH-PROOF.3.3.4.a.1` (`PGEN-SV-EXH-PROOF-0026`).
+
+Source contract references:
+- `grammars/semantic_annotation.ebnf` (production: `rule_reference_name`)
+- `rust/src/ast_pipeline/unified_semantic_ast.rs` (`StructuredSemanticValueParser::parse_rule_reference`)
+- `rust/src/ast_pipeline/ast_based_generator.rs` (resolver helpers: `lex_semantic_reference_segments_suffix`, `lex_semantic_reference_segments_named`, `parse_bracketed_index`, `find_semantic_indexed_child`, `resolve_positional_semantic_reference`, `resolve_named_semantic_reference`)
+
 ## Semantic Leverage Contract (Parser + Stimuli)
 Normative runtime leverage behavior for semantic annotations:
 

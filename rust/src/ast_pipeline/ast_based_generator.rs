@@ -3902,9 +3902,22 @@ impl AstBasedGenerator {
                     _ => return None,
                 };
 
+                // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): segments
+                // may be either property names (`name`) or bracketed
+                // indexed-access forms (`[N]`). Dispatch per segment:
+                // bracketed → pick the N'th child of a Sequence/Quantified
+                // (raw-tree indexed walk); otherwise → named-descendant
+                // search. Strict bracket policy: a malformed `[N]` was
+                // already rejected at the lexer surface, so we only need
+                // to dispatch here.
                 for segment in path_segments {
-                    current_node =
-                        self.find_semantic_named_descendant(&current_node.content, segment)?;
+                    if let Some(index) = Self::parse_bracketed_index(segment) {
+                        current_node =
+                            self.find_semantic_indexed_child(&current_node.content, index)?;
+                    } else {
+                        current_node =
+                            self.find_semantic_named_descendant(&current_node.content, segment)?;
+                    }
                 }
 
                 self.semantic_node_scalar(current_node)
@@ -3933,17 +3946,32 @@ impl AstBasedGenerator {
                 // (referencing a field the `->` does not produce, or a
                 // non-scalar, is an author/grammar bug — fail loud,
                 // never silently mis-parse, never panic).
+                // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): lex
+                // the reference into segments where each segment is
+                // either a property name (`name`) or a bracketed
+                // indexed-access form (`[N]`). The lexer is the same
+                // helper used by `parse_semantic_reference_segments` for
+                // the positional path; both walks dispatch identically.
+                // Strict trailing-dot / strict-bracket policy enforced
+                // at the lexer surface (malformed forms → `None`).
+                let lexed_segments = Self::lex_semantic_reference_segments_named(reference)?;
+                if lexed_segments.is_empty() {
+                    return None;
+                }
+
                 if let ParseContent::Json(value) = root_content {
                     let mut current = value;
-                    for segment in reference
-                        .split('.')
-                        .map(str::trim)
-                        .filter(|segment| !segment.is_empty())
-                    {
-                        if !self.semantic_identifier(segment) {
-                            return None;
+                    for segment in &lexed_segments {
+                        if let Some(index) = Self::parse_bracketed_index(segment) {
+                            // serde_json::Value::get accepts usize for
+                            // array indexing.
+                            current = current.get(index)?;
+                        } else {
+                            if !self.semantic_identifier(segment) {
+                                return None;
+                            }
+                            current = current.get(*segment)?;
                         }
-                        current = current.get(segment)?;
                     }
                     return match current {
                         serde_json::Value::String(text) => Some(text.clone()),
@@ -3954,22 +3982,25 @@ impl AstBasedGenerator {
                         _ => None,
                     };
                 }
-                let mut path_segments = reference
-                    .split('.')
-                    .map(str::trim)
-                    .filter(|segment| !segment.is_empty());
-                let first = path_segments.next()?;
+
+                let mut iter = lexed_segments.iter();
+                let first = iter.next()?;
                 if !self.semantic_identifier(first) {
                     return None;
                 }
 
                 let mut current_node = self.find_semantic_named_descendant(root_content, first)?;
-                for segment in path_segments {
-                    if !self.semantic_identifier(segment) {
-                        return None;
+                for segment in iter {
+                    if let Some(index) = Self::parse_bracketed_index(segment) {
+                        current_node =
+                            self.find_semantic_indexed_child(&current_node.content, index)?;
+                    } else {
+                        if !self.semantic_identifier(segment) {
+                            return None;
+                        }
+                        current_node =
+                            self.find_semantic_named_descendant(&current_node.content, segment)?;
                     }
-                    current_node =
-                        self.find_semantic_named_descendant(&current_node.content, segment)?;
                 }
 
                 self.semantic_node_scalar(current_node)
@@ -3997,25 +4028,49 @@ impl AstBasedGenerator {
                     return None;
                 }
 
-                let mut segments = Vec::new();
+                // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): the
+                // suffix now accepts a mix of `.<ident>` and `[<digits>]`
+                // segments. Lexer returns `Vec<&str>` where each
+                // `[<digits>]` segment is preserved with its brackets
+                // (caller dispatches via `parse_bracketed_index`); strictly
+                // additive over the prior dotted-only form.
                 let suffix = normalized[index_end..].trim();
-                if suffix.is_empty() {
-                    return Some((index, segments));
-                }
-                if !suffix.starts_with('.') {
-                    return None;
-                }
+                let segments = Self::lex_semantic_reference_segments_suffix(suffix)?;
 
-                for segment in suffix[1..].split('.') {
-                    let normalized_segment = segment.trim();
-                    if normalized_segment.is_empty() || !self.semantic_identifier(normalized_segment)
+                // Backwards-compat validation: property-segments must
+                // pass `semantic_identifier` (the lexer enforces character
+                // class but `semantic_identifier` may add further checks
+                // such as reserved-keyword rejection in some embedders).
+                for segment in &segments {
+                    if Self::parse_bracketed_index(segment).is_none()
+                        && !self.semantic_identifier(segment)
                     {
                         return None;
                     }
-                    segments.push(normalized_segment);
                 }
 
                 Some((index, segments))
+            }
+
+            fn find_semantic_indexed_child<'a>(
+                &self,
+                content: &'a ParseContent<'input>,
+                index: usize,
+            ) -> Option<&'a ParseNode<'input>> {
+                // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): raw-tree
+                // companion to `find_semantic_named_descendant` for
+                // `[N]` indexed walks. For `Sequence`/`Quantified` content,
+                // returns the `index`'th element directly (no recursion;
+                // index access has explicit numeric semantics, not a
+                // "find by name" search). For `Alternative` content,
+                // index 0 returns the wrapped node. For non-array-like
+                // content, returns `None`.
+                match content {
+                    ParseContent::Sequence(elements)
+                    | ParseContent::Quantified(elements, _) => elements.get(index),
+                    ParseContent::Alternative(node) if index == 0 => Some(node.as_ref()),
+                    _ => None,
+                }
             }
             fn find_semantic_named_descendant<'a>(
                 &self,
@@ -4123,6 +4178,109 @@ impl AstBasedGenerator {
                 bytes[1..]
                     .iter()
                     .all(|b| *b == b'_' || (*b as char).is_ascii_alphanumeric())
+            }
+
+            // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): shared
+            // segment lexer used by both `parse_semantic_reference_segments`
+            // (positional path) and `resolve_named_semantic_reference`
+            // (named path).
+            //
+            // Accepts the bare suffix of a reference (no leading `$`, no
+            // leading head identifier — the caller has already consumed
+            // those). Returns `Vec<&str>` where each element is either a
+            // property name like `body` or a bracketed indexed-access
+            // form like `[0]` (brackets and digits preserved verbatim so
+            // the walker can dispatch via `parse_bracketed_index`).
+            //
+            // Empty suffix → empty Vec. Malformed forms (`.`, `.123`,
+            // `[`, `[abc]`, `[0`) return `None`. Depth is structurally
+            // unbounded — the parse loop has no max-iteration cap and
+            // the resulting Vec is bounded only by available memory.
+            fn lex_semantic_reference_segments_suffix<'a>(
+                suffix: &'a str,
+            ) -> Option<Vec<&'a str>> {
+                let mut segments = Vec::new();
+                let mut remaining = suffix.trim();
+                while !remaining.is_empty() {
+                    if let Some(rest) = remaining.strip_prefix('.') {
+                        let bytes = rest.as_bytes();
+                        let mut end = 0usize;
+                        if bytes.is_empty()
+                            || !(bytes[0] == b'_' || (bytes[0] as char).is_ascii_alphabetic())
+                        {
+                            return None;
+                        }
+                        end += 1;
+                        while end < bytes.len()
+                            && (bytes[end] == b'_' || (bytes[end] as char).is_ascii_alphanumeric())
+                        {
+                            end += 1;
+                        }
+                        segments.push(&rest[..end]);
+                        remaining = &rest[end..];
+                    } else if let Some(rest) = remaining.strip_prefix('[') {
+                        let bytes = rest.as_bytes();
+                        let mut end = 0usize;
+                        while end < bytes.len() && (bytes[end] as char).is_ascii_digit() {
+                            end += 1;
+                        }
+                        if end == 0 || end >= bytes.len() || bytes[end] != b']' {
+                            return None;
+                        }
+                        // Capture the FULL `[<digits>]` form, brackets included,
+                        // so the walker can dispatch via `parse_bracketed_index`.
+                        let bracketed_end = 1 + end + 1; // '[' + digits + ']'
+                        segments.push(&remaining[..bracketed_end]);
+                        remaining = &remaining[bracketed_end..];
+                    } else {
+                        return None;
+                    }
+                }
+                Some(segments)
+            }
+
+            // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): named-path
+            // counterpart to `lex_semantic_reference_segments_suffix`.
+            // The named-resolver receives a reference WITHOUT the leading
+            // `$` (e.g. `name.body[0].sub`), so the head identifier is
+            // also part of the input. We lex the head as the first
+            // segment, then delegate to the suffix lexer for the rest.
+            fn lex_semantic_reference_segments_named<'a>(reference: &'a str) -> Option<Vec<&'a str>> {
+                let normalized = reference.trim();
+                let bytes = normalized.as_bytes();
+                if bytes.is_empty() {
+                    return None;
+                }
+                let mut head_end = 0usize;
+                if !(bytes[0] == b'_' || (bytes[0] as char).is_ascii_alphabetic()) {
+                    return None;
+                }
+                head_end += 1;
+                while head_end < bytes.len()
+                    && (bytes[head_end] == b'_'
+                        || (bytes[head_end] as char).is_ascii_alphanumeric())
+                {
+                    head_end += 1;
+                }
+                let head = &normalized[..head_end];
+                let suffix = &normalized[head_end..];
+                let mut segments = Vec::with_capacity(1);
+                segments.push(head);
+                segments.extend(Self::lex_semantic_reference_segments_suffix(suffix)?);
+                Some(segments)
+            }
+
+            // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): if `segment`
+            // is a bracketed-digits form like `[0]` / `[42]`, return the
+            // inner integer. Otherwise return `None` (the segment is a
+            // property name). Strict policy: requires both brackets AND
+            // a non-empty digit run with no overflow.
+            fn parse_bracketed_index(segment: &str) -> Option<usize> {
+                let inner = segment.strip_prefix('[')?.strip_suffix(']')?;
+                if inner.is_empty() || !inner.bytes().all(|b| (b as char).is_ascii_digit()) {
+                    return None;
+                }
+                inner.parse::<usize>().ok()
             }
             fn split_semantic_top_level<'a>(
                 &self,
@@ -6778,9 +6936,18 @@ mod semantic_usage_tests {
             "generated resolver should resolve named refs against a shaped -> Json structure, got: {}",
             rendered
         );
+        // SV-EXH-PROOF.3.3.4.a.2 (PGEN-SV-EXH-PROOF-0027): the segment
+        // dispatch now also handles `[N]` indexed-access; the property
+        // branch reads `current.get(*segment)` (segments are now
+        // collected into a `Vec<&str>` and iterated as `&&str`, hence
+        // the deref). Assert on the substring shared between the
+        // dotted-property branch AND the indexed branch — `current.get(`
+        // — so the test is resilient to either shape and still captures
+        // the semantic intent ("the generated resolver walks the ref as
+        // a JSON object-key / array-index path on Value::get").
         assert!(
-            rendered.contains("current.get(segment)"),
-            "generated resolver should walk the ref as a JSON object-key path, got: {}",
+            rendered.contains("current.get("),
+            "generated resolver should walk the ref as a JSON object-key (or array-index) path on `Value::get`, got: {}",
             rendered
         );
         assert!(

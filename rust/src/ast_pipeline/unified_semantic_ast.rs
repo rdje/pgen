@@ -553,31 +553,64 @@ impl<'a> StructuredSemanticValueParser<'a> {
         // / `$1` reference parses byte-identically; only previously
         // rejected dotted forms now succeed.
         //
+        // SV-EXH-PROOF.3.3.4.a.2 (2026-05-20, PGEN-SV-EXH-PROOF-0027):
+        // extend the chain loop to ALSO accept non-negative-integer
+        // indexed-access segments `[<digits>]` (`$items[0]`,
+        // `$1[0].name`, `$matrix[0][1]`, mixed `$a.b[0].c[1].d.e[2]`).
+        // SAME unbounded-depth guarantee. Subset boundary: dotted
+        // property + non-negative integer indexing only — NOT full
+        // JSONPath (no filters `[?(@.foo)]`, no wildcards `*`, no
+        // recursive descent `..`).
+        //
         // Mirror EBNF change: `grammars/semantic_annotation.ebnf`
         // `rule_reference_name` regex extended in lockstep so the
         // EBNF surface and the hand-rolled bootstrap parser stay
-        // consistent. Strict trailing-dot policy: a bare `.` with no
-        // following identifier rolls back to before the `.` (leaves it
-        // to the surrounding parser to handle / fail).
-        while self.peek_char() == Some('.') {
-            let dot_checkpoint = self.position;
-            self.position += 1; // consume '.'
+        // consistent. Strict trailing-dot / strict-bracket policy: a
+        // bare `.` with no following identifier, or `[` with no
+        // following digits / no closing `]`, rolls back to before the
+        // segment (leaves it to the surrounding parser to handle / fail).
+        loop {
             match self.peek_char() {
-                Some(ch) if ch.is_ascii_alphabetic() || ch == '_' => {
-                    let seg_start = self.position;
-                    self.consume_while(|ch| ch.is_ascii_alphanumeric() || ch == '_');
-                    if self.position == seg_start {
-                        // Defensive: the peek_char check should have
-                        // guaranteed at least one char was consumable.
-                        self.position = dot_checkpoint;
-                        break;
+                Some('.') => {
+                    let dot_checkpoint = self.position;
+                    self.position += 1; // consume '.'
+                    match self.peek_char() {
+                        Some(ch) if ch.is_ascii_alphabetic() || ch == '_' => {
+                            let seg_start = self.position;
+                            self.consume_while(|ch| ch.is_ascii_alphanumeric() || ch == '_');
+                            if self.position == seg_start {
+                                // Defensive: the peek_char check should have
+                                // guaranteed at least one char was consumable.
+                                self.position = dot_checkpoint;
+                                break;
+                            }
+                        }
+                        _ => {
+                            // Bare trailing dot — back out.
+                            self.position = dot_checkpoint;
+                            break;
+                        }
                     }
                 }
-                _ => {
-                    // Bare trailing dot — back out.
-                    self.position = dot_checkpoint;
-                    break;
+                Some('[') => {
+                    let bracket_checkpoint = self.position;
+                    self.position += 1; // consume '['
+                    let digits_start = self.position;
+                    self.consume_while(|ch| ch.is_ascii_digit());
+                    if self.position == digits_start {
+                        // No digits → not an indexed segment.
+                        self.position = bracket_checkpoint;
+                        break;
+                    }
+                    if self.peek_char() != Some(']') {
+                        // Missing closing ']' → not a well-formed
+                        // indexed segment; back out.
+                        self.position = bracket_checkpoint;
+                        break;
+                    }
+                    self.position += 1; // consume ']'
                 }
+                _ => break,
             }
         }
         Some(self.input[start..self.position].to_string())
@@ -868,6 +901,125 @@ mod tests {
             "bare-trailing-dot should fall back to Raw, got: {:?}",
             bare_dot_parsed
         );
+    }
+
+    // `SV-EXH-PROOF.3.3.4.a.2` (PGEN-SV-EXH-PROOF-0027, 2026-05-20):
+    // the bootstrap-mode `parse_rule_reference` accepts `[<digits>]`
+    // indexed-access segments alongside dotted property-access chains
+    // (`$items[0]`, `$1[0].name`, `$matrix[0][1]`, mixed
+    // `$a.b[0].c[1].d.e[2]`). SAME DURABLE NO-DEPTH-LIMIT GUARANTEE as
+    // `.3.3.4.a.1`: the parse loop is a plain `loop` with `match
+    // peek_char()` arms for `.` and `[`, no max-iteration cap; the
+    // runtime resolver walks segments iteratively; the EBNF surface
+    // uses regex `*` (strict-math unbounded). If a future slice ever
+    // proposes a `MAX_REFERENCE_DEPTH` constant for "safety" or perf,
+    // this test fires and forces an explicit leaf to justify the cap
+    // or back off.
+    #[test]
+    fn bootstrap_semantic_indexed_rule_reference_depth_is_structurally_unbounded() {
+        let logger = crate::test_runner::NoOpLogger;
+
+        // Sanity for the canonical use cases: pure-indexed, mixed, and
+        // the head-positional-with-indexed-tail form.
+        for shallow in [
+            " { name: $items[0] } ",
+            " { name: $items[0].name } ",
+            " { name: $matrix[0][1] } ",
+            " { name: $1[0].body } ",
+            " { name: $a.b[0].c[1].d } ",
+        ] {
+            let parsed = UnifiedSemanticAST::parse_bootstrap(shallow, &logger)
+                .expect("bootstrap parser should accept shallow mixed dotted+indexed refs");
+            assert!(
+                matches!(parsed, UnifiedSemanticAST::Structured { .. }),
+                "shallow mixed ref payload should parse as structured, got: {:?}",
+                parsed
+            );
+        }
+
+        // Deep depth — 32 mixed `.<ident>` + 32 `[N]` segments (64
+        // total). Picked to be far larger than any realistic grammar's
+        // nesting. The chain alternates so we exercise both lexer
+        // branches end-to-end.
+        let mut deep_ref = String::from("$head");
+        for i in 0..32 {
+            deep_ref.push('.');
+            deep_ref.push_str(&format!("seg{}", i));
+            deep_ref.push('[');
+            deep_ref.push_str(&format!("{}", i));
+            deep_ref.push(']');
+        }
+        let deep_payload = format!(" {{ name: {} }} ", deep_ref);
+        let deep_parsed = UnifiedSemanticAST::parse_bootstrap(&deep_payload, &logger)
+            .expect("bootstrap parser should accept 64-segment mixed dotted+indexed ref");
+        match deep_parsed {
+            UnifiedSemanticAST::Structured { value, .. } => {
+                let UnifiedSemanticValue::Object(properties) = &value else {
+                    panic!("expected object payload, got: {:?}", value);
+                };
+                let name_property = properties
+                    .iter()
+                    .find(|p| p.key == "name")
+                    .expect("payload should have a 'name' property");
+                let UnifiedSemanticValue::RuleReference(text) = &name_property.value else {
+                    panic!(
+                        "expected rule_reference value, got: {:?}",
+                        name_property.value
+                    );
+                };
+                // head + (32 dotted segments) + (32 indexed segments) = 65 components in the text.
+                // Verify both kinds of segments are retained verbatim.
+                assert!(
+                    text.starts_with("head."),
+                    "deep ref text should start with the head segment; got {:?}",
+                    text
+                );
+                assert!(
+                    text.ends_with("[31]"),
+                    "deep ref text should end with the last appended indexed segment; got {:?}",
+                    text
+                );
+                // Count the dotted segments by splitting on '.'.
+                // 33 parts: head + 32 `seg<i>[<i>]` pairs.
+                assert_eq!(
+                    text.split('.').count(),
+                    33,
+                    "64-segment mixed ref should retain all 33 dot-separated chunks; got {} in {:?}",
+                    text.split('.').count(),
+                    text
+                );
+                // Count the indexed segments by occurrences of '['.
+                assert_eq!(
+                    text.matches('[').count(),
+                    32,
+                    "64-segment mixed ref should retain all 32 bracketed segments; got {} in {:?}",
+                    text.matches('[').count(),
+                    text
+                );
+            }
+            other => panic!("expected Structured payload, got: {:?}", other),
+        }
+
+        // Strict-bracket policy: malformed bracket forms roll back to
+        // before the bracket. `$a[abc]` → only `$a` consumed; `$a[`
+        // → only `$a` consumed; `$a[0` → only `$a` consumed. The
+        // surrounding parser then errors / falls back to Raw on the
+        // leftover content. Test pins this policy across all three
+        // shapes.
+        for bad_input in [
+            " { name: $a[abc] } ",
+            " { name: $a[ } ",
+            " { name: $a[0 } ",
+        ] {
+            let bad_parsed = UnifiedSemanticAST::parse_bootstrap(bad_input, &logger)
+                .expect("bootstrap parser should never error on malformed bracket forms");
+            assert!(
+                matches!(bad_parsed, UnifiedSemanticAST::Raw { .. }),
+                "malformed bracket input should fall back to Raw, got: {:?} for {:?}",
+                bad_parsed,
+                bad_input
+            );
+        }
     }
 
     #[test]

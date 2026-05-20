@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-05-20 - PGEN-SV-EXH-PROOF-0027 (SV-EXH-PROOF.3.3.4.a.2 — DONE, leaf complete): PARSER-AGNOSTIC ENGINE EXTENSION — non-negative integer indexed-access (`[N]`) in semantic-annotation rule references; release 1.0.124 (schema stays 3); SV external corpus stays 8/14; regex broader corpus / RGX conformance 44/0 ✅ unaffected
+
+Companion to `.3.3.4.a.1` (which added dotted property-access `$name.body`). Real authoring concern that `.3.3.4.a.1` only half-addressed: when a rule's shaped output is `{items: [{name, body}, …]}` or `{matrix: [[…], …]}`, directives still couldn't reference array elements directly — there was no `$items[0].name` or `$matrix[0][1]` form. `.3.3.4.a.2` closes that gap with a strict, well-defined subset: dotted property + non-negative integer indexed-access only. NOT full JSONPath (no filters `[?(@.foo)]`, no wildcards `*`, no recursive descent `..`).
+
+Engine (parser-agnostic, both surfaces in lockstep):
+
+  1. `unified_semantic_ast.rs::parse_rule_reference` chain loop refactored from `while peek_char() == Some('.')` to `loop { match peek_char() { Some('.') => …, Some('[') => …, _ => break } }`. The `[` arm accepts `[<digits>]` only, with a strict-bracket policy (a `[` not followed by digits-then-`]` rolls back; the surrounding parser sees the `[` unconsumed).
+  2. `grammars/semantic_annotation.ebnf::rule_reference_name` regex extended in lockstep: `/([a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*|\[[0-9]+\])*|[0-9]+(\.[a-zA-Z_][a-zA-Z0-9_]*|\[[0-9]+\])*)/`. Bootstrap `semantic_annotation_parser.rs` regenerated.
+  3. Runtime resolver (`ast_based_generator.rs`, the generator-emitted code): three new free-standing associated-function helpers — `lex_semantic_reference_segments_suffix` (lexes a bare suffix like `.body[0].sub` into `Vec<&str>` where each element is either a property name or the full `[<digits>]` form with brackets retained), `lex_semantic_reference_segments_named` (named-path counterpart that also captures the head identifier), `parse_bracketed_index` (extracts the integer from `[<digits>]` or returns `None`). Both resolvers (`resolve_positional_semantic_reference` and `resolve_named_semantic_reference`) use the lexers and dispatch per segment: for shaped-JSON content, `serde_json::Value::get` polymorphically accepts both `&str` (property) and `usize` (index); for raw-tree content, a new `find_semantic_indexed_child` companion picks the N'th element of a `Sequence`/`Quantified` (or returns the wrapped node of an `Alternative` when N==0).
+
+Subset boundary fixed: dotted property + non-negative integer indexed-access only. Full JSONPath features deferred indefinitely (filters / wildcards / recursive descent — each would need its own leaf, its own runtime semantics, and its own unbounded-depth guarantee analysis).
+
+DURABLE NO-DEPTH-LIMIT GUARANTEE extends to mixed dotted+indexed depth: structurally unbounded at every layer (EBNF `*` quantifier; hand-rolled `loop` with no max-iteration cap; lexer `while !remaining.is_empty()` iterates until input exhausted; resolver iterates over the lexed Vec). Locked by `bootstrap_semantic_indexed_rule_reference_depth_is_structurally_unbounded` test that exercises 32 `.<ident>` + 32 `[N]` segments (64 total) and asserts verbatim retention of both kinds (33 dot-separated chunks, 32 bracketed segments). Pairs with the `.3.3.4.a.1` dotted-only test.
+
+No SV grammar changes — purely a language-surface expressiveness improvement. The 1.0.123 SV directive payloads (`@export_to_library: {kind:package, name_from:$name.body}` and `@import_from_library: {kind:package, name_from:$package.body}`) continue to work byte-identically.
+
+Release bump 1.0.123 → 1.0.124, schema STAYS 3. Strictly additive language extension; no shape changes anywhere; no annotated rules changed; SVPP-0002/REGEX-0083 category.
+
+VERIFIED:
+
+  - Lib no-features: 461/461 PASS (was 460 → +1 new indexed-access regression test).
+  - Lib `--features generated_parsers`: 516/517 PASS. The single failure is the same pre-existing `rgx_0077` confirmed at `.3.3.4.a` via decisive baseline; tracked as `.3.3.5`-class.
+  - End-to-end cross-file synthetic repro: parsing the package writes the artifact; importer module parses with `--lib-in` (PASS) and fails without (FAIL) — the `.3.3.4.a.1` dotted-refs path is preserved.
+  - `.3.3.3` minimal repro `module m; typedef int my_t; my_t [3:0] x; endmodule` STILL PASSES.
+  - Both depth-unbounded regression tests in the suite (dotted-only + mixed).
+
+Cross-parser no-regression (critical):
+
+  - regex broader corpus / RGX conformance 44/0 ✅ via `make regex_broader_corpus_proof_gate`.
+  - SV shape-contract GREEN.
+  - SV external corpus stays 8/14 (fresh triage gate 2026-05-20; veer_el2_lsu ×{2017,2023} still PASS via the existing `$name.body` directives — the new `[N]` feature is dead-code in the SV path until a grammar consumer uses it).
+
+Test-fixture update (logged honestly): the generator-emit test `generated_parser_runtime_contract_emits_post_predicate_content_flow` asserted the literal string `current.get(segment)` matching the prior resolver's `for segment in reference.split('.')` loop body. My refactor changed iteration to `for segment in &lexed_segments` (segments are now `&&str` from a `Vec<&str>`), so the emitted text became `current.get(*segment)`. Updated the assertion to track the new shape while staying semantic (`rendered.contains("current.get(")`) — captures both the property-key and array-index branches and is resilient to either deref style. NOT a silent fixture relaxation: the assertion is still anchored on the canonical `Value::get` walk that gives the test its name.
+
+NEXT LEAF (queued): `.3.3.4.b` — uvm self-contained same-file-package path. `uvm_pkg` / `uvm_compat_pkg` ×{2017,2023} are not solved by the `.3.3.4.a` artifact-on-disk model because the package and its uses live in the same file. Needs intra-file scope tracking (the `package_declaration`'s `@emit_fact` already emits `type_name` facts; the gap is the use-site `has_fact` not seeing them post-`endpackage`).
+
+Lockstep (same commit) — bundled doc-debt cleanup carried forward from `.3.3.4.a.1` per [feedback_regex_book_live] (books are the user's only window, same-commit doctrine): engine (`unified_semantic_ast.rs` + `ast_based_generator.rs`) + grammar (`semantic_annotation.ebnf`) + regenerated bootstrap + all 8 generated parsers (gitignored) + SV integration contract (1.0.123 → 1.0.124) + SV book (changelog-index + schema-versioning + regenerated tracked HTML via `make systemverilog_parser_book_gate`) + **TOP-LEVEL BOOK `docs/book/src/annotation-system.md` + regenerated `docs/book-html/`** (new "Rule-reference syntax (SEMREF-SYNTAX)" subsection + "Architecture note: which parser parses what" subsection) + **`docs/BOOTSTRAP_MODE_SPECIFICATION.md`** (new "Two Surfaces, One Language" section explaining the EBNF-language vs grammar-directive-payload runtime asymmetry; dotted + indexed forms added to the "Supported Patterns" list with the subset boundary and depth-unbounded guarantee called out) + **`docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`** (new "Rule Reference Syntax (Normative)" section with the formal EBNF, five normative invariants — depth-unbounded, strict-bracket policy, resolution dispatch, fixed subset boundary, two-surface lockstep) + **`docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`** (new "Recent Additions" section with the same EBNF and the same guarantees, plus subset boundary explicitly listing the JSONPath features intentionally OUT OF SCOPE) + CHANGES.md + LIVE_ACHIEVEMENT_STATUS.md + docs/TASK_TREE.md + docs/tasks/SV-EXH-PROOF.md (leaf to done + `.3.3.4.b` ready to start) + memory.
+
+NOT pushed. ⛔ ABSOLUTE NO-PUSH OVERRIDE active.
+
+---
+
 ## 2026-05-20 - PGEN-SV-EXH-PROOF-0026 (SV-EXH-PROOF.3.3.4.a.1 — DONE, leaf complete): PARSER-AGNOSTIC ENGINE CLEANUP — dotted property-access in semantic-annotation rule references; revert of the `.3.3.4.a` SV `body:$N.body` shape workarounds; release 1.0.123 (schema stays 3); SV external corpus stays 8/14 (verified the cleanup is behaviour-preserving); regex broader corpus / RGX conformance 44/0 ✅ unaffected
 
 Companion to `.3.3.4.a`. `.3.3.4.a` had to carry a SV shape workaround (`body: $4.body` on `package_declaration`, `body: $1.body` on both `package_import_item` branches) because the **directive-payload parser** — the hand-rolled `StructuredSemanticValueParser::parse_rule_reference` in `rust/src/ast_pipeline/unified_semantic_ast.rs` — only accepted single-identifier / single-positional refs (`$name` / `$1`), no `.` allowed. The runtime resolver already walked dotted paths via `resolve_named_semantic_reference` / `parse_semantic_reference_segments` (`ast_based_generator.rs`), splitting on `.` and traversing either the shaped JSON object-key path (rules with `->`) or the raw sub-rule-named descendant tree. The gap was purely at the bootstrap-parser surface.
