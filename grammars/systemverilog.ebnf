@@ -1108,12 +1108,44 @@ conditional_expression := cond_predicate &question question attribute_instance* 
 conditional_generate_construct := if_generate_construct   -> {kind: "if",   body: $1}
                                 | case_generate_construct -> {kind: "case", body: $1}
 
-conditional_statement := @sample: "if (a) ; else ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null &kw_else_ae050f5b kw_else_ae050f5b conditional_else_branch
-                      -> {unique_priority: $1, condition: $4, then_body: $6, else_body: $9}
+# SV-EXH-PROOF.3.3.4.b.1 (PGEN-SV-EXH-PROOF-0028, 2026-05-21): encode the
+# LRM's `[ else statement_or_null ]` as OPTIONAL per IEEE 1800-2017 §A.6.6
+# (PDF p.1164) and IEEE 1800-2023 §A.6.6 (PDF p.1201). The LRM is verbatim:
+#   conditional_statement ::=
+#       [ unique_priority ] if ( cond_predicate ) statement_or_null
+#           { else if ( cond_predicate ) statement_or_null }
+#           [ else statement_or_null ]
+# Square brackets = OPTIONAL. The prior encoding (`&kw_else kw_else
+# conditional_else_branch` with no `|` alternative for the no-else case)
+# wrongly made the else mandatory, blocking every `if (1) $display("ok");`
+# without an else. The `&X` PEG positive-lookahead is correct PEG syntax
+# but here it was being used to MANDATE an LRM-OPTIONAL clause. The fix:
+# wrap the else clause in `( … )?` using a helper rule that passes through
+# the branch via `-> $2` (PEG-natural form; no `&X` / `!X` lookahead
+# needed because the optional group is unambiguous — `?` is greedy and
+# binds `else` to the innermost `if`, matching the SV dangling-else
+# convention).
+#
+# The else-if chain `{ else if (…) statement_or_null }` is handled by the
+# existing recursive `conditional_else_branch := conditional_statement |
+# statement_or_null` — once the outer else is optional, the recursive
+# `conditional_statement` arm naturally produces zero-or-more chained
+# else-ifs.
+#
+# Historical: the previous EBNF contained a dead/mis-attached alternative
+# at line 1116 (`| @sample: "if (a) ;" … !kw_else_ae050f5b`) that the
+# original author reached for as the no-else form via PEG negative
+# lookahead; due to the blank line and indentation it was parented to
+# `conditional_else_branch` (unreachable from any actual parse path) and
+# is removed here.
+conditional_else_clause := kw_else_ae050f5b conditional_else_branch
+                        -> $2
+
+conditional_statement := @sample: "if (a) ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null ( conditional_else_clause )?
+                      -> {unique_priority: $1, condition: $4, then_body: $6, else_body: $7}
 
 conditional_else_branch := conditional_statement -> {kind: "elseif", body: $1}
                          | statement_or_null     -> {kind: "else",   body: $1}
-                       | @sample: "if (a) ;" ( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null !kw_else_ae050f5b
 
 config_declaration := kw_config_dfba7aad config_identifier semi ( local_parameter_declaration semi )* design_statement config_rule_statement* kw_endconfig_3fd27f95 ( colon config_identifier )?
                    -> {name: $2, local_params: $4, design: $5, rules: $6, end_label: $8}

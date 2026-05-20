@@ -1,4 +1,61 @@
 # CHANGES.md
+## 2026-05-21 - PGEN-SV-EXH-PROOF-0028 (SV-EXH-PROOF.3.3.4.b.1 — DONE, leaf complete): FIRST LRM-EXTRACTION-DEFECT FIX — `conditional_statement` `[ else statement_or_null ]` encoded as truly optional per IEEE 1800 §A.6.6; release 1.0.125 (schema stays 3); SV external corpus stays 8/14 (the fix is correct but conditional_statement was NOT the uvm/uvm_compat/friscv_rv32i blocker — deeper LRM-extraction defects remain on those paths)
+
+The opening fix of a longer campaign. The SV grammar was auto-extracted from the IEEE 1800 LRM, and the extractor introduced a class of defects where LRM `[ ]` optional clauses were encoded as mandatory. `conditional_statement` at `grammars/systemverilog.ebnf:1111` was the first case — and per the defect-class-by-defect-class strategy, the `&X`-positive-lookahead-mandates-optional class is a class of ONE in the entire 1,448-rule grammar (the `&question question` at line 1105's `conditional_expression` is legitimate; `?` and `:` are LRM-mandatory for ternary per §A.8.3).
+
+Root cause (precisely located against the authoritative LRM, verified verbatim against both IEEE 1800-2017 PDF page 1164 AND IEEE 1800-2023 PDF page 1201 — both editions identical):
+
+  conditional_statement ::=
+      [ unique_priority ] if ( cond_predicate ) statement_or_null
+          { else if ( cond_predicate ) statement_or_null }
+          [ else statement_or_null ]
+
+Square brackets `[ X ]` mean OPTIONAL. Our EBNF had encoded the trailing else as MANDATORY via `&kw_else_ae050f5b kw_else_ae050f5b conditional_else_branch` with no `|` no-else alternative — so every `if (cond) stmt;` without an else was unparseable.
+
+Fix (grammar-only):
+
+  1. Introduced helper rule: `conditional_else_clause := kw_else_ae050f5b conditional_else_branch -> $2` — passes through just the branch via the proven `-> $N` positional-extraction precedent (compiler_directive line 230, simple_identifier line 324, etc.).
+  2. Rewrote `conditional_statement` to: `( unique_priority )? kw_if_958f57f5 lparen cond_predicate rparen statement_or_null ( conditional_else_clause )?` with return annotation `-> {unique_priority: $1, condition: $4, then_body: $6, else_body: $7}`. Index shift `$9 → $7`. `else_body` is now nullable when else absent (was always present pre-fix because the parser rejected every no-else input).
+  3. Removed dead mis-attached line 1116 (`| @sample: "if (a) ;" ... !kw_else_ae050f5b`). The original author reached for the no-else alternative via PEG negative lookahead but the indentation + blank line at 1113 parented it to `conditional_else_branch` (where it was unreachable from any parse path).
+  4. Else-if chain `{ else if (cond) statement_or_null }` continues to be handled by the existing recursive `conditional_else_branch := conditional_statement | statement_or_null` — once the outer else is optional, the recursive `conditional_statement` arm naturally produces zero-or-more chained else-ifs without separate rewrite needed.
+
+PEG correctness: `( … )?` is greedy and binds `else` to the innermost `if` — matching the SV dangling-else convention. No `&X` / `!X` lookahead needed; the dead line 1116 was unnecessarily defensive (the original author was thinking PEG-defensively about dangling-else but `?`-greedy semantics handle it correctly).
+
+Inventory **2299 → 2300** (+1: the new `conditional_else_clause` helper rule's `-> $2` return annotation; the existing `conditional_statement` shape is preserved — `else_body` is the same `conditional_else_branch` ParseNode when present).
+
+Release bump, NO schema bump. Strictly-more-permissive (SVPP-0002/REGEX-0083 category): no-else inputs were 100% unparseable so no AST was ever emitted; previously-parseable inputs are byte-identical; the `else_body` field is the same shape when present, just additionally nullable when absent.
+
+VERIFIED:
+
+  - Minimal failing repro `module m; task t(); if (1) $display("ok"); endtask endmodule` PASSES (was FAIL — that's how the .3.3.4.b investigation OVERTURNED the original "intra-file scope tracking" hypothesis and pinpointed conditional_statement).
+  - Pre-existing `if (1) ; else ;` STILL PASSES.
+  - Else-if chain `if (1) a; else if (2) b; else c;` PASSES.
+  - .3.3.3 minimal repro `module m; typedef int my_t; my_t [3:0] x; endmodule` STILL PASSES.
+  - End-to-end synthetic cross-file repro PASSES with `--lib-in`, FAILS without (.3.3.4.a behavior preserved).
+  - Lib no-features: 461/461 PASS.
+  - Lib `--features generated_parsers`: 516/517 PASS (only fail = pre-existing rgx_0077, `.3.3.5`-class).
+  - regex broader corpus / RGX conformance 44/0 ✅ via `make regex_broader_corpus_proof_gate`.
+  - SV shape-contract GREEN.
+
+SV external corpus (partial retest; full gate would take ~3 hours post-fix due to deeper parsing — see below):
+
+  - scr1_core_top_2017 PASS (38s → 56s, 1.5× slower; deeper parsing, not a regression — same case STILL PASSES).
+  - friscv_pipeline_2017 PASS at unchanged 0.86s.
+  - veer_el2_lsu_2017 PASS at 7.6s + 21.6s bootstrap (unchanged behavior).
+  - uvm_pkg_2017 STILL FAILS at the SAME byte position 113637 post-fix, but parse time 60s → 14min. Decisive evidence that conditional_statement was NOT the blocker for uvm_pkg — the parser now walks much deeper into the 89K-line / 3MB body, hits some OTHER LRM-extraction defect, then fails. The 14× slowdown is "real work" (the package_declaration actually starts parsing, processes thousands of package_items, fails on item N where a deeper defect lies), not a pathological backtracking explosion. Pre-fix fast-fail (~60s) was illusory — fast because the parser was WRONGLY rejecting valid input immediately at the package keyword.
+
+SV external corpus binary count: stays 8/14. No passing case lost; no new failing case fixed by THIS slice. The conditional_statement fix is correct on its own merits per the LRM oracle, but uvm/uvm_compat/friscv_rv32i are blocked by DEEPER LRM-extraction defects — those will need their own leaves under the same defect-class-by-defect-class strategy.
+
+PERF OBSERVATION (documented; not a blocker): the post-fix per-case parse time on uvm_pkg is ~14 min (vs ~60s pre-fix). For the triage gate this means a full 14-case rerun would take ~3 hours. A perf-aware retry or further LRM-extraction-defect fixes (which would restore fast-fail at the proper point) could revert the gate to manageable runtime. Not in scope for this slice.
+
+LESSON LEARNED (recorded as durable memory `feedback_verify_rule_correctness_before_runtime_hypotheses`): when a parse failure is tied to a specific rule, the FIRST diagnostic step must be to READ THE RULE AGAINST THE LRM/SPEC — NOT form runtime/scope hypotheses. The original `.3.3.4.b` framing as "intra-file scope tracking" cost ~30 min of binary-search effort before the minimal repro revealed it was just `if`-in-task. A rule-vs-LRM read would have revealed the defect in 30 seconds. The discipline now sits at the FRONT of the diagnosis order: rule-vs-spec first → binary-search/--trace next → SEMTRACE/runtime instrumentation last.
+
+Lockstep (same commit): grammar (`grammars/systemverilog.ebnf` — the one focused conditional_statement fix + new conditional_else_clause helper + removal of dead line 1116) + regenerated SV.json + SV parser + SV integration contract (1.0.124 → 1.0.125) + SV book (changelog-index + schema-versioning + regenerated tracked HTML via `make systemverilog_parser_book_gate`) + CHANGES.md + LIVE_ACHIEVEMENT_STATUS.md + docs/TASK_TREE.md + docs/tasks/SV-EXH-PROOF.md (leaf to done) + memory (`feedback_verify_rule_correctness_before_runtime_hypotheses` added; `project_all_task_trees_complete` updated).
+
+NOT pushed. ⛔ ABSOLUTE NO-PUSH OVERRIDE active. Restore tag `checkpoint/3-3-4-a-2-clean-pre-lrm-defect-sweep` @ 2c260701 anchors the pre-`.b.1` state.
+
+---
+
 ## 2026-05-20 - PGEN-SV-EXH-PROOF-0027 (SV-EXH-PROOF.3.3.4.a.2 — DONE, leaf complete): PARSER-AGNOSTIC ENGINE EXTENSION — non-negative integer indexed-access (`[N]`) in semantic-annotation rule references; release 1.0.124 (schema stays 3); SV external corpus stays 8/14; regex broader corpus / RGX conformance 44/0 ✅ unaffected
 
 Companion to `.3.3.4.a.1` (which added dotted property-access `$name.body`). Real authoring concern that `.3.3.4.a.1` only half-addressed: when a rule's shaped output is `{items: [{name, body}, …]}` or `{matrix: [[…], …]}`, directives still couldn't reference array elements directly — there was no `$items[0].name` or `$matrix[0][1]` form. `.3.3.4.a.2` closes that gap with a strict, well-defined subset: dotted property + non-negative integer indexed-access only. NOT full JSONPath (no filters `[?(@.foo)]`, no wildcards `*`, no recursive descent `..`).
