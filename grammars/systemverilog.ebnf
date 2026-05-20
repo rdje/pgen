@@ -1483,15 +1483,15 @@ data_event := timing_check_event
 data_source_expression := expression
                        -> {body: $1}
 
-@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
-known_unscoped_block_type_identifier := type_identifier packed_dimension*
+# SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier.
+known_unscoped_block_type_identifier := checked_type_identifier packed_dimension*
                                      -> {type: $1, dims: $2}
 
 scoped_block_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
                              -> {scope: $1, type: $2, dims: $3}
 
-@predicate: { name: has_fact, args: [type_name, $type_identifier], phase: post }
-known_unscoped_data_type_identifier := type_identifier packed_dimension*
+# SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier.
+known_unscoped_data_type_identifier := checked_type_identifier packed_dimension*
                                     -> {type: $1, dims: $2}
 
 scoped_data_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
@@ -4822,6 +4822,17 @@ type_declaration := type_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                   | type_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
 type_identifier := declaration_identifier
+
+# SV-EXH-PROOF.3.3.3 (grammar half of the composite fix): proven
+# declared-id idiom (mirrors declared_class_identifier / .3.3.2
+# declared_package_identifier). A use-site has_fact predicate must
+# reference a resolvable bare field ($body) on a dedicated rule whose
+# -> {body:$1.body} exposes the scalar; a sub-rule-name ref on a rule
+# that has a -> does not resolve, and dotted predicate args are
+# rejected by the @predicate compiler. The engine exception-safety
+# fix makes the typedef-emitted fact survive so this resolves true.
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+checked_type_identifier := type_identifier -> { body: $1.body }
 
 @profiles: ["sv_2023"]
 type_identifier_or_class_type_sv_2023 := type_identifier -> {kind: "type_identifier", body: $1}

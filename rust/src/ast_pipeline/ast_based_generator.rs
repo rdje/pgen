@@ -905,7 +905,56 @@ impl AstBasedGenerator {
                 let original_semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
                 self.semantic_runtime_state = original_semantic_runtime_state.clone();
-                let result = {
+                // ============================================================
+                // SV-EXH-PROOF.3.3.3 FIX — exception-safe semantic-state restore.
+                //
+                // ROOT CAUSE: the fallible body below `std::mem::take`s
+                // self.semantic_runtime_state and then performs `?` operations
+                // (f(self)?, apply_..effect..?, resolve_..predicate..?). When
+                // this body was a plain `{ }` block, a `?` early-return
+                // propagated out of the ENTIRE function, JUMPING OVER the
+                // `if result.is_err() { self.semantic_runtime_state = original }`
+                // restore below. self.semantic_runtime_state was therefore left
+                // as `take`'s leftover (== `Default::default()` == valid-but-
+                // EMPTY: `SemanticRuntimeState::new()` — one Global scope, no
+                // facts), silently destroying every fact emitted by prior
+                // COMMITTED sibling rules (e.g. a `typedef`'s `type_name` fact),
+                // so later sibling `@predicate has_fact(...)` checks saw nothing.
+                //
+                // FIX (Option B — idiomatic "try block" emulation): wrap the
+                // body in an immediately-invoked closure so every `?` returns
+                // into `result` instead of out of the function; the restore
+                // below now runs on EVERY non-commit exit (`?`, explicit Err,
+                // early return). Parser-agnostic; zero behaviour change on the
+                // success path; no `unsafe`.
+                //
+                // Note: `<SemanticRuntimeState as Default>::default()` delegates
+                // to `Self::new()` (Global scope, no facts) — a VALID state — so
+                // `std::mem::take` never leaves a *corrupt* state; a panic
+                // between the take and the restore leaves a valid (empty) state,
+                // and the parser never `catch_unwind`s mid-parse (a panic aborts
+                // the parse). The IIFE is thus also panic-ROBUST. No
+                // `mem::replace`-with-placeholder is needed (it would be a
+                // behavioural no-op since `take` already yields `new()`).
+                //
+                // RAII alternative (CONSIDERED, NOT USED): a Drop guard that
+                // restores self.semantic_runtime_state would be panic-SAFE by
+                // strict definition (Drop also runs while unwinding). It was
+                // rejected because a *safe-Rust* guard is not cleanly
+                // expressible here: the post-take body calls `&self` methods
+                // (apply_semantic_runtime_effect_directive,
+                // resolve_semantic_predicate_spec_against_content,
+                // semantic_predicate_debug_label), and a guard owning a mutable
+                // handle to self.semantic_runtime_state for its lifetime
+                // conflicts with those whole-struct `&self` borrows (Rust has no
+                // partial borrows across method calls). The only true Drop-guard
+                // form needs a contained `*mut` + ~3 lines of `unsafe` in Drop;
+                // given `Default == new()` makes the IIFE already panic-robust
+                // (no corruption; panic aborts the parse anyway), the extra
+                // `unsafe` was judged not worth it. If a mid-parse
+                // `catch_unwind` is ever introduced, revisit the RAII guard.
+                // ============================================================
+                let result: ParseResult<ParseNode<'input>> = (|| -> ParseResult<ParseNode<'input>> {
                     let mut predicate_blocked = false;
                     for directive in self.semantic_runtime_annotations.pre_predicates_for_rule(rule_name)
                     {
@@ -1023,7 +1072,7 @@ impl AstBasedGenerator {
                             Ok(node)
                         }
                     }
-                };
+                })();
                 if result.is_err() {
                     self.semantic_runtime_state = original_semantic_runtime_state;
                 }
