@@ -1,4 +1,46 @@
 # CHANGES.md
+## 2026-05-20 - PGEN-SV-EXH-PROOF-0026 (SV-EXH-PROOF.3.3.4.a.1 — DONE, leaf complete): PARSER-AGNOSTIC ENGINE CLEANUP — dotted property-access in semantic-annotation rule references; revert of the `.3.3.4.a` SV `body:$N.body` shape workarounds; release 1.0.123 (schema stays 3); SV external corpus stays 8/14 (verified the cleanup is behaviour-preserving); regex broader corpus / RGX conformance 44/0 ✅ unaffected
+
+Companion to `.3.3.4.a`. `.3.3.4.a` had to carry a SV shape workaround (`body: $4.body` on `package_declaration`, `body: $1.body` on both `package_import_item` branches) because the **directive-payload parser** — the hand-rolled `StructuredSemanticValueParser::parse_rule_reference` in `rust/src/ast_pipeline/unified_semantic_ast.rs` — only accepted single-identifier / single-positional refs (`$name` / `$1`), no `.` allowed. The runtime resolver already walked dotted paths via `resolve_named_semantic_reference` / `parse_semantic_reference_segments` (`ast_based_generator.rs`), splitting on `.` and traversing either the shaped JSON object-key path (rules with `->`) or the raw sub-rule-named descendant tree. The gap was purely at the bootstrap-parser surface.
+
+Important architectural clarification surfaced during this slice: the EBNF-defined `semantic_annotation` grammar's regenerated `semantic_annotation_parser.rs` is **the EBNF-language surface for parsing semantic-annotation source**, NOT the runtime path for parsing the directive payload text embedded in a grammar's `@directive: { … }` annotation. That payload goes through `unified_semantic_ast.rs::parse_bootstrap` → `parse_structured_payload` → `StructuredSemanticValueParser`. My first attempt at `.3.3.4.a.1` regenerated the EBNF parser only and saw no behavioural change; the empirical re-check (per [[feedback_prove_independence_with_decisive_baseline]]) led to the right consumer.
+
+Engine (parser-agnostic, both surfaces in lockstep):
+
+  1. **`rust/src/ast_pipeline/unified_semantic_ast.rs::parse_rule_reference`** (the actual runtime path for directive payloads): after consuming the head identifier or positional digits, a new `while self.peek_char() == Some('.')` loop accepts `.<ident>` segments. Strict trailing-bare-dot policy: a `.` not followed by a valid identifier rolls back, leaving the `.` for the surrounding parser. DURABLE NO-DEPTH-LIMIT GUARANTEE — the `while` has no max-iteration cap; the existing resolver iterator-walk (`for segment in split('.')`) is also uncapped; the EBNF surface uses regex `*` (strict-math unbounded). Locked by a new regression test `bootstrap_semantic_dotted_rule_reference_depth_is_structurally_unbounded` that exercises a 64-segment reference (1 head + 64 `.seg<i>` segments) and asserts retention; any future proposal to cap depth must fire this test, justify the cap in its own leaf, or back off (the `feedback_recursion_ceiling_must_bound_real_stack` discipline applied to a non-stack resource).
+  2. **`grammars/semantic_annotation.ebnf::rule_reference_name`** regex extended in lockstep — `/([a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*|[0-9]+(\.[a-zA-Z_][a-zA-Z0-9_]*)*)/` (strictly additive: every prior `$name`/`$1` reference matches byte-identically). Bootstrap `semantic_annotation_parser.rs` regenerated.
+
+SV grammar revert (the whole point of the cleanup):
+
+  - `package_declaration` output: `{attributes, lifetime, name, timeunits, items, end_label}` (was `{… , body: $4.body}` in 1.0.122).
+  - `package_import_item` "explicit" branch: `{kind, package, name}` (was `{… , body: $1.body}` in 1.0.122).
+  - `package_import_item` "wildcard" branch: `{kind, package}` (was `{… , body: $1.body}` in 1.0.122).
+  - Directives now reference the nested scalars directly — `@export_to_library: {kind:package, name_from:$name.body}` and `@import_from_library: {kind:package, name_from:$package.body}`.
+
+Release bump, NO schema bump. The `body` fields were a one-slice workaround carrier (added 1.0.122, removed here); they had no consumer pre-1.0.122 and have none post-`.3.3.4.a.1` (cross-file imports STILL resolve, see verification). Versus 1.0.121 this is a no-op shape change. Strictly-additive / strictly-rollback category — same family as SVPP-0002/REGEX-0083.
+
+VERIFIED:
+
+  - End-to-end synthetic cross-file repro: parsing a package writes `my_pkg.facts.json`; the module that imports `my_pkg::*` and uses `my_t`/`byte_t` parses cleanly WITH `--lib-in /tmp/lib`, FAILS WITHOUT — the library plumbing is still the deciding factor (cleanup proven behaviour-preserving).
+  - `.3.3.3` minimal repro `module m; typedef int my_t; my_t [3:0] x; endmodule` STILL PASSES.
+  - Lib tests no-features: **460/460 PASS** (was 459 → +1 new unbounded-depth regression test).
+  - Lib tests `--features generated_parsers`: **515/516 PASS**. The single failure (`rgx_0077`) is the same pre-existing one confirmed at `.3.3.4.a` via decisive baseline; tracked as `.3.3.5`-class.
+
+Cross-parser no-regression (critical):
+
+  - **regex broader corpus / RGX conformance 44/0 ✅** via `make regex_broader_corpus_proof_gate`.
+  - SV shape-contract GREEN.
+  - SV external corpus stays **8/14** — `veer_el2_lsu` ×{2017,2023} still PASS via the new dotted-refs path (fresh triage gate 2026-05-20 15:41; result identical to `.3.3.4.a`'s shape-workaround result).
+  - All 6 other parse_pass cases (scr1 ×4, friscv_pipeline ×2) still pass.
+
+NEXT LEAF (queued): `.3.3.4.a.2` — extends the same surfaces (EBNF regex, hand-rolled `parse_rule_reference`, segment splitter, resolver dispatch) with `[<digits>]` indexed-access (`$items[0].name`, `$matrix[0][1]`, mixed `$a.b[0].c[1].d.e[2]`). Same DURABLE NO-DEPTH-LIMIT guarantee. Own leaf entry, own commit, own regression test (mixed-depth, 32 `.<ident>` + 32 `[N]` deep).
+
+Lockstep (same commit): engine (`unified_semantic_ast.rs`) + grammar (`grammars/semantic_annotation.ebnf` + `grammars/systemverilog.ebnf`) + regenerated bootstrap and SV parsers + SV integration contract (1.0.122 → 1.0.123) + SV book (changelog-index + schema-versioning + regenerated tracked HTML) + CHANGES + LIVE + TASK_TREE + SV-EXH-PROOF.md leaf + memory.
+
+NOT pushed. ⛔ ABSOLUTE NO-PUSH OVERRIDE active.
+
+---
+
 ## 2026-05-20 - PGEN-SV-EXH-PROOF-0025 (SV-EXH-PROOF.3.3.4.a — DONE, MVP-0 leaf complete): PARSER-AGNOSTIC ENGINE FEATURE — per-compilation-artifact library (MVP-0) + 2 new generic annotations (`@export_to_library` / `@import_from_library`) + 2 new CLI flags (`--lib-in` / `--lib-out`) + SV grammar uses + triage gate refactor; cross-file `import pkg::*` type-name visibility; release 1.0.122 (schema stays 3); external-corpus 6/14 → 8/14 (veer_el2_lsu ×{2017,2023} now PASS via the bootstrap-files + library-artifact path)
 
 A second deliberate parser-agnostic ENGINE feature in the SV-EXH-PROOF tree — like `.3.3.3` it benefits every grammar.

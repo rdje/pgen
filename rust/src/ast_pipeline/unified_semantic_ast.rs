@@ -540,6 +540,46 @@ impl<'a> StructuredSemanticValueParser<'a> {
         } else {
             return None;
         }
+        // SV-EXH-PROOF.3.3.4.a.1 (2026-05-20, PGEN-SV-EXH-PROOF-0026):
+        // accept dotted property-access chains so the directive payload
+        // can reference nested shaped-output fields directly (e.g.
+        // `$name.body`, `$1.body`, `$pkg.body.subkey`). The runtime
+        // resolver already walks dotted refs via
+        // `parse_semantic_reference_segments` /
+        // `resolve_named_semantic_reference` (`ast_based_generator.rs`);
+        // this closes the bootstrap-parser-surface gap so the directive
+        // payload no longer needs the SV `body:$N.body` shape workaround
+        // landed in `.3.3.4.a`. Strictly additive — every prior `$name`
+        // / `$1` reference parses byte-identically; only previously
+        // rejected dotted forms now succeed.
+        //
+        // Mirror EBNF change: `grammars/semantic_annotation.ebnf`
+        // `rule_reference_name` regex extended in lockstep so the
+        // EBNF surface and the hand-rolled bootstrap parser stay
+        // consistent. Strict trailing-dot policy: a bare `.` with no
+        // following identifier rolls back to before the `.` (leaves it
+        // to the surrounding parser to handle / fail).
+        while self.peek_char() == Some('.') {
+            let dot_checkpoint = self.position;
+            self.position += 1; // consume '.'
+            match self.peek_char() {
+                Some(ch) if ch.is_ascii_alphabetic() || ch == '_' => {
+                    let seg_start = self.position;
+                    self.consume_while(|ch| ch.is_ascii_alphanumeric() || ch == '_');
+                    if self.position == seg_start {
+                        // Defensive: the peek_char check should have
+                        // guaranteed at least one char was consumable.
+                        self.position = dot_checkpoint;
+                        break;
+                    }
+                }
+                _ => {
+                    // Bare trailing dot — back out.
+                    self.position = dot_checkpoint;
+                    break;
+                }
+            }
+        }
         Some(self.input[start..self.position].to_string())
     }
 
@@ -731,6 +771,103 @@ mod tests {
             dotted_identifier,
             UnifiedSemanticAST::Structured { ref canonical, .. } if canonical == "lhs.ready"
         ));
+    }
+
+    // `SV-EXH-PROOF.3.3.4.a.1` (PGEN-SV-EXH-PROOF-0026, 2026-05-20): the
+    // bootstrap-mode `parse_rule_reference` accepts dotted property-access
+    // chains (`$name.body`, `$1.body.subkey`, …). DURABLE GUARANTEE: depth
+    // is structurally unbounded — the parse loop is a plain `while
+    // peek_char() == Some('.')` with no max-iteration cap, the runtime
+    // resolver's segment walk is iterative (`for segment in split('.')`),
+    // and the EBNF surface uses regex `*` (strict-math unbounded). If a
+    // future slice ever proposes a `MAX_REFERENCE_DEPTH` constant for
+    // "safety" or perf, this test fires and forces an explicit leaf to
+    // justify the cap or back off (the
+    // `feedback_recursion_ceiling_must_bound_real_stack` discipline
+    // applied to a non-stack resource).
+    #[test]
+    fn bootstrap_semantic_dotted_rule_reference_depth_is_structurally_unbounded() {
+        let logger = crate::test_runner::NoOpLogger;
+
+        // Depth 1, 2, 3 — sanity for the common cases the cleanup of the
+        // `.3.3.4.a` `body: $4.body` workaround relies on.
+        for shallow in [
+            " { name: $a } ",
+            " { name: $a.b } ",
+            " { name: $a.b.c } ",
+        ] {
+            let parsed = UnifiedSemanticAST::parse_bootstrap(shallow, &logger)
+                .expect("bootstrap parser should accept shallow dotted refs");
+            assert!(
+                matches!(parsed, UnifiedSemanticAST::Structured { .. }),
+                "shallow dotted ref payload should parse as structured, got: {:?}",
+                parsed
+            );
+        }
+
+        // Deep depth — 64 segments. Picked to be far larger than any
+        // realistic grammar's nesting (real-world grammars top out at
+        // 3-4 dotted levels). If anyone caps the depth below 64 they have
+        // to justify it; if anyone caps above 64 this test still fires
+        // first to make them increase it.
+        let mut deep_ref = String::from("$head");
+        for i in 0..64 {
+            deep_ref.push('.');
+            deep_ref.push_str(&format!("seg{}", i));
+        }
+        let deep_payload = format!(" {{ name: {} }} ", deep_ref);
+        let deep_parsed = UnifiedSemanticAST::parse_bootstrap(&deep_payload, &logger)
+            .expect("bootstrap parser should accept 64-level dotted ref");
+        match deep_parsed {
+            UnifiedSemanticAST::Structured { value, .. } => {
+                // Drill the structured object to assert the rule_reference
+                // text retained the entire 64-segment chain verbatim.
+                let UnifiedSemanticValue::Object(properties) = &value else {
+                    panic!("expected object payload, got: {:?}", value);
+                };
+                let name_property = properties
+                    .iter()
+                    .find(|p| p.key == "name")
+                    .expect("payload should have a 'name' property");
+                let UnifiedSemanticValue::RuleReference(text) = &name_property.value else {
+                    panic!(
+                        "expected rule_reference value, got: {:?}",
+                        name_property.value
+                    );
+                };
+                // 1 head + 64 segments = 65 dot-separated parts.
+                assert_eq!(
+                    text.split('.').count(),
+                    65,
+                    "64-level dotted ref should retain all 65 dot-separated parts; got {} parts in {:?}",
+                    text.split('.').count(),
+                    text
+                );
+                assert!(
+                    text.starts_with("head."),
+                    "deep ref text should start with the head segment; got {:?}",
+                    text
+                );
+                assert!(
+                    text.ends_with(".seg63"),
+                    "deep ref text should end with the last appended segment; got {:?}",
+                    text
+                );
+            }
+            other => panic!("expected Structured payload, got: {:?}", other),
+        }
+
+        // Trailing-bare-dot policy: `$a.` rolls back to before the `.`,
+        // leaving the `.` for the surrounding parser to handle (today the
+        // structured-payload parser then expects a `,` or `}` and fails
+        // → falls back to Raw). The test pins the policy.
+        let bare_dot_parsed = UnifiedSemanticAST::parse_bootstrap(" { name: $a. } ", &logger)
+            .expect("bootstrap parser should never error on bare-trailing-dot input");
+        assert!(
+            matches!(bare_dot_parsed, UnifiedSemanticAST::Raw { .. }),
+            "bare-trailing-dot should fall back to Raw, got: {:?}",
+            bare_dot_parsed
+        );
     }
 
     #[test]

@@ -3220,17 +3220,23 @@ output_terminal := net_lvalue
 # `( colon package_identifier )?` stays the plain label use-site
 # (exactly as class/module do `( colon class_identifier )?`).
 # SV-EXH-PROOF.3.3.4.a MVP-0: emit a package artifact at commit time.
-# The shaped output exposes the package's scalar name as `body: $4.body`
-# (return-annotation property-access drill — the semantic-annotation
-# language only accepts simple `$name` refs, so the shape carries the
-# scalar at the top level). `name_from: $body` resolves to the package
-# name string. Fires AFTER the rule's body has parsed every `package_item`
-# (every `typedef`/`localparam`/etc. has emitted its `type_name` fact),
-# AFTER post-predicates have validated the rule, BEFORE commit — so a
-# failed write rolls back atomically (`.3.3.3` IIFE invariant).
-@export_to_library: { kind: package, name_from: $body }
+# `name_from: $name.body` drills the shaped output's `name` field (a
+# `declared_package_identifier` node whose `body` field carries the
+# package's scalar name) — the resolver walks the JSON object-key path.
+# Fires AFTER the rule's body has parsed every `package_item` (every
+# `typedef`/`localparam`/etc. has emitted its `type_name` fact), AFTER
+# post-predicates have validated the rule, BEFORE commit — so a failed
+# write rolls back atomically (`.3.3.3` IIFE invariant).
+#
+# SV-EXH-PROOF.3.3.4.a.1 (2026-05-20, PGEN-SV-EXH-PROOF-0026): the prior
+# `body: $4.body` shape workaround was needed because the semantic-
+# annotation language's `rule_reference_name` regex rejected `.`. That
+# bootstrap-parser-surface gap is now closed (the runtime resolver always
+# supported `$a.b` walking), so the directive references the nested field
+# directly and the workaround field is removed from the SV shape.
+@export_to_library: { kind: package, name_from: $name.body }
 package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? declared_package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
-                    -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9, body: $4.body}
+                    -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
 
 package_export_declaration := kw_export_51713409 star scope_resolution star semi
                                  -> {kind: "wildcard"}
@@ -3251,20 +3257,23 @@ package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma pac
                             -> {items: [$2, $3::2*]}
 
 # SV-EXH-PROOF.3.3.4.a MVP-0: merge facts from a previously-compiled
-# package artifact when the importer references it. The shaped output
-# exposes the package's scalar name as `body: $1.body` (return-annotation
-# property-access drill — the semantic-annotation language only accepts
-# simple `$name` refs, so the shape carries the scalar at the top level).
-# `name_from: $body` resolves to the imported package name string. Fires
-# AFTER body parse so `$body` is bound; fact-merge into the importer's
-# scope happens BEFORE post-predicates and BEFORE the surrounding rule
-# continues, so subsequent sibling `@predicate has_fact(type_name, X)`
-# checks observe the merged facts.
-@import_from_library: { kind: package, name_from: $body }
+# package artifact when the importer references it. `name_from:
+# $package.body` drills the shaped output's `package` field (a
+# `package_identifier` node whose pass-through chain to `identifier`
+# carries the `{body:...}` shape). Fires AFTER body parse so the
+# reference is bound; fact-merge into the importer's scope happens
+# BEFORE post-predicates and BEFORE the surrounding rule continues, so
+# subsequent sibling `@predicate has_fact(type_name, X)` checks observe
+# the merged facts.
+#
+# SV-EXH-PROOF.3.3.4.a.1 (2026-05-20, PGEN-SV-EXH-PROOF-0026): the prior
+# per-branch `body: $1.body` shape workaround is removed for the same
+# reason as on `package_declaration` (see above).
+@import_from_library: { kind: package, name_from: $package.body }
 package_import_item := package_identifier scope_resolution identifier
-                          -> {kind: "explicit", package: $1, name: $3, body: $1.body}
+                          -> {kind: "explicit", package: $1, name: $3}
                      | package_identifier scope_resolution star
-                          -> {kind: "wildcard", package: $1, body: $1.body}
+                          -> {kind: "wildcard", package: $1}
 
 package_item := package_or_generate_item_declaration -> {kind: "declaration",        body: $1}
              | anonymous_program                     -> {kind: "anonymous_program",  body: $1}
