@@ -242,6 +242,13 @@ for case_json in "${case_rows[@]}"; do
 
     mapfile -t case_include_dirs_raw < <(jq -r '.include_dirs[]? | select(type=="string")' <<<"$case_json")
     mapfile -t case_blocked_profiles < <(jq -r '.blocked_profiles[]? | select(type=="string")' <<<"$case_json")
+    # SV-EXH-PROOF.3.3.4.a MVP-0: per-case `bootstrap_files` is an ordered list
+    # of supporting SV files to preprocess + parse FIRST with `--lib-out
+    # <case-lib-dir>` so their declared packages' `@export_to_library`
+    # directives write artifacts the main `path` parse (run with `--lib-in
+    # <case-lib-dir>`) can resolve via `@import_from_library`. User-supplied
+    # order is the transitive-dependency contract (commercial-tool convention).
+    mapfile -t case_bootstrap_files_raw < <(jq -r '.bootstrap_files[]? | select(type=="string")' <<<"$case_json")
 
     if [[ "$case_bootstrap_kind" == "veer_default_snapshot" ]]; then
         if [[ -z "$case_bootstrap_root_rel" || -z "$case_bootstrap_required_rel" ]]; then
@@ -368,9 +375,89 @@ for case_json in "${case_rows[@]}"; do
                 preprocessed_bytes_max="$case_preprocessed_bytes"
             fi
 
+            # SV-EXH-PROOF.3.3.4.a MVP-0: per-case library directory + bootstrap
+            # files preprocessed/parsed with `--lib-out` IN ORDER (user-supplied
+            # transitive-dependency contract) BEFORE the main case is parsed
+            # with `--lib-in`. Single rm-rf per (case, profile) keeps gate
+            # runs hermetic.
+            case_lib_dir="$WORK_DIR/case_${case_name_key}_${case_profile_key}.lib"
+            rm -rf "$case_lib_dir"
+            mkdir -p "$case_lib_dir"
+            parse_extra_args=()
+            if (( ${#case_bootstrap_files_raw[@]} > 0 )); then
+                bootstrap_step_failed=0
+                for bootstrap_rel in "${case_bootstrap_files_raw[@]}"; do
+                    bootstrap_idx=$((${#parse_extra_args[@]} + 1))
+                    bootstrap_src="$(resolve_path "$bootstrap_rel")"
+                    bootstrap_src_dir="$(dirname "$bootstrap_src")"
+                    bootstrap_label_base="case_${case_name_key}_${case_profile_key}_bootstrap_${bootstrap_idx}"
+                    bootstrap_input="$WORK_DIR/${bootstrap_label_base}.sv"
+                    bootstrap_pp_out="$WORK_DIR/${bootstrap_label_base}.preprocessed.sv"
+                    bootstrap_diag="$WORK_DIR/${bootstrap_label_base}.diagnostics.json"
+                    bootstrap_pp_label="${bootstrap_label_base}_preprocess"
+                    bootstrap_parse_label="${bootstrap_label_base}_parse_full"
+                    if [[ ! -f "$bootstrap_src" ]]; then
+                        case_parse_status="fail"
+                        case_status="parse_fail"
+                        case_note="bootstrap file missing: $bootstrap_rel"
+                        bootstrap_step_failed=1
+                        break
+                    fi
+                    cp "$bootstrap_src" "$bootstrap_input"
+                    bootstrap_pp_args=(
+                        "$AST_PIPELINE_BIN" "$bootstrap_input"
+                        --preprocess-systemverilog
+                        --output "$bootstrap_pp_out"
+                        --sv-diagnostics-json "$bootstrap_diag"
+                        --sv-include-dir "$bootstrap_src_dir"
+                        --sv-include-max-depth "$INCLUDE_MAX_DEPTH"
+                        --sv-include-path-policy "$INCLUDE_PATH_POLICY"
+                        --sv-macro-redefine-policy "$MACRO_REDEFINE_POLICY"
+                        --sv-conditional-symbol-policy "$CONDITIONAL_SYMBOL_POLICY"
+                        --sv-conditional-expr-policy "$CONDITIONAL_EXPR_POLICY"
+                        --sv-strict-warning-codes "$STRICT_WARNING_CODES"
+                    )
+                    for include_dir_raw in "${case_include_dirs_raw[@]}"; do
+                        include_dir_resolved="$(resolve_path "$include_dir_raw")"
+                        bootstrap_pp_args+=(--sv-include-dir "$include_dir_resolved")
+                    done
+                    if ! run_optional_logged "$bootstrap_pp_label" "${bootstrap_pp_args[@]}"; then
+                        case_parse_status="fail"
+                        case_status="parse_fail"
+                        case_note="bootstrap preprocess failed: $bootstrap_rel"
+                        bootstrap_step_failed=1
+                        break
+                    fi
+                    if ! run_optional_logged "$bootstrap_parse_label" \
+                        "$PARSE_PROBE_BIN" --parse systemverilog "$bootstrap_pp_out" \
+                        --profile "$case_profile" --lib-out "$case_lib_dir"; then
+                        case_parse_status="fail"
+                        case_status="parse_fail"
+                        case_note="bootstrap parse failed: $bootstrap_rel"
+                        bootstrap_step_failed=1
+                        break
+                    fi
+                done
+                if (( bootstrap_step_failed == 1 )); then
+                    parse_fail_total=$((parse_fail_total + 1))
+                    if [[ "$primary_parse_failure_case" == "<none>" ]]; then
+                        primary_parse_failure_case="$case_name"
+                        primary_parse_failure_profile="$case_profile"
+                        primary_parse_failure_corpus="$case_corpus"
+                    fi
+                fi
+                # Always honor `--lib-in` for the main parse when bootstrap
+                # files were declared (even if a step failed produces a clean
+                # parse_fail above; this just ensures the main parse can read
+                # whichever artifacts DID get written).
+                parse_extra_args+=(--lib-in "$case_lib_dir")
+            fi
+
             case_parse_started_ms="$(now_ms)"
-            if run_optional_logged "$case_parse_label" \
-                "$PARSE_PROBE_BIN" --parse systemverilog "$case_preprocessed_file" --profile "$case_profile"; then
+            if [[ "$case_parse_status" == "fail" ]]; then
+                : # bootstrap already populated the failure; skip main parse
+            elif run_optional_logged "$case_parse_label" \
+                "$PARSE_PROBE_BIN" --parse systemverilog "$case_preprocessed_file" --profile "$case_profile" "${parse_extra_args[@]}"; then
                 case_parse_status="pass"
                 parse_pass_total=$((parse_pass_total + 1))
                 case_status="pass"

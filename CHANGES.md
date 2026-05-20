@@ -1,4 +1,60 @@
 # CHANGES.md
+## 2026-05-20 - PGEN-SV-EXH-PROOF-0025 (SV-EXH-PROOF.3.3.4.a — DONE, MVP-0 leaf complete): PARSER-AGNOSTIC ENGINE FEATURE — per-compilation-artifact library (MVP-0) + 2 new generic annotations (`@export_to_library` / `@import_from_library`) + 2 new CLI flags (`--lib-in` / `--lib-out`) + SV grammar uses + triage gate refactor; cross-file `import pkg::*` type-name visibility; release 1.0.122 (schema stays 3); external-corpus 6/14 → 8/14 (veer_el2_lsu ×{2017,2023} now PASS via the bootstrap-files + library-artifact path)
+
+A second deliberate parser-agnostic ENGINE feature in the SV-EXH-PROOF tree — like `.3.3.3` it benefits every grammar.
+
+Root motivation. PGEN parsed single SV files in isolation, but real HDL is multi-file: `el2_lsu.sv` does `import el2_pkg::*;` to reference types declared in `el2_def.sv` (a separate file). The use-site `@predicate has_fact(type_name, X)` correctly fires (`.3.3.3` made it reliable) but correctly evaluates false because the type-emitting file was never parsed in the same session. The architecturally-correct fix — matching every commercial HDL tool — is **per-file compilation that writes a compact on-disk artifact** containing the exported facts of each scope-creating entity (package/module/interface/…), with **on-demand library lookup** when an importer references that entity.
+
+MVP-0 (this slice) narrows to packages only, JSON artifacts, user-supplied file order. Future increments grow the kind set + add `$unit`/CU semantics under separate leaves. Each increment is leaf-owned and corpus-driven.
+
+What landed (engine, parser-agnostic, in the generator + runtime):
+
+  1. `rust/src/ast_pipeline/library.rs` new module — atomic JSON artifact write/read at `<lib-dir>/<kind>/<name>.facts.json`, `format_version: 1`, MVP-0 exportable-kind filter (`type_name` only). 4 round-trip unit tests.
+  2. `SemanticRuntimeDirective::{ExportToLibrary, ImportFromLibrary}` + their specs `SemanticLibraryExportSpec` / `SemanticLibraryImportSpec` + classifiers `is_library_export() / is_library_import()` + accessors `library_exports_for_rule() / library_imports_for_rule()`. They are their own phase (NOT in `is_effect`/`is_pre_predicate`), so the generator can guarantee the correct ordering.
+  3. Generator wire-up in `with_semantic_runtime_rule_transaction` (the IIFE-wrapped exception-safe wrapper from `.3.3.3`): library imports fire AFTER body parse + effect directives but BEFORE post-predicates (so post-predicates see merged facts); library exports fire AFTER post-predicates BEFORE commit (atomic write; failure rolls back via the IIFE's restore). Export delta is computed against `original_semantic_runtime_state.facts().len()` (the rule's TRUE entry, not the post-body transaction checkpoint).
+  4. Parser-struct fields `library_in_dir` / `library_out_dir` + 4 setters/accessors.
+  5. `parser_registry::LibraryOptions` + SV-aware `parse_sample_detail_with_options` that falls through to the existing path when options are empty (zero behaviour change for grammars without library directives).
+  6. `parseability_probe` CLI flags `--lib-in DIR` / `--lib-out DIR` with strict arg validation.
+
+SV grammar half (composite, same slice):
+
+  - `@export_to_library: {kind:package, name_from:$body}` on `package_declaration` + new top-level output field `body: $4.body`. The semantic-annotation language only accepts simple `$name` refs (not `$x.y` — `rule_reference_name := /([a-zA-Z_][a-zA-Z0-9_]*|[0-9]+)/`); the return-annotation language DOES support nested property access in OUTPUT mappings, so we surface the scalar at the top of the shape via `$4.body` and the directive reads `$body`.
+  - `@import_from_library: {kind:package, name_from:$body}` on `package_import_item` + `body: $1.body` in BOTH branches (`explicit` and `wildcard`).
+
+Triage gate (composite, same slice):
+
+  - Manifest gains optional per-case `bootstrap_files: [...]` ordered array (commercial-tool convention — user supplies transitive-dep order; MVP-0 does not auto-resolve).
+  - Script per-case lib-dir + bootstrap preprocess+parse loop with `--lib-out` BEFORE the main case is parsed with `--lib-in`.
+  - `veer_el2_lsu` declares `bootstrap_files: [".../include/el2_def.sv"]`.
+
+Release bump, NO schema bump. The two new top-level optional `body` fields are additive on shapes whose cross-file form was unparseable (no consumer had a realized AST to depend on); previously-parseable single-file inputs are byte-identical (success paths unchanged); only previously-erroring cross-file inputs (importing a known package) now succeed (strictly-more-permissive, the SVPP-0002/REGEX-0083 category).
+
+VERIFIED:
+
+  - End-to-end synthetic repro (not committed; ephemeral). `package my_pkg; typedef int my_t; typedef logic[7:0] byte_t; endpackage` → `parseability_probe … --lib-out /tmp/lib` writes the artifact; module that imports `my_pkg::*` and uses `my_t`/`byte_t` parses cleanly WITH `--lib-in /tmp/lib`, FAILS WITHOUT — definitive proof that the library plumbing is the deciding factor.
+  - `.3.3.3` minimal repro `module m; typedef int my_t; my_t [3:0] x; endmodule` STILL PASSES (no regression on the foundation engine fix).
+  - Lib tests (`cargo test --lib --features generated_parsers`): 514/515 PASS. The single failure is `embedding_api::tests::regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation`, confirmed PRE-EXISTING via decisive baseline (per `feedback_prove_independence_with_decisive_baseline`): `git stash -u`d all MVP-0 sources, rebuilt baseline release driver from HEAD `eb42a3a0`, re-regened regex+bootstrap parsers, SAME failure → tracked as a new `.3.3.5`-class follow-up task.
+  - 6 new directive-parser unit tests in `semantic_runtime.rs` (positive Export, positive Import, unknown-field rejection, missing-kind rejection, missing-name_from rejection, compiled-annotation routing): all GREEN.
+  - 4 library-module unit tests in `library.rs`: all GREEN.
+
+Cross-parser no-regression (critical):
+
+  - regex broader corpus / RGX conformance ✅ 44/0 via `make regex_broader_corpus_proof_gate`. The critical downstream is unaffected — non-semantic grammars (regex, json) hit the fast-path in `with_semantic_runtime_rule_transaction` (the `is_empty()`/`has_rule()` short-circuit) and the library plumbing is dead code there.
+  - SV shape-contract GREEN.
+  - All 6 prior parse_pass cases (scr1 ×2, scr1_top_ahb ×2, friscv_pipeline ×2) still PASS.
+
+SV external corpus 6/14 → 8/14 — `veer_el2_lsu` ×{2017,2023} now PASS via the bootstrap-files + library-artifact path. Residual 6 fails: `uvm_pkg`/`uvm_compat_pkg` ×{2017,2023} are self-contained (no `import` declarations like veer has) → deeper `.3.3.3` use-site `known_unscoped_*` residual; `friscv_rv32i_core` ×{2017,2023} statement-level (`.3.3.6`).
+
+Discovered during this slice (tracked separately, not addressed):
+
+  - The exported artifact contains DUPLICATE facts (e.g. `my_t` appears 8 times for two `typedef int my_t;` lines). Well-known PEG behavior — when an alternative is tried then backtracked, its `@emit_fact` directives may have already fired before backtrack. The `.3.3.3` IIFE made the EXCEPTION case clean but the multi-alternative speculation case still over-emits. Duplicates don't affect MVP-0's cross-file resolution (`has_fact` only checks existence, not count); a follow-up cleanup leaf should dedupe at write-time OR at the `apply_directive` site. Logged for the post-campaign shape audit (per `feedback_post_campaign_audit`).
+
+Lockstep (same commit): engine + grammar + regenerated parsers + triage manifest + triage script + SV integration contract (1.0.121 → 1.0.122) + SV book + CHANGES.md + LIVE + TASK_TREE + SV-EXH-PROOF.md + memory.
+
+⛔ NO-PUSH OVERRIDE active.
+
+---
+
 ## 2026-05-20 - PGEN-SV-EXH-PROOF-0024 (SV-EXH-PROOF.3.3.3 — DONE, leaf complete): PARSER-AGNOSTIC ENGINE EXCEPTION-SAFETY FIX (`with_semantic_runtime_rule_transaction` `?`-bypass) + SV grammar wrapper (`checked_type_identifier`); class/typedef/parameter use-site `has_fact` now works; release 1.0.121 (schema stays 3); external-corpus stays 6/14 (foundation engine fix; `.3.3.4` is the corpus mover)
 
 The first deliberate ENGINE change in the SV-EXH-PROOF tree — and it is **parser-agnostic** (lives in the GENERATOR `rust/src/ast_pipeline/ast_based_generator.rs`, benefits every parser).

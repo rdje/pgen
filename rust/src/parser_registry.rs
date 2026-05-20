@@ -318,6 +318,30 @@ fn parse_with_systemverilog_detail_profile(
         .map_err(|err| err.to_string())
 }
 
+/// `SV-EXH-PROOF.3.3.4.a` MVP-0: SV detail variant honoring per-call library
+/// directories. `library_options.in_dir` makes `@import_from_library` read
+/// from `<dir>/<kind>/<name>.facts.json`; `out_dir` makes
+/// `@export_to_library` write to the same path layout.
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_detail_profile_with_library(
+    sample: &str,
+    grammar_profile: Option<&str>,
+    library_options: &LibraryOptions,
+) -> Result<(), String> {
+    let mut parser =
+        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+    parser.set_grammar_profile(normalize_generated_grammar_profile(
+        "systemverilog",
+        grammar_profile,
+    ));
+    parser.set_library_in_dir(library_options.in_dir.clone());
+    parser.set_library_out_dir(library_options.out_dir.clone());
+    parser
+        .parse_full_systemverilog_file()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
+}
+
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog_ast_json(sample: &str) -> Result<JsonValue, String> {
     parse_with_systemverilog_ast_json_profile(sample, None)
@@ -491,8 +515,50 @@ pub fn parse_sample_with_profile(
     }
 }
 
+/// `SV-EXH-PROOF.3.3.4.a` MVP-0: per-call library configuration for grammars
+/// that use `@import_from_library` / `@export_to_library`. Both fields default
+/// to `None` (no library plumbing); a grammar with no library directives is
+/// unaffected by either field being set.
+#[derive(Debug, Clone, Default)]
+pub struct LibraryOptions {
+    pub in_dir: Option<std::path::PathBuf>,
+    pub out_dir: Option<std::path::PathBuf>,
+}
+
+impl LibraryOptions {
+    pub fn is_empty(&self) -> bool {
+        self.in_dir.is_none() && self.out_dir.is_none()
+    }
+}
+
 pub fn parse_sample_detail(grammar_name: &str, sample: &str) -> Option<Result<(), String>> {
     parse_sample_detail_with_profile(grammar_name, sample, None)
+}
+
+/// `SV-EXH-PROOF.3.3.4.a` MVP-0: library-aware detail variant. Falls through
+/// to `parse_sample_detail_with_profile` when `library_options` is empty so
+/// existing call sites are unaffected. When set, grammars whose generated
+/// parser supports library options (SV today; others as they adopt the
+/// annotations) honor them; other grammars silently ignore (their parsers
+/// have no library directives so the options would be no-ops anyway).
+pub fn parse_sample_detail_with_options(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+    library_options: &LibraryOptions,
+) -> Option<Result<(), String>> {
+    if library_options.is_empty() {
+        return parse_sample_detail_with_profile(grammar_name, sample, grammar_profile);
+    }
+    match grammar_name {
+        #[cfg(has_generated_systemverilog_parser)]
+        "systemverilog" => Some(parse_with_systemverilog_detail_profile_with_library(
+            sample,
+            grammar_profile,
+            library_options,
+        )),
+        _ => parse_sample_detail_with_profile(grammar_name, sample, grammar_profile),
+    }
 }
 
 pub fn parse_sample_detail_with_profile(

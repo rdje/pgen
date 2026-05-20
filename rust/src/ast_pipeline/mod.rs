@@ -3521,6 +3521,7 @@ pub mod ast_code_generator;
 pub mod ast_generator_direct;
 pub mod ast_return_transform;
 pub mod grouped_quantifier_parser;
+pub mod library;
 pub mod mutual_recursion_handler;
 pub mod parser_hooks;
 pub mod return_annotation_handler;
@@ -3550,7 +3551,8 @@ pub use semantic_directive_registry::{
 };
 pub use semantic_runtime::{
     CompiledSemanticRuntimeAnnotations, SemanticCloseScopeSpec, SemanticFactRecord,
-    SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
+    SemanticFactSpec, SemanticLibraryExportSpec, SemanticLibraryImportSpec,
+    SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
     SemanticRuntimeCheckpoint, SemanticRuntimeDirective, SemanticRuntimeState,
     SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame, SemanticScopeKind,
     SemanticScopeSpec, compile_rule_semantic_runtime_directives,

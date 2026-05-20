@@ -59,6 +59,23 @@ impl SemanticRuntimeValue {
             UnifiedSemanticValue::Array(_) | UnifiedSemanticValue::Object(_) => None,
         }
     }
+
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: borrow the underlying text for the
+    /// text-bearing variants (`String` / `Identifier` / `RuleReference` /
+    /// `Number`). Returns `None` for `Boolean` / `Null` (no canonical text
+    /// suitable for use as an artifact name / file-system path component).
+    ///
+    /// Used by the library import/export helpers to convert a resolved
+    /// `name_from` value into a string suitable for `library::artifact_path`.
+    pub fn as_text(&self) -> Option<&str> {
+        match self {
+            Self::String(text)
+            | Self::Identifier(text)
+            | Self::RuleReference(text)
+            | Self::Number(text) => Some(text.as_str()),
+            Self::Boolean(_) | Self::Null => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,6 +111,42 @@ pub struct SemanticFactSpec {
     pub kind: String,
     pub name: SemanticRuntimeValue,
     pub attributes: Vec<UnifiedSemanticProperty>,
+}
+
+/// Spec for the parser-agnostic `@export_to_library` directive
+/// (`SV-EXH-PROOF.3.3.4.a` MVP-0; see
+/// `docs/design/SV-EXH-PROOF-3-3-4-a-MVP-0-library-and-artifact.md`).
+///
+/// On rule **successful commit**, the generator-emitted
+/// `with_semantic_runtime_rule_transaction` (the IIFE-wrapped version after
+/// `.3.3.3`) snapshots the rule's emitted facts and writes them as a JSON
+/// artifact under the configured library-out directory. `kind` is a static
+/// classifier (e.g. `package` / `module` / `entity`); `name` is resolved
+/// against the rule's parse content (typically a field reference like `$body`).
+///
+/// This directive is engine-agnostic: it expresses "this rule's commit boundary
+/// defines a library-exportable scope-creating entity"; the engine handles I/O.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SemanticLibraryExportSpec {
+    pub kind: String,
+    pub name: SemanticRuntimeValue,
+}
+
+/// Spec for the parser-agnostic `@import_from_library` directive
+/// (`SV-EXH-PROOF.3.3.4.a` MVP-0).
+///
+/// On rule **entry** (before pre-predicates fire), the generator-emitted
+/// `with_semantic_runtime_rule_transaction` reads the artifact for
+/// `<kind>/<name>` from the configured library-in directory and merges its
+/// facts into the current `SemanticRuntimeState`, making them visible to any
+/// subsequent `@predicate has_fact(...)` check in the same parse.
+///
+/// A missing artifact is an `Err`; the `.3.3.3` IIFE ensures the rule's
+/// semantic-state restore fires cleanly on that error path.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SemanticLibraryImportSpec {
+    pub kind: String,
+    pub name: SemanticRuntimeValue,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -148,20 +201,36 @@ pub enum SemanticRuntimeDirective {
     CloseScope(SemanticCloseScopeSpec),
     EmitFact(SemanticFactSpec),
     Predicate(SemanticPredicateSpec),
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: parser-agnostic library export directive.
+    /// Fires on rule **successful commit** (its own phase, not `is_effect`);
+    /// see `is_library_export`.
+    ExportToLibrary(SemanticLibraryExportSpec),
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: parser-agnostic library import directive.
+    /// Fires on rule **entry**, before pre-predicates (its own phase, not
+    /// `is_pre_predicate`); see `is_library_import`.
+    ImportFromLibrary(SemanticLibraryImportSpec),
 }
 
 impl SemanticRuntimeDirective {
     pub fn predicate_phase(&self) -> Option<SemanticPredicatePhase> {
         match self {
             Self::Predicate(spec) => Some(spec.phase),
-            Self::OpenScope(_) | Self::CloseScope(_) | Self::EmitFact(_) => None,
+            Self::OpenScope(_)
+            | Self::CloseScope(_)
+            | Self::EmitFact(_)
+            | Self::ExportToLibrary(_)
+            | Self::ImportFromLibrary(_) => None,
         }
     }
 
     pub fn predicate_view(&self) -> Option<SemanticPredicateContentView> {
         match self {
             Self::Predicate(spec) => Some(spec.view),
-            Self::OpenScope(_) | Self::CloseScope(_) | Self::EmitFact(_) => None,
+            Self::OpenScope(_)
+            | Self::CloseScope(_)
+            | Self::EmitFact(_)
+            | Self::ExportToLibrary(_)
+            | Self::ImportFromLibrary(_) => None,
         }
     }
 
@@ -182,6 +251,23 @@ impl SemanticRuntimeDirective {
             self,
             Self::OpenScope(_) | Self::CloseScope(_) | Self::EmitFact(_)
         )
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: true for `ImportFromLibrary` only.
+    /// Library imports are a distinct phase from `is_pre_predicate` so the
+    /// generator can guarantee they fire **before** pre-predicates evaluate
+    /// (so a pre-predicate `has_fact(type_name, X)` can see the imported
+    /// facts in the same rule's transaction).
+    pub fn is_library_import(&self) -> bool {
+        matches!(self, Self::ImportFromLibrary(_))
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: true for `ExportToLibrary` only.
+    /// Library exports are a distinct phase from `is_effect` so the generator
+    /// can guarantee they fire **after** the rule's body emit_facts have all
+    /// been applied (the export captures the rule's emitted facts delta).
+    pub fn is_library_export(&self) -> bool {
+        matches!(self, Self::ExportToLibrary(_))
     }
 }
 
@@ -286,6 +372,30 @@ impl CompiledSemanticRuntimeAnnotations {
             .filter(|directive| directive.is_post_predicate())
     }
 
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: library imports for the rule (fired at
+    /// rule entry, before pre-predicates, by the generator-emitted
+    /// `with_semantic_runtime_rule_transaction`).
+    pub fn library_imports_for_rule<'a>(
+        &'a self,
+        rule_name: &'a str,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.directives_for_rule(rule_name)
+            .iter()
+            .filter(|directive| directive.is_library_import())
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: library exports for the rule (fired at
+    /// rule successful commit, after effect directives, by the generator-emitted
+    /// `with_semantic_runtime_rule_transaction`).
+    pub fn library_exports_for_rule<'a>(
+        &'a self,
+        rule_name: &'a str,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.directives_for_rule(rule_name)
+            .iter()
+            .filter(|directive| directive.is_library_export())
+    }
+
     pub fn branch_predicates_for_rule<'a>(
         &'a self,
         rule_name: &'a str,
@@ -359,6 +469,23 @@ pub struct SemanticFactRecord {
 pub struct SemanticRuntimeCheckpoint {
     scope_len: usize,
     fact_len: usize,
+}
+
+impl SemanticRuntimeCheckpoint {
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: number of facts in the state at checkpoint
+    /// time. Exposed so `@export_to_library` can snapshot the delta — the facts
+    /// emitted by the current rule's body — via
+    /// `&state.facts()[checkpoint.fact_len()..]`.
+    pub fn fact_len(&self) -> usize {
+        self.fact_len
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0 companion accessor for scope depth at
+    /// checkpoint. Not used by the import/export path today but mirrors
+    /// `fact_len` for completeness and future use.
+    pub fn scope_len(&self) -> usize {
+        self.scope_len
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -474,6 +601,20 @@ impl SemanticRuntimeState {
         });
     }
 
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: append an already-formed `SemanticFactRecord`
+    /// to the state.
+    ///
+    /// Used by the library-import path: artifacts contain `SemanticFactRecord`s
+    /// that have ALREADY been resolved by the original exporting parser run, so
+    /// there is no `SemanticFactSpec` shape to evaluate here — we just merge
+    /// them in. `scope_depth` is rebased to the current scope (the original
+    /// exporter's depth has no meaning in the importer's scope stack); MVP-0
+    /// imports always merge at the current scope depth.
+    pub fn push_fact_record(&mut self, mut record: SemanticFactRecord) {
+        record.scope_depth = self.scopes.len() - 1;
+        self.facts.push(record);
+    }
+
     pub fn apply_directive(&mut self, directive: &SemanticRuntimeDirective) -> bool {
         match directive {
             SemanticRuntimeDirective::OpenScope(spec) => {
@@ -486,6 +627,14 @@ impl SemanticRuntimeState {
                 true
             }
             SemanticRuntimeDirective::Predicate(_) => true,
+            // `SV-EXH-PROOF.3.3.4.a` MVP-0: library import/export need parser
+            // context (the configured lib-in / lib-out dir, the current rule's
+            // emitted-fact delta, and library I/O). They are wired into the
+            // generator-emitted `with_semantic_runtime_rule_transaction` and
+            // are no-ops at the state level (mirroring how `Predicate` is a
+            // no-op here — the generator evaluates it with content access).
+            SemanticRuntimeDirective::ExportToLibrary(_)
+            | SemanticRuntimeDirective::ImportFromLibrary(_) => true,
         }
     }
 
@@ -668,7 +817,9 @@ impl SemanticRuntimeState {
             SemanticRuntimeDirective::OpenScope(_)
             | SemanticRuntimeDirective::CloseScope(_)
             | SemanticRuntimeDirective::EmitFact(_)
-            | SemanticRuntimeDirective::Predicate(_) => None,
+            | SemanticRuntimeDirective::Predicate(_)
+            | SemanticRuntimeDirective::ExportToLibrary(_)
+            | SemanticRuntimeDirective::ImportFromLibrary(_) => None,
         }
     }
 
@@ -687,13 +838,23 @@ impl SemanticRuntimeState {
             SemanticRuntimeDirective::OpenScope(_)
             | SemanticRuntimeDirective::CloseScope(_)
             | SemanticRuntimeDirective::EmitFact(_)
-            | SemanticRuntimeDirective::Predicate(_) => None,
+            | SemanticRuntimeDirective::Predicate(_)
+            | SemanticRuntimeDirective::ExportToLibrary(_)
+            | SemanticRuntimeDirective::ImportFromLibrary(_) => None,
         }
     }
 }
 
 impl<'a> SemanticRuntimeTransaction<'a> {
     pub fn state(&self) -> &SemanticRuntimeState {
+        self.state
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: mutable access to the transaction's state.
+    /// Used by `@import_from_library` to merge facts read from a library
+    /// artifact into the in-progress transaction. Any mutation goes through the
+    /// transaction's checkpoint, so a later rollback unwinds it cleanly.
+    pub fn state_mut(&mut self) -> &mut SemanticRuntimeState {
         self.state
     }
 
@@ -765,8 +926,105 @@ pub fn parse_semantic_runtime_directive(
         "close_scope" => parse_close_scope(annotation.ast()).map(Some),
         "emit_fact" => parse_emit_fact(annotation.ast()).map(Some),
         "predicate" => parse_predicate(annotation.ast()).map(Some),
+        // `SV-EXH-PROOF.3.3.4.a` MVP-0 parser-agnostic library directives.
+        "export_to_library" => parse_export_to_library(annotation.ast()).map(Some),
+        "import_from_library" => parse_import_from_library(annotation.ast()).map(Some),
         _ => Ok(None),
     }
+}
+
+/// `SV-EXH-PROOF.3.3.4.a` MVP-0: parses `@export_to_library: { kind: <static>,
+/// name_from: <field-or-positional-expr> }`. `kind` must be a non-empty scalar
+/// (e.g. `package`, `module`, `entity`); `name_from` is resolved against the
+/// rule's parse content at directive-evaluation time (typically a field
+/// reference like `$body` or `$package_identifier.body`).
+fn parse_export_to_library(
+    ast: &UnifiedSemanticAST,
+) -> Result<SemanticRuntimeDirective, String> {
+    let payload = ast.structured_value().ok_or_else(|| {
+        "Directive '@export_to_library' expects a structured object payload.".to_string()
+    })?;
+    let properties = object_properties(payload).ok_or_else(|| {
+        "Directive '@export_to_library' expects an object payload.".to_string()
+    })?;
+
+    let kind = property(properties, "kind")
+        .and_then(scalar_text)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "Directive '@export_to_library' requires a non-empty 'kind' field.".to_string()
+        })?
+        .to_string();
+    let name = property(properties, "name_from")
+        .ok_or_else(|| {
+            "Directive '@export_to_library' requires a 'name_from' field.".to_string()
+        })
+        .and_then(|value| {
+            SemanticRuntimeValue::from_semantic_value(value).ok_or_else(|| {
+                "Directive '@export_to_library.name_from' must be a scalar or rule reference."
+                    .to_string()
+            })
+        })?;
+
+    for property in properties {
+        if matches!(property.key.as_str(), "kind" | "name_from") {
+            continue;
+        }
+        return Err(format!(
+            "Directive '@export_to_library' rejects unknown field '{}' (MVP-0 supports 'kind' and 'name_from').",
+            property.key
+        ));
+    }
+
+    Ok(SemanticRuntimeDirective::ExportToLibrary(
+        SemanticLibraryExportSpec { kind, name },
+    ))
+}
+
+/// `SV-EXH-PROOF.3.3.4.a` MVP-0: parses `@import_from_library: { kind: <static>,
+/// name_from: <field-or-positional-expr> }`. Same payload shape as
+/// `@export_to_library`.
+fn parse_import_from_library(
+    ast: &UnifiedSemanticAST,
+) -> Result<SemanticRuntimeDirective, String> {
+    let payload = ast.structured_value().ok_or_else(|| {
+        "Directive '@import_from_library' expects a structured object payload.".to_string()
+    })?;
+    let properties = object_properties(payload).ok_or_else(|| {
+        "Directive '@import_from_library' expects an object payload.".to_string()
+    })?;
+
+    let kind = property(properties, "kind")
+        .and_then(scalar_text)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            "Directive '@import_from_library' requires a non-empty 'kind' field.".to_string()
+        })?
+        .to_string();
+    let name = property(properties, "name_from")
+        .ok_or_else(|| {
+            "Directive '@import_from_library' requires a 'name_from' field.".to_string()
+        })
+        .and_then(|value| {
+            SemanticRuntimeValue::from_semantic_value(value).ok_or_else(|| {
+                "Directive '@import_from_library.name_from' must be a scalar or rule reference."
+                    .to_string()
+            })
+        })?;
+
+    for property in properties {
+        if matches!(property.key.as_str(), "kind" | "name_from") {
+            continue;
+        }
+        return Err(format!(
+            "Directive '@import_from_library' rejects unknown field '{}' (MVP-0 supports 'kind' and 'name_from').",
+            property.key
+        ));
+    }
+
+    Ok(SemanticRuntimeDirective::ImportFromLibrary(
+        SemanticLibraryImportSpec { kind, name },
+    ))
 }
 
 pub fn parse_semantic_runtime_directives<'a, I>(
@@ -1051,10 +1309,10 @@ fn content_kind_name(content: &ParseContent<'_>) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::{
-        CompiledSemanticRuntimeAnnotations, SemanticFactSpec, SemanticPredicateContentView,
-        SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeDirective,
-        SemanticRuntimeState, SemanticRuntimeValue, SemanticScopeKind,
-        compile_rule_semantic_runtime_directives,
+        CompiledSemanticRuntimeAnnotations, SemanticFactSpec, SemanticLibraryExportSpec,
+        SemanticLibraryImportSpec, SemanticPredicateContentView, SemanticPredicatePhase,
+        SemanticPredicateSpec, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeValue,
+        SemanticScopeKind, compile_rule_semantic_runtime_directives,
         compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
         parse_semantic_runtime_directives,
     };
@@ -1205,6 +1463,206 @@ mod tests {
                 phase: SemanticPredicatePhase::Post,
                 view: SemanticPredicateContentView::Shaped,
             }))
+        );
+    }
+
+    // `SV-EXH-PROOF.3.3.4.a` MVP-0 directive-parser tests for the
+    // parser-agnostic `@export_to_library` / `@import_from_library` directives.
+
+    #[test]
+    fn parses_export_to_library_runtime_directive() {
+        let export = structured_named(
+            "export_to_library",
+            "{ kind: package, name_from: $body }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name_from".to_string(),
+                    value: UnifiedSemanticValue::RuleReference("$body".to_string()),
+                },
+            ]),
+        );
+
+        let parsed =
+            parse_semantic_runtime_directive(&export).expect("export_to_library should parse");
+        assert_eq!(
+            parsed,
+            Some(SemanticRuntimeDirective::ExportToLibrary(
+                SemanticLibraryExportSpec {
+                    kind: "package".to_string(),
+                    name: SemanticRuntimeValue::RuleReference("$body".to_string()),
+                }
+            ))
+        );
+        // Classifier coverage: not a predicate, not a generic effect.
+        let directive = match parsed.as_ref().unwrap() {
+            d @ SemanticRuntimeDirective::ExportToLibrary(_) => d,
+            other => panic!("unexpected variant: {:?}", other),
+        };
+        assert!(directive.is_library_export());
+        assert!(!directive.is_library_import());
+        assert!(!directive.is_effect());
+        assert!(directive.predicate_phase().is_none());
+    }
+
+    #[test]
+    fn parses_import_from_library_runtime_directive() {
+        let import = structured_named(
+            "import_from_library",
+            "{ kind: package, name_from: $package_identifier.body }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name_from".to_string(),
+                    value: UnifiedSemanticValue::RuleReference(
+                        "$package_identifier.body".to_string(),
+                    ),
+                },
+            ]),
+        );
+
+        let parsed =
+            parse_semantic_runtime_directive(&import).expect("import_from_library should parse");
+        assert_eq!(
+            parsed,
+            Some(SemanticRuntimeDirective::ImportFromLibrary(
+                SemanticLibraryImportSpec {
+                    kind: "package".to_string(),
+                    name: SemanticRuntimeValue::RuleReference(
+                        "$package_identifier.body".to_string()
+                    ),
+                }
+            ))
+        );
+        let directive = parsed.as_ref().unwrap();
+        assert!(directive.is_library_import());
+        assert!(!directive.is_library_export());
+        assert!(!directive.is_pre_predicate());
+    }
+
+    #[test]
+    fn library_directive_rejects_unknown_field() {
+        let export = structured_named(
+            "export_to_library",
+            "{ kind: package, name_from: $body, attributes: {} }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name_from".to_string(),
+                    value: UnifiedSemanticValue::RuleReference("$body".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "attributes".to_string(),
+                    value: UnifiedSemanticValue::Object(Vec::new()),
+                },
+            ]),
+        );
+
+        let err = parse_semantic_runtime_directive(&export)
+            .expect_err("unknown field should cause an error");
+        assert!(err.contains("rejects unknown field"));
+        assert!(err.contains("attributes"));
+    }
+
+    #[test]
+    fn library_directive_requires_kind() {
+        let export = structured_named(
+            "export_to_library",
+            "{ name_from: $body }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name_from".to_string(),
+                    value: UnifiedSemanticValue::RuleReference("$body".to_string()),
+                },
+            ]),
+        );
+
+        let err = parse_semantic_runtime_directive(&export)
+            .expect_err("missing kind should cause an error");
+        assert!(err.contains("requires a non-empty 'kind' field"));
+    }
+
+    #[test]
+    fn library_directive_requires_name_from() {
+        let import = structured_named(
+            "import_from_library",
+            "{ kind: package }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+            ]),
+        );
+
+        let err = parse_semantic_runtime_directive(&import)
+            .expect_err("missing name_from should cause an error");
+        assert!(err.contains("requires a 'name_from' field"));
+    }
+
+    #[test]
+    fn compiled_library_directives_register_under_their_rule() {
+        // The compiler should route the new directives through
+        // `directives_by_rule` so the generator's `library_imports_for_rule`
+        // and `library_exports_for_rule` iterators find them. We test via the
+        // compile entry point (which the generator uses) to lock the shape.
+        let import = structured_named(
+            "import_from_library",
+            "{ kind: package, name_from: $package_identifier.body }",
+            UnifiedSemanticValue::Object(vec![
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "kind".to_string(),
+                    value: UnifiedSemanticValue::Identifier("package".to_string()),
+                },
+                crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "name_from".to_string(),
+                    value: UnifiedSemanticValue::RuleReference(
+                        "$package_identifier.body".to_string(),
+                    ),
+                },
+            ]),
+        );
+        let directives = compile_rule_semantic_runtime_directives(
+            "package_import_item",
+            std::iter::once(&import),
+        )
+        .expect("compile should succeed");
+        let mut by_rule = std::collections::HashMap::new();
+        by_rule.insert("package_import_item".to_string(), directives);
+        let compiled = CompiledSemanticRuntimeAnnotations::from_rule_directives(by_rule);
+
+        let imports: Vec<&SemanticRuntimeDirective> = compiled
+            .library_imports_for_rule("package_import_item")
+            .collect();
+        assert_eq!(imports.len(), 1);
+        assert!(imports[0].is_library_import());
+
+        // Sanity: an unrelated rule has no library imports.
+        assert_eq!(
+            compiled.library_imports_for_rule("some_other_rule").count(),
+            0
+        );
+        // Library directives must not leak into the predicate/effect lanes.
+        assert_eq!(
+            compiled
+                .pre_predicates_for_rule("package_import_item")
+                .count(),
+            0
+        );
+        assert_eq!(
+            compiled
+                .effect_directives_for_rule("package_import_item")
+                .count(),
+            0
         );
     }
 

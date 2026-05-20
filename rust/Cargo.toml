@@ -154,3 +154,4 @@ regex_typed_perf_probe = ["generated_parsers"]
 
 [dev-dependencies]
 serde_json = "1.0"
+tempfile = "3"

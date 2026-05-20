@@ -76,6 +76,9 @@
         "stimuli/sv/subs/Cores-VeeR-EL2/design/lsu",
         "stimuli/sv/subs/Cores-VeeR-EL2/design/include",
         "stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default"
+      ],
+      "bootstrap_files": [
+        "stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_def.sv"
       ]
     }
   ]

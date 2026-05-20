@@ -3219,8 +3219,18 @@ output_terminal := net_lvalue
 # decl-site through `declared_package_identifier` (below), trailing
 # `( colon package_identifier )?` stays the plain label use-site
 # (exactly as class/module do `( colon class_identifier )?`).
+# SV-EXH-PROOF.3.3.4.a MVP-0: emit a package artifact at commit time.
+# The shaped output exposes the package's scalar name as `body: $4.body`
+# (return-annotation property-access drill — the semantic-annotation
+# language only accepts simple `$name` refs, so the shape carries the
+# scalar at the top level). `name_from: $body` resolves to the package
+# name string. Fires AFTER the rule's body has parsed every `package_item`
+# (every `typedef`/`localparam`/etc. has emitted its `type_name` fact),
+# AFTER post-predicates have validated the rule, BEFORE commit — so a
+# failed write rolls back atomically (`.3.3.3` IIFE invariant).
+@export_to_library: { kind: package, name_from: $body }
 package_declaration := attribute_instance* kw_package_582681c2 ( lifetime )? declared_package_identifier semi ( timeunits_declaration )? ( attribute_instance* package_item )* kw_endpackage_4f31e93e ( colon package_identifier )?
-                    -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9}
+                    -> {attributes: $1, lifetime: $3, name: $4, timeunits: $6, items: $7, end_label: $9, body: $4.body}
 
 package_export_declaration := kw_export_51713409 star scope_resolution star semi
                                  -> {kind: "wildcard"}
@@ -3240,10 +3250,21 @@ declared_package_identifier := package_identifier -> { body: $1.body }
 package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma package_import_item )* semi
                             -> {items: [$2, $3::2*]}
 
+# SV-EXH-PROOF.3.3.4.a MVP-0: merge facts from a previously-compiled
+# package artifact when the importer references it. The shaped output
+# exposes the package's scalar name as `body: $1.body` (return-annotation
+# property-access drill — the semantic-annotation language only accepts
+# simple `$name` refs, so the shape carries the scalar at the top level).
+# `name_from: $body` resolves to the imported package name string. Fires
+# AFTER body parse so `$body` is bound; fact-merge into the importer's
+# scope happens BEFORE post-predicates and BEFORE the surrounding rule
+# continues, so subsequent sibling `@predicate has_fact(type_name, X)`
+# checks observe the merged facts.
+@import_from_library: { kind: package, name_from: $body }
 package_import_item := package_identifier scope_resolution identifier
-                          -> {kind: "explicit", package: $1, name: $3}
+                          -> {kind: "explicit", package: $1, name: $3, body: $1.body}
                      | package_identifier scope_resolution star
-                          -> {kind: "wildcard", package: $1}
+                          -> {kind: "wildcard", package: $1, body: $1.body}
 
 package_item := package_or_generate_item_declaration -> {kind: "declaration",        body: $1}
              | anonymous_program                     -> {kind: "anonymous_program",  body: $1}

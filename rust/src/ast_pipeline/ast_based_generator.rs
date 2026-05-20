@@ -498,6 +498,15 @@ impl AstBasedGenerator {
                 deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode,
                 semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations,
                 semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState,
+                // `SV-EXH-PROOF.3.3.4.a` MVP-0: parser-agnostic library plumbing.
+                // `library_in_dir`  — root for `@import_from_library`
+                //                     (artifacts read at `<dir>/<kind>/<name>.facts.json`).
+                // `library_out_dir` — root for `@export_to_library`
+                //                     (artifacts written same path layout).
+                // Both default to `None` so single-file parses (no library
+                // flags, no library annotations) are byte-identical to today.
+                library_in_dir: Option<std::path::PathBuf>,
+                library_out_dir: Option<std::path::PathBuf>,
                 logger: Box<dyn Logger>,
                 // Optim #5: cache logger.is_enabled() at construction so the parser hot
                 // path skips the per-call vtable dispatch through Box<dyn Logger>. Logger
@@ -751,6 +760,9 @@ impl AstBasedGenerator {
                     deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode::AnnotationDriven,
                     semantic_runtime_annotations: #compiled_semantic_runtime_annotations,
                     semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
+                    // `SV-EXH-PROOF.3.3.4.a` MVP-0: opt-in via setter.
+                    library_in_dir: None,
+                    library_out_dir: None,
                     logger,
                     logger_enabled,
                 }
@@ -875,6 +887,190 @@ impl AstBasedGenerator {
                 format!("{} {:?}", spec.name, spec.args)
             }
 
+            // ================================================================
+            // `SV-EXH-PROOF.3.3.4.a` MVP-0: parser-agnostic library plumbing.
+            // Two setters wire the CLI-supplied `--lib-in` / `--lib-out`
+            // directories into the parser. Setters return `&mut Self` so they
+            // chain naturally on a builder-style construction.
+            // ================================================================
+            pub fn set_library_in_dir(
+                &mut self,
+                dir: Option<std::path::PathBuf>,
+            ) -> &mut Self {
+                self.library_in_dir = dir;
+                self
+            }
+
+            pub fn set_library_out_dir(
+                &mut self,
+                dir: Option<std::path::PathBuf>,
+            ) -> &mut Self {
+                self.library_out_dir = dir;
+                self
+            }
+
+            pub fn library_in_dir(&self) -> Option<&std::path::Path> {
+                self.library_in_dir.as_deref()
+            }
+
+            pub fn library_out_dir(&self) -> Option<&std::path::Path> {
+                self.library_out_dir.as_deref()
+            }
+
+            /// `SV-EXH-PROOF.3.3.4.a` MVP-0: apply `@import_from_library` for the
+            /// current rule. Resolves `name_from` against the rule's parse
+            /// content, reads the artifact, merges its facts into the
+            /// transaction-scoped semantic state. Missing artifact = warning
+            /// + continue (matches "single-file parse" fallback behaviour);
+            /// other I/O / parse errors are propagated as
+            /// `ParseError::ContextualError` so the IIFE's `restore` path
+            /// fires cleanly.
+            fn apply_semantic_runtime_library_import_directive(
+                &self,
+                transaction: &mut crate::ast_pipeline::SemanticRuntimeTransaction<'_>,
+                spec: &crate::ast_pipeline::SemanticLibraryImportSpec,
+                root_content: &ParseContent<'input>,
+            ) -> ParseResult<()> {
+                // No lib-in configured -> import is a no-op (single-file mode).
+                let Some(lib_in) = self.library_in_dir.as_deref() else {
+                    return Ok(());
+                };
+                let resolved = self
+                    .resolve_semantic_runtime_value_against_content(
+                        &spec.name,
+                        root_content,
+                    )
+                    .ok_or_else(|| ParseError::ContextualError {
+                        message: format!(
+                            "@import_from_library.name_from could not be resolved against rule content (kind={})",
+                            spec.kind
+                        ),
+                        position: self.position,
+                        rule_stack: Vec::new(),
+                        input_context: String::new(),
+                    })?;
+                let name = resolved.as_text().ok_or_else(|| {
+                    ParseError::ContextualError {
+                        message: format!(
+                            "@import_from_library.name_from resolved to a non-textual value (kind={}, value={:?})",
+                            spec.kind, resolved
+                        ),
+                        position: self.position,
+                        rule_stack: Vec::new(),
+                        input_context: String::new(),
+                    }
+                })?;
+                match crate::ast_pipeline::library::read_artifact(lib_in, &spec.kind, name) {
+                    Ok(records) => {
+                        for record in records {
+                            transaction.state_mut().push_fact_record(record);
+                        }
+                        Ok(())
+                    }
+                    Err(crate::ast_pipeline::library::LibraryError::NotFound(_)) => {
+                        // Missing artifact: log + continue. This makes the
+                        // importer's downstream `has_fact` checks evaluate
+                        // false — same outcome as today's no-library run.
+                        if self.logger_enabled {
+                            self.logger.log_info(
+                                file!(),
+                                line!(),
+                                &format!(
+                                    "📚 @import_from_library: artifact not found (kind={}, name={}); continuing",
+                                    spec.kind, name
+                                ),
+                            );
+                        }
+                        Ok(())
+                    }
+                    Err(other) => Err(ParseError::ContextualError {
+                        message: format!(
+                            "@import_from_library failed: kind={}, name={}, error={:?}",
+                            spec.kind, name, other
+                        ),
+                        position: self.position,
+                        rule_stack: Vec::new(),
+                        input_context: String::new(),
+                    }),
+                }
+            }
+
+            /// `SV-EXH-PROOF.3.3.4.a` MVP-0: apply `@export_to_library` for the
+            /// current rule. Resolves `name_from`, computes the rule's
+            /// emitted-fact delta against `entry_checkpoint`, writes the
+            /// artifact. Atomic write; failure -> `ParseError::ContextualError`.
+            ///
+            /// `entry_checkpoint` is the checkpoint captured at the start of
+            /// the rule's body transaction; everything in `state.facts()` from
+            /// `entry_checkpoint.fact_len()` onward is the rule's contribution.
+            fn apply_semantic_runtime_library_export_directive(
+                &self,
+                transaction: &crate::ast_pipeline::SemanticRuntimeTransaction<'_>,
+                spec: &crate::ast_pipeline::SemanticLibraryExportSpec,
+                root_content: &ParseContent<'input>,
+                entry_fact_len: usize,
+            ) -> ParseResult<()> {
+                // No lib-out configured -> export is a no-op.
+                let Some(lib_out) = self.library_out_dir.as_deref() else {
+                    return Ok(());
+                };
+                let resolved = self
+                    .resolve_semantic_runtime_value_against_content(
+                        &spec.name,
+                        root_content,
+                    )
+                    .ok_or_else(|| ParseError::ContextualError {
+                        message: format!(
+                            "@export_to_library.name_from could not be resolved against rule content (kind={})",
+                            spec.kind
+                        ),
+                        position: self.position,
+                        rule_stack: Vec::new(),
+                        input_context: String::new(),
+                    })?;
+                let name = resolved.as_text().ok_or_else(|| {
+                    ParseError::ContextualError {
+                        message: format!(
+                            "@export_to_library.name_from resolved to a non-textual value (kind={}, value={:?})",
+                            spec.kind, resolved
+                        ),
+                        position: self.position,
+                        rule_stack: Vec::new(),
+                        input_context: String::new(),
+                    }
+                })?;
+                let all_facts = transaction.state().facts();
+                let start = entry_fact_len.min(all_facts.len());
+                let delta = &all_facts[start..];
+                match crate::ast_pipeline::library::write_artifact(lib_out, &spec.kind, name, delta) {
+                    Ok(path) => {
+                        if self.logger_enabled {
+                            self.logger.log_info(
+                                file!(),
+                                line!(),
+                                &format!(
+                                    "📚 @export_to_library: wrote artifact kind={}, name={}, facts={}, path={}",
+                                    spec.kind,
+                                    name,
+                                    delta.len(),
+                                    path.display(),
+                                ),
+                            );
+                        }
+                        Ok(())
+                    }
+                    Err(err) => Err(ParseError::ContextualError {
+                        message: format!(
+                            "@export_to_library failed: kind={}, name={}, error={:?}",
+                            spec.kind, name, err
+                        ),
+                        position: self.position,
+                        rule_stack: Vec::new(),
+                        input_context: String::new(),
+                    }),
+                }
+            }
+
             pub fn with_semantic_runtime_rule_transaction<F>(
                 &mut self,
                 rule_name: &str,
@@ -991,6 +1187,19 @@ impl AstBasedGenerator {
                             position: self.position,
                         })
                     } else {
+                        // `SV-EXH-PROOF.3.3.4.a` MVP-0: capture the rule's
+                        // TRUE entry checkpoint so a later
+                        // `@export_to_library` can snapshot the rule's
+                        // emitted-fact delta. The TRUE entry point is BEFORE
+                        // `f(self)?` (where the rule's body parses and its
+                        // child rules' `@emit_fact` directives fire into
+                        // self.semantic_runtime_state); `original_*` holds
+                        // the pre-body state. After body parse the state's
+                        // `fact_len` will be `original.facts().len() + body
+                        // emitted`; the delta is exactly the facts the
+                        // rule's body contributed.
+                        let semantic_runtime_entry_fact_len: usize =
+                            original_semantic_runtime_state.facts().len();
                         let (node, semantic_raw_content) = f(self)?;
                         let semantic_raw_content =
                             semantic_raw_content.as_ref().unwrap_or(&node.content);
@@ -1006,6 +1215,29 @@ impl AstBasedGenerator {
                                 directive,
                                 &node.content,
                             )?;
+                        }
+                        // `SV-EXH-PROOF.3.3.4.a` MVP-0: process
+                        // `@import_from_library` AFTER effect directives so
+                        // any rule-local `@emit_fact` is already applied,
+                        // BEFORE post-predicates so they observe the merged
+                        // imported facts. (Design memo originally said
+                        // "rule entry"; corrected: `name_from` is resolved
+                        // against the rule's parse content, which only exists
+                        // post-body. Imports still merge into the importer's
+                        // scope, so later sibling `has_fact` checks see them.)
+                        for directive in self
+                            .semantic_runtime_annotations
+                            .library_imports_for_rule(rule_name)
+                        {
+                            if let crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(spec) =
+                                directive
+                            {
+                                self.apply_semantic_runtime_library_import_directive(
+                                    &mut semantic_runtime_transaction,
+                                    spec,
+                                    &node.content,
+                                )?;
+                            }
                         }
                         let mut post_predicate_blocked = false;
                         let mut blocked_post_predicate: Option<String> = None;
@@ -1046,7 +1278,9 @@ impl AstBasedGenerator {
                                 crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
                                 | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(_)
                                 | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_) => {}
+                                | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_)
+                                | crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(_)
+                                | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_) => {}
                             }
                         }
                         if post_predicate_blocked {
@@ -1067,6 +1301,29 @@ impl AstBasedGenerator {
                                 position: node.span.start,
                             })
                         } else {
+                            // `SV-EXH-PROOF.3.3.4.a` MVP-0: process
+                            // `@export_to_library` here — AFTER the rule's
+                            // body has emitted all its facts (so the artifact
+                            // captures the complete delta), AFTER post
+                            // predicates have validated the rule's content,
+                            // BEFORE commit so a write failure rolls back the
+                            // transaction (atomic semantics matches the
+                            // `.3.3.3` IIFE's exception-safety invariant).
+                            for directive in self
+                                .semantic_runtime_annotations
+                                .library_exports_for_rule(rule_name)
+                            {
+                                if let crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(spec) =
+                                    directive
+                                {
+                                    self.apply_semantic_runtime_library_export_directive(
+                                        &semantic_runtime_transaction,
+                                        spec,
+                                        &node.content,
+                                        semantic_runtime_entry_fact_len,
+                                    )?;
+                                }
+                            }
                             let _ = semantic_runtime_transaction.commit();
                             self.semantic_runtime_state = semantic_runtime_state;
                             Ok(node)
@@ -1087,6 +1344,16 @@ impl AstBasedGenerator {
             ) -> ParseResult<bool> {
                 match directive {
                     crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_) => Ok(false),
+                    // `SV-EXH-PROOF.3.3.4.a` MVP-0: library directives are
+                    // their own phase (handled by
+                    // `apply_semantic_runtime_library_{import,export}_directive`
+                    // from `with_semantic_runtime_rule_transaction`); they are
+                    // not effects in the emit_fact/open_scope/close_scope sense.
+                    // Returning `Ok(false)` mirrors `Predicate`.
+                    crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(_)
+                    | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_) => {
+                        Ok(false)
+                    }
                     crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(spec) => {
                         let resolved_name = spec
                             .name
@@ -2269,7 +2536,9 @@ impl AstBasedGenerator {
                                         crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(_)
                                         | crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(_)
                                         | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
-                                        | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_) => {}
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_)
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(_)
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_) => {}
                                     }
                                 }
                                 let should_take = if branch_predicate_blocked {
@@ -4618,6 +4887,35 @@ impl AstBasedGenerator {
                             args: vec![#(#args),*],
                             phase: #phase,
                             view: #view,
+                        }
+                    )
+                }
+            }
+            // `SV-EXH-PROOF.3.3.4.a` MVP-0: emit parser-side construction tokens
+            // for the new parser-agnostic library directives. The compiled
+            // parser will register these in `directives_by_rule` and the
+            // generator-emitted `with_semantic_runtime_rule_transaction` will
+            // dispatch on them (export at successful commit; import at entry).
+            SemanticRuntimeDirective::ExportToLibrary(spec) => {
+                let kind = spec.kind.as_str();
+                let name = Self::generate_semantic_runtime_value_tokens(&spec.name);
+                quote! {
+                    crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(
+                        crate::ast_pipeline::SemanticLibraryExportSpec {
+                            kind: #kind.to_string(),
+                            name: #name,
+                        }
+                    )
+                }
+            }
+            SemanticRuntimeDirective::ImportFromLibrary(spec) => {
+                let kind = spec.kind.as_str();
+                let name = Self::generate_semantic_runtime_value_tokens(&spec.name);
+                quote! {
+                    crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(
+                        crate::ast_pipeline::SemanticLibraryImportSpec {
+                            kind: #kind.to_string(),
+                            name: #name,
                         }
                     )
                 }

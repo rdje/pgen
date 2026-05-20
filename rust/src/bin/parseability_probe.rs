@@ -8,7 +8,7 @@ use pgen::ast_pipeline::{
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--trace] [--trace-log-file [FILE]]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY"
+    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-log-file [FILE]]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--lib-in DIR  : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`."
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -51,6 +51,14 @@ struct GlobalOptions {
     profile: Option<String>,
     trace: bool,
     trace_log_file: Option<String>,
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: source directory for
+    /// `@import_from_library` artifact reads. `None` (the default) keeps
+    /// single-file behaviour byte-identical to today.
+    library_in_dir: Option<String>,
+    /// `SV-EXH-PROOF.3.3.4.a` MVP-0: target directory for
+    /// `@export_to_library` artifact writes. `None` (the default) keeps
+    /// single-file behaviour byte-identical to today.
+    library_out_dir: Option<String>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -145,6 +153,35 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             }
             options.trace_log_file = Some("trace.log".to_string());
             idx += 1;
+            continue;
+        }
+        // `SV-EXH-PROOF.3.3.4.a` MVP-0: parser-agnostic library directories.
+        if args[idx] == "--lib-in" {
+            if options.library_in_dir.is_some() {
+                bail!("--lib-in cannot be specified multiple times");
+            }
+            let value = args
+                .get(idx + 1)
+                .ok_or_else(|| anyhow::anyhow!("--lib-in requires a directory path"))?;
+            if value.starts_with("--") {
+                bail!("--lib-in requires a directory path (got flag '{}')", value);
+            }
+            options.library_in_dir = Some(value.clone());
+            idx += 2;
+            continue;
+        }
+        if args[idx] == "--lib-out" {
+            if options.library_out_dir.is_some() {
+                bail!("--lib-out cannot be specified multiple times");
+            }
+            let value = args
+                .get(idx + 1)
+                .ok_or_else(|| anyhow::anyhow!("--lib-out requires a directory path"))?;
+            if value.starts_with("--") {
+                bail!("--lib-out requires a directory path (got flag '{}')", value);
+            }
+            options.library_out_dir = Some(value.clone());
+            idx += 2;
             continue;
         }
         remaining.push(args[idx].clone());
@@ -268,10 +305,26 @@ fn command_supports(grammar_name: &str, profile: Option<&str>) -> Result<()> {
 }
 
 #[cfg(feature = "generated_parsers")]
-fn command_parse(grammar_name: &str, input_file: &str, profile: Option<&str>) -> Result<()> {
+fn command_parse(
+    grammar_name: &str,
+    input_file: &str,
+    profile: Option<&str>,
+    library_in_dir: Option<&str>,
+    library_out_dir: Option<&str>,
+) -> Result<()> {
     let sample = std::fs::read_to_string(input_file)
         .with_context(|| format!("failed to read input file '{}'", input_file))?;
-    match parser_registry::parse_sample_detail_with_profile(grammar_name, &sample, profile) {
+    let library_options = parser_registry::LibraryOptions {
+        in_dir: library_in_dir.map(std::path::PathBuf::from),
+        out_dir: library_out_dir.map(std::path::PathBuf::from),
+    };
+    let result = parser_registry::parse_sample_detail_with_options(
+        grammar_name,
+        &sample,
+        profile,
+        &library_options,
+    );
+    match result {
         Some(Ok(())) => {
             println!(
                 "parse_full passed for grammar '{}' on '{}'",
@@ -381,8 +434,20 @@ fn command_parse_dump_ast(
 }
 
 #[cfg(not(feature = "generated_parsers"))]
-fn command_parse(grammar_name: &str, input_file: &str, profile: Option<&str>) -> Result<()> {
-    let _ = (grammar_name, input_file, profile);
+fn command_parse(
+    grammar_name: &str,
+    input_file: &str,
+    profile: Option<&str>,
+    library_in_dir: Option<&str>,
+    library_out_dir: Option<&str>,
+) -> Result<()> {
+    let _ = (
+        grammar_name,
+        input_file,
+        profile,
+        library_in_dir,
+        library_out_dir,
+    );
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
@@ -409,7 +474,13 @@ fn main() -> Result<()> {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            command_parse(&remaining[0], &remaining[1], options.profile.as_deref())
+            command_parse(
+                &remaining[0],
+                &remaining[1],
+                options.profile.as_deref(),
+                options.library_in_dir.as_deref(),
+                options.library_out_dir.as_deref(),
+            )
         }
         "--parse-dump-ast" => {
             if args.len() < 4 {
