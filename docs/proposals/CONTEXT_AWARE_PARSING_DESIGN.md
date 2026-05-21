@@ -45,27 +45,55 @@ The LRM-extracted grammar has all three alternatives. Today the parser commits t
 
 ## 3. Information the parser must carry
 
-At every commit point in the parse, the parser needs persistent access to:
+The model is **universal, not category-restricted**: any information encountered during parsing should be storable, and any later query should be efficiently answerable. The grammar must not have to pre-declare a fixed taxonomy of "interesting" facts — the engine's job is to organise whatever is emitted so retrieval is cheap regardless of the query shape.
 
-1. **Variable/identifier bindings**, scoped:
-   - name → declared type
-   - declared type → kind (`class | array | scalar | enum | interface | virtual_interface | unresolved`)
-   - if `class`: → member scope (containing this class's fields + methods)
-   - if `array`: → element type + array kind (queue / dynamic / associative / fixed)
+### 3.1 Universal store, not curated categories
 
-2. **Type-name registry**, scoped:
-   - name → kind (`class | typedef | enum | …`)
-   - if `class`: extends/implements + member scope
+Concretely, the semantic store is a **general-purpose multi-indexed knowledge base** that the parser populates as it goes. Every `@emit_fact { kind: K, name: N, <attribute_K=V>* }` deposits a record. Queries are arbitrary combinations of those keys (`kind`, `name`, `scope`, attributes, position, ...). The same primitive that today supports `kind: type_name` will tomorrow support `kind: macro_define`, `kind: virtual_method_override`, `kind: constraint_block_membership`, `kind: covergroup_bin`, `kind: assertion_clock`, or anything else a grammar author finds useful — *without engine changes*. The engine does not know what categories exist; it just knows how to organise records by their declared keys.
 
-3. **Scope chain**, organised hierarchically:
-   - file → package → class → method → block
-   - each scope queryable for "does name N resolve here, and to what?"
+### 3.2 Organisation techniques (the "various techniques" mandate)
 
-4. **Cross-file imports**:
-   - import of a package transitively brings in all its exports
-   - same primitive as `.3.3.4.a` (`@export_to_library` / `@import_from_library`), extended to richer fact kinds.
+Different queries have different shapes. The store maintains several indexes simultaneously, each optimised for one query family:
 
-This is the "memory" §1 refers to.
+- **By `(scope, kind, name)`** — answers "does name N of kind K exist in this scope?" in O(1). The everyday lookup.
+- **By `(scope, kind)`** — answers "list all facts of kind K in this scope" in O(out-size). Useful for iteration (e.g., "all variable bindings in this function").
+- **By `kind`** — answers "list all facts of this kind across all scopes". Useful for global queries (e.g., "all type bindings", "all packages exported from this file").
+- **By `(name, kind?)`** — answers "find all facts named N, optionally of kind K, walking the active scope chain outermost-first". The dotted-path resolver builds on this.
+- **By `position`** — answers "what was the parse-time provenance of this fact?". Useful for diagnostics and consumer-side `@predicate` calls that reference `$position`.
+- **By **attribute** — for kinds whose facts carry rich payload (e.g., `class_member` has a `container`), a secondary index keyed on the attribute name + value answers "all members of class C" in O(out-size).
+
+The set of indexes is **declared per fact-kind**, not hard-coded in the engine — when a grammar emits a new kind, an optional accompanying schema describes which indexes to maintain for it (default: scope+name+kind). This keeps the engine schema-agnostic but lets grammar authors trade memory for query speed.
+
+### 3.3 Scope organisation
+
+Storage is **scope-aware** — every record lives in the scope active at emission time, and queries walk the scope chain from innermost to outermost (with explicit overrides for global / library-loaded facts).
+
+- Scopes form a tree: file → package → class → method → block (and `generate` / `interface` / `modport` / `covergroup` / `constraint_block` / etc. as the grammar requires).
+- A scope's records are visible to its descendants by default.
+- An explicit `@open_scope kind: K, name: N` annotation opens a new scope; `@close_scope` closes it; nesting is the natural call-stack-like model.
+- Cross-scope facts can be imported via `@import_from_library` (already in `.3.3.4.a` for cross-file imports — the same primitive extends naturally to intra-file scope sharing such as class-member access via dotted paths).
+
+### 3.4 Query layer
+
+Queries are themselves `@predicate` annotations on grammar rules — but the engine exposes a fixed set of query primitives that all grammar predicates compose. The minimum useful set:
+
+- `exists(kind, name [, attributes])` — does a fact match? (today's `has_fact`).
+- `attribute_of(kind, name) → value` — read an attribute (today's `fact_attribute_equals` and related).
+- `resolve_path(dotted_name) → fact-or-unresolved` — multi-segment dotted resolution through the scope chain (this is the `seed_map.seed_table.exists` case from §2).
+- `count(kind [, scope_filter])` — for cardinality predicates (already exists as `fact_count_at_least`).
+
+Grammar predicates compose these. The engine guarantees each primitive is at-most logarithmic in store size (and typically constant).
+
+### 3.5 Performance + scalability
+
+Since real SV input can emit hundreds of thousands of facts (uvm-pkg has tens of thousands of class members alone), the storage layer must:
+
+- Use **hash-based indexes** for `(scope, kind, name)` and `(name)` lookups (O(1) average).
+- Use **arena-allocated** scope nodes (cheap creation/destruction during nested parsing).
+- Avoid quadratic behaviours on rollback — when a `try_parse` discards a speculative sub-parse, any facts emitted speculatively must be retracted in O(emitted-count), not O(store-size). The current generator's IIFE pattern (from `.3.3.3`) already gives transactional commit/rollback for `semantic_runtime_state`; we extend the same boundary to all indexes.
+- Stream facts to disk for library export (already done by `.3.3.4.a`); never load all libraries eagerly.
+
+This is the "memory" §1 refers to — universal in what it stores, organised in many ways simultaneously for efficient retrieval, and scoped + transactional + scalable by construction.
 
 ## 4. Producers — facts to emit (decl-side semantic annotations)
 
@@ -113,22 +141,31 @@ The resolver underlying these predicates must do **multi-segment lookup**: given
 
 ## 6. Engine primitives — gap analysis
 
+Per §3.1, the engine should not encode a fixed taxonomy of fact-kinds — it must remain schema-agnostic and let grammar authors emit/query arbitrary kinds. The primitives below are the **minimal set** the engine must provide; everything else lives in grammar conventions.
+
 | Primitive | Today | After this proposal |
 |---|---|---|
-| `@emit_fact` | ✓ | ✓ (no change; new fact-kinds emerge as conventions) |
-| `@predicate has_fact` (gate commit) | ✓ | ✓ (kept for fact-existence checks) |
-| `@predicate <user_predicate>` with named predicates | partial (a few baked-in: `has_fact`, `lacks_fact_attribute_equals`, …) | **extend with `receiver_is_array`, `receiver_is_class`, `name_resolves`** — same shape as existing predicates, but resolver-backed |
-| Predicate references parent-rule positional capture (`$1` of parent) | ✗ | **NEW: `$enclosing_<role>`** or similar mechanism for child rules to reference parent siblings. **Alternative:** lift the predicate to the parent rule level (no engine change needed) — see §7. |
-| `@open_scope` / `@close_scope` (flat scopes) | ✓ | ✓, but need **scope kind** (`package | class | function | block`) and the member-scope-of-class concept |
-| Multi-segment name resolution (dotted path through scopes) | ✗ | **NEW: scope-resolver primitive** — walk a dotted name through the scope tree, returning the bound type-kind or `unresolved` |
-| `@branch_policy: context_first` | ✗ | **NEW: branch-by-predicate selection** at the rule level. **Alternative:** factor each branch into a separate rule whose `@predicate has_fact phase: branch` gates it; existing `priority_first` policy may suffice if predicates fail cleanly. |
-| `@export_to_library` / `@import_from_library` | ✓ (kind=package only, MVP-0) | **extend** to export `type_binding`, `class_member`, `variable_binding` |
+| `@emit_fact { kind: K, name: N, <attr_K=V>* }` | ✓ | ✓ (no change; engine is schema-agnostic — new kinds emerge as conventions without engine modification) |
+| Multi-index store (by `(scope,kind,name)`, by `kind`, by `(name)`, by attribute, by position) | partial (today: a single `(scope, kind, name)` map per `semantic_runtime_state`) | **extend** to maintain multiple indexes per fact-kind, declared via an optional per-kind index schema. Engine still doesn't know what the kinds mean; it just knows how to index them. |
+| Transactional commit/rollback of emitted facts | ✓ (via `.3.3.3` IIFE pattern in `with_semantic_runtime_rule_transaction`) | ✓ — but the rollback must scale across all maintained indexes in O(emitted-during-tx), not O(store). The IIFE captures the tx boundary; the per-index undo lists live inside. |
+| `@predicate has_fact(kind, name)` / `fact_attribute_equals(kind, name, attr, value)` / `fact_count_at_least(kind, M)` | ✓ | ✓ (kept verbatim; these are the composable query primitives §3.4 lists) |
+| `@predicate resolve_path(dotted_name)` — multi-segment dotted lookup through nested scopes | ✗ | **NEW** — required for the `seed_map.seed_table.exists(...)` case and any future dotted-path disambiguation. Returns "fact-found-of-kind-K" or "unresolved". |
+| Predicate references parent-rule positional capture (`$1` of parent) | ✗ | **NEW: `$enclosing_<role>`** or similar mechanism for child rules to reference parent siblings. **Alternative:** lift the predicate to the parent rule level so existing `$1` works — no engine change needed; see §7. |
+| `@open_scope` / `@close_scope` (flat scopes) | ✓ (single global scope, plus `.3.3.4.a` library scope) | **extend** with **scope kind** (`file | package | class | function | block | …`); engine treats kinds as opaque labels (no hard-coded set); grammar authors enforce the discipline of consistent labelling. |
+| Scope tree (parent/child relationships, walked outermost-first or innermost-first as the query demands) | partial (the IIFE preserves a "previous" state, which is a stack-style scope-tree) | **extend** to preserve the tree explicitly so cross-scope queries (e.g., "members of class C from outside C") work. |
+| `@branch_policy: context_first` (select the predicate-true branch) | ✗ | **NEW** OR equivalent — branch-by-predicate selection. **Alternative:** factor each branch into a rule whose `@predicate has_fact phase: branch` gates it; existing `priority_first` policy may suffice if predicates fail cleanly. To be confirmed during §8 Phase 2. |
+| `@export_to_library` / `@import_from_library` | ✓ (kind=package only, MVP-0) | **extend** to export *any* kind (not just `type_name`) — same schema-agnostic stance as the in-memory store; grammars declare which kinds are exportable per library. |
+| Per-fact-kind index schema declaration (e.g., `@index_schema: { kind: class_member, indexes: [(scope,name), (container), (kind)] }`) | ✗ | **NEW** — optional; defaults to `(scope, kind, name)`. Grammar-level declaration; engine consumes it to build indexes at codegen-or-load time. |
 
-So three real engine extensions, plus a number of convention/grammar additions:
+### Summary — the real engine extensions
 
-1. **Scope-kind awareness** in `@open_scope` (package vs. class vs. function), with member-scope-of-class as a queryable nested scope.
-2. **Multi-segment resolver** (dotted path through nested scopes).
-3. **Branch-by-predicate** at the rule level — *probably* expressible with existing `phase: branch` predicates if we lift the disambiguation up one rule. **`[TBC]` — verify before adding a new primitive.**
+1. **Multi-index store with schema-agnostic emission** — engine maintains as many indexes per fact-kind as the grammar declares; the engine itself never enumerates known kinds. This is the §3 generalisation made operational.
+2. **Multi-segment dotted-path resolver** (`resolve_path`).
+3. **Scope-kind labels + explicit scope tree** (so cross-scope queries work).
+4. **Branch-by-predicate** at the rule level — *probably* expressible with existing `phase: branch` predicates if we lift the disambiguation up one rule. **`[TBC]` — verify before adding a new primitive.**
+5. **Transactional rollback across all indexes** (O(emitted-in-tx), reusing the `.3.3.3` IIFE boundary).
+
+Items 1–3 are independent of method-call disambiguation and benefit every future grammar (regex, VHDL, RTL, anything). They are the parser-agnostic foundation; the SV-specific consumers in §5 build on top of them.
 
 ## 7. Open questions for review
 
@@ -143,7 +180,7 @@ So three real engine extensions, plus a number of convention/grammar additions:
 ## 8. Phased implementation plan (proposal — for amendment)
 
 - **Phase 0 (this doc)** — design proposal review + amendment until landed.
-- **Phase 1 — Engine: scope-kind awareness + multi-segment resolver.** Parser-agnostic. Verified by a tiny synthetic grammar that exercises class + member-scope + dotted lookup. **Leaf:** `.3.3.4.b.5.1`.
+- **Phase 1 — Engine: universal semantic store (§3).** Multi-index schema-agnostic fact store, per-kind index-schema declaration, scope-kind labels + explicit scope tree, multi-segment dotted-path resolver, transactional rollback across all indexes. Parser-agnostic. Verified by a tiny synthetic grammar exercising multiple fact-kinds with different index schemas + nested scopes + dotted lookup + speculative-parse rollback. **Leaf:** `.3.3.4.b.5.1`.
 - **Phase 2 — Engine: branch-by-predicate (or grammar-restructure equivalent).** Decide between the two paths during Phase 1 (verify whether existing `phase: branch` predicates can reference parent-rule captures). **Leaf:** `.3.3.4.b.5.2`.
 - **Phase 3 — Engine: extend `@export_to_library` / `@import_from_library` to richer fact kinds.** **Leaf:** `.3.3.4.b.5.3`.
 - **Phase 4 — SV grammar producer pass.** Add `@emit_fact` to every decl-site rule per §4. No other changes. Verify facts emit correctly via a probe. Re-run uvm corpus — parse still fails (consumers not yet wired), but no regression elsewhere. **Leaf:** `.3.3.4.b.6.1`.
