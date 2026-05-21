@@ -3643,7 +3643,7 @@ pub use semantic_directive_registry::{
     parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec,
 };
 pub use semantic_runtime::{
-    CompiledSemanticRuntimeAnnotations, FactKindDecl, ScopeId, ScopeNode,
+    CompiledSemanticRuntimeAnnotations, FactKindDecl, ResolveResult, ScopeId, ScopeNode,
     SemanticCloseScopeSpec, SemanticFactRecord, SemanticFactSpec, SemanticLibraryExportSpec,
     SemanticLibraryImportSpec, SemanticPredicateContentView, SemanticPredicatePhase,
     SemanticPredicateSpec, SemanticRuntimeCheckpoint, SemanticRuntimeDirective,

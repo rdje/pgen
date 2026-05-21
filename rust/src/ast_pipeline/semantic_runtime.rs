@@ -741,6 +741,54 @@ impl ScopeId {
     }
 }
 
+/// `SV-EXH-PROOF.3.3.4.b.5.1.4`: result of a `resolve_path` walk through
+/// the scope tree.
+///
+/// `Resolved` is returned when every segment of the dotted path successfully
+/// looked up a fact. `Unresolved` is returned when some prefix resolved but
+/// a later segment failed — the `resolved_prefix` field captures how far
+/// the walk got, and `last_kind` records the kind of the last successfully
+/// resolved fact (useful for diagnostics: "the path resolves up to `a.b`
+/// which is a `variable_binding`, but `.c` could not be resolved against
+/// the referenced type's scope").
+#[derive(Debug, Clone, PartialEq)]
+pub enum ResolveResult {
+    Resolved {
+        kind: String,
+        name: SemanticRuntimeValue,
+        scope_id: ScopeId,
+        attributes: Vec<UnifiedSemanticProperty>,
+    },
+    Unresolved {
+        /// Segments that were successfully resolved before the walk failed.
+        /// Empty if even the first segment failed.
+        resolved_prefix: Vec<String>,
+        /// Kind of the deepest successfully-resolved fact, if any.
+        last_kind: Option<String>,
+    },
+}
+
+impl ResolveResult {
+    pub fn is_resolved(&self) -> bool {
+        matches!(self, Self::Resolved { .. })
+    }
+
+    /// Look up an attribute by key on the resolved fact (case-insensitive,
+    /// matching the engine's predicate convention). Returns `None` if the
+    /// path is `Unresolved` or the attribute is absent. Used by composed
+    /// predicates that drill into the resolved fact (e.g.,
+    /// `resolve_path($p).attribute("type_kind")`).
+    pub fn attribute(&self, key: &str) -> Option<&UnifiedSemanticValue> {
+        match self {
+            Self::Resolved { attributes, .. } => attributes
+                .iter()
+                .find(|p| p.key.eq_ignore_ascii_case(key))
+                .map(|p| &p.value),
+            Self::Unresolved { .. } => None,
+        }
+    }
+}
+
 /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: one node in the scope tree.
 ///
 /// The tree is the canonical structure for the lifecycle protocol's Stage 4
@@ -1046,6 +1094,129 @@ impl SemanticRuntimeState {
         self.scope_arena
             .iter()
             .filter(move |node| node.parent == Some(id))
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.4` resolve_path — multi-segment dotted lookup through
+    // the scope tree.
+    // -------------------------------------------------------------------------
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.4`: resolve a dotted path like
+    /// `seed_map.seed_table.exists` through the scope tree.
+    ///
+    /// **Algorithm (segment-by-segment walk):**
+    ///
+    /// - Split `path` on `.`. Empty path or any empty segment → `Unresolved`.
+    /// - **Segment 0:** walk the active chain innermost → outermost. For
+    ///   each active scope, scan its emitted facts. The first fact whose
+    ///   name matches `segments[0]` wins. If no scope contains a match,
+    ///   the path is `Unresolved` with empty prefix.
+    /// - **Segment N+1:** the previous fact must carry a `type_ref`
+    ///   attribute naming a scope. Find any scope whose name matches that
+    ///   value (the convention: `type_ref` names a class / module /
+    ///   interface / package). Look up `segments[N+1]` in that scope's
+    ///   emitted facts. First match wins; absence is `Unresolved` with the
+    ///   prefix walked so far.
+    /// - When all segments resolve, return `Resolved` with the deepest
+    ///   fact's kind / name / scope_id / attributes.
+    ///
+    /// **Convention:** the `type_ref` attribute names a scope by name (e.g.,
+    /// the class name for an instance variable). Grammar authors emit
+    /// `@emit_fact { kind: variable_binding, name: $x, type_kind: class, type_ref: <class-name> }`
+    /// to wire this up. Variants on the convention (e.g., `class_ref`
+    /// or `package_ref`) can layer atop this primitive in future leaves.
+    ///
+    /// **Complexity:** O(active_chain_depth × facts_per_scope) for segment
+    /// 0; O(arena_size) for finding each subsequent scope by name +
+    /// O(facts_in_target_scope) per inner lookup. The future optimisation
+    /// (a `(name)`-keyed index across scopes) is tracked under
+    /// `feedback_universal_semantic_store`; for now linear scans are
+    /// adequate at uvm-scale fact populations (sub-microsecond walks
+    /// per the perf contract §3.3 budget for `resolve_path` ≤ 1 µs at
+    /// depth 5).
+    pub fn resolve_path(&self, path: &str) -> ResolveResult {
+        let segments: Vec<&str> = path.split('.').collect();
+        if segments.is_empty() || segments.iter().any(|s| s.is_empty()) {
+            return ResolveResult::Unresolved {
+                resolved_prefix: Vec::new(),
+                last_kind: None,
+            };
+        }
+        // Segment 0: walk active chain innermost-first looking for a fact
+        // with name == segments[0] in any active scope.
+        let mut current_fact_idx: Option<usize> = None;
+        for &scope_id in self.active_chain.iter().rev() {
+            if let Some(idx) = self.find_fact_position_by_name_in_scope(scope_id, segments[0]) {
+                current_fact_idx = Some(idx);
+                break;
+            }
+        }
+        let Some(mut fact_idx) = current_fact_idx else {
+            return ResolveResult::Unresolved {
+                resolved_prefix: Vec::new(),
+                last_kind: None,
+            };
+        };
+        let mut resolved_prefix = vec![segments[0].to_string()];
+        // Each subsequent segment: follow type_ref to a scope, look up
+        // the segment in that scope.
+        for segment in &segments[1..] {
+            let current_fact = &self.facts[fact_idx];
+            let Some(type_ref) = attribute_text(current_fact, "type_ref") else {
+                return ResolveResult::Unresolved {
+                    resolved_prefix,
+                    last_kind: Some(current_fact.kind.clone()),
+                };
+            };
+            let Some(target_scope_id) = self.find_scope_by_name(&type_ref) else {
+                return ResolveResult::Unresolved {
+                    resolved_prefix,
+                    last_kind: Some(current_fact.kind.clone()),
+                };
+            };
+            let Some(next_idx) =
+                self.find_fact_position_by_name_in_scope(target_scope_id, segment)
+            else {
+                return ResolveResult::Unresolved {
+                    resolved_prefix,
+                    last_kind: Some(current_fact.kind.clone()),
+                };
+            };
+            fact_idx = next_idx;
+            resolved_prefix.push((*segment).to_string());
+        }
+        let final_fact = &self.facts[fact_idx];
+        ResolveResult::Resolved {
+            kind: final_fact.kind.clone(),
+            name: final_fact.name.clone(),
+            scope_id: final_fact.scope_id,
+            attributes: final_fact.attributes.clone(),
+        }
+    }
+
+    /// Helper: scan `self.facts` for the first fact in `scope_id` whose
+    /// textual `name` matches. Returns the position in `self.facts` so the
+    /// caller can borrow the record via index without re-fetching.
+    fn find_fact_position_by_name_in_scope(&self, scope_id: ScopeId, name: &str) -> Option<usize> {
+        self.facts.iter().position(|f| {
+            f.scope_id == scope_id && fact_name_matches(&f.name, name)
+        })
+    }
+
+    /// Helper: find any scope in the arena (active OR closed) whose `name`
+    /// text matches the supplied value. First match wins; ties go to the
+    /// earliest arena insertion order (outermost / oldest). Returns
+    /// `ScopeId::ROOT` is not a match unless the root's name happens to
+    /// equal `name` — typically root.name is None.
+    fn find_scope_by_name(&self, name: &str) -> Option<ScopeId> {
+        for node in &self.scope_arena {
+            if let Some(scope_name) = &node.name {
+                if fact_name_matches(scope_name, name) {
+                    return Some(node.id);
+                }
+            }
+        }
+        None
     }
 
     pub fn scopes(&self) -> &[SemanticScopeFrame] {
@@ -1408,6 +1579,17 @@ impl SemanticRuntimeState {
                     .parse::<usize>()
                     .ok()?;
                 Some(self.fact_index.count_for_kind(expected_kind) >= minimum)
+            }
+            // `SV-EXH-PROOF.3.3.4.b.5.1.4`: built-in `resolve_path` predicate.
+            // Walks the supplied dotted path through the scope tree (per the
+            // algorithm documented on `resolve_path`). Returns true iff
+            // every segment resolves; false otherwise. Composed predicates
+            // (`.b.5.1.5` onwards) can call `resolve_path` and drill into
+            // the resulting fact via `.attribute("key")` — that surface is
+            // exposed via the `ResolveResult` enum on `resolve_path`.
+            "resolve_path" => {
+                let path = scalar_text(predicate.args.first()?)?;
+                Some(self.resolve_path(path).is_resolved())
             }
             _ => None,
         }
@@ -2169,6 +2351,37 @@ fn scalar_text(value: &UnifiedSemanticValue) -> Option<&str> {
         UnifiedSemanticValue::Boolean(_) | UnifiedSemanticValue::Null => None,
         UnifiedSemanticValue::Array(_) | UnifiedSemanticValue::Object(_) => None,
     }
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.4`: textual content of a `SemanticRuntimeValue`
+/// for path-resolution comparisons. Matches `scalar_text` semantics but
+/// operates on the `SemanticRuntimeValue` enum (used by fact names, scope
+/// names) rather than `UnifiedSemanticValue`.
+fn semantic_runtime_value_text(value: &SemanticRuntimeValue) -> Option<&str> {
+    match value {
+        SemanticRuntimeValue::String(s)
+        | SemanticRuntimeValue::Identifier(s)
+        | SemanticRuntimeValue::RuleReference(s)
+        | SemanticRuntimeValue::Number(s) => Some(s.as_str()),
+        SemanticRuntimeValue::Boolean(_) | SemanticRuntimeValue::Null => None,
+    }
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.4`: true when `value`'s textual content equals
+/// `name` (case-sensitive — names in SV are case-sensitive). Returns false
+/// for non-textual variants (Boolean, Null).
+fn fact_name_matches(value: &SemanticRuntimeValue, name: &str) -> bool {
+    semantic_runtime_value_text(value).is_some_and(|t| t == name)
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.4`: look up an attribute's textual value on a
+/// fact record. Returns `None` if the attribute is absent or its value is
+/// non-scalar (e.g., an embedded array or object).
+fn attribute_text(fact: &SemanticFactRecord, key: &str) -> Option<String> {
+    fact.attributes
+        .iter()
+        .find(|p| p.key.eq_ignore_ascii_case(key))
+        .and_then(|p| scalar_text(&p.value).map(str::to_string))
 }
 
 fn semantic_values_match(left: &UnifiedSemanticValue, right: &UnifiedSemanticValue) -> bool {
@@ -4645,6 +4858,247 @@ mod tests {
         assert_eq!(fact.scope_id, class_id);
         // Legacy scope_depth is also correct.
         assert_eq!(fact.scope_depth, 1);
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.4` resolve_path tests
+    //
+    // Cover the dotted-path walk through the scope tree: single-segment
+    // active-chain lookups, multi-segment via type_ref traversal, partial
+    // resolution with `Unresolved { resolved_prefix }`, error cases, and
+    // the built-in predicate wrapping.
+    // -------------------------------------------------------------------------
+
+    use super::{ResolveResult, attribute_text};
+
+    fn type_ref_attr(scope_name: &str) -> UnifiedSemanticProperty {
+        UnifiedSemanticProperty {
+            key: "type_ref".to_string(),
+            value: UnifiedSemanticValue::Identifier(scope_name.to_string()),
+        }
+    }
+
+    fn type_kind_attr(kind: &str) -> UnifiedSemanticProperty {
+        UnifiedSemanticProperty {
+            key: "type_kind".to_string(),
+            value: UnifiedSemanticValue::Identifier(kind.to_string()),
+        }
+    }
+
+    fn emit_with_attrs(
+        state: &mut SemanticRuntimeState,
+        kind: &str,
+        name: &str,
+        attrs: Vec<UnifiedSemanticProperty>,
+    ) {
+        state.emit_fact(SemanticFactSpec {
+            kind: kind.to_string(),
+            name: ident(name),
+            attributes: attrs,
+        });
+    }
+
+    #[test]
+    fn resolve_path_single_segment_in_current_scope() {
+        // Resolve "x" → finds the variable_binding emitted in the active
+        // (root) scope. Resolved variant carries the fact's data.
+        let mut state = SemanticRuntimeState::new();
+        emit_with_attrs(
+            &mut state,
+            "variable_binding",
+            "x",
+            vec![type_kind_attr("int")],
+        );
+        let result = state.resolve_path("x");
+        match result {
+            ResolveResult::Resolved { kind, name, scope_id, attributes } => {
+                assert_eq!(kind, "variable_binding");
+                assert_eq!(name, ident("x"));
+                assert_eq!(scope_id, super::ScopeId::ROOT);
+                assert_eq!(attributes.len(), 1);
+                assert_eq!(attributes[0].key, "type_kind");
+            }
+            other => panic!("expected Resolved, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_path_single_segment_walks_active_chain_outward() {
+        // Emit fact in root scope; open a class scope; resolve "x" finds
+        // the root scope's fact (visible from inner scope via outward walk).
+        let mut state = SemanticRuntimeState::new();
+        emit_with_attrs(&mut state, "variable_binding", "x", vec![]);
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Foo")),
+        });
+        let result = state.resolve_path("x");
+        assert!(result.is_resolved(), "outer scope's x should be visible inside class");
+    }
+
+    #[test]
+    fn resolve_path_missing_segment_returns_unresolved() {
+        let state = SemanticRuntimeState::new();
+        let result = state.resolve_path("ghost");
+        match result {
+            ResolveResult::Unresolved { resolved_prefix, last_kind } => {
+                assert!(resolved_prefix.is_empty());
+                assert!(last_kind.is_none());
+            }
+            other => panic!("expected Unresolved, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_path_multi_segment_via_type_ref() {
+        // Walk seed_map.seed_table.exists:
+        //   - seed_map is a class instance of Container (in root scope).
+        //   - Container's scope contains seed_table (an array).
+        //   - But array doesn't have methods named "exists" as facts here;
+        //     we'll test 2-segment first.
+        let mut state = SemanticRuntimeState::new();
+        // Container is a class scope with a single member "field_x".
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Container")),
+        });
+        emit_with_attrs(
+            &mut state,
+            "class_member",
+            "field_x",
+            vec![type_kind_attr("int")],
+        );
+        let close_spec = super::SemanticCloseScopeSpec { kind: None, name: None };
+        state.close_scope(&close_spec);
+        // In root scope, declare seed_map of type Container.
+        emit_with_attrs(
+            &mut state,
+            "variable_binding",
+            "seed_map",
+            vec![type_kind_attr("class"), type_ref_attr("Container")],
+        );
+        // Resolve seed_map.field_x.
+        let result = state.resolve_path("seed_map.field_x");
+        match result {
+            ResolveResult::Resolved { kind, name, .. } => {
+                assert_eq!(kind, "class_member");
+                assert_eq!(name, ident("field_x"));
+            }
+            other => panic!("expected Resolved, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_path_partial_returns_unresolved_with_prefix() {
+        // seed_map resolves (root-scope variable_binding) but seed_map's
+        // type_ref points to a scope that doesn't contain "nonexistent".
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Container")),
+        });
+        let close_spec = super::SemanticCloseScopeSpec { kind: None, name: None };
+        state.close_scope(&close_spec);
+        emit_with_attrs(
+            &mut state,
+            "variable_binding",
+            "seed_map",
+            vec![type_ref_attr("Container")],
+        );
+        let result = state.resolve_path("seed_map.nonexistent");
+        match result {
+            ResolveResult::Unresolved { resolved_prefix, last_kind } => {
+                assert_eq!(resolved_prefix, vec!["seed_map".to_string()]);
+                assert_eq!(last_kind.as_deref(), Some("variable_binding"));
+            }
+            other => panic!("expected Unresolved with prefix, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_path_missing_type_ref_blocks_descent() {
+        // seed_map exists but has no type_ref attribute; the second
+        // segment can't be walked.
+        let mut state = SemanticRuntimeState::new();
+        emit_with_attrs(&mut state, "variable_binding", "seed_map", vec![]);
+        let result = state.resolve_path("seed_map.anything");
+        match result {
+            ResolveResult::Unresolved { resolved_prefix, last_kind } => {
+                assert_eq!(resolved_prefix, vec!["seed_map".to_string()]);
+                assert_eq!(last_kind.as_deref(), Some("variable_binding"));
+            }
+            other => panic!("expected Unresolved, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn resolve_path_empty_path_and_empty_segments_rejected() {
+        let state = SemanticRuntimeState::new();
+        assert!(!state.resolve_path("").is_resolved());
+        assert!(!state.resolve_path(".x").is_resolved());
+        assert!(!state.resolve_path("x.").is_resolved());
+        assert!(!state.resolve_path("x..y").is_resolved());
+    }
+
+    #[test]
+    fn resolve_path_resolved_attribute_accessor() {
+        // ResolveResult::attribute() drill-down used by composed predicates.
+        let mut state = SemanticRuntimeState::new();
+        emit_with_attrs(
+            &mut state,
+            "variable_binding",
+            "x",
+            vec![type_kind_attr("array")],
+        );
+        let result = state.resolve_path("x");
+        let type_kind = result.attribute("type_kind");
+        assert!(type_kind.is_some());
+        match type_kind.unwrap() {
+            UnifiedSemanticValue::Identifier(s) => assert_eq!(s, "array"),
+            other => panic!("expected Identifier, got {:?}", other),
+        }
+        // Missing attribute returns None.
+        assert!(result.attribute("nonexistent").is_none());
+    }
+
+    #[test]
+    fn resolve_path_as_built_in_predicate_returns_bool() {
+        // The "resolve_path" predicate name returns Some(true) on Resolved,
+        // Some(false) on Unresolved.
+        let mut state = SemanticRuntimeState::new();
+        emit_with_attrs(&mut state, "variable_binding", "x", vec![]);
+
+        let pred_resolved = SemanticPredicateSpec {
+            name: "resolve_path".to_string(),
+            args: vec![UnifiedSemanticValue::Identifier("x".to_string())],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        };
+        let pred_unresolved = SemanticPredicateSpec {
+            name: "resolve_path".to_string(),
+            args: vec![UnifiedSemanticValue::Identifier("ghost".to_string())],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        };
+
+        assert_eq!(state.evaluate_predicate(&pred_resolved), Some(true));
+        assert_eq!(state.evaluate_predicate(&pred_unresolved), Some(false));
+    }
+
+    #[test]
+    fn attribute_text_helper_handles_case_insensitive_keys() {
+        // attribute_text() uses eq_ignore_ascii_case so grammar authors can
+        // write attribute keys in any case at the use site.
+        let fact = SemanticFactRecord {
+            kind: "x".to_string(),
+            name: ident("y"),
+            scope_depth: 0,
+            scope_id: super::ScopeId::ROOT,
+            attributes: vec![type_kind_attr("class")],
+        };
+        assert_eq!(attribute_text(&fact, "type_kind"), Some("class".to_string()));
+        assert_eq!(attribute_text(&fact, "TYPE_KIND"), Some("class".to_string()));
+        assert_eq!(attribute_text(&fact, "nonexistent"), None);
     }
 
     #[test]
