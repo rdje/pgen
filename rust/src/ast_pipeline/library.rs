@@ -308,6 +308,10 @@ fn parse_artifact_json(
             // recorded as the current depth at load time (set by the caller).
             // Until then, default to 0 — overwritten on merge.
             scope_depth: 0,
+            // `.3.3.4.b.5.1.3`: importing facts always rebase scope_id to
+            // the importer's current scope when the import lands; default
+            // to ROOT as a safe sentinel pending the rebase in `push_fact_record`.
+            scope_id: crate::ast_pipeline::ScopeId::ROOT,
             attributes: attrs,
         });
     }
@@ -388,6 +392,7 @@ mod tests {
             kind: "type_name".to_string(),
             name: SemanticRuntimeValue::Identifier(name.to_string()),
             scope_depth: 0,
+            scope_id: crate::ast_pipeline::ScopeId::ROOT,
             attributes: vec![UnifiedSemanticProperty {
                 key: "declaration_family".to_string(),
                 value: UnifiedSemanticValue::Identifier(family.to_string()),
@@ -422,6 +427,7 @@ mod tests {
                 kind: "package_name".to_string(),
                 name: SemanticRuntimeValue::Identifier("el2_pkg".to_string()),
                 scope_depth: 0,
+                scope_id: crate::ast_pipeline::ScopeId::ROOT,
                 attributes: vec![],
             },
         ];

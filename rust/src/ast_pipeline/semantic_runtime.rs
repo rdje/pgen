@@ -706,14 +706,86 @@ pub struct SemanticScopeFrame {
 pub struct SemanticFactRecord {
     pub kind: String,
     pub name: SemanticRuntimeValue,
+    /// Legacy field: the depth (= position in the active chain) of the scope
+    /// the fact was emitted into. Maintained alongside `scope_id` for
+    /// backward compatibility with `.3.3.4.a` library export/import paths
+    /// and the `.b.5.1.1` `(scope_depth, name)` index keys.
     pub scope_depth: usize,
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: precise scope-arena identifier of the
+    /// scope this fact belongs to. Set on emit/import; preserved across
+    /// rollback (a rolled-back emit removes the fact entirely, so its
+    /// scope_id never appears in the live store after rollback). Used by
+    /// future tree-walking queries (resolve_path in .b.5.1.4 onwards).
+    /// `ScopeId::ROOT` (0) on facts emitted while only the global scope
+    /// is active.
+    pub scope_id: ScopeId,
     pub attributes: Vec<UnifiedSemanticProperty>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// `SV-EXH-PROOF.3.3.4.b.5.1.3`: dense identifier for a scope node in the
+/// `scope_arena`. `ScopeId(0)` is reserved for the global (root) scope —
+/// `SemanticRuntimeState::new` always allocates it as arena entry 0 so
+/// `current_scope_id()` is total.
+///
+/// Newtype rather than a bare `usize` so accidental arithmetic doesn't
+/// compile and the type signature of every tree-walking API is unambiguous.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct ScopeId(pub u32);
+
+impl ScopeId {
+    /// The implicit global scope, allocated as arena entry 0 at construction.
+    pub const ROOT: ScopeId = ScopeId(0);
+
+    pub fn index(self) -> usize {
+        self.0 as usize
+    }
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.3`: one node in the scope tree.
+///
+/// The tree is the canonical structure for the lifecycle protocol's Stage 4
+/// (SCOPE) and its consumers (resolve_path in .b.5.1.4, library export in
+/// .b.5.1.3 onwards). Each node knows its parent; children are derived on
+/// demand by scanning the arena. The arena is append-only during a
+/// transaction; rollback truncates back to the checkpoint length.
+///
+/// Closed scopes (`closed == true`) stay in the arena — they are queryable
+/// for archived-scope lookups (e.g., "list all variable bindings declared
+/// inside class Foo, even after the class scope has closed"). The runtime's
+/// `active_chain` tracks only currently-open scopes; the arena tracks
+/// everything ever opened (and not rolled back).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScopeNode {
+    pub id: ScopeId,
+    /// Parent scope id. `None` only for the root (`ScopeId::ROOT`).
+    pub parent: Option<ScopeId>,
+    pub kind: SemanticScopeKind,
+    pub name: Option<SemanticRuntimeValue>,
+    /// True after `close_scope` matched and popped this node from the
+    /// `active_chain`. The node remains in the arena.
+    pub closed: bool,
+    /// Depth of this scope in the active chain at the moment it was
+    /// opened (root = 0). Recorded for backward-compat with
+    /// `SemanticFactRecord.scope_depth`.
+    pub depth_when_opened: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SemanticRuntimeCheckpoint {
     scope_len: usize,
     fact_len: usize,
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: arena length at checkpoint time. On
+    /// rollback the arena truncates back to this point — nodes allocated
+    /// during the speculative tx vanish.
+    scope_arena_len: usize,
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: snapshot of the active-scope chain at
+    /// checkpoint time. On rollback the chain is restored to exactly this
+    /// sequence — every scope that the speculative tx closed is re-opened
+    /// (its `closed` flag is reset). The chain is at most `scope_arena_len`
+    /// long. (Removing `Copy` from this struct to accommodate the Vec; all
+    /// uses of `SemanticRuntimeCheckpoint` are owned values that can clone
+    /// cheaply since the snapshot is bounded by parser nesting depth.)
+    active_chain_snapshot: Vec<ScopeId>,
 }
 
 impl SemanticRuntimeCheckpoint {
@@ -730,6 +802,11 @@ impl SemanticRuntimeCheckpoint {
     /// `fact_len` for completeness and future use.
     pub fn scope_len(&self) -> usize {
         self.scope_len
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.3`: arena length at checkpoint time.
+    pub fn scope_arena_len(&self) -> usize {
+        self.scope_arena_len
     }
 }
 
@@ -880,6 +957,17 @@ pub struct SemanticRuntimeState {
     /// `.3.3.4.b.5.1.1`: secondary index for O(1)-avg queries by `(kind, name)`
     /// and `(kind, scope_depth, name)`. Maintained in lockstep with `facts`.
     fact_index: FactIndex,
+    /// `.3.3.4.b.5.1.3`: append-only arena of every scope node ever opened
+    /// (and not rolled back). Indexed by `ScopeId`. Entry 0 is the global
+    /// (root) scope, allocated by `new`. Closed scopes stay in the arena
+    /// with `closed: true` for archived queries.
+    scope_arena: Vec<ScopeNode>,
+    /// `.3.3.4.b.5.1.3`: stack of currently-open scope ids — the active
+    /// chain. Innermost is `last()`. `[ScopeId::ROOT]` initially. Maintained
+    /// in lockstep with the legacy `scopes` Vec (one entry per active
+    /// scope) so existing consumers (predicates that read scope_depth /
+    /// current_scope) continue to work unchanged.
+    active_chain: Vec<ScopeId>,
 }
 
 #[derive(Debug)]
@@ -897,6 +985,17 @@ impl Default for SemanticRuntimeState {
 
 impl SemanticRuntimeState {
     pub fn new() -> Self {
+        // `.3.3.4.b.5.1.3`: the global (root) scope is arena entry 0. The
+        // legacy `scopes` Vec and the new `active_chain` Vec are populated
+        // in lockstep — both reference the same global frame.
+        let root_node = ScopeNode {
+            id: ScopeId::ROOT,
+            parent: None,
+            kind: SemanticScopeKind::Global,
+            name: None,
+            closed: false,
+            depth_when_opened: 0,
+        };
         Self {
             scopes: vec![SemanticScopeFrame {
                 kind: SemanticScopeKind::Global,
@@ -904,7 +1003,49 @@ impl SemanticRuntimeState {
             }],
             facts: Vec::new(),
             fact_index: FactIndex::default(),
+            scope_arena: vec![root_node],
+            active_chain: vec![ScopeId::ROOT],
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.3` scope-tree accessors
+    // -------------------------------------------------------------------------
+
+    /// Read-only access to the scope arena (every scope ever opened, alive
+    /// or closed).
+    pub fn scope_arena(&self) -> &[ScopeNode] {
+        &self.scope_arena
+    }
+
+    /// Lookup a scope node by id. Returns `None` if the id is out of bounds
+    /// (e.g., a stale id captured before rollback).
+    pub fn scope_node(&self, id: ScopeId) -> Option<&ScopeNode> {
+        self.scope_arena.get(id.index())
+    }
+
+    /// The id of the innermost currently-open scope. Always at least
+    /// `ScopeId::ROOT` because the global scope is never closed.
+    pub fn current_scope_id(&self) -> ScopeId {
+        *self
+            .active_chain
+            .last()
+            .expect("semantic runtime state always maintains at least the root scope")
+    }
+
+    /// The active scope chain from outermost (root) to innermost. Used by
+    /// queries that need to walk up the visibility stack.
+    pub fn active_chain(&self) -> &[ScopeId] {
+        &self.active_chain
+    }
+
+    /// Iterate the direct children of `id` in the arena. O(arena.len())
+    /// scan; future optimisation can maintain a per-node children list if
+    /// query patterns demand it.
+    pub fn scope_children(&self, id: ScopeId) -> impl Iterator<Item = &ScopeNode> + '_ {
+        self.scope_arena
+            .iter()
+            .filter(move |node| node.parent == Some(id))
     }
 
     pub fn scopes(&self) -> &[SemanticScopeFrame] {
@@ -944,12 +1085,14 @@ impl SemanticRuntimeState {
         SemanticRuntimeCheckpoint {
             scope_len: self.scopes.len(),
             fact_len: self.facts.len(),
+            scope_arena_len: self.scope_arena.len(),
+            active_chain_snapshot: self.active_chain.clone(),
         }
     }
 
     pub fn rollback_to(&mut self, checkpoint: SemanticRuntimeCheckpoint) {
-        let scope_len = checkpoint.scope_len.max(1).min(self.scopes.len());
         let fact_len = checkpoint.fact_len.min(self.facts.len());
+        let scope_arena_len = checkpoint.scope_arena_len.max(1).min(self.scope_arena.len());
         // `.3.3.4.b.5.1.1`: extend rollback to undo the per-kind index entries
         // for every fact at position `>= fact_len`. The master Vec is the
         // source of truth, so we iterate it in reverse to find the kinds /
@@ -967,15 +1110,62 @@ impl SemanticRuntimeState {
                 position,
             );
         }
-        self.scopes.truncate(scope_len);
         self.facts.truncate(fact_len);
+        // `.3.3.4.b.5.1.3`: truncate the arena to checkpoint length —
+        // nodes opened during the rolled-back tx are discarded.
+        self.scope_arena.truncate(scope_arena_len);
+        // Restore the active chain to its checkpoint snapshot exactly.
+        // Every entry in the snapshot must reference a node that survives
+        // truncation (invariant: nodes in the active chain at checkpoint
+        // time had id < arena.len() at that time = scope_arena_len).
+        self.active_chain = checkpoint.active_chain_snapshot.clone();
+        // Re-open every node in the restored active chain — the rolled-back
+        // tx may have called `close_scope` on any subset of them. Reset
+        // their `closed` flag to mirror the checkpoint state.
+        for &id in &self.active_chain {
+            if let Some(node) = self.scope_arena.get_mut(id.index()) {
+                node.closed = false;
+            }
+        }
+        // Rebuild the legacy `scopes` Vec in lockstep with the restored
+        // active_chain (one frame per active node, in chain order).
+        self.scopes = self
+            .active_chain
+            .iter()
+            .map(|&id| {
+                let node = &self.scope_arena[id.index()];
+                SemanticScopeFrame {
+                    kind: node.kind.clone(),
+                    name: node.name.clone(),
+                }
+            })
+            .collect();
+        debug_assert_eq!(self.scopes.len(), checkpoint.scope_len);
     }
 
     pub fn commit(&self, checkpoint: SemanticRuntimeCheckpoint) -> bool {
-        checkpoint.scope_len <= self.scopes.len() && checkpoint.fact_len <= self.facts.len()
+        checkpoint.scope_len <= self.scopes.len()
+            && checkpoint.fact_len <= self.facts.len()
+            && checkpoint.scope_arena_len <= self.scope_arena.len()
     }
 
     pub fn open_scope(&mut self, spec: SemanticScopeSpec) {
+        // `.3.3.4.b.5.1.3`: allocate a new arena node, parent = current
+        // active leaf. Maintain the legacy `scopes` Vec in lockstep so
+        // existing predicates that consult `scopes` keep working.
+        let parent = Some(self.current_scope_id());
+        let depth_when_opened = self.active_chain.len();
+        let new_id = ScopeId(self.scope_arena.len() as u32);
+        let node = ScopeNode {
+            id: new_id,
+            parent,
+            kind: spec.kind.clone(),
+            name: spec.name.clone(),
+            closed: false,
+            depth_when_opened,
+        };
+        self.scope_arena.push(node);
+        self.active_chain.push(new_id);
         self.scopes.push(SemanticScopeFrame {
             kind: spec.kind,
             name: spec.name,
@@ -991,6 +1181,14 @@ impl SemanticRuntimeState {
                 .last()
                 .expect("semantic runtime state always maintains at least the global scope"),
         ) {
+            // `.3.3.4.b.5.1.3`: pop the active chain AND mark the arena
+            // node closed (it stays in the arena, queryable via
+            // `scope_arena()` / `scope_children()`).
+            if let Some(popped_id) = self.active_chain.pop() {
+                if let Some(node) = self.scope_arena.get_mut(popped_id.index()) {
+                    node.closed = true;
+                }
+            }
             self.scopes.pop();
             true
         } else {
@@ -1000,6 +1198,7 @@ impl SemanticRuntimeState {
 
     pub fn emit_fact(&mut self, fact: SemanticFactSpec) {
         let scope_depth = self.scopes.len() - 1;
+        let scope_id = self.current_scope_id();
         let position = self.facts.len();
         // `.3.3.4.b.5.1.1`: mirror the insertion into the secondary index.
         self.fact_index.insert(&fact.kind, scope_depth, &fact.name, position);
@@ -1007,6 +1206,7 @@ impl SemanticRuntimeState {
             kind: fact.kind,
             name: fact.name,
             scope_depth,
+            scope_id,
             attributes: fact.attributes,
         });
     }
@@ -1017,11 +1217,13 @@ impl SemanticRuntimeState {
     /// Used by the library-import path: artifacts contain `SemanticFactRecord`s
     /// that have ALREADY been resolved by the original exporting parser run, so
     /// there is no `SemanticFactSpec` shape to evaluate here — we just merge
-    /// them in. `scope_depth` is rebased to the current scope (the original
-    /// exporter's depth has no meaning in the importer's scope stack); MVP-0
-    /// imports always merge at the current scope depth.
+    /// them in. `scope_depth` AND `scope_id` are both rebased to the current
+    /// scope (the original exporter's depth/id have no meaning in the
+    /// importer's scope tree); MVP-0 imports merge at the current active
+    /// scope.
     pub fn push_fact_record(&mut self, mut record: SemanticFactRecord) {
         record.scope_depth = self.scopes.len() - 1;
+        record.scope_id = self.current_scope_id();
         let position = self.facts.len();
         // `.3.3.4.b.5.1.1`: mirror the import into the secondary index.
         self.fact_index.insert(&record.kind, record.scope_depth, &record.name, position);
@@ -1291,7 +1493,7 @@ impl<'a> SemanticRuntimeTransaction<'a> {
     }
 
     pub fn checkpoint(&self) -> SemanticRuntimeCheckpoint {
-        self.checkpoint
+        self.checkpoint.clone()
     }
 
     pub fn apply_directive(&mut self, directive: &SemanticRuntimeDirective) -> bool {
@@ -1326,12 +1528,12 @@ impl<'a> SemanticRuntimeTransaction<'a> {
     }
 
     pub fn rollback(mut self) {
-        self.state.rollback_to(self.checkpoint);
+        self.state.rollback_to(self.checkpoint.clone());
         self.committed = true;
     }
 
     pub fn commit(mut self) -> bool {
-        let committed = self.state.commit(self.checkpoint);
+        let committed = self.state.commit(self.checkpoint.clone());
         self.committed = true;
         committed
     }
@@ -1340,7 +1542,7 @@ impl<'a> SemanticRuntimeTransaction<'a> {
 impl Drop for SemanticRuntimeTransaction<'_> {
     fn drop(&mut self) {
         if !self.committed {
-            self.state.rollback_to(self.checkpoint);
+            self.state.rollback_to(self.checkpoint.clone());
         }
     }
 }
@@ -3953,6 +4155,7 @@ mod tests {
             kind: "type_binding".to_string(),
             name: ident("ImportedT"),
             scope_depth: 0,
+            scope_id: super::ScopeId::ROOT,
             attributes: vec![],
         });
         assert_eq!(
@@ -4276,6 +4479,195 @@ mod tests {
         assert_eq!(compiled.fact_kinds_len(), 1);
         let decl = compiled.fact_kind("foo").expect("registered");
         assert_eq!(decl.attributes, vec!["a", "b"]);
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.3` scope-tree tests
+    //
+    // Verify the scope arena + active_chain + tree-walking accessors:
+    // root invariant, open/close propagation, closed-scope survival,
+    // rollback truncation, scope_id on emitted facts.
+    // -------------------------------------------------------------------------
+
+    use super::{SemanticCloseScopeSpec, SemanticScopeSpec};
+
+    #[test]
+    fn scope_tree_root_invariants() {
+        // The root scope is always present with id 0 and depth 0; it is
+        // never closed by the engine.
+        let state = SemanticRuntimeState::new();
+        assert_eq!(state.scope_arena().len(), 1);
+        let root = state.scope_node(super::ScopeId::ROOT).expect("root present");
+        assert_eq!(root.id, super::ScopeId::ROOT);
+        assert!(root.parent.is_none());
+        assert_eq!(root.depth_when_opened, 0);
+        assert!(!root.closed);
+        assert_eq!(state.current_scope_id(), super::ScopeId::ROOT);
+        assert_eq!(state.active_chain(), &[super::ScopeId::ROOT]);
+    }
+
+    #[test]
+    fn scope_tree_open_pushes_node_with_parent() {
+        // Open a class scope; arena grows; new node parent = root; active chain extends.
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Foo")),
+        });
+        assert_eq!(state.scope_arena().len(), 2);
+        let class_id = state.current_scope_id();
+        assert_eq!(class_id, super::ScopeId(1));
+        let class_node = state.scope_node(class_id).expect("class node");
+        assert_eq!(class_node.parent, Some(super::ScopeId::ROOT));
+        assert_eq!(class_node.kind, SemanticScopeKind::Class);
+        assert_eq!(class_node.name, Some(ident("Foo")));
+        assert_eq!(class_node.depth_when_opened, 1);
+        assert!(!class_node.closed);
+        assert_eq!(
+            state.active_chain(),
+            &[super::ScopeId::ROOT, super::ScopeId(1)]
+        );
+    }
+
+    #[test]
+    fn scope_tree_close_marks_node_closed_but_keeps_it_in_arena() {
+        // After close_scope, the node is still in the arena (queryable for
+        // archived lookups) but marked closed = true; active_chain pops it.
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Foo")),
+        });
+        let class_id = state.current_scope_id();
+        let closed = state.close_scope(&SemanticCloseScopeSpec { kind: None, name: None });
+        assert!(closed, "close_scope should match");
+        // Arena length is unchanged: closed scopes stay.
+        assert_eq!(state.scope_arena().len(), 2);
+        // Node is marked closed.
+        let class_node = state.scope_node(class_id).expect("class node still present");
+        assert!(class_node.closed);
+        // Active chain is back to just the root.
+        assert_eq!(state.active_chain(), &[super::ScopeId::ROOT]);
+        assert_eq!(state.current_scope_id(), super::ScopeId::ROOT);
+    }
+
+    #[test]
+    fn scope_tree_nested_scopes_form_a_proper_tree() {
+        // Open class -> function -> block; each step's node parent points
+        // back one level. After closing function, the block (already closed
+        // by then) survives in the arena.
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Foo")),
+        });
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Function,
+            name: Some(ident("bar")),
+        });
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Block,
+            name: None,
+        });
+        let block_id = state.current_scope_id();
+        let function_id = state.scope_arena()[2].id;
+        let class_id = state.scope_arena()[1].id;
+        assert_eq!(state.scope_arena().len(), 4);
+        assert_eq!(state.scope_node(block_id).unwrap().parent, Some(function_id));
+        assert_eq!(state.scope_node(function_id).unwrap().parent, Some(class_id));
+        assert_eq!(state.scope_node(class_id).unwrap().parent, Some(super::ScopeId::ROOT));
+        // Children scan: root has one direct child (the class).
+        let root_children: Vec<_> = state.scope_children(super::ScopeId::ROOT).collect();
+        assert_eq!(root_children.len(), 1);
+        assert_eq!(root_children[0].id, class_id);
+        // Class has one direct child (function).
+        let class_children: Vec<_> = state.scope_children(class_id).collect();
+        assert_eq!(class_children.len(), 1);
+        assert_eq!(class_children[0].id, function_id);
+    }
+
+    #[test]
+    fn scope_tree_rollback_truncates_arena_and_restores_open_state() {
+        // P-TX-1 extension: rollback restores arena to checkpoint state AND
+        // re-opens any scope that was speculatively closed inside the tx.
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Foo")),
+        });
+        let pre_tx_class_id = state.current_scope_id();
+        let checkpoint = state.checkpoint();
+        // Speculate: open and close several nested scopes.
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Function,
+            name: Some(ident("bar")),
+        });
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Block,
+            name: None,
+        });
+        // Close the inner two.
+        state.close_scope(&SemanticCloseScopeSpec { kind: None, name: None });
+        state.close_scope(&SemanticCloseScopeSpec { kind: None, name: None });
+        // The class scope is the only one ALSO open at checkpoint time, so
+        // close it speculatively too — that's the "premature close" case
+        // rollback must reverse.
+        state.close_scope(&SemanticCloseScopeSpec { kind: None, name: None });
+        // Roll back.
+        state.rollback_to(checkpoint);
+        // Arena truncated back to (root, class).
+        assert_eq!(state.scope_arena().len(), 2);
+        // Class scope is OPEN again — its `closed` flag was reset by rollback.
+        let class_node = state.scope_node(pre_tx_class_id).expect("class survives rollback");
+        assert!(!class_node.closed, "class scope should be re-opened by rollback");
+        // Active chain restored: root + class.
+        assert_eq!(state.active_chain(), &[super::ScopeId::ROOT, pre_tx_class_id]);
+        assert_eq!(state.current_scope_id(), pre_tx_class_id);
+    }
+
+    #[test]
+    fn scope_tree_emitted_fact_carries_scope_id() {
+        // Emitting a fact while inside a class scope records the class's
+        // scope_id on the fact record.
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("Foo")),
+        });
+        let class_id = state.current_scope_id();
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("local_var"),
+            attributes: vec![],
+        });
+        assert_eq!(state.facts().len(), 1);
+        let fact = &state.facts()[0];
+        assert_eq!(fact.scope_id, class_id);
+        // Legacy scope_depth is also correct.
+        assert_eq!(fact.scope_depth, 1);
+    }
+
+    #[test]
+    fn scope_tree_imported_fact_rebases_scope_id() {
+        // push_fact_record (the library-import path) rebases scope_id to
+        // the importer's current scope, ignoring any scope_id carried on
+        // the artefact.
+        let mut state = SemanticRuntimeState::new();
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Package,
+            name: Some(ident("p")),
+        });
+        let pkg_id = state.current_scope_id();
+        state.push_fact_record(SemanticFactRecord {
+            kind: "type_binding".to_string(),
+            name: ident("ImportedType"),
+            scope_depth: 0,                                // ignored on import
+            scope_id: super::ScopeId(999),                 // ignored on import
+            attributes: vec![],
+        });
+        let fact = &state.facts()[0];
+        assert_eq!(fact.scope_id, pkg_id);
+        assert_eq!(fact.scope_depth, 1);
     }
 
     #[test]
