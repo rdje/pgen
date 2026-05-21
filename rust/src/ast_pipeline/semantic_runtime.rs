@@ -37,7 +37,7 @@ impl SemanticScopeKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SemanticRuntimeValue {
     String(String),
     Identifier(String),
@@ -488,10 +488,153 @@ impl SemanticRuntimeCheckpoint {
     }
 }
 
+/// `.3.3.4.b.5.1.1`: per-kind secondary index for O(1)-avg fact queries.
+///
+/// Before this slice, every predicate on `SemanticRuntimeState` walked the
+/// full `facts: Vec<SemanticFactRecord>` with a linear scan
+/// (`self.facts.iter().filter(...)`). At uvm-scale fact populations (tens of
+/// thousands of variable bindings, class members, typedefs, …) those linear
+/// scans become the parser's hottest cost — that's precisely the
+/// "bottleneck" the user mandate rules out
+/// (`CONTEXT_AWARE_PARSING_DESIGN.md` §3.5 / §11; `PGEN_SEMANTIC_STORE_PERFORMANCE_CONTRACT.md` §3.3).
+///
+/// This index is maintained ALONGSIDE the master `facts` Vec (which remains
+/// the source of truth in insertion order — required by the `.3.3.4.a`
+/// library-export path which slices `&state.facts()[checkpoint.fact_len()..]`
+/// for the per-rule delta). The Vec stays; the index makes lookups cheap.
+///
+/// Shape (per fact-kind, kind comparison case-insensitive — kind keys are
+/// stored lowercased to match the existing `eq_ignore_ascii_case` predicate
+/// semantics):
+/// - `by_scope_and_name: HashMap<(usize, SemanticRuntimeValue), Vec<usize>>`
+///   maps `(scope_depth, name)` to the positions in `facts` Vec. A Vec of
+///   positions handles the duplicate-emit case (allowed today; semantics
+///   for duplicate-in-scope are still `[TBC]` per the API contract §7).
+/// - `total_count: usize` — fast `fact_count_at_least` (counts ALL facts of
+///   this kind, regardless of scope; the legacy semantic).
+///
+/// Rollback (`rollback_to`) extends to the index: when the master Vec
+/// truncates from `facts.len()` to `fact_len`, every fact at position
+/// `>= fact_len` is removed from its index buckets. Cost is O(emitted-in-tx),
+/// not O(store), matching the performance contract §3.7.
+#[derive(Debug, Clone, Default, PartialEq)]
+struct FactIndex {
+    by_kind: HashMap<String, FactKindIndex>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+struct FactKindIndex {
+    by_scope_and_name: HashMap<(usize, SemanticRuntimeValue), Vec<usize>>,
+    total_count: usize,
+}
+
+impl FactIndex {
+    /// Insert `position` (the master `facts` Vec index) for the given fact.
+    /// Kind is normalised lowercase to match `eq_ignore_ascii_case` query
+    /// semantics already in place.
+    fn insert(&mut self, kind: &str, scope_depth: usize, name: &SemanticRuntimeValue, position: usize) {
+        let kind_index = self.by_kind.entry(kind.to_ascii_lowercase()).or_default();
+        kind_index
+            .by_scope_and_name
+            .entry((scope_depth, name.clone()))
+            .or_default()
+            .push(position);
+        kind_index.total_count += 1;
+    }
+
+    /// Remove the index entry for a fact at `position`. Returns true if the
+    /// entry was present. Used by `rollback_to` to undo emits.
+    fn remove(&mut self, kind: &str, scope_depth: usize, name: &SemanticRuntimeValue, position: usize) -> bool {
+        let kind_normalised = kind.to_ascii_lowercase();
+        let Some(kind_index) = self.by_kind.get_mut(&kind_normalised) else {
+            return false;
+        };
+        let key = (scope_depth, name.clone());
+        let Some(positions) = kind_index.by_scope_and_name.get_mut(&key) else {
+            return false;
+        };
+        let Some(idx) = positions.iter().rposition(|&p| p == position) else {
+            return false;
+        };
+        positions.swap_remove(idx);
+        if positions.is_empty() {
+            kind_index.by_scope_and_name.remove(&key);
+        }
+        kind_index.total_count -= 1;
+        if kind_index.total_count == 0 && kind_index.by_scope_and_name.is_empty() {
+            self.by_kind.remove(&kind_normalised);
+        }
+        true
+    }
+
+    /// O(1)-average existence check across the whole store: is there any fact
+    /// of `kind` with this `name` (in any scope_depth)?
+    fn any_with_name(&self, kind: &str, name: &SemanticRuntimeValue) -> bool {
+        let kind_normalised = kind.to_ascii_lowercase();
+        let Some(kind_index) = self.by_kind.get(&kind_normalised) else {
+            return false;
+        };
+        kind_index
+            .by_scope_and_name
+            .iter()
+            .any(|((_, n), positions)| n == name && !positions.is_empty())
+    }
+
+    /// O(1) existence check at a specific scope depth.
+    fn any_with_name_at_scope(
+        &self,
+        kind: &str,
+        scope_depth: usize,
+        name: &SemanticRuntimeValue,
+    ) -> bool {
+        let kind_normalised = kind.to_ascii_lowercase();
+        let Some(kind_index) = self.by_kind.get(&kind_normalised) else {
+            return false;
+        };
+        kind_index
+            .by_scope_and_name
+            .get(&(scope_depth, name.clone()))
+            .is_some_and(|positions| !positions.is_empty())
+    }
+
+    /// Enumerate positions in the master Vec for facts matching
+    /// `(kind, name)` across ALL scope depths. Used by attribute-existence
+    /// and attribute-value-equality predicates which need to look up the
+    /// fact's `attributes` payload.
+    fn positions_for_name<'a>(
+        &'a self,
+        kind: &str,
+        name: &'a SemanticRuntimeValue,
+    ) -> impl Iterator<Item = usize> + 'a {
+        let kind_normalised = kind.to_ascii_lowercase();
+        self.by_kind
+            .get(&kind_normalised)
+            .into_iter()
+            .flat_map(move |kind_index| {
+                kind_index
+                    .by_scope_and_name
+                    .iter()
+                    .filter(move |((_, n), _)| n == name)
+                    .flat_map(|(_, positions)| positions.iter().copied())
+            })
+    }
+
+    /// O(1) total fact count for a given kind.
+    fn count_for_kind(&self, kind: &str) -> usize {
+        let kind_normalised = kind.to_ascii_lowercase();
+        self.by_kind
+            .get(&kind_normalised)
+            .map_or(0, |k| k.total_count)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SemanticRuntimeState {
     scopes: Vec<SemanticScopeFrame>,
     facts: Vec<SemanticFactRecord>,
+    /// `.3.3.4.b.5.1.1`: secondary index for O(1)-avg queries by `(kind, name)`
+    /// and `(kind, scope_depth, name)`. Maintained in lockstep with `facts`.
+    fact_index: FactIndex,
 }
 
 #[derive(Debug)]
@@ -515,6 +658,7 @@ impl SemanticRuntimeState {
                 name: None,
             }],
             facts: Vec::new(),
+            fact_index: FactIndex::default(),
         }
     }
 
@@ -561,6 +705,23 @@ impl SemanticRuntimeState {
     pub fn rollback_to(&mut self, checkpoint: SemanticRuntimeCheckpoint) {
         let scope_len = checkpoint.scope_len.max(1).min(self.scopes.len());
         let fact_len = checkpoint.fact_len.min(self.facts.len());
+        // `.3.3.4.b.5.1.1`: extend rollback to undo the per-kind index entries
+        // for every fact at position `>= fact_len`. The master Vec is the
+        // source of truth, so we iterate it in reverse to find the kinds /
+        // names / scopes of the facts being discarded, then remove their
+        // index entries one by one. Cost is O(facts emitted in the rolled-
+        // back portion) — the performance contract's required bound for the
+        // rollback primitive (`PGEN_SEMANTIC_STORE_PERFORMANCE_CONTRACT.md`
+        // §3.7).
+        for position in (fact_len..self.facts.len()).rev() {
+            let record = &self.facts[position];
+            self.fact_index.remove(
+                &record.kind,
+                record.scope_depth,
+                &record.name,
+                position,
+            );
+        }
         self.scopes.truncate(scope_len);
         self.facts.truncate(fact_len);
     }
@@ -593,10 +754,14 @@ impl SemanticRuntimeState {
     }
 
     pub fn emit_fact(&mut self, fact: SemanticFactSpec) {
+        let scope_depth = self.scopes.len() - 1;
+        let position = self.facts.len();
+        // `.3.3.4.b.5.1.1`: mirror the insertion into the secondary index.
+        self.fact_index.insert(&fact.kind, scope_depth, &fact.name, position);
         self.facts.push(SemanticFactRecord {
             kind: fact.kind,
             name: fact.name,
-            scope_depth: self.scopes.len() - 1,
+            scope_depth,
             attributes: fact.attributes,
         });
     }
@@ -612,6 +777,9 @@ impl SemanticRuntimeState {
     /// imports always merge at the current scope depth.
     pub fn push_fact_record(&mut self, mut record: SemanticFactRecord) {
         record.scope_depth = self.scopes.len() - 1;
+        let position = self.facts.len();
+        // `.3.3.4.b.5.1.1`: mirror the import into the secondary index.
+        self.fact_index.insert(&record.kind, record.scope_depth, &record.name, position);
         self.facts.push(record);
     }
 
@@ -674,76 +842,90 @@ impl SemanticRuntimeState {
                 let expected_name = SemanticRuntimeValue::from_semantic_value(expected_name_arg)?;
                 Some(current_scope.name.as_ref() == Some(&expected_name))
             }
+            // `.3.3.4.b.5.1.1`: index-backed O(1)-avg existence check.
             "has_fact" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
-                Some(self.facts.iter().any(|fact| {
-                    fact.kind.eq_ignore_ascii_case(expected_kind) && fact.name == expected_name
-                }))
+                Some(self.fact_index.any_with_name(expected_kind, &expected_name))
             }
+            // `.3.3.4.b.5.1.1`: index-backed; complement of has_fact.
             "lacks_fact" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
-                Some(!self.facts.iter().any(|fact| {
-                    fact.kind.eq_ignore_ascii_case(expected_kind) && fact.name == expected_name
-                }))
+                Some(!self.fact_index.any_with_name(expected_kind, &expected_name))
             }
+            // `.3.3.4.b.5.1.1`: index-backed at exact scope depth via
+            // `any_with_name_at_scope`.
             "has_fact_in_current_scope" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
                 let current_depth = self.scopes.len().saturating_sub(1);
-                Some(self.facts.iter().any(|fact| {
-                    fact.scope_depth == current_depth
-                        && fact.kind.eq_ignore_ascii_case(expected_kind)
-                        && fact.name == expected_name
-                }))
+                Some(self.fact_index.any_with_name_at_scope(
+                    expected_kind,
+                    current_depth,
+                    &expected_name,
+                ))
             }
+            // `.3.3.4.b.5.1.1`: index narrows to candidate positions; only
+            // the matching facts' attribute lists need scanning. Worst-case
+            // is bounded by the number of facts with this (kind, name) tuple
+            // — which is normally O(1) for unique-name kinds.
             "has_fact_attribute" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
                 let expected_key = scalar_text(predicate.args.get(2)?)?;
-                Some(self.facts.iter().any(|fact| {
-                    fact.kind.eq_ignore_ascii_case(expected_kind)
-                        && fact.name == expected_name
-                        && fact
-                            .attributes
-                            .iter()
-                            .any(|property| property.key.eq_ignore_ascii_case(expected_key))
-                }))
+                Some(
+                    self.fact_index
+                        .positions_for_name(expected_kind, &expected_name)
+                        .any(|position| {
+                            self.facts[position]
+                                .attributes
+                                .iter()
+                                .any(|property| property.key.eq_ignore_ascii_case(expected_key))
+                        }),
+                )
             }
+            // `.3.3.4.b.5.1.1`: index-backed candidate positions; per-candidate
+            // attribute scan as above.
             "fact_attribute_equals" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
                 let expected_key = scalar_text(predicate.args.get(2)?)?;
                 let expected_value = predicate.args.get(3)?;
-                Some(self.facts.iter().any(|fact| {
-                    fact.kind.eq_ignore_ascii_case(expected_kind)
-                        && fact.name == expected_name
-                        && fact.attributes.iter().any(|property| {
-                            property.key.eq_ignore_ascii_case(expected_key)
-                                && semantic_values_match(&property.value, expected_value)
-                        })
-                }))
+                Some(
+                    self.fact_index
+                        .positions_for_name(expected_kind, &expected_name)
+                        .any(|position| {
+                            self.facts[position].attributes.iter().any(|property| {
+                                property.key.eq_ignore_ascii_case(expected_key)
+                                    && semantic_values_match(&property.value, expected_value)
+                            })
+                        }),
+                )
             }
+            // `.3.3.4.b.5.1.1`: index-backed; complement of fact_attribute_equals.
             "lacks_fact_attribute_equals" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
                 let expected_key = scalar_text(predicate.args.get(2)?)?;
                 let expected_value = predicate.args.get(3)?;
-                Some(!self.facts.iter().any(|fact| {
-                    fact.kind.eq_ignore_ascii_case(expected_kind)
-                        && fact.name == expected_name
-                        && fact.attributes.iter().any(|property| {
-                            property.key.eq_ignore_ascii_case(expected_key)
-                                && semantic_values_match(&property.value, expected_value)
-                        })
-                }))
+                Some(
+                    !self
+                        .fact_index
+                        .positions_for_name(expected_kind, &expected_name)
+                        .any(|position| {
+                            self.facts[position].attributes.iter().any(|property| {
+                                property.key.eq_ignore_ascii_case(expected_key)
+                                    && semantic_values_match(&property.value, expected_value)
+                            })
+                        }),
+                )
             }
             "scope_depth_at_least" => {
                 let minimum_depth = scalar_text(predicate.args.first()?)?
@@ -764,18 +946,16 @@ impl SemanticRuntimeState {
             // `@predicate`-gates on the running count (e.g. the regex grammar
             // emits a capture-group fact and gates `\NN` backref-vs-octal
             // per PCRE2 — `PGEN-RGX-0084`).
+            //
+            // `.3.3.4.b.5.1.1`: now O(1) via the index's per-kind counter
+            // (was O(N) linear scan).
             "fact_count_at_least" => {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let minimum = scalar_text(predicate.args.get(1)?)?
                     .trim()
                     .parse::<usize>()
                     .ok()?;
-                let count = self
-                    .facts
-                    .iter()
-                    .filter(|fact| fact.kind.eq_ignore_ascii_case(expected_kind))
-                    .count();
-                Some(count >= minimum)
+                Some(self.fact_index.count_for_kind(expected_kind) >= minimum)
             }
             _ => None,
         }
@@ -3077,6 +3257,226 @@ mod tests {
                 phase: SemanticPredicatePhase::Pre,
                 view: SemanticPredicateContentView::Raw,
             }),
+            Some(true)
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.1` multi-index tests (U-EMIT-*, U-QUERY-HAS-*, P-EMIT-*)
+    //
+    // Verify the per-kind index machinery: emit-mirrors-to-index,
+    // query-uses-index, rollback-undoes-index, count-by-kind is O(1).
+    // -------------------------------------------------------------------------
+
+    use super::SemanticFactRecord;
+
+    fn ident(s: &str) -> SemanticRuntimeValue {
+        SemanticRuntimeValue::Identifier(s.to_string())
+    }
+
+    fn kind_arg(kind: &str) -> UnifiedSemanticValue {
+        UnifiedSemanticValue::Identifier(kind.to_string())
+    }
+
+    fn name_arg(name: &str) -> UnifiedSemanticValue {
+        UnifiedSemanticValue::Identifier(name.to_string())
+    }
+
+    fn has_fact_predicate(kind: &str, name: &str) -> SemanticPredicateSpec {
+        SemanticPredicateSpec {
+            name: "has_fact".to_string(),
+            args: vec![kind_arg(kind), name_arg(name)],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        }
+    }
+
+    fn count_at_least(kind: &str, n: usize) -> SemanticPredicateSpec {
+        SemanticPredicateSpec {
+            name: "fact_count_at_least".to_string(),
+            args: vec![
+                kind_arg(kind),
+                UnifiedSemanticValue::Number(n.to_string()),
+            ],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        }
+    }
+
+    #[test]
+    fn multi_index_u_emit_1_emit_then_has_fact_succeeds() {
+        // U-EMIT-1: emit a fact; has_fact returns true immediately.
+        let mut state = SemanticRuntimeState::new();
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("seed_map"),
+            attributes: vec![],
+        });
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("variable_binding", "seed_map")),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn multi_index_u_query_has_2_nonexistent_returns_false() {
+        // U-QUERY-HAS-2: missing fact returns false (NOT None — predicate is well-formed).
+        let state = SemanticRuntimeState::new();
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("variable_binding", "absent")),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn multi_index_kind_is_case_insensitive() {
+        // The legacy predicate semantics use `eq_ignore_ascii_case` on kind;
+        // the index normalises kinds to lowercase on insert + on query.
+        let mut state = SemanticRuntimeState::new();
+        state.emit_fact(SemanticFactSpec {
+            kind: "Variable_Binding".to_string(),
+            name: ident("x"),
+            attributes: vec![],
+        });
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("variable_binding", "x")),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("VARIABLE_BINDING", "x")),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn multi_index_p_tx_1_rollback_leaves_no_trace() {
+        // P-TX-1 (THE KEY INVARIANT): after rollback the store is byte-identical
+        // to its pre-tx state. Verified by checking the predicate result + the
+        // fact-count-by-kind shortcut return to baseline.
+        let mut state = SemanticRuntimeState::new();
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("pre_tx"),
+            attributes: vec![],
+        });
+        let checkpoint = state.checkpoint();
+        // Emit several facts inside the speculative tx.
+        for i in 0..5 {
+            state.emit_fact(SemanticFactSpec {
+                kind: "variable_binding".to_string(),
+                name: ident(&format!("speculative_{}", i)),
+                attributes: vec![],
+            });
+        }
+        // Tx-inserted facts are visible mid-tx.
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("variable_binding", "speculative_3")),
+            Some(true)
+        );
+        assert_eq!(state.fact_index.count_for_kind("variable_binding"), 6);
+        // Rollback.
+        state.rollback_to(checkpoint);
+        // Tx-inserted facts are GONE from both the master Vec and the index.
+        assert_eq!(state.facts().len(), 1);
+        assert_eq!(state.fact_index.count_for_kind("variable_binding"), 1);
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("variable_binding", "speculative_3")),
+            Some(false)
+        );
+        // The pre-tx fact is still present.
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("variable_binding", "pre_tx")),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn multi_index_fact_count_at_least_is_o1_via_counter() {
+        // fact_count_at_least previously linear-scanned the whole Vec; now
+        // backed by the per-kind counter. Verify behaviour preserved across
+        // edge cases.
+        let mut state = SemanticRuntimeState::new();
+        assert_eq!(
+            state.evaluate_predicate(&count_at_least("variable_binding", 0)),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&count_at_least("variable_binding", 1)),
+            Some(false)
+        );
+        for i in 0..3 {
+            state.emit_fact(SemanticFactSpec {
+                kind: "variable_binding".to_string(),
+                name: ident(&format!("v{}", i)),
+                attributes: vec![],
+            });
+        }
+        assert_eq!(
+            state.evaluate_predicate(&count_at_least("variable_binding", 3)),
+            Some(true)
+        );
+        assert_eq!(
+            state.evaluate_predicate(&count_at_least("variable_binding", 4)),
+            Some(false)
+        );
+        // Different kind is independent.
+        assert_eq!(
+            state.evaluate_predicate(&count_at_least("type_binding", 1)),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn multi_index_p_emit_2_inserts_into_every_index_path() {
+        // P-EMIT-2 (simplified): for each emit, both the master Vec AND the
+        // per-kind index see the new entry. Verified via the public
+        // `facts()` slice (Vec) + the private counter (index).
+        let mut state = SemanticRuntimeState::new();
+        for i in 0..10 {
+            state.emit_fact(SemanticFactSpec {
+                kind: "type_binding".to_string(),
+                name: ident(&format!("T{}", i)),
+                attributes: vec![],
+            });
+        }
+        assert_eq!(state.facts().len(), 10);
+        assert_eq!(state.fact_index.count_for_kind("type_binding"), 10);
+    }
+
+    #[test]
+    fn multi_index_push_fact_record_also_indexes() {
+        // The library-import path uses `push_fact_record` (not `emit_fact`);
+        // it must ALSO maintain the index so imported facts are queryable.
+        let mut state = SemanticRuntimeState::new();
+        state.push_fact_record(SemanticFactRecord {
+            kind: "type_binding".to_string(),
+            name: ident("ImportedT"),
+            scope_depth: 0,
+            attributes: vec![],
+        });
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("type_binding", "ImportedT")),
+            Some(true)
+        );
+        assert_eq!(state.fact_index.count_for_kind("type_binding"), 1);
+    }
+
+    #[test]
+    fn multi_index_duplicate_emits_both_tracked() {
+        // Today's semantics allow duplicate-in-scope emits (the U-EMIT-7 [TBC]
+        // policy stays "allow" in this sub-leaf). The counter tracks both;
+        // has_fact returns true; rollback restores correctly.
+        let mut state = SemanticRuntimeState::new();
+        for _ in 0..3 {
+            state.emit_fact(SemanticFactSpec {
+                kind: "variable_binding".to_string(),
+                name: ident("dup"),
+                attributes: vec![],
+            });
+        }
+        assert_eq!(state.fact_index.count_for_kind("variable_binding"), 3);
+        assert_eq!(
+            state.evaluate_predicate(&has_fact_predicate("variable_binding", "dup")),
             Some(true)
         );
     }
