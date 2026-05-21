@@ -86,14 +86,59 @@ Grammar predicates compose these. The engine guarantees each primitive is at-mos
 
 ### 3.5 Performance + scalability
 
-Since real SV input can emit hundreds of thousands of facts (uvm-pkg has tens of thousands of class members alone), the storage layer must:
+The semantic store **shall by no means be the bottleneck of the parser**. It must support hundreds of thousands of facts (uvm-pkg alone emits tens of thousands of class members and a comparable number of variable bindings, before counting macro definitions, typedefs, covergroup bins, constraint memberships, etc.) while keeping every primitive operation under a tight latency budget.
 
-- Use **hash-based indexes** for `(scope, kind, name)` and `(name)` lookups (O(1) average).
-- Use **arena-allocated** scope nodes (cheap creation/destruction during nested parsing).
-- Avoid quadratic behaviours on rollback — when a `try_parse` discards a speculative sub-parse, any facts emitted speculatively must be retracted in O(emitted-count), not O(store-size). The current generator's IIFE pattern (from `.3.3.3`) already gives transactional commit/rollback for `semantic_runtime_state`; we extend the same boundary to all indexes.
-- Stream facts to disk for library export (already done by `.3.3.4.a`); never load all libraries eagerly.
+Mandated properties:
 
-This is the "memory" §1 refers to — universal in what it stores, organised in many ways simultaneously for efficient retrieval, and scoped + transactional + scalable by construction.
+- **Insertion budget**: O(number of indexes maintained for the fact-kind) per `@emit_fact`. With the typical 1–4 indexes per kind, that's effectively constant.
+- **Lookup budget**: O(1) average for `(scope, kind, name)` and similar hash-indexed queries; O(log n) worst-case for any range / prefix index; O(out-size) for iteration queries.
+- **Rollback budget**: O(emitted-in-tx) — never O(store). The `.3.3.3` IIFE pattern gives us the transaction boundary; every index maintains an undo log scoped to that boundary.
+- **Library import budget**: lazy, on-demand. Importing a 50 MB compiled library must not stall the parser; only the cross-referenced subset is touched.
+- **Memory layout**: arena-allocated scope nodes (cheap nested creation/destruction during parsing); facts are reference-counted or arena-owned, never globally allocated; no per-fact `Box` allocations on the hot path.
+- **No quadratic anywhere on the parser's hot path**. Every query and every rollback must scale linearly with what it does, not with what's already in the store.
+
+### 3.6 Schema definition language for fact-kinds
+
+The principle of §3.1 (engine never enumerates kinds) needs a concrete surface so grammar authors can declare new fact-kinds and their indexes **at near-zero cost in dev effort**. The proposed syntax — to be refined in Phase 1 — is a top-of-grammar declaration block:
+
+```ebnf
+@fact_kind: {
+  name:        variable_binding,
+  attributes:  [name, type_kind, type_ref, scope],
+  required:    [name, type_kind],            # validated at emit time
+  indexes:     [(scope, name), (scope, type_kind)],
+  exportable:  true,                          # eligible for @export_to_library
+  description: "A bound identifier (var/param/field/local) with its declared type."
+}
+
+@fact_kind: {
+  name:        class_member,
+  attributes:  [container, name, member_kind, type_kind, type_ref, visibility, line],
+  required:    [container, name, member_kind],
+  indexes:     [(container, name), (container, member_kind), (name)],
+  exportable:  true
+}
+
+@fact_kind: {
+  name:        macro_define,
+  attributes:  [name, params, body, source_file, line],
+  required:    [name],
+  indexes:     [(name)],
+  exportable:  true
+}
+```
+
+A grammar author who wants a new kind for an entirely new concept (assertion clocks, covergroup bins, constraint memberships, whatever) writes one declaration block. The engine:
+
+- Allocates the declared indexes at codegen-or-load time.
+- Validates `required` attributes on every `@emit_fact` of that kind.
+- Auto-wires rollback (one undo log per index, scoped to the IIFE transaction boundary).
+- Auto-wires library import/export for `exportable: true` kinds (using the `.3.3.4.a` artifact mechanism).
+- Auto-generates query helpers (`has_fact`, `attribute_of`, etc.) parameterised on the declared attributes.
+
+Adding a fact-kind is **a declaration, not an engine change**. That's the "won't cost us anything to describe this new semantic info type" budget the design must hit.
+
+This is the "memory" §1 refers to — universal in what it stores, organised in many ways simultaneously for efficient retrieval, scoped + transactional + scalable by construction, and **extensible with zero engine churn**.
 
 ## 4. Producers — facts to emit (decl-side semantic annotations)
 
@@ -180,6 +225,7 @@ Items 1–3 are independent of method-call disambiguation and benefit every futu
 ## 8. Phased implementation plan (proposal — for amendment)
 
 - **Phase 0 (this doc)** — design proposal review + amendment until landed.
+- **Phase 0.5 — Sign-off artefacts (§10.1).** Before any code: API contract document + schema-language spec + test plan + performance contract. Reviewed and approved. **Leaf:** `.3.3.4.b.5.0`.
 - **Phase 1 — Engine: universal semantic store (§3).** Multi-index schema-agnostic fact store, per-kind index-schema declaration, scope-kind labels + explicit scope tree, multi-segment dotted-path resolver, transactional rollback across all indexes. Parser-agnostic. Verified by a tiny synthetic grammar exercising multiple fact-kinds with different index schemas + nested scopes + dotted lookup + speculative-parse rollback. **Leaf:** `.3.3.4.b.5.1`.
 - **Phase 2 — Engine: branch-by-predicate (or grammar-restructure equivalent).** Decide between the two paths during Phase 1 (verify whether existing `phase: branch` predicates can reference parent-rule captures). **Leaf:** `.3.3.4.b.5.2`.
 - **Phase 3 — Engine: extend `@export_to_library` / `@import_from_library` to richer fact kinds.** **Leaf:** `.3.3.4.b.5.3`.
@@ -195,12 +241,85 @@ Each leaf commits independently with its own contract bump and lockstep. No leaf
 - LRM-strict adherence in cases where LRM permissiveness is the bug we're fixing. The LRM's BNF is the *spec for what is syntactically valid*; our PGEN grammar is the *spec for what we parse, which is a deterministic subset chosen via context*.
 - Parser-specific features. Every engine extension here must be applicable to VHDL, RTL, and future grammars — `feedback_ast_pipeline_parser_agnostic`.
 
-## 10. Restore points
+## 10. Quality bar — sign-off level requirements
+
+User direction, 2026-05-21: "The semantic-store shall be top-notch, sign-off level quality. It shall be designed and built with a lot of care, because it is going to stay with us for a long, long time, it better be very good."
+
+This subsystem is **not** scoped as a tactical implementation. It is a foundational engine module that every future grammar — VHDL, RTL, regex extensions, languages we haven't yet considered — will depend on. The quality bar reflects that.
+
+### 10.1 Design before code
+
+Phase 1 (`.3.3.4.b.5.1`) does **not** start with implementation. It starts with:
+
+- A formal **API contract** document (`docs/contracts/PGEN_SEMANTIC_STORE_API_CONTRACT.md`) describing every primitive: emit, query, scope open/close, transaction begin/commit/abort, import/export, schema declare. With pre/postconditions, error modes, complexity guarantees, and stability guarantees (which parts are public-stable, which are internal).
+- A **schema definition language spec** (extends `grammars/semantic_annotation.ebnf` with the `@fact_kind:` declaration block of §3.6).
+- A **test plan** enumerating: unit tests per primitive, property tests for invariants (insert-then-lookup, rollback-leaves-no-trace, scope-walk-finds-nothing-after-close), stress tests at scale (≥1M facts, ≥100k scopes), adversarial tests (malformed schema, conflicting kinds, query on nonexistent index).
+- A **performance contract**: target numbers for each primitive (e.g., `has_fact` ≤ 200ns p99 at 1M facts; library import lazy with ≤ 10ms cold-start; rollback ≤ 1µs per emitted fact). Continuous benchmarks landed alongside the implementation.
+
+Code lands only after these four artefacts are reviewed.
+
+### 10.2 API stability
+
+The public API of the semantic store must be **versioned**. Once a primitive is published, breaking changes require:
+
+- A deprecation marker + parallel migration path.
+- Bumping a major version of `PGEN_SEMANTIC_STORE_API_CONTRACT.md`.
+- A documented migration cookbook in the contract.
+
+Internal layout (which indexes are maintained, how arenas are sized, etc.) may change freely without API impact.
+
+### 10.3 Observability + diagnostics
+
+The store must be **debuggable in production** without recompilation:
+
+- Per-primitive operation counters (number of `@emit_fact`, number of `has_fact`, number of rollbacks, …).
+- Per-index hit/miss/scan-size counters.
+- Per-fact-kind population counters.
+- An `--explain` mode for any predicate query: which index was used, how many rows scanned, total wall-clock time.
+- A library-artefact dump tool that prints a human-readable view of any persisted facts (including: schema, indexes, sample queries).
+
+Hooked into `trace_log` so it integrates with the existing `PGEN_TRACE_VERBOSITY` mechanism.
+
+### 10.4 Library artefact format stability
+
+Library artefacts (`<lib-dir>/<kind>/<name>.facts.json` from `.3.3.4.a`) are **persisted state**. Their format must be:
+
+- Versioned (`format_version` field, already present in `.3.3.4.a` at `1`).
+- Forward-readable: a newer parser must be able to read an older artefact (additive only).
+- Backward-readable where feasible: an older parser can read a newer artefact's compatible subset, or error cleanly with a clear message.
+- Documented in `PGEN_SEMANTIC_STORE_API_CONTRACT.md` §library-artefact-format.
+- Migrated by a documented procedure when the format changes (with a `pgen migrate-library` tool).
+
+### 10.5 Testing standard
+
+Every primitive landed in this subsystem must ship with:
+
+- Unit tests in the `tests/` directory for the primitive in isolation.
+- Property tests (using `proptest` or equivalent) for invariants — particularly the rollback-no-trace, lookup-after-emit, and scope-walk-correctness properties.
+- A perf bench (`cargo bench`) anchored to the §10.1 performance contract numbers.
+- An end-to-end test through a synthetic grammar that uses the primitive via `@emit_fact` / `@predicate` and verifies the observable behaviour.
+
+CI gates regress on any of these; the next slice can land only when all gates are GREEN.
+
+### 10.6 What "sign-off" means concretely
+
+By analogy with IC tape-out: a subsystem at sign-off has been **independently validated** against its contract, has **no known correctness defects**, has **measured performance within budget**, and has **documented behaviour for every API surface**. For PGEN this translates to:
+
+- The API contract has been reviewed (Phase 1 design review).
+- 100% of public API surface has unit tests + property tests.
+- 100% of public API surface has documented complexity and error semantics.
+- Performance bench numbers are within budget on a baseline machine (recorded in the contract).
+- The schema-declaration language has its own test corpus and is exercised end-to-end by at least one grammar (synthetic in Phase 1; SV in Phase 4).
+- Library artefacts have a documented format spec with at least one migration scripted (proves the migration mechanism works).
+
+Nothing less ships under this banner.
+
+## 11. Restore points
 
 - Pre-design baseline (current HEAD): `checkpoint/post-3-3-4-b-3-layer-0-clean-pre-next-lrm-defect` @ `4195ee22`.
 - Pre-Layer-0 baseline (kept for reference): `checkpoint/post-3-3-4-b-1-clean-pre-layer-0` @ `f758b878`.
 
-## 11. References
+## 12. References
 
 - `feedback_ast_pipeline_parser_agnostic` (memory) — every pipeline change must be a general primitive.
 - `feedback_prefer_grammar_leave_engine_alone` (memory, refined) — engine changes ARE on the table when they're parser-AGNOSTIC features that make the EBNF cleanly express what the language needs.
