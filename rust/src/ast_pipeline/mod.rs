@@ -3617,6 +3617,7 @@ pub mod grouped_quantifier_parser;
 pub mod library;
 pub mod mutual_recursion_handler;
 pub mod parser_hooks;
+pub mod predicate_expr;
 pub mod return_annotation_handler;
 pub mod semantic_directive_registry;
 pub mod semantic_runtime;
