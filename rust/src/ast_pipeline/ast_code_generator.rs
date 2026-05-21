@@ -2,6 +2,7 @@
 // This replaces string-based code generation with proper AST manipulation
 // Guarantees syntactically correct Rust code generation
 
+use crate::ast_pipeline::parse_quantifier_bounds;
 use anyhow::Result;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, format_ident, quote};
@@ -426,49 +427,80 @@ impl AstCodeGenerator {
         };
         let element_parser = self.generate_branch_content(&temp_branch)?;
 
-        match quantifier {
-            "*" => Ok(quote! {
-                let mut results = Vec::new();
-                while let Some(content) = parser.try_parse(|p| Ok(#element_parser)) {
-                    results.push(ParseNode {
-                        rule_name: "quantified",
-                        content,
-                        span: 0..0,
-                    });
-                }
-                ParseContent::Quantified(results, "*")
-            }),
-            "+" => Ok(quote! {
-                let mut results = Vec::new();
-                let first = #element_parser;
-                results.push(ParseNode {
-                    rule_name: "quantified",
-                    content: first,
-                    span: 0..0,
-                });
+        // SV-EXH-PROOF.3.3.4.b.3 (Layer 0, PGEN-SV-EXH-PROOF-0029, 2026-05-21):
+        // Unified quantifier codegen — mirrors `ast_based_generator.rs`. Every
+        // iteration is wrapped in `try_parse` (per-iteration atomicity); the
+        // whole quantifier is atomic at its own boundary via the explicit
+        // `quantifier_start_position` save/restore on min-failure. Bounded
+        // quantifiers (`{N}` / `{N,M}` / `{N,}` / `{,M}`) are now well-formed
+        // here too.
+        let (min, max) = match parse_quantifier_bounds(quantifier) {
+            Some(bounds) => bounds,
+            None => return Err(anyhow::anyhow!("Unknown quantifier: {}", quantifier)),
+        };
 
-                while let Some(content) = parser.try_parse(|p| Ok(#element_parser)) {
+        let max_check_tokens = match max {
+            Some(m) => {
+                let m_lit = proc_macro2::Literal::usize_unsuffixed(m);
+                quote! {
+                    if iteration_count >= #m_lit {
+                        break;
+                    }
+                }
+            }
+            None => quote! {},
+        };
+        let (quantifier_start_position_bind, min_check_tokens) = if min > 0 {
+            let min_lit = proc_macro2::Literal::usize_unsuffixed(min);
+            (
+                quote! { let quantifier_start_position = parser.position; },
+                quote! {
+                    if iteration_count < #min_lit {
+                        parser.position = quantifier_start_position;
+                        return Err(ParseError::Backtrack {
+                            position: quantifier_start_position,
+                        });
+                    }
+                },
+            )
+        } else {
+            (quote! {}, quote! {})
+        };
+        let quantifier_label = quantifier;
+
+        Ok(quote! {
+            #quantifier_start_position_bind
+            let mut results: Vec<ParseNode> = Vec::new();
+            let mut iteration_count: usize = 0;
+            const SAFETY_LIMIT: usize = 10_000;
+
+            loop {
+                if iteration_count >= SAFETY_LIMIT {
+                    break;
+                }
+                #max_check_tokens
+
+                let iter_start_position = parser.position;
+                if let Some(content) = parser.try_parse(|p| Ok(#element_parser)) {
+                    if parser.position == iter_start_position {
+                        // Zero-length match — avoid infinite loop.
+                        break;
+                    }
                     results.push(ParseNode {
                         rule_name: "quantified",
                         content,
                         span: 0..0,
                     });
-                }
-                ParseContent::Quantified(results, "+")
-            }),
-            "?" => Ok(quote! {
-                if let Some(content) = parser.try_parse(|p| Ok(#element_parser)) {
-                    ParseContent::Quantified(vec![ParseNode {
-                        rule_name: "quantified",
-                        content,
-                        span: 0..0,
-                    }], "?")
+                    iteration_count += 1;
                 } else {
-                    ParseContent::Quantified(Vec::new(), "?")
+                    break;
                 }
-            }),
-            _ => Err(anyhow::anyhow!("Unknown quantifier: {}", quantifier)),
-        }
+            }
+
+            #min_check_tokens
+
+            ParseContent::Quantified(results, #quantifier_label)
+        })
     }
 
     /// Generate return annotation transformation

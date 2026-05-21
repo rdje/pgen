@@ -704,6 +704,99 @@ pub enum ASTNode {
     },
 }
 
+/// SV-EXH-PROOF.3.3.4.b.3 (Layer 0, PGEN-SV-EXH-PROOF-0029, 2026-05-21):
+/// Map a quantifier string carried in `ASTNode::Quantified::quantifier` to
+/// its `(min, max)` bounds:
+///
+/// * `"?"`        → `(0, Some(1))`
+/// * `"*"`        → `(0, None)`
+/// * `"+"`        → `(1, None)`
+/// * `"{N}"`      → `(N, Some(N))`         (exact count)
+/// * `"{N,M}"`    → `(N, Some(M))`         (range, requires `M >= N`)
+/// * `"{N,}"`     → `(N, None)`            (at least N)
+/// * `"{,M}"`     → `(0, Some(M))`         (at most M)
+///
+/// Returns `None` for any other input (invalid quantifier string).
+///
+/// This is the canonical surface-form → bounds mapping used by both the
+/// `ast_based_generator` and `ast_code_generator` quantifier codegen, so a
+/// single helper carries every repetition operator the engine supports.
+pub fn parse_quantifier_bounds(quantifier: &str) -> Option<(usize, Option<usize>)> {
+    let q = quantifier.trim();
+    match q {
+        "?" => Some((0, Some(1))),
+        "*" => Some((0, None)),
+        "+" => Some((1, None)),
+        _ if q.starts_with('{') && q.ends_with('}') && q.len() >= 3 => {
+            let inner = &q[1..q.len() - 1];
+            if let Some(comma_pos) = inner.find(',') {
+                let min_str = inner[..comma_pos].trim();
+                let max_str = inner[comma_pos + 1..].trim();
+                let min: usize = if min_str.is_empty() {
+                    0
+                } else {
+                    min_str.parse().ok()?
+                };
+                let max: Option<usize> = if max_str.is_empty() {
+                    None
+                } else {
+                    Some(max_str.parse().ok()?)
+                };
+                if let Some(m) = max {
+                    if m < min {
+                        return None;
+                    }
+                }
+                Some((min, max))
+            } else {
+                // "{N}" — exact count
+                let n: usize = inner.trim().parse().ok()?;
+                Some((n, Some(n)))
+            }
+        }
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod parse_quantifier_bounds_tests {
+    use super::parse_quantifier_bounds;
+
+    #[test]
+    fn simple_quantifiers() {
+        assert_eq!(parse_quantifier_bounds("?"), Some((0, Some(1))));
+        assert_eq!(parse_quantifier_bounds("*"), Some((0, None)));
+        assert_eq!(parse_quantifier_bounds("+"), Some((1, None)));
+    }
+
+    #[test]
+    fn bounded_quantifiers() {
+        assert_eq!(parse_quantifier_bounds("{3}"), Some((3, Some(3))));
+        assert_eq!(parse_quantifier_bounds("{2,5}"), Some((2, Some(5))));
+        assert_eq!(parse_quantifier_bounds("{2,}"), Some((2, None)));
+        assert_eq!(parse_quantifier_bounds("{,5}"), Some((0, Some(5))));
+        assert_eq!(parse_quantifier_bounds("{0,0}"), Some((0, Some(0))));
+    }
+
+    #[test]
+    fn whitespace_tolerated() {
+        assert_eq!(parse_quantifier_bounds(" * "), Some((0, None)));
+        assert_eq!(parse_quantifier_bounds("{ 2 , 5 }"), Some((2, Some(5))));
+    }
+
+    #[test]
+    fn invalid_quantifiers_return_none() {
+        assert_eq!(parse_quantifier_bounds(""), None);
+        assert_eq!(parse_quantifier_bounds("foo"), None);
+        assert_eq!(parse_quantifier_bounds("{}"), None);
+        assert_eq!(parse_quantifier_bounds("{a}"), None);
+        // M < N is invalid
+        assert_eq!(parse_quantifier_bounds("{5,2}"), None);
+        // Negative numbers reject via usize parse
+        assert_eq!(parse_quantifier_bounds("{-1}"), None);
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct BranchAnnotation {
     pub annotation_type: String,

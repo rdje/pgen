@@ -14,8 +14,8 @@ use crate::ast_pipeline::{
     parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
     parse_semantic_deterministic_group, parse_semantic_group_label, parse_semantic_implication,
     parse_semantic_len_bounds, parse_semantic_nonnegative_usize, parse_semantic_numeric_bounds,
-    parse_semantic_pattern, parse_semantic_reference_list, parse_semantic_string_list,
-    parse_semantic_token_class,
+    parse_quantifier_bounds, parse_semantic_pattern, parse_semantic_reference_list,
+    parse_semantic_string_list, parse_semantic_token_class,
 };
 use anyhow::Result;
 use prettyplease;
@@ -3018,113 +3018,92 @@ impl AstBasedGenerator {
             quote! {}
         };
 
-        match quantifier {
-            "*" => Ok(quote! {
-                let mut results = Vec::new();
-                let mut last_position = parser.position;
-                let mut iteration_count = 0;
-                const MAX_ITERATIONS: usize = 10000; // Safety limit
+        // SV-EXH-PROOF.3.3.4.b.3 (Layer 0, PGEN-SV-EXH-PROOF-0029, 2026-05-21):
+        // Unified quantifier codegen — replaces the prior three special-cased
+        // arms for `*` / `+` / `?` with a single (min, max)-parameterised
+        // loop. Per-iteration atomicity is now UNIFORM across all repetition
+        // operators (every iteration — INCLUDING the first iteration of `+`,
+        // which previously was emitted inline without `try_parse` wrapping —
+        // is wrapped in `try_parse`, so if iteration (N+1) fails the cursor
+        // rolls back to where iteration N left it). The `min` count is
+        // enforced at the end of the loop: if the loop didn't reach `min`
+        // iterations, the rule fails (Err(Backtrack)) — the surrounding
+        // caller's `try_parse` then rolls the cursor back fully. Bounded
+        // quantifiers (`{N}` / `{N,M}` / `{N,}` / `{,M}`) are now also
+        // well-formed at codegen time (the prior `_ => Err("Unknown
+        // quantifier")` fallthrough is replaced by `parse_quantifier_bounds`);
+        // no current grammar exercises bounded operators end-to-end so the
+        // codegen is parser-agnostic infrastructure available for future use.
+        let (min, max) = match parse_quantifier_bounds(quantifier) {
+            Some(bounds) => bounds,
+            None => return Err(anyhow::anyhow!("Unknown quantifier: {}", quantifier)),
+        };
 
-                while iteration_count < MAX_ITERATIONS {
-                    #stop_at_rule_boundary_on_break
-                    if let Some(node) = parser.try_parse(|p| {
-                        let parser = p;
-                        #element_logic;
-                        Ok(ParseNode {
-                            rule_name: "quantified",
-                            content: result,
-                            span: 0..0,
-                        })
-                    }) {
-                        let current_position = parser.position;
-
-                        // Critical: Check for zero-length match
-                        if current_position == last_position {
-                            if parser.logger_enabled {
-                                parser.logger.log_warning(#filename, 0, &format!("⚠️ ZERO-LENGTH MATCH in quantifier: Breaking to prevent infinite loop at position {}", current_position));
-                            }
-                            break;
-                        }
-
-                        results.push(node);
-                        last_position = current_position;
-                        iteration_count += 1;
-                    } else {
+        let max_check_tokens = match max {
+            Some(m) => {
+                let m_lit = proc_macro2::Literal::usize_unsuffixed(m);
+                quote! {
+                    if iteration_count >= #m_lit {
                         break;
                     }
                 }
+            }
+            None => quote! {},
+        };
+        // Only emit a min-count enforcement clause + the
+        // `quantifier_start_position` bind when min > 0; emitting
+        // `iteration_count < 0` (for `*`/`?`) is always false and triggers an
+        // unused-comparison warning at every codegen site (thousands of them
+        // in a parser the size of systemverilog), and the `_position` bind
+        // would be unused.
+        let (quantifier_start_position_bind, min_check_tokens) = if min > 0 {
+            let min_lit = proc_macro2::Literal::usize_unsuffixed(min);
+            (
+                quote! { let quantifier_start_position = parser.position; },
+                quote! {
+                    if iteration_count < #min_lit {
+                        parser.position = quantifier_start_position;
+                        return Err(ParseError::Backtrack {
+                            position: quantifier_start_position,
+                        });
+                    }
+                },
+            )
+        } else {
+            (quote! {}, quote! {})
+        };
+        let quantifier_label = quantifier;
 
-                if iteration_count >= MAX_ITERATIONS && parser.logger_enabled {
-                    parser.logger.log_warning(#filename, 0, &format!("⚠️ MAX ITERATIONS ({}) reached in quantifier", MAX_ITERATIONS));
-                }
+        Ok(quote! {
+            // SV-EXH-PROOF.3.3.4.b.3 (Layer 0): the quantifier is ATOMIC at
+            // its own boundary. When min > 0 we save the cursor at the start;
+            // on min-failure we restore the cursor to that position BEFORE
+            // signalling Err, so the caller observes a cursor position
+            // equivalent to "the quantifier was never tried." Per-iteration
+            // atomicity is delegated to `try_parse` inside the loop;
+            // quantifier-level atomicity is delegated to this explicit
+            // save/restore (elided for min == 0 since `*`/`?` always succeed).
+            #quantifier_start_position_bind
+            let mut results = Vec::new();
+            let mut last_position = parser.position;
+            let mut iteration_count: usize = 0;
+            const SAFETY_LIMIT: usize = 10_000;
 
-                let result = ParseContent::Quantified(results, "*")
-            }),
-            "+" => Ok(quote! {
-                let mut results = Vec::new();
-                let start_position = parser.position;
-
-                #stop_at_rule_boundary_on_error
-
-                // First match is mandatory
-                {
-                    #element_logic;
-                    results.push(ParseNode {
-                        rule_name: "quantified",
-                        content: result,
-                        span: 0..0,
-                    });
-                }
-
-                // Check if first match consumed any input
-                if parser.position == start_position {
+            loop {
+                if iteration_count >= SAFETY_LIMIT {
                     if parser.logger_enabled {
-                        parser.logger.log_warning(#filename, 0, &format!("⚠️ ZERO-LENGTH FIRST MATCH in + quantifier at position {}", start_position));
+                        parser.logger.log_warning(#filename, 0, &format!(
+                            "⚠️ SAFETY_LIMIT ({}) reached in quantifier {} at position {}",
+                            SAFETY_LIMIT, #quantifier_label, parser.position
+                        ));
                     }
+                    break;
                 }
 
-                // Additional matches are optional
-                let mut last_position = parser.position;
-                let mut iteration_count = 1;
-                const MAX_ITERATIONS: usize = 10000;
+                #stop_at_rule_boundary_on_break
+                #max_check_tokens
 
-                while iteration_count < MAX_ITERATIONS {
-                    #stop_at_rule_boundary_on_break
-                    if let Some(node) = parser.try_parse(|p| {
-                        let parser = p;
-                        #element_logic;
-                        Ok(ParseNode {
-                            rule_name: "quantified",
-                            content: result,
-                            span: 0..0,
-                        })
-                    }) {
-                        let current_position = parser.position;
-
-                        // Check for zero-length match
-                        if current_position == last_position {
-                            if parser.logger_enabled {
-                                parser.logger.log_warning(#filename, 0, &format!("⚠️ ZERO-LENGTH MATCH in + quantifier: Breaking at position {}", current_position));
-                            }
-                            break;
-                        }
-
-                        results.push(node);
-                        last_position = current_position;
-                        iteration_count += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                if iteration_count >= MAX_ITERATIONS && parser.logger_enabled {
-                    parser.logger.log_warning(#filename, 0, &format!("⚠️ MAX ITERATIONS ({}) reached in + quantifier", MAX_ITERATIONS));
-                }
-
-                let result = ParseContent::Quantified(results, "+")
-            }),
-            "?" => Ok(quote! {
-                let result = if let Some(node) = parser.try_parse(|p| {
+                if let Some(node) = parser.try_parse(|p| {
                     let parser = p;
                     #element_logic;
                     Ok(ParseNode {
@@ -3133,13 +3112,42 @@ impl AstBasedGenerator {
                         span: 0..0,
                     })
                 }) {
-                    ParseContent::Quantified(vec![node], "?")
+                    let current_position = parser.position;
+
+                    // Zero-length match guard — prevent infinite loops on rules
+                    // that can match the empty string.
+                    if current_position == last_position {
+                        if parser.logger_enabled {
+                            parser.logger.log_warning(#filename, 0, &format!(
+                                "⚠️ ZERO-LENGTH MATCH in quantifier {} at position {}: breaking to prevent infinite loop",
+                                #quantifier_label, current_position
+                            ));
+                        }
+                        break;
+                    }
+
+                    results.push(node);
+                    last_position = current_position;
+                    iteration_count += 1;
                 } else {
-                    ParseContent::Quantified(Vec::new(), "?")
+                    // Iteration (N+1) failed: try_parse has already rolled the
+                    // cursor back to where iteration N left it (= where
+                    // iteration N+1 started). Exit the loop with iteration_count
+                    // iterations committed.
+                    break;
                 }
-            }),
-            _ => Err(anyhow::anyhow!("Unknown quantifier: {}", quantifier)),
-        }
+            }
+
+            // Min-count enforcement: if the loop didn't reach `min` iterations,
+            // the whole quantifier fails. We RESTORE the cursor to
+            // `quantifier_start_position` (atomic at the quantifier boundary —
+            // so the partial successes that did happen are undone) before
+            // signalling Err. Elided entirely for `min == 0` (i.e. `*` / `?`)
+            // to avoid the always-false `iteration_count < 0` comparison.
+            #min_check_tokens
+
+            let result = ParseContent::Quantified(results, #quantifier_label);
+        })
     }
 
     /// True when a branch's body parses to exactly one element — a single
