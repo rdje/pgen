@@ -8,6 +8,7 @@
 - [User-Facing Surfaces](user-facing-surfaces.md)
 - [CLI and Workflows](cli-and-workflows.md)
 - [Annotation System](annotation-system.md)
+- [The Semantic Store: Parser Memory](semantic-store.md)
 - [Embedding and Downstream Integration](embedding-and-downstream-integration.md)
 - [Parser Families](parser-families.md)
 - [Roadmap and Live Status](roadmap-and-live-status.md)
