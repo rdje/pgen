@@ -1280,7 +1280,8 @@ impl AstBasedGenerator {
                                 | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
                                 | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_)
                                 | crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(_)
-                                | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_) => {}
+                                | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_)
+                                | crate::ast_pipeline::SemanticRuntimeDirective::DeclareFactKind(_) => {}
                             }
                         }
                         if post_predicate_blocked {
@@ -1352,6 +1353,12 @@ impl AstBasedGenerator {
                     // Returning `Ok(false)` mirrors `Predicate`.
                     crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(_)
                     | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_) => {
+                        Ok(false)
+                    }
+                    // `SV-EXH-PROOF.3.3.4.b.5.1.2`: declarations are compile-time
+                    // only; at runtime they are no-ops (the registry lives in
+                    // CompiledSemanticRuntimeAnnotations.fact_kinds).
+                    crate::ast_pipeline::SemanticRuntimeDirective::DeclareFactKind(_) => {
                         Ok(false)
                     }
                     crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(spec) => {
@@ -2538,7 +2545,8 @@ impl AstBasedGenerator {
                                         | crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(_)
                                         | crate::ast_pipeline::SemanticRuntimeDirective::Predicate(_)
                                         | crate::ast_pipeline::SemanticRuntimeDirective::ExportToLibrary(_)
-                                        | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_) => {}
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::ImportFromLibrary(_)
+                                        | crate::ast_pipeline::SemanticRuntimeDirective::DeclareFactKind(_) => {}
                                     }
                                 }
                                 let should_take = if branch_predicate_blocked {
@@ -5083,6 +5091,19 @@ impl AstBasedGenerator {
                             kind: #kind.to_string(),
                             name: #name,
                         }
+                    )
+                }
+            }
+            // `SV-EXH-PROOF.3.3.4.b.5.1.2`: `@fact_kind:` is compile-time only.
+            // The declaration data lives in `CompiledSemanticRuntimeAnnotations.fact_kinds`
+            // (the registry), not in the per-rule directives the generated parser
+            // applies at runtime. We still emit a trivial no-op marker here so
+            // the per-rule directives Vec preserves its element count and the
+            // runtime `apply_directive` short-circuits cleanly.
+            SemanticRuntimeDirective::DeclareFactKind(_) => {
+                quote! {
+                    crate::ast_pipeline::SemanticRuntimeDirective::DeclareFactKind(
+                        crate::ast_pipeline::FactKindDecl::default()
                     )
                 }
             }

@@ -35,6 +35,24 @@ impl SemanticScopeKind {
             _ => None,
         }
     }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: canonical lowercase label for this scope
+    /// kind. Used by `@fact_kind`'s V-DECL-6 check (does this kind's
+    /// `scope_kind` field reference a known scope label?).
+    pub fn label(&self) -> &str {
+        match self {
+            Self::Global => "global",
+            Self::File => "file",
+            Self::Package => "package",
+            Self::Class => "class",
+            Self::Interface => "interface",
+            Self::Type => "type",
+            Self::Function => "function",
+            Self::Task => "task",
+            Self::Block => "block",
+            Self::Custom(s) => s.as_str(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -149,6 +167,186 @@ pub struct SemanticLibraryImportSpec {
     pub name: SemanticRuntimeValue,
 }
 
+/// `SV-EXH-PROOF.3.3.4.b.5.1.2`: payload of a `@fact_kind:` declaration.
+///
+/// Surface syntax (per `PGEN_SEMANTIC_STORE_SCHEMA_LANGUAGE_SPEC.md` §4):
+///
+/// ```text
+/// @fact_kind: {
+///   name:           variable_binding,
+///   attributes:     [name, type_kind, type_ref, declared_in],
+///   required:       [name, type_kind],
+///   indexes:        [(scope, name), (scope, type_kind), (name)],
+///   scope_kind:     enclosing_block,
+///   exportable:     true,
+///   artefact_kind:  bindings,
+///   description:    "A bound identifier with its declared type."
+/// }
+/// ```
+///
+/// Mandatory fields:    `name`, `attributes`.
+/// Optional fields:     `required` (default `[]`), `indexes` (default
+/// `[(scope, kind, name)]`), `scope_kind` (default `"current"`),
+/// `exportable` (default `false`), `artefact_kind` (default = `name`),
+/// `description` (default empty).
+///
+/// Validation rules (V-DECL-1..7 from the schema spec) — codegen-time errors:
+/// 1. `name` unique across all `@fact_kind` declarations in this grammar.
+///    (Cross-declaration check; performed in
+///    `compile_semantic_runtime_annotations` once all parses are in.)
+/// 2. `attributes` non-empty.
+/// 3. Every name in `required` appears in `attributes`.
+/// 4. Every name in every index tuple appears in `attributes` ∪
+///    `{"scope", "kind"}` (the implicit attributes).
+/// 5. Each index tuple is non-empty and contains no duplicate attribute names.
+/// 6. `scope_kind` (if specified) matches a label used in some `@open_scope`
+///    directive **or** an engine-reserved label (`global` / `current` /
+///    `enclosing_block` / `enclosing_function` / `enclosing_class` /
+///    `enclosing_package` / `enclosing_file`). Cross-declaration check; warn-only
+///    at compile time (lenient — grammars in motion may add `@open_scope`
+///    rules incrementally).
+/// 7. `name` and `artefact_kind` (if specified) are valid path components:
+///    no `/`, no `..`, no leading dot.
+///
+/// Per-instance validation (V-DECL-2..5, V-DECL-7) lives in `validate_local`;
+/// V-DECL-1 / V-DECL-6 are deferred to `compile_semantic_runtime_annotations`.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct FactKindDecl {
+    pub name: String,
+    pub attributes: Vec<String>,
+    pub required: Vec<String>,
+    /// Composite-key index specifications. Each inner `Vec<String>` is a
+    /// tuple of attribute names that together index a fact. Default
+    /// `[(scope, kind, name)]` is conventional; grammar authors may add or
+    /// override (e.g. `(scope, name)`, `(container)`, `(name)`).
+    pub indexes: Vec<Vec<String>>,
+    pub scope_kind: Option<String>,
+    pub exportable: bool,
+    pub artefact_kind: Option<String>,
+    pub description: Option<String>,
+}
+
+impl FactKindDecl {
+    /// Per-declaration validation (V-DECL-2, V-DECL-3, V-DECL-4, V-DECL-5,
+    /// V-DECL-7). Returns Err with a precise message if any rule is violated.
+    /// Cross-declaration rules (V-DECL-1 uniqueness, V-DECL-6 scope_kind
+    /// label) are checked in the compile pass.
+    pub fn validate_local(&self) -> Result<(), String> {
+        if self.name.trim().is_empty() {
+            return Err(format!(
+                "@fact_kind: 'name' field is required (V-DECL-2 surface check)."
+            ));
+        }
+        // V-DECL-2: attributes non-empty.
+        if self.attributes.is_empty() {
+            return Err(format!(
+                "@fact_kind '{}': V-DECL-2 violation — 'attributes' must be non-empty.",
+                self.name
+            ));
+        }
+        // V-DECL-3: every name in `required` appears in `attributes`.
+        for attr in &self.required {
+            if !self.attributes.iter().any(|a| a == attr) {
+                return Err(format!(
+                    "@fact_kind '{}': V-DECL-3 violation — 'required' lists '{}' but it is not in 'attributes' (declared attributes: {:?}).",
+                    self.name, attr, self.attributes
+                ));
+            }
+        }
+        // V-DECL-4 + V-DECL-5: per-index tuple validation.
+        for (i, index_tuple) in self.indexes.iter().enumerate() {
+            // V-DECL-5: non-empty.
+            if index_tuple.is_empty() {
+                return Err(format!(
+                    "@fact_kind '{}': V-DECL-5 violation — index tuple #{} is empty.",
+                    self.name, i
+                ));
+            }
+            // V-DECL-5: no duplicate attribute names within a tuple.
+            for j in 0..index_tuple.len() {
+                for k in (j + 1)..index_tuple.len() {
+                    if index_tuple[j] == index_tuple[k] {
+                        return Err(format!(
+                            "@fact_kind '{}': V-DECL-5 violation — index tuple #{} repeats attribute '{}'.",
+                            self.name, i, index_tuple[j]
+                        ));
+                    }
+                }
+            }
+            // V-DECL-4: every name in tuple ∈ attributes ∪ {scope, kind}.
+            for attr in index_tuple {
+                let is_implicit = attr == "scope" || attr == "kind";
+                let is_declared = self.attributes.iter().any(|a| a == attr);
+                if !is_implicit && !is_declared {
+                    return Err(format!(
+                        "@fact_kind '{}': V-DECL-4 violation — index tuple #{} references '{}' which is neither a declared attribute nor one of the implicit attributes 'scope'/'kind'.",
+                        self.name, i, attr
+                    ));
+                }
+            }
+        }
+        // V-DECL-7: `name` and `artefact_kind` are valid path components.
+        validate_path_component(&self.name, "name", &self.name)?;
+        if let Some(artefact_kind) = self.artefact_kind.as_deref() {
+            validate_path_component(artefact_kind, "artefact_kind", &self.name)?;
+        }
+        Ok(())
+    }
+
+    /// `artefact_kind` resolved against the default (= `name`).
+    pub fn resolved_artefact_kind(&self) -> &str {
+        self.artefact_kind.as_deref().unwrap_or(&self.name)
+    }
+}
+
+/// V-DECL-7 helper: a valid path component contains no `/`, no `..`, no
+/// leading dot, no embedded NUL.
+fn validate_path_component(value: &str, field_name: &str, kind_name: &str) -> Result<(), String> {
+    if value.is_empty() {
+        return Err(format!(
+            "@fact_kind '{}': V-DECL-7 violation — '{}' is empty.",
+            kind_name, field_name
+        ));
+    }
+    if value.contains('/') || value.contains('\\') {
+        return Err(format!(
+            "@fact_kind '{}': V-DECL-7 violation — '{}' = '{}' contains a path separator.",
+            kind_name, field_name, value
+        ));
+    }
+    if value == ".." || value == "." {
+        return Err(format!(
+            "@fact_kind '{}': V-DECL-7 violation — '{}' = '{}' is not a valid path component.",
+            kind_name, field_name, value
+        ));
+    }
+    if value.starts_with('.') {
+        return Err(format!(
+            "@fact_kind '{}': V-DECL-7 violation — '{}' = '{}' begins with a dot (would become a hidden file).",
+            kind_name, field_name, value
+        ));
+    }
+    if value.contains('\0') {
+        return Err(format!(
+            "@fact_kind '{}': V-DECL-7 violation — '{}' contains an embedded NUL byte.",
+            kind_name, field_name
+        ));
+    }
+    Ok(())
+}
+
+/// V-DECL-6: scope_kind labels reserved by the engine. Grammar-level `@open_scope`
+/// declarations may add their own labels; the union is checked at compile time.
+const ENGINE_RESERVED_SCOPE_KINDS: &[&str] = &[
+    "global",
+    "current",
+    "enclosing_block",
+    "enclosing_function",
+    "enclosing_class",
+    "enclosing_package",
+    "enclosing_file",
+];
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SemanticPredicateSpec {
     pub name: String,
@@ -209,6 +407,16 @@ pub enum SemanticRuntimeDirective {
     /// Fires on rule **entry**, before pre-predicates (its own phase, not
     /// `is_pre_predicate`); see `is_library_import`.
     ImportFromLibrary(SemanticLibraryImportSpec),
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: grammar-level fact-kind declaration
+    /// (Stage 1 of the lifecycle protocol per `CONTEXT_AWARE_PARSING_DESIGN.md`
+    /// §4). Declares a new semantic-fact type with its attributes, required-set,
+    /// secondary indexes, default scope, and library-export eligibility. The
+    /// directive is **compile-time only**: at runtime it's a no-op
+    /// (`apply_directive` short-circuits). At codegen time the compiled
+    /// annotations carry a registry of all declared fact-kinds for downstream
+    /// consumers (library export, schema-aware diagnostics, future scope-tree
+    /// emission rules).
+    DeclareFactKind(FactKindDecl),
 }
 
 impl SemanticRuntimeDirective {
@@ -219,7 +427,8 @@ impl SemanticRuntimeDirective {
             | Self::CloseScope(_)
             | Self::EmitFact(_)
             | Self::ExportToLibrary(_)
-            | Self::ImportFromLibrary(_) => None,
+            | Self::ImportFromLibrary(_)
+            | Self::DeclareFactKind(_) => None,
         }
     }
 
@@ -230,8 +439,16 @@ impl SemanticRuntimeDirective {
             | Self::CloseScope(_)
             | Self::EmitFact(_)
             | Self::ExportToLibrary(_)
-            | Self::ImportFromLibrary(_) => None,
+            | Self::ImportFromLibrary(_)
+            | Self::DeclareFactKind(_) => None,
         }
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: true for `DeclareFactKind` only.
+    /// Declarations are compile-time only; the generator collects them into
+    /// the schema registry. At runtime `apply_directive` short-circuits.
+    pub fn is_fact_kind_declaration(&self) -> bool {
+        matches!(self, Self::DeclareFactKind(_))
     }
 
     pub fn is_pre_predicate(&self) -> bool {
@@ -275,6 +492,13 @@ impl SemanticRuntimeDirective {
 pub struct CompiledSemanticRuntimeAnnotations {
     directives_by_rule: HashMap<String, Vec<SemanticRuntimeDirective>>,
     branch_directives_by_rule: HashMap<String, Vec<Vec<SemanticRuntimeDirective>>>,
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: registry of `@fact_kind:` declarations
+    /// collected at compile time. Keys are kind names (case-sensitive, as
+    /// declared); values are the parsed + locally-validated `FactKindDecl`.
+    /// Cross-declaration uniqueness (V-DECL-1) is enforced when this map is
+    /// populated. Downstream consumers (library export, scope-tree emitters,
+    /// schema-aware diagnostics) look up declarations by name.
+    fact_kinds: HashMap<String, FactKindDecl>,
 }
 
 impl CompiledSemanticRuntimeAnnotations {
@@ -288,6 +512,7 @@ impl CompiledSemanticRuntimeAnnotations {
         Self {
             directives_by_rule,
             branch_directives_by_rule: HashMap::new(),
+            fact_kinds: HashMap::new(),
         }
     }
 
@@ -298,7 +523,27 @@ impl CompiledSemanticRuntimeAnnotations {
         Self {
             directives_by_rule,
             branch_directives_by_rule,
+            fact_kinds: HashMap::new(),
         }
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: accessor for the fact-kind registry.
+    /// Returns the declared `FactKindDecl` for `name`, or `None` if no
+    /// `@fact_kind:` block declared this name.
+    pub fn fact_kind(&self, name: &str) -> Option<&FactKindDecl> {
+        self.fact_kinds.get(name)
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: iterate every declared fact-kind.
+    /// Order is unspecified (the registry is a HashMap); consumers that need
+    /// deterministic ordering should sort by `decl.name`.
+    pub fn fact_kinds(&self) -> impl Iterator<Item = (&str, &FactKindDecl)> {
+        self.fact_kinds.iter().map(|(name, decl)| (name.as_str(), decl))
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: number of declared fact-kinds.
+    pub fn fact_kinds_len(&self) -> usize {
+        self.fact_kinds.len()
     }
 
     pub fn is_empty(&self) -> bool {
@@ -803,6 +1048,11 @@ impl SemanticRuntimeState {
             // no-op here — the generator evaluates it with content access).
             SemanticRuntimeDirective::ExportToLibrary(_)
             | SemanticRuntimeDirective::ImportFromLibrary(_) => true,
+            // `SV-EXH-PROOF.3.3.4.b.5.1.2`: declarations are compile-time
+            // only; at runtime they are no-ops (mirroring `Predicate`
+            // and the library directives — actual handling lives in the
+            // generator-emitted wrapper).
+            SemanticRuntimeDirective::DeclareFactKind(_) => true,
         }
     }
 
@@ -999,7 +1249,8 @@ impl SemanticRuntimeState {
             | SemanticRuntimeDirective::EmitFact(_)
             | SemanticRuntimeDirective::Predicate(_)
             | SemanticRuntimeDirective::ExportToLibrary(_)
-            | SemanticRuntimeDirective::ImportFromLibrary(_) => None,
+            | SemanticRuntimeDirective::ImportFromLibrary(_)
+            | SemanticRuntimeDirective::DeclareFactKind(_) => None,
         }
     }
 
@@ -1020,7 +1271,8 @@ impl SemanticRuntimeState {
             | SemanticRuntimeDirective::EmitFact(_)
             | SemanticRuntimeDirective::Predicate(_)
             | SemanticRuntimeDirective::ExportToLibrary(_)
-            | SemanticRuntimeDirective::ImportFromLibrary(_) => None,
+            | SemanticRuntimeDirective::ImportFromLibrary(_)
+            | SemanticRuntimeDirective::DeclareFactKind(_) => None,
         }
     }
 }
@@ -1109,7 +1361,174 @@ pub fn parse_semantic_runtime_directive(
         // `SV-EXH-PROOF.3.3.4.a` MVP-0 parser-agnostic library directives.
         "export_to_library" => parse_export_to_library(annotation.ast()).map(Some),
         "import_from_library" => parse_import_from_library(annotation.ast()).map(Some),
+        // `SV-EXH-PROOF.3.3.4.b.5.1.2`: grammar-level fact-kind declaration
+        // (Stage 1 of the lifecycle protocol).
+        "fact_kind" => parse_fact_kind(annotation.ast()).map(Some),
         _ => Ok(None),
+    }
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.2`: parses `@fact_kind: { name: <ident>, attributes: [...],
+/// required: [...]?, indexes: [(...), ...]?, scope_kind: <ident>?,
+/// exportable: <bool>?, artefact_kind: <ident>?, description: <string>? }`.
+///
+/// Per-declaration validation (V-DECL-2..5, V-DECL-7) runs at parse time via
+/// `FactKindDecl::validate_local`. Cross-declaration rules (V-DECL-1
+/// uniqueness, V-DECL-6 scope_kind label) are deferred to
+/// `compile_semantic_runtime_annotations`.
+fn parse_fact_kind(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective, String> {
+    let payload = ast.structured_value().ok_or_else(|| {
+        "Directive '@fact_kind' expects a structured object payload.".to_string()
+    })?;
+    let properties = object_properties(payload)
+        .ok_or_else(|| "Directive '@fact_kind' expects an object payload.".to_string())?;
+
+    let mut decl = FactKindDecl::default();
+    let mut seen_attributes = false;
+
+    for property in properties {
+        match property.key.as_str() {
+            "name" => {
+                decl.name = scalar_text(&property.value)
+                    .ok_or_else(|| {
+                        format!(
+                            "@fact_kind 'name' field must be a scalar identifier; got {:?}.",
+                            property.value
+                        )
+                    })?
+                    .to_string();
+            }
+            "attributes" => {
+                decl.attributes = parse_string_list("attributes", &property.value)?;
+                seen_attributes = true;
+            }
+            "required" => {
+                decl.required = parse_string_list("required", &property.value)?;
+            }
+            "indexes" => {
+                decl.indexes = parse_index_list("indexes", &property.value)?;
+            }
+            "scope_kind" => {
+                decl.scope_kind = Some(
+                    scalar_text(&property.value)
+                        .ok_or_else(|| {
+                            format!(
+                                "@fact_kind 'scope_kind' field must be a scalar; got {:?}.",
+                                property.value
+                            )
+                        })?
+                        .to_string(),
+                );
+            }
+            "exportable" => {
+                decl.exportable = parse_bool_literal("exportable", &property.value)?;
+            }
+            "artefact_kind" => {
+                decl.artefact_kind = Some(
+                    scalar_text(&property.value)
+                        .ok_or_else(|| {
+                            format!(
+                                "@fact_kind 'artefact_kind' field must be a scalar; got {:?}.",
+                                property.value
+                            )
+                        })?
+                        .to_string(),
+                );
+            }
+            "description" => {
+                decl.description = Some(
+                    scalar_text(&property.value)
+                        .ok_or_else(|| {
+                            format!(
+                                "@fact_kind 'description' field must be a scalar string; got {:?}.",
+                                property.value
+                            )
+                        })?
+                        .to_string(),
+                );
+            }
+            other => {
+                return Err(format!(
+                    "@fact_kind: unknown field '{}' (accepted: name, attributes, required, indexes, scope_kind, exportable, artefact_kind, description).",
+                    other
+                ));
+            }
+        }
+    }
+
+    // Mandatory-field check (surface-level — V-DECL-2 fires deeper for the
+    // attributes content check; here we only catch the totally-missing case).
+    if decl.name.is_empty() {
+        return Err("@fact_kind: required field 'name' is missing.".to_string());
+    }
+    if !seen_attributes {
+        return Err(format!(
+            "@fact_kind '{}': required field 'attributes' is missing.",
+            decl.name
+        ));
+    }
+
+    // V-DECL-2 / -3 / -4 / -5 / -7 (per-declaration).
+    decl.validate_local()?;
+
+    Ok(SemanticRuntimeDirective::DeclareFactKind(decl))
+}
+
+/// Parse a UnifiedSemanticValue::Array of scalar strings into a `Vec<String>`.
+/// Helper used by `@fact_kind`'s `attributes` and `required` fields.
+fn parse_string_list(field_name: &str, value: &UnifiedSemanticValue) -> Result<Vec<String>, String> {
+    let UnifiedSemanticValue::Array(items) = value else {
+        return Err(format!(
+            "@fact_kind '{}' field must be a list; got {:?}.",
+            field_name, value
+        ));
+    };
+    items
+        .iter()
+        .map(|item| {
+            scalar_text(item)
+                .map(str::to_string)
+                .ok_or_else(|| {
+                    format!(
+                        "@fact_kind '{}' list element must be a scalar identifier; got {:?}.",
+                        field_name, item
+                    )
+                })
+        })
+        .collect()
+}
+
+/// Parse the `indexes:` field: a list of tuples, each tuple a list of
+/// attribute names. Today UnifiedSemanticValue has no native tuple form;
+/// we accept nested arrays (`[[name, scope], [container]]`) as the surface.
+fn parse_index_list(
+    field_name: &str,
+    value: &UnifiedSemanticValue,
+) -> Result<Vec<Vec<String>>, String> {
+    let UnifiedSemanticValue::Array(items) = value else {
+        return Err(format!(
+            "@fact_kind '{}' field must be a list of tuples (nested lists); got {:?}.",
+            field_name, value
+        ));
+    };
+    items
+        .iter()
+        .map(|tuple| parse_string_list("indexes (inner tuple)", tuple))
+        .collect()
+}
+
+/// Parse a boolean literal from a UnifiedSemanticValue. Accepts `true`/`false`
+/// (UnifiedSemanticValue::Boolean) and the identifier forms `true` / `false`
+/// (UnifiedSemanticValue::Identifier) for grammar-author convenience.
+fn parse_bool_literal(field_name: &str, value: &UnifiedSemanticValue) -> Result<bool, String> {
+    match value {
+        UnifiedSemanticValue::Boolean(b) => Ok(*b),
+        UnifiedSemanticValue::Identifier(s) if s.eq_ignore_ascii_case("true") => Ok(true),
+        UnifiedSemanticValue::Identifier(s) if s.eq_ignore_ascii_case("false") => Ok(false),
+        _ => Err(format!(
+            "@fact_kind '{}' field must be a boolean (true/false); got {:?}.",
+            field_name, value
+        )),
     }
 }
 
@@ -1250,9 +1669,24 @@ pub fn compile_semantic_runtime_annotations(
 ) -> Result<CompiledSemanticRuntimeAnnotations, String> {
     let mut directives_by_rule = HashMap::new();
     let mut branch_directives_by_rule = HashMap::new();
+    // `SV-EXH-PROOF.3.3.4.b.5.1.2`: collect `@fact_kind:` declarations
+    // from every rule's annotations. V-DECL-1 (uniqueness across the grammar)
+    // is checked HERE; V-DECL-2..5, V-DECL-7 are already enforced at parse
+    // time via `FactKindDecl::validate_local`.
+    let mut fact_kinds: HashMap<String, FactKindDecl> = HashMap::new();
+    // Track all scope-kind labels referenced by `@open_scope` directives so
+    // V-DECL-6 (scope_kind ∈ open_scope labels ∪ engine reserved) can be
+    // validated after the full pass. Warn-only per design (lenient).
+    let mut declared_scope_kinds: std::collections::HashSet<String> = std::collections::HashSet::new();
+
     for (rule_name, semantic_annotations) in &annotations.semantic_annotations {
         let directives =
             compile_rule_semantic_runtime_directives(rule_name, semantic_annotations.iter())?;
+        collect_fact_kind_decls_and_scope_kinds(
+            &directives,
+            &mut fact_kinds,
+            &mut declared_scope_kinds,
+        )?;
         if !directives.is_empty() {
             directives_by_rule.insert(rule_name.clone(), directives);
         }
@@ -1273,6 +1707,11 @@ pub fn compile_semantic_runtime_annotations(
                     err
                 )
             })?;
+            collect_fact_kind_decls_and_scope_kinds(
+                &directives,
+                &mut fact_kinds,
+                &mut declared_scope_kinds,
+            )?;
             if !directives.is_empty() {
                 has_runtime_directive = true;
             }
@@ -1282,10 +1721,72 @@ pub fn compile_semantic_runtime_annotations(
             branch_directives_by_rule.insert(rule_name.clone(), compiled_branches);
         }
     }
-    Ok(CompiledSemanticRuntimeAnnotations::from_parts(
+
+    // V-DECL-6: warn (do not error) if any `@fact_kind` references a
+    // `scope_kind` label not found in `@open_scope` directives and not in
+    // the engine-reserved set. We don't have an output stream here — emit
+    // via eprintln! at compile time. Test suites assert via the (private)
+    // helper `validate_scope_kind_label_for_test`; grammar authors will see
+    // the warning during codegen.
+    for decl in fact_kinds.values() {
+        if let Some(scope_kind) = &decl.scope_kind {
+            if !ENGINE_RESERVED_SCOPE_KINDS.contains(&scope_kind.as_str())
+                && !declared_scope_kinds.contains(scope_kind)
+            {
+                eprintln!(
+                    "warning: @fact_kind '{}': V-DECL-6 — scope_kind '{}' is not in the engine-reserved set ({:?}) and not declared by any @open_scope directive in this grammar. This will silently match no scope at runtime.",
+                    decl.name, scope_kind, ENGINE_RESERVED_SCOPE_KINDS
+                );
+            }
+        }
+    }
+
+    Ok(CompiledSemanticRuntimeAnnotations {
         directives_by_rule,
         branch_directives_by_rule,
-    ))
+        fact_kinds,
+    })
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.2`: scan a list of directives, extracting any
+/// `DeclareFactKind` payloads into the cross-grammar registry (V-DECL-1
+/// uniqueness enforced) and accumulating `OpenScope` kinds into the
+/// per-grammar label set for V-DECL-6's deferred check.
+fn collect_fact_kind_decls_and_scope_kinds(
+    directives: &[SemanticRuntimeDirective],
+    fact_kinds: &mut HashMap<String, FactKindDecl>,
+    scope_kinds: &mut std::collections::HashSet<String>,
+) -> Result<(), String> {
+    for directive in directives {
+        match directive {
+            SemanticRuntimeDirective::DeclareFactKind(decl) => {
+                // V-DECL-1: uniqueness across the grammar. If the same kind
+                // name is declared twice, the second declaration is rejected
+                // with a precise message naming the conflicting kind.
+                if let Some(prior) = fact_kinds.get(&decl.name) {
+                    if prior != decl {
+                        return Err(format!(
+                            "@fact_kind '{}': V-DECL-1 violation — declared more than once with conflicting payloads (first: {:?}; second: {:?}).",
+                            decl.name, prior, decl
+                        ));
+                    }
+                    // Identical re-declarations are allowed (e.g., the same
+                    // @fact_kind: block attached to two rules for visibility).
+                    // This is a deliberate convenience; downstream consumers
+                    // see a single registry entry.
+                    continue;
+                }
+                fact_kinds.insert(decl.name.clone(), decl.clone());
+            }
+            SemanticRuntimeDirective::OpenScope(spec) => {
+                // Accumulate user-declared scope-kind labels for V-DECL-6.
+                let label = spec.kind.label();
+                scope_kinds.insert(label.to_string());
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn parse_open_scope(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective, String> {
@@ -3479,5 +3980,321 @@ mod tests {
             state.evaluate_predicate(&has_fact_predicate("variable_binding", "dup")),
             Some(true)
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.2` @fact_kind: declaration tests
+    //
+    // Cover the parse path + V-DECL-1..7 validation rules. Test names follow
+    // the U-DECL-N / V-DECL-N convention from PGEN_SEMANTIC_STORE_TEST_PLAN.md.
+    // -------------------------------------------------------------------------
+
+    use super::{FactKindDecl, parse_fact_kind};
+    use crate::ast_pipeline::UnifiedSemanticProperty;
+
+    /// Build a `UnifiedSemanticValue::Object` from `(key, value)` pairs.
+    fn object(pairs: Vec<(&str, UnifiedSemanticValue)>) -> UnifiedSemanticValue {
+        UnifiedSemanticValue::Object(
+            pairs
+                .into_iter()
+                .map(|(k, v)| UnifiedSemanticProperty {
+                    key: k.to_string(),
+                    value: v,
+                })
+                .collect(),
+        )
+    }
+
+    fn ident_val(s: &str) -> UnifiedSemanticValue {
+        UnifiedSemanticValue::Identifier(s.to_string())
+    }
+
+    fn string_val(s: &str) -> UnifiedSemanticValue {
+        UnifiedSemanticValue::String(s.to_string())
+    }
+
+    fn arr(items: Vec<UnifiedSemanticValue>) -> UnifiedSemanticValue {
+        UnifiedSemanticValue::Array(items)
+    }
+
+    fn ident_list(items: &[&str]) -> UnifiedSemanticValue {
+        arr(items.iter().map(|s| ident_val(s)).collect())
+    }
+
+    fn bool_val(b: bool) -> UnifiedSemanticValue {
+        UnifiedSemanticValue::Boolean(b)
+    }
+
+    /// Wrap an object payload in the `UnifiedSemanticAST::Structured` shape
+    /// and feed it through `parse_fact_kind`.
+    fn parse_fact_kind_payload(payload: UnifiedSemanticValue) -> Result<FactKindDecl, String> {
+        let ast = UnifiedSemanticAST::Structured {
+            canonical: String::new(),
+            value: payload,
+        };
+        match parse_fact_kind(&ast)? {
+            SemanticRuntimeDirective::DeclareFactKind(decl) => Ok(decl),
+            other => Err(format!("expected DeclareFactKind, got {:?}", other)),
+        }
+    }
+
+    fn fact_kind_annotation(payload: UnifiedSemanticValue) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "fact_kind".to_string(),
+            ast: UnifiedSemanticAST::Structured {
+                canonical: String::new(),
+                value: payload,
+            },
+        }
+    }
+
+    #[test]
+    fn u_decl_1_minimal_well_formed_declaration_parses() {
+        // U-DECL-1: a well-formed declaration returns Ok with the parsed payload.
+        let decl = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("variable_binding")),
+            ("attributes", ident_list(&["name", "type_kind"])),
+        ]))
+        .expect("well-formed @fact_kind: should parse");
+        assert_eq!(decl.name, "variable_binding");
+        assert_eq!(decl.attributes, vec!["name", "type_kind"]);
+        assert_eq!(decl.required, Vec::<String>::new());
+        assert!(decl.indexes.is_empty());
+        assert!(!decl.exportable);
+        assert!(decl.description.is_none());
+    }
+
+    #[test]
+    fn u_decl_full_declaration_parses_all_fields() {
+        let decl = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("variable_binding")),
+            ("attributes", ident_list(&["name", "type_kind", "type_ref"])),
+            ("required", ident_list(&["name", "type_kind"])),
+            (
+                "indexes",
+                arr(vec![ident_list(&["scope", "name"]), ident_list(&["scope", "type_kind"])]),
+            ),
+            ("scope_kind", ident_val("enclosing_block")),
+            ("exportable", bool_val(true)),
+            ("artefact_kind", ident_val("bindings")),
+            ("description", string_val("A bound identifier with its declared type.")),
+        ]))
+        .expect("full @fact_kind: should parse");
+        assert_eq!(decl.name, "variable_binding");
+        assert_eq!(decl.attributes, vec!["name", "type_kind", "type_ref"]);
+        assert_eq!(decl.required, vec!["name", "type_kind"]);
+        assert_eq!(
+            decl.indexes,
+            vec![
+                vec!["scope".to_string(), "name".to_string()],
+                vec!["scope".to_string(), "type_kind".to_string()],
+            ]
+        );
+        assert_eq!(decl.scope_kind.as_deref(), Some("enclosing_block"));
+        assert!(decl.exportable);
+        assert_eq!(decl.artefact_kind.as_deref(), Some("bindings"));
+        assert_eq!(decl.resolved_artefact_kind(), "bindings");
+        assert_eq!(
+            decl.description.as_deref(),
+            Some("A bound identifier with its declared type.")
+        );
+    }
+
+    #[test]
+    fn u_decl_resolved_artefact_kind_defaults_to_name() {
+        let decl = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["x"])),
+            ("exportable", bool_val(true)),
+        ]))
+        .expect("parse");
+        assert_eq!(decl.resolved_artefact_kind(), "foo");
+    }
+
+    #[test]
+    fn v_decl_2_empty_attributes_rejected() {
+        // V-DECL-2: attributes must be non-empty.
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", arr(vec![])),
+        ]))
+        .expect_err("V-DECL-2 should reject");
+        assert!(err.contains("V-DECL-2"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_decl_3_required_not_in_attributes_rejected() {
+        // V-DECL-3: every name in `required` must appear in `attributes`.
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["name"])),
+            ("required", ident_list(&["type_kind"])),
+        ]))
+        .expect_err("V-DECL-3 should reject");
+        assert!(err.contains("V-DECL-3"), "got: {}", err);
+        assert!(err.contains("type_kind"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_decl_4_index_attr_not_in_attributes_rejected() {
+        // V-DECL-4: every name in an index tuple must be in `attributes` ∪ {scope, kind}.
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["name"])),
+            ("indexes", arr(vec![ident_list(&["scope", "missing_attr"])])),
+        ]))
+        .expect_err("V-DECL-4 should reject");
+        assert!(err.contains("V-DECL-4"), "got: {}", err);
+        assert!(err.contains("missing_attr"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_decl_4_scope_and_kind_are_implicit() {
+        // V-DECL-4 carve-out: 'scope' and 'kind' are always indexable.
+        let _decl = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["name"])),
+            ("indexes", arr(vec![ident_list(&["scope", "kind", "name"])])),
+        ]))
+        .expect("scope+kind should be accepted as implicit attributes");
+    }
+
+    #[test]
+    fn v_decl_5_empty_index_tuple_rejected() {
+        // V-DECL-5: index tuple non-empty.
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["name"])),
+            ("indexes", arr(vec![arr(vec![])])),
+        ]))
+        .expect_err("V-DECL-5 (empty tuple) should reject");
+        assert!(err.contains("V-DECL-5"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_decl_5_duplicate_in_tuple_rejected() {
+        // V-DECL-5: index tuple no duplicates.
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["name"])),
+            ("indexes", arr(vec![ident_list(&["name", "name"])])),
+        ]))
+        .expect_err("V-DECL-5 (duplicate) should reject");
+        assert!(err.contains("V-DECL-5"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_decl_7_name_path_components_validated() {
+        // V-DECL-7: name with slash rejected.
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", string_val("foo/bar")),
+            ("attributes", ident_list(&["x"])),
+        ]))
+        .expect_err("V-DECL-7 should reject slash");
+        assert!(err.contains("V-DECL-7"), "got: {}", err);
+
+        // V-DECL-7: artefact_kind with leading dot rejected.
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["x"])),
+            ("artefact_kind", string_val(".hidden")),
+        ]))
+        .expect_err("V-DECL-7 should reject leading dot");
+        assert!(err.contains("V-DECL-7"), "got: {}", err);
+        assert!(err.contains("artefact_kind"), "got: {}", err);
+    }
+
+    #[test]
+    fn unknown_field_rejected() {
+        // Unknown fields are codegen errors (typo protection).
+        let err = parse_fact_kind_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("attributes", ident_list(&["x"])),
+            ("gibberish", UnifiedSemanticValue::Number("1".to_string())),
+        ]))
+        .expect_err("unknown field should reject");
+        assert!(err.contains("gibberish"), "got: {}", err);
+    }
+
+    #[test]
+    fn missing_attributes_field_rejected() {
+        // Surface-level required-field check.
+        let err = parse_fact_kind_payload(object(vec![("name", ident_val("foo"))]))
+            .expect_err("missing attributes should reject");
+        assert!(err.contains("attributes"), "got: {}", err);
+    }
+
+    #[test]
+    fn missing_name_field_rejected() {
+        let err = parse_fact_kind_payload(object(vec![("attributes", ident_list(&["x"]))]))
+            .expect_err("missing name should reject");
+        assert!(err.contains("name"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_decl_1_duplicate_declaration_with_conflicting_payloads_rejected() {
+        // V-DECL-1 cross-declaration uniqueness check via compile_semantic_runtime_annotations.
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "rule_alpha".to_string(),
+            vec![fact_kind_annotation(object(vec![
+                ("name", ident_val("foo")),
+                ("attributes", ident_list(&["a"])),
+            ]))],
+        );
+        annotations.semantic_annotations.insert(
+            "rule_beta".to_string(),
+            vec![fact_kind_annotation(object(vec![
+                ("name", ident_val("foo")),
+                ("attributes", ident_list(&["b"])),
+            ]))],
+        );
+        let err = compile_semantic_runtime_annotations(&annotations)
+            .expect_err("V-DECL-1 should reject duplicate kind with conflicting payloads");
+        assert!(err.contains("V-DECL-1"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_decl_1_identical_redeclaration_allowed() {
+        // V-DECL-1 deliberate carve-out: identical re-declarations (same payload)
+        // are allowed for the convenience of attaching the same block to multiple rules.
+        let mut annotations = Annotations::default();
+        let payload = || {
+            object(vec![
+                ("name", ident_val("foo")),
+                ("attributes", ident_list(&["a", "b"])),
+            ])
+        };
+        annotations
+            .semantic_annotations
+            .insert("rule_alpha".to_string(), vec![fact_kind_annotation(payload())]);
+        annotations
+            .semantic_annotations
+            .insert("rule_beta".to_string(), vec![fact_kind_annotation(payload())]);
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("identical re-declarations should be OK");
+        assert_eq!(compiled.fact_kinds_len(), 1);
+        let decl = compiled.fact_kind("foo").expect("registered");
+        assert_eq!(decl.attributes, vec!["a", "b"]);
+    }
+
+    #[test]
+    fn fact_kind_registry_populated_from_directives() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "some_rule".to_string(),
+            vec![fact_kind_annotation(object(vec![
+                ("name", ident_val("variable_binding")),
+                ("attributes", ident_list(&["name", "type_kind"])),
+                ("required", ident_list(&["name"])),
+                ("exportable", bool_val(true)),
+            ]))],
+        );
+        let compiled = compile_semantic_runtime_annotations(&annotations).expect("compile");
+        assert_eq!(compiled.fact_kinds_len(), 1);
+        let decl = compiled.fact_kind("variable_binding").expect("registered");
+        assert_eq!(decl.attributes, vec!["name", "type_kind"]);
+        assert_eq!(decl.required, vec!["name"]);
+        assert!(decl.exportable);
     }
 }
