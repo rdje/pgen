@@ -595,6 +595,36 @@ impl CompiledSemanticRuntimeAnnotations {
         self.fact_kinds.len()
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.5.3`: the set of fact-kind names eligible for
+    /// library export, derived from the `@fact_kind:` registry.
+    ///
+    /// - A grammar that has adopted the `@fact_kind:` schema language governs
+    ///   export per-kind via the declaration's `exportable` flag — any kind
+    ///   declared `exportable: true` is returned. A grammar that declares
+    ///   fact kinds but marks them all `exportable: false` returns an empty
+    ///   set (export nothing) — it is NOT silently widened back to the
+    ///   transitional default.
+    /// - A grammar that has declared NO `@fact_kind:` schema at all falls back
+    ///   to `library::MVP0_EXPORTABLE_FACT_KINDS`, so pre-schema grammars keep
+    ///   their `.3.3.4.a` MVP-0 export behaviour until they migrate (the SV
+    ///   producer pass `.b.6.1` adds explicit declarations).
+    ///
+    /// `apply_semantic_runtime_library_export_directive` (generated) passes the
+    /// result to `library::write_artifact`.
+    pub fn exportable_fact_kinds(&self) -> std::collections::HashSet<String> {
+        if self.fact_kinds.is_empty() {
+            return crate::ast_pipeline::library::MVP0_EXPORTABLE_FACT_KINDS
+                .iter()
+                .map(|k| k.to_string())
+                .collect();
+        }
+        self.fact_kinds
+            .values()
+            .filter(|decl| decl.exportable)
+            .map(|decl| decl.name.clone())
+            .collect()
+    }
+
     pub fn is_empty(&self) -> bool {
         self.directives_by_rule.is_empty() && self.branch_directives_by_rule.is_empty()
     }
@@ -6024,6 +6054,76 @@ mod tests {
             state.evaluate_content_aware_predicate(&ghost_spec, &raw_content, &shaped_content),
             None,
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.3` exportable-fact-kind derivation — schema-driven library
+    // export eligibility (replaces the MVP-0 hard-coded `["type_name"]`).
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn exportable_fact_kinds_falls_back_to_mvp0_when_no_schema_declared() {
+        // A grammar that declares no `@fact_kind:` schema keeps MVP-0 export
+        // behaviour — the SV grammar is in this state until producer pass
+        // `.b.6.1` adds explicit declarations, so veer cross-file export must
+        // not regress.
+        let compiled = CompiledSemanticRuntimeAnnotations::default();
+        assert_eq!(compiled.fact_kinds_len(), 0);
+        let exportable = compiled.exportable_fact_kinds();
+        let expected: std::collections::HashSet<String> =
+            crate::ast_pipeline::library::MVP0_EXPORTABLE_FACT_KINDS
+                .iter()
+                .map(|k| k.to_string())
+                .collect();
+        assert_eq!(exportable, expected);
+    }
+
+    #[test]
+    fn exportable_fact_kinds_honours_declared_exportable_flag() {
+        // Once a grammar declares its schema, the per-kind `exportable` flag
+        // is authoritative — declared-exportable kinds are returned, others
+        // are not, and the MVP-0 default is no longer consulted.
+        let mut compiled = CompiledSemanticRuntimeAnnotations::default();
+        compiled.fact_kinds.insert(
+            "class_decl".to_string(),
+            FactKindDecl {
+                name: "class_decl".to_string(),
+                exportable: true,
+                ..FactKindDecl::default()
+            },
+        );
+        compiled.fact_kinds.insert(
+            "variable_binding".to_string(),
+            FactKindDecl {
+                name: "variable_binding".to_string(),
+                exportable: false,
+                ..FactKindDecl::default()
+            },
+        );
+        let exportable = compiled.exportable_fact_kinds();
+        assert_eq!(exportable.len(), 1);
+        assert!(exportable.contains("class_decl"));
+        assert!(!exportable.contains("variable_binding"));
+        // `type_name` (the MVP-0 default) is NOT silently included once a
+        // schema is declared.
+        assert!(!exportable.contains("type_name"));
+    }
+
+    #[test]
+    fn exportable_fact_kinds_empty_when_schema_declared_but_none_exportable() {
+        // A grammar that declares fact kinds but marks them all
+        // `exportable: false` exports nothing — it is NOT widened back to the
+        // MVP-0 transitional default.
+        let mut compiled = CompiledSemanticRuntimeAnnotations::default();
+        compiled.fact_kinds.insert(
+            "internal_marker".to_string(),
+            FactKindDecl {
+                name: "internal_marker".to_string(),
+                exportable: false,
+                ..FactKindDecl::default()
+            },
+        );
+        assert!(compiled.exportable_fact_kinds().is_empty());
     }
 
     // -------------------------------------------------------------------------

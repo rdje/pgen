@@ -323,10 +323,17 @@ needs a way to share facts between parse sessions. That's the **library
 mechanism**, introduced in `.3.3.4.a` and extended by Stage 5/6 of the
 protocol.
 
-### Stage 5 — Automatic export
+### Stage 5 — Export
 
-You don't write an export annotation on each rule. Instead, you mark a
-fact-kind as exportable in its `@fact_kind:` declaration:
+Export has two halves, and they are deliberately separate:
+
+1. **Where** facts are written — an `@export_to_library` directive on a
+   scope-defining rule (a `package_declaration`, a `class_declaration`, …).
+   When that rule commits, the engine takes the facts the rule's subtree
+   emitted and writes them to a library artefact.
+2. **Which** facts are written — the `exportable` flag on each
+   `@fact_kind:` declaration. Only facts whose kind is declared
+   `exportable: true` are persisted; everything else stays parse-local.
 
 ```ebnf
 @fact_kind: {
@@ -337,10 +344,18 @@ fact-kind as exportable in its `@fact_kind:` declaration:
 }
 ```
 
-Then, whenever a scope closes (Stage 4), the engine collects facts of every
-`exportable: true` kind that lived in that scope and writes them to
-`<lib-dir>/<scope-kind>/<scope-name>.types.facts.json`. Atomic write — never
-half-written.
+So you declare a kind exportable once, in its `@fact_kind:` block, and
+every `@export_to_library` point automatically persists facts of that kind
+— and *only* of kinds marked exportable. A kind you emit for in-parse
+queries but never want on disk simply leaves `exportable` at its default
+(`false`).
+
+This is fully schema-agnostic: **any** kind a grammar declares exportable
+round-trips through the library, not a fixed built-in set. (A grammar that
+has not yet declared any `@fact_kind:` schema at all keeps a conservative
+transitional default so it does not lose export behaviour before it
+migrates.) The artefact is written atomically — a temp file then a rename
+— so a crash mid-write never leaves a half-written library.
 
 ### Stage 6 — Lazy import
 

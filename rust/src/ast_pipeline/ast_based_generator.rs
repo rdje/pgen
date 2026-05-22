@@ -1059,7 +1059,20 @@ impl AstBasedGenerator {
                 let all_facts = transaction.state().facts();
                 let start = entry_fact_len.min(all_facts.len());
                 let delta = &all_facts[start..];
-                match crate::ast_pipeline::library::write_artifact(lib_out, &spec.kind, name, delta) {
+                // `SV-EXH-PROOF.3.3.4.b.5.3`: export eligibility is schema-driven.
+                // The set of exportable fact kinds is derived from the grammar's
+                // `@fact_kind:` declarations (or the MVP-0 default when no schema
+                // is declared) — any declared-exportable kind round-trips, not
+                // just `type_name`.
+                let exportable_kinds =
+                    self.semantic_runtime_annotations.exportable_fact_kinds();
+                match crate::ast_pipeline::library::write_artifact(
+                    lib_out,
+                    &spec.kind,
+                    name,
+                    delta,
+                    &exportable_kinds,
+                ) {
                     Ok(path) => {
                         if self.logger_enabled {
                             self.logger.log_info(

@@ -21,8 +21,17 @@ use crate::ast_pipeline::{
 /// incompatibly; readers must check this before deserialising.
 pub const ARTIFACT_FORMAT_VERSION: u32 = 1;
 
-/// Fact kinds that MVP-0 considers exportable across compilation artifacts.
-/// Conservative — additional kinds added as future leaves demand them.
+/// Transitional default set of exportable fact kinds.
+///
+/// `SV-EXH-PROOF.3.3.4.b.5.3`: export eligibility is now schema-driven — a
+/// grammar declares which fact kinds are exportable via the `exportable: true`
+/// field on its `@fact_kind:` declarations, and
+/// `CompiledSemanticRuntimeAnnotations::exportable_fact_kinds` derives the set
+/// from that registry. This constant is consulted ONLY as the fallback for a
+/// grammar that has declared no `@fact_kind:` schema at all, so pre-schema
+/// grammars keep their `.3.3.4.a` MVP-0 behaviour until they migrate (the SV
+/// producer pass `.b.6.1` adds explicit declarations). Removed once every
+/// grammar has adopted explicit `@fact_kind:` declarations.
 pub const MVP0_EXPORTABLE_FACT_KINDS: &[&str] = &["type_name"];
 
 /// Error type for library I/O.  All variants carry a human-readable message
@@ -61,14 +70,23 @@ pub fn artifact_path(lib_dir: &Path, kind: &str, name: &str) -> PathBuf {
     lib_dir.join(kind).join(format!("{}.facts.json", name))
 }
 
-/// Write the supplied facts (filtered to MVP-0-exportable kinds) as a JSON
-/// artifact under the library directory.  Atomic: writes to a temp file
-/// in the same directory then renames to the final path.
+/// Write the supplied facts as a JSON artifact under the library directory.
+///
+/// `SV-EXH-PROOF.3.3.4.b.5.3`: only facts whose `kind` is in `exportable_kinds`
+/// (case-insensitive) are persisted.  The caller derives that set from the
+/// grammar's `@fact_kind:` declarations via
+/// `CompiledSemanticRuntimeAnnotations::exportable_fact_kinds` — so any fact
+/// kind a grammar declares `exportable: true` round-trips through the library,
+/// not just the MVP-0 `type_name`.  An empty set persists no facts.
+///
+/// Atomic: writes to a temp file in the same directory then renames to the
+/// final path.
 pub fn write_artifact(
     lib_dir: &Path,
     kind: &str,
     name: &str,
     facts: &[SemanticFactRecord],
+    exportable_kinds: &std::collections::HashSet<String>,
 ) -> Result<PathBuf, LibraryError> {
     let target_path = artifact_path(lib_dir, kind, name);
     let parent = target_path.parent().ok_or_else(|| {
@@ -87,7 +105,11 @@ pub fn write_artifact(
 
     let exportable: Vec<&SemanticFactRecord> = facts
         .iter()
-        .filter(|f| MVP0_EXPORTABLE_FACT_KINDS.iter().any(|k| f.kind.eq_ignore_ascii_case(k)))
+        .filter(|f| {
+            exportable_kinds
+                .iter()
+                .any(|k| f.kind.eq_ignore_ascii_case(k))
+        })
         .collect();
 
     let json = build_artifact_json(kind, name, &exportable);
@@ -388,8 +410,13 @@ mod tests {
     };
 
     fn sample_fact(name: &str, family: &str) -> SemanticFactRecord {
+        fact_of_kind("type_name", name, family)
+    }
+
+    /// A fact of an arbitrary kind — exercises `.b.5.3` richer-kind export.
+    fn fact_of_kind(kind: &str, name: &str, family: &str) -> SemanticFactRecord {
         SemanticFactRecord {
-            kind: "type_name".to_string(),
+            kind: kind.to_string(),
             name: SemanticRuntimeValue::Identifier(name.to_string()),
             scope_depth: 0,
             scope_id: crate::ast_pipeline::ScopeId::ROOT,
@@ -400,6 +427,11 @@ mod tests {
         }
     }
 
+    /// Build the exportable-kind set a caller passes to `write_artifact`.
+    fn kind_set(kinds: &[&str]) -> std::collections::HashSet<String> {
+        kinds.iter().map(|k| k.to_string()).collect()
+    }
+
     #[test]
     fn artifact_roundtrip_preserves_type_name_facts() {
         let dir = tempfile::tempdir().expect("tmpdir");
@@ -407,7 +439,14 @@ mod tests {
             sample_fact("el2_trigger_pkt_t", "typedef"),
             sample_fact("el2_lsu_pkt_t", "typedef"),
         ];
-        write_artifact(dir.path(), "package", "el2_pkg", &facts).expect("write");
+        write_artifact(
+            dir.path(),
+            "package",
+            "el2_pkg",
+            &facts,
+            &kind_set(&["type_name"]),
+        )
+        .expect("write");
         let read = read_artifact(dir.path(), "package", "el2_pkg").expect("read");
         assert_eq!(read.len(), 2);
         assert_eq!(read[0].kind, "type_name");
@@ -419,7 +458,7 @@ mod tests {
     }
 
     #[test]
-    fn non_exportable_kinds_are_filtered_on_write() {
+    fn kinds_outside_the_exportable_set_are_filtered_on_write() {
         let dir = tempfile::tempdir().expect("tmpdir");
         let facts = vec![
             sample_fact("el2_trigger_pkt_t", "typedef"),
@@ -431,10 +470,68 @@ mod tests {
                 attributes: vec![],
             },
         ];
-        write_artifact(dir.path(), "package", "el2_pkg", &facts).expect("write");
+        // `type_name` is exportable; `package_name` is not.
+        write_artifact(
+            dir.path(),
+            "package",
+            "el2_pkg",
+            &facts,
+            &kind_set(&["type_name"]),
+        )
+        .expect("write");
         let read = read_artifact(dir.path(), "package", "el2_pkg").expect("read");
-        assert_eq!(read.len(), 1, "only type_name should survive v0 filter");
+        assert_eq!(read.len(), 1, "only type_name is in the exportable set");
         assert_eq!(read[0].kind, "type_name");
+    }
+
+    #[test]
+    fn richer_fact_kinds_export_when_in_the_exportable_set() {
+        // `.b.5.3`: export is no longer hard-limited to `type_name`. Any kind
+        // the caller lists as exportable round-trips through the library.
+        let dir = tempfile::tempdir().expect("tmpdir");
+        let facts = vec![
+            fact_of_kind("type_name", "uvm_object", "class"),
+            fact_of_kind("class_decl", "uvm_component", "class"),
+            fact_of_kind("variable_binding", "m_seed", "automatic"),
+        ];
+        // `type_name` + `class_decl` exportable; `variable_binding` is not.
+        write_artifact(
+            dir.path(),
+            "package",
+            "uvm_pkg",
+            &facts,
+            &kind_set(&["type_name", "class_decl"]),
+        )
+        .expect("write");
+        let read = read_artifact(dir.path(), "package", "uvm_pkg").expect("read");
+        assert_eq!(read.len(), 2, "type_name + class_decl survive; variable_binding filtered");
+        let kinds: std::collections::HashSet<&str> =
+            read.iter().map(|f| f.kind.as_str()).collect();
+        assert!(kinds.contains("type_name"));
+        assert!(kinds.contains("class_decl"));
+        assert!(!kinds.contains("variable_binding"));
+    }
+
+    #[test]
+    fn empty_exportable_set_persists_no_facts() {
+        // A grammar that declares fact kinds but marks them all
+        // `exportable: false` exports nothing — the artifact is well-formed
+        // with an empty `facts` array.
+        let dir = tempfile::tempdir().expect("tmpdir");
+        let facts = vec![
+            fact_of_kind("type_name", "t", "typedef"),
+            fact_of_kind("class_decl", "c", "class"),
+        ];
+        write_artifact(
+            dir.path(),
+            "package",
+            "empty_pkg",
+            &facts,
+            &kind_set(&[]),
+        )
+        .expect("write");
+        let read = read_artifact(dir.path(), "package", "empty_pkg").expect("read");
+        assert!(read.is_empty(), "empty exportable set persists no facts");
     }
 
     #[test]
@@ -448,7 +545,14 @@ mod tests {
     fn artifact_kind_or_name_mismatch_is_parse_error() {
         let dir = tempfile::tempdir().expect("tmpdir");
         let facts = vec![sample_fact("x", "typedef")];
-        write_artifact(dir.path(), "package", "p1", &facts).expect("write");
+        write_artifact(
+            dir.path(),
+            "package",
+            "p1",
+            &facts,
+            &kind_set(&["type_name"]),
+        )
+        .expect("write");
         // Place the file under p1.facts.json but try to read as p2 (different
         // path → NotFound), so use the same name but different kind path —
         // craft a synthetic mismatch by reading then asserting check fires:
