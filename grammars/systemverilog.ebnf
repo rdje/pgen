@@ -5088,6 +5088,14 @@ var_data_type := data_type                            -> {kind: "data_type",    
 variable_assignment := variable_lvalue assign expression
                     -> {lvalue: $1, value: $3}
 
+# SV-EXH-PROOF.3.3.4.b.6.1.2 — minimal producer: emit a `variable_binding`
+# fact recording that this name is a declared variable/data object. This
+# decl-site element rule executes once per variable, so `int a, b, c;`
+# naturally emits three facts — no fan-out machinery needed. Name-presence
+# (`has_fact(variable_binding, …)`) is the context the `.b.6.2` consumer
+# uses to disambiguate method-call chains; `type_kind`/`type_ref` are added
+# later only if name-presence proves insufficient.
+@emit_fact: { kind: variable_binding, name: $name.body }
 variable_decl_assignment := variable_identifier !lparen variable_dimension* ( assign expression )?
                                   -> {kind: "variable",      name: $1, dims: $3, init: $4}
                           | dynamic_array_variable_identifier unsized_dimension variable_dimension* ( assign dynamic_array_new )?

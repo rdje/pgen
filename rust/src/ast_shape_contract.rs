@@ -863,6 +863,40 @@ mod tests {
         );
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.6.1.2`: the minimal producer — `@emit_fact` on
+    /// `variable_decl_assignment` must emit one `variable_binding` fact per
+    /// declared variable. The decl-site element rule executes once per
+    /// variable, so `int alpha, beta;` produces two facts with no fan-out
+    /// machinery. This pins the producer end-to-end.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_variable_decl_emits_variable_binding_facts() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        let mut parser = SystemverilogParser::new(
+            "module m; int alpha, beta; endmodule",
+            runtime_logger_box("ast_shape_contract.systemverilog.variable_binding"),
+        );
+        parser
+            .parse_full_systemverilog_file()
+            .expect("module with a two-variable data declaration must parse");
+
+        let names: Vec<String> = parser
+            .semantic_runtime_state()
+            .facts()
+            .iter()
+            .filter(|fact| fact.kind == "variable_binding")
+            .filter_map(|fact| fact.name.as_text().map(|text| text.to_string()))
+            .collect();
+        // Natural per-element fan-out: one fact per variable.
+        assert!(
+            names.iter().any(|n| n == "alpha") && names.iter().any(|n| n == "beta"),
+            "expected variable_binding facts for both `alpha` and `beta`; got {:?}",
+            names,
+        );
+    }
+
     #[cfg(all(
         feature = "generated_parsers",
         has_generated_systemverilog_preprocessor_parser
