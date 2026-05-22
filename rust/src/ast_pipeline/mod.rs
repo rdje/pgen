@@ -3648,12 +3648,13 @@ pub use semantic_directive_registry::{
     parse_semantic_string_list, parse_semantic_token_class, semantic_directive_spec,
 };
 pub use semantic_runtime::{
-    CompiledSemanticRuntimeAnnotations, FactKindDecl, ResolveResult, ScopeId, ScopeNode,
-    SemanticCloseScopeSpec, SemanticFactRecord, SemanticFactSpec, SemanticLibraryExportSpec,
-    SemanticLibraryImportSpec, SemanticPredicateContentView, SemanticPredicatePhase,
-    SemanticPredicateSpec, SemanticRuntimeCheckpoint, SemanticRuntimeDirective,
-    SemanticRuntimeState, SemanticRuntimeTransaction, SemanticRuntimeValue, SemanticScopeFrame,
-    SemanticScopeKind, SemanticScopeSpec, compile_rule_semantic_runtime_directives,
+    CompiledSemanticRuntimeAnnotations, FactFilter, FactKindDecl, QueryExplain, ResolveResult,
+    ScopeId, ScopeNode, SemanticCloseScopeSpec, SemanticFactRecord, SemanticFactSpec,
+    SemanticLibraryExportSpec, SemanticLibraryImportSpec, SemanticPredicateContentView,
+    SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeCheckpoint,
+    SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeTransaction,
+    SemanticRuntimeValue, SemanticScopeFrame, SemanticScopeKind, SemanticScopeSpec,
+    SemanticStoreCounters, compile_rule_semantic_runtime_directives,
     compile_semantic_runtime_annotations, parse_semantic_runtime_directive,
     parse_semantic_runtime_directives,
 };

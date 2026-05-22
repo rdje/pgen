@@ -1047,6 +1047,59 @@ impl FactIndex {
     }
 }
 
+/// `SV-EXH-PROOF.3.3.4.b.5.1.6`: cumulative operation counters for the
+/// semantic store — the "is the store a bottleneck?" diagnostic signal
+/// (`CONTEXT_AWARE_PARSING_DESIGN.md` §11.3,
+/// `PGEN_SEMANTIC_STORE_API_CONTRACT.md` §3.9).
+///
+/// Semantics: counters are CUMULATIVE over the lifetime of this state
+/// value. They count operations *performed* — an emit that is later rolled
+/// back still increments `facts_emitted` (and the rollback increments
+/// `facts_rolled_back`), so the pair surfaces speculative-parse churn.
+/// `rollback_to` does not reset them. A clone-based state restore (the
+/// `.3.3.3` IIFE error path) copies whatever counter values the snapshot
+/// held — counters then reflect the committed lineage. Either way the
+/// numbers are an honest record of work the store did.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct SemanticStoreCounters {
+    /// `emit_fact` calls.
+    pub facts_emitted: u64,
+    /// `push_fact_record` calls (library-import path).
+    pub facts_imported: u64,
+    /// Facts removed by `rollback_to` (summed across all rollbacks).
+    pub facts_rolled_back: u64,
+    /// `open_scope` calls.
+    pub scopes_opened: u64,
+    /// `close_scope` calls that matched and popped a scope.
+    pub scopes_closed: u64,
+    /// `rollback_to` calls.
+    pub rollbacks: u64,
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.6`: filter for `dump_facts`. A `None` field
+/// matches anything; multiple `Some` fields are ANDed.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FactFilter {
+    /// Restrict to a fact-kind (case-insensitive).
+    pub kind: Option<String>,
+    /// Restrict to a specific scope.
+    pub scope_id: Option<ScopeId>,
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.6`: read-only query plan returned by
+/// `explain_has_fact` — surfaces which index serves a query and how many
+/// candidate facts it would touch, without executing the query.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QueryExplain {
+    /// Human-readable description of the query being explained.
+    pub query: String,
+    /// Which index structure serves this query.
+    pub index_used: String,
+    /// Number of candidate facts the index lookup yields (the work the
+    /// query would do beyond the O(1) hash probe).
+    pub candidate_count: usize,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SemanticRuntimeState {
     scopes: Vec<SemanticScopeFrame>,
@@ -1072,6 +1125,8 @@ pub struct SemanticRuntimeState {
     /// `@predicate <user-defined-name>` call dispatches to its
     /// `@predicate_def:` body. Empty in a freshly-`new`'d state.
     predicate_defs: HashMap<String, PredicateDef>,
+    /// `.3.3.4.b.5.1.6`: cumulative operation counters (observability).
+    counters: SemanticStoreCounters,
 }
 
 #[derive(Debug)]
@@ -1110,6 +1165,55 @@ impl SemanticRuntimeState {
             scope_arena: vec![root_node],
             active_chain: vec![ScopeId::ROOT],
             predicate_defs: HashMap::new(),
+            counters: SemanticStoreCounters::default(),
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.6` observability — counters, dump_facts, explain.
+    // -------------------------------------------------------------------------
+
+    /// Snapshot of the cumulative operation counters.
+    pub fn counters(&self) -> &SemanticStoreCounters {
+        &self.counters
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.6`: iterate the facts matching `filter`.
+    /// A `None` filter field matches anything; `Some` fields are ANDed.
+    /// Read-only — does not touch counters. Iteration order is insertion
+    /// order (the master Vec order).
+    pub fn dump_facts<'a>(
+        &'a self,
+        filter: &'a FactFilter,
+    ) -> impl Iterator<Item = &'a SemanticFactRecord> + 'a {
+        self.facts.iter().filter(move |fact| {
+            let kind_ok = filter
+                .kind
+                .as_deref()
+                .is_none_or(|k| fact.kind.eq_ignore_ascii_case(k));
+            let scope_ok = filter
+                .scope_id
+                .is_none_or(|s| fact.scope_id == s);
+            kind_ok && scope_ok
+        })
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.6`: read-only query plan for a
+    /// `has_fact(kind, name)` query — reports which index serves it and how
+    /// many candidate facts the index lookup yields, WITHOUT executing the
+    /// query. Powers an `--explain`-style diagnostic.
+    pub fn explain_has_fact(&self, kind: &str, name: &SemanticRuntimeValue) -> QueryExplain {
+        // The `(scope, name)` per-kind index serves `has_fact`; the
+        // candidate count is the number of index entries matching the name
+        // across all scope depths (what `any_with_name` would scan).
+        let candidate_count = self
+            .fact_index
+            .positions_for_name(kind, name)
+            .count();
+        QueryExplain {
+            query: format!("has_fact({}, {:?})", kind, name),
+            index_used: "FactIndex.by_kind[kind].by_scope_and_name".to_string(),
+            candidate_count,
         }
     }
 
@@ -1338,6 +1442,10 @@ impl SemanticRuntimeState {
         // back portion) — the performance contract's required bound for the
         // rollback primitive (`PGEN_SEMANTIC_STORE_PERFORMANCE_CONTRACT.md`
         // §3.7).
+        // `.3.3.4.b.5.1.6`: count the rollback + the facts it discards.
+        let facts_being_rolled_back = (self.facts.len() - fact_len) as u64;
+        self.counters.rollbacks += 1;
+        self.counters.facts_rolled_back += facts_being_rolled_back;
         for position in (fact_len..self.facts.len()).rev() {
             let record = &self.facts[position];
             self.fact_index.remove(
@@ -1407,6 +1515,7 @@ impl SemanticRuntimeState {
             kind: spec.kind,
             name: spec.name,
         });
+        self.counters.scopes_opened += 1;
     }
 
     pub fn close_scope(&mut self, spec: &SemanticCloseScopeSpec) -> bool {
@@ -1427,6 +1536,7 @@ impl SemanticRuntimeState {
                 }
             }
             self.scopes.pop();
+            self.counters.scopes_closed += 1;
             true
         } else {
             false
@@ -1446,6 +1556,7 @@ impl SemanticRuntimeState {
             scope_id,
             attributes: fact.attributes,
         });
+        self.counters.facts_emitted += 1;
     }
 
     /// `SV-EXH-PROOF.3.3.4.a` MVP-0: append an already-formed `SemanticFactRecord`
@@ -1465,6 +1576,7 @@ impl SemanticRuntimeState {
         // `.3.3.4.b.5.1.1`: mirror the import into the secondary index.
         self.fact_index.insert(&record.kind, record.scope_depth, &record.name, position);
         self.facts.push(record);
+        self.counters.facts_imported += 1;
     }
 
     pub fn apply_directive(&mut self, directive: &SemanticRuntimeDirective) -> bool {
@@ -5811,6 +5923,159 @@ mod tests {
         // Without set_predicate_defs, even a known name is not dispatched.
         let bare_state = SemanticRuntimeState::new();
         assert_eq!(bare_state.evaluate_predicate(&spec), None);
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.6` observability tests — counters, dump_facts, explain.
+    // -------------------------------------------------------------------------
+
+    use super::FactFilter;
+
+    #[test]
+    fn counters_track_emit_scope_rollback() {
+        let mut state = SemanticRuntimeState::new();
+        // Fresh state: all counters zero.
+        assert_eq!(state.counters().facts_emitted, 0);
+        assert_eq!(state.counters().scopes_opened, 0);
+
+        // Emit 3 facts.
+        for i in 0..3 {
+            state.emit_fact(SemanticFactSpec {
+                kind: "k".to_string(),
+                name: ident(&format!("f{}", i)),
+                attributes: vec![],
+            });
+        }
+        assert_eq!(state.counters().facts_emitted, 3);
+
+        // Open + close a scope.
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("C")),
+        });
+        assert_eq!(state.counters().scopes_opened, 1);
+        let checkpoint = state.checkpoint();
+        // Emit 2 more inside the speculative region.
+        state.emit_fact(SemanticFactSpec {
+            kind: "k".to_string(),
+            name: ident("spec1"),
+            attributes: vec![],
+        });
+        state.emit_fact(SemanticFactSpec {
+            kind: "k".to_string(),
+            name: ident("spec2"),
+            attributes: vec![],
+        });
+        assert_eq!(state.counters().facts_emitted, 5);
+        // Roll back.
+        state.rollback_to(checkpoint);
+        assert_eq!(state.counters().rollbacks, 1);
+        assert_eq!(state.counters().facts_rolled_back, 2);
+        // facts_emitted is cumulative — it counts the speculative emits too
+        // (they were performed, then rolled back).
+        assert_eq!(state.counters().facts_emitted, 5);
+
+        state.close_scope(&SemanticCloseScopeSpec { kind: None, name: None });
+        assert_eq!(state.counters().scopes_closed, 1);
+    }
+
+    #[test]
+    fn counters_track_imported_facts() {
+        let mut state = SemanticRuntimeState::new();
+        state.push_fact_record(SemanticFactRecord {
+            kind: "type_binding".to_string(),
+            name: ident("ImportedT"),
+            scope_depth: 0,
+            scope_id: super::ScopeId::ROOT,
+            attributes: vec![],
+        });
+        assert_eq!(state.counters().facts_imported, 1);
+        assert_eq!(state.counters().facts_emitted, 0);
+    }
+
+    #[test]
+    fn dump_facts_filters_by_kind_and_scope() {
+        let mut state = SemanticRuntimeState::new();
+        // Two type_binding in root, one variable_binding in a class scope.
+        emit_with_attrs(&mut state, "type_binding", "T1", vec![]);
+        emit_with_attrs(&mut state, "type_binding", "T2", vec![]);
+        state.open_scope(SemanticScopeSpec {
+            kind: SemanticScopeKind::Class,
+            name: Some(ident("C")),
+        });
+        let class_id = state.current_scope_id();
+        emit_with_attrs(&mut state, "variable_binding", "v", vec![]);
+
+        // No filter → all 3.
+        assert_eq!(state.dump_facts(&FactFilter::default()).count(), 3);
+        // Filter by kind.
+        assert_eq!(
+            state
+                .dump_facts(&FactFilter {
+                    kind: Some("type_binding".to_string()),
+                    scope_id: None,
+                })
+                .count(),
+            2
+        );
+        // Filter by kind case-insensitively.
+        assert_eq!(
+            state
+                .dump_facts(&FactFilter {
+                    kind: Some("TYPE_BINDING".to_string()),
+                    scope_id: None,
+                })
+                .count(),
+            2
+        );
+        // Filter by scope.
+        assert_eq!(
+            state
+                .dump_facts(&FactFilter {
+                    kind: None,
+                    scope_id: Some(class_id),
+                })
+                .count(),
+            1
+        );
+        // Kind AND scope.
+        assert_eq!(
+            state
+                .dump_facts(&FactFilter {
+                    kind: Some("variable_binding".to_string()),
+                    scope_id: Some(class_id),
+                })
+                .count(),
+            1
+        );
+        assert_eq!(
+            state
+                .dump_facts(&FactFilter {
+                    kind: Some("type_binding".to_string()),
+                    scope_id: Some(class_id),
+                })
+                .count(),
+            0
+        );
+    }
+
+    #[test]
+    fn explain_has_fact_reports_index_and_candidate_count() {
+        let mut state = SemanticRuntimeState::new();
+        // Two facts of kind k named "dup" (duplicate-in-scope allowed).
+        emit_with_attrs(&mut state, "k", "dup", vec![]);
+        emit_with_attrs(&mut state, "k", "dup", vec![]);
+        emit_with_attrs(&mut state, "k", "unique", vec![]);
+
+        let plan = state.explain_has_fact("k", &ident("dup"));
+        assert!(plan.index_used.contains("by_scope_and_name"), "got: {}", plan.index_used);
+        assert_eq!(plan.candidate_count, 2);
+
+        let plan = state.explain_has_fact("k", &ident("unique"));
+        assert_eq!(plan.candidate_count, 1);
+
+        let plan = state.explain_has_fact("k", &ident("absent"));
+        assert_eq!(plan.candidate_count, 0);
     }
 
     #[test]
