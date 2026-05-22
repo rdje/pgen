@@ -3618,6 +3618,10 @@ pub mod library;
 pub mod mutual_recursion_handler;
 pub mod parser_hooks;
 pub mod predicate_expr;
+pub use predicate_expr::{
+    CompareOp, PredicateDef, PredicateExpr, PredicateValue, PrimitiveCall,
+    parse_predicate_expression,
+};
 pub mod return_annotation_handler;
 pub mod semantic_directive_registry;
 pub mod semantic_runtime;

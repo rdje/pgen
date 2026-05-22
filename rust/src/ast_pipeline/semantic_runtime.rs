@@ -2,6 +2,9 @@ use super::{
     Annotations, ParseContent, SemanticAnnotation, UnifiedSemanticAST, UnifiedSemanticProperty,
     UnifiedSemanticValue,
 };
+use super::predicate_expr::{
+    PredicateDef, PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
+};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -417,6 +420,15 @@ pub enum SemanticRuntimeDirective {
     /// consumers (library export, schema-aware diagnostics, future scope-tree
     /// emission rules).
     DeclareFactKind(FactKindDecl),
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: grammar-level composed-predicate
+    /// definition (Stage 3 of the lifecycle protocol — the `@predicate_def:`
+    /// block). Defines a named boolean predicate whose body is an expression
+    /// over the built-in primitives. Like `DeclareFactKind` this directive
+    /// is **compile-time only**: a no-op at `apply_directive`; the compiled
+    /// annotations carry a registry of all predicate definitions so a
+    /// `@predicate <user-name>` call site can resolve + evaluate the
+    /// composed body.
+    DefinePredicate(PredicateDef),
 }
 
 impl SemanticRuntimeDirective {
@@ -428,7 +440,8 @@ impl SemanticRuntimeDirective {
             | Self::EmitFact(_)
             | Self::ExportToLibrary(_)
             | Self::ImportFromLibrary(_)
-            | Self::DeclareFactKind(_) => None,
+            | Self::DeclareFactKind(_)
+            | Self::DefinePredicate(_) => None,
         }
     }
 
@@ -440,7 +453,8 @@ impl SemanticRuntimeDirective {
             | Self::EmitFact(_)
             | Self::ExportToLibrary(_)
             | Self::ImportFromLibrary(_)
-            | Self::DeclareFactKind(_) => None,
+            | Self::DeclareFactKind(_)
+            | Self::DefinePredicate(_) => None,
         }
     }
 
@@ -499,6 +513,13 @@ pub struct CompiledSemanticRuntimeAnnotations {
     /// populated. Downstream consumers (library export, scope-tree emitters,
     /// schema-aware diagnostics) look up declarations by name.
     fact_kinds: HashMap<String, FactKindDecl>,
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: registry of `@predicate_def:` composed
+    /// predicate definitions collected at compile time. Keys are predicate
+    /// names; values are the parsed + locally-validated `PredicateDef`.
+    /// V-QDEF-1 (uniqueness + non-shadowing of built-ins) is enforced when
+    /// this map is populated. A `@predicate <user-name>` call site resolves
+    /// against this registry.
+    predicate_defs: HashMap<String, PredicateDef>,
 }
 
 impl CompiledSemanticRuntimeAnnotations {
@@ -513,6 +534,7 @@ impl CompiledSemanticRuntimeAnnotations {
             directives_by_rule,
             branch_directives_by_rule: HashMap::new(),
             fact_kinds: HashMap::new(),
+            predicate_defs: HashMap::new(),
         }
     }
 
@@ -524,7 +546,25 @@ impl CompiledSemanticRuntimeAnnotations {
             directives_by_rule,
             branch_directives_by_rule,
             fact_kinds: HashMap::new(),
+            predicate_defs: HashMap::new(),
         }
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: accessor for the predicate-def registry.
+    pub fn predicate_def(&self, name: &str) -> Option<&PredicateDef> {
+        self.predicate_defs.get(name)
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: iterate every composed predicate.
+    pub fn predicate_defs(&self) -> impl Iterator<Item = (&str, &PredicateDef)> {
+        self.predicate_defs
+            .iter()
+            .map(|(name, decl)| (name.as_str(), decl))
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.5`: number of composed predicates.
+    pub fn predicate_defs_len(&self) -> usize {
+        self.predicate_defs.len()
     }
 
     /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: accessor for the fact-kind registry.
@@ -1425,7 +1465,8 @@ impl SemanticRuntimeState {
             // only; at runtime they are no-ops (mirroring `Predicate`
             // and the library directives — actual handling lives in the
             // generator-emitted wrapper).
-            SemanticRuntimeDirective::DeclareFactKind(_) => true,
+            SemanticRuntimeDirective::DeclareFactKind(_)
+            | SemanticRuntimeDirective::DefinePredicate(_) => true,
         }
     }
 
@@ -1595,6 +1636,123 @@ impl SemanticRuntimeState {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.5` composed-predicate evaluation.
+    //
+    // A `@predicate_def:` body is a `PredicateExpr` tree over the four
+    // built-in primitives. `evaluate_composed_predicate` binds the call
+    // site's args to the def's parameter names, then `eval_predicate_expr`
+    // walks the tree.
+    // -------------------------------------------------------------------------
+
+    /// Evaluate a composed predicate `def` with `call_args` bound positionally
+    /// to `def.args`. Returns `None` on arity mismatch or any sub-evaluation
+    /// that cannot be resolved (treated as "indeterminate", same convention
+    /// as `evaluate_predicate`).
+    pub fn evaluate_composed_predicate(
+        &self,
+        def: &PredicateDef,
+        call_args: &[String],
+    ) -> Option<bool> {
+        if call_args.len() != def.args.len() {
+            // Arity mismatch between the call site and the definition.
+            return None;
+        }
+        let bindings: HashMap<String, String> = def
+            .args
+            .iter()
+            .cloned()
+            .zip(call_args.iter().cloned())
+            .collect();
+        self.eval_predicate_expr(&def.body, &bindings)
+    }
+
+    /// Evaluate a `PredicateExpr` boolean tree against this state, with
+    /// `$arg` references resolved through `bindings`.
+    pub fn eval_predicate_expr(
+        &self,
+        expr: &PredicateExpr,
+        bindings: &HashMap<String, String>,
+    ) -> Option<bool> {
+        match expr {
+            PredicateExpr::Call(call) => self.eval_primitive_call_as_bool(call, bindings),
+            PredicateExpr::Not(inner) => Some(!self.eval_predicate_expr(inner, bindings)?),
+            PredicateExpr::And(a, b) => {
+                let left = self.eval_predicate_expr(a, bindings)?;
+                if !left {
+                    return Some(false); // short-circuit
+                }
+                self.eval_predicate_expr(b, bindings)
+            }
+            PredicateExpr::Or(a, b) => {
+                let left = self.eval_predicate_expr(a, bindings)?;
+                if left {
+                    return Some(true); // short-circuit
+                }
+                self.eval_predicate_expr(b, bindings)
+            }
+            PredicateExpr::Compare { lhs, op, rhs } => {
+                let lhs_text = self.eval_predicate_value(lhs, bindings)?;
+                let rhs_text = self.eval_predicate_value(rhs, bindings)?;
+                Some(compare_predicate_values(&lhs_text, *op, &rhs_text))
+            }
+            PredicateExpr::In { lhs, set } => {
+                let lhs_text = self.eval_predicate_value(lhs, bindings)?;
+                for member in set {
+                    let member_text = self.eval_predicate_value(member, bindings)?;
+                    if lhs_text == member_text {
+                        return Some(true);
+                    }
+                }
+                Some(false)
+            }
+        }
+    }
+
+    /// Evaluate a value-bearing sub-expression to its textual content.
+    fn eval_predicate_value(
+        &self,
+        value: &PredicateValue,
+        bindings: &HashMap<String, String>,
+    ) -> Option<String> {
+        match value {
+            PredicateValue::ArgRef(name) => bindings.get(name).cloned(),
+            PredicateValue::StringLit(s) => Some(s.clone()),
+            PredicateValue::IntLit(n) => Some(n.to_string()),
+            PredicateValue::IdentLit(s) => Some(s.clone()),
+            PredicateValue::AttributeOf { call, key } => {
+                // Per V-QDEF-5 the call is always `resolve_path`.
+                let path = self
+                    .eval_predicate_value(call.args.first()?, bindings)?;
+                self.resolve_path(&path)
+                    .attribute(key)
+                    .and_then(|v| scalar_text(v).map(str::to_string))
+            }
+        }
+    }
+
+    /// Evaluate a bare primitive call used as a boolean. Builds a
+    /// `SemanticPredicateSpec` and delegates to `evaluate_predicate` so the
+    /// composed-predicate path reuses the exact same primitive semantics.
+    fn eval_primitive_call_as_bool(
+        &self,
+        call: &PrimitiveCall,
+        bindings: &HashMap<String, String>,
+    ) -> Option<bool> {
+        let mut spec_args = Vec::with_capacity(call.args.len());
+        for arg in &call.args {
+            let text = self.eval_predicate_value(arg, bindings)?;
+            spec_args.push(UnifiedSemanticValue::Identifier(text));
+        }
+        let spec = SemanticPredicateSpec {
+            name: call.name.clone(),
+            args: spec_args,
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        };
+        self.evaluate_predicate(&spec)
+    }
+
     pub fn evaluate_content_aware_predicate<'input>(
         &self,
         predicate: &SemanticPredicateSpec,
@@ -1634,7 +1792,8 @@ impl SemanticRuntimeState {
             | SemanticRuntimeDirective::Predicate(_)
             | SemanticRuntimeDirective::ExportToLibrary(_)
             | SemanticRuntimeDirective::ImportFromLibrary(_)
-            | SemanticRuntimeDirective::DeclareFactKind(_) => None,
+            | SemanticRuntimeDirective::DeclareFactKind(_)
+            | SemanticRuntimeDirective::DefinePredicate(_) => None,
         }
     }
 
@@ -1656,7 +1815,8 @@ impl SemanticRuntimeState {
             | SemanticRuntimeDirective::Predicate(_)
             | SemanticRuntimeDirective::ExportToLibrary(_)
             | SemanticRuntimeDirective::ImportFromLibrary(_)
-            | SemanticRuntimeDirective::DeclareFactKind(_) => None,
+            | SemanticRuntimeDirective::DeclareFactKind(_)
+            | SemanticRuntimeDirective::DefinePredicate(_) => None,
         }
     }
 }
@@ -1748,8 +1908,82 @@ pub fn parse_semantic_runtime_directive(
         // `SV-EXH-PROOF.3.3.4.b.5.1.2`: grammar-level fact-kind declaration
         // (Stage 1 of the lifecycle protocol).
         "fact_kind" => parse_fact_kind(annotation.ast()).map(Some),
+        // `SV-EXH-PROOF.3.3.4.b.5.1.5`: grammar-level composed-predicate
+        // definition (Stage 3 of the lifecycle protocol).
+        "predicate_def" => parse_predicate_def(annotation.ast()).map(Some),
         _ => Ok(None),
     }
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.5`: parses `@predicate_def: { name: <ident>,
+/// args: [<idents>], body: <string> }`.
+///
+/// The `body` field is a quoted string whose content is the predicate
+/// expression (parsed by `predicate_expr::parse_predicate_expression`).
+/// Per-declaration validation (V-QDEF-2..5) runs here via
+/// `PredicateDef::validate_local`; V-QDEF-1 (uniqueness + non-shadowing)
+/// is deferred to `compile_semantic_runtime_annotations`.
+fn parse_predicate_def(ast: &UnifiedSemanticAST) -> Result<SemanticRuntimeDirective, String> {
+    let payload = ast.structured_value().ok_or_else(|| {
+        "Directive '@predicate_def' expects a structured object payload.".to_string()
+    })?;
+    let properties = object_properties(payload)
+        .ok_or_else(|| "Directive '@predicate_def' expects an object payload.".to_string())?;
+
+    let mut name: Option<String> = None;
+    let mut args: Vec<String> = Vec::new();
+    let mut body_text: Option<String> = None;
+
+    for property in properties {
+        match property.key.as_str() {
+            "name" => {
+                name = Some(
+                    scalar_text(&property.value)
+                        .ok_or_else(|| {
+                            format!(
+                                "@predicate_def 'name' must be a scalar identifier; got {:?}.",
+                                property.value
+                            )
+                        })?
+                        .to_string(),
+                );
+            }
+            "args" => {
+                args = parse_string_list("args", &property.value)?;
+            }
+            "body" => {
+                body_text = Some(
+                    scalar_text(&property.value)
+                        .ok_or_else(|| {
+                            "@predicate_def 'body' must be a (quoted) string expression."
+                                .to_string()
+                        })?
+                        .to_string(),
+                );
+            }
+            other => {
+                return Err(format!(
+                    "@predicate_def: unknown field '{}' (accepted: name, args, body).",
+                    other
+                ));
+            }
+        }
+    }
+
+    let name =
+        name.ok_or_else(|| "@predicate_def: required field 'name' is missing.".to_string())?;
+    let body_text = body_text.ok_or_else(|| {
+        format!("@predicate_def '{}': required field 'body' is missing.", name)
+    })?;
+
+    let body = parse_predicate_expression(&body_text)
+        .map_err(|err| format!("@predicate_def '{}': body parse failed — {}", name, err))?;
+
+    let decl = PredicateDef { name, args, body };
+    // V-QDEF-2..5 (per-declaration).
+    decl.validate_local()?;
+
+    Ok(SemanticRuntimeDirective::DefinePredicate(decl))
 }
 
 /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: parses `@fact_kind: { name: <ident>, attributes: [...],
@@ -2058,6 +2292,9 @@ pub fn compile_semantic_runtime_annotations(
     // is checked HERE; V-DECL-2..5, V-DECL-7 are already enforced at parse
     // time via `FactKindDecl::validate_local`.
     let mut fact_kinds: HashMap<String, FactKindDecl> = HashMap::new();
+    // `SV-EXH-PROOF.3.3.4.b.5.1.5`: registry of `@predicate_def:` composed
+    // predicates. V-QDEF-1 (uniqueness + non-shadowing) checked as it fills.
+    let mut predicate_defs: HashMap<String, PredicateDef> = HashMap::new();
     // Track all scope-kind labels referenced by `@open_scope` directives so
     // V-DECL-6 (scope_kind ∈ open_scope labels ∪ engine reserved) can be
     // validated after the full pass. Warn-only per design (lenient).
@@ -2069,6 +2306,7 @@ pub fn compile_semantic_runtime_annotations(
         collect_fact_kind_decls_and_scope_kinds(
             &directives,
             &mut fact_kinds,
+            &mut predicate_defs,
             &mut declared_scope_kinds,
         )?;
         if !directives.is_empty() {
@@ -2094,6 +2332,7 @@ pub fn compile_semantic_runtime_annotations(
             collect_fact_kind_decls_and_scope_kinds(
                 &directives,
                 &mut fact_kinds,
+                &mut predicate_defs,
                 &mut declared_scope_kinds,
             )?;
             if !directives.is_empty() {
@@ -2129,16 +2368,37 @@ pub fn compile_semantic_runtime_annotations(
         directives_by_rule,
         branch_directives_by_rule,
         fact_kinds,
+        predicate_defs,
     })
 }
 
-/// `SV-EXH-PROOF.3.3.4.b.5.1.2`: scan a list of directives, extracting any
-/// `DeclareFactKind` payloads into the cross-grammar registry (V-DECL-1
-/// uniqueness enforced) and accumulating `OpenScope` kinds into the
-/// per-grammar label set for V-DECL-6's deferred check.
+/// `SV-EXH-PROOF.3.3.4.b.5.1.5`: every predicate name the engine recognises
+/// as a built-in (evaluated directly by `evaluate_predicate` /
+/// `evaluate_content_aware_predicate`). A `@predicate_def` may not shadow
+/// any of these (V-QDEF-1).
+const ENGINE_BUILTIN_PREDICATE_NAMES: &[&str] = &[
+    "current_scope_is",
+    "has_fact",
+    "lacks_fact",
+    "has_fact_in_current_scope",
+    "has_fact_attribute",
+    "fact_attribute_equals",
+    "lacks_fact_attribute_equals",
+    "scope_depth_at_least",
+    "fact_count_at_least",
+    "resolve_path",
+    "content_kind_is",
+];
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.2` + `.b.5.1.5`: scan a list of directives,
+/// extracting `DeclareFactKind` payloads into the fact-kind registry
+/// (V-DECL-1) and `DefinePredicate` payloads into the predicate-def registry
+/// (V-QDEF-1), and accumulating `OpenScope` kinds into the per-grammar label
+/// set for V-DECL-6's deferred check.
 fn collect_fact_kind_decls_and_scope_kinds(
     directives: &[SemanticRuntimeDirective],
     fact_kinds: &mut HashMap<String, FactKindDecl>,
+    predicate_defs: &mut HashMap<String, PredicateDef>,
     scope_kinds: &mut std::collections::HashSet<String>,
 ) -> Result<(), String> {
     for directive in directives {
@@ -2161,6 +2421,28 @@ fn collect_fact_kind_decls_and_scope_kinds(
                     continue;
                 }
                 fact_kinds.insert(decl.name.clone(), decl.clone());
+            }
+            SemanticRuntimeDirective::DefinePredicate(decl) => {
+                // V-QDEF-1: must not shadow a built-in predicate.
+                if ENGINE_BUILTIN_PREDICATE_NAMES.contains(&decl.name.as_str()) {
+                    return Err(format!(
+                        "@predicate_def '{}': V-QDEF-1 violation — name shadows a built-in predicate ({:?}).",
+                        decl.name, ENGINE_BUILTIN_PREDICATE_NAMES
+                    ));
+                }
+                // V-QDEF-1: uniqueness across the grammar. Identical
+                // re-declarations are allowed (same convenience carve-out
+                // as @fact_kind); conflicting payloads are rejected.
+                if let Some(prior) = predicate_defs.get(&decl.name) {
+                    if prior != decl {
+                        return Err(format!(
+                            "@predicate_def '{}': V-QDEF-1 violation — defined more than once with conflicting payloads.",
+                            decl.name
+                        ));
+                    }
+                    continue;
+                }
+                predicate_defs.insert(decl.name.clone(), decl.clone());
             }
             SemanticRuntimeDirective::OpenScope(spec) => {
                 // Accumulate user-declared scope-kind labels for V-DECL-6.
@@ -2382,6 +2664,40 @@ fn attribute_text(fact: &SemanticFactRecord, key: &str) -> Option<String> {
         .iter()
         .find(|p| p.key.eq_ignore_ascii_case(key))
         .and_then(|p| scalar_text(&p.value).map(str::to_string))
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.5`: compare two textual values per a
+/// `CompareOp`. `==` / `!=` are string equality. The ordering operators
+/// (`<` / `<=` / `>` / `>=`) compare numerically when BOTH operands parse
+/// as `i64`, and fall back to lexical ordering otherwise.
+fn compare_predicate_values(
+    lhs: &str,
+    op: super::predicate_expr::CompareOp,
+    rhs: &str,
+) -> bool {
+    use super::predicate_expr::CompareOp;
+    match op {
+        CompareOp::Eq => lhs == rhs,
+        CompareOp::Ne => lhs != rhs,
+        CompareOp::Lt | CompareOp::Le | CompareOp::Gt | CompareOp::Ge => {
+            match (lhs.parse::<i64>(), rhs.parse::<i64>()) {
+                (Ok(l), Ok(r)) => match op {
+                    CompareOp::Lt => l < r,
+                    CompareOp::Le => l <= r,
+                    CompareOp::Gt => l > r,
+                    CompareOp::Ge => l >= r,
+                    _ => unreachable!(),
+                },
+                _ => match op {
+                    CompareOp::Lt => lhs < rhs,
+                    CompareOp::Le => lhs <= rhs,
+                    CompareOp::Gt => lhs > rhs,
+                    CompareOp::Ge => lhs >= rhs,
+                    _ => unreachable!(),
+                },
+            }
+        }
+    }
 }
 
 fn semantic_values_match(left: &UnifiedSemanticValue, right: &UnifiedSemanticValue) -> bool {
@@ -5122,6 +5438,322 @@ mod tests {
         let fact = &state.facts()[0];
         assert_eq!(fact.scope_id, pkg_id);
         assert_eq!(fact.scope_depth, 1);
+    }
+
+    // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.1.5` @predicate_def: composed-predicate tests
+    //
+    // parse_predicate_def + V-QDEF-1..5 + the evaluator
+    // (evaluate_composed_predicate / eval_predicate_expr).
+    // -------------------------------------------------------------------------
+
+    use super::parse_predicate_def;
+    use crate::ast_pipeline::PredicateDef;
+
+    fn parse_predicate_def_payload(
+        payload: UnifiedSemanticValue,
+    ) -> Result<PredicateDef, String> {
+        let ast = UnifiedSemanticAST::Structured {
+            canonical: String::new(),
+            value: payload,
+        };
+        match parse_predicate_def(&ast)? {
+            SemanticRuntimeDirective::DefinePredicate(def) => Ok(def),
+            other => Err(format!("expected DefinePredicate, got {:?}", other)),
+        }
+    }
+
+    fn predicate_def_annotation(payload: UnifiedSemanticValue) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "predicate_def".to_string(),
+            ast: UnifiedSemanticAST::Structured {
+                canonical: String::new(),
+                value: payload,
+            },
+        }
+    }
+
+    #[test]
+    fn predicate_def_well_formed_parses() {
+        let def = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("receiver_is_array")),
+            ("args", ident_list(&["receiver_path"])),
+            (
+                "body",
+                string_val(
+                    "resolve_path($receiver_path).attribute('type_kind') in ['array','queue']",
+                ),
+            ),
+        ]))
+        .expect("well-formed @predicate_def: should parse");
+        assert_eq!(def.name, "receiver_is_array");
+        assert_eq!(def.args, vec!["receiver_path"]);
+    }
+
+    #[test]
+    fn predicate_def_missing_name_rejected() {
+        let err = parse_predicate_def_payload(object(vec![
+            ("args", ident_list(&["p"])),
+            ("body", string_val("has_fact(k, $p)")),
+        ]))
+        .expect_err("missing name should reject");
+        assert!(err.contains("name"), "got: {}", err);
+    }
+
+    #[test]
+    fn predicate_def_missing_body_rejected() {
+        let err = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("args", ident_list(&["p"])),
+        ]))
+        .expect_err("missing body should reject");
+        assert!(err.contains("body"), "got: {}", err);
+    }
+
+    #[test]
+    fn predicate_def_unknown_field_rejected() {
+        let err = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("args", ident_list(&["p"])),
+            ("body", string_val("has_fact(k, $p)")),
+            ("gibberish", bool_val(true)),
+        ]))
+        .expect_err("unknown field should reject");
+        assert!(err.contains("gibberish"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_qdef_2_duplicate_args_rejected() {
+        let err = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("args", ident_list(&["p", "p"])),
+            ("body", string_val("has_fact(k, $p)")),
+        ]))
+        .expect_err("V-QDEF-2 should reject");
+        assert!(err.contains("V-QDEF-2"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_qdef_3_unknown_primitive_rejected() {
+        let err = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("args", ident_list(&["p"])),
+            ("body", string_val("not_a_primitive($p)")),
+        ]))
+        .expect_err("V-QDEF-3 (unknown primitive) should reject");
+        assert!(err.contains("V-QDEF-3"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_qdef_3_wrong_arity_rejected() {
+        // has_fact takes 2 args; supply 1.
+        let err = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("args", ident_list(&["p"])),
+            ("body", string_val("has_fact($p)")),
+        ]))
+        .expect_err("V-QDEF-3 (wrong arity) should reject");
+        assert!(err.contains("V-QDEF-3"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_qdef_4_unbound_arg_ref_rejected() {
+        // body references $other but args only has $p.
+        let err = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("args", ident_list(&["p"])),
+            ("body", string_val("has_fact(k, $other)")),
+        ]))
+        .expect_err("V-QDEF-4 should reject");
+        assert!(err.contains("V-QDEF-4"), "got: {}", err);
+        assert!(err.contains("other"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_qdef_5_attribute_on_non_resolve_path_rejected() {
+        // .attribute() only on resolve_path; has_fact.attribute(...) is bad.
+        let err = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("foo")),
+            ("args", ident_list(&["p"])),
+            ("body", string_val("has_fact(k, $p).attribute('x') == 'y'")),
+        ]))
+        .expect_err("V-QDEF-5 should reject");
+        assert!(err.contains("V-QDEF-5"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_qdef_1_shadowing_builtin_rejected() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "rule_a".to_string(),
+            vec![predicate_def_annotation(object(vec![
+                ("name", ident_val("has_fact")), // shadows a built-in
+                ("args", ident_list(&["p"])),
+                ("body", string_val("resolve_path($p)")),
+            ]))],
+        );
+        let err = compile_semantic_runtime_annotations(&annotations)
+            .expect_err("V-QDEF-1 (shadowing) should reject");
+        assert!(err.contains("V-QDEF-1"), "got: {}", err);
+        assert!(err.contains("shadows"), "got: {}", err);
+    }
+
+    #[test]
+    fn v_qdef_1_conflicting_redeclaration_rejected() {
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "rule_a".to_string(),
+            vec![predicate_def_annotation(object(vec![
+                ("name", ident_val("foo")),
+                ("args", ident_list(&["p"])),
+                ("body", string_val("has_fact(ka, $p)")),
+            ]))],
+        );
+        annotations.semantic_annotations.insert(
+            "rule_b".to_string(),
+            vec![predicate_def_annotation(object(vec![
+                ("name", ident_val("foo")),
+                ("args", ident_list(&["p"])),
+                ("body", string_val("has_fact(kb, $p)")),
+            ]))],
+        );
+        let err = compile_semantic_runtime_annotations(&annotations)
+            .expect_err("V-QDEF-1 (conflicting redecl) should reject");
+        assert!(err.contains("V-QDEF-1"), "got: {}", err);
+    }
+
+    #[test]
+    fn predicate_def_registry_populated_and_identical_redecl_allowed() {
+        let mut annotations = Annotations::default();
+        let payload = || {
+            object(vec![
+                ("name", ident_val("receiver_is_array")),
+                ("args", ident_list(&["p"])),
+                (
+                    "body",
+                    string_val("resolve_path($p).attribute('type_kind') in ['array']"),
+                ),
+            ])
+        };
+        annotations
+            .semantic_annotations
+            .insert("rule_a".to_string(), vec![predicate_def_annotation(payload())]);
+        annotations
+            .semantic_annotations
+            .insert("rule_b".to_string(), vec![predicate_def_annotation(payload())]);
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("identical re-decls should be OK");
+        assert_eq!(compiled.predicate_defs_len(), 1);
+        let def = compiled.predicate_def("receiver_is_array").expect("registered");
+        assert_eq!(def.args, vec!["p"]);
+    }
+
+    #[test]
+    fn evaluate_composed_predicate_receiver_is_array() {
+        // The motivating end-to-end: a receiver_is_array composed predicate
+        // evaluated against a state where `x` is an array and `y` is an int.
+        let def = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("receiver_is_array")),
+            ("args", ident_list(&["path"])),
+            (
+                "body",
+                string_val(
+                    "resolve_path($path).attribute('type_kind') in ['array','queue','dynamic_array']",
+                ),
+            ),
+        ]))
+        .expect("parse");
+
+        let mut state = SemanticRuntimeState::new();
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("x"),
+            attributes: vec![UnifiedSemanticProperty {
+                key: "type_kind".to_string(),
+                value: UnifiedSemanticValue::Identifier("array".to_string()),
+            }],
+        });
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("y"),
+            attributes: vec![UnifiedSemanticProperty {
+                key: "type_kind".to_string(),
+                value: UnifiedSemanticValue::Identifier("int".to_string()),
+            }],
+        });
+
+        // x is an array → predicate true.
+        assert_eq!(
+            state.evaluate_composed_predicate(&def, &["x".to_string()]),
+            Some(true)
+        );
+        // y is an int → predicate false.
+        assert_eq!(
+            state.evaluate_composed_predicate(&def, &["y".to_string()]),
+            Some(false)
+        );
+        // Unknown receiver → resolve_path Unresolved → attribute None →
+        // membership cannot be evaluated → None (indeterminate).
+        assert_eq!(
+            state.evaluate_composed_predicate(&def, &["ghost".to_string()]),
+            None
+        );
+    }
+
+    #[test]
+    fn evaluate_composed_predicate_arity_mismatch_returns_none() {
+        let def = PredicateDef {
+            name: "foo".to_string(),
+            args: vec!["a".to_string(), "b".to_string()],
+            body: crate::ast_pipeline::parse_predicate_expression("has_fact($a, $b)")
+                .expect("parse body"),
+        };
+        let state = SemanticRuntimeState::new();
+        // Call with 1 arg but def expects 2.
+        assert_eq!(
+            state.evaluate_composed_predicate(&def, &["only_one".to_string()]),
+            None
+        );
+    }
+
+    #[test]
+    fn eval_predicate_expr_boolean_combinators() {
+        // && / || / ! over has_fact calls.
+        let mut state = SemanticRuntimeState::new();
+        state.emit_fact(SemanticFactSpec {
+            kind: "k".to_string(),
+            name: ident("present"),
+            attributes: vec![],
+        });
+        let def = |body: &str| PredicateDef {
+            name: "p".to_string(),
+            args: vec![],
+            body: crate::ast_pipeline::parse_predicate_expression(body).expect("parse"),
+        };
+        // has_fact(k, present) && !has_fact(k, absent)  → true && !false → true
+        assert_eq!(
+            state.evaluate_composed_predicate(
+                &def("has_fact(k, present) && !has_fact(k, absent)"),
+                &[]
+            ),
+            Some(true)
+        );
+        // has_fact(k, absent) || has_fact(k, present)  → false || true → true
+        assert_eq!(
+            state.evaluate_composed_predicate(
+                &def("has_fact(k, absent) || has_fact(k, present)"),
+                &[]
+            ),
+            Some(true)
+        );
+        // has_fact(k, absent) && has_fact(k, present)  → false && _ → false
+        assert_eq!(
+            state.evaluate_composed_predicate(
+                &def("has_fact(k, absent) && has_fact(k, present)"),
+                &[]
+            ),
+            Some(false)
+        );
     }
 
     #[test]

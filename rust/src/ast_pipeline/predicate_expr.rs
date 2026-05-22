@@ -93,10 +93,22 @@ pub enum PredicateValue {
 }
 
 /// A call to one of the four built-in predicate primitives.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct PrimitiveCall {
     pub name: String,
     pub args: Vec<PredicateValue>,
+}
+
+// `PredicateExpr` has no natural default; the generator needs *some*
+// constructible placeholder to emit as a compile-time-only `DefinePredicate`
+// no-op marker into per-rule directives (the real definition lives in the
+// `CompiledSemanticRuntimeAnnotations` registry, never in the runtime
+// directive list). The placeholder is an empty-named primitive call — never
+// evaluated, since `DefinePredicate` is a runtime no-op.
+impl Default for PredicateExpr {
+    fn default() -> Self {
+        PredicateExpr::Call(PrimitiveCall::default())
+    }
 }
 
 /// Comparison operators.
@@ -522,6 +534,202 @@ impl Parser {
         }
         self.expect(&Token::RParen)?;
         Ok(PrimitiveCall { name, args })
+    }
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.5.b`: arity of a built-in predicate primitive
+/// that may appear in a `@predicate_def` body. Per
+/// `PGEN_SEMANTIC_STORE_SCHEMA_LANGUAGE_SPEC.md` §7.1 exactly four
+/// primitives are composable. `None` for any other name.
+pub fn builtin_arity(name: &str) -> Option<usize> {
+    match name {
+        "has_fact" => Some(2),              // (kind, name)
+        "fact_attribute_equals" => Some(4), // (kind, name, attr, value)
+        "fact_count_at_least" => Some(2),   // (kind, minimum)
+        "resolve_path" => Some(1),          // (dotted_path)
+        _ => None,
+    }
+}
+
+/// `SV-EXH-PROOF.3.3.4.b.5.1.5.b`: a parsed `@predicate_def:` block.
+///
+/// Surface (per `PGEN_SEMANTIC_STORE_SCHEMA_LANGUAGE_SPEC.md` §7):
+/// ```text
+/// @predicate_def: {
+///   name: receiver_is_array,
+///   args: [receiver_path],
+///   body: "resolve_path($receiver_path).attribute('type_kind') in ['array','queue']"
+/// }
+/// ```
+///
+/// Validation rules (V-QDEF-1..5):
+/// - V-QDEF-1 — `name` unique across `@predicate_def:` blocks and does not
+///   shadow a built-in predicate. Cross-declaration check, performed in
+///   `compile_semantic_runtime_annotations`.
+/// - V-QDEF-2 — `args` lists distinct identifiers.
+/// - V-QDEF-3 — every primitive call in `body` names a built-in with the
+///   correct arity.
+/// - V-QDEF-4 — every `$arg` reference in `body` refers to a name in `args`.
+/// - V-QDEF-5 — `.attribute(...)` is only applied to a `resolve_path` call
+///   (the only fact-returning primitive). Applying it to `has_fact` etc.
+///   is a type error.
+///
+/// `validate_local` performs V-QDEF-2..5; V-QDEF-1 is the compile pass's job.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct PredicateDef {
+    pub name: String,
+    pub args: Vec<String>,
+    pub body: PredicateExpr,
+}
+
+impl PredicateDef {
+    /// Per-declaration validation: V-QDEF-2, V-QDEF-3, V-QDEF-4, V-QDEF-5.
+    pub fn validate_local(&self) -> Result<(), String> {
+        if self.name.trim().is_empty() {
+            return Err("@predicate_def: 'name' is required.".to_string());
+        }
+        // V-QDEF-2: args distinct.
+        for i in 0..self.args.len() {
+            for j in (i + 1)..self.args.len() {
+                if self.args[i] == self.args[j] {
+                    return Err(format!(
+                        "@predicate_def '{}': V-QDEF-2 violation — argument '{}' is listed twice.",
+                        self.name, self.args[i]
+                    ));
+                }
+            }
+        }
+        // V-QDEF-3 + V-QDEF-5: walk the body's primitive calls / attribute
+        // accesses.
+        validate_expr_calls(&self.body, &self.name)?;
+        // V-QDEF-4: every $arg reference is bound.
+        let mut referenced = Vec::new();
+        collect_arg_refs_expr(&self.body, &mut referenced);
+        for r in &referenced {
+            if !self.args.iter().any(|a| a == r) {
+                return Err(format!(
+                    "@predicate_def '{}': V-QDEF-4 violation — body references '${}' which is not in args {:?}.",
+                    self.name, r, self.args
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// V-QDEF-3 + V-QDEF-5 walk: every `PrimitiveCall` must name a built-in with
+/// correct arity; `.attribute(...)` must wrap a `resolve_path` call.
+fn validate_expr_calls(expr: &PredicateExpr, def_name: &str) -> Result<(), String> {
+    match expr {
+        PredicateExpr::Call(call) => validate_primitive_call(call, def_name, false),
+        PredicateExpr::Not(inner) => validate_expr_calls(inner, def_name),
+        PredicateExpr::And(a, b) | PredicateExpr::Or(a, b) => {
+            validate_expr_calls(a, def_name)?;
+            validate_expr_calls(b, def_name)
+        }
+        PredicateExpr::Compare { lhs, rhs, .. } => {
+            validate_value_calls(lhs, def_name)?;
+            validate_value_calls(rhs, def_name)
+        }
+        PredicateExpr::In { lhs, set } => {
+            validate_value_calls(lhs, def_name)?;
+            for v in set {
+                validate_value_calls(v, def_name)?;
+            }
+            Ok(())
+        }
+    }
+}
+
+fn validate_value_calls(value: &PredicateValue, def_name: &str) -> Result<(), String> {
+    match value {
+        PredicateValue::AttributeOf { call, .. } => {
+            // V-QDEF-5: `.attribute()` only on resolve_path.
+            if call.name != "resolve_path" {
+                return Err(format!(
+                    "@predicate_def '{}': V-QDEF-5 violation — `.attribute(...)` applied to `{}(...)`, but only `resolve_path` returns a fact to read attributes from.",
+                    def_name, call.name
+                ));
+            }
+            validate_primitive_call(call, def_name, true)
+        }
+        PredicateValue::ArgRef(_)
+        | PredicateValue::StringLit(_)
+        | PredicateValue::IntLit(_)
+        | PredicateValue::IdentLit(_) => Ok(()),
+    }
+}
+
+fn validate_primitive_call(
+    call: &PrimitiveCall,
+    def_name: &str,
+    _in_attribute_position: bool,
+) -> Result<(), String> {
+    // V-QDEF-3: known built-in with correct arity.
+    let Some(arity) = builtin_arity(&call.name) else {
+        return Err(format!(
+            "@predicate_def '{}': V-QDEF-3 violation — `{}` is not a built-in predicate primitive (composable primitives: has_fact, fact_attribute_equals, fact_count_at_least, resolve_path).",
+            def_name, call.name
+        ));
+    };
+    if call.args.len() != arity {
+        return Err(format!(
+            "@predicate_def '{}': V-QDEF-3 violation — `{}` takes {} argument(s), got {}.",
+            def_name,
+            call.name,
+            arity,
+            call.args.len()
+        ));
+    }
+    // Nested calls inside this call's args (e.g. an AttributeOf as an arg)
+    // are recursively validated.
+    for arg in &call.args {
+        validate_value_calls(arg, def_name)?;
+    }
+    Ok(())
+}
+
+/// Collect every `$arg` reference appearing in a boolean expression.
+fn collect_arg_refs_expr(expr: &PredicateExpr, out: &mut Vec<String>) {
+    match expr {
+        PredicateExpr::Call(call) => {
+            for arg in &call.args {
+                collect_arg_refs_value(arg, out);
+            }
+        }
+        PredicateExpr::Not(inner) => collect_arg_refs_expr(inner, out),
+        PredicateExpr::And(a, b) | PredicateExpr::Or(a, b) => {
+            collect_arg_refs_expr(a, out);
+            collect_arg_refs_expr(b, out);
+        }
+        PredicateExpr::Compare { lhs, rhs, .. } => {
+            collect_arg_refs_value(lhs, out);
+            collect_arg_refs_value(rhs, out);
+        }
+        PredicateExpr::In { lhs, set } => {
+            collect_arg_refs_value(lhs, out);
+            for v in set {
+                collect_arg_refs_value(v, out);
+            }
+        }
+    }
+}
+
+fn collect_arg_refs_value(value: &PredicateValue, out: &mut Vec<String>) {
+    match value {
+        PredicateValue::ArgRef(name) => {
+            if !out.contains(name) {
+                out.push(name.clone());
+            }
+        }
+        PredicateValue::AttributeOf { call, .. } => {
+            for arg in &call.args {
+                collect_arg_refs_value(arg, out);
+            }
+        }
+        PredicateValue::StringLit(_)
+        | PredicateValue::IntLit(_)
+        | PredicateValue::IdentLit(_) => {}
     }
 }
 
