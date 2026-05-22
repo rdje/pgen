@@ -5926,6 +5926,107 @@ mod tests {
     }
 
     // -------------------------------------------------------------------------
+    // `.3.3.4.b.5.2` branch-by-predicate — verify the EXISTING `phase: branch`
+    // mechanism dispatches composed predicates with no new primitive.
+    // -------------------------------------------------------------------------
+
+    #[test]
+    fn branch_phase_composed_predicate_dispatches_via_content_aware_entry() {
+        // `.b.5.2`: the generated branch-predicate codegen
+        // (`ast_based_generator.rs` ~L2541) routes every `phase: branch`
+        // predicate through `evaluate_content_aware_predicate`. That entry
+        // point handles the `content_kind_is` built-in, then falls through to
+        // `evaluate_predicate`, which (since `.b.5.1.5.c`) dispatches a
+        // user-defined name to its `@predicate_def:` composed body. So a
+        // composed predicate used as a branch predicate already works
+        // end-to-end with NO new branch-by-predicate engine primitive.
+        //
+        // This test pins that path: a `phase: Branch` composed-predicate spec,
+        // evaluated through `evaluate_content_aware_predicate` (the exact
+        // codegen entry point), fires the composed body.
+        let def = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("receiver_is_array")),
+            ("args", ident_list(&["path"])),
+            (
+                "body",
+                string_val("resolve_path($path).attribute('type_kind') in ['array']"),
+            ),
+        ]))
+        .expect("parse");
+
+        let mut state = SemanticRuntimeState::new();
+        let mut defs = std::collections::HashMap::new();
+        defs.insert("receiver_is_array".to_string(), def);
+        state.set_predicate_defs(defs);
+
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("arr"),
+            attributes: vec![UnifiedSemanticProperty {
+                key: "type_kind".to_string(),
+                value: UnifiedSemanticValue::Identifier("array".to_string()),
+            }],
+        });
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("scalar"),
+            attributes: vec![UnifiedSemanticProperty {
+                key: "type_kind".to_string(),
+                value: UnifiedSemanticValue::Identifier("int".to_string()),
+            }],
+        });
+
+        // The branch-predicate codegen passes the rule's raw + shaped content;
+        // a composed predicate does not consult it — dummy content suffices.
+        let raw_content = ParseContent::Terminal("arr");
+        let shaped_content = ParseContent::TransformedTerminal("arr".to_string());
+
+        // `arr` is an array → branch predicate true → the branch is taken.
+        let arr_spec = SemanticPredicateSpec {
+            name: "receiver_is_array".to_string(),
+            args: vec![UnifiedSemanticValue::Identifier("arr".to_string())],
+            phase: SemanticPredicatePhase::Branch,
+            view: SemanticPredicateContentView::Raw,
+        };
+        assert_eq!(
+            state.evaluate_content_aware_predicate(&arr_spec, &raw_content, &shaped_content),
+            Some(true),
+        );
+
+        // `scalar` is an int → branch predicate false → the codegen sets
+        // `branch_predicate_blocked = true` and skips the branch.
+        let scalar_spec = SemanticPredicateSpec {
+            name: "receiver_is_array".to_string(),
+            args: vec![UnifiedSemanticValue::Identifier("scalar".to_string())],
+            phase: SemanticPredicatePhase::Branch,
+            view: SemanticPredicateContentView::Raw,
+        };
+        assert_eq!(
+            state.evaluate_content_aware_predicate(&scalar_spec, &raw_content, &shaped_content),
+            Some(false),
+        );
+
+        // Unknown receiver → resolve_path Unresolved → composed body
+        // indeterminate → None. The codegen's `None => {}` arm treats this as
+        // "no signal" (branch NOT blocked) — same as for built-in predicates.
+        // Whether an unknown receiver should hard-block the array-method
+        // branch is a CONSUMER-pass (`.b.6.2`) concern: the consumer's
+        // composed body can be authored to yield `Some(false)` for the
+        // unknown case, or rely on branch ordering. Pinned here so `.b.6.2`
+        // inherits the documented contract.
+        let ghost_spec = SemanticPredicateSpec {
+            name: "receiver_is_array".to_string(),
+            args: vec![UnifiedSemanticValue::Identifier("ghost".to_string())],
+            phase: SemanticPredicatePhase::Branch,
+            view: SemanticPredicateContentView::Raw,
+        };
+        assert_eq!(
+            state.evaluate_content_aware_predicate(&ghost_spec, &raw_content, &shaped_content),
+            None,
+        );
+    }
+
+    // -------------------------------------------------------------------------
     // `.3.3.4.b.5.1.6` observability tests — counters, dump_facts, explain.
     // -------------------------------------------------------------------------
 

@@ -261,7 +261,7 @@ The `phase:` modifier tells the engine *when* to check:
 - `post` — after the rule's body parses, before committing the
   transaction. Failure backs out the rule plus its fact emissions.
 
-### Composed predicates (coming in .b.5.1.5)
+### Composed predicates
 
 For complex conditions you can define a named predicate that composes the
 primitives:
@@ -274,11 +274,20 @@ primitives:
 }
 ```
 
-Then use it like a primitive:
+Then use it like a primitive — in any phase, including `phase: branch`:
 
 ```ebnf
 @predicate receiver_is_array args:[$receiver] phase: branch
 ```
+
+A composed predicate is a drop-in replacement for a built-in predicate
+everywhere a predicate is accepted: there is no separate "branch-by-predicate"
+construct. When attached with `phase: branch` it gates the choice exactly as a
+built-in does — the branch fires when the composed body evaluates to true, is
+skipped when it evaluates to false, and is left unblocked when the body is
+*indeterminate* (for example, a `resolve_path` that finds nothing). If you need
+an unknown receiver to actively block a branch rather than fall through, author
+the body so the unknown case returns false instead of indeterminate.
 
 The body language is small on purpose: boolean operators (`&&`, `||`, `!`),
 comparisons (`==`, `!=`, `<`, ...), set membership (`in [...]`), attribute

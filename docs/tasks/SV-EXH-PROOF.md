@@ -225,15 +225,25 @@ literal over a failing surface.
   Status: `done` `2026-05-21` — four Phase 0.5 sign-off artefacts drafted as sketches and committed: (1) API contract (5610e77b), (2) schema-language spec (d7647781), (3) test plan (2ae95179), (4) performance contract (6c7973fd). Total ≈1150 lines across the four documents. User direction "move on" 2026-05-21 accepts sketches as-is for Phase 1 unblock; specific [TBC] amendments can land as follow-up edits during Phase 1 if implementation surfaces issues.
 
 - ID: `SV-EXH-PROOF.3.3.4.b.5.1`
-  Status: `in_progress` `2026-05-21` — Phase 1 broken into six sub-leaves; gap analysis (Explore-agent survey of `rust/src/ast_pipeline/semantic_runtime.rs` + `library.rs`) shows: open-string fact kinds + emit/checkpoint/rollback + 10 named predicates + library import/export already present; missing: multi-index, @fact_kind declarations, scope tree, resolve_path, @predicate_def composed, observability.
-  Sub-leaves (tracked as tasks #31-#36):
-    .b.5.1.1 — multi-index fact store (drop linear scans; per-kind hash indexes) — IN PROGRESS
-    .b.5.1.2 — @fact_kind: declarations + drop MVP-0 export allowlist
-    .b.5.1.3 — scope tree (parent pointers + archived closed scopes)
-    .b.5.1.4 — resolve_path primitive
-    .b.5.1.5 — @predicate_def: composed predicates
-    .b.5.1.6 — observability (counters, --explain, dump_facts)
-  Each sub-leaf is independently committable with its own lockstep gates (lib 465/465 + RGX 44/0 + SV shape-contract GREEN + SV corpus stays 10/14). Tests gated per sub-leaf via specific U-/P-/V-/S- IDs from `PGEN_SEMANTIC_STORE_TEST_PLAN.md`. Performance numbers per sub-leaf bound by `PGEN_SEMANTIC_STORE_PERFORMANCE_CONTRACT.md`.
+  Status: `done` `2026-05-22` — Phase 1 (universal semantic store) COMPLETE. All six sub-leaves + the book chapter landed; gap analysis (Explore-agent survey of `rust/src/ast_pipeline/semantic_runtime.rs` + `library.rs`) drove the split.
+  Sub-leaves (tracked as tasks #31-#36, #37):
+    .b.5.1.1 — multi-index fact store (drop linear scans; per-kind hash indexes) — DONE
+    .b.5.1.2 — @fact_kind: declarations + drop MVP-0 export allowlist — DONE
+    .b.5.1.3 — scope tree (parent pointers + archived closed scopes) — DONE
+    .b.5.1.4 — resolve_path primitive — DONE
+    .b.5.1.5 — @predicate_def: composed predicates (.5.a expr sub-language, .5.b evaluator+parsing, .5.c runtime dispatch) — DONE
+    .b.5.1.6 — observability (counters, dump_facts, explain_has_fact) — DONE
+    .b.5.1.BOOK — top-level book chapter "The Semantic Store: Parser Memory" — DONE
+  Each sub-leaf committed independently with its own lockstep gates. Final gate state at `.b.5.1.6` (775cb2ad): lib 541/541, features-on 597/597, RGX 44/44.
+
+- ID: `SV-EXH-PROOF.3.3.4.b.5.2`
+  Status: `done` `2026-05-22` — branch-by-predicate VERIFIED: the existing `@predicate … phase: branch` mechanism dispatches composed predicates with NO new engine primitive.
+  Goal: `Phase 2 of the context-aware-parsing plan (CONTEXT_AWARE_PARSING_DESIGN.md §9): decide between adding a branch-by-predicate engine primitive vs. confirming the existing phase:branch path already suffices for composed predicates.`
+  Approach: `(1) Read the branch-predicate codegen in ast_based_generator.rs (~L2509-2570): it iterates branch_predicates_for_rule + branch_predicates_for_rule_branch, filters Predicate(spec) where spec.phase == SemanticPredicatePhase::Branch, resolves the spec against content, and calls parser.semantic_runtime_state.evaluate_content_aware_predicate(&resolved_spec, &raw, &shaped). (2) Read evaluate_content_aware_predicate (semantic_runtime.rs:1910): handles the content_kind_is built-in, then '_ => self.evaluate_predicate(predicate)'. (3) evaluate_predicate (since .b.5.1.5.c) dispatches a non-built-in user-defined name to its @predicate_def: composed body. (4) Conclude: branch codegen → evaluate_content_aware_predicate → evaluate_predicate → evaluate_composed_predicate is a complete, already-wired path. No new primitive needed.`
+  Acceptance: `(1) Verification test pins the path — done. (2) Design proposal §7 table-row + summary item 4 + §9 Phase 2 updated RESOLVED — done. (3) No engine/codegen/grammar change — done (test-only).`
+  Verification: `New unit test branch_phase_composed_predicate_dispatches_via_content_aware_entry (semantic_runtime.rs): a phase:Branch composed-predicate spec, evaluated through evaluate_content_aware_predicate (the exact codegen entry point), fires the composed body — Some(true) for an array receiver, Some(false) for an int receiver, None for an unresolved receiver. Gates: lib 542/542, features-on 598/598, RGX 44/44.`
+  Note: `The codegen's 'None => {}' arm means an indeterminate composed branch predicate (None — e.g. unresolved receiver) does NOT block the branch. This is identical to built-in-predicate behaviour and is intentional for .b.5.2; whether an unknown receiver should hard-block the array-method branch is a CONSUMER-pass (.b.6.2) concern — .b.6.2 must author consumer predicates so the unknown case yields Some(false) or relies on branch ordering.`
+  Commit: `pending — PGEN-SV-EXH-PROOF-0031`
 
 - ID: `SV-EXH-PROOF.3.3.5`
   Status: `pending` (debug-required follow-up; PRE-EXISTING at .3.3.2, NOT caused by .3.3.3)
