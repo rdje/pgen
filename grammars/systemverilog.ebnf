@@ -2746,8 +2746,29 @@ method_call_receiver := method_call_receiver_sv_2017 -> {kind: "sv_2017", body: 
 method_call_root := method_call_receiver  -> {kind: "receiver",       body: $1}
                   | implicit_class_handle -> {kind: "implicit_class", body: $1}
 
+# SV-EXH-PROOF.3.3.4.b.6.2 — context-gated member/method chain (the consumer).
+# Root cause (.b.4): the plain `call_primary` path matches only `a.b` of
+# `a.b.c(x)` and leaves `.c(x)` unconsumed — `split_hierarchical_callable_receiver`'s
+# loop guard `!callable_method_call_body` trips on a bare identifier because
+# `array_manipulation_call` has optional parens. This branch parses the full
+# 3+level chain when the chain HEAD is a known declared variable
+# (`has_fact(variable_binding, …)` — the `.b.6.1.2` producer).
+#  - The `&dot` positive lookahead makes the member `+`-loop stop before the
+#    final `.method(args)` (a member identifier is followed by `.`, the method
+#    is not), so `a.b.c(x)` splits as head `a` / member `b` / method `c(x)`.
+#  - The `@predicate … phase: post` gate makes this branch SURGICAL: it fires
+#    only for known-variable heads, so hierarchical names, scoped task calls
+#    and package paths fall straight through to the unchanged branches below —
+#    a regression firewall.
+#  - Strictly additive: the `+` requires 3+ identifiers, and 2-level `a.b(x)`
+#    already parses, so no currently-passing construct changes shape.
+@predicate: { name: has_fact, args: [variable_binding, $head], phase: post }
+context_member_method_call := identifier ( dot identifier &dot )+ dot callable_method_call_body ( dot method_call_body )*
+                           -> {head: $1.body, members: $2, method: $4, chain: $5}
+
 @branch_policy: priority_first
-call_primary := split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
+call_primary := context_member_method_call          -> {kind: "context_member_method",       body: $1}
+              | split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
               | class_scoped_tf_call_with_args     -> {kind: "class_scoped_tf",              body: $1}
               | plain_tf_call_with_args            -> {kind: "plain_tf",                     body: $1}
               | tf_call_with_args                  -> {kind: "tf",                           body: $1}

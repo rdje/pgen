@@ -897,6 +897,60 @@ mod tests {
         );
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.6.2`: the context-gated consumer. A 3-level
+    /// method chain `a.b.c(x)` failed to parse before `.b.6.2` (the
+    /// `.b.4`-diagnosed `call_primary` no-chain path). The new
+    /// `context_member_method_call` branch parses it when the chain head is a
+    /// known declared variable (`has_fact(variable_binding, $head)`). This
+    /// pins the producer→consumer loop end-to-end.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_context_gated_method_chain_parses_with_known_variable_head() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        // `a` is a declared variable → a `variable_binding` fact is emitted
+        // before the `if`, so the context-gated branch fires and the 3-level
+        // chain `a.b.c(x)` parses (it did NOT before `.b.6.2`).
+        let source = "module m; int a; initial if (a.b.c(x)) ; endmodule";
+        let mut parser =
+            SystemverilogParser::new(source, runtime_logger_box("ast_shape_contract.sv.ctx_chain"));
+        assert!(
+            parser.parse_full_systemverilog_file().is_ok(),
+            "a 3-level method chain on a known-variable head must parse",
+        );
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.6.2`: the context-gated branch handles the
+    /// 3-level method chain in its negated form and in the exact uvm shape
+    /// (`if(!seed_map.seed_table.exists(type_id))` inside a function, with a
+    /// class-typed receiver declared locally). All three failed before
+    /// `.b.6.2`.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_context_gated_method_chain_handles_negated_and_uvm_shape() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        let cases: &[(&str, &str)] = &[
+            ("negated 3-level", "module m; int a; initial if (!a.b.c(x)) ; endmodule"),
+            (
+                "uvm-shaped function",
+                "module m; function void f(); uvm_seed_map seed_map; \
+                 if(!seed_map.seed_table.exists(type_id)) begin end endfunction endmodule",
+            ),
+        ];
+        for (label, src) in cases {
+            let mut parser =
+                SystemverilogParser::new(src, runtime_logger_box("ast_shape_contract.sv.ctx_chain"));
+            assert!(
+                parser.parse_full_systemverilog_file().is_ok(),
+                "context-gated method chain must parse: {}",
+                label,
+            );
+        }
+    }
+
     #[cfg(all(
         feature = "generated_parsers",
         has_generated_systemverilog_preprocessor_parser
