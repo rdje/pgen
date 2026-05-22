@@ -5012,18 +5012,71 @@ impl AstBasedGenerator {
                 }
             });
 
+        // `SV-EXH-PROOF.3.3.4.b.6.1.1`: emit the `@fact_kind:` registry into the
+        // generated parser. `from_parts` seeds an empty registry; without these
+        // entries + the `set_fact_kinds` call the generated parser's
+        // `fact_kinds` is always empty (the registry was only ever populated on
+        // the compile-time `compile()` path before `.b.6.1`).
+        let fact_kind_entries = compiled.fact_kinds().map(|(name, decl)| {
+            let decl_tokens = Self::generate_fact_kind_decl_tokens(decl);
+            quote! {
+                fact_kinds.insert(#name.to_string(), #decl_tokens);
+            }
+        });
+
         Ok(quote! {
             {
                 let mut directives_by_rule = std::collections::HashMap::new();
                 let mut branch_directives_by_rule = std::collections::HashMap::new();
+                let mut fact_kinds = std::collections::HashMap::new();
                 #(#rule_entries)*
                 #(#branch_rule_entries)*
-                crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::from_parts(
-                    directives_by_rule,
-                    branch_directives_by_rule,
-                )
+                #(#fact_kind_entries)*
+                let mut compiled =
+                    crate::ast_pipeline::CompiledSemanticRuntimeAnnotations::from_parts(
+                        directives_by_rule,
+                        branch_directives_by_rule,
+                    );
+                compiled.set_fact_kinds(fact_kinds);
+                compiled
             }
         })
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.6.1.1`: reconstruct a `FactKindDecl` struct literal
+    /// for the generated parser's `@fact_kind:` registry. All eight fields are
+    /// serialised verbatim from the compile-time-validated declaration.
+    fn generate_fact_kind_decl_tokens(decl: &crate::ast_pipeline::FactKindDecl) -> TokenStream {
+        let name = decl.name.as_str();
+        let attributes = decl.attributes.iter().map(|a| a.as_str());
+        let required = decl.required.iter().map(|r| r.as_str());
+        let indexes = decl.indexes.iter().map(|tuple| {
+            let items = tuple.iter().map(|s| s.as_str());
+            quote! { vec![#(#items.to_string()),*] }
+        });
+        let optional_string = |value: &Option<String>| match value {
+            Some(text) => {
+                let text = text.as_str();
+                quote! { Some(#text.to_string()) }
+            }
+            None => quote! { None },
+        };
+        let scope_kind = optional_string(&decl.scope_kind);
+        let exportable = decl.exportable;
+        let artefact_kind = optional_string(&decl.artefact_kind);
+        let description = optional_string(&decl.description);
+        quote! {
+            crate::ast_pipeline::FactKindDecl {
+                name: #name.to_string(),
+                attributes: vec![#(#attributes.to_string()),*],
+                required: vec![#(#required.to_string()),*],
+                indexes: vec![#(#indexes),*],
+                scope_kind: #scope_kind,
+                exportable: #exportable,
+                artefact_kind: #artefact_kind,
+                description: #description,
+            }
+        }
     }
 
     fn generate_semantic_runtime_directive_tokens(
@@ -5127,12 +5180,15 @@ impl AstBasedGenerator {
                     )
                 }
             }
-            // `SV-EXH-PROOF.3.3.4.b.5.1.2`: `@fact_kind:` is compile-time only.
-            // The declaration data lives in `CompiledSemanticRuntimeAnnotations.fact_kinds`
-            // (the registry), not in the per-rule directives the generated parser
-            // applies at runtime. We still emit a trivial no-op marker here so
-            // the per-rule directives Vec preserves its element count and the
-            // runtime `apply_directive` short-circuits cleanly.
+            // `SV-EXH-PROOF.3.3.4.b.5.1.2` + `.b.6.1.1`: `@fact_kind:` is a
+            // declaration, not a per-rule runtime action. The real declaration
+            // data IS emitted into the generated parser's
+            // `CompiledSemanticRuntimeAnnotations.fact_kinds` registry by
+            // `generate_compiled_semantic_runtime_annotations_tokens` (the
+            // `fact_kind_entries` + `set_fact_kinds` call). This per-rule
+            // directive stays a trivial no-op marker so the per-rule directives
+            // Vec preserves its element count and the runtime `apply_directive`
+            // short-circuits cleanly.
             SemanticRuntimeDirective::DeclareFactKind(_) => {
                 quote! {
                     crate::ast_pipeline::SemanticRuntimeDirective::DeclareFactKind(
@@ -5140,10 +5196,19 @@ impl AstBasedGenerator {
                     )
                 }
             }
-            // `SV-EXH-PROOF.3.3.4.b.5.1.5`: `@predicate_def:` is compile-time
-            // only — the composed-predicate definition lives in
-            // `CompiledSemanticRuntimeAnnotations.predicate_defs`. Same no-op
-            // marker treatment as `DeclareFactKind`.
+            // `SV-EXH-PROOF.3.3.4.b.5.1.5`: `@predicate_def:` is a declaration,
+            // not a per-rule runtime action; this per-rule directive is a no-op
+            // marker (element-count preservation).
+            //
+            // KNOWN GAP (owned by `.b.6.2`): unlike `fact_kinds` above, the
+            // `predicate_defs` registry is NOT yet emitted into the generated
+            // parser — `generate_compiled_semantic_runtime_annotations_tokens`
+            // does not serialise it (the `PredicateDef.body` is a recursive
+            // `PredicateExpr` AST that needs its own token serialiser). So a
+            // generated parser's `predicate_defs` is currently always empty;
+            // `.b.5.1.5.c`'s composed-predicate dispatch only works on the
+            // direct-construction path exercised by unit tests. `.b.6.2` (which
+            // introduces `@predicate_def:` in a real grammar) must close this.
             SemanticRuntimeDirective::DefinePredicate(_) => {
                 quote! {
                     crate::ast_pipeline::SemanticRuntimeDirective::DefinePredicate(

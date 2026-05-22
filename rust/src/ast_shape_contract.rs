@@ -809,6 +809,60 @@ mod tests {
         assert_report("systemverilog", &report);
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.6.1.1`: the `@fact_kind:` declarations in
+    /// `systemverilog.ebnf` must reach the generated parser's
+    /// `CompiledSemanticRuntimeAnnotations` registry. Before `.b.6.1.1` the
+    /// codegen never serialised `fact_kinds` — the registry was populated only
+    /// on the compile-time path — so a generated parser always had an empty
+    /// registry. This test pins the end-to-end producer-pass wiring.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_fact_kind_registry_is_populated_in_generated_parser() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        let parser = SystemverilogParser::new(
+            "",
+            runtime_logger_box("ast_shape_contract.systemverilog.fact_kinds"),
+        );
+        let annotations = parser.semantic_runtime_annotations();
+        assert_eq!(
+            annotations.fact_kinds_len(),
+            3,
+            "expected the 3 @fact_kind: declarations (type_name, variable_binding, type_binding)",
+        );
+        let type_name = annotations
+            .fact_kind("type_name")
+            .expect("type_name fact-kind must be declared");
+        assert!(
+            type_name.exportable,
+            "type_name must stay exportable so package_declaration @export_to_library keeps \
+             exporting it — the veer cross-file no-regression guard",
+        );
+        assert!(
+            annotations.fact_kind("variable_binding").is_some(),
+            "variable_binding fact-kind must be declared",
+        );
+        assert!(
+            annotations.fact_kind("type_binding").is_some(),
+            "type_binding fact-kind must be declared",
+        );
+        // Veer no-regression proof: with a declared schema, exportable_fact_kinds()
+        // must still resolve to exactly {type_name} — byte-identical to the
+        // pre-.b.6.1 MVP-0 default the package_declaration export relied on.
+        let exportable = annotations.exportable_fact_kinds();
+        assert_eq!(
+            exportable.len(),
+            1,
+            "exactly one exportable kind expected; got {:?}",
+            exportable,
+        );
+        assert!(
+            exportable.contains("type_name"),
+            "type_name must be the (only) exportable kind",
+        );
+    }
+
     #[cfg(all(
         feature = "generated_parsers",
         has_generated_systemverilog_preprocessor_parser

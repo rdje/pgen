@@ -1506,6 +1506,22 @@ data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifeti
                          | nettype_declaration
                                 -> {kind: "nettype",               body: $1}
 
+# === SV-EXH-PROOF.3.3.4.b.6.1.1 — semantic-store fact-kind schema (DECLARE stage) ===
+# These `@fact_kind:` declarations register the grammar's fact schema in the
+# universal semantic store. They bind to the following rule syntactically but
+# take effect globally (collected into the per-grammar fact-kind registry).
+#   - `type_name`: the EXISTING type-name fact emitted at class / interface_class
+#     / covergroup / typedef / type_parameter sites. Declared `exportable: true`
+#     so the `package_declaration` `@export_to_library` keeps exporting it for
+#     cross-file (veer) type visibility — once any `@fact_kind:` is declared,
+#     export is schema-governed (SV-EXH-PROOF.3.3.4.b.5.3) and an undeclared
+#     `type_name` would silently stop exporting.
+#   - `variable_binding` / `type_binding`: NEW kinds for the context-aware
+#     method-call disambiguation (uvm `if(a.b.c(x))`). Producers wired in the
+#     `.b.6.1.2` / `.b.6.1.3` sub-leaves; `type_ref` populated in `.b.6.1.4`.
+@fact_kind: { name: type_name, attributes: [declaration_family], exportable: true, description: "A declared type name; declaration_family records class / interface_class / covergroup / typedef / type_parameter." }
+@fact_kind: { name: variable_binding, attributes: [type_kind, type_ref], description: "A declared variable or data object with its resolved type kind, emitted at data_declaration sites." }
+@fact_kind: { name: type_binding, attributes: [type_kind, type_ref], description: "A declared type (class or typedef) with its resolved type kind, emitted at class and typedef sites." }
 data_declaration := data_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                   | data_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 

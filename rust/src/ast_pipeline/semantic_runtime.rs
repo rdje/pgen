@@ -625,6 +625,18 @@ impl CompiledSemanticRuntimeAnnotations {
             .collect()
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.6.1.1`: replace the `@fact_kind:` registry.
+    ///
+    /// `from_parts` (used by codegen) seeds an empty registry; the generated
+    /// parser's `generate_compiled_semantic_runtime_annotations_tokens` emits
+    /// the real declarations and calls this to install them. Without it the
+    /// generated parser's `fact_kinds` is always empty — the registry was
+    /// only ever populated on the compile-time `compile()` path before
+    /// `.b.6.1` (the first grammar to use `@fact_kind:`).
+    pub fn set_fact_kinds(&mut self, fact_kinds: HashMap<String, FactKindDecl>) {
+        self.fact_kinds = fact_kinds;
+    }
+
     pub fn is_empty(&self) -> bool {
         self.directives_by_rule.is_empty() && self.branch_directives_by_rule.is_empty()
     }
