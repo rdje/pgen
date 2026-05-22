@@ -567,6 +567,15 @@ impl CompiledSemanticRuntimeAnnotations {
         self.predicate_defs.len()
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: clone the predicate-def registry for
+    /// seeding into a `SemanticRuntimeState` via `set_predicate_defs`. Called
+    /// once at generated-parser construction (and after each `parse()`
+    /// reset). The registry is bounded by the grammar's `@predicate_def:`
+    /// count — tiny — so the clone is cheap.
+    pub fn clone_predicate_defs(&self) -> HashMap<String, PredicateDef> {
+        self.predicate_defs.clone()
+    }
+
     /// `SV-EXH-PROOF.3.3.4.b.5.1.2`: accessor for the fact-kind registry.
     /// Returns the declared `FactKindDecl` for `name`, or `None` if no
     /// `@fact_kind:` block declared this name.
@@ -1056,6 +1065,13 @@ pub struct SemanticRuntimeState {
     /// scope) so existing consumers (predicates that read scope_depth /
     /// current_scope) continue to work unchanged.
     active_chain: Vec<ScopeId>,
+    /// `.3.3.4.b.5.1.5.c`: composed-predicate registry, seeded at parser
+    /// construction from `CompiledSemanticRuntimeAnnotations.predicate_defs`
+    /// via `set_predicate_defs`. `evaluate_predicate` consults this when a
+    /// predicate name is not a built-in — that's how a runtime
+    /// `@predicate <user-defined-name>` call dispatches to its
+    /// `@predicate_def:` body. Empty in a freshly-`new`'d state.
+    predicate_defs: HashMap<String, PredicateDef>,
 }
 
 #[derive(Debug)]
@@ -1093,7 +1109,17 @@ impl SemanticRuntimeState {
             fact_index: FactIndex::default(),
             scope_arena: vec![root_node],
             active_chain: vec![ScopeId::ROOT],
+            predicate_defs: HashMap::new(),
         }
+    }
+
+    /// `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: seed the composed-predicate registry.
+    /// Called once at parser construction (and after each `parse()` reset)
+    /// so a runtime `@predicate <user-defined-name>` call can resolve its
+    /// `@predicate_def:` body. Built-in predicate names never reach this
+    /// registry — they are handled directly by `evaluate_predicate`.
+    pub fn set_predicate_defs(&mut self, defs: HashMap<String, PredicateDef>) {
+        self.predicate_defs = defs;
     }
 
     // -------------------------------------------------------------------------
@@ -1632,7 +1658,23 @@ impl SemanticRuntimeState {
                 let path = scalar_text(predicate.args.first()?)?;
                 Some(self.resolve_path(path).is_resolved())
             }
-            _ => None,
+            // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: not a built-in predicate name.
+            // Dispatch to a composed `@predicate_def:` if one is registered
+            // under this name. The predicate-def registry is keyed by the
+            // name as declared (case-sensitive), so look up the trimmed
+            // original name (not the lowercased `normalized_name`). The call
+            // site's args are already resolved to concrete values by
+            // `resolve_semantic_predicate_spec_against_content` before this
+            // point; extract their text and bind positionally.
+            _ => {
+                let def = self.predicate_defs.get(predicate.name.trim())?;
+                let call_args: Vec<String> = predicate
+                    .args
+                    .iter()
+                    .filter_map(|a| scalar_text(a).map(str::to_string))
+                    .collect();
+                self.evaluate_composed_predicate(def, &call_args)
+            }
         }
     }
 
@@ -5714,6 +5756,61 @@ mod tests {
             state.evaluate_composed_predicate(&def, &["only_one".to_string()]),
             None
         );
+    }
+
+    #[test]
+    fn composed_predicate_dispatches_via_evaluate_predicate() {
+        // `.b.5.1.5.c`: after set_predicate_defs, evaluate_predicate
+        // dispatches a non-built-in predicate name to its @predicate_def:
+        // body. This is the wiring that makes a runtime
+        // `@predicate <user-defined-name>` call actually fire.
+        let def = parse_predicate_def_payload(object(vec![
+            ("name", ident_val("receiver_is_array")),
+            ("args", ident_list(&["path"])),
+            (
+                "body",
+                string_val("resolve_path($path).attribute('type_kind') in ['array']"),
+            ),
+        ]))
+        .expect("parse");
+
+        let mut state = SemanticRuntimeState::new();
+        let mut defs = std::collections::HashMap::new();
+        defs.insert("receiver_is_array".to_string(), def);
+        state.set_predicate_defs(defs);
+
+        state.emit_fact(SemanticFactSpec {
+            kind: "variable_binding".to_string(),
+            name: ident("arr"),
+            attributes: vec![UnifiedSemanticProperty {
+                key: "type_kind".to_string(),
+                value: UnifiedSemanticValue::Identifier("array".to_string()),
+            }],
+        });
+
+        // evaluate_predicate with the user-defined name dispatches to the
+        // composed body — "arr" is an array → true.
+        let spec = SemanticPredicateSpec {
+            name: "receiver_is_array".to_string(),
+            args: vec![UnifiedSemanticValue::Identifier("arr".to_string())],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        };
+        assert_eq!(state.evaluate_predicate(&spec), Some(true));
+
+        // A non-built-in name with no registered @predicate_def → None
+        // (indeterminate — unchanged from pre-.c behaviour).
+        let unknown = SemanticPredicateSpec {
+            name: "totally_unknown".to_string(),
+            args: vec![],
+            phase: SemanticPredicatePhase::Pre,
+            view: SemanticPredicateContentView::Raw,
+        };
+        assert_eq!(state.evaluate_predicate(&unknown), None);
+
+        // Without set_predicate_defs, even a known name is not dispatched.
+        let bare_state = SemanticRuntimeState::new();
+        assert_eq!(bare_state.evaluate_predicate(&spec), None);
     }
 
     #[test]

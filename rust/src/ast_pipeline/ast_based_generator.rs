@@ -735,6 +735,18 @@ impl AstBasedGenerator {
         Ok(quote! {
             pub fn new(input: &'input str, logger: Box<dyn Logger>) -> Self {
                 let logger_enabled = logger.is_enabled();
+                // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: build the compiled
+                // annotations first, then seed the semantic-runtime state
+                // with the composed-predicate registry so a runtime
+                // `@predicate <user-defined-name>` call can dispatch to its
+                // `@predicate_def:` body (built-in predicate names are
+                // handled directly by `evaluate_predicate`; user-defined
+                // names fall through to the registry).
+                let semantic_runtime_annotations: crate::ast_pipeline::CompiledSemanticRuntimeAnnotations =
+                    #compiled_semantic_runtime_annotations;
+                let mut semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
+                semantic_runtime_state
+                    .set_predicate_defs(semantic_runtime_annotations.clone_predicate_defs());
                 Self {
                     input,
                     position: 0,
@@ -758,8 +770,8 @@ impl AstBasedGenerator {
                     deterministic_partition_events: Vec::new(),
                     deterministic_partition_rule_hits: HashMap::new(),
                     deterministic_partition_runtime_mode: DeterministicPartitionRuntimeMode::AnnotationDriven,
-                    semantic_runtime_annotations: #compiled_semantic_runtime_annotations,
-                    semantic_runtime_state: crate::ast_pipeline::SemanticRuntimeState::new(),
+                    semantic_runtime_annotations,
+                    semantic_runtime_state,
                     // `SV-EXH-PROOF.3.3.4.a` MVP-0: opt-in via setter.
                     library_in_dir: None,
                     library_out_dir: None,
@@ -825,6 +837,11 @@ impl AstBasedGenerator {
                 self.deterministic_partition_events.clear();
                 self.deterministic_partition_rule_hits.clear();
                 self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
+                // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: re-seed the composed-predicate
+                // registry after the reset (a fresh `SemanticRuntimeState`
+                // starts with an empty registry).
+                self.semantic_runtime_state
+                    .set_predicate_defs(self.semantic_runtime_annotations.clone_predicate_defs());
                 self.#parse_method()
             }
 
