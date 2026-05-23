@@ -324,10 +324,27 @@ literal over a failing surface.
   Commit: `pending — PGEN-SV-EXH-PROOF-0042`
 
 - ID: `SV-EXH-PROOF.3.3.4.b.6.2.6`
-  Status: `pending` — investigate the context-dependent uvm_utils failure beyond .b.6.2.5.
-  Goal: `Diagnose why 'uvm_report_warning("k", {"a", TYPE::type_name, "b"})' fails when contextualized with ~12 prior statements + nested begin-blocks (the find_all function body) but passes in isolation. Likely a PEG backtrack/memoisation interaction. Probe systematically to isolate the trigger, then fix per the hierarchy.`
-  Acceptance: `Trigger pinned; full uvm_utils 135-line window parses; no SV-corpus regression.`
-  Commit: `pending`
+  Status: `done` `2026-05-23` — context-dependent uvm_utils failure pinned to a MINIMAL 7-line repro; root-cause hypothesis identified (fact-emission transactionality during speculative typedef parsing). Fix routed to .b.6.2.7.
+  Goal: `Diagnose what makes the uvm_utils 135-line window still fail after .b.6.2.5.`
+  Method: `Per-construct probing — built the failing context progressively, narrowing the trigger by progressive addition + isolation. Then --trace to find the deepest failure position.`
+  Minimal repro (7 lines):
+    ```
+    package p;
+    class C #(type TYPE=int);
+      typedef TYPE T;
+      function void f();
+        int x = TYPE::type_name;
+      endfunction
+    endclass
+    endpackage
+    ```
+    Without `typedef TYPE T;` (or replacing TYPE with a concrete type) → PASSES. Adding it back → FAILS.
+  Trace evidence: `--trace shows class_scope_type's branches all rejected for 'TYPE'. known_unscoped_class_scope_class_identifier rejected (post-predicate fact_attribute_equals[type_name,TYPE,declaration_family,class] false — TYPE isn't a class). Same for interface_class branch. known_unscoped_class_scope_type_parameter_identifier also rejected (the branch that SHOULD match). So none of the class_scope alternatives work post-typedef.`
+  Root-cause hypothesis: `During parsing of 'typedef TYPE T;', TYPE is consumed as a data_type/class_type for the typedef's source. Speculative parse paths through the typedef machinery emit a 'type_name{TYPE, declaration_family:typedef}' fact (or a similar mis-classification) that PERSISTS beyond the speculative context. Subsequently when 'TYPE::name' is parsed, non_typedef_package_scope's lacks_fact_attribute_equals(...,typedef) returns FALSE (TYPE now has a typedef fact) → branch rejected. AND class_scope_type's type_parameter branch may have been overwritten — the fact_attribute_equals(...,type_parameter) returns false. ALL ::-scope branches reject → TYPE::name unparseable.`
+  Why this is hypothesis-strength: `(a) Probe matrix shows the failure is gated EXACTLY by typedef-of-TYPE (typedef of any other type → no effect on TYPE::name). (b) Trace shows ALL class_scope branches rejected post-typedef — consistent with TYPE's facts being mis-classified. (c) No alternate explanation accounts for the typedef-TYPE-specific trigger. CONFIRMATION via dump-facts test would lock it.`
+  Sub-class: `Engine-level — fact-emission transactionality during speculative parse paths. Related to .3.3.3 IIFE transaction (which fixed ONE such leak); apparently another leak remains specifically around typedef's data_type-of-type-parameter parse path.`
+  Routed to: `.3.3.4.b.6.2.7 (confirm hypothesis via dump-facts probe; fix per the no-workarounds hierarchy — likely level 4 or 5: ensure data_type/class_type parse paths emit facts only on successful commit, not during speculative attempts).`
+  Commit: `pending — PGEN-SV-EXH-PROOF-0043 (diagnosis-only)`
 
 - ID: `SV-EXH-PROOF.3.3.5`
   Status: `pending` (debug-required follow-up; PRE-EXISTING at .3.3.2, NOT caused by .3.3.3)
