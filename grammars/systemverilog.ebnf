@@ -632,8 +632,20 @@ direct_index_method_call := ( ( kw_class_qualifier_fa08937d | non_typedef_packag
                          -> {receiver: $1, body: $3}
 
 @branch_policy: priority_first
+# SV-EXH-PROOF.3.3.4.b.6.2.13 — `q[$]` queue-back operator. SV LRM
+# allows `$` as a bit-select expression meaning "last element of a queue
+# or dynamic array" (e.g. `matched_overrides[$]` accesses the queue's
+# last element). The existing `expression` branch doesn't accept bare
+# `$` (primary's `kw_sv_dollar_04da59ec` is the SV system-dollar, a
+# distinct token used for `$sv_dollar_unit` etc.; bare `$` as an
+# expression operand isn't a primary form). Adding `kw_dollar` as a
+# direct alternative lets `q[$]` parse via the bit_select path. Also
+# matches the LRM rule `bit_select := { [ expression ] }` which in
+# IEEE 1800 §11.4.13 explicitly includes `$` for queues. Strictly
+# additive — no existing matches change. Parser-AGNOSTIC level 0.
 bit_select_expression := direct_index_method_call -> {kind: "direct_index_method", body: $1}
                        | method_call               -> {kind: "method",              body: $1}
+                       | kw_dollar                 -> {kind: "dollar"}
                        | expression                -> {kind: "expression",          body: $1}
 
 bit_select := ( lbrack bit_select_expression rbrack )*
