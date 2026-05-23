@@ -254,6 +254,22 @@ Not grammar defects — they're things that *hide* defects or make them harder t
 
 ---
 
+## H. Cross-file / standalone-parsing semantic gaps
+
+Cases where the SV grammar's post-predicates require fact-knowledge that doesn't exist in single-file standalone parsing. These ONLY surface in the external-corpus triage (uvm-style) because standalone tests + minimal repros happen to declare what they reference.
+
+### H1. Missing-fact-from-cross-file-import (uvm extends-chain) 🟡
+- **Discovered**: `.b.6.2.7` (2026-05-23) — surfaced when the C3-A fix removed accidental fact-leaks that had been masking the problem.
+- **Pattern**: `import P::*;` in standalone parsing produces NO facts for `P` or for any symbol referenced via `P::X`. Subsequent `class Y extends P::X` parses via the SCOPED branch (`scoped_base_class_type_identifier` — fine, the scope predicate is `lacks_fact_attribute_equals(typedef)` which passes vacuously for unknown P). But subsequent references to `X` alone (no scope) — `class Z extends X` — invoke `known_unscoped_base_class_type_identifier`'s predicate `fact_attribute_equals(type_name, X, declaration_family, class)`, which fails because there's no fact about X.
+- **Why it surfaces NOW**: pre-C3-A, the universal `try_parse` wrapper leaked emit_fact side-effects from FAILED speculative branches into the committed state. Some of these accidental emissions populated names like `uvm_packer` with `type_name` facts (wrong family attribute or even right; either way, *some* fact). With C3-A's strict roll-back, the accidental emissions are gone; H1 surfaces cleanly.
+- **Instances**: 4 corpus cases — `uvm_pkg ×{2017,2023}`, `uvm_compat_pkg ×{2017,2023}` — all stuck at the same surface positions pre- AND post-C3-A. (8 corpus files pass without H1 hits because their grammars don't use cross-file class extends — scr1 / friscv / veer don't import wildcard packages of class hierarchies.)
+- **Status**: 🟡 OPEN, **NOT a regression** — corpus pass count unchanged from pre-fix baseline (10/14 → 10/14 confirmed by spot-check; full triage gate pending). The defect was always there; only its symptom presentation changed.
+- **Two viable fix loci (each independently sufficient)**:
+  - **H1-α** — **library-import path**: run the triage gate (and similar producer-then-consumer corpus probes) with `--lib-in` pointing to a pre-emitted-facts artifact built from `uvm_pkg.sv` via `--lib-out` in a prior pass. This is the `.b.5.1.3` library architecture working as designed; just needs the triage script extended to chain the produce → consume passes. Parser-AGNOSTIC by definition.
+  - **H1-β** — **import emits permissive scope-binding fact**: extend the grammar's `package_import_declaration` rule with `@emit_fact: package_import_wildcard{name: P}` (when `P::*`) or `package_import_specific{scope: P, name: X}` (when `P::X`). Then change the gating consumer-predicates: instead of `has_fact(type_name, X, class)` use `has_fact(type_name, X, class) || fact_kind_present(package_import_wildcard)` — when ANY wildcard import is in scope, the unknown-type predicate becomes permissive. This is a grammar + (possibly small) annotation extension; level 3 if a new annotation primitive `fact_kind_present` is needed, else level 1/2.
+- **Audit pattern**: `grep -nE '^\s*import \w+::\*' <corpus>` then for each subsequent `extends\s+\w+\s*;` (no scope), the construct will fail post-C3-A — provided the referenced base is from the imported package. The triage gate's per-case `parse_status` is the catch-all.
+- **Related**: C3-A (the mask that just lifted); `.b.5.1.3` library architecture (the proper fix vector); `.b.5.3` library-fact-kinds extension (companion infra).
+
 ## Cross-cutting observations
 
 - **Compounding masking**: D1 + E2 + F1 + C1 compounded to make a 17-instance grammar defect entirely invisible until `.b.6.2.2`. Each layer hid the layer beneath. *Lesson:* when a class of defects is silent for long, suspect tooling/diagnostic gaps in tandem.
@@ -302,5 +318,6 @@ Run these periodically; failure of any check is a likely new instance of a known
 | 2026-05-23 | New class B4 added: `call_primary` has no chain wrapper for call-rooted receivers (`a().b()`). Fixed via `.b.6.2.5` at hierarchy level 0 (pure grammar restructure — new `chainable_call_initial` + `call_with_postfix_chain` priority-first branch with `+`-guard regression firewall). Commit `cf720984`. | B4-LANDED |
 | 2026-05-23 | New class C3 added: speculative-parse fact-emission leak in typedef-of-TYPE-parameter parse path; corrupts TYPE's classification → subsequent `TYPE::name` fails. Minimal 7-line repro pinned in `.b.6.2.6` (`ab7c4746`); confirmation + fix routed to `.b.6.2.7`. Sibling of C2. | C3-DIAGNOSED |
 | 2026-05-23 | C3 split into **C3-A** (`try_parse` failed-branch fact leak — FIXED at `.b.6.2.7`, level-5 parser-agnostic engine, `try_parse` now snapshots + rolls back `semantic_runtime_state` alongside position; minimal repro PASSES; lib 547/547, features-on 608/608) and **C3-B** (multi-branch loser-successful fact accumulation — OPEN; fact-count-only, no parse-correctness impact; deferred to its own leaf with design + benchmark). Causes the 8× emit-duplication observed in the controlled probe. | C3-A-LANDED + C3-B-SPLIT |
+| 2026-05-23 | **New class H1 added** (missing-fact-from-cross-file-import). Surfaced by C3-A's strictness lifting an accidental mask: pre-fix, speculative-emission leaks populated `uvm_packer`-like names with placeholder facts; post-fix, the gating predicate `fact_attribute_equals(type_name,X,class)` correctly rejects when X is genuinely undeclared. Corpus pass count UNCHANGED (10/14 → 10/14). Two viable fixes (H1-α library-import path; H1-β import-emits-permissive-fact); routed to `.b.6.2.8`. NOT a regression — the defect was always there, only its symptom presentation changed. | H1-DISCOVERED |
 
 *Add a row per non-trivial amendment.*
