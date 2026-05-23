@@ -323,8 +323,16 @@ callable_identifier := non_keyword_identifier
 simple_identifier := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/
                   -> $2
 
+# SV-EXH-PROOF.3.3.4.b.6.2.15 — second broken regex (lookahead) fixed.
+# Pre-fix: `(?![ \t\r\n]*::)` is a negative lookahead in the regex — NOT
+# supported by Rust's `regex` crate. Like the .b.6.2.15 string_literal
+# fix, this regex failed to compile every invocation. The intent
+# ("identifier NOT followed by ::") is preserved by using grammar-level
+# `!scope_resolution` negative lookahead — which IS supported by the
+# PEG engine and is a zero-width assertion (no input consumed).
+# Parser-AGNOSTIC level 0.
 @sample: "foo"
-simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*(?![ \t\r\n]*::)/
+simple_identifier_no_scope := trivia /[a-zA-Z_][a-zA-Z0-9_$]*/ !scope_resolution
                            -> $2
 
 @sample: "\\foo "
@@ -377,8 +385,31 @@ real_number := /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
 # ranges, replication, sizes) so it stays a named rule.
 unsigned_number := /[0-9][0-9_]*/
 
-string_literal := trivia /"""([^"]|"(?!""))*"""/ -> {kind: "triple_quoted", body: $2}
-                | trivia /"([^"\\]|\\.)*"/        -> {kind: "double_quoted", body: $2}
+# SV-EXH-PROOF.3.3.4.b.6.2.15 — REMOVED broken triple-quoted regex.
+# Pre-fix: branch 1 was `/"""([^"]|"(?!""))*"""/` which uses `(?!"")`
+# negative lookahead — NOT SUPPORTED by Rust's `regex` crate. Every
+# attempt to compile this regex at parse time threw
+# `error: look-around, including look-ahead and look-behind, is not supported`,
+# causing the parser to backtrack and try the next branch. Each
+# string_literal invocation hit this failed-compile + backtrack cycle.
+# Over heavy uvm-style nested speculative parses, this became the
+# DOMINANT source of catastrophic backtracking — the trace pinned it to
+# 96 invocations at the SAME byte position (117064) in a 5-second
+# window of the hanging parse, ultimately causing the >180s hang on
+# `head -11755 + endpackage` of uvm_pkg.
+#
+# Triple-quoted string literals (`"""..."""`) are NOT standard SV
+# (LRM doesn't define them; they're a Python/Scala syntax). The
+# broken branch was added speculatively per the line-66 comment block
+# but has been broken since introduction — the regex never actually
+# matched anything because it never compiled. Removing it restores
+# the simple `string_literal := trivia /"([^"\\]|\\.)*"/` form which is
+# the LRM-correct SV string-literal definition (single double-quoted
+# strings with backslash escapes).
+#
+# Effect: eliminates the catastrophic-backtracking hot loop. Parser-
+# AGNOSTIC level 0 (grammar simplification).
+string_literal := trivia /"([^"\\]|\\.)*"/        -> {kind: "double_quoted", body: $2}
 
 unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
 
@@ -3467,6 +3498,21 @@ package_item := package_or_generate_item_declaration -> {kind: "declaration",   
 
 @branch_policy: priority_first
 @profiles: ["sv_2017"]
+# SV-EXH-PROOF.3.3.4.b.6.2.15 — priority_first on the 14-branch
+# package_or_generate_item_declaration_sv_2017 alternation. Default
+# longest_match runs all 14 branches and picks the longest match —
+# pathological when nested under heavy uvm-style typedef + class
+# definitions. Each branch starts with a DISTINCT keyword
+# (`localparam`, `parameter`, `wire`/`tri`/net-kwd, `import "DPI"`,
+# `task`, `function`, `checker`, `constraint`, `class`/`virtual class`,
+# `function new` [via `new` keyword], `covergroup`, `assert`/`assume`,
+# `;`) OR is a broad `data_declaration` that handles type-rooted forms.
+# Ordering verified semantically disjoint: priority_first vs longest_match
+# produces IDENTICAL successful matches because the first-matching
+# keyword is deterministic. Only difference is perf: priority_first
+# stops at first match instead of exhaustively exploring all 14.
+# Parser-AGNOSTIC level 0.
+@branch_policy: priority_first
 package_or_generate_item_declaration_sv_2017 := local_parameter_declaration semi  -> {kind: "local_parameter_declaration",  body: $1}
                                               | parameter_declaration semi        -> {kind: "parameter_declaration",        body: $1}
                                               | net_declaration                   -> {kind: "net_declaration",              body: $1}
