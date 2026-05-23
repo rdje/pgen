@@ -392,6 +392,14 @@ literal over a failing surface.
   Goal: `Diagnose what makes the if-block in find_override_by_name (queue var decl + foreach + method call with .override() named arg + push_back) fail in real uvm_pkg context when a fully-synthesized minimal repro of the same shape PASSES standalone.`
   Method (planned): `Structural pre-context bisection over the ~6000 preceding lines of uvm_pkg (3889..9885). Same pattern as .b.6.2.6 (typedef-TYPE) and .b.6.2.9 (uvm_init first if). Likely candidates: earlier rule emission affecting later predicate resolution; specific class fact polluting the store; accumulated fact-count issue (C3-B).`
   Strategic context: `Cumulative uvm_pkg advance since .b.6.2.2: 5521 → 9886 (+4365 lines). Each context-dependent fix yields 1000+ line unblocks. uvm_pkg ~90K lines total; many more blockers ahead but per-fix progress is rapid. Once uvm_pkg parses cleanly H1-α (library-chain for uvm_compat) becomes actionable.`
+  Outcome (landed 2026-05-23): `Pinned to bisection on the find_override_by_name body: line 9940 `m_override_info.push_back(matched_overrides[$])` — `[$]` queue-back operator was not handled by `bit_select_expression`. Fix at level 0: added `kw_dollar` as a 3rd alternative to `bit_select_expression` (between `method_call` and `expression`, since `expression` doesn't consume bare `$`). Verified `q[$]` PASSES (was FAIL); `q[$-1]` (broader `$` as expr operand) still FAILS — deferred since uvm_pkg only uses bare `[$]`. uvm_pkg deep advance 9886→11754 (+1868 lines). Routed next failure (line 11755 — typedef parameterized class context-dep) to .b.6.2.14.`
+  Commit: `d8ca193c — PGEN-SV-EXH-PROOF-0055`
+
+- ID: `SV-EXH-PROOF.3.3.4.b.6.2.14`
+  Status: `pending` — next uvm_pkg blocker pinned to typedef of parameterized class form at line 11755.
+  Goal: `Diagnose why "typedef uvm_object_string_pool#(uvm_barrier) uvm_barrier_pool;" (typedef of a parameterized class) fails in real uvm_pkg context when a standalone minimal repro PASSES.`
+  Strategic context: `3rd context-dependent failure in the sequence (.b.6.2.9 uvm_init, .b.6.2.13 find_override_by_name, this). Method: pre-context structural bisection over the ~11K preceding lines. Per-pattern: most likely some earlier rule emits a fact that interferes with uvm_object_string_pool's class_type resolution. Could also be linked to C3-B (multi-branch loser-fact accumulation).`
+  Cumulative-PNT-iteration uvm_pkg deep: `5521 → 11754 (+6233 lines, ~7% of 90K-line file).`
   Commit: `pending`
 
 - ID: `SV-EXH-PROOF.3.3.5`
