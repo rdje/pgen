@@ -93,6 +93,14 @@ The PEG model (ordered choice, possessive `*`/`+`, lookaheads) interacts with th
 - **Fix**: new `context_member_method_call` priority-first branch in `call_primary`, gated by `@predicate has_fact(variable_binding, $head) phase: post` — a *regression firewall* that only fires for known-variable heads.
 - **Audit pattern**: anywhere `call_primary` (or another expression-level rule) uses a path-receiver rule *without* a chain wrapper — at risk of the same 3+level cascade.
 
+### B4. `call_primary` had no chain wrapper for call-rooted receivers ✅
+- **Discovered**: `.b.6.2.5` (commit `cf720984`).
+- **Pattern**: after a receiver-less call (`plain_tf_call_with_args`, `tf_call_with_args`, `class_scoped_tf_call_with_args`, `direct_callable_method_call`, `system_tf_call`) matches inside `call_primary`, any trailing `.method_call_body` is unconsumed — `a().b()` fails, even though `a.b()` works and the identical chain shape is fine inside `method_call` (which is used in `subroutine_call`, not `call_primary`).
+- **Root cause**: `call_primary` lacks the postfix-method-chain wrapper that `method_call` has. The structural complement of B2 (`.b.6.2` added the identifier-rooted chain branch; B4 is the call-rooted complement).
+- **Fix (hierarchy level 0 — pure grammar restructure)**: new helper rule `chainable_call_initial` wraps the 5 receiver-less call shapes; new rule `call_with_postfix_chain := chainable_call_initial ( dot method_call_body )+` added as `call_primary`'s priority-first second branch. The `+` requires ≥1 trailing `.method`, so single-call expressions still match the existing per-shape branches — strictly additive, no regression.
+- **Why no semantic gate**: unlike B2's identifier-rooted chains (where `a` was ambiguous variable/package), a call-rooted chain (`a()`) is syntactically unambiguous — the `(args)` parens discriminate. The `+` structural guard IS the regression firewall.
+- **Audit pattern**: any expression-level rule that includes a single-call alternative but lacks a chain — `grep -nE "\\b(tf_call|tf_call_with_args|plain_tf_call|class_scoped_tf_call)\\b" grammars/*.ebnf` and check whether the surrounding rule supports `( dot method_call_body )+` chaining.
+
 ### B3. PEG quantifier non-atomicity (pre-Layer-0) ✅
 - **Discovered**: `.b.3` (Layer 0), commit `PGEN-SV-EXH-PROOF-0029`.
 - **Pattern**: codegen emitted `+`'s first iteration **inline** without `try_parse`; on first-iter failure the cursor stayed past partial consumption. Bounded forms `{N}/{N,M}/{N,}/{,M}` were a silent `_ => Err("Unknown quantifier")` fallthrough.
@@ -116,6 +124,27 @@ The generator itself emits wrong or incomplete code.
 - **Fix (partial)**: `fact_kinds` via `generate_fact_kind_decl_tokens` + `CompiledSemanticRuntimeAnnotations::set_fact_kinds`. **`predicate_defs` still un-emitted** — needs a recursive `PredicateExpr` → TokenStream serialiser. Owned by `.b.6.2`-followups when composed `@predicate_def:` is first used in a grammar.
 - **Audit pattern**: every field of `CompiledSemanticRuntimeAnnotations` must have a corresponding emit-block in `generate_compiled_semantic_runtime_annotations_tokens`. Diff the struct fields against the codegen.
 - **Related**: [[project_b61_producer_pass_plan]].
+
+### C3. Speculative-parse fact-emission leak (typedef-of-TYPE-parameter case) 🟡
+- **Discovered**: `.b.6.2.6` (2026-05-23, diagnosis committed `ab7c4746`).
+- **Pattern**: minimal repro (7 lines):
+  ```
+  package p;
+  class C #(type TYPE=int);
+    typedef TYPE T;
+    function void f();
+      int x = TYPE::type_name;
+    endfunction
+  endclass
+  endpackage
+  ```
+  Without `typedef TYPE T;` → parses. Adding it → fails. `--trace` shows all `class_scope_type` branches reject `TYPE` after the typedef — the type-parameter fact is gone / overwritten / shadowed.
+- **Root cause hypothesis**: during speculative parsing of `typedef TYPE T;`, TYPE is consumed as a `data_type` / `class_type`. Some intermediate parse path emits or modifies a `type_name` fact for TYPE (e.g. attaches `declaration_family:typedef`) that PERSISTS beyond the speculative scope. Subsequent `TYPE::name` parse then can't route via `non_typedef_package_scope` (TYPE now matches the typedef-blocker predicate) or `class_scope_type` (TYPE's type_parameter fact missing or shadowed).
+- **Sibling of C2**: also a transactionality hazard, distinct mechanism — C2 was a `?`-bypasses-restore in Rust transaction wrapping; C3 is fact-emission scoping across speculative parse paths.
+- **Instances**: 1 minimal repro; the BLOCKER of `uvm_pkg` after `.b.6.2.5`. Likely more instances of the same pattern exist (anywhere a `type_parameter` is `typedef`'d).
+- **Status**: 🟡 OPEN — hypothesis-strength; confirmation via a `dump_facts` probe is the next step; fix per the no-workarounds hierarchy in `.b.6.2.7`.
+- **Audit pattern**: at the engine level, audit every `@emit_fact` for speculative-context-safe emission (the IIFE pattern of `.3.3.3` is the model). At the grammar level, the trigger pattern `typedef <type_parameter> <name>;` followed by `<type_parameter>::<member>` in expression context is the canonical probe.
+- **Related**: C2 (`?`-bypasses-manual-cleanup); `.3.3.3` IIFE transaction fix; [[feedback_question_bypasses_manual_cleanup]]; [[feedback_no_workarounds_fix_hierarchy]] (fix must be parser-agnostic engine work at level 4/5).
 
 ### C2. `?`-bypasses-manual-cleanup transaction hazard ✅
 - **Discovered**: `.3.3.3` (SEMTRACE-definitive after 3 prior hypotheses disproven), commit `PGEN-SV-EXH-PROOF-0024`.
@@ -261,5 +290,8 @@ Run these periodically; failure of any check is a likely new instance of a known
 |---|---|---|
 | 2026-05-23 | Initial taxonomy created from SV-EXH-PROOF campaign through `.b.6.2.2` (commit `c766bc8b`). Classes A1, A2, B1, B2, B3, C1, C2, D1, D2, E1, E2, E3, F1, F2, F3, G1, G2. | `.b.6.2.X-TAXONOMY` |
 | 2026-05-23 | A2 refined + downgraded to MITIGATED. Built oracle `tools/lrm_optional_audit.py`, verified all 15 candidate "drops" are legitimate (refactors / literal-bracket fixes); active grammar is LRM-faithful. Reformulated A2 as the LRM `[X]` / `{X}` ambiguity class with the oracle as the durable regression guard. | A2-CODIFY |
+| 2026-05-23 | NO-WORKAROUNDS fix discipline + 5-level hierarchy added (See "⛔ Fix discipline" section at top). Standing direction. | DISCIPLINE |
+| 2026-05-23 | New class B4 added: `call_primary` has no chain wrapper for call-rooted receivers (`a().b()`). Fixed via `.b.6.2.5` at hierarchy level 0 (pure grammar restructure — new `chainable_call_initial` + `call_with_postfix_chain` priority-first branch with `+`-guard regression firewall). Commit `cf720984`. | B4-LANDED |
+| 2026-05-23 | New class C3 added: speculative-parse fact-emission leak in typedef-of-TYPE-parameter parse path; corrupts TYPE's classification → subsequent `TYPE::name` fails. Minimal 7-line repro pinned in `.b.6.2.6` (`ab7c4746`); confirmation + fix routed to `.b.6.2.7`. Sibling of C2. | C3-DIAGNOSED |
 
 *Add a row per non-trivial amendment.*
