@@ -2704,7 +2704,24 @@ callable_method_call_body := built_in_method_call
                            | method_identifier attribute_instance* lparen list_of_arguments rparen
                                     -> {kind: "call_with_args",  name: $1, attributes: $2, args: $4}
 
-split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? ( identifier constant_bit_select dot !callable_method_call_body )* identifier
+# SV-EXH-PROOF.3.3.4.b.6.2.11b — allow indexed-element-method-call form
+# `arr[i].method()`. Pre-fix: the trailing `identifier` had no
+# `constant_bit_select` so `arr[i]` as a method-call receiver matched only
+# `arr` (without `[i]`); the subsequent `.method()` then needed a `.`
+# right after `arr` but found `[`, so the whole `split_direct_callable_method_call`
+# failed. The `( ... constant_bit_select dot !callable_method_call_body )*`
+# loop also rejected `arr[i].method` because its negative lookahead fires
+# (method() IS a callable_method_call_body), so neither path consumed
+# `arr[i].method()`. Adding `constant_bit_select` after the trailing
+# identifier (constant_bit_select is `*` so matches empty for bare-id
+# receivers) lets the rule consume `arr[i]` as the FINAL receiver, after
+# which the OUTER `split_direct_callable_method_call`'s `dot callable_method_call_body`
+# matches `.method()`. Shape unchanged (the `{scope:$1, path:$2, name:$3}`
+# transform ignores $4 — the trailing bit_select is not surfaced in the AST
+# but neither does any consumer need it for fact lookup). Strictly
+# additive — bare-id receivers (`obj.method()`, `a.b.c.method()`) continue
+# to match via constant_bit_select matching empty.
+split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? ( identifier constant_bit_select dot !callable_method_call_body )* identifier constant_bit_select
                                      -> {scope: $1, path: $2, name: $3}
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
