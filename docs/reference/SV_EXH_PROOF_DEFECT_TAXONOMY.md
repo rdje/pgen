@@ -9,6 +9,20 @@
 
 ---
 
+## ⛔ Fix discipline — NO WORKAROUNDS
+
+**Standing user direction (2026-05-23, emphatic):** never use workarounds, quick-and-dirty fixes, or bandaids. Avoid like the plague. Every fix for a defect in this taxonomy follows a strict hierarchy:
+
+1. **Use existing semantic annotations** (`@emit_fact`, `@predicate`, `@open_scope`/`@close_scope`, `@export_to_library`/`@import_from_library`, `@fact_kind:`, `@predicate_def:`, branch-policy, phase predicates).
+2. **Use the existing semantic store** (multi-index facts, scope tree, `resolve_path`, transactional rollback, composed predicates).
+3. **Add a new semantic-annotation feature** — a new general primitive at the annotation-language level (new predicate primitive, new directive, new ref form). Parser-agnostic; available to every grammar.
+4. **Add a new semantic-store feature** — extend the store/runtime with a new general capability (fan-out emission, parent-context ref, list/exists predicate, structured-value resolution). Parser-agnostic.
+5. **Parser-agnostic engine enhancement** — only when (1)–(4) cannot apply even with extensions; must benefit every parser; never grammar-specific.
+
+Walk the levels in order. Document at each step why the lower-numbered approach was insufficient *before* moving up. The commit message for the fix must record which level the fix landed at and why nothing lower worked. No SV-specific engine code. No "good enough for now" patches. Each fix must be sign-off-quality at its layer.
+
+(See [[feedback_no_workarounds_fix_hierarchy]] in the cross-session memory for the full standing.)
+
 ## How to use + amend this document
 
 **When a new defect class is found.** Add an entry under the right category section with the standard fields (below). If you can't fit it cleanly into A–G, add a new category and explain it.
