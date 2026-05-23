@@ -420,6 +420,18 @@ generate_block := kw_begin_8cbd0a74 ( colon generate_block_identifier )? generat
                | generate_item
                        -> {kind: "generate_item", body: $1}
 
+# SV-EXH-PROOF.3.3.4.b.6.2.14 — priority_first on trivia. Default
+# longest_match causes catastrophic backtracking on inputs with block
+# comments (the inner alternation is tried 3 ways per token boundary;
+# combined with rule alternations exploring all branches, work explodes
+# multiplicatively). priority_first picks the FIRST matching alternative
+# (white_space, then line_comment, then block_comment) — these
+# alternatives are MUTUALLY EXCLUSIVE (white_space starts with whitespace,
+# line_comment starts with //, block_comment starts with /*) so
+# priority_first vs longest_match produce IDENTICAL successful matches.
+# The only difference is performance: priority_first stops at first match.
+# Parser-AGNOSTIC level 0.
+@branch_policy: priority_first
 trivia := (white_space | line_comment | block_comment)*
 
 white_space := /[ \t\r\n]+/
@@ -4994,6 +5006,26 @@ declared_forward_class_identifier := type_identifier -> { body: $1.body }
 @predicate: { name: has_fact, args: [type_name, $body], phase: post }
 declared_forward_interface_class_identifier := type_identifier -> { body: $1.body }
 
+# SV-EXH-PROOF.3.3.4.b.6.2.14 — `@branch_policy: priority_first` on the
+# 6-branch type_declaration_sv_2017 alternation. Pre-fix: default
+# longest_match caused catastrophic backtracking on
+# `typedef uvm_object_string_pool #(uvm_barrier) uvm_barrier_pool ;`
+# (uvm_pkg line 11755) — the parse explored exponentially many class_type
+# / data_type / interface_instance_identifier interpretations + their
+# sub-rule alternatives, hung past 90s before reporting failure (the
+# bisection's "first FAIL cut_idx=1736" reported TIMEOUT, not a fast
+# rejection). Branches start with the same `kw_typedef` prefix and
+# diverge into similar-shaped class_type/data_type/interface forms — a
+# pathological longest_match scenario.
+#
+# priority_first picks the FIRST matching branch (in declaration order):
+#   class_type form (1) → data_type form (2) → interface form (3) →
+#   forward_class form (4) → forward_interface_class form (5) →
+#   forward enum/struct/union form (6).
+# This ordering is semantically correct (a class_type match is always
+# more specific than a data_type match; declarative classes precede
+# forward declarations). Parser-AGNOSTIC level 0.
+@branch_policy: priority_first
 @profiles: ["sv_2017"]
 type_declaration_sv_2017 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi
                                     -> {kind: "class_alias",    class_type: $2, name: $3, dims: $4}
@@ -5008,6 +5040,8 @@ type_declaration_sv_2017 := kw_typedef_6dc2082b class_type declared_class_alias_
                           | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
                                     -> {kind: "forward",        keyword: $2, name: $3}
 
+# SV-EXH-PROOF.3.3.4.b.6.2.14 — same as sv_2017 above (parallel structure).
+@branch_policy: priority_first
 @profiles: ["sv_2023"]
 type_declaration_sv_2023 := kw_typedef_6dc2082b class_type declared_class_alias_identifier variable_dimension* semi
                                     -> {kind: "class_alias",    class_type: $2, name: $3, dims: $4}
@@ -5022,6 +5056,11 @@ type_declaration_sv_2023 := kw_typedef_6dc2082b class_type declared_class_alias_
                           | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
                                     -> {kind: "forward",        keyword: $2, name: $3}
 
+# SV-EXH-PROOF.3.3.4.b.6.2.14 — priority_first on the sv_2017|sv_2023
+# outer alternation (mirrors the inner-branch fix). Each profile-specific
+# rule has 6 branches; default longest_match runs all 12 = pathological
+# under uvm's heavily-nested-parameterized-class typedefs.
+@branch_policy: priority_first
 type_declaration := type_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                   | type_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
