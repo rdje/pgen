@@ -46,14 +46,16 @@ The SV grammar is auto-extracted from the IEEE 1800 LRM. The extractor occasiona
 - **Audit pattern**: `grep -nE '&[a-z_][a-z_0-9]* [a-z_][a-z_0-9]*' grammars/systemverilog.ebnf` — should return ≤1 hit (the legitimate `&question question` in `conditional_expression`).
 - **Related**: [[feedback_verify_rule_correctness_before_runtime_hypotheses]].
 
-### A2. `[ X ]` LRM-optional encoded without `?` quantifier 🟡
-- **Discovered**: flagged at `.b.1` / `.b.4` as the larger residual class.
-- **Pattern**: LRM `[ X ]` extracted as plain `X` (mandatory), no `?` quantifier.
-- **Root cause**: extractor dropped optionality on certain LRM productions.
-- **Instances**: **uninventoried** — likely many. Discovered one-at-a-time as the parser advances and a known-optional construct fails.
-- **Fix**: per-rule, add the `?` (or restructure into an optional helper).
-- **Audit pattern**: needs an oracle — diff every extracted rule against the corresponding LRM Annex A production for missing `?` quantifiers. **Tooling gap — no automated check today.**
-- **Related**: A1 (sibling, smaller); the LRM extractor (`tools/…`).
+### A2. LRM `[ X ]` ambiguity — literal-brackets vs EBNF-optional ✅ (mostly-resolved)
+- **Discovered**: flagged at `.b.1` / `.b.4` as a residual class.
+- **Pattern (refined 2026-05-23)**: the LRM Annex A uses `[ X ]` for BOTH (a) EBNF-optional and (b) literal SystemVerilog bracket syntax (`arr[i]`, `bins b[3]`, `foreach (arr[i])`, `enum_id [ N [ : M ] ]`, …). The notation is ambiguous in the source PDF — the same square brackets serve both roles. Similarly `{ X }` serves both EBNF-repetition AND literal SV brace syntax (`struct { … }`, `'{...}`). The auto-extractor `tools/extract_systemverilog_lrm_profiles.py` treats all `[ X ]` as `( X )?` and all `{ X }` as `X*`, mis-encoding the literal-bracket/brace cases.
+- **Root cause**: ambiguous LRM notation that the mechanical extractor can't disambiguate without semantic context.
+- **What the active grammar does**: extensively manually corrected — literal-bracket cases rewritten to `lbrack X rbrack`, literal-brace cases to `lbrace X rbrace`, and the surviving `( X )?` / `X*` quantifiers correctly mark true optional/repetition. The active grammar has **447** `?` quantifiers vs the extractor's **292** — *more* optionality, reflecting correct additions where the extractor failed.
+- **Instances**: oracle (`tools/lrm_optional_audit.py`) flags **15 candidate rules** where the LRM-extracted version has MORE `?` than the active. Manual review (2026-05-23): **all 15 are legitimate** — 6 are literal-bracket fixes, 6 are refactor / helper-rule extractions, 3 are mixed. **Zero un-handled A2 defects in the current active grammar.** Only `.3.3.4.b.1`'s `conditional_statement` was a genuine open instance; it was its own sub-class (A1) and is fixed.
+- **Fix (already done)**: the manual correction work across the grammar's history; `.b.1` for the one remaining truly-dropped optional.
+- **Audit pattern**: `python3 tools/lrm_optional_audit.py` — flags any new mismatch; per-candidate review against `docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt` to classify (legitimate refactor / literal-bracket / true regression).
+- **Related**: A1 (sibling `&X X` form, also class-of-one); the LRM extractor `tools/extract_systemverilog_lrm_profiles.py`.
+- **Closing notes (2026-05-23, deep-understanding pass)**: the original taxonomy entry predicted "many likely instances" of dropped-`?`. The systematic audit refuted that prediction — the active grammar is already LRM-faithful for all 15 oracle-candidate rules. The defect class A2 is therefore better characterised as a **historically-active class now MITIGATED**, with the oracle script as the durable regression guard.
 
 ---
 
@@ -218,6 +220,7 @@ Run these periodically; failure of any check is a likely new instance of a known
 | ID | Check (run from repo root) | Expected |
 |---|---|---|
 | A1 | `grep -nE '&[a-z_][a-z_0-9]* [a-z_][a-z_0-9]*' grammars/systemverilog.ebnf` | ≤1 hit (legit `&question question`) |
+| A2 | `python3 tools/lrm_optional_audit.py` (from repo root) | 15 known-legitimate candidates as of 2026-05-23; any NEW candidate needs per-rule LRM review |
 | B1 | `grep -nE '\( [a-z_]+ \. \)\*' grammars/systemverilog.ebnf` | each hit hand-checked for a `!`-guard at the loop boundary |
 | C2 | `grep -nB2 -A8 -E 'mem::take\|mem::replace' rust/src/` | each hit: confirm no `?` before a manual restore (or IIFE wraps it) |
 | D1 (SV) | `grep -nE '@predicate.*args: *\[.*\$[a-z_]+_identifier' grammars/systemverilog.ebnf` | 0 |
@@ -231,7 +234,7 @@ Run these periodically; failure of any check is a likely new instance of a known
 ## Open items / next frontier
 
 - **C1 (`predicate_defs` codegen)** — un-emitted; blocks composed-predicate dispatch in any generated parser. Owned by the first slice that uses `@predicate_def:` in a real grammar.
-- **A2 (`[ X ]` LRM-optional sweep)** — needs an oracle; potentially many instances.
+- ~~**A2** (`[ X ]` LRM-optional sweep)~~ — **CLOSED 2026-05-23**: oracle built (`tools/lrm_optional_audit.py`), all 15 candidates verified legitimate; the class is the LRM-notation ambiguity, mostly-mitigated, monitored via the oracle.
 - **D1 in other grammars** — re-run the audit pattern on `vhdl.ebnf` / `rtl_*.ebnf`; the same shape of defect may exist.
 - **F1 (PEG furthest-position tracker)** — engine proposal to expose the deepest-position-reached on failure, removing the need for bisection in most cases.
 - **E1 / E2** — engine extensions if richer producer facts ever need structured-value refs or indeterminate predicates.
@@ -243,5 +246,6 @@ Run these periodically; failure of any check is a likely new instance of a known
 | Date | Change | By |
 |---|---|---|
 | 2026-05-23 | Initial taxonomy created from SV-EXH-PROOF campaign through `.b.6.2.2` (commit `c766bc8b`). Classes A1, A2, B1, B2, B3, C1, C2, D1, D2, E1, E2, E3, F1, F2, F3, G1, G2. | `.b.6.2.X-TAXONOMY` |
+| 2026-05-23 | A2 refined + downgraded to MITIGATED. Built oracle `tools/lrm_optional_audit.py`, verified all 15 candidate "drops" are legitimate (refactors / literal-bracket fixes); active grammar is LRM-faithful. Reformulated A2 as the LRM `[X]` / `{X}` ambiguity class with the oracle as the durable regression guard. | A2-CODIFY |
 
 *Add a row per non-trivial amendment.*
