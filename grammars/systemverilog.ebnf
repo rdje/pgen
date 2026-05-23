@@ -989,9 +989,39 @@ known_unscoped_class_scope_interface_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, type_parameter], phase: post }
 known_unscoped_class_scope_type_parameter_identifier := type_identifier
 
+# SV-EXH-PROOF.3.3.4.b.6.2.12 — same local-predicate pattern as .b.6.2.10
+# (scoped_class_scoped_call_prefix_identifier). This rule's intent is the
+# scoped `<pkg>::<class>` prefix for a class_scope; the pkg slot MUST be a
+# package, not a class. Without this predicate, PEG longest_match in the
+# inner alternation of `class_scope_type` wrongly picks this branch for
+# `C::m` (consuming `C::m` as `<pkg>::<class>`) over the SHORTER but
+# CORRECT `known_unscoped_class_scope_class_identifier=C` branch; the
+# subsequent mandatory `scope_resolution` in `class_scope` then fails
+# (`C::m()` has only ONE `::`). Net: extern method body definitions like
+# `function void C::m(); endfunction` were unparseable (the .b.6.2.12
+# uvm_pkg blocker at lines 7651+ — uvm declares many method bodies
+# externally via class::method qualifier). Adding `lacks_class` enforces
+# the rule's true semantic.
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, class], phase: post }
 scoped_class_scope_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
-class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+# SV-EXH-PROOF.3.3.4.b.6.2.12 — `class_scope_type` `*` loop guard
+# (`&scope_resolution`). Pre-fix: the inner loop `( scope_resolution
+# class_identifier ( pva )? )*` was greedy without a follow-on guard. For
+# `C::m(...)` (where C is a class and m is a function_identifier in extern
+# method body definition `function void C::m(); endfunction`), the loop
+# wrongly consumed `::m` as another class-chain element, leaving no `::`
+# for the OUTER `class_scope := class_scope_type scope_resolution`'s
+# mandatory trailing `::`. Net: `class_scope` rejected `C::` whenever the
+# next ident was followed by something other than `::`, so EVERY extern
+# method body in uvm_pkg (lines 7651, 7660, 7668, 7676, 7688, ... — uvm
+# heavily uses out-of-class method definitions) was unparseable. Adding
+# `&scope_resolution` at the iteration tail ensures the loop only commits
+# an iteration when ANOTHER `::` follows (matching the genuine deeper-
+# chain form like `pkg::C::D::method`), leaving the FINAL `::method`
+# correctly to the outer rule's trailing scope_resolution + the caller's
+# function_identifier. Parser-AGNOSTIC level-0 grammar fix.
+class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? &scope_resolution )*
                  -> {head: $1, params: $2, scope_chain: $3}
 
 class_scope := @probe_sample: "C::" class_scope_type scope_resolution
