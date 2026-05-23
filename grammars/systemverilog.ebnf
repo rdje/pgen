@@ -2795,9 +2795,24 @@ chainable_call_initial := class_scoped_tf_call_with_args -> {kind: "class_scoped
 call_with_postfix_chain := chainable_call_initial ( dot method_call_body )+
                         -> {initial: $1, chain: [$2**]}
 
+# SV-EXH-PROOF.3.3.4.b.6.2.11 — identifier-rooted method-chain (the
+# symmetric complement of `.b.6.2.5`'s call_with_postfix_chain). The .b.6.2.5
+# slice added postfix-chain on a CALL-rooted receiver (`a().b()`,
+# `pkg::tf().m()`); this rule covers chains rooted in an IDENTIFIER-rooted
+# single-call form like `obj.dup().dup()` (the identifier-rooted analogue
+# — split_direct_callable_method_call covers `obj.dup()` alone but has no
+# chain wrapper, so `obj.dup().dup()` in EXPRESSION position rejected pre-
+# fix). Strictly additive — the `+` requires >=1 trailing `.method_call_body`
+# after the initial obj.method() call, so single-call expressions
+# (`obj.dup()`) continue to match the existing per-shape branches
+# unchanged. The `+` guard IS the regression firewall.
+identifier_rooted_method_chain := split_direct_callable_method_call ( dot method_call_body )+
+                               -> {initial: $1, chain: [$2**]}
+
 @branch_policy: priority_first
 call_primary := context_member_method_call          -> {kind: "context_member_method",       body: $1}
               | call_with_postfix_chain             -> {kind: "call_postfix_chain",          body: $1}
+              | identifier_rooted_method_chain      -> {kind: "ident_postfix_chain",         body: $1}
               | split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
               | class_scoped_tf_call_with_args     -> {kind: "class_scoped_tf",              body: $1}
               | plain_tf_call_with_args            -> {kind: "plain_tf",                     body: $1}
