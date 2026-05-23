@@ -2030,19 +2030,28 @@ impl AstBasedGenerator {
                 semantic_raw_content,
             ))
         };
-        let memoized_inner: TokenStream = if is_recursive {
-            quote! {
-                parser.memoized_call(Self::#rule_const, |parser| {
-                    #rule_body_inner
-                })
-            }
-        } else {
-            quote! {
-                (|parser: &mut Self| -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)> {
-                    #rule_body_inner
-                })(parser)
-            }
+        // SV-EXH-PROOF.3.3.4.b.6.2.15 — UNIVERSAL PACKRAT MEMOIZATION.
+        // Pre-fix: memoization was only applied to RECURSIVE rules (rules
+        // that call themselves transitively). Non-recursive leaf rules
+        // (identifier, simple_identifier, number, string_literal, etc.)
+        // were re-computed every visit. When a deep PEG alternation tries
+        // many branches that all descend through these leaves at the same
+        // position, the leaves are evaluated 50-100× redundantly. Trace
+        // analysis on uvm_pkg line 11755 hang showed `identifier` visited
+        // 96× at the same byte position (117064) — pure redundant work.
+        // FIX: memoize ALL rules unconditionally. This gives true Packrat
+        // O(N) parsing semantics. Memory cost: a HashMap entry per
+        // (rule, position) pair actually queried — typically O(N × log N)
+        // for real programs, not N × R worst-case. Parser-AGNOSTIC level 5
+        // engine enhancement. The `is_recursive` flag is now ignored for
+        // this purpose; left in place for the `cycle_check_emit` (which
+        // has different semantics).
+        let memoized_inner: TokenStream = quote! {
+            parser.memoized_call(Self::#rule_const, |parser| {
+                #rule_body_inner
+            })
         };
+        let _is_recursive_unused = is_recursive; // suppress unused warning if any
         let wrapped_rule_call: TokenStream = if self.rule_has_no_semantic_annotations(rule_name) {
             quote! {
                 let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
