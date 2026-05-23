@@ -270,6 +270,32 @@ Cases where the SV grammar's post-predicates require fact-knowledge that doesn't
 - **Audit pattern**: `grep -nE '^\s*import \w+::\*' <corpus>` then for each subsequent `extends\s+\w+\s*;` (no scope), the construct will fail post-C3-A — provided the referenced base is from the imported package. The triage gate's per-case `parse_status` is the catch-all.
 - **Related**: C3-A (the mask that just lifted); `.b.5.1.3` library architecture (the proper fix vector); `.b.5.3` library-fact-kinds extension (companion infra).
 
+---
+
+## I. PEG-grammar pattern hazards (recurring shapes)
+
+### I1. `scoped_<X>_<rule>_identifier` greedy-pkg-mis-pick 🟡 — recurring fix pattern
+- **Pattern**: A rule of shape `scoped_<X>_identifier := non_typedef_package_scope <inner_id>` participates in a multi-branch `class_*`-family alternation (e.g. `class_scope_type`'s 4-way, `class_scoped_call_prefix`'s 4-way, etc.) under default `longest_match` policy. When the outer construct is `<id>::<inner>` followed by something NOT another `::`, PEG's `longest_match` picks the `scoped_<X>_identifier` interpretation (which consumes `<id>::<inner>` = N+2 bytes) over the SHORTER but CORRECT `known_unscoped_<X>_class_identifier` interpretation (which consumes only `<id>` = N bytes). The OUTER rule then needs ANOTHER `::` to satisfy its mandatory trailing `scope_resolution` — and fails because the construct has only ONE `::`. Net: the WHOLE outer rule rejects, even though the correct shorter-prefix interpretation would have succeeded.
+- **Instances (3 fixed so far)**:
+  - `.b.6.2.10` — `scoped_class_scoped_call_prefix_identifier` for `C::set();` as a bare subroutine_call_statement
+  - `.b.6.2.12` — `scoped_class_scope_identifier` for `function void C::m(); endfunction` (extern method body definition)
+  - (and a `&scope_resolution` `*`-loop guard at `class_scope_type` to prevent the chain iteration from greedy-consuming the trailing function_identifier)
+- **Fix recipe (level 1/2 — existing semantic-annotation primitives)**: add a local post-predicate to the `scoped_<X>_<rule>_identifier` rule:
+  ```
+  @predicate: { name: lacks_fact_attribute_equals,
+                args: [type_name, $scope.body.name.body,
+                       declaration_family, class],
+                phase: post }
+  ```
+  This makes the rule reject `<id>::` when `<id>` has any `class` fact, leaving the SHORTER-but-CORRECT branch as the unique winner.
+- **Why "local" not "global on non_typedef_package_scope"**: applying the predicate to `non_typedef_package_scope` itself BREAKS other call sites where a class CAN legitimately serve as a scope prefix (e.g. `scoped_class_scope_identifier` in class_scope_type's *outer* path for `pkg::C::method`). The local predicate at the SPECIFIC scoped_*_identifier rule isolates the fix to where the `<pkg>::<class>` semantic is intended.
+- **Audit pattern**:
+  - `grep -nE '^scoped_.*_identifier := non_typedef_package_scope' grammars/systemverilog.ebnf` — every match is a candidate. Each currently-fixed one has the `@predicate: { name: lacks_fact_attribute_equals, ..., declaration_family, class}` annotation right above. UNFIXED ones (no such annotation immediately above) are potential I1 instances waiting to fire when the parse reaches their construct.
+  - Verified fixed rules (as of `.b.6.2.12`): `scoped_class_scoped_call_prefix_identifier` (.b.6.2.10), `scoped_class_scope_identifier` (.b.6.2.12).
+  - Verified UNFIXED but not currently triggering: `scoped_base_class_type_identifier`, `scoped_class_type_identifier`, `scoped_block_class_type` (head), `scoped_block_type_identifier`, `scoped_data_type_identifier`, `scoped_covergroup_type_identifier`, `scoped_interface_class_type_identifier`, `scoped_let_identifier`, `scoped_property_identifier`, `scoped_sequence_identifier`, `scoped_checker_identifier`. Each may need the local-predicate fix when its construct appears with a class-typed prefix.
+- **Status**: 🟡 OPEN — pattern recognized; instances fixed reactively as they hit. Could be fixed proactively by sweeping all `scoped_*_identifier := non_typedef_package_scope ...` rules and adding the predicate (~10-15 rules; mechanical) but better to wait for each to hit so the fix can be empirically verified (the predicate might be wrong for some uses where a class IS allowed).
+- **Related**: H1 (similar fact-knowledge-dependence pattern, different mechanism).
+
 ## Cross-cutting observations
 
 - **Compounding masking**: D1 + E2 + F1 + C1 compounded to make a 17-instance grammar defect entirely invisible until `.b.6.2.2`. Each layer hid the layer beneath. *Lesson:* when a class of defects is silent for long, suspect tooling/diagnostic gaps in tandem.
@@ -295,6 +321,7 @@ Run these periodically; failure of any check is a likely new instance of a known
 | D2 | `grep -nE '\$[0-9a-z_]+\.body\b' grammars/systemverilog.ebnf` (inside `->` shapes) | each `body:` hit reviewed for "is this still a workaround for D1?" |
 | C1 | diff `CompiledSemanticRuntimeAnnotations` struct fields against the `generate_compiled_…_tokens` emit-blocks | every field emitted |
 | F2 | `stat -f %m target/release/parseability_probe` vs `stat -f %m generated/systemverilog_parser.rs` | probe > parser, or rebuild |
+| I1 | `grep -nE '^scoped_.*_identifier := non_typedef_package_scope' grammars/systemverilog.ebnf` then for each hit grep `-B2` for the `lacks_fact_attribute_equals.*declaration_family.*class` annotation | annotation present (fixed), absent (potential trigger when construct hits) |
 
 ---
 
@@ -319,5 +346,7 @@ Run these periodically; failure of any check is a likely new instance of a known
 | 2026-05-23 | New class C3 added: speculative-parse fact-emission leak in typedef-of-TYPE-parameter parse path; corrupts TYPE's classification → subsequent `TYPE::name` fails. Minimal 7-line repro pinned in `.b.6.2.6` (`ab7c4746`); confirmation + fix routed to `.b.6.2.7`. Sibling of C2. | C3-DIAGNOSED |
 | 2026-05-23 | C3 split into **C3-A** (`try_parse` failed-branch fact leak — FIXED at `.b.6.2.7`, level-5 parser-agnostic engine, `try_parse` now snapshots + rolls back `semantic_runtime_state` alongside position; minimal repro PASSES; lib 547/547, features-on 608/608) and **C3-B** (multi-branch loser-successful fact accumulation — OPEN; fact-count-only, no parse-correctness impact; deferred to its own leaf with design + benchmark). Causes the 8× emit-duplication observed in the controlled probe. | C3-A-LANDED + C3-B-SPLIT |
 | 2026-05-23 | **New class H1 added** (missing-fact-from-cross-file-import). Surfaced by C3-A's strictness lifting an accidental mask: pre-fix, speculative-emission leaks populated `uvm_packer`-like names with placeholder facts; post-fix, the gating predicate `fact_attribute_equals(type_name,X,class)` correctly rejects when X is genuinely undeclared. Corpus pass count UNCHANGED (10/14 → 10/14). Two viable fixes (H1-α library-import path; H1-β import-emits-permissive-fact); routed to `.b.6.2.8`. NOT a regression — the defect was always there, only its symptom presentation changed. | H1-DISCOVERED |
+| 2026-05-23 | **New class I1 added** (`scoped_<X>_<rule>_identifier` greedy-pkg-mis-pick) — recurring PEG-pattern hazard recognized after fixing 2 instances reactively (`.b.6.2.10` scoped_class_scoped_call_prefix_identifier, `.b.6.2.12` scoped_class_scope_identifier). Each fix is a level 1/2 local `lacks_class` predicate. Audit pattern: grep `^scoped_.*_identifier := non_typedef_package_scope` — verify the `lacks_class` annotation is present on each. ~10 unfixed-but-not-currently-triggering rules catalogued. | I1-DOCUMENTED |
+| 2026-05-23 | Cumulative PNT-iteration uvm_pkg deep advance: 5521 → 11754 (+6233 lines, ~7% of 90K-line file) via 5 grammar/engine fixes (.b.6.2.7 C3-A engine + .b.6.2.10/.b.6.2.11a/.b.6.2.11b/.b.6.2.12/.b.6.2.13 grammar). All test gates stable. Corpus 10/14 unchanged (surface unchanged — F1 PEG furthest-position tooling artifact). | ITERATION-PROGRESS |
 
 *Add a row per non-trivial amendment.*
