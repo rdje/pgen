@@ -951,6 +951,54 @@ mod tests {
         }
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.7`: diagnostic dump-facts test for C3.
+    /// Parses the typedef-of-TYPE-parameter form and prints all emitted facts
+    /// to confirm whether a `type_name{TYPE, declaration_family:typedef}` fact
+    /// is leaked by the typedef parse path. Non-asserting — output is observed
+    /// via `--nocapture` to characterise the fact-store state.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_b627_diag_typedef_type_parameter_fact_dump() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        // Three controlled inputs to isolate WHERE the spurious typedef fact
+        // on the RHS comes from.
+        let cases: &[(&str, &str)] = &[
+            ("A: bare-typedef, no class    ", "package p; typedef int t; endpackage"),
+            ("B: typedef refs type_param   ", "package p; class C #(type TYPE=int); typedef TYPE T; endclass endpackage"),
+            ("C: typedef refs ordinary id  ", "package p; class C; typedef bit U; typedef U V; endclass endpackage"),
+        ];
+        for (label, src) in cases {
+            let mut parser =
+                SystemverilogParser::new(src, runtime_logger_box("ast_shape_contract.sv.b627"));
+            let parsed = parser.parse_full_systemverilog_file().is_ok();
+            let facts = parser.semantic_runtime_state().facts();
+            println!("\nb627-diag [{}] parse_ok={} fact_count={}", label, parsed, facts.len());
+            let mut by_name: std::collections::BTreeMap<String, Vec<String>> = Default::default();
+            for fact in facts {
+                let name_text = fact.name.as_text().map(|s| s.to_string())
+                    .unwrap_or_else(|| format!("{:?}", fact.name));
+                let fam = fact
+                    .attributes
+                    .iter()
+                    .find(|p| p.key == "declaration_family")
+                    .map(|p| format!("{:?}", p.value))
+                    .unwrap_or_else(|| "<none>".to_string());
+                by_name.entry(name_text).or_default().push(fam);
+            }
+            for (name, fams) in &by_name {
+                let mut tally: std::collections::BTreeMap<String, usize> = Default::default();
+                for f in fams {
+                    *tally.entry(f.clone()).or_insert(0) += 1;
+                }
+                let summary: Vec<String> =
+                    tally.iter().map(|(f, c)| format!("{}×{}", f, c)).collect();
+                println!("  {} → {}", name, summary.join(", "));
+            }
+        }
+    }
+
     #[cfg(all(
         feature = "generated_parsers",
         has_generated_systemverilog_preprocessor_parser

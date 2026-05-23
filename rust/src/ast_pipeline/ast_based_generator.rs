@@ -4845,6 +4845,68 @@ impl AstBasedGenerator {
             {
                 let saved_pos = self.position;
                 let saved_stack_len = self.recursion_guard.parse_stack.len();
+                // ============================================================
+                // SV-EXH-PROOF.3.3.4.b.6.2.7 — speculative-parse semantic
+                // rollback (Bug A from the C3 diagnosis).
+                //
+                // ROOT CAUSE: `try_parse` is the universal wrapper for every
+                // PEG speculation in the generated code — branch alternatives
+                // (`generate_or_logic`), optional groups `( X )?`, quantifier
+                // iterations `*`/`+`/`{N,M}`, and lookahead `&X`/`!X`. Before
+                // this fix, on failure it rolled back ONLY the position and
+                // the recursion-guard stack — NOT the semantic runtime
+                // state. So when a speculative branch entered a fact-emitting
+                // child rule (whose own `with_semantic_runtime_rule_transaction`
+                // *committed* the fact on the child's local success), then the
+                // outer speculation failed later (e.g. branch 6 of the SV
+                // `type_declaration_sv_2017` alternation matches
+                // `kw_typedef ( enum|struct|union )? declared_type_identifier`
+                // on `typedef TYPE T;`, emits `TYPE=typedef`, then fails on
+                // `semi` because the next token is ` T` not `;`), the leaked
+                // fact persisted in the parent's committed state. Later
+                // `lacks_fact_attribute_equals(declaration_family, typedef)`
+                // checks then incorrectly rejected `TYPE` (which actually has
+                // family `type_parameter`), corrupting downstream parse paths
+                // — the precise blocker behind `.3.3.4.b.6.2.6`'s minimal
+                // 7-line repro.
+                //
+                // FIX (Level 5 per the no-workarounds hierarchy — none of
+                // levels 1–4 reach this; the universal semantic store IS
+                // transactional, but the engine wasn't *using* a transaction
+                // at the speculative-attempt boundary): snapshot the
+                // `semantic_runtime_state` at try_parse entry, and on failure
+                // `rollback_to` that checkpoint so any emit_fact /
+                // open_scope / close_scope side effects of the failed
+                // speculation are undone alongside the position. Parser-
+                // AGNOSTIC: every parser benefits (the regex / json grammars
+                // have no semantic predicates so their snapshot is trivially
+                // O(1) — checkpoint captures three usize lengths plus an
+                // empty `active_chain` Vec — and rollback is a no-op).
+                //
+                // Cost on grammars with active annotations:
+                //   - On entry: one `SemanticRuntimeCheckpoint` (3 usizes +
+                //     `active_chain.clone()` — typically <10 ScopeIds for SV).
+                //   - On Ok: nothing (successful speculations keep their
+                //     emissions; the per-rule outer transaction handles
+                //     ultimate commit/rollback).
+                //   - On Err: `rollback_to` truncates the three vecs +
+                //     removes the per-kind index entries for the discarded
+                //     facts (perf contract §3.7 — O(rolled-back facts)).
+                //
+                // SCOPE LIMITATION (Bug B, intentionally NOT addressed
+                // here): under `longest_match` / `priority_first` branch
+                // policy the multi-branch codegen tries ALL branches and
+                // selects the best; loser-but-SUCCESSFUL branches' emissions
+                // still accumulate in the committed parent state. That's a
+                // strictly broader fix (multi-branch commit-only-winner with
+                // either delta-replay or winner-double-execute) and is a
+                // tracked taxonomy entry (C3-B). It's a fact-count
+                // efficiency issue and does NOT corrupt boolean `has_fact`
+                // consumers (the SV consumer model), so it does not block
+                // the SV-EXH-PROOF campaign.
+                // ============================================================
+                let saved_semantic_checkpoint =
+                    self.semantic_runtime_state.checkpoint();
 
                 if self.logger_enabled {
                     self.logger.log_debug(#filename, 0, &format!("🔄 Starting speculative parse at position {}", saved_pos));
@@ -4861,6 +4923,10 @@ impl AstBasedGenerator {
                         // Backtrack
                         self.position = saved_pos;
                         self.recursion_guard.parse_stack.truncate(saved_stack_len);
+                        // .b.6.2.7: also undo semantic side-effects of the
+                        // failed speculation (see the block-comment above).
+                        self.semantic_runtime_state
+                            .rollback_to(saved_semantic_checkpoint);
 
                         if self.logger_enabled {
                             self.logger.log_warning(#filename, 0, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {}", e, saved_pos));
