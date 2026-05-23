@@ -313,6 +313,22 @@ literal over a failing surface.
   Lesson learned: a stale `parseability_probe` after a regen is silent-wrong — verify probe mtime > parser-mtime before trusting probe pass/fail. Belongs in [[feedback_verify_sv_parser_regen_mtime]].
   Commit: `(no code change — closure-by-evidence)`
 
+- ID: `SV-EXH-PROOF.3.3.4.b.6.2.5`
+  Status: `done` `2026-05-23` — postfix-method-chain on call-rooted receiver expressions. `a().b()` and similar now parse; opens path past one of the uvm_utils blockers but more remain (.b.6.2.6).
+  Goal: `Make a().b(), pkg::tf().m(), arr.find(x).size, obj.f().chain(), uvm_get_report_object().uvm_get_report_object() parse — the call-rooted complement of .b.6.2's identifier-rooted chains.`
+  Root cause (.b.6.2.4 bisect → this slice): `call_primary has no chain wrapper for receiver-less call shapes (plain_tf_call_with_args, tf_call_with_args, class_scoped_tf_call_with_args, direct_callable_method_call, system_tf_call). After a single such call matches, .method_call_body() suffixes are unconsumed → primary fails → expression rejects. Symmetric to .b.6.2's identifier-rooted gap, but rooted in a call.`
+  Fix (hierarchy level 0 — pure grammar restructure, no semantic mechanism needed): `New helper rule chainable_call_initial wraps the 5 receiver-less call shapes; new call_with_postfix_chain := chainable_call_initial ( dot method_call_body )+ added as call_primary's priority-first SECOND branch (after .b.6.2's context_member_method_call). Strictly additive — the + requires >=1 trailing .method, so single-call expressions continue to match the existing per-shape branches; no regression on currently-passing constructs.`
+  Why no semantic gate needed: `Unlike .b.6.2's identifier-rooted chains (where 'a' was ambiguous variable/package, needing has_fact context), a call-rooted chain (a()) is syntactically unambiguous — the (args) parens are the discriminator. The + structural guard IS the regression firewall. No semantic annotations / store features required.`
+  Verification: `lib 547/547 (no-features). features-on 607/607 (incl. SV shape-contract GREEN on the regenerated parser; no shape regression). RGX 44/44 (grammar-only SV change). Targeted probes: 'x = a().b();' PASSES (failed before); 'uvm_get_report_object().uvm_get_report_object()' PASSES; single-call 'a()' / 2-level 'a.b(x)' / 3-level 'a.b.c(x)' all still PASS — no regression.`
+  Honest residual: `the full 135-line uvm_utils window STILL fails — a DIFFERENT context-dependent blocker remains: 'uvm_report_warning("k", {"a", TYPE::type_name, "b"})' fails when preceded by ~12 statements + nested begin-blocks in the same function, but passes in isolation. Routed to .b.6.2.6 (context-dependent backtrack issue — needs deeper investigation).`
+  Commit: `pending — PGEN-SV-EXH-PROOF-0042`
+
+- ID: `SV-EXH-PROOF.3.3.4.b.6.2.6`
+  Status: `pending` — investigate the context-dependent uvm_utils failure beyond .b.6.2.5.
+  Goal: `Diagnose why 'uvm_report_warning("k", {"a", TYPE::type_name, "b"})' fails when contextualized with ~12 prior statements + nested begin-blocks (the find_all function body) but passes in isolation. Likely a PEG backtrack/memoisation interaction. Probe systematically to isolate the trigger, then fix per the hierarchy.`
+  Acceptance: `Trigger pinned; full uvm_utils 135-line window parses; no SV-corpus regression.`
+  Commit: `pending`
+
 - ID: `SV-EXH-PROOF.3.3.5`
   Status: `pending` (debug-required follow-up; PRE-EXISTING at .3.3.2, NOT caused by .3.3.3)
   Goal: `Two inventory-wide auto-gates fail on the regex + rtl_const_expr parsers (auto_gate_regex_inventory_wide_shape, auto_gate_rtl_const_expr_inventory_wide_shape) with: 'rule subroutine_call/1: declared key target missing from parsed value: {body:[...],kind:capturing_group,type:atom}' on input '(a|b)*c'. Decisively verified PRE-EXISTING at .3.3.2 (75afb3c7) via git-stash baseline check — they fail at the committed state with no SV-EXH-PROOF.3.3.3 changes applied. The RGX broader corpus/conformance gate (44/0) and SV shape-contract are GREEN, so this is a baseline inventory-vs-emission drift (the auto-gate's discriminator matches a node whose emitted shape lost the declared 'target' key), NOT a parsing regression. Requires FULL root-cause + fix (not just acknowledged): trace which inventory entry declares 'target', why subroutine_call/1's emitted shape doesn't have it, whether the inventory or the emission needs correction, then leaf-owned grammar/inventory fix + same-commit lockstep.`

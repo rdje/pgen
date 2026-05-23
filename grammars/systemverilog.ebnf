@@ -2776,8 +2776,27 @@ method_call_root := method_call_receiver  -> {kind: "receiver",       body: $1}
 context_member_method_call := identifier ( dot identifier &dot )+ dot callable_method_call_body ( dot method_call_body )*
                            -> {head: $1.body, members: $2, method: $4, chain: $5}
 
+# SV-EXH-PROOF.3.3.4.b.6.2.5 — postfix-method-chain on a call-rooted
+# receiver expression. `.b.6.2` added `context_member_method_call` for
+# identifier-rooted chains like `a.b.c(x)`; this is the structural
+# complement for chains rooted in a function or method call —
+# `a().b()`, `pkg::tf().m()`, `arr.find(x).size`, `obj.f().chain()`.
+# Pure grammar restructure (no semantic mechanism needed); strictly
+# additive — the `+` requires >=1 trailing `.method_call_body` after the
+# initial call, so single-call expressions continue to match the existing
+# per-shape branches unchanged. The `+` guard IS the regression firewall.
+chainable_call_initial := class_scoped_tf_call_with_args -> {kind: "class_scoped_tf",  body: $1}
+                        | plain_tf_call_with_args         -> {kind: "plain_tf",         body: $1}
+                        | tf_call_with_args               -> {kind: "tf",               body: $1}
+                        | direct_callable_method_call    -> {kind: "direct_callable",  body: $1}
+                        | system_tf_call                   -> {kind: "system_tf",        body: $1}
+
+call_with_postfix_chain := chainable_call_initial ( dot method_call_body )+
+                        -> {initial: $1, chain: [$2**]}
+
 @branch_policy: priority_first
 call_primary := context_member_method_call          -> {kind: "context_member_method",       body: $1}
+              | call_with_postfix_chain             -> {kind: "call_postfix_chain",          body: $1}
               | split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}
               | class_scoped_tf_call_with_args     -> {kind: "class_scoped_tf",              body: $1}
               | plain_tf_call_with_args            -> {kind: "plain_tf",                     body: $1}
