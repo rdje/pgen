@@ -8,6 +8,7 @@
 - Created: `2026-05-17`
 - Last updated: `2026-05-17` (`.1` measured baseline complete — tree re-planned to 6 leaves; see Decisions/Verification)
 - Owner: repo-local workflow
+- Defect taxonomy: [docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md](../reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md) — living tracking document; every systematic defect class found in this campaign is recorded there with an audit pattern. Amend on every new class discovered.
 
 ## Goal
 
@@ -308,10 +309,9 @@ literal over a failing surface.
   Commit: `pending — PGEN-SV-EXH-PROOF-0038`
 
 - ID: `SV-EXH-PROOF.3.3.4.b.6.2.3`
-  Status: `pending` — fix the parameterized class-scoped-call `C#(T)::m(args)` parse gap (the uvm_bit_vector_utils#(uvm_bitstream_t)::to_string(...) shape).
-  Goal: `Make C#(T)::m(a) parse for a declared class C. The .b.6.2.2 17-instance predicate-ref fix unblocked plain :: but the parameterized #(…):: form still fails. Trace the new failure path (likely in class_scope_type's parameter_value_assignment + scope_resolution chain, or class_scoped_call_prefix), root-cause, grammar fix, lockstep + triage.`
-  Acceptance: `'C#(int)::m(a)' parses for declared class C; uvm_pkg advances past line 5521; no SV-corpus regression.`
-  Commit: `pending`
+  Status: `closed-by-evidence` `2026-05-23` — subsumed by `.b.6.2.2`. The 17-instance predicate-ref fix unblocked the parameterized `#(...)::method(args)` form too. The earlier "still fails" finding was a STALE PROBE: `parseability_probe` had been built BEFORE the `make focus_systemverilog` regen completed, so it embedded an old SV parser without the full predicate fix. After `touch src/lib.rs && cargo build --release --features generated_parsers --bin parseability_probe` (rebuild against the fresh parser), the probes PASS: `C::m()`, `C#(int)::m(a)` (declared class), `class C#(type T=int);` then `C#(int)::m(a)`, AND the EXACT uvm body shape `function string f(uvm_bitstream_t value, …); return uvm_bit_vector_utils#(uvm_bitstream_t)::to_string(value,size,radix,radix_str); endfunction`. SV external-corpus triage gate re-running with the fresh state — will report uvm corpus movement.
+  Lesson learned: a stale `parseability_probe` after a regen is silent-wrong — verify probe mtime > parser-mtime before trusting probe pass/fail. Belongs in [[feedback_verify_sv_parser_regen_mtime]].
+  Commit: `(no code change — closure-by-evidence)`
 
 - ID: `SV-EXH-PROOF.3.3.5`
   Status: `pending` (debug-required follow-up; PRE-EXISTING at .3.3.2, NOT caused by .3.3.3)
