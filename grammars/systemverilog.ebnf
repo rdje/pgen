@@ -2436,6 +2436,7 @@ let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_l
 # of `uvm_pkg`; `.b.6.2` got the parser past `uvm_create_random_seed` and
 # exposed this. Drill through the shape: $body.name.body
 # (body → package_scope's name field → package_identifier's body scalar).
+#
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $body.name.body, declaration_family, typedef], phase: post }
 non_typedef_package_scope := @probe_sample: "pkg::" package_scope
                           -> {body: $1}
@@ -5973,6 +5974,25 @@ known_unscoped_class_scoped_call_interface_class_identifier := class_identifier
 @predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, type_parameter], phase: post }
 known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier
 
+# SV-EXH-PROOF.3.3.4.b.6.2.10 — local tighten (not on `non_typedef_package_scope`
+# which is shared with rules where a class CAN legitimately serve as a scope).
+# Here the rule's name and intent are unambiguous: it's a `<pkg>::<class>`
+# prefix for a class-scoped call (the OUTER class_scoped_call_prefix then
+# expects another `scope_resolution` to reach the tf_identifier). The pkg
+# slot MUST be a package, not a class — otherwise PEG longest_match in the
+# inner alternation of class_scoped_call_prefix wrongly picks this branch
+# for `C::set();` (consuming `C::set` as `<pkg>::<class>`) over the SHORTER
+# but CORRECT `known_unscoped_class_scoped_call_class_identifier=C` branch,
+# and the subsequent mandatory `scope_resolution` fails because `C::set()`
+# has only ONE `::`. Net: bare `class_scoped_tf_call` statements like
+# `uvm_coreservice_t::set(dcs);` (the uvm_pkg blocker at line 6605, the
+# .b.6.2.9 trigger) were unparseable. Adding `lacks_class` here keeps the
+# rule's semantics correct (a real package scope, not a class shadowing)
+# WITHOUT side-effecting `non_typedef_package_scope`'s legitimate use as a
+# class-can-scope prefix in `scoped_class_scope_identifier`,
+# `scoped_class_type_identifier`, etc. Parser-AGNOSTIC at level 1/2 of the
+# no-workarounds hierarchy (existing primitives only).
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, class], phase: post }
 scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
