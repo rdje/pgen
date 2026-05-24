@@ -512,6 +512,17 @@ impl AstBasedGenerator {
                 // path skips the per-call vtable dispatch through Box<dyn Logger>. Logger
                 // is set once at new() and not swapped at runtime, so the cache is sound.
                 logger_enabled: bool,
+                // SV-EXH-PROOF.3.3.4.b.6.2.17 — RULE-LEVEL TARGETED TRACE.
+                // `trace_rules` (None = parser-level full trace, the prior `--trace`
+                // behavior). Some(set) = trace ONLY inside the call-tree of rules
+                // whose names are in the set. The per-call gate is then
+                // `logger_enabled && (trace_rules.is_none() || trace_active_depth > 0)`.
+                // `trace_active_depth` is incremented on entry to a rule listed in
+                // `trace_rules` and decremented on exit. Both inits to None/0 so the
+                // default behavior (no flag) is identical to today (full trace when
+                // `--trace` is passed, no trace otherwise).
+                trace_rules: Option<std::collections::HashSet<String>>,
+                trace_active_depth: u32,
             }
         }
     }
@@ -777,7 +788,33 @@ impl AstBasedGenerator {
                     library_out_dir: None,
                     logger,
                     logger_enabled,
+                    trace_rules: None,
+                    trace_active_depth: 0,
                 }
+            }
+
+            /// SV-EXH-PROOF.3.3.4.b.6.2.17 — opt in to RULE-LEVEL TARGETED TRACE.
+            /// Pass `Some(set_of_rule_names)` to restrict trace output to the
+            /// call-tree of the listed rules (any rule whose name matches is the
+            /// scope root; trace is active inside that rule and any rule it calls,
+            /// recursively, until it returns). Pass `None` (default) for the
+            /// existing parser-level full trace behavior. Has no effect unless
+            /// `logger_enabled` (i.e. `--trace` was also passed on the CLI).
+            pub fn set_trace_rules(&mut self, rules: Option<std::collections::HashSet<String>>) {
+                self.trace_rules = rules;
+                self.trace_active_depth = 0;
+            }
+
+            /// SV-EXH-PROOF.3.3.4.b.6.2.17 — the per-call trace gate. Replaces the
+            /// bare `if self.logger_enabled` checks throughout codegen. When
+            /// `trace_rules` is None this collapses to the prior behavior (any
+            /// log emits if logger_enabled); when Some(...), emits only inside
+            /// the listed rules' call-tree. `#[inline(always)]` because this is
+            /// called on every potential log site in the hot parse path.
+            #[inline(always)]
+            fn trace_enabled(&self) -> bool {
+                self.logger_enabled
+                    && (self.trace_rules.is_none() || self.trace_active_depth > 0)
             }
         })
     }
@@ -988,7 +1025,7 @@ impl AstBasedGenerator {
                         // Missing artifact: log + continue. This makes the
                         // importer's downstream `has_fact` checks evaluate
                         // false — same outcome as today's no-library run.
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_info(
                                 file!(),
                                 line!(),
@@ -1074,7 +1111,7 @@ impl AstBasedGenerator {
                     &exportable_kinds,
                 ) {
                     Ok(path) => {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_info(
                                 file!(),
                                 line!(),
@@ -1190,7 +1227,7 @@ impl AstBasedGenerator {
                         {
                             Some(true) => {}
                             Some(false) => {
-                                if self.logger_enabled {
+                                if self.trace_enabled() {
                                     if let crate::ast_pipeline::SemanticRuntimeDirective::Predicate(spec) =
                                         directive
                                     {
@@ -1316,7 +1353,7 @@ impl AstBasedGenerator {
                             }
                         }
                         if post_predicate_blocked {
-                            if self.logger_enabled {
+                            if self.trace_enabled() {
                                 self.logger.log_info(
                                     file!(),
                                     line!(),
@@ -2094,7 +2131,7 @@ impl AstBasedGenerator {
 
                 match cycle_type {
                     CycleType::Infinite => {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_error(#filename, 0, &format!("💥 Infinite recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
@@ -2103,7 +2140,7 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::LeftRecursive => {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_error(#filename, 0, &format!("🔄 Left recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
@@ -2112,7 +2149,7 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::MutualRecursive { depth, ref rules } if depth >= #recursion_guard_max_depth => {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_error(#filename, 0, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
                         }
                         return Err(ParseError::RecursionDepthExceeded {
@@ -2139,6 +2176,20 @@ impl AstBasedGenerator {
 
                 self.recursion_guard.enter(#rule_name, position);
 
+                // SV-EXH-PROOF.3.3.4.b.6.2.17 — rule-level targeted trace push.
+                // If `--trace-rules <list>` includes this rule name, enter its
+                // call-tree's trace scope (trace_active_depth > 0 enables the
+                // per-call log gate via trace_enabled()). Otherwise no-op.
+                // Zero overhead when trace_rules is None (the common case).
+                let __pgen_trace_scope_active = self
+                    .trace_rules
+                    .as_ref()
+                    .map(|rs| rs.contains(#rule_name))
+                    .unwrap_or(false);
+                if __pgen_trace_scope_active {
+                    self.trace_active_depth += 1;
+                }
+
                 // Declare start_pos outside the closure so it can be used outside
                 let start_pos = self.position;
 
@@ -2151,11 +2202,19 @@ impl AstBasedGenerator {
                 // codegen drops it entirely.
                 #wrapped_rule_call
 
+                // SV-EXH-PROOF.3.3.4.b.6.2.17 — rule-level targeted trace pop.
+                // Symmetric to the entry push above; exits the call-tree's
+                // trace scope. saturating_sub guards against underflow if
+                // some unforeseen path skipped the push (defense-in-depth).
+                if __pgen_trace_scope_active {
+                    self.trace_active_depth = self.trace_active_depth.saturating_sub(1);
+                }
+
                 self.recursion_guard.exit();
 
                 match &result {
                     Ok(node) => {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             let consumed = node.span.end - start_pos;
                             if consumed > 0 {
                                 let consumed_preview = self.byte_window_lossy(start_pos, node.span.end);
@@ -2176,7 +2235,7 @@ impl AstBasedGenerator {
                                 &format!("{:?}", e),
                             );
                         }
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_error(#filename, 0, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", #rule_name, e, self.position));
                         }
                     }
@@ -2280,7 +2339,7 @@ impl AstBasedGenerator {
                         position: lookahead_start,
                     });
                 }
-                if parser.logger_enabled {
+                if parser.trace_enabled() {
                     parser.logger.log_debug(#filename, 0, &format!(
                         "👀 Rule '{}' satisfied {} at position {}",
                         #rule_name,
@@ -2304,7 +2363,7 @@ impl AstBasedGenerator {
                         position: lookahead_start,
                     });
                 }
-                if parser.logger_enabled {
+                if parser.trace_enabled() {
                     parser.logger.log_debug(#filename, 0, &format!(
                         "🚫 Rule '{}' satisfied {} at position {}",
                         #rule_name,
@@ -2444,7 +2503,7 @@ impl AstBasedGenerator {
                         #recover_parse_budget,
                         #recover_global_budget,
                     ) {
-                        if parser.logger_enabled {
+                        if parser.trace_enabled() {
                             parser.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}] budget(rule={}, parse={}, global={})",
                                 #rule_name,
@@ -2510,11 +2569,11 @@ impl AstBasedGenerator {
                             parser.position = parse_start;
                             if let Some(content) = parser.try_parse(|p| {
                                 let parser = p;
-                                if parser.logger_enabled {
+                                if parser.trace_enabled() {
                                     parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                                 }
                                 #branch_logic;
-                                if parser.logger_enabled {
+                                if parser.trace_enabled() {
                                     parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
                                 }
                                 Ok(result)
@@ -2662,7 +2721,7 @@ impl AstBasedGenerator {
                                         candidate_end
                                     ));
                                 }
-                            } else if parser.logger_enabled {
+                            } else if parser.trace_enabled() {
                                 parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                             }
                         }
@@ -2714,7 +2773,7 @@ impl AstBasedGenerator {
                 } else if let Some(content) = best_content {
                     parser.position = best_end;
                     semantic_selected_branch_index = Some(best_branch);
-                    if parser.logger_enabled {
+                    if parser.trace_enabled() {
                         parser.logger.log_info(#filename, 0, &format!(
                             "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
                             #rule_name,
@@ -2929,7 +2988,7 @@ impl AstBasedGenerator {
                                                         let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                         #constraint_guards
                                                         let transformed = matched_str.parse::<#target_type>().unwrap_or(#default_expr);
-                                                        if parser.logger_enabled {
+                                                        if parser.trace_enabled() {
                                                             parser.logger.log_debug(
                                                                 file!(),
                                                                 line!(),
@@ -2964,7 +3023,7 @@ impl AstBasedGenerator {
                                             return Ok(quote! {
                                                 let matched_str = parser.match_regex(#effective_regex_pattern, #skip_leading_whitespace)?;
                                                 #constraint_guards
-                                                if parser.logger_enabled {
+                                                if parser.trace_enabled() {
                                                     parser.logger.log_debug(
                                                         file!(),
                                                         line!(),
@@ -3141,7 +3200,7 @@ impl AstBasedGenerator {
 
             loop {
                 if iteration_count >= SAFETY_LIMIT {
-                    if parser.logger_enabled {
+                    if parser.trace_enabled() {
                         parser.logger.log_warning(#filename, 0, &format!(
                             "⚠️ SAFETY_LIMIT ({}) reached in quantifier {} at position {}",
                             SAFETY_LIMIT, #quantifier_label, parser.position
@@ -3167,7 +3226,7 @@ impl AstBasedGenerator {
                     // Zero-length match guard — prevent infinite loops on rules
                     // that can match the empty string.
                     if current_position == last_position {
-                        if parser.logger_enabled {
+                        if parser.trace_enabled() {
                             parser.logger.log_warning(#filename, 0, &format!(
                                 "⚠️ ZERO-LENGTH MATCH in quantifier {} at position {}: breaking to prevent infinite loop",
                                 #quantifier_label, current_position
@@ -3438,7 +3497,7 @@ impl AstBasedGenerator {
                     *self.coverage_target_branch_hits.entry(branch_key).or_insert(0) += 1;
                 }
 
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     let marker = if critical_path {
                         "critical"
                     } else {
@@ -3478,7 +3537,7 @@ impl AstBasedGenerator {
                     .entry(rule_name.to_string())
                     .or_insert(0) += 1;
 
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     self.logger.log_info(#filename, 0, &format!(
                         "🧭 SC-12 parser partition: rule='{}' group='{}' span={}..{}",
                         rule_name,
@@ -3508,7 +3567,7 @@ impl AstBasedGenerator {
                     .entry(rule_name.to_string())
                     .or_insert(0) += 1;
 
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     let mode = if negative {
                         "near-invalid"
                     } else {
@@ -3537,7 +3596,7 @@ impl AstBasedGenerator {
                 if let Some(limit) = recover_budget {
                     let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
                     if used >= limit {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
@@ -3550,7 +3609,7 @@ impl AstBasedGenerator {
                 }
                 if let Some(limit) = recover_parse_budget {
                     if self.recovery_parse_count >= limit {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Parse-scope recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
@@ -3563,7 +3622,7 @@ impl AstBasedGenerator {
                 }
                 if let Some(limit) = recover_global_budget {
                     if self.recovery_global_count >= limit {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_warning(#filename, 0, &format!(
                                 "🛟 Global recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
@@ -3642,7 +3701,7 @@ impl AstBasedGenerator {
                     self.recovery_parse_count += 1;
                     self.recovery_global_count += 1;
 
-                    if self.logger_enabled {
+                    if self.trace_enabled() {
                         let marker = if token_priority == 0 {
                             "panic_until"
                         } else {
@@ -3675,7 +3734,7 @@ impl AstBasedGenerator {
                     *self.recovery_counts.entry(rule_name.to_string()).or_insert(0) += 1;
                     self.recovery_parse_count += 1;
                     self.recovery_global_count += 1;
-                    if self.logger_enabled {
+                    if self.trace_enabled() {
                         self.logger.log_warning(#filename, 0, &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
                             rule_name,
@@ -4715,7 +4774,7 @@ impl AstBasedGenerator {
                 let expected_bytes = expected.as_bytes();
                 let end = start + expected_bytes.len();
 
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     self.logger.log_debug(#filename, 0, &format!("🔤 Attempting to match terminal '{}' at position {} (end: {})", expected, start, end));
                 }
 
@@ -4728,7 +4787,7 @@ impl AstBasedGenerator {
                     }
                     self.position = end;
 
-                    if self.logger_enabled {
+                    if self.trace_enabled() {
                         self.logger.log_success(#filename, 0, &format!("✅ Terminal '{}' matched, advanced to position {}", expected, end));
                     }
 
@@ -4742,7 +4801,7 @@ impl AstBasedGenerator {
                 // logger is enabled (debug builds, gates) — production parses skip the
                 // allocation entirely. Caller's OR retry loop handles ParseError::Backtrack
                 // identically to ContextualError.
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     let found_str = if self.position < self.input.len() {
                         let end = (self.position + expected_bytes.len()).min(self.input.len());
                         self.byte_window_lossy(self.position, end)
@@ -4820,7 +4879,7 @@ impl AstBasedGenerator {
                 if let Some(end_offset) = match_end {
                     let start = self.position;
                     self.position += end_offset;
-                    if self.logger_enabled {
+                    if self.trace_enabled() {
                         self.logger.log_success(#filename, 0, &format!(
                             "✅ Regex '{}' matched at position {} (len {})",
                             pattern, start, end_offset
@@ -4832,7 +4891,7 @@ impl AstBasedGenerator {
                     return Err(self.create_contextual_error("Regex matched invalid UTF-8 span"));
                 }
 
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     let preview = if self.position < self.input.len() {
                         let end = (self.position + 10).min(self.input.len());
                         self.byte_window_lossy(self.position, end)
@@ -4917,13 +4976,13 @@ impl AstBasedGenerator {
                 let saved_semantic_checkpoint =
                     self.semantic_runtime_state.checkpoint();
 
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     self.logger.log_debug(#filename, 0, &format!("🔄 Starting speculative parse at position {}", saved_pos));
                 }
 
                 match f(self) {
                     Ok(result) => {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_success(#filename, 0, &format!("🔄 Speculative parse succeeded, advanced to position {}", self.position));
                         }
                         Some(result)
@@ -4937,7 +4996,7 @@ impl AstBasedGenerator {
                         self.semantic_runtime_state
                             .rollback_to(saved_semantic_checkpoint);
 
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_warning(#filename, 0, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {}", e, saved_pos));
                         }
 
@@ -4960,13 +5019,13 @@ impl AstBasedGenerator {
                     if let Some(node) = &entry.result {
                         self.position = entry.end_pos;
 
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_info(#filename, 0, &format!("💾 Memo hit for rule {} at position {} - reusing cached result", rule_id, self.position));
                         }
 
                         return Ok((node.clone(), entry.raw_semantic_content.clone()));
                     } else {
-                        if self.logger_enabled {
+                        if self.trace_enabled() {
                             self.logger.log_warning(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - cached failure", rule_id, self.position));
                         }
                         self.position = entry.end_pos;
@@ -4976,7 +5035,7 @@ impl AstBasedGenerator {
                     }
                 }
 
-                if self.logger_enabled {
+                if self.trace_enabled() {
                     self.logger.log_debug(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
                 }
 
@@ -4992,7 +5051,7 @@ impl AstBasedGenerator {
                             end_pos: node.span.end,
                         },
                     );
-                    if self.logger_enabled {
+                    if self.trace_enabled() {
                         self.logger.log_info(#filename, 0, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
                     }
                 } else {
@@ -5004,7 +5063,7 @@ impl AstBasedGenerator {
                             end_pos: start_pos,
                         },
                     );
-                    if self.logger_enabled {
+                    if self.trace_enabled() {
                         self.logger.log_warning(#filename, 0, &format!("💾 Memoized failed result for rule {} at position {}", rule_id, self.position));
                     }
                 }

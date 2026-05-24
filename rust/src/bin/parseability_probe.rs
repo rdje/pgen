@@ -8,7 +8,7 @@ use pgen::ast_pipeline::{
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-log-file [FILE]]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--lib-in DIR  : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`."
+    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--lib-in DIR     : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR    : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules    : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation."
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -59,6 +59,11 @@ struct GlobalOptions {
     /// `@export_to_library` artifact writes. `None` (the default) keeps
     /// single-file behaviour byte-identical to today.
     library_out_dir: Option<String>,
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.17` — rule-level targeted trace.
+    /// Comma-separated list of rule names; trace activates only inside
+    /// the call-tree of these rules. `None` (default) = parser-level
+    /// full trace (the prior `--trace` behavior).
+    trace_rules: Option<Vec<String>>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -140,6 +145,24 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             idx += 1;
             continue;
         }
+        // SV-EXH-PROOF.3.3.4.b.6.2.17 — rule-level targeted trace.
+        if args[idx] == "--trace-rules" {
+            if options.trace_rules.is_some() {
+                bail!("--trace-rules cannot be specified multiple times");
+            }
+            let value = args
+                .get(idx + 1)
+                .ok_or_else(|| anyhow::anyhow!("--trace-rules requires a comma-separated rule-name list"))?;
+            let rules: Vec<String> = value.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+            if rules.is_empty() {
+                bail!("--trace-rules list cannot be empty");
+            }
+            // Implies --trace (rule-level trace is meaningless without the logger).
+            options.trace = true;
+            options.trace_rules = Some(rules);
+            idx += 2;
+            continue;
+        }
         if args[idx] == "--trace-log-file" {
             if options.trace_log_file.is_some() {
                 bail!("--trace-log-file cannot be specified multiple times");
@@ -194,6 +217,11 @@ fn configure_runtime_trace(options: &GlobalOptions) -> Result<()> {
     configure_trace_output(options.trace_log_file.as_deref())?;
     let verbosity = resolve_trace_verbosity(None, false, options.trace)?;
     set_global_trace_verbosity(verbosity);
+    // SV-EXH-PROOF.3.3.4.b.6.2.17 — propagate rule-level trace filter to the
+    // parser_registry thread-local so subsequent parser invocations on this
+    // thread apply it via `set_trace_rules` after construction.
+    let rules = options.trace_rules.as_ref().map(|v| v.iter().cloned().collect());
+    pgen::parser_registry::set_global_trace_rules(rules);
     Ok(())
 }
 

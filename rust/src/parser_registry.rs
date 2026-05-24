@@ -24,6 +24,29 @@ use crate::generated_parsers::{
 };
 use crate::regex_compile_validation::validate_regex_compile_contract;
 use serde_json::Value as JsonValue;
+
+// SV-EXH-PROOF.3.3.4.b.6.2.17 — rule-level targeted trace, thread-local set.
+// Callers (e.g. parseability_probe) set this before invoking parse_sample_*
+// functions; the parser-specific dispatch reads it and calls the parser's
+// `set_trace_rules` method after construction. Thread-local because parser
+// invocations may run on dedicated worker threads (see the regex parser's
+// 64MB worker stack); per-thread state ensures the setting reaches the
+// right parser even when off-thread.
+std::thread_local! {
+    static TRACE_RULES: std::cell::RefCell<Option<std::collections::HashSet<String>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// SV-EXH-PROOF.3.3.4.b.6.2.17 — set the rule-level trace filter for parser
+/// invocations on the current thread. `None` (default) means full trace
+/// (when `--trace` is also set); `Some(set)` restricts trace output to the
+/// call-tree of the listed rules.
+pub fn set_global_trace_rules(rules: Option<std::collections::HashSet<String>>) {
+    TRACE_RULES.with(|r| *r.borrow_mut() = rules);
+}
+
+fn current_trace_rules() -> Option<std::collections::HashSet<String>> {
+    TRACE_RULES.with(|r| r.borrow().clone())
+}
 #[cfg(has_generated_regex_parser)]
 // PCRE2 conformance includes deeply nested and grammar-like recursive regexes.
 // Keep the generated parser on a larger bounded stack than Rust's default.
@@ -294,6 +317,7 @@ fn parse_with_systemverilog(sample: &str) -> bool {
 fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>) -> bool {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        parser.set_trace_rules(current_trace_rules());
     parser.set_grammar_profile(normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
@@ -308,6 +332,7 @@ fn parse_with_systemverilog_detail_profile(
 ) -> Result<(), String> {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        parser.set_trace_rules(current_trace_rules());
     parser.set_grammar_profile(normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
@@ -330,6 +355,7 @@ fn parse_with_systemverilog_detail_profile_with_library(
 ) -> Result<(), String> {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        parser.set_trace_rules(current_trace_rules());
     parser.set_grammar_profile(normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
@@ -354,6 +380,7 @@ fn parse_with_systemverilog_ast_json_profile(
 ) -> Result<JsonValue, String> {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+        parser.set_trace_rules(current_trace_rules());
     parser.set_grammar_profile(normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
