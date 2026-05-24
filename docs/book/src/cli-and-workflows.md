@@ -63,6 +63,17 @@ By default, successful `ci_workflow_local_gate` runs now delete their own scratc
 
 The same “keep the evidence, drop the disposable build cache” rule now also applies to the direct VHDL quality lane. `vhdl_stimuli_quality_gate` still isolates its adapter-backed Rust build under a gate-local `cargo_target` so nested runs do not clobber each other, but that default `rust/target/vhdl_stimuli_quality_gate/cargo_target` directory is pruned automatically when the gate exits. The retained proof surface remains `work/` plus `logs/`. Set `PGEN_VHDL_STIMULI_KEEP_CARGO_TARGET=1` only when you intentionally want to keep that gate-local cache around.
 
+## Debugging A Parser With `parseability_probe`
+
+For any work involving a parser's behavior — investigating a parse failure, identifying performance hot spots, understanding why a `@predicate` rejected a branch — `parseability_probe` is the dedicated diagnostic CLI. See the [**Debugging With `parseability_probe`**](parseability-probe-debug.md) chapter for the complete reference, covering:
+
+- the five trace verbosity levels (`none`/`low`/`medium`/`high`/`debug`) and their additivity guarantees,
+- rule-scoped tracing via `--trace-rules <list>` (100-1000× volume reduction vs full `--trace`),
+- the live per-rule call-count dashboard (`--dump-rule-call-counts [N]`) with rule-exclusion filtering,
+- the always-on `furthest_position` error diagnostic that points to the actual defect locus (not the surface failure position),
+- the self-explaining predicate trace (`🛡️ predicate 'X' PASSED/REJECTED/INAPPLICABLE branch K/N`),
+- workflow recipes for stuck parses, deep failures, and predicate-rejection mysteries.
+
 ## Working Style That Fits PGEN Best
 
 The most reliable pattern is:

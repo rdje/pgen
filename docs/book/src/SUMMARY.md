@@ -7,6 +7,7 @@
 - [Getting Started](getting-started.md)
 - [User-Facing Surfaces](user-facing-surfaces.md)
 - [CLI and Workflows](cli-and-workflows.md)
+- [Debugging With `parseability_probe`](parseability-probe-debug.md)
 - [Annotation System](annotation-system.md)
 - [The Semantic Store: Parser Memory](semantic-store.md)
 - [Embedding and Downstream Integration](embedding-and-downstream-integration.md)
