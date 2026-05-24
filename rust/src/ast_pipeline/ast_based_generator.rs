@@ -2708,6 +2708,15 @@ impl AstBasedGenerator {
                                             if spec.phase
                                                 == crate::ast_pipeline::SemanticPredicatePhase::Branch =>
                                         {
+                                            // SV-EXH-PROOF.3.3.4.b.6.2.28 —
+                                            // self-explaining predicate trace.
+                                            // HIGH = the verdict (one line per
+                                            // call site); DBG = the inputs
+                                            // (resolved arg values, the spec
+                                            // location). Each predicate that
+                                            // can affect parse outcome
+                                            // explains itself clearly per
+                                            // user-set principle (2026-05-24).
                                             let Some(resolved_spec) = parser
                                                 .try_resolve_semantic_predicate_spec_against_content(
                                                     spec,
@@ -2715,20 +2724,73 @@ impl AstBasedGenerator {
                                                     &transformed,
                                                 )?
                                             else {
+                                                if parser.trace_enabled() {
+                                                    parser.logger.log_info(
+                                                        #filename,
+                                                        parser.position as u32,
+                                                        &format!(
+                                                            "🛡️ predicate '{}' REJECTED branch {}/{} of rule '{}' — reason: at least one $reference could not be resolved (unresolved args: {:?})",
+                                                            spec.name,
+                                                            current_branch_index,
+                                                            #branch_count,
+                                                            #rule_name,
+                                                            spec.args,
+                                                        ),
+                                                    );
+                                                    parser.logger.log_debug(
+                                                        #filename,
+                                                        parser.position as u32,
+                                                        &format!(
+                                                            "   ↪ spec: {} | phase: Branch | view: {:?} | raw_content_kind: {:?} | transformed_kind: {:?}",
+                                                            parser.semantic_predicate_debug_label(spec),
+                                                            spec.view,
+                                                            std::mem::discriminant(&raw_content),
+                                                            std::mem::discriminant(&transformed),
+                                                        ),
+                                                    );
+                                                }
                                                 blocked_branch_predicate = Some(
                                                     parser.semantic_predicate_debug_label(spec),
                                                 );
                                                 branch_predicate_blocked = true;
                                                 break;
                                             };
-                                            match parser
+                                            let verdict = parser
                                                 .semantic_runtime_state
                                                 .evaluate_content_aware_predicate(
                                                     &resolved_spec,
                                                     &raw_content,
                                                     &transformed,
-                                                )
-                                            {
+                                                );
+                                            if parser.trace_enabled() {
+                                                let verdict_label = match verdict {
+                                                    Some(true) => "PASSED",
+                                                    Some(false) => "REJECTED",
+                                                    None => "INAPPLICABLE (treated as no-op)",
+                                                };
+                                                parser.logger.log_info(
+                                                    #filename,
+                                                    parser.position as u32,
+                                                    &format!(
+                                                        "🛡️ predicate '{}' {} branch {}/{} of rule '{}'",
+                                                        resolved_spec.name,
+                                                        verdict_label,
+                                                        current_branch_index,
+                                                        #branch_count,
+                                                        #rule_name,
+                                                    ),
+                                                );
+                                                parser.logger.log_debug(
+                                                    #filename,
+                                                    parser.position as u32,
+                                                    &format!(
+                                                        "   ↪ resolved spec: {} | phase: Branch | view: {:?}",
+                                                        parser.semantic_predicate_debug_label(&resolved_spec),
+                                                        resolved_spec.view,
+                                                    ),
+                                                );
+                                            }
+                                            match verdict {
                                                 Some(true) => {}
                                                 Some(false) => {
                                                     blocked_branch_predicate = Some(
