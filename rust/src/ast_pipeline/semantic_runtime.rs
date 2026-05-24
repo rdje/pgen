@@ -1488,6 +1488,31 @@ impl SemanticRuntimeState {
         let facts_being_rolled_back = (self.facts.len() - fact_len) as u64;
         self.counters.rollbacks += 1;
         self.counters.facts_rolled_back += facts_being_rolled_back;
+        // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining rollback trace.
+        // Pair with emit_fact + has_fact traces to spot C3-B style bugs
+        // where a fact emitted on the eventual-winning parse path gets
+        // wiped by a peer speculation's rollback.
+        if facts_being_rolled_back > 0 || self.scope_arena.len() > scope_arena_len {
+            crate::pgen_trace_high!(
+                "♻️ rollback_to(checkpoint fact_len={}, scope_arena_len={}) — discarding {} fact(s) + {} scope-arena node(s)",
+                fact_len,
+                scope_arena_len,
+                facts_being_rolled_back,
+                self.scope_arena.len() - scope_arena_len,
+            );
+            if crate::ast_pipeline::trace_enabled(crate::ast_pipeline::TraceLevel::Debug) {
+                for position in (fact_len..self.facts.len()).rev() {
+                    let record = &self.facts[position];
+                    crate::pgen_trace_debug!(
+                        "   ↪ discarding fact[{}] kind={} name={:?} scope_depth={}",
+                        position,
+                        record.kind,
+                        record.name,
+                        record.scope_depth,
+                    );
+                }
+            }
+        }
         for position in (fact_len..self.facts.len()).rev() {
             let record = &self.facts[position];
             self.fact_index.remove(
