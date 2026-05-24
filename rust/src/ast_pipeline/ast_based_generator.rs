@@ -2132,7 +2132,7 @@ impl AstBasedGenerator {
                 match cycle_type {
                     CycleType::Infinite => {
                         if self.trace_enabled() {
-                            self.logger.log_error(#filename, 0, &format!("💥 Infinite recursion detected in rule '{}' at position {}", #rule_name, position));
+                            self.logger.log_error(#filename, self.position as u32, &format!("💥 Infinite recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
                             message: "Infinite recursion detected",
@@ -2141,7 +2141,7 @@ impl AstBasedGenerator {
                     }
                     CycleType::LeftRecursive => {
                         if self.trace_enabled() {
-                            self.logger.log_error(#filename, 0, &format!("🔄 Left recursion detected in rule '{}' at position {}", #rule_name, position));
+                            self.logger.log_error(#filename, self.position as u32, &format!("🔄 Left recursion detected in rule '{}' at position {}", #rule_name, position));
                         }
                         return Err(ParseError::InvalidSyntax {
                             message: "Left recursion detected",
@@ -2150,7 +2150,7 @@ impl AstBasedGenerator {
                     }
                     CycleType::MutualRecursive { depth, ref rules } if depth >= #recursion_guard_max_depth => {
                         if self.trace_enabled() {
-                            self.logger.log_error(#filename, 0, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
+                            self.logger.log_error(#filename, self.position as u32, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
                         }
                         return Err(ParseError::RecursionDepthExceeded {
                             position,
@@ -2218,11 +2218,11 @@ impl AstBasedGenerator {
                             let consumed = node.span.end - start_pos;
                             if consumed > 0 {
                                 let consumed_preview = self.byte_window_lossy(start_pos, node.span.end);
-                                self.logger.log_success(#filename, 0, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')", #rule_name, start_pos, node.span.end, consumed, consumed_preview));
+                                self.logger.log_success(#filename, self.position as u32, &format!("✅ Rule '{}' successfully parsed from {} to {} (consumed {} bytes: '{}')", #rule_name, start_pos, node.span.end, consumed, consumed_preview));
                             } else {
-                                self.logger.log_warning(#filename, 0, &format!("⚠️ Rule '{}' matched with zero length at position {}", #rule_name, start_pos));
+                                self.logger.log_warning(#filename, self.position as u32, &format!("⚠️ Rule '{}' matched with zero length at position {}", #rule_name, start_pos));
                             }
-                            self.logger.log_success(#filename, 0, &format!("✅ Exiting rule '{}' successfully - advanced from {} to {}", #rule_name, start_pos, self.position));
+                            self.logger.log_success(#filename, self.position as u32, &format!("✅ Exiting rule '{}' successfully - advanced from {} to {}", #rule_name, start_pos, self.position));
                         }
                     }
                     Err(e) => {
@@ -2236,7 +2236,7 @@ impl AstBasedGenerator {
                             );
                         }
                         if self.trace_enabled() {
-                            self.logger.log_error(#filename, 0, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", #rule_name, e, self.position));
+                            self.logger.log_error(#filename, self.position as u32, &format!("❌ Exiting rule '{}' with error: {:?} - backtracked to {}", #rule_name, e, self.position));
                         }
                     }
                 }
@@ -2340,7 +2340,7 @@ impl AstBasedGenerator {
                     });
                 }
                 if parser.trace_enabled() {
-                    parser.logger.log_debug(#filename, 0, &format!(
+                    parser.logger.log_debug(#filename, parser.position as u32, &format!(
                         "👀 Rule '{}' satisfied {} at position {}",
                         #rule_name,
                         #lookahead_kind,
@@ -2364,7 +2364,7 @@ impl AstBasedGenerator {
                     });
                 }
                 if parser.trace_enabled() {
-                    parser.logger.log_debug(#filename, 0, &format!(
+                    parser.logger.log_debug(#filename, parser.position as u32, &format!(
                         "🚫 Rule '{}' satisfied {} at position {}",
                         #rule_name,
                         #lookahead_kind,
@@ -2504,7 +2504,7 @@ impl AstBasedGenerator {
                         #recover_global_budget,
                     ) {
                         if parser.trace_enabled() {
-                            parser.logger.log_warning(#filename, 0, &format!(
+                            parser.logger.log_warning(#filename, parser.position as u32, &format!(
                                 "🛟 Rule '{}' recovered from branch failure using sync=[{}] panic_until=[{}] budget(rule={}, parse={}, global={})",
                                 #rule_name,
                                 #sync_tokens_label,
@@ -2570,11 +2570,11 @@ impl AstBasedGenerator {
                             if let Some(content) = parser.try_parse(|p| {
                                 let parser = p;
                                 if parser.trace_enabled() {
-                                    parser.logger.log_info(#filename, 0, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
+                                    parser.logger.log_info(#filename, parser.position as u32, &format!("🚪 Entering branch {}/{} for rule '{}' at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                                 }
                                 #branch_logic;
                                 if parser.trace_enabled() {
-                                    parser.logger.log_info(#filename, 0, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
+                                    parser.logger.log_info(#filename, parser.position as u32, &format!("✅ Leaving branch {}/{} for rule '{}' at position {} (success)", #branch_num, #branch_count, #rule_name, parser.position));
                                 }
                                 Ok(result)
                             }) {
@@ -2710,7 +2710,7 @@ impl AstBasedGenerator {
                                     }
                                     best_content = Some(transformed);
                                 } else if branch_predicate_blocked && parser.logger_enabled {
-                                    parser.logger.log_info(#filename, 0, &format!(
+                                    parser.logger.log_info(#filename, parser.position as u32, &format!(
                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
                                         #branch_num,
                                         #branch_count,
@@ -2722,7 +2722,7 @@ impl AstBasedGenerator {
                                     ));
                                 }
                             } else if parser.trace_enabled() {
-                                parser.logger.log_info(#filename, 0, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
+                                parser.logger.log_info(#filename, parser.position as u32, &format!("❌ Branch {}/{} for rule '{}' failed at position {}", #branch_num, #branch_count, #rule_name, parser.position));
                             }
                         }
                     }
@@ -2774,7 +2774,7 @@ impl AstBasedGenerator {
                     parser.position = best_end;
                     semantic_selected_branch_index = Some(best_branch);
                     if parser.trace_enabled() {
-                        parser.logger.log_info(#filename, 0, &format!(
+                        parser.logger.log_info(#filename, parser.position as u32, &format!(
                             "🏁 Rule '{}' selected branch {}/{} consuming {} chars (priority={}, associativity={}, branch_policy={})",
                             #rule_name,
                             best_branch,
@@ -3201,7 +3201,7 @@ impl AstBasedGenerator {
             loop {
                 if iteration_count >= SAFETY_LIMIT {
                     if parser.trace_enabled() {
-                        parser.logger.log_warning(#filename, 0, &format!(
+                        parser.logger.log_warning(#filename, parser.position as u32, &format!(
                             "⚠️ SAFETY_LIMIT ({}) reached in quantifier {} at position {}",
                             SAFETY_LIMIT, #quantifier_label, parser.position
                         ));
@@ -3227,7 +3227,7 @@ impl AstBasedGenerator {
                     // that can match the empty string.
                     if current_position == last_position {
                         if parser.trace_enabled() {
-                            parser.logger.log_warning(#filename, 0, &format!(
+                            parser.logger.log_warning(#filename, parser.position as u32, &format!(
                                 "⚠️ ZERO-LENGTH MATCH in quantifier {} at position {}: breaking to prevent infinite loop",
                                 #quantifier_label, current_position
                             ));
@@ -3503,7 +3503,7 @@ impl AstBasedGenerator {
                     } else {
                         "target"
                     };
-                    self.logger.log_info(#filename, 0, &format!(
+                    self.logger.log_info(#filename, self.position as u32, &format!(
                         "🎯 SC-10 parser instrumentation: rule='{}' branch={:?} weight={} kind={} span={}..{}",
                         rule_name,
                         branch_index,
@@ -3538,7 +3538,7 @@ impl AstBasedGenerator {
                     .or_insert(0) += 1;
 
                 if self.trace_enabled() {
-                    self.logger.log_info(#filename, 0, &format!(
+                    self.logger.log_info(#filename, self.position as u32, &format!(
                         "🧭 SC-12 parser partition: rule='{}' group='{}' span={}..{}",
                         rule_name,
                         group_key,
@@ -3573,7 +3573,7 @@ impl AstBasedGenerator {
                     } else {
                         "invalid-case"
                     };
-                    self.logger.log_info(#filename, 0, &format!(
+                    self.logger.log_info(#filename, self.position as u32, &format!(
                         "⚠️ SC-11 expected-failure path: rule='{}' mode={} start={} failure={} kind={}",
                         rule_name,
                         mode,
@@ -3597,7 +3597,7 @@ impl AstBasedGenerator {
                     let used = self.recovery_counts.get(rule_name).copied().unwrap_or(0);
                     if used >= limit {
                         if self.trace_enabled() {
-                            self.logger.log_warning(#filename, 0, &format!(
+                            self.logger.log_warning(#filename, self.position as u32, &format!(
                                 "🛟 Recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
                                 used,
@@ -3610,7 +3610,7 @@ impl AstBasedGenerator {
                 if let Some(limit) = recover_parse_budget {
                     if self.recovery_parse_count >= limit {
                         if self.trace_enabled() {
-                            self.logger.log_warning(#filename, 0, &format!(
+                            self.logger.log_warning(#filename, self.position as u32, &format!(
                                 "🛟 Parse-scope recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
                                 self.recovery_parse_count,
@@ -3623,7 +3623,7 @@ impl AstBasedGenerator {
                 if let Some(limit) = recover_global_budget {
                     if self.recovery_global_count >= limit {
                         if self.trace_enabled() {
-                            self.logger.log_warning(#filename, 0, &format!(
+                            self.logger.log_warning(#filename, self.position as u32, &format!(
                                 "🛟 Global recovery budget exhausted for rule '{}': used={} limit={}",
                                 rule_name,
                                 self.recovery_global_count,
@@ -3707,7 +3707,7 @@ impl AstBasedGenerator {
                         } else {
                             "sync"
                         };
-                        self.logger.log_warning(#filename, 0, &format!(
+                        self.logger.log_warning(#filename, self.position as u32, &format!(
                             "🛟 Recovery for rule '{}': moved parser from {} to {} using {} token at {}",
                             rule_name,
                             previous,
@@ -3735,7 +3735,7 @@ impl AstBasedGenerator {
                     self.recovery_parse_count += 1;
                     self.recovery_global_count += 1;
                     if self.trace_enabled() {
-                        self.logger.log_warning(#filename, 0, &format!(
+                        self.logger.log_warning(#filename, self.position as u32, &format!(
                             "🛟 Recovery for rule '{}': no sync/panic token found, skipped to EOF ({} -> {})",
                             rule_name,
                             previous,
@@ -4775,7 +4775,7 @@ impl AstBasedGenerator {
                 let end = start + expected_bytes.len();
 
                 if self.trace_enabled() {
-                    self.logger.log_debug(#filename, 0, &format!("🔤 Attempting to match terminal '{}' at position {} (end: {})", expected, start, end));
+                    self.logger.log_debug(#filename, self.position as u32, &format!("🔤 Attempting to match terminal '{}' at position {} (end: {})", expected, start, end));
                 }
 
                 if self.bytes_match_at(start, expected_bytes) {
@@ -4788,7 +4788,7 @@ impl AstBasedGenerator {
                     self.position = end;
 
                     if self.trace_enabled() {
-                        self.logger.log_success(#filename, 0, &format!("✅ Terminal '{}' matched, advanced to position {}", expected, end));
+                        self.logger.log_success(#filename, self.position as u32, &format!("✅ Terminal '{}' matched, advanced to position {}", expected, end));
                     }
 
                     return Ok(&self.input[start..end]);
@@ -4808,7 +4808,7 @@ impl AstBasedGenerator {
                     } else {
                         "<EOF>".to_string()
                     };
-                    self.logger.log_error(#filename, 0, &format!("❌ Terminal '{}' failed at position {} - found '{}'", expected, start, found_str));
+                    self.logger.log_error(#filename, self.position as u32, &format!("❌ Terminal '{}' failed at position {} - found '{}'", expected, start, found_str));
                 }
 
                 Err(ParseError::Backtrack { position: start })
@@ -4880,7 +4880,7 @@ impl AstBasedGenerator {
                     let start = self.position;
                     self.position += end_offset;
                     if self.trace_enabled() {
-                        self.logger.log_success(#filename, 0, &format!(
+                        self.logger.log_success(#filename, self.position as u32, &format!(
                             "✅ Regex '{}' matched at position {} (len {})",
                             pattern, start, end_offset
                         ));
@@ -4898,7 +4898,7 @@ impl AstBasedGenerator {
                     } else {
                         "<EOF>".to_string()
                     };
-                    self.logger.log_error(#filename, 0, &format!("❌ Regex '{}' no match at position {} (next: '{}')", pattern, self.position, preview));
+                    self.logger.log_error(#filename, self.position as u32, &format!("❌ Regex '{}' no match at position {} (next: '{}')", pattern, self.position, preview));
                 }
 
                 Err(self.create_contextual_error(&format!(
@@ -4977,13 +4977,13 @@ impl AstBasedGenerator {
                     self.semantic_runtime_state.checkpoint();
 
                 if self.trace_enabled() {
-                    self.logger.log_debug(#filename, 0, &format!("🔄 Starting speculative parse at position {}", saved_pos));
+                    self.logger.log_debug(#filename, self.position as u32, &format!("🔄 Starting speculative parse at position {}", saved_pos));
                 }
 
                 match f(self) {
                     Ok(result) => {
                         if self.trace_enabled() {
-                            self.logger.log_success(#filename, 0, &format!("🔄 Speculative parse succeeded, advanced to position {}", self.position));
+                            self.logger.log_success(#filename, self.position as u32, &format!("🔄 Speculative parse succeeded, advanced to position {}", self.position));
                         }
                         Some(result)
                     }
@@ -4997,7 +4997,7 @@ impl AstBasedGenerator {
                             .rollback_to(saved_semantic_checkpoint);
 
                         if self.trace_enabled() {
-                            self.logger.log_warning(#filename, 0, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {}", e, saved_pos));
+                            self.logger.log_warning(#filename, self.position as u32, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {}", e, saved_pos));
                         }
 
                         None
@@ -5020,13 +5020,13 @@ impl AstBasedGenerator {
                         self.position = entry.end_pos;
 
                         if self.trace_enabled() {
-                            self.logger.log_info(#filename, 0, &format!("💾 Memo hit for rule {} at position {} - reusing cached result", rule_id, self.position));
+                            self.logger.log_info(#filename, self.position as u32, &format!("💾 Memo hit for rule {} at position {} - reusing cached result", rule_id, self.position));
                         }
 
                         return Ok((node.clone(), entry.raw_semantic_content.clone()));
                     } else {
                         if self.trace_enabled() {
-                            self.logger.log_warning(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - cached failure", rule_id, self.position));
+                            self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memo miss for rule {} at position {} - cached failure", rule_id, self.position));
                         }
                         self.position = entry.end_pos;
                         return Err(ParseError::Backtrack {
@@ -5036,7 +5036,7 @@ impl AstBasedGenerator {
                 }
 
                 if self.trace_enabled() {
-                    self.logger.log_debug(#filename, 0, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
+                    self.logger.log_debug(#filename, self.position as u32, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
                 }
 
                 let start_pos = key.1;
@@ -5052,7 +5052,7 @@ impl AstBasedGenerator {
                         },
                     );
                     if self.trace_enabled() {
-                        self.logger.log_info(#filename, 0, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
+                        self.logger.log_info(#filename, self.position as u32, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
                     }
                 } else {
                     self.memo.insert(
@@ -5064,7 +5064,7 @@ impl AstBasedGenerator {
                         },
                     );
                     if self.trace_enabled() {
-                        self.logger.log_warning(#filename, 0, &format!("💾 Memoized failed result for rule {} at position {}", rule_id, self.position));
+                        self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memoized failed result for rule {} at position {}", rule_id, self.position));
                     }
                 }
 

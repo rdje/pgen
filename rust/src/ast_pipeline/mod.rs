@@ -117,17 +117,25 @@ fn trace_function_cache() -> &'static Mutex<HashMap<String, String>> {
 }
 
 fn is_internal_trace_symbol(symbol: &str) -> bool {
+    // SV-EXH-PROOF.3.3.4.b.6.2.20: also match the angle-bracketed
+    // fully-qualified form `<std::backtrace::Backtrace>::create` that the
+    // backtrace formatter emits — the prior plain-prefix arms below missed
+    // it, so the resolver would stop at Backtrace::create and attribute
+    // every trace line to it instead of the real generated-parser frame.
+    let strip_angle = |s: &str| -> String { s.replace('<', "").replace('>', "") };
+    let bare = strip_angle(symbol);
     symbol.contains("ast_pipeline::trace_log")
         || symbol.contains("ast_pipeline::resolve_trace_function_name")
         || symbol.contains("ast_pipeline::trace_function_name_from_backtrace")
         || symbol.contains("ast_pipeline::is_internal_trace_symbol")
         || symbol.contains("pgen_trace")
         || symbol.contains("VerbosityLogger::emit")
-        || symbol.contains("std::backtrace_rs::backtrace")
-        || symbol.contains("std::backtrace::Backtrace::")
-        || symbol.starts_with("std::")
-        || symbol.starts_with("core::")
-        || symbol.starts_with("alloc::")
+        || symbol.contains("Logger::log_")
+        || bare.contains("std::backtrace_rs::backtrace")
+        || bare.contains("std::backtrace::Backtrace")
+        || bare.starts_with("std::")
+        || bare.starts_with("core::")
+        || bare.starts_with("alloc::")
 }
 
 fn normalize_trace_symbol(symbol: &str) -> String {
