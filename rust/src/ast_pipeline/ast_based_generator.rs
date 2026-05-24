@@ -532,6 +532,19 @@ impl AstBasedGenerator {
                 // Identifies the rules dominating a stuck/slow parse by direct
                 // count, replacing samply for this use case.
                 rule_call_counts: std::sync::Arc<Vec<std::sync::atomic::AtomicU64>>,
+                // SV-EXH-PROOF.3.3.4.b.6.2.25 — FURTHEST-POSITION TRACKING.
+                // Monotone max of `self.position` across the entire parse,
+                // updated once per rule entry. NEVER restored on speculation
+                // backtrack (the whole point: capture the deepest byte any
+                // branch reached even if it later failed and the parser
+                // rewound). Used on parse failure to report the actual
+                // deepest-touched byte alongside the surface `position`
+                // (the outermost rule's start) — pinpoints the real
+                // defect locus instead of the misleading outermost-start.
+                // Cost: one `max` per rule entry (~1-2ns, no atomics needed,
+                // no save/restore). Parser-agnostic primitive; benefits
+                // every grammar pgen builds.
+                furthest_position: usize,
             }
         }
     }
@@ -829,7 +842,21 @@ impl AstBasedGenerator {
                     rule_call_counts: std::sync::Arc::new(
                         (0..Self::RULE_COUNT).map(|_| std::sync::atomic::AtomicU64::new(0)).collect()
                     ),
+                    // SV-EXH-PROOF.3.3.4.b.6.2.25 — furthest-position init.
+                    furthest_position: 0,
                 }
+            }
+
+            /// SV-EXH-PROOF.3.3.4.b.6.2.25 — public accessor for the deepest
+            /// byte position any branch reached during the parse, regardless
+            /// of subsequent backtracking. On a successful parse, this equals
+            /// `self.position` at completion. On a failed parse, this is the
+            /// byte where the actual defective construct lives — generally
+            /// FAR deeper than the surface `position` (which reports the
+            /// outermost failing rule's start). Used by the caller (e.g.
+            /// parseability_probe) to report a meaningful error location.
+            pub fn furthest_position(&self) -> usize {
+                self.furthest_position
             }
 
             /// SV-EXH-PROOF.3.3.4.b.6.2.22 — accessor for the per-rule call
@@ -2238,6 +2265,18 @@ impl AstBasedGenerator {
                 // codegen-emitted RuleId for THIS rule) as the array index.
                 self.rule_call_counts[Self::#rule_const as usize]
                     .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+                // SV-EXH-PROOF.3.3.4.b.6.2.25 — FURTHEST-POSITION TRACKING.
+                // Update the monotone max of position. Single max + assignment
+                // on rule entry (~1-2ns). Captures the deepest byte any
+                // branch reaches, even if that branch later fails and is
+                // backtracked — the whole point is to remember "we got this
+                // far" so a failure report can pinpoint the real defect locus
+                // instead of just the outermost-rule-start. NEVER restored on
+                // speculation; the field is conceptually monotone.
+                if self.position > self.furthest_position {
+                    self.furthest_position = self.position;
+                }
 
                 // SV-EXH-PROOF.3.3.4.b.6.2.17 — rule-level targeted trace push.
                 // If `--trace-rules <list>` includes this rule name, enter its

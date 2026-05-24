@@ -398,10 +398,39 @@ fn parse_with_systemverilog_detail_profile(
         grammar_profile,
     ));
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    parser
-        .parse_full_systemverilog_file()
-        .map(|_| ())
-        .map_err(|err| err.to_string())
+    let result = parser.parse_full_systemverilog_file().map(|_| ());
+    // SV-EXH-PROOF.3.3.4.b.6.2.25 — on failure, augment the error with the
+    // furthest byte the parser reached on any branch (even backtracked
+    // branches). The surface `position` in the error message is the
+    // outermost failing rule's start — often megabytes shallower than
+    // the actual defective construct. furthest_position pinpoints the
+    // real defect locus in one diagnostic run.
+    result.map_err(|err| {
+        let furthest = parser.furthest_position();
+        let err_str = err.to_string();
+        let surface = extract_position_from_message(&err_str);
+        format!(
+            "{} [furthest_position={}, +{} bytes deeper than surface position]",
+            err_str,
+            furthest,
+            furthest.saturating_sub(surface),
+        )
+    })
+}
+
+/// SV-EXH-PROOF.3.3.4.b.6.2.25 — extract the surface position from a
+/// ParseError::Display string of the form
+/// "... at position N" or "Parser did not consume full input at position N".
+/// Best-effort: returns 0 if no `at position N` segment found. Used only
+/// for the "+M bytes deeper" delta in the augmented error message.
+fn extract_position_from_message(msg: &str) -> usize {
+    msg.rsplit_once("at position ")
+        .and_then(|(_, tail)| {
+            tail.split(|c: char| !c.is_ascii_digit())
+                .next()
+                .and_then(|s| s.parse::<usize>().ok())
+        })
+        .unwrap_or(0)
 }
 
 /// `SV-EXH-PROOF.3.3.4.a` MVP-0: SV detail variant honoring per-call library
