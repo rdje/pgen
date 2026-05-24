@@ -4201,7 +4201,7 @@ ps_or_hierarchical_sequence_identifier := scoped_sequence_identifier        -> {
 @branch_policy: priority_first
 scoped_or_hierarchical_tf_identifier := class_scope tf_identifier                  -> {kind: "class_scope", scope: $1, name: $2}
                                       # .b.6.2.2: same $-ref defect as non_typedef_package_scope — drill via the branch's `scope: $1` (= package_scope = {kind, name: <package_identifier> = {body: scalar}}).
-                                      | @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.name.body, declaration_family, typedef], phase: branch }
+                                      | @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.name.body, declaration_family, typedef], phase: branch, view: shaped }
                                         package_scope tf_identifier                -> {kind: "package_scope", scope: $1, name: $2}
                                       | hierarchical_tf_identifier                 -> {kind: "hierarchical", body: $1}
 
