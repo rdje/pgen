@@ -1057,7 +1057,7 @@ known_unscoped_class_scope_type_parameter_identifier := type_identifier
 # uvm_pkg blocker at lines 7651+ — uvm declares many method bodies
 # externally via class::method qualifier). Adding `lacks_class` enforces
 # the rule's true semantic.
-@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, class], phase: post }
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, class], phase: post, view: shaped }
 scoped_class_scope_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 # SV-EXH-PROOF.3.3.4.b.6.2.12 — `class_scope_type` `*` loop guard
@@ -1630,8 +1630,8 @@ known_unscoped_data_type_identifier := checked_type_identifier packed_dimension*
 scoped_data_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
                             -> {scope: $1, type: $2, dims: $3}
 
-@predicate: { name: has_fact, args: [type_name, $head.body], phase: post }
-@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $head.body, declaration_family, typedef], phase: post }
+@predicate: { name: has_fact, args: [type_name, $head.body], phase: post, view: shaped }
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $head.body, declaration_family, typedef], phase: post, view: shaped }
 known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                                 -> {head: $1, params: $2, scope_chain: $3}
 
@@ -6151,7 +6151,7 @@ known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier
 # class-can-scope prefix in `scoped_class_scope_identifier`,
 # `scoped_class_type_identifier`, etc. Parser-AGNOSTIC at level 1/2 of the
 # no-workarounds hierarchy (existing primitives only).
-@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, class], phase: post }
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, class], phase: post, view: shaped }
 scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
