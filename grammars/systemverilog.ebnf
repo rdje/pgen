@@ -1635,7 +1635,6 @@ scoped_data_type_identifier := ( class_scope | non_typedef_package_scope ) type_
 known_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                                 -> {head: $1, params: $2, scope_chain: $3}
 
-@predicate: { name: has_fact, args: [type_name, $head.body], phase: post, view: shaped }
 provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                                       -> {head: $1, params: $2, scope_chain: $3}
 
