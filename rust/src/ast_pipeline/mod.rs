@@ -3618,6 +3618,8 @@ mod tests {
 
 pub mod annotation_validator;
 pub mod ast_based_generator;
+// SV-EXH-PROOF.3.3.4.b.6.2.22 — live per-rule call-counter dashboard.
+pub mod call_count_dashboard;
 pub mod ast_code_generator;
 pub mod ast_generator_direct;
 pub mod ast_return_transform;

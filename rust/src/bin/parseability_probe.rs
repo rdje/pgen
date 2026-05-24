@@ -8,7 +8,7 @@ use pgen::ast_pipeline::{
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--lib-in DIR     : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR    : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules    : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation."
+    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots."
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -64,6 +64,19 @@ struct GlobalOptions {
     /// the call-tree of these rules. `None` (default) = parser-level
     /// full trace (the prior `--trace` behavior).
     trace_rules: Option<Vec<String>>,
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.22` — live per-rule call-count
+    /// dashboard. `None` = disabled (default). `Some(N)` enables the
+    /// dashboard showing the top-N rules by call count, refreshing
+    /// every 250ms. N is user-controlled because SV has ~1500 rules
+    /// and the right top-N varies by investigation (top-10 for quick
+    /// triage, top-50 for fine-grained pattern hunting).
+    dump_rule_call_counts: Option<usize>,
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.22` — exclusion list for the dashboard.
+    /// Filter OUT these rules before computing the top-N so user-
+    /// irrelevant always-dominant rules (e.g. `trivia` for whitespace
+    /// handling) don't steal display slots. Empty (default) = no
+    /// filtering.
+    dump_rule_call_counts_exclude: Option<Vec<String>>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -207,6 +220,61 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             idx += 2;
             continue;
         }
+        // SV-EXH-PROOF.3.3.4.b.6.2.22 — live per-rule call-count dashboard.
+        // Bare form `--dump-rule-call-counts` defaults to top-20. With a
+        // following numeric arg `--dump-rule-call-counts 50`, that becomes
+        // top-N. SV has ~1500 rules — N matters because the right slice
+        // varies by investigation (top-10 for triage, top-50 for fine
+        // pattern hunting).
+        // SV-EXH-PROOF.3.3.4.b.6.2.22 — dashboard exclusion list. Must come
+        // before --dump-rule-call-counts in the prefix-match below, otherwise
+        // --dump-rule-call-counts-exclude would match the shorter prefix.
+        if args[idx] == "--dump-rule-call-counts-exclude" {
+            if options.dump_rule_call_counts_exclude.is_some() {
+                bail!("--dump-rule-call-counts-exclude cannot be specified multiple times");
+            }
+            let value = args.get(idx + 1).ok_or_else(|| {
+                anyhow::anyhow!("--dump-rule-call-counts-exclude requires a comma-separated rule-name list")
+            })?;
+            let rules: Vec<String> = value
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            if rules.is_empty() {
+                bail!("--dump-rule-call-counts-exclude list cannot be empty");
+            }
+            options.dump_rule_call_counts_exclude = Some(rules);
+            idx += 2;
+            continue;
+        }
+        if args[idx] == "--dump-rule-call-counts" {
+            if options.dump_rule_call_counts.is_some() {
+                bail!("--dump-rule-call-counts cannot be specified multiple times");
+            }
+            let top_n: usize = match args.get(idx + 1) {
+                Some(value) if !value.starts_with("--") => {
+                    match value.parse::<usize>() {
+                        Ok(n) if n >= 1 => {
+                            // Consumed the numeric arg.
+                            options.dump_rule_call_counts = Some(n);
+                            idx += 2;
+                            continue;
+                        }
+                        Ok(_) => bail!("--dump-rule-call-counts N must be >= 1"),
+                        Err(_) => {
+                            // Non-numeric next-token: treat as a separate
+                            // arg and use the default.
+                            20
+                        }
+                    }
+                }
+                _ => 20,
+            };
+            options.dump_rule_call_counts = Some(top_n);
+            idx += 1;
+            continue;
+        }
         remaining.push(args[idx].clone());
         idx += 1;
     }
@@ -222,6 +290,18 @@ fn configure_runtime_trace(options: &GlobalOptions) -> Result<()> {
     // thread apply it via `set_trace_rules` after construction.
     let rules = options.trace_rules.as_ref().map(|v| v.iter().cloned().collect());
     pgen::parser_registry::set_global_trace_rules(rules);
+    // SV-EXH-PROOF.3.3.4.b.6.2.22 — propagate the per-rule call-count
+    // dashboard top-N selector. None = no dashboard; Some(N) = show
+    // top-N. The registry's parse-with-systemverilog-* helpers spawn
+    // the dashboard right after parser construction and tear it down
+    // when the parser is dropped at parse return.
+    pgen::parser_registry::set_global_dump_rule_call_counts(options.dump_rule_call_counts);
+    // SV-EXH-PROOF.3.3.4.b.6.2.22 — propagate the dashboard exclusion list.
+    let exclude = options
+        .dump_rule_call_counts_exclude
+        .as_ref()
+        .map(|v| v.iter().cloned().collect());
+    pgen::parser_registry::set_global_dump_rule_call_counts_exclude(exclude);
     Ok(())
 }
 

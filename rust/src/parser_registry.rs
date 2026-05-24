@@ -34,6 +34,18 @@ use serde_json::Value as JsonValue;
 // right parser even when off-thread.
 std::thread_local! {
     static TRACE_RULES: std::cell::RefCell<Option<std::collections::HashSet<String>>> = const { std::cell::RefCell::new(None) };
+    // SV-EXH-PROOF.3.3.4.b.6.2.22 — enable the live per-rule call-count
+    // dashboard for parser invocations on the current thread. None
+    // (default) = no dashboard. Some(N) = show the top-N rules,
+    // refreshing every 250ms. SV has ~1500 rules — N is user-controlled
+    // because the meaningful slice depends on the investigation.
+    static DUMP_RULE_CALL_COUNTS_TOP_N: std::cell::Cell<Option<usize>> = const { std::cell::Cell::new(None) };
+    // SV-EXH-PROOF.3.3.4.b.6.2.22 — exclusion list for the dashboard.
+    // Rules in this set are filtered out before the top-N selection,
+    // so user-irrelevant always-dominant rules (e.g. `trivia` for
+    // whitespace handling) don't steal display slots from the rules
+    // the user actually wants to see. None = no filtering.
+    static DUMP_RULE_CALL_COUNTS_EXCLUDE: std::cell::RefCell<Option<std::collections::HashSet<String>>> = const { std::cell::RefCell::new(None) };
 }
 
 /// SV-EXH-PROOF.3.3.4.b.6.2.17 — set the rule-level trace filter for parser
@@ -46,6 +58,34 @@ pub fn set_global_trace_rules(rules: Option<std::collections::HashSet<String>>) 
 
 fn current_trace_rules() -> Option<std::collections::HashSet<String>> {
     TRACE_RULES.with(|r| r.borrow().clone())
+}
+
+/// SV-EXH-PROOF.3.3.4.b.6.2.22 — enable the live per-rule call-count
+/// dashboard for parser invocations on the current thread. `None`
+/// disables it; `Some(N)` enables it showing the top-N rules,
+/// refreshed every 250ms. N is user-controlled (SV has ~1500 rules,
+/// the right top-N depends on investigation).
+pub fn set_global_dump_rule_call_counts(top_n: Option<usize>) {
+    DUMP_RULE_CALL_COUNTS_TOP_N.with(|c| c.set(top_n));
+}
+
+fn current_dump_rule_call_counts_top_n() -> Option<usize> {
+    DUMP_RULE_CALL_COUNTS_TOP_N.with(|c| c.get())
+}
+
+/// SV-EXH-PROOF.3.3.4.b.6.2.22 — set the dashboard exclusion list for
+/// parser invocations on the current thread. `None` = no filtering;
+/// `Some(set)` = filter these rules out before computing the top-N.
+/// Used to hide always-dominant noise like `trivia` so the
+/// diagnostically interesting rules win display slots.
+pub fn set_global_dump_rule_call_counts_exclude(
+    rules: Option<std::collections::HashSet<String>>,
+) {
+    DUMP_RULE_CALL_COUNTS_EXCLUDE.with(|c| *c.borrow_mut() = rules);
+}
+
+fn current_dump_rule_call_counts_exclude() -> std::collections::HashSet<String> {
+    DUMP_RULE_CALL_COUNTS_EXCLUDE.with(|c| c.borrow().clone().unwrap_or_default())
 }
 #[cfg(has_generated_regex_parser)]
 // PCRE2 conformance includes deeply nested and grammar-like recursive regexes.
@@ -313,6 +353,25 @@ fn parse_with_systemverilog(sample: &str) -> bool {
     parse_with_systemverilog_profile(sample, None)
 }
 
+/// SV-EXH-PROOF.3.3.4.b.6.2.22 — helper: spawn the dashboard if the
+/// thread-local flag is set, returning an RAII handle that the caller
+/// holds for the parse duration. Drop tears down the dashboard thread
+/// and restores the cursor. None when the flag is unset (the common
+/// case; zero overhead).
+#[cfg(has_generated_systemverilog_parser)]
+fn maybe_spawn_call_count_dashboard(
+    parser: &SystemverilogParser<'_>,
+) -> Option<crate::ast_pipeline::call_count_dashboard::CallCountDashboard> {
+    let top_n = current_dump_rule_call_counts_top_n()?;
+    Some(crate::ast_pipeline::call_count_dashboard::CallCountDashboard::spawn(
+        parser.rule_call_counts(),
+        SystemverilogParser::rule_names(),
+        current_dump_rule_call_counts_exclude(),
+        top_n,
+        250, // refresh interval in ms
+    ))
+}
+
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>) -> bool {
     let mut parser =
@@ -322,6 +381,7 @@ fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>)
         "systemverilog",
         grammar_profile,
     ));
+    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     parser.parse_full_systemverilog_file().is_ok()
 }
 
@@ -337,6 +397,7 @@ fn parse_with_systemverilog_detail_profile(
         "systemverilog",
         grammar_profile,
     ));
+    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     parser
         .parse_full_systemverilog_file()
         .map(|_| ())
@@ -362,6 +423,7 @@ fn parse_with_systemverilog_detail_profile_with_library(
     ));
     parser.set_library_in_dir(library_options.in_dir.clone());
     parser.set_library_out_dir(library_options.out_dir.clone());
+    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     parser
         .parse_full_systemverilog_file()
         .map(|_| ())
@@ -385,6 +447,7 @@ fn parse_with_systemverilog_ast_json_profile(
         "systemverilog",
         grammar_profile,
     ));
+    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     let parsed = parser
         .parse_full_systemverilog_file()
         .map_err(|err| err.to_string())?;

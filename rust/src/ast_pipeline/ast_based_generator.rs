@@ -523,6 +523,15 @@ impl AstBasedGenerator {
                 // `--trace` is passed, no trace otherwise).
                 trace_rules: Option<std::collections::HashSet<String>>,
                 trace_active_depth: u32,
+                // SV-EXH-PROOF.3.3.4.b.6.2.22 — PER-RULE CALL COUNTER.
+                // Always-on Vec<AtomicU64> indexed by rule_id; incremented at
+                // every rule entry with Ordering::Relaxed (lock-free, ~1ns).
+                // Shared via Arc with the optional dashboard thread spawned by
+                // the probe when --dump-rule-call-counts is set. Parser-agnostic
+                // diagnostic primitive; benefits every grammar pgen builds.
+                // Identifies the rules dominating a stuck/slow parse by direct
+                // count, replacing samply for this use case.
+                rule_call_counts: std::sync::Arc<Vec<std::sync::atomic::AtomicU64>>,
             }
         }
     }
@@ -610,8 +619,29 @@ impl AstBasedGenerator {
             })
             .collect();
 
+        // SV-EXH-PROOF.3.3.4.b.6.2.22 — rule-count + name table for the
+        // per-rule call counter dashboard. RULE_COUNT sizes the AtomicU64
+        // vector; RULE_NAMES maps rule_id -> &'static str for the live
+        // top-N display. Both are emitted into the same impl block as the
+        // RULE_<NAME> constants so they share the same scoping; pub
+        // accessor methods further down expose them to the dashboard
+        // (which lives in parseability_probe, not the parser).
+        let rule_count = rule_order.len();
+        let rule_name_literals: Vec<TokenStream> = rule_order
+            .iter()
+            .map(|name| {
+                let lit = proc_macro2::Literal::string(name);
+                quote! { #lit }
+            })
+            .collect();
+
         quote! {
             #(#constants)*
+            const RULE_COUNT: usize = #rule_count;
+            // SV-EXH-PROOF.3.3.4.b.6.2.22 — explicit `'static` lifetime
+            // required for constants holding references inside an
+            // `impl` block (E0491 otherwise).
+            const RULE_NAMES: &'static [&'static str] = &[ #(#rule_name_literals),* ];
         }
     }
 
@@ -790,7 +820,31 @@ impl AstBasedGenerator {
                     logger_enabled,
                     trace_rules: None,
                     trace_active_depth: 0,
+                    // SV-EXH-PROOF.3.3.4.b.6.2.22 — per-rule call counter init.
+                    // Sized to RULE_COUNT (codegen-emitted constant); each
+                    // cell starts at 0 and gets fetch_add(1, Relaxed)'d on
+                    // every entry to its rule. Wrapped in Arc so the
+                    // dashboard thread spawned by the probe can read
+                    // concurrently without coordination.
+                    rule_call_counts: std::sync::Arc::new(
+                        (0..Self::RULE_COUNT).map(|_| std::sync::atomic::AtomicU64::new(0)).collect()
+                    ),
                 }
+            }
+
+            /// SV-EXH-PROOF.3.3.4.b.6.2.22 — accessor for the per-rule call
+            /// counter array. Returns an Arc clone so the dashboard thread
+            /// (spawned by the probe when --dump-rule-call-counts is set)
+            /// can poll the live counters without locking. Each index is the
+            /// rule's RuleId; RULE_NAMES gives the corresponding name.
+            pub fn rule_call_counts(&self) -> std::sync::Arc<Vec<std::sync::atomic::AtomicU64>> {
+                self.rule_call_counts.clone()
+            }
+
+            /// SV-EXH-PROOF.3.3.4.b.6.2.22 — accessor for the rule-name table.
+            /// Same length as `rule_call_counts()`; same indexing.
+            pub fn rule_names() -> &'static [&'static str] {
+                Self::RULE_NAMES
             }
 
             /// SV-EXH-PROOF.3.3.4.b.6.2.17 — opt in to RULE-LEVEL TARGETED TRACE.
@@ -2175,6 +2229,15 @@ impl AstBasedGenerator {
                 #profile_guard
 
                 self.recursion_guard.enter(#rule_name, position);
+
+                // SV-EXH-PROOF.3.3.4.b.6.2.22 — PER-RULE CALL COUNTER.
+                // Single Relaxed atomic add on rule entry (~1ns; lock-free).
+                // Always-on so the dashboard can be enabled at any point
+                // without rebuild/reconfigure; the cost is negligible vs the
+                // rest of the rule body. Uses Self::#rule_const (the
+                // codegen-emitted RuleId for THIS rule) as the array index.
+                self.rule_call_counts[Self::#rule_const as usize]
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
                 // SV-EXH-PROOF.3.3.4.b.6.2.17 — rule-level targeted trace push.
                 // If `--trace-rules <list>` includes this rule name, enter its
