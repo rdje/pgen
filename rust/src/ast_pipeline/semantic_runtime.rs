@@ -1543,6 +1543,15 @@ impl SemanticRuntimeState {
         let parent = Some(self.current_scope_id());
         let depth_when_opened = self.active_chain.len();
         let new_id = ScopeId(self.scope_arena.len() as u32);
+        // SV-EXH-PROOF.3.3.4.b.6.2.28 — self-explaining scope-event trace.
+        crate::pgen_trace_high!(
+            "🔓 @open_scope kind={:?} name={:?} new_id={:?} parent={:?} new_depth={}",
+            spec.kind,
+            spec.name,
+            new_id,
+            parent,
+            depth_when_opened + 1,
+        );
         let node = ScopeNode {
             id: new_id,
             parent,
@@ -1562,6 +1571,10 @@ impl SemanticRuntimeState {
 
     pub fn close_scope(&mut self, spec: &SemanticCloseScopeSpec) -> bool {
         if self.scopes.len() <= 1 {
+            // SV-EXH-PROOF.3.3.4.b.6.2.28 — close attempt on root scope.
+            crate::pgen_trace_high!(
+                "🔒 @close_scope REJECTED — would underflow root scope (current depth=0)"
+            );
             return false;
         }
         if spec.matches(
@@ -1572,15 +1585,29 @@ impl SemanticRuntimeState {
             // `.3.3.4.b.5.1.3`: pop the active chain AND mark the arena
             // node closed (it stays in the arena, queryable via
             // `scope_arena()` / `scope_children()`).
-            if let Some(popped_id) = self.active_chain.pop() {
+            let popped_id = self.active_chain.pop();
+            let popped_frame = self.scopes.pop();
+            // SV-EXH-PROOF.3.3.4.b.6.2.28 — successful scope close.
+            crate::pgen_trace_high!(
+                "🔒 @close_scope OK id={:?} frame={:?} new_depth={}",
+                popped_id,
+                popped_frame.as_ref().map(|f| (&f.kind, &f.name)),
+                self.scopes.len() - 1,
+            );
+            if let Some(popped_id) = popped_id {
                 if let Some(node) = self.scope_arena.get_mut(popped_id.index()) {
                     node.closed = true;
                 }
             }
-            self.scopes.pop();
             self.counters.scopes_closed += 1;
             true
         } else {
+            // SV-EXH-PROOF.3.3.4.b.6.2.28 — close mismatch.
+            crate::pgen_trace_high!(
+                "🔒 @close_scope MISMATCH spec={:?} current_frame={:?}",
+                spec,
+                self.scopes.last().map(|f| (&f.kind, &f.name)),
+            );
             false
         }
     }
@@ -1591,6 +1618,29 @@ impl SemanticRuntimeState {
         let position = self.facts.len();
         // `.3.3.4.b.5.1.1`: mirror the insertion into the secondary index.
         self.fact_index.insert(&fact.kind, scope_depth, &fact.name, position);
+        // SV-EXH-PROOF.3.3.4.b.6.2.28 — self-explaining fact-emission trace.
+        // Logged at HIGH (the verdict-level summary) so users can SEE which
+        // facts entered the store. DBG additionally shows full attributes.
+        // Per user 2026-05-24: "Any semantic annotations that can impact
+        // the outcome of the parsing shall explain themselves clearly
+        // about the reason they pass or fail." emit_fact is the producer
+        // side — without seeing emissions, predicate-fails can't be
+        // distinguished from "fact was never emitted" vs "fact emitted
+        // but predicate query missed it."
+        crate::pgen_trace_high!(
+            "📥 @emit_fact kind={} name={:?} scope_depth={} scope_id={:?} attrs={}",
+            fact.kind,
+            fact.name,
+            scope_depth,
+            scope_id,
+            fact.attributes.len(),
+        );
+        if !fact.attributes.is_empty() {
+            crate::pgen_trace_debug!(
+                "   ↪ attrs (full): {:?}",
+                fact.attributes,
+            );
+        }
         self.facts.push(SemanticFactRecord {
             kind: fact.kind,
             name: fact.name,
@@ -1691,7 +1741,28 @@ impl SemanticRuntimeState {
                 let expected_kind = scalar_text(predicate.args.first()?)?;
                 let expected_name =
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
-                Some(self.fact_index.any_with_name(expected_kind, &expected_name))
+                let result = self.fact_index.any_with_name(expected_kind, &expected_name);
+                // SV-EXH-PROOF.3.3.4.b.6.2.28 — self-explaining fact-query trace.
+                // HIGH = the query + verdict; DBG = additionally lists the
+                // facts found (or the count of all facts of that kind, when
+                // the query was negative — to help diagnose "fact never
+                // emitted" vs "fact emitted with wrong name").
+                crate::pgen_trace_high!(
+                    "🔍 has_fact(kind={}, name={:?}) → {}",
+                    expected_kind,
+                    expected_name,
+                    result,
+                );
+                if !result && crate::ast_pipeline::trace_enabled(crate::ast_pipeline::TraceLevel::Debug) {
+                    let total_of_kind = self.fact_index.count_for_kind(expected_kind);
+                    crate::pgen_trace_debug!(
+                        "   ↪ NEGATIVE: {} facts of kind '{}' exist (none matched name {:?})",
+                        total_of_kind,
+                        expected_kind,
+                        expected_name,
+                    );
+                }
+                Some(result)
             }
             // `.3.3.4.b.5.1.1`: index-backed; complement of has_fact.
             "lacks_fact" => {
@@ -1759,17 +1830,35 @@ impl SemanticRuntimeState {
                     SemanticRuntimeValue::from_semantic_value(predicate.args.get(1)?)?;
                 let expected_key = scalar_text(predicate.args.get(2)?)?;
                 let expected_value = predicate.args.get(3)?;
-                Some(
-                    !self
-                        .fact_index
-                        .positions_for_name(expected_kind, &expected_name)
-                        .any(|position| {
-                            self.facts[position].attributes.iter().any(|property| {
-                                property.key.eq_ignore_ascii_case(expected_key)
-                                    && semantic_values_match(&property.value, expected_value)
-                            })
-                        }),
-                )
+                let any_match = self
+                    .fact_index
+                    .positions_for_name(expected_kind, &expected_name)
+                    .any(|position| {
+                        self.facts[position].attributes.iter().any(|property| {
+                            property.key.eq_ignore_ascii_case(expected_key)
+                                && semantic_values_match(&property.value, expected_value)
+                        })
+                    });
+                let result = !any_match;
+                // SV-EXH-PROOF.3.3.4.b.6.2.28 — self-explaining fact-query trace.
+                crate::pgen_trace_high!(
+                    "🔍 lacks_fact_attribute_equals(kind={}, name={:?}, key={}, value={:?}) → {}",
+                    expected_kind,
+                    expected_name,
+                    expected_key,
+                    expected_value,
+                    result,
+                );
+                if !result && crate::ast_pipeline::trace_enabled(crate::ast_pipeline::TraceLevel::Debug) {
+                    crate::pgen_trace_debug!(
+                        "   ↪ NEGATIVE: at least one fact (kind={}, name={:?}) has attribute {}={:?}",
+                        expected_kind,
+                        expected_name,
+                        expected_key,
+                        expected_value,
+                    );
+                }
+                Some(result)
             }
             "scope_depth_at_least" => {
                 let minimum_depth = scalar_text(predicate.args.first()?)?

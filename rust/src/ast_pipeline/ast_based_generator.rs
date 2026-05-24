@@ -2731,7 +2731,7 @@ impl AstBasedGenerator {
                                                         &format!(
                                                             "🛡️ predicate '{}' REJECTED branch {}/{} of rule '{}' — reason: at least one $reference could not be resolved (unresolved args: {:?})",
                                                             spec.name,
-                                                            current_branch_index,
+                                                            current_branch_index + 1,
                                                             #branch_count,
                                                             #rule_name,
                                                             spec.args,
@@ -2775,7 +2775,7 @@ impl AstBasedGenerator {
                                                         "🛡️ predicate '{}' {} branch {}/{} of rule '{}'",
                                                         resolved_spec.name,
                                                         verdict_label,
-                                                        current_branch_index,
+                                                        current_branch_index + 1,
                                                         #branch_count,
                                                         #rule_name,
                                                     ),
