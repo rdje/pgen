@@ -3662,7 +3662,7 @@ pub use semantic_runtime::{
     ScopeId, ScopeNode, SemanticCloseScopeSpec, SemanticFactRecord, SemanticFactSpec,
     SemanticLibraryExportSpec, SemanticLibraryImportSpec, SemanticPredicateContentView,
     SemanticPredicatePhase, SemanticPredicateSpec, SemanticRuntimeCheckpoint,
-    SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeTransaction,
+    SemanticRuntimeDelta, SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeTransaction,
     SemanticRuntimeValue, SemanticScopeFrame, SemanticScopeKind, SemanticScopeSpec,
     SemanticStoreCounters, compile_rule_semantic_runtime_directives,
     compile_semantic_runtime_annotations, parse_semantic_runtime_directive,

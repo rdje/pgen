@@ -927,6 +927,46 @@ pub struct SemanticRuntimeCheckpoint {
     active_chain_snapshot: Vec<ScopeId>,
 }
 
+/// `SV-EXH-PROOF.3.3.4.b.6.2.33` (C3-B fix): the captured semantic effects
+/// of a parse branch. Produced by `extract_delta_since(&checkpoint)`;
+/// consumed by `apply_delta(delta)`. The pair lets a multi-branch
+/// tournament try each branch, capture only the WINNER'S effects, and
+/// replay them — eliminating the "loser-successful branch emissions
+/// accumulate in committed state" defect (C3-B) by construction.
+#[derive(Debug, Clone)]
+pub struct SemanticRuntimeDelta {
+    /// Facts emitted during the transaction (records appended past the
+    /// checkpoint's fact_len position).
+    new_facts: Vec<SemanticFactRecord>,
+    /// Scope arena nodes opened during the transaction (entries
+    /// appended past the checkpoint's scope_arena_len index). Each
+    /// preserves its final `closed` flag, so a scope opened-and-closed
+    /// within the branch reapplies correctly.
+    new_scope_nodes: Vec<ScopeNode>,
+    /// Pre-existing scope ids (allocated before the checkpoint) that
+    /// the transaction CLOSED. On apply, these get `closed = true`
+    /// marked on their existing arena entries.
+    closed_scope_ids: Vec<ScopeId>,
+    /// The active_chain at end of transaction (i.e., the scope path
+    /// the branch left open).
+    final_active_chain: Vec<ScopeId>,
+    /// The legacy `scopes` Vec at end of transaction (mirror of the
+    /// active_chain; kept in lockstep with the active chain since other
+    /// code still consults `scopes`).
+    final_scopes: Vec<SemanticScopeFrame>,
+}
+
+impl SemanticRuntimeDelta {
+    /// True iff this delta has no semantic effects (no new facts,
+    /// no new scope nodes, no scope closures). Used by codegen to skip
+    /// the `apply_delta` call when the winner emitted nothing.
+    pub fn is_empty(&self) -> bool {
+        self.new_facts.is_empty()
+            && self.new_scope_nodes.is_empty()
+            && self.closed_scope_ids.is_empty()
+    }
+}
+
 impl SemanticRuntimeCheckpoint {
     /// `SV-EXH-PROOF.3.3.4.a` MVP-0: number of facts in the state at checkpoint
     /// time. Exposed so `@export_to_library` can snapshot the delta — the facts
@@ -1471,6 +1511,93 @@ impl SemanticRuntimeState {
             scope_arena_len: self.scope_arena.len(),
             active_chain_snapshot: self.active_chain.clone(),
         }
+    }
+
+    // ========================================================================
+    // SV-EXH-PROOF.3.3.4.b.6.2.33 — C3-B FIX: per-branch delta extraction +
+    // winner-only replay. The multi-branch tournament codegen (in
+    // ast_based_generator.rs) calls these to isolate each branch's semantic
+    // effects, then applies ONLY the winning branch's delta to the committed
+    // state. Eliminates the "loser-successful branch emissions accumulate in
+    // committed state" defect ([[feedback_try_parse_must_snapshot_semantic_state]]
+    // C3-B) by construction: state changes during branch B are captured in
+    // the delta then rolled back; only winner's delta is reapplied.
+    //
+    // GUARANTEE: after a full tournament, the only effects that persist are
+    // the WINNING branch's. Loser branches contribute zero state. The same
+    // `has_fact` query at any later point returns the same answer regardless
+    // of how many losing branches happened to emit facts. The class of bug
+    // where a winning branch's emission gets wiped by a peer speculation's
+    // rollback (Slice-65 trace showed this on T_repro) becomes structurally
+    // impossible.
+    // ========================================================================
+
+    /// Capture the semantic effects accumulated since a checkpoint.
+    /// Returns a delta that `apply_delta` can replay onto the state at
+    /// any later point (provided the state's checkpoint matches the one
+    /// used to extract this delta).
+    pub fn extract_delta_since(&self, checkpoint: &SemanticRuntimeCheckpoint) -> SemanticRuntimeDelta {
+        let new_facts = if checkpoint.fact_len <= self.facts.len() {
+            self.facts[checkpoint.fact_len..].to_vec()
+        } else {
+            Vec::new()
+        };
+        let new_scope_nodes = if checkpoint.scope_arena_len <= self.scope_arena.len() {
+            self.scope_arena[checkpoint.scope_arena_len..].to_vec()
+        } else {
+            Vec::new()
+        };
+        // Pre-existing scopes that were CLOSED in this transaction: those
+        // in `checkpoint.active_chain_snapshot` (open at checkpoint) but
+        // NOT in the current `active_chain` (closed since).
+        let closed_scope_ids: Vec<ScopeId> = checkpoint
+            .active_chain_snapshot
+            .iter()
+            .filter(|id| !self.active_chain.contains(id))
+            .copied()
+            .collect();
+        SemanticRuntimeDelta {
+            new_facts,
+            new_scope_nodes,
+            closed_scope_ids,
+            final_active_chain: self.active_chain.clone(),
+            final_scopes: self.scopes.clone(),
+        }
+    }
+
+    /// Replay a delta onto the current state. Must be called when the
+    /// state is at the checkpoint that was passed to `extract_delta_since`.
+    /// On success the state is fast-forwarded to whatever the source-
+    /// transaction's end state was.
+    pub fn apply_delta(&mut self, delta: SemanticRuntimeDelta) {
+        // Push new scope_arena nodes (preserving their `closed` flag —
+        // a scope opened AND closed in the branch is reapplied as
+        // closed; a scope opened and still active is reapplied as open).
+        self.scope_arena.extend(delta.new_scope_nodes);
+        // Mark pre-existing scopes as closed (those that were open at
+        // checkpoint and closed during the branch). Idempotent.
+        for id in &delta.closed_scope_ids {
+            if let Some(node) = self.scope_arena.get_mut(id.index()) {
+                node.closed = true;
+            }
+        }
+        // Push new facts via the same path emit_fact takes, so the
+        // per-kind secondary index stays consistent.
+        for fact in delta.new_facts {
+            let position = self.facts.len();
+            self.fact_index.insert(&fact.kind, fact.scope_depth, &fact.name, position);
+            self.facts.push(fact);
+            self.counters.facts_emitted += 1;
+        }
+        // Restore active_chain + scopes to the branch's end state.
+        self.active_chain = delta.final_active_chain;
+        self.scopes = delta.final_scopes;
+        // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining delta-apply.
+        crate::pgen_trace_high!(
+            "🔁 apply_delta — facts now at {} (was lower), active_chain now {}",
+            self.facts.len(),
+            self.active_chain.len(),
+        );
     }
 
     pub fn rollback_to(&mut self, checkpoint: SemanticRuntimeCheckpoint) {

@@ -2864,6 +2864,23 @@ impl AstBasedGenerator {
                                     }
                                 };
 
+                                // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) —
+                                // Extract this branch's semantic delta, then
+                                // ROLLBACK so the next branch starts from the
+                                // tournament checkpoint. The winner's delta
+                                // is replayed once the tournament concludes.
+                                // Predicates have already fired above against
+                                // this branch's state (correct: predicates
+                                // need to see the branch's emissions). After
+                                // predicates, we capture-and-cleanup so no
+                                // branch's effects leak into the next.
+                                let candidate_delta = parser
+                                    .semantic_runtime_state
+                                    .extract_delta_since(&tournament_semantic_checkpoint);
+                                parser
+                                    .semantic_runtime_state
+                                    .rollback_to(tournament_semantic_checkpoint.clone());
+
                                 if should_take {
                                     best_end = candidate_end;
                                     best_priority = candidate_priority;
@@ -2873,6 +2890,9 @@ impl AstBasedGenerator {
                                         best_raw_content = Some(raw_content.clone());
                                     }
                                     best_content = Some(transformed);
+                                    // SV-EXH-PROOF.3.3.4.b.6.2.33 — save the
+                                    // winning branch's delta to replay later.
+                                    best_semantic_delta = Some(candidate_delta);
                                 } else if branch_predicate_blocked && parser.logger_enabled {
                                     parser.logger.log_info(#filename, parser.position as u32, &format!(
                                         "🚫 Branch {}/{} for rule '{}' rejected by branch predicate '{}' at position {}",
@@ -2904,6 +2924,16 @@ impl AstBasedGenerator {
                 let mut best_branch = 0usize;
                 let mut nonassoc_tie = false;
                 let mut result = ParseContent::Sequence(Vec::new());
+                // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) — tournament-scope
+                // semantic checkpoint + the winner's captured delta.
+                // Each branch attempt extracts its delta then rolls back; the
+                // winner's delta is replayed at end of tournament. This makes
+                // "loser-successful branch emissions accumulate" structurally
+                // impossible — only the chosen branch's effects survive.
+                let tournament_semantic_checkpoint =
+                    parser.semantic_runtime_state.checkpoint();
+                let mut best_semantic_delta:
+                    Option<crate::ast_pipeline::SemanticRuntimeDelta> = None;
                 let deterministic_partition_effective_enabled = parser
                     .effective_deterministic_partition_enabled(#deterministic_partition_annotation_enabled);
                 let deterministic_partition_effective_group = parser
@@ -2948,6 +2978,19 @@ impl AstBasedGenerator {
                             #associativity_mode,
                             #branch_policy_mode
                         ));
+                    }
+                    // SV-EXH-PROOF.3.3.4.b.6.2.33 (C3-B FIX) — replay ONLY the
+                    // winning branch's semantic effects onto the committed
+                    // state. At this point the state is at tournament
+                    // checkpoint (every branch rolled back after extracting
+                    // its delta). Applying the winner's delta restores
+                    // exactly the state the winning branch produced — no
+                    // loser-branch pollution, no accumulation across
+                    // branches.
+                    if let Some(delta) = best_semantic_delta {
+                        if !delta.is_empty() {
+                            parser.semantic_runtime_state.apply_delta(delta);
+                        }
                     }
                     result = content;
                     semantic_raw_content = best_raw_content;
