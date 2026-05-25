@@ -1688,6 +1688,23 @@ impl SemanticRuntimeState {
             && checkpoint.scope_arena_len <= self.scope_arena.len()
     }
 
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.34` (Architecture B — REVERTED, no-op stub).
+    /// Slice-68 attempted "rule-commit fact promotion": on successful rule
+    /// completion, promote every fact emitted in the rule body to a
+    /// `committed` state that would survive enclosing-speculation rollback.
+    /// The decisive-baseline corpus sweep (2026-05-25) proved the universal
+    /// promotion design caused an 8-case corpus regression (10/4/2 →
+    /// 0/4/12, all 4 friscv + all 4 scr1 + both veer bootstrap cases
+    /// regressed from PASS to TIMEOUT) — preserving facts across rollback
+    /// and the extra Vec drain/filter/push per rollback combined into
+    /// pathological backtracking. Kept as a no-op so existing generated
+    /// parsers still compile; the next-iteration design (Architecture B′,
+    /// targeted preservation rather than universal) is the open follow-up.
+    /// See [[feedback_predicate_parse_order_sota]].
+    pub fn promote_facts_since(&mut self, _entry_fact_len: usize) {
+        // intentional no-op
+    }
+
     pub fn open_scope(&mut self, spec: SemanticScopeSpec) {
         // `.3.3.4.b.5.1.3`: allocate a new arena node, parent = current
         // active leaf. Maintain the legacy `scopes` Vec in lockstep so
