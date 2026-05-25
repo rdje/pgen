@@ -1,4 +1,48 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0087 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.0): **TOOLS-FIRST INVESTIGATION** — H2 (built-in language types per IEEE 1800 §G.2) defect class identified + umbrella `.b.6.2.37` opened. H1 framing refined from "cross-file-import" (conflated two classes) into the parallel "cross-package extends chain" track that targets uvm_compat_pkg specifically. PURE DOCS slice — no code change.
+
+ROOT CAUSE (tools-first, decisive — per [[feedback_tools_first_no_guessing]]):
+
+After `.b.6.2.36.5` restored 609/609 on lib (--features), per user direction "Are we continuing with uvm_pkg?" the SV external corpus residual was investigated. The prior `.b.6.2.X (H1)` framing assumed all 4 failing UVM cases had the same root cause (cross-file imports). Tools-first investigation falsified that:
+
+- **uvm_pkg ×{2017,2023}** — 118 uses each of `process` / `semaphore` / `mailbox` (per `grep -cE "\b(process|semaphore|mailbox)\s+[a-zA-Z_]" rust/target/sv_external_corpus_triage_gate/work/case_uvm_pkg_*.preprocessed.sv`). These are IEEE 1800 §G.2 `std::` predefined classes that user code never declares. The `.35.1` gate `has_fact(type_name, X)` correctly rejects them. **Minimal repro `/tmp/pgen-bug/h2_builtin_class_process.sv`**: `module m; function void f(); process p; endfunction endmodule` FAILS at byte 0 [furthest 42]. Same source + `package builtins; typedef class process; ... endpackage` + `import builtins::*;` preamble (`/tmp/pgen-bug/h2_builtin_class_process_fix.sv`) PASSES.
+- **uvm_compat_pkg ×{2017,2023}** — ZERO `process`/`semaphore`/`mailbox` uses (`grep -cE` returns 0 for both). The failure point at byte 114993 is `class uvm_compat_packer extends uvm_pkg::uvm_packer;` (line 3977) — a cross-package extends-chain that needs uvm_pkg parsed first + its `uvm_packer` class in `--lib-in`.
+
+So **two distinct defect classes were conflated by the prior H1 framing**. This slice reframes:
+- **H2 (NEW, this umbrella `.b.6.2.37`)** — built-in language types. Targets uvm_pkg.
+- **H1 (REFINED)** — cross-package extends chain. Targets uvm_compat_pkg specifically. Now depends on H2 landing first (so uvm_pkg PASSes and produces the library artifact that uvm_compat_pkg's bootstrap_files chain consumes).
+
+Sequencing: H2 first → uvm_pkg 2/14 PASS gained → uvm_pkg's classes become library-producible. Then H1 via `bootstrap_files` (mirrors veer_el2_lsu's existing pattern) → uvm_compat_pkg 2/14 more. Expected end state: 14/14 (subject to other deeper defects not yet visible).
+
+METHOD/ENUM-VALUE SCOPE FINDING (verified `.37.0`):
+
+User asked "Each of these built-in classes has methods..." — empirically verified via `/tmp/pgen-bug/uvm_h2_method{1,2,3}.sv` that **seeding only the type_name fact is sufficient**. The SV parser accepts method-call syntax universally without knowing class-specific methods. All of these PASS with only `typedef class process; typedef class semaphore; typedef class mailbox;` declared:
+
+- `process::self()` (static scoped call)
+- `p.kill()`, `p.await()`, `p.suspend()`, `p.resume()` (instance methods)
+- `p.status() == process::FINISHED` (scoped enum value access)
+- `s.put()`, `s.get()` (semaphore methods)
+- `mb.peek()`, `mb.num()`, `mb.put()`, `mb.get()` (mailbox methods)
+
+The parser pattern `Class::ident(args?)` and `obj.method(args?)` parses for any KNOWN type — method/enum-value existence is a semantic-pass concern, not a parser concern. So the H2 lib artifact stays small: 3 `type_name` entries to start (the ones uvm_pkg actually uses).
+
+DESIGN LOCKED AT LEVEL 2 (auto-load lib artifact, reuses `.3.3.4.a` infra) — Levels 1 and 3 documented as fallbacks:
+
+Per user direction 2026-05-25 "keep all 3 alternatives somewhere, pick one for now and roll with it, but keep the other 2 around, just in case":
+
+- **(A) [CHOSEN] Level 2** — Auto-load `lib/sv_2017_std/` + `lib/sv_2023_std/` library artifact at SV parser construction time. Three sub-steps (a) one-time build artifact (b) one small library-infra extension (always-load hook) (c) grammar declaration (sibling `.std.json` config or grammar-root directive). Zero changes to existing type-resolution rules. Rationale: LRM-aligned (§G.2), parser-agnostic, reuses existing infra, no new annotation feature.
+- **(B) [FALLBACK] Level 1** — Preprocessor preamble injection. Reason rejected as primary: per [[feedback_no_workarounds_fix_hierarchy]] fabricates source the user didn't write, and it's an SV-specific kludge in a generic preprocessor.
+- **(C) [FALLBACK] Level 3** — New `@bootstrap_facts` grammar directive. Reason rejected as primary: (A) achieves the same outcome reusing existing infrastructure. If (A) AND (B) both hit snags, (C) is the architecturally cleanest long-term answer.
+
+SUB-LEAVES TO LAND `.b.6.2.37`:
+
+- `.b.6.2.37.1` — generate `lib/sv_2017_std/package/std.facts.json` (and `sv_2023_std` variant if contents differ). Pure data slice (one tiny build-time generator script + 2 JSON files). Initial scope: process / semaphore / mailbox.
+- `.b.6.2.37.2` — engine auto-import hook (parser-construction-time always-load) + SV grammar wire-up (via sibling `systemverilog.std.json` config) + verify uvm_pkg ×{2017,2023} PASS + corpus 10/14 → 12/14.
+
+NO BEHAVIOR CHANGE in this slice. Lib + RGX + SV corpus all unaffected. Books unaffected (no user-facing surface change yet — the user-facing impact lands with `.37.2`'s verification + release bump). Full books↔code same-commit lockstep for the docs surfaces (CHANGES + LIVE + TASK_TREE + SV-EXH-PROOF leaves + MEMORY).
+
+⛔ NO-PUSH OVERRIDE active.
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0086 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.5): **LATENT REGRESSION FIX (PGEN-RGX-0077)** — bootstrap parser `**` peeked FIRST in `rust/src/ast_pipeline/unified_return_ast.rs::parse_value`; the AST now carries `FlattenSpread(base)` for `[$1**]` instead of the previously-emitted `Spread(Spread(base))`. Tools-first diagnosis (per [[feedback_tools_first_no_guessing]]) localized the regression to the BOOTSTRAP PARSER, NOT codegen, NOT the EBNF. Per user direction "task-tree track it to debug and fix it later. Just fix the currently observed issue."
 
 ROOT CAUSE (tools-first, decisive):
