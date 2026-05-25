@@ -1,0 +1,28 @@
+{
+  "format_version": 1,
+  "kind": "package",
+  "name": "std",
+  "facts": [
+    {
+      "kind": "type_name",
+      "name": {"kind": "identifier", "text": "mailbox"},
+      "attributes": [
+        {"key": "declaration_family", "value": {"kind": "identifier", "text": "builtin_class"}}
+      ]
+    },
+    {
+      "kind": "type_name",
+      "name": {"kind": "identifier", "text": "process"},
+      "attributes": [
+        {"key": "declaration_family", "value": {"kind": "identifier", "text": "builtin_class"}}
+      ]
+    },
+    {
+      "kind": "type_name",
+      "name": {"kind": "identifier", "text": "semaphore"},
+      "attributes": [
+        {"key": "declaration_family", "value": {"kind": "identifier", "text": "builtin_class"}}
+      ]
+    }
+  ]
+}

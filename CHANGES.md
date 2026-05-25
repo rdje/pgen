@@ -1,4 +1,6 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0088 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.1): **DATA SLICE** — checked in `parser_libs/sv_2017_std/package/std.facts.json` + `parser_libs/sv_2023_std/package/std.facts.json`. 3 `type_name` facts each (`mailbox` / `process` / `semaphore`, alphabetical per [[feedback_manifest_alphabetical_order]]) with `declaration_family: builtin_class`. Uses the existing `.3.3.4.a` library format (`format_version: 1`). Empirically verified loadable via explicit `--lib-in parser_libs/sv_2017_std` + `import std::*;` source preamble. NO BEHAVIOR CHANGE (dormant data until `.37.2` adds the always-load hook). Files: `parser_libs/sv_2017_std/package/std.facts.json`, `parser_libs/sv_2023_std/package/std.facts.json`, plus same-slice docs lockstep (CHANGES + LIVE + TASK_TREE). ⛔ NO-PUSH OVERRIDE active.
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0087 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.0): **TOOLS-FIRST INVESTIGATION** — H2 (built-in language types per IEEE 1800 §G.2) defect class identified + umbrella `.b.6.2.37` opened. H1 framing refined from "cross-file-import" (conflated two classes) into the parallel "cross-package extends chain" track that targets uvm_compat_pkg specifically. PURE DOCS slice — no code change.
 
 ROOT CAUSE (tools-first, decisive — per [[feedback_tools_first_no_guessing]]):
@@ -30,13 +32,13 @@ DESIGN LOCKED AT LEVEL 2 (auto-load lib artifact, reuses `.3.3.4.a` infra) — L
 
 Per user direction 2026-05-25 "keep all 3 alternatives somewhere, pick one for now and roll with it, but keep the other 2 around, just in case":
 
-- **(A) [CHOSEN] Level 2** — Auto-load `lib/sv_2017_std/` + `lib/sv_2023_std/` library artifact at SV parser construction time. Three sub-steps (a) one-time build artifact (b) one small library-infra extension (always-load hook) (c) grammar declaration (sibling `.std.json` config or grammar-root directive). Zero changes to existing type-resolution rules. Rationale: LRM-aligned (§G.2), parser-agnostic, reuses existing infra, no new annotation feature.
+- **(A) [CHOSEN] Level 2** — Auto-load `parser_libs/sv_2017_std/` + `parser_libs/sv_2023_std/` library artifact at SV parser construction time. Three sub-steps (a) one-time build artifact (b) one small library-infra extension (always-load hook) (c) grammar declaration (sibling `.std.json` config or grammar-root directive). Zero changes to existing type-resolution rules. Rationale: LRM-aligned (§G.2), parser-agnostic, reuses existing infra, no new annotation feature.
 - **(B) [FALLBACK] Level 1** — Preprocessor preamble injection. Reason rejected as primary: per [[feedback_no_workarounds_fix_hierarchy]] fabricates source the user didn't write, and it's an SV-specific kludge in a generic preprocessor.
 - **(C) [FALLBACK] Level 3** — New `@bootstrap_facts` grammar directive. Reason rejected as primary: (A) achieves the same outcome reusing existing infrastructure. If (A) AND (B) both hit snags, (C) is the architecturally cleanest long-term answer.
 
 SUB-LEAVES TO LAND `.b.6.2.37`:
 
-- `.b.6.2.37.1` — generate `lib/sv_2017_std/package/std.facts.json` (and `sv_2023_std` variant if contents differ). Pure data slice (one tiny build-time generator script + 2 JSON files). Initial scope: process / semaphore / mailbox.
+- `.b.6.2.37.1` — generate `parser_libs/sv_2017_std/package/std.facts.json` (and `sv_2023_std` variant if contents differ). Pure data slice (one tiny build-time generator script + 2 JSON files). Initial scope: process / semaphore / mailbox.
 - `.b.6.2.37.2` — engine auto-import hook (parser-construction-time always-load) + SV grammar wire-up (via sibling `systemverilog.std.json` config) + verify uvm_pkg ×{2017,2023} PASS + corpus 10/14 → 12/14.
 
 NO BEHAVIOR CHANGE in this slice. Lib + RGX + SV corpus all unaffected. Books unaffected (no user-facing surface change yet — the user-facing impact lands with `.37.2`'s verification + release bump). Full books↔code same-commit lockstep for the docs surfaces (CHANGES + LIVE + TASK_TREE + SV-EXH-PROOF leaves + MEMORY).
