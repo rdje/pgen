@@ -936,7 +936,15 @@ mod tests {
             ("negated 3-level", "module m; int a; initial if (!a.b.c(x)) ; endmodule"),
             (
                 "uvm-shaped function",
-                "module m; function void f(); uvm_seed_map seed_map; \
+                // `uvm_seed_map` is declared via a real-UVM-style `typedef
+                // class` forward declaration so the gated
+                // `provisional_unscoped_block_class_type` rule (added in
+                // SV-EXH-PROOF.3.3.4.b.6.2.35.1) sees a `type_name` fact for
+                // it. The test's purpose remains 3-level chain parsing in the
+                // exact uvm shape; the typedef just makes the type lookup
+                // realistic (UVM heavily uses typedef-class forward decls).
+                "module m; typedef class uvm_seed_map; \
+                 function void f(); uvm_seed_map seed_map; \
                  if(!seed_map.seed_table.exists(type_id)) begin end endfunction endmodule",
             ),
         ];

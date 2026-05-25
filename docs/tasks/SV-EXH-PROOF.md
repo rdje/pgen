@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: parser-family exhaustive-proof normalization (the last open parser-family proof debt)
 - Created: `2026-05-17`
-- Last updated: `2026-05-17` (`.1` measured baseline complete — tree re-planned to 6 leaves; see Decisions/Verification)
+- Last updated: `2026-05-25` (`.b.6.2.35.1` DONE: SV grammar fix gating `provisional_unscoped_block_class_type`; uvm_pkg deep advance 19378 → 162162 ~furthest_position; corpus 10/14 stable; `PGEN-SV-EXH-PROOF-0081`, release 1.0.127)
 - Owner: repo-local workflow
 - Defect taxonomy: [docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md](../reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md) — living tracking document; every systematic defect class found in this campaign is recorded there with an audit pattern. Amend on every new class discovered.
 
@@ -460,12 +460,13 @@ literal over a failing surface.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| — | `SV-EXH-PROOF.2.3.2` | `done` (`-0011`) | CLOSED: agnostic closed-loop generator hardening (4 HIR/AST-derived mechanisms) → preprocessor `parser_rejections` 2→0; proof-surface ESTABLISHED gate-verified FRESH; cross-parser no-regression; 2 downstream proof contracts re-baselined in-slice (non-masking); full lockstep. `.2.3` + `.2` rolled up done. |
-| — | `SV-EXH-PROOF.3` | `active` (parent) | Opened 2026-05-18: live triage = `preprocess_pass 14/14` (`.2.3.2` effect), `parse_pass 0/14`; all fail at SV-main parse. Decomposed into per-defect sub-leaves. |
-| 1 | `SV-EXH-PROOF.3.1` | `pending` (**frontier**; root cause PINNED) | `parameter_port_list := hash lparen mixed_string_parameter_port_list rparen` admits ONLY a broken extractor-artifact form; the IEEE-1800 `#(parameter …)` form is unrepresentable → every parameterized module rejected → all 14 corpus cases fail. Verified minimal repros (trivia hypothesis falsified by measurement). Repair LRM-faithfully, probe-verified + lockstepped, no AST-shape/annotation/closure regression. |
-| 3 | `SV-EXH-PROOF.4` | `pending` | Build the derived external-corpus-backed proof surface (needs `.3`'s genuinely-green/dispositioned state). |
-| 4 | `SV-EXH-PROOF.5` | `pending` | Wire it into the contract/gate/family-status/telemetry (needs `.4`). |
-| 5 | `SV-EXH-PROOF.6` | `pending` | LIVE `Done` flip + book/contract lockstep + closeout (needs `.5` green). |
+| — | `SV-EXH-PROOF.3.3.4.b.6.2.35.1` | `done` (`-0081`, 2026-05-25) | Gate `provisional_unscoped_block_class_type` landed (Slice-64 redux). iso5/iso4 PASS; corpus 10/14 unchanged; uvm_pkg deep-position 19378 → 162162 (~90% of file parsed before backtracking exhaustion); RGX 44/0 ✅; lib 548/548 + 609/609; SV shape-contract GREEN. Release 1.0.127 (schema stays 3). |
+| 1 | `SV-EXH-PROOF.3.3.4.b.6.2.35.2`..`16` | `pending` (frontier) | Remaining 9 Table-B scope-prefix-pattern rules + 3 Table-C inline categorising constructs + 3 Table-D delegators. Each its own sub-leaf with empirical per-rule verification (minimal repro + corpus + RGX 44/0). May change fix template per rule (add predicate vs. substitute gated wrapper). |
+| 2 | `SV-EXH-PROOF.3.3.4.b.6.2.35.0` | `pending` (deferred docs) | Capture the audit findings as taxonomy entry in `docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md`. Pure docs. Was originally `.35.0`/first sub-leaf; `.35.1` landed first as the corpus-mover. Can be picked up anytime — pure-docs, no dependency on remaining `.35.x`. |
+| 3 | `SV-EXH-PROOF.3.3.4.b.6.2.X (H1 cross-file-import)` | `pending` (parallel track) | H1 class (`H1-α` library-import chain via `--lib-in` chaining for uvm corpus, OR `H1-β` import-emits-permissive-fact). The actual fix-path for moving uvm_pkg from FAIL to PASS — `.35.1` cleared the structural defect that nibbled at every implicit-type port-list site but uvm's cross-file `extends`/`type_id` references need the H1 fix. |
+| 4 | `SV-EXH-PROOF.4` | `pending` | Build the derived external-corpus-backed proof surface (needs `.3`'s genuinely-green/dispositioned state). |
+| 5 | `SV-EXH-PROOF.5` | `pending` | Wire it into the contract/gate/family-status/telemetry (needs `.4`). |
+| 6 | `SV-EXH-PROOF.6` | `pending` | LIVE `Done` flip + book/contract lockstep + closeout (needs `.5` green). |
 
 ## Decisions
 
@@ -958,7 +959,7 @@ literal over a failing surface.
   Commit: `pending — PGEN-SV-EXH-PROOF-0080 (re-framed diagnosis + audit findings; no code change)`
 
 - ID: `SV-EXH-PROOF.3.3.4.b.6.2.35`
-  Status: `pending` (umbrella) — opened `2026-05-25` to remediate the systematic ungated identifier-categorisation defect class discovered by `.b.6.2.30`'s tools-first re-diagnosis. Owns the GAMMA defect class per `[[feedback_grammar_rules_must_consult_store]]` (user 2026-05-25): "we have the semantic store, rule shall use it for things like type not type, the store is there for that specific purpose."
+  Status: `active` (umbrella — `2026-05-25`: `.b.6.2.35.1` LANDED first as the highest-value sub-leaf for unblocking uvm_pkg; the systematic Table A/B/C/D remediation continues in subsequent sub-leaves. `.b.6.2.35.0` (the audit-taxonomy capture sub-leaf) remains `pending` as future docs-slice work.) Owns the GAMMA defect class per `[[feedback_grammar_rules_must_consult_store]]` (user 2026-05-25): "we have the semantic store, rule shall use it for things like type not type, the store is there for that specific purpose."
   Goal: `Bring every ungated identifier-categorisation rule in systemverilog.ebnf into compliance with the grammar-rules-must-consult-store principle. Each rule that classifies a bare identifier into a tracked category (type/class/interface/package/covergroup/type_parameter) must consult the semantic store via has_fact / fact_attribute_equals / lacks_fact, OR be removed, OR carry a documented justification of why it legitimately bypasses the store.`
   Scope (from the 2026-05-25 audit):
     A. ONE ungated catch-all (no scope prefix): `provisional_unscoped_block_class_type` (L1638) — used in `data_type` alt 12, `block_data_type` alt 13.
@@ -977,8 +978,23 @@ literal over a failing surface.
   Commit: `pending — sub-leaves landed independently`
 
 - ID: `SV-EXH-PROOF.3.3.4.b.6.2.35.0`
-  Status: `pending` (first sub-leaf of `.b.6.2.35`) — capture the audit report as a durable defect-taxonomy entry. PURE DOCS slice — no grammar / Rust / generated / shape-contract change.
+  Status: `pending` (first-planned sub-leaf of `.b.6.2.35`; deferred — `.b.6.2.35.1` landed first as the higher-value uvm_pkg-unblocker) — capture the audit report as a durable defect-taxonomy entry. PURE DOCS slice — no grammar / Rust / generated / shape-contract change.
   Goal: `Persist the 2026-05-25 audit findings (Tables A/B/C/D) as taxonomy entry "G — ungated identifier-categorisation" in docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md, including the principle citation + the fix template options + the audit-pattern (grep + classify + dereference + cross-grammar) so re-running the audit later validates progress.`
   Acceptance: `(1) Taxonomy entry G added with full table content + audit pattern. (2) Cross-references to memory (feedback_grammar_rules_must_consult_store) + project_vision + universal_semantic_store. (3) No grammar/code change.`
   Verification: `lib + corpus unchanged (this is a docs-only slice). Re-running the audit script (preserved as a snippet in the taxonomy entry) produces the same 1+9+3+3 numbers.`
   Commit: `pending — own commit, smallest first slice of the umbrella`
+
+- ID: `SV-EXH-PROOF.3.3.4.b.6.2.35.1`
+  Status: `done` (`2026-05-25`, `PGEN-SV-EXH-PROOF-0081`) — SV grammar gate landed: `provisional_unscoped_block_class_type` now consults the semantic store; corpus pass-count unchanged at 10/14 but uvm_pkg deep-position advance is significant (furthest_position 19378 (Slice-54 deepest tracked) → **162162** out of ~180K).
+  Goal: `Gate provisional_unscoped_block_class_type (Slice-64 redux) per discipline: add @predicate: has_fact(type_name, $head.body), verify on the iso5/iso4 minimal repros + corpus + RGX 44/0. PRIOR investigation of why the original Slice-64 regressed UVM was required FIRST per the leaf prerequisite — done: re-read of Slice-64's commit (9375c069) + the revert commit (8eae9eba) + Slice-68's (a5e7d677) Architecture B disproof showed Slice-64 itself did NOT regress UVM (its own report said corpus 10/4/2 identical to baseline); what Slice-64 failed to do was ADVANCE uvm_pkg on its own (minimal repros passed, full-corpus context still failed). That triggered the persistence-framing investigation which produced C3-B (Slice-67) and then Architecture B (Slice-68 → disproven + reverted). Slice-69 retired the persistence framing and re-diagnosed structurally. The gate now lands cleanly under C3-B's current engine state.`
+  Acceptance: `(1) iso5/iso4 minimal repros PASS (were FAIL) - done. (2) iso1/iso2/iso3/iso6 controls + (forward-declared / declared-then-used / plain / parameterized module) controls PASS - done. (3) SV external corpus 10/14 PASS unchanged (no regression on the 10 known-PASS files) - done (10 PASS / 4 FAIL / 0 TIMEOUT). (4) RGX 44/0 ✅ - done (regex broader corpus + integration contract green via embedding_api tests in the features-on lib suite). (5) Lib no-features 548/548 + lib --features generated_parsers 609/609 - done. (6) SV shape-contract GREEN - done (in features-on suite).`
+  Verification: `done — fix verified empirically across the full proof stack:
+    (a) iso5/iso4 PASS (were FAIL); iso1/iso2/iso3/iso6 + 4 controls PASS (parameterized header includes ".b.5.1.x" fact-store integration unaffected).
+    (b) SV external corpus 10 PASS / 4 FAIL / 0 TIMEOUT — scr1 ×4, friscv ×4, veer ×2 (with bootstrap-chained --lib-in) all PASS; uvm_pkg ×{2017,2023} + uvm_compat_pkg ×{2017,2023} remain FAIL.
+    (c) uvm_pkg surface_position 113637 (F1 PEG-furthest-position-tooling-artefact, unchanged), Slice-59's furthest_position tracker shows 162162 out of ~180K = ~90% of uvm_pkg parsed before backtracking exhaustion (pre-fix tracked deepest was 19378 at Slice-54 → ~8.4× deeper).
+    (d) uvm_compat_pkg furthest_position 114993 → 116752 (+1759).
+    (e) Lib (no-features) 548/548 PASS; lib (--features generated_parsers) 609/609 PASS (1 test edit in ast_shape_contract.rs::systemverilog_context_gated_method_chain_handles_negated_and_uvm_shape — added 'typedef class uvm_seed_map;' to the test's uvm-shaped function input since the test had been relying on the now-fixed catch-all; the typedef reflects real-UVM forward-declaration style and preserves the test's actual purpose: 3-level method-chain parsing).
+    (f) SV shape-contract GREEN (in features-on suite).
+    (g) RGX broader corpus / conformance ✅ 44/0 (regex_parser_* tests in features-on suite, non-semantic grammar unaffected by the SV-only grammar change).
+    Release 1.0.126 → 1.0.127, schema STAYS 3 (behaviour-tightening — undeclared types correctly rejected per LRM; closest precedent RGX-0087's \89-leading hard-reject). No-workarounds hierarchy: level 1 (existing semantic-annotation primitive). Per [[feedback_grammar_rules_must_consult_store]]. Full books↔code same-commit lockstep (grammar + 1 test + regen + SV integration contract 1.0.127 + SV book changelog-index + schema-versioning + regenerated tracked HTML + defect taxonomy amendment-log + CHANGES + LIVE + DEVELOPMENT_NOTES + TASK_TREE + this leaf + .35 umbrella + memory). Local-only per [[feedback_push_pacing]].`
+  Commit: `PGEN-SV-EXH-PROOF-0081`

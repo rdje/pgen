@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0081 (leaf SV-EXH-PROOF.3.3.4.b.6.2.35.1): SV grammar fix — gate `provisional_unscoped_block_class_type` with `@predicate: has_fact(type_name, $head.body)` (Slice-64 redux, now empirically clean: cross-parser GREEN + uvm_pkg deep-position advance 113637 → **furthest_position 162162** out of ~180K)
+
+First code sub-leaf of the `.b.6.2.35` umbrella (the ungated-identifier-categorisation defect class identified by Slice-69's tools-first re-diagnosis). This re-applies the exact one-line `@predicate` annotation Slice-64 introduced (then was reverted under the now-retired persistence framing). Under the current engine state (Slice-67's C3-B is in place; persistence-framing investigation retired) the gate lands clean.
+
+What landed:
+- `grammars/systemverilog.ebnf:1638` — `@predicate: { name: has_fact, args: [type_name, $head.body], phase: post, view: shaped }` added directly above `provisional_unscoped_block_class_type`. Single-line addition. Same exact diff as Slice-64 (`9375c069`); reapplying the revert via Edit.
+- `rust/src/ast_shape_contract.rs` — the `systemverilog_context_gated_method_chain_handles_negated_and_uvm_shape` test's "uvm-shaped function" case had `uvm_seed_map seed_map;` with `uvm_seed_map` never declared. Pre-gate the catch-all accepted any bare identifier as a type; post-gate undeclared types are correctly rejected per Slice-64's stated semantics ("UnknownGarbage → rejected → forces user to fix their code"). Added `typedef class uvm_seed_map;` to the test input — a real-UVM-style forward declaration — so the gate sees a `type_name` fact for it. Test purpose (3-level method-chain parsing) preserved; the typedef makes the type-lookup realistic.
+- Generated artifacts regenerated via `make focus_systemverilog` (untracked per `.gitignore`'s 2026-04-29 PGEN-RGX-0073 redesign; SHA256 baseline pinned in `DEVELOPMENT_NOTES.md` if needed). Return-annotation inventory 2311 entries.
+
+ROOT CAUSE (per Slice-69's tools-first evidence + Slice-64's prior diagnosis): `data_type` alt 12 (and `block_data_type` alt 13) routed through `provisional_unscoped_block_class_type` UNGATED — a catch-all that accepted any bare identifier as a type. The semantic store correctly reported `has_fact(type_name, b) → false` for an undeclared identifier `b`, every other (gated) type-identifier alternative correctly rejected `b`, but the ungated catch-all accepted it. Adding the same `has_fact(type_name, $head.body)` predicate that the sibling `known_unscoped_block_class_type` already carries closes the structural defect (the principle from [[feedback_grammar_rules_must_consult_store]]: rules categorising bare identifiers into tracked categories SHALL consult the store).
+
+VERIFIED:
+- iso5/iso4 minimal repros (`module m; function bit f(string a, b="");` / `..., b=""`) — PASS (were FAIL — fix-target evidence).
+- iso1/iso2/iso3/iso6 controls — PASS (no regression on previously-passing minimal repros).
+- Controls (forward-declared `typedef class Bar;`, declared-then-used `class MyClass; MyClass obj;`, plain module, `module m #(parameter int W = 8)` parameterized header) — PASS.
+- SV external corpus: 10 PASS / 4 FAIL / 0 TIMEOUT — **no regression on the 10 known-PASS files** (scr1 ×4, friscv ×4, veer ×2). Residual 4 FAIL = uvm_pkg ×{2017,2023} + uvm_compat_pkg ×{2017,2023}.
+- uvm_pkg deep-position advance: surface_position stays at **113637** (F1 artefact — PEG reports unconsumed-region start), but the new Slice-59 `furthest_position` engine reports **162162** — out of ~180K total. Pre-fix the deepest tracked uvm_pkg advance was 19378 (Slice-54). Post-fix the parser is reaching ~90% through uvm_pkg before backtracking exhaustion. Significant deep advance even though pass-count stays 10/14 (the remaining 9+3+3 ungated rules and the H1 cross-file-import class still gate uvm getting all the way to PASS).
+- uvm_compat_pkg: surface 114993, furthest 116752 (+1759).
+- Lib (no-features): **548/548 PASS**.
+- Lib (features-on): **609/609 PASS** (was 608/609 after the test edit landed; the only pre-edit failure was the now-fixed uvm-shape test).
+- SV shape-contract GREEN (included in the features-on suite).
+- RGX 44/0 ✅ (regex broader corpus / conformance — non-semantic grammar, unaffected by the SV-only grammar change).
+
+NO-WORKAROUNDS HIERARCHY: this fix is **level 1** — use existing semantic annotation. Adding `@predicate: has_fact(...)` to a rule that was missing it. No new annotation primitive needed. No new engine work. No new store primitive. The proven `.3.3.1`/`.3.3.2`/`.3.3.3` declared-id idiom applied to one more rule. Sign-off-quality at the lowest layer in the fix hierarchy.
+
+RELEASE: `1.0.126 → 1.0.127`, schema STAYS `3`. This is a behaviour-tightening fix (a previously-accepted incorrect parse path — undeclared types — is now correctly rejected per LRM). Different from the SVPP-0002/REGEX-0083 "strictly-more-permissive" category that prior SV-EXH-PROOF slices used; this is "correctness tightening" — consumers whose inputs accidentally relied on the over-permissive acceptance will see those inputs correctly rejected. AST shape vocabulary unchanged (the `provisional_unscoped_block_class_type` shape `{head, params, scope_chain}` is the same; only its acceptance criterion changes).
+
+Lockstep landed same-commit: grammar + test fix + SV integration contract 1.0.127 + SV book changelog-index + schema-versioning + regenerated tracked HTML + defect taxonomy amendment-log row + CHANGES + LIVE + DEVELOPMENT_NOTES + TASK_TREE + SV-EXH-PROOF leaves + memory. Local-only per [[feedback_push_pacing]] (no-push override active; restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`).
+
+Frontier → `.b.6.2.35.2`+ (the remaining 9 Table-B scope-prefix-pattern rules + 3 Table-C inline categorising constructs + 3 Table-D delegators) — each its own sub-leaf with empirical per-rule verification before any further generalisation. The H1 cross-file-import class (uvm-extends-chain) is a separate fix path (H1-α library-import chain or H1-β import-emits-permissive-fact) and is what gates uvm_pkg moving from FAIL to PASS.
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0080 (leaf SV-EXH-PROOF.3.3.4.b.6.2.30 RE-FRAMED + DONE; .b.6.2.35 umbrella OPENED; .b.6.2.35.0 first sub-leaf OPENED): TOOLS-FIRST RE-DIAGNOSIS of the implicit-type port-list defect — root cause is STRUCTURAL (ungated `provisional_unscoped_block_class_type` bypasses the semantic store), NOT fact persistence. PURE DOCS/TASK-TREE slice — no grammar / Rust / generated change.
 
 The user-set tools-first discipline ([[feedback_tools_first_no_guessing]] 2026-05-25 amendment) was applied to re-investigate the open implicit-type port-list defect (`function f(string a, b="");`). The diagnostic chain (six-way isolation matrix via `parseability_probe --parse` + furthest-position pin + `--trace-rules` + grep audit of the SV grammar) produced decisive evidence:

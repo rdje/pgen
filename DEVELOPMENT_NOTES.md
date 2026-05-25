@@ -1,4 +1,84 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.35.1 — SV grammar gate landed: `provisional_unscoped_block_class_type` consults the semantic store (Slice-64 redux, lands clean under current engine state); uvm_pkg deep-position advance 19378 → 162162 (PGEN-SV-EXH-PROOF-0081)
+
+### Context
+
+Slice-69 (`.b.6.2.30`, same day) re-diagnosed the implicit-type port-list defect with tools-first evidence and pinned the root cause structurally: `data_type` alt 12 routed through the ungated `provisional_unscoped_block_class_type`, which accepts any bare identifier as a type even when the semantic store correctly reports `has_fact(type_name, b) → false`. Slice-69 also opened the `.b.6.2.35` umbrella that systematically remediates the whole ungated-identifier-categorisation defect class (1 + 9 + 3 + 3 audit hits across `systemverilog.ebnf`).
+
+`.b.6.2.35.1` is the first **code** sub-leaf of that umbrella — and it's the one that empirically unblocks uvm_pkg's implicit-type-port-list defect class. Per the umbrella's own plan, the leaf required a PRIOR investigation of why the original Slice-64 (which made the same edit) had been reverted.
+
+### Slice-64 investigation (the prerequisite)
+
+Read `git show 9375c069` (Slice-64) + `git show 8eae9eba` (the revert) + `git show a5e7d677` (Slice-68, Architecture B disproof). Findings:
+
+- **Slice-64 did NOT regress UVM.** Its own report (verbatim from the commit body): "Corpus (60s/file timeout): 10 PASS / 4 parser-bug FAIL / 2 parser-bug TIMEOUT — IDENTICAL to baseline. No regression on the 10 known-PASS files." The revert (`8eae9eba`) is bare — no rationale recorded, just "This reverts X" 2 minutes after the original commit.
+- What Slice-64 failed to do was *advance* uvm_pkg on its own — minimal repros passed, but in the full corpus context `T_repro` / `c.sv` / `e.sv` still failed (per Slice-68's archaeology). That was *interpreted* as a fact-persistence problem, which kicked off the C3-B (`.b.6.2.33`, Slice-67, landed) and Architecture B (`.b.6.2.34`, Slice-68, disproven + reverted) investigations.
+- Slice-69 (`.b.6.2.30` re-diagnosis) then re-read the trace evidence and pinned the actual root cause as structural, not persistence. C3-B's framing was retired (the code stays for now — passes one real test, but the framing should not be cited as precedent).
+
+So the prerequisite was satisfied without finding a UVM regression to design around. The gate could be re-applied directly.
+
+### The fix (one line)
+
+```ebnf
+# grammars/systemverilog.ebnf:1638
+@predicate: { name: has_fact, args: [type_name, $head.body], phase: post, view: shaped }
+provisional_unscoped_block_class_type := class_identifier ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+                                      -> {head: $1, params: $2, scope_chain: $3}
+```
+
+The sibling `known_unscoped_block_class_type` already carries this predicate (plus a `lacks_fact_attribute_equals(... typedef)` companion). After this slice, `provisional_*` differs from `known_*` only in that it ACCEPTS typedef'd type names — but both now require the identifier to be a known type. The catch-all-for-unknowns role is gone.
+
+### Test adjustment (one test)
+
+`rust/src/ast_shape_contract.rs::systemverilog_context_gated_method_chain_handles_negated_and_uvm_shape`'s "uvm-shaped function" case parsed `module m; function void f(); uvm_seed_map seed_map; if(!seed_map.seed_table.exists(type_id)) begin end endfunction endmodule` — with `uvm_seed_map` never declared. Pre-gate the catch-all accepted any bare identifier as a type; post-gate undeclared types are correctly rejected per Slice-64's stated semantics ("UnknownGarbage → rejected → forces user to fix their code"; per LRM, undeclared types are invalid SV; rejecting is the correct commercial behaviour).
+
+The test's actual purpose is 3-level method-chain parsing in the uvm shape; relying on the catch-all to accept the undeclared type was incidental. Added a real-UVM-style forward declaration:
+
+```rust
+"module m; typedef class uvm_seed_map; \
+ function void f(); uvm_seed_map seed_map; \
+ if(!seed_map.seed_table.exists(type_id)) begin end endfunction endmodule"
+```
+
+`typedef class X;` is the canonical UVM forward-declaration idiom (UVM heavily uses it for circular class references). The gate now sees a `type_name` fact for `uvm_seed_map`; test purpose preserved.
+
+### Empirical verification
+
+- **iso5/iso4 minimal repros** (`module m; function bit f(string a, b="");` / `..., b=""`) — PASS (were FAIL — the fix-target evidence).
+- **iso1/iso2/iso3/iso6 controls** — PASS (no regression on minimal repros).
+- **4 sanity controls** — forward-declared `typedef class Bar; Bar x; class Bar; endclass`, declared-then-used `class MyClass; endclass MyClass obj;`, plain module, `module m #(parameter int W=8) (input logic [W-1:0] a);` parameterized header — all PASS.
+- **SV external corpus 10 PASS / 4 FAIL / 0 TIMEOUT** — no regression on the 10 known-PASS files (scr1 ×4, friscv ×4, veer ×2 with bootstrap-chained `--lib-in`). Residual 4 FAIL = uvm_pkg ×{2017,2023} + uvm_compat_pkg ×{2017,2023}.
+- **uvm_pkg deep-position advance**: surface_position 113637 (F1 PEG-furthest-position tooling artefact, unchanged) but Slice-59's `furthest_position` tracker reports **162162** out of ~180K (pre-fix tracked deepest was 19378 at Slice-54 → ~8.4× deeper). The parser is now reaching ~90% of uvm_pkg before backtracking exhaustion.
+- **uvm_compat_pkg**: furthest_position 114993 → 116752 (+1759).
+- **Lib (no-features)** 548/548 PASS.
+- **Lib (--features generated_parsers)** 609/609 PASS.
+- **SV shape-contract** GREEN (in features-on suite).
+- **RGX broader corpus / conformance ✅ 44/0** (non-semantic grammar, unaffected by the SV-only grammar change — regex_parser_* tests in features-on lib suite).
+
+### Release framing
+
+- Release `1.0.126 → 1.0.127`, schema **STAYS 3**.
+- **Behaviour-tightening category** — distinct from prior SV-EXH-PROOF slices (which were SVPP-0002/REGEX-0083 strictly-more-permissive). Undeclared types are now correctly rejected per LRM; consumers whose inputs accidentally depended on the over-permissive acceptance will see those inputs correctly rejected. Closest precedent: RGX-0087's `\89`-leading hard-reject.
+- AST shape vocabulary unchanged (`{head, params, scope_chain}` shape unchanged); only the acceptance criterion changes.
+
+### No-workarounds hierarchy
+
+**Level 1** — use existing semantic-annotation primitive. No new annotation, store, or engine machinery needed. Per [[feedback_no_workarounds_fix_hierarchy]] (user-set 2026-05-23). The proven `.3.3.1`/`.3.3.2`/`.3.3.3` declared-id idiom applied to one more rule. Sign-off-quality at the lowest layer.
+
+### Architectural principle reinforced
+
+Per [[feedback_grammar_rules_must_consult_store]] (user-set 2026-05-25): rules that categorise a bare identifier into a tracked category (type/class/interface/package/...) SHALL consult the semantic store via `has_fact` / `fact_attribute_equals` / `lacks_fact`. This slice is the canonical exemplar; the umbrella `.b.6.2.35.{2..16}` will apply the same principle to the remaining 9 Table-B + 3 Table-C + 3 Table-D audit hits.
+
+### Frontier after this slice
+
+- `.b.6.2.35.{2..16}` — remaining 9 Table-B scope-prefix-pattern rules + 3 Table-C inline categorising constructs + 3 Table-D delegators, each its own sub-leaf with empirical per-rule verification.
+- `.b.6.2.35.0` — deferred docs slice (capture the audit findings as a defect-taxonomy entry). Pure-docs, no dependency on remaining `.35.x`, can be picked up anytime.
+- **H1 cross-file-import class** (`H1-α` library-import chain via `--lib-in` chaining for uvm corpus, OR `H1-β` import-emits-permissive-fact). The actual fix-path for moving uvm_pkg from FAIL to PASS — `.35.1` cleared the structural defect that nibbled at every implicit-type-port-list site but uvm's cross-file `extends`/`type_id` references need the H1 fix.
+
+### Local-only
+
+Per [[feedback_push_pacing]] (no-push override active). Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`.
+
 ## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.30 RE-FRAMED + .b.6.2.35 umbrella opened — tools-first re-diagnosis disproves persistence framing; root cause is structural ungated identifier-categorisation rules (PGEN-SV-EXH-PROOF-0080)
 
 ### Context
