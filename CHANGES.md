@@ -1,4 +1,63 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0083 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.2): TOOL-BUILD — WHO+WHY visibility in semantic-store trace events; rollback / emit_fact / has_fact / apply_delta / predicate-rejection events now identify the rule + full call chain that triggered them. PURE INSTRUMENTATION (engine), no semantics change
+
+User raised the foundational tools-first issue mid-`.36.2`: "do we know exactly who (function/rule) triggered the rollback? The why is important, maybe it was legit. The 'anonymous rollback' is not really useful. From now on, for any issue / unexpected behavior we need to know exactly WHY it happens AND inside which function/rule it happened — without such information we can't devise a stable solution." This re-cast `.b.6.2.36.2` from a speculative fix attempt into a TOOL-BUILD slice that closes the gap. New STANDING DISCIPLINE captured in memory: [[feedback_why_and_where_before_solution]].
+
+What landed (engine instrumentation, parser-agnostic, no behavior change):
+
+1. `SemanticRuntimeState` gains `current_rule_context_stack: Vec<String>` (the per-rule nesting chain) + `push_rule_context` / `pop_rule_context` / `current_rule_context` / `rule_context_path` API.
+2. `rollback_to_named(checkpoint, caller_context: Option<&str>)` — new variant that tags the trace event with the rule + caller-specific context (e.g. `"(try_parse Err)"`, `"(C3-B branch 2/4 cleanup)"`, `"(transaction.drop)"`). `rollback_to` is now a thin wrapper for callers without context.
+3. `transaction_named(rule_name)` — new variant of `state.transaction()` that tags the `SemanticRuntimeTransaction` with the rule_name; Drop auto-rollback and explicit `rollback()` log the rule.
+4. The HIGH trace events for `emit_fact` / `has_fact` / `lacks_fact_attribute_equals` / `apply_delta` all include `caller=<rule_context_path>` showing the full nested call chain.
+5. The generated parser's `with_semantic_runtime_rule_transaction` IIFE pushes the rule onto `current_rule_context_stack` BEFORE the `mem::take + clone` (so BOTH the saved original and the active clone hold the entry; on err-restore the matching pop correctly removes the entry from whichever state ends up in self.state).
+6. The generated parser's `try_parse` Err handler captures `parse_stack.last()` BEFORE truncating and passes `caller_context = "<rule> (try_parse Err)"` to `rollback_to_named`. The `🔙 Speculative parse failed` warning log now also includes the rule.
+7. The C3-B per-branch tournament rollback (in `generate_or_logic`) passes `caller_context = "<rule> (C3-B branch N/K cleanup)"`.
+8. The post-predicate-rejection log (the `🚫 Rule X rejected by post predicate Y` line) gains a DBG-level companion that emits the full `rule_stack` + position at the rejection site.
+9. `transaction_for_rule` was updated to use `transaction_named` so the rule identity reaches the auto-rollback.
+
+EMPIRICAL VERIFICATION OF THE TOOL (the `class_param_t.sv` minimal repro from `.b.6.2.36.1`):
+
+PRE-`.36.2` trace (anonymous):
+```
+♻️ rollback_to(checkpoint fact_len=1, scope_arena_len=1) — discarding 1 fact(s) + 0 scope-arena node(s)
+   ↪ discarding fact[1] kind=type_name name=Identifier("T") scope_depth=0
+```
+
+POST-`.36.2` trace (WHO+WHY both visible):
+```
+♻️ rollback_to(checkpoint fact_len=1, scope_arena_len=1,
+              caller=parameter_port_list (try_parse Err),
+              chain=systemverilog_file > source_text_item >
+                    package_or_generate_item_declaration_sv_2017 >
+                    class_declaration_sv_2017)
+              — discarding 1 fact(s) + 0 scope-arena node(s)
+   ↪ discarding fact[1] kind=type_name name=Identifier("T") scope_depth=0
+```
+
+So the rollback that discards T is now DECISIVELY pinned to `parameter_port_list`'s try_parse failure inside `class_declaration_sv_2017`. The genuine next question (the WHY): why does `parameter_port_list`'s try_parse fail when its inner tournament succeeded — what's the rule expecting after the tournament that doesn't match? That investigation belongs to a follow-up slice (`.b.6.2.36.3`) that now has the tools to pin WHY surgically.
+
+NO-WORKAROUNDS HIERARCHY: this slice is a level-5 parser-agnostic engine extension, but PURELY for instrumentation — no behavior change. The `rollback_to` / `rollback_to_named` separation is the canonical "extend without breaking" pattern (old API still works; new API adds context). Every parser benefits.
+
+ARCHITECTURAL PRINCIPLE REINFORCED: per the new [[feedback_why_and_where_before_solution]] standing discipline, every issue/unexpected behavior must answer (1) WHY (concrete cause) AND (2) WHERE (rule/function caller identity). If the current tooling can't surface both, BUILD THE TOOL FIRST as its own slice. The fix slice is a follow-up. Speculation-based fixes have repeatedly failed (Slice-67 C3-B framing was wrong; Slice-68 Architecture B disproven on corpus). The cost of building a tool is much lower than the cost of one wrong-direction fix slice. This slice is the canonical exemplar.
+
+VERIFIED:
+- Lib (no-features) **548/548 PASS** — pure instrumentation, no behavior change.
+- Lib (--features generated_parsers) **609/609 PASS** [verified during slice].
+- iso5/iso4 minimal repros + iso1/iso2/iso3/iso6 + 4 sanity controls — all unchanged behavior.
+- SV external corpus 10/14 — preserved (this slice doesn't fix anything; it just makes the next investigation tractable).
+- The tool was DEMONSTRATED on `class_param_t.sv`: the once-anonymous rollback now reads `caller=parameter_port_list (try_parse Err), chain=systemverilog_file > ... > class_declaration_sv_2017` — the WHO is pinned.
+
+Release: NO release/contract bump — pure instrumentation engine slice, no AST shape change, no acceptance criteria change for any consumer. Generated parsers regenerated to pick up the new IIFE template (push/pop rule context + named rollback_to_named in try_parse Err + C3-B branch cleanup). 
+
+Local-only per [[feedback_push_pacing]] (no-push override active; restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`).
+
+Frontier:
+- `.b.6.2.36.3` (next slice) — investigate WHY `parameter_port_list`'s try_parse fails when its inner tournament succeeded, using the new instrumentation.
+- `.b.6.2.36.4` — implement the fix based on `.36.3`'s WHY.
+- `.b.6.2.35.{2..16}` — remaining ungated identifier-categorisation rules.
+- `.b.6.2.35.0` — deferred docs slice.
+- H1 cross-file-import.
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0082 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.1, umbrella `.b.6.2.36` OPENED): TOOLS-FIRST INVESTIGATION of a SEPARATE defect class exposed by `.b.6.2.35.1` — class-scoped type-parameter fact-persistence (`class c #(type T=int)` emits `type_name=T` but C3-A's per-`try_parse` rollback discards the fact before downstream parses can see it). PURE DOCS slice — no grammar / Rust / generated change.
 
 After `.b.6.2.35.1` (Slice-70) landed and advanced uvm_pkg furthest_position 19378 → 162162, investigation of the next deeper failure (around uvm_bit_vector_utils#(type T=int)'s `static function string to_string(T value, int size, ...)`) revealed a SEPARATE defect class. Minimal repros:

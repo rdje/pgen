@@ -1209,6 +1209,19 @@ pub struct SemanticRuntimeState {
     predicate_defs: HashMap<String, PredicateDef>,
     /// `.3.3.4.b.5.1.6`: cumulative operation counters (observability).
     counters: SemanticStoreCounters,
+    /// `SV-EXH-PROOF.3.3.4.b.6.2.36.2` — the rule whose IIFE / transaction
+    /// currently owns the state. Set by `with_rule_context` (called by the
+    /// generated `with_semantic_runtime_rule_transaction` wrapper); cleared
+    /// on exit. Used to tag `emit_fact` / `evaluate_predicate` / `apply_delta`
+    /// trace events with the rule that triggered them, so every state-store
+    /// trace event answers WHO + WHY (no more "anonymous" events). Per
+    /// [[feedback_why_and_where_before_solution]].
+    ///
+    /// Tracked as a stack (Vec) rather than `Option<String>` because rule
+    /// transactions nest (parent rule calls child rule which is itself
+    /// wrapped in a per-rule transaction); each entry/exit
+    /// push/pops the innermost frame.
+    current_rule_context_stack: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -1216,6 +1229,13 @@ pub struct SemanticRuntimeTransaction<'a> {
     state: &'a mut SemanticRuntimeState,
     checkpoint: SemanticRuntimeCheckpoint,
     committed: bool,
+    /// SV-EXH-PROOF.3.3.4.b.6.2.36.2 — name of the rule (if any) that owns
+    /// this transaction. Used to annotate the `rollback_to` trace event so
+    /// rollback events are no longer "anonymous" w.r.t. which try_parse /
+    /// rule transaction owned them. Per [[feedback_why_and_where_before_solution]]:
+    /// every issue / unexpected behaviour needs WHY (cause) and WHERE
+    /// (rule/function); rollback events without rule_name only gave us WHY.
+    rule_name: Option<String>,
 }
 
 impl Default for SemanticRuntimeState {
@@ -1248,6 +1268,47 @@ impl SemanticRuntimeState {
             active_chain: vec![ScopeId::ROOT],
             predicate_defs: HashMap::new(),
             counters: SemanticStoreCounters::default(),
+            // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — initialised empty; the
+            // generated parser's per-rule IIFE pushes/pops via
+            // `push_rule_context` / `pop_rule_context`.
+            current_rule_context_stack: Vec::new(),
+        }
+    }
+
+    /// SV-EXH-PROOF.3.3.4.b.6.2.36.2 — push the rule whose transaction is
+    /// taking ownership of state-store events. Trace events fired between
+    /// `push_rule_context(rule)` and the matching `pop_rule_context()` will
+    /// include the rule name. Stack discipline: every push must be paired
+    /// with exactly one pop (the generated IIFE handles this).
+    pub fn push_rule_context(&mut self, rule_name: &str) {
+        self.current_rule_context_stack.push(rule_name.to_string());
+    }
+
+    /// Pair with `push_rule_context`. Pops the innermost frame.
+    pub fn pop_rule_context(&mut self) {
+        self.current_rule_context_stack.pop();
+    }
+
+    /// Returns the innermost rule context (if any). Used by the state-store
+    /// trace events to identify the rule that triggered them.
+    pub fn current_rule_context(&self) -> Option<&str> {
+        self.current_rule_context_stack
+            .last()
+            .map(|s| s.as_str())
+    }
+
+    /// SV-EXH-PROOF.3.3.4.b.6.2.36.2 — return the FULL nested call chain
+    /// joined by `>` (e.g. `class_declaration > class_item > function_declaration
+    /// > tf_port_item > data_type > declared_type_parameter_identifier`).
+    /// Used in trace events so WHO is the full call context, not just the
+    /// innermost rule — answers "where in the rule hierarchy did this fire"
+    /// per the user's 2026-05-25 clarification of
+    /// [[feedback_why_and_where_before_solution]].
+    pub fn rule_context_path(&self) -> String {
+        if self.current_rule_context_stack.is_empty() {
+            "<anonymous>".to_string()
+        } else {
+            self.current_rule_context_stack.join(" > ")
         }
     }
 
@@ -1491,6 +1552,22 @@ impl SemanticRuntimeState {
             state: self,
             checkpoint,
             committed: false,
+            rule_name: None,
+        }
+    }
+
+    /// SV-EXH-PROOF.3.3.4.b.6.2.36.2 — same as `transaction()` but tags the
+    /// transaction with a `rule_name` so rollback trace events identify the
+    /// owning rule. Use this from generated parsers' per-rule transaction
+    /// wrappers; `transaction()` stays available for callers that don't have
+    /// (or don't need) a rule identity (tests, library import path, etc.).
+    pub fn transaction_named(&mut self, rule_name: &str) -> SemanticRuntimeTransaction<'_> {
+        let checkpoint = self.checkpoint();
+        SemanticRuntimeTransaction {
+            state: self,
+            checkpoint,
+            committed: false,
+            rule_name: Some(rule_name.to_string()),
         }
     }
 
@@ -1499,7 +1576,9 @@ impl SemanticRuntimeState {
         compiled: &CompiledSemanticRuntimeAnnotations,
         rule_name: &str,
     ) -> (SemanticRuntimeTransaction<'a>, usize) {
-        let mut transaction = self.transaction();
+        // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — use the rule-named transaction so
+        // any auto-rollback on Drop identifies the rule in the trace.
+        let mut transaction = self.transaction_named(rule_name);
         let applied = transaction.apply_compiled_rule(compiled, rule_name);
         (transaction, applied)
     }
@@ -1593,14 +1672,35 @@ impl SemanticRuntimeState {
         self.active_chain = delta.final_active_chain;
         self.scopes = delta.final_scopes;
         // SV-EXH-PROOF.3.3.4.b.6.2.28 cont. — self-explaining delta-apply.
+        // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — include rule_context_path for WHO.
         crate::pgen_trace_high!(
-            "🔁 apply_delta — facts now at {} (was lower), active_chain now {}",
+            "🔁 apply_delta — facts now at {} (was lower), active_chain now {}, chain={}",
             self.facts.len(),
             self.active_chain.len(),
+            self.rule_context_path(),
         );
     }
 
     pub fn rollback_to(&mut self, checkpoint: SemanticRuntimeCheckpoint) {
+        self.rollback_to_named(checkpoint, None);
+    }
+
+    /// SV-EXH-PROOF.3.3.4.b.6.2.36.2 — same as `rollback_to` but tags the
+    /// trace event with the rule/caller that owned the failing transaction
+    /// or try_parse. Closes the "anonymous rollback" tooling gap per
+    /// [[feedback_why_and_where_before_solution]] — every rollback now
+    /// identifies WHO triggered it, not just WHAT was discarded.
+    ///
+    /// `caller_context` may be a bare rule name, a path like
+    /// `"<rule> (try_parse Err)"`, `"<rule> (C3-B branch cleanup)"`, or any
+    /// short label that helps diagnose which speculation owned the
+    /// checkpoint. Pass `None` (or use `rollback_to`) when no context is
+    /// available (legacy / tests / library-import).
+    pub fn rollback_to_named(
+        &mut self,
+        checkpoint: SemanticRuntimeCheckpoint,
+        caller_context: Option<&str>,
+    ) {
         let fact_len = checkpoint.fact_len.min(self.facts.len());
         let scope_arena_len = checkpoint.scope_arena_len.max(1).min(self.scope_arena.len());
         // `.3.3.4.b.5.1.1`: extend rollback to undo the per-kind index entries
@@ -1620,10 +1720,20 @@ impl SemanticRuntimeState {
         // where a fact emitted on the eventual-winning parse path gets
         // wiped by a peer speculation's rollback.
         if facts_being_rolled_back > 0 || self.scope_arena.len() > scope_arena_len {
+            // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — include caller_context AND
+            // the full nested rule_context_path in the trace so the rollback
+            // event identifies WHO triggered it (full call chain).
+            // `caller_context` adds local detail like "(try_parse Err)" or
+            // "(C3-B branch 2/4 cleanup)"; `rule_context_path` gives the
+            // outer call chain.
+            let local_label = caller_context.unwrap_or("<unspecified>");
+            let chain = self.rule_context_path();
             crate::pgen_trace_high!(
-                "♻️ rollback_to(checkpoint fact_len={}, scope_arena_len={}) — discarding {} fact(s) + {} scope-arena node(s)",
+                "♻️ rollback_to(checkpoint fact_len={}, scope_arena_len={}, caller={}, chain={}) — discarding {} fact(s) + {} scope-arena node(s)",
                 fact_len,
                 scope_arena_len,
+                local_label,
+                chain,
                 facts_being_rolled_back,
                 self.scope_arena.len() - scope_arena_len,
             );
@@ -1796,13 +1906,20 @@ impl SemanticRuntimeState {
         // side — without seeing emissions, predicate-fails can't be
         // distinguished from "fact was never emitted" vs "fact emitted
         // but predicate query missed it."
+        // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — every emit_fact event identifies
+        // the FULL rule call chain that triggered it (e.g.
+        // `class_declaration > class_item > function_declaration > ...`).
+        // Closes the once-anonymous WHO gap per
+        // [[feedback_why_and_where_before_solution]].
+        let emit_rule_ctx = self.rule_context_path();
         crate::pgen_trace_high!(
-            "📥 @emit_fact kind={} name={:?} scope_depth={} scope_id={:?} attrs={}",
+            "📥 @emit_fact kind={} name={:?} scope_depth={} scope_id={:?} attrs={} caller={}",
             fact.kind,
             fact.name,
             scope_depth,
             scope_id,
             fact.attributes.len(),
+            emit_rule_ctx,
         );
         if !fact.attributes.is_empty() {
             crate::pgen_trace_debug!(
@@ -1916,11 +2033,16 @@ impl SemanticRuntimeState {
                 // facts found (or the count of all facts of that kind, when
                 // the query was negative — to help diagnose "fact never
                 // emitted" vs "fact emitted with wrong name").
+                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — include the rule context
+                // chain so the trace identifies WHO is querying. Closes
+                // the once-anonymous WHO gap per
+                // [[feedback_why_and_where_before_solution]].
                 crate::pgen_trace_high!(
-                    "🔍 has_fact(kind={}, name={:?}) → {}",
+                    "🔍 has_fact(kind={}, name={:?}) → {} caller={}",
                     expected_kind,
                     expected_name,
                     result,
+                    self.rule_context_path(),
                 );
                 if !result && crate::ast_pipeline::trace_enabled(crate::ast_pipeline::TraceLevel::Debug) {
                     let total_of_kind = self.fact_index.count_for_kind(expected_kind);
@@ -2010,13 +2132,15 @@ impl SemanticRuntimeState {
                     });
                 let result = !any_match;
                 // SV-EXH-PROOF.3.3.4.b.6.2.28 — self-explaining fact-query trace.
+                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — include rule_context_path WHO.
                 crate::pgen_trace_high!(
-                    "🔍 lacks_fact_attribute_equals(kind={}, name={:?}, key={}, value={:?}) → {}",
+                    "🔍 lacks_fact_attribute_equals(kind={}, name={:?}, key={}, value={:?}) → {} caller={}",
                     expected_kind,
                     expected_name,
                     expected_key,
                     expected_value,
                     result,
+                    self.rule_context_path(),
                 );
                 if !result && crate::ast_pipeline::trace_enabled(crate::ast_pipeline::TraceLevel::Debug) {
                     crate::pgen_trace_debug!(
@@ -2324,7 +2448,14 @@ impl<'a> SemanticRuntimeTransaction<'a> {
     }
 
     pub fn rollback(mut self) {
-        self.state.rollback_to(self.checkpoint.clone());
+        // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — pass rule_name so the rollback
+        // event identifies the owning rule's transaction.
+        let context = self
+            .rule_name
+            .as_deref()
+            .map(|name| format!("{} (transaction.rollback)", name));
+        self.state
+            .rollback_to_named(self.checkpoint.clone(), context.as_deref());
         self.committed = true;
     }
 
@@ -2338,7 +2469,15 @@ impl<'a> SemanticRuntimeTransaction<'a> {
 impl Drop for SemanticRuntimeTransaction<'_> {
     fn drop(&mut self) {
         if !self.committed {
-            self.state.rollback_to(self.checkpoint.clone());
+            // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — Drop auto-rollback now names
+            // the owning rule so this once-anonymous code path identifies
+            // itself in the trace.
+            let context = self
+                .rule_name
+                .as_deref()
+                .map(|name| format!("{} (transaction.drop)", name));
+            self.state
+                .rollback_to_named(self.checkpoint.clone(), context.as_deref());
         }
     }
 }

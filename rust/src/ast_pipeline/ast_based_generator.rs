@@ -1242,9 +1242,26 @@ impl AstBasedGenerator {
                 if self.semantic_runtime_annotations.is_empty()
                     || !self.semantic_runtime_annotations.has_rule(rule_name)
                 {
-                    let (node, _raw) = f(self)?;
+                    // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — even the fast-path
+                    // pushes/pops the rule context so any nested rule's
+                    // emit_fact / predicate eval / rollback / apply_delta
+                    // trace events include the full call chain. The unannotated
+                    // rule itself emits nothing, but it CAN call into
+                    // annotated child rules.
+                    self.semantic_runtime_state.push_rule_context(rule_name);
+                    let result = f(self);
+                    self.semantic_runtime_state.pop_rule_context();
+                    let (node, _raw) = result?;
                     return Ok(node);
                 }
+
+                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — push BEFORE the take so
+                // BOTH the saved `original_semantic_runtime_state` and the
+                // active clone hold the same rule_context_stack. On the
+                // err-restore path the clone is discarded and original
+                // becomes self.state; the matching pop then correctly
+                // removes our pushed entry regardless of result.is_err().
+                self.semantic_runtime_state.push_rule_context(rule_name);
 
                 let original_semantic_runtime_state =
                     std::mem::take(&mut self.semantic_runtime_state);
@@ -1298,6 +1315,9 @@ impl AstBasedGenerator {
                 // `unsafe` was judged not worth it. If a mid-parse
                 // `catch_unwind` is ever introduced, revisit the RAII guard.
                 // ============================================================
+                // Note: rule_context push/pop straddles the IIFE — pushed
+                // BEFORE the `mem::take` above so original AND clone both
+                // hold it, popped AFTER the err-restore below.
                 let result: ParseResult<ParseNode<'input>> = (|| -> ParseResult<ParseNode<'input>> {
                     let mut predicate_blocked = false;
                     for directive in self.semantic_runtime_annotations.pre_predicates_for_rule(rule_name)
@@ -1353,7 +1373,13 @@ impl AstBasedGenerator {
                             semantic_raw_content.as_ref().unwrap_or(&node.content);
                         let mut semantic_runtime_state =
                             std::mem::take(&mut self.semantic_runtime_state);
-                        let mut semantic_runtime_transaction = semantic_runtime_state.transaction();
+                        // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — name the
+                        // transaction with the owning rule so its Drop
+                        // auto-rollback (the once-anonymous code path) now
+                        // identifies itself in the trace. Per
+                        // [[feedback_why_and_where_before_solution]].
+                        let mut semantic_runtime_transaction =
+                            semantic_runtime_state.transaction_named(rule_name);
                         for directive in self
                             .semantic_runtime_annotations
                             .effect_directives_for_rule(rule_name)
@@ -1446,6 +1472,33 @@ impl AstBasedGenerator {
                                             .unwrap_or("<unknown>"),
                                     ),
                                 );
+                                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — DBG-level
+                                // rule stack on every failure event per
+                                // [[feedback_why_and_where_before_solution]]:
+                                // every failure must answer WHO + WHY. The
+                                // rejected-by-predicate log gives WHY (the
+                                // failing predicate); the DBG stack adds
+                                // the full chain of rules that led to this
+                                // point so a diagnoser can see the call
+                                // context immediately.
+                                if crate::ast_pipeline::trace_enabled(crate::ast_pipeline::TraceLevel::Debug) {
+                                    let stack_path: Vec<&str> = self
+                                        .recursion_guard
+                                        .parse_stack
+                                        .iter()
+                                        .map(|entry| entry.0)
+                                        .collect();
+                                    self.logger.log_debug(
+                                        file!(),
+                                        line!(),
+                                        &format!(
+                                            "   ↪ rule_stack={} ({} frames), position={}",
+                                            stack_path.join(" > "),
+                                            stack_path.len(),
+                                            node.span.start,
+                                        ),
+                                    );
+                                }
                             }
                             Err(ParseError::Backtrack {
                                 position: node.span.start,
@@ -1483,6 +1536,10 @@ impl AstBasedGenerator {
                 if result.is_err() {
                     self.semantic_runtime_state = original_semantic_runtime_state;
                 }
+                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — pop the rule context.
+                // Pairs with the `push_rule_context` above. Stack discipline:
+                // exactly one pop per push, regardless of result.is_ok().
+                self.semantic_runtime_state.pop_rule_context();
                 result
             }
 
@@ -2877,9 +2934,21 @@ impl AstBasedGenerator {
                                 let candidate_delta = parser
                                     .semantic_runtime_state
                                     .extract_delta_since(&tournament_semantic_checkpoint);
+                                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — tag the
+                                // C3-B per-branch cleanup rollback with the
+                                // owning rule + branch index so the trace
+                                // event identifies WHO cleaned up. Per
+                                // [[feedback_why_and_where_before_solution]].
+                                let cb_branch_context = format!(
+                                    "{} (C3-B branch {}/{} cleanup)",
+                                    #rule_name, #branch_num, #branch_count,
+                                );
                                 parser
                                     .semantic_runtime_state
-                                    .rollback_to(tournament_semantic_checkpoint.clone());
+                                    .rollback_to_named(
+                                        tournament_semantic_checkpoint.clone(),
+                                        Some(&cb_branch_context),
+                                    );
 
                                 if should_take {
                                     best_end = candidate_end;
@@ -5197,14 +5266,28 @@ impl AstBasedGenerator {
                     Err(e) => {
                         // Backtrack
                         self.position = saved_pos;
+                        // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — capture the rule
+                        // at parse_stack top BEFORE truncating, so the
+                        // rollback trace event identifies the failing
+                        // speculation's owning rule. Per
+                        // [[feedback_why_and_where_before_solution]].
+                        let try_parse_rule = self
+                            .recursion_guard
+                            .parse_stack
+                            .last()
+                            .map(|entry| entry.0.to_string());
                         self.recursion_guard.parse_stack.truncate(saved_stack_len);
                         // .b.6.2.7: also undo semantic side-effects of the
                         // failed speculation (see the block-comment above).
+                        let try_parse_context = try_parse_rule
+                            .as_deref()
+                            .map(|name| format!("{} (try_parse Err)", name))
+                            .unwrap_or_else(|| "<top-level try_parse> (try_parse Err)".to_string());
                         self.semantic_runtime_state
-                            .rollback_to(saved_semantic_checkpoint);
+                            .rollback_to_named(saved_semantic_checkpoint, Some(&try_parse_context));
 
                         if self.trace_enabled() {
-                            self.logger.log_warning(#filename, self.position as u32, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {}", e, saved_pos));
+                            self.logger.log_warning(#filename, self.position as u32, &format!("🔙 Speculative parse failed with error '{:?}', backtracked to position {} (rule={})", e, saved_pos, try_parse_rule.as_deref().unwrap_or("<top-level>")));
                         }
 
                         None

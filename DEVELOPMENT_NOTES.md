@@ -1,4 +1,97 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.36.2 — TOOL-BUILD: WHO+WHY visibility in semantic-store trace events. Engine-only instrumentation slice (PGEN-SV-EXH-PROOF-0083)
+
+### Re-cast from "implement the fix" → "build the tool first"
+
+The originally-planned `.b.6.2.36.2` was an attempt at the class-scoped type-parameter persistence fix from `.b.6.2.36.1`'s three viable approaches. Partway through the design, the user surfaced (multiple messages, in this same session) a foundational tools-first issue:
+
+- "Do we know exactly why and who (function/rule) triggered the rollback?"
+- "The why is important, maybe it was legit."
+- "Do we have something similar to a stacktrace, a rule stack to synthetically see the sequence of calls leading to a certain problem?"
+- "This anonymous rollback is not really useful."
+- "From now on, for any issue or unexpected behavior we need to know exactly why it happens and inside which function/rule it happened, without such information we can't devise a stable solution."
+- "For every semantic fact/predicate, we need to know exactly who (function/rule) triggered it at any time. Whenever any issue fires we need to be able to answer 2 questions at least, WHY it fired and WHO fired it."
+- "In debug mode, whenever a failure occurs we need to get the rule stack that led to that error."
+
+The slice was re-cast as a TOOL-BUILD slice: close the once-anonymous gap so rollback / emit_fact / predicate-eval events identify the rule and full call chain that triggered them. The fix slice now belongs to `.b.6.2.36.3` (investigate WHY) and `.b.6.2.36.4` (implement based on WHY).
+
+The user's discipline is now a STANDING memory: [[feedback_why_and_where_before_solution]].
+
+### Engine surface added
+
+All changes parser-agnostic, no behavior change, no AST shape change.
+
+**`rust/src/ast_pipeline/semantic_runtime.rs`:**
+1. `SemanticRuntimeState` gains `current_rule_context_stack: Vec<String>` — the per-rule nesting chain.
+2. New methods: `push_rule_context(rule_name)`, `pop_rule_context()`, `current_rule_context() -> Option<&str>` (innermost), `rule_context_path() -> String` (full chain joined by `>`).
+3. `rollback_to_named(checkpoint, caller_context: Option<&str>)` — new variant. Trace event includes `caller=<context>, chain=<rule_context_path>`. The original `rollback_to(checkpoint)` is now a thin wrapper that delegates with `None` (legacy callers — tests, library-import — unchanged).
+4. `SemanticRuntimeTransaction` gains `rule_name: Option<String>` field.
+5. `state.transaction_named(rule_name)` — new variant that tags the transaction; Drop auto-rollback and explicit `rollback()` now pass `caller_context = "<rule> (transaction.drop)"` / `"(transaction.rollback)"`.
+6. `transaction_for_rule` updated to use `transaction_named`.
+7. HIGH trace events for `emit_fact`, `has_fact`, `lacks_fact_attribute_equals`, `apply_delta` all include `caller=<rule_context_path>` (the full nested chain).
+
+**`rust/src/ast_pipeline/ast_based_generator.rs`:**
+1. `with_semantic_runtime_rule_transaction` IIFE codegen pushes the rule_context BEFORE the `mem::take + clone` (so both saved original and active clone hold the entry) and pops AFTER the err-restore (so the pop applies to whichever state ends up in self.state). Stack discipline: exactly one push/pop pair per IIFE invocation.
+2. The fast-path (skips IIFE when no annotations) also push/pops the rule context, since nested annotated child rules need the outer call chain.
+3. `try_parse` Err handler:
+   - Captures `parse_stack.last()` (the failing rule) BEFORE truncating.
+   - Passes `caller_context = "<rule> (try_parse Err)"` to `rollback_to_named`.
+   - The `🔙 Speculative parse failed` log includes the rule name.
+4. C3-B per-branch tournament rollback (`generate_or_logic`):
+   - Passes `caller_context = format!("{} (C3-B branch {}/{} cleanup)", rule_name, branch_num, branch_count)`.
+5. Post-predicate-rejection log (`🚫 Rule X rejected by post predicate Y`):
+   - Gains a DBG-level companion: `   ↪ rule_stack=<chain> (N frames), position=<pos>`.
+
+### Demonstrated on the minimal repro
+
+`/tmp/pgen-bug/class_param_t.sv`:
+```
+class c #(type T=int);
+  function void f(T value);
+  endfunction
+endclass
+```
+
+PRE-`.36.2` trace (the rollback that discards T):
+```
+♻️ rollback_to(checkpoint fact_len=1, scope_arena_len=1)
+   — discarding 1 fact(s) + 0 scope-arena node(s)
+   ↪ discarding fact[1] kind=type_name name=Identifier("T") scope_depth=0
+```
+No identification of which rule fired the rollback. Anonymous.
+
+POST-`.36.2` trace (the same rollback):
+```
+♻️ rollback_to(checkpoint fact_len=1, scope_arena_len=1,
+              caller=parameter_port_list (try_parse Err),
+              chain=systemverilog_file > source_text_item >
+                    package_or_generate_item_declaration_sv_2017 >
+                    class_declaration_sv_2017)
+   — discarding 1 fact(s) + 0 scope-arena node(s)
+   ↪ discarding fact[1] kind=type_name name=Identifier("T") scope_depth=0
+```
+
+So the rollback that discards T fact is DECISIVELY pinned to `parameter_port_list`'s `try_parse` failure inside `class_declaration_sv_2017`. The `parameter_port_list` rule's try_parse fails despite its inner tournament selecting a winning branch that emitted T. The genuine next question (the WHY) is: what does `parameter_port_list` expect after the apply_delta that doesn't match? That investigation is now tractable — it belongs to `.b.6.2.36.3`.
+
+### Verification
+
+- Lib (no-features) 548/548 PASS post-regen (pure instrumentation, no behavior change).
+- Lib (--features generated_parsers) 609/609 PASS [verified during slice].
+- iso5/iso4 minimal repros + iso1/iso2/iso3/iso6 + 4 sanity controls — all unchanged behavior.
+- SV external corpus 10/14 preserved.
+
+### Release framing
+
+NO release/contract bump. AST shape vocabulary unchanged. Acceptance criteria for every consumer unchanged. The trace messages are richer; the parse result is identical for every input. Pure-instrumentation engine slice.
+
+### No-workarounds hierarchy
+
+Level 5 (engine extension), but explicitly for INSTRUMENTATION, not behavior. The user-set principle [[feedback_why_and_where_before_solution]] makes this kind of engine instrumentation a first-class deliverable in its own right when the diagnostic gap blocks a fix. Lower-level alternatives (grep through code, add `eprintln!`s, etc.) would be one-off and would not persist as a standing tool. A first-class instrumentation surface is the right level.
+
+### Local-only
+
+Per [[feedback_push_pacing]]. Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`.
+
 ## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.36.1 — TOOLS-FIRST INVESTIGATION: class-scoped type-parameter fact-persistence defect exposed by `.35.1` (PGEN-SV-EXH-PROOF-0082)
 
 ### Context
