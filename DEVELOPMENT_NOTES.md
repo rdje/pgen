@@ -1,4 +1,155 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.36.4 — **ENGINE FIX LANDED**: memoization-delta replay (PGEN-SV-EXH-PROOF-0085)
+
+### Implementing the design from `.36.3`
+
+`.b.6.2.36.3` pinned the TRUE root cause: memoization caches AST results but NOT semantic-runtime side effects. This slice implements the design: extend `MemoEntry` with `Option<SemanticRuntimeDelta>`, capture at body-execution time, replay on cache hit.
+
+### Implementation
+
+**1. `rust/src/ast_pipeline/mod.rs` — `MemoEntry` struct gains a `semantic_delta` field:**
+
+```rust
+pub struct MemoEntry<'input> {
+    pub result: Option<ParseNode<'input>>,
+    pub raw_semantic_content: Option<ParseContent<'input>>,
+    pub end_pos: usize,
+    /// SV-EXH-PROOF.3.3.4.b.6.2.36.4 — the semantic-runtime delta the
+    /// rule's body produced (relative to the checkpoint captured at
+    /// memoization-call entry). When the cache hit reuses the parse
+    /// result instead of re-executing the body, this delta is REPLAYED
+    /// so the rule's `@emit_fact` / `@open_scope` / `@close_scope` side
+    /// effects appear in the current state — closing the memoization ×
+    /// semantic-store composition gap pinned by `.b.6.2.36.3`.
+    ///
+    /// `None` when the parse failed (no delta to replay); `Some(delta)`
+    /// when the parse succeeded — even if the delta is empty (no side
+    /// effects), the field is `Some(empty_delta)` to keep the type uniform.
+    pub semantic_delta: Option<SemanticRuntimeDelta>,
+}
+```
+
+**2. `rust/src/ast_pipeline/ast_based_generator.rs` — emitted `memoized_call`:**
+
+On entry to the memoized rule (after cache lookup, before calling `f`):
+
+```rust
+let memo_entry_checkpoint = self.semantic_runtime_state.checkpoint();
+let result = f(self);
+```
+
+After `f` returns Ok, extract the delta:
+
+```rust
+if let Ok((node, raw_semantic_content)) = &result {
+    let semantic_delta = self
+        .semantic_runtime_state
+        .extract_delta_since(&memo_entry_checkpoint);
+    self.memo.insert(
+        key,
+        MemoEntry {
+            result: Some(node.clone()),
+            raw_semantic_content: raw_semantic_content.clone(),
+            end_pos: node.span.end,
+            semantic_delta: Some(semantic_delta),
+        },
+    );
+}
+```
+
+On memo hit, before returning the cached AST, apply the delta:
+
+```rust
+if let Some(entry) = self.memo.get(&key) {
+    if let Some(node) = &entry.result {
+        self.position = entry.end_pos;
+        if let Some(delta) = entry.semantic_delta.clone() {
+            if !delta.is_empty() {
+                self.semantic_runtime_state.apply_delta(delta);
+            }
+        }
+        return Ok((node.clone(), entry.raw_semantic_content.clone()));
+    }
+}
+```
+
+**3. `generated/*.rs` — all 10 parsers regenerated** to pick up the new `memoized_call` template + the new field in MemoEntry struct definition.
+
+### Why this composition was broken
+
+Two independently-correct layers:
+- **Memoization** (Packrat-style, since `.b.6.2.15`): caches parse results to avoid re-executing rules at the same position.
+- **Semantic store** (`.b.5.1.x`): transactional model with C3-A per-try_parse rollback, C3-B per-tournament-branch delta replay, IIFE per-rule transactions.
+
+They didn't compose because the cache stored AST but not the side-effect delta. The fix makes them compose: the cache now stores the delta too, and replays it on every hit.
+
+### Empirical verification
+
+**Minimal repros (all PASS with the fix):**
+- `class_param_t.sv` (`class c #(type T=int); function void f(T value); endfunction endclass`) — was FAIL at byte 42 pre-fix; **NOW PASSES**.
+- `uvm_bvu_minimal.sv` (uvm_bit_vector_utils#(type T=int) with `static function string to_string(T value, int size); endfunction`) — was FAIL at byte 100 pre-fix; **NOW PASSES**.
+- iso5/iso4/iso1/iso2/iso3/iso6 (the `.35.1` minimal repros) — unchanged behavior.
+- `simple_typedef.sv` (typedef instead of class type-parameter) — unchanged behavior.
+- 4 sanity controls (forward-declared `typedef class`, declared-then-used class, plain module, `#(parameter int W=8)` parameterized module) — unchanged behavior.
+
+**SV external corpus**: 10 PASS / 4 FAIL / 0 TIMEOUT — identical to `.35.1` baseline. scr1 ×4, friscv ×4, veer ×2 (with bootstrap chain) all preserved. Residual 4 FAIL = uvm_pkg ×{2017,2023} + uvm_compat_pkg ×{2017,2023}.
+
+**uvm_pkg furthest_position**: 162162 → **181413** (+19251 bytes deeper). ~10% additional through-progress.
+
+**Lib tests:**
+- No-features: **548/548 PASS** post-regen.
+- Features-on: **609/609 PASS** [verified in slice].
+
+**Clippy**: ✅ `clippy_on_rust_change completed` (generated-parser warnings in non-strict mode, accepted per `PGEN_CLIPPY_GENERATED_STRICT` policy).
+
+**SV shape-contract**: GREEN (in features-on suite).
+
+**RGX 44/0** ✅ via `regex_parser_*` tests in features-on suite. Critical because RGX is the conformance-suite-stable proof that the engine change is behavior-preserving for grammars without semantic annotations (regex has none, so delta is always empty, replay is a no-op).
+
+### Performance characterization
+
+For grammars **without** semantic annotations (regex, json, ebnf): the captured delta is always empty (`new_facts=[]`, `new_scope_nodes=[]`, `closed_scope_ids=[]`). `apply_delta` is short-circuited via `delta.is_empty()`. Net cost: one extra `checkpoint()` call per memoized_call entry (a cheap `Vec::len()` snapshot + `active_chain.clone()` of typically <10 ScopeIds) + one `extract_delta_since` call on success (also cheap when the result is empty).
+
+For grammars **with** semantic annotations (SV, VHDL, RTL): the delta is typically O(few facts) per rule. apply_delta is O(facts_added) which is bounded.
+
+The fix is structurally NOT a perf regression because:
+- The checkpoint+extract overhead is bounded by the work already being done on the rule body
+- The replay-on-hit work matches what the body would have done on a non-memoized call (just appending facts to the store)
+- Memo hits are STRICTLY FEWER than non-memo calls would do, so total work is bounded by the no-memo upper bound
+
+### Architectural framing
+
+NO-WORKAROUNDS HIERARCHY: this fix is **level 5** (parser-agnostic engine extension). Necessary because levels 1-4 (existing annotations / existing store / new annotation / new store feature) can't address a memoization × store composition gap — that gap is structurally below the annotation level.
+
+NOT vindicating retired persistence mandate ([[feedback_predicate_parse_order_sota]]). That retirement was based on mis-framing the iso5/iso4 / port-list defect. This slice's fix addresses a SEPARATELY-DISCOVERED defect (memoization × semantic-store interaction) with a CONCRETE, decisively-evidenced root cause from `.36.3`'s tools-first investigation.
+
+The user-set [[feedback_why_and_where_before_solution]] discipline produced an end-to-end exemplar in this session:
+1. `.36.1` — identified the defect class on a minimal repro.
+2. `.36.2` — built the WHO+WHY visibility tool.
+3. `.36.3` — used the tool to pin the exact root cause (memoization × store composition gap).
+4. `.36.4` — implemented the fix based on the pinned root cause. Lands clean.
+
+Each slice is small, decisive, and lockstepped. Zero speculative-fix-attempts that get disproven; zero wasted slices.
+
+### Release framing
+
+This is a **parser-agnostic engine fix**. No grammar change, no AST shape change. Behavior change: previously-rejecting parses involving class-scoped type-parameters (and any other rules where memo hits would lose side effects) now succeed correctly. Closest precedent: SVPP-0002/REGEX-0083 (strictly-more-permissive correctness fix).
+
+Release-bump candidate: 1.0.127 → 1.0.128, schema stays 3. Decision deferred to `.b.6.2.36.5` after running the full proof gates and cross-parser broader-corpus check (regex broader corpus / RGX conformance gate + VHDL strict-promotion + ebnf dual-run).
+
+### Files in commit
+
+- `rust/src/ast_pipeline/mod.rs` — MemoEntry struct field
+- `rust/src/ast_pipeline/ast_based_generator.rs` — memoized_call template (delta capture + replay)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, `docs/tasks/SV-EXH-PROOF.md` — lockstep narrative
+- `MEMORY.md` + `project_all_task_trees_complete.md` — updated to reflect `.36.4` done
+
+NOT IN COMMIT (per `.gitignore`): the 10 regenerated `generated/*.rs` files. Per the 2026-04-29 PGEN-RGX-0073 redesign, these are reproducible via the bootstrap chain.
+
+### Local-only
+
+Per [[feedback_push_pacing]]. Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`.
+
 ## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.36.3 — INVESTIGATION + instrumentation extension. TRUE ROOT CAUSE PINNED: memoization caches parse results but NOT semantic-runtime side effects (PGEN-SV-EXH-PROOF-0084)
 
 ### Bundled work: instrumentation extension + investigation

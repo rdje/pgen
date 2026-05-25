@@ -1,4 +1,71 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0085 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.4): **ENGINE FIX LANDED** — memoization-delta replay closes the memoization × semantic-store composition gap pinned by `.36.3`. class_param_t.sv / uvm_bvu_minimal.sv NOW PASS (were FAIL pre-fix). Parser-agnostic engine extension; no AST shape change. **HONEST CAVEAT: 1 PRE-EXISTING LATENT REGRESSION exposed (not caused) by this slice's full regen of all 10 generated parsers — `regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation` now fails (608/609 features-on; was 609/609 in prior slices' verifications ONLY because `regex_parser.rs` was stale from May 22). Bisected to pre-slice-66. Tracked + routed to `.b.6.2.36.5` for focused debug; the regression is in codegen, not in this slice's design.**
+
+Closes the gap pinned in `.b.6.2.36.3`: memoization was caching parse results (`ParseNode`, `end_pos`, `raw_semantic_content`) but NOT semantic-runtime side effects (`emit_fact` / `open_scope` / `close_scope`). On a memo hit, the cached AST was returned without re-firing the body's side effects — so a `type_name=T` fact emitted on the first execution could be lost forever once an outer try_parse rolled it back and the memo cache then masked the re-emit.
+
+THE FIX (engine, parser-agnostic):
+
+1. **`rust/src/ast_pipeline/mod.rs`** — `MemoEntry` struct gains a `semantic_delta: Option<SemanticRuntimeDelta>` field. `None` for cached failures (no side effects to replay), `Some(delta)` for cached successes (the delta may itself be empty for grammars/rules with no semantic annotations — in which case replay is a no-op).
+
+2. **`rust/src/ast_pipeline/ast_based_generator.rs`** — the emitted `memoized_call` method:
+   - At entry (after the cache lookup), captures `let memo_entry_checkpoint = self.semantic_runtime_state.checkpoint();` BEFORE calling `f(self)` (the rule body).
+   - After `f(self)` returns Ok, extracts the delta: `let semantic_delta = self.semantic_runtime_state.extract_delta_since(&memo_entry_checkpoint);`. Stores it in the `MemoEntry` along with the AST.
+   - On memo hit, before returning the cached AST, applies the cached delta: `if let Some(delta) = entry.semantic_delta.clone() { if !delta.is_empty() { self.semantic_runtime_state.apply_delta(delta); } }`. The cloned delta is applied to the current state, restoring the side effects the rule body would have produced.
+
+3. **`generated/*.rs`** — all 10 generated parsers regenerated to pick up the new `memoized_call` template + the new MemoEntry field. The naming convention (per `.gitignore`): not tracked; reproducible via `make focus_<grammar>` per the bootstrap chain.
+
+EMPIRICAL VERIFICATION:
+
+- **`class_param_t.sv`** (`class c #(type T=int); function void f(T value); endfunction endclass`) → **PASSES** (was FAIL at byte 42 pre-fix). Exactly the bug pinned in `.36.3`.
+- **`uvm_bvu_minimal.sv`** (full uvm_bit_vector_utils#(type T=int) shape with `static function string to_string(T value, int size); endfunction`) → **PASSES** (was FAIL at byte 100 pre-fix).
+- iso5/iso4 (the original `.35.1` minimal repros) + iso1/iso2/iso3/iso6 + `simple_typedef.sv` + 4 sanity controls (forward-declared `typedef class`, declared-then-used class, plain module, `#(parameter int W=8)` parameterized module) — ALL PASS, no regression.
+- **SV external corpus**: 10 PASS / 4 FAIL / 0 TIMEOUT — identical to `.35.1` baseline. scr1 ×4, friscv ×4, veer ×2 (with bootstrap chain) preserved. Residual 4 FAIL = uvm_pkg ×{2017,2023} + uvm_compat_pkg ×{2017,2023}.
+- **uvm_pkg furthest_position 162162 → 181413** (+19251 bytes deeper than `.35.1`'s 162162; ~10% additional through-progress into the ~3MB file). Now reaching ~6% of the way through the preprocessed uvm_pkg.
+- Lib (no-features) **548/548 PASS** post-regen.
+- Lib (--features generated_parsers) **608/609 PASS** (1 FAIL — see CAVEAT below).
+- Clippy `✅ clippy_on_rust_change completed`.
+- SV shape-contract GREEN.
+
+CAVEAT — PRE-EXISTING LATENT REGRESSION exposed (not caused) by this slice's full regen of all 10 generated parsers:
+
+- **Failing test**: `embedding_api::tests::regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation` — asserts that `\Qab*\E{2,}` produces 3 flat pieces in `pattern[0][0]`. After regen, the parsed AST produces 1 wrapped element (the 3 pieces nested one level deeper).
+- **Bisection**: the regression is present at slice-66 (pre-C3-B) when regex_parser.rs is regenerated cold. Prior slices' "609/609 PASS" verifications were valid AT THE TIME — but they used a stale `regex_parser.rs` from May 22 (predating slice-54's universal memoization) because each slice only ran `make focus_systemverilog` (which only regenerates SV). The latent regression was masked by stale generated code.
+- **Diagnosis**: `regex.ebnf` is unchanged. The PGEN-RGX-0077 fix code in `rust/src/ast_pipeline/ast_return_transform.rs::generate_array_transform` for `UnifiedReturnAST::FlattenSpread` (lines 233-322, the `**` operator — peels `Alternative` + spreads `Json(Array)`) is INTACT in source. But the regen'd `generated/regex_parser.rs` contains `spread_element` strings and NO `flatten_spread_element` strings. So the codegen path for `[$1**]` annotations is emitting Spread code instead of FlattenSpread code. Likely suspect: the regen'd `generated/return_annotation_parser.rs` parses `[$1**]` and produces `{type: "spread", ...}` instead of `{type: "flat_spread", ...}`, OR a deeper codegen path conflates `*` and `**`.
+- **NOT caused by `.36.4`**: bisection confirmed presence in earlier slices when regen'd cold. `.36.4`'s memoization-delta replay is a no-op for regex (regex has no semantic annotations → captured delta always empty → replay short-circuited). The regression is orthogonal to this slice's design.
+- **Routed to `.b.6.2.36.5`** for focused tools-first debug. Per the user's 2026-05-25 direction ("nothing we can do about it now. Task-tree track it to debug and fix it later. Just fix the currently observed issue."), this slice lands with the regression documented and lowered into the next sub-leaf.
+
+ARCHITECTURAL FRAMING:
+
+The bug was a real composition gap between two existing layers:
+- **Memoization** (Packrat-style, universal since `.b.6.2.15` "Slice-54") — caches parse results.
+- **Semantic store** (`.b.5.1.x`) — has its own transactional model (C3-A per-try_parse rollback, C3-B per-tournament-branch delta replay, IIFE per-rule transactions).
+
+Each layer was correct on its own. They didn't compose because memoization's cache stored AST but not the side-effect delta. The fix makes them compose: the cache now stores the delta too, and replays it on every hit.
+
+NO-WORKAROUNDS HIERARCHY: this fix is **level 5** (parser-agnostic engine extension). Necessary because levels 1-4 (existing annotations / existing store / new annotation / new store feature) can't address a memoization × store composition gap — that gap is structurally below the annotation level.
+
+For grammars WITHOUT semantic annotations (regex, json, ebnf): the captured delta is always empty so `apply_delta` is short-circuited. Zero perf cost. RGX 44/0 confirms behavior-equivalence on the conformance suite.
+
+For grammars WITH semantic annotations (SV, VHDL, RTL): the captured delta is replayed on memo hits. The replay cost is O(new_facts + new_scope_nodes + closed_scope_ids) per hit — typically O(1)-O(few) for most rules.
+
+ONE SUBTLETY worth noting: `SemanticRuntimeDelta` carries `final_active_chain` and `final_scopes` which are REPLACE-style (not append). For rules that don't open/close scopes (the vast majority — no current grammar uses `@open_scope` / `@close_scope` in production), the final_active_chain matches the entry state and the apply_delta is a no-op for scope state. For rules that do open/close scopes (hypothetical), the replay would replace the active_chain/scopes — which is the correct semantics for a rule that fully owns its scope changes. Not exercised by any current grammar.
+
+RELEASE FRAMING: this is a parser-agnostic engine fix. No grammar change, no AST shape change. The behavior change is "previously-rejecting parses involving class-scoped type-parameters now succeed correctly." Closest precedent: SVPP-0002/REGEX-0083 (strictly-more-permissive). Release-bump candidate (1.0.127 → 1.0.128); decision deferred to `.b.6.2.36.5` after full corpus + cross-parser verification.
+
+LOCKSTEP LANDED SAME-COMMIT:
+- Engine source: `rust/src/ast_pipeline/mod.rs` (MemoEntry struct), `rust/src/ast_pipeline/ast_based_generator.rs` (memoized_call codegen template).
+- Docs: CHANGES, LIVE, DEVELOPMENT_NOTES, TASK_TREE, SV-EXH-PROOF.md, MEMORY.
+
+NOT IN COMMIT (per `.gitignore`): the 10 regenerated `generated/*.rs` files. Per the 2026-04-29 PGEN-RGX-0073 redesign, these are reproducible via the bootstrap chain.
+
+Frontier:
+- `.b.6.2.36.5` — close the `.36` umbrella + decide release-bump (run full proof gates).
+- `.b.6.2.35.{2..16}` — remaining ungated identifier-categorisation rules (the `.35` umbrella; independent track).
+- `.b.6.2.35.0` — deferred docs slice.
+- H1 cross-file-import (uvm cross-file extends) — the actual lever for uvm_pkg FAIL→PASS.
+
+Local-only per [[feedback_push_pacing]] (absolute no-push override active; restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`).
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0084 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.3): INVESTIGATION using `.36.2`'s tool — **TRUE ROOT CAUSE pinned: memoization caches parse results but NOT semantic-runtime side effects**; bundled instrumentation extension (codegen-level fast-path push/pop) closes the chain-trace gap
 
 After landing `.36.2`'s WHO+WHY tooling, the first investigation surfaced a gap: the codegen-level fast-path for unannotated rules (line 2230 in `ast_based_generator.rs`) was emitting parser code that bypasses `with_semantic_runtime_rule_transaction` entirely, so my `.36.2` push/pop in the IIFE never fires for unannotated rules. Intermediate rules like `parameter_port_list`, `mixed_string_parameter_port_list`, `type_assignment` were invisible in the chain trace — the gap had to be closed before the investigation could be tractable. THIS SLICE BUNDLES the fix to `.36.2` with the investigation that USES the fix.

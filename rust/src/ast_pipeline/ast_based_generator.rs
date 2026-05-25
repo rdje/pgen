@@ -5326,6 +5326,18 @@ impl AstBasedGenerator {
                             self.logger.log_info(#filename, self.position as u32, &format!("💾 Memo hit for rule {} at position {} - reusing cached result", rule_id, self.position));
                         }
 
+                        // SV-EXH-PROOF.3.3.4.b.6.2.36.4 — replay the cached
+                        // semantic delta so the rule's `@emit_fact` /
+                        // `@open_scope` / `@close_scope` side effects appear
+                        // in the current state. Closes the memoization ×
+                        // semantic-store composition gap pinned by
+                        // `.b.6.2.36.3`.
+                        if let Some(delta) = entry.semantic_delta.clone() {
+                            if !delta.is_empty() {
+                                self.semantic_runtime_state.apply_delta(delta);
+                            }
+                        }
+
                         return Ok((node.clone(), entry.raw_semantic_content.clone()));
                     } else {
                         if self.trace_enabled() {
@@ -5343,15 +5355,22 @@ impl AstBasedGenerator {
                 }
 
                 let start_pos = key.1;
+                // SV-EXH-PROOF.3.3.4.b.6.2.36.4 — capture entry checkpoint
+                // BEFORE f(self) so we can extract the body's delta after.
+                let memo_entry_checkpoint = self.semantic_runtime_state.checkpoint();
                 let result = f(self);
 
                 if let Ok((node, raw_semantic_content)) = &result {
+                    let semantic_delta = self
+                        .semantic_runtime_state
+                        .extract_delta_since(&memo_entry_checkpoint);
                     self.memo.insert(
                         key,
                         MemoEntry {
                             result: Some(node.clone()),
                             raw_semantic_content: raw_semantic_content.clone(),
                             end_pos: node.span.end,
+                            semantic_delta: Some(semantic_delta),
                         },
                     );
                     if self.trace_enabled() {
@@ -5364,6 +5383,7 @@ impl AstBasedGenerator {
                             result: None,
                             raw_semantic_content: None,
                             end_pos: start_pos,
+                            semantic_delta: None,
                         },
                     );
                     if self.trace_enabled() {

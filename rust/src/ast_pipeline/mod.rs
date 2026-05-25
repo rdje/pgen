@@ -621,6 +621,18 @@ pub struct MemoEntry<'input> {
     pub result: Option<ParseNode<'input>>,
     pub raw_semantic_content: Option<ParseContent<'input>>,
     pub end_pos: usize,
+    /// SV-EXH-PROOF.3.3.4.b.6.2.36.4 — the semantic-runtime delta the rule's
+    /// body produced (relative to the checkpoint captured at memoization-call
+    /// entry). When the cache hit reuses the parse result instead of
+    /// re-executing the body, this delta is REPLAYED so the rule's
+    /// `@emit_fact` / `@open_scope` / `@close_scope` side effects appear in
+    /// the current state — closing the memoization × semantic-store
+    /// composition gap pinned by `.b.6.2.36.3`.
+    ///
+    /// `None` when the parse failed (no delta to replay); `Some(delta)` when
+    /// the parse succeeded — even if the delta is empty (no side effects),
+    /// the field is `Some(empty_delta)` to keep the type uniform.
+    pub semantic_delta: Option<SemanticRuntimeDelta>,
 }
 
 /// Rule ID type for memoization
