@@ -377,10 +377,14 @@ fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>)
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
-    parser.set_grammar_profile(normalize_generated_grammar_profile(
+    let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
-    ));
+    );
+    parser.set_grammar_profile(normalized_profile);
+    if preload_systemverilog_stdlib(&mut parser, normalized_profile).is_err() {
+        return false;
+    }
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     parser.parse_full_systemverilog_file().is_ok()
 }
@@ -393,10 +397,12 @@ fn parse_with_systemverilog_detail_profile(
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
-    parser.set_grammar_profile(normalize_generated_grammar_profile(
+    let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
-    ));
+    );
+    parser.set_grammar_profile(normalized_profile);
+    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     let result = parser.parse_full_systemverilog_file().map(|_| ());
     // SV-EXH-PROOF.3.3.4.b.6.2.25 — on failure, augment the error with the
@@ -446,17 +452,67 @@ fn parse_with_systemverilog_detail_profile_with_library(
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
-    parser.set_grammar_profile(normalize_generated_grammar_profile(
+    let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
-    ));
+    );
+    parser.set_grammar_profile(normalized_profile);
     parser.set_library_in_dir(library_options.in_dir.clone());
     parser.set_library_out_dir(library_options.out_dir.clone());
+    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     parser
         .parse_full_systemverilog_file()
         .map(|_| ())
         .map_err(|err| err.to_string())
+}
+
+// SV-EXH-PROOF.3.3.4.b.6.2.37.2 — H2 auto-load hook for the SV stdlib.
+// Reads `<repo_root>/parser_libs/sv_<profile>_std/package/std.facts.json`
+// (checked in by `.37.1`) and pushes each fact into the parser's
+// semantic_runtime_state BEFORE the parse begins. This makes the LRM §G.2
+// `std::` predefined classes (process / semaphore / mailbox today; can grow)
+// visible to the `.35.1`-gated `has_fact(type_name, X)` checks for the
+// duration of the parse, without requiring user code to declare them.
+//
+// Path resolution: `env!("CARGO_MANIFEST_DIR")` is `rust/`, so its parent
+// is the repo root. Missing stdlib bundle = no-op (single-file fallback,
+// behaviour-equivalent to pre-.37.2). Read errors surface as `Err`.
+#[cfg(has_generated_systemverilog_parser)]
+fn preload_systemverilog_stdlib(
+    parser: &mut SystemverilogParser,
+    normalized_profile: Option<&str>,
+) -> Result<(), String> {
+    let profile_dir = match normalized_profile {
+        Some("sv_2023") => "sv_2023_std",
+        // Default to sv_2017 when no profile / unrecognised — sv_2017 covers
+        // the corpus baseline. Future grammar profiles register their own
+        // bundle here.
+        _ => "sv_2017_std",
+    };
+    let manifest_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let Some(repo_root) = manifest_dir.parent() else {
+        return Ok(()); // Manifest has no parent? Skip (no place for parser_libs).
+    };
+    let stdlib_path = repo_root.join("parser_libs").join(profile_dir);
+    if !stdlib_path.is_dir() {
+        return Ok(()); // No stdlib bundle for this profile — no-op.
+    }
+    match crate::ast_pipeline::library::read_artifact(&stdlib_path, "package", "std") {
+        Ok(records) => {
+            let state = parser.semantic_runtime_state_mut();
+            for record in records {
+                state.push_fact_record(record);
+            }
+            Ok(())
+        }
+        Err(crate::ast_pipeline::library::LibraryError::NotFound(_)) => Ok(()),
+        Err(other) => Err(format!(
+            "SV stdlib preload failed (path={}): {:?}",
+            stdlib_path.display(),
+            other
+        )),
+    }
 }
 
 #[cfg(has_generated_systemverilog_parser)]
@@ -472,10 +528,12 @@ fn parse_with_systemverilog_ast_json_profile(
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
-    parser.set_grammar_profile(normalize_generated_grammar_profile(
+    let normalized_profile = normalize_generated_grammar_profile(
         "systemverilog",
         grammar_profile,
-    ));
+    );
+    parser.set_grammar_profile(normalized_profile);
+    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
     let parsed = parser
         .parse_full_systemverilog_file()

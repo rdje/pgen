@@ -1,4 +1,68 @@
 # CHANGES.md
+## 2026-05-26 - PGEN-SV-EXH-PROOF-0089 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.2): **H2 ENGINE+ADAPTER FIX LANDED** — SV stdlib auto-load is wired end-to-end. Two coordinated changes: (a) codegen change in `ast_pipeline/ast_based_generator.rs::generate_parse_method` — `parse()` snapshots `semantic_runtime_state.facts()` BEFORE the reset-to-fresh and re-pushes them after, preserving preloaded facts across the reset; (b) `parser_registry`'s SV adapter auto-loads `parser_libs/sv_<profile>_std/package/std.facts.json` at parser construction. Per [[feedback_grammar_rules_must_consult_store]] + [[feedback_no_workarounds_fix_hierarchy]] (level 2).
+
+ROOT CAUSE (tools-first, decisive):
+
+`.37.1` shipped the std library artifact and verified it loadable via explicit `--lib-in parser_libs/sv_2017_std` + an `import std::*;` source preamble. Without --lib-in (the production case) the minimal repro still FAILED. Trace-driven diagnosis via `--trace-rules data_type --trace` on `/tmp/sv_h2_no_libin.sv` showed the std type_name facts never appeared in `has_fact` checks despite being pushed by the SV adapter's preload at parser construction. Reading the codegen surface: `parse()` (in `ast_based_generator.rs::generate_parse_method`) unconditionally does `self.semantic_runtime_state = SemanticRuntimeState::new()` at start — intended to clear leftovers between parses, but it WIPES preloaded facts before the first rule fires.
+
+THE FIX (two coordinated landings):
+
+(a) Codegen change — `rust/src/ast_pipeline/ast_based_generator.rs::generate_parse_method`:
+
+```rust
+let preloaded_facts: Vec<crate::ast_pipeline::SemanticFactRecord> =
+    self.semantic_runtime_state.facts().to_vec();
+self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
+for record in preloaded_facts {
+    self.semantic_runtime_state.push_fact_record(record);
+}
+```
+
+Snapshot facts BEFORE the reset; re-push them AFTER. The reset's intent (clear runtime stats + speculation leftovers) is preserved; the user-facing pre-load survives. Behavior-equivalent for parsers without preloads (snapshot is empty vector; loop is a no-op; one `Vec::new()` allocation is the only cost). All 10 generated/*.rs files regenerated via `make focus_systemverilog` to pick up the new template.
+
+(b) SV adapter wiring — `rust/src/parser_registry.rs`:
+
+New `preload_systemverilog_stdlib(parser, normalized_profile) -> Result<(), String>` helper:
+- Profile-aware: `Some("sv_2023")` → `sv_2023_std`; everything else → `sv_2017_std` default
+- Path: `env!("CARGO_MANIFEST_DIR")` parent + `parser_libs/sv_<profile>_std/` — repo-relative, works for in-repo dev + tests
+- Reads `parser_libs/sv_<profile>_std/package/std.facts.json` via `crate::ast_pipeline::library::read_artifact`
+- Pushes each `SemanticFactRecord` into `parser.semantic_runtime_state_mut()` via `push_fact_record`
+- Missing artifact = silent no-op (single-file fallback); read error = propagated as `Err(String)`
+
+Wired into all 4 SV parser construction sites:
+- `parse_with_systemverilog_profile`
+- `parse_with_systemverilog_detail_profile`
+- `parse_with_systemverilog_detail_profile_with_library` (the --lib-in variant)
+- `parse_with_systemverilog_ast_json_profile`
+
+EMPIRICAL VERIFICATION:
+
+- Minimal repro `module m; function void f(); process p; endfunction endmodule` PASSES WITHOUT any --lib-in flag (was FAIL at byte 0 [furthest 42] pre-fix).
+- Method/scoped-enum patterns `process::self()`, `p.kill()/await()/suspend()/resume()`, `p.status() == process::FINISHED`, semaphore/mailbox method calls (`s.put/get`, `mb.put/get/peek/num`) — all PASS, confirming `.37.0`'s scope finding that type_name fact alone is sufficient.
+- Lib (--features generated_parsers) **609/609 PASS** (no regression).
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅ (`make clippy_on_rust_change`; strict source lint passes).
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary count stable at 10/14.
+
+CORPUS DEEPENING (the real story of this slice):
+
+- **uvm_pkg ×{2017,2023} furthest_position: 181413 → 828954** (+647,541 bytes, ~4.5× deeper).
+- Reaches **line 25726** of the preprocessed file — the `uvm_visitor#(uvm_component)` parameterized-class chain. This is the NEXT LRM-extraction defect class (parameterized class scoping inside a complex base-class chain).
+- uvm_pkg STILL fails at SURFACE position 113637 (the start of `package uvm_pkg`) because the outer rule eventually backtracks all the way — but the deepest exploration is now ~4.5× further into the body.
+- uvm_compat_pkg ×{2017,2023} unchanged at furthest 116752 — H1 territory (cross-package `extends uvm_pkg::uvm_packer`); depends on uvm_pkg producing a library artifact, can't land until uvm_pkg PASSES first.
+
+H2 is **necessary not sufficient** — same onion-peeling pattern as `.b.1`'s conditional_statement fix (corpus binary count unchanged, but parser walks much deeper before hitting the next defect). The remaining uvm_pkg blocker is now a new sub-leaf candidate (`.37.3+`) for the parameterized-class chain.
+
+NO-WORKAROUNDS HIERARCHY: **level 2** (existing semantic store + reuse of `.3.3.4.a` library infrastructure; the new helper is grammar-aware adapter glue, not a new annotation/feature). Levels 1 (preprocessor preamble injection) and 3 (new `@bootstrap_facts` directive) remain documented fallbacks in `.b.6.2.37` umbrella's design-alternatives section.
+
+NO RELEASE BUMP — corpus binary count unchanged + no AST shape change + the preload is a behavior-tightening enabler (some previously-FAILING inputs now reach deeper into the parser; no previously-PASSING input changes shape).
+
+Frontier: `.b.6.2.37.3+` for the parameterized-class chain defect surfaced at line 25726, OR cycle to `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation, OR H1 (uvm_compat_pkg cross-package extends — depends on uvm_pkg landing first).
+
+Books unaffected (no user-facing surface change). Same-slice lockstep: engine codegen + parser_registry + CHANGES + LIVE + TASK_TREE + MEMORY.
+
+⛔ NO-PUSH OVERRIDE active.
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0088 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.1): **DATA SLICE** — checked in `parser_libs/sv_2017_std/package/std.facts.json` + `parser_libs/sv_2023_std/package/std.facts.json`. 3 `type_name` facts each (`mailbox` / `process` / `semaphore`, alphabetical per [[feedback_manifest_alphabetical_order]]) with `declaration_family: builtin_class`. Uses the existing `.3.3.4.a` library format (`format_version: 1`). Empirically verified loadable via explicit `--lib-in parser_libs/sv_2017_std` + `import std::*;` source preamble. NO BEHAVIOR CHANGE (dormant data until `.37.2` adds the always-load hook). Files: `parser_libs/sv_2017_std/package/std.facts.json`, `parser_libs/sv_2023_std/package/std.facts.json`, plus same-slice docs lockstep (CHANGES + LIVE + TASK_TREE). ⛔ NO-PUSH OVERRIDE active.
 
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0087 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.0): **TOOLS-FIRST INVESTIGATION** — H2 (built-in language types per IEEE 1800 §G.2) defect class identified + umbrella `.b.6.2.37` opened. H1 framing refined from "cross-file-import" (conflated two classes) into the parallel "cross-package extends chain" track that targets uvm_compat_pkg specifically. PURE DOCS slice — no code change.

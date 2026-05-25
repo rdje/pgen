@@ -954,7 +954,22 @@ impl AstBasedGenerator {
                 self.negative_case_rule_hits.clear();
                 self.deterministic_partition_events.clear();
                 self.deterministic_partition_rule_hits.clear();
+                // `SV-EXH-PROOF.3.3.4.b.6.2.37.2`: preserve any facts that
+                // were pushed onto the parser BEFORE `parse()` is called —
+                // those are intentional preloads (e.g. the SV stdlib's
+                // `process`/`semaphore`/`mailbox` `type_name` facts loaded
+                // by `preload_systemverilog_stdlib` in parser_registry).
+                // The reset to a fresh state is intended to clear leftovers
+                // from a prior parse (or from PEG speculation that wasn't
+                // properly rolled back); preloads are stable facts that
+                // should survive that reset. We snapshot before the reset
+                // and re-push after.
+                let preloaded_facts: Vec<crate::ast_pipeline::SemanticFactRecord> =
+                    self.semantic_runtime_state.facts().to_vec();
                 self.semantic_runtime_state = crate::ast_pipeline::SemanticRuntimeState::new();
+                for record in preloaded_facts {
+                    self.semantic_runtime_state.push_fact_record(record);
+                }
                 // `SV-EXH-PROOF.3.3.4.b.5.1.5.c`: re-seed the composed-predicate
                 // registry after the reset (a fresh `SemanticRuntimeState`
                 // starts with an empty registry).
