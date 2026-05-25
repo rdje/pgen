@@ -2228,9 +2228,22 @@ impl AstBasedGenerator {
         };
         let _is_recursive_unused = is_recursive; // suppress unused warning if any
         let wrapped_rule_call: TokenStream = if self.rule_has_no_semantic_annotations(rule_name) {
+            // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — even unannotated rules push
+            // their name onto the rule_context_stack so the WHO trace
+            // events for any annotated child rule include the full nested
+            // call chain (e.g. `class_declaration_sv_2017 >
+            // parameter_port_list > mixed_string_parameter_port_list >
+            // type_assignment_sv_2017 > declared_type_parameter_identifier`).
+            // Without this push/pop here, intermediate unannotated rules
+            // were INVISIBLE in the chain trace — breaking the WHY+WHERE
+            // visibility guarantee per
+            // [[feedback_why_and_where_before_solution]]. Cost: two Vec
+            // pushes per rule entry; negligible vs the rule's parse cost.
             quote! {
                 let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+                    parser.semantic_runtime_state.push_rule_context(#rule_name);
                     let inner_result = #memoized_inner;
+                    parser.semantic_runtime_state.pop_rule_context();
                     inner_result.map(|(node, _raw)| node)
                 })(self);
             }

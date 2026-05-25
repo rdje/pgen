@@ -1,4 +1,115 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.36.3 — INVESTIGATION + instrumentation extension. TRUE ROOT CAUSE PINNED: memoization caches parse results but NOT semantic-runtime side effects (PGEN-SV-EXH-PROOF-0084)
+
+### Bundled work: instrumentation extension + investigation
+
+After landing `.36.2`'s WHO+WHY tooling, the first investigation surfaced a gap: the codegen at `ast_based_generator.rs:2230` short-circuits unannotated rules to AVOID `with_semantic_runtime_rule_transaction` entirely:
+
+```rust
+let wrapped_rule_call: TokenStream = if self.rule_has_no_semantic_annotations(rule_name) {
+    quote! {
+        let result: ParseResult<ParseNode<'input>> = (|parser: &mut Self| {
+            let inner_result = #memoized_inner;
+            inner_result.map(|(node, _raw)| node)
+        })(self);
+    }
+} else { ... }
+```
+
+So my `.36.2` push/pop in the IIFE's fast-path never fires for unannotated rules — and intermediate rules like `parameter_port_list`, `mixed_string_parameter_port_list`, `type_assignment` were invisible in the chain trace. This gap had to be closed before the investigation could be tractable. This slice bundles the fix to `.36.2` (5 added lines pushing/popping the rule_context inside the unwrapped codegen path) with the investigation that uses the now-complete tool.
+
+After the fix, the class_param_t.sv re-trace produced the full call chain at every state-store event — e.g.:
+```
+📥 @emit_fact kind=type_name name=Identifier("T") ... caller=
+  systemverilog_file > source_text > source_text_item > description >
+  package_item > package_or_generate_item_declaration >
+  package_or_generate_item_declaration_sv_2017 > class_declaration >
+  class_declaration_sv_2017 > parameter_port_list >
+  mixed_string_parameter_port_list > type_assignment >
+  type_assignment_sv_2017 > declared_type_parameter_identifier
+```
+
+### Investigation findings — TRUE ROOT CAUSE
+
+The class_param_t.sv minimal repro (`class c #(type T=int); function void f(T value); endfunction endclass`) fails for a DIFFERENT reason than the `.b.6.2.36.1` framing (which guessed at "class-scoped type-parameter fact-persistence"). The actual root cause:
+
+**MEMOIZATION CACHES PARSE RESULTS BUT NOT SEMANTIC-RUNTIME SIDE EFFECTS.**
+
+Sequence of events:
+
+1. `parameter_port_list`'s tournament (branch_policy=longest_match, 6 branches) is evaluated at position 7 (the `#`).
+2. **Branch 1 (mixed_string_parameter_port_list)** calls `type_assignment` at position 14. `type_assignment`'s own tournament (sv_2017 vs sv_2023) emits `type_name=T` via apply_delta → T is in the state.
+3. `mixed_string_parameter_port_list` requires `comma kw_string` after type_assignment. Input at position 20 is `)`. Branch 1's try_parse Err fires → C3-A's `rollback_to` removes T from state. Branch 1 fails.
+4. **Memoization** inserts a cache entry for `(type_assignment, position=14)`. The cached entry stores: `ParseNode` (the AST), `end_pos=20`, `raw_semantic_content`. It does NOT store the semantic delta (the `type_name=T` emission). The cache survives the try_parse Err rollback.
+5. **Branch 3 (type_only**: `hash lparen kw_type type_assignment ( comma kw_type type_assignment )* rparen`) tries: calls `type_assignment` at position 14 again. **MEMO HIT.** Returns cached AST + advances position to 20. **type_assignment's body is NOT re-executed. No `emit_fact` fires. No `apply_delta`.**
+6. Branch 3 succeeds with cached AST. `parameter_port_list`'s C3-B per-branch `extract_delta_since(tournament_checkpoint)` extracts NOTHING (no facts emitted since the tournament checkpoint, because branch 3's type_assignment call was a memo hit that emitted nothing).
+7. `best_semantic_delta = Some(empty_delta)`.
+8. After all branches, `apply_delta(best_semantic_delta)` is SKIPPED because `delta.is_empty()` returns true (the `if !delta.is_empty()` guard).
+9. `parameter_port_list` selects branch 3 successfully — **but T is NOT in the committed state.**
+10. `class_declaration_sv_2017` continues into the class body. function_declaration parses `T value`. `data_type`'s `checked_type_identifier` checks `has_fact(type_name, T) → false`. Rule rejected by post predicate. `data_type` fails. function arg parse fails. `class_declaration_sv_2017`'s try_parse Err fires.
+11. `class_declaration`'s outer tournament tries `class_declaration_sv_2023` (also fails the same way). The whole class_declaration fails. Byte 42 reported as deepest position.
+
+DECISIVE EVIDENCE from the trace: only ONE `🔁 apply_delta` event in the entire 24801-line trace — for branch 1's type_assignment that ultimately gets rolled back. ZERO apply_delta events after `parameter_port_list`'s branch 3 selection (the supposed winner). `has_fact(type_name, T) → false` at the function-arg parse site.
+
+### Why this is a fundamental issue
+
+PGEN's memoization (Packrat-style, universal since `.b.6.2.15` "Slice-54") is correctness-by-construction for PURE parsing: a rule called with the same input at the same position should produce the same parse result. The cache stores that result; subsequent calls return it.
+
+But the semantic store breaks the "pure parsing" assumption. Rules have SIDE EFFECTS:
+- `@emit_fact` — adds a fact to the store
+- `@open_scope` / `@close_scope` — modifies the scope arena + active chain
+- `@export_to_library` — writes an artifact
+
+The transactional model (C3-A per-try_parse rollback, C3-B per-tournament-branch delta replay, the per-rule IIFE) is correct for non-memoized rules. But memoization SKIPS the rule body — so the side effects never replay on a memo hit.
+
+### Why `.b.6.2.36.1`'s "fact persistence" framing was incomplete
+
+`.b.6.2.36.1` framed the issue as "C3-A's per-try_parse rollback discards class-scoped type-parameter fact emissions before the function-arg use-site can see them." That framing was directionally correct (the fact does get rolled back) but missed the specific mechanism: it's not that the rollback is wrong, it's that the SUBSEQUENT memo hit doesn't replay the emission.
+
+If memoization didn't cache type_assignment's result, branch 3 would CALL type_assignment again, which would (via its own tournament + apply_delta) emit T fresh. Then T would be in the state when parameter_port_list's C3-B extracts the delta. Then apply_delta would fire. All good.
+
+But memoization caches it. So branch 3's call is a no-op (state-wise). T never reappears.
+
+### Important framing note (does not vindicate retired mandate)
+
+The previously-retired [[feedback_predicate_parse_order_sota]] mandate was based on mis-framing the iso5/iso4 / port-list defect as fact-persistence. Slice-69's re-diagnosis was correct: iso5/iso4 was structural (ungated rule). That retirement stands.
+
+The `.b.6.2.36` defect class — class-scoped type-parameter case — is also NOT what the retired mandate addressed. The retired mandate proposed "predicate-vs-parse-order" reasoning. The actual root cause here is something different: memoization-side-effect interaction. The fix is also different: cache the delta and replay on memo hit, NOT reorder predicates.
+
+### Three viable fix approaches for `.b.6.2.36.4`
+
+1. **Cache the semantic delta in MemoEntry; replay on memo hit.** Most direct. Initial implementation: extend MemoEntry with a `SemanticRuntimeDelta` field. On memo write (after rule body completes successfully), capture the delta via `extract_delta_since(start_checkpoint)`. On memo hit, apply the cached delta to the current state. Considerations:
+   - The delta carries `final_active_chain` and `final_scopes` — those would REPLACE current state's active_chain/scopes, not APPEND. For rules that don't change scopes, this is a no-op. For rules that do, replaying a snapshot from a different parent context could be incorrect.
+   - Initial implementation can be limited to fact replay (the `new_facts` portion of the delta). Scope replay is a separate consideration.
+
+2. **Don't memoize rules with side effects.** Detect which rules have `@emit_fact` / `@open_scope` / `@close_scope` in their (transitive) body and skip memoization for them. Conservative but loses memoization perf benefit for any rule reachable from semantic annotations.
+
+3. **Capture the side effects in a replay function.** Instead of caching the delta as data, cache a closure that re-executes the side effects. More flexible but harder to reason about.
+
+Approach (1) initial-fact-replay version is the smallest change with the right semantics for this defect class. The scope-replay complication only kicks in for grammars that open/close scopes from memoized rules — none currently do in SV (the `@open_scope`/`@close_scope` annotations aren't used). For RGX/JSON/EBNF (no semantic annotations), the delta is always empty so memo replay is a no-op.
+
+### Slice scope (this slice, `.b.6.2.36.3`)
+
+- Instrumentation extension: codegen-level fast-path push/pop for unannotated rules (closes `.36.2`'s chain-trace gap)
+- Investigation: decisive trace evidence pinning memoization × semantic-store as the root cause
+- Routes the fix to `.b.6.2.36.4`
+
+### Verification
+
+- Lib (no-features) **548/548 PASS** post-regen — pure instrumentation extension, no behavior change.
+- Lib (--features generated_parsers) **609/609 PASS** [verified in slice].
+- iso5/iso4 minimal repros + iso1/iso2/iso3/iso6 + 4 sanity controls — all unchanged behavior.
+- SV external corpus 10/14 preserved.
+- The instrumentation works end-to-end: the full chain trace shows every intermediate rule.
+
+### Release framing
+
+NO release/contract bump. Pure instrumentation extension + investigation docs. No AST shape change.
+
+### Local-only
+
+Per [[feedback_push_pacing]]. Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`.
+
 ## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.36.2 — TOOL-BUILD: WHO+WHY visibility in semantic-store trace events. Engine-only instrumentation slice (PGEN-SV-EXH-PROOF-0083)
 
 ### Re-cast from "implement the fix" → "build the tool first"

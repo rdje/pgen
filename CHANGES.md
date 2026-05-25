@@ -1,4 +1,70 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0084 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.3): INVESTIGATION using `.36.2`'s tool — **TRUE ROOT CAUSE pinned: memoization caches parse results but NOT semantic-runtime side effects**; bundled instrumentation extension (codegen-level fast-path push/pop) closes the chain-trace gap
+
+After landing `.36.2`'s WHO+WHY tooling, the first investigation surfaced a gap: the codegen-level fast-path for unannotated rules (line 2230 in `ast_based_generator.rs`) was emitting parser code that bypasses `with_semantic_runtime_rule_transaction` entirely, so my `.36.2` push/pop in the IIFE never fires for unannotated rules. Intermediate rules like `parameter_port_list`, `mixed_string_parameter_port_list`, `type_assignment` were invisible in the chain trace — the gap had to be closed before the investigation could be tractable. THIS SLICE BUNDLES the fix to `.36.2` with the investigation that USES the fix.
+
+Instrumentation extension (one-line code change at codegen, parser-agnostic, no behavior change):
+
+  // unannotated-rule fast-path: also push/pop the rule_context_stack
+  parser.semantic_runtime_state.push_rule_context(#rule_name);
+  let inner_result = #memoized_inner;
+  parser.semantic_runtime_state.pop_rule_context();
+
+With the fixed tool, the class_param_t.sv re-trace produced the full call chain at every state-store event:
+
+```
+📥 @emit_fact kind=type_name name=Identifier("T") ... caller=systemverilog_file > source_text > source_text_item > description > package_item > package_or_generate_item_declaration > package_or_generate_item_declaration_sv_2017 > class_declaration > class_declaration_sv_2017 > parameter_port_list > mixed_string_parameter_port_list > type_assignment > type_assignment_sv_2017 > declared_type_parameter_identifier
+```
+
+Decisively diagnostic.
+
+INVESTIGATION FINDINGS — the actual root cause:
+
+The class_param_t.sv minimal repro (`class c #(type T=int); function void f(T value); endfunction endclass`) fails because:
+
+1. parameter_port_list's tournament (branch_policy=longest_match, 6 branches) is evaluated. Branch 1 (mixed_string_parameter_port_list) calls `type_assignment` at position 14. type_assignment's own tournament emits `type_name=T` via apply_delta → T is in the state.
+2. mixed_string_parameter_port_list requires `comma kw_string` after type_assignment. Input at position 20 is `)`. Branch 1's try_parse Err fires → C3-A's rollback removes T from state.
+3. **MEMOIZATION inserts a cache entry for `(type_assignment, position=14)`. The cached entry stores the AST node + end_pos + raw_semantic_content. IT DOES NOT STORE THE SEMANTIC DELTA (the type_name=T emission). The cache survives the try_parse Err rollback.**
+4. Branch 3 (type_only: `hash lparen kw_type type_assignment ( comma kw_type type_assignment )* rparen`) tries: calls type_assignment at position 14 again. **MEMO HIT.** Returns cached AST + advances position to 20. type_assignment's body is NOT re-executed. No emit_fact fires. No apply_delta.
+5. Branch 3 succeeds with cached AST. parameter_port_list's C3-B per-branch extract_delta_since(tournament_checkpoint) extracts NOTHING (no facts emitted since tournament checkpoint).
+6. After all branches, best_semantic_delta = Some(empty_delta). The `if !delta.is_empty()` guard SKIPS apply_delta.
+7. parameter_port_list selects branch 3 successfully — **but T is NOT in the state.**
+8. class_declaration_sv_2017 continues into the class body. function_declaration parses `T value`. data_type's checked_type_identifier checks `has_fact(type_name, T) → false`. Rule rejected by post predicate. data_type fails. function arg parse fails. class_declaration's try_parse fires Err. Whole parse fails at byte 42.
+
+DECISIVE EVIDENCE: only ONE `🔁 apply_delta` event in the entire trace — for branch 1's type_assignment that ultimately gets rolled back. ZERO apply_delta events after parameter_port_list's branch 3 selection (the supposed winner). `has_fact(type_name, T) → false` at the function-arg parse site.
+
+THIS IS A FUNDAMENTAL INTERACTION BETWEEN MEMOIZATION AND THE SEMANTIC STORE. Memoization (Packrat-style, `.b.6.2.15` "Slice-54 universal memoization") is correctness-by-construction for pure parsing but BREAKS the semantic-store transactional model: the store has C3-A (per-try_parse rollback), C3-B (per-tournament-branch delta-replay), and the per-rule transaction IIFE; but none of these compose with memoization's cached-result-reuse, because the cache stores the AST but not the side-effect delta.
+
+THIS DOES NOT VINDICATE THE RETIRED PERSISTENCE-MANDATE. The retirement is for the iso5/iso4 / port-list defect class which was structural (ungated rule), NOT this defect class. The memoization-delta interaction is a separately-discovered class — `.b.6.2.36.x` is the umbrella.
+
+ROUTE TO THE FIX: `.b.6.2.36.4` will extend MemoEntry with a SemanticRuntimeDelta field, capture it at memo write, replay it on memo hit. Initial implementation can be limited to fact replay; scope replay is a separate consideration since deltas carry final_active_chain and final_scopes that would need to be reconciled with current state.
+
+What landed (engine instrumentation + pure docs):
+
+- `rust/src/ast_pipeline/ast_based_generator.rs` — codegen-level fast-path for unannotated rules now pushes/pops the rule_context_stack (5 added lines around line 2232; one-line semantics change to the codegen template, transparent to parsed behavior).
+- `docs/tasks/SV-EXH-PROOF.md` — `.b.6.2.36.3` done leaf added; `.36.4` opened as the actual-fix sub-leaf; Current Frontier table updated.
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md` — lockstep narrative + tracker updates.
+- `MEMORY.md` + `project_all_task_trees_complete.md` — updated to reflect `.36.3` done state + the memoization-delta root cause.
+
+VERIFIED:
+- Lib (no-features) 548/548 PASS post-regen.
+- Lib (--features generated_parsers) 609/609 PASS [verified in slice].
+- iso5/iso4 + 4 sanity controls — all unchanged behavior.
+- SV external corpus 10/14 preserved.
+- The tool was demonstrated end-to-end: the full chain trace now shows every intermediate rule, and the memo-hit-without-delta-replay root cause was surgically diagnosable.
+
+NO release/contract bump — pure instrumentation extension + pure docs. No AST shape change.
+
+ARCHITECTURAL PRINCIPLE REINFORCED (this slice is the canonical exemplar of [[feedback_why_and_where_before_solution]]): the user-set discipline produced a real-world demonstration. With the tool from `.36.2` (refined here in `.36.3`'s extension), a previously-mysterious defect (T fact disappearing between parameter_port_list and function-body parse) was surgically pinned to a SPECIFIC engine interaction (memoization × semantic store) in one focused trace.
+
+Frontier:
+- `.b.6.2.36.4` — implement memoization delta replay (engine work; replay cached delta on memo hit).
+- `.b.6.2.35.{2..16}` — remaining ungated identifier-categorisation rules.
+- `.b.6.2.35.0` — deferred docs slice.
+- H1 cross-file-import.
+
+Local-only per [[feedback_push_pacing]] (absolute no-push override active; restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`).
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0083 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.2): TOOL-BUILD — WHO+WHY visibility in semantic-store trace events; rollback / emit_fact / has_fact / apply_delta / predicate-rejection events now identify the rule + full call chain that triggered them. PURE INSTRUMENTATION (engine), no semantics change
 
 User raised the foundational tools-first issue mid-`.36.2`: "do we know exactly who (function/rule) triggered the rollback? The why is important, maybe it was legit. The 'anonymous rollback' is not really useful. From now on, for any issue / unexpected behavior we need to know exactly WHY it happens AND inside which function/rule it happened — without such information we can't devise a stable solution." This re-cast `.b.6.2.36.2` from a speculative fix attempt into a TOOL-BUILD slice that closes the gap. New STANDING DISCIPLINE captured in memory: [[feedback_why_and_where_before_solution]].
