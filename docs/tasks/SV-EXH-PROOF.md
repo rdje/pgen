@@ -938,3 +938,47 @@ literal over a failing surface.
   pos 947); my recent committed work exonerated. Docs-only; the
   high-blast-radius SV-grammar-wide fix is the next careful focused
   sub-leaf. No push (pacing).
+
+- ID: `SV-EXH-PROOF.3.3.4.b.6.2.30`
+  Status: `done` `2026-05-25` (RE-FRAMED): diagnosis of the implicit-type port-list defect is COMPLETE; the root cause is structural (ungated identifier-categorisation rules in the SV grammar), NOT fact persistence. Slice-64's revert was attributed to the wrong cause; trace evidence shows the semantic store works correctly for this defect.
+  Goal (original): Diagnose the `function f(string a, b);` / `static function bit m_register_pair(string tname="", cbname="");` blocker.
+  Method: tools-first re-investigation per the user-set discipline ([[feedback_tools_first_no_guessing]] 2026-05-25 amendment):
+    1. Six-way isolation matrix on `parseability_probe --parse` pinpointed the trigger: implicit-type 2nd parameter WITH `=` default value (iso5 / iso4 fail @ byte 38 / 41; iso1/iso2/iso3/iso6 pass).
+    2. Failure byte = the `=` of `b=""` — the parser advanced cleanly through `b` then stuck on `=`.
+    3. `--trace-rules` evidence: `provisional_unscoped_block_class_type` SUCCESSFULLY matched `b` (consumed 2 bytes ` b`) and the parent rule's optional `( port_identifier ... )?` could not match the `=` that followed.
+    4. `--trace-rules` evidence (decisive): every predicate-GATED type-identifier alternative correctly REJECTED `b` with `has_fact(type_name, b) → false`. The semantic store has no `type_name` fact for `b`; gated rules respected that.
+    5. The ONLY rule that accepted `b` was `provisional_unscoped_block_class_type` — UNGATED catch-all alternative 12 of `data_type` (and alt 13 of `block_data_type`).
+  Findings:
+    (1) Root cause: ungated catch-all bypasses the semantic store. Pure structural defect.
+    (2) NOT a fact-persistence defect. The Slice-67 (C3-B) + Slice-68 (Architecture B) detour was downstream of mis-framing this defect. `[[feedback_predicate_parse_order_sota]]` retired 2026-05-25.
+    (3) Systematic audit (this slice) found this defect is one instance of a CLASS of defects: ungated identifier-categorisation rules across `systemverilog.ebnf`. The remediation umbrella is `.b.6.2.35`.
+  Acceptance: `(1) Minimal repro identified — done (iso5_implicit_2nd_only.sv at /tmp/pgen-bug/). (2) Trace evidence captured proving provisional rule matches without store consultation — done. (3) Defect classification (structural, not persistence) — done. (4) NO grammar/engine code change — done.`
+  Verification: tools-first diagnostic chain documented above. Working tree clean against HEAD.
+  Routed to: `.b.6.2.35` (systematic audit + remediation of the ungated identifier-categorisation defect class).
+  Commit: `pending — PGEN-SV-EXH-PROOF-0080 (re-framed diagnosis + audit findings; no code change)`
+
+- ID: `SV-EXH-PROOF.3.3.4.b.6.2.35`
+  Status: `pending` (umbrella) — opened `2026-05-25` to remediate the systematic ungated identifier-categorisation defect class discovered by `.b.6.2.30`'s tools-first re-diagnosis. Owns the GAMMA defect class per `[[feedback_grammar_rules_must_consult_store]]` (user 2026-05-25): "we have the semantic store, rule shall use it for things like type not type, the store is there for that specific purpose."
+  Goal: `Bring every ungated identifier-categorisation rule in systemverilog.ebnf into compliance with the grammar-rules-must-consult-store principle. Each rule that classifies a bare identifier into a tracked category (type/class/interface/package/covergroup/type_parameter) must consult the semantic store via has_fact / fact_attribute_equals / lacks_fact, OR be removed, OR carry a documented justification of why it legitimately bypasses the store.`
+  Scope (from the 2026-05-25 audit):
+    A. ONE ungated catch-all (no scope prefix): `provisional_unscoped_block_class_type` (L1638) — used in `data_type` alt 12, `block_data_type` alt 13.
+    B. NINE scope-prefix-gated rules with bare trailing identifier (the dominant pattern class): `scoped_class_scope_identifier` (L1061), `scoped_base_class_type_identifier` (L1088), `scoped_class_type_identifier` (L1093), `scoped_block_type_identifier` (L1623), `scoped_data_type_identifier` (L1630), `scoped_block_class_type` (L1641), `scoped_covergroup_type_identifier` (L1647), `scoped_interface_class_type_identifier` (L2434), `scoped_class_scoped_call_prefix_identifier` (L6155).
+    C. THREE inline categorising constructs with bare identifier: `data_type` alt 8 (virtual_interface inline, L1689), `incomplete_class_scoped_type_sv_2023` alt 1 (L2316), `enum_base_type` alt 3 (L1955).
+    D. THREE worth-investigating delegators: `ps_type_identifier_sv_2017`, `type_identifier_or_class_type_sv_2023` alt 1, `assignment_pattern_expression_type` alt 1.
+  Plan (sub-leaves, each own commit + per-fix verification: minimal repro + lib + corpus + book lockstep):
+    .b.6.2.35.0 — capture audit report as `docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md` entry "G — ungated identifier-categorisation" (pure docs, no grammar/code change)
+    .b.6.2.35.1 — gate `provisional_unscoped_block_class_type` (Slice-64 redux per discipline: add `@predicate: has_fact(type_name, $head.body)`, verify on the iso5/iso4 minimal repros + corpus + RGX 44/0; PRIOR investigation of why the original Slice-64 regressed UVM is required FIRST — re-apply locally + `--trace-rules` the regressing input — to know whether this fix lands clean or needs an adjacent producer fix)
+    .b.6.2.35.2..10 — one sub-leaf per scope-prefix-pattern rule in Table B; choice of fix template (add predicate vs. substitute gated wrapper rule like `checked_type_identifier`) decided per rule
+    .b.6.2.35.11..13 — one sub-leaf per inline categorising construct in Table C
+    .b.6.2.35.14..16 — verify the Table D delegators (may collapse into earlier leaves if shown safe)
+    .b.6.2.35.LAST — full lockstep + book chapter "Grammar rules must consult the semantic store" + closeout + corpus verification
+  Acceptance: `(1) Each Table A/B/C/D rule either consults the store or carries an in-grammar comment documenting the legitimate exception. (2) No corpus regression on any fix. (3) Defect taxonomy entry G stays current (re-running the audit shows the list shrinking). (4) Top-level book chapter explaining the principle + the rule-author responsibility.`
+  Cross-references: [[feedback_grammar_rules_must_consult_store]], [[feedback_universal_semantic_store]], [[project_vision_and_discipline]], [[feedback_no_workarounds_fix_hierarchy]]. Replaces the (retired) [[feedback_predicate_parse_order_sota]] direction.
+  Commit: `pending — sub-leaves landed independently`
+
+- ID: `SV-EXH-PROOF.3.3.4.b.6.2.35.0`
+  Status: `pending` (first sub-leaf of `.b.6.2.35`) — capture the audit report as a durable defect-taxonomy entry. PURE DOCS slice — no grammar / Rust / generated / shape-contract change.
+  Goal: `Persist the 2026-05-25 audit findings (Tables A/B/C/D) as taxonomy entry "G — ungated identifier-categorisation" in docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md, including the principle citation + the fix template options + the audit-pattern (grep + classify + dereference + cross-grammar) so re-running the audit later validates progress.`
+  Acceptance: `(1) Taxonomy entry G added with full table content + audit pattern. (2) Cross-references to memory (feedback_grammar_rules_must_consult_store) + project_vision + universal_semantic_store. (3) No grammar/code change.`
+  Verification: `lib + corpus unchanged (this is a docs-only slice). Re-running the audit script (preserved as a snippet in the taxonomy entry) produces the same 1+9+3+3 numbers.`
+  Commit: `pending — own commit, smallest first slice of the umbrella`

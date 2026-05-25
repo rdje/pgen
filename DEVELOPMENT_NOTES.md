@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.30 RE-FRAMED + .b.6.2.35 umbrella opened — tools-first re-diagnosis disproves persistence framing; root cause is structural ungated identifier-categorisation rules (PGEN-SV-EXH-PROOF-0080)
+
+### Context
+
+The implicit-type port-list defect (`function f(string a, b="");`) had been the open frontier for four prior sessions. Slice-64 added a `has_fact(type_name)` predicate gate to `provisional_unscoped_block_class_type`; that slice was reverted on the assumption it caused a UVM regression via fact persistence. Slice-67 (C3-B, per-branch tournament isolation) and Slice-68 (Architecture B, universal rule-commit fact promotion) were built on top of that persistence framing. Slice-68 was decisively disproven by a corpus regression sweep (10/4/2 → 0/4/12) and reverted in-slice earlier on 2026-05-25. The user then asked the question that opened this slice: "Why does data_type consume `b`? For that, data_type to succeed on b it would mean that somewhere b was already seen as declared as a type previously, is it case or not?"
+
+### Diagnostic chain (tools-first per [[feedback_tools_first_no_guessing]])
+
+1. **Six-way isolation matrix via `parseability_probe --parse`.** Six minimised inputs varying first-vs-second port, implicit-vs-explicit type, with-vs-without `=` default value. Result: iso1 (`string a, b`) PASS; iso2 (`string a=""`) PASS; iso3 (`string a="", string b=""`) PASS; iso4 (`string a="", b=""`) FAIL@41; iso5 (`string a, b=""`) FAIL@38; iso6 (`string a="", b`) PASS. Trigger pinned: "implicit-type 2nd parameter WITH `=` default value."
+
+2. **Furthest-position pin.** Bytes 38 / 41 = the `=` character of `b=""` in iso5 / iso4. The parser advanced cleanly through `b` then stuck on `=`.
+
+3. **`--trace-rules` evidence.** With trace filter on `tf_port_item,data_type_or_implicit,data_type,provisional_unscoped_block_class_type,implicit_data_type,port_identifier`: `✅ Rule 'provisional_unscoped_block_class_type' successfully parsed from 36 to 38 (consumed 2 bytes: " b")`. The catch-all matched `b` literally. The parent rule then tried `( port_identifier variable_dimension* ( assign expression )? )?`, `port_identifier` failed at `=`, optional group matched empty, tf_port_item committed with `data_type = b` and no port_spec. Outer rule expected `,` or `)`, found `=`, hard failure.
+
+4. **Decisive evidence from fact-store trace (closing the persistence hypothesis).** The same trace contained explicit predicate evaluations the parser performed on `b`: `🔍 has_fact(kind=type_name, name=Identifier("b")) → false`. Every predicate-GATED type-identifier alternative reported `🚫 rejected by post predicate fact_attribute_equals[type_name, b, declaration_family, …]` (`known_unscoped_class_scope_class_identifier`, `..._interface_class`, `..._type_parameter`, `checked_type_identifier`, `..._covergroup`). The semantic store correctly knew `b` was not a type; gated rules respected that signal. The ONLY rule that accepted `b` was the one with no predicate at all.
+
+5. **Conclusion.** The bug is purely structural: alt 12 of `data_type` (`provisional_unscoped_block_class_type`) is the only candidate type-identifier alternative that does not consult the fact store. It is an ungated catch-all. The persistence framing that motivated C3-B + Architecture B was a mis-read of THIS defect.
+
+### Systematic audit (per the user-set principle 2026-05-25)
+
+User principle stated this session: "We have the semantic store, rule shall use it for things like type not type, the store is there for that specific purpose. We need to systematically identify those rules and have them consult the store and not make blind decisions."
+
+Four passes over `grammars/systemverilog.ebnf`:
+- **Pass 1a:** name-prefix candidates (rules starting with `provisional_`, `unscoped_`, `unchecked_`). 1 match across all grammars pgen compiles: `provisional_unscoped_block_class_type`.
+- **Pass 1b:** body-shape candidates (rules whose body starts with `*_identifier`). 39 candidates in SV (21 gated + 18 ungated).
+- **Pass 2/3:** classify each candidate by tight-adjacency predicate check (`@predicate:` directly preceding the rule definition with no intervening rule def). Many "ungated" candidates exempt per principle (lexical aliases, structural disambiguators, decl-site producers).
+- **Pass 4:** dereference delegators (rules of shape `name := other_rule` follow to the delegate's gating status). E.g. `known_unscoped_data_type_identifier` delegates to `checked_type_identifier` which IS gated → safe by delegation.
+
+Final defect catalog in `systemverilog.ebnf`:
+- **Table A (1):** ungated catch-all with no scope prefix — `provisional_unscoped_block_class_type` (L1638), used in `data_type` alt 12 + `block_data_type` alt 13.
+- **Table B (9):** scope-prefix-gated but trailing identifier bare — `scoped_class_scope_identifier` (L1061), `scoped_base_class_type_identifier` (L1088), `scoped_class_type_identifier` (L1093), `scoped_block_type_identifier` (L1623), `scoped_data_type_identifier` (L1630), `scoped_block_class_type` (L1641), `scoped_covergroup_type_identifier` (L1647), `scoped_interface_class_type_identifier` (L2434), `scoped_class_scoped_call_prefix_identifier` (L6155). Same defect SHAPE — `non_typedef_package_scope <bare_identifier>` where the scope prefix consults the store but the trailing identifier does not.
+- **Table C (3):** inline categorising constructs (not separate rules) with bare identifier — `data_type` alt 8 virtual_interface inline (L1689), `incomplete_class_scoped_type_sv_2023` alt 1 (L2316), `enum_base_type` alt 3 (L1955).
+- **Table D (3):** worth-investigating delegators — `ps_type_identifier_sv_2017`, `type_identifier_or_class_type_sv_2023` alt 1, `assignment_pattern_expression_type` alt 1.
+- Cross-grammar: zero defects of this shape in vhdl/verilog_2005/rtl_*/preprocessor/json/regex/ebnf grammars. Defect class is SV-scoped.
+
+### Task-tree ownership
+
+Per the binding code-change doctrine [[feedback_task_tree_workflow]], task-tree ownership lands BEFORE any code change. This slice opens ownership without changing code:
+- `.b.6.2.30` re-framed as `done` 2026-05-25 — diagnosis complete with tools-first evidence chain, routed to `.b.6.2.35`.
+- `.b.6.2.35` umbrella opened — owns the systematic remediation; scope = Tables A/B/C/D; sub-leaves per defect; each own commit + per-fix verification (minimal repro + lib + corpus + RGX).
+- `.b.6.2.35.0` first sub-leaf opened — pure-docs taxonomy capture (the audit catalog persisted as `docs/reference/SV_EXH_PROOF_DEFECT_TAXONOMY.md` entry "G — ungated identifier-categorisation"). NEXT slice.
+- `.b.6.2.34` (Architecture B′) deleted from task list — by the same evidence retiring the SOTA memory, that task is solving a phantom.
+
+### Memory amendments (auto-memory)
+
+- `feedback_grammar_rules_must_consult_store` — NEW. The user's principle + the 4-pass systematic-identification mandate.
+- `feedback_tools_first_no_guessing` — AMENDED with "stick to what works; use the tools we built" addition + a question→tool mapping table.
+- `feedback_predicate_parse_order_sota` — RETIRED. The mandate was triggered by this slice's mis-framing. Lesson preserved as retirement notice.
+- `feedback_try_parse_must_snapshot_semantic_state` — CAUTIONARY APPENDIX added. The "EMPIRICAL CORRECTION" section + C3-B's framing flagged as suspect; C3-B code is RETAINED because it passes one real test, but its framing should NOT be cited as precedent for new engine work without fresh trace evidence.
+- `project_vision_and_discipline` — NEW. User's one-paragraph project vision (parsers = .ebnf + annotations → parser-agnostic Rust AST pipeline; use what we have, don't drift).
+- `feedback_user_is_director_not_engineer` — NEW. Role clarification: user makes principle/authorization calls, I make technical decisions within agreed principles.
+- `feedback_commit_workflow_strict` — NEW. The user-set non-negotiable commit workflow discipline + COMMIT.md as source of truth.
+
+### What's still open
+
+- `.b.6.2.35.x` sub-leaves: the actual gating remediation, one defect at a time, smallest-fix-first, each verified on minimal repro + corpus + RGX no-regression.
+- A prerequisite for `.b.6.2.35.1` (the original `provisional_unscoped_block_class_type` gate): re-investigate why the original Slice-64 was reported to regress UVM. The persistence framing has been disproven for the implicit-type port-list defect — the UVM regression may have a completely different cause (missed `@emit_fact` somewhere, wrong predicate `view`, etc.). Tools-first re-investigation required: re-apply Slice-64 locally, run the actual UVM-regressing case under `--trace-rules`, find out what is ACTUALLY happening before re-applying any gate.
+
+### No code change. Working tree
+
+`docs/tasks/SV-EXH-PROOF.md` only (the tree-doc re-frame + umbrella open). No grammar / Rust / generated / shape-contract change. SV external corpus unchanged at 10/4/2 (this slice cannot affect parsing). LIVE_ACHIEVEMENT_STATUS tracker UNCHANGED. Local-only per [[feedback_push_pacing]].
+
 ## 2026-05-18 - SV-EXH-PROOF.2.3.2 root cause PINNED — "balanced counts" + the real failure position beat the trimmed artifact (PGEN-SV-EXH-PROOF-0009)
 
 After `.2.3.1`, the 2 residual preprocessor self-rejections looked
