@@ -1009,9 +1009,53 @@ impl UnifiedReturnAST {
                 continue;
             }
 
+            // SV-EXH-PROOF.3.3.4.b.6.2.36.5 — FIX FOR PGEN-RGX-0077 LATENT
+            // REGRESSION: previously this branch matched a SINGLE `*` and
+            // produced `Spread`; if the input was `**` (flatten-spread, e.g.
+            // `[$1**]` from `regex.ebnf`'s `concatenation = piece+ -> [$1**]`),
+            // the loop iterated and produced `Spread(Spread(base))` — i.e.
+            // double-spread — instead of `FlattenSpread(base)`. The generated
+            // codegen then emitted `spread_element` strings instead of
+            // `flatten_spread_element`, so the FlattenSpread peel-Alternative
+            // + Json(Array) spread path in `ast_return_transform.rs` was
+            // unreachable. This manifested as the PGEN-RGX-0077 regression:
+            // `\Qab*\E{2,}` produced `[[a,b,*]]` (1 extra wrap) instead of
+            // `[a,b,*]` flat in the concatenation. Fix: peek for `**` FIRST
+            // and produce FlattenSpread; fall back to single-`*` Spread.
+            // The grammar (`return_annotation.ebnf`) correctly lists
+            // `flat_spread_expression` BEFORE `spread_expression` per PEG
+            // ordered choice; the bootstrap parser must follow the same rule.
+            if let Some(rest) = remaining.strip_prefix("**") {
+                if !rest.is_empty()
+                    && !rest.starts_with('.')
+                    && !rest.starts_with('[')
+                    && !rest.starts_with(',')
+                    && !rest.starts_with(']')
+                    && !rest.starts_with(')')
+                    && !rest.starts_with('}')
+                    && !rest.starts_with(' ')
+                    && !rest.starts_with('\t')
+                    && !rest.starts_with('\n')
+                {
+                    logger.log_error(
+                        "unified_return_ast.rs",
+                        line!(),
+                        &format!("Invalid positional reference flatten-spread modifier suffix: '{}'", remaining),
+                    );
+                    return Err(format!(
+                        "Invalid positional reference flatten-spread modifier suffix: '{}'",
+                        remaining
+                    ));
+                }
+                base = UnifiedReturnAST::FlattenSpread {
+                    base: Box::new(base),
+                };
+                remaining = rest;
+                continue;
+            }
+
             if let Some(rest) = remaining.strip_prefix('*') {
                 if !rest.is_empty()
-                    && !rest.starts_with('*')
                     && !rest.starts_with('.')
                     && !rest.starts_with('[')
                 {
@@ -1193,9 +1237,23 @@ impl UnifiedReturnAST {
             for item in items {
                 let trimmed = item.trim();
 
-                // Check for spread operator at the end
-                if trimmed.ends_with('*') && !Self::is_quoted_literal(trimmed) {
-                    // It's a spread, but only if not inside a string
+                // SV-EXH-PROOF.3.3.4.b.6.2.36.5 — peek for `**` (flatten-spread)
+                // BEFORE single `*` (spread). Pre-fix this path stripped a
+                // single trailing `*` and re-parsed via parse_value, so input
+                // `$N**` produced `Spread(Spread(PositionalRef(N)))` — the
+                // PGEN-RGX-0077 latent regression on `[$1**]` array
+                // annotations (regex.ebnf::concatenation, modifier_group,
+                // conditional_branch, piece_quoted_run_quantified). Mirrors
+                // the EBNF surface: return_annotation.ebnf orders
+                // flat_spread_expression BEFORE spread_expression per PEG
+                // ordered choice.
+                if trimmed.ends_with("**") && !Self::is_quoted_literal(trimmed) {
+                    let base_str = &trimmed[..trimmed.len() - 2];
+                    let base = Self::parse_value(base_str, logger)?;
+                    elements.push(UnifiedReturnAST::FlattenSpread {
+                        base: Box::new(base),
+                    });
+                } else if trimmed.ends_with('*') && !Self::is_quoted_literal(trimmed) {
                     let base_str = &trimmed[..trimmed.len() - 1];
                     let base = Self::parse_value(base_str, logger)?;
                     elements.push(UnifiedReturnAST::Spread {
@@ -2861,6 +2919,38 @@ mod tests {
             _ => panic!("Expected QuantifiedExtraction"),
         }
 
+        // SV-EXH-PROOF.3.3.4.b.6.2.36.5 — `[$1**]` (the array-wrapped form
+        // used by `regex.ebnf::concatenation` and 3 sibling regex rules)
+        // must parse to `Array { FlattenSpread(PositionalRef(1)) }`, NOT
+        // `Array { Spread(Spread(PositionalRef(1))) }`. Pre-fix, the array
+        // path stripped a trailing `*` ONCE and re-parsed the rest via
+        // parse_value, producing the double-spread shape silently. The
+        // codegen only emits `flatten_spread_element` (spreading typed
+        // Json(Array) inline + peeling Alternative) when it sees a single
+        // FlattenSpread; double-Spread fell through to `spread_element`,
+        // wrapping each child node instead of inlining its array members.
+        // This regression test pins the bootstrap output shape so future
+        // refactors can't silently re-introduce the double-spread.
+        let ast = UnifiedReturnAST::parse_bootstrap("[$1**]", &logger).unwrap();
+        match ast {
+            UnifiedReturnAST::Array { ref elements } if elements.len() == 1 => match &elements[0] {
+                UnifiedReturnAST::FlattenSpread { base } => {
+                    assert!(matches!(
+                        base.as_ref(),
+                        UnifiedReturnAST::PositionalRef { index: 1 }
+                    ));
+                }
+                other => panic!(
+                    "Expected single FlattenSpread(PositionalRef 1), got {:?}",
+                    other
+                ),
+            },
+            other => panic!(
+                "Expected Array with single FlattenSpread element, got {:?}",
+                other
+            ),
+        }
+
         // Test $2::1* (extraction with spread, should extract first element at index 0)
         let ast = UnifiedReturnAST::parse_bootstrap("$2::1*", &logger).unwrap();
         match ast {
@@ -2882,26 +2972,29 @@ mod tests {
             _ => panic!("Expected Spread"),
         }
 
-        // Test $2::1** (valid generated-grammar form: extraction spread wrapped by spread_expression)
+        // Test $2::1** — flat-spread modifier on extraction, parses to a single
+        // FlattenSpread wrapping QuantifiedExtraction. (SV-EXH-PROOF.3.3.4.b.6.2.36.5
+        // PGEN-RGX-0077 fix: the bootstrap previously parsed `**` as two
+        // consecutive `*` producing `Spread(Spread(QuantifiedExtraction))`,
+        // which diverged from the generated grammar's ordered-choice
+        // `flat_spread_expression` BEFORE `spread_expression`. Now both
+        // surfaces agree on `FlattenSpread(QuantifiedExtraction)`.)
         let ast = UnifiedReturnAST::parse_bootstrap("$2::1**", &logger).unwrap();
         match ast {
-            UnifiedReturnAST::Spread { base } => match base.as_ref() {
-                UnifiedReturnAST::Spread { base: inner } => match inner.as_ref() {
-                    UnifiedReturnAST::QuantifiedExtraction {
-                        base: inner_base,
-                        target,
-                    } => {
-                        assert!(matches!(
-                            inner_base.as_ref(),
-                            UnifiedReturnAST::PositionalRef { index: 2 }
-                        ));
-                        assert_eq!(*target, ExtractionTarget::Index(0));
-                    }
-                    _ => panic!("Expected QuantifiedExtraction inside nested Spread"),
-                },
-                _ => panic!("Expected nested Spread"),
+            UnifiedReturnAST::FlattenSpread { base } => match base.as_ref() {
+                UnifiedReturnAST::QuantifiedExtraction {
+                    base: inner_base,
+                    target,
+                } => {
+                    assert!(matches!(
+                        inner_base.as_ref(),
+                        UnifiedReturnAST::PositionalRef { index: 2 }
+                    ));
+                    assert_eq!(*target, ExtractionTarget::Index(0));
+                }
+                _ => panic!("Expected QuantifiedExtraction inside FlattenSpread"),
             },
-            _ => panic!("Expected outer Spread"),
+            _ => panic!("Expected FlattenSpread"),
         }
     }
 

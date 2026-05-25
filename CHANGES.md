@@ -1,4 +1,64 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0086 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.5): **LATENT REGRESSION FIX (PGEN-RGX-0077)** — bootstrap parser `**` peeked FIRST in `rust/src/ast_pipeline/unified_return_ast.rs::parse_value`; the AST now carries `FlattenSpread(base)` for `[$1**]` instead of the previously-emitted `Spread(Spread(base))`. Tools-first diagnosis (per [[feedback_tools_first_no_guessing]]) localized the regression to the BOOTSTRAP PARSER, NOT codegen, NOT the EBNF. Per user direction "task-tree track it to debug and fix it later. Just fix the currently observed issue."
+
+ROOT CAUSE (tools-first, decisive):
+
+The bootstrap parser at `unified_return_ast.rs::parse_value` handled `**` by matching a single `*` (producing `Spread(base)`) and then looping to match the second `*` (producing `Spread(Spread(base))`). The downstream codegen FlattenSpread arm at `rust/src/ast_pipeline/ast_return_transform.rs::generate_array_transform` (lines 233-322) — which peels `Alternative` + spreads `Json(Array)` for the only annotation that uses `**` (`concatenation = piece+ -> [$1**]` in `grammars/regex.ebnf`) — was UNREACHABLE because the AST never carried `FlattenSpread`. The regression had been masked since pre-slice-66 by stale `generated/regex_parser.rs` (last regen May 22, before the bug was introduced into the bootstrap). `.b.6.2.36.4`'s full regen of all 10 generated parsers exposed it.
+
+THE FIX (two focused edits in `unified_return_ast.rs`, mirroring the two bootstrap codepaths that processed `**`):
+
+1. `parse_postfix_chain` (handles scalar `$N**`):
+
+```rust
+// Peek for ** FIRST (FlattenSpread) before falling back to single * (Spread).
+if let Some(rest) = remaining.strip_prefix("**") {
+    /* suffix validity check */
+    base = UnifiedReturnAST::FlattenSpread { base: Box::new(base) };
+    remaining = rest;
+    continue;
+}
+if let Some(rest) = remaining.strip_prefix('*') {
+    /* existing Spread handling */
+}
+```
+
+2. `parse_array` (handles array-wrapped `[$N**]` — the only form regex actually uses):
+
+```rust
+// Peek for ** at end of array element BEFORE single * to avoid the
+// pre-fix `strip-one-* then re-parse as `$N*`` path that produced
+// Spread(Spread(PositionalRef(N))) silently.
+if trimmed.ends_with("**") && !Self::is_quoted_literal(trimmed) {
+    let base_str = &trimmed[..trimmed.len() - 2];
+    let base = Self::parse_value(base_str, logger)?;
+    elements.push(UnifiedReturnAST::FlattenSpread { base: Box::new(base) });
+} else if trimmed.ends_with('*') && !Self::is_quoted_literal(trimmed) {
+    /* existing single-* Spread handling */
+}
+```
+
+Both surfaces now agree with the EBNF ordered-choice (`return_annotation.ebnf` lists `flat_spread_expression` BEFORE `spread_expression`).
+
+PLUS one unit-test correction (`test_parse_extraction_operators` for `$2::1**` had asserted the BUG'S shape `Spread(Spread(QuantifiedExtraction))` — pinning the regression in place; corrected to `FlattenSpread(QuantifiedExtraction)`) and one new regression test asserting `[$1**]` → `Array { FlattenSpread(PositionalRef(1)) }` (pinning the array-context bootstrap output shape so future refactors can't silently re-introduce the double-spread).
+
+PLUS regeneration of regex parser artifacts (`make focus_regex` builds an ast_pipeline with `--features generated_parsers` whose codegen takes the GENERATED return_annotation parser path that produces the correct typed-FlattenSpread JSON; my bootstrap fix is the defense-in-depth secondary surface for `--bootstrap-mode` builds).
+
+EMPIRICAL VERIFICATION:
+
+- `\Qab*\E{2,}` AST shows `pattern[0][0]` as 4 flat piece objects (atoms `a`, `b`, `*`, trailing-`\n`) — NOT nested as `[[a,b,*]]` (the pre-fix output).
+- `regex_parser.rs` now emits **4× `flatten_spread_element`** strings (was 0 pre-fix).
+- `embedding_api::tests::regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation` **PASSES** (was FAIL since pre-slice-66).
+- Lib (--features generated_parsers) **609/609 PASS** (was 608/609 at `.b.6.2.36.4`).
+- Lib (no-features) **548/548 PASS**.
+- SV external corpus 10/14 stable (verified — none of the SV parsers' annotations use `**`, so the other 9 generated/*.rs files are byte-identical apart from memo metadata).
+- Clippy ✅.
+
+NO-WORKAROUNDS HIERARCHY: this is **level 5** equivalent — a parser-agnostic bootstrap-parser fix that brings the bootstrap into ordered-choice agreement with the EBNF surface (mandatory for the generator-emitted artifact to match what the EBNF spec promises). Levels 1-4 (annotation / store / annotation-feature / store-feature) cannot address it because the bug is inside the generator's annotation-text parser, structurally below them.
+
+RELEASE FRAMING: bundled with `.36.6`'s combined release decision for `.36.4 + .36.5` (engine extension + bootstrap fix; no AST shape change → release-bump-only candidate, schema stays 3).
+
+⛔ NO-PUSH OVERRIDE active.
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0085 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.4): **ENGINE FIX LANDED** — memoization-delta replay closes the memoization × semantic-store composition gap pinned by `.36.3`. class_param_t.sv / uvm_bvu_minimal.sv NOW PASS (were FAIL pre-fix). Parser-agnostic engine extension; no AST shape change. **HONEST CAVEAT: 1 PRE-EXISTING LATENT REGRESSION exposed (not caused) by this slice's full regen of all 10 generated parsers — `regex_parser_pgen_rgx_0077_quoted_run_quantified_pieces_flat_in_concatenation` now fails (608/609 features-on; was 609/609 in prior slices' verifications ONLY because `regex_parser.rs` was stale from May 22). Bisected to pre-slice-66. Tracked + routed to `.b.6.2.36.5` for focused debug; the regression is in codegen, not in this slice's design.**
 
 Closes the gap pinned in `.b.6.2.36.3`: memoization was caching parse results (`ParseNode`, `end_pos`, `raw_semantic_content`) but NOT semantic-runtime side effects (`emit_fact` / `open_scope` / `close_scope`). On a memo hit, the cached AST was returned without re-firing the body's side effects — so a `type_name=T` fact emitted on the first execution could be lost forever once an outer try_parse rolled it back and the memo cache then masked the re-emit.
