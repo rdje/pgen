@@ -1,4 +1,52 @@
 # CHANGES.md
+## 2026-05-25 - PGEN-SV-EXH-PROOF-0082 (leaf SV-EXH-PROOF.3.3.4.b.6.2.36.1, umbrella `.b.6.2.36` OPENED): TOOLS-FIRST INVESTIGATION of a SEPARATE defect class exposed by `.b.6.2.35.1` — class-scoped type-parameter fact-persistence (`class c #(type T=int)` emits `type_name=T` but C3-A's per-`try_parse` rollback discards the fact before downstream parses can see it). PURE DOCS slice — no grammar / Rust / generated change.
+
+After `.b.6.2.35.1` (Slice-70) landed and advanced uvm_pkg furthest_position 19378 → 162162, investigation of the next deeper failure (around uvm_bit_vector_utils#(type T=int)'s `static function string to_string(T value, int size, ...)`) revealed a SEPARATE defect class. Minimal repros:
+
+- `simple_typedef.sv` (`package p; typedef int T; function string f(T value); return ""; endfunction endpackage`) — **PASSes**
+- `class_param_t.sv` (`class c #(type T=int); function void f(T value); endfunction endclass`) — **FAILs** at byte 42
+- `uvm_bvu_minimal.sv` (real uvm_bit_vector_utils shape) — **FAILs** at byte 100
+
+Trace evidence (`--trace-rules data_type,checked_type_identifier,declared_type_parameter_identifier,type_parameter_declaration` on `class_param_t.sv`):
+
+```
+emit_fact type_name=c (class declaration)                  ← persists
+emit_fact type_name=T (type parameter)                      ← speculatively emitted
+rollback_to(checkpoint fact_len=1) — discarding fact[1] T  ← C3-A's per-try_parse rollback
+emit_fact type_name=T (re-emission, different speculation)
+rollback_to(checkpoint fact_len=1) — discarding fact[1] T  ← rolled back AGAIN
+...
+has_fact(type_name, T) → false                              ← all gated type-id rules see no T
+checked_type_identifier rejected by post predicate has_fact[type_name, T]
+known_unscoped_class_scope_type_parameter_identifier rejected by post predicate fact_attribute_equals
+known_unscoped_class_scope_class_identifier rejected
+known_unscoped_class_scope_interface_class_identifier rejected
+provisional_unscoped_block_class_type rejected (the .35.1 gate)
+→ NO data_type alternative matches T → tf_port_item fails → function arg parse fails
+```
+
+Pre-`.35.1`, the catch-all `provisional_unscoped_block_class_type` (UNGATED) accepted T regardless of fact state, MASKING this persistence defect. With `.35.1`'s gate in place, the persistence defect is now visible.
+
+This is a SEPARATE defect class from the iso5/iso4 / port-list class that `.b.6.2.35.x` is remediating. The iso5/iso4 defect was structural (an ungated rule), not persistence — Slice-69's tools-first re-diagnosis proved that. The class-parameter defect IS persistence-related — C3-A's per-`try_parse` rollback fires for the speculative branch that emitted T, discarding the fact even though the parent class header parse ultimately succeeded.
+
+IMPORTANT FRAMING: this discovery does NOT vindicate the previously-retired predicate-vs-parse-order mandate ([[feedback_predicate_parse_order_sota]]). That mandate was triggered by mis-framing the iso5/iso4 defect as persistence; Slice-69's re-diagnosis was correct and the mandate's retirement stands. `.b.6.2.36` is a separately-discovered defect — needs its own minimal-evidence-driven design pass for its specific class-scoped type-parameter case, NOT a return to the retired mandate's design space.
+
+What landed (pure docs):
+- `docs/tasks/SV-EXH-PROOF.md`: new umbrella `.b.6.2.36` opened with goal/scope/acceptance/cross-references; new leaf `.b.6.2.36.1` done (this slice — investigation captured). Actual-fix sub-leaves are TBD per design work.
+- `DEVELOPMENT_NOTES.md`: detailed investigation log including the minimal-repro evidence + trace excerpt + framing note.
+- `CHANGES.md`: this entry.
+- `LIVE_ACHIEVEMENT_STATUS.md`: tracker note added for `.36.1`.
+
+NO code change. Minimal repros at `/tmp/pgen-bug/simple_typedef.sv` + `/tmp/pgen-bug/class_param_t.sv` + `/tmp/pgen-bug/uvm_bvu_minimal.sv` (volatile; preserved here in the investigation log). SV external corpus stays 10/14 (this slice cannot affect parsing — pure docs).
+
+Frontier:
+- `.b.6.2.36.2`+ (TBD): actual-fix design + implementation for the class-scoped type-parameter persistence defect. Three viable approaches surfaced (committed-flag on the fact, restructured emit-after-settle, scoped-fact commit primitive); the choice depends on whether the issue is per-`try_parse` (C3-A territory) or per-branch (C3-B/Architecture-B territory) — needs more focused trace to localize the rollback's origin.
+- `.b.6.2.35.{2..16}`: still open, remaining 9 Table-B + 3 Table-C + 3 Table-D ungated rules.
+- `.b.6.2.35.0`: still pending, defect-taxonomy docs slice.
+- H1 cross-file-import: still pending, the broader uvm_pkg FAIL→PASS lever.
+
+Local-only per [[feedback_push_pacing]] (no-push override active; restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`).
+
 ## 2026-05-25 - PGEN-SV-EXH-PROOF-0081 (leaf SV-EXH-PROOF.3.3.4.b.6.2.35.1): SV grammar fix — gate `provisional_unscoped_block_class_type` with `@predicate: has_fact(type_name, $head.body)` (Slice-64 redux, now empirically clean: cross-parser GREEN + uvm_pkg deep-position advance 113637 → **furthest_position 162162** out of ~180K)
 
 First code sub-leaf of the `.b.6.2.35` umbrella (the ungated-identifier-categorisation defect class identified by Slice-69's tools-first re-diagnosis). This re-applies the exact one-line `@predicate` annotation Slice-64 introduced (then was reverted under the now-retired persistence framing). Under the current engine state (Slice-67's C3-B is in place; persistence-framing investigation retired) the gate lands clean.

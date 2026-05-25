@@ -1,4 +1,120 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.36.1 — TOOLS-FIRST INVESTIGATION: class-scoped type-parameter fact-persistence defect exposed by `.35.1` (PGEN-SV-EXH-PROOF-0082)
+
+### Context
+
+`.b.6.2.35.1` (Slice-70, this same day) landed the `@predicate has_fact(type_name, $head.body)` gate on `provisional_unscoped_block_class_type`. The gate worked as designed: iso5/iso4 minimal repros (the implicit-type port-list defect) PASS, corpus 10/14 stays stable, uvm_pkg furthest_position advances from 19378 → 162162 (~8.4× deeper).
+
+The natural next question: what's the deepest-position defect blocking uvm_pkg now? Position 162162 is inside `virtual class uvm_bit_vector_utils#(type T=int)`, specifically the function signature `static function string to_string(T value, int size, uvm_radix_enum radix=UVM_NORADIX, ...)`.
+
+### Minimal repro construction
+
+Three minimal repros constructed and tested with the fresh release `parseability_probe`:
+
+1. `/tmp/pgen-bug/simple_typedef.sv`:
+   ```
+   package p;
+     typedef int T;
+     function string f(T value);
+       return "";
+     endfunction
+   endpackage
+   ```
+   → **PASSes**
+
+2. `/tmp/pgen-bug/class_param_t.sv`:
+   ```
+   class c #(type T=int);
+     function void f(T value);
+     endfunction
+   endclass
+   ```
+   → **FAILs** at byte 42 (the `T` in `T value` arg)
+
+3. `/tmp/pgen-bug/uvm_bvu_minimal.sv`:
+   ```
+   package p;
+     virtual class uvm_bit_vector_utils#(type T=int);
+       static function string to_string(T value, int size);
+         return "";
+       endfunction
+     endclass
+   endpackage
+   ```
+   → **FAILs** at byte 100 (the `T` in `T value` arg)
+
+Both fail-cases use a class type-parameter `T` as a type in a method-argument position; the typedef case (which works) declares `T` as a typedef instead.
+
+### Decisive trace evidence
+
+`--trace-rules data_type,known_unscoped_data_type_identifier,checked_type_identifier,declared_type_parameter_identifier,type_parameter_declaration` on `class_param_t.sv` (13361 trace lines, filtered):
+
+```
+[HIGH] emit_fact kind=type_name name=Identifier("c") scope_depth=0
+       attrs: [{key: "declaration_family", value: Identifier("class")}]
+[HIGH] emit_fact kind=type_name name=Identifier("T") scope_depth=0
+       attrs: [{key: "declaration_family", value: Identifier("type_parameter")}]
+[HIGH] rollback_to(checkpoint fact_len=1, scope_arena_len=1)
+       — discarding 1 fact(s) + 0 scope-arena node(s)
+       discarding fact[1] kind=type_name name=Identifier("T") scope_depth=0
+[HIGH] emit_fact kind=type_name name=Identifier("T") scope_depth=0
+       attrs: [{key: "declaration_family", value: Identifier("type_parameter")}]
+[HIGH] rollback_to(checkpoint fact_len=1, scope_arena_len=1)
+       — discarding 1 fact(s) + 0 scope-arena node(s)
+       discarding fact[1] kind=type_name name=Identifier("T") scope_depth=0
+...
+[HIGH] has_fact(kind=type_name, name=Identifier("T")) → false
+[HIGH] Rule 'checked_type_identifier' rejected by post predicate
+       'has_fact [Identifier("type_name"), Identifier("T")]'
+[HIGH] Rule 'known_unscoped_class_scope_class_identifier' rejected
+[HIGH] Rule 'known_unscoped_class_scope_interface_class_identifier' rejected
+[HIGH] Rule 'known_unscoped_class_scope_type_parameter_identifier' rejected
+[HIGH] Rule 'provisional_unscoped_block_class_type' rejected (the .35.1 gate)
+```
+
+So the type_name=T fact IS emitted (twice — by two different speculative parse branches), but BOTH emissions are followed by a `rollback_to(checkpoint fact_len=1)` that discards the fact. At the use site (function arg `T value`), `has_fact(type_name, T)` returns false, and every gated type-identifier alternative correctly rejects T.
+
+The rollback is from `semantic_runtime.rs:1623 rollback_to`, which is the C3-A snapshot/rollback added to `try_parse` at Slice-58 (`.b.6.2.7`). C3-A's design: snapshot fact-state at try_parse entry; rollback on try_parse failure. So the rollback fires because the `try_parse` that contained the type_parameter emit FAILED.
+
+### Why the fact survives in the typedef case but not the type-parameter case
+
+Both `typedef int T;` and `class #(type T=int)` emit `type_name=T`. The difference is WHERE the emit happens:
+
+- **typedef**: the emit happens inside `data_declaration → type_declaration → declared_type_identifier`. The `type_declaration` is a single deterministic parse path — once the rule starts matching, it commits. No outer try_parse rollback discards the emit.
+
+- **class type-parameter**: the emit happens inside `class_declaration → parameter_port_list → mixed_string_parameter_port_list (or other variant) → type_assignment → declared_type_parameter_identifier`. The `parameter_port_list` has MULTIPLE alternatives (Pattern A `mixed_string_parameter_port_list`, Pattern B `parameter_port_declaration_sv_2017/sv_2023`, etc.) tried via `try_parse`. The type_assignment is tried in MULTIPLE speculation branches, each emitting then rolling back. Even if one branch ULTIMATELY commits, its committed fact gets rolled back by C3-A's per-try_parse rollback when an OUTER try_parse fails (or possibly by C3-B's per-branch winner-only-replay deciding not to keep this branch's delta).
+
+This is the same defect category that Slice-67 (C3-B) and Slice-68 (Architecture B) attempted to address under the (now-retired) "fact-persistence" framing. Slice-69 retired that framing because the iso5/iso4 / port-list defect was actually structural (ungated rule), not persistence. But for the class-scoped type-parameter case, persistence IS the actual defect — it just wasn't visible until `.35.1` removed the masking catch-all.
+
+### IMPORTANT: this does NOT vindicate the retired mandate
+
+The previously-retired [[feedback_predicate_parse_order_sota]] mandate was based on mis-framing the iso5/iso4 defect. Slice-69's re-diagnosis was correct: iso5/iso4 was structural. The mandate's retirement stands.
+
+`.b.6.2.36` is a SEPARATELY-DISCOVERED defect class — exposed by `.35.1`'s strictness, not by the iso5/iso4 minimal repro. It needs its own minimal-evidence-driven design pass for its specific class-scoped type-parameter case. Going back to the retired mandate's design space would be a mistake; the right design is yet to be done.
+
+### Three viable approaches surfaced (for `.b.6.2.36.2`+ to evaluate)
+
+1. **committed-flag on the fact**: extend `SemanticFactRecord` with a `committed: bool`; mark facts committed when the parent rule (e.g. `type_parameter_declaration`) commits; the per-try_parse rollback then preserves committed facts. This is the Architecture-B-style approach that was disproven (corpus 10/4/2 → 0/4/12 due to allocation churn). Would need a much more efficient implementation than Slice-68 to avoid the perf regression.
+
+2. **restructured emit-after-settle**: change the grammar's `parameter_port_list` parse so the @emit_fact fires AFTER all speculation has settled (i.e., bind the emit to a deterministic post-commit hook rather than firing inline during speculation). This is a structural/architectural change to how `@emit_fact` is wired into `try_parse`-bearing parses. Parser-agnostic if done at the engine level.
+
+3. **scoped-fact commit primitive**: introduce a new semantic-annotation primitive (e.g. `@commit_fact_at_scope: <kind>`) that binds the emit to a specific scope boundary; when the scope commits (e.g. class header parse succeeds), the fact is promoted to committed; per-try_parse rollback within the scope still discards uncommitted speculations. This is a level-3+ enhancement per [[feedback_no_workarounds_fix_hierarchy]] — needs a clean parser-agnostic design.
+
+The choice depends on whether the rollback is from per-try_parse (C3-A — Approach 1 or 3 fits) or per-branch tournament (C3-B — Approach 2 might fit too). Further focused trace at the exact rollback origin would localize this.
+
+### Slice scope
+
+This slice is INVESTIGATION ONLY — pure docs. Captures the minimal repros (in /tmp/pgen-bug/, volatile but reproducible), the trace excerpt, and the framing. The actual fix is routed to `.b.6.2.36.2`+ which will need a focused design pass to choose between the three approaches (or invent a fourth) and verify against the same minimal repros + corpus + cross-parser tests.
+
+### Empirical verification (this slice)
+
+- No code change → lib + corpus + RGX unaffected by this slice (verified by inspection: only `docs/tasks/SV-EXH-PROOF.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md` modified).
+- Minimal repros reproducible via the `/tmp/pgen-bug/` files (volatile — re-create with the listed source content if needed).
+
+### Local-only
+
+Per [[feedback_push_pacing]] (no-push override active). Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e`.
+
 ## 2026-05-25 - SV-EXH-PROOF.3.3.4.b.6.2.35.1 — SV grammar gate landed: `provisional_unscoped_block_class_type` consults the semantic store (Slice-64 redux, lands clean under current engine state); uvm_pkg deep-position advance 19378 → 162162 (PGEN-SV-EXH-PROOF-0081)
 
 ### Context
