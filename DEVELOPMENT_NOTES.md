@@ -1,4 +1,78 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.7 — **SV GRAMMAR FIX**: `expression_or_cond_pattern` gains `inside_expression` sibling (PGEN-SV-EXH-PROOF-0094)
+
+### What landed
+
+One-rule grammar edit at `grammars/systemverilog.ebnf:2018`:
+
+```ebnf
+# Before
+expression_or_cond_pattern := expression_base -> {kind: "expression",   body: $1}
+                            | cond_pattern    -> {kind: "cond_pattern", body: $1}
+
+# After (this slice)
+expression_or_cond_pattern := inside_expression -> {kind: "inside",       body: $1}
+                            | expression_base   -> {kind: "expression",   body: $1}
+                            | cond_pattern      -> {kind: "cond_pattern", body: $1}
+```
+
+Plus release bump 1.0.130 → 1.0.131 (schema STAYS 3).
+
+### Root cause
+
+`.37.6` deepened uvm_pkg furthest from 1,121,290 to 1,278,335. The next blocker at uvm_pkg line ~34980 inside `uvm_root::die`:
+
+```sv
+if (get_core_state() inside {UVM_CORE_PRE_ABORT, UVM_CORE_ABORTED}) begin
+  return;
+end
+```
+
+Defect class: `inside` in condition contexts (`if`/`while`/`for`). RHS-of-assignment usage `y = x inside {…};` worked pre-fix; condition usage `if (x inside {…})` failed.
+
+Grammar trail: `conditional_statement` uses `cond_predicate` (line 1229) which uses `expression_or_cond_pattern` (line 1187). The latter was `expression_base | cond_pattern` — using `expression_base` directly, bypassing `expression`'s outer alternation `expression := expression_base | inside_expression` (line 301). So `inside_expression` was unreachable from condition contexts.
+
+### Why the sibling-branch alternative (not the LRM-literal substitution)
+
+LRM-literal would be `expression_or_cond_pattern := expression | cond_pattern`. That's what I tried first. Caused a uvm_pkg furthest REGRESSION 1,278,335 → 191,248 during in-slice verification — the in-slice SV corpus run caught it (this is exactly the corpus-truth-test discipline working as intended).
+
+Hypothesis on the regression: substituting `expression_base` (a specific concrete form, the LHS-of-binary-operator chain) with `expression` (the alternation including `inside_expression`) somewhere deep in nested PEG parsing caused wholesale backtracking — probably PEG ambiguity where a partial inside-expression match consumed input then failed at a higher level, forcing the outer rule to abandon paths that previously committed.
+
+Reverted + re-fixed with the sibling-branch alternative: `inside_expression` as the FIRST alternative (deterministically gated by the `inside` keyword; fails fast when absent), `expression_base` second (preserves all existing parse priority), `cond_pattern` third. This avoids the LRM-literal's PEG-ambiguity problem entirely while landing the original target.
+
+Per [[feedback_root_cause_before_fix_code_last_resort]] / [[feedback_correctness_before_speed]] — the corpus-truth-test catches what static analysis can miss; verify before claiming. The in-slice corpus run did exactly that job.
+
+### Verification
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `if (x inside {1, 2})` (literal set) | FAIL | **PASS** |
+| `if (x inside {[1:5]})` (range) | FAIL | **PASS** |
+| `if (x inside {A, B})` (identifier set) | FAIL | **PASS** |
+| `while (x inside {[1:5]})` (while loop) | FAIL | **PASS** |
+| `y = x inside {1, 2};` (RHS) | PASS | PASS (no regression) |
+| `y = x inside {[1:5]};` (RHS range) | PASS | PASS (no regression) |
+
+Lib (--features generated_parsers) **609/609 PASS**. Lib (no-features) **548/548 PASS**. Clippy ✅. SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable; **uvm_pkg furthest_position 1,278,335 → 1,508,106** (+229,771 bytes deeper, ~18% more; ~50% through uvm_pkg). uvm_compat_pkg unchanged at 116752 (H1 territory).
+
+### uvm_pkg furthest_position arc
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338) ← `Class::member`
+- `.37.5`: 1,121,290 (+254998) ← indexed member in 3+level chain
+- `.37.6`: 1,278,335 (+157045) ← `inside { [N:M] }` LRM-extraction
+- `.37.7` (this slice): **1,508,106** (+229771) ← `inside` in condition contexts
+
+= ~78× deeper than Slice-54's baseline; ~13.6× deeper than `.35.1`. Past the halfway mark of uvm_pkg.
+
+### Frontier
+
+`.b.6.2.37.8+` (next defect past uvm_pkg byte ~1.51M) OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
 ## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.6 — **SV GRAMMAR LRM-EXTRACTION FIX**: `inside_expression` + `value_range` require LRM literal braces/brackets (PGEN-SV-EXH-PROOF-0093)
 
 ### What landed

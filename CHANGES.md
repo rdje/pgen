@@ -1,4 +1,92 @@
 # CHANGES.md
+## 2026-05-26 - PGEN-SV-EXH-PROOF-0094 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.7): **SV GRAMMAR FIX — `expression_or_cond_pattern` gains `inside_expression` sibling so `if (x inside {…})` parses.** Release 1.0.130 → 1.0.131, schema STAYS 3.
+
+ROOT CAUSE:
+
+`.37.6` deepened uvm_pkg furthest from 1,121,290 to 1,278,335. The next blocker at uvm_pkg line ~34980 inside `uvm_root::die`:
+
+```sv
+if (get_core_state() inside {UVM_CORE_PRE_ABORT, UVM_CORE_ABORTED}) begin
+  return;
+end
+```
+
+Isolated minimal repro pinned the defect: `if (x inside {…})` fails (any inside variant in an if-condition), while `y = x inside {…};` (as RHS of assignment) passes. The defect is the condition-context-vs-expression-context routing of `inside_expression`.
+
+Reading the grammar:
+- `conditional_statement` uses `cond_predicate` (line 1229: `kw_if lparen cond_predicate rparen ...`).
+- `cond_predicate := expression_or_cond_pattern ( logical_and3 expression_or_cond_pattern )*` (line 1187).
+- `expression_or_cond_pattern := expression_base | cond_pattern` (line 2018) — uses `expression_base` directly.
+- BUT `expression := expression_base | inside_expression` (line 301) — the outer alternation.
+
+So `cond_predicate` reaches `expression_base` but NOT `inside_expression` (the latter is reachable only from the higher-level `expression`). Condition contexts therefore can't parse `inside` expressions.
+
+THE FIX (one rule edit at `grammars/systemverilog.ebnf:2018`):
+
+```ebnf
+expression_or_cond_pattern := inside_expression -> {kind: "inside",       body: $1}
+                            | expression_base   -> {kind: "expression",   body: $1}
+                            | cond_pattern      -> {kind: "cond_pattern", body: $1}
+```
+
+`inside_expression` as the FIRST alternative — it has a specific structure (`expression_base kw_inside lbrace …`) so it's deterministically gated by the `inside` keyword; if no `inside` follows, it fails fast and the second branch (`expression_base`) is tried, preserving the existing PEG priority for everything else.
+
+IN-SLICE LESSON (honest disclosure):
+
+The first attempt was the more LRM-faithful `expression_base → expression` replacement (per LRM `expression_or_cond_pattern ::= expression | cond_pattern`). That caused a uvm_pkg furthest REGRESSION 1,278,335 → 191,248 during in-slice verification — the in-slice SV corpus gate showed the depth dropped massively. Probably PEG ambiguity in deep nested expressions caused wholesale backtracking when `expression` (the alternation) was substituted for `expression_base` (the concrete left-of-binary-operator form).
+
+Reverted + re-fixed with the sibling-branch alternative (less ambitious than LRM-literal) — corpus then advanced from 1,278,335 → 1,508,106 as expected. The in-slice corpus run is the truth test that caught the regression. Per [[feedback_root_cause_before_fix_code_last_resort]] / [[feedback_correctness_before_speed]] — verify, don't claim.
+
+EMPIRICAL VERIFICATION (6-way minimal repro):
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `if (x inside {1, 2})` (literal set) | FAIL | **PASS** |
+| `if (x inside {[1:5]})` (range) | FAIL | **PASS** |
+| `if (x inside {A, B})` (identifier set) | FAIL | **PASS** |
+| `while (x inside {[1:5]})` (while loop) | FAIL | **PASS** |
+| `y = x inside {1, 2};` (RHS assign) | PASS | **PASS** (no regression) |
+| `y = x inside {[1:5]};` (RHS range) | PASS | **PASS** (no regression) |
+
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅ (canonical `clippy_on_rust_change`).
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable.
+- **uvm_pkg ×{2017,2023} furthest_position 1,278,335 → 1,508,106** (+229,771 bytes deeper, ~18% more; reaches ~1.51M of ~3.0M preprocessed bytes = ~50% through uvm_pkg — past the halfway mark).
+- uvm_compat_pkg ×{2017,2023} unchanged at 116752 (H1 territory).
+
+UVM_PKG FURTHEST_POSITION ARC (this session):
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338) ← `Class::member`
+- `.37.5`: 1,121,290 (+254998) ← indexed member in 3+level chain
+- `.37.6`: 1,278,335 (+157045) ← `inside { [N:M] }` LRM-extraction
+- `.37.7` (this slice): **1,508,106** (+229771) ← `inside` in condition contexts
+
+= ~78× deeper than Slice-54's baseline; ~13.6× deeper than `.35.1`. We've parsed past the halfway mark of uvm_pkg.
+
+NO-WORKAROUNDS HIERARCHY: **level 1** — existing grammar primitive (`inside_expression` already exists; this slice lifts it into the cond_predicate-reachable position).
+
+RELEASE BUMP 1.0.130 → 1.0.131, schema STAYS 3. Strictly-more-permissive (SVPP-0002/REGEX-0083): previously-unparseable `if (x inside {…})` now parses; no shape change on previously-PASSING inputs.
+
+Files modified (tracked):
+- `grammars/systemverilog.ebnf` (1 rule edit: line 2018, `expression_or_cond_pattern` adds `inside_expression` sibling)
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (1.0.130 → 1.0.131)
+- `docs/systemverilog_parser_book/src/changelog-index.md` (new 1.0.131 entry)
+- `docs/systemverilog_parser_book/src/schema-versioning.md` (new 1.0.131 row)
+- `docs/tasks/SV-EXH-PROOF.md` (`.37.7` leaf row + leaf-detail + Last updated)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep)
+
+Books unaffected for prose surfaces (internal grammar fix, no new user-facing rule shape).
+
+Frontier: `.37.8+` (next defect past uvm_pkg byte ~1.51M) OR `.b.6.2.35.{2..16}` ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". Unpushed: 3 commits (Slice-81 + Slice-82 + Slice-83). NOT pushing.
+
 ## 2026-05-26 - PGEN-SV-EXH-PROOF-0093 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.6): **SV GRAMMAR LRM-EXTRACTION FIX — `inside_expression` + `value_range` require LRM literal braces/brackets.** Release 1.0.129 → 1.0.130, schema STAYS 3.
 
 ROOT CAUSE (per IEEE 1800 §A.8.3):
