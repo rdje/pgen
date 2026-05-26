@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-05-26 - PGEN-SV-EXH-PROOF-0091 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.4): **PURE-DOCS INVESTIGATION** — next uvm_pkg blocker pinned at `instance.indexed_member.method()` 3-level chain.
+
+Following `.37.3`'s landing (uvm_pkg furthest 828954 → 866292), the new blocker surfaced at uvm_pkg preprocessed line ~27031 inside `uvm_report_message_element_container::do_copy`'s foreach body:
+
+```sv
+foreach (urme_container.elements[i]) begin
+  elements.push_back(urme_container.elements[i].clone());
+end
+```
+
+Bisection on `head -N` of the uvm_pkg body narrowed the trigger to `elements.push_back(urme_container.elements[i].clone())` — specifically the argument expression `c.elements[i].clone()` where `c` is a class instance, `elements` is an indexed member (queue dim), and `.clone()` is a method call. Minimal 4-way isolated repro pinned the defect class:
+
+- `c.elements.clone()` (no index) — PASSES
+- `c.elements[i].clone()` (variable index) — FAILS at byte 0 [furthest 265]
+- `c.elements[0].clone()` (literal index) — FAILS too
+- `c.elements[i]` alone (no method) — PASSES
+
+So the defect is specifically: **method call CHAINED off an indexed bit-select on a dotted member access** — a 3-level chain `instance . indexed_member . method_call`.
+
+Paper-trace of the existing grammar:
+- `split_hierarchical_callable_receiver` (line 2810): `( prefix )? ( identifier constant_bit_select dot !callable_method_call_body )* identifier constant_bit_select`
+- For `c.elements[i]`: should match via loop iter 1 (`c.` with empty bit_select) + final (`elements[i]`).
+- Then outer `split_direct_callable_method_call` `dot callable_method_call_body` matches `.clone()`.
+- Should work per the paper trace.
+
+Empirically doesn't. Possible causes (to verify in `.37.5` via `--trace-rules split_hierarchical_callable_receiver,split_direct_callable_method_call,call_primary`):
+
+(a) Priority-ordered branch in `call_primary` matches FIRST and commits before `split_direct_callable_method_call` gets a chance — e.g. `call_with_postfix_chain` or `identifier_rooted_method_chain` might partially match and not back out.
+
+(b) `constant_bit_select`'s `constant_expression` restriction rejects even literal `[0]` — though `c.elements[0]` alone parses, so this is unlikely the sole cause.
+
+(c) Interaction with `.37.3`'s new `class_scope` branch in `primary_hier_scope_prefix` — the new branch is gated by `fact_attribute_equals(type_name, $body, declaration_family, class)`; for `c` (local var, not class identifier) it would fail-fast, so this is also unlikely.
+
+PURE DOCS slice — no grammar / Rust / generated change. Lib + RGX + SV corpus unaffected (this slice cannot affect parsing). Books unaffected. Repros saved at `/tmp/pgen-bug/h2_37_4_chain_indexed_method.sv` + `/tmp/pgen-bug/h2_37_4_foreach_dotted.sv`.
+
+Fix routed to `.b.6.2.37.5` after targeted trace pin.
+
+⛔ NO-PUSH OVERRIDE active until per-push authorization.
+
 ## 2026-05-26 - PGEN-SV-EXH-PROOF-0090 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.3): **SV GRAMMAR FIX — `Class::member` as primary expression + lvalue.** Bundled release 1.0.127 → 1.0.128 covering `.36.4 + .36.5 + .37.0 + .37.1 + .37.2 + .37.3` — six slices whose release-bump candidates each individually deferred to this combined landing. Schema STAYS 3 throughout.
 
 ROOT CAUSE (tools-first, decisive):
