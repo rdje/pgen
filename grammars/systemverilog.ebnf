@@ -2877,7 +2877,20 @@ method_call_root := method_call_receiver  -> {kind: "receiver",       body: $1}
 #  - Strictly additive: the `+` requires 3+ identifiers, and 2-level `a.b(x)`
 #    already parses, so no currently-passing construct changes shape.
 @predicate: { name: has_fact, args: [variable_binding, $head], phase: post }
-context_member_method_call := identifier ( dot identifier &dot )+ dot callable_method_call_body ( dot method_call_body )*
+# SV-EXH-PROOF.3.3.4.b.6.2.37.5 — added `constant_bit_select` (which matches
+# zero-or-more `[ const_expr ]`) after each member identifier in the chain
+# loop, so `obj.member[i].method(args)` parses cleanly. Surfaced by
+# `.37.3`'s deepening into uvm_pkg's `uvm_report_message_element_container::do_copy`:
+# `elements.push_back(urme_container.elements[i].clone());` — the call argument
+# `c.elements[i].clone()` is `instance . indexed_member . method_call`,
+# a 3-level chain where the middle `elements[i]` has a bit-select. Pre-fix the
+# `( dot identifier &dot )+` loop accepted only bare identifiers between
+# dots, so `dot elements [i]` failed the `&dot` lookahead (`[` ≠ `.`) and
+# the rule rejected the chain. Adding `constant_bit_select` (which is `*`
+# of `[ const_expr ]`, so matches empty when no index is present) preserves
+# backwards-compat: `a.b.c.method()` (no indices) is byte-identical to pre-fix
+# behavior since `constant_bit_select` matches empty.
+context_member_method_call := identifier ( dot identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
                            -> {head: $1.body, members: $2, method: $4, chain: $5}
 
 # SV-EXH-PROOF.3.3.4.b.6.2.5 — postfix-method-chain on a call-rooted

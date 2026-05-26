@@ -1,4 +1,80 @@
 # CHANGES.md
+## 2026-05-26 - PGEN-SV-EXH-PROOF-0092 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.5): **SV GRAMMAR FIX — `context_member_method_call` member-loop accepts indexed members.** One-token grammar edit; release 1.0.128 → 1.0.129, schema STAYS 3.
+
+ROOT CAUSE (tools-first, decisive):
+
+`.37.4`'s investigation pinned `c.elements[i].clone()` (3-level chain `instance . indexed_member . method_call`) as the next uvm_pkg blocker post-`.37.3`. Targeted `--trace-rules call_primary,split_hierarchical_callable_receiver,split_direct_callable_method_call` confirmed all branches fail at the expression position. Reading `grammars/systemverilog.ebnf:2880`:
+
+```ebnf
+@predicate: { name: has_fact, args: [variable_binding, $head], phase: post }
+context_member_method_call := identifier ( dot identifier &dot )+ dot callable_method_call_body ( dot method_call_body )*
+```
+
+This rule was added by `.b.6.2` for identifier-rooted 3+level chains like `a.b.c(x)`. The member loop `( dot identifier &dot )+` accepts only BARE identifiers between dots — no bit-select. For `c.elements[i].clone()`:
+- Loop iteration: `dot elements` ✓
+- `&dot` lookahead: next char is `[`, NOT `.` → FAILS
+- Loop terminates with 0 iterations (required `+` = 1+) → whole rule REJECTED
+
+Paper-trace also confirmed the alternative paths (`split_hierarchical_callable_receiver`, `split_direct_callable_method_call`) had compatible issues. Only `context_member_method_call` was the architecturally-correct site for this fix (it's specifically the 3+level chain rule).
+
+THE FIX (one-token grammar edit in `grammars/systemverilog.ebnf:2880`):
+
+```ebnf
+context_member_method_call := identifier ( dot identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
+```
+
+`constant_bit_select` is defined as `( lbrack constant_expression rbrack )*` (line 1263) — `*` quantifier matches zero-or-more `[...]`, so it matches empty when no index is present. Backwards-compatible: `a.b.c.method()` parses byte-identically (no shape change on the no-index path). Strictly-more-permissive: `a.b[i].c.method()` (was unparseable) now parses with the SAME `{head, members, method, chain}` shape — just with the indexed member captured in the members list.
+
+The `&dot` lookahead now correctly sees the trailing `.method()` dot AFTER the optional `[...]` is consumed.
+
+EMPIRICAL VERIFICATION (6-way minimal repro):
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `c.elements.clone()` (no index) | PASS | PASS |
+| `c.elements[i].clone()` (variable index) | FAIL | **PASS** |
+| `c.elements[0].clone()` (literal index) | FAIL | **PASS** |
+| `c.a.b.c.method()` (4-seg no index) | PASS | PASS |
+| `c.a.b[i].c.method()` (5-seg middle index) | FAIL | **PASS** |
+| `c.a[i].b.method()` (4-seg head-of-member index) | FAIL | **PASS** |
+
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅ (canonical `clippy_on_rust_change`).
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable.
+- **uvm_pkg ×{2017,2023} furthest_position 866292 → 1,121,290** (+254,998 bytes deeper, ~30% more; reaches ~1.12M of ~3.0M preprocessed bytes = ~37% of the way through uvm_pkg).
+- uvm_compat_pkg ×{2017,2023} unchanged at 116752 (H1 territory).
+
+UVM_PKG FURTHEST_POSITION ARC:
+
+- Slice-54 baseline: 19378
+- Pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 unblocks built-in classes
+- `.37.3`: 866292 (+37338) ← Class::member unblocks parameterized class chain
+- `.37.5` (this slice): **1,121,290** (+254,998) ← indexed member in 3+level chain
+
+= ~58× deeper than Slice-54's baseline; ~10× deeper than `.35.1`.
+
+NO-WORKAROUNDS HIERARCHY: **level 1** — existing grammar primitive. `constant_bit_select` is already widely used in the SV grammar (dozens of sites); this slice just lifts it into the chain member-loop where the LRM expects it. No new annotation, no new engine work, no new directive.
+
+RELEASE BUMP 1.0.128 → 1.0.129, schema STAYS 3 — strictly-more-permissive (previously-unparseable inputs now parse; no shape change on existing PASS inputs). SVPP-0002/REGEX-0083 category.
+
+Files modified (tracked):
+- `grammars/systemverilog.ebnf` (1 rule edit: line 2880, +1 token `constant_bit_select`)
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (release 1.0.128 → 1.0.129)
+- `docs/systemverilog_parser_book/src/changelog-index.md` (new 1.0.129 entry)
+- `docs/systemverilog_parser_book/src/schema-versioning.md` (new 1.0.129 row)
+- `docs/tasks/SV-EXH-PROOF.md` (`.37.5` leaf row + leaf-detail + Last updated header)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep)
+
+Books unaffected for prose surfaces (the change is internal grammar — no new user-facing rule shape or directive).
+
+Frontier: `.b.6.2.37.6+` (next defect surfaced past uvm_pkg line ~32K, byte ~1.12M) OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". This slice does NOT auto-push.
+
 ## 2026-05-26 - PGEN-SV-EXH-PROOF-0091 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.4): **PURE-DOCS INVESTIGATION** — next uvm_pkg blocker pinned at `instance.indexed_member.method()` 3-level chain.
 
 Following `.37.3`'s landing (uvm_pkg furthest 828954 → 866292), the new blocker surfaced at uvm_pkg preprocessed line ~27031 inside `uvm_report_message_element_container::do_copy`'s foreach body:

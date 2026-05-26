@@ -1,4 +1,66 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.5 — **SV GRAMMAR FIX**: `context_member_method_call` member-loop accepts indexed members (PGEN-SV-EXH-PROOF-0092)
+
+### What landed
+
+One-token edit in `grammars/systemverilog.ebnf:2880` — the `.b.6.2`-era `context_member_method_call` 3+level-chain rule's member loop gains `constant_bit_select` after each member identifier:
+
+```ebnf
+# Before
+context_member_method_call := identifier ( dot identifier &dot )+ dot callable_method_call_body ( dot method_call_body )*
+
+# After (this slice)
+context_member_method_call := identifier ( dot identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
+```
+
+Plus release bump 1.0.128 → 1.0.129 (schema STAYS 3).
+
+### Root cause (tools-first, decisive)
+
+`.37.3`'s `Class::member` grammar fix deepened uvm_pkg furthest_position from 828954 to 866292. The new blocker was `c.elements[i].clone()` (instance-dot-indexed_member-dot-method) at uvm_pkg line 27031 inside `uvm_report_message_element_container::do_copy`'s foreach loop.
+
+Targeted `--trace-rules call_primary,split_hierarchical_callable_receiver,split_direct_callable_method_call` showed all branches fail. Reading the grammar revealed `context_member_method_call` (the `.b.6.2` 3+level-chain rule, gated by `@predicate has_fact(variable_binding, $head)`) had `( dot identifier &dot )+` for intermediate members — bare identifier only, no bit-select. The `&dot` lookahead failed when the next char was `[` (the bracket of a bit-select).
+
+### Why this fix is the right level
+
+The rule already exists and is already the architecturally-correct site for 3+level identifier-rooted chains. The defect was a one-token gap: the member-loop didn't allow `[bit_select]` between members. Adding `constant_bit_select` (a `*` quantifier matching empty when no index is present) is:
+
+- **Level 1** in the no-workarounds hierarchy: existing grammar primitive (`constant_bit_select` is used dozens of places in the SV grammar; this lifts it into the chain-member-loop).
+- **Backwards-compatible**: `a.b.c.method()` (no indices) parses byte-identically pre/post-fix (constant_bit_select matches empty).
+- **Strictly-more-permissive**: `a.b[i].c.method()` (was unparseable) now parses with the SAME `{head, members, method, chain}` shape — just with the indexed member captured in the members list.
+- **Predicate-gated**: still fires only for known declared variables (`@predicate has_fact(variable_binding, $head)`).
+
+### Verification
+
+6-way minimal repro pre/post-fix:
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `c.elements.clone()` (no index) | PASS | PASS |
+| `c.elements[i].clone()` (variable index) | FAIL | **PASS** |
+| `c.elements[0].clone()` (literal index) | FAIL | **PASS** |
+| `c.a.b.c.method()` (4-seg no index) | PASS | PASS |
+| `c.a.b[i].c.method()` (5-seg middle index) | FAIL | **PASS** |
+| `c.a[i].b.method()` (4-seg head-of-member index) | FAIL | **PASS** |
+
+Lib (--features generated_parsers) **609/609 PASS**. Lib (no-features) **548/548 PASS**. Clippy ✅. SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary count stable; **uvm_pkg ×{2017,2023} furthest_position 866292 → 1,121,290** (+254,998 bytes deeper, ~30% more; reaches ~1.12M of ~3.0M preprocessed bytes = ~37% of the way through uvm_pkg). uvm_compat_pkg unchanged at 116752 (H1 territory).
+
+### uvm_pkg furthest_position arc
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338) ← `Class::member`
+- `.37.5` (this slice): **1,121,290** (+254998) ← indexed member in 3+level chain
+
+= ~58× deeper than Slice-54's baseline; ~10× deeper than `.35.1`.
+
+### Frontier
+
+`.b.6.2.37.6+` (next defect surfaced past uvm_pkg byte ~1.12M / line ~32K) OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg cross-package extends — depends on uvm_pkg PASSing first).
+
 ## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.3 — **SV GRAMMAR FIX**: `Class::member` as primary expression + lvalue; bundled release 1.0.127 → 1.0.128 (PGEN-SV-EXH-PROOF-0090)
 
 ### What landed
