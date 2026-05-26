@@ -2371,12 +2371,24 @@ input_terminal := expression
                -> {body: $1}
 
 @profiles: ["sv_2017"]
-inside_expression_sv_2017 := expression_base kw_inside_fcc53788 open_range_list*
-                          -> {expr: $1, ranges: $3}
+# SV-EXH-PROOF.3.3.4.b.6.2.37.6 — per IEEE 1800 §A.8.3:
+#   inside_expression ::= expression inside { open_range_list }
+# The LRM has literal `{` and `}` braces around the range list. The prior
+# pgen rule was `kw_inside open_range_list*` — MISSING the braces, and
+# wrapped in `*` (zero-or-more) which made the rule match `inside` followed
+# by nothing. Combined with the broken `value_range_sv_2017` (which also
+# matched empty), this caused `inside {[1:5]}` to fail — the `{[1:5]}` was
+# never recognised as the value list. Fix: require `lbrace ... rbrace`
+# literally; `open_range_list` (one-or-more) consumes the list inside.
+# Same fix shape for sv_2023's `range_list*`.
+# Surfaced by `.37.5`'s 1,121,290 furthest reaching uvm_phase::jump's
+# `phases.find(item) with (item.get_state() inside {[UVM_PHASE_STARTED:UVM_PHASE_CLEANUP]})`.
+inside_expression_sv_2017 := expression_base kw_inside_fcc53788 lbrace open_range_list rbrace
+                          -> {expr: $1, ranges: $4}
 
 @profiles: ["sv_2023"]
-inside_expression_sv_2023 := expression_base kw_inside_fcc53788 range_list*
-                          -> {expr: $1, ranges: $3}
+inside_expression_sv_2023 := expression_base kw_inside_fcc53788 lbrace range_list rbrace
+                          -> {expr: $1, ranges: $4}
 
 inside_expression := inside_expression_sv_2017 -> {kind: "sv_2017", body: $1}
                    | inside_expression_sv_2023 -> {kind: "sv_2023", body: $1}
@@ -5310,15 +5322,33 @@ use_clause := @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot 
             | @probe_sample: "use top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
 
 @profiles: ["sv_2017"]
-value_range_sv_2017 := expression                          -> {kind: "expression", body: $1}
-                     | ( expression colon expression )?    -> {kind: "range",      body: $1}
+# SV-EXH-PROOF.3.3.4.b.6.2.37.6 — per IEEE 1800 §A.8.3:
+#   value_range ::= expression | [ expression : expression ]
+# The LRM literally has `[` and `]` around the range form. The prior pgen
+# rule was `( expression colon expression )?` — missing the brackets AND
+# wrapped in `?` (which made the rule match empty as a fallback, so it
+# silently "succeeded" without consuming anything for `[1:5]` and the outer
+# rule then choked on the unexpected `[`). Fix: require `lbrack ... rbrack`
+# literally; emit `{kind: "range", lo: $2, hi: $4}` (the same `lo`/`hi`
+# convention used by `constant_range_expression` line 538).
+# Surfaced by `.37.5`'s 1,121,290 furthest reaching uvm_phase::jump's
+# `phases.find(item) with (item.get_state() inside {[UVM_PHASE_STARTED:UVM_PHASE_CLEANUP]})`.
+value_range_sv_2017 := expression                                       -> {kind: "expression", body: $1}
+                     | lbrack expression colon expression rbrack         -> {kind: "range",      lo: $2, hi: $4}
 
 @profiles: ["sv_2023"]
-value_range_sv_2023 := expression                                       -> {kind: "expression",  body: $1}
-                     | ( expression colon expression )?                 -> {kind: "range",       body: $1}
-                     | ( kw_dollar colon expression )?                  -> {kind: "dollar_lo",   body: $1}
-                     | ( expression colon kw_dollar )?                  -> {kind: "dollar_hi",   body: $1}
-                     | ( expression plus slash minus expression )?      -> {kind: "tolerance",   body: $1}
+# Same fix for sv_2023 across all 4 bracketed range variants. Per LRM
+# 1800-2023 §A.8.3:
+#   value_range ::= expression
+#                 | [ expression : expression ]
+#                 | [ $ : expression ]
+#                 | [ expression : $ ]
+#                 | [ expression +/- expression ]
+value_range_sv_2023 := expression                                                       -> {kind: "expression", body: $1}
+                     | lbrack expression colon expression rbrack                         -> {kind: "range",      lo: $2, hi: $4}
+                     | lbrack kw_dollar colon expression rbrack                          -> {kind: "dollar_lo",  hi: $4}
+                     | lbrack expression colon kw_dollar rbrack                          -> {kind: "dollar_hi",  lo: $2}
+                     | lbrack expression plus slash minus expression rbrack              -> {kind: "tolerance",  center: $2, tol: $6}
 
 value_range := value_range_sv_2017 -> {kind: "sv_2017", body: $1}
              | value_range_sv_2023 -> {kind: "sv_2023", body: $1}

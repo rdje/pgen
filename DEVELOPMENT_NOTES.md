@@ -1,4 +1,72 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.6 — **SV GRAMMAR LRM-EXTRACTION FIX**: `inside_expression` + `value_range` require LRM literal braces/brackets (PGEN-SV-EXH-PROOF-0093)
+
+### What landed
+
+Two coordinated LRM-extraction fixes in `grammars/systemverilog.ebnf` matching IEEE 1800 §A.8.3 exactly:
+
+(a) `value_range_sv_2017` (line 5313) + `value_range_sv_2023` (line 5317): the range alternative `( expression colon expression )?` (missing brackets, optional-empty fallthrough) → `lbrack expression colon expression rbrack` (LRM literal `[`/`]`). sv_2023 same fix across all 4 bracketed variants (range / dollar_lo / dollar_hi / tolerance).
+
+(b) `inside_expression_sv_2017` (line 2374) + `inside_expression_sv_2023` (line 2378): `kw_inside open_range_list*` (missing braces, zero-or-more fallthrough) → `kw_inside lbrace open_range_list rbrace` (LRM literal `{`/`}`).
+
+Plus release bump 1.0.129 → 1.0.130 (schema STAYS 3).
+
+### Root cause
+
+`.37.5`'s `context_member_method_call` fix deepened uvm_pkg furthest from 866292 to 1,121,290. The next blocker at uvm_pkg line 34573 inside `uvm_phase::jump`:
+
+```sv
+phases = phases.find(item) with (item.get_state() inside {[UVM_PHASE_STARTED:UVM_PHASE_CLEANUP]});
+```
+
+5-way isolated repro pinned the defect: `inside { [N:M] }` LRM range-inside-inside form. `inside {1, 2, 3}` (bare values) PASSed pre-fix; `inside {[1:5]}` FAILed.
+
+Reading the grammar revealed BOTH the `inside_expression` and the `value_range` rules were missing LRM literal punctuators:
+
+- `value_range_sv_2017`: `( expression colon expression )?` — missing `[`/`]` brackets, AND `?` made the whole alternative match empty as a fallback.
+- `inside_expression_sv_2017`: `kw_inside open_range_list*` — missing `{`/`}` braces, AND `*` made the range-list match zero-or-more (so empty was valid).
+
+Combined: `inside {[1:5]}` failed because `value_range`'s range branch couldn't match `[1:5]` (no bracket form) AND `inside_expression` couldn't recognize `{...}` as the list scope (no brace form). Both rules silently "succeeded" on empty matches without consuming anything, leaving the cursor stuck.
+
+### Why this is the .b.1-precedent class
+
+`.b.1`'s `conditional_statement` fix was the first LRM-extraction-defect class fix: the pgen rule was missing the LRM's `?` quantifier on the optional `else` clause. Same defect class here — pgen's extraction dropped LRM literal punctuators. The remediation pattern is identical: read the LRM rule literally, restore the missing punctuators, accept the AST shape change as a NEW shape (no consumer can have been reading the broken always-empty shape).
+
+### Fix is strictly-more-permissive
+
+- Previously-unparseable `inside {[1:5]}` now parses with a sensible `{kind: "range", lo: $2, hi: $4}` shape.
+- Previously-PASSING `inside {1, 2}` continues to parse — via the LRM-correct path through the new literal braces (`value_range`'s `expression` branch matches `1` and `2` as bare values; `open_range_list` chains them with commas). The effective shape is unchanged.
+- SVPP-0002/REGEX-0083 category.
+
+### Verification
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `1 inside {1, 2}` | PASS | PASS |
+| `item inside {[1:5]}` | FAIL | **PASS** |
+| `item inside {[1:5], 10}` | FAIL | **PASS** |
+| `item inside {[$:5]}` | FAIL | **PASS** |
+| `item inside {[1:$]}` | FAIL | **PASS** |
+
+Lib (--features generated_parsers) **609/609 PASS**. Lib (no-features) **548/548 PASS**. Clippy ✅. SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable; **uvm_pkg ×{2017,2023} furthest_position 1,121,290 → 1,278,335** (+157,045 bytes deeper, ~14% more; ~1.28M of ~3.0M preprocessed bytes = ~42% through uvm_pkg). uvm_compat_pkg unchanged at 116752 (H1 territory).
+
+### uvm_pkg furthest_position arc
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338) ← `Class::member`
+- `.37.5`: 1,121,290 (+254998) ← indexed member in 3+level chain
+- `.37.6` (this slice): **1,278,335** (+157045) ← `inside { [N:M] }` LRM-extraction
+
+= ~66× deeper than Slice-54's baseline; ~11.5× deeper than `.35.1`.
+
+### Frontier
+
+`.b.6.2.37.7+` (next defect past uvm_pkg byte ~1.28M) OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
 ## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.5 — **SV GRAMMAR FIX**: `context_member_method_call` member-loop accepts indexed members (PGEN-SV-EXH-PROOF-0092)
 
 ### What landed

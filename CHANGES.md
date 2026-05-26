@@ -1,4 +1,113 @@
 # CHANGES.md
+## 2026-05-26 - PGEN-SV-EXH-PROOF-0093 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.6): **SV GRAMMAR LRM-EXTRACTION FIX — `inside_expression` + `value_range` require LRM literal braces/brackets.** Release 1.0.129 → 1.0.130, schema STAYS 3.
+
+ROOT CAUSE (per IEEE 1800 §A.8.3):
+
+`.37.5` deepened uvm_pkg furthest to 1,121,290. The next blocker at uvm_pkg line 34573 inside `uvm_phase::jump` is:
+```sv
+phases = phases.find(item) with (item.get_state() inside {[UVM_PHASE_STARTED:UVM_PHASE_CLEANUP]});
+```
+
+5-way isolation pinned the defect: `inside {[1:5]}` form. `inside {1, 2, 3}` (bare values) passes. The defect is `inside { [N:M] }` — both the braces AND the range brackets.
+
+Reading the grammar:
+
+`value_range_sv_2017` (line 5313):
+```ebnf
+value_range_sv_2017 := expression                          -> {kind: "expression", body: $1}
+                     | ( expression colon expression )?    -> {kind: "range",      body: $1}
+```
+
+Per LRM `value_range ::= expression | [ expression : expression ]` — the brackets `[` and `]` are LITERAL. The pgen rule was missing them AND the `?` made the branch silently match empty as a fallback.
+
+`inside_expression_sv_2017` (line 2374):
+```ebnf
+inside_expression_sv_2017 := expression_base kw_inside_fcc53788 open_range_list*
+```
+
+Per LRM `inside_expression ::= expression inside { open_range_list }` — the braces `{` and `}` are LITERAL. pgen was missing them AND `open_range_list*` (zero-or-more) silently matched empty.
+
+The combined broken shape meant `inside {[1:5]}` failed both ways: the `value_range` couldn't match `[1:5]` (no bracket-form), and the `inside_expression` couldn't recognize `{...}` as the value list (no brace-form). Both rules just silently "succeeded" on empty matches, the cursor never moved, and the outer expression parser then choked on the unconsumed `{[1:5]}`.
+
+This is the `.b.1`-precedent class of **LRM-extraction-defect** fixes (same pattern as `conditional_statement`'s missing `?` quantifier on the else clause): the LRM has literal punctuators that the pgen grammar dropped.
+
+THE FIX (two coordinated rule edits in `grammars/systemverilog.ebnf`):
+
+(a) `value_range_sv_2017` (line 5313):
+```ebnf
+value_range_sv_2017 := expression                                  -> {kind: "expression", body: $1}
+                     | lbrack expression colon expression rbrack    -> {kind: "range",      lo: $2, hi: $4}
+```
+
+(b) `value_range_sv_2023` (line 5317) — same fix for all 4 bracketed variants:
+```ebnf
+value_range_sv_2023 := expression                                            -> {kind: "expression", body: $1}
+                     | lbrack expression colon expression rbrack              -> {kind: "range",      lo: $2, hi: $4}
+                     | lbrack kw_dollar colon expression rbrack               -> {kind: "dollar_lo",  hi: $4}
+                     | lbrack expression colon kw_dollar rbrack               -> {kind: "dollar_hi",  lo: $2}
+                     | lbrack expression plus slash minus expression rbrack   -> {kind: "tolerance",  center: $2, tol: $6}
+```
+
+(c) `inside_expression_sv_2017/2023` (lines 2374-2378):
+```ebnf
+inside_expression_sv_2017 := expression_base kw_inside_fcc53788 lbrace open_range_list rbrace
+                          -> {expr: $1, ranges: $4}
+inside_expression_sv_2023 := expression_base kw_inside_fcc53788 lbrace range_list rbrace
+                          -> {expr: $1, ranges: $4}
+```
+
+EMPIRICAL VERIFICATION (5-way inside-variant repro):
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `1 inside {1, 2}` | PASS (via concat trick) | **PASS** (via LRM-correct path) |
+| `item inside {[1:5]}` | FAIL | **PASS** |
+| `item inside {[1:5], 10}` | FAIL | **PASS** |
+| `item inside {[$:5]}` | FAIL | **PASS** |
+| `item inside {[1:$]}` | FAIL | **PASS** |
+
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅ (canonical `clippy_on_rust_change`).
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable.
+- **uvm_pkg ×{2017,2023} furthest_position 1,121,290 → 1,278,335** (+157,045 bytes deeper, ~14% more; reaches ~1.28M of ~3.0M preprocessed bytes = ~42% through uvm_pkg).
+- uvm_compat_pkg ×{2017,2023} unchanged at 116752 (H1 territory).
+
+UVM_PKG FURTHEST_POSITION ARC:
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338) ← `Class::member`
+- `.37.5`: 1,121,290 (+254998) ← indexed member in 3+level chain
+- `.37.6` (this slice): **1,278,335** (+157045) ← `inside { [N:M] }` LRM-extraction
+
+= ~66× deeper than Slice-54's baseline; ~11.5× deeper than `.35.1`.
+
+NO-WORKAROUNDS HIERARCHY: **level 1** — pure grammar LRM alignment; no new annotation, no engine change. `lbrack`/`rbrack`/`lbrace`/`rbrace` are all existing terminals widely used in the SV grammar.
+
+RELEASE BUMP 1.0.129 → 1.0.130, schema STAYS 3. Strictly-more-permissive (SVPP-0002/REGEX-0083 category):
+- Previously-unparseable `inside {[1:5]}` now parses.
+- Previously-PASSING `inside {1, 2}` continues to parse — via the LRM-correct path through the new literal braces, with the same effective shape.
+
+AST shape change for the new `range` form: `{kind: "range", body: $1}` (the previous broken shape, which was always-empty in practice) → `{kind: "range", lo: $2, hi: $4}` (LRM-correct shape with explicit lo/hi). No consumer can have been reading the broken empty shape, so this is effectively a NEW shape addition rather than a change. AST shape vocabulary unchanged.
+
+Files modified (tracked):
+- `grammars/systemverilog.ebnf` (4 rule edits: value_range_sv_2017 line 5313, value_range_sv_2023 line 5317, inside_expression_sv_2017 line 2374, inside_expression_sv_2023 line 2378)
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (1.0.129 → 1.0.130)
+- `docs/systemverilog_parser_book/src/changelog-index.md` (new 1.0.130 entry)
+- `docs/systemverilog_parser_book/src/schema-versioning.md` (new 1.0.130 row)
+- `docs/tasks/SV-EXH-PROOF.md` (`.37.6` leaf row + leaf-detail + Last updated)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep)
+
+Books unaffected for prose surfaces (internal grammar fix, no new user-facing rule shape).
+
+Frontier: `.b.6.2.37.7+` (next defect past uvm_pkg byte ~1.28M) OR `.b.6.2.35.{2..16}` ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". Unpushed accumulation: 2 commits (Slice-81 + Slice-82). NOT pushing.
+
 ## 2026-05-26 - PGEN-SV-EXH-PROOF-0092 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.5): **SV GRAMMAR FIX — `context_member_method_call` member-loop accepts indexed members.** One-token grammar edit; release 1.0.128 → 1.0.129, schema STAYS 3.
 
 ROOT CAUSE (tools-first, decisive):
