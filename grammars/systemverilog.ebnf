@@ -3356,7 +3356,7 @@ nonconsecutive_repetition := nonconsecutive_repetition_sv_2023
 nonrange_select := ( ( dot member_identifier bit_select )* dot member_identifier )? bit_select
                 -> {member_chain: $1, bits: $2}
 
-nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope )? hierarchical_variable_identifier nonrange_select
+nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope | class_scope )? hierarchical_variable_identifier nonrange_select
                          -> {scope: $1, name: $2, select: $3}
 
 notifier := variable_identifier
@@ -3818,6 +3818,22 @@ primary_sv_2017 := @probe_sample: "1" primary_literal
 
 primary_hier_scope_prefix := kw_class_qualifier_fa08937d -> {kind: "class_qualifier", body: $1}
                            | non_typedef_package_scope    -> {kind: "package_scope",   body: $1}
+                           # SV-EXH-PROOF.3.3.4.b.6.2.37.3 — H2 follow-up: class-scoped
+                           # member access (`Class::member`, `super_t::m_name`,
+                           # `pkg::Class::staticMember`) as a primary expression. Per
+                           # IEEE 1800 §A.8.4 the LRM's `primary` accepts a `class_qualifier`
+                           # prefix and the LRM's `class_qualifier` nonterminal expands to
+                           # `[ local:: ] [ implicit_class_handle . | class_scope ]`.
+                           # pgen's `primary_hier_scope_prefix` was missing the `class_scope`
+                           # branch — surfaced by H2's furthest_position deepening into
+                           # `uvm_callbacks #(T,CB)` at uvm_pkg line ~25726 where
+                           # `super_t::m_typename = tname` (typedef-aliased parameterized
+                           # base scoped-member assignment) was unparseable. `class_scope` is
+                           # gated by `known_unscoped_class_scope_class_identifier`'s
+                           # `fact_attribute_equals(type_name, $body, declaration_family, class)`
+                           # predicate so this branch only fires for known class names —
+                           # safe to add as a sibling to `non_typedef_package_scope`.
+                           | class_scope                  -> {kind: "class_scope",     body: $1}
 
 instance_or_class_scope := implicit_class_handle dot -> {kind: "instance",    handle: $1}
                          | class_scope               -> {kind: "class_scope", body: $1}
@@ -5336,6 +5352,14 @@ variable_lvalue := ( variable_lvalue_scope )? hierarchical_variable_identifier s
 
 variable_lvalue_scope := implicit_class_handle dot   -> {kind: "instance",      handle: $1}
                        | non_typedef_package_scope   -> {kind: "package_scope", body: $1}
+                       # SV-EXH-PROOF.3.3.4.b.6.2.37.3 — parallel to the
+                       # `primary_hier_scope_prefix` `class_scope` addition;
+                       # enables `Class::staticVar = expr;` assignments
+                       # (e.g. `super_t::m_typename = tname;` in uvm_callbacks).
+                       # Gated by `class_scope`'s `known_unscoped_class_scope_class_identifier`
+                       # `fact_attribute_equals(type_name, $body, declaration_family, class)`
+                       # predicate — fires only for known class names.
+                       | class_scope                 -> {kind: "class_scope",   body: $1}
 
 variable_port_header := ( port_direction )? variable_port_type
                      -> {direction: $1, port_type: $2}

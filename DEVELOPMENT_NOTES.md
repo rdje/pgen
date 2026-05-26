@@ -1,4 +1,77 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.3 — **SV GRAMMAR FIX**: `Class::member` as primary expression + lvalue; bundled release 1.0.127 → 1.0.128 (PGEN-SV-EXH-PROOF-0090)
+
+### What landed
+
+Three coordinated rule edits in `grammars/systemverilog.ebnf` that add a `class_scope` branch to every place where the grammar listed scope-prefix alternatives for primary/lvalue: `primary_hier_scope_prefix` + `variable_lvalue_scope` + `nonrange_variable_lvalue`. Plus a bundled release bump 1.0.127 → 1.0.128 absorbing six slices' deferred bumps (`.36.4 + .36.5 + .37.0 + .37.1 + .37.2 + .37.3`). Schema STAYS 3.
+
+### Root cause (tools-first, decisive)
+
+`.37.2`'s H2 SV-stdlib auto-load took uvm_pkg furthest_position from 181413 to 828954 (~4.5× deeper). The new blocker at line 25726 (preprocessed) was inside `class uvm_callbacks #(type T = uvm_object, type CB = uvm_callback) extends uvm_typed_callbacks#(T);` — specifically the statement `super_t::m_typename = tname;` where `super_t` is `typedef uvm_typed_callbacks#(T) super_type;`.
+
+Bisection on `head -N` of the package body narrowed the trigger to the `uvm_callbacks` class body around line 21749 of pkg-body coordinates. Isolated 4-way minimal repros pinned the defect class:
+
+| Form | Result pre-fix |
+|---|---|
+| `super_t::m_name = "x"` (LVALUE typedef alias) | FAIL |
+| `base#(T)::m_name = "x"` (LVALUE direct parameterized) | FAIL |
+| `string x = super_t::m_name;` (RVALUE) | FAIL |
+| `return super_t::m_name;` (RVALUE in return) | FAIL |
+| `super_t::f();` (method call) | PASS — goes through `class_scoped_tf_call_with_args` |
+| `this.m_name = "x"` (instance member) | PASS — goes through `hierarchical_identifier` |
+
+So the defect is specifically `<class_scope>::<member>` as an EXPRESSION OPERAND (LHS or RHS), but NOT as a method call.
+
+Reading the grammar:
+- `primary_hier_scope_prefix` (line 3819) accepted ONLY `kw_class_qualifier` (matches the literal string `"class_qualifier"` — a pre-existing pgen quirk; the LRM's `class_qualifier` is a NONTERMINAL, not a keyword) + `non_typedef_package_scope` (`pkg::`). NO `class_scope` (`Class::`) branch.
+- `variable_lvalue_scope` (line 5353) same pattern.
+- `nonrange_variable_lvalue` (line 3359) inline `( implicit_class_handle dot | package_scope )?` — same missing.
+
+Per IEEE 1800 §A.8.4: `primary ::= ... | [ class_qualifier | package_scope ] hierarchical_identifier select | ...` where `class_qualifier ::= [ local:: ] [ implicit_class_handle . | class_scope ]`. pgen's primary/lvalue prefixes were missing the `class_scope` arm of the LRM's `class_qualifier`.
+
+### The fix
+
+Three rule edits, each adding `class_scope` as an alternative in the existing prefix branch list. All three are gated upstream by `class_scope`'s `known_unscoped_class_scope_class_identifier`'s `fact_attribute_equals(type_name, $body, declaration_family, class)` predicate — so the new branches fire ONLY for identifiers already known to be classes (no risk of false positives on packages or arbitrary identifiers).
+
+Per the strict no-workarounds hierarchy: **Level 1** — use existing semantic-annotation primitive. No new engine work, no new annotation feature, no new directive. The `class_scope` nonterminal already exists in the grammar (used in `class_or_package_scope`, `extern_constraint_declaration`, multiple `function_declaration` branches, etc.) — this slice just lifts it into the primary/lvalue prefix branches where the LRM says it belongs.
+
+### Bundled release 1.0.127 → 1.0.128
+
+Six slices whose individual release-bump candidates each said "deferred to a combined landing":
+- **`.b.6.2.36.4`** (`-0085`) — engine memoization-delta replay; class_param_t.sv / uvm_bvu_minimal.sv NOW PASS.
+- **`.b.6.2.36.5`** (`-0086`) — bootstrap `**` → FlattenSpread fix; PGEN-RGX-0077 restored.
+- **`.b.6.2.37.0`** (`-0087`) — H2 investigation (pure docs).
+- **`.b.6.2.37.1`** (`-0088`) — `parser_libs/sv_*_std/` data artifacts.
+- **`.b.6.2.37.2`** (`-0089`) — H2 engine+adapter auto-load.
+- **`.b.6.2.37.3`** (`-0090`, this slice) — `Class::member` grammar branches.
+
+All SVPP-0002/REGEX-0083 strictly-more-permissive category (previously-unparseable inputs now parse; previously-parseable byte-identical). Schema vocabulary unchanged.
+
+### Verification
+
+- 4-way minimal repro all PASS post-fix.
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅ (canonical `clippy_on_rust_change`).
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT**.
+- uvm_pkg ×{2017,2023} furthest_position **828954 → 866292** (+37,338 bytes deeper).
+- uvm_compat_pkg ×{2017,2023} unchanged at furthest 116752 (H1 territory).
+
+### uvm_pkg furthest_position arc
+
+- Slice-54 tracker baseline: 19378
+- Pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784 vs pre)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 unblocks built-in classes
+- `.37.3` (this slice): **866292** (+37338) ← `Class::member` unblocks parameterized-class chain
+
+~45× deeper than Slice-54's baseline; ~5.3× deeper than `.35.1`.
+
+### Frontier
+
+`.b.6.2.37.4+` (next defect surfaced past uvm_pkg line ~25900) OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg cross-package extends — still depends on uvm_pkg PASSing first).
+
 ## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.2 — **H2 ENGINE+ADAPTER FIX LANDED**: SV stdlib auto-load via per-parse-reset preserve + adapter preload helper (PGEN-SV-EXH-PROOF-0089)
 
 ### What landed

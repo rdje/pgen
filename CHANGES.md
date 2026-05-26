@@ -1,4 +1,91 @@
 # CHANGES.md
+## 2026-05-26 - PGEN-SV-EXH-PROOF-0090 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.3): **SV GRAMMAR FIX — `Class::member` as primary expression + lvalue.** Bundled release 1.0.127 → 1.0.128 covering `.36.4 + .36.5 + .37.0 + .37.1 + .37.2 + .37.3` — six slices whose release-bump candidates each individually deferred to this combined landing. Schema STAYS 3 throughout.
+
+ROOT CAUSE (tools-first, decisive):
+
+`.37.2`'s H2 SV-stdlib auto-load deepened uvm_pkg's furthest_position from 181413 to 828954 (~4.5× deeper). The new blocker surfaced at uvm_pkg's preprocessed line 25726 inside `class uvm_callbacks #(type T = uvm_object, type CB = uvm_callback) extends uvm_typed_callbacks#(T);`. Bisection narrowed the failing input to lines containing `super_t::m_typename = tname;` — assignment to a static member of a typedef-aliased parameterized base class.
+
+4-way minimal-repro confirmed the defect class:
+- `super_t::m_name = "x"` (LVALUE typedef alias)         — FAILed pre-fix
+- `base#(T)::m_name = "x"` (LVALUE direct parameterized) — FAILed pre-fix
+- `string x = super_t::m_name;` (RVALUE)                  — FAILed pre-fix
+- `return super_t::m_name;` (RVALUE in return)            — FAILed pre-fix
+- `super_t::f();` (method call) — PASSED (different rule: `class_scoped_tf_call_with_args`)
+- `this.m_name = "x"` (instance member) — PASSED (different rule: `hierarchical_identifier`)
+
+So the defect is specifically `<class_scope>::<member>` as an EXPRESSION OPERAND (LHS or RHS), but NOT as a method call.
+
+Reading the grammar revealed pre-existing pgen defects:
+- `primary_hier_scope_prefix` (line 3819) accepted ONLY `kw_class_qualifier` (`local::`) + `non_typedef_package_scope` (`pkg::`). NO `class_scope` (`Class::`) branch.
+- `variable_lvalue_scope` (line 5353) same pattern. NO `class_scope` branch.
+- `nonrange_variable_lvalue` (line 3359) inline `( implicit_class_handle dot | package_scope )?` — same missing `class_scope`.
+
+Per IEEE 1800 §A.8.4 the LRM defines: `primary ::= ... | [ class_qualifier | package_scope ] hierarchical_identifier select | ...` where `class_qualifier ::= [ local:: ] [ implicit_class_handle . | class_scope ]`. pgen's grammar was missing the `class_scope` arm in the primary/lvalue scope prefixes — a pre-existing grammar defect that H2's depth advance surfaced.
+
+THE FIX (three coordinated rule edits in `grammars/systemverilog.ebnf`):
+
+(a) `primary_hier_scope_prefix` gains:
+```ebnf
+| class_scope -> {kind: "class_scope", body: $1}
+```
+
+(b) `variable_lvalue_scope` gains:
+```ebnf
+| class_scope -> {kind: "class_scope", body: $1}
+```
+
+(c) `nonrange_variable_lvalue` inline prefix:
+```ebnf
+( implicit_class_handle dot | package_scope | class_scope )?
+```
+
+All three new branches are gated by `class_scope`'s `known_unscoped_class_scope_class_identifier`'s `fact_attribute_equals(type_name, $body, declaration_family, class)` predicate, so they fire ONLY for known class names — no risk of false positives on packages or arbitrary identifiers.
+
+EMPIRICAL VERIFICATION:
+- 4-way minimal repro all PASS post-fix.
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅ (canonical `clippy_on_rust_change`).
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary count stable.
+- uvm_pkg ×{2017,2023} **furthest_position 828954 → 866292** (+37,338 bytes deeper — past the parameterized-class chain).
+- uvm_compat_pkg ×{2017,2023} unchanged at furthest 116752 (H1 territory).
+
+BUNDLED RELEASE 1.0.127 → 1.0.128:
+
+Six slices whose individual release-bump candidates were each deferred to a combined landing:
+- **`.b.6.2.36.4`** (`PGEN-SV-EXH-PROOF-0085`) — engine memoization-delta replay (class_param_t.sv / uvm_bvu_minimal.sv NOW PASS).
+- **`.b.6.2.36.5`** (`PGEN-SV-EXH-PROOF-0086`) — bootstrap `**` → FlattenSpread fix (PGEN-RGX-0077 restored).
+- **`.b.6.2.37.0`** (`PGEN-SV-EXH-PROOF-0087`) — H2 investigation (PURE DOCS — no release implication individually).
+- **`.b.6.2.37.1`** (`PGEN-SV-EXH-PROOF-0088`) — `parser_libs/sv_*_std/` data artifacts (PURE DATA — dormant until `.37.2`).
+- **`.b.6.2.37.2`** (`PGEN-SV-EXH-PROOF-0089`) — H2 engine+adapter auto-load (uvm_pkg furthest 181413 → 828954, +647K).
+- **`.b.6.2.37.3`** (`PGEN-SV-EXH-PROOF-0090`, THIS slice) — `Class::member` grammar branches (uvm_pkg furthest 828954 → 866292, +37K).
+
+All SVPP-0002/REGEX-0083 strictly-more-permissive category (previously-unparseable inputs now parse; previously-parseable byte-identical). AST shape vocabulary UNCHANGED throughout (schema STAYS 3).
+
+NO-WORKAROUNDS HIERARCHY: this bundle spans levels 1 (`.37.3` grammar branch addition) + 2 (`.37.1` data + `.37.2` adapter wire + `.36.5` bootstrap fix) + 5 (`.36.4` engine memo-delta replay).
+
+uvm_pkg furthest_position arc since the SV-EXH-PROOF tree's `.b.1` baseline:
+- Slice-54 tracker baseline:  19378
+- pre-`.35.1`:                113637 (the surface position even today)
+- `.35.1`:                    162162 (+42784 vs pre)
+- `.36.4`:                    181413 (+19251)
+- `.37.2`:                    828954 (+647541) ← H2 unblocks the built-in classes layer
+- `.37.3` (this slice):       866292 (+37338) ← Class::member unblocks the parameterized-class chain layer
+
+= ~45× deeper than Slice-54's baseline; ~5.3× deeper than `.35.1`.
+
+Files modified (tracked):
+- `grammars/systemverilog.ebnf` (3 rule edits)
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (release version 1.0.127 → 1.0.128, Last updated 2026-05-25 → 2026-05-26)
+- `docs/systemverilog_parser_book/src/changelog-index.md` (new 1.0.128 entry)
+- `docs/systemverilog_parser_book/src/schema-versioning.md` (new 1.0.128 entry combining the 6 slices)
+- `docs/tasks/SV-EXH-PROOF.md` (new `.b.6.2.37.3` leaf row + leaf-detail, Last updated header)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md` (same-slice docs lockstep)
+
+Books unaffected for prose surfaces (the change is internal grammar; no new user-facing rule shape or directive).
+
+⛔ NO-PUSH OVERRIDE active until per-push authorization (user 2026-05-26 authorized one push earlier; new authorization required for next).
+
 ## 2026-05-26 - PGEN-SV-EXH-PROOF-0089 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.2): **H2 ENGINE+ADAPTER FIX LANDED** — SV stdlib auto-load is wired end-to-end. Two coordinated changes: (a) codegen change in `ast_pipeline/ast_based_generator.rs::generate_parse_method` — `parse()` snapshots `semantic_runtime_state.facts()` BEFORE the reset-to-fresh and re-pushes them after, preserving preloaded facts across the reset; (b) `parser_registry`'s SV adapter auto-loads `parser_libs/sv_<profile>_std/package/std.facts.json` at parser construction. Per [[feedback_grammar_rules_must_consult_store]] + [[feedback_no_workarounds_fix_hierarchy]] (level 2).
 
 ROOT CAUSE (tools-first, decisive):
