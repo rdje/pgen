@@ -1934,7 +1934,16 @@ elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_n
 elaboration_system_task := elaboration_system_task_sv_2017
                         -> {body: $1}
 
-empty_unpacked_array_concatenation := lbrace epsilon rbrace
+# SV-EXH-PROOF.3.3.4.b.6.2.37.8 — per IEEE 1800 §A.6.7:
+#   empty_unpacked_array_concatenation ::= '{ }
+# (The `'{` apostrophe-brace is the SV assignment-pattern opener; empty form
+# is for `int q[$] = '{};` / `return '{};` etc.) Pre-fix the pgen rule was
+# `lbrace epsilon rbrace` — TWO defects: (1) missing the leading `tick`
+# (apostrophe), (2) `epsilon` is not a defined rule in this grammar (no
+# `epsilon :=` exists), so the rule referenced an undefined symbol and
+# could never match at all. Fix: `tick lbrace rbrace` per LRM literal.
+# Surfaced by `.37.7`'s 1,508,106 furthest at `uvm_cache::get`'s `return '{};`.
+empty_unpacked_array_concatenation := tick lbrace rbrace
                                    -> {kind: "empty_unpacked_array_concat"}
 
 enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen

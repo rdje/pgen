@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.8 — **SV GRAMMAR LRM-EXTRACTION FIX**: `empty_unpacked_array_concatenation` requires LRM literal `'{ }` (PGEN-SV-EXH-PROOF-0095)
+
+### What landed
+
+One-line grammar edit at `grammars/systemverilog.ebnf:1937` per IEEE 1800 §A.6.7:
+
+```ebnf
+# Before
+empty_unpacked_array_concatenation := lbrace epsilon rbrace -> {kind: "empty_unpacked_array_concat"}
+
+# After (this slice)
+empty_unpacked_array_concatenation := tick lbrace rbrace -> {kind: "empty_unpacked_array_concat"}
+```
+
+Plus release bump 1.0.131 → 1.0.132 (schema STAYS 3).
+
+### Root cause
+
+Pre-fix the rule had TWO defects:
+1. **Missing the leading `tick` (apostrophe).** LRM literal is `'{` not `{`. SV assignment-pattern opener requires the apostrophe.
+2. **`epsilon` is NOT a defined rule** anywhere in `grammars/systemverilog.ebnf` — no `epsilon :=` rule exists. So this rule referenced an undefined symbol and could never match at all. Silently broken since whenever it was written; the construct was uniformly unparseable in pgen.
+
+The fix `tick lbrace rbrace` is a one-token-add + one-token-remove with the same `{kind: "empty_unpacked_array_concat"}` shape preserved.
+
+### Tools-first exemplar
+
+After `.37.7` involved a 30+ minute bisect, the user reminded me to use the toolbox. This slice consciously applied **Recipe 2** from `docs/book/src/parseability-probe-debug.md` ("Parser rejects valid input"):
+
+1. Read both positions from the error: `surface=113637, furthest=1,508,106`.
+2. `awk` one-liner to map furthest byte → preprocessed line + col: `46106 col 12 = "return '{};"`.
+3. Minimal repro `q = '{};` immediately FAILED — confirmed defect class.
+
+Total diagnosis time: ~2 minutes. Compare to `.37.5/.37.6/.37.7` slices which each spent 30-60 minutes bisecting. The discipline captured in [[feedback_tools_first_no_guessing]] (amended 2026-05-25: "the tools we BUILD must be USED FIRST") is operationally validated here.
+
+### Verification
+
+- `q = '{};` (empty assignment-pattern) — PASS (was FAIL).
+- `q = '{1, 2};` (non-empty) — PASS (no regression; goes through `assignment_pattern` not `empty_unpacked_array_concatenation`).
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅.
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable.
+- **uvm_pkg furthest_position 1,508,106 → 1,582,112** (+74K bytes deeper, ~5% more; ~53% through uvm_pkg).
+- uvm_compat_pkg unchanged at 116752 (H1 territory).
+
+### uvm_pkg furthest_position arc
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338) ← `Class::member`
+- `.37.5`: 1,121,290 (+254998) ← indexed member in 3+level chain
+- `.37.6`: 1,278,335 (+157045) ← `inside { [N:M] }` LRM-extraction
+- `.37.7`: 1,508,106 (+229771) ← `inside` in condition contexts
+- `.37.8` (this slice): **1,582,112** (+74006) ← `'{ }` empty assignment-pattern LRM-extraction
+
+= ~82× deeper than Slice-54's baseline; ~14.3× deeper than `.35.1`. Past the halfway mark.
+
+### Frontier
+
+`.b.6.2.37.9+` (next defect past uvm_pkg byte ~1.58M) OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
 ## 2026-05-26 - SV-EXH-PROOF.3.3.4.b.6.2.37.7 — **SV GRAMMAR FIX**: `expression_or_cond_pattern` gains `inside_expression` sibling (PGEN-SV-EXH-PROOF-0094)
 
 ### What landed
