@@ -1,4 +1,70 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.9 — **SV GRAMMAR FIX**: `base_class_type` accepts type-parameter heads (PGEN-SV-EXH-PROOF-0096)
+
+### What landed
+
+Three-line grammar edit at `grammars/systemverilog.ebnf:1085-1090`. New sibling rule + new alternative in the `base_class_type` head choice:
+
+```ebnf
+@predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, type_parameter], phase: post }
+known_unscoped_base_class_type_parameter_identifier := class_identifier
+
+base_class_type := ( scoped_base_class_type_identifier
+                   | known_unscoped_base_class_type_identifier
+                   | known_unscoped_base_class_type_parameter_identifier
+                   ) ( parameter_value_assignment )? ...
+```
+
+Plus release bump 1.0.132 → 1.0.133 (schema STAYS 3).
+
+### Root cause
+
+`.37.8` deepened uvm_pkg furthest to 1,582,112 = byte position of exactly `extends IF` in `virtual class uvm_port_base #(type IF=uvm_void) extends IF;`.
+
+Per IEEE 1800 §A.1.2 `class_declaration`'s `extends class_type` accepts ANY class_type — including one whose head is a type-parameter. pgen's `base_class_type` only had two head alternatives, both requiring `declaration_family=class`. A type-parameter identifier has `declaration_family=type_parameter`, so the predicate rejected it.
+
+### Why the fix is right
+
+- LRM-correct: type-parameter heads are explicitly valid per §A.1.2.
+- Minimal: 3-line addition reusing the existing `type_parameter` predicate (already used by `known_unscoped_class_scope_type_parameter_identifier` line 1045).
+- Predicate-gated: only fires for identifiers with `declaration_family=type_parameter` — no false positives.
+- Strictly-more-permissive: previously-unparseable now parses; existing PASS inputs byte-identical.
+
+### Tools-first exemplar (Recipe 2 from book)
+
+Mapped furthest_position byte 1,582,112 → line 48174 col 59 → exactly `extends IF`. Minimal repro `class derived #(type IF=base) extends IF;` FAILed immediately. Pinned the defect class in ~2 minutes — no bisection needed. This is now the established pattern for `.37.x` slices.
+
+### Verification
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `extends concrete` (bare class) | PASS | PASS |
+| `extends concrete#(int)` (parameterized class) | PASS | PASS |
+| `extends IF` (type-parameter) | FAIL | **PASS** |
+| `extends IF#(int)` (type-parameter w/ params) | FAIL | **PASS** |
+
+Lib (--features generated_parsers) **609/609 PASS**. Lib (no-features) **548/548 PASS**. Clippy ✅. SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable; **uvm_pkg furthest_position 1,582,112 → 2,229,367** (+647K bytes deeper, ~41% more — biggest single-slice gain since `.37.2`'s H2; ~74% through uvm_pkg). uvm_compat_pkg unchanged at 116752.
+
+### uvm_pkg furthest_position arc
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338)
+- `.37.5`: 1,121,290 (+254998)
+- `.37.6`: 1,278,335 (+157045)
+- `.37.7`: 1,508,106 (+229771)
+- `.37.8`: 1,582,112 (+74006)
+- `.37.9` (this slice): **2,229,367** (+647255) ← `extends type_parameter`
+
+= ~115× deeper than Slice-54's baseline; ~20× deeper than `.35.1`.
+
+### Frontier
+
+`.b.6.2.37.10+` (next defect past uvm_pkg byte ~2.23M) OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
 ## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.8 — **SV GRAMMAR LRM-EXTRACTION FIX**: `empty_unpacked_array_concatenation` requires LRM literal `'{ }` (PGEN-SV-EXH-PROOF-0095)
 
 ### What landed

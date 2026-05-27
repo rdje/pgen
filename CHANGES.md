@@ -1,4 +1,95 @@
 # CHANGES.md
+## 2026-05-27 - PGEN-SV-EXH-PROOF-0096 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.9): **SV GRAMMAR FIX — `base_class_type` accepts type-parameter heads** (`class C #(type T) extends T;`). Release 1.0.132 → 1.0.133, schema STAYS 3.
+
+ROOT CAUSE (tools-first per Recipe 2 from `docs/book/src/parseability-probe-debug.md`):
+
+`.37.8` deepened uvm_pkg furthest to 1,582,112. Mapped byte → line + col: 48174 col 59 = exactly `extends IF` in `virtual class uvm_port_base #(type IF=uvm_void) extends IF;`. Minimal repro `class derived #(type IF=base) extends IF;` FAILed. ~2 min total diagnosis.
+
+Per IEEE 1800 §A.1.2:
+```
+class_declaration ::= [ virtual ] class [ lifetime ] class_identifier
+                      [ parameter_port_list ]
+                      [ extends class_type [ ( list_of_arguments ) ] ]
+                      ...
+```
+
+The `extends class_type` accepts ANY class_type — including one whose head is a type-parameter (e.g., `class C #(type T) extends T;`). pgen's `base_class_type` rule (line 1090) was:
+
+```ebnf
+@predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, class], phase: post }
+known_unscoped_base_class_type_identifier := class_identifier
+
+base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier ) ...
+```
+
+Two head alternatives: `pkg::class` and bare `class`. Both branches require `declaration_family=class` via the predicate. A type-parameter identifier has `declaration_family=type_parameter`, so the predicate rejects it. Result: `extends IF` was unparseable.
+
+THE FIX (grammar edit at line 1085-1090):
+
+New sibling rule:
+```ebnf
+@predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, type_parameter], phase: post }
+known_unscoped_base_class_type_parameter_identifier := class_identifier
+```
+
+`base_class_type` head choice gains a third alternative:
+```ebnf
+base_class_type := ( scoped_base_class_type_identifier
+                   | known_unscoped_base_class_type_identifier
+                   | known_unscoped_base_class_type_parameter_identifier
+                   ) ( parameter_value_assignment )? ...
+```
+
+NO-WORKAROUNDS HIERARCHY: **level 1** — existing semantic-annotation primitive (the `type_parameter` predicate is already used by `known_unscoped_class_scope_type_parameter_identifier` line 1045; this slice composes the same primitive into base_class_type's head choice).
+
+EMPIRICAL VERIFICATION (4-way extends repro):
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `extends concrete` (bare class) | PASS | PASS |
+| `extends concrete#(int)` (parameterized class) | PASS | PASS |
+| `extends IF` (type-parameter) | FAIL | **PASS** |
+| `extends IF#(int)` (type-parameter, ignored params) | FAIL | **PASS** |
+
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅.
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable.
+- **uvm_pkg ×{2017,2023} furthest_position 1,582,112 → 2,229,367** (+647,255 bytes deeper, ~41% more — BIGGEST single-slice gain since `.37.2`'s H2; reaches ~2.23M of ~3.0M preprocessed bytes = ~74% through uvm_pkg, three-quarters of the way).
+- uvm_compat_pkg ×{2017,2023} unchanged at 116752 (H1 territory).
+
+UVM_PKG FURTHEST_POSITION ARC:
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338) ← `Class::member`
+- `.37.5`: 1,121,290 (+254998) ← indexed member in 3+level chain
+- `.37.6`: 1,278,335 (+157045) ← `inside { [N:M] }` LRM-extraction
+- `.37.7`: 1,508,106 (+229771) ← `inside` in condition contexts
+- `.37.8`: 1,582,112 (+74006) ← `'{ }` empty assignment-pattern LRM-extraction
+- `.37.9` (this slice): **2,229,367** (+647255) ← `extends type_parameter` head
+
+= ~115× deeper than Slice-54's baseline; ~20× deeper than `.35.1`. The `extends type_parameter` defect was a SINGLE-POINT widely-used pattern across uvm — fixing it unblocked ~half a megabyte of parsing.
+
+RELEASE BUMP 1.0.132 → 1.0.133, schema STAYS 3. Strictly-more-permissive (SVPP-0002/REGEX-0083 category): previously-unparseable `extends T` (where T is a type-parameter) now parses; no shape change on previously-PASSING inputs.
+
+Files modified (tracked):
+- `grammars/systemverilog.ebnf` (3-line edit: lines 1085-1090, new `known_unscoped_base_class_type_parameter_identifier` rule + 3rd alternative in `base_class_type`)
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (1.0.132 → 1.0.133)
+- `docs/systemverilog_parser_book/src/changelog-index.md` (new 1.0.133 entry)
+- `docs/systemverilog_parser_book/src/schema-versioning.md` (new 1.0.133 row)
+- `docs/tasks/SV-EXH-PROOF.md` (`.37.9` leaf row + leaf-detail + Last updated)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep)
+
+Books unaffected for prose surfaces (internal grammar fix; no new user-facing rule shape).
+
+Frontier: `.37.10+` (next defect past uvm_pkg byte ~2.23M) OR `.b.6.2.35.{2..16}` ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". Unpushed: 5 commits (Slice-81 through Slice-85). NOT pushing.
+
 ## 2026-05-27 - PGEN-SV-EXH-PROOF-0095 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.8): **SV GRAMMAR LRM-EXTRACTION FIX — `empty_unpacked_array_concatenation` requires LRM literal `'{ }`.** Release 1.0.131 → 1.0.132, schema STAYS 3.
 
 ROOT CAUSE (tools-first, decisive — Recipe 2 from `docs/book/src/parseability-probe-debug.md`):

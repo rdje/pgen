@@ -1085,9 +1085,25 @@ class_scope := @probe_sample: "C::" class_scope_type scope_resolution
 @predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, class], phase: post }
 known_unscoped_base_class_type_identifier := class_identifier
 
+# SV-EXH-PROOF.3.3.4.b.6.2.37.9 — per IEEE 1800 §A.1.2:
+#   class_declaration ::= [ virtual ] class [ lifetime ] class_identifier
+#                         [ parameter_port_list ] [ extends class_type [...] ] ...
+# An `extends` clause's class_type can be ANY class_type — including one
+# whose head is a type_parameter (e.g. `class C #(type IF=base) extends IF;`).
+# Pre-fix `base_class_type` accepted only `class` and `pkg::class` heads —
+# missing the type_parameter alternative (gated by
+# fact_attribute_equals(type_name, $body, declaration_family, type_parameter)).
+# Surfaced by `.37.8`'s 1,582,112 furthest at uvm_port_base where
+# `virtual class uvm_port_base #(type IF=uvm_void) extends IF;` was
+# unparseable. Per [[feedback_grammar_rules_must_consult_store]], the
+# new branch uses the existing `known_unscoped_class_scope_type_parameter_identifier`
+# rule (line 1045) which gates on `declaration_family=type_parameter`.
+@predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, type_parameter], phase: post }
+known_unscoped_base_class_type_parameter_identifier := class_identifier
+
 scoped_base_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
-base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier | known_unscoped_base_class_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                 -> {head: $1, params: $2, scope_chain: $3}
 
 scoped_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
