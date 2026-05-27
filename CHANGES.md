@@ -1,4 +1,82 @@
 # CHANGES.md
+## 2026-05-27 - PGEN-SV-EXH-PROOF-0097 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.10): **SV GRAMMAR FIX — new `implicit_class_rooted_method_chain` rule for `this`/`super`-rooted 3+level chains** (uvm_pkg furthest 2,229,367 → 3,006,234, +777K bytes deeper, **~99.3% through, 20K bytes from end**). Release 1.0.133 → 1.0.134, schema STAYS 3.
+
+ROOT CAUSE (tools-first per Recipe 2):
+
+`.37.9` deepened uvm_pkg furthest to 2,229,367. Mapped byte → line+col: line 66850 col 42 = exactly `this.m_update_thread[element].kill();`. Minimal repro `this.arr[0].kill();` FAILed; `arr[0].kill();` (without `this.`) PASSed. ~2 min diagnosis.
+
+Per IEEE 1800 §A.6.6 + §A.8.4: `class_qualifier ::= [ local:: ] [ implicit_class_handle . | class_scope ]` — `implicit_class_handle` covers `this` / `super` / `this.super`. The `primary` and `subroutine_call` paths both accept `class_qualifier . hierarchical_identifier`. But for 3+level chains rooted at `this`/`super` (i.e., `this.MEMBER[i].METHOD()`):
+
+- `.37.5`'s `context_member_method_call` handles IDENTIFIER-rooted chains (`a.b[i].method()`) and is gated by `has_fact(variable_binding, $head)`. `this` is a keyword (not an identifier), so this rule's head doesn't match.
+- The 2-level path `split_direct_callable_method_call` has an `implicit_class_handle dot callable_method_call_body` alternative but only for 2-level (e.g. `this.method()`), not 3-level with intermediate indexed member.
+
+So `this.arr[0].kill()` (3-level with indexed middle) had no path in the grammar.
+
+THE FIX (two grammar edits):
+
+(a) New rule (parallel to `context_member_method_call`, no predicate gate since `this`/`super` are keywords):
+
+```ebnf
+implicit_class_rooted_method_chain := implicit_class_handle dot identifier constant_bit_select ( dot identifier constant_bit_select &dot )* dot callable_method_call_body ( dot method_call_body )*
+                                   -> {receiver: $1, head: $3, head_select: $4, members: $5, method: $7, chain: $8}
+```
+
+Same `constant_bit_select &dot` member-loop shape from `.37.5` so indexed members parse; `constant_bit_select` on the head identifier so the FIRST member can also be indexed.
+
+(b) Integrated into BOTH `call_primary` (expression context — line 3002) AND `method_call_initial` (statement context — line 2825, the `subroutine_call` path used when `this.x.kill();` is a statement).
+
+NO-WORKAROUNDS HIERARCHY: **level 1** — grammar restructure using existing primitives. All of `implicit_class_handle`, `constant_bit_select`, `callable_method_call_body`, `method_call_body` are pre-existing widely-used terminals.
+
+EMPIRICAL VERIFICATION (5-way repro):
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| `arr[0].kill()` (no prefix) | PASS | PASS |
+| `this.arr[0].kill()` (this + indexed) | FAIL | **PASS** |
+| `this.arr.kill()` (this + no index) | PASS | PASS |
+| `super.arr[0].kill()` (super + indexed) | FAIL | **PASS** |
+| `this.x[i].sub[j].run()` (4-level chain) | FAIL | **PASS** |
+
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- Clippy ✅.
+- SV external corpus triage gate **10 PASS / 4 FAIL / 0 TIMEOUT** — binary stable.
+- **uvm_pkg ×{2017,2023} furthest_position 2,229,367 → 3,006,234** (+776,867 bytes deeper, +35% more; reaches ~3.006M of ~3.026M preprocessed bytes = **~99.3% through uvm_pkg, ONLY 20K BYTES FROM THE END**).
+- uvm_compat_pkg ×{2017,2023} unchanged at 116752 (H1 territory).
+
+UVM_PKG FURTHEST_POSITION ARC:
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338)
+- `.37.5`: 1,121,290 (+254998)
+- `.37.6`: 1,278,335 (+157045)
+- `.37.7`: 1,508,106 (+229771)
+- `.37.8`: 1,582,112 (+74006)
+- `.37.9`: 2,229,367 (+647255) ← extends type-parameter
+- `.37.10` (this slice): **3,006,234** (+776867) ← `this`/`super` 3+level chains
+
+= ~155× deeper than Slice-54's baseline; ~27× deeper than `.35.1`. **Only 20K bytes left to parse — next slice may close uvm_pkg entirely.**
+
+RELEASE BUMP 1.0.133 → 1.0.134, schema STAYS 3. Strictly-more-permissive (SVPP-0002/REGEX-0083).
+
+Files modified (tracked):
+- `grammars/systemverilog.ebnf` (new rule + 2 alternative-list extensions)
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (1.0.133 → 1.0.134)
+- `docs/systemverilog_parser_book/src/changelog-index.md` (new 1.0.134 entry)
+- `docs/systemverilog_parser_book/src/schema-versioning.md` (new 1.0.134 row)
+- `docs/tasks/SV-EXH-PROOF.md` (`.37.10` leaf row + leaf-detail + Last updated)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep)
+
+Books unaffected for prose surfaces (internal grammar fix; no new user-facing rule shape).
+
+Frontier: `.37.11+` (likely the slice that flips uvm_pkg FAIL → PASS — only 20K bytes left to peel) OR `.b.6.2.35.{2..16}` ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". Unpushed: 6 commits (Slice-81 through Slice-86). NOT pushing.
+
 ## 2026-05-27 - PGEN-SV-EXH-PROOF-0096 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.9): **SV GRAMMAR FIX — `base_class_type` accepts type-parameter heads** (`class C #(type T) extends T;`). Release 1.0.132 → 1.0.133, schema STAYS 3.
 
 ROOT CAUSE (tools-first per Recipe 2 from `docs/book/src/parseability-probe-debug.md`):

@@ -2822,11 +2822,12 @@ member_identifier := identifier
 method_call := method_call_initial ( dot method_call_body )*
             -> {initial: $1, chain: $2}
 
-method_call_initial := split_direct_callable_method_call -> {kind: "split_direct_callable", body: $1}
-                     | direct_method_call                -> {kind: "direct",                body: $1}
-                     | class_scoped_tf_call              -> {kind: "class_scoped_tf",       body: $1}
-                     | tf_call                           -> {kind: "tf",                    body: $1}
-                     | system_tf_call                    -> {kind: "system_tf",             body: $1}
+method_call_initial := implicit_class_rooted_method_chain -> {kind: "implicit_class_rooted_method_chain", body: $1}
+                     | split_direct_callable_method_call  -> {kind: "split_direct_callable", body: $1}
+                     | direct_method_call                 -> {kind: "direct",                body: $1}
+                     | class_scoped_tf_call               -> {kind: "class_scoped_tf",       body: $1}
+                     | tf_call                            -> {kind: "tf",                    body: $1}
+                     | system_tf_call                     -> {kind: "system_tf",             body: $1}
 
 direct_method_call := method_call_root dot method_call_body
                    -> {receiver: $1, body: $3}
@@ -2948,6 +2949,23 @@ method_call_root := method_call_receiver  -> {kind: "receiver",       body: $1}
 context_member_method_call := identifier ( dot identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
                            -> {head: $1.body, members: $2, method: $4, chain: $5}
 
+# SV-EXH-PROOF.3.3.4.b.6.2.37.10 — structural complement of
+# `context_member_method_call` for chains rooted at `this` / `super` /
+# `this.super` (`implicit_class_handle`) — e.g.
+# `this.m_update_thread[element].kill();` (uvm_pkg line 66850).
+# Per LRM §A.6.6 + §A.8.4: `class_qualifier` includes `implicit_class_handle .`
+# as a primary-prefix, so a member-method chain rooted at `this` is
+# LRM-valid. The existing `context_member_method_call` is identifier-rooted
+# AND gated by `has_fact(variable_binding, $head)`; `this` is a keyword
+# (not an identifier) so we need a parallel rule. Member loop uses the
+# same `constant_bit_select &dot` shape from `.37.5` so indexed members
+# parse. Head identifier gets its own `constant_bit_select` so the FIRST
+# member can also be indexed (`this.arr[0].method()`).
+# No predicate gate needed — `kw_this`/`kw_super` are keywords; matching
+# is unambiguous.
+implicit_class_rooted_method_chain := implicit_class_handle dot identifier constant_bit_select ( dot identifier constant_bit_select &dot )* dot callable_method_call_body ( dot method_call_body )*
+                                   -> {receiver: $1, head: $3, head_select: $4, members: $5, method: $7, chain: $8}
+
 # SV-EXH-PROOF.3.3.4.b.6.2.5 — postfix-method-chain on a call-rooted
 # receiver expression. `.b.6.2` added `context_member_method_call` for
 # identifier-rooted chains like `a.b.c(x)`; this is the structural
@@ -2982,6 +3000,7 @@ identifier_rooted_method_chain := split_direct_callable_method_call ( dot method
 
 @branch_policy: priority_first
 call_primary := context_member_method_call          -> {kind: "context_member_method",       body: $1}
+              | implicit_class_rooted_method_chain  -> {kind: "implicit_class_rooted_method_chain", body: $1}
               | call_with_postfix_chain             -> {kind: "call_postfix_chain",          body: $1}
               | identifier_rooted_method_chain      -> {kind: "ident_postfix_chain",         body: $1}
               | split_direct_callable_method_call -> {kind: "split_direct_callable_method", body: $1}

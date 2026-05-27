@@ -1,4 +1,56 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.10 — **SV GRAMMAR FIX**: new `implicit_class_rooted_method_chain` rule for `this`/`super`-rooted 3+level chains (PGEN-SV-EXH-PROOF-0097)
+
+### What landed
+
+Two grammar edits in `grammars/systemverilog.ebnf`:
+
+(a) New rule (parallel to `.37.5`'s `context_member_method_call`, no predicate gate — `this`/`super` are keywords):
+
+```ebnf
+implicit_class_rooted_method_chain := implicit_class_handle dot identifier constant_bit_select ( dot identifier constant_bit_select &dot )* dot callable_method_call_body ( dot method_call_body )*
+                                   -> {receiver: $1, head: $3, head_select: $4, members: $5, method: $7, chain: $8}
+```
+
+(b) Integrated into BOTH `call_primary` (expression context) AND `method_call_initial` (statement context — `subroutine_call` path).
+
+Plus release bump 1.0.133 → 1.0.134 (schema STAYS 3).
+
+### Root cause + diagnosis
+
+Recipe 2 (now the established `.37.x` pattern): mapped furthest_position byte 2,229,367 → line 66850 col 42 → exactly `this.m_update_thread[element].kill();`. Minimal repro `this.arr[0].kill();` FAILed; `arr[0].kill();` PASSed. ~2 min total.
+
+Per LRM `class_qualifier ::= [ local:: ] [ implicit_class_handle . | class_scope ]`. The 3+level chain `this.MEMBER[i].METHOD()` is LRM-valid but pgen had no path:
+- `.37.5`'s `context_member_method_call` is IDENTIFIER-rooted and gated by `has_fact(variable_binding, $head)`. `this` is a keyword.
+- 2-level `split_direct_callable_method_call` accepts `implicit_class_handle dot callable_method_call_body` but only for 2-level (no intermediate indexed member).
+
+### Verification
+
+5-way repro all PASS — `arr[0].kill()`, `this.arr[0].kill()`, `this.arr.kill()`, `super.arr[0].kill()`, `this.x[i].sub[j].run()` (4-level chain too).
+
+Lib 609/609 + 548/548. Clippy ✅. SV corpus binary stable 10/14. **uvm_pkg furthest_position 2,229,367 → 3,006,234** (+777K, +35%; **~99.3% through uvm_pkg, only 20K bytes from the end**).
+
+### uvm_pkg furthest_position arc
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541)
+- `.37.3`: 866292 (+37338)
+- `.37.5`: 1,121,290 (+254998)
+- `.37.6`: 1,278,335 (+157045)
+- `.37.7`: 1,508,106 (+229771)
+- `.37.8`: 1,582,112 (+74006)
+- `.37.9`: 2,229,367 (+647255)
+- `.37.10` (this slice): **3,006,234** (+776867)
+
+= ~155× deeper than Slice-54's baseline; ~27× deeper than `.35.1`. Only 20K bytes left.
+
+### Frontier
+
+`.b.6.2.37.11+` — almost certainly the slice that flips uvm_pkg from FAIL → PASS (only 20K bytes left to peel). OR `.b.6.2.35.{2..16}` Table-B/C/D ungated-rule remediation OR H1 (uvm_compat_pkg — depends on uvm_pkg PASSing first).
+
 ## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.9 — **SV GRAMMAR FIX**: `base_class_type` accepts type-parameter heads (PGEN-SV-EXH-PROOF-0096)
 
 ### What landed
