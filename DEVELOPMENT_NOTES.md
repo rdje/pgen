@@ -1,4 +1,55 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.11 — **PURE-DOCS REFRAMING**: uvm_pkg's remaining ~0.7% is preprocessor residue, NOT a grammar defect (PGEN-SV-EXH-PROOF-0098)
+
+### The finding
+
+`.37.10` deepened uvm_pkg furthest_position to 3,006,234. Recipe 2 (tools-first via `docs/book/src/parseability-probe-debug.md`):
+
+1. Map byte 3,006,234 → line 89060 col 75.
+2. Inspect content: literal backtick in `__local_field_names__.push_back('{"abstractions", "abstractions"[+]\`")`.
+3. Inspect surroundings via `cat -A`: lines 89055-89070 contain UVM macro template content with `$` end-of-line markers and unescaped `\` macro-continuation characters.
+
+The `\`uvm_field_array_int` (and related `\`uvm_field_*`) UVM macro families weren't expanded by the SV preprocessor. Their raw template text — including the `$` line-continuation suffixes and literal backticks for nested `\`UVM_xxx` references — was left in the post-preprocessing output. The SV grammar correctly fails to parse the backtick; the INPUT is post-preprocessing malformed.
+
+### Reframing
+
+uvm_pkg furthest_position progressed across this session:
+
+| Slice | furthest | Δ | Cause |
+|---|---|---|---|
+| Slice-54 baseline | 19378 | — | (pre-tracker) |
+| pre-`.35.1` | 113637 | +94259 | (early structural fixes) |
+| `.35.1` | 162162 | +42784 | `provisional_unscoped_block_class_type` gate |
+| `.36.4` | 181413 | +19251 | memo-delta replay engine fix |
+| `.37.2` | 828954 | +647541 | H2 built-in classes (`process`/`semaphore`/`mailbox`) |
+| `.37.3` | 866292 | +37338 | `Class::member` primary + lvalue |
+| `.37.5` | 1,121,290 | +254998 | `instance.member[i].method()` 3-level chain |
+| `.37.6` | 1,278,335 | +157045 | `inside { [N:M] }` LRM brackets |
+| `.37.7` | 1,508,106 | +229771 | `inside` in cond_predicate contexts |
+| `.37.8` | 1,582,112 | +74006 | `'{ }` empty assignment-pattern |
+| `.37.9` | 2,229,367 | +647255 | `extends type_parameter` |
+| `.37.10` | 3,006,234 | +776867 | `this`/`super` 3+level method chains |
+
+= **~155× deeper than Slice-54 baseline; ~27× deeper than `.35.1`; ~99.3% of the 3.026M preprocessed bytes**.
+
+The `.b.6.2.37.x` series successfully handled EVERY LRM grammar defect surfaced in uvm_pkg's body. The remaining 0.7% (~20K bytes) is exclusively preprocessor-residue territory.
+
+### Frontier pivot
+
+Closing uvm_pkg from FAIL → PASS now requires **preprocessor macro-expansion work** (the UVM `\`uvm_field_*` family), which is OUTSIDE the SV-grammar scope of `.b.6.2.37`. Options for the next PNT activity:
+
+(A) **`.b.6.2.35.{2..16}`** Table-B/C/D ungated-rule remediation (orthogonal mechanical LRM-correctness sweep; 15 small slices following the `.35.1` template).
+
+(B) **New preprocessor-defect umbrella `.b.6.2.PP`** — open UVM macro-expansion work that would actually unblock uvm_pkg PASS. This is the LEVER for moving uvm × 4 FAIL → PASS in the corpus.
+
+(C) **H1 (uvm_compat_pkg cross-package extends)** — still blocked by uvm_pkg PASSing first; only becomes tractable after (B) lands.
+
+The director (user) decides the next lane per [[feedback_user_is_director_not_engineer]].
+
+### Pure docs slice
+
+No code change. Lib + RGX + SV corpus unaffected. Books unaffected. NO release bump.
+
 ## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.10 — **SV GRAMMAR FIX**: new `implicit_class_rooted_method_chain` rule for `this`/`super`-rooted 3+level chains (PGEN-SV-EXH-PROOF-0097)
 
 ### What landed

@@ -1,4 +1,81 @@
 # CHANGES.md
+## 2026-05-27 - PGEN-SV-EXH-PROOF-0098 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.11): **PURE-DOCS REFRAMING — uvm_pkg's remaining ~0.7% is preprocessor residue, NOT a grammar defect; SV-grammar work on uvm_pkg is essentially DONE at the `.b.6.2.37.x` series.**
+
+ROOT CAUSE FINDING (tools-first per Recipe 2):
+
+`.37.10` deepened uvm_pkg furthest to 3,006,234 — ~99.3% of the 3,026,298-byte preprocessed file. Mapped the new furthest byte via `awk` one-liner: byte 3,006,234 = line 89060 col 75 = literal backtick (`` ` ``) in:
+
+```sv
+__local_field_names__.push_back('{"abstractions", "abstractions"[+]`")
+```
+
+Inspecting via `cat -A`, the surrounding ~20K bytes (lines 89055-89070) contain UVM macro template content that was NOT expanded by the SV preprocessor:
+
+```
+      UVM_CHECK_FIELDS: $
+        if ( $
+           (((UVM_DEFAULT)&UVM_SET)) &&$
+           (!((UVM_DEFAULT)&UVM_NOSET)) $
+           ) begin $
+          __local_field_names__.push_back('{"abstractions", "abstractions"[+]`") $
+    UVM_COPY: $
+  ...
+```
+
+The `$` end-of-line markers are SV macro line-continuation artifacts, and the literal backtick is an unexpanded `\`UVM_xxx` reference. The `\`uvm_field_array_int` (and related) UVM macro families were NOT fully expanded by the preprocessor — their raw template text was left in the post-preprocessing output.
+
+The SV grammar correctly chokes on the unexpected backtick. But the grammar has nothing to fix here: the INPUT is post-preprocessing malformed.
+
+REFRAMING — SV-GRAMMAR WORK ON UVM_PKG IS ESSENTIALLY DONE:
+
+uvm_pkg furthest_position progressed 19,378 → 3,006,234 across this session = **~155× deeper than Slice-54 baseline; ~99.3% of the 3.026M preprocessed bytes**. The `.b.6.2.37.x` series successfully handled every LRM grammar defect surfaced in uvm_pkg's body:
+
+| Slice | LRM defect class |
+|---|---|
+| `.36.4` | engine: memoization delta replay |
+| `.36.5` | bootstrap parser: `**` flatten-spread |
+| `.37.0-2` | H2: built-in classes (`process`/`semaphore`/`mailbox`) auto-loaded from `parser_libs/sv_*_std/` |
+| `.37.3` | `Class::member` as primary expression + lvalue |
+| `.37.5` | `instance.indexed_member.method()` 3+level chains |
+| `.37.6` | `inside_expression` + `value_range` LRM literal braces/brackets |
+| `.37.7` | `inside` in `cond_predicate` contexts (`if`/`while`/`for`) |
+| `.37.8` | `'{ }` empty assignment-pattern |
+| `.37.9` | `extends type_parameter` |
+| `.37.10` | `this`/`super`-rooted 3+level method chains |
+
+Closing uvm_pkg from FAIL → PASS now requires **preprocessor macro-expansion work** — specifically the `\`uvm_field_*` family — which is OUTSIDE the SV-grammar scope of `.b.6.2.37` and warrants its own task umbrella.
+
+FRONTIER PIVOT:
+
+With uvm_pkg grammar-side substantially complete, the SV-EXH-PROOF frontier shifts to:
+
+(A) **`.b.6.2.35.{2..16}`** — Table-B/C/D ungated-rule remediation. Orthogonal mechanical LRM-correctness sweep: 9 Table-B scope-prefix-pattern rules + 3 Table-C inline categorising constructs + 3 Table-D delegators = 15 small slices, each following the `.35.1` template.
+
+(B) **New preprocessor-defect umbrella `.b.6.2.PP`** — open the UVM macro-expansion work that would actually unblock uvm_pkg PASS. This is the LEVER for the corpus-binary move uvm × 4 → 0.
+
+(C) **H1 (uvm_compat_pkg cross-package extends)** — still blocked by uvm_pkg PASSing first; only becomes tractable after (B) lands.
+
+Per [[feedback_user_is_director_not_engineer]] — the director (user) decides which lane to PNT into next.
+
+PURE DOCS — no code change. Lib + RGX + SV corpus unaffected (no behavior change). Books unaffected.
+
+Files modified (tracked):
+- `docs/tasks/SV-EXH-PROOF.md` (`.37.11` leaf row + leaf-detail + Last updated header)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep + reframing narrative)
+- `MEMORY.md` (project-state update reflecting reframing)
+
+NO RELEASE BUMP (pure docs).
+
+THIS SESSION'S TALLY:
+- 11 slices landed (`.36.4` through `.37.11`)
+- Releases 1.0.127 → 1.0.134 (7 bumps)
+- uvm_pkg furthest 181,413 → 3,006,234 = **~16.6× deeper this session alone**; ~155× deeper than Slice-54 baseline
+- Corpus binary stable 10/14 throughout (residual 4 = uvm × 4)
+- ~24 GB disk freed via cleanup
+- 7 unpushed commits (Slice-81 through Slice-87); below ~30 push cadence
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". Not pushing.
+
 ## 2026-05-27 - PGEN-SV-EXH-PROOF-0097 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.10): **SV GRAMMAR FIX — new `implicit_class_rooted_method_chain` rule for `this`/`super`-rooted 3+level chains** (uvm_pkg furthest 2,229,367 → 3,006,234, +777K bytes deeper, **~99.3% through, 20K bytes from end**). Release 1.0.133 → 1.0.134, schema STAYS 3.
 
 ROOT CAUSE (tools-first per Recipe 2):
