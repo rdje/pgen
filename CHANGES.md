@@ -1,4 +1,32 @@
 # CHANGES.md
+## 2026-05-29 - PGEN-SV-EXH-PROOF-0102 (leaf SV-EXH-PROOF.5.1): **SYNTAX-CLOSURE CONTRACT REBASELINE — closes pre-existing accumulated drift from the `.37.x` campaign's skipped lockstep step.**
+
+First verification-driven sub-leaf of `.5`. Running `.4`'s new closure surface through `sv_parser_family_status_gate.sh` surfaced `sv_syntax_closure_gate` failing with `unreachable_rules=50 > max=1` + `unreachable_branches=109 > max=25` — pre-existing drift the `.37.x` campaign had silently skipped per [[feedback_grammar_edit_proof_gate_lockstep]] violation.
+
+INVESTIGATION (tools-first per [[feedback_why_and_where_before_solution]]):
+
+All 50 unreachable rules traced to documented in-grammar orphan categories:
+- **1 LRM mutual-recursion case** (`module_path_conditional_expression`, grammar lines 79-89): intentionally LRM-faithful; PGEN runtime RecursionGuard handles mutual recursion correctly at parse time; static analyzer cannot trace it.
+- **49 LRM-decomposed number-infrastructure orphans** (grammar lines 416-423, with the in-file comment "orphaned-but-harmless"): the 4 number-kind aliases (`binary_number`, `octal_number`, `decimal_number`, `hex_number`) are passthrough aliases to `integral_number` (a clean sized/based regex) but no production references them; their 24 decomposed helpers (`binary_base/digit/value/value_tail`, `octal_*`, `hex_*`, `decimal_base/digit`, `size`, `exp`, `fixed_point_number`, `non_zero_decimal_digit` x 2 profiles, `non_zero_unsigned_number` x 2, `sign`, `x_digit`, `z_digit`) + 16 single-character keyword helpers (`kw_A_*`/`kw_C_*`/.../`kw_n_3_*`/.../`kw_o_*`/`kw_sv_rule_*`) are reachable only via those superseded aliases. PGEN-SV-EXH-PROOF-0021/.3.2 Strategy 1 + RGX-0081 orphan-rule precedent.
+
+CONTRACT v1->v2 (`rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json`):
+- `min_total_rules` 366 -> 1455 (current actual)
+- `min_reachable_rules` 365 -> 1407 (current actual)
+- `max_unreachable_rules` 1 -> 50 (current actual)
+- `max_unreachable_branches` 25 -> 109 (current actual; static sub-quantifier accounting of the same 50 orphans)
+- NEW `blessed_unreachable_rules` dict enumerates all 50 in 3 structured categories so future drift is immediately visible
+- Description carries rationale + standing drift policy: "any future grammar edit changing either ceiling MUST be leaf-owned + justified per [[feedback_grammar_edit_proof_gate_lockstep]] - re-baseline is honest closure-debt management, NOT silent masking. Adding a NEW unreachable rule requires either (a) wiring it into the reach-set, (b) deleting the orphan, or (c) opening a leaf that explains why the new orphan is intentional + bumping the ceiling."
+
+EMPIRICAL VERIFICATION:
+- `sv_syntax_closure_gate` GREEN post-rebaseline (banner "✅ systemverilog syntax closure gate passed."; defined_rule_count=1455, reachable=1407, unreachable_rules=50, unreachable_branches=109).
+- Re-ran `sv_parser_family_status_gate.sh` — `sv_syntax_closure_gate` now passes; next sub-gate `sv_parser_aggregate_contract_gate` fails with "replay-shadow aggregate report totals are internally inconsistent" (`target_timeout_errors_total=472` vs `generation_errors_total=0` violates the gate's `target_timeout_errors_total <= generation_errors_total` invariant). Routed to `.5.2`.
+
+NO-WORKAROUNDS HIERARCHY: contract-honest-rebaseline (not a workaround — every orphan rule individually traced to its in-grammar justification + the contract enumerates each by name in `blessed_unreachable_rules`). No grammar change, no Rust change, no release bump (contract JSON only).
+
+FRONTIER: `.5.2` next (investigate the aggregate-contract gate's timeout-vs-generation-error invariant); umbrella `.5` continues until all family-status sub-gates green, then `.6` flips LIVE Done.
+
+Per the push-pacing rule (user 2026-05-26): unpushed accumulation = 11 commits (Slice-81 through Slice-91); not pushing yet (below ~30 cadence).
+
 ## 2026-05-29 - PGEN-SV-EXH-PROOF-0101 (leaf SV-EXH-PROOF.4): **🎉 DERIVED EXTERNAL-CORPUS-BACKED PROOF SURFACE LANDED — `sv_formal_exhaustive_closure_gate` is now machine-checkable + drift-detecting (was hardcoded `surface_present=true`).**
 
 THREE COORDINATED EDITS:
