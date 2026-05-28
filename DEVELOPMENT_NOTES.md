@@ -1,4 +1,68 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-28 - SV-EXH-PROOF.3.3.4.b.6.2.H1.1 — **🎉🎉🎉 14/14 — SV EXTERNAL CORPUS IS GREEN!** (PGEN-SV-EXH-PROOF-0100)
+
+### What landed
+
+One-line triage-manifest edit at `rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json:25-27`:
+
+```json
+    {
+      "name": "uvm_compat_pkg",
+      ...
+      "include_dirs": [...],
+      "bootstrap_files": [
+        "stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_pkg.sv"
+      ]
+    },
+```
+
+No code change. No release bump. Pure config.
+
+### How it works (chain via existing `.3.3.4.a` library MVP-0)
+
+1. Triage script sees `bootstrap_files` → preprocesses + parses `uvm_pkg.sv` FIRST with `--lib-out`. uvm_pkg's `package_declaration` rule has `@export_to_library` → writes `<lib>/package/uvm_pkg.facts.json` with every `type_name` fact emitted in uvm_pkg's body.
+2. Triage script preprocesses + parses `uvm_compat_pkg.sv` with `--lib-in`. Its `import uvm_pkg::*;` matches `package_import_item` which has `@import_from_library` → reads the artifact, merges facts.
+3. Downstream `extends uvm_pkg::uvm_packer` etc. resolve via standard `has_fact(type_name, X)` gates. PASS.
+
+### Why this works now (and didn't before)
+
+H1 was blocked by uvm_pkg failing to parse — without uvm_pkg parsing, no library artifact could be produced for uvm_compat_pkg to import. The prior `.PP.1` (preprocessor fix for `\`"ARG[+]\`"` macro string-substitution) made uvm_pkg PASS, automatically unblocking H1. This slice is just the manifest config to chain them.
+
+### Verification
+
+```
+parse_pass_total: 14
+parse_fail_total: 0
+parse_skipped_total: 0
+```
+
+ALL 14 SV external corpus cases PASS.
+
+### SV-EXH-PROOF closure implications
+
+The tree's stated goal:
+
+> Re-earn `Done` for the `systemverilog` main-parser family by closing the single primary unmet closure criterion that SV's own machine-checkable contract names (`formal_exhaustive_closure_surface_green`, blocked on the missing **`external_corpus_backed_proof_surface`**) — **honestly**: with a derived, checked-in, deterministic proof surface over a genuinely-green external-corpus parse state, not a hard-coded literal over a failing surface.
+
+The corpus is now 14/14 genuinely-green. The tree's remaining sub-trees (`.4`/`.5`/`.6`) are about building the derived proof surface, wiring it into the contract/gate/family-status/telemetry, and flipping the LIVE `Done` status for the `systemverilog` parser family.
+
+### Session arc (Slice-76 → Slice-89, 14 slices)
+
+- Started: corpus 10/14, uvm_pkg furthest_position 181,413 (~6%)
+- Ended: corpus **14/14**, uvm_pkg parses to end
+- Releases: 1.0.127 → 1.0.135 (8 bumps)
+- Disk freed: ~25 GB
+
+The arc went through grammar fixes (.37.3 to .37.10), found that the last 0.7% wasn't grammar but preprocessor (.37.11 reframing), fixed the preprocessor (.PP.1 — flipped uvm_pkg to PASS), then wired the bootstrap chain (.H1.1 — closed uvm_compat_pkg too).
+
+### Frontier
+
+- `.4` — build the derived external-corpus-backed proof surface (needs THIS slice's genuinely-green state).
+- `.5` — wire it into contract/gate/family-status/telemetry.
+- `.6` — LIVE `Done` flip + book/contract lockstep + closeout.
+
+These are mechanical now that the closure criterion is met.
+
 ## 2026-05-28 - SV-EXH-PROOF.3.3.4.b.6.2.PP.1 — **🎉 SV PREPROCESSOR FIX FLIPS uvm_pkg ×{2017,2023} FAIL → PASS; CORPUS 10/14 → 12/14** (PGEN-SV-EXH-PROOF-0099)
 
 ### What landed

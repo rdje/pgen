@@ -1,4 +1,71 @@
 # CHANGES.md
+## 2026-05-28 - PGEN-SV-EXH-PROOF-0100 (leaf SV-EXH-PROOF.3.3.4.b.6.2.H1.1): **🎉🎉🎉 14/14 — SV EXTERNAL CORPUS IS GREEN!** Closes the `external_corpus_backed_proof_surface` closure criterion that the entire SV-EXH-PROOF tree was opened to solve.
+
+ONE-LINE TRIAGE-MANIFEST EDIT:
+
+`rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json:25-27` — added `"bootstrap_files": ["stimuli/sv/uvm/uvm-core-2020.3.1/src/uvm_pkg.sv"]` to the uvm_compat_pkg case, mirroring the existing `veer_el2_lsu` pattern.
+
+HOW IT WORKS (chain via existing `.3.3.4.a` library MVP-0 mechanism):
+
+1. The triage script sees the `bootstrap_files` array → preprocesses + parses `uvm_pkg.sv` FIRST with `--lib-out <case-lib-dir>`. uvm_pkg's `package_declaration` rule has `@export_to_library: {kind: package, name_from: $name.body}` which writes `<case-lib-dir>/package/uvm_pkg.facts.json` containing every `type_name` fact emitted in uvm_pkg's body (`uvm_packer`, `uvm_bitstream_t`, `uvm_integral_t`, `uvm_object`, `uvm_component`, ...).
+2. Then preprocesses + parses `uvm_compat_pkg.sv` with `--lib-in <case-lib-dir>`. Its `import uvm_pkg::*;` (line 44) matches the SV grammar's `package_import_item` rule which has `@import_from_library: {kind: package, name_from: $package.body}` — reads the artifact, merges all imported `type_name` facts into the in-progress semantic store.
+3. Downstream `extends uvm_pkg::uvm_packer` (line 46 of uvm_compat_packer.svh) and similar references now resolve to known type_name facts via the standard `has_fact(type_name, X)` gates. PASS.
+
+**NO grammar / engine / preprocessor change** in this slice — H1 was unblocked entirely by the prior `.PP.1`'s preprocessor fix (which made uvm_pkg PASS and therefore library-producible). All the heavy lifting was already done.
+
+EMPIRICAL VERIFICATION:
+
+SV external corpus triage gate result:
+```
+parse_pass_total: 14
+parse_fail_total: 0
+parse_skipped_total: 0
+primary_parse_failure_case: <none>
+primary_parse_failure_profile: <none>
+primary_parse_failure_corpus: <none>
+```
+
+ALL 14 cases PASS:
+- uvm: uvm_pkg ×{2017,2023}, uvm_compat_pkg ×{2017,2023} (with bootstrap chain)
+- scr1: scr1_core_top ×{2017,2023}, scr1_top_ahb ×{2017,2023}
+- friscv: friscv_pipeline ×{2017,2023}, friscv_rv32i_core ×{2017,2023}
+- veer_el2: veer_el2_lsu ×{2017,2023} (with bootstrap chain)
+
+NO LIB / CLIPPY RE-RUN NEEDED — this slice is a triage-config edit only; parser/grammar/engine/preprocessor are byte-identical to `.PP.1`'s state which already passed all those gates.
+
+NO RELEASE BUMP — manifest edit only; parser behavior unchanged. The release version stays at 1.0.135.
+
+NO-WORKAROUNDS HIERARCHY: **level 2** — reuses the existing `.3.3.4.a` library infrastructure + existing bootstrap_files mechanism. No new code anywhere.
+
+SV-EXH-PROOF TREE CLOSURE IMPLICATIONS:
+
+The `.b.6.2.H1.1` slice closes the **`external_corpus_backed_proof_surface`** closure criterion — the SINGLE PRIMARY UNMET CRITERION the entire SV-EXH-PROOF tree was opened to solve. Per the tree's Goal section:
+
+> Re-earn `Done` for the `systemverilog` main-parser family by closing the single primary unmet closure criterion that SV's own machine-checkable contract names (`formal_exhaustive_closure_surface_green`, blocked on the missing **`external_corpus_backed_proof_surface`**) — **honestly**: with a derived, checked-in, deterministic proof surface over a genuinely-green external-corpus parse state, not a hard-coded literal over a failing surface.
+
+The corpus is now genuinely 14/14. The tree's remaining sub-trees `.4`/`.5`/`.6` are about building the derived proof surface, wiring it into the contract/gate/family-status/telemetry, and flipping the LIVE `Done` status for the `systemverilog` parser family. These are mechanical next steps now that the closure criterion is met.
+
+SESSION ARC SUMMARY (Slice-76 → Slice-89, 14 slices over 3 days):
+
+- Started: corpus 10/14, uvm_pkg furthest_position 181,413 (~6% through)
+- Ended: corpus **14/14**, uvm_pkg PARSES TO END
+- Releases: 1.0.127 → 1.0.135 (8 bumps)
+- New grammar primitives added: parser_libs/sv_*_std (H2 stdlib), `Class::member` primary+lvalue, `instance.member[i].method()` chain, `inside { [N:M] }` LRM-extraction, `inside` in cond_predicate, `'{ }` empty assignment-pattern, `extends type_parameter`, `this`/`super`-rooted 3+level method chains
+- Engine primitives added: memoization-delta replay, SV stdlib auto-load (parser_libs/sv_*_std/), preprocessor fix for `\`"ARG[+]\`"` macro string-substitution, bootstrap parser `**` → FlattenSpread
+- Disk freed: ~25 GB
+
+Files modified (tracked, this slice):
+- `rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json` (3-line edit: new `bootstrap_files` array on uvm_compat_pkg)
+- `docs/tasks/SV-EXH-PROOF.md` (`.H1.1` leaf row + leaf-detail + Last updated)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep)
+- `MEMORY.md` (project-state update reflecting 14/14)
+
+Books unaffected for prose surfaces (no user-facing rule shape; the corpus closure is captured in the tracker + this changelog).
+
+Frontier: SV-EXH-PROOF tree flows to `.4` (build the derived proof surface; needs THIS slice's genuinely-green state), `.5` (wire into contract/gate/family-status/telemetry), `.6` (LIVE Done flip + book/contract lockstep + closeout). The path to `systemverilog` family-status `Done` is now mechanical.
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". Unpushed: 9 commits (Slice-81 through Slice-89). NOT pushing yet — below the cadence but a 14/14 milestone may warrant an explicit push (user's call).
+
 ## 2026-05-28 - PGEN-SV-EXH-PROOF-0099 (leaf SV-EXH-PROOF.3.3.4.b.6.2.PP.1): **🎉 SV PREPROCESSOR FIX FLIPS uvm_pkg ×{2017,2023} FAIL → PASS! SV external corpus 10/14 → 12/14!** Release 1.0.134 → 1.0.135, schema STAYS 3.
 
 ROOT CAUSE (tools-first per Recipe 2 + focused source-read of the preprocessor):
