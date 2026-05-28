@@ -1,7 +1,8 @@
 {
   "family": "systemverilog",
-  "version": 1,
+  "version": 2,
   "done_rule": "Done requires a formally exhaustive, machine-checkable closure surface with no remaining parser rejection debt and no remaining coverage/gap debt for the family claim.",
   "required_surface_key": "external_corpus_backed_proof_surface",
-  "required_surface_missing_detail": "SystemVerilog still lacks an explicit checked-in external corpus-backed proof surface sidecar that can promote the current bounded family evidence into a formal exhaustive closure claim."
+  "expected_proof_surface_sidecar": "rust/test_data/grammar_quality/systemverilog_external_corpus_backed_proof_surface_v0.json",
+  "required_surface_missing_detail": "SystemVerilog requires its checked-in external-corpus-backed proof-surface sidecar (expected_proof_surface_sidecar) to match the live triage gate output exactly — same case set, same per-case status, same totals — for the formal-exhaustive-closure surface to be considered green."
 }

@@ -1,4 +1,91 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-29 - SV-EXH-PROOF.4 — **DERIVED EXTERNAL-CORPUS-BACKED PROOF SURFACE LANDED** (PGEN-SV-EXH-PROOF-0101, SVEXH-Slice-90)
+
+### What landed
+
+Three coordinated edits replace the `sv_formal_exhaustive_closure_gate`'s literal `external_corpus_backed_proof_surface_present=true` (which made the gate decorative — always green regardless of actual triage state) with a real machine-checkable surface derived from a checked-in sidecar diffed against the live triage report.
+
+#### (a) NEW sidecar — `rust/test_data/grammar_quality/systemverilog_external_corpus_backed_proof_surface_v0.json`
+
+Declares the expected corpus state. Fields:
+- `family: "systemverilog"`, `version: 1`, `surface_key: "external_corpus_backed_proof_surface"`
+- `expected_triage_manifest`: pointer back to the triage manifest the sidecar blesses
+- `expected_totals`: `cases_declared: 7`, `cases_executed: 14`, `cases_blocked_total: 0`, `preprocess_pass_total: 14`, `preprocess_fail_total: 0`, `parse_pass_total: 14`, `parse_fail_total: 0`, `parse_skipped_total: 0`, `preprocess_error_total: 0`
+- `expected_cases`: 14 rows alphabetically ordered (per [[feedback_manifest_alphabetical_order]]) — friscv_pipeline ×2, friscv_rv32i_core ×2, scr1_core_top ×2, scr1_top_ahb ×2, uvm_compat_pkg ×2, uvm_pkg ×2, veer_el2_lsu ×2; each row carries `case_name`, `profile`, `status: "pass"`, `preprocess_status: "pass"`, `parse_status: "pass"`
+- `closure_rules`: `all_cases_must_pass: true`, `no_parse_failures_allowed: true`, `no_preprocess_failures_allowed: true`, `no_blocked_cases_allowed: true`, `expected_case_set_must_match_observed: true`
+
+#### (b) Contract bumped v1 → v2 — `rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json`
+
+- Gains `expected_proof_surface_sidecar` field (repo-relative path to the sidecar)
+- `required_surface_missing_detail` reworded: was "sidecar still missing"; now "sidecar must match live triage exactly — same case set, same per-case status, same totals — for the closure surface to be considered green"
+
+#### (c) Gate amended — `rust/scripts/sv_formal_exhaustive_closure_gate.sh`
+
+Three changes:
+1. **Contract schema check** extended: now requires `expected_proof_surface_sidecar` field; sidecar file existence + structure validated upfront (jq schema check: family, version, surface_key, expected_totals, expected_cases, closure_rules).
+2. **Drift derivation** (the core change): replaces literal `external_corpus_backed_proof_surface_present=true` with 4 independent jq-diff checks against the triage gate's `systemverilog_external_corpus_triage_report.json`:
+   - `totals_diff`: diff of `expected_totals` vs `report.totals` — fails on totals-arithmetic regression (e.g. parse_fail_total goes 0 → 1).
+   - `expected_only_cases`: sidecar declares a `(case_name, profile)` the triage gate did not execute — fails if a case is silently dropped from the manifest.
+   - `observed_only_cases`: triage executed a `(case_name, profile)` the sidecar does not declare — fails if a new case is added to the manifest without sidecar update (forces a human-blessed sidecar update for every new case).
+   - `status_diff`: per-case `status` / `preprocess_status` / `parse_status` mismatch between sidecar and triage — fails on any single-case regression.
+   `external_corpus_backed_proof_surface_present` is `true` iff all 4 checks have zero diff.
+3. **Strict exit on red**: gate now exits 1 when `systemverilog_formal_exhaustive_closure_surface_green=false` (was always exit 0). Propagates through `sv_parser_family_status_gate.sh`'s `run_logged` wrapper.
+
+Summary surfaces (both `summary.txt` and `summary.json`) emit:
+- `systemverilog_expected_proof_surface_sidecar` (path)
+- `systemverilog_external_corpus_backed_proof_triage_report_json` (path)
+- `systemverilog_external_corpus_backed_proof_drift_log` (path to a written drift log in the gate's `logs/` dir)
+- `systemverilog_external_corpus_backed_proof_{totals_diff,expected_only,observed_only,status_diff}_count` (4 ints)
+- Full diff JSONs under `proof_surface_drift.{totals_diff,expected_only_cases,observed_only_cases,status_diff}` in the JSON summary
+
+### Why these decisions
+
+- **Sidecar separation from triage manifest:** the triage manifest declares WHAT to run (case list + bootstrap chains); the sidecar declares the EXPECTED OUTCOME (per-case status + totals). Keeping them separate means: a triage manifest edit that's purely structural (e.g. adding a new bootstrap_file to an existing case) doesn't require sidecar churn; a sidecar edit that updates expected status requires explicit human blessing of the corpus state.
+- **4-way orthogonal drift dimensions:** totals catch arithmetic; expected-only catches silent case drops; observed-only catches silent case additions; status-diff catches per-case regressions. No 3-of-4 combination catches all 4.
+- **`observed_only_cases` blocks silent additions:** important because adding a new case to the corpus without updating the sidecar could otherwise pass green (the sidecar would just declare a subset of what was observed). Forcing sidecar update means a human re-blesses the expected status of every new case.
+- **Exit code propagation:** the gate's original always-exit-0 behavior was a tautology (since `surface_present` was hardcoded `true`). Once `surface_present` is derived, the gate's exit code becomes meaningful — and consumers (`sv_parser_family_status_gate.sh`, `ci_workflow_local_gate.sh`, the `make sv_formal_exhaustive_closure_gate` target) all correctly propagate the new non-zero exit.
+
+### Verification
+
+Tested both green and drift paths against the existing `rust/target/sv_external_corpus_triage_gate` state (14/14 PASS, generated 2026-05-28):
+
+**Green path** — `surface_present=true`, `surface_green=true`, all 4 diff counts = 0, criteria 1/1 satisfied, gate exit 0, ✅ banner. ✅
+
+**Drift trial** — temporarily mutated sidecar's `expected_totals.parse_pass_total` from 14 → 99, reran gate, then restored sidecar:
+- `surface_present=false`
+- `surface_green=false`
+- `totals_diff_count=1` (the mutated field)
+- `primary_unmet_closure_criterion=external_corpus_backed_proof_totals_drift=count=1`
+- gate exit 1, ❌ banner with `primary_unmet=...` + drift_log path
+- Drift log captured full diff JSON: `[{"key":"parse_pass_total","expected":99,"observed":14}]`. ✅
+
+Restoration verified by diff.
+
+### What was NOT changed
+
+- No grammar change (`grammars/systemverilog.ebnf` untouched).
+- No Rust source change (`rust/src/**` untouched).
+- No generated parser change (`generated/**` untouched).
+- No release bump (parser behavior is byte-identical).
+- The triage manifest itself (`systemverilog_external_corpus_triage_v0.json`) — untouched.
+- The schemas of upstream gates (`sv_parser_family_status_gate.sh`, `sv_combined_telemetry_contract_gate.sh`, `sota_exit_gate.sh`) — they consume the closure gate's JSON, which gained additive fields only.
+
+### No-workarounds hierarchy
+
+**Level 5** (parser-agnostic engine-adjacent gate enhancement). Rationale: the sidecar+jq-diff mechanism is family-generic — it does not encode any SV-specific assumption beyond the file paths. The same pattern could be cloned for VHDL / RGX / SVPP families that share the closure-criterion-checked-against-triage-output pattern. Lower levels were considered:
+- Levels 1-2 (existing semantic annotations / semantic store): not applicable — this is a closure-gate concern, not a per-rule grammar concern.
+- Levels 3-4 (new semantic-annotation or semantic-store feature): not applicable — same reason.
+- Level 5 chosen: the gate IS the place where the proof-surface boolean is computed; the proper fix is to make the computation real.
+
+### Next slice
+
+`SV-EXH-PROOF.5` (verification-only): confirm `systemverilog_formal_exhaustive_closure_surface_green=true` now propagates upstream through:
+- `sv_parser_family_status_gate.sh` — should report `systemverilog_status=Done` (or whatever it computes from closure-green)
+- `sota_exit_gate.sh` — should not flag SV as the long-standing blocker
+- `sv_combined_telemetry_contract_gate.sh` — telemetry parity should green
+
+Then `SV-EXH-PROOF.6` flips the LIVE_ACHIEVEMENT_STATUS `systemverilog main parser` row Done + closes the tree.
+
 ## 2026-05-28 - SV-EXH-PROOF.3.3.4.b.6.2.H1.1 — **🎉🎉🎉 14/14 — SV EXTERNAL CORPUS IS GREEN!** (PGEN-SV-EXH-PROOF-0100)
 
 ### What landed

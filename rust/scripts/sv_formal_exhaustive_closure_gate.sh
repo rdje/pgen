@@ -90,8 +90,27 @@ jq -e '
     and ((.version | type) == "number")
     and ((.done_rule | type) == "string" and (.done_rule | length) > 0)
     and (.required_surface_key == "external_corpus_backed_proof_surface")
+    and ((.expected_proof_surface_sidecar | type) == "string" and (.expected_proof_surface_sidecar | length) > 0)
     and ((.required_surface_missing_detail | type) == "string" and (.required_surface_missing_detail | length) > 0)
 ' "$CONTRACT_FILE" >/dev/null
+
+expected_proof_surface_sidecar_rel="$(jq -r '.expected_proof_surface_sidecar' "$CONTRACT_FILE")"
+expected_proof_surface_sidecar="$ROOT_DIR/$expected_proof_surface_sidecar_rel"
+require_file "$expected_proof_surface_sidecar"
+
+jq -e '
+    .family == "systemverilog"
+    and ((.version | type) == "number")
+    and (.surface_key == "external_corpus_backed_proof_surface")
+    and ((.expected_totals | type) == "object")
+    and ((.expected_cases | type) == "array")
+    and ((.expected_cases | length) > 0)
+    and (.closure_rules.all_cases_must_pass == true)
+    and (.closure_rules.no_parse_failures_allowed == true)
+    and (.closure_rules.no_preprocess_failures_allowed == true)
+    and (.closure_rules.no_blocked_cases_allowed == true)
+    and (.closure_rules.expected_case_set_must_match_observed == true)
+' "$expected_proof_surface_sidecar" >/dev/null
 
 mkdir -p "$WORK_DIR" "$LOG_DIR"
 : >"$SUMMARY_TXT"
@@ -242,7 +261,93 @@ required_surface_key="$(jq -r '.required_surface_key' "$CONTRACT_FILE")"
 required_surface_missing_detail="$(jq -r '.required_surface_missing_detail' "$CONTRACT_FILE")"
 done_rule="$(jq -r '.done_rule' "$CONTRACT_FILE")"
 
+external_corpus_backed_proof_triage_report_json="$external_corpus_backed_proof_state_dir/work/systemverilog_external_corpus_triage_report.json"
+require_nonempty_file "$external_corpus_backed_proof_triage_report_json"
+
+declare -a systemverilog_unmet=()
+declare -a systemverilog_unmet_details=()
+
+proof_surface_drift_log="$LOG_DIR/proof_surface_drift.log"
+: >"$proof_surface_drift_log"
+
+expected_totals_json="$(jq -c '.expected_totals' "$expected_proof_surface_sidecar")"
+observed_totals_json="$(jq -c '.totals' "$external_corpus_backed_proof_triage_report_json")"
+totals_diff_json="$(
+    jq -n \
+        --argjson expected "$expected_totals_json" \
+        --argjson observed "$observed_totals_json" \
+        '[
+            ($expected | to_entries[]) as $e
+            | {key: $e.key, expected: $e.value, observed: ($observed[$e.key] // null)}
+            | select(.expected != .observed)
+        ]'
+)"
+totals_diff_count="$(jq 'length' <<<"$totals_diff_json")"
+
+expected_cases_json="$(jq -c '.expected_cases' "$expected_proof_surface_sidecar")"
+observed_cases_json="$(jq -c '[.cases[] | {case_name, profile, status, preprocess_status: .observed.preprocess_status, parse_status: .observed.parse_status}]' "$external_corpus_backed_proof_triage_report_json")"
+expected_only_json="$(
+    jq -n \
+        --argjson expected "$expected_cases_json" \
+        --argjson observed "$observed_cases_json" \
+        '[ $expected[] | . as $e | select([$observed[] | select(.case_name == $e.case_name and .profile == $e.profile)] | length == 0) ]'
+)"
+observed_only_json="$(
+    jq -n \
+        --argjson expected "$expected_cases_json" \
+        --argjson observed "$observed_cases_json" \
+        '[ $observed[] | . as $o | select([$expected[] | select(.case_name == $o.case_name and .profile == $o.profile)] | length == 0) ]'
+)"
+status_diff_json="$(
+    jq -n \
+        --argjson expected "$expected_cases_json" \
+        --argjson observed "$observed_cases_json" \
+        '[
+            $expected[] as $e
+            | ($observed[] | select(.case_name == $e.case_name and .profile == $e.profile)) as $o
+            | select(
+                $e.status != $o.status
+                or $e.preprocess_status != $o.preprocess_status
+                or $e.parse_status != $o.parse_status
+            )
+            | {case_name: $e.case_name, profile: $e.profile, expected: {status: $e.status, preprocess_status: $e.preprocess_status, parse_status: $e.parse_status}, observed: {status: $o.status, preprocess_status: $o.preprocess_status, parse_status: $o.parse_status}}
+        ]'
+)"
+expected_only_count="$(jq 'length' <<<"$expected_only_json")"
+observed_only_count="$(jq 'length' <<<"$observed_only_json")"
+status_diff_count="$(jq 'length' <<<"$status_diff_json")"
+
+{
+    echo "expected_proof_surface_sidecar: $expected_proof_surface_sidecar"
+    echo "triage_report_json: $external_corpus_backed_proof_triage_report_json"
+    echo "totals_diff: $totals_diff_json"
+    echo "expected_only_cases: $expected_only_json"
+    echo "observed_only_cases: $observed_only_json"
+    echo "status_diff: $status_diff_json"
+} >>"$proof_surface_drift_log"
+
 external_corpus_backed_proof_surface_present=true
+if [[ "$totals_diff_count" -gt 0 ]]; then
+    external_corpus_backed_proof_surface_present=false
+    systemverilog_unmet+=("external_corpus_backed_proof_totals_drift=count=${totals_diff_count}")
+    systemverilog_unmet_details+=("$(jq -nc --arg key "external_corpus_backed_proof_totals_drift" --argjson diff "$totals_diff_json" '{criterion: "external_corpus_backed_proof_surface_totals_match", evidence_key: $key, observed: "drift", expected: "exact_match", detail: "Triage totals diverge from sidecar expected_totals.", diff: $diff}')")
+fi
+if [[ "$expected_only_count" -gt 0 ]]; then
+    external_corpus_backed_proof_surface_present=false
+    systemverilog_unmet+=("external_corpus_backed_proof_expected_only_cases=count=${expected_only_count}")
+    systemverilog_unmet_details+=("$(jq -nc --arg key "external_corpus_backed_proof_expected_only_cases" --argjson diff "$expected_only_json" '{criterion: "external_corpus_backed_proof_surface_case_set_match", evidence_key: $key, observed: "expected_cases_missing_from_triage", expected: "expected_case_set_equals_observed", detail: "Sidecar declares cases the triage gate did not execute.", diff: $diff}')")
+fi
+if [[ "$observed_only_count" -gt 0 ]]; then
+    external_corpus_backed_proof_surface_present=false
+    systemverilog_unmet+=("external_corpus_backed_proof_observed_only_cases=count=${observed_only_count}")
+    systemverilog_unmet_details+=("$(jq -nc --arg key "external_corpus_backed_proof_observed_only_cases" --argjson diff "$observed_only_json" '{criterion: "external_corpus_backed_proof_surface_case_set_match", evidence_key: $key, observed: "triage_cases_missing_from_sidecar", expected: "expected_case_set_equals_observed", detail: "Triage gate executed cases the sidecar does not declare; update the sidecar to bless them.", diff: $diff}')")
+fi
+if [[ "$status_diff_count" -gt 0 ]]; then
+    external_corpus_backed_proof_surface_present=false
+    systemverilog_unmet+=("external_corpus_backed_proof_status_drift=count=${status_diff_count}")
+    systemverilog_unmet_details+=("$(jq -nc --arg key "external_corpus_backed_proof_status_drift" --argjson diff "$status_diff_json" '{criterion: "external_corpus_backed_proof_surface_case_status_match", evidence_key: $key, observed: "per_case_status_drift", expected: "all_expected_statuses_match", detail: "One or more cases status changed vs sidecar baseline (typically a regression).", diff: $diff}')")
+fi
+
 systemverilog_formal_exhaustive_closure_surface_green=false
 systemverilog_closure_criteria_total_count=1
 systemverilog_closure_criteria_satisfied_count=0
@@ -251,13 +356,6 @@ if [[ "$external_corpus_backed_proof_surface_present" == true ]]; then
     systemverilog_formal_exhaustive_closure_surface_green=true
 fi
 systemverilog_closure_criteria_unsatisfied_count=$((systemverilog_closure_criteria_total_count - systemverilog_closure_criteria_satisfied_count))
-
-declare -a systemverilog_unmet=()
-declare -a systemverilog_unmet_details=()
-if [[ "$external_corpus_backed_proof_surface_present" != true ]]; then
-    systemverilog_unmet+=("${required_surface_key}=missing")
-    systemverilog_unmet_details+=("{\"criterion\":\"external_corpus_backed_proof_surface_present\",\"evidence_key\":\"${required_surface_key}\",\"observed\":\"missing\",\"expected\":\"present\",\"detail\":\"${required_surface_missing_detail}\"}")
-fi
 
 generated_at_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 systemverilog_unmet_count="${#systemverilog_unmet[@]}"
@@ -313,6 +411,13 @@ systemverilog_unmet_details_json="$(printf '%s\n' "${systemverilog_unmet_details
     echo "systemverilog_external_corpus_backed_proof_parse_pass_total: $external_corpus_backed_proof_parse_pass_total"
     echo "systemverilog_external_corpus_backed_proof_parse_fail_total: $external_corpus_backed_proof_parse_fail_total"
     echo "systemverilog_external_corpus_backed_proof_primary_parse_failure_case: $external_corpus_backed_proof_primary_parse_failure_case"
+    echo "systemverilog_expected_proof_surface_sidecar: $expected_proof_surface_sidecar"
+    echo "systemverilog_external_corpus_backed_proof_triage_report_json: $external_corpus_backed_proof_triage_report_json"
+    echo "systemverilog_external_corpus_backed_proof_drift_log: $proof_surface_drift_log"
+    echo "systemverilog_external_corpus_backed_proof_totals_diff_count: $totals_diff_count"
+    echo "systemverilog_external_corpus_backed_proof_expected_only_count: $expected_only_count"
+    echo "systemverilog_external_corpus_backed_proof_observed_only_count: $observed_only_count"
+    echo "systemverilog_external_corpus_backed_proof_status_diff_count: $status_diff_count"
 } | tee "$SUMMARY_TXT"
 
 jq -n \
@@ -360,6 +465,17 @@ jq -n \
     --argjson systemverilog_external_corpus_backed_proof_parse_pass_total "$external_corpus_backed_proof_parse_pass_total" \
     --argjson systemverilog_external_corpus_backed_proof_parse_fail_total "$external_corpus_backed_proof_parse_fail_total" \
     --arg systemverilog_external_corpus_backed_proof_primary_parse_failure_case "$external_corpus_backed_proof_primary_parse_failure_case" \
+    --arg systemverilog_expected_proof_surface_sidecar "$expected_proof_surface_sidecar" \
+    --arg systemverilog_external_corpus_backed_proof_triage_report_json "$external_corpus_backed_proof_triage_report_json" \
+    --arg systemverilog_external_corpus_backed_proof_drift_log "$proof_surface_drift_log" \
+    --argjson systemverilog_external_corpus_backed_proof_totals_diff_count "$totals_diff_count" \
+    --argjson systemverilog_external_corpus_backed_proof_expected_only_count "$expected_only_count" \
+    --argjson systemverilog_external_corpus_backed_proof_observed_only_count "$observed_only_count" \
+    --argjson systemverilog_external_corpus_backed_proof_status_diff_count "$status_diff_count" \
+    --argjson systemverilog_external_corpus_backed_proof_totals_diff "$totals_diff_json" \
+    --argjson systemverilog_external_corpus_backed_proof_expected_only_cases "$expected_only_json" \
+    --argjson systemverilog_external_corpus_backed_proof_observed_only_cases "$observed_only_json" \
+    --argjson systemverilog_external_corpus_backed_proof_status_diff "$status_diff_json" \
     '{
       gate: $gate,
       version: $version,
@@ -412,12 +528,30 @@ jq -n \
             family_status_summary_json: $systemverilog_family_status_summary_json,
             external_corpus_backed_proof_state_dir: $systemverilog_external_corpus_backed_proof_state_dir,
             external_corpus_backed_proof_summary_txt: $systemverilog_external_corpus_backed_proof_summary_txt,
-            external_corpus_backed_proof_summary_json: $systemverilog_external_corpus_backed_proof_summary_json
+            external_corpus_backed_proof_summary_json: $systemverilog_external_corpus_backed_proof_summary_json,
+            expected_proof_surface_sidecar: $systemverilog_expected_proof_surface_sidecar,
+            external_corpus_backed_proof_triage_report_json: $systemverilog_external_corpus_backed_proof_triage_report_json,
+            external_corpus_backed_proof_drift_log: $systemverilog_external_corpus_backed_proof_drift_log
+          },
+          proof_surface_drift: {
+            totals_diff_count: $systemverilog_external_corpus_backed_proof_totals_diff_count,
+            expected_only_count: $systemverilog_external_corpus_backed_proof_expected_only_count,
+            observed_only_count: $systemverilog_external_corpus_backed_proof_observed_only_count,
+            status_diff_count: $systemverilog_external_corpus_backed_proof_status_diff_count,
+            totals_diff: $systemverilog_external_corpus_backed_proof_totals_diff,
+            expected_only_cases: $systemverilog_external_corpus_backed_proof_expected_only_cases,
+            observed_only_cases: $systemverilog_external_corpus_backed_proof_observed_only_cases,
+            status_diff: $systemverilog_external_corpus_backed_proof_status_diff
           }
         }
       ]
     }' >"$SUMMARY_JSON"
 
 require_nonempty_file "$SUMMARY_JSON"
+
+if [[ "$systemverilog_formal_exhaustive_closure_surface_green" != "true" ]]; then
+    echo "❌ SV formal exhaustive closure surface NOT green: primary_unmet=$systemverilog_primary_unmet_closure_criterion (see $proof_surface_drift_log)" >&2
+    exit 1
+fi
 
 echo "✅ SV formal exhaustive closure gate passed."

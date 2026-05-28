@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-05-29 - PGEN-SV-EXH-PROOF-0101 (leaf SV-EXH-PROOF.4): **🎉 DERIVED EXTERNAL-CORPUS-BACKED PROOF SURFACE LANDED — `sv_formal_exhaustive_closure_gate` is now machine-checkable + drift-detecting (was hardcoded `surface_present=true`).**
+
+THREE COORDINATED EDITS:
+
+1. NEW checked-in sidecar `rust/test_data/grammar_quality/systemverilog_external_corpus_backed_proof_surface_v0.json` — declares `expected_totals` (`cases_executed: 14`, `parse_pass_total: 14`, `parse_fail_total: 0`, `cases_blocked_total: 0`, `preprocess_pass_total: 14`, …) + 14 alphabetically-ordered `expected_cases` rows (friscv_pipeline ×2, friscv_rv32i_core ×2, scr1_core_top ×2, scr1_top_ahb ×2, uvm_compat_pkg ×2, uvm_pkg ×2, veer_el2_lsu ×2 — case_name + profile + status + preprocess_status + parse_status) + a `closure_rules` block (`all_cases_must_pass`, `no_parse_failures_allowed`, `no_preprocess_failures_allowed`, `no_blocked_cases_allowed`, `expected_case_set_must_match_observed`).
+2. Contract `rust/test_data/grammar_quality/systemverilog_formal_exhaustive_closure_contract.json` bumped v1 → v2 — gains `expected_proof_surface_sidecar` field pointing at the sidecar; `required_surface_missing_detail` reworded to describe the sidecar-vs-observed match requirement (was: "sidecar still missing"; now: "sidecar must match live triage exactly").
+3. `rust/scripts/sv_formal_exhaustive_closure_gate.sh`:
+   - Reads `expected_proof_surface_sidecar` from contract; resolves it relative to repo root; verifies its required structure (jq schema check).
+   - Computes 4-way drift against the triage gate's `systemverilog_external_corpus_triage_report.json`:
+     - `totals_diff`: jq diff of `expected_totals` vs `report.totals` (catches a totals-arithmetic change without per-case detail).
+     - `expected_only_cases`: sidecar declares a (case_name, profile) the triage gate did not execute (catches a case being silently dropped from the manifest).
+     - `observed_only_cases`: triage executed a (case_name, profile) the sidecar does not declare (catches a new case being added to the manifest without sidecar update).
+     - `status_diff`: per-case `status` / `preprocess_status` / `parse_status` mismatch between sidecar and triage (catches regressions of any single case).
+   - Sets `external_corpus_backed_proof_surface_present` from the AND of the 4 checks (was always hardcoded `true`).
+   - Emits 4 diff counts + 4 full diff JSONs + drift_log path in both `summary.txt` and `summary.json` for downstream consumers.
+   - Exits 1 if surface NOT green (was always exit 0). Propagates correctly through `sv_parser_family_status_gate.sh`'s `run_logged` wrapper.
+
+EMPIRICAL VERIFICATION:
+- Green path (against existing 14/14 triage state): `external_corpus_backed_proof_surface_present=true`, `formal_exhaustive_closure_surface_green=true`, all 4 diff counts = 0, criteria 1/1 satisfied, exit 0. ✅
+- Drift trial (sidecar `expected_totals.parse_pass_total` mutated 14 → 99): `surface_present=false`, gate exits 1, `primary_unmet_closure_criterion=external_corpus_backed_proof_totals_drift=count=1`, drift log captured with full diff JSON. ✅
+
+NO-WORKAROUNDS HIERARCHY: **level 5** (parser-agnostic engine-adjacent gate enhancement — the sidecar+jq-diff mechanism is family-generic; could be cloned for VHDL / RGX / SVPP families that share the same closure-criterion pattern; no SV-specific assumption beyond the file paths). No grammar change, no Rust change, no release bump (gate + contract + sidecar only).
+
+FRONTIER: `SV-EXH-PROOF.5` (verify the real `surface_green=true` propagates upstream through `sv_parser_family_status_gate` + `sota_exit_gate` + `sv_combined_telemetry_contract_gate` — should be verification-only since propagation plumbing already exists). Path to `systemverilog` family-status `Done` row = one more verification slice away.
+
+Per the new push-pacing rule (user 2026-05-26): unpushed accumulation = 10 commits (Slice-81 through Slice-90); not pushing yet (below ~30 cadence).
+
 ## 2026-05-28 - PGEN-SV-EXH-PROOF-0100 (leaf SV-EXH-PROOF.3.3.4.b.6.2.H1.1): **🎉🎉🎉 14/14 — SV EXTERNAL CORPUS IS GREEN!** Closes the `external_corpus_backed_proof_surface` closure criterion that the entire SV-EXH-PROOF tree was opened to solve.
 
 ONE-LINE TRIAGE-MANIFEST EDIT:

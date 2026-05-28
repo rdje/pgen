@@ -1,0 +1,41 @@
+{
+  "family": "systemverilog",
+  "version": 1,
+  "surface_key": "external_corpus_backed_proof_surface",
+  "description": "Checked-in expected state of the SystemVerilog external-corpus triage gate. The closure gate verifies the live triage output against the expected_totals and expected_cases below; any drift (a case becoming FAIL, a new case appearing, or a totals mismatch) flips the surface to absent and the SV formal-exhaustive-closure surface to not-green.",
+  "expected_triage_manifest": "rust/test_data/grammar_quality/systemverilog_external_corpus_triage_v0.json",
+  "expected_totals": {
+    "cases_declared": 7,
+    "cases_executed": 14,
+    "cases_blocked_total": 0,
+    "preprocess_pass_total": 14,
+    "preprocess_fail_total": 0,
+    "parse_pass_total": 14,
+    "parse_fail_total": 0,
+    "parse_skipped_total": 0,
+    "preprocess_error_total": 0
+  },
+  "expected_cases": [
+    {"case_name": "friscv_pipeline",   "profile": "2017", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "friscv_pipeline",   "profile": "2023", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "friscv_rv32i_core", "profile": "2017", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "friscv_rv32i_core", "profile": "2023", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "scr1_core_top",     "profile": "2017", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "scr1_core_top",     "profile": "2023", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "scr1_top_ahb",      "profile": "2017", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "scr1_top_ahb",      "profile": "2023", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "uvm_compat_pkg",    "profile": "2017", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "uvm_compat_pkg",    "profile": "2023", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "uvm_pkg",           "profile": "2017", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "uvm_pkg",           "profile": "2023", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "veer_el2_lsu",      "profile": "2017", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"},
+    {"case_name": "veer_el2_lsu",      "profile": "2023", "status": "pass", "preprocess_status": "pass", "parse_status": "pass"}
+  ],
+  "closure_rules": {
+    "all_cases_must_pass": true,
+    "no_parse_failures_allowed": true,
+    "no_preprocess_failures_allowed": true,
+    "no_blocked_cases_allowed": true,
+    "expected_case_set_must_match_observed": true
+  }
+}
