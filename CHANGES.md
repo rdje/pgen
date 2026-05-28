@@ -1,4 +1,118 @@
 # CHANGES.md
+## 2026-05-28 - PGEN-SV-EXH-PROOF-0099 (leaf SV-EXH-PROOF.3.3.4.b.6.2.PP.1): **🎉 SV PREPROCESSOR FIX FLIPS uvm_pkg ×{2017,2023} FAIL → PASS! SV external corpus 10/14 → 12/14!** Release 1.0.134 → 1.0.135, schema STAYS 3.
+
+ROOT CAUSE (tools-first per Recipe 2 + focused source-read of the preprocessor):
+
+`.37.11`'s reframing finding pinned that uvm_pkg's residual ~0.7% was UNEXPANDED UVM `\`uvm_field_*` macro template residue — specifically `\`"ARG[+]\`"` macro string-substitution patterns left as `"ARG"[+]\`"` (separate strings + literal backtick) instead of `"ARG[+]"` (single quoted string per LRM).
+
+Source inspection of `rust/src/sv_preprocessor.rs::substitute_function_macro_body` (lines 1714-1763) confirmed: the algorithm matched opening `\`"`, read a single macro-arg identifier, emitted `"<arg>"` quotes, then OPTIONALLY consumed an immediately-following `\`"` close. If non-identifier text (like `[+]`) appeared after the arg, the algorithm stopped consuming and the closing `\`"` was later emitted as literal backtick + `"`.
+
+Per IEEE 1800 §22.5.3.2: `\`"..."\`` opens a "macro string with substitution" region terminated by a matching `\`"`. Macro arguments within the region are substituted; the WHOLE region becomes ONE string literal. The pre-fix algorithm only handled the trivial `\`"ARG\`"` case (single arg, no surrounding text).
+
+THE FIX (~50-line edit at `rust/src/sv_preprocessor.rs:1720-1742`):
+
+```rust
+if i + 2 <= bytes.len() && bytes[i] == b'`' && bytes[i + 1] == b'"' {
+    // Find the matching closing `"
+    let region_start = i + 2;
+    let mut j = region_start;
+    let mut found_close = false;
+    while j + 1 < bytes.len() {
+        if bytes[j] == b'`' && bytes[j + 1] == b'"' {
+            found_close = true;
+            break;
+        }
+        j += 1;
+    }
+    if found_close {
+        // Emit single "..." with macro args substituted inside the content
+        let content = &body[region_start..j];
+        out.push('"');
+        let content_bytes = content.as_bytes();
+        let mut k = 0usize;
+        while k < content_bytes.len() {
+            if is_ident_start(content_bytes[k]) {
+                let tok_start = k;
+                k += 1;
+                while k < content_bytes.len() && is_ident_continue(content_bytes[k]) {
+                    k += 1;
+                }
+                let token = &content[tok_start..k];
+                if let Some(arg) = bindings.get(token) {
+                    out.push_str(arg.trim());
+                } else {
+                    out.push_str(token);
+                }
+            } else {
+                out.push(content_bytes[k] as char);
+                k += 1;
+            }
+        }
+        out.push('"');
+        i = j + 2;
+        continue;
+    }
+    // Fallback: legacy single-ident form (`"<ident> with no explicit close)
+    // — preserves backwards compat with the existing preprocessor test
+    // (`define STR(x) `"x` style).
+    ...
+}
+```
+
+The fix also preserves the original `\`"<ident>` no-close form via a fallthrough, keeping the existing `expands_function_macro_with_token_paste_and_stringize` test passing.
+
+EMPIRICAL VERIFICATION:
+
+| Variant | Pre-fix | Post-fix |
+|---|---|---|
+| Minimal repro: `\`define t(ARG) push_back(\`"ARG[+]\`")` / `\`t(abc)` | `push_back("abc"[+]\`")` (WRONG) | `push_back("abc[+]")` (CORRECT) |
+| Legacy `\`define STR(x) \`"x` / `\`STR(hello)` (no close) | `"hello"` | `"hello"` (backwards-compat) |
+
+- Lib (--features generated_parsers) **609/609 PASS**.
+- Lib (no-features) **548/548 PASS**.
+- SV preprocessor unit tests **22/22 PASS**.
+- Clippy ✅.
+- **SV external corpus triage gate 12 PASS / 2 FAIL / 0 TIMEOUT** (was 10/4/0 — uvm_pkg ×{2017,2023} flipped FAIL → PASS).
+- Residual 2 FAIL = uvm_compat_pkg ×{2017,2023} which is H1 territory (cross-package `extends uvm_pkg::uvm_packer`; depends on uvm_pkg producing a library artifact — NOW UNBLOCKED since uvm_pkg parses).
+
+UVM_PKG FURTHEST_POSITION ARC — COMPLETED:
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162 (+42784)
+- `.36.4`: 181413 (+19251)
+- `.37.2`: 828954 (+647541) ← H2 built-in classes
+- `.37.3`: 866292 (+37338)
+- `.37.5`: 1,121,290 (+254998)
+- `.37.6`: 1,278,335 (+157045)
+- `.37.7`: 1,508,106 (+229771)
+- `.37.8`: 1,582,112 (+74006)
+- `.37.9`: 2,229,367 (+647255)
+- `.37.10`: 3,006,234 (+776867)
+- `.37.11`: REFRAMING (~99.3% — remaining 0.7% identified as preprocessor residue, NOT grammar defect)
+- **`.PP.1` (THIS SLICE): uvm_pkg PARSES TO END — uvm_pkg ×{2017,2023} PASS.**
+
+= HISTORIC SLICE. Closes the uvm_pkg arc of the SV-EXH-PROOF tree.
+
+NO-WORKAROUNDS HIERARCHY: **level 5** (parser-agnostic engine extension — the SV preprocessor IS the engine layer that processes SV source; this fix benefits every SV consumer).
+
+RELEASE BUMP 1.0.134 → 1.0.135, schema STAYS 3. Strictly-more-permissive (SVPP-0002/REGEX-0083): previously-mis-expanded `\`"ARG[+]\`"` patterns now expand correctly per LRM; existing PASS inputs unchanged. AST shape vocabulary unaffected (preprocessor is upstream of AST).
+
+Files modified (tracked):
+- `rust/src/sv_preprocessor.rs` (~50-line edit to `substitute_function_macro_body`)
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (1.0.134 → 1.0.135)
+- `docs/systemverilog_parser_book/src/changelog-index.md` (new 1.0.135 entry)
+- `docs/systemverilog_parser_book/src/schema-versioning.md` (new 1.0.135 row)
+- `docs/tasks/SV-EXH-PROOF.md` (`.PP.1` leaf row + leaf-detail + Last updated)
+- `CHANGES.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `DEVELOPMENT_NOTES.md` (same-slice docs lockstep)
+- `MEMORY.md` (project-state update reflecting uvm_pkg PASS)
+
+Books unaffected for prose surfaces (internal preprocessor fix; no new user-facing rule shape).
+
+Frontier: H1 (uvm_compat_pkg ×{2017,2023}) is now actionable — should close the corpus to 14/14 via bootstrap_files chaining (uvm_pkg's library output as --lib-in for uvm_compat_pkg, mirroring veer_el2_lsu's existing pattern).
+
+Per new push-pacing rule (user 2026-05-26): commit-per-slice, push at ~30 unpushed OR explicit "push now". Unpushed: 8 commits (Slice-81 through Slice-88). NOT pushing.
+
 ## 2026-05-27 - PGEN-SV-EXH-PROOF-0098 (leaf SV-EXH-PROOF.3.3.4.b.6.2.37.11): **PURE-DOCS REFRAMING — uvm_pkg's remaining ~0.7% is preprocessor residue, NOT a grammar defect; SV-grammar work on uvm_pkg is essentially DONE at the `.b.6.2.37.x` series.**
 
 ROOT CAUSE FINDING (tools-first per Recipe 2):

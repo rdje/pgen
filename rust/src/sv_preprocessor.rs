@@ -1718,25 +1718,78 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
 
     while i < bytes.len() {
         if i + 2 <= bytes.len() && bytes[i] == b'`' && bytes[i + 1] == b'"' {
-            let mut j = i + 2;
-            if j < bytes.len() && is_ident_start(bytes[j]) {
-                j += 1;
-                while j < bytes.len() && is_ident_continue(bytes[j]) {
-                    j += 1;
+            // SV-EXH-PROOF.3.3.4.b.6.2.PP.1 — per IEEE 1800 §22.5.3.2:
+            // `" opens a "macro string with substitution" region; macro
+            // arguments inside the region are substituted, and the whole
+            // region (terminated by a matching `") becomes a SINGLE
+            // string literal "...". Pre-fix the algorithm assumed the
+            // region contained ONLY a macro-arg identifier with no other
+            // literal text — so `"ARG[+]`" (UVM's `m_uvm_field_qda_int`
+            // pattern) was mis-expanded: the `[+]` was emitted bare and
+            // the closing `" became a literal backtick + ". Fix: scan
+            // forward to the matching closing `", then substitute macro
+            // arguments inside the content, emitting a SINGLE "..." pair.
+            // Surfaced by uvm_pkg furthest reaching byte 3,006,234 in
+            // `__local_field_names__.push_back('{"abstractions", "abstractions"[+]`")`
+            // where the second arg should have been the string
+            // "abstractions[+]" but came out as `"abstractions"[+]`"`.
+            let region_start = i + 2;
+            let mut j = region_start;
+            let mut found_close = false;
+            while j + 1 < bytes.len() {
+                if bytes[j] == b'`' && bytes[j + 1] == b'"' {
+                    found_close = true;
+                    break;
                 }
-                let token = &body[i + 2..j];
+                j += 1;
+            }
+            if found_close {
+                let content = &body[region_start..j];
+                out.push('"');
+                let content_bytes = content.as_bytes();
+                let mut k = 0usize;
+                while k < content_bytes.len() {
+                    if is_ident_start(content_bytes[k]) {
+                        let tok_start = k;
+                        k += 1;
+                        while k < content_bytes.len() && is_ident_continue(content_bytes[k]) {
+                            k += 1;
+                        }
+                        let token = &content[tok_start..k];
+                        if let Some(arg) = bindings.get(token) {
+                            out.push_str(arg.trim());
+                        } else {
+                            out.push_str(token);
+                        }
+                    } else {
+                        out.push(content_bytes[k] as char);
+                        k += 1;
+                    }
+                }
+                out.push('"');
+                i = j + 2;
+                continue;
+            }
+            // No matching closing `" — fall back to the legacy single-ident
+            // form (`"<ident> with no close, often seen in informal macros
+            // that rely on macro-body-end as an implicit close). This
+            // preserves backwards-compat with the original algorithm.
+            let mut k = region_start;
+            if k < bytes.len() && is_ident_start(bytes[k]) {
+                k += 1;
+                while k < bytes.len() && is_ident_continue(bytes[k]) {
+                    k += 1;
+                }
+                let token = &body[region_start..k];
                 if let Some(arg) = bindings.get(token) {
                     out.push('"');
                     out.push_str(arg.trim());
                     out.push('"');
-                    if j + 1 < bytes.len() && bytes[j] == b'`' && bytes[j + 1] == b'"' {
-                        i = j + 2;
-                    } else {
-                        i = j;
-                    }
+                    i = k;
                     continue;
                 }
             }
+            // Truly unmatched — emit literally.
             out.push_str("`\"");
             i += 2;
             continue;

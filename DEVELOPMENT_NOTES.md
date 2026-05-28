@@ -1,4 +1,86 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-28 - SV-EXH-PROOF.3.3.4.b.6.2.PP.1 — **🎉 SV PREPROCESSOR FIX FLIPS uvm_pkg ×{2017,2023} FAIL → PASS; CORPUS 10/14 → 12/14** (PGEN-SV-EXH-PROOF-0099)
+
+### What landed
+
+~50-line edit at `rust/src/sv_preprocessor.rs:1720-1742` (`substitute_function_macro_body`). The function now handles `\`"ARG[+]\`"` macro string-substitution patterns per LRM §22.5.3.2: scan forward to the matching closing `\`"`, substitute macro args within the entire content, emit a single `"..."` string. Backwards-compat preserved via fallthrough to the legacy single-ident form when no matching close exists.
+
+Plus release bump 1.0.134 → 1.0.135 (schema STAYS 3).
+
+### Root cause
+
+`.37.11`'s reframing finding pinned that uvm_pkg's residual ~0.7% was UNEXPANDED UVM `\`uvm_field_*` macro template residue. Source inspection of the preprocessor confirmed:
+
+Pre-fix algorithm (lines 1720-1742):
+1. Match opening `\`"`
+2. Read ONE identifier (must start with ident_start)
+3. If identifier is a macro-arg binding, emit `"<arg>"` quotes
+4. Check IF next chars are `\`"` close, and if yes consume them; otherwise continue
+5. If no identifier follows the opening `\`"`, emit `\`"` literally and advance 2
+
+For UVM's `\`m_uvm_field_qda_int`'s `\`"ARG[+]\`"` pattern:
+- Match `\`"` ✓
+- Read identifier `ARG` (stops at `[`)
+- Substitute → emit `"abstractions"`
+- Check next 2 chars for `\`"` — but next is `[+]`, not `\`"`. Skip close-check.
+- Continue from after `ARG` (at `[`)
+- `[+]` emit as bare chars
+- Encounter `\`"` later but no ident follows → emit literally as `\`"`
+
+Result: `"abstractions"[+]\`"` instead of `"abstractions[+]"`.
+
+### The fix
+
+New algorithm:
+1. Match opening `\`"`
+2. Scan forward to find matching closing `\`"`.
+3. If found, emit single `"...content..."` with macro args substituted inside the content. Skip past close.
+4. If no matching close found, fall through to the legacy single-ident-after-`\`"` form (preserves backwards-compat with `\`define STR(x) \`"x` style macros).
+
+### Why this is the right fix level
+
+**Level 5** in the no-workarounds hierarchy: parser-agnostic engine extension. The SV preprocessor IS the engine layer that processes SV source; the fix benefits every SV consumer.
+
+Alternatives considered:
+- (a) Level 1: Edit UVM source to use a different macro form. REJECTED — UVM is open-source vendor code; we can't patch it.
+- (b) Level 2: Pre-process UVM separately. REJECTED — same issue.
+- (c) Level 3-4: Don't apply (the defect is in the preprocessor, not in annotations or the store).
+
+Level 5 is mandated.
+
+### Verification
+
+Minimal repro `\`define t(ARG) push_back(\`"ARG[+]\`")` / `\`t(abc)`:
+- Pre-fix: `push_back("abc"[+]\`")` (WRONG)
+- Post-fix: `push_back("abc[+]")` (CORRECT per LRM)
+
+Legacy `\`define STR(x) \`"x` / `\`STR(hello)`:
+- Pre-fix: `"hello"`
+- Post-fix: `"hello"` (backwards-compat preserved via fallthrough)
+
+Lib (--features generated_parsers) **609/609 PASS**. Lib (no-features) **548/548 PASS**. SV preprocessor unit tests **22/22 PASS** (including the existing `expands_function_macro_with_token_paste_and_stringize` test that relies on the legacy single-ident form). Clippy ✅. **SV external corpus triage gate 12 PASS / 2 FAIL / 0 TIMEOUT** — uvm_pkg ×{2017,2023} flipped FAIL → PASS (the deepest residual since the SV-EXH-PROOF tree began). Residual 2 FAIL = uvm_compat_pkg ×{2017,2023} which is H1 territory (cross-package `extends uvm_pkg::uvm_packer`; depends on uvm_pkg producing a library artifact — NOW UNBLOCKED since uvm_pkg parses).
+
+### uvm_pkg furthest_position arc — COMPLETED
+
+- Slice-54 baseline: 19378
+- pre-`.35.1`: 113637
+- `.35.1`: 162162
+- `.36.4`: 181413
+- `.37.2`: 828954 ← H2 built-in classes
+- `.37.3`: 866292
+- `.37.5`: 1,121,290
+- `.37.6`: 1,278,335
+- `.37.7`: 1,508,106
+- `.37.8`: 1,582,112
+- `.37.9`: 2,229,367
+- `.37.10`: 3,006,234 (~99.3%)
+- `.37.11`: REFRAMING (remaining 0.7% = preprocessor residue)
+- **`.PP.1` (this slice): uvm_pkg PARSES TO END — FLIP FAIL → PASS** 🎉
+
+### Frontier
+
+H1 (uvm_compat_pkg ×{2017,2023}) is now actionable. uvm_compat_pkg fails at `class uvm_compat_packer extends uvm_pkg::uvm_packer;` (line 3977, byte 114993) — cross-package extends-chain that needs uvm_pkg's `uvm_packer` class visible via `--lib-in`. The existing `.3.3.4.a` library MVP-0 + bootstrap_files chaining (mirroring veer_el2_lsu's pattern) should close uvm_compat_pkg. Expected outcome: corpus 12/14 → 14/14, closing the entire SV external corpus.
+
 ## 2026-05-27 - SV-EXH-PROOF.3.3.4.b.6.2.37.11 — **PURE-DOCS REFRAMING**: uvm_pkg's remaining ~0.7% is preprocessor residue, NOT a grammar defect (PGEN-SV-EXH-PROOF-0098)
 
 ### The finding
