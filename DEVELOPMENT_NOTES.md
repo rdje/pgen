@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-29 - SV-EXH-PROOF.5.2.2 — **Removed the TWO REMAINING over-strict invariants `.5.2.1` kept; `*_entry_attempts_total` is a misnomer for validated_outputs** (PGEN-SV-EXH-PROOF-0104, SVEXH-Slice-93)
+
+### What landed
+
+Removed the two `*_timeout_errors_total <= *_entry_attempts_total` clauses from the internal-consistency jq block in `rust/scripts/sv_parser_aggregate_contract_gate.sh`, plus a durable explanatory comment so they are not re-added. `.5.2.1` had removed the `<= generation_errors_total` pair and KEPT these two, its CHANGES entry calling them "correctly-bounded sibling checks". That judgment was wrong.
+
+### Tools-first WHY + WHERE (per [[feedback_tools_first_no_guessing]] + [[feedback_why_and_where_before_solution]])
+
+The aggregate-contract gate failed with `target_timeout_errors_total=469 > primary_entry_attempts_total=432`. Traced both counters to their increment sites:
+
+- **`primary_entry_attempts_total` is a MISNOMER.** `rust/src/main.rs:566`: `TargetDriveParseabilityTelemetry::from_validation` builds it as `primary_entry_attempts: summary.validated_outputs`. So the JSON field is the count of primary-entry generations that **succeeded and were validated**, NOT raw attempts. Incremented only on the `Ok` branch (`stimuli_generator.rs:2270-2271`, inside `is_primary_entry`).
+- **`target_timeout_errors_total`** counts primary-entry generations that **timed out** — the `Err` branch (`stimuli_generator.rs:2329-2331`, `!helper_probe_active && is_target_timeout_error`).
+- Success (`validated_outputs`) and timeout (`target_timeout_errors`) are **mutually-exclusive per-attempt outcomes**. The raw primary-attempt count (= validated + primary-failures incl. timeouts) is NOT exported. So timeouts have NO exported upper bound; on a hard-to-generate corpus they legitimately exceed validated outputs: observed 432 validated + 469 timed out ⇒ ~901 primary attempts.
+- Helper sibling identical: `alternate_entry_attempts_total` = alternate successes (`Ok`, `2259`); `helper_timeout_errors_total` = alternate timeouts (`Err`, `2326`). Same disjoint-bucket relationship.
+
+Conclusion: `target_timeout <= primary_entry_attempts` and `helper_timeout <= alternate_entry_attempts` assert a `<=` ordering between disjoint success/failure buckets with no structural basis. Same over-strict defect class as `.5.2.1`'s `<= generation_errors_total`. Empirically grounded: against the real shadow report, all five structurally-guaranteed sum-decomposition invariants (C1–C5) PASS; only the timeout-vs-success ordering (C6) failed.
+
+### Why removal (not "fix the invariant")
+
+The validation summary carries success bookkeeping (validated/accepted/rejected, alternate_attempts/accepted/rejected) and failure bookkeeping (target/helper timeouts). The only structurally-correct cross-checks are WITHIN each kind (`validated == accepted+rejected`; `alternate_attempts == alt_accepted + alt_rejected`) — both retained and passing. There is no exported field that upper-bounds the timeout counters, so the correct minimal fix is to drop the unfounded `<=` assertions, not invent a new one. Renaming the misleading JSON fields would be a schema/serialization change touching `main.rs` + consumers + tests + book — scope creep, not required for correctness; left out (noted here as the field's true meaning).
+
+### Verification (full fresh matched run)
+
+Ran `sv_parser_aggregate_contract_gate.sh` fresh end-to-end (both probes regenerated as a matched pair — EXISTING-mode reuse of cached artifacts is NOT authoritative). The invariant block now passes and the gate **advanced past it**, failing on a different downstream check: `reachable-branch universe drifted across focused replay: initial=1409 replay=890`. Also confirmed by direct jq replay of the modified block on the real 469/432 report (PASS) and `bash -n` (clean).
+
+### Next blocker → `.5.2.3` (distinct defect, NOT fixed here)
+
+`reachable_branches` is NOT a static grammar property like `reachable_rules`. `stimuli_generator.rs` computes it in the per-branch loop with `if deficit == 0 { continue }` at line 1693 — threshold-covered branches are excluded from `reachable_branches` (and absorbed into `unreachable_branches` via `total - reachable` at line 1837). Verified in the cached data: `reachable=483 + unreachable=1124 = 1607 = total`, with `unreachable` jumping 198→1124 as ~926 branches got covered, and `covered_branches=934 > reachable_branches=483` (impossible if reachable were static). So `reachable_branches` is the dynamic remaining-coverage-gap, which shrinks as the closed-loop replay covers branches (1409→890 fresh, 1409→483 cached). The gate's `replay_reachable_branches != initial_reachable_branches` drift check (line 312) therefore fails on any productive replay. This is ASYMMETRIC from the sibling `reachable_rules` drift check (line 307), which IS valid because `reachable_rules` = `compute_reachable_rules()` static graph traversal (line 1562) and stayed `1271 == 1271`. `.5.2.3` will replace the `!=` with a monotonic `<=` (gap may shrink, must not grow) or drop it in favour of the existing `covered_reachable_branches` non-regression check (line 297), keeping line 307 intact.
+
+### Noted (out of scope, NOT touched)
+
+`rust/scripts/sv_preprocessor_aggregate_contract_gate.sh` references the same timeout/attempt counter family and may carry sibling over-strict invariants. It is a separate parser family, not in the SV-EXH-PROOF.5.x scope and not currently blocking anything. Recorded here for a future audit; not swept per [[feedback_tools_first_no_guessing]] (each site must be verified with tools before any edit).
+
 ## 2026-05-29 - SV-EXH-PROOF.5.2.1 — **Surgical removal of 2 over-strict invariants in sv_parser_aggregate_contract_gate.sh** (PGEN-SV-EXH-PROOF-0103, SVEXH-Slice-92)
 
 ### What landed

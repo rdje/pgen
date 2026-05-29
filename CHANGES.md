@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-05-29 - PGEN-SV-EXH-PROOF-0104 (leaf SV-EXH-PROOF.5.2.2): **Surgical removal of the TWO REMAINING over-strict invariants in sv_parser_aggregate_contract_gate.sh — the ones `.5.2.1` mistakenly kept as "correctly bounded".**
+
+Third verification-driven sub-leaf of `.5`. After `.5.2.1` removed the `<= generation_errors_total` pair, re-running the aggregate-contract gate surfaced its self-declared "correctly-bounded" sibling:
+
+```
+error: replay-shadow aggregate report totals are internally inconsistent
+  target_timeout_errors_total=469 > primary_entry_attempts_total=432
+```
+
+ROOT CAUSE — WHY + WHERE pinned tools-first (per [[feedback_tools_first_no_guessing]] + [[feedback_why_and_where_before_solution]]):
+
+`primary_entry_attempts_total` is a **MISNOMER**. `rust/src/main.rs:566` builds the telemetry with `primary_entry_attempts: summary.validated_outputs` — i.e. the JSON field is the count of primary-entry generations that **SUCCEEDED** and were validated. It is incremented only on the `Ok` branch of the target-drive loop (`stimuli_generator.rs:2270-2271`, `is_primary_entry`). Meanwhile `target_timeout_errors_total` counts primary-entry generations that **TIMED OUT** — the `Err` branch (`stimuli_generator.rs:2329-2331`, `!helper_probe_active && is_target_timeout_error`).
+
+Success and timeout are **mutually-exclusive per-attempt outcomes** (disjoint buckets). On a hard-to-generate corpus, more primary attempts time out than succeed:
+
+```
+primary_entry_attempts_total (= validated_outputs / successes): 432
+target_timeout_errors_total  (= primary timeouts / failures):   469
+→ ~901 primary attempts total; 432 succeeded, 469 timed out.
+469 > 432 is COHERENT DATA, not corruption.
+```
+
+The same applies to the helper sibling: `alternate_entry_attempts_total` (= alternate successes, `stimuli_generator.rs:2259`) vs `helper_timeout_errors_total` (= alternate timeouts, `2326`). Both `target_timeout <= primary_entry_attempts` and `helper_timeout <= alternate_entry_attempts` assert a `<=` ordering between disjoint success/failure buckets — the **identical over-strict defect class** `.5.2.1` removed, here in the two checks `.5.2.1` *kept* (its CHANGES entry literally called them "correctly-bounded sibling checks"; that judgment was wrong because the `*_attempts_total` fields count successes, not attempts).
+
+SURGICAL FIX (`rust/scripts/sv_parser_aggregate_contract_gate.sh`):
+
+- Removed both `and ( ..._timeout_errors_total <= ..._entry_attempts_total )` clauses from the internal-consistency jq block.
+- Added a durable explanatory comment above the block so a future maintainer does not re-add them: the invariants are restricted to structurally-guaranteed sum-decomposition identities; timeout-vs-attempts `<=` checks are structurally unfounded (the `*_attempts_total` fields are validated-output/success counts, not raw attempts).
+- The genuinely-correct internal-consistency checks remain and pass: `attempts_total == accepted+rejected+generation_errors+empty`, `primary_entry_attempts == observed.attempts`, primary accepted/rejected identities, and `alternate_entry_attempts == alt_accepted + alt_rejected`.
+
+VERIFICATION (full fresh matched run, not EXISTING-mode artifacts):
+
+- Ran the full `sv_parser_aggregate_contract_gate.sh` fresh (both `generation_only` + `shadow_enabled` probes regenerated as a matched pair). The invariant block now passes; the gate **advanced past it** and failed on a DIFFERENT downstream check: `reachable-branch universe drifted across focused replay: initial=1409 replay=890`.
+- Direct jq replay of the modified invariant block against the real `469/432` shadow report = PASS.
+- That next failure is a separate structural defect (the `reachable_branches` drift check assumes a static universe, but `reachable_branches` is a dynamic remaining-coverage-gap — `stimuli_generator.rs:1693` excludes threshold-covered branches via `if deficit == 0 { continue }`). Routed to **`.5.2.3`** (NOT fixed here — distinct, asymmetric from the valid `reachable_rules` drift check).
+
+SCOPE: gate-script only. No grammar change, no Rust source change, no generated artifact change, no release bump (release stays 1.0.135, schema stays 3). NO-WORKAROUNDS HIERARCHY: this is a gate-oracle correctness fix (removing a false assertion verified against the authoritative data model in `stimuli_generator.rs`), not a parser-defect fix — the underlying data is correct. SV external corpus stays 14/14 GREEN.
+
 ## 2026-05-29 - PGEN-SV-EXH-PROOF-0103 (leaf SV-EXH-PROOF.5.2.1): **Surgical removal of 2 over-strict invariants in sv_parser_aggregate_contract_gate.sh.**
 
 Second verification-driven sub-leaf of `.5` umbrella. After `.5.1` re-baselined the syntax-closure contract and unblocked that sub-gate, re-running `sv_parser_family_status_gate.sh` surfaced the NEXT failure at `sv_parser_aggregate_contract_gate`:

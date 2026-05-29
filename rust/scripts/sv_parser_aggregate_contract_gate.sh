@@ -234,6 +234,19 @@ if ! jq -e '
     exit 1
 fi
 
+# Internal-consistency invariants are restricted to structurally-guaranteed
+# identities only (sum decompositions). We deliberately do NOT assert
+# `*_timeout_errors_total <= *_entry_attempts_total`: the `*_entry_attempts_total`
+# fields are misnomers — `main.rs` maps them to the validation summary's
+# `validated_outputs` / `alternate_entry_attempts`, which count generations that
+# SUCCEEDED (the `Ok` branch in `stimuli_generator.rs`). The timeout counters
+# count generations that FAILED (the `Err` branch). Success and failure are
+# mutually-exclusive per-attempt outcomes, so timeouts can legitimately exceed
+# successes on a hard-to-generate corpus (observed SV: 469 timeouts vs 432
+# validated outputs). Asserting an ordering between the two disjoint buckets is
+# structurally unfounded — the same over-strict defect class removed in
+# SV-EXH-PROOF.5.2.1. See docs/tasks/SV-EXH-PROOF.md leaf .5.2.2
+# (PGEN-SV-EXH-PROOF-0104).
 if ! jq -e '
     (.observed.attempts_total | numbers)
         == (
@@ -251,14 +264,6 @@ if ! jq -e '
             (.target_drive_validation.alternate_entry_accepted_outputs_total | numbers)
             + (.target_drive_validation.alternate_entry_rejected_outputs_total | numbers)
         )
-    )
-    and (
-        (.target_drive_validation.target_timeout_errors_total | numbers)
-        <= (.target_drive_validation.primary_entry_attempts_total | numbers)
-    )
-    and (
-        (.target_drive_validation.helper_timeout_errors_total | numbers)
-        <= (.target_drive_validation.alternate_entry_attempts_total | numbers)
     )
 ' "$shadow_report_json" >/dev/null; then
     echo "error: replay-shadow aggregate report totals are internally inconsistent: $shadow_report_json" >&2
