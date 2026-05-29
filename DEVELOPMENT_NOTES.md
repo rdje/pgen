@@ -1,4 +1,69 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-29 - SV-EXH-PROOF.5.2.1 — **Surgical removal of 2 over-strict invariants in sv_parser_aggregate_contract_gate.sh** (PGEN-SV-EXH-PROOF-0103, SVEXH-Slice-92)
+
+### What landed
+
+8-line removal at `rust/scripts/sv_parser_aggregate_contract_gate.sh` lines 255-258 and 263-266. The two `<= generation_errors_total` jq invariants were always misformed against the actual data model.
+
+### Tools-first root cause (per [[feedback_tools_first_no_guessing]])
+
+Read `rust/src/ast_pipeline/stimuli_generator.rs` lines 732-758. Found TWO distinct data structures both carrying `target_timeout_errors` + `helper_timeout_errors` fields:
+
+- `TargetDriveSummary` (line 732): GENERATION-phase summary (during stimuli generation)
+- `TargetDriveValidationSummary` (line 748): VALIDATION-phase summary (post-generation parse validation)
+
+These are independent counters from independent pipeline phases. Validation timeouts happen when the parser hangs on re-parsing a generated output — they DO NOT back-propagate into the generation-phase error counter. The data model is explicitly separated.
+
+### Why the invariant was wrong from the start
+
+`git blame` traced lines 255-258 to commit `5a3740fb` (2026-04-21, "Propagate target-drive timeout telemetry — sanity-check primary timeout totals") and lines 263-266 to `ea27b472` (2026-04-20, "Preserve helper-timeout totals in gate telemetry — sanity-check copied helper timeout totals in gate contracts"). The author's intent was a "sanity check" that timeouts couldn't exceed some bounding universe — but they chose `generation_errors_total` as the bound, which is conceptually wrong. The correct bound (already present in adjacent lines 259-262 and 267-270) is the corresponding entry-attempts count.
+
+Today's data exemplifies the contradiction: `accepted=473/473` (100% generation success, `generation_errors_total=0`) AND `target_timeout_errors_total=472` (parser hung 472 times during validation re-parse). With the misformed invariant: `472 <= 0` is FALSE. The gate has been failing on this exact pattern since `5a3740fb`.
+
+### Fix
+
+Removed the two `<= generation_errors_total` checks. The two correctly-bounded sibling checks remain:
+- `target_timeout_errors_total <= primary_entry_attempts_total` (line 257-258, now lines 255-258)
+- `helper_timeout_errors_total <= alternate_entry_attempts_total` (line 261-262, now lines 259-262)
+
+### Verification
+
+- First failure path "<= generation_errors_total" eliminated.
+- Re-ran `sv_parser_family_status_gate.sh` — aggregate-contract gate now fails on a DIFFERENT over-strict invariant:
+  ```
+  target_timeout_errors_total=469 > primary_entry_attempts_total=432
+  ```
+- That second invariant ALSO appears questionable: 469 timeouts > 432 primary attempts suggests timeouts cross category boundaries. Most likely root cause: probe-phase timeouts (during sub-rule discovery within a primary attempt) are counted in `target_timeout_errors_total` but not in `primary_entry_attempts_total`. Need to read the actual accounting in `stimuli_generator.rs::TargetDriveValidationSummary` aggregation code to pin the WHY+WHERE.
+- Routed to `.5.2.2`.
+
+### What was NOT changed
+
+- No grammar change.
+- No Rust source change (the data model in `stimuli_generator.rs` is correct as-is; only the gate's invariants over the data model were wrong).
+- No generated parser change.
+- No release bump (gate-script only).
+
+### Disk-cleanup mandate executed this turn
+
+Per user's 24h recurring instruction, freed ~11 GB total:
+- `rust/target/release` (1.3 GB) — no current gate references it; will be rebuilt only if explicitly requested
+- `rust/target/ebnf_frontend_build` (570 MB) — secondary cargo build cache from May 27
+- `rust/target/clippy_gate` (21 MB) — log-only dir
+- `rust/target/debug/incremental` (~7.8 GB) — cargo incremental cache; rebuilds on next compile
+- `rust/target/sv_exh_proof_baseline` (~70 KB) — old May 17-18 superseded logs
+- `rust/target/differential_harness` (~8 KB) — old May 25 reports
+- empty `rust/target/{tmp,rgx0084}`
+- `/tmp/pgen-bug` (8 KB) — old test scratch from `.37.4` investigation
+- `cargo sweep --time 1` cleaned an additional 2.6 GB of stale deps per [[feedback_cargo_sweep_cadence]]
+
+rust/target: 16 GB → 5.0 GB. Repo total: 17 GB → 6.1 GB.
+
+User-created `conversation.txt` (56 MB, Feb 2026 captured AI conversation) left untouched per the "100% safe to do so" criterion.
+
+### Next slice
+
+`.5.2.2`: investigate why `target_timeout_errors_total` (469) exceeds `primary_entry_attempts_total` (432) in the aggregate-contract gate's shadow-probe report. Tools-first per [[feedback_why_and_where_before_solution]]: read the `TargetDriveValidationSummary` accounting in `stimuli_generator.rs` to pin the actual data model, then either fix the gate's invariant or the Rust source.
+
 ## 2026-05-29 - SV-EXH-PROOF.5.1 — **SYNTAX-CLOSURE CONTRACT REBASELINE** (PGEN-SV-EXH-PROOF-0102, SVEXH-Slice-91)
 
 ### What landed

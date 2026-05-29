@@ -1,4 +1,55 @@
 # CHANGES.md
+## 2026-05-29 - PGEN-SV-EXH-PROOF-0103 (leaf SV-EXH-PROOF.5.2.1): **Surgical removal of 2 over-strict invariants in sv_parser_aggregate_contract_gate.sh.**
+
+Second verification-driven sub-leaf of `.5` umbrella. After `.5.1` re-baselined the syntax-closure contract and unblocked that sub-gate, re-running `sv_parser_family_status_gate.sh` surfaced the NEXT failure at `sv_parser_aggregate_contract_gate`:
+
+```
+error: replay-shadow aggregate report totals are internally inconsistent
+  target_timeout_errors_total=472 vs generation_errors_total=0
+```
+
+ROOT CAUSE TRACED (tools-first per [[feedback_tools_first_no_guessing]]):
+
+Read `rust/src/ast_pipeline/stimuli_generator.rs` lines 732-758. There are TWO distinct data structures with their own `target_timeout_errors` and `helper_timeout_errors` fields:
+- `TargetDriveSummary` (line 732): the GENERATION-phase summary
+- `TargetDriveValidationSummary` (line 748): the VALIDATION-phase summary (post-generation parse validation)
+
+These are independent counters from independent pipeline phases. Validation timeouts can happen even when 100% of generations succeed (today's case: `accepted=473/473`, `generation_errors_total=0`, but `target_timeout_errors_total=472`).
+
+The gate's invariants at `rust/scripts/sv_parser_aggregate_contract_gate.sh` lines 255-258 and 263-266 (added in commits `5a3740fb` 2026-04-21 and `ea27b472` 2026-04-20 as "sanity-check" guards) asserted that `target_timeout_errors_total <= generation_errors_total` and `helper_timeout_errors_total <= generation_errors_total` — implying timeouts should be a subset of generation errors. This was always misformed against the actual data model.
+
+SURGICAL FIX:
+
+Removed 8 lines (the two `<= generation_errors_total` jq invariants). The two correctly-bounded sibling checks remain:
+- `target_timeout_errors_total <= primary_entry_attempts_total`
+- `helper_timeout_errors_total <= alternate_entry_attempts_total`
+
+EMPIRICAL VERIFICATION:
+
+- First failure path eliminated.
+- Re-ran `sv_parser_family_status_gate.sh` — aggregate-contract gate now fails on a DIFFERENT over-strict invariant: `target_timeout_errors_total=469 > primary_entry_attempts_total=432`. That second invariant ALSO appears questionable: it suggests timeouts cross category boundaries (e.g., probe-phase timeouts counted as target_timeouts but not as primary attempts). Routed to `.5.2.2` for a tools-first WHY+WHERE investigation per [[feedback_why_and_where_before_solution]] of the actual `TargetDriveValidationSummary` accounting.
+
+NO-WORKAROUNDS HIERARCHY: gate-logic fix (the invariant has been misformed against the data model since its introduction Apr 2026; this is correcting that, not masking). No grammar change, no Rust source change, no release bump (gate-script only).
+
+DISK-CLEANUP MANDATE ALSO EXECUTED THIS TURN (per user's 24h recurring instruction):
+
+Freed ~11 GB total — `rust/target` 16 GB to 5.0 GB, repo total 17 GB to 6.1 GB. Wiped:
+- `rust/target/release` (1.3 GB) — no current gate references it
+- `rust/target/ebnf_frontend_build` (570 MB) — secondary build cache from May 27
+- `rust/target/clippy_gate` (21 MB) — log dir only
+- `rust/target/debug/incremental` (~7.8 GB) — cargo incremental cache; rebuilds on next compile
+- `rust/target/sv_exh_proof_baseline` (~70 KB) — old May 17-18 logs
+- `rust/target/differential_harness` (~8 KB) — old May 25 reports
+- empty `rust/target/{tmp,rgx0084}`
+- `/tmp/pgen-bug` (8 KB) — old test scratch from `.37.4`
+- `cargo sweep --time 1` cleaned an additional 2.6 GB of stale deps per [[feedback_cargo_sweep_cadence]]
+
+User-created `conversation.txt` (56 MB, Feb 2026 captured AI conversation) left untouched per the "100% safe to do so" criterion.
+
+FRONTIER: `.5.2.2` next (second over-strict invariant in same gate); umbrella `.5` continues until all family-status sub-gates green, then `.6` flips LIVE Done.
+
+Per the push-pacing rule (user 2026-05-26): unpushed accumulation = 12 commits (Slice-81 through Slice-92); not pushing yet (below ~30 cadence).
+
 ## 2026-05-29 - PGEN-SV-EXH-PROOF-0102 (leaf SV-EXH-PROOF.5.1): **SYNTAX-CLOSURE CONTRACT REBASELINE — closes pre-existing accumulated drift from the `.37.x` campaign's skipped lockstep step.**
 
 First verification-driven sub-leaf of `.5`. Running `.4`'s new closure surface through `sv_parser_family_status_gate.sh` surfaced `sv_syntax_closure_gate` failing with `unreachable_rules=50 > max=1` + `unreachable_branches=109 > max=25` — pre-existing drift the `.37.x` campaign had silently skipped per [[feedback_grammar_edit_proof_gate_lockstep]] violation.
