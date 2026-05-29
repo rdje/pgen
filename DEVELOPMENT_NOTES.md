@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-29 - SV-EXH-PROOF.5.2.3 — **`reachable_branches` is a DYNAMIC remaining-gap, not a static universe; drift check reclassified `!=` → `>`** (PGEN-SV-EXH-PROOF-0105, SVEXH-Slice-94)
+
+### What landed
+
+`rust/scripts/sv_parser_aggregate_contract_gate.sh`: replaced the `reachable_branches` drift check `if (( replay_reachable_branches != initial_reachable_branches ))` with the monotonic-debt form `if (( replay_reachable_branches > initial_reachable_branches ))` ("remaining reachable-branch gap grew across focused replay"), plus a durable explanatory comment. Kept the sibling `reachable_rules != ` static-universe equality check (line 307) intact.
+
+### Tools-first WHY + WHERE (per [[feedback_why_and_where_before_solution]])
+
+After `.5.2.2`, the fresh aggregate-contract gate failed at `reachable-branch universe drifted: initial=1409 replay=890`. Traced `reachable_branches` to its computation in `stimuli_generator.rs`:
+
+- The per-branch gap loop (≈line 1685) does `let deficit = threshold - success_hits; if deficit == 0 { continue }` at **line 1693** BEFORE the `reachable_branches += 1` at **line 1728**. So branches already covered to the threshold are EXCLUDED from `reachable_branches`.
+- `unreachable_branches = total_branches - reachable_branches` (**line 1837**), so excluded covered branches are absorbed into `unreachable_branches`.
+- Therefore `reachable_branches` = the DYNAMIC remaining reachable-AND-below-threshold coverage gap, which shrinks monotonically as the closed-loop replay covers branches.
+
+Data proof (cached shadow_state): initial gap `reachable=1409, unreachable=198, covered=8`; replay gap `reachable=483, unreachable=1124, covered=934`. `483 + 1124 = 1607 = total`; `unreachable` grew by 926 ≈ the covered count; and `covered_branches=934 > reachable_branches=483` — impossible if `reachable_branches` were a static universe. Fresh-run shrink was 1409→890. The `!=` equality therefore fails on every productive replay (the run that covers nothing would be the only one to pass it — useless).
+
+ASYMMETRY (why only the branch check is wrong): `reachable_rules` is computed at **line 1562** as `all_rules.filter(|r| reachable_rules.contains(r)).count()` where `reachable_rules = compute_reachable_rules(&resolved_entry)` (**line 1542**) is a static graph-reachability traversal independent of coverage/deficit. It stayed `1271 == 1271`. So the `reachable_rules` equality check (line 307) is correct and was kept; only the `reachable_branches` check (line 312) needed reclassification.
+
+### Why the monotonic-debt form (not drop, not equality)
+
+The remaining reachable-branch gap is a debt-like quantity. The correct invariant is "replay must not INCREASE the gap" (a growing gap would mean replay uncovered branches / the reachable set expanded — an anomaly). This mirrors the existing `replay_target_count > initial_target_count` debt check at line 287 exactly. Dropping the check entirely would lose a meaningful guard; keeping equality is structurally wrong. The `>` form passes on real runs (890 ≤ 1409, 483 ≤ 1409) and still catches a genuinely-growing gap.
+
+### Verification
+
+- Standalone gate EXISTING-mode against the `.5.2.2` fresh matched artifacts (1409/890) reaches the summary stage and exits 0 (`✅ SV parser aggregate contract gate passed.`). EXISTING-mode is authoritative here because those artifacts are a genuine matched pair from the `.5.2.2` full fresh run, and this path exercises the full post-fix code incl. summary generation.
+- Full fresh `sv_parser_family_status_gate.sh`: `sv_parser_aggregate_contract_gate` = ok (advanced past it); `sv_syntax_closure` + `sv_preprocessor_syntax_closure` + `sv_preprocessor_aggregate_contract` + `sv_preprocessor_reachability_closure` + `sv_preprocessor_formal_exhaustive_closure` all = ok. `bash -n` clean.
+
+### Next blocker → `.5.2.4` (first NON-gate-oracle `.5` blocker — real grammar correctness)
+
+Family-status now fails at `sv_semantic_scope_contract_gate`: 1/20 mismatch, case `parameter_typedef_fail` (profile 2023) = `module m; typedef int T; localparam int Y = T::P; endmodule`, `expect_pass:false`, but the parser ACCEPTS it (`parse_full passed`). `T` is a plain `typedef int` (not a class/package), so `T::P` (scope-resolution into a non-scope type) is invalid per IEEE 1800 — the expected reject is correct. Hypothesis (tools-first investigation REQUIRED before any fix): the `.37.x` campaign's `class_scope` branches (`.b.6.2.37.3` added `class_scope` to `primary_hier_scope_prefix` / `variable_lvalue_scope` / `nonrange_variable_lvalue`) broadened `Ident::member` WITHOUT store-consulting that the LHS is a class/package — a [[feedback_grammar_rules_must_consult_store]] violation and exactly the skipped-lockstep grammar debt the `.5` umbrella exists to surface. `.5.2.4` must pin WHY (which rule/branch) + WHERE with `--trace-rules`/`--dump-rule-call-counts` first, then gate the branch via the store OR disprove the case's expected value against the LRM ([[feedback_corpus_expected_from_spec_not_fix]]). SV corpus MUST stay 14/14 (uvm_pkg uses `class_scope` heavily); full grammar-edit lockstep if grammar changes.
+
 ## 2026-05-29 - SV-EXH-PROOF.5.2.2 — **Removed the TWO REMAINING over-strict invariants `.5.2.1` kept; `*_entry_attempts_total` is a misnomer for validated_outputs** (PGEN-SV-EXH-PROOF-0104, SVEXH-Slice-93)
 
 ### What landed

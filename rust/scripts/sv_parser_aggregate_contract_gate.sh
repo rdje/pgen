@@ -309,8 +309,20 @@ if (( replay_reachable_rules != initial_reachable_rules )); then
     exit 1
 fi
 
-if (( replay_reachable_branches != initial_reachable_branches )); then
-    echo "error: reachable-branch universe drifted across focused replay: initial=$initial_reachable_branches replay=$replay_reachable_branches" >&2
+# `reachable_branches` is NOT a static universe like `reachable_rules` (checked for
+# exact drift above — `reachable_rules` = compute_reachable_rules() static graph
+# traversal). It is the DYNAMIC remaining reachable-branch coverage GAP:
+# stimuli_generator.rs computes it with `if deficit == 0 { continue }` so branches
+# already covered to threshold are EXCLUDED from `reachable_branches` (and absorbed
+# into `unreachable_branches` via `total - reachable`). The closed-loop replay's
+# whole purpose is to cover branches, which SHRINKS this gap (observed initial=1409
+# -> replay=890). Asserting exact equality therefore fails on any productive replay.
+# We assert the debt-monotonicity invariant instead — the remaining gap must not
+# GROW across replay — mirroring the `replay_target_count > initial_target_count`
+# debt check above. See docs/tasks/SV-EXH-PROOF.md leaf .5.2.3
+# (PGEN-SV-EXH-PROOF-0105).
+if (( replay_reachable_branches > initial_reachable_branches )); then
+    echo "error: remaining reachable-branch gap grew across focused replay: initial=$initial_reachable_branches replay=$replay_reachable_branches" >&2
     exit 1
 fi
 

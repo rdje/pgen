@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-05-29 - PGEN-SV-EXH-PROOF-0105 (leaf SV-EXH-PROOF.5.2.3): **Reclassified the aggregate-contract gate's `reachable_branches` drift check from a static-universe `!=` equality to a monotonic-debt `>` check.**
+
+Fourth verification-driven sub-leaf of `.5`. After `.5.2.2` cleared the timeout-vs-attempts invariants, the fresh aggregate-contract gate advanced past the invariant block and failed at:
+
+```
+error: reachable-branch universe drifted across focused replay: initial=1409 replay=890
+```
+
+ROOT CAUSE — WHY + WHERE pinned tools-first (per [[feedback_why_and_where_before_solution]]):
+
+`reachable_branches` is NOT a static grammar property like `reachable_rules`. `rust/src/ast_pipeline/stimuli_generator.rs` computes it in the per-branch gap loop with `if deficit == 0 { continue }` at line 1693 — branches already covered to the threshold are EXCLUDED from `reachable_branches` (and absorbed into `unreachable_branches` via `total - reachable` at line 1837). So it is the DYNAMIC remaining reachable-branch coverage GAP, which SHRINKS as the closed-loop replay covers branches. Proof from the data: in the replay gap, `reachable=483 + unreachable=1124 = 1607 = total`, `unreachable` jumped 198→1124 as ~926 branches got covered, and `covered_branches=934 > reachable_branches=483` (impossible if `reachable_branches` were static). Observed shrink: initial=1409 → replay=890 (fresh) / 483 (cached). The gate's `replay_reachable_branches != initial_reachable_branches` equality therefore fails on ANY productive replay.
+
+This is ASYMMETRIC from the sibling `reachable_rules` drift check (line 307), which IS valid: `reachable_rules` = `compute_reachable_rules()` static graph traversal (line 1562), and stayed `1271 == 1271`. So only the branch check is wrong; the rule check is correct and must stay.
+
+FIX (`rust/scripts/sv_parser_aggregate_contract_gate.sh`, gate-script only):
+
+- Replaced `if (( replay_reachable_branches != initial_reachable_branches ))` with `if (( replay_reachable_branches > initial_reachable_branches ))` (error message reworded to "remaining reachable-branch gap grew across focused replay"). This mirrors the existing `replay_target_count > initial_target_count` debt idiom at line 287 — the remaining gap may shrink (good) but must not GROW (anomaly).
+- Kept the `reachable_rules != ` static-universe equality check (line 307) intact.
+- Added a durable explanatory comment.
+
+VERIFICATION:
+
+- Standalone aggregate-contract gate EXISTING-mode against the `.5.2.2` fresh matched artifacts (initial=1409, replay=890) reaches the summary stage and exits 0: `✅ SV parser aggregate contract gate passed.`
+- Full fresh `sv_parser_family_status_gate.sh` run: `sv_parser_aggregate_contract_gate` sub-gate = ok (advanced past it), and `sv_syntax_closure_gate` + `sv_preprocessor_syntax_closure_gate` + `sv_preprocessor_aggregate_contract_gate` + `sv_preprocessor_reachability_closure_gate` + `sv_preprocessor_formal_exhaustive_closure_gate` all = ok. Family-status now fails on a NEW sub-gate, `sv_semantic_scope_contract_gate` (1/20: case `parameter_typedef_fail` profile 2023, `expect_pass:false` but parser accepts `T::P` where `T` is a plain `typedef int`) — routed to **`.5.2.4`** (the first non-gate-oracle blocker, a real grammar-correctness issue).
+
+SCOPE: gate-script only. No grammar change, no Rust source change, no generated change, no release bump (release stays 1.0.135, schema stays 3). NO-WORKAROUNDS HIERARCHY: gate-oracle correctness fix (the equality assertion was structurally wrong against the data model; the monotonic-debt form is the correct invariant). SV external corpus stays 14/14 GREEN.
+
 ## 2026-05-29 - PGEN-SV-EXH-PROOF-0104 (leaf SV-EXH-PROOF.5.2.2): **Surgical removal of the TWO REMAINING over-strict invariants in sv_parser_aggregate_contract_gate.sh — the ones `.5.2.1` mistakenly kept as "correctly bounded".**
 
 Third verification-driven sub-leaf of `.5`. After `.5.2.1` removed the `<= generation_errors_total` pair, re-running the aggregate-contract gate surfaced its self-declared "correctly-bounded" sibling:
