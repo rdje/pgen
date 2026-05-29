@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-05-29 - PGEN-SV-EXH-PROOF-0106 (leaf SV-EXH-PROOF.5.2.4): **Tools-first INVESTIGATION (pure docs) — pinned WHY+WHERE of the first non-gate-oracle `.5` blocker: `T::P` for a typedef `T` is wrongly accepted.**
+
+Fifth verification-driven sub-leaf of `.5`, and the FIRST that is a real grammar-correctness issue (the prior four were gate-oracle fixes). After `.5.2.3`, the family-status gate cleared syntax-closure + aggregate-contract + 4 preprocessor sub-gates and failed at `sv_semantic_scope_contract_gate` (1/20): case `parameter_typedef_fail` (profile 2023) =
+
+```systemverilog
+module m;
+  typedef int T;
+  localparam int Y = T::P;
+endmodule
+```
+
+with `expect_pass:false`, but the parser ACCEPTS it. `T` is a plain `typedef int` (not a class/package), so `T::P` (scope-resolution into a non-scope type) is invalid per IEEE 1800 — the expected reject is correct.
+
+WHY + WHERE pinned tools-first (per [[feedback_why_and_where_before_solution]] + [[feedback_tools_first_no_guessing]]):
+
+- REPRODUCED: `parseability_probe --parse systemverilog <case> --profile 2023` = `parse_full passed` (should reject).
+- WHERE (`--parse-dump-ast-pretty`): the localparam value `T::P` parses as `{kind: data_type, body: {kind: provisional_class_type, head: T, scope_chain: [::P]}}`. Path: `local_parameter_declaration` "typed" branch → `param_assignment` value `$4 = constant_param_expression` → its `data_type` branch (`grammars/systemverilog.ebnf:1308`, which is valid per IEEE 1800 §A.2.4 `constant_param_expression ::= constant_mintypmax_expression | data_type | $`) → `data_type`'s `provisional_unscoped_block_class_type` branch (line 1714).
+- WHY: `provisional_unscoped_block_class_type` (line 1654-1655) is gated ONLY by `has_fact(type_name, $head.body)`. `typedef int T` DOES emit a `type_name` fact for T, so T passes — even though the `::P` scope_chain requires T to be a class/package. Its sibling `known_unscoped_block_class_type` (line 1649-1651) carries the CORRECT extra gate `lacks_fact_attribute_equals(type_name, $head, declaration_family, typedef)` and would reject T. The other six `*_typedef_fail` cases (tf_call/type_cast/property/sequence/let/checker) reject correctly because their paths do NOT route through `provisional_unscoped_block_class_type`.
+- CONFIRMED: bare `T x;` (typedef-as-datatype) does NOT use `provisional_unscoped_block_class_type` (routes via `net_declaration`/`known_unscoped_data_type` paths), so the unscoped case is unaffected by tightening the scoped form.
+
+FIX CANDIDATES (deferred to `.5.2.4.1` for empirical regen+corpus iteration; this leaf is investigation-only):
+- (a) add `lacks_fact_attribute_equals(...declaration_family, typedef)` to `provisional_unscoped_block_class_type` (matches its `known_` sibling) — risk: may over-reject if uvm needs a typedef head;
+- (b) **preferred** — split `provisional_unscoped_block_class_type` into unscoped-permissive + scoped-requires-non-typedef-head, so only `Head::member` is gated and the bare-typedef-as-class-type case is preserved;
+- (c) swap `data_type`'s branch (line 1714) from `provisional` to `known_unscoped_block_class_type`.
+
+REGRESSION RISK: uvm_pkg uses scope-resolution heavily; the fix MUST keep the SV external corpus 14/14 — requires regen + full corpus triage per candidate. That empirical iteration is `.5.2.4.1`.
+
+SCOPE: pure docs (this leaf). No grammar change, no Rust change, no generated change, no release bump. SV external corpus stays 14/14 GREEN.
+
 ## 2026-05-29 - PGEN-SV-EXH-PROOF-0105 (leaf SV-EXH-PROOF.5.2.3): **Reclassified the aggregate-contract gate's `reachable_branches` drift check from a static-universe `!=` equality to a monotonic-debt `>` check.**
 
 Fourth verification-driven sub-leaf of `.5`. After `.5.2.2` cleared the timeout-vs-attempts invariants, the fresh aggregate-contract gate advanced past the invariant block and failed at:

@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-29 - SV-EXH-PROOF.5.2.4 — **INVESTIGATION (pure docs): `T::P` for a typedef T accepted via `data_type`→`provisional_unscoped_block_class_type` (gated only on has_fact(type_name))** (PGEN-SV-EXH-PROOF-0106, SVEXH-Slice-95)
+
+### What this leaf is
+
+Pure tools-first investigation of the first non-gate-oracle `.5` blocker. NO code change. The grammar fix is routed to `.5.2.4.1` (it is a behaviour-tightening grammar edit with real uvm-regression risk that demands its own empirical regen+corpus iteration).
+
+### The blocker
+
+`sv_semantic_scope_contract_gate` fails 1/20 on `parameter_typedef_fail` (profile 2023):
+```
+module m;
+  typedef int T;
+  localparam int Y = T::P;
+endmodule
+```
+`expect_pass:false`, but the parser ACCEPTS it. `T` is a plain `typedef int`, so `T::P` (scope-resolution into a non-scope type) is invalid per IEEE 1800. Six sibling `*_typedef_fail` cases (tf_call/type_cast/property/sequence/let/checker) reject correctly; only this one (the localparam-initializer constant-expression path) wrongly accepts.
+
+### WHY + WHERE (tools-first per [[feedback_why_and_where_before_solution]])
+
+- Reproduced with `parseability_probe --parse systemverilog <case> --profile 2023` → `parse_full passed`.
+- `--parse-dump-ast-pretty` shows the value subtree: `value = {kind: data_type, body: {kind: provisional_class_type, head: {body: "T"}, params: [], scope_chain: [[{kind: scope_resolution}, {body: "P"}, []]]}}`.
+- Grammar path: `local_parameter_declaration` "typed" branch (`kw_localparam data_type_or_implicit list_of_param_assignments`, `systemverilog.ebnf:2793`) → `param_assignment` value `$4 = constant_param_expression` → its `data_type` branch (line 1308 — this IS valid per IEEE 1800 §A.2.4: `constant_param_expression ::= constant_mintypmax_expression | data_type | $`) → `data_type`'s `provisional_unscoped_block_class_type` branch (line 1714).
+- Root cause: `provisional_unscoped_block_class_type` (line 1654-1655) = `class_identifier (pva)? ( scope_resolution class_identifier (pva)? )*` gated ONLY by `@predicate has_fact(type_name, $head.body)`. `typedef int T` emits a `type_name` fact for T, so T satisfies the gate — even when the optional scope_chain (`::P`) is present, which semantically requires T to be a class/package. The sibling `known_unscoped_block_class_type` (line 1649-1651) has the same body but the CORRECT extra gate `@predicate lacks_fact_attribute_equals(type_name, $head.body, declaration_family, typedef)`, which rejects T.
+- Why the other six cases reject: their paths do not route through `provisional_unscoped_block_class_type` (they use the tf_call / type_cast / property / sequence / let / checker scope rules, which are store-gated correctly).
+- Safety check: bare `T x;` (typedef-as-datatype) was dumped — it parses as a `net_declaration`/`known_unscoped_data_type` form, NOT via `provisional_unscoped_block_class_type`. So tightening the scoped form does not affect the legitimate bare-typedef-as-datatype case.
+
+### Fix candidates (for `.5.2.4.1`)
+
+- (a) Add `lacks_fact_attribute_equals(type_name, $head.body, declaration_family, typedef)` to `provisional_unscoped_block_class_type` (makes it identical to `known_unscoped_block_class_type`). Risk: over-rejects if any uvm case relies on `provisional_` accepting a typedef head (scoped or unscoped) in `data_type`.
+- (b) **Preferred.** Split `provisional_unscoped_block_class_type` into an UNSCOPED variant (`class_identifier (pva)?`, gated `has_fact(type_name)` — preserves bare-typedef-as-class-type) and a SCOPED variant (`... ( scope_resolution class_identifier (pva)? )+`, additionally gated `lacks ...declaration_family=typedef`). Only `Head::member` is tightened — minimal blast radius. Changes the AST shape (scope_chain may move), so the shape-contract manifest needs a coordinated update.
+- (c) Swap `data_type`'s branch (line 1714) from `provisional_unscoped_block_class_type` to `known_unscoped_block_class_type`. Simplest, but changes which rule backs the `provisional_class_type` AST kind in `data_type` and may shift behaviour for non-scoped class-types.
+
+### Regression risk + verification plan (`.5.2.4.1`)
+
+uvm_pkg uses scope-resolution and class-types heavily. Each candidate MUST be verified by: regen (`make focus_systemverilog`, assert parser mtime > grammar mtime per [[feedback_verify_sv_parser_regen_mtime]]); minimal repro REJECTED; sanity (`T x;`, `pkg::C`, uvm `Class::member`) still accepted; `sv_semantic_scope_contract_gate` 20/20; **SV external corpus 14/14 (no uvm regression)**; SV shape-contract GREEN; lib (no-features + generated_parsers); RGX 44/0. Full grammar-edit lockstep per [[feedback_grammar_edit_proof_gate_lockstep]] + release framing (behaviour-tightening → likely release bump). NO-WORKAROUNDS level 1 (existing semantic annotation) per [[feedback_grammar_rules_must_consult_store]].
+
 ## 2026-05-29 - SV-EXH-PROOF.5.2.3 — **`reachable_branches` is a DYNAMIC remaining-gap, not a static universe; drift check reclassified `!=` → `>`** (PGEN-SV-EXH-PROOF-0105, SVEXH-Slice-94)
 
 ### What landed
