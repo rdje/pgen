@@ -1,4 +1,8 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-30 - SV-EXH-PROOF.5.2.5 — **`.5` UMBRELLA CLOSED: `sv_parser_family_status_gate` GREEN end-to-end (10/10 sub-gates)** (PGEN-SV-EXH-PROOF-0108, SVEXH-Slice-97, verification slice)
+
+Pure verification, no code change. Ran `bash rust/scripts/sv_parser_family_status_gate.sh` fresh: exit 0, all 10 sub-gates `ok` (sv_syntax_closure, sv_preprocessor_syntax_closure, sv_parser_aggregate_contract, sv_preprocessor_aggregate_contract, sv_preprocessor_reachability_closure, sv_preprocessor_formal_exhaustive_closure, sv_semantic_scope_contract, sv_formal_exhaustive_closure, sv_parser_family_status, sv_combined_telemetry_contract), zero `error: stage`. This validates the whole `.5.2.x` campaign in the real consumer: the aggregate-contract gate-oracle fixes (`.5.2.1/.2/.3`) and the semantic-scope grammar fix (`.5.2.4.1`) all pass, and the gate now reaches + passes `sv_formal_exhaustive_closure_gate` (the `.4` derived proof surface — formerly unreached because the gate failed earlier) + `sv_combined_telemetry_contract_gate`. SV external corpus 14/14 stable. `.5` umbrella CLOSED → frontier `.6` (LIVE Done flip + book/contract lockstep + promote tree to Completed). The pre-existing `cargo test` GlobalOptions bin-test debt (`parseability_probe.rs:738/754`) remains noted for a separate cleanup leaf (does not affect the family-status gate, which uses `--lib`-equivalent gate harnesses).
+
 ## 2026-05-30 - SV-EXH-PROOF.5.2.4.1 — **GRAMMAR FIX: `data_type`'s class-type branch swapped permissive `provisional_*` → typedef-excluding `known_unscoped_block_class_type`; `T::P` for a plain typedef now rejected** (PGEN-SV-EXH-PROOF-0107, SVEXH-Slice-96, release 1.0.135→1.0.136)
 
 ### The fix (candidate c)

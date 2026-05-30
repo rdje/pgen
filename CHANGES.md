@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-05-30 - PGEN-SV-EXH-PROOF-0108 (leaf SV-EXH-PROOF.5.2.5): **🎉 `.5` UMBRELLA CLOSED — `sv_parser_family_status_gate` runs GREEN end-to-end (10/10 sub-gates).**
+
+Pure verification slice (no code change). Re-ran `bash rust/scripts/sv_parser_family_status_gate.sh` fresh end-to-end now that every `.5.N` sub-leaf has landed:
+
+```
+family-status gate exit: 0
+==> sv_syntax_closure_gate                         ok
+==> sv_preprocessor_syntax_closure_gate            ok
+==> sv_parser_aggregate_contract_gate              ok   ← .5.2.1/.2/.3 fixes
+==> sv_preprocessor_aggregate_contract_gate        ok
+==> sv_preprocessor_reachability_closure_gate      ok
+==> sv_preprocessor_formal_exhaustive_closure_gate ok
+==> sv_semantic_scope_contract_gate                ok   ← .5.2.4.1 grammar fix
+==> sv_formal_exhaustive_closure_gate              ok   ← .4 derived proof surface (formerly unreached)
+==> sv_parser_family_status_gate                   ok
+==> sv_combined_telemetry_contract_gate            ok
+```
+
+Zero `error: stage`. The accumulated `.37.x`-campaign skipped-lockstep debt (per [[feedback_grammar_edit_proof_gate_lockstep]]) is now fully remediated across the whole sub-gate stack:
+- `.5.1` (`-0102`) — syntax-closure contract rebaseline.
+- `.5.2.1` (`-0103`) — removed the aggregate-contract gate's `<= generation_errors_total` over-strict pair.
+- `.5.2.2` (`-0104`) — removed its two `*_timeout <= *_entry_attempts` over-strict invariants (disjoint success/failure buckets).
+- `.5.2.3` (`-0105`) — reclassified its `reachable_branches` drift check from static-universe `!=` to monotonic-debt `>`.
+- `.5.2.4` (`-0106`) + `.5.2.4.1` (`-0107`) — investigated + fixed the semantic-scope grammar defect (`T::P` for a plain typedef now rejected; release 1.0.136).
+
+The gate also advanced through `sv_formal_exhaustive_closure_gate` (the `.4` machine-checkable external-corpus-backed proof surface) — it was never reached in prior runs because the gate failed earlier. SV external corpus 14/14 stable throughout. **`.5` umbrella CLOSED; frontier → `.6` (LIVE `Done` flip + book/contract lockstep + tree close).** No grammar/Rust/generated change, no release bump (verification only).
+
 ## 2026-05-30 - PGEN-SV-EXH-PROOF-0107 (leaf SV-EXH-PROOF.5.2.4.1; release 1.0.135 → 1.0.136, schema stays 3): **BEHAVIOUR-TIGHTENING grammar fix — `data_type` now rejects a scoped type ref `Head::member` when `Head` is a plain non-class `typedef`.**
 
 The grammar fix from `.5.2.4`'s investigation. Closes the `sv_semantic_scope_contract` `parameter_typedef_fail` mismatch — the first non-gate-oracle `.5` blocker.
