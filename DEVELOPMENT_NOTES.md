@@ -1,5 +1,27 @@
 # DEVELOPMENT_NOTES.md
-## 2026-05-30 - SV-EXH-PROOF.5.2.5 — **`.5` UMBRELLA CLOSED: `sv_parser_family_status_gate` GREEN end-to-end (10/10 sub-gates)** (PGEN-SV-EXH-PROOF-0108, SVEXH-Slice-97, verification slice)
+## 2026-05-31 - SV-EXH-PROOF.6 — **LIVE-row reconciliation → family-status gate GENUINELY GREEN; `.5.2.5` over-claim corrected; SV family honestly `Mostly Done`** (PGEN-SV-EXH-PROOF-0109, SVEXH-Slice-98, LIVE-doc only)
+
+### What this leaf is
+
+LIVE-doc reconciliation, no code change. It (a) makes `sv_parser_family_status_gate` actually pass end-to-end and (b) transparently corrects `.5.2.5`'s premature "exit 0 / closed" claim.
+
+### The bug in `.5.2.5`'s claim (root cause of the over-claim)
+
+The family-status gate (`rust/scripts/sv_parser_family_status_gate.sh`) does, AFTER its 10 sub-gates: compute each family's status from the sub-gate results (`sv_status` line 504-508, `svpp_status` line 636-649), read the LIVE_ACHIEVEMENT_STATUS row status via `markdown_table_status_for_row` (grep -F first match → awk 3rd field), and require an EXACT match (lines 654-661, `exit 1` on mismatch). `.5.2.5` read a truncated log tail that showed all 10 sub-gates `ok` and concluded "exit 0" — but the gate then hit `error: live tracker systemverilog status mismatch: tracker='In Progress' computed='Mostly Done'` and exited 1. Lesson (reinforces [[feedback_tools_first_no_guessing]]): read the gate's FINAL exit/banner, not just the sub-gate tally.
+
+### Why `Mostly Done` (the honest status)
+
+`Done` needs all 6 criteria (line 504): syntax_closure_gate_green, generation_parser_rejections_zero, shadow_parser_rejections_zero, focused_replay_target_debt_zero, semantic_scope_contract_green, formal_exhaustive_closure_surface_green. Five hold; `focused_replay_target_debt_zero` does NOT — `focused_replay_target_count > 0` (≈1482 residual closed-loop replay coverage targets per the `.5.2.3`-era aggregate summary; ~645 `never_selected`, top `property_expr_sv_2017`). The gate extracts that count at line 293 from the aggregate gate's summary.txt.
+
+### The fix + verification
+
+Edited `LIVE_ACHIEVEMENT_STATUS.md`: the gate-read `systemverilog main parser` row (the FIRST `grep -F '| \`systemverilog\` main parser'` match — the big "Phase P" cell at ~line 648) `In Progress` → `Mostly Done`, plus the `Parser-family exhaustive proof normalization` row, both with a current-state ✅ note (corpus 14/14, gate GREEN, derived proof surface real) and the stale 2026-05-17 "0/14 / hardcoded true" text marked HISTORICAL/superseded. `systemverilog_preprocessor frontend` stays `Done` (matches computed). Verified the gate's own extraction now returns `Mostly Done` / `Done`, then a fresh full re-run = `family_status_overall: pass`, zero `error:`, "✅ … passed."
+
+### Not flipping to `Done`
+
+`.6` deliberately does NOT flip to `Done`: it would be dishonest while `focused_replay_target_count > 0`, AND it would re-fail the gate (tracker `Done` ≠ computed `Mostly Done`). The path to `Done` is the new frontier `.7` (focused_replay_target_debt_zero closure — a multi-slice stimuli-coverage-generator campaign; GENERAL grammar-structure-property changes only per [[feedback_ast_pipeline_parser_agnostic]]; every code change task-tree-owned per the user 2026-05-31).
+
+## 2026-05-30 - SV-EXH-PROOF.5.2.5 — **sub-gates verified; overall-green claim corrected in .6** (PGEN-SV-EXH-PROOF-0108, SVEXH-Slice-97, verification slice)
 
 Pure verification, no code change. Ran `bash rust/scripts/sv_parser_family_status_gate.sh` fresh: exit 0, all 10 sub-gates `ok` (sv_syntax_closure, sv_preprocessor_syntax_closure, sv_parser_aggregate_contract, sv_preprocessor_aggregate_contract, sv_preprocessor_reachability_closure, sv_preprocessor_formal_exhaustive_closure, sv_semantic_scope_contract, sv_formal_exhaustive_closure, sv_parser_family_status, sv_combined_telemetry_contract), zero `error: stage`. This validates the whole `.5.2.x` campaign in the real consumer: the aggregate-contract gate-oracle fixes (`.5.2.1/.2/.3`) and the semantic-scope grammar fix (`.5.2.4.1`) all pass, and the gate now reaches + passes `sv_formal_exhaustive_closure_gate` (the `.4` derived proof surface — formerly unreached because the gate failed earlier) + `sv_combined_telemetry_contract_gate`. SV external corpus 14/14 stable. `.5` umbrella CLOSED → frontier `.6` (LIVE Done flip + book/contract lockstep + promote tree to Completed). The pre-existing `cargo test` GlobalOptions bin-test debt (`parseability_probe.rs:738/754`) remains noted for a separate cleanup leaf (does not affect the family-status gate, which uses `--lib`-equivalent gate harnesses).
 

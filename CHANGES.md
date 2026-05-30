@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-05-31 - PGEN-SV-EXH-PROOF-0109 (leaf SV-EXH-PROOF.6): **LIVE-row reconciliation → `sv_parser_family_status_gate` GENUINELY GREEN end-to-end; `.5.2.5` over-claim corrected; SV family honestly `Mostly Done`.**
+
+LIVE-doc reconciliation only (no code change). Makes the family-status gate actually pass, and corrects a premature claim.
+
+WHAT `.5.2.5` GOT WRONG (corrected here): `.5.2.5` reported the family-status gate "exit 0 / `.5` umbrella closed" based on an INCOMPLETE log read. In fact the gate has a FINAL live-tracker-consistency check AFTER its 10 sub-gates: it machine-computes each family's status (`Done` / `Mostly Done` / `In Progress`) from the sub-gate results and requires the LIVE_ACHIEVEMENT_STATUS rows to EXACTLY match. That run computed `systemverilog="Mostly Done"` but the LIVE row still said `In Progress` → mismatch → `exit 1`. The sub-gate verification (all 10 `ok`) was sound; the overall-green claim was premature.
+
+WHY `Mostly Done` (not `Done`): the gate's `Done` requires all 6 of: `syntax_closure_gate_green`, `generation_parser_rejections_zero`, `shadow_parser_rejections_zero`, `focused_replay_target_debt_zero`, `semantic_scope_contract_green`, `formal_exhaustive_closure_surface_green` (`sv_parser_family_status_gate.sh:504`). Five are met; the ONE short is **`focused_replay_target_debt_zero`** — the closed-loop target-driven stimuli generator leaves `focused_replay_target_count > 0` residual coverage targets (≈1482 in the `.5.2.3`-era measurement; ~645 `never_selected`, led by `property_expr_sv_2017`). So the honest family status is `Mostly Done`.
+
+THE FIX (`LIVE_ACHIEVEMENT_STATUS.md`):
+- `systemverilog main parser` row + `Parser-family exhaustive proof normalization` row: status `In Progress` → `Mostly Done`, with a current-state note (SV external corpus 14/14; `sv_parser_family_status_gate` GREEN; derived `.4` external-corpus proof surface real — no longer a hardcoded `true`). The stale 2026-05-17 "0/14 / gate does not pass / hardcoded true" figures are explicitly marked HISTORICAL and superseded.
+- `systemverilog_preprocessor frontend` row stays `Done` (matches the gate's computed `svpp="Done"`).
+- Corrected the `.5.2.5` header + tracker note's "exit 0 / closed" wording.
+
+VERIFICATION: fresh `bash rust/scripts/sv_parser_family_status_gate.sh` re-run = **`family_status_overall: pass`**, zero `error:` lines, banner **"✅ systemverilog parser family status gate passed."** (The gate now extracts `systemverilog="Mostly Done"` / `systemverilog_preprocessor="Done"`, matching its computed values.)
+
+HONEST FRAMING: the `.5` umbrella (the machine-checkable SV family-status closure SURFACE) is GREEN. The SV main parser FAMILY is `Mostly Done`, **not** `Done`. `.6` deliberately does NOT flip to `Done` — that would be dishonest while `focused_replay_target_count > 0`, and it would itself mismatch the gate's computed `Mostly Done` (re-failing the gate). The residual path to `Done` is owned by the new frontier leaf **`.7`** (`focused_replay_target_debt_zero` closure — a stimuli-coverage-generator campaign; per [[feedback_ast_pipeline_parser_agnostic]] any `stimuli_generator.rs` change must be a GENERAL grammar-structure property, never hardcoding rule names; every code change task-tree-owned per the user 2026-05-31). No grammar/Rust/generated change, no release bump (LIVE-doc only); book/contract were lockstepped in `.5.2.4.1`'s 1.0.136 release.
+
 ## 2026-05-30 - PGEN-SV-EXH-PROOF-0108 (leaf SV-EXH-PROOF.5.2.5): **🎉 `.5` UMBRELLA CLOSED — `sv_parser_family_status_gate` runs GREEN end-to-end (10/10 sub-gates).**
 
 Pure verification slice (no code change). Re-ran `bash rust/scripts/sv_parser_family_status_gate.sh` fresh end-to-end now that every `.5.N` sub-leaf has landed:
