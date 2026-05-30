@@ -1711,7 +1711,20 @@ data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimens
                   -> {kind: "known_unscoped_data_type", body: $1}
            | class_type
                   -> {kind: "class_type",            body: $1}
-           | provisional_unscoped_block_class_type
+           # SV-EXH-PROOF.5.2.4.1 — use the typedef-EXCLUDING sibling here, not the
+           # permissive `provisional_unscoped_block_class_type`. The provisional rule
+           # is gated only by `has_fact(type_name, head)`, so a plain `typedef int T`
+           # head passed even with a `::P` scope_chain — making `localparam int Y = T::P`
+           # wrongly parseable (T::P is invalid per IEEE 1800 when T is not a class/
+           # package; sv_semantic_scope_contract case `parameter_typedef_fail`).
+           # `known_unscoped_block_class_type` adds the correct
+           # `lacks_fact_attribute_equals(type_name, head, declaration_family, typedef)`
+           # gate (same `{head, params, scope_chain}` shape, so the emitted
+           # `provisional_class_type` AST kind is unchanged). Bare typedef-as-datatype
+           # `T x;` is unaffected (it matches `known_unscoped_data_type_identifier`
+           # above). `block_data_type` keeps the permissive `provisional_*` branch for
+           # class-internal scoped types. Per [[feedback_grammar_rules_must_consult_store]].
+           | known_unscoped_block_class_type
                   -> {kind: "provisional_class_type", body: $1}
            | kw_event_5006ed02
                   -> {kind: "event"}

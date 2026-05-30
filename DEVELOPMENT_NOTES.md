@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-30 - SV-EXH-PROOF.5.2.4.1 — **GRAMMAR FIX: `data_type`'s class-type branch swapped permissive `provisional_*` → typedef-excluding `known_unscoped_block_class_type`; `T::P` for a plain typedef now rejected** (PGEN-SV-EXH-PROOF-0107, SVEXH-Slice-96, release 1.0.135→1.0.136)
+
+### The fix (candidate c)
+
+`grammars/systemverilog.ebnf:1714`: `data_type`'s class-type branch was `provisional_unscoped_block_class_type` (gated only `has_fact(type_name,head)`); now `known_unscoped_block_class_type` (gated `has_fact(type_name,head)` AND `lacks_fact_attribute_equals(type_name,head,declaration_family,typedef)`). Both rules have the same body and emit `{head, params, scope_chain}`; the branch keeps `-> {kind: "provisional_class_type", body: $1}`, so the AST shape + schema (3) are unchanged.
+
+### Candidate selection (from `.5.2.4`'s three options)
+
+- (a) add the `lacks ...typedef` gate to `provisional_*` itself — rejected: affects BOTH `data_type` AND `block_data_type`, and would make `provisional_*` redundant with `known_*` in `block_data_type` (losing class-internal typedef-aliased-class scoped types).
+- (b) split `provisional_*` into unscoped + scoped variants — viable but changes rule structure / needs a passthrough idiom (`-> $1` on an alternation wrapper) that isn't an established in-file pattern, and risks AST-shape churn.
+- (c) **CHOSEN** — swap ONLY `data_type`'s branch (line 1714) to the existing `known_unscoped_block_class_type`. One-line change, no new rule, no AST-shape change (same `{head,params,scope_chain}` + `provisional_class_type` kind), and `block_data_type` keeps the permissive branch → minimal blast radius. Confirmed safe: bare `T` routes via `known_unscoped_data_type_identifier` (line 1710, tried first); `T::P`-as-constant-expression doesn't parse (the AST showed the `data_type` branch won = `constant_mintypmax_expression` failed first), so removing the permissive scoped-typedef path makes `T::P` fail entirely → leftover `::P` → localparam reject.
+
+### Verification (full lockstep, empirical)
+
+- Regen `make focus_systemverilog`: parser mtime 1780051549 > grammar mtime 1780051352 (regen confirmed per [[feedback_verify_sv_parser_regen_mtime]]); rebuilt debug probe (the stale debug probe initially masked the change — first test wrongly showed pass).
+- Minimal repro `localparam int Y = T::P` REJECTED (furthest_position=52); sanity `T x;` / `p::C` / `C::P` PASS.
+- `sv_semantic_scope_contract_gate` 20/20 (was 19/20, only `parameter_typedef_fail` mismatched).
+- SV external corpus 14/14 — NO uvm regression (the critical check; uvm uses scope-resolution heavily). `primary_parse_failure_case=<none>`.
+- lib `--features generated_parsers --lib` 609/609 (incl. shape-contract GREEN). RGX unaffected (SV-only; regex tests in the 609 suite pass).
+
+### Pre-existing test-debt observed (NOT fixed here)
+
+`cargo test --features generated_parsers` (full workspace) is RED on HEAD: `error[E0063]` at `src/bin/parseability_probe.rs:738` + `:754` — two `#[cfg(test)]` `GlobalOptions {…}` constructors missing fields (`dump_rule_call_counts`, `dump_rule_call_counts_exclude`, `library_in_dir`, +2) added in prior slices (`.b.6.2.22`, `.3.3.4.a`). The non-test build + probe compile/run fine (only the bin's test module is stale). UNRELATED to this grammar-only change (`git status` shows I touched only `grammars/systemverilog.ebnf`; `GlobalOptions` is a CLI options struct). Used `--lib` for no-regression evidence. Recommend a small dedicated cleanup leaf to refresh those two constructors so the full-workspace test goes green again.
+
+### Lockstep + frontier
+
+Release 1.0.135 → 1.0.136 (behaviour-tightening, AST shape preserved, schema stays 3): contract doc version + schema-history note; SV per-parser book changelog-index + schema-versioning + full HTML rebuild (also resolves the pre-existing searchindex-hash rebuild drift); shape-contract calibration_history note. NO-WORKAROUNDS level 1 (existing semantic-annotation gate). FRONTIER: re-run `sv_parser_family_status_gate` to surface the next blocker (`.5.2.5+`) or green → `.6`.
+
 ## 2026-05-29 - SV-EXH-PROOF.5.2.4 — **INVESTIGATION (pure docs): `T::P` for a typedef T accepted via `data_type`→`provisional_unscoped_block_class_type` (gated only on has_fact(type_name))** (PGEN-SV-EXH-PROOF-0106, SVEXH-Slice-95)
 
 ### What this leaf is

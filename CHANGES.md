@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-05-30 - PGEN-SV-EXH-PROOF-0107 (leaf SV-EXH-PROOF.5.2.4.1; release 1.0.135 → 1.0.136, schema stays 3): **BEHAVIOUR-TIGHTENING grammar fix — `data_type` now rejects a scoped type ref `Head::member` when `Head` is a plain non-class `typedef`.**
+
+The grammar fix from `.5.2.4`'s investigation. Closes the `sv_semantic_scope_contract` `parameter_typedef_fail` mismatch — the first non-gate-oracle `.5` blocker.
+
+THE FIX (candidate c — lowest blast radius, no AST-shape change, no new rule):
+
+`grammars/systemverilog.ebnf:1714` — `data_type`'s class-type branch swapped from the permissive `provisional_unscoped_block_class_type` (gated only by `has_fact(type_name, head)`) to the typedef-EXCLUDING sibling `known_unscoped_block_class_type` (gated `has_fact(type_name, head)` **and** `lacks_fact_attribute_equals(type_name, head, declaration_family, typedef)`). Both emit the same `{head, params, scope_chain}` body and the branch still wraps it as `{kind: provisional_class_type, body: $1}`, so the AST shape + schema are unchanged.
+
+WHY THIS IS CORRECT + MINIMAL:
+- The value `T::P` (after `typedef int T`) was parsing via `constant_param_expression`'s `data_type` branch → the permissive `provisional_*` (T is a `type_name`, so it passed even with the `::P` scope_chain). Per IEEE 1800, `T::P` is invalid when T is a non-class type (no scope members).
+- `data_type` loses no legitimate case: bare `T` routes via `known_unscoped_data_type_identifier` (tried before this branch); `T::P`-as-a-constant-expression does not parse (the AST proved the `data_type` branch won, i.e. `constant_mintypmax_expression` failed first).
+- `block_data_type` keeps the permissive `provisional_*` branch (class-internal scoped types, where typedef-aliased-class scoped forms are likelier) — so the blast radius is confined to module/param `data_type` context, minimizing uvm-regression risk.
+
+VERIFICATION (empirical, full lockstep):
+- Regenerated (`make focus_systemverilog`; parser mtime > grammar mtime confirmed) + rebuilt the debug probe.
+- Minimal repro `module m; typedef int T; localparam int Y = T::P; endmodule` now REJECTED (furthest_position=52, does not consume full input — was `parse_full passed`).
+- Sanity: `T x;` (typedef-as-datatype), `p::C` (package scope), `C::P` (class scope) all still PASS.
+- `sv_semantic_scope_contract_gate` **20/20** (was 19/20).
+- **SV external corpus 14/14** — NO uvm regression (uvm_pkg ×2, uvm_compat_pkg ×2, scr1 ×4, friscv ×4, veer ×2 all pass; `primary_parse_failure_case=<none>`).
+- lib `--features generated_parsers --lib` **609/609** (incl. SV shape-contract GREEN — samples=3 aligned=3 drift=0). RGX structurally unaffected (SV-grammar-only change, no regex regen; regex tests within the 609 lib suite pass).
+- NOTE: full-workspace `cargo test --features generated_parsers` is RED on HEAD due to PRE-EXISTING stale `GlobalOptions` test constructors at `src/bin/parseability_probe.rs:738/754` (missing `dump_rule_call_counts` / `library_in_dir` / + fields added in prior slices) — UNRELATED to this grammar change (a CLI options struct in a `#[cfg(test)]` module; the non-test build + probe work fine). Used `--lib` for the no-regression evidence; the bin-test debt is noted for a separate cleanup leaf.
+
+LOCKSTEP: regen (`generated/systemverilog_parser.rs`) + SV shape-contract manifest calibration_history note + contract doc version bump (1.0.135 → 1.0.136) + SV per-parser book (`changelog-index.md` + `schema-versioning.md` + full HTML rebuild, which also resolves pre-existing searchindex-hash rebuild drift). NO-WORKAROUNDS HIERARCHY: **level 1** (existing semantic-annotation gate, per [[feedback_grammar_rules_must_consult_store]] — rules categorising bare identifiers SHALL consult the store). FRONTIER: re-run `sv_parser_family_status_gate` (now that the semantic-scope sub-gate passes) to surface the next blocker (`.5.2.5+`) or reach green → `.6`.
+
 ## 2026-05-29 - PGEN-SV-EXH-PROOF-0106 (leaf SV-EXH-PROOF.5.2.4): **Tools-first INVESTIGATION (pure docs) — pinned WHY+WHERE of the first non-gate-oracle `.5` blocker: `T::P` for a typedef `T` is wrongly accepted.**
 
 Fifth verification-driven sub-leaf of `.5`, and the FIRST that is a real grammar-correctness issue (the prior four were gate-oracle fixes). After `.5.2.3`, the family-status gate cleared syntax-closure + aggregate-contract + 4 preprocessor sub-gates and failed at `sv_semantic_scope_contract_gate` (1/20): case `parameter_typedef_fail` (profile 2023) =
