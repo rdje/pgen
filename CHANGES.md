@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-31 - PGEN-SV-EXH-PROOF-0110 (leaf SV-EXH-PROOF.7.1): **Reachability investigation of the never_selected replay-gap branches — fix direction pinned, NO code.**
+
+Pure docs — task-file decomposition of the `.7` umbrella (the finding itself was recorded in auto-memory `project_sv7_never_selected_rootcause` during the governance pause; this slice formalizes `.7.1`/`.7.2` as task-tree leaves). `.7` (close `focused_replay_target_debt_zero`, the ONE criterion keeping the SV main parser at `Mostly Done`) is now an umbrella: `.7.1` investigation (DONE here) + `.7.2` design (pending).
+
+`.7.1` FINDING (tools-first source read of `rust/src/ast_pipeline/stimuli_generator.rs`): the ~358 `never_selected` replay-gap branches are a **REACHABILITY problem, NOT a weighting one**. The generator ALREADY boosts uncovered branches hard — `coverage_guidance_multiplier` (@4883) gives ×24 for `success_hits==0` + extra ×2 for `selected_hits==0`. They stay never_selected because structural gates fire BEFORE the weighted choice: (a) depth-floor pruning @3638 (at `depth>=max_depth-1`, candidate_indices retained to min-recursion branches only); (b) missing-rule pruning @3650; (c) recursion-pressure penalty @4824 (×4/×6/×8 as remaining_depth shrinks); (d) DOMINANT: the branch's PARENT OR-node is itself rarely/never entered, so the child group is never instantiated. **Fix DIRECTION = deterministic target-REACH / path-forcing** (steer the chain of parent OR decisions toward a chosen uncovered branch + a per-target depth budget), NOT more weighting. `forced_or_branch_for_site` @3307 is an existing path-forcing primitive but wired only to grammar-MUTATION-replay; `.7.2` decides generalize-vs-dedicated. Any `stimuli_generator.rs` change MUST be a GENERAL grammar-structure property (no hardcoded rule names) per [[feedback_ast_pipeline_parser_agnostic]].
+
+`.7.2` (design, then code-leaf) is BLOCKED on the `.6` clean isolated `sv_parser_family_status_gate` re-verification settling (`family_status_overall: pass`) before any generator code is opened, per [[feedback_always_signoff_decisions]]. No grammar/Rust/generated change, no release bump.
+
 ## 2026-05-31 - PGEN-TASKTREE-GOV-0007 (leaf TASKTREE-GOV.4): **Tri-lock contract documented — TASKTREE-GOV tree CLOSED; task-tree doctrine fully realized.**
 
 Pure docs — NO code change. Final leaf of the governance tree.

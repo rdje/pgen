@@ -500,10 +500,25 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-98 (PGEN-SV-EXH-PROOF-0109)`
 
 - ID: `SV-EXH-PROOF.7`
-  Status: `pending`
+  Status: `in_progress` (umbrella — `.7.1` reachability investigation DONE-in-memory; `.7.2` design pending; code campaign begins after `.6` re-verification settles)
+  Children: `SV-EXH-PROOF.7.1` (reachability investigation of the never_selected branches — DONE-in-memory, see project_sv7_never_selected_rootcause), `SV-EXH-PROOF.7.2` (design + implement deterministic target-reach / path-forcing — pending; GENERAL grammar-structure property, parser-agnostic, leaf-owned before any code)
   Goal: `Close focused_replay_target_debt_zero — the ONE remaining Done-criterion for the systemverilog main parser (Mostly Done -> Done). The closed-loop target-driven stimuli generator leaves focused_replay_target_count > 0 residual coverage targets (≈1482 in the .5.2.3-era measurement: down from ≈2660 initial, but not 0); the triage shows most are reason "never_selected" (≈645), led by property_expr_sv_2017. Drive the target-driven generator to cover every reachable rule/branch so focused_replay_target_count reaches 0.`
   Acceptance: `sv_parser_family_status_gate computes systemverilog="Done" (focused_replay_target_debt_zero=true, i.e. focused_replay_target_count=0) with the LIVE row updated to "Done" in lockstep; SV external corpus stays 14/14; no regression; full grammar/generator-edit lockstep per [[feedback_grammar_edit_proof_gate_lockstep]] for every code change; every code change task-tree-owned (user 2026-05-31).`
   Verification: `pending — tools-first per [[feedback_why_and_where_before_solution]]: read the fresh replay-gap target triage (rust/target/sv_parser_family_status_gate/work/sv_parser_aggregate_contract_gate/...) to enumerate the residual targets + WHY "never_selected"; per [[feedback_ast_pipeline_parser_agnostic]] any stimuli_generator.rs change must be a GENERAL grammar-structure property, never hardcode rule names/sigils. Expected to be a multi-slice campaign (.7.1, .7.2, ...).`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.1`
+  Status: `done` (reachability investigation; finding recorded in auto-memory project_sv7_never_selected_rootcause; decomposition committed here)
+  Goal: `Pin WHY the ~358 never_selected replay-gap branches stay uncovered, tools-first, BEFORE any generator code.`
+  Acceptance: `Root cause pinned from source with file:line evidence; fix DIRECTION identified (not implemented); recorded durably.`
+  Verification: `done — tools-first source read of rust/src/ast_pipeline/stimuli_generator.rs. FINDING: never_selected branches are a REACHABILITY problem, NOT a weighting one. coverage_guidance_multiplier (@4883) ALREADY boosts uncovered branches x24 (success_hits==0) + extra x2 (selected_hits==0). They stay never_selected because structural gates fire BEFORE the weighted choice: (a) depth-floor pruning @3638 (at depth>=max_depth-1 candidate_indices retained to min-recursion branches only); (b) missing-rule pruning @3650; (c) recursion-pressure penalty @4824 (x4/x6/x8 as remaining_depth shrinks); (d) DOMINANT: the branch's PARENT OR-node is itself rarely/never entered so the child group is never instantiated. Fix DIRECTION = deterministic target-REACH / path-forcing (steer parent OR decisions toward a chosen uncovered branch + per-target depth budget), NOT more weighting. forced_or_branch_for_site @3307 is an existing path-forcing primitive but wired only to grammar-MUTATION-replay. MUST stay GENERAL/parser-agnostic per [[feedback_ast_pipeline_parser_agnostic]].`
+  Commit: `done — SVEXH-Slice-99 (PGEN-SV-EXH-PROOF-0110), pure docs`
+
+- ID: `SV-EXH-PROOF.7.2`
+  Status: `pending` (DESIGN, pure docs first — blocked on .6 re-verification before any code-leaf)
+  Goal: `DESIGN the parser-agnostic deterministic target-reach / path-forcing mechanism that drives focused_replay_target_count toward 0, then route the implementation to its own code-leaf(s). Decide: generalize forced_or_branch_for_site (mutation-replay-only today) into a coverage-target reacher, OR build a dedicated coverage path-forcer. Must steer parent OR decisions along the path to a chosen uncovered branch + grant a per-target depth budget so depth-floor pruning (@3638) + recursion-pressure penalty (@4824) don't cut it off.`
+  Acceptance: `Design recorded in this tree: the mechanism, exactly where it hooks into stimuli_generator.rs, how it stays GENERAL/parser-agnostic (NO hardcoded rule names/sigils per [[feedback_ast_pipeline_parser_agnostic]]), and its verification plan (focused_replay_target_count drop + SV corpus 14/14 no-regression). Implementation is a SEPARATE code-leaf (.7.2.1+) opened only after the design is accepted.`
+  Verification: `pending — BLOCKED on .6 re-verification (clean isolated sv_parser_family_status_gate run confirming family_status_overall: pass) before opening generator code-leaves, per [[feedback_always_signoff_decisions]] (don't stack code work on an unverified prior leaf).`
   Commit: `pending`
 
 ## Current Frontier
