@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-05-31 - PGEN-TASKTREE-GOV-0006 (leaf TASKTREE-GOV.3): **Past-change audit — AUDITED, NO GAP.** + PGEN-TASKTREE-GOV-0005 (registry reconciliation)
+
+Pure docs — NO code change. Two governance slices:
+
+**`-0005` (TASKTREE-GOV.2 registry reconciliation):** honest follow-up to `-0004` — the 9 skeleton FILES committed in `-0004`, but the `docs/TASK_TREE.md` registry edit had failed on a stale anchor (left "_(none proposed)_"). `-0005` actually registered the 9 trees in the Proposed table + reconciled the GOV active-row frontier pointer.
+
+**`-0006` (TASKTREE-GOV.3 past-change audit):** audited the pre-task-tree code changes per doctrine. Boundary = commit `6e8abb62` "Docs: add task-tree tracking workflow" (2026-05-14); **1447 pre-doctrine commits** (SV typing ~116+, regex ~84, rtl_frontend ~16+, VHDL/SVPP/semantic-runtime/foundational AST-pipeline). Verified all three record surfaces cover them: CHANGES.md (1232 dated entries, 2024-08-31 → 2026-05-31), git log (all 1447 commits), and per-family `ast_shape_contract` `calibration_history` (systemverilog = rich 119-line per-slice record; regex/vhdl/svpp/rtl_fe/rtl_ce/return_annotation each dated). **Outcome: AUDITED, NO GAP** — every pre-doctrine campaign is recorded; no untracked code work; no discrepancy; no corrective leaf needed (matches the doctrine's documented "historical campaigns not retrofitted; recorded in CHANGES + git + calibration_history" disposition). Full audit table in `docs/tasks/TASKTREE-GOV.md` "Past-Change Audit" section. `TASKTREE-GOV` frontier `.3` → `.4` (tri-lock contract + drift check). No grammar/Rust/generated change, no release bump.
+
 ## 2026-05-31 - PGEN-TASKTREE-GOV-0004 (leaf TASKTREE-GOV.2): **Roadmap→tree coverage — 9 thin owning-skeleton trees so EVERY roadmap lane is task-tree-owned.**
 
 Pure task-tree/doc authoring — NO code change. Closes the `.1` gap matrix: created one thin `proposed`-status owning skeleton per uncovered roadmap lane (user chose "thin skeletons"), each with goal/non-goals/acceptance + a `.1` SCOPING (pure-docs) frontier leaf, all registered in a new `docs/TASK_TREE.md` "Proposed / Backlog Task Trees" table:

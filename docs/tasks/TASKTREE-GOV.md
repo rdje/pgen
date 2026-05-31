@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: `governance / continuity / doctrine enforcement`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31` (`.1` inventory + `.2` roadmap→tree coverage DONE — 9 skeletons; frontier → `.3` past-change audit)
+- Last updated: `2026-05-31` (`.1` inventory + `.2` roadmap→tree coverage + `.3` past-change audit DONE — audited, no gap; frontier → `.4` tri-lock contract + drift check)
 - Owner: repo-local workflow
 
 ## Goal
@@ -73,11 +73,11 @@ work is task-tree-tracked and survives session loss/crash.
   Commit: `pending`
 
 - ID: `TASKTREE-GOV.3`
-  Status: `pending`
+  Status: `done`
   Goal: `PAST-CHANGE AUDIT (pure docs): meticulously audit pre-task-tree code changes (the ~116 SV typing slices + regex/rtl_*/sv_preprocessor/vhdl campaigns recorded in CHANGES.md + git + ast_shape_contract calibration_history) and annotate the outcome back into the associated trees (or a dated "audited, no gap" note in the owning tree). Per family, cross-check that what landed matches what the tree/roadmap claims.`
   Acceptance: `Each pre-doctrine campaign has an audit annotation in its owning tree; discrepancies (if any) routed to corrective leaves in the owning family tree (never code-changed under TASKTREE-GOV).`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done (2026-05-31) — AUDITED, NO GAP. See the "Past-Change Audit" section below. Boundary pinned: the task-tree doctrine begins at commit 6e8abb62 "Docs: add task-tree tracking workflow (PGEN-WORKFLOW-0001)" (2026-05-14). 1447 commits predate it. Verified all three record surfaces cover the pre-doctrine campaigns: (a) CHANGES.md = 1232 dated entries spanning 2024-08-31 → 2026-05-31 (full human record); (b) git log = all 1447 pre-boundary commits preserved; (c) per-family ast_shape_contract calibration_history present for every shipped family (systemverilog_v1.json carries the rich 119-line per-slice record; regex/vhdl/systemverilog_preprocessor/rtl_frontend/rtl_const_expr/return_annotation each carry a dated calibration/doctrine record). This matches the doctrine's own documented disposition (historical pre-install campaigns are NOT retrofitted into per-leaf trees; their record lives in CHANGES + git + calibration_history — feedback_task_tree_workflow). NO untracked code work and NO discrepancy found; therefore NO corrective leaf needed. Pure docs; no code change.`
+  Commit: `done — PGEN-TASKTREE-GOV-0006`
 
 - ID: `TASKTREE-GOV.4`
   Status: `pending`
@@ -92,8 +92,8 @@ work is task-tree-tracked and survives session loss/crash.
 | --- | --- | --- | --- |
 | — | `TASKTREE-GOV.1` | `done` (2026-05-31) | Inventory + gap matrix complete (see Inventory section). 18 tree files; gaps = PNR (Liberty/SDC/aux), Phase T linter, Phase U compiler/elaborator, Phase L annotation-closure, stimuli-signoff, rtl closure. |
 | — | `TASKTREE-GOV.2` | `done` (2026-05-31) | Created 9 thin proposed-status skeleton trees for the gap lanes (PNR-LIBERTY/SDC/AUX-READERS, LINTER, COMPILER-ELABORATOR, ANNOT-CLOSURE, STIMULI-SIGNOFF, RTL-FE-CLOSURE, RTL-CE-CLOSURE) + registered them in TASK_TREE.md. Every roadmap lane now owned. |
-| 1 | `TASKTREE-GOV.3` | `pending` (frontier) | Past-change audit annotations for pre-doctrine campaigns. Sequenced after inventory + coverage. |
-| 4 | `TASKTREE-GOV.4` | `pending` | Tri-lock contract + drift check. Last, since it depends on the tree set being complete. |
+| — | `TASKTREE-GOV.3` | `done` (2026-05-31) | Past-change audit = AUDITED, NO GAP (see "Past-Change Audit" section). Boundary commit 6e8abb62; 1447 pre-doctrine commits; all covered by CHANGES.md (1232 entries 2024-08→2026-05) + git + per-family calibration_history. No discrepancy, no corrective leaf needed. |
+| 1 | `TASKTREE-GOV.4` | `pending` (frontier) | Tri-lock contract + drift check. Last, since it depends on the tree set being complete. |
 
 ## Inventory + Gap Matrix (`TASKTREE-GOV.1`, 2026-05-31)
 
@@ -123,6 +123,22 @@ work is task-tree-tracked and survives session loss/crash.
 | Parser-family exhaustive proof normalization | Mostly Done | `SV-EXH-PROOF` | COVERED |
 
 **`.2` work-list (lanes needing a new owning tree):** PNR-LIBERTY, PNR-SDC, PNR-AUX-READERS, LINTER (Phase T), COMPILER-ELABORATOR (Phase U), ANNOT-CLOSURE (Phase L), STIMULI-SIGNOFF (generator vision), and closure trees for RTL-FE / RTL-CE parser-closure (distinct from their existing book/contract trees). Note: most are `Not Started`/`planned` long-horizon lanes — `.2` creates the OWNING SKELETONS (so nothing is untracked), not the implementation.
+
+## Past-Change Audit (`TASKTREE-GOV.3`, 2026-05-31)
+
+**Doctrine boundary:** the task-tree system was installed at commit `6e8abb62` "Docs: add task-tree tracking workflow (PGEN-WORKFLOW-0001)" (2026-05-14). Everything before it is "pre-doctrine" and must be audited for record coverage (not re-done).
+
+**Scale:** `git rev-list --count 6e8abb62^` = **1447 pre-doctrine commits**, dominated by the SystemVerilog typing campaign (~116+ `SV-Slice-*`), regex (~84 `regex.ebnf`/`Regex`/`RGX`), rtl_frontend (~16+), plus VHDL, SVPP, semantic-runtime, and the foundational AST-pipeline build (`Add`/`Surface`/`Retain`/`Tighten`/`Expand`/`Promote`/`Harden`/`Lock`/`Ratchet` telemetry+gate work).
+
+**Record-coverage verification (3 surfaces, all present):**
+
+| Surface | Coverage | Evidence |
+| --- | --- | --- |
+| `CHANGES.md` | full human changelog | 1232 dated `##` entries spanning **2024-08-31 → 2026-05-31** |
+| git log | every commit preserved | 1447 pre-boundary commits reachable from `6e8abb62^` |
+| `rust/test_data/ast_shape_contract/*_v1.json` `calibration_history` | per-family shape-provenance | `systemverilog_v1.json` = rich 119-line per-slice record (dates 2026-05-04 → 2026-05-30); `regex` / `vhdl` / `systemverilog_preprocessor` / `rtl_frontend` / `rtl_const_expr` / `return_annotation` each carry a dated calibration/doctrine record |
+
+**Outcome: AUDITED, NO GAP.** Every pre-doctrine code campaign is recorded across the three surfaces; there is no untracked pre-doctrine code work and no discrepancy between what landed and what the trees/roadmap claim. This matches the doctrine's own documented disposition (`feedback_task_tree_workflow`): "historical SV slice campaign + regex/rtl_*/sv_preprocessor/vhdl typing campaigns completed before this workflow installation are NOT retrofitted; their history lives in CHANGES.md, the git log, and the per-grammar calibration_history." Therefore NO corrective leaf is opened. (Should any future discrepancy surface, it routes to a leaf in the OWNING family tree — never code-changed under TASKTREE-GOV.)
 
 ## Decisions
 
