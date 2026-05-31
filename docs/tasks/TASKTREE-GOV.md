@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: `governance / continuity / doctrine enforcement`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31`
+- Last updated: `2026-05-31` (`.1` inventory + gap matrix DONE; frontier → `.2`)
 - Owner: repo-local workflow
 
 ## Goal
@@ -59,10 +59,10 @@ work is task-tree-tracked and survives session loss/crash.
   Children: `TASKTREE-GOV.1` (inventory), `TASKTREE-GOV.2` (roadmap→tree coverage), `TASKTREE-GOV.3` (past-change audit), `TASKTREE-GOV.4` (tri-lock contract + drift check)
 
 - ID: `TASKTREE-GOV.1`
-  Status: `pending`
-  Goal: `INVENTORY (pure docs): produce the authoritative current-state map — (a) every existing docs/tasks/*.md tree + its status; (b) every roadmap lane across docs/reference/*ROADMAP*.md + LIVE_ACHIEVEMENT_STATUS.md parser-family + capability rows; (c) the gap matrix = roadmap lanes with NO owning tree. Confirm/correct the 2026-05-31 observation that 17 tree files exist (SV-EXH-PROOF, POST-SV-AUDIT, INLINE-ALT-FIX, SEMREF-SHAPED, RGX-008x ×6, RTL-{FE,CE}-{MDBOOK,CONTRACT-BODY}, SVPP-{MDBOOK,CONTRACT-BODY}, VHDL-{MDBOOK,CONTRACT-BODY}) but roadmap-level phases (linter enablement, compiler/elaborator enablement, semantic-steering, PNR parser family, annotation 100% closure, stimuli-generator-signoff per [[project_stimuli_generator_signoff_vision]]) are not yet tree-ized.`
-  Acceptance: `A gap matrix (roadmap lane -> owning tree | NONE) committed into this tree file's Decisions/Inventory section; docs/TASK_TREE.md Active Task Trees table reconciled to reality (every existing docs/tasks/*.md represented with correct status).`
-  Verification: `pending`
+  Status: `done`
+  Goal: `INVENTORY (pure docs): produce the authoritative current-state map — (a) every existing docs/tasks/*.md tree + its status; (b) every roadmap lane across docs/reference/*ROADMAP*.md + LIVE_ACHIEVEMENT_STATUS.md parser-family + capability rows; (c) the gap matrix = roadmap lanes with NO owning tree.`
+  Acceptance: `A gap matrix (roadmap lane -> owning tree | NONE) committed into this tree file's Inventory section; docs/TASK_TREE.md Active Task Trees table reconciled to reality.`
+  Verification: `done (2026-05-31) — inventory taken from docs/tasks/*.md status fields, SOTA roadmap phase headers (A–V), the enablement/closure roadmap docs, and LIVE_ACHIEVEMENT_STATUS capability rows. Gap matrix recorded in the Inventory section below. CONFIRMED: 18 tree files exist (17 prior + TASKTREE-GOV); all but SV-EXH-PROOF + TASKTREE-GOV are done/complete. GAPS identified (roadmap lanes with NO owning tree): Phase S PNR parser family (Liberty / SDC / aux readers — Not Started), Phase T Cross-Language Linter, Phase U Compiler/Elaborator Workbench, the stimuli-generator-signoff vision, and (PARTIAL) rtl_frontend/rtl_const_expr parser-CLOSURE (only book/contract trees exist, not a closure tree) + annotation-100%-closure (Phase L, Mostly Done, no explicit tree). These become .2 sub-leaves.`
   Commit: `pending`
 
 - ID: `TASKTREE-GOV.2`
@@ -90,14 +90,44 @@ work is task-tree-tracked and survives session loss/crash.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `TASKTREE-GOV.1` | `pending` (frontier) | Inventory must precede everything — can't cover gaps or audit without the authoritative current-state map + gap matrix. Pure docs; no dependency on the in-flight SV-EXH-PROOF.6 verification. |
-| 2 | `TASKTREE-GOV.2` | `pending` | Create owning trees for each uncovered roadmap lane. Needs `.1`'s gap matrix. |
+| — | `TASKTREE-GOV.1` | `done` (2026-05-31) | Inventory + gap matrix complete (see Inventory section). 18 tree files; gaps = PNR (Liberty/SDC/aux), Phase T linter, Phase U compiler/elaborator, Phase L annotation-closure, stimuli-signoff, rtl closure. |
+| 1 | `TASKTREE-GOV.2` | `pending` (frontier) | Create owning tree skeletons for each uncovered roadmap lane from `.1`'s work-list. Pure docs; independent of the in-flight SV-EXH-PROOF.6 verification. |
 | 3 | `TASKTREE-GOV.3` | `pending` | Past-change audit annotations. Can run in parallel with `.2` but sequenced after inventory. |
 | 4 | `TASKTREE-GOV.4` | `pending` | Tri-lock contract + drift check. Last, since it depends on the tree set being complete. |
+
+## Inventory + Gap Matrix (`TASKTREE-GOV.1`, 2026-05-31)
+
+**Existing tree files (`docs/tasks/*.md`, 18 incl. this one):**
+`active`: SV-EXH-PROOF, TASKTREE-GOV. `done/complete`: INLINE-ALT-FIX, POST-SV-AUDIT, RGX-0084, RGX-0085, RGX-0086, RGX-0087, RGX-0087-FIX2, RGX-0088, RTL-CE-CONTRACT-BODY, RTL-CE-MDBOOK, RTL-FE-CONTRACT-BODY, RTL-FE-MDBOOK, SEMREF-SHAPED, SVPP-CONTRACT-BODY, SVPP-MDBOOK, VHDL-CONTRACT-BODY, VHDL-MDBOOK. (Plus historically-pruned trees referenced in TASK_TREE.md prose: DOC-ENVELOPE-0001, DOC-README-SHELL-0001, the original 9 + INLINE-ALT-FIX.)
+
+**Roadmap lanes (SOTA roadmap phases A–V + LIVE capability rows) → owning tree:**
+
+| Roadmap lane | LIVE status | Owning tree | Coverage |
+| --- | --- | --- | --- |
+| Phases A–R (foundational / annotation / frontend / SV / SVPP / regex / VHDL) | Done | done trees (SEMREF-SHAPED, POST-SV-AUDIT, RGX-*, SVPP-*, VHDL-*) + git history | COVERED |
+| `systemverilog` main parser (Phase P) | Mostly Done | `SV-EXH-PROOF` (active) | COVERED |
+| `systemverilog_preprocessor` (Phase Q) | Done | `SVPP-MDBOOK` + `SVPP-CONTRACT-BODY` | COVERED |
+| `vhdl` parser family | Done | `VHDL-MDBOOK` + `VHDL-CONTRACT-BODY` | COVERED |
+| `regex` parser family | Done | `RGX-008x` family | COVERED |
+| `return_annotation` + cross-grammar shaping | Done / Mostly Done | `SEMREF-SHAPED`, `POST-SV-AUDIT` | COVERED |
+| Phase V: per-parser standalone mdBooks | (planned) | `*-MDBOOK` trees (done for shipped families) | COVERED (extend per new family) |
+| **Phase S: `rtl_const_expr` baseline evaluator** | Mostly Done | RTL-CE-{MDBOOK,CONTRACT-BODY} only (book/contract; NO parser-closure tree) | **PARTIAL — needs closure tree** |
+| **Phase S: `rtl_frontend` synthesizable subset** | In Progress | RTL-FE-{MDBOOK,CONTRACT-BODY} only (NO closure tree) | **PARTIAL — needs closure tree** |
+| **Phase S: PNR family — Liberty parser** | Not Started | NONE | **GAP** |
+| **Phase S: PNR family — SDC parser** | Not Started | NONE | **GAP** |
+| **Phase S: PNR aux readers (gate-level netlist / config / SDF)** | Not Started | NONE | **GAP** |
+| **Phase T: Cross-Language Linter enablement** | planned | NONE | **GAP** |
+| **Phase U: Compiler / Elaborator Workbench** | planned | NONE | **GAP** |
+| **Phase L: Annotation 100% closure (return + semantic)** | Mostly Done | NONE explicit (`PGEN_ANNOTATION_100_PERCENT_CLOSURE_ROADMAP.md` not tree-ized) | **GAP** |
+| **Stimuli-generator-signoff vision** ([[project_stimuli_generator_signoff_vision]]) | new (user 2026-05-31) | NONE (SV-EXH-PROOF.7 feeds it but isn't the owner) | **GAP** |
+| Parser-family exhaustive proof normalization | Mostly Done | `SV-EXH-PROOF` | COVERED |
+
+**`.2` work-list (lanes needing a new owning tree):** PNR-LIBERTY, PNR-SDC, PNR-AUX-READERS, LINTER (Phase T), COMPILER-ELABORATOR (Phase U), ANNOT-CLOSURE (Phase L), STIMULI-SIGNOFF (generator vision), and closure trees for RTL-FE / RTL-CE parser-closure (distinct from their existing book/contract trees). Note: most are `Not Started`/`planned` long-horizon lanes — `.2` creates the OWNING SKELETONS (so nothing is untracked), not the implementation.
 
 ## Decisions
 
 - `2026-05-31`: Created at user direction (doctrine re-affirmed + expanded: full-roadmap coverage, past-change audit, tri-lock). Sequencing chosen by user = "Governance tree first, now" — SV-EXH-PROOF pauses after its in-flight `.6` verification reports; this tree leads. Rationale: maximize doctrine compliance immediately.
+- `2026-05-31` (`.1` done): inventory complete; gap matrix above. The doctrine ("whole roadmap task-tree-owned") is satisfied for all SHIPPED/active lanes; the GAPS are all `Not Started`/`planned`/`Mostly Done` long-horizon lanes (PNR, linter, compiler/elaborator, annotation-closure, stimuli-signoff, rtl closure) — `.2` will create owning skeletons so even un-started roadmap work is tracked.
 - `2026-05-31`: This tree is pure task-tree/doc authoring. The doctrine's own escape hatch (pure non-code single-slice doc work is task-tree-exempt) does NOT apply to standing up trees — but standing up trees IS the tracking mechanism, so this governance tree is self-owning and its leaves are committed normally.
 
 ## Open Questions
