@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-31 - PGEN-TASKTREE-GOV-0001 (leaf TASKTREE-GOV / .1 frontier): **Stood up the ROADMAP→TASK-TREE NORMALIZATION governance tree (doctrine re-affirmation).**
+
+Pure task-tree/doc authoring — NO code change. Created `docs/tasks/TASKTREE-GOV.md` and registered it as an active tree in `docs/TASK_TREE.md`, per the user's 2026-05-31 doctrine re-affirmation: the WHOLE roadmap must be task-tree-owned (not just the in-flight lane); pre-task-tree code changes must be audited + annotated back into trees; and roadmap⇄codebase⇄mdBook must stay tri-locked with zero drift (mdBook reflects exactly what the codebase does).
+
+The tree has 4 leaves: `.1` INVENTORY (gap matrix: roadmap lane → owning tree | NONE), `.2` ROADMAP→TREE COVERAGE (create a tree per uncovered lane), `.3` PAST-CHANGE AUDIT (annotate pre-doctrine campaigns), `.4` TRI-LOCK CONTRACT + DRIFT CHECK. Frontier = `.1`. The tree is self-owning (governance work is itself tracked so it survives session loss). Sequencing chosen by user = "Governance tree first, now": SV-EXH-PROOF pauses after its in-flight `.6` verification reports.
+
+CONFIRMED current state (corrects an earlier over-broad "only SV-EXH-PROOF exists" claim): `docs/tasks/` already holds 17 real tree files (SV-EXH-PROOF, POST-SV-AUDIT, INLINE-ALT-FIX, SEMREF-SHAPED, RGX-008x ×6, RTL-{FE,CE}-{MDBOOK,CONTRACT-BODY}, SVPP-{MDBOOK,CONTRACT-BODY}, VHDL-{MDBOOK,CONTRACT-BODY}). The genuine gap is roadmap-LEVEL phases (linter enablement, compiler/elaborator enablement, semantic-steering, PNR parser family, annotation 100% closure, stimuli-generator-signoff) not yet tree-ized — to be enumerated precisely in `.1`.
+
+No grammar/Rust/generated change, no release bump.
+
 ## 2026-05-31 - PGEN-SV-EXH-PROOF-0109 (leaf SV-EXH-PROOF.6): **LIVE-row reconciliation → `sv_parser_family_status_gate` GENUINELY GREEN end-to-end; `.5.2.5` over-claim corrected; SV family honestly `Mostly Done`.**
 
 LIVE-doc reconciliation only (no code change). Makes the family-status gate actually pass, and corrects a premature claim.

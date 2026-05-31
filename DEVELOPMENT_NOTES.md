@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-05-31 - TASKTREE-GOV — **Governance tree stood up + SESSION-PAUSE CONTINUITY CHECKPOINT** (PGEN-TASKTREE-GOV-0001, doc-only)
+
+### What landed this slice
+Created `docs/tasks/TASKTREE-GOV.md` (4 leaves: `.1` inventory/gap-matrix, `.2` roadmap→tree coverage, `.3` past-change audit, `.4` tri-lock contract+drift check) + registered it as the lead active tree in `docs/TASK_TREE.md`, per the user's 2026-05-31 doctrine re-affirmation (full-roadmap tree coverage + past-change audit + roadmap⇄codebase⇄mdBook tri-lock). Frontier = `TASKTREE-GOV.1`. Pure docs; no code.
+
+### EXACT RESUME STATE FOR NEXT SESSION (read this first)
+1. **TCC/EPERM environment issue: RESOLVED.** Root cause was a stale macOS TCC grant after the claude-code binary update (2.1.156/157) — confirmed via `log show … com.apple.TCC` (denied client = `com.anthropic.claude-code`, responsible = `com.apple.Terminal`). FIX applied by user: **Full Disk Access granted to Terminal** + restart. Repo read/write/git all verified working again. If EPERM recurs: Cmd-Q Terminal + relaunch (TCC grants bind at process launch).
+2. **OPEN: `SV-EXH-PROOF.6` re-verification in flight.** A clean isolated `sv_parser_family_status_gate` run was launched (`PGEN_SV_PARSER_FAMILY_STATUS_STATE_DIR=rust/target/fs6_authoritative_state`, log `rust/target/fs6_authoritative.log`, exit `rust/target/fs6_authoritative.exit`) and was STILL RUNNING at pause. The two prior `.6` runs failed exit 1 purely from the TCC outage (sub-case logs showed `parse_full passed` then the stage died on EPERM — NOT a code defect). NEXT SESSION FIRST ACTION: check `fs6_authoritative.exit` + tail the log. `family_status_overall: pass` / exit 0 ⇒ `.6` confirmed (amend `.6` Verification note to record the clean re-confirm). Any real failure ⇒ investigate tools-first before trusting `.6`.
+3. **`SV-EXH-PROOF.7` (`focused_replay_target_debt_zero` → Done) investigation is DONE in memory, uncommitted by design.** Findings saved in auto-memory `project_sv7_never_selected_rootcause.md`: the 696 residual replay-gap targets (358 never_selected + 208 selected_but_failed + 130 never_hit) are a REACHABILITY problem, not a weighting one (generator already boosts uncovered branches ×24/×2; structural gates — depth-floor pruning @ stimuli_generator.rs:3638, recursion-pressure penalty @4824, parent-OR-node-never-entered — fire before weighting). Fix direction = deterministic target-reach/path-forcing (study `forced_or_branch_for_site` @3307, currently mutation-replay-only). The `.7.1` task-file leaf + commit are HELD pending `.6` confirmation. This feeds the stimuli-generator-signoff vision (`project_stimuli_generator_signoff_vision`).
+4. **Sequencing decision (user):** "Governance tree first, now" — do `TASKTREE-GOV.1` (inventory) next, then `.2`/`.3`/`.4`, before resuming SV-EXH-PROOF `.7`. SV-EXH-PROOF stays a valid active tree (continuing it would NOT breach the doctrine — it's leaf-owned), but the user prioritized governance.
+
+### Checkpoint facts
+HEAD before this commit = `3420a88d` (`.6`, Slice-98). Unpushed = 9 (will be 10 after this commit; still below the ~30 push cadence — NO push). Working tree otherwise clean (untracked `generated/` is intentional, per Slice-5 "stop tracking generated/*"). SV external corpus 14/14. Release 1.0.136 (schema 3). Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ 41bef35e.
+
 ## 2026-05-31 - SV-EXH-PROOF.6 — **LIVE-row reconciliation → family-status gate GENUINELY GREEN; `.5.2.5` over-claim corrected; SV family honestly `Mostly Done`** (PGEN-SV-EXH-PROOF-0109, SVEXH-Slice-98, LIVE-doc only)
 
 ### What this leaf is
