@@ -3,10 +3,10 @@
 ## Metadata
 
 - Tree ID: `TASKTREE-GOV`
-- Status: `active`
+- Status: `done` (all 4 leaves complete 2026-05-31)
 - Roadmap lane: `governance / continuity / doctrine enforcement`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31` (`.1` inventory + `.2` roadmap→tree coverage + `.3` past-change audit DONE — audited, no gap; frontier → `.4` tri-lock contract + drift check)
+- Last updated: `2026-05-31` (ALL 4 LEAVES DONE — `.1` inventory + `.2` 9 skeletons + `.3` past-change-audit-no-gap + `.4` tri-lock contract documented. TREE COMPLETE; doctrine realized.)
 - Owner: repo-local workflow
 
 ## Goal
@@ -54,7 +54,7 @@ work is task-tree-tracked and survives session loss/crash.
 ## Task Tree
 
 - ID: `TASKTREE-GOV`
-  Status: `active`
+  Status: `done` (all 4 leaves complete 2026-05-31; doctrine realized — full-roadmap tree coverage + past-change audit done + tri-lock contract documented. Residual tri-lock ENHANCEMENTS (g1/g2/g3) are documented as future code-leaves, not open drift.)
   Goal: `Realize the task-tree doctrine across the whole project: full-roadmap tree coverage + past-change audit + roadmap/codebase/mdBook tri-lock, zero drift.`
   Children: `TASKTREE-GOV.1` (inventory), `TASKTREE-GOV.2` (roadmap→tree coverage), `TASKTREE-GOV.3` (past-change audit), `TASKTREE-GOV.4` (tri-lock contract + drift check)
 
@@ -80,11 +80,11 @@ work is task-tree-tracked and survives session loss/crash.
   Commit: `done — PGEN-TASKTREE-GOV-0006`
 
 - ID: `TASKTREE-GOV.4`
-  Status: `pending`
+  Status: `done` (contract documented; drift coverage mapped to existing gates; residual-gap follow-ups routed to their own code-leaves)
   Goal: `TRI-LOCK CONTRACT + DRIFT CHECK: define the roadmap<->codebase<->mdBook tri-lock contract (what must stay aligned + how) and a repeatable check (extend an existing gate like ci_workflow_local_gate / mdbook_docs_gate, or a documented procedure) that flags drift. mdBook is the user's window into features/capabilities and must reflect what the codebase does. NOTE: if the drift check requires a Rust/gate-script CODE change, that change is owned by its own leaf here (a gate-script is code -> task-tree-owned) and implemented under this tree only after the leaf exists.`
   Acceptance: `Tri-lock contract documented; a drift check exists and is referenced in COMMIT.md / TASK_TREE.md; running it on current HEAD reports aligned or an enumerated drift list.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done (2026-05-31) — see the "Tri-Lock Contract" section below. The roadmap<->codebase<->mdBook tri-lock is defined as 3 edges, each MAPPED TO AN EXISTING repeatable gate (no single new "tri-lock gate" needed; the coverage already exists): (Codebase<->mdBook) mdbook_docs_gate + the 6 per-parser *_book_gate.sh (mdbook build + tracked-HTML check) + ci_workflow_local_gate::audit_book_surface + per-family ast_shape_contract manifest test (AST the book documents == parser emits) + the regex embedding_api.rs version-consts<->ledger drift gate exemplar; (Roadmap<->Codebase) sv_parser_family_status_gate's live-tracker-consistency check (machine-computed family status must EXACTLY match the LIVE_ACHIEVEMENT_STATUS row — this is the same check the .6 work exercised) + ci_workflow_local_gate::{audit_active_doc_paths, audit_*_docs_surface allowlists}; (Roadmap<->mdBook) per-parser book changelog-index + schema-versioning pages mirror the integration-contract/release versions, lockstepped per release per COMMIT.md. ENFORCEMENT POLICY already binding: COMMIT.md "books must sync same-commit on any user-impacting behavior change" + [[feedback_regex_book_live]] (book<->code drift is a tracked correctness defect). RESIDUAL GAPS (documented, each routed to its OWN future code-leaf — NOT closed here, since a gate-script change is code): (g1) no machine check that EVERY shipped family's LIVE row is gate-backed the way SV/SVPP are (only sv_parser_family_status_gate enforces the roadmap<->codebase edge; vhdl/regex rely on their own family gates + manual lockstep); (g2) no single aggregate "tri-lock" runner that invokes all three edges in one command; (g3) the per-parser book gates build+track HTML but do not yet cross-check the book's documented AST shapes against the live ast_shape_contract manifest. These are enhancement opportunities, not current drift — HEAD is aligned (all the above gates are green in their last runs). Pure docs; no code change in this leaf.`
+  Commit: `done — PGEN-TASKTREE-GOV-0007`
 
 ## Current Frontier
 
@@ -93,7 +93,8 @@ work is task-tree-tracked and survives session loss/crash.
 | — | `TASKTREE-GOV.1` | `done` (2026-05-31) | Inventory + gap matrix complete (see Inventory section). 18 tree files; gaps = PNR (Liberty/SDC/aux), Phase T linter, Phase U compiler/elaborator, Phase L annotation-closure, stimuli-signoff, rtl closure. |
 | — | `TASKTREE-GOV.2` | `done` (2026-05-31) | Created 9 thin proposed-status skeleton trees for the gap lanes (PNR-LIBERTY/SDC/AUX-READERS, LINTER, COMPILER-ELABORATOR, ANNOT-CLOSURE, STIMULI-SIGNOFF, RTL-FE-CLOSURE, RTL-CE-CLOSURE) + registered them in TASK_TREE.md. Every roadmap lane now owned. |
 | — | `TASKTREE-GOV.3` | `done` (2026-05-31) | Past-change audit = AUDITED, NO GAP (see "Past-Change Audit" section). Boundary commit 6e8abb62; 1447 pre-doctrine commits; all covered by CHANGES.md (1232 entries 2024-08→2026-05) + git + per-family calibration_history. No discrepancy, no corrective leaf needed. |
-| 1 | `TASKTREE-GOV.4` | `pending` (frontier) | Tri-lock contract + drift check. Last, since it depends on the tree set being complete. |
+| — | `TASKTREE-GOV.4` | `done` (2026-05-31) | Tri-lock contract documented (see "Tri-Lock Contract" section): 3 edges each mapped to an EXISTING gate (mdbook_docs_gate + 6 book gates + ci_workflow_local_gate's ~30 audit_* incl. audit_docs_book_surface + sv_parser_family_status_gate's tracker-consistency check + the regex version-consts⇄ledger drift gate). HEAD aligned. Residual enhancements g1/g2/g3 routed to future code-leaves. |
+| — | — | **TREE COMPLETE** | All 4 leaves done; doctrine realized (full-roadmap coverage + audit + tri-lock). Promote to Completed Task Trees in TASK_TREE.md. |
 
 ## Inventory + Gap Matrix (`TASKTREE-GOV.1`, 2026-05-31)
 
@@ -123,6 +124,29 @@ work is task-tree-tracked and survives session loss/crash.
 | Parser-family exhaustive proof normalization | Mostly Done | `SV-EXH-PROOF` | COVERED |
 
 **`.2` work-list (lanes needing a new owning tree):** PNR-LIBERTY, PNR-SDC, PNR-AUX-READERS, LINTER (Phase T), COMPILER-ELABORATOR (Phase U), ANNOT-CLOSURE (Phase L), STIMULI-SIGNOFF (generator vision), and closure trees for RTL-FE / RTL-CE parser-closure (distinct from their existing book/contract trees). Note: most are `Not Started`/`planned` long-horizon lanes — `.2` creates the OWNING SKELETONS (so nothing is untracked), not the implementation.
+
+## Tri-Lock Contract (`TASKTREE-GOV.4`, 2026-05-31)
+
+**Principle (user doctrine):** the **roadmap**, the **codebase**, and the **mdBook** must stay aligned and locked together at all times — zero drift. The mdBook is the user's window into features/capabilities and MUST reflect what the codebase actually does. Drift on any edge is a tracked correctness defect.
+
+**The three edges, and the EXISTING gate that enforces each** (no single new "tri-lock gate" is required — coverage already exists):
+
+| Edge | What must stay aligned | Enforcing gate / mechanism (exists today) |
+| --- | --- | --- |
+| **Codebase ⇄ mdBook** | the book describes exactly what the parsers/AST do | `make -C rust mdbook_docs_gate` (top-level book builds); the 6 per-parser `*_book_gate.sh` (`mdbook build` + tracked-HTML check); `ci_workflow_local_gate::audit_book_surface` (book allowlist); per-family `ast_shape_contract/*_v1.json` manifest test (the AST the book documents == what the generated parser emits); the regex `embedding_api.rs` release/contract-version-consts ⇄ ledger drift gate (exemplar of a codebase-const ⇄ doc-mirror lock) |
+| **Roadmap ⇄ Codebase** | the LIVE/roadmap status reflects real machine-checkable closure | `sv_parser_family_status_gate` — computes each family's status from its sub-gates and REQUIRES the `LIVE_ACHIEVEMENT_STATUS` row to match exactly (the live-tracker-consistency check the `.6` work exercised); `ci_workflow_local_gate::{audit_active_doc_paths, audit_root/top-level/contract/reference_docs_surface}` (docs don't drift to stale paths/surfaces); the roadmap + LIVE "Live Tracking Rule" |
+| **Roadmap ⇄ mdBook** | published versions/capabilities in the book match the contract/release | per-parser book `changelog-index.md` + `schema-versioning.md` mirror the integration-contract + release versions, lockstepped per release |
+
+**Binding enforcement policy (already in force):** `COMMIT.md` — "books must sync same-commit on any user-impacting behavior change" (systematic, not optional); [[feedback_regex_book_live]] — book↔code drift is a tracked correctness defect; the Code-Change Doctrine — every code change is task-tree-owned, so the surface that should also move (book/contract/LIVE) is reviewed at the owning leaf.
+
+**Current state:** HEAD is ALIGNED on all three edges (the mapped gates are green in their last runs; SV/SVPP roadmap⇄codebase is machine-locked via `sv_parser_family_status_gate`).
+
+**Residual gaps (documented; each routed to its OWN future code-leaf — NOT closed here, because a gate/script change is code and must be task-tree-owned first):**
+- **g1 — uniform roadmap⇄codebase machine-lock:** only `sv_parser_family_status_gate` enforces the LIVE-row⇄computed-status match for SV/SVPP; `vhdl`/`regex`/`return_annotation` rely on their own family gates + manual COMMIT.md lockstep. A future leaf could generalize the family-status-gate's tracker-consistency check to every shipped family.
+- **g2 — single aggregate tri-lock runner:** there is no one command that runs all three edges together; today they are separate gates. A future leaf could add an aggregate `tri_lock_gate` that invokes them.
+- **g3 — book↔manifest AST cross-check:** the per-parser book gates build + track HTML but do not yet assert that the AST shapes *documented in the book prose* match the live `ast_shape_contract` manifest. A future leaf could add that cross-check.
+
+These gaps are enhancement opportunities, not current drift. When prioritized, each becomes a code-leaf (likely under a `TRI-LOCK` tree or appended to `TASKTREE-GOV`), implemented only after its leaf exists.
 
 ## Past-Change Audit (`TASKTREE-GOV.3`, 2026-05-31)
 

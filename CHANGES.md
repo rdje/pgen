@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-05-31 - PGEN-TASKTREE-GOV-0007 (leaf TASKTREE-GOV.4): **Tri-lock contract documented — TASKTREE-GOV tree CLOSED; task-tree doctrine fully realized.**
+
+Pure docs — NO code change. Final leaf of the governance tree.
+
+Defined the **roadmap ⇄ codebase ⇄ mdBook tri-lock contract** (3 edges, zero drift) in `docs/tasks/TASKTREE-GOV.md` "Tri-Lock Contract" section. Key finding: the drift-detection infrastructure already EXISTS — no single new "tri-lock gate" is required. Each edge maps to a real, repeatable gate:
+
+- **Codebase ⇄ mdBook:** `mdbook_docs_gate` + the 6 per-parser `*_book_gate.sh` (mdbook build + tracked-HTML check) + `ci_workflow_local_gate::audit_docs_book_surface` (book allowlist) + per-family `ast_shape_contract` manifest test + the regex `embedding_api.rs` version-consts⇄ledger drift gate (codebase-const ⇄ doc-mirror lock exemplar).
+- **Roadmap ⇄ Codebase:** `sv_parser_family_status_gate`'s live-tracker-consistency check (machine-computed family status must exactly match the LIVE_ACHIEVEMENT_STATUS row — the same check the `.6` work exercised) + `ci_workflow_local_gate`'s ~30 `audit_*` surface/path audits (which already track `LIVE_ACHIEVEMENT_STATUS.md` + all 4 roadmap docs).
+- **Roadmap ⇄ mdBook:** per-parser book `changelog-index`/`schema-versioning` mirror the integration-contract + release versions, lockstepped per release per COMMIT.md.
+
+Binding enforcement already in force: COMMIT.md same-commit book sync + [[feedback_regex_book_live]] (book↔code drift = tracked defect) + the Code-Change Doctrine. HEAD is ALIGNED on all three edges. Residual tri-lock ENHANCEMENTS documented + routed to their own future code-leaves (NOT open drift, NOT closed here since a gate-script change is code): g1 uniform roadmap⇄codebase machine-lock for every family (today only SV/SVPP), g2 single aggregate tri-lock runner, g3 book-prose↔manifest AST cross-check.
+
+**TASKTREE-GOV tree CLOSED** — all 4 leaves done (`.1` inventory + `.2` 9 skeletons + `.3` audit-no-gap + `.4` tri-lock); promoted active→Completed in TASK_TREE.md. The task-tree doctrine is now fully realized: every roadmap lane is task-tree-owned, the entire pre-doctrine history is verified-recorded, and the tri-lock contract is documented + gate-backed. No grammar/Rust/generated change, no release bump.
+
 ## 2026-05-31 - PGEN-TASKTREE-GOV-0006 (leaf TASKTREE-GOV.3): **Past-change audit — AUDITED, NO GAP.** + PGEN-TASKTREE-GOV-0005 (registry reconciliation)
 
 Pure docs — NO code change. Two governance slices:
