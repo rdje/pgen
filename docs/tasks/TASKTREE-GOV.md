@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: `governance / continuity / doctrine enforcement`
 - Created: `2026-05-31`
-- Last updated: `2026-05-31` (`.1` inventory + gap matrix DONE; frontier → `.2`)
+- Last updated: `2026-05-31` (`.1` inventory + `.2` roadmap→tree coverage DONE — 9 skeletons; frontier → `.3` past-change audit)
 - Owner: repo-local workflow
 
 ## Goal
@@ -66,10 +66,10 @@ work is task-tree-tracked and survives session loss/crash.
   Commit: `pending`
 
 - ID: `TASKTREE-GOV.2`
-  Status: `pending`
+  Status: `done`
   Goal: `ROADMAP -> TREE COVERAGE (pure docs): for each gap-matrix lane with NONE owner, create a task-tree skeleton (docs/tasks/<LANE>.md from TEMPLATE.md) with goal/non-goals/acceptance + an initial frontier, and register it in docs/TASK_TREE.md. One sub-leaf per lane so each is independently trackable + commitable.`
   Acceptance: `Every roadmap lane has an owning tree file + a TASK_TREE.md entry; no roadmap activity is untracked.`
-  Verification: `pending`
+  Verification: `done (2026-05-31) — created 9 thin proposed-status owning-skeleton trees for the .1 gap lanes: PNR-LIBERTY, PNR-SDC, PNR-AUX-READERS (Phase S PNR family); LINTER (Phase T), COMPILER-ELABORATOR (Phase U); ANNOT-CLOSURE (Phase L); STIMULI-SIGNOFF (generator vision); RTL-FE-CLOSURE + RTL-CE-CLOSURE (Phase S rtl parser/elaboration closure, distinct from the existing done book/contract trees). Each has goal/non-goals/acceptance + a .1 SCOPING (pure-docs) frontier leaf; all registered in docs/TASK_TREE.md's new "Proposed / Backlog Task Trees" table (also cleaned a stray duplicate separator row + added the missing "Completed Task Trees" heading). Per user "thin skeletons" choice — they satisfy the doctrine (every roadmap lane owned) without over-investing in not-yet-started work. Every roadmap lane now maps to an owning tree; no roadmap activity is untracked.`
   Commit: `pending`
 
 - ID: `TASKTREE-GOV.3`
@@ -91,8 +91,8 @@ work is task-tree-tracked and survives session loss/crash.
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `TASKTREE-GOV.1` | `done` (2026-05-31) | Inventory + gap matrix complete (see Inventory section). 18 tree files; gaps = PNR (Liberty/SDC/aux), Phase T linter, Phase U compiler/elaborator, Phase L annotation-closure, stimuli-signoff, rtl closure. |
-| 1 | `TASKTREE-GOV.2` | `pending` (frontier) | Create owning tree skeletons for each uncovered roadmap lane from `.1`'s work-list. Pure docs; independent of the in-flight SV-EXH-PROOF.6 verification. |
-| 3 | `TASKTREE-GOV.3` | `pending` | Past-change audit annotations. Can run in parallel with `.2` but sequenced after inventory. |
+| — | `TASKTREE-GOV.2` | `done` (2026-05-31) | Created 9 thin proposed-status skeleton trees for the gap lanes (PNR-LIBERTY/SDC/AUX-READERS, LINTER, COMPILER-ELABORATOR, ANNOT-CLOSURE, STIMULI-SIGNOFF, RTL-FE-CLOSURE, RTL-CE-CLOSURE) + registered them in TASK_TREE.md. Every roadmap lane now owned. |
+| 1 | `TASKTREE-GOV.3` | `pending` (frontier) | Past-change audit annotations for pre-doctrine campaigns. Sequenced after inventory + coverage. |
 | 4 | `TASKTREE-GOV.4` | `pending` | Tri-lock contract + drift check. Last, since it depends on the tree set being complete. |
 
 ## Inventory + Gap Matrix (`TASKTREE-GOV.1`, 2026-05-31)

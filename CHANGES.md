@@ -1,4 +1,17 @@
 # CHANGES.md
+## 2026-05-31 - PGEN-TASKTREE-GOV-0004 (leaf TASKTREE-GOV.2): **Roadmap→tree coverage — 9 thin owning-skeleton trees so EVERY roadmap lane is task-tree-owned.**
+
+Pure task-tree/doc authoring — NO code change. Closes the `.1` gap matrix: created one thin `proposed`-status owning skeleton per uncovered roadmap lane (user chose "thin skeletons"), each with goal/non-goals/acceptance + a `.1` SCOPING (pure-docs) frontier leaf, all registered in a new `docs/TASK_TREE.md` "Proposed / Backlog Task Trees" table:
+
+- `PNR-LIBERTY`, `PNR-SDC`, `PNR-AUX-READERS` — Phase S PNR family (Liberty / SDC / gate-level-netlist+config+SDF readers; all Not Started).
+- `LINTER` — Phase T cross-language linter enablement (PGEN-as-substrate for downstream linters).
+- `COMPILER-ELABORATOR` — Phase U compiler/elaborator workbench (PGEN-as-substrate; shares the semantic-seed substrate with LINTER).
+- `ANNOT-CLOSURE` — Phase L annotation 100% closure (return + semantic; LIVE Mostly Done residual).
+- `STIMULI-SIGNOFF` — the stimuli-generator signoff/best-in-class vision (user 2026-05-31); SV-EXH-PROOF.7 feeds it.
+- `RTL-FE-CLOSURE`, `RTL-CE-CLOSURE` — Phase S rtl_frontend/rtl_const_expr parser/elaboration CLOSURE (distinct from the existing done book/contract trees).
+
+**Doctrine outcome:** every roadmap lane (SOTA phases A–V + LIVE capability rows) now maps to an owning task-tree — no roadmap activity is untracked. All 9 are not-started long-horizon lanes; thin skeletons satisfy the doctrine without over-investing. Also cleaned a stray duplicate separator row in TASK_TREE.md + added the missing "Completed Task Trees" heading. `TASKTREE-GOV` frontier advances `.2` → `.3` (past-change audit). No grammar/Rust/generated change, no release bump.
+
 ## 2026-05-31 - PGEN-TASKTREE-GOV-0001 (leaf TASKTREE-GOV / .1 frontier): **Stood up the ROADMAP→TASK-TREE NORMALIZATION governance tree (doctrine re-affirmation).**
 
 Pure task-tree/doc authoring — NO code change. Created `docs/tasks/TASKTREE-GOV.md` and registered it as an active tree in `docs/TASK_TREE.md`, per the user's 2026-05-31 doctrine re-affirmation: the WHOLE roadmap must be task-tree-owned (not just the in-flight lane); pre-task-tree code changes must be audited + annotated back into trees; and roadmap⇄codebase⇄mdBook must stay tri-locked with zero drift (mdBook reflects exactly what the codebase does).
