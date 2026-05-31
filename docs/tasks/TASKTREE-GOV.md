@@ -182,13 +182,20 @@ These gaps are enhancement opportunities, not current drift. When prioritized, e
 
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
-| `2026-05-31` | `TASKTREE-GOV.1` | `pending` | `pending` |
+| `2026-05-31` | `TASKTREE-GOV.1` | inventory of docs/tasks/*.md + SOTA roadmap phases A–V + enablement/closure roadmap docs + LIVE capability rows; gap matrix derived | `done` — gap matrix in Inventory section; 18 trees; gaps enumerated |
+| `2026-05-31` | `TASKTREE-GOV.2` | 9 skeleton tree files created + registered in TASK_TREE.md Proposed table | `done` (`-0004` files + `-0005` registry) — every roadmap lane owned |
+| `2026-05-31` | `TASKTREE-GOV.3` | pre-doctrine record coverage cross-checked: CHANGES.md (1232 entries) + git (1447 commits) + per-family calibration_history | `done` — audited, no gap; no corrective leaf needed |
+| `2026-05-31` | `TASKTREE-GOV.4` | surveyed existing drift gates (ci_workflow_local_gate ~30 audit_*, mdbook_docs_gate, 6 book gates, sv_parser_family_status_gate tracker check, regex version-consts⇄ledger drift gate); mapped 3 tri-lock edges | `done` — contract documented; HEAD aligned; g1/g2/g3 routed to future code-leaves; tree CLOSED |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `TASKTREE-GOV.1` | `pending` | `pending` |
+| `TASKTREE-GOV.1` | `PGEN-TASKTREE-GOV-0003` | inventory + gap matrix |
+| `TASKTREE-GOV.2` | `PGEN-TASKTREE-GOV-0004` + `-0005` | 9 skeleton files (`-0004`); TASK_TREE.md registry + GOV table reconciliation (`-0005`) |
+| `TASKTREE-GOV.3` | `PGEN-TASKTREE-GOV-0006` | past-change audit: audited, no gap (1447 pre-doctrine commits, all recorded) |
+| `TASKTREE-GOV.4` | `PGEN-TASKTREE-GOV-0007` | tri-lock contract documented (3 edges → existing gates); tree CLOSED |
+| (closeout) | `PGEN-TASKTREE-GOV-0008` | dedup TASK_TREE.md GOV row (active→completed) + GOV log tables reconciled |
 
 ## Changelog
 
