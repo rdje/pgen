@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-05-31 - PGEN-SV-EXH-PROOF-0111 (leaf SV-EXH-PROOF.6, honesty addendum): **`.6`'s "family_status_overall: pass" is NOT yet confirmed by a clean uninterrupted run — corrected the record.**
+
+Pure docs — NO code change. Scrupulous correction of the `.6` verification claim per [[feedback_always_signoff_decisions]].
+
+What IS solidly verified (unchanged): every family-status SUB-gate is individually `ok` (syntax-closure, aggregate-contract, 4 preprocessor gates, semantic-scope, formal-exhaustive-closure — seen across multiple runs), and the gate's status-extraction computes `systemverilog="Mostly Done"` matching the synced LIVE rows. The SV family being `Mostly Done` is sound.
+
+What is OUTSTANDING (the correction): a single COMPLETE uninterrupted `sv_parser_family_status_gate` run reaching the final `✅ … passed` banner. The `-0109` commit's "fresh re-run = pass" claim came from a run that had not finished at commit time; two re-verification attempts were killed by the macOS TCC/EPERM outage (now fixed via Terminal Full Disk Access); a third clean ISOLATED-state-dir run (`rust/target/fs6_authoritative_state`) HUNG ~9h inside `sv_formal_exhaustive_closure_gate` (uvm_pkg ×2 re-parse) and was killed this slice.
+
+NEW SUSPECTED ISSUE: `sv_formal_exhaustive_closure_gate`'s external-corpus re-parse may hang / be pathologically slow on a COLD isolated state dir (the runs that completed earlier used the DEFAULT shared state dir, likely with cached bootstrap artifacts). NEXT-SESSION ACTION to settle `.6`: run `sv_parser_family_status_gate` with the DEFAULT state dir, uninterrupted, capture the banner; if it hangs there too, that hang becomes its own investigation leaf (gate perf / cold-cache). Removed the dead hung-run scratch. No grammar/Rust/generated change, no release bump.
+
 ## 2026-05-31 - PGEN-SV-EXH-PROOF-0110 (leaf SV-EXH-PROOF.7.1): **Reachability investigation of the never_selected replay-gap branches — fix direction pinned, NO code.**
 
 Pure docs — task-file decomposition of the `.7` umbrella (the finding itself was recorded in auto-memory `project_sv7_never_selected_rootcause` during the governance pause; this slice formalizes `.7.1`/`.7.2` as task-tree leaves). `.7` (close `focused_replay_target_debt_zero`, the ONE criterion keeping the SV main parser at `Mostly Done`) is now an umbrella: `.7.1` investigation (DONE here) + `.7.2` design (pending).
