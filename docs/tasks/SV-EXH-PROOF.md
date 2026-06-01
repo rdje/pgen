@@ -615,9 +615,21 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-116 (PGEN-SV-EXH-PROOF-0127)`
 
 - ID: `SV-EXH-PROOF.7.2.14`
-  Status: `pending` (frontier — TOOL-ONLY investigation; NO code change)
-  Goal: `Attribute the .7.2.12 regression with FACTS before any re-introduction of reach-steering. Tools-first, per [[feedback_no_codebase_change_without_tool_backed_facts]]: (a) ABLATE — measure .7.2.10-only and .7.2.11-only separately (each vs the 888 baseline) so cause is attributable, not a two-change guess; (b) DIFF the replay_gap target sets (.7.2.8's vs each ablation's) to see WHICH targets newly regressed and of what reason/type; (c) consider extending the toolbox if it cannot show the cause (e.g. per-outcome reach tally Reached/SelectedButFailed/NotReached in the summary, or a capped/faster replay for iteration). Only after a fact-backed cause is pinned does a .7.2.15+ code attempt open — ONE change, measured.`
-  Acceptance: `the regression cause is stated with the artifact numbers that prove it (not a narrative); a decision recorded on whether/how to re-introduce reach-steering; NO code change in this leaf unless it is a tool/observability extension that is itself verified.`
+  Status: `done` (`-0128`, 2026-06-02, TOOL-ONLY ablation — NO code change) — cause ATTRIBUTED with facts: `.7.2.10` (quantifier-forcing) is the culprit
+  Goal: `Attribute the .7.2.12 regression with FACTS before any re-introduction of reach-steering.`
+  Acceptance: `the regression cause is stated with the artifact numbers that prove it (not a narrative); NO code authored.`
+  Verification: `done — ABLATION via isolated git worktree at the historical commits (NO new code; built existing committed code). main checkout stayed pristine at 70a8270e (888) throughout. The worktree needed main's UNTRACKED generated/ tree (symlinked; main unharmed) to build. ATTRIBUTION MATRIX (all numbers from the gates' own replay summaries + profile_2017_replay_gap.json):
+    run                 resolved  replay_target_count  gen_successes  target_timeout  helper_timeout  activations
+    A .7.2.8 baseline      1772        888               2221           784             3502            2606
+    B .7.2.10-only          679       1982               4615           344              41             4706
+    C .7.2.12 both           943      1717               2359          1837             804             3474
+  CONCLUSION (fact): `.7.2.10` (on-path quantifier-forcing) is the PRIMARY culprit — B=1982 is the WORST, worse even than both-combined C=1717, and far worse than baseline A=888. `.7.2.11` (rotation) did NOT cause the regression; it partially MITIGATED .7.2.10 (1982 → 1717). NEITHER beats the 888 baseline. MECHANISM (fact, overturns the earlier .7.2.12 'deeper-samples-time-out' hypothesis which was WRONG in both direction and mechanism): forced quantifier expansion makes generation_successes DOUBLE (2221 → 4615) and target_timeout_errors DROP (784 → 344) — i.e. many FAST, VALID, near-IDENTICAL samples — while resolved coverage COLLAPSES (1772 → 679). So the harm is DIVERSITY COLLAPSE from forced repetition, not slow/deep timeouts. DECISION: do NOT re-introduce quantifier-forcing as-built. The 888 baseline (concentrated .7.2.7 steering) remains best-known. Worktree removed; main intact + clean. NO code change. Per [[feedback_no_codebase_change_without_tool_backed_facts]].`
+  Commit: `done — SVEXH-Slice-117 (PGEN-SV-EXH-PROOF-0128)`
+
+- ID: `SV-EXH-PROOF.7.2.15`
+  Status: `pending` (frontier — decide next reach-steering direction, design-first)
+  Goal: `Given the .7.2.14 facts (quantifier-forcing = diversity collapse; the 888 baseline's concentrated .7.2.7 steering beats every ablation), decide the path to literal-0 WITHOUT re-introducing the harmful forcing. Candidate directions to evaluate on PAPER first (no code): (a) reach the 236 never_hit RULE targets (a class the branch-only hook never addressed — the +514 never_hit-rule swing in .7.2.12 shows rules are the bigger lever) via a rule-targeted reach plan that does NOT force quantifier repetition; (b) keep the .7.2.8 concentrated steering and instead vary the FORCED branch's sibling/quantifier choices for diversity; (c) accept that some residual is genuinely unsatisfiable and build the honest per-target reach_target_outcome report (a tool, not a forcing change). Pick ONE, design it, get director sign-off, THEN one measured code change.`
+  Acceptance: `a design recorded with the .7.2.14 facts as its basis; director decision on direction; any code that follows is ONE change, measured against 888 before the next.`
   Verification: `pending`
   Commit: `pending`
 

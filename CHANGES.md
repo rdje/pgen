@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0128 (leaf SV-EXH-PROOF.7.2.14, TOOL-ONLY ablation): **Regression cause ATTRIBUTED with facts — `.7.2.10` (quantifier-forcing) is the culprit; `.7.2.11` (rotation) actually mitigated it.**
+
+Pure investigation — NO code authored, NO release bump. Ablation done by building EXISTING committed history in an isolated git worktree (main checkout stayed pristine at 70a8270e / the 888 state throughout; worktree symlinked main's untracked generated/ to build, main unharmed).
+
+ATTRIBUTION MATRIX (every number read from the gates' own closed-loop replay summaries + profile_2017_replay_gap.json):
+
+```
+run                 resolved  replay_target_count  gen_successes  target_timeout  helper_timeout  activations
+A .7.2.8 baseline      1772        888               2221           784             3502            2606
+B .7.2.10-only          679       1982               4615           344              41             4706
+C .7.2.12 both           943      1717               2359          1837             804             3474
+```
+
+CONCLUSION (fact): `.7.2.10` (on-path quantifier-forcing) is the PRIMARY culprit — B=1982 is the WORST, worse even than both-combined C=1717, and far worse than baseline A=888. `.7.2.11` (rotation) did NOT cause the regression; it partially MITIGATED `.7.2.10` (1982 → 1717). Neither beats the 888 baseline.
+
+MECHANISM (fact — this OVERTURNS the earlier `.7.2.12` 'deeper-samples-time-out' hypothesis, which was wrong in both direction and mechanism): forced quantifier expansion makes generation_successes DOUBLE (2221 → 4615) and target_timeout_errors DROP (784 → 344) — many FAST, VALID, near-IDENTICAL samples — while resolved coverage COLLAPSES (1772 → 679). The harm is DIVERSITY COLLAPSE from forced repetition, not slow/deep timeouts.
+
+DECISION: do not re-introduce quantifier-forcing as built; the 888 baseline (concentrated `.7.2.7` steering) remains best-known. `.7.2.15` decides the next direction on paper first (notably the never_hit RULE class — the +514 swing shows rules are the bigger lever — addressed WITHOUT forced quantifier repetition). Per the standing discipline `feedback_no_codebase_change_without_tool_backed_facts`.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0127 (leaf SV-EXH-PROOF.7.2.13): **REVERT the .7.2.10+.7.2.11 regression — generator restored byte-identical to the proven-good .7.2.8 (888) state.**
 
 Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs) — restored, NOT newly authored; NO release bump.
