@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0132 (leaf SV-EXH-PROOF.7.2.17, READ-ONLY diagnostic): **Residual partition measured via the .7.2.16 classification — 100% reachable, ZERO structurally-unreachable; literal-0 is attainable in principle.**
+
+Pure read-only diagnostic — NO code, NO release bump. Used the .7.2.16 reach_classification field to answer "is literal-0 attainable or is some residual structural?"
+
+METHOD (deterministic, no gate run, generation untouched): rebuilt ast_pipeline (with the .7.2.16 field), then regenerated the gap report by FEEDING the on-disk .7.2.12 replay coverage via `--coverage-input` (profile_2017_replay_coverage.json) so the exact recorded residual is reproduced WITH the new field. Cmd: `ast_pipeline grammars/systemverilog.ebnf --generate-stimuli --grammar-profile 2017 --entry-rule systemverilog_file --count 1 --coverage-input <replay_coverage> --gap-report-json /tmp/sv_gap_classified.json`.
+
+PARTITION (1717 residual, FACT from the artifact): **967 reachable_by_plan** (726 never_selected branch + 241 selected_but_failed branch) + **750 reachable_rule_not_generated** (never_hit rule) + **0 no_reach_path**.
+
+HEADLINE: ZERO structurally-unreachable targets — every residual target is reachable in principle, so **literal-0 IS attainable in principle** (a steering/coverage problem, not a structural wall). The bigger lever is the 750 never_hit RULES.
+
+SCOPE HONESTY: this is the 1717 (regressed) residual, NOT the 888 baseline (its coverage artifact was overwritten by the .7.2.12 run + deleted in cleanup). The 888 residual is the same three reason/type classes (fewer of each), all in the two reachable buckets, so no_reach_path=0 almost certainly holds for 888 too but is NOT independently measured (would need a fresh 888 generation run). → `.7.2.18` decides route C (rule-targeted reach, evidence-justified, but NO quantifier-forcing; ONE measured change vs 888) vs accept-with-evidence.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0131 (leaf SV-EXH-PROOF.7.2.16): **Read-only per-target reach classification in the coverage gap report (route B) — turns the 888 residual into an evidence-backed partition; ZERO generation change.**
 
 Engine code (rust/src/ast_pipeline/stimuli_generator.rs) — READ-ONLY analysis added to generate_gap_report; NO generation-behavior change, NO release bump. NO-WORKAROUNDS level 1 (additive observability over existing data + existing compute_reach_path). Route B from the .7.2.15 director decision.
