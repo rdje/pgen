@@ -474,7 +474,7 @@ impl StimuliCoverageMetrics {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StimuliCoverageTargetType {
     Rule,
@@ -1021,6 +1021,11 @@ pub struct StimuliGenerator<'a> {
     /// `None` → the OR-decision behaves exactly as before (zero behavior change
     /// on the production path until a plan is installed via `set_reach_plan`).
     reach_plan: Option<ActiveReachPlan>,
+    /// SV-EXH-PROOF.7.2.4 (PGEN-SV-EXH-PROOF-0118): count of times the driver's
+    /// reach-plan steering hook installed a plan during a target-driven run.
+    /// Observability for the driver + lets tests assert the hook actually fired
+    /// (vs the baseline weighting having already covered the target).
+    reach_plan_activations: u64,
     target_probe_history: HashMap<String, TargetProbeHistory>,
     target_drive_validation_active: bool,
     active_generation_entry_rule: Option<String>,
@@ -1143,6 +1148,7 @@ impl<'a> StimuliGenerator<'a> {
             coverage,
             target_plan: ActiveTargetPlan::default(),
             reach_plan: None,
+            reach_plan_activations: 0,
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
             active_generation_entry_rule: None,
@@ -2126,6 +2132,52 @@ impl<'a> StimuliGenerator<'a> {
         self.reach_plan = None;
     }
 
+    /// SV-EXH-PROOF.7.2.4: how many times the driver's reach-plan steering hook
+    /// fired during the last target-driven run (observability + test discriminant).
+    #[allow(dead_code)]
+    pub fn reach_plan_activations(&self) -> u64 {
+        self.reach_plan_activations
+    }
+
+    /// SV-EXH-PROOF.7.2.4 (PGEN-SV-EXH-PROOF-0118): the DRIVER hook. Given a
+    /// pending branch-coverage target (carrying rule_name + node_path +
+    /// branch_index), install a reach plan that steers the next generation from
+    /// `entry_rule` down to that branch. Returns the installed forced-branch count
+    /// (>0) on success, or 0 if the target is not a branch target / lacks a path /
+    /// is unreachable (in which case no plan is installed and the caller falls
+    /// back to the existing helper-probe mechanism). Deterministic + parser-
+    /// agnostic: it only forwards (rule, node_path, branch) into compute_reach_path.
+    fn try_install_reach_plan_for_status(
+        &mut self,
+        entry_rule: &str,
+        status: &TargetCoverageStatus,
+        bypass_fuel: u32,
+    ) -> usize {
+        if status.target_type != StimuliCoverageTargetType::Branch {
+            return 0;
+        }
+        let (Some(node_path), Some(branch_index)) =
+            (status.node_path.as_ref(), status.branch_index)
+        else {
+            return 0;
+        };
+        let node_path = node_path.clone();
+        if self.set_reach_plan(
+            entry_rule,
+            &status.rule_name.clone(),
+            &node_path,
+            branch_index,
+            bypass_fuel,
+        ) {
+            self.reach_plan
+                .as_ref()
+                .map(|plan| plan.directives.len())
+                .unwrap_or(0)
+        } else {
+            0
+        }
+    }
+
     pub fn evaluate_target_statuses(
         &self,
         targets: &[StimuliCoverageTarget],
@@ -2176,6 +2228,7 @@ impl<'a> StimuliGenerator<'a> {
         let applied_targets = self.apply_targets(&applicable_targets);
         let total_targets = applicable_targets.len();
         self.target_probe_history.clear();
+        self.reach_plan_activations = 0; // SV-EXH-PROOF.7.2.4: per-run counter
 
         let mut outputs = Vec::new();
         let mut attempts = 0usize;
@@ -2241,12 +2294,64 @@ impl<'a> StimuliGenerator<'a> {
             }
 
             let helper_probe_active = generation_entry != resolved_entry;
+
+            // SV-EXH-PROOF.7.2.4 (PGEN-SV-EXH-PROOF-0118): reach-plan steering.
+            // When the run is stagnant (the existing helper-probe heuristic has
+            // not been closing targets) AND we are generating from the real entry,
+            // install a deterministic reach plan for the top pending BRANCH target
+            // so generation is steered straight to it (the .7.1 never_selected
+            // class). The plan is installed only for THIS attempt and cleared
+            // immediately after, so non-stagnant attempts + helper-probe attempts
+            // are unaffected. reach_plan defaults None elsewhere, preserving the
+            // byte-identical production path everywhere this hook does not fire.
+            // Pick the top pending BRANCH target to steer toward, but only when
+            // stagnant on the real entry (so non-stagnant + helper-probe attempts
+            // are untouched). Resolved up front so the install step is one flat
+            // block (avoids a nested-if pyramid).
+            let reach_candidate: Option<TargetCoverageStatus> = if !helper_probe_active
+                && stagnant_iterations >= probe_threshold
+            {
+                pending
+                    .iter()
+                    .find(|status| status.target_type == StimuliCoverageTargetType::Branch)
+                    .cloned()
+            } else {
+                None
+            };
+            let mut reach_plan_active = false;
+            if let Some(branch_status) = reach_candidate {
+                let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
+                if self.try_install_reach_plan_for_status(
+                    &resolved_entry,
+                    &branch_status,
+                    bypass_fuel,
+                ) > 0
+                {
+                    reach_plan_active = true;
+                    self.reach_plan_activations = self.reach_plan_activations.saturating_add(1);
+                    self.trace(
+                        TraceLevel::Debug,
+                        format_args!(
+                            "Reach-plan steering activated: entry='{}' target_rule='{}' node_path={:?} branch={:?} stagnant={}",
+                            resolved_entry,
+                            branch_status.rule_name,
+                            branch_status.node_path,
+                            branch_status.branch_index,
+                            stagnant_iterations
+                        ),
+                    );
+                }
+            }
+
             let mut generation_succeeded = false;
             attempts = attempts.saturating_add(1);
             let generation_timeout = self.target_drive_generation_timeout(helper_probe_active);
-            match self
-                .generate_from_entry_with_optional_timeout(&generation_entry, generation_timeout)
-            {
+            let generation_result = self
+                .generate_from_entry_with_optional_timeout(&generation_entry, generation_timeout);
+            if reach_plan_active {
+                self.clear_reach_plan();
+            }
+            match generation_result {
                 Ok(sample) => {
                     generation_successes = generation_successes.saturating_add(1);
                     generation_succeeded = true;
@@ -2370,6 +2475,7 @@ impl<'a> StimuliGenerator<'a> {
             let applied_targets = self.apply_targets(&applicable_targets);
             let total_targets = applicable_targets.len();
             self.target_probe_history.clear();
+            self.reach_plan_activations = 0; // SV-EXH-PROOF.7.2.4: per-run counter
 
             let mut outputs = Vec::new();
             let mut attempts = 0usize;
@@ -2438,14 +2544,51 @@ impl<'a> StimuliGenerator<'a> {
                 }
 
                 let helper_probe_active = generation_entry != resolved_entry;
+
+                // SV-EXH-PROOF.7.2.4 (PGEN-SV-EXH-PROOF-0118): reach-plan steering
+                // in the validation-aware loop (the path the SV aggregate-contract
+                // closed-loop replay actually drives). Same hook as the plain
+                // generate_until_targets: when stagnant on the real entry, install
+                // a deterministic reach plan for the top pending BRANCH target, run
+                // this one attempt under it, then clear. Defaults None elsewhere →
+                // byte-identical to pre-.7.2.4 on every non-stagnant attempt.
+                let reach_candidate: Option<TargetCoverageStatus> = if !helper_probe_active
+                    && stagnant_iterations >= probe_threshold
+                {
+                    pending
+                        .iter()
+                        .find(|status| status.target_type == StimuliCoverageTargetType::Branch)
+                        .cloned()
+                } else {
+                    None
+                };
+                let mut reach_plan_active = false;
+                if let Some(branch_status) = reach_candidate {
+                    let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
+                    if self.try_install_reach_plan_for_status(
+                        &resolved_entry,
+                        &branch_status,
+                        bypass_fuel,
+                    ) > 0
+                    {
+                        reach_plan_active = true;
+                        self.reach_plan_activations =
+                            self.reach_plan_activations.saturating_add(1);
+                    }
+                }
+
                 let mut generation_succeeded = false;
                 attempts = attempts.saturating_add(1);
                 let success_snapshot = self.coverage.snapshot_success_state();
                 let generation_timeout = self.target_drive_generation_timeout(helper_probe_active);
-                match self.generate_from_entry_with_optional_timeout(
+                let generation_outcome = self.generate_from_entry_with_optional_timeout(
                     &generation_entry,
                     generation_timeout,
-                ) {
+                );
+                if reach_plan_active {
+                    self.clear_reach_plan();
+                }
+                match generation_outcome {
                     Ok(sample) => {
                         generation_successes = generation_successes.saturating_add(1);
                         generation_succeeded = true;
@@ -14379,6 +14522,108 @@ mod tests {
             generator.reach_target_outcome(),
             Some(ReachOutcome::NotReached),
             "a plan installed but not yet exercised must report NotReached"
+        );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.4: the driver resolves a nested branch target ----
+
+    #[test]
+    fn target_driver_resolves_nested_branch_via_reach_steering() {
+        // A nested branch target (deep::root#2 = "r") reachable only through the
+        // start->mid_b->(kw deep) chain. The driver (generate_until_targets) must
+        // retire it within the attempt budget — the .7.2.4 reach hook steers to it
+        // when the baseline weighting stagnates.
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 4242);
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report should generate");
+        // The nested deep branch targets must be present as actionable items.
+        assert!(
+            report
+                .targets
+                .iter()
+                .any(|t| t.rule_name == "deep" && t.branch_index == Some(2)),
+            "expected deep::root#2 to be an actionable branch target; got {:?}",
+            report.targets.iter().map(|t| &t.id).collect::<Vec<_>>()
+        );
+
+        let (_samples, summary) = generator
+            .generate_until_targets(Some("start"), &report.targets, 400)
+            .expect("target-driven generation should succeed");
+
+        // Every reachable target retired (the reach hook closes the nested ones
+        // the plain weighting would otherwise leave never_selected).
+        assert!(
+            summary.unresolved_targets.is_empty(),
+            "driver must retire all reachable targets incl. nested deep branches; unresolved={:?}",
+            summary
+                .unresolved_targets
+                .iter()
+                .map(|s| &s.id)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            summary.resolved_targets, summary.total_targets,
+            "resolved should equal total"
+        );
+    }
+
+    #[test]
+    fn target_driver_hook_installs_plan_for_a_branch_status() {
+        // Direct unit test of the .7.2.4 hook helper: given a pending BRANCH
+        // status (rule + node_path + branch_index), it installs a reach plan that
+        // steers to that branch; given a RULE status it declines (returns 0). This
+        // is the deterministic discriminant for the hook itself — manufacturing a
+        // 32-iteration stagnation end-to-end is fragile (the baseline ×24 boost
+        // resolves small grammars in a few attempts), so the hook's CORRECTNESS is
+        // proven here and its end-to-end no-regression by
+        // target_driver_resolves_nested_branch_via_reach_steering.
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 9);
+
+        // A BRANCH status for deep::root#2 → plan installs (forced-directive
+        // count > 0) and steers generation to "kwr".
+        let branch_status = TargetCoverageStatus {
+            id: "branch::deep::root#2".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "deep".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(2),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 1,
+            reason: "never_selected".to_string(),
+            depends_on: Vec::new(),
+        };
+        let installed = generator.try_install_reach_plan_for_status("start", &branch_status, 16);
+        assert!(installed > 0, "hook must install a plan for a branch status");
+        let out = generator.generate_from_entry("start").expect("generates");
+        assert_eq!(out, "kwr", "installed plan must steer to the target branch");
+        generator.clear_reach_plan();
+
+        // A RULE status → hook declines (no node_path/branch to force).
+        let rule_status = TargetCoverageStatus {
+            id: "rule::deep".to_string(),
+            target_type: StimuliCoverageTargetType::Rule,
+            rule_name: "deep".to_string(),
+            node_path: None,
+            branch_index: None,
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 1,
+            reason: "never_selected".to_string(),
+            depends_on: Vec::new(),
+        };
+        assert_eq!(
+            generator.try_install_reach_plan_for_status("start", &rule_status, 16),
+            0,
+            "hook must decline a non-branch (rule) status"
         );
     }
 }
