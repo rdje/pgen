@@ -766,6 +766,13 @@ pub struct TargetDriveSummary {
     pub applied_targets: usize,
     pub resolved_targets: usize,
     pub unresolved_targets: Vec<TargetCoverageStatus>,
+    /// SV-EXH-PROOF.7.2.5 (PGEN-SV-EXH-PROOF-0119): how many times the `.7.2.4`
+    /// reach-driver steering hook fired during this run. Surfaced so the gate /
+    /// CLI can MEASURE whether the reach driver actually engaged (vs the baseline
+    /// weighting alone retiring targets) — without it the driver's impact is
+    /// unobservable. `#[serde(default)]` keeps older summary JSON loadable.
+    #[serde(default)]
+    pub reach_plan_activations: u64,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -824,14 +831,15 @@ struct TargetProbeHistory {
 impl TargetDriveSummary {
     pub fn summary_line(&self) -> String {
         format!(
-            "Target-driven generation: resolved {}/{} targets in {} attempts (generation_successes={}, generation_errors={}, target_timeout_errors={}, helper_timeout_errors={})",
+            "Target-driven generation: resolved {}/{} targets in {} attempts (generation_successes={}, generation_errors={}, target_timeout_errors={}, helper_timeout_errors={}, reach_plan_activations={})",
             self.resolved_targets,
             self.total_targets,
             self.attempts,
             self.generation_successes,
             self.generation_errors,
             self.target_timeout_errors,
-            self.helper_timeout_errors
+            self.helper_timeout_errors,
+            self.reach_plan_activations
         )
     }
 }
@@ -2445,6 +2453,7 @@ impl<'a> StimuliGenerator<'a> {
                 applied_targets,
                 resolved_targets,
                 unresolved_targets,
+                reach_plan_activations: self.reach_plan_activations,
             },
         ))
     }
@@ -2752,6 +2761,7 @@ impl<'a> StimuliGenerator<'a> {
                     applied_targets,
                     resolved_targets,
                     unresolved_targets,
+                    reach_plan_activations: self.reach_plan_activations,
                 },
                 validation_summary,
             ))
@@ -12024,6 +12034,7 @@ mod tests {
             applied_targets: 9,
             resolved_targets: 7,
             unresolved_targets: Vec::new(),
+            reach_plan_activations: 4,
         };
 
         assert!(
@@ -12033,6 +12044,10 @@ mod tests {
         assert!(
             summary.summary_line().contains("target_timeout_errors=1"),
             "target-drive summaries should expose primary target timeout counts for auditability"
+        );
+        assert!(
+            summary.summary_line().contains("reach_plan_activations=4"),
+            "target-drive summaries should expose the .7.2.4 reach-driver activation count (.7.2.5 measurability)"
         );
     }
 

@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0119 (leaf SV-EXH-PROOF.7.2.5): **Reach-driver measurability — surface `reach_plan_activations` in the target-drive summary; the actual measurement is `.7.2.6`.**
+
+Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 1 (additive observability field). Fifth code-leaf of the `.7.2` campaign.
+
+WHAT: the `.7.2.4` reach-driver kept its activation count in an internal counter that nothing surfaced — so whether the hook actually engaged on the real SV corpus (vs the baseline weighting alone retiring targets) was unobservable, making any impact claim unverifiable. Fixed: added `pub reach_plan_activations: u64` to `TargetDriveSummary` (`#[serde(default)]` for back-compat), populated it from `self.reach_plan_activations` in BOTH summary constructions (`generate_until_targets` + `generate_until_targets_with_filter`), and appended `reach_plan_activations={}` to `summary_line()`. `main.rs:1393` already prints `summary_line()`, so the count now appears in `ast_pipeline` stdout + every gate log that captures it — no main.rs change needed.
+
+WHY ITS OWN LEAF (honesty): the first `.7.2.5` measurement attempt ran `sv_parser_aggregate_contract_gate`'s closed-loop replay (which carries the `.7.2.4` hook), but it was INCONCLUSIVE by construction — the gate runs below `Debug` trace AND the activation counter was not surfaced, so the final `replay_target_count` could not be attributed to the hook vs ordinary run-to-run variance (killed at attempts=1024/5000, ~14 min, with no activation readout). Per [[feedback_always_signoff_decisions]], fixing measurability FIRST is the honest prerequisite; the real before/after measurement (run the slow gate to completion, record activations + replay_target_count vs the ≈1482/2660-initial baseline, confirm corpus 14/14) is routed to `.7.2.6`.
+
+VERIFIED: `target_drive_summary_reports_helper_timeout_errors` extended to assert `reach_plan_activations=4` surfaces in `summary_line()`; lib no-features 560/560; lib --features generated_parsers 621/621; `ast_pipeline` bin builds; canonical source clippy clean.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0118 (leaf SV-EXH-PROOF.7.2.4): **The reach-driver hook — stagnation-triggered reach-plan steering wired into BOTH target-drive loops; metric impact routed to .7.2.5.**
 
 Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Fourth code-leaf of the `.7.2` campaign — connects the `.7.2.1-.3` machinery to the real target-drive loops.
