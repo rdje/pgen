@@ -2270,7 +2270,36 @@ impl<'a> StimuliGenerator<'a> {
             }
 
             let probe_threshold = self.target_probe_threshold(&pending);
-            let generation_entry = if stagnant_iterations >= probe_threshold {
+
+            // SV-EXH-PROOF.7.2.7 (PGEN-SV-EXH-PROOF-0121): reach-steering PREEMPTS
+            // the helper-probe-entry switch (see the matching fix in
+            // generate_until_targets_with_filter). When stagnant, FIRST look for a
+            // pending BRANCH target to reach-steer toward; if one exists, keep
+            // generation_entry = resolved_entry so the reach plan forces the whole
+            // path from the real entry. Only when there is NO Branch candidate do
+            // we fall back to the existing helper-probe-rule switch. This fixes the
+            // .7.2.4/.7.2.6 dead-guard flaw (the old !helper_probe_active guard
+            // could never be true under stagnation; measured activations=0).
+            // Reach-steering is a DEEPER FALLBACK than the helper-probe (see the
+            // matching fix in _with_filter): it engages only once stagnation
+            // persists past reach_threshold (> the helper-probe's probe_threshold),
+            // and only when the highest-priority pending target (pending[0]) is a
+            // Branch. This preserves helper-probe/alternate-entry behavior for
+            // Rule targets while still firing on the real corpus.
+            let reach_threshold = probe_threshold.saturating_mul(2).saturating_add(8);
+            let reach_candidate: Option<TargetCoverageStatus> =
+                if stagnant_iterations >= reach_threshold {
+                    pending
+                        .first()
+                        .filter(|status| status.target_type == StimuliCoverageTargetType::Branch)
+                        .cloned()
+                } else {
+                    None
+                };
+
+            let generation_entry = if reach_candidate.is_some() {
+                resolved_entry.clone()
+            } else if stagnant_iterations >= probe_threshold {
                 self.select_target_probe_rule_with_stagnation(
                     &pending,
                     &resolved_entry,
@@ -2302,30 +2331,6 @@ impl<'a> StimuliGenerator<'a> {
             }
 
             let helper_probe_active = generation_entry != resolved_entry;
-
-            // SV-EXH-PROOF.7.2.4 (PGEN-SV-EXH-PROOF-0118): reach-plan steering.
-            // When the run is stagnant (the existing helper-probe heuristic has
-            // not been closing targets) AND we are generating from the real entry,
-            // install a deterministic reach plan for the top pending BRANCH target
-            // so generation is steered straight to it (the .7.1 never_selected
-            // class). The plan is installed only for THIS attempt and cleared
-            // immediately after, so non-stagnant attempts + helper-probe attempts
-            // are unaffected. reach_plan defaults None elsewhere, preserving the
-            // byte-identical production path everywhere this hook does not fire.
-            // Pick the top pending BRANCH target to steer toward, but only when
-            // stagnant on the real entry (so non-stagnant + helper-probe attempts
-            // are untouched). Resolved up front so the install step is one flat
-            // block (avoids a nested-if pyramid).
-            let reach_candidate: Option<TargetCoverageStatus> = if !helper_probe_active
-                && stagnant_iterations >= probe_threshold
-            {
-                pending
-                    .iter()
-                    .find(|status| status.target_type == StimuliCoverageTargetType::Branch)
-                    .cloned()
-            } else {
-                None
-            };
             let mut reach_plan_active = false;
             if let Some(branch_status) = reach_candidate {
                 let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
@@ -2520,7 +2525,39 @@ impl<'a> StimuliGenerator<'a> {
 
                 let probe_threshold =
                     self.target_probe_threshold_for_validation(&pending, &validation_summary);
-                let generation_entry = if stagnant_iterations >= probe_threshold {
+
+                // SV-EXH-PROOF.7.2.7 (PGEN-SV-EXH-PROOF-0121): reach-steering
+                // PREEMPTS the helper-probe-entry switch. The .7.2.4/.7.2.6 flaw
+                // was that the reach hook required !helper_probe_active while the
+                // loop switched to a helper-probe rule on the SAME stagnation
+                // condition, so the hook could never fire (measured: activations=0).
+                // Fix: reach-steering is a DEEPER FALLBACK than the helper-probe.
+                // The helper-probe / alternate-entry mechanism keeps its existing
+                // window [probe_threshold, reach_threshold); reach-steering only
+                // engages once stagnation PERSISTS past reach_threshold (i.e. the
+                // helper-probe has had its chance and the run is still stuck). This
+                // preserves alternate-entry probing for helper/Rule targets while
+                // still firing on the real corpus (where stagnation climbed to 139
+                // with probe_threshold=8, far past any margin). When it engages, it
+                // steers toward the HIGHEST-PRIORITY pending Branch target
+                // (pending[0], priority-sorted) from the real entry.
+                let reach_threshold = probe_threshold.saturating_mul(2).saturating_add(8);
+                let reach_candidate: Option<TargetCoverageStatus> =
+                    if stagnant_iterations >= reach_threshold {
+                        pending
+                            .first()
+                            .filter(|status| {
+                                status.target_type == StimuliCoverageTargetType::Branch
+                            })
+                            .cloned()
+                    } else {
+                        None
+                    };
+
+                let generation_entry = if reach_candidate.is_some() {
+                    // Reach-steer from the real entry this attempt.
+                    resolved_entry.clone()
+                } else if stagnant_iterations >= probe_threshold {
                     self.select_target_probe_rule_for_validation_with_stagnation(
                         &pending,
                         &resolved_entry,
@@ -2553,24 +2590,6 @@ impl<'a> StimuliGenerator<'a> {
                 }
 
                 let helper_probe_active = generation_entry != resolved_entry;
-
-                // SV-EXH-PROOF.7.2.4 (PGEN-SV-EXH-PROOF-0118): reach-plan steering
-                // in the validation-aware loop (the path the SV aggregate-contract
-                // closed-loop replay actually drives). Same hook as the plain
-                // generate_until_targets: when stagnant on the real entry, install
-                // a deterministic reach plan for the top pending BRANCH target, run
-                // this one attempt under it, then clear. Defaults None elsewhere →
-                // byte-identical to pre-.7.2.4 on every non-stagnant attempt.
-                let reach_candidate: Option<TargetCoverageStatus> = if !helper_probe_active
-                    && stagnant_iterations >= probe_threshold
-                {
-                    pending
-                        .iter()
-                        .find(|status| status.target_type == StimuliCoverageTargetType::Branch)
-                        .cloned()
-                } else {
-                    None
-                };
                 let mut reach_plan_active = false;
                 if let Some(branch_status) = reach_candidate {
                     let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
@@ -14639,6 +14658,68 @@ mod tests {
             generator.try_install_reach_plan_for_status("start", &rule_status, 16),
             0,
             "hook must decline a non-branch (rule) status"
+        );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.7: the reach hook FIRES under deep stagnation ----
+
+    #[test]
+    fn reach_hook_fires_under_deep_stagnation() {
+        // Regression guard for the .7.2.4/.7.2.6 dead-guard flaw (measured
+        // reach_plan_activations=0). Build a target the baseline weighting keeps
+        // FAILING (selected-but-fails), which drives probe_threshold down to 8 and
+        // lets stagnation climb past reach_threshold (=2*8+8=24); the .7.2.7
+        // deeper-fallback hook must then engage (activations>0).
+        //   start := mid | "x"
+        //   mid   := "p" | bad        (target = mid::root#1, but `bad` is
+        //   bad   := does_not_exist    unsatisfiable → branch selected-but-fails)
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("mid"), token("string", "x")],
+            },
+        );
+        grammar_tree.insert(
+            "mid".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("string", "p"), rule_ref("bad")],
+            },
+        );
+        grammar_tree.insert("bad".to_string(), rule_ref("does_not_exist"));
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+
+        // Hand-built target on the hard branch mid::root#1, requiring a success it
+        // can never get (bad → missing rule), so the run stays pending + stagnates.
+        let targets = vec![StimuliCoverageTarget {
+            id: "branch::mid::root#1".to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: "mid".to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(1),
+            reachable: true,
+            required_successes: 1,
+            current_successes: 0,
+            deficit: 1,
+            priority_score: 100,
+            reason: "never_selected".to_string(),
+            depends_on: Vec::new(),
+        }];
+
+        let (_samples, summary) = generator
+            .generate_until_targets(Some("start"), &targets, 400)
+            .expect("driver should run");
+
+        // The hook engaged at least once under the sustained stagnation. (The
+        // target itself stays unsatisfiable — that is .7.2.3's SelectedButFailed
+        // territory — but .7.2.7's contract here is simply that the hook FIRES,
+        // unlike the .7.2.4 dead guard which gave activations=0.)
+        assert!(
+            generator.reach_plan_activations() >= 1,
+            "reach hook must fire under deep stagnation (deeper-fallback .7.2.7); activations={} attempts={}",
+            generator.reach_plan_activations(),
+            summary.attempts
         );
     }
 }

@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0121 (leaf SV-EXH-PROOF.7.2.7): **Fix the `.7.2.4` dead-guard — reach-steering now FIRES under deep stagnation (deeper-fallback threshold); corpus re-measurement routed to `.7.2.8`.**
+
+Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Sixth code-leaf of the `.7.2` campaign — fixes the flaw `.7.2.6` measured.
+
+THE FLAW (from `.7.2.6`, measured `reach_plan_activations=0`): the `.7.2.4` hook guard `!helper_probe_active && stagnant_iterations >= probe_threshold` could never be true — the loop switches `generation_entry` to a helper-probe rule exactly when `stagnant_iterations >= probe_threshold`, so `helper_probe_active` is always true precisely when the stagnation guard is met. The hook was dead code on the real corpus.
+
+THE FIX: reworked BOTH target-drive loops (`generate_until_targets` + `generate_until_targets_with_filter`). `reach_candidate` is now computed BEFORE the helper-probe-entry switch and gated on a DEEPER-FALLBACK threshold `reach_threshold = 2*probe_threshold + 8`. When `stagnant_iterations >= reach_threshold` AND the highest-priority pending target (`pending[0]`, priority-sorted) is a Branch, `generation_entry` stays = `resolved_entry` and the reach plan steers the full path from the real entry; otherwise the existing helper-probe / alternate-entry mechanism keeps its `[probe_threshold, reach_threshold)` window. So reach-steering is a deeper fallback that COMPLEMENTS (not starves) the helper-probe.
+
+DESIGN ITERATION (recorded honestly): the first cut preempted the helper-probe on ANY pending Branch at `probe_threshold` → broke `target_driven_generation_filter_keeps_alternate_probe_helper_coverage` (starved alternate-entry probing for helper Rule targets); narrowing to `pending[0]==Branch` still broke it (that test's top target IS the branch). The deeper-fallback threshold is the principled resolution — the helper-probe gets its window first; reach-steering engages only once stagnation PERSISTS past it (the real corpus hit stagnation=139 with probe_threshold=8 → reach_threshold=24, fires comfortably).
+
+VERIFIED: NEW test `reach_hook_fires_under_deep_stagnation` builds a selected-but-fails branch target that drives probe_threshold→8 + stagnation past 24 and asserts `reach_plan_activations>=1` — the empirical proof the hook FIRES, replacing the `.7.2.4` activations=0 (regression guard for the dead guard). The previously-broken helper-coverage test PASSES again. lib no-features 561/561 (+1); lib --features generated_parsers 622/622 (+1); source clippy clean.
+
+The real-corpus `replay_target_count` re-measurement (does the now-firing hook push below the 1273 baseline toward literal-0 per director) needs the slow aggregate gate → routed to `.7.2.8`.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0120 (leaf SV-EXH-PROOF.7.2.6): **MEASUREMENT — the `.7.2.4` reach driver does NOT fire on the real SV corpus (reach_plan_activations=0); baseline replay_target_count=1273; fix routed to `.7.2.7`.**
 
 Pure measurement + task-node record — NO code change, NO release bump.
