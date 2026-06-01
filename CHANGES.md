@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0131 (leaf SV-EXH-PROOF.7.2.16): **Read-only per-target reach classification in the coverage gap report (route B) — turns the 888 residual into an evidence-backed partition; ZERO generation change.**
+
+Engine code (rust/src/ast_pipeline/stimuli_generator.rs) — READ-ONLY analysis added to generate_gap_report; NO generation-behavior change, NO release bump. NO-WORKAROUNDS level 1 (additive observability over existing data + existing compute_reach_path). Route B from the .7.2.15 director decision.
+
+WHAT: added #[serde(default)] reach_classification: Option<String> to StimuliCoverageTarget + a classification pass at the END of generate_gap_report (after the targets sort, before return). Per target: BRANCH with (node_path,branch_index) -> compute_reach_path(...).is_some() ? "reachable_by_plan" : "no_reach_path"; RULE -> "reachable_rule_not_generated". The three construction sites init the field None; the pass fills it. Additive + serde-default => existing gap-report JSON still parses; the gate's .targets/.reason reads are unaffected.
+
+PROOF OF NO-BEHAVIOR-CHANGE: git diff vs the 888 baseline (c6480943) touches ONLY the struct field, the two None inits, the classification pass inside generate_gap_report, and tests — ZERO changes to any generation function (generate_or/generate_quantified/generate_from_entry/generate_node/generate_rule/generate_until_*), confirmed by grepping the diff for generation-fn signatures (none). Generation is byte-identical to the 888 state, so replay_target_count cannot change; the code-level proof replaces a 50-min gate run.
+
+VERIFIED: 2 NEW tests (gap_report_classifies_residual_targets_read_only; gap_report_classification_does_not_change_generation); the no_reach_path arm is covered by .7.2.1's compute_reach_path None tests. lib no-features 563/563 (+2); lib --features generated_parsers 624/624 (+2); source clippy clean. MDBOOK LOCKSTEP: documented in docs/book/src/stimuli-and-quality.md ("Per-Target Reach Classification"); mdbook build OK (source-only book). NOT in AST shape-contract manifests (coverage-report struct, not a parsed-AST node) -> no manifest/schema change; not a published contract surface -> no contract bump. Best-known runtime stays .7.2.8/888.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0130 (leaf SV-EXH-PROOF.7.2.15 decision + .7.2.16 opened): **Director chose route B (read-only residual classification report) as the most signoff route; .7.2.16 leaf owns the implementation.**
 
 Pure docs — NO code, NO release bump. Records the director decision on the `.7.2.15` direction fork and opens `.7.2.16` to own the (code) implementation BEFORE any code is written (task-tree doctrine).

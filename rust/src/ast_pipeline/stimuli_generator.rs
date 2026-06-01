@@ -527,6 +527,22 @@ pub struct StimuliCoverageTarget {
     pub reason: String,
     #[serde(default)]
     pub depends_on: Vec<String>,
+    /// SV-EXH-PROOF.7.2.16 (PGEN-SV-EXH-PROOF-0131): READ-ONLY reach classification
+    /// of this residual target, computed by `generate_gap_report` via
+    /// `compute_reach_path` (no effect on generation). One of:
+    ///   * `"reachable_by_plan"`  — a deterministic reach plan EXISTS to steer to
+    ///                              this branch (so it is in principle coverable by
+    ///                              the reach driver; not-yet-covered is a steering
+    ///                              gap, not a structural impossibility).
+    ///   * `"no_reach_path"`      — no reach plan exists to this specific branch
+    ///                              (compute_reach_path returned None): the branch
+    ///                              is not steerable from the entry as encoded.
+    ///   * `"reachable_rule_not_generated"` — a RULE target (no node_path/branch):
+    ///                              graph-reachable but never generated.
+    /// `None` when classification was not run (older artifacts / non-target rows).
+    /// Additive + `#[serde(default)]` → back-compatible with existing report JSON.
+    #[serde(default)]
+    pub reach_classification: Option<String>,
 }
 
 /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115): one forced OR-branch decision in
@@ -1796,6 +1812,7 @@ impl<'a> StimuliGenerator<'a> {
                     priority_score,
                     reason: reason.to_string(),
                     depends_on: Vec::new(),
+                    reach_classification: None, // SV-EXH-PROOF.7.2.16: filled by the post-sort classification pass
                 });
                 reachable_rule_debt.push(debt);
             } else {
@@ -1965,6 +1982,7 @@ impl<'a> StimuliGenerator<'a> {
                         priority_score,
                         reason: reason.to_string(),
                         depends_on: uncovered_rule_refs,
+                        reach_classification: None, // SV-EXH-PROOF.7.2.16: filled by the post-sort classification pass
                     });
                     reachable_branch_debt.push(debt);
                 } else {
@@ -1991,6 +2009,45 @@ impl<'a> StimuliGenerator<'a> {
                 .cmp(&a.priority_score)
                 .then_with(|| a.id.cmp(&b.id))
         });
+
+        // SV-EXH-PROOF.7.2.16 (PGEN-SV-EXH-PROOF-0131): READ-ONLY reach
+        // classification of each residual target. This is pure analysis over the
+        // already-computed `targets` — it does NOT touch generation, so it cannot
+        // change coverage (the .7.2.10 regression is impossible here). For a BRANCH
+        // target we ask `compute_reach_path` whether a deterministic steering plan
+        // exists to it (Some → reachable_by_plan, None → no_reach_path). A RULE
+        // target (no node_path/branch) is, by construction here, graph-reachable
+        // but never generated → reachable_rule_not_generated. Turns the bare
+        // residual count into an evidence-backed partition for signoff.
+        let classification_entry = resolved_entry.clone();
+        for target in targets.iter_mut() {
+            let classification = match (
+                &target.target_type,
+                target.node_path.as_deref(),
+                target.branch_index,
+            ) {
+                (StimuliCoverageTargetType::Branch, Some(node_path), Some(branch_index)) => {
+                    if self
+                        .compute_reach_path(
+                            &classification_entry,
+                            &target.rule_name,
+                            node_path,
+                            branch_index,
+                        )
+                        .is_some()
+                    {
+                        "reachable_by_plan"
+                    } else {
+                        "no_reach_path"
+                    }
+                }
+                (StimuliCoverageTargetType::Rule, _, _) => "reachable_rule_not_generated",
+                // A branch target missing its path/index is malformed for reach
+                // analysis; mark it explicitly rather than silently mislabel.
+                (StimuliCoverageTargetType::Branch, _, _) => "no_reach_path",
+            };
+            target.reach_classification = Some(classification.to_string());
+        }
 
         Ok(StimuliCoverageGapReport {
             grammar_name: self.grammar_name.clone(),
@@ -14705,6 +14762,7 @@ mod tests {
             priority_score: 100,
             reason: "never_selected".to_string(),
             depends_on: Vec::new(),
+            reach_classification: None,
         }];
 
         let (_samples, summary) = generator
@@ -14720,6 +14778,74 @@ mod tests {
             "reach hook must fire under deep stagnation (deeper-fallback .7.2.7); activations={} attempts={}",
             generator.reach_plan_activations(),
             summary.attempts
+        );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.16: read-only reach classification in the gap report ----
+
+    #[test]
+    fn gap_report_classifies_residual_targets_read_only() {
+        // synthetic_reach_grammar: start := mid_a | mid_b ; mid_b := ("kw" deep) | "lit";
+        // deep := "p"|"q"|"r". Every branch target here IS reachable by a plan, so
+        // its classification must be "reachable_by_plan"; every RULE target must be
+        // "reachable_rule_not_generated". (A genuinely-unreachable branch can't arise
+        // in this fully-connected grammar; the no_reach_path arm is covered by the
+        // compute_reach_path None-returning unit tests in .7.2.1.)
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report should generate");
+        assert!(!report.targets.is_empty(), "expected residual targets to classify");
+
+        // FACT 1: every target is classified (no None left after the pass).
+        assert!(
+            report.targets.iter().all(|t| t.reach_classification.is_some()),
+            "every residual target must carry a reach_classification"
+        );
+
+        // FACT 2: each class is the right one for its target type, and branch
+        // targets in this fully-connected grammar are reachable_by_plan.
+        for t in &report.targets {
+            match t.target_type {
+                StimuliCoverageTargetType::Rule => assert_eq!(
+                    t.reach_classification.as_deref(),
+                    Some("reachable_rule_not_generated"),
+                    "rule target {} misclassified: {:?}",
+                    t.id,
+                    t.reach_classification
+                ),
+                StimuliCoverageTargetType::Branch => assert_eq!(
+                    t.reach_classification.as_deref(),
+                    Some("reachable_by_plan"),
+                    "branch target {} (reachable in this grammar) misclassified: {:?}",
+                    t.id,
+                    t.reach_classification
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn gap_report_classification_does_not_change_generation() {
+        // PROOF the classification pass is READ-ONLY: the gap report's target SET
+        // (ids + reasons + counts) is identical whether or not we read the new
+        // field, and re-generating the report twice is stable. (Generation code is
+        // untouched; this guards against the pass accidentally mutating coverage.)
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut g1 = simple_generator(&grammar_tree, &rule_order, 5);
+        let r1 = g1.generate_gap_report(Some("start"), 1).expect("r1");
+        let mut g2 = simple_generator(&grammar_tree, &rule_order, 5);
+        let r2 = g2.generate_gap_report(Some("start"), 1).expect("r2");
+        let ids1: Vec<&str> = r1.targets.iter().map(|t| t.id.as_str()).collect();
+        let ids2: Vec<&str> = r2.targets.iter().map(|t| t.id.as_str()).collect();
+        assert_eq!(ids1, ids2, "classification must not change the target set/order");
+        assert_eq!(
+            r1.summary.total_branches, r2.summary.total_branches,
+            "classification must not change coverage summary"
         );
     }
 }

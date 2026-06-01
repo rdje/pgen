@@ -391,7 +391,17 @@ So the maintained rule is:
 - if a rule reference is pruned out by profile selection, generation and replay-gap accounting must both treat that branch as outside the active grammar
 - proof surfaces should report impossible branches as unreachable, not as reachable work we merely failed to hit
 
-## Or-Root Rule-Level Probes
+## Per-Target Reach Classification
+
+Each residual target in the coverage gap report carries a **read-only** `reach_classification` field, computed by `generate_gap_report()` (in `../../rust/src/ast_pipeline/stimuli_generator.rs`) purely as analysis over the already-computed targets — it never changes generation, so it cannot affect coverage counts.
+
+It turns the bare residual count into an evidence-backed partition: for each target you can see *why* it is still open, not just *that* it is open. The values are:
+
+- `reachable_by_plan` — a deterministic reach plan exists to steer generation to this branch (it is in principle coverable; remaining miss is a steering gap, not a structural impossibility).
+- `no_reach_path` — no reach plan exists to this specific branch from the entry rule as encoded (the reach-path search returned nothing).
+- `reachable_rule_not_generated` — a rule-level target that is graph-reachable from the entry but was never successfully generated.
+
+The classification is additive (older report JSON without the field still parses) and is intended as signoff evidence: it answers, per target, whether closing the residual to zero is attainable by steering or whether some targets are structurally out of reach.
 
 Another useful boundary in the same main-SystemVerilog lane was the old runtime restriction on rule-level steering.
 
