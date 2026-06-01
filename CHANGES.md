@@ -1,4 +1,17 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0120 (leaf SV-EXH-PROOF.7.2.6): **MEASUREMENT — the `.7.2.4` reach driver does NOT fire on the real SV corpus (reach_plan_activations=0); baseline replay_target_count=1273; fix routed to `.7.2.7`.**
+
+Pure measurement + task-node record — NO code change, NO release bump.
+
+RAN: the full `sv_parser_aggregate_contract_gate` 5000-attempt closed-loop replay (the path now carrying the `.7.2.4` hook + the `.7.2.5` `reach_plan_activations` readout). AUTHORITATIVE readout from the profile_2017 closed-loop replay summary line: `resolved 1387/2660 targets in 5000 attempts (generation_successes=714, generation_errors=4286, target_timeout_errors=784, helper_timeout_errors=3502, reach_plan_activations=0)`.
+
+FINDINGS:
+1. `reach_plan_activations=0` — EMPIRICAL confirmation that the `.7.2.4` reach-driver hook NEVER FIRED on the real corpus (not just theorized). ROOT CAUSE: the hook guard `!helper_probe_active && stagnant_iterations >= probe_threshold` is mutually exclusive with the loop's own behavior — `generation_entry` is switched to a HELPER-PROBE rule exactly when `stagnant_iterations >= probe_threshold`, so `helper_probe_active` is always true precisely when the stagnation guard is met. The `.7.2.5` measurability surfacing is what made this visible (the whole point of that leaf).
+2. BASELINE `replay_target_count = 1273` (down from `initial_gap = 2660`). Residual reasons: 591 never_selected + 464 never_hit + 218 selected_but_failed. Residual types: 809 branch + 464 rule. The 591 never_selected branch targets are exactly the reach-driver's intended quarry.
+3. The helper-probe path dominates the errors (`helper_timeout_errors=3502` of `generation_errors=4286`) — it times out heavily, which is WHY the run stagnates. Reach-steering FROM the real entry (`.7.2.7`) should both fire AND sidestep those helper timeouts.
+
+PER DIRECTOR (2026-06-01): literal 0 required for `focused_replay_target_debt_zero` → `.7.2.7` must drive `replay_target_count` below 1273 toward 0; this is real tuning, not Done-with-residual. SV stays honestly Mostly Done. Generator-behavior measurement only; corpus parse side structurally unaffected.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0119 (leaf SV-EXH-PROOF.7.2.5): **Reach-driver measurability — surface `reach_plan_activations` in the target-drive summary; the actual measurement is `.7.2.6`.**
 
 Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 1 (additive observability field). Fifth code-leaf of the `.7.2` campaign.
