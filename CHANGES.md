@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0123 (leaf SV-EXH-PROOF.7.2.9, pure-docs INVESTIGATION): **Root-caused the 888 residual — two reinforcing flaws (quantifier gap + head-of-line blocking); fixes routed to `.7.2.10`/`.7.2.11`.**
+
+Pure measurement/investigation — NO code change, NO release bump.
+
+Dissected the `.7.2.8` replay-gap (888 = 417 never_selected branch + 236 never_hit rule + 235 selected_but_failed branch). Despite the reach hook firing 2606×, only +385 net resolved (~15% conversion). Tools-first root cause (grammar + source evidence, no guessing):
+
+1. **QUANTIFIER GAP on the reach path.** `directives_along_path` emits a `ReachDirective` only for OR (`o{i}`) segments; it IGNORES quantifier (`q`) segments. And `generate_quantified` has no reach-plan awareness — for a `*`/`?` it can pick `repeats=0` and skip the subtree. CONFIRMED: `always_keyword` (the perpetual `pending[0]`; branch #2 = `kw_always_latch`, a trivially-forceable keyword) is reached only through hop-path bodies quantified with `*` (`module_item*` / `statement_or_null*` / `non_port_module_item*` …). So a correct OR-forcing plan is still skipped when an on-path quantifier rolls 0 → the target rule is never entered. Only 20/417 have `/q` in their OWN target path, but the HOP paths are full of `*`/`+` → the dominant 'never reached' cause. → FIX `.7.2.10` (force on-path quantifiers ≥ max(min_repeat,1)).
+
+2. **HEAD-OF-LINE BLOCKING in the driver.** The `.7.2.7` hook installs a plan for `pending[0]` every stagnation window; `pending` is sorted (priority desc, id asc) so the SAME top target (`branch::always_keyword::root#2`, prio 1464, lowest id) is retried every window. Blocked by cause 1, `pending[0]` never rotates → the 2606 activations were largely spent re-hammering a few head-of-line targets, never advancing to the other ~416 (explains the ~15% conversion). → FIX `.7.2.11` (rotate/round-robin across pending branch targets).
+
+Both fixes are GENERAL/parser-agnostic generator-level changes (no rule-name special-casing). `.7.2.12` re-measures after both. SV stays Mostly Done.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0122 (leaf SV-EXH-PROOF.7.2.8): **MEASURED — the `.7.2.7` reach hook FIRES on the real corpus (2606×); replay_target_count 1273 → 888 (−30%); gate passes. Residual remains → `.7.2.9` tuning.**
 
 Pure measurement + task-node record — NO code change, NO release bump.

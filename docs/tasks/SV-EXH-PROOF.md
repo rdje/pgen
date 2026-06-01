@@ -577,9 +577,33 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-111 (PGEN-SV-EXH-PROOF-0122)`
 
 - ID: `SV-EXH-PROOF.7.2.9`
-  Status: `pending` (frontier — tune the reach driver toward literal 0)
-  Goal: `Drive replay_target_count from 888 toward 0. Investigate WHY 417 never_selected branch targets still resist after the hook fires 2606×: (a) does the hook reach them but they fail (would show as selected_but_failed=235, a distinct unsatisfiable class for .7.2.3 reporting)? (b) is one reach plan per stagnation window too few (multi-target-per-run / round-robin over pending branches)? (c) is bypass_fuel or the depth budget too tight for deep targets? (d) does pending[0] being a non-reachable-branch starve reachable ones (pick the top REACHABLE-by-compute_reach_path branch, not just pending[0])? Tools-first: classify the 417 by reach_target_outcome before changing code.`
-  Acceptance: `replay_target_count < 888 (toward 0); each change verified by a fresh gate measurement (activations + count); residual reasons reclassified; lib + clippy green; corpus 14/14; if a hard floor of genuinely-unsatisfiable targets is hit, each is shown SelectedButFailed/unreachable with evidence (but per director that is NOT auto-Done — surface it).`
+  Status: `done` (`-0123`, 2026-06-01, pure-docs INVESTIGATION) — root-caused the 888 residual; two reinforcing fixes routed to .7.2.10 (quantifier-force) + .7.2.11 (head-of-line rotation)
+  Goal: `Tools-first: classify the 888 residual + pin WHY 417 never_selected branches resist after the hook fires 2606× but only +385 net resolved (~15% conversion).`
+  Acceptance: `each residual class explained mechanistically with grammar/source evidence before any code change.`
+  Verification: `done — dissected profile_2017_replay_gap.json (888 targets). Residual = 417 never_selected branch + 236 never_hit rule + 235 selected_but_failed branch. Two reinforcing ROOT CAUSES pinned (tools-first, no guessing):
+   (1) QUANTIFIER GAP on the reach path. directives_along_path (stimuli_generator.rs) emits a ReachDirective only for OR (o{i}) segments; it IGNORES quantifier (q) segments. And generate_quantified has no reach-plan awareness — for a `*`/`?` it can pick repeats=0 (select_preferred_quantifier_repeat) and skip the subtree. CONFIRMED via grammar: always_keyword (the perpetual pending[0], branch #2 = kw_always_latch, a trivially-forceable keyword) is reached only through hop-path bodies quantified with `*` (module_item* / statement_or_null* / non_port_module_item* etc., grammar lines 806/823/2155...). So even a correct OR-forcing plan is skipped when an on-path quantifier rolls 0 → the target rule is never entered. Only 20/417 have `/q` in their OWN target path, but the HOP paths between entry and target are full of `*`/`+` → this is the dominant 'never reached' cause. FIX = .7.2.10: extend the reach plan to force on-path quantifiers to >=max(min_repeat,1), and make generate_quantified honor it (mirror the existing forced_quantifier_repeats_for_site mechanism).
+   (2) HEAD-OF-LINE BLOCKING in the driver. The .7.2.7 hook installs a plan for pending[0] EVERY stagnation window; pending is sorted (priority desc, then id asc) so the SAME top target (branch::always_keyword::root#2, prio 1464, lowest id) is retried every window. If it can't be resolved (because of cause 1), pending[0] never rotates → the 2606 activations were largely spent re-hammering a handful of head-of-line targets, never advancing to the other ~416 (explains the ~15% conversion). FIX = .7.2.11: rotate/round-robin across pending branch targets (skip targets a plan already failed to advance this run; e.g. cycle by attempt index or track a per-run 'recently-steered' set) so activations spread across the residual.
+   Both are GENERAL/parser-agnostic generator-level changes (no rule-name special-casing). Pure docs/measurement here — NO code change.`
+  Commit: `done — SVEXH-Slice-112 (PGEN-SV-EXH-PROOF-0123)`
+
+- ID: `SV-EXH-PROOF.7.2.10`
+  Status: `pending` (frontier — fix root cause 1: quantifier forcing on the reach path)
+  Goal: `Extend the reach plan to FORCE on-path quantifiers so the target subtree is entered. (a) compute_reach_path / directives_along_path also records each q-site crossed on the hop+target paths as a quantifier-force directive (force repeats >= max(min_repeat,1)); (b) generate_quantified consults the active reach plan (like it already consults forced_quantifier_repeats_for_site) and, when the current (rule,node_path) is an on-path q-site, prefers a >=1 repeat candidate. Bounded by the existing depth/fuel guards so termination holds.`
+  Acceptance: `a unit test where a target nested under a `*` on the reach path is now REACHED (selected_counts 0->>=1) whereas before the quantifier could skip it; the reach_hook_fires + steering tests still pass; lib + clippy green; generator-only; corpus structurally unaffected. (Corpus replay_target_count re-measure happens after .7.2.11, in .7.2.12.)`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.2.11`
+  Status: `pending` — fix root cause 2: head-of-line rotation in the driver
+  Goal: `Stop re-hammering the same pending[0] every stagnation window. Track a per-run set of branch targets a reach plan has already been installed for (or rotate by attempt index) so steering spreads across the pending branch residual instead of repeatedly retrying an unresolvable head-of-line target. Keep it deterministic.`
+  Acceptance: `a unit/driver test showing reach plans install for MULTIPLE distinct targets across a stagnant run (not just pending[0] repeatedly); existing tests green; lib + clippy green; deterministic (no RNG/time).`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.2.12`
+  Status: `pending` — re-measure after .7.2.10 + .7.2.11
+  Goal: `Full aggregate-gate run; record reach_plan_activations + replay_target_count vs the .7.2.8 baseline of 888 (per director: literal 0 bar). Classify any residual by reach_target_outcome; iterate (.7.2.13+) if > 0.`
+  Acceptance: `replay_target_count < 888; corpus 14/14; gate passes; residual classified.`
   Verification: `pending`
   Commit: `pending`
 
