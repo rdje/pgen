@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0130 (leaf SV-EXH-PROOF.7.2.15 decision + .7.2.16 opened): **Director chose route B (read-only residual classification report) as the most signoff route; .7.2.16 leaf owns the implementation.**
+
+Pure docs — NO code, NO release bump. Records the director decision on the `.7.2.15` direction fork and opens `.7.2.16` to own the (code) implementation BEFORE any code is written (task-tree doctrine).
+
+DECISION: route B — add a READ-ONLY per-target reach classification to the coverage gap report, turning the unexplained 888 residual into an evidence-backed per-target partition (REACHABLE_BY_PLAN / NO_REACH_PATH / REACHABLE_RULE_NOT_GENERATED). Chosen as most signoff: it produces verifiable per-target evidence, carries ZERO regression risk (analysis over already-computed targets; generation untouched → 888 stays 888), and is the fact base that should have preceded `.7.2.10`. Route C (rule-targeted reach) deferred until B shows reachable-but-unreached headroom; quantifier-forcing explicitly NOT to be re-introduced (ablation-proven harmful, `.7.2.14`).
+
+`.7.2.16` (frontier) owns: new `#[serde(default)]` classification field on `StimuliCoverageTarget` + aggregate counts, populated in `generate_gap_report` via `compute_reach_path` (branch) / reachable-rules graph (rule); additive/back-compatible; proof of no-behavior-change (replay_target_count stays 888). Best-known runtime stays `.7.2.8`/888.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0129 (leaf SV-EXH-PROOF.7.2.15, DESIGN — no code): **Next reach-steering direction recorded; awaiting director decision (A stop / B report / C rule-reach).**
 
 Pure design — NO code authored, NO release bump. New doc `docs/tasks/SV-EXH-PROOF-7.2.15-reach-direction-design.md`, facts-grounded per the no-guess discipline.
