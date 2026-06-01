@@ -863,11 +863,46 @@ struct ActiveReachPlan {
     /// pathological/cyclic path cannot force unbounded depth. 0 disables the
     /// bypass while still allowing pure branch-forcing of in-budget sites.
     bypass_fuel: u32,
+    /// SV-EXH-PROOF.7.2.3 (PGEN-SV-EXH-PROOF-0117): the plan's own target identity
+    /// — (target_group_key, target_branch_index) — so the outcome can be read back
+    /// honestly after generation from the coverage metrics the OR-decision already
+    /// records at that site. `target_group_key` is `branch_group_key(rule,
+    /// node_path)` of the final directive.
+    target_group_key: String,
+    target_branch_index: usize,
+    /// SV-EXH-PROOF.7.2.3: target metrics captured when the plan was installed, so
+    /// the outcome reflects only THIS plan's effect (deltas), not pre-existing
+    /// coverage. Filled by `set_reach_plan` after `from_directives`.
+    baseline_selected_hits: u64,
+    baseline_success_hits: u64,
+}
+
+/// SV-EXH-PROOF.7.2.3 (PGEN-SV-EXH-PROOF-0117): honest result of attempting a
+/// target-reach plan during one generation, derived from the existing coverage
+/// metrics recorded at the target OR site (no new hot-path instrumentation):
+///   * `Reached`            — the target branch was selected AND produced a valid
+///                            sample (success_hits increased): genuine coverage.
+///   * `SelectedButFailed`  — the target branch was selected but its own subtree
+///                            failed (e.g. a predicate/required rule could not be
+///                            satisfied in this reach context): the target is
+///                            unsatisfiable HERE and must be REPORTED, not retried
+///                            forever.
+///   * `NotReached`         — the target branch was never selected (the plan could
+///                            not steer to it this run; e.g. an upstream off-path
+///                            constraint blocked the path).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+pub enum ReachOutcome {
+    Reached,
+    SelectedButFailed,
+    NotReached,
 }
 
 impl ActiveReachPlan {
     /// Build from a `.7.2.1` directive chain. Later directives for the same site
     /// win (the target's own directive is appended last in `compute_reach_path`).
+    /// The LAST directive is the target itself, so its (group_key, branch) is the
+    /// plan's target identity (`.7.2.3`).
     fn from_directives(chain: &[ReachDirective], bypass_fuel: u32) -> Self {
         let mut directives = HashMap::new();
         for directive in chain {
@@ -876,9 +911,22 @@ impl ActiveReachPlan {
                 directive.branch_index,
             );
         }
+        let (target_group_key, target_branch_index) = chain
+            .last()
+            .map(|d| {
+                (
+                    StimuliGenerator::branch_group_key(&d.rule_name, &d.node_path),
+                    d.branch_index,
+                )
+            })
+            .unwrap_or_else(|| (String::new(), 0));
         Self {
             directives,
             bypass_fuel,
+            target_group_key,
+            target_branch_index,
+            baseline_selected_hits: 0,
+            baseline_success_hits: 0,
         }
     }
 
@@ -2033,10 +2081,41 @@ impl<'a> StimuliGenerator<'a> {
             target_branch_index,
         ) {
             Some(chain) => {
-                self.reach_plan = Some(ActiveReachPlan::from_directives(&chain, bypass_fuel));
+                let mut plan = ActiveReachPlan::from_directives(&chain, bypass_fuel);
+                // SV-EXH-PROOF.7.2.3: snapshot the target site's existing coverage
+                // so reach_target_outcome reports only THIS plan's delta.
+                plan.baseline_selected_hits =
+                    self.branch_selected_hits(&plan.target_group_key, plan.target_branch_index);
+                plan.baseline_success_hits =
+                    self.branch_success_hits(&plan.target_group_key, plan.target_branch_index);
+                self.reach_plan = Some(plan);
                 true
             }
             None => false,
+        }
+    }
+
+    /// SV-EXH-PROOF.7.2.3 (PGEN-SV-EXH-PROOF-0117): honest outcome of the installed
+    /// reach plan, derived from the coverage metrics the OR-decision already
+    /// records at the target site (delta vs the install-time baseline). Returns
+    /// `None` if no plan is installed. This lets the `.7.2.4` driver distinguish
+    /// genuine coverage (`Reached`) from an unsatisfiable-in-context target
+    /// (`SelectedButFailed` — REPORT it, do not retry forever) from a steering
+    /// miss (`NotReached`). NO new hot-path instrumentation — reuses existing
+    /// selected/success counters (NO-WORKAROUNDS level 1-2).
+    #[allow(dead_code)]
+    pub fn reach_target_outcome(&self) -> Option<ReachOutcome> {
+        let plan = self.reach_plan.as_ref()?;
+        let selected =
+            self.branch_selected_hits(&plan.target_group_key, plan.target_branch_index);
+        let success =
+            self.branch_success_hits(&plan.target_group_key, plan.target_branch_index);
+        if success > plan.baseline_success_hits {
+            Some(ReachOutcome::Reached)
+        } else if selected > plan.baseline_selected_hits {
+            Some(ReachOutcome::SelectedButFailed)
+        } else {
+            Some(ReachOutcome::NotReached)
         }
     }
 
@@ -14239,5 +14318,67 @@ mod tests {
         assert!(!generator.set_reach_plan("start", "mid_a", "root", 0, 8));
         // A subsequent valid generation is unaffected (plan stayed None).
         assert!(generator.generate_from_entry("start").is_ok());
+    }
+
+    // ---- SV-EXH-PROOF.7.2.3: honest reach-outcome reporting ----
+
+    #[test]
+    fn reach_outcome_reached_for_satisfiable_target() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        assert!(generator.set_reach_plan("start", "deep", "root", 2, 16));
+        let _ = generator.generate_from_entry("start").expect("generates");
+        assert_eq!(
+            generator.reach_target_outcome(),
+            Some(ReachOutcome::Reached),
+            "a satisfiable target that produced a valid sample must report Reached"
+        );
+    }
+
+    #[test]
+    fn reach_outcome_selected_but_failed_for_unsatisfiable_target() {
+        // deep's branch 2 references a MISSING rule, so when the plan forces that
+        // branch it is SELECTED but its subtree generation fails -> the plan must
+        // honestly report SelectedButFailed (driver should report, not retry).
+        let mut grammar_tree = synthetic_reach_grammar();
+        grammar_tree.insert(
+            "deep".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("string", "p"),
+                    token("string", "q"),
+                    rule_ref("does_not_exist"), // branch 2: unsatisfiable
+                ],
+            },
+        );
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        assert!(generator.set_reach_plan("start", "deep", "root", 2, 16));
+        // Generation overall may still succeed via fallback branches; the point is
+        // the TARGET branch (2) was selected but could not be satisfied.
+        let _ = generator.generate_from_entry("start");
+        assert_eq!(
+            generator.reach_target_outcome(),
+            Some(ReachOutcome::SelectedButFailed),
+            "a target branch whose subtree cannot be satisfied must report SelectedButFailed, not Reached"
+        );
+    }
+
+    #[test]
+    fn reach_outcome_none_without_plan_and_not_reached_is_distinct() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        // No plan installed -> None.
+        assert_eq!(generator.reach_target_outcome(), None);
+        // Install a plan but DON'T generate: the target was never selected, so the
+        // honest outcome is NotReached (distinct from Reached/SelectedButFailed).
+        assert!(generator.set_reach_plan("start", "deep", "root", 1, 16));
+        assert_eq!(
+            generator.reach_target_outcome(),
+            Some(ReachOutcome::NotReached),
+            "a plan installed but not yet exercised must report NotReached"
+        );
     }
 }
