@@ -529,6 +529,29 @@ pub struct StimuliCoverageTarget {
     pub depends_on: Vec<String>,
 }
 
+/// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115): one forced OR-branch decision in
+/// a target-reach plan — at the OR node located at `node_path` within rule
+/// `rule_name`, force alternative `branch_index`. Produced by
+/// `compute_reach_path` (pure analysis); consumed by a later leaf (.7.2.2) that
+/// wires the plan into the OR-decision. See
+/// docs/tasks/SV-EXH-PROOF-7.2-target-reach-design.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReachDirective {
+    pub rule_name: String,
+    pub node_path: String,
+    pub branch_index: usize,
+}
+
+/// SV-EXH-PROOF.7.2.1: where a rule reference occurs inside another rule's body,
+/// using the same `node_path` encoding as `collect_branch_groups`. Internal
+/// helper for the rule-reference-graph BFS in `compute_reach_path`.
+#[allow(dead_code)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct RuleReferenceSite {
+    referenced_rule: String,
+    node_path: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoverageDebtSummary {
     pub required_successes_per_target: u64,
@@ -2978,6 +3001,220 @@ impl<'a> StimuliGenerator<'a> {
                 }
             },
         }
+    }
+
+    /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis — no generation
+    /// behavior change): like `collect_rule_references`, but also records WHERE
+    /// each rule reference occurs, using the same `node_path` encoding as
+    /// `collect_branch_groups` (`o{i}` Or alt, `s{i}` Sequence elem, `q`
+    /// Quantified, `l` Lookahead, `a` Atom→Node), so a site can be replayed by
+    /// `node_at_path`. `base_path` is the caller's path prefix ("root" at the
+    /// rule top). GENERAL — keyed only on ASTNode structure, never on rule
+    /// names/sigils, per [[feedback_ast_pipeline_parser_agnostic]].
+    ///
+    /// `dead_code`-allowed: analysis-only in `.7.2.1`; the production caller that
+    /// drives generation lands in `.7.2.2`. Exercised now by unit tests.
+    #[allow(dead_code)]
+    fn collect_rule_reference_sites(
+        node: &ASTNode,
+        base_path: &str,
+        out: &mut Vec<RuleReferenceSite>,
+    ) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for (idx, alternative) in alternatives.iter().enumerate() {
+                    let alt_path = format!("{}/o{}", base_path, idx);
+                    Self::collect_rule_reference_sites(alternative, &alt_path, out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for (idx, element) in elements.iter().enumerate() {
+                    let element_path = format!("{}/s{}", base_path, idx);
+                    Self::collect_rule_reference_sites(element, &element_path, out);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                let quantified_path = format!("{}/q", base_path);
+                Self::collect_rule_reference_sites(element, &quantified_path, out);
+            }
+            ASTNode::Lookahead { element, .. } => {
+                let lookahead_path = format!("{}/l", base_path);
+                Self::collect_rule_reference_sites(element, &lookahead_path, out);
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(node) => {
+                    let atom_path = format!("{}/a", base_path);
+                    Self::collect_rule_reference_sites(node, &atom_path, out);
+                }
+                ASTValue::Token(parts) => {
+                    if let Some((token_type, token_value)) = Self::extract_token_pair(parts) {
+                        if token_type == "rule_reference" {
+                            out.push(RuleReferenceSite {
+                                referenced_rule: token_value.to_string(),
+                                node_path: base_path.to_string(),
+                            });
+                        }
+                    }
+                }
+            },
+        }
+    }
+
+    /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis): compute the
+    /// chain of forced OR-branch directives that deterministically steers
+    /// generation from `entry_rule` down to a coverage target — the OR node at
+    /// `target_node_path` in `target_rule`, alternative `target_branch_index`.
+    ///
+    /// Algorithm: breadth-first search over the rule-reference graph from
+    /// `entry_rule`, tracking each rule's discoverer so the shortest rule path
+    /// (fewest hops, hence fewest forced directives) is recovered. For each
+    /// parent→child hop, the reference site's `node_path` is walked from the
+    /// parent rule's root; every `o{i}` segment crossed contributes a
+    /// `ReachDirective` (force alternative `i` at that OR node) so the child rule
+    /// is actually entered. The final directive forces `target_branch_index` at
+    /// the target OR node itself.
+    ///
+    /// Determinism: rule references within a body are visited in source order,
+    /// and BFS dequeues in insertion order, so the same (grammar, entry, target)
+    /// always yields the same plan (no RNG, no time). Cycle-safe: each rule is
+    /// enqueued at most once (`discovered` set). Returns `None` if the target
+    /// rule is unreachable from `entry_rule`, or if the target OR node / branch
+    /// index does not exist. GENERAL — no rule-name special-casing, per
+    /// [[feedback_ast_pipeline_parser_agnostic]].
+    ///
+    /// `dead_code`-allowed: analysis-only in `.7.2.1`; the production caller that
+    /// drives generation lands in `.7.2.2`. Exercised now by unit tests.
+    #[allow(dead_code)]
+    fn compute_reach_path(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+    ) -> Option<Vec<ReachDirective>> {
+        // Validate the target OR node + branch index up front.
+        let alternatives = self.or_alternatives_for_group_path(target_rule, target_node_path)?;
+        if target_branch_index >= alternatives.len() {
+            return None;
+        }
+
+        // BFS over the rule-reference graph; record each rule's predecessor +
+        // the directives that realise the discovering hop.
+        use std::collections::VecDeque;
+        struct Discovery {
+            predecessor: Option<String>,
+            hop_directives: Vec<ReachDirective>,
+        }
+        let mut discovered: HashMap<String, Discovery> = HashMap::new();
+        discovered.insert(
+            entry_rule.to_string(),
+            Discovery {
+                predecessor: None,
+                hop_directives: Vec::new(),
+            },
+        );
+        let mut queue: VecDeque<String> = VecDeque::new();
+        queue.push_back(entry_rule.to_string());
+
+        while let Some(rule_name) = queue.pop_front() {
+            if rule_name == target_rule {
+                break;
+            }
+            let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
+                continue;
+            };
+            let mut sites: Vec<RuleReferenceSite> = Vec::new();
+            Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            for site in sites {
+                if !self.grammar_tree.contains_key(site.referenced_rule.as_str()) {
+                    continue;
+                }
+                if discovered.contains_key(site.referenced_rule.as_str()) {
+                    continue;
+                }
+                let hop_directives =
+                    Self::directives_along_path(&rule_name, &site.node_path);
+                discovered.insert(
+                    site.referenced_rule.clone(),
+                    Discovery {
+                        predecessor: Some(rule_name.clone()),
+                        hop_directives,
+                    },
+                );
+                queue.push_back(site.referenced_rule);
+            }
+        }
+
+        // Target rule must have been reached.
+        if !discovered.contains_key(target_rule) {
+            return None;
+        }
+
+        // Walk predecessors target→entry, collecting each hop's directives, then
+        // reverse to entry→target order.
+        let mut chain: Vec<ReachDirective> = Vec::new();
+        let mut cursor = target_rule.to_string();
+        loop {
+            let Some(discovery) = discovered.get(&cursor) else {
+                break;
+            };
+            for directive in discovery.hop_directives.iter().rev() {
+                chain.push(directive.clone());
+            }
+            match &discovery.predecessor {
+                Some(pred) => cursor = pred.clone(),
+                None => break,
+            }
+        }
+        chain.reverse();
+
+        // Navigate WITHIN the target rule: if the target OR node is nested under
+        // other OR nodes in the target rule's body, those outer choices must be
+        // forced too (the cross-rule hops only get us as far as entering the
+        // target rule). directives_along_path emits one directive per `o{i}`
+        // segment crossed on the way to the target OR node.
+        chain.extend(Self::directives_along_path(target_rule, target_node_path));
+
+        // Finally force the target branch at the target OR node itself.
+        chain.push(ReachDirective {
+            rule_name: target_rule.to_string(),
+            node_path: target_node_path.to_string(),
+            branch_index: target_branch_index,
+        });
+
+        Some(chain)
+    }
+
+    /// SV-EXH-PROOF.7.2.1: walk `node_path` (the `collect_branch_groups`
+    /// encoding) from a rule's root, emitting a `ReachDirective` for every
+    /// `o{i}` (Or-alternative) segment crossed — i.e. the OR choices that must be
+    /// forced to follow this structural path to the reference site. Non-OR
+    /// segments (`s{i}`, `q`, `l`, `a`) carry no branch choice. The `node_path`
+    /// prefix accumulated up to each `o{i}` is the OR node's own group path.
+    ///
+    /// `dead_code`-allowed: analysis-only in `.7.2.1`; the production caller that
+    /// drives generation lands in `.7.2.2`. Exercised now by unit tests.
+    #[allow(dead_code)]
+    fn directives_along_path(rule_name: &str, node_path: &str) -> Vec<ReachDirective> {
+        let mut directives = Vec::new();
+        let mut prefix = String::from("root");
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('o') {
+                if let Ok(index) = index_str.parse::<usize>() {
+                    directives.push(ReachDirective {
+                        rule_name: rule_name.to_string(),
+                        node_path: prefix.clone(),
+                        branch_index: index,
+                    });
+                }
+            }
+            prefix.push('/');
+            prefix.push_str(segment);
+        }
+        directives
     }
 
     fn node_at_path<'b>(&self, node: &'b ASTNode, node_path: &str) -> Option<&'b ASTNode> {
@@ -13611,6 +13848,156 @@ mod tests {
             message.contains("likely_unsatisfiable=true"),
             "error should flag consistently failing contracts as likely unsatisfiable, got {:?}",
             message
+        );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.1: target-reach path computation (pure analysis) ----
+
+    fn rule_ref(rule: &str) -> ASTNode {
+        token("rule_reference", rule)
+    }
+
+    /// Synthetic grammar (NO SystemVerilog dependency):
+    ///   start := mid_a | mid_b
+    ///   mid_a := leaf_x leaf_y          (a decoy path, no nested OR target)
+    ///   mid_b := ( "kw" deep ) | "lit"  (nested: deep reached via outer o0 then s1)
+    ///   deep  := "p" | "q" | "r"        (the TARGET OR node lives here)
+    ///   leaf_x, leaf_y, ... terminals
+    fn synthetic_reach_grammar() -> HashMap<String, ASTNode> {
+        let mut g = HashMap::new();
+        g.insert(
+            "start".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("mid_a"), rule_ref("mid_b")],
+            },
+        );
+        g.insert(
+            "mid_a".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("leaf_x"), rule_ref("leaf_y")],
+            },
+        );
+        g.insert(
+            "mid_b".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![token("keyword", "kw"), rule_ref("deep")],
+                    },
+                    token("string", "lit"),
+                ],
+            },
+        );
+        g.insert(
+            "deep".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("string", "p"),
+                    token("string", "q"),
+                    token("string", "r"),
+                ],
+            },
+        );
+        g.insert("leaf_x".to_string(), token("string", "x"));
+        g.insert("leaf_y".to_string(), token("string", "y"));
+        g
+    }
+
+    #[test]
+    fn reach_path_reaches_nested_or_target_with_forced_chain() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+
+        // Target: branch index 2 ("r") of the OR node at deep::root.
+        let plan = generator
+            .compute_reach_path("start", "deep", "root", 2)
+            .expect("deep must be reachable from start");
+
+        // Expected forced chain (entry -> target order):
+        //  - start::root   force o1 (choose mid_b over mid_a)
+        //  - mid_b::root   force o0 (choose the "kw deep" sequence over "lit")
+        //  - deep::root    force branch 2 (the target itself)
+        let expected = vec![
+            ReachDirective { rule_name: "start".into(), node_path: "root".into(), branch_index: 1 },
+            ReachDirective { rule_name: "mid_b".into(), node_path: "root".into(), branch_index: 0 },
+            ReachDirective { rule_name: "deep".into(), node_path: "root".into(), branch_index: 2 },
+        ];
+        assert_eq!(plan, expected, "reach plan must force the full parent-OR chain + the target branch");
+    }
+
+    #[test]
+    fn reach_path_for_entry_local_target_is_just_the_target() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+
+        // Target lives in the entry rule itself (start::root, branch 0).
+        let plan = generator
+            .compute_reach_path("start", "start", "root", 0)
+            .expect("entry-local target must resolve");
+        assert_eq!(
+            plan,
+            vec![ReachDirective { rule_name: "start".into(), node_path: "root".into(), branch_index: 0 }],
+            "an entry-local target needs only the single target directive"
+        );
+    }
+
+    #[test]
+    fn reach_path_returns_none_for_unreachable_or_bad_index() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+
+        // Branch index out of range for deep (only 0..=2 exist).
+        assert!(generator.compute_reach_path("start", "deep", "root", 3).is_none());
+        // Unknown target rule.
+        assert!(generator.compute_reach_path("start", "nonexistent", "root", 0).is_none());
+        // Node path that is not an OR node (mid_a::root is a Sequence).
+        assert!(generator.compute_reach_path("start", "mid_a", "root", 0).is_none());
+    }
+
+    #[test]
+    fn reach_path_is_cycle_safe_and_deterministic() {
+        // Self-referential / mutually recursive grammar must terminate.
+        //   expr := term ( "+" expr ) | term      (expr references itself)
+        //   term := "n"
+        let mut g = HashMap::new();
+        g.insert(
+            "expr".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![rule_ref("term"), token("op", "+"), rule_ref("expr")],
+                    },
+                    rule_ref("term"),
+                ],
+            },
+        );
+        g.insert("term".to_string(), token("string", "n"));
+        let rule_order: Vec<String> = g.keys().cloned().collect();
+        let generator = simple_generator(&g, &rule_order, 1);
+
+        // `term` is a Token (no OR node), so it is not a valid OR target — must
+        // be None rather than looping forever on the expr self-reference.
+        assert!(
+            generator.compute_reach_path("expr", "term", "root", 0).is_none(),
+            "a non-OR target must return None, and the self-recursive expr must not hang"
+        );
+
+        // Targeting expr's own OR node terminates (BFS enqueues expr once) and is
+        // deterministic across repeated calls (no RNG / time dependence).
+        let a = generator.compute_reach_path("expr", "expr", "root", 0);
+        let b = generator.compute_reach_path("expr", "expr", "root", 0);
+        assert_eq!(a, b, "same inputs must yield identical plans (no RNG/time dependence)");
+        assert_eq!(
+            a,
+            Some(vec![ReachDirective {
+                rule_name: "expr".into(),
+                node_path: "root".into(),
+                branch_index: 0,
+            }]),
+            "entry-local OR target needs only the single target directive"
         );
     }
 }

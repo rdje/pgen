@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0115 (leaf SV-EXH-PROOF.7.2.1): **Target-reach path computation (pure analysis) — `compute_reach_path` + supporting structures, the first code-leaf of the `.7.2` campaign.**
+
+Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO codegen/generated change, NO grammar change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability).
+
+WHAT: the analysis foundation for driving focused_replay_target_count -> 0. Added:
+- `ReachDirective { rule_name, node_path, branch_index }` — one forced OR-branch decision in a reach plan.
+- internal `RuleReferenceSite` — where a rule reference occurs (node_path).
+- `collect_rule_reference_sites` — like collect_rule_references but also records WHERE each reference occurs, using the SAME node_path encoding as collect_branch_groups (o{i} Or-alt, s{i} Seq-elem, q Quantified, l Lookahead, a Atom→Node), so a site is replayable by node_at_path.
+- `compute_reach_path(entry, target_rule, target_node_path, target_branch_index)` — BFS over the rule-reference graph from entry, tracking each rule's discoverer (shortest hop count) + the directives that realise the discovering hop; recovers the forced-directive chain entry→target, navigates within the target rule's body to the target OR node, and appends the target branch directive. Deterministic (source-order refs + insertion-order BFS, no RNG/time), cycle-safe (each rule enqueued once), returns None for unreachable target / out-of-range branch / non-OR node.
+- `directives_along_path` — emits one ReachDirective per o{i} segment crossed walking a node_path.
+
+GENERAL / parser-agnostic per [[feedback_ast_pipeline_parser_agnostic]]: keyed only on ASTNode structure + the existing path encoding; ZERO rule-name/sigil special-casing. This is analysis-ONLY — it does NOT change OR-decision/generation behavior; the production caller (a TargetReachPlan wired into the OR-decision) lands in .7.2.2. The 3 new fns carry #[allow(dead_code)] w/ a leaf-referencing rationale until then (matches pre-existing staged-code convention in this file).
+
+NO-WORKAROUNDS: level 5 (minimal parser-agnostic engine/generator capability). Levels 1-4 are insufficient because the .7 root cause (from .7.1) is the engine's phase-1 candidate filter (depth-floor + missing-rule pruning @~3638/@~3650) dropping deep target branches BEFORE the phase-2 coverage weighting — no grammar annotation or store fact can make a depth-pruned branch reachable; only a generator-level reach mechanism can. Design: docs/tasks/SV-EXH-PROOF-7.2-target-reach-design.md.
+
+VERIFIED: 4 new unit tests on synthetic grammars (no SV dependency) — nested-OR target forces full parent chain + target branch; entry-local target = single directive; None for bad index / unknown rule / non-OR node; self-recursive grammar terminates + deterministic across repeated calls. lib no-features 552/552 (548+4); lib --features generated_parsers 613/613 (609+4); canonical source clippy (cargo clippy --all-targets — the clippy_on_rust_change gate's pass-required stage) clean for new code. No generated/ tracked change (stimuli_generator is runtime-only).
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0114 (leaf SV-EXH-PROOF.6 confirmed + .7 decomposition re-added): **`.6` clean family-status run CONFIRMED GREEN end-to-end; `.7.1`/`.7.2`/`.7.2.1` task nodes re-added; `.7.2` design ACCEPTED.**
 
 Pure docs — NO code change. Task-tree bookkeeping + verified `.6` closure.
