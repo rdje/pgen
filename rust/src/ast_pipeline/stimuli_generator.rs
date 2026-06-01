@@ -1055,6 +1055,15 @@ pub struct StimuliGenerator<'a> {
     /// Observability for the driver + lets tests assert the hook actually fired
     /// (vs the baseline weighting having already covered the target).
     reach_plan_activations: u64,
+    /// SV-EXH-PROOF.7.2.11 (PGEN-SV-EXH-PROOF-0125): per-run set of branch-target
+    /// ids a reach plan has already been installed for this target-driven run.
+    /// The `.7.2.7` hook picked `pending[0]` every stagnation window, so a
+    /// head-of-line target that cannot be resolved was retried forever and the
+    /// other pending branches were never steered (`.7.2.9` diagnosis: 2606
+    /// activations, ~15% conversion). With this set, the hook picks the
+    /// highest-priority pending Branch NOT YET steered this run, rotating across
+    /// the residual; once all have been tried it cycles again. Reset per run.
+    reach_steered_target_ids: HashSet<String>,
     target_probe_history: HashMap<String, TargetProbeHistory>,
     target_drive_validation_active: bool,
     active_generation_entry_rule: Option<String>,
@@ -1178,6 +1187,7 @@ impl<'a> StimuliGenerator<'a> {
             target_plan: ActiveTargetPlan::default(),
             reach_plan: None,
             reach_plan_activations: 0,
+            reach_steered_target_ids: HashSet::new(),
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
             active_generation_entry_rule: None,
@@ -2177,6 +2187,45 @@ impl<'a> StimuliGenerator<'a> {
     /// is unreachable (in which case no plan is installed and the caller falls
     /// back to the existing helper-probe mechanism). Deterministic + parser-
     /// agnostic: it only forwards (rule, node_path, branch) into compute_reach_path.
+    /// SV-EXH-PROOF.7.2.11 (PGEN-SV-EXH-PROOF-0125): choose which pending Branch
+    /// target to reach-steer toward THIS stagnation window, rotating across the
+    /// residual instead of always re-picking `pending[0]`. `pending` is sorted
+    /// priority-desc; return the highest-priority Branch NOT YET steered this run.
+    /// If every pending Branch has already been steered (a full cycle), clear the
+    /// set and start over (so a later run-state change can re-attempt them). The
+    /// `.7.2.7` head-of-line guard is preserved by the CALLER (it only calls this
+    /// when `pending[0]` is itself a Branch), so the helper-probe / alternate-entry
+    /// mechanism still owns the case where the top pending target is a Rule.
+    /// Deterministic: no RNG/time; purely a function of `pending` order + the
+    /// per-run steered set.
+    fn select_rotating_reach_branch(
+        &mut self,
+        pending: &[TargetCoverageStatus],
+    ) -> Option<TargetCoverageStatus> {
+        let branch_ids: Vec<&TargetCoverageStatus> = pending
+            .iter()
+            .filter(|s| s.target_type == StimuliCoverageTargetType::Branch)
+            .collect();
+        if branch_ids.is_empty() {
+            return None;
+        }
+        // First Branch not yet steered this run.
+        if let Some(fresh) = branch_ids
+            .iter()
+            .find(|s| !self.reach_steered_target_ids.contains(&s.id))
+        {
+            self.reach_steered_target_ids.insert(fresh.id.clone());
+            return Some((*fresh).clone());
+        }
+        // Full cycle done — every pending Branch has been steered once. Reset and
+        // restart the rotation from the top (run state may have shifted what is
+        // reachable since the last attempt).
+        self.reach_steered_target_ids.clear();
+        let chosen = branch_ids[0].clone();
+        self.reach_steered_target_ids.insert(chosen.id.clone());
+        Some(chosen)
+    }
+
     fn try_install_reach_plan_for_status(
         &mut self,
         entry_rule: &str,
@@ -2259,6 +2308,7 @@ impl<'a> StimuliGenerator<'a> {
         let total_targets = applicable_targets.len();
         self.target_probe_history.clear();
         self.reach_plan_activations = 0; // SV-EXH-PROOF.7.2.4: per-run counter
+        self.reach_steered_target_ids.clear(); // SV-EXH-PROOF.7.2.11: per-run rotation
 
         let mut outputs = Vec::new();
         let mut attempts = 0usize;
@@ -2308,16 +2358,22 @@ impl<'a> StimuliGenerator<'a> {
             // and only when the highest-priority pending target (pending[0]) is a
             // Branch. This preserves helper-probe/alternate-entry behavior for
             // Rule targets while still firing on the real corpus.
+            // SV-EXH-PROOF.7.2.11: keep the .7.2.7 head-of-line GUARD (only engage
+            // when the top pending target is a Branch — so helper/Rule cases stay
+            // with the helper-probe), but ROTATE which Branch we steer toward
+            // across the residual instead of re-picking pending[0] every window.
             let reach_threshold = probe_threshold.saturating_mul(2).saturating_add(8);
-            let reach_candidate: Option<TargetCoverageStatus> =
-                if stagnant_iterations >= reach_threshold {
-                    pending
-                        .first()
-                        .filter(|status| status.target_type == StimuliCoverageTargetType::Branch)
-                        .cloned()
-                } else {
-                    None
-                };
+            let reach_candidate: Option<TargetCoverageStatus> = if stagnant_iterations
+                >= reach_threshold
+                && pending
+                    .first()
+                    .map(|s| s.target_type == StimuliCoverageTargetType::Branch)
+                    .unwrap_or(false)
+            {
+                self.select_rotating_reach_branch(&pending)
+            } else {
+                None
+            };
 
             let generation_entry = if reach_candidate.is_some() {
                 resolved_entry.clone()
@@ -2512,6 +2568,7 @@ impl<'a> StimuliGenerator<'a> {
             let total_targets = applicable_targets.len();
             self.target_probe_history.clear();
             self.reach_plan_activations = 0; // SV-EXH-PROOF.7.2.4: per-run counter
+            self.reach_steered_target_ids.clear(); // SV-EXH-PROOF.7.2.11: per-run rotation
 
             let mut outputs = Vec::new();
             let mut attempts = 0usize;
@@ -2560,18 +2617,20 @@ impl<'a> StimuliGenerator<'a> {
                 // helper-probe has had its chance and the run is still stuck). This
                 // preserves alternate-entry probing for helper/Rule targets while
                 // still firing on the real corpus (where stagnation climbed to 139
-                // with probe_threshold=8, far past any margin). When it engages, it
-                // steers toward the HIGHEST-PRIORITY pending Branch target
-                // (pending[0], priority-sorted) from the real entry.
+                // with probe_threshold=8, far past any margin). SV-EXH-PROOF.7.2.11:
+                // keep the head-of-line GUARD (engage only when pending[0] is a
+                // Branch) but ROTATE which Branch we steer toward across the
+                // residual via select_rotating_reach_branch, instead of re-picking
+                // pending[0] every window (the .7.2.9 head-of-line block).
                 let reach_threshold = probe_threshold.saturating_mul(2).saturating_add(8);
                 let reach_candidate: Option<TargetCoverageStatus> =
-                    if stagnant_iterations >= reach_threshold {
-                        pending
+                    if stagnant_iterations >= reach_threshold
+                        && pending
                             .first()
-                            .filter(|status| {
-                                status.target_type == StimuliCoverageTargetType::Branch
-                            })
-                            .cloned()
+                            .map(|s| s.target_type == StimuliCoverageTargetType::Branch)
+                            .unwrap_or(false)
+                    {
+                        self.select_rotating_reach_branch(&pending)
                     } else {
                         None
                     };
@@ -14904,5 +14963,67 @@ mod tests {
             "forced path should expand the quantifier and emit the target branch 'r'; out={:?}",
             out
         );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.11: head-of-line rotation across pending branches ----
+
+    fn branch_status(id: &str, rule: &str, branch: usize, prio: u64) -> TargetCoverageStatus {
+        TargetCoverageStatus {
+            id: id.to_string(),
+            target_type: StimuliCoverageTargetType::Branch,
+            rule_name: rule.to_string(),
+            node_path: Some("root".to_string()),
+            branch_index: Some(branch),
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: prio,
+            reason: "never_selected".to_string(),
+            depends_on: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn rotating_reach_branch_cycles_through_distinct_pending_targets() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+
+        // Three equal-context pending branch targets (priority-sorted as given).
+        let pending = vec![
+            branch_status("branch::A#0", "a", 0, 100),
+            branch_status("branch::B#0", "b", 0, 100),
+            branch_status("branch::C#0", "c", 0, 100),
+        ];
+
+        // Successive windows must pick DISTINCT targets (not pending[0] forever),
+        // then cycle back after all three are exhausted. Deterministic.
+        let p1 = generator.select_rotating_reach_branch(&pending).unwrap();
+        let p2 = generator.select_rotating_reach_branch(&pending).unwrap();
+        let p3 = generator.select_rotating_reach_branch(&pending).unwrap();
+        assert_eq!(
+            vec![p1.id.as_str(), p2.id.as_str(), p3.id.as_str()],
+            vec!["branch::A#0", "branch::B#0", "branch::C#0"],
+            "rotation must visit each distinct pending branch once before repeating (vs the .7.2.9 head-of-line block on pending[0])"
+        );
+        // Fourth call: all exhausted → cycle resets, picks the top again.
+        let p4 = generator.select_rotating_reach_branch(&pending).unwrap();
+        assert_eq!(p4.id, "branch::A#0", "after a full cycle the rotation restarts from the top");
+
+        // A Rule-only pending list yields None (helper-probe keeps that case).
+        let rule_only = vec![TargetCoverageStatus {
+            id: "rule::r".to_string(),
+            target_type: StimuliCoverageTargetType::Rule,
+            rule_name: "r".to_string(),
+            node_path: None,
+            branch_index: None,
+            current_successes: 0,
+            required_successes: 1,
+            remaining_successes: 1,
+            priority_score: 100,
+            reason: "never_hit".to_string(),
+            depends_on: Vec::new(),
+        }];
+        assert!(generator.select_rotating_reach_branch(&rule_only).is_none());
     }
 }

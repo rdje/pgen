@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0125 (leaf SV-EXH-PROOF.7.2.11): **Head-of-line rotation — the driver now cycles steering across distinct pending branches instead of re-hammering pending[0].**
+
+Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Fixes root cause 2 of the `.7.2.9` diagnosis.
+
+WHAT: the `.7.2.7` hook installed a reach plan for `pending[0]` every stagnation window; `pending` is priority-sorted so the SAME top target was retried forever — if it couldn't resolve, `pending[0]` never rotated and the other ~416 pending branches were never steered (`.7.2.9`: 2606 activations, ~15% conversion). FIX: added a per-run `reach_steered_target_ids: HashSet<String>` (reset at the top of BOTH target-drive loops); new `select_rotating_reach_branch(pending)` returns the highest-priority pending Branch NOT YET steered this run, then on a full cycle clears the set and restarts. Both loops call it instead of `pending.first()`, PRESERVING the `.7.2.7` head-of-line guard (only engage when `pending[0]` is itself a Branch, so helper-probe/alternate-entry still owns the Rule case). Deterministic (function of `pending` order + the per-run set; no RNG/time).
+
+VERIFIED: NEW test `rotating_reach_branch_cycles_through_distinct_pending_targets` — three equal-priority pending branches A/B/C are visited once each across successive windows, then the cycle resets to A; a Rule-only pending list yields None. lib no-features 563/563 (+1); lib --features generated_parsers 624/624 (+1); the `.7.2.7` helper-coverage + `.7.2.10` quantifier tests still pass; source clippy clean. Combined corpus re-measure of `.7.2.10`+`.7.2.11` vs the 888 baseline → `.7.2.12`.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0124 (leaf SV-EXH-PROOF.7.2.10): **Reach plan now FORCES on-path quantifiers (>=1) — closes the `.7.2.9` quantifier-gap so targets nested under `*`/`?` are reached.**
 
 Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Fixes root cause 1 of the `.7.2.9` diagnosis.

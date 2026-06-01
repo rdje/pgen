@@ -594,11 +594,11 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-113 (PGEN-SV-EXH-PROOF-0124)`
 
 - ID: `SV-EXH-PROOF.7.2.11`
-  Status: `pending` — fix root cause 2: head-of-line rotation in the driver
-  Goal: `Stop re-hammering the same pending[0] every stagnation window. Track a per-run set of branch targets a reach plan has already been installed for (or rotate by attempt index) so steering spreads across the pending branch residual instead of repeatedly retrying an unresolvable head-of-line target. Keep it deterministic.`
+  Status: `done` (`-0125`, 2026-06-01) — head-of-line rotation landed; verified by unit test
+  Goal: `Stop re-hammering the same pending[0] every stagnation window. Track a per-run set of branch targets a reach plan has already been installed for so steering spreads across the pending branch residual instead of repeatedly retrying an unresolvable head-of-line target. Keep it deterministic.`
   Acceptance: `a unit/driver test showing reach plans install for MULTIPLE distinct targets across a stagnant run (not just pending[0] repeatedly); existing tests green; lib + clippy green; deterministic (no RNG/time).`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — added per-run reach_steered_target_ids: HashSet<String> (reset at the top of BOTH target-drive loops alongside reach_plan_activations); new select_rotating_reach_branch(pending) returns the highest-priority pending Branch NOT YET steered this run, inserting its id; once every pending Branch has been steered (full cycle) it clears the set + restarts from the top. Both loops now call select_rotating_reach_branch instead of pending.first()...cloned(), while PRESERVING the .7.2.7 head-of-line GUARD (only engage when pending[0] is itself a Branch, so helper-probe/alternate-entry still owns the Rule case). Deterministic (function of pending order + the per-run set; no RNG/time). VERIFIED: NEW test rotating_reach_branch_cycles_through_distinct_pending_targets — three equal-priority pending branches A/B/C are visited once each across successive windows then the cycle resets to A; a Rule-only pending list yields None. lib no-features 563/563 (+1); lib --features generated_parsers 624/624 (+1); the .7.2.7 helper-coverage + .7.2.10 quantifier tests still pass; source clippy clean. NO grammar/codegen/generated change (generator runtime-only), no release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Combined corpus re-measure (.7.2.10 + .7.2.11) → .7.2.12.`
+  Commit: `done — SVEXH-Slice-114 (PGEN-SV-EXH-PROOF-0125)`
 
 - ID: `SV-EXH-PROOF.7.2.12`
   Status: `pending` — re-measure after .7.2.10 + .7.2.11
