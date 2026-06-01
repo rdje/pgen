@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0127 (leaf SV-EXH-PROOF.7.2.13): **REVERT the .7.2.10+.7.2.11 regression — generator restored byte-identical to the proven-good .7.2.8 (888) state.**
+
+Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs) — restored, NOT newly authored; NO release bump.
+
+WHAT: the combined `.7.2.10` (quantifier-forcing) + `.7.2.11` (rotation) changes were a measured net regression (`.7.2.12`: replay_target_count 1717 vs the `.7.2.8` baseline 888; resolved halved 1772 → 943). Restored `rust/src/ast_pipeline/stimuli_generator.rs` to its EXACT `.7.2.8` content via `git checkout c6480943 -- <file>`. FACT (blob equality, verified at commit time): staged blob `d06a560b…` == `c6480943:<file>` blob `d06a560b…` (byte-identical, zero diff). This removes the reach-mechanism code (quantifier-forcing, rotation, their unit tests) from HEAD; it stays recoverable from history (fb60f4c0/-0124, 3640a35e/-0125). Plain file-restore chosen over revert-commits because `git revert` hit a CHANGES.md docs conflict; restoring only the `.rs` file is the precise verifiable action. `cargo build --lib` OK; lib no-features 561/561 (pre-`.7.2.10` test set); origin/main was never polluted (still c6480943, the 888 state).
+
+HONEST CORRECTION (the reason this revert is happening): the `.7.2.10`/`.7.2.11` fixes were authored from a code-reading HYPOTHESIS and committed after only UNIT tests, before measuring the real corpus effect — exactly the guess-driven-codebase-change anti-pattern. And the `.7.2.12` regression write-up itself contained a misread figure (it compared `.7.2.12` target_timeout_errors=1837 against `.7.2.6`'s 784; the correct comparison is `.7.2.8`'s 2721 → timeouts FELL, not rose). The regression CAUSE is therefore NOT yet attributed (two changes at once, no ablation). What IS fact: the gate seed is deterministic (`closed_loop_replay_seed = seed_base 12001 + 700000`), so 888 vs 1717 is real signal; resolved fell 1772→943 while generation_successes rose 2221→2359. Re-introducing reach-steering is BLOCKED until `.7.2.14` attributes the cause with tools (ablation + replay_gap target-set diff), per the new standing discipline `feedback_no_codebase_change_without_tool_backed_facts`.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0126 (leaf SV-EXH-PROOF.7.2.12): **MEASURED A REGRESSION — `.7.2.10`+`.7.2.11` made it WORSE (replay_target_count 888 → 1717); revert routed to `.7.2.13`.**
 
 Pure measurement + task-node record — NO code change, NO release bump. Honest negative result.
