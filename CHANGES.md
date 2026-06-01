@@ -1,4 +1,18 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0116 (leaf SV-EXH-PROOF.7.2.2): **ActiveReachPlan wired into the OR-decision — reach-forcing + on-path candidate bypass; default-None so the production path is byte-identical.**
+
+Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Second code-leaf of the `.7.2` campaign; consumes the `.7.2.1` `compute_reach_path`.
+
+WHAT: added `ActiveReachPlan { directives: HashMap<(rule,node_path),branch>, bypass_fuel }`, an `Option<ActiveReachPlan> reach_plan` field (default None), and `set_reach_plan` / `clear_reach_plan`. Two hooks in `generate_or`:
+- (1) on-path candidate-set bypass — if a plan forces a branch at THIS OR site that the phase-1 depth-floor / missing-rule pruning removed, re-admit it; fuel-bounded + on-path only, so off-path OR nodes keep normal pruning and a cyclic/pathological path cannot force unbounded depth. This is the phase-1 intervention the `.7.1` root cause identified (a never_selected target is dropped from the candidate set BEFORE the phase-2 weighting, so weighting alone never reaches it).
+- (2) reach-forcing — when this OR site is on the reach path, its forced branch is tried FIRST in attempt_order (above forced_or_branch_for_site + every branch policy), with the remaining branches following as fallbacks so generation still terminates if the forced branch fails downstream.
+
+SAFETY (zero production behavior change): `reach_plan` defaults None and is only set via `set_reach_plan`, so the entire production path (until the `.7.2.4` driver installs plans) is byte-identical to pre-`.7.2.2`. Proven by a test (`reach_plan_none_leaves_or_decision_unchanged`: install-then-clear restores byte-identical output for the same seed). GENERAL/parser-agnostic: directives keyed only on (rule_name, node_path), zero rule-name/sigil special-casing, per [[feedback_ast_pipeline_parser_agnostic]].
+
+VERIFIED: 3 new behavior tests — `reach_plan_forces_target_branch_selection` drives the target branch selected_counts 0 -> >=1 (decoy parent branch avoided; output exactly "kwr"); clear-restores-baseline; invalid target (bad index / unknown rule / non-OR node) fails to install + leaves None. lib no-features 555/555 (+3); lib --features generated_parsers 616/616 (+3); canonical source clippy (cargo clippy --all-targets) clean for the new code (collapsed the one flagged nested-if).
+
+SV external corpus — structurally UNAFFECTED: parseability_probe.rs (the `--parse` path the corpus triage exercises) has ZERO references to StimuliGenerator/generate_* (grep-verified); this is a generator-only change and generated/ has 0 tracked changes, so the parser surface cannot regress. The lib suites (incl. the byte-identical-generation test) are the correct regression oracle here; corpus stays at its independently-verified 14/14 from the `.6` family-status run (parser untouched since). HONESTY: a foreground corpus triage was launched as belt-and-suspenders but ABORTED at ~34min / 4GB RSS while cold-parsing uvm_pkg_2017 (the known cold-uvm-reparse cost = perf-leaf candidate) once I confirmed it exercises the parser, not the generator — it was the wrong oracle for this change.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0115 (leaf SV-EXH-PROOF.7.2.1): **Target-reach path computation (pure analysis) — `compute_reach_path` + supporting structures, the first code-leaf of the `.7.2` campaign.**
 
 Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO codegen/generated change, NO grammar change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability).

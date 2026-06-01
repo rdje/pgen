@@ -842,6 +842,53 @@ struct ActiveTargetPlan {
     branch_thresholds: HashMap<String, HashMap<usize, u64>>,
 }
 
+/// SV-EXH-PROOF.7.2.2 (PGEN-SV-EXH-PROOF-0116): an installed target-reach plan —
+/// the `.7.2.1` forced-directive chain (`compute_reach_path`) plus a per-target
+/// budget that bounds how aggressively the on-path candidate-set bypass is
+/// applied. Consumed by `generate_or`:
+///   * `directive_for_site(rule, node_path)` → if this OR site is on the reach
+///     path, return the branch index to force (and whether the bypass applies);
+///   * the bypass keeps an over-budget deep target branch in the candidate set
+///     ON-PATH only (off-path OR nodes keep normal depth-floor pruning, so
+///     generation stays terminating everywhere else).
+/// GENERAL/parser-agnostic: directives are keyed on (rule_name, node_path), never
+/// on rule semantics, per [[feedback_ast_pipeline_parser_agnostic]].
+#[derive(Debug, Clone)]
+struct ActiveReachPlan {
+    /// (rule_name, node_path) -> forced branch index, for every OR site on the
+    /// path from entry down to the target (target site included).
+    directives: HashMap<(String, String), usize>,
+    /// Remaining reach-budget "fuel": each on-path candidate-set bypass spends
+    /// one unit; when exhausted, the bypass stops (normal pruning resumes) so a
+    /// pathological/cyclic path cannot force unbounded depth. 0 disables the
+    /// bypass while still allowing pure branch-forcing of in-budget sites.
+    bypass_fuel: u32,
+}
+
+impl ActiveReachPlan {
+    /// Build from a `.7.2.1` directive chain. Later directives for the same site
+    /// win (the target's own directive is appended last in `compute_reach_path`).
+    fn from_directives(chain: &[ReachDirective], bypass_fuel: u32) -> Self {
+        let mut directives = HashMap::new();
+        for directive in chain {
+            directives.insert(
+                (directive.rule_name.clone(), directive.node_path.clone()),
+                directive.branch_index,
+            );
+        }
+        Self {
+            directives,
+            bypass_fuel,
+        }
+    }
+
+    fn forced_branch_for(&self, rule_name: &str, node_path: &str) -> Option<usize> {
+        self.directives
+            .get(&(rule_name.to_string(), node_path.to_string()))
+            .copied()
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct StimuliRelationalConstraintPolicy {
     constraint_expression: Option<String>,
@@ -920,6 +967,12 @@ pub struct StimuliGenerator<'a> {
     rng: StdRng,
     coverage: StimuliCoverageMetrics,
     target_plan: ActiveTargetPlan,
+    /// SV-EXH-PROOF.7.2.2 (PGEN-SV-EXH-PROOF-0116): when `Some`, an active
+    /// target-reach plan steers the OR-decision toward one coverage target along
+    /// a precomputed forced-directive chain (see `ActiveReachPlan`). Default
+    /// `None` → the OR-decision behaves exactly as before (zero behavior change
+    /// on the production path until a plan is installed via `set_reach_plan`).
+    reach_plan: Option<ActiveReachPlan>,
     target_probe_history: HashMap<String, TargetProbeHistory>,
     target_drive_validation_active: bool,
     active_generation_entry_rule: Option<String>,
@@ -1041,6 +1094,7 @@ impl<'a> StimuliGenerator<'a> {
             rng,
             coverage,
             target_plan: ActiveTargetPlan::default(),
+            reach_plan: None,
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
             active_generation_entry_rule: None,
@@ -1952,6 +2006,45 @@ impl<'a> StimuliGenerator<'a> {
     pub fn clear_targets(&mut self) {
         self.target_plan = ActiveTargetPlan::default();
         self.target_probe_history.clear();
+    }
+
+    /// SV-EXH-PROOF.7.2.2 (PGEN-SV-EXH-PROOF-0116): build + install a target-reach
+    /// plan that steers the OR-decision toward one coverage target (the OR node
+    /// at `target_node_path` in `target_rule`, alternative
+    /// `target_branch_index`), reached from `entry_rule`. Returns `true` if a
+    /// reach path exists and the plan was installed, `false` otherwise (target
+    /// unreachable / invalid OR node / bad branch index — see
+    /// `compute_reach_path`). `bypass_fuel` bounds the on-path candidate-set
+    /// bypass. GENERAL/parser-agnostic. Until this is called, `reach_plan` stays
+    /// `None` and the OR-decision is byte-identical to pre-`.7.2.2` behavior.
+    #[allow(dead_code)]
+    pub fn set_reach_plan(
+        &mut self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+        bypass_fuel: u32,
+    ) -> bool {
+        match self.compute_reach_path(
+            entry_rule,
+            target_rule,
+            target_node_path,
+            target_branch_index,
+        ) {
+            Some(chain) => {
+                self.reach_plan = Some(ActiveReachPlan::from_directives(&chain, bypass_fuel));
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// SV-EXH-PROOF.7.2.2: remove any installed reach plan, restoring the
+    /// unsteered OR-decision.
+    #[allow(dead_code)]
+    pub fn clear_reach_plan(&mut self) {
+        self.reach_plan = None;
     }
 
     pub fn evaluate_target_statuses(
@@ -3909,6 +4002,44 @@ impl<'a> StimuliGenerator<'a> {
             }
         });
 
+        // SV-EXH-PROOF.7.2.2 (PGEN-SV-EXH-PROOF-0116): on-path candidate-set
+        // bypass. If a reach plan is active AND this OR site is on the reach path
+        // AND the forced target branch was pruned out above (depth-floor /
+        // missing-rule), re-admit it — but ONLY on-path and ONLY while
+        // bypass_fuel remains, so off-path nodes keep normal pruning and a
+        // cyclic/pathological path cannot force unbounded depth. This is the
+        // phase-1 intervention the .7.1 root-cause analysis identified: a
+        // never_selected target is dropped from the candidate set BEFORE the
+        // phase-2 weighting, so weighting alone can never reach it.
+        // Does an active reach plan force a branch here that pruning removed, and
+        // is there bypass fuel left to re-admit it? Resolve to a single Option so
+        // the apply step is one flat block (no nested-if pyramid).
+        let reach_bypass_branch: Option<usize> = self.reach_plan.as_ref().and_then(|plan| {
+            plan.forced_branch_for(current_rule, node_path)
+                .filter(|forced_branch| {
+                    plan.bypass_fuel > 0
+                        && *forced_branch < prepared.len()
+                        && !candidate_indices.contains(forced_branch)
+                })
+        });
+        if let Some(forced_branch) = reach_bypass_branch {
+            if let Some(plan) = self.reach_plan.as_mut() {
+                plan.bypass_fuel = plan.bypass_fuel.saturating_sub(1);
+            }
+            // Re-admit the forced branch, keeping candidate_indices sorted so
+            // downstream local/global index bookkeeping stays stable.
+            candidate_indices.push(forced_branch);
+            candidate_indices.sort_unstable();
+            candidate_indices.dedup();
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "Reach-plan candidate bypass: rule='{}' path='{}' re-admitted forced branch={}",
+                    current_rule, node_path, forced_branch
+                ),
+            );
+        }
+
         if candidate_indices.is_empty() {
             if let Some(recovery_sample) = self.recovery_stimulus_fallback(current_rule) {
                 self.trace(
@@ -3932,7 +4063,40 @@ impl<'a> StimuliGenerator<'a> {
         let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "or");
         let (branch_policy, associativity, branch_priorities) =
             self.rule_branch_controls(current_rule, prepared.len());
-        let attempt_order: Vec<usize> = if let Some((preferred_global, baseline_global)) =
+        // SV-EXH-PROOF.7.2.2 (PGEN-SV-EXH-PROOF-0116): reach-plan forcing takes
+        // priority over every other attempt-ordering source. If this OR site is
+        // on the active reach path and its forced branch survived candidate
+        // filtering (always true once the .7.2.1 chain + the on-path bypass
+        // admit it), try that branch FIRST; the remaining branches follow in
+        // natural order as fallbacks (so generation still terminates if the
+        // forced branch fails downstream). When no reach plan is active this
+        // whole arm is skipped and behavior is identical to before.
+        let reach_forced_local: Option<usize> = self
+            .reach_plan
+            .as_ref()
+            .and_then(|plan| plan.forced_branch_for(current_rule, node_path))
+            .and_then(|forced_global| {
+                candidate_indices
+                    .iter()
+                    .position(|global_idx| *global_idx == forced_global)
+            });
+        let attempt_order: Vec<usize> = if let Some(forced_local) = reach_forced_local {
+            let mut ordered = Vec::with_capacity(candidate_indices.len());
+            ordered.push(forced_local);
+            for local_idx in 0..candidate_indices.len() {
+                if local_idx != forced_local {
+                    ordered.push(local_idx);
+                }
+            }
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "Reach-plan branch forcing: rule='{}' path='{}' forced_local={} forced_global={}",
+                    current_rule, node_path, forced_local, candidate_indices[forced_local]
+                ),
+            );
+            ordered
+        } else if let Some((preferred_global, baseline_global)) =
             self.forced_or_branch_for_site(&mutation_site_key)
         {
             let mut ordered = Vec::with_capacity(candidate_indices.len());
@@ -13999,5 +14163,81 @@ mod tests {
             }]),
             "entry-local OR target needs only the single target directive"
         );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.2: reach-plan steers the OR-decision ----
+
+    #[test]
+    fn reach_plan_forces_target_branch_selection() {
+        // start := mid_a | mid_b ; mid_b := ("kw" deep) | "lit" ; deep := "p"|"q"|"r"
+        // Target: deep::root branch 2 ("r"). Without a plan, the weighted choice
+        // may never take start->mid_b->(kw deep)->r. With a plan installed it MUST.
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+
+        let installed = generator.set_reach_plan("start", "deep", "root", 2, 16);
+        assert!(installed, "reach plan for deep::root#2 must install");
+
+        let out = generator
+            .generate_from_entry("start")
+            .expect("generation under a reach plan must succeed");
+
+        // The target branch's selected count is now >= 1 (0 -> >=1).
+        assert!(
+            generator.branch_selected_hits("deep::root", 2) >= 1,
+            "reach plan must drive the target branch to be selected; got selected_hits=0, sample={:?}",
+            out
+        );
+        // And the forced parent choices were taken: start chose mid_b (o1), so the
+        // decoy mid_a branch (o0) was NOT selected this run.
+        assert_eq!(
+            generator.branch_selected_hits("start::root", 0),
+            0,
+            "reach plan must steer start away from the decoy mid_a branch"
+        );
+        assert!(
+            generator.branch_selected_hits("start::root", 1) >= 1,
+            "reach plan must steer start into mid_b"
+        );
+        // Output is the forced path "kw" + "r".
+        assert_eq!(out, "kwr", "forced reach path should emit kw + r, got {:?}", out);
+    }
+
+    #[test]
+    fn reach_plan_none_leaves_or_decision_unchanged() {
+        // With NO reach plan installed, generation is identical to baseline: the
+        // same seed produces the same output with and without the (absent) plan
+        // machinery. This guards the "zero behavior change on the production
+        // path" invariant.
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+
+        let mut a = simple_generator(&grammar_tree, &rule_order, 12345);
+        let mut b = simple_generator(&grammar_tree, &rule_order, 12345);
+        // b briefly installs then clears a plan — clearing must restore baseline.
+        assert!(b.set_reach_plan("start", "deep", "root", 1, 8));
+        b.clear_reach_plan();
+
+        let sa = a.generate_from_entry("start").expect("a generates");
+        let sb = b.generate_from_entry("start").expect("b generates");
+        assert_eq!(
+            sa, sb,
+            "clearing a reach plan must restore byte-identical baseline generation"
+        );
+    }
+
+    #[test]
+    fn reach_plan_install_fails_for_invalid_target() {
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+        // Out-of-range branch index, unknown rule, and non-OR node all fail to
+        // install (and leave reach_plan = None).
+        assert!(!generator.set_reach_plan("start", "deep", "root", 99, 8));
+        assert!(!generator.set_reach_plan("start", "nope", "root", 0, 8));
+        assert!(!generator.set_reach_plan("start", "mid_a", "root", 0, 8));
+        // A subsequent valid generation is unaffected (plan stayed None).
+        assert!(generator.generate_from_entry("start").is_ok());
     }
 }
