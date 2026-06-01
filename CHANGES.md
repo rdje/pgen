@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0124 (leaf SV-EXH-PROOF.7.2.10): **Reach plan now FORCES on-path quantifiers (>=1) — closes the `.7.2.9` quantifier-gap so targets nested under `*`/`?` are reached.**
+
+Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Fixes root cause 1 of the `.7.2.9` diagnosis.
+
+WHAT: `directives_along_path` forced only OR (`o{i}`) choices, so a `*`/`?` quantifier ON the reach path (typically on a cross-rule hop, e.g. `module_item*`) could roll 0 repetitions and skip the subtree carrying the next hop / the target → the target rule was never entered. FIX:
+- `compute_reach_path` refactored into `compute_reach_plan` returning `(Vec<ReachDirective>, HashSet<(rule,node_path)> quantifier_sites)`; `compute_reach_path` kept as a thin wrapper (drops the q-set) so the `.7.2.1` tests are unchanged.
+- `collect_quantifier_sites_along_path` walks each hop's raw reference-site path AND the target rule's path-to-OR-node, recording every `q` segment crossed as `(rule, prefix-up-to-q)` — the exact `(current_rule, node_path)` `generate_quantified` sees.
+- `ActiveReachPlan` gained `quantifier_sites` + `is_on_path_quantifier()`; `from_directives` takes the set; `set_reach_plan` threads it.
+- `generate_quantified` now, when a plan marks THIS quantifier site as on-path, forces `repeats >= max(min_repeat,1)` (clamped to `[min,bounded_max]`), trying the forced count FIRST then remaining counts highest-first as fallbacks (termination preserved).
+
+GENERAL/parser-agnostic: keyed only on `(rule, node_path)`, no rule-name special-casing. VERIFIED: NEW test `reach_plan_forces_on_path_quantifier_to_enter_target` — a target under `start := pre body*` (deep::root#2 inside the `*`) is now reached (site `start::root/s1` recorded + forced; selected_counts 0→≥1; output contains 'r'); all 12 reach + 2 driver tests still pass. lib no-features 562/562 (+1); lib --features generated_parsers 623/623 (+1); source clippy clean. Corpus replay_target_count re-measure deferred to `.7.2.12` (after `.7.2.11` head-of-line rotation).
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0123 (leaf SV-EXH-PROOF.7.2.9, pure-docs INVESTIGATION): **Root-caused the 888 residual — two reinforcing flaws (quantifier gap + head-of-line blocking); fixes routed to `.7.2.10`/`.7.2.11`.**
 
 Pure measurement/investigation — NO code change, NO release bump.

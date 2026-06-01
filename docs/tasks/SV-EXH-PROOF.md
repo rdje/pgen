@@ -587,11 +587,11 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-112 (PGEN-SV-EXH-PROOF-0123)`
 
 - ID: `SV-EXH-PROOF.7.2.10`
-  Status: `pending` (frontier — fix root cause 1: quantifier forcing on the reach path)
+  Status: `done` (`-0124`, 2026-06-01) — on-path quantifier forcing landed; verified by unit test
   Goal: `Extend the reach plan to FORCE on-path quantifiers so the target subtree is entered. (a) compute_reach_path / directives_along_path also records each q-site crossed on the hop+target paths as a quantifier-force directive (force repeats >= max(min_repeat,1)); (b) generate_quantified consults the active reach plan (like it already consults forced_quantifier_repeats_for_site) and, when the current (rule,node_path) is an on-path q-site, prefers a >=1 repeat candidate. Bounded by the existing depth/fuel guards so termination holds.`
   Acceptance: `a unit test where a target nested under a `*` on the reach path is now REACHED (selected_counts 0->>=1) whereas before the quantifier could skip it; the reach_hook_fires + steering tests still pass; lib + clippy green; generator-only; corpus structurally unaffected. (Corpus replay_target_count re-measure happens after .7.2.11, in .7.2.12.)`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — implemented. compute_reach_path refactored to a new compute_reach_plan that returns (Vec<ReachDirective>, HashSet<(rule,node_path)> quantifier_sites); collect_quantifier_sites_along_path walks each hop's raw reference-site path AND the target rule's path-to-OR-node, recording every `q` segment crossed as (rule, prefix-up-to-q). ActiveReachPlan gained quantifier_sites + is_on_path_quantifier(); from_directives takes the set; set_reach_plan threads it. generate_quantified now, when a plan marks THIS (current_rule,node_path) as an on-path quantifier site, forces repeats >= max(min_repeat,1) clamped to [min,bounded_max], trying the forced count FIRST then remaining counts highest-first as fallbacks (termination preserved). compute_reach_path kept as a thin wrapper (drops the q-set) so the .7.2.1 tests are unchanged. VERIFIED: NEW test reach_plan_forces_on_path_quantifier_to_enter_target — a target under `start := pre body*` (deep::root#2 inside the `*`) is now reached (the `*` site start::root/s1 is recorded + forced; selected_counts 0->>=1; output contains 'r'); all 12 reach + 2 driver tests still pass. lib no-features 562/562 (+1); lib --features generated_parsers 623/623 (+1); source clippy clean. NO grammar/codegen/generated change (generator runtime-only), no release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability; keyed only on (rule,node_path)). Corpus replay_target_count re-measure deferred to .7.2.12 (after .7.2.11).`
+  Commit: `done — SVEXH-Slice-113 (PGEN-SV-EXH-PROOF-0124)`
 
 - ID: `SV-EXH-PROOF.7.2.11`
   Status: `pending` — fix root cause 2: head-of-line rotation in the driver

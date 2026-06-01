@@ -883,6 +883,15 @@ struct ActiveReachPlan {
     /// coverage. Filled by `set_reach_plan` after `from_directives`.
     baseline_selected_hits: u64,
     baseline_success_hits: u64,
+    /// SV-EXH-PROOF.7.2.10 (PGEN-SV-EXH-PROOF-0124): (rule_name, quantifier
+    /// node_path) sites that lie ON the reach path. A `*`/`?` quantifier here can
+    /// otherwise roll 0 repetitions and skip the subtree that contains the target
+    /// (or the next hop toward it), so the target rule is never entered. When a
+    /// site is in this set, `generate_quantified` forces repeats >= 1 (clamped to
+    /// the quantifier's own [min,max]) so the on-path subtree IS produced. This
+    /// closes the .7.2.9 'quantifier gap' root cause. Keyed only on
+    /// (rule, node_path) — GENERAL/parser-agnostic.
+    quantifier_sites: HashSet<(String, String)>,
 }
 
 /// SV-EXH-PROOF.7.2.3 (PGEN-SV-EXH-PROOF-0117): honest result of attempting a
@@ -911,7 +920,11 @@ impl ActiveReachPlan {
     /// win (the target's own directive is appended last in `compute_reach_path`).
     /// The LAST directive is the target itself, so its (group_key, branch) is the
     /// plan's target identity (`.7.2.3`).
-    fn from_directives(chain: &[ReachDirective], bypass_fuel: u32) -> Self {
+    fn from_directives(
+        chain: &[ReachDirective],
+        quantifier_sites: HashSet<(String, String)>,
+        bypass_fuel: u32,
+    ) -> Self {
         let mut directives = HashMap::new();
         for directive in chain {
             directives.insert(
@@ -935,6 +948,7 @@ impl ActiveReachPlan {
             target_branch_index,
             baseline_selected_hits: 0,
             baseline_success_hits: 0,
+            quantifier_sites,
         }
     }
 
@@ -942,6 +956,13 @@ impl ActiveReachPlan {
         self.directives
             .get(&(rule_name.to_string(), node_path.to_string()))
             .copied()
+    }
+
+    /// SV-EXH-PROOF.7.2.10: is this quantifier site on the reach path (so it must
+    /// be forced to expand >= 1 rather than possibly rolling 0)?
+    fn is_on_path_quantifier(&self, rule_name: &str, node_path: &str) -> bool {
+        self.quantifier_sites
+            .contains(&(rule_name.to_string(), node_path.to_string()))
     }
 }
 
@@ -2088,14 +2109,15 @@ impl<'a> StimuliGenerator<'a> {
         target_branch_index: usize,
         bypass_fuel: u32,
     ) -> bool {
-        match self.compute_reach_path(
+        match self.compute_reach_plan(
             entry_rule,
             target_rule,
             target_node_path,
             target_branch_index,
         ) {
-            Some(chain) => {
-                let mut plan = ActiveReachPlan::from_directives(&chain, bypass_fuel);
+            Some((chain, quantifier_sites)) => {
+                let mut plan =
+                    ActiveReachPlan::from_directives(&chain, quantifier_sites, bypass_fuel);
                 // SV-EXH-PROOF.7.2.3: snapshot the target site's existing coverage
                 // so reach_target_outcome reports only THIS plan's delta.
                 plan.baseline_selected_hits =
@@ -3436,6 +3458,26 @@ impl<'a> StimuliGenerator<'a> {
         target_node_path: &str,
         target_branch_index: usize,
     ) -> Option<Vec<ReachDirective>> {
+        self.compute_reach_plan(entry_rule, target_rule, target_node_path, target_branch_index)
+            .map(|(chain, _quantifier_sites)| chain)
+    }
+
+    /// SV-EXH-PROOF.7.2.10 (PGEN-SV-EXH-PROOF-0124): like `compute_reach_path`, but
+    /// also returns the on-path QUANTIFIER sites — the `(rule, quantifier
+    /// node_path)` pairs where the reach path crosses a `*`/`?`/`+` quantifier
+    /// (on a cross-rule hop's reference-site path OR within the target rule's
+    /// path to the target OR node). Those quantifiers must be forced to expand
+    /// >= 1 (see `generate_quantified`), otherwise a `*`/`?` rolling 0 skips the
+    /// subtree that carries the next hop / the target → the target rule is never
+    /// entered (the `.7.2.9` quantifier-gap root cause). `compute_reach_path` is a
+    /// thin wrapper that drops the quantifier set (kept for the `.7.2.1` tests).
+    fn compute_reach_plan(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+    ) -> Option<(Vec<ReachDirective>, HashSet<(String, String)>)> {
         // Validate the target OR node + branch index up front.
         let alternatives = self.or_alternatives_for_group_path(target_rule, target_node_path)?;
         if target_branch_index >= alternatives.len() {
@@ -3443,11 +3485,15 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         // BFS over the rule-reference graph; record each rule's predecessor +
-        // the directives that realise the discovering hop.
+        // the directives that realise the discovering hop + the raw hop site path
+        // (so on-path quantifier sites can be recovered).
         use std::collections::VecDeque;
         struct Discovery {
             predecessor: Option<String>,
             hop_directives: Vec<ReachDirective>,
+            // (rule_name, raw reference-site node_path) for the discovering hop —
+            // used to extract on-path quantifier sites.
+            hop_site: Option<(String, String)>,
         }
         let mut discovered: HashMap<String, Discovery> = HashMap::new();
         discovered.insert(
@@ -3455,6 +3501,7 @@ impl<'a> StimuliGenerator<'a> {
             Discovery {
                 predecessor: None,
                 hop_directives: Vec::new(),
+                hop_site: None,
             },
         );
         let mut queue: VecDeque<String> = VecDeque::new();
@@ -3483,6 +3530,7 @@ impl<'a> StimuliGenerator<'a> {
                     Discovery {
                         predecessor: Some(rule_name.clone()),
                         hop_directives,
+                        hop_site: Some((rule_name.clone(), site.node_path.clone())),
                     },
                 );
                 queue.push_back(site.referenced_rule);
@@ -3494,9 +3542,11 @@ impl<'a> StimuliGenerator<'a> {
             return None;
         }
 
-        // Walk predecessors target→entry, collecting each hop's directives, then
-        // reverse to entry→target order.
+        // Walk predecessors target→entry, collecting each hop's directives + the
+        // on-path quantifier sites from each hop's raw site path, then reverse to
+        // entry→target order.
         let mut chain: Vec<ReachDirective> = Vec::new();
+        let mut quantifier_sites: HashSet<(String, String)> = HashSet::new();
         let mut cursor = target_rule.to_string();
         loop {
             let Some(discovery) = discovered.get(&cursor) else {
@@ -3504,6 +3554,13 @@ impl<'a> StimuliGenerator<'a> {
             };
             for directive in discovery.hop_directives.iter().rev() {
                 chain.push(directive.clone());
+            }
+            if let Some((hop_rule, hop_path)) = &discovery.hop_site {
+                Self::collect_quantifier_sites_along_path(
+                    hop_rule,
+                    hop_path,
+                    &mut quantifier_sites,
+                );
             }
             match &discovery.predecessor {
                 Some(pred) => cursor = pred.clone(),
@@ -3519,6 +3576,14 @@ impl<'a> StimuliGenerator<'a> {
         // segment crossed on the way to the target OR node.
         chain.extend(Self::directives_along_path(target_rule, target_node_path));
 
+        // And the on-path quantifiers WITHIN the target rule's path to the OR node
+        // must be forced too (a `*`/`?` here can skip the target OR node itself).
+        Self::collect_quantifier_sites_along_path(
+            target_rule,
+            target_node_path,
+            &mut quantifier_sites,
+        );
+
         // Finally force the target branch at the target OR node itself.
         chain.push(ReachDirective {
             rule_name: target_rule.to_string(),
@@ -3526,7 +3591,30 @@ impl<'a> StimuliGenerator<'a> {
             branch_index: target_branch_index,
         });
 
-        Some(chain)
+        Some((chain, quantifier_sites))
+    }
+
+    /// SV-EXH-PROOF.7.2.10: walk `node_path` from a rule's root and record every
+    /// quantifier (`q`) site crossed as `(rule_name, prefix-up-to-the-q)` — the
+    /// exact `(current_rule, node_path)` `generate_quantified` sees for that
+    /// quantifier. Mirrors `directives_along_path`'s prefix walk but for `q`
+    /// segments instead of `o{i}`.
+    fn collect_quantifier_sites_along_path(
+        rule_name: &str,
+        node_path: &str,
+        out: &mut HashSet<(String, String)>,
+    ) {
+        let mut prefix = String::from("root");
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if segment == "q" {
+                out.insert((rule_name.to_string(), prefix.clone()));
+            }
+            prefix.push('/');
+            prefix.push_str(segment);
+        }
     }
 
     /// SV-EXH-PROOF.7.2.1: walk `node_path` (the `collect_branch_groups`
@@ -5097,7 +5185,33 @@ impl<'a> StimuliGenerator<'a> {
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
         let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "quantifier");
-        let repeat_candidates: Vec<usize> = if let Some((preferred_repeats, baseline_repeats)) =
+
+        // SV-EXH-PROOF.7.2.10 (PGEN-SV-EXH-PROOF-0124): if an active reach plan
+        // marks THIS quantifier site as on-path, force expansion >= 1 (clamped to
+        // [min_repeat, bounded_max]) so the subtree carrying the next hop / the
+        // target is actually produced — closing the .7.2.9 quantifier-gap where a
+        // `*`/`?` could roll 0 and skip the target rule entirely. Try the forced
+        // count FIRST, then fall back to the remaining counts (so generation still
+        // terminates if the >=1 expansion fails downstream). Only fires when a
+        // plan is installed AND this exact (rule,node_path) is on its path.
+        let reach_forced_repeats: Option<usize> = self
+            .reach_plan
+            .as_ref()
+            .filter(|plan| plan.is_on_path_quantifier(current_rule, node_path))
+            .map(|_| min_repeat.max(1).min(bounded_max.max(min_repeat)));
+
+        let repeat_candidates: Vec<usize> = if let Some(forced) = reach_forced_repeats {
+            let mut candidates = Vec::with_capacity(bounded_max.saturating_sub(min_repeat) + 1);
+            candidates.push(forced);
+            // Remaining counts, highest-first (prefer producing the subtree), then
+            // the rest, as fallbacks.
+            for repeat in (min_repeat..=bounded_max).rev() {
+                if !candidates.contains(&repeat) {
+                    candidates.push(repeat);
+                }
+            }
+            candidates
+        } else if let Some((preferred_repeats, baseline_repeats)) =
             self.forced_quantifier_repeats_for_site(&mutation_site_key)
         {
             let mut candidates = Vec::new();
@@ -14720,6 +14834,75 @@ mod tests {
             "reach hook must fire under deep stagnation (deeper-fallback .7.2.7); activations={} attempts={}",
             generator.reach_plan_activations(),
             summary.attempts
+        );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.10: reach plan forces on-path quantifiers (>=1) ----
+
+    #[test]
+    fn reach_plan_forces_on_path_quantifier_to_enter_target() {
+        // The target OR node sits INSIDE a `*` quantifier on the reach path:
+        //   start := pre body*           (body is under a `*`)
+        //   pre   := "P"
+        //   body  := deep
+        //   deep  := "p" | "q" | "r"     (target = deep::root#2)
+        // Without quantifier forcing the `*` can roll 0 → body/deep never entered
+        // → target never reached. The .7.2.10 plan must mark start's `*` site
+        // on-path and force >=1 expansion so deep IS produced and #2 is forced.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("pre"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("body")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert("pre".to_string(), token("string", "P"));
+        grammar_tree.insert("body".to_string(), rule_ref("deep"));
+        grammar_tree.insert(
+            "deep".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("string", "p"),
+                    token("string", "q"),
+                    token("string", "r"),
+                ],
+            },
+        );
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+
+        // First: confirm the plan records the on-path quantifier site.
+        let probe = simple_generator(&grammar_tree, &rule_order, 1);
+        let (_chain, qsites) = probe
+            .compute_reach_plan("start", "deep", "root", 2)
+            .expect("deep reachable from start");
+        assert!(
+            qsites.contains(&("start".to_string(), "root/s1".to_string())),
+            "the `*` at start::root/s1 must be recorded as an on-path quantifier site; got {:?}",
+            qsites
+        );
+
+        // Then: with the plan installed, generation forces the `*` to expand and
+        // reaches the target branch (selected_counts 0 -> >=1, output contains "r").
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+        assert!(generator.set_reach_plan("start", "deep", "root", 2, 16));
+        let out = generator
+            .generate_from_entry("start")
+            .expect("generation under the plan should succeed");
+        assert!(
+            generator.branch_selected_hits("deep::root", 2) >= 1,
+            "reach plan must force the on-path `*` so deep::root#2 is selected; out={:?}",
+            out
+        );
+        assert!(
+            out.contains('r'),
+            "forced path should expand the quantifier and emit the target branch 'r'; out={:?}",
+            out
         );
     }
 }
