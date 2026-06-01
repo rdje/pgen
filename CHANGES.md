@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0129 (leaf SV-EXH-PROOF.7.2.15, DESIGN — no code): **Next reach-steering direction recorded; awaiting director decision (A stop / B report / C rule-reach).**
+
+Pure design — NO code authored, NO release bump. New doc `docs/tasks/SV-EXH-PROOF-7.2.15-reach-direction-design.md`, facts-grounded per the no-guess discipline.
+
+KEY FACT that reframes the campaign: under the failed reach-steering the never_hit-RULE count EXPLODED 236 (`.7.2.8`) → 750 (`.7.2.12`) — i.e. aggressive steering CREATES never_hit rules (forces narrow paths that skip whole sibling rules). So "more steering to cover the never_hit rules" is the SAME diversity-collapse failure mode just reverted; the data argues AGAINST more forcing. Structural fact (grammar): never_hit rules like `always_construct` (systemverilog.ebnf:485) are reachable only as one OR-alt among dozens (lines 888/3077/3092) inside `*`-quantified container bodies, so baseline rarely selects them even with the existing ×24/×2 coverage boost (which per `.7.1` acts AFTER structural pruning).
+
+THREE options recorded with risks: **A** — stop, bank the verified 888 (−30% vs the 1273 dead-hook baseline; honest Mostly-Done-with-debt). **B** — build a read-only per-target `reach_target_outcome` report (Reached/SelectedButFailed/NotReached; extends `.7.2.5` observability, the enum already exists from `.7.2.3`; zero regression risk; the fact base I lacked before `.7.2.10`). **C** — rule-targeted reach WITHOUT quantifier-forcing (higher risk; new steering; must be ONE change measured vs 888 with instant-revert on regression). RECOMMENDATION: B then maybe C. NOT recommended: re-introducing quantifier-forcing (ablation-proven harmful). Decision required before any `.7.2.16+` code. Best-known state stays `.7.2.8`/888 (generator byte-identical, verified).
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0128 (leaf SV-EXH-PROOF.7.2.14, TOOL-ONLY ablation): **Regression cause ATTRIBUTED with facts — `.7.2.10` (quantifier-forcing) is the culprit; `.7.2.11` (rotation) actually mitigated it.**
 
 Pure investigation — NO code authored, NO release bump. Ablation done by building EXISTING committed history in an isolated git worktree (main checkout stayed pristine at 70a8270e / the 888 state throughout; worktree symlinked main's untracked generated/ to build, main unharmed).
