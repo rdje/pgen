@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0126 (leaf SV-EXH-PROOF.7.2.12): **MEASURED A REGRESSION — `.7.2.10`+`.7.2.11` made it WORSE (replay_target_count 888 → 1717); revert routed to `.7.2.13`.**
+
+Pure measurement + task-node record — NO code change, NO release bump. Honest negative result.
+
+RAN the full `sv_parser_aggregate_contract_gate` 5000-attempt closed-loop replay on the combined `.7.2.10`+`.7.2.11` binary (run bllwshwqy). Closed-loop replay summary: `resolved 943/2660 ... target_timeout_errors=1837, helper_timeout_errors=804, reach_plan_activations=3474`; `replay_target_count = 1717`.
+
+THIS IS A REGRESSION, not progress — vs the `.7.2.8` baseline (888) AND even vs `.7.2.6` (1273):
+- resolved targets HALVED: 1772 → 943.
+- residual nearly DOUBLED: 888 → 1717 (750 never_hit + 726 never_selected + 241 selected_but_failed; 967 branch + 750 rule).
+- target_timeout_errors 2.3×: 784 → 1837.
+
+ROOT CAUSE (data-confirmed): DIVERSITY COLLAPSE. (a) `.7.2.10`'s forced on-path quantifier expansion (≥1, highest-first) produces deeper/longer samples that time out far more. (b) `.7.2.11`'s rotation spreads steering thin — each sample covers its one narrow target but little incidentally. generation_successes actually ROSE (2221 → 2359) while resolved FELL (1772 → 943): the signature of narrow, low-incidental-coverage samples crowding out the broad coverage `.7.2.8`'s concentrated steering produced for free. The two fixes are individually unit-correct (they DO reach quantifier-nested targets + rotate) but globally counterproductive on the closed-loop replay.
+
+CONTAINMENT: the regression lives ONLY in unpushed commits — `origin/main` is still at `.7.2.8` (c6480943, the good 888 state), verified via git. Per director (literal-0 bar): 1717 ≠ 0 and worse → this path is REJECTED. → `.7.2.13` reverts/gates `.7.2.10`+`.7.2.11` to restore ~888 (preserving the unit-tested mechanism), then rethinks the lever — the concentrated `.7.2.7` steering beat both ablations, so the real lever is likely smarter target SELECTION, not more forcing.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0125 (leaf SV-EXH-PROOF.7.2.11): **Head-of-line rotation — the driver now cycles steering across distinct pending branches instead of re-hammering pending[0].**
 
 Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Fixes root cause 2 of the `.7.2.9` diagnosis.

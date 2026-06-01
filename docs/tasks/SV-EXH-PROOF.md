@@ -601,9 +601,16 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-114 (PGEN-SV-EXH-PROOF-0125)`
 
 - ID: `SV-EXH-PROOF.7.2.12`
-  Status: `pending` — re-measure after .7.2.10 + .7.2.11
-  Goal: `Full aggregate-gate run; record reach_plan_activations + replay_target_count vs the .7.2.8 baseline of 888 (per director: literal 0 bar). Classify any residual by reach_target_outcome; iterate (.7.2.13+) if > 0.`
-  Acceptance: `replay_target_count < 888; corpus 14/14; gate passes; residual classified.`
+  Status: `done` (`-0126`, 2026-06-01) — MEASURED a REGRESSION: .7.2.10+.7.2.11 made it WORSE (888 → 1717); revert/gate routed to .7.2.13
+  Goal: `Full aggregate-gate run; record reach_plan_activations + replay_target_count vs the .7.2.8 baseline of 888.`
+  Acceptance: `replay_target_count measured vs 888; residual classified; honest outcome (better OR worse) recorded.`
+  Verification: `done — full gate run bllwshwqy, closed-loop replay summary: "resolved 943/2660 ... target_timeout_errors=1837, helper_timeout_errors=804, reach_plan_activations=3474". replay_target_count = 1717. THIS IS A REGRESSION vs the .7.2.8 baseline (888) AND even vs .7.2.6 (1273): resolved HALVED (1772 → 943); residual nearly DOUBLED (888 → 1717: 750 never_hit + 726 never_selected + 241 selected_but_failed; 967 branch + 750 rule). ROOT CAUSE of the regression (data-confirmed): DIVERSITY COLLAPSE. (a) .7.2.10's forced on-path quantifier expansion (>=1, highest-first) makes generation produce DEEPER/LONGER samples that time out far more — target_timeout_errors 784 → 1837 (2.3×). (b) .7.2.11's rotation spreads steering thin across many targets, each sample covering its one narrow target but little incidentally. generation_successes actually rose (2221 → 2359) while resolved FELL (1772 → 943) — the tell of narrow, low-incidental-coverage samples crowding out the broad coverage .7.2.8's concentrated steering produced for free. The fixes are individually unit-correct (they DO reach quantifier-nested targets + rotate) but globally counterproductive on the closed-loop replay. CONTAINMENT: regression is in UNPUSHED commits only — origin/main is still at .7.2.8 (c6480943, the good 888 state). VERIFIED via git. Per director (literal-0): 1717 != 0 and worse, so this path is REJECTED. → .7.2.13 = revert to .7.2.8 behavior (gate the .7.2.10+.7.2.11 aggressiveness OFF by default; keep the tested mechanism behind a flag) OR git-revert the two slices; re-measure to confirm return to ~888; then rethink the approach (the concentrated .7.2.7 steering beat both ablations — the real lever may be smarter target SELECTION, not more forcing). NO code change in this measurement leaf.`
+  Commit: `done — SVEXH-Slice-115 (PGEN-SV-EXH-PROOF-0126)`
+
+- ID: `SV-EXH-PROOF.7.2.13`
+  Status: `pending` (frontier — REVERT the regression to restore the 888 best-known state)
+  Goal: `Restore the .7.2.8 best-known behavior (replay_target_count=888). The .7.2.10 (quantifier-forcing) + .7.2.11 (rotation) changes are a measured net regression (1717) due to diversity collapse. Neutralize them on the default corpus path while preserving the unit-tested mechanism (do NOT delete the tested code): gate both behind an off-by-default switch, OR git-revert slices -0124/-0125. Re-measure to confirm return to ~888.`
+  Acceptance: `a fresh full gate run shows replay_target_count back to ~888 (<= .7.2.8); the reach unit tests still pass (mechanism retained); lib + clippy green; gate passes. Then a fresh design for the REAL lever (e.g. concentrated steering on the single highest-yield reachable target; smarter selection over more forcing) is recorded for .7.2.14+.`
   Verification: `pending`
   Commit: `pending`
 
