@@ -570,9 +570,16 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-110 (PGEN-SV-EXH-PROOF-0121)`
 
 - ID: `SV-EXH-PROOF.7.2.8`
-  Status: `pending` (frontier — re-measure with the now-firing hook)
-  Goal: `Re-run the full sv_parser_aggregate_contract_gate closed-loop replay now that the .7.2.7 reach hook fires; record reach_plan_activations (>0 expected) + replay_target_count vs the .7.2.6 baseline of 1273. Per director: literal 0 is the bar. If activations>0 but the count plateaus above 0, capture the residual + per-target reach_target_outcome (Reached/SelectedButFailed/NotReached) and iterate (.7.2.9+ tuning: bypass_fuel, multi-target-per-run, Rule-target reach, etc.).`
-  Acceptance: `a completed gate run records reach_plan_activations>0 + replay_target_count; before/after vs 1273 quantified; corpus 14/14; gate passes or its failure is an honest pre-existing one (not a .7.2 regression); residual classified if count>0.`
+  Status: `done` (`-0122`, 2026-06-01) — MEASURED: hook fires (2606×), replay_target_count 1273→888 (−30%); residual remains → .7.2.9 tuning per literal-0 bar
+  Goal: `Re-run the full sv_parser_aggregate_contract_gate closed-loop replay now that the .7.2.7 reach hook fires; record reach_plan_activations + replay_target_count vs the .7.2.6 baseline of 1273.`
+  Acceptance: `a completed gate run records reach_plan_activations>0 + replay_target_count; before/after vs 1273 quantified; corpus unaffected; gate passes; residual classified if count>0.`
+  Verification: `done — full gate run bv9tnbxlm (AGG728_EXIT=0, "✅ SV parser aggregate contract gate passed."). Closed-loop replay summary: "resolved 1772/2660 targets in 5000 attempts (generation_successes=2221, generation_errors=2779, target_timeout_errors=2721, helper_timeout_errors=58, reach_plan_activations=2606)". RESULT vs .7.2.6 baseline: reach_plan_activations 0 → 2606 (the .7.2.7 fix DEMONSTRABLY ENGAGES on the real corpus — the dead-guard flaw is gone); replay_target_count 1273 → 888 (−385, −30%); resolved 1387 → 1772 (+385); never_selected 591 → 417; generation_successes 714 → 2221 (~3×); helper_timeout_errors 3502 → 58 (reach-steering-from-real-entry sidesteps the helper-probe timeout storm, as predicted in .7.2.6). Residual 888 = 417 never_selected + 236 never_hit + 235 selected_but_failed; 652 branch + 236 rule; 417 of the branch residual are never_selected (still the reach driver's quarry). PER DIRECTOR literal-0 bar: 888 ≠ 0 so SV stays Mostly Done; this is real progress, not Done-with-residual → .7.2.9 tuning. NO code change in this leaf (measurement only); generator-only; corpus parse side unaffected.`
+  Commit: `done — SVEXH-Slice-111 (PGEN-SV-EXH-PROOF-0122)`
+
+- ID: `SV-EXH-PROOF.7.2.9`
+  Status: `pending` (frontier — tune the reach driver toward literal 0)
+  Goal: `Drive replay_target_count from 888 toward 0. Investigate WHY 417 never_selected branch targets still resist after the hook fires 2606×: (a) does the hook reach them but they fail (would show as selected_but_failed=235, a distinct unsatisfiable class for .7.2.3 reporting)? (b) is one reach plan per stagnation window too few (multi-target-per-run / round-robin over pending branches)? (c) is bypass_fuel or the depth budget too tight for deep targets? (d) does pending[0] being a non-reachable-branch starve reachable ones (pick the top REACHABLE-by-compute_reach_path branch, not just pending[0])? Tools-first: classify the 417 by reach_target_outcome before changing code.`
+  Acceptance: `replay_target_count < 888 (toward 0); each change verified by a fresh gate measurement (activations + count); residual reasons reclassified; lib + clippy green; corpus 14/14; if a hard floor of genuinely-unsatisfiable targets is hit, each is shown SelectedButFailed/unreachable with evidence (but per director that is NOT auto-Done — surface it).`
   Verification: `pending`
   Commit: `pending`
 

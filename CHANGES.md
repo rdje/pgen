@@ -1,4 +1,22 @@
 # CHANGES.md
+## 2026-06-01 - PGEN-SV-EXH-PROOF-0122 (leaf SV-EXH-PROOF.7.2.8): **MEASURED — the `.7.2.7` reach hook FIRES on the real corpus (2606×); replay_target_count 1273 → 888 (−30%); gate passes. Residual remains → `.7.2.9` tuning.**
+
+Pure measurement + task-node record — NO code change, NO release bump.
+
+RAN the full `sv_parser_aggregate_contract_gate` 5000-attempt closed-loop replay on the `.7.2.7` binary (run bv9tnbxlm, AGG728_EXIT=0, "✅ SV parser aggregate contract gate passed."). Closed-loop replay summary line: `resolved 1772/2660 targets in 5000 attempts (generation_successes=2221, generation_errors=2779, target_timeout_errors=2721, helper_timeout_errors=58, reach_plan_activations=2606)`.
+
+RESULT vs the `.7.2.6` baseline (broken/dead hook):
+- reach_plan_activations: 0 → **2606** — the `.7.2.7` deeper-fallback fix DEMONSTRABLY ENGAGES on the real SV corpus; the dead-guard flaw is gone.
+- replay_target_count: 1273 → **888** (−385, **−30%**).
+- resolved targets: 1387/2660 → 1772/2660 (+385).
+- never_selected residual: 591 → 417.
+- generation_successes: 714 → 2221 (~3×).
+- helper_timeout_errors: 3502 → **58** — reach-steering-from-real-entry sidesteps the helper-probe timeout storm (as predicted in `.7.2.6`); this is why throughput tripled.
+
+RESIDUAL (888): 417 never_selected + 236 never_hit + 235 selected_but_failed; 652 branch + 236 rule (417 of the branch residual are never_selected — still the reach driver's quarry).
+
+PER DIRECTOR (literal-0 bar): 888 ≠ 0, so SV stays honestly **Mostly Done** — this is real progress, NOT Done-with-residual. `.7.2.9` continues the tuning (classify the 417 never_selected branches by reach_target_outcome first; candidates: multi-target-per-stagnation-window, pick top REACHABLE branch not just pending[0], bypass_fuel/depth budget). Measurement only; generator-only; corpus parse side unaffected.
+
 ## 2026-06-01 - PGEN-SV-EXH-PROOF-0121 (leaf SV-EXH-PROOF.7.2.7): **Fix the `.7.2.4` dead-guard — reach-steering now FIRES under deep stagnation (deeper-fallback threshold); corpus re-measurement routed to `.7.2.8`.**
 
 Engine runtime code (rust/src/ast_pipeline/stimuli_generator.rs); NO grammar/codegen/generated change, NO release bump. NO-WORKAROUNDS level 5 (parser-agnostic generator capability). Sixth code-leaf of the `.7.2` campaign — fixes the flaw `.7.2.6` measured.
