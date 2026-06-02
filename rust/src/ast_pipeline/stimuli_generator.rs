@@ -3461,6 +3461,121 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    /// SV-EXH-PROOF.7.4.2 (PGEN-SV-EXH-PROOF-0139, PURE analysis — NO generation
+    /// change): Purdom phase-1 shortest-derivation table. For each rule, the
+    /// MINIMUM number of terminal atoms (lexemes) a derivation rooted at that rule
+    /// must produce — the grammar-agnostic analogue of Purdom's `SLEN` (Purdom,
+    /// "A sentence generator for testing parsers", BIT 1972; see
+    /// docs/tasks/SV-EXH-PROOF-7.3-literature-grounded-literal-zero-design.md). This
+    /// is the foundation `.7.4.3` uses to construct ONE minimal witness per residual
+    /// coverage obligation (the decoupled literal-0 plan from `.7.3`).
+    ///
+    /// Metric choice (documented, deterministic): we count TERMINAL ATOMS (each
+    /// terminal lexeme = 1; a `rule_reference` = the referenced rule's min; a
+    /// quantifier with min-count `n` contributes `n × element_min`; a `?`/`*`
+    /// contributes 0; a lookahead contributes 0 since predicates consume no input),
+    /// NOT characters — a structural proxy for "shortest derivation" that is exactly
+    /// what we need to pick the shortest alternative/path when building a witness.
+    ///
+    /// Recursion is handled by a FIXPOINT (Purdom phase 1): every rule starts
+    /// "unknown" (absent from the map = currently +∞) and is relaxed from its body
+    /// using the current estimates until no rule's value changes. A left/right/self-
+    /// recursive rule with a non-recursive alternative (`expr := expr "+" n | n`)
+    /// resolves via that alternative; a rule that STAYS absent after the fixpoint can
+    /// only derive via unbounded recursion with no terminating base case — it has no
+    /// finite witness (and is exactly the kind of non-terminating rule Ford's PEG
+    /// well-formedness check, PARSE-SOTA A1, would also flag). Determinism: no RNG,
+    /// no time; iteration order is `self.rule_order`; the fixpoint result is
+    /// order-independent (min is commutative). GENERAL/parser-agnostic — keyed only
+    /// on the node shape + the `rule_reference` token type, no rule-name special-
+    /// casing, per [[feedback_ast_pipeline_parser_agnostic]].
+    ///
+    /// `dead_code`-allowed: analysis-only in `.7.4.2`; the witness-construction
+    /// caller lands in `.7.4.3`. Exercised now by unit tests.
+    #[allow(dead_code)]
+    fn compute_min_terminal_lengths(&self) -> HashMap<String, usize> {
+        let mut min_len: HashMap<String, usize> = HashMap::new();
+        loop {
+            let mut changed = false;
+            for rule_name in self.rule_order.iter() {
+                let Some(node) = self.grammar_tree.get(rule_name.as_str()) else {
+                    continue;
+                };
+                let Some(candidate) = Self::min_terminal_length_of_node(node, &min_len) else {
+                    continue;
+                };
+                match min_len.get(rule_name.as_str()) {
+                    Some(&existing) if existing <= candidate => {}
+                    _ => {
+                        min_len.insert(rule_name.clone(), candidate);
+                        changed = true;
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        min_len
+    }
+
+    /// SV-EXH-PROOF.7.4.2 (PGEN-SV-EXH-PROOF-0139, PURE analysis): minimum
+    /// terminal-atom count for a single node given the current per-rule estimates
+    /// `min_len`. Returns `None` when the node's minimum cannot YET be determined —
+    /// a referenced rule has no estimate yet, OR (for an `Or`) every alternative is
+    /// currently unresolvable, OR (for a `Sequence`/`Quantified`) a needed child is
+    /// unresolvable — so the fixpoint in `compute_min_terminal_lengths` retries on
+    /// the next pass. See that function's doc for the metric definition.
+    fn min_terminal_length_of_node(
+        node: &ASTNode,
+        min_len: &HashMap<String, usize>,
+    ) -> Option<usize> {
+        match node {
+            // Ordered choice: resolvable as soon as ANY alternative is; the min over
+            // the currently-resolvable alternatives (Purdom's SHORT picks this one).
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .filter_map(|alt| Self::min_terminal_length_of_node(alt, min_len))
+                .min(),
+            // Sequence: sum of every element's minimum (all must be resolvable).
+            ASTNode::Sequence { elements } => {
+                let mut sum: usize = 0;
+                for element in elements {
+                    sum = sum.saturating_add(Self::min_terminal_length_of_node(element, min_len)?);
+                }
+                Some(sum)
+            }
+            // Quantifier: min-count repetitions of the body. `?`/`*` (min 0) can
+            // match empty → contributes 0 with no dependency on the body's estimate.
+            ASTNode::Quantified { element, quantifier } => {
+                let (min_count, _) =
+                    super::parse_quantifier_bounds(quantifier).unwrap_or((0, None));
+                if min_count == 0 {
+                    Some(0)
+                } else {
+                    let element_min = Self::min_terminal_length_of_node(element, min_len)?;
+                    Some(min_count.saturating_mul(element_min))
+                }
+            }
+            // Syntactic predicate (`&X`/`!X`): consumes no input → 0 terminals.
+            ASTNode::Lookahead { .. } => Some(0),
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => Self::min_terminal_length_of_node(inner, min_len),
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    // A rule reference costs the referenced rule's current minimum.
+                    Some(("rule_reference", referenced_rule)) => {
+                        min_len.get(referenced_rule).copied()
+                    }
+                    // Any other token type is a terminal lexeme → exactly one atom.
+                    Some(_) => Some(1),
+                    // Malformed/empty token payload: treat conservatively as one
+                    // terminal so it never blocks the fixpoint.
+                    None => Some(1),
+                },
+            },
+        }
+    }
+
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis): compute the
     /// chain of forced OR-branch directives that deterministically steers
     /// generation from `entry_rule` down to a coverage target — the OR node at
@@ -15024,5 +15139,118 @@ mod tests {
         // entry itself, and an unknown rule, are also None.
         assert_eq!(generator.compute_rule_reach_target("start", "start"), None);
         assert_eq!(generator.compute_rule_reach_target("start", "does_not_exist"), None);
+    }
+
+    // ---- SV-EXH-PROOF.7.4.2: Purdom phase-1 shortest-derivation table ----
+
+    #[test]
+    fn min_terminal_lengths_on_synthetic_grammar() {
+        // synthetic_reach_grammar:
+        //   start := mid_a | mid_b           -> min(2, 1) = 1
+        //   mid_a := leaf_x leaf_y           -> 1 + 1     = 2
+        //   mid_b := ("kw" deep) | "lit"     -> min(1+1, 1) = 1
+        //   deep  := "p" | "q" | "r"         -> min(1,1,1) = 1
+        //   leaf_x := "x"                    -> 1
+        //   leaf_y := "y"                    -> 1
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+
+        let table = generator.compute_min_terminal_lengths();
+        assert_eq!(table.get("leaf_x"), Some(&1));
+        assert_eq!(table.get("leaf_y"), Some(&1));
+        assert_eq!(table.get("deep"), Some(&1), "deep is min over 3 single-token alts");
+        assert_eq!(table.get("mid_a"), Some(&2), "mid_a is a 2-element sequence");
+        assert_eq!(
+            table.get("mid_b"),
+            Some(&1),
+            "mid_b's shortest alt is the bare \"lit\" terminal (1), not the kw+deep seq (2)"
+        );
+        assert_eq!(
+            table.get("start"),
+            Some(&1),
+            "start's shortest derivation goes via mid_b (1), not mid_a (2)"
+        );
+    }
+
+    #[test]
+    fn min_terminal_lengths_fixpoint_resolves_recursion_drops_nonterminating() {
+        // expr := expr "+" term | term ; term := "n"   (well-formed, has a base case)
+        //   term -> 1 ; expr resolves via the non-recursive alt `term` -> 1.
+        // bad  := bad "z"                               (NO base case -> never resolves)
+        let mut g = HashMap::new();
+        g.insert(
+            "expr".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    ASTNode::Sequence {
+                        elements: vec![rule_ref("expr"), token("string", "+"), rule_ref("term")],
+                    },
+                    rule_ref("term"),
+                ],
+            },
+        );
+        g.insert("term".to_string(), token("string", "n"));
+        g.insert(
+            "bad".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("bad"), token("string", "z")],
+            },
+        );
+        let rule_order: Vec<String> = g.keys().cloned().collect();
+        let generator = simple_generator(&g, &rule_order, 1);
+
+        let table = generator.compute_min_terminal_lengths();
+        assert_eq!(table.get("term"), Some(&1));
+        assert_eq!(
+            table.get("expr"),
+            Some(&1),
+            "left-recursive expr must resolve via its non-recursive `term` alternative"
+        );
+        assert_eq!(
+            table.get("bad"),
+            None,
+            "a rule with no terminating base case has no finite min length -> absent"
+        );
+    }
+
+    #[test]
+    fn min_terminal_lengths_quantifier_and_lookahead_semantics() {
+        // opt := "a"?   -> 0 (may match empty)
+        // star := "a"*  -> 0
+        // plus := "a"+  -> 1 (min-count 1 x 1)
+        // exact := "a"{3} -> 3
+        // look := &"a" "b" -> 0 (lookahead) + 1 (terminal) = 1
+        let q = |quant: &str| ASTNode::Quantified {
+            element: Box::new(token("string", "a")),
+            quantifier: quant.to_string(),
+        };
+        let mut g = HashMap::new();
+        g.insert("opt".to_string(), q("?"));
+        g.insert("star".to_string(), q("*"));
+        g.insert("plus".to_string(), q("+"));
+        g.insert("exact".to_string(), q("{3}"));
+        g.insert(
+            "look".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Lookahead { element: Box::new(token("string", "a")), positive: true },
+                    token("string", "b"),
+                ],
+            },
+        );
+        let rule_order: Vec<String> = g.keys().cloned().collect();
+        let generator = simple_generator(&g, &rule_order, 1);
+
+        let table = generator.compute_min_terminal_lengths();
+        assert_eq!(table.get("opt"), Some(&0), "`?` can match empty -> 0");
+        assert_eq!(table.get("star"), Some(&0), "`*` can match empty -> 0");
+        assert_eq!(table.get("plus"), Some(&1), "`+` is min-count 1 x body(1) = 1");
+        assert_eq!(table.get("exact"), Some(&3), "`{{3}}` is min-count 3 x body(1) = 3");
+        assert_eq!(
+            table.get("look"),
+            Some(&1),
+            "a positive lookahead consumes no input (0) + the following terminal (1)"
+        );
     }
 }

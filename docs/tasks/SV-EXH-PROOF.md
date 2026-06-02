@@ -752,11 +752,11 @@ literal over a failing surface.
   Commit: `SVEXH-Slice-127 (PGEN-SV-EXH-PROOF-0138)`
 
 - ID: `SV-EXH-PROOF.7.4.2`
-  Status: `pending` (code — Purdom shortest-derivation table, PURE analysis)
+  Status: `done` (`-0139`, 2026-06-02, code — PURE analysis, zero generation change)
   Goal: `Implement a Purdom phase-1 shortest-derivation (min terminal length per symbol + which production achieves it) table over the compiled grammar IR, as PURE analysis in stimuli_generator.rs — calls no generation fn, mutates nothing, generation path byte-identical to the 888 blob. Unit-tested (min-length fixpoint correctness on a small grammar). Foundation for .7.4.3's minimal-witness construction.`
   Acceptance: `(1) generation byte-identical to 888 (git diff shows zero change to any generate_* fn); (2) unit tests for the min-length fixpoint; (3) lib + clippy green; (4) parser-agnostic. NO grammar/codegen/generated change, no release bump.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — added compute_min_terminal_lengths(&self) -> HashMap<String,usize> (fixpoint over the rule-reference graph) + min_terminal_length_of_node(node, &table) -> Option<usize> in stimuli_generator.rs, both #[allow(dead_code)] (analysis-only until .7.4.3). Metric = min TERMINAL-ATOM count (terminal lexeme=1; rule_reference=referenced rule's min; quantifier min-count n → n×body, ?/*→0; lookahead→0; Or=min over alts; Sequence=sum) — the grammar-agnostic Purdom SLEN analogue. Fixpoint handles recursion (rules start absent=+∞, relax until stable; non-terminating rules with no base case stay absent = no finite witness, exactly Ford's well-formedness class). (1) PROVEN byte-identical: git diff = 227 insertions / 0 deletions, zero existing lines changed → no generate_* touched. (2) 3 unit tests: synthetic-grammar table values; fixpoint resolves left-recursion via base alt + drops non-terminating; quantifier(?/*/+/{N}) + lookahead semantics — all PASS. (3) lib (no-features) 568/568 (+3); clippy 0 errors. (4) parser-agnostic (keyed only on node shape + rule_reference token type). Change is feature-independent (no cfg/generated dependency); pre-existing features-on parseability_probe.rs GlobalOptions RED is unrelated + untouched. NO grammar/codegen/generated change, no release bump.`
+  Commit: `SVEXH-Slice-128 (PGEN-SV-EXH-PROOF-0139)`
 
 - ID: `SV-EXH-PROOF.7.4.3`
   Status: `pending` (code — per-residual minimal witnesses, SEPARATE appended segment, MEASURED)
