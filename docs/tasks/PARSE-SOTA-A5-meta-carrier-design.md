@@ -1,0 +1,60 @@
+# PARSE-SOTA.11 (adoption A5) — `_meta` carrier: grounded design + phased plan
+
+> Owner leaf: `PARSE-SOTA.11`. Design/scoping slice (pure docs). Commit: `PGEN-PARSE-SOTA-0011`.
+> The `_meta` carrier was director-APPROVED ([[feedback_meta_carrier_design]], Option A) and
+> its implementation **explicitly deferred to a fresh-context session** because it is
+> disruptive. This doc pins the real implementation surface (tools-first) + a phased,
+> de-risked rollout so the codegen change can land cleanly rather than wholesale.
+
+## What A5 is
+Emit an **additive `_meta` sibling key** on every typed AST object, carrying
+`span` / `line_col` / `rule` / `branch_index` / `source_text` / `trivia`. Roslyn / rowan /
+SwiftSyntax full-fidelity model (PARSE-SOTA research §E); enables round-trip / IDE / linter
+uses and unlocks A4's deferred `parse(node._meta.source_text)` re-parse oracle. **Schema
+stays 1** (additive sibling key; older consumers ignore it).
+
+## Implementation surface (tools-first, file:line)
+- **Object construction:** `rust/src/ast_pipeline/ast_based_generator.rs:6774` — the
+  `key: "kind"` insertion is where each typed object's fields are built; `_meta` attaches
+  here (one more key per object).
+- **Span source:** `ParseNode` carries a `span` field, BUT it is frequently `0..0`
+  (placeholder, e.g. `return_annotation_handler.rs:355` emits `span: 0..0`). So
+  `_meta.span` / `line_col` / `source_text` need **real span population** to be meaningful
+  — today's spans are not reliably populated.
+- **No existing `_meta` scaffolding** anywhere (grep-confirmed).
+- **Blast radius:** adding `_meta` to every object changes `expected_json_object_keys_present`
+  for every rule in **all 8 `test_data/ast_shape_contract/*_v1.json` manifests** + the
+  `ast_shape_contract.rs` running-parser test, and requires regenerating **all 10
+  `generated/*_parser.rs`** parsers. (This is the disruption the approval note flagged.)
+
+## Why NOT wholesale-now
+A single commit that (a) changes codegen to emit `_meta` on every object, (b) populates
+real spans, (c) regenerates 10 parsers, and (d) migrates 8 shape contracts + the test is a
+large, coupled change with high regression risk — the opposite of the one-thing-at-a-time,
+measure-each-step discipline. The approved design deferred it for exactly this reason.
+
+## Phased plan (de-risked: additive + opt-in first)
+- **`.11.1` — `_meta` emission, OPT-IN (default OFF).** Thread a codegen/generation flag
+  (e.g. `emit_meta: bool` in the generation config, default false). When ON, the object
+  builder at `:6774` adds a `_meta` sibling (`rule`, `branch_index`, `span` from
+  `ParseNode.span`). When OFF (default), output is **byte-identical** to today → ZERO blast
+  radius on existing behavior, shape contracts, and the 10 parsers. Verify: a focused test
+  that the flag-on output carries `_meta` and flag-off is unchanged; `make focus_regex`
+  green (default path untouched). LOW RISK, completable as one slice.
+- **`.11.2` — real span population.** Ensure `ParseNode.span` is populated with true byte
+  ranges where it is currently `0..0`, so `_meta.span` / `line_col` / `source_text` are
+  accurate. Verify against known inputs. (Engine-adjacent; its own slice.)
+- **`.11.3` — default-ON + contract migration (the disruptive coordination).** Flip the
+  default, regenerate all 10 parsers, update all 8 shape-contract manifests' object-key
+  expectations + the shape-contract test, bump nothing (schema stays 1, additive). Verify
+  EACH grammar via `make focus_<grammar>` + the shape-contract test + the round-trip gates.
+  This is the coordinated slice the approval note meant by "fresh-context session".
+- **`.11.4` — unlock A4's oracle.** Add the per-node `parse(node._meta.source_text)`
+  re-parse round-trip test (deferred from A4).
+
+## Recommendation
+Implement `.11.1` (opt-in, safe, additive) as the next focused slice; schedule `.11.2`/
+`.11.3` as a dedicated, coordinated effort (the heavy, contract-migrating part) with the
+full `make focus_*` + shape-contract + round-trip verification battery — NOT bundled at the
+tail of an unrelated session. Until then the carrier is available opt-in for consumers, and
+the default output (and every shape contract) stays exactly as today.

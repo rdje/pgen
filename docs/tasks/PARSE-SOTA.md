@@ -185,7 +185,9 @@
   the drift gate; lib green; documented in the book.`
 
 - ID: `PARSE-SOTA.11` (adoption A5 — ship the approved `_meta` carrier)
-  Status: `pending` (code; director-greenlit 2026-06-02; design approved [[feedback_meta_carrier_design]])
+  Status: `design DONE` (`-0011`, 2026-06-02; grounded plan; implementation phased `.11.1`–`.11.4`)
+  Verification-design: `done — docs/tasks/PARSE-SOTA-A5-meta-carrier-design.md. Tools-first surface: object construction at ast_based_generator.rs:6774 (the "kind" insertion → where _meta attaches); span source = ParseNode.span but it's frequently 0..0 (placeholder) → real span population needed for meaningful _meta.span/line_col/source_text; NO existing _meta scaffolding; blast radius = all 8 ast_shape_contract manifests' object-key expectations + the shape-contract test + regen of all 10 generated parsers. The approval ([[feedback_meta_carrier_design]]) explicitly DEFERRED implementation to a fresh-context session because it is disruptive. PHASED + de-risked plan: .11.1 _meta OPT-IN (codegen flag, default OFF → output byte-identical, ZERO blast radius; carrier available opt-in) — LOW RISK, one slice; .11.2 real span population; .11.3 default-ON + migrate all 8 shape contracts + regen 10 parsers (the coordinated disruptive slice, full make focus_* + shape-contract + round-trip verification); .11.4 unlock A4's deferred parse(_meta.source_text) oracle. Schema stays 1 (additive). RECOMMENDATION: .11.1 next; .11.2/.11.3 as a dedicated coordinated effort, not bundled at a session tail.`
+  Commit: `PGEN-PARSE-SOTA-0011`
   Goal: `Emit the approved additive `_meta` sibling key (span / line_col / source_text /
   trivia) on typed AST nodes. Additive → schema-compatible (no shape-contract break) per
   schema-evolution rules (Roslyn/rowan fidelity model — but NOT a red-green/incremental
@@ -206,7 +208,8 @@
 | — | `PARSE-SOTA.8.1` (A1 wiring) | `done` (`-0008`) | Non-terminating REJECT wired into grammar load (pgen_error!); verified zero false-fires across all shipped grammars. |
 | — | `PARSE-SOTA.9.1` (A2 wiring) | `done` (`-0009`) | `--lint-grammar` opt-in mode (left-recursion info + non-terminating error + shadowing warning report). Shadowing counts: regex=1, semantic_annotation=3, rest=0 (low; opt-in, no per-load noise). |
 | — | `PARSE-SOTA.10` (A4) | `done` (`-0010`) | Parse-determinism test added (the genuine gap); round-trip/shape/gen-determinism already covered by existing infra. |
-| 2 | `PARSE-SOTA.11` (A5 `_meta`) | `pending` (frontier) | Ship the approved additive `_meta` carrier (span/line_col/source_text/trivia). |
+| — | `PARSE-SOTA.11` (A5 `_meta`) | `design DONE` (`-0011`) | Grounded phased plan; implementation = `.11.1` opt-in (safe) → `.11.2` spans → `.11.3` default-on+contract migration (coordinated) → `.11.4` A4 oracle. |
+| 1 | `PARSE-SOTA.11.1` (A5 opt-in) | `pending` (frontier) | `_meta` emission behind a default-OFF codegen flag (additive, zero blast radius). Then the heavy `.11.3` as a dedicated coordinated effort. |
 | 3 | `PARSE-SOTA.10` / `.11` (A4 round-trip / A5 `_meta`) | `pending` | Robustness + fidelity. |
 
 ## Decisions

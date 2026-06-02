@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-SOTA-0011 (leaf PARSE-SOTA.11 / adoption A5, design): **`_meta` carrier — grounded surface + phased, de-risked implementation plan (NOT wholesale at a session tail).**
+
+Pure docs — NO code, no release bump. The `_meta` carrier was director-approved (Option A) with implementation explicitly DEFERRED to a fresh-context session because it is disruptive; this slice pins the real surface + a phased rollout so it lands cleanly.
+
+docs/tasks/PARSE-SOTA-A5-meta-carrier-design.md. Tools-first surface: typed objects are built at ast_based_generator.rs:6774 (the "kind" insertion → where _meta attaches); ParseNode.span exists but is frequently 0..0 (placeholder) → real span population needed; NO existing _meta scaffolding; blast radius = all 8 ast_shape_contract manifests + the shape-contract test + regen of all 10 generated parsers. PHASED + de-risked: .11.1 _meta OPT-IN (codegen flag default OFF → default output byte-identical, ZERO blast radius; carrier available opt-in) — LOW RISK; .11.2 real span population; .11.3 default-ON + migrate all 8 shape contracts + regen 10 parsers (the coordinated disruptive slice, verified per-grammar via make focus_* + shape-contract + round-trip gates); .11.4 unlock A4's deferred parse(_meta.source_text) oracle. Schema stays 1 (additive). RECOMMENDATION: .11.1 (opt-in, safe) next; .11.2/.11.3 as a dedicated coordinated effort. Doing the heavy wholesale codegen change at the tail of a long unrelated session would risk exactly the regressions the discipline guards against — hence the phased plan.
+
 ## 2026-06-03 - PGEN-PARSE-SOTA-0010 (leaf PARSE-SOTA.10 / adoption A4): **Parse-determinism test (the genuine gap); A4's other facets already covered by existing infra.**
 
 Code (tests only, rust/src/embedding_api.rs) — no codegen/grammar/generated change, no release bump.
