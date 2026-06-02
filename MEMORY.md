@@ -12,12 +12,14 @@
 - Live status: `LIVE_ACHIEVEMENT_STATUS.md`; changelog: `CHANGES.md`.
 
 ## Current state (OVERWRITE this block each update — do not append)
-- latest_commit: `7cced916` PGEN-SV-EXH-PROOF-0137 (.7.3 research) — then PGEN-PARSE-SOTA-0001 (this commit, PARSE-SOTA tree creation). Ahead of origin ~22; push at ~30. MEMORY-ARCH tree CLOSED (`-0001..0006`).
-- active_work_unit: `SV-EXH-PROOF` → frontier `.7.4` (literature-grounded literal-0, commissioned by `.7.3`). Also opening a new `PARSE-SOTA` tree to ground the EBNF→parser-generator path in literature (director ask 2026-06-02).
-- next_action: (a) create the `PARSE-SOTA` tree + run its literature research; (b) begin `.7.4.1` (pin the coverage criterion `replay_target_count` measures + reachable-target-set under the PEG guard, pure docs). `.7.4` lands phased + measured per the no-regression discipline; director sign-off before any generation-behavior change.
-- in_flight_uncommitted: none after the `-0137` commit.
+- latest_commit: `d60b73e3` PGEN-DIAG-SEVERITY-0003 (.3 error-by-reason). **PUSHED to origin/main 2026-06-02 (30-commit batch c6480943..d60b73e3); unpushed=0.** MEMORY-ARCH tree CLOSED.
+- active_work_unit: two active trees. `DIAG-SEVERITY` (critical diagnostics fix) frontier `.3.1`; `SV-EXH-PROOF` frontier `.7.4.3` (depth-budget witness).
+- next_action: suggested order `DIAG-SEVERITY.3.1` (canonical GenerationErrorReason enum + un-mask max_rule_visits + per-reason counts in gap-report JSON) → then `SV-EXH-PROOF.7.4.3` (depth-budget-aware minimal witnesses, MEASURED vs 888, director sign-off before the generation change lands). Also pending: DIAG-SEVERITY.4 (enforcement gate) + .5 (book); PARSE-SOTA director review of the §1 adoption backlog.
+- in_flight_uncommitted: this MEMORY.md sync.
 - blockers: none.
 
 ## Other open threads (not the active unit)
-- `SV-EXH-PROOF` literal-0: `.7.3` (-0137) RESEARCH overturned accept-at-888 — literal-0 IS systematically attainable via DECOUPLE (diverse background + per-residual Purdom minimal witnesses + our existing PEG-forcing); 3 prior steering regressions = textbook mode collapse. Design: docs/tasks/SV-EXH-PROOF-7.3-literature-grounded-literal-zero-design.md. Frontier `.7.4`. Best-known residual still 888 (generation byte-identical to the 888 blob) until `.7.4.3` lands witnesses.
-- Push: ⛔ no-push override; push at ~30 unpushed or on explicit request. Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ 41bef35e.
+- **DIAG-SEVERITY** (NEW, critical): severity (warn/error/fatal) must NEVER be gated by trace verbosity. `.1` audit + `.2` Severity mechanism (always-on emit_diagnostic + pgen_warn!/error!/fatal!) + `.3` error-by-reason (depth_exceeded bucket + once-per-run pgen_warn!) DONE. `.3.1` canonical enum + max_rule_visits next; `.4` enforcement; `.5` book. The trace-masking is WHY the SV depth-exceeded cause was invisible all of `.7.2`.
+- **SV-EXH-PROOF** literal-0: ROOT CAUSE pinned (`.7.4.3a`, -0140) = DEPTH-BUDGET exhaustion (deep-factored rules can't reach+complete within max_depth=24 from the top entry; ansi_port_declaration needs ≥10 depth; measured). Fix `.7.4.3` = per-target minimal witnesses with FRESH/adequate depth (root at/short-path to target + Purdom shortest subtree from `.7.4.2`'s min-length table + generalize the :4869 depth-slack), measured vs 888. NOT a global max_depth raise (blows up property_expr; reshapes the diverse pass).
+- **PARSE-SOTA** (active, research `.1`–`.6` DONE): parser-gen path validated as a recognized published architecture; §1 adoption backlog awaits director review (Tier A: well-formedness check, ⭐shadowing lint, labeled failures, round-trip tests, ship `_meta`).
+- Push: push IS release; default wait ~30 unpushed OR explicit "push". Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ 41bef35e.
