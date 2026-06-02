@@ -245,7 +245,7 @@ That mattered directly on the retained declaration-family replay frontier. After
 - `program_declaration*`
 - `udp_declaration_port_list`
 
-The first repair attempt used standalone rule-level `@sample` on the declaration rules themselves. Direct probes showed those hints were not taking effect. The kept fix in [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf) therefore moved to supported inline branch-local `@sample` placement on the declaration alternatives, plus branch-local canonical samples on the `module_declaration` / `program_declaration` profile wrapper branches.
+The first repair attempt used standalone rule-level `@sample` on the declaration rules themselves. Direct probes showed those hints were not taking effect. The kept fix in [systemverilog.ebnf](grammars/systemverilog.ebnf) therefore moved to supported inline branch-local `@sample` placement on the declaration alternatives, plus branch-local canonical samples on the `module_declaration` / `program_declaration` profile wrapper branches.
 
 The direct entry probes now return the intended canonical declaration footholds:
 
@@ -306,7 +306,7 @@ This was different from the wrapper-level declaration seam:
 - the missing debt was inside the ANSI child path
 - so another wrapper literal override would have risked retiring only parent debt again
 
-The kept repair in [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf) is intentionally small:
+The kept repair in [systemverilog.ebnf](grammars/systemverilog.ebnf) is intentionally small:
 
 - `udp_declaration_port_list` now carries `@sample: "output o, input i"`
 
@@ -360,7 +360,7 @@ That mattered after the declaration and UDP foothold slices. A focused wrapper-d
 
 That is not just noisy reporting. It misstates the real closure frontier. Once `@profiles` removes a referenced rule from the active grammar tree, that branch is not an actionable replay target anymore.
 
-The kept fix lives in [stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs):
+The kept fix lives in [stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs):
 
 - `ASTNode::Or` generation now prunes alternatives whose referenced rules are missing from the active grammar tree
 - `generate_gap_report()` now mirrors that same rule and classifies those branches as `unreachable_branch_debt`
@@ -407,7 +407,7 @@ Another useful boundary in the same main-SystemVerilog lane was the old runtime 
 
 Until this slice, rule-level `@sample` and active-entry `@probe_sample` could not fire when the target rule root was an `Or`. That meant top-level wrapper rules with plain alternation could only be steered with branch-local annotations, even when the cleaner design would have been a rule-level helper foothold.
 
-That runtime restriction is now gone in [stimuli_generator.rs](/Users/richarddje/Documents/github/pgen/rust/src/ast_pipeline/stimuli_generator.rs). Rule-level literal and probe overrides now work on `Or` roots too, with focused regression tests covering:
+That runtime restriction is now gone in [stimuli_generator.rs](rust/src/ast_pipeline/stimuli_generator.rs). Rule-level literal and probe overrides now work on `Or` roots too, with focused regression tests covering:
 
 - rule-level `@sample` on an `Or`-root entry rule
 - rule-level `@probe_sample` on an `Or`-root helper rule that must stay inactive during non-entry expansion
@@ -420,7 +420,7 @@ The first broad use, a standalone `@probe_sample: ";"` on `statement_or_null`, w
 
 The kept use was narrower:
 
-- [systemverilog.ebnf](/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf)
+- [systemverilog.ebnf](grammars/systemverilog.ebnf)
 - standalone `@probe_sample: "1"` on `sequence_expr`
 
 Direct probes now emit only `1` for both profiles:

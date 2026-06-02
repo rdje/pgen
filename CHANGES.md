@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-DOCPATH-0001: **Live docs use repo-root-relative (not absolute local) file paths; +24 GB disk reclaimed (artifact cleanup).**
+
+Pure docs + operational cleanup — NO code, no release bump.
+
+DOC PATHS (director: "every file path reference in live docs/book shall be relative to the git repo root, not absolute capturing my local structure"): relativized the 5 repo-internal links in the top-level mdBook `docs/book/src/stimuli-and-quality.md` (`/Users/richarddje/Documents/github/pgen/grammars/systemverilog.ebnf` → `grammars/systemverilog.ebnf`; same for `rust/src/ast_pipeline/stimuli_generator.rs`); replaced the 4 local IEEE-PDF paths in `PGEN_USER_GUIDE.md` example commands with the portable placeholder `path/to/…`. Book rebuilt; mdbook_docs_gate green. SCOPE NUANCE (verified, tools-first): the live-doc repo-internal absolute paths were ONLY these; the other ~289 `/Users/` references are EXTERNAL (rgx/pgen-issues, nexsim, IEEE PDFs, Downloads) with no repo-relative equivalent and live in the append-only history (CHANGES.md/DEVELOPMENT_NOTES.md) recording commands actually run — naively rewriting them would corrupt history and still not relativize. The contract's `Driven by RGX bug report …yaml` provenance notes are likewise historical external attributions, left as-is. FOLLOW-UP proposed: an enforcement guard (mirror MEMORY-ARCH E2) that fails if a LIVE doc (book/src, user guide, contracts) gains a repo-internal `/Users/` absolute path.
+
+ARTIFACT CLEANUP (director standing 24h directive — incl. target/debug + target/release): repo 39 GB → 15 GB (**~24 GB reclaimed, 100% safe**). Deleted a 17 GB stale gate run-log (`…/shadow_state/logs/profile_2017_closed_loop_replay_parseability_shadow.log`) + 38 other regenerable gate `*.log` files under `rust/target/`; deleted 9.3 GB of disposable Cargo incremental-compile caches (`rust/target/debug/incremental`, regenerated on next build); cleared session `/tmp` probe outputs. `cargo sweep --time 1` correctly reclaimed nothing (the remaining `target/debug` 14 GB is today's ACTIVE build — `deps` + binaries needed for the next step, not waste); `target/release` is empty. Cited gap-report JSON artifacts preserved.
+
 ## 2026-06-02 - PGEN-DIAG-SEVERITY-0004 (leaf DIAG-SEVERITY.3.1): **Canonical `GenerationErrorReason` enum (single source of truth) + un-masked `max_rule_visits` (2nd structural-budget failure).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — NO grammar/codegen/generated change, no release bump.

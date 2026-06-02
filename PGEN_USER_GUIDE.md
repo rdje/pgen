@@ -4249,7 +4249,7 @@ LRM conversion tooling (adapted scripts under `tools/`):
 LRM conversion quick commands:
 ```bash
 python3 tools/ieee_lrm_converter.py \
-  --pdf /Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2017.pdf \
+  --pdf path/to/SystemVerilog-LRM-IEEE-1800-2017.pdf \
   --out-root docs/systemverilog/2017 \
   --document "SystemVerilog Language Reference Manual" \
   --standard "IEEE 1800-2017" \
@@ -4260,7 +4260,7 @@ python3 tools/ieee_lrm_converter.py \
   --extract-grammar
 
 python3 tools/ieee_lrm_converter.py \
-  --pdf /Users/richarddje/Documents/github/SystemVerilog-LRM-IEEE-1800-2023.pdf \
+  --pdf path/to/SystemVerilog-LRM-IEEE-1800-2023.pdf \
   --out-root docs/systemverilog/2023 \
   --document "SystemVerilog Language Reference Manual" \
   --standard "IEEE 1800-2023" \
@@ -4271,7 +4271,7 @@ python3 tools/ieee_lrm_converter.py \
   --extract-grammar
 
 python3 tools/ieee_lrm_converter.py \
-  --pdf /Users/richarddje/Documents/github/VHDL-LRM-IEEE-1076-2019.pdf \
+  --pdf path/to/VHDL-LRM-IEEE-1076-2019.pdf \
   --out-root docs/vhdl/2019 \
   --document "VHDL Language Reference Manual" \
   --standard "IEEE 1076-2019" \
@@ -4280,7 +4280,7 @@ python3 tools/ieee_lrm_converter.py \
   --extract-grammar
 
 python3 tools/ieee_lrm_converter.py \
-  --pdf /Users/richarddje/Documents/github/Verilog-LRM-IEEE-1364-2005.pdf \
+  --pdf path/to/Verilog-LRM-IEEE-1364-2005.pdf \
   --out-root docs/verilog/2005 \
   --document "Verilog Hardware Description Language Reference Manual" \
   --standard "IEEE 1364-2005" \
