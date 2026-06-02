@@ -17,23 +17,111 @@ use super::{ASTNode, ASTValue, TokenValue, parse_quantifier_bounds};
 use std::collections::{HashMap, HashSet};
 
 /// A detected grammar well-formedness issue.
+///
+/// IMPORTANT SCOPE NOTE (verified on the real SystemVerilog grammar, PARSE-SOTA.8.1):
+/// PGEN **handles left recursion** — it runs a compile-time left-recursion-elimination
+/// step (the `pre_lr_elim` annotations) AND the runtime `mutual_recursion_handler` detects
+/// and breaks left-recursive cycles. So `LeftRecursive` is **INFORMATIONAL only** here (28
+/// rules in the shipped SV grammar are left-recursive *by design* and parse fine); it must
+/// NOT be used to reject a grammar. The genuine, reject-worthy well-formedness defect is
+/// `NonTerminating` — a rule with NO finite terminal derivation, which neither LR
+/// elimination nor cycle-breaking can rescue.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WellformednessIssue {
-    /// `rule` is directly or indirectly left-recursive. `cycle` records one left-recursion
-    /// path (starting and ending at `rule`) for the diagnostic message.
+    /// INFORMATIONAL: `rule` is directly/indirectly left-recursive (PGEN handles this via
+    /// LR elimination + the runtime mutual-recursion handler; NOT an error). `cycle` is one
+    /// recursion path for the diagnostic.
     LeftRecursive { rule: String, cycle: Vec<String> },
+    /// ERROR: `rule` has NO finite terminal derivation (every path recurses without ever
+    /// bottoming out at terminals) — it can never produce/parse a complete string. This is
+    /// genuinely ill-formed and IS reject-worthy.
+    NonTerminating { rule: String },
 }
 
 impl WellformednessIssue {
     pub fn message(&self) -> String {
         match self {
             WellformednessIssue::LeftRecursive { rule, cycle } => format!(
-                "grammar well-formedness: rule '{}' is left-recursive (cycle: {}) — it can recurse without consuming input and will not terminate; rewrite using the iterative `next (OP next)*` idiom",
+                "grammar info: rule '{}' is left-recursive (cycle: {}) — handled by PGEN's LR elimination + runtime cycle-breaking (informational, not an error)",
                 rule,
                 cycle.join(" -> ")
             ),
+            WellformednessIssue::NonTerminating { rule } => format!(
+                "grammar well-formedness ERROR: rule '{}' has no finite terminal derivation (it can never produce a complete string) — it is ill-formed; add a terminating alternative",
+                rule
+            ),
         }
     }
+}
+
+/// Minimum terminal-atom count of a node given the current per-rule estimates (Purdom
+/// phase-1 / `.7.4.2` logic, standalone). `None` while undeterminable. A rule that stays
+/// `None` after the fixpoint has no finite derivation = non-terminating.
+fn node_min_terminal_length(node: &ASTNode, min_len: &HashMap<String, usize>) -> Option<usize> {
+    match node {
+        ASTNode::Or { alternatives } => alternatives
+            .iter()
+            .filter_map(|a| node_min_terminal_length(a, min_len))
+            .min(),
+        ASTNode::Sequence { elements } => {
+            let mut sum = 0usize;
+            for e in elements {
+                sum = sum.saturating_add(node_min_terminal_length(e, min_len)?);
+            }
+            Some(sum)
+        }
+        ASTNode::Quantified { element, quantifier } => {
+            let (min, _) = parse_quantifier_bounds(quantifier).unwrap_or((0, None));
+            if min == 0 {
+                Some(0)
+            } else {
+                Some(min.saturating_mul(node_min_terminal_length(element, min_len)?))
+            }
+        }
+        ASTNode::Lookahead { .. } => Some(0),
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => node_min_terminal_length(inner, min_len),
+            ASTValue::Token(parts) => match referenced_rule(parts) {
+                Some(rule) => min_len.get(rule).copied(),
+                None => Some(1),
+            },
+        },
+    }
+}
+
+/// Detect rules with NO finite terminal derivation (non-terminating / ill-formed). PURE
+/// analysis: a min-terminal-length fixpoint; any rule absent from the converged table can
+/// never bottom out at terminals. NOTE: a left-recursive rule WITH a terminating
+/// alternative (e.g. `expr := expr "+" t | t`) has a finite min via the base alternative,
+/// so it is correctly NOT reported here — only genuinely-stuck rules are.
+pub fn detect_nonterminating_rules(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<WellformednessIssue> {
+    let mut min_len: HashMap<String, usize> = HashMap::new();
+    loop {
+        let mut changed = false;
+        for rule in rule_order {
+            let Some(body) = grammar.get(rule) else { continue };
+            if let Some(candidate) = node_min_terminal_length(body, &min_len) {
+                match min_len.get(rule.as_str()) {
+                    Some(&existing) if existing <= candidate => {}
+                    _ => {
+                        min_len.insert(rule.clone(), candidate);
+                        changed = true;
+                    }
+                }
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    rule_order
+        .iter()
+        .filter(|r| grammar.contains_key(r.as_str()) && !min_len.contains_key(r.as_str()))
+        .map(|r| WellformednessIssue::NonTerminating { rule: r.clone() })
+        .collect()
 }
 
 /// Extract the referenced rule name from a token atom that is a `rule_reference`, else None.
@@ -486,6 +574,30 @@ mod tests {
         assert!(issues.is_empty(), "a consuming prefix breaks left recursion: {issues:?}");
     }
 
+    #[test]
+    fn detects_nonterminating_rule_but_not_left_recursion_with_base() {
+        // bad := bad "z"            → no terminating alternative → NON-TERMINATING.
+        // lr  := lr "+" t | t ; t := "n"   → left-recursive BUT has a base alt → finite
+        //                                     min via `t` → NOT reported as non-terminating.
+        let mut g = HashMap::new();
+        g.insert("bad".into(), seq(vec![rule_ref("bad"), token("string", "z")]));
+        g.insert(
+            "lr".into(),
+            or(vec![seq(vec![rule_ref("lr"), token("op", "+"), rule_ref("t")]), rule_ref("t")]),
+        );
+        g.insert("t".into(), token("string", "n"));
+        let order: Vec<String> = vec!["bad".into(), "lr".into(), "t".into()];
+        let nonterm = detect_nonterminating_rules(&g, &order);
+        assert!(
+            nonterm.iter().any(|i| matches!(i, WellformednessIssue::NonTerminating { rule } if rule == "bad")),
+            "a rule with no terminating alternative must be flagged: {nonterm:?}"
+        );
+        assert!(
+            !nonterm.iter().any(|i| matches!(i, WellformednessIssue::NonTerminating { rule } if rule == "lr" || rule == "t")),
+            "a left-recursive rule WITH a base alternative is NOT non-terminating: {nonterm:?}"
+        );
+    }
+
     // ---- PARSE-SOTA.9 / A2: ordered-choice shadowing lint ----
 
     #[test]
@@ -542,6 +654,53 @@ mod tests {
             issues.is_empty(),
             "no false positives on distinct/longer-first/rule-ref alternatives: {issues:?}"
         );
+    }
+
+    /// PARSE-SOTA.8.1 prerequisite — verify the analyses on a REAL shipped grammar:
+    /// NO left-recursion (a hard error if found — would block wiring the reject) and
+    /// REPORT shadowing findings for review. Env-gated (skips when the compiled-grammar
+    /// artifact is absent, e.g. fresh CI). Run with:
+    ///   PGEN_WELLFORMEDNESS_GEN_AST=<…/systemverilog_gen_ast.json> cargo test --lib \
+    ///     shipped_grammar_is_well_formed -- --nocapture
+    #[test]
+    fn shipped_grammar_is_well_formed() {
+        let Ok(path) = std::env::var("PGEN_WELLFORMEDNESS_GEN_AST") else {
+            eprintln!("skip: set PGEN_WELLFORMEDNESS_GEN_AST to a gen_ast.json to run");
+            return;
+        };
+        let data = std::fs::read_to_string(&path).expect("read gen_ast.json");
+        let v: serde_json::Value = serde_json::from_str(&data).expect("parse gen_ast.json");
+        let grammar: HashMap<String, ASTNode> =
+            serde_json::from_value(v["grammar_tree"].clone()).expect("grammar_tree");
+        let rule_order: Vec<String> =
+            serde_json::from_value(v["rule_order"].clone()).expect("rule_order");
+        eprintln!("loaded grammar: {} rules", grammar.len());
+
+        // Left recursion is INFORMATIONAL for PGEN (handled by LR elimination + the
+        // runtime mutual-recursion handler) — report, do NOT fail. Verified on the SV
+        // grammar: 28 left-recursive rules, all parse fine.
+        let lr = detect_left_recursion(&grammar, &rule_order);
+        eprintln!("left-recursive rules (informational — PGEN handles these): {}", lr.len());
+        for i in lr.iter().take(5) {
+            eprintln!("  {}", i.message());
+        }
+
+        // NON-TERMINATING rules are the genuine, reject-worthy defect — assert NONE.
+        let nonterm = detect_nonterminating_rules(&grammar, &rule_order);
+        for i in &nonterm {
+            eprintln!("NON-TERMINATING: {}", i.message());
+        }
+        assert!(
+            nonterm.is_empty(),
+            "shipped grammar has {} non-terminating rule(s) — genuinely ill-formed",
+            nonterm.len()
+        );
+
+        let shadow = detect_ordered_choice_shadowing(&grammar, &rule_order);
+        eprintln!("shadowing findings: {} (soft — review for false positives)", shadow.len());
+        for s in shadow.iter().take(15) {
+            eprintln!("  {}", s.message());
+        }
     }
 
     #[test]

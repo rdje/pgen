@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-PARSE-SOTA-0007 (leaf PARSE-SOTA.8 / A1, RE-SCOPED): **Real-grammar verification corrects A1 — PGEN handles left recursion; the reject-worthy check is NON-TERMINATING rules.**
+
+Code (extends rust/src/ast_pipeline/grammar_wellformedness.rs) — PURE ANALYSIS, no generation/grammar/generated change, no release bump.
+
+The no-false-positive prerequisite for wiring A1 was to verify it on the SHIPPED grammars. Running detect_left_recursion on the real SV grammar IR flagged 28 rules — but the SV parser does NOT hang, because PGEN ALREADY HANDLES left recursion (a compile-time LR-elimination step — pre_lr_elim annotations confirmed present — PLUS the runtime mutual_recursion_handler that detects/breaks LR cycles: "Block left recursion"). So Ford's "reject left-recursion" (A1 as literally specified by the literature) is INAPPROPRIATE for PGEN: rejecting would break grammars it parses fine. CORRECTION: detect_left_recursion is kept INFORMATIONAL only (never a reject); added detect_nonterminating_rules() — the genuine, reject-worthy defect (a rule with NO finite terminal derivation, which LR-elim/cycle-breaking cannot rescue) via a min-terminal-length fixpoint (a left-recursive rule WITH a base alternative has a finite min, so it is correctly NOT flagged). VERIFIED on the real SV grammar: 28 left-recursive rules (informational, all parse) + 0 NON-TERMINATING (well-formed); env-gated test shipped_grammar_is_well_formed PASSES. 11 module unit tests; lib 583/583; clippy 0 errors. This is the rigor discipline working: real-grammar verification BEFORE wiring caught that the literature's check conflicts with PGEN's more-capable design — so the hard-reject wiring (.8.1) is now scoped to NON-TERMINATING only.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0141 (leaf SV-EXH-PROOF.7.4.3, SVEXH-Slice-130): **Depth-budget-aware appended minimal-witness pass — the literal-0 mechanism; KEPT (monotone + real-SV-verified).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs + rust/src/main.rs) — NO grammar/codegen/generated change, no release bump. The director-greenlit generation change ("-> SV-EXH-PROOF.7.4.3" + "roll until exhaustion").
