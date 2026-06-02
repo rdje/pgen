@@ -151,6 +151,11 @@
   pgen_error!; lib+clippy green; no false positives on the shipped grammars (SV/VHDL/regex/
   JSON/EBNF). NO grammar/generated change for the analysis; wiring is a measured sub-step.`
 
+- ID: `PARSE-SOTA.8.1` (adoption A1 — WIRING: reject non-terminating grammars at load)
+  Status: `done` (`-0008`, 2026-06-02, code — generate-time well-formedness reject)
+  Verification: `done — wired detect_nonterminating_rules into main.rs's grammar load chokepoint (apply_grammar_profile_filter, after profile filtering, before returning LoadedGrammar): if any rule has no finite terminal derivation, emit each via the always-on DIAG-SEVERITY pgen_error! channel + return Err (reject the ill-formed grammar at load/generate time). Left recursion is NOT rejected (PGEN handles it). MULTI-GRAMMAR VERIFICATION (the no-false-positive prerequisite): built --features ebnf_dual_run + ran every shipped grammar through the load path — regex / json / ebnf / vhdl / rtl_const_expr / rtl_frontend / return_annotation / semantic_annotation ALL load clean (zero non-terminating reject), and SV verified separately (0 non-terminating). So the reject fires ONLY on a genuinely ill-formed grammar, never on a shipped one. Sound by construction (a rule absent from the converged min-length fixpoint genuinely has no finite derivation). lib (no-features) 583/583; binary clippy 0 errors. NO grammar/generated change, no release bump.`
+  Commit: `PGEN-PARSE-SOTA-0008`
+
 - ID: `PARSE-SOTA.9` (adoption A2 ⭐ — static ordered-choice shadowing lint)
   Status: `analysis DONE` (`-0006`, 2026-06-02; sound shadowing detection landed; wiring = `.9.1`)
   Verification: `done (analysis sub-step) — detect_ordered_choice_shadowing() in grammar_wellformedness.rs: walks every Or node (with node_path) and flags an alternative UNREACHABLE in two SOUND-ONLY cases — (1) DuplicateAlternative (exact structural copy of an earlier alt, compared via serde value) and (2) FixedTerminalPrefix (an earlier alternative that is an entirely-fixed-terminal sequence prefixing a later alternative's leading fixed terminals — the canonical PEG `a | ab` quirk where PEG commits to `a`). Deliberately conservative (rule-reference / quantifier / alternation alternatives are NOT treated as fixed prefixes, since a rule can fail) → NO false positives. 4 unit tests: duplicate detected; `a | ab` prefix detected; NO false positive on distinct terminals / longer-before-shorter (`ab | a`) / rule-ref alternatives; nested-Or node_path reported. lib (no-features) 581/581 (+4); clippy 0 errors. WIRING (emit pgen_warn! at generate time + verify acceptable on the shipped grammars) is sub-step .9.1, after .7.4.3 commits. The fuller semantic-superset shadowing (general | specific, e.g. provisional_X ⊇ known_X) needs store/predicate reasoning — a later refinement, NOT this structural slice.`
@@ -195,7 +200,8 @@
 | — | director review | `done` (2026-06-02) | Director greenlit Tier A (A1/A2/A4/A5) → now owned leaves `.8`–`.11`. |
 | 1 | `PARSE-SOTA.8` (A1 well-formedness) | `pending` (frontier) | Static left-recursion + non-terminating-rule detection, rejected via pgen_error!; reuses .7.4.2 min-length + DIAG-SEVERITY channel. Lowest-risk Tier-A win. Starts once SV-EXH-PROOF.7.4.3 commits (frees stimuli_generator.rs). |
 | — | `PARSE-SOTA.9` (A2 ⭐ shadowing lint) | `analysis DONE` (`-0006`) | Sound shadowing detection (duplicate + fixed-terminal-prefix) landed, 581/581; wiring = `.9.1` (after `.7.4.3`). |
-| 2 | `PARSE-SOTA.8.1` / `.9.1` (wiring) | `pending` | Wire A1 reject (pgen_error!) + A2 warn (pgen_warn!) into grammar load/generate + verify on shipped grammars — needs `.7.4.3` committed (frees main.rs). |
+| — | `PARSE-SOTA.8.1` (A1 wiring) | `done` (`-0008`) | Non-terminating REJECT wired into grammar load (pgen_error!); verified zero false-fires across all shipped grammars. |
+| 2 | `PARSE-SOTA.9.1` (A2 wiring) | `pending` (frontier) | Surface shadowing findings (pgen_warn! / a `--lint-grammar` mode) with noise control — first measure the shadowing count on shipped grammars. |
 | 3 | `PARSE-SOTA.10` / `.11` (A4 round-trip / A5 `_meta`) | `pending` | Robustness + fidelity. |
 
 ## Decisions

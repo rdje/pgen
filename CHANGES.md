@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-PARSE-SOTA-0008 (leaf PARSE-SOTA.8.1 / A1 WIRING): **Grammars with non-terminating rules are now REJECTED at load time (always-on pgen_error!); verified zero false-fires on all shipped grammars.**
+
+Code (rust/src/main.rs) — NO grammar/generated change, no release bump.
+
+Wired detect_nonterminating_rules into the grammar load chokepoint (apply_grammar_profile_filter, after profile filtering, before returning LoadedGrammar): a rule with NO finite terminal derivation → emit each via the always-on DIAG-SEVERITY pgen_error! channel + return Err (reject the ill-formed grammar at load/generate time, instead of producing a broken/looping parser). Left recursion is deliberately NOT rejected (PGEN handles it via LR-elimination + the runtime mutual-recursion handler — established in -0007). MULTI-GRAMMAR VERIFICATION (the no-false-positive prerequisite, done BEFORE landing): built --features ebnf_dual_run + ran every shipped grammar through the load path — regex, json, ebnf, vhdl, rtl_const_expr, rtl_frontend, return_annotation, semantic_annotation ALL load clean (zero non-terminating reject); SV verified separately (0). Sound by construction (a rule absent from the converged min-length fixpoint genuinely has no finite derivation — a real defect, never a false positive). lib (no-features) 583/583; binary clippy 0 errors. Frontier .9.1 = surface the A2 shadowing findings (pgen_warn! / a --lint-grammar mode) with noise control.
+
 ## 2026-06-02 - PGEN-PARSE-SOTA-0007 (leaf PARSE-SOTA.8 / A1, RE-SCOPED): **Real-grammar verification corrects A1 — PGEN handles left recursion; the reject-worthy check is NON-TERMINATING rules.**
 
 Code (extends rust/src/ast_pipeline/grammar_wellformedness.rs) — PURE ANALYSIS, no generation/grammar/generated change, no release bump.

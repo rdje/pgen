@@ -2042,6 +2042,27 @@ fn apply_grammar_profile_filter(
         .annotations
         .map(|entries| filter_annotations_by_profile(entries, &retained_rules));
 
+    // PARSE-SOTA.8.1 (adoption A1): grammar well-formedness guard. REJECT a grammar that
+    // has NON-TERMINATING rules (no finite terminal derivation — genuinely ill-formed,
+    // which neither PGEN's LR-elimination nor its runtime cycle-breaking can rescue) at
+    // load time, surfaced via the always-on DIAG-SEVERITY pgen_error! channel. Left
+    // recursion is deliberately NOT rejected (PGEN handles it). Pure analysis over the
+    // (profile-filtered) grammar_tree; well-formed grammars emit nothing.
+    let nonterminating = pgen::ast_pipeline::grammar_wellformedness::detect_nonterminating_rules(
+        &retained_grammar_tree,
+        &retained_rule_order,
+    );
+    if !nonterminating.is_empty() {
+        for issue in &nonterminating {
+            pgen::pgen_error!("{}", issue.message());
+        }
+        return Err(anyhow::anyhow!(
+            "grammar '{}' is ill-formed: {} non-terminating rule(s) (see errors above)",
+            grammar.grammar_name,
+            nonterminating.len()
+        ));
+    }
+
     Ok(LoadedGrammar {
         grammar_name: grammar.grammar_name,
         grammar_tree: retained_grammar_tree,
