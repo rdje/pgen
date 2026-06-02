@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-DIAG-SEVERITY-0005 (leaf DIAG-SEVERITY.4): **Enforcement gate — severity-never-masked + live-docs-relative-paths can no longer regress (pre-commit + CI).**
+
+Shell/yaml only — NO Rust/grammar/generated code, no release bump.
+
+New scripts/check_diagnostics_and_docpaths.sh (sound; passes clean on the current tree): (1a) asserts the always-on severity mechanism is present in rust/src/ast_pipeline/mod.rs (Severity enum + emit_diagnostic + pgen_warn!/error!/fatal! — cannot be silently removed); (1b) flags any UNAMBIGUOUS severity (fatal/panic) routed through the verbosity-gated trace (best-effort tripwire; per-attempt info/debug breadcrumbs remain allowed — they are expected PEG control flow); (2) the DOCPATH guard — fails if a LIVE doc (docs/book/src, docs/contracts, PGEN_USER_GUIDE.md, README.md) carries a repo-internal absolute path (must be repo-root-relative). Wired into .githooks/pre-commit (now runs check_memory_architecture.sh + this one) + the memory-architecture-gate CI workflow (new step). PROVEN: passes clean (exit 0, "diagnostics+docpaths: OK"); detection patterns bite on injected masked-fatal + repo-internal-abs-path; this commit passes through the extended hook. Frontier: .5 (book lockstep — document the diagnostics severity model + reason taxonomy — then close the tree).
+
 ## 2026-06-02 - PGEN-DOCPATH-0001: **Live docs use repo-root-relative (not absolute local) file paths; +24 GB disk reclaimed (artifact cleanup).**
 
 Pure docs + operational cleanup — NO code, no release bump.

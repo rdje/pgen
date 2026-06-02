@@ -25,6 +25,11 @@ jobs:
       - name: Run memory-architecture self-check (E2)
         run: bash scripts/check_memory_architecture.sh
 
+      - name: Run diagnostics-severity + docpath guards (DIAG-SEVERITY.4 / DOCPATH)
+        # Severity (warning/error/fatal) never gated by verbosity; live docs use
+        # repo-root-relative paths. Same script the local pre-commit hook runs.
+        run: bash scripts/check_diagnostics_and_docpaths.sh
+
       - name: Validate commit subjects carry an identifier-shaped leading token (E3 mirror)
         # Permissive by design (see scripts/check_memory_architecture.sh notes): pgen
         # subject styles are varied; this rejects only blank/garbage-led subjects.

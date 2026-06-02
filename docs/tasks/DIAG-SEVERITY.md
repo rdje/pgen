@@ -104,7 +104,9 @@ failures as errors. The masking that hurt us was the AGGREGATE one (no reason on
 2,472-failure count), fixed by `.3` + `.3.1`.
 
 - ID: `DIAG-SEVERITY.4`
-  Status: `pending` (enforcement — cannot regress)
+  Status: `done` (`-0005`, 2026-06-02, enforcement)
+  Verification: `done — scripts/check_diagnostics_and_docpaths.sh (sound, passes clean on the current tree): (1a) asserts the always-on severity mechanism is present in mod.rs (Severity enum + emit_diagnostic + pgen_warn!/error!/fatal! — cannot be silently removed); (1b) flags any UNAMBIGUOUS severity (fatal/panic) routed through the verbosity-gated trace (best-effort tripwire; per-attempt info/debug breadcrumbs allowed); (2) fails if a LIVE doc (book/src, contracts, user guide, README) carries a repo-internal absolute path (the DOCPATH guard). Wired into .githooks/pre-commit (runs alongside check_memory_architecture.sh) + the memory-architecture-gate CI workflow (new step). PROVEN: passes clean (exit 0, "diagnostics+docpaths: OK"); detection patterns bite on injected masked-fatal + repo-internal-abs-path; this very commit passes through the extended pre-commit hook. NO Rust/grammar/generated change, no release bump.`
+  Commit: `PGEN-DIAG-SEVERITY-0005`
   Goal: `Add a guard so a Warning/Error/Fatal can never again be routed solely through a
   verbosity-gated path: a check-script / CI gate (mirror the MEMORY-ARCH E2/E4 pattern)
   + lint, e.g. flag any `Err(...) => …trace(`/level-gated emission carrying error/warn
@@ -159,8 +161,8 @@ migrates the (B) sites + closes the (A)-risk by construction.
 | — | `DIAG-SEVERITY.2` | `done` (`-0002`) | Severity mechanism landed: Severity enum + emit_diagnostic (always-on) + pgen_warn!/error!/fatal! macros; 570/570, clippy clean. |
 | — | `DIAG-SEVERITY.3` | `done` (`-0003`) | Error-by-reason: depth_exceeded bucket + summary + once-per-run pgen_warn!; taxonomy documented; revealed max_rule_visits as a 2nd masked budget failure. 570/570. |
 | — | `DIAG-SEVERITY.3.1` | `done` (`-0004`) | Canonical GenerationErrorReason enum (single source of truth) + un-masked max_rule_visits; 571/571. |
-| 1 | `DIAG-SEVERITY.4` | `pending` (frontier) | Enforcement gate (mirror MEMORY-ARCH E2/E4) so a masked-severity site cannot regress. |
-| 2 | `DIAG-SEVERITY.5` | `pending` | Book lockstep (diagnostics severity model + reason taxonomy) + close. |
+| — | `DIAG-SEVERITY.4` | `done` (`-0005`) | Enforcement gate (check_diagnostics_and_docpaths.sh, wired into pre-commit + CI): severity-mechanism-present + no fatal/panic masked through trace + live-docs path guard. |
+| 1 | `DIAG-SEVERITY.5` | `pending` (frontier) | Book lockstep (diagnostics severity model + reason taxonomy) + close. |
 | 3 | `DIAG-SEVERITY.4` | `pending` | Enforcement gate (cannot regress). |
 | 4 | `DIAG-SEVERITY.5` | `pending` | Book lockstep + close. |
 

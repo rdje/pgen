@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
-# .githooks/pre-commit — MEMORY-ARCH E3 (PGEN-MEMORY-ARCH-0005)
-# Run the memory-architecture self-check; block the commit on any breach.
-exec "$(git rev-parse --show-toplevel)/scripts/check_memory_architecture.sh"
+# .githooks/pre-commit — repo-hygiene gates; block the commit on any breach.
+#   - MEMORY-ARCH E3 (PGEN-MEMORY-ARCH-0005): durable-memory-architecture invariants.
+#   - DIAG-SEVERITY.4 + DOCPATH (PGEN-DIAG-SEVERITY-0005): severity-never-masked +
+#     live-docs repo-root-relative paths.
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+"$ROOT/scripts/check_memory_architecture.sh"
+"$ROOT/scripts/check_diagnostics_and_docpaths.sh"
