@@ -12,12 +12,12 @@
 - Live status: `LIVE_ACHIEVEMENT_STATUS.md`; changelog: `CHANGES.md`.
 
 ## Current state (OVERWRITE this block each update — do not append)
-- latest_commit: `0ed9d83c` — "PGEN-MEMORY-ARCH-0005 (MEMORY-ARCH.4): enforcement kit E1–E4" (ahead of origin ~20; push at ~30) — being superseded by the MEMORY-ARCH.5 close commit
-- active_work_unit: none in flight — `MEMORY-ARCH` tree CLOSED (`-0001..0006`, durable memory architecture adopted, E1–E4 enforced, hooks armed via core.hooksPath).
-- next_action: pick the next thread. Primary open item: SV-EXH-PROOF `.7.2.21` director decision (accept-with-evidence at 888 vs commission a new non-steering coverage mechanism). Backlog: 9 proposed skeleton trees (PNR/linter/compiler-elaborator/...).
-- in_flight_uncommitted: the MEMORY-ARCH.5 close (this file + LIVE/CHANGES/TASK_TREE + tree node) being committed now.
+- latest_commit: `<the -0137 / .7.3 research commit>` (ahead of origin ~21; push at ~30). MEMORY-ARCH tree CLOSED (`-0001..0006`).
+- active_work_unit: `SV-EXH-PROOF` → frontier `.7.4` (literature-grounded literal-0, commissioned by `.7.3`). Also opening a new `PARSE-SOTA` tree to ground the EBNF→parser-generator path in literature (director ask 2026-06-02).
+- next_action: (a) create the `PARSE-SOTA` tree + run its literature research; (b) begin `.7.4.1` (pin the coverage criterion `replay_target_count` measures + reachable-target-set under the PEG guard, pure docs). `.7.4` lands phased + measured per the no-regression discipline; director sign-off before any generation-behavior change.
+- in_flight_uncommitted: none after the `-0137` commit.
 - blockers: none.
 
 ## Other open threads (not the active unit)
-- `SV-EXH-PROOF` (active, paused at a logged checkpoint): reach campaign `.7.2` consolidated in its `.7.2 CAMPAIGN SUMMARY`. Best-known stimuli residual = 888 (down from 1273 dead-hook / ~2660 initial); 3 steering-intensification attempts all regressed via diversity collapse → steering exhausted; residual is 100% reachable (not structural). Open decision `.7.2.21`: accept-with-evidence at 888 vs commission a new (non-steering, diversity-preserving) mechanism — director call. SV main parser = Mostly Done; generation path byte-identical to the 888 blob.
+- `SV-EXH-PROOF` literal-0: `.7.3` (-0137) RESEARCH overturned accept-at-888 — literal-0 IS systematically attainable via DECOUPLE (diverse background + per-residual Purdom minimal witnesses + our existing PEG-forcing); 3 prior steering regressions = textbook mode collapse. Design: docs/tasks/SV-EXH-PROOF-7.3-literature-grounded-literal-zero-design.md. Frontier `.7.4`. Best-known residual still 888 (generation byte-identical to the 888 blob) until `.7.4.3` lands witnesses.
 - Push: ⛔ no-push override; push at ~30 unpushed or on explicit request. Restore tag `checkpoint/sv-exh-proof-3.2-clean` @ 41bef35e.
