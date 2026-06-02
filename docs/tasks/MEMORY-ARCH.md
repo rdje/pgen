@@ -73,11 +73,11 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
   Children: `MEMORY-ARCH.1 .. .5`
 
 - ID: `MEMORY-ARCH.1`
-  Status: `pending` (frontier)
+  Status: `done` (`PGEN-MEMORY-ARCH-0002`, 2026-06-02)
   Goal: `Author/copy MEMORY_ARCHITECTURE.md to the repo root (from the specforge standard, verbatim where project-agnostic) + add a README.md doc-map pointer to it. Establishes the system-of-record document before the layers/enforcement land.`
   Acceptance: `MEMORY_ARCHITECTURE.md present at root; README.md references it (+ the task-tree + COMMIT.md conventions) so it is discoverable from the tool-neutral entrypoint; committed via COMMIT.md.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — copied /Users/richarddje/Documents/github/specforge/MEMORY_ARCHITECTURE.md to repo root VERBATIM (diff -q = identical; 408 lines; the standard is project-agnostic, copy-as-is per its §0). Added README.md pointers in TWO discoverable places: the "Fast Ramp-Up (Read In This Order)" list (MEMORY_ARCHITECTURE.md as #14, with MEMORY.md reframed as "layer A — bounded resume pointer; read first on resume") + the "Active Markdown Index" (MEMORY_ARCHITECTURE.md = the memory/continuity system of record). README already references docs/TASK_TREE.md (layer B) + COMMIT.md (commit workflow), so the tool-neutral entrypoint now routes to the full system. NO code, no release bump. (Per-harness bootstrap pointer files AGENTS.md/CLAUDE.md/etc. land in .4 E1.)`
+  Commit: `done — PGEN-MEMORY-ARCH-0002`
 
 - ID: `MEMORY-ARCH.2`
   Status: `pending`

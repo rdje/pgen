@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-MEMORY-ARCH-0002 (leaf MEMORY-ARCH.1): **MEMORY_ARCHITECTURE.md added at repo root (verbatim from the standard) + README doc-map pointers.**
+
+Pure docs — NO code, NO release bump. First implementation leaf of the MEMORY-ARCH tree.
+
+Copied the project-agnostic Durable Agent Memory Architecture standard (specforge/MEMORY_ARCHITECTURE.md, 408 lines) to the pgen repo root VERBATIM (diff identical). Added README.md pointers in two discoverable spots: the "Fast Ramp-Up (Read In This Order)" list (#14, + reframed MEMORY.md as the layer-A bounded resume pointer) and the "Active Markdown Index" (system of record for memory/continuity). With README already pointing at docs/TASK_TREE.md (layer B) and COMMIT.md, the tool-neutral entrypoint now routes a fresh agent to the whole memory system. Per-harness bootstrap pointer files (AGENTS.md/CLAUDE.md/...) land in .4 (E1). Frontier → MEMORY-ARCH.2 (docs/decisions/ + migrate all ~/.claude durable records).
+
 ## 2026-06-02 - PGEN-MEMORY-ARCH-0001 (leaf MEMORY-ARCH, tree creation): **Opened the MEMORY-ARCH task tree to own adoption of the durable agent-memory architecture (full enforcement) — task-tree-owned FIRST, before any code.**
 
 Pure docs — NO code, NO release bump. Creates the owning unit before any MEMORY-ARCH file work, per the task-tree doctrine.

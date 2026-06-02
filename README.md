@@ -91,10 +91,11 @@ PGEN is a production-focused parser and stimuli generator platform.
 11. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
 12. `docs/TASK_TREE.md` (active task trees + PNT selection rules)
 13. `docs/TASK_TREE_README.md` (reusable workflow installation guide)
-14. `CHANGES.md`
-15. `DEVELOPMENT_NOTES.md`
-16. `MEMORY.md`
-17. `COMMIT.md`
+14. `MEMORY_ARCHITECTURE.md` (how durable, harness-agnostic agent memory + continuity work here — the 4 layers + enforcement)
+15. `MEMORY.md` (layer A — the bounded resume pointer; read first on resume)
+16. `CHANGES.md`
+17. `DEVELOPMENT_NOTES.md`
+18. `COMMIT.md`
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
@@ -298,7 +299,8 @@ The list below is the current high-signal markdown surface for active work. A 20
 - `COMMIT.md`
 - `DEVELOPMENT_NOTES.md`
 - `LIVE_ACHIEVEMENT_STATUS.md`
-- `MEMORY.md`
+- `MEMORY_ARCHITECTURE.md` (durable harness-agnostic agent-memory standard — the memory/continuity system of record)
+- `MEMORY.md` (layer A resume pointer)
 - `PGEN_USER_GUIDE.md`
 - `QUICKSTART_AI_ONBOARDING.md`
 - `SESSION_BOOTSTRAP.md`
