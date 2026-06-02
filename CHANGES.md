@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-DIAG-SEVERITY-0006 (leaf DIAG-SEVERITY.5, TREE CLOSED): **Book lockstep — diagnostics severity model + error-reason taxonomy documented; DIAG-SEVERITY tree CLOSED.**
+
+Pure docs / live-book — NO code, no release bump.
+
+Added a "Diagnostics: severity vs verbosity" section to the top-level mdBook (docs/book/src/developer-architecture.md): the two orthogonal axes (verbosity = info only, gated; severity Warning<Error<Fatal = always-on); the mechanism (TraceLevel + pgen_trace* vs Severity + emit_diagnostic + pgen_warn!/error!/fatal!); the hard rule + its enforcement gate; and the GenerationErrorReason error-by-reason taxonomy table. HTML rebuilt (section rendered); mdbook_docs_gate green; check_diagnostics_and_docpaths green. **DIAG-SEVERITY tree CLOSED** (`-0001..0006`): the trace-masking flaw that hid the SV depth-exceeded cause for the whole `.7.2` campaign is fixed end-to-end — mechanism + classification + enforcement + book. Promoted active→Completed in docs/TASK_TREE.md.
+
 ## 2026-06-02 - PGEN-DIAG-SEVERITY-0005 (leaf DIAG-SEVERITY.4): **Enforcement gate — severity-never-masked + live-docs-relative-paths can no longer regress (pre-commit + CI).**
 
 Shell/yaml only — NO Rust/grammar/generated code, no release bump.

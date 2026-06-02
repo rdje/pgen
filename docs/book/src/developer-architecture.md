@@ -34,6 +34,44 @@ The detailed planning surface for that direction now lives in:
 - `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
 - `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
 
+## Diagnostics: severity vs verbosity
+
+PGEN keeps two orthogonal axes for messages, and they must never be confused:
+
+- **Verbosity** (`TraceLevel`: `Low`/`Medium`/`High`/`Debug`) governs **informational**
+  output only. It is gated by the active trace verbosity (`none` by default), via
+  `pgen_trace!` / `pgen_trace_low!` / … and the `trace_log` sink. A breadcrumb suppressed
+  at low verbosity is fine — it carries no severity.
+- **Severity** (`Severity`: `Warning` < `Error` < `Fatal`) is **always emitted**,
+  unconditionally, to stderr — via `pgen_warn!` / `pgen_error!` / `pgen_fatal!` and
+  `emit_diagnostic`. **A warning/error/fatal is NEVER gated by a verbosity level**, because
+  a severity message hidden behind verbosity is a silent failure.
+
+This separation is a hard rule (a masked error once hid the dominant cause of the
+SystemVerilog stimuli-coverage residual for an entire campaign). It is enforced by
+`scripts/check_diagnostics_and_docpaths.sh` (run in the pre-commit hook and CI), which
+fails if the always-on mechanism is removed or if an unambiguous severity is routed
+through the verbosity-gated trace.
+
+### Error-by-reason classification
+
+Generation failures are classified — never folded into an anonymous count — by the single
+canonical `GenerationErrorReason` enum (`classify_generation_error`):
+
+| Reason | Meaning | Class |
+|---|---|---|
+| `DepthExceeded` | hit `max_depth` (recursion-depth budget) | structural budget |
+| `RuleVisitLimit` | hit `max_rule_visits` (per-rule visit budget) | structural budget |
+| `TargetTimeout` | primary-entry generation timed out | time budget |
+| `HelperTimeout` | helper-probe generation timed out | time budget |
+| `Other` | any other failure, incl. expected PEG backtracking | residual |
+
+The two **structural-budget** reasons are surfaced per-run in the target-drive summary and
+in a once-per-run always-on warning, so coverage shortfalls caused by the generation
+budgets are visible rather than masked. (Note: an expected PEG rule-attempt failure that
+the generator handles by backtracking is *control flow*, not a severity error, and stays
+informational.)
+
 ## Primary Source Docs
 
 - `docs/reference/RUST_CODEBASE_ANALYSIS.md`

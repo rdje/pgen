@@ -1,6 +1,7 @@
 # DIAG-SEVERITY — severity (warning/error/fatal) must never be gated by a trace/verbosity level
 
-> Task tree. **Metadata** — Status: `active`; Created: 2026-06-02 (`PGEN-DIAG-SEVERITY-0001`);
+> Task tree. **Metadata** — Status: `done` (CLOSED 2026-06-02, `-0001..0006`);
+> Created: 2026-06-02 (`PGEN-DIAG-SEVERITY-0001`);
 > Roadmap lane: cross-cutting engine/diagnostics correctness.
 >
 > Director directive (2026-06-02, emphatic): *"warnings, errors and fatals shall never,
@@ -115,7 +116,9 @@ failures as errors. The masking that hurt us was the AGGREGATE one (no reason on
   the migrated tree; runs in pre-commit + CI.`
 
 - ID: `DIAG-SEVERITY.5`
-  Status: `pending` (book lockstep + close)
+  Status: `done` (`-0006`, 2026-06-02, book lockstep + TREE CLOSED)
+  Verification: `done — added a "Diagnostics: severity vs verbosity" section to the top-level mdBook docs/book/src/developer-architecture.md (the two orthogonal axes; the always-on severity mechanism + macros; the hard rule + its enforcement gate; the GenerationErrorReason error-by-reason taxonomy table). HTML rebuilt (section rendered); mdbook_docs_gate green; check_diagnostics_and_docpaths green. TREE CLOSED. NO Rust/grammar/generated change, no release bump.`
+  Commit: `PGEN-DIAG-SEVERITY-0006`
   Goal: `Document the diagnostics severity model (verbosity vs severity; warnings+ always
   on) in the top-level mdBook (Developer Architecture / a Diagnostics section) + per the
   [[feedback_regex_book_live]] lockstep; close the tree.`
@@ -162,7 +165,7 @@ migrates the (B) sites + closes the (A)-risk by construction.
 | — | `DIAG-SEVERITY.3` | `done` (`-0003`) | Error-by-reason: depth_exceeded bucket + summary + once-per-run pgen_warn!; taxonomy documented; revealed max_rule_visits as a 2nd masked budget failure. 570/570. |
 | — | `DIAG-SEVERITY.3.1` | `done` (`-0004`) | Canonical GenerationErrorReason enum (single source of truth) + un-masked max_rule_visits; 571/571. |
 | — | `DIAG-SEVERITY.4` | `done` (`-0005`) | Enforcement gate (check_diagnostics_and_docpaths.sh, wired into pre-commit + CI): severity-mechanism-present + no fatal/panic masked through trace + live-docs path guard. |
-| 1 | `DIAG-SEVERITY.5` | `pending` (frontier) | Book lockstep (diagnostics severity model + reason taxonomy) + close. |
+| — | `DIAG-SEVERITY.5` | `done` (`-0006`) | Book lockstep (Diagnostics: severity vs verbosity + reason taxonomy in Developer Architecture). **TREE CLOSED.** |
 | 3 | `DIAG-SEVERITY.4` | `pending` | Enforcement gate (cannot regress). |
 | 4 | `DIAG-SEVERITY.5` | `pending` | Book lockstep + close. |
 
