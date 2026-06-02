@@ -741,6 +741,34 @@ literal over a failing surface.
   Status: `pending` (umbrella — literature-grounded literal-0; commissioned by .7.3 §7)
   Goal: `Implement the decoupled, literature-backed path to literal-0 stimuli coverage, one measured step at a time per [[feedback_no_codebase_change_without_tool_backed_facts]]. PARSER-AGNOSTIC throughout (benefits every PGEN parser) per [[feedback_ast_pipeline_parser_agnostic]]. Sub-leaves: .7.4.1 pin the coverage criterion replay_target_count measures + define the reachable target set under the PEG guard (pure docs); .7.4.2 implement the Purdom shortest-derivation (min terminal length) table as PURE analysis, unit-tested, generation byte-identical to 888; .7.4.3 emit per-residual MINIMAL WITNESSES as a SEPARATE appended corpus segment (background pass untouched), measure vs 888 — keep iff replay_target_count < 888, instant-revert otherwise; .7.4.4 (if a tail remains) two-tier uncovered-first witness expansion + optional count-uniform/Boltzmann background, measured. Each: lib+clippy green, determinism confirmed, global metric measured before the next step.`
   Acceptance: `replay_target_count → literal 0 (per the criterion pinned in .7.4.1), reached by CONSTRUCTION not by sampling harder; diversity preserved (background pass byte-stable vs 888); each sub-leaf measured one-thing-at-a-time with instant-revert discipline; full COMMIT.md workflow + book/contract lockstep on any user-impacting behavior change. Director sign-off before any generation-behavior change lands.`
+  Verification: `in_progress (director greenlit 2026-06-02; sequencing .7.4.1 → .7.4.2 first as zero-risk)`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.4.1`
+  Status: `done` (`-0138`, 2026-06-02, pure-docs INVESTIGATION — tools-first, no code)
+  Goal: `Pin EXACTLY what the 888 residual (replay_target_count / focused_replay_target_count) measures, from the SOURCE (not from memory): (a) is a target a PRODUCTION (rule coverage, RC) or a branch-in-context / k-path? (b) the target_type taxonomy (Branch vs Rule) + reasons (never_selected / never_hit / ...); (c) how the closed-loop replay computes "covered" vs "residual"; (d) the reachable-target-set definition under the PEG guard (which targets are genuinely reachable vs structurally excluded). OUTPUT: a criterion classification (RC / CDRC / k-path) that determines whether literal-0 is bounded-finite (RC) or depth-relative, + the precise target set .7.4.3 must witness.`
+  Acceptance: `a source-cited investigation doc naming the exact structs/functions/JSON fields that define the residual + its criterion; no code change.`
+  Verification: `done — docs/tasks/SV-EXH-PROOF-7.4.1-residual-criterion-investigation.md. FINDINGS (source-cited stimuli_generator.rs + gate): a residual target is either a RULE (production never generated = rule coverage) or a BRANCH (ordered-choice alt at (rule,node_path,branch_index) = context-dependent branch coverage); required_successes=1 per target (covered when current_successes>=1); residual is ALREADY reachable-only (.filter(|t| t.reachable); unreachable ones go to separate debt lists); reach_classification partitions targets into reachable_by_plan (witnessable via existing compute_reach_path+forced_or_branch_for_site) / reachable_rule_not_generated / no_reach_path (need .7.4.2 Purdom construction). CONCLUSION: criterion = RC + CDBC, bounded-finite, literal-0 = one witness per reachable obligation → EXACTLY the .7.3 Purdom/set-cover plan. Honest note: deterministic best-known=888; on-disk shadow_state showed 525 (different prior run) — .7.4.3 measures the deterministic count fresh. NO code change.`
+  Commit: `SVEXH-Slice-127 (PGEN-SV-EXH-PROOF-0138)`
+
+- ID: `SV-EXH-PROOF.7.4.2`
+  Status: `pending` (code — Purdom shortest-derivation table, PURE analysis)
+  Goal: `Implement a Purdom phase-1 shortest-derivation (min terminal length per symbol + which production achieves it) table over the compiled grammar IR, as PURE analysis in stimuli_generator.rs — calls no generation fn, mutates nothing, generation path byte-identical to the 888 blob. Unit-tested (min-length fixpoint correctness on a small grammar). Foundation for .7.4.3's minimal-witness construction.`
+  Acceptance: `(1) generation byte-identical to 888 (git diff shows zero change to any generate_* fn); (2) unit tests for the min-length fixpoint; (3) lib + clippy green; (4) parser-agnostic. NO grammar/codegen/generated change, no release bump.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.4.3`
+  Status: `pending` (code — per-residual minimal witnesses, SEPARATE appended segment, MEASURED)
+  Goal: `Using .7.4.2's table + the EXISTING forced_or_branch_for_site / compute_reach_path PEG-forcing, emit ONE minimal witness per residual target as a SEPARATE appended corpus segment — the diverse background pass stays byte-identical to 888 (decouple, per .7.3). Measure replay_target_count vs 888.`
+  Acceptance: `KEEP iff replay_target_count < 888 (target: → 0); INSTANT-REVERT otherwise (restore the 888 blob), recording the number. Background pass proven byte-stable. lib+clippy green, determinism confirmed. GENERATION-BEHAVIOR change → director sign-off before it lands + before the measured run is acted on.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `SV-EXH-PROOF.7.4.4`
+  Status: `pending` (code, conditional — only if a tail remains after .7.4.3)
+  Goal: `If .7.4.3 leaves a residual: add the Fuzzing-Book two-tier "uncovered-first then uniform-random" witness expansion + optionally a count-uniform/Boltzmann background to surface stragglers, measured. Only opened if needed.`
+  Acceptance: `replay_target_count → literal 0; measured one-thing-at-a-time; director sign-off.`
   Verification: `pending`
   Commit: `pending`
 
