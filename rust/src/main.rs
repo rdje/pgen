@@ -1346,7 +1346,7 @@ fn main() -> Result<()> {
                     grammar.grammar_name
                 ));
             }
-            let (generated_samples, target_summary) = if args.validate_parseability {
+            let (mut generated_samples, target_summary) = if args.validate_parseability {
                 let (samples, summary, validation) = generator.generate_until_targets_with_filter(
                     Some(resolved_entry_rule.as_str()),
                     &target_report.targets,
@@ -1419,6 +1419,16 @@ fn main() -> Result<()> {
                     );
                 }
             }
+            // SV-EXH-PROOF.7.4.3: APPENDED minimal-witness pass. After the diverse +
+            // target-drive passes, generate one dedicated witness per still-unresolved
+            // target rooted at the target's OWN rule (fresh full depth budget — the
+            // .7.4.3a depth-budget fix). Purely additive: only adds coverage into the
+            // same generator, so the residual the gap report below measures can only
+            // shrink (monotone). The diverse pass (separate invocation) is untouched.
+            let (witness_samples, witness_summary) =
+                generator.generate_target_witnesses(&target_report.targets)?;
+            println!("{}", witness_summary.summary_line());
+            generated_samples.extend(witness_samples);
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
         } else if args.validate_parseability {

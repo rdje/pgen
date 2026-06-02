@@ -830,6 +830,44 @@ pub struct TargetDriveSummary {
     pub reach_plan_activations: u64,
 }
 
+/// SV-EXH-PROOF.7.4.3 (PGEN-SV-EXH-PROOF-0141): outcome of the APPENDED minimal-witness
+/// pass — the decoupled literal-0 completion (Purdom/Hennessy-&-Power set-cover) that runs
+/// AFTER the diverse + target-drive passes and only ADDS coverage (monotone: residual can
+/// only shrink). Failures are classified by the canonical `GenerationErrorReason`
+/// (DIAG-SEVERITY) so a residual tail's cause is visible, not masked.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct WitnessSummary {
+    pub total_targets: usize,
+    pub resolved_before: usize,
+    pub resolved_after: usize,
+    pub witnesses_generated: usize,
+    #[serde(default)]
+    pub depth_exceeded_failures: usize,
+    #[serde(default)]
+    pub rule_visit_limit_failures: usize,
+    #[serde(default)]
+    pub other_failures: usize,
+    #[serde(default)]
+    pub no_entry_rule: usize,
+}
+
+impl WitnessSummary {
+    pub fn summary_line(&self) -> String {
+        format!(
+            "Witness pass: resolved {} -> {} of {} reachable targets (+{} via {} witnesses; failures depth_exceeded={}, rule_visit_limit={}, other={}, no_entry={})",
+            self.resolved_before,
+            self.resolved_after,
+            self.total_targets,
+            self.resolved_after.saturating_sub(self.resolved_before),
+            self.witnesses_generated,
+            self.depth_exceeded_failures,
+            self.rule_visit_limit_failures,
+            self.other_failures,
+            self.no_entry_rule
+        )
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct TargetDriveValidationSummary {
     pub validated_outputs: usize,
@@ -2350,6 +2388,125 @@ impl<'a> StimuliGenerator<'a> {
                 .then_with(|| a.id.cmp(&b.id))
         });
         statuses
+    }
+
+    /// SV-EXH-PROOF.7.4.3 (PGEN-SV-EXH-PROOF-0141): the APPENDED minimal-witness pass.
+    /// For each still-unresolved reachable target, generate ONE dedicated witness rooted
+    /// at the TARGET'S OWN RULE (for a branch target, force that branch within the rule),
+    /// so the target's subtree gets a FRESH, full depth budget instead of the leftovers
+    /// after descending from the top entry — the root-cause fix from `.7.4.3a` (deep rules
+    /// generate fine standalone but exhaust the budget reached from `systemverilog_file`).
+    /// PURELY ADDITIVE: it only generates extra samples and accumulates their coverage into
+    /// `self.coverage`; it never touches the diverse pass (a separate invocation) nor the
+    /// target-drive pass (already complete), so the combined residual can only SHRINK
+    /// (monotone). Re-evaluates after each witness (greedy set-cover: a target covered "on
+    /// the way" by a prior witness is skipped). The witness pass runs under a temporary
+    /// depth/visit slack (×2) so even deeper rules complete; the per-witness timeout makes
+    /// pathologically-recursive rules fail (counted) rather than hang. Failures are
+    /// classified by reason (DIAG-SEVERITY) so any tail's cause is visible.
+    pub fn generate_target_witnesses(
+        &mut self,
+        targets: &[StimuliCoverageTarget],
+    ) -> Result<(Vec<String>, WitnessSummary)> {
+        let applicable: Vec<StimuliCoverageTarget> = targets
+            .iter()
+            .filter(|t| t.reachable)
+            .cloned()
+            .collect();
+        let total_targets = applicable.len();
+        let resolved_before =
+            total_targets.saturating_sub(self.evaluate_target_statuses(&applicable).len());
+
+        // Temporary depth/visit slack for the witness pass only (generalises the existing
+        // per-branch depth-slack retry at ~4869). Restored before return; never affects the
+        // diverse pass (separate invocation). The per-witness timeout bounds the cost.
+        let original_max_depth = self.config.max_depth;
+        let original_max_rule_visits = self.config.max_rule_visits;
+        self.config.max_depth = original_max_depth.saturating_mul(2);
+        self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
+        let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
+
+        let mut outputs = Vec::new();
+        let mut attempted: HashSet<String> = HashSet::new();
+        let mut witnesses_generated = 0usize;
+        let mut depth_exceeded_failures = 0usize;
+        let mut rule_visit_limit_failures = 0usize;
+        let mut other_failures = 0usize;
+        let mut no_entry_rule = 0usize;
+
+        loop {
+            let pending = self.evaluate_target_statuses(&applicable);
+            let Some(status) = pending.iter().find(|s| !attempted.contains(&s.id)).cloned() else {
+                break;
+            };
+            attempted.insert(status.id.clone());
+
+            // Witness entry = the target's OWN rule → its subtree gets the full budget.
+            let entry_rule = status.rule_name.clone();
+            if !self.grammar_tree.contains_key(entry_rule.as_str()) {
+                no_entry_rule = no_entry_rule.saturating_add(1);
+                continue;
+            }
+
+            // For a branch target, force that branch within its rule.
+            let mut plan_installed = false;
+            if status.target_type == StimuliCoverageTargetType::Branch {
+                if let (Some(node_path), Some(branch_index)) =
+                    (status.node_path.as_ref(), status.branch_index)
+                {
+                    plan_installed = self.set_reach_plan(
+                        &entry_rule,
+                        &entry_rule,
+                        node_path,
+                        branch_index,
+                        bypass_fuel,
+                    );
+                }
+            }
+
+            let timeout = self.target_drive_generation_timeout(false);
+            let result = self.generate_from_entry_with_optional_timeout(&entry_rule, timeout);
+            if plan_installed {
+                self.clear_reach_plan();
+            }
+            match result {
+                Ok(sample) => {
+                    outputs.push(sample);
+                    witnesses_generated = witnesses_generated.saturating_add(1);
+                }
+                Err(error) => match Self::classify_generation_error(&error) {
+                    GenerationErrorReason::DepthExceeded => {
+                        depth_exceeded_failures = depth_exceeded_failures.saturating_add(1);
+                    }
+                    GenerationErrorReason::RuleVisitLimit => {
+                        rule_visit_limit_failures = rule_visit_limit_failures.saturating_add(1);
+                    }
+                    _ => {
+                        other_failures = other_failures.saturating_add(1);
+                    }
+                },
+            }
+        }
+
+        self.config.max_depth = original_max_depth;
+        self.config.max_rule_visits = original_max_rule_visits;
+
+        let resolved_after =
+            total_targets.saturating_sub(self.evaluate_target_statuses(&applicable).len());
+
+        Ok((
+            outputs,
+            WitnessSummary {
+                total_targets,
+                resolved_before,
+                resolved_after,
+                witnesses_generated,
+                depth_exceeded_failures,
+                rule_visit_limit_failures,
+                other_failures,
+                no_entry_rule,
+            },
+        ))
     }
 
     pub fn generate_until_targets(
@@ -12458,6 +12615,46 @@ mod tests {
             .generate_from_entry("start")
             .expect("subsequent direct generation should still succeed");
         assert_eq!(sample, "ok");
+    }
+
+    #[test]
+    fn witness_pass_resolves_uncovered_targets_monotonically() {
+        // SV-EXH-PROOF.7.4.3: a fresh generator has all reachable rules uncovered; the
+        // appended witness pass generates each from its own rule and must RESOLVE them
+        // (monotone gain), without the diverse pass having run.
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+
+        let report = generator
+            .generate_gap_report(Some("start"), 1)
+            .expect("gap report");
+        assert!(
+            !report.targets.is_empty(),
+            "a fresh generator must list uncovered reachable targets"
+        );
+        let before = generator.evaluate_target_statuses(&report.targets).len();
+
+        let (witnesses, summary) = generator
+            .generate_target_witnesses(&report.targets)
+            .expect("witness pass");
+
+        assert!(
+            summary.witnesses_generated > 0,
+            "the witness pass must generate witnesses, got {:?}",
+            summary
+        );
+        assert!(
+            summary.resolved_after > summary.resolved_before,
+            "witnesses must RESOLVE targets (monotone gain): {:?}",
+            summary
+        );
+        let after = generator.evaluate_target_statuses(&report.targets).len();
+        assert!(
+            after < before,
+            "residual must shrink after the witness pass ({before} -> {after})"
+        );
+        assert!(!witnesses.is_empty());
     }
 
     #[test]
