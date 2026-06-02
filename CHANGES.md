@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-DIAG-SEVERITY-0002 (leaf DIAG-SEVERITY.2): **Severity mechanism — warnings/errors/fatals now emit UNCONDITIONALLY, never gated by trace verbosity.**
+
+Code (rust/src/ast_pipeline/mod.rs) — PURELY ADDITIVE (no existing trace line changed → trace behavior unchanged); NO grammar/codegen/generated change, no release bump.
+
+Added: a `Severity { Warning < Error < Fatal }` enum ORTHOGONAL to the `TraceLevel` verbosity scale; `emit_diagnostic(severity, file, line, module, args)` that ALWAYS writes to **stderr** with NO `trace_enabled` gate (by design) and mirrors to the trace file if configured; a testable `write_diagnostic<W>` core + pure `format_diagnostic`; and `pgen_diag!` / `pgen_warn!` / `pgen_error!` / `pgen_fatal!` macros (mirroring `pgen_trace!`). Verbosity (`TraceLevel`) now governs INFORMATIONAL output only; severity governs always-on diagnostics. VERIFIED by 2 unit tests: `severity_diagnostics_emit_regardless_of_verbosity` sets verbosity `None` → proves a `High` *trace* is suppressed (the bug) while the `Severity::Error` diagnostic still writes `"ERROR … Stimuli generation depth exceeded max_depth=24"` (the fix); + severity ordering/labels. lib (no-features) 570/570 (+2); clippy 0 errors. (A separate pre-existing `AnnotationSeverity` enum for annotation diagnostics is a distinct concern.) Frontier `.3`: migrate the masked sites (stimuli_generator.rs:4021/4437 → `pgen_error!`) + add error-by-reason buckets at :2432 so the gap-report surfaces depth_exceeded counts (which will let us CONFIRM at the gate level that depth-exceeded dominates the SV 888 residual).
+
 ## 2026-06-02 - PGEN-DIAG-SEVERITY-0001 (DIAG-SEVERITY tree creation + leaf .1 audit): **New ACTIVE tree — severity (warning/error/fatal) must NEVER be gated by a trace/verbosity level; codebase-wide correction.**
 
 Pure docs — NO code, NO release bump. Director-directed (emphatic): "warnings, errors and fatals shall never, ever, ever be masked by a trace level; trace levels apply to info only; create a task-tree to correct this in the entire codebase."

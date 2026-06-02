@@ -54,7 +54,9 @@ the defect is specific to the `ast_pipeline` custom trace mechanism.
   Acceptance: `a source-cited site inventory + classification; no code change.`
 
 - ID: `DIAG-SEVERITY.2`
-  Status: `pending` (code + ADR — the severity mechanism)
+  Status: `done` (`-0002`, 2026-06-02, code — additive engine mechanism)
+  Verification: `done — added to ast_pipeline/mod.rs: a Severity{Warning<Error<Fatal} enum (orthogonal to the TraceLevel verbosity scale); emit_diagnostic(severity,file,line,module,args) that ALWAYS writes to stderr (NO trace_enabled gate, by design) + mirrors to the trace file if configured; a testable write_diagnostic<W> core + pure format_diagnostic; and pgen_diag!/pgen_warn!/pgen_error!/pgen_fatal! macros (mirror pgen_trace!). 2 unit tests: severity_diagnostics_emit_regardless_of_verbosity (set verbosity None → a High TRACE is suppressed (the bug) BUT the severity diagnostic still writes "ERROR … depth exceeded max_depth=24" — the fix) + severity ordering/labels. PURELY ADDITIVE (no existing trace line changed → trace behavior unchanged). lib (no-features) 570/570 (+2); clippy 0 errors. NOTE: a separate pre-existing AnnotationSeverity enum exists for annotation diagnostics — distinct concern. ADR deferred into this verification note + the tree's principle section (full docs/decisions ADR can follow in .5 book lockstep). NO grammar/codegen/generated change, no release bump.`
+  Commit: `PGEN-DIAG-SEVERITY-0002`
   Goal: `Introduce a Severity dimension orthogonal to verbosity so Warning/Error/Fatal
   ALWAYS emit (bypass the verbosity gate, route to stderr), while Info/Debug/Trace stay
   verbosity-gated. Candidate: a Severity enum + a diag(severity, …) / diag_warn!/
@@ -129,8 +131,8 @@ migrates the (B) sites + closes the (A)-risk by construction.
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `DIAG-SEVERITY.1` | `done` (`-0001`) | Audit complete (above). |
-| 1 | `DIAG-SEVERITY.2` | `pending` | The severity mechanism (Warning+ bypasses verbosity) + ADR. |
-| 2 | `DIAG-SEVERITY.3` | `pending` | Migrate masked sites + error-by-reason buckets. |
+| — | `DIAG-SEVERITY.2` | `done` (`-0002`) | Severity mechanism landed: Severity enum + emit_diagnostic (always-on) + pgen_warn!/error!/fatal! macros; 570/570, clippy clean. |
+| 1 | `DIAG-SEVERITY.3` | `pending` (frontier) | Migrate masked sites (stimuli_generator.rs:4021/4437) to pgen_error! + add error-by-reason buckets at :2432. |
 | 3 | `DIAG-SEVERITY.4` | `pending` | Enforcement gate (cannot regress). |
 | 4 | `DIAG-SEVERITY.5` | `pending` | Book lockstep + close. |
 

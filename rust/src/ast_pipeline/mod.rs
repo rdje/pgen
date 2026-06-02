@@ -92,6 +92,39 @@ impl TraceLevel {
     }
 }
 
+/// DIAG-SEVERITY.2 (PGEN-DIAG-SEVERITY-0002): a SEVERITY dimension ORTHOGONAL to the
+/// `TraceLevel` verbosity scale. A diagnostic of severity ≥ Warning is emitted
+/// UNCONDITIONALLY — it is NEVER suppressed by `trace_verbosity`, because masking a
+/// warning/error/fatal behind a verbosity level is a silent failure (this is exactly
+/// what hid the SV depth-exceeded error for the whole `.7.2` campaign). Trace verbosity
+/// (`TraceLevel`) governs INFORMATIONAL output only. See docs/tasks/DIAG-SEVERITY.md and
+/// the standing principle [[feedback_severity_never_gated_by_verbosity]].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum Severity {
+    Warning = 1,
+    Error = 2,
+    Fatal = 3,
+}
+
+impl Severity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Warning => "WARN",
+            Self::Error => "ERROR",
+            Self::Fatal => "FATAL",
+        }
+    }
+
+    fn emoji(self) -> &'static str {
+        match self {
+            Self::Warning => "⚠️",
+            Self::Error => "⛔",
+            Self::Fatal => "💀",
+        }
+    }
+}
+
 static GLOBAL_TRACE_VERBOSITY: AtomicU8 = AtomicU8::new(TraceVerbosity::None as u8);
 static TRACE_OUTPUT_SINK: OnceLock<Mutex<Option<File>>> = OnceLock::new();
 static TRACE_FUNCTION_CACHE: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
@@ -284,6 +317,80 @@ pub fn trace_log(
     println!("{}", output);
 }
 
+/// DIAG-SEVERITY.2: format a severity-tagged diagnostic line. Pure (no I/O, no gate)
+/// so it is unit-testable. Mirrors `trace_log`'s layout but tagged with the SEVERITY,
+/// not a verbosity level.
+fn format_diagnostic(
+    severity: Severity,
+    file: &str,
+    line: u32,
+    function_name: &str,
+    rendered: &str,
+) -> String {
+    if rendered.is_empty() {
+        format!(
+            "[PGEN][{}] {} [{}:{}] [{}]",
+            severity.as_str(),
+            severity.emoji(),
+            file,
+            line,
+            function_name
+        )
+    } else {
+        format!(
+            "[PGEN][{}] {} [{}:{}] [{}] {}",
+            severity.as_str(),
+            severity.emoji(),
+            file,
+            line,
+            function_name,
+            rendered
+        )
+    }
+}
+
+/// DIAG-SEVERITY.2: testable core — write a severity diagnostic to `w` with NO
+/// verbosity gate (severity ≥ Warning always writes). `emit_diagnostic` is the
+/// production wrapper; tests drive this with an in-memory buffer.
+pub fn write_diagnostic<W: Write>(
+    w: &mut W,
+    severity: Severity,
+    file: &str,
+    line: u32,
+    function_name: &str,
+    args: fmt::Arguments<'_>,
+) -> std::io::Result<()> {
+    let rendered = format!("{}", args);
+    writeln!(w, "{}", format_diagnostic(severity, file, line, function_name, &rendered))
+}
+
+/// DIAG-SEVERITY.2: emit a severity-bearing diagnostic. **NEVER gated by trace
+/// verbosity** — there is deliberately NO `trace_enabled` check here. Always written to
+/// **stderr** (the conventional diagnostic channel, unaffected by stdout redirection or
+/// the verbosity setting) and mirrored to the trace file if one is configured, so a
+/// warning/error/fatal can never be silently masked.
+#[track_caller]
+pub fn emit_diagnostic(
+    severity: Severity,
+    file: &str,
+    line: u32,
+    module_path: &str,
+    args: fmt::Arguments<'_>,
+) {
+    let function_name = resolve_trace_function_name(file, line, module_path);
+    let rendered = format!("{}", args);
+    let output = format_diagnostic(severity, file, line, &function_name, &rendered);
+    // Always-on channel: stderr, unconditionally (the whole point of this mechanism).
+    eprintln!("{}", output);
+    // Also mirror into the trace file if configured, so trace captures include severities.
+    if let Ok(mut guard) = trace_sink().lock() {
+        if let Some(file) = guard.as_mut() {
+            let _ = writeln!(file, "{}", output);
+            let _ = file.flush();
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! pgen_trace {
     ($level:expr) => {
@@ -303,6 +410,42 @@ macro_rules! pgen_trace {
             module_path!(),
             format_args!($($arg)*),
         )
+    };
+}
+
+/// DIAG-SEVERITY.2: emit a severity-bearing diagnostic that is NEVER gated by trace
+/// verbosity. Use `pgen_warn!` / `pgen_error!` / `pgen_fatal!` for the common cases.
+#[macro_export]
+macro_rules! pgen_diag {
+    ($severity:expr, $($arg:tt)*) => {
+        $crate::ast_pipeline::emit_diagnostic(
+            $severity,
+            file!(),
+            line!(),
+            module_path!(),
+            format_args!($($arg)*),
+        )
+    };
+}
+
+#[macro_export]
+macro_rules! pgen_warn {
+    ($($arg:tt)*) => {
+        $crate::pgen_diag!($crate::ast_pipeline::Severity::Warning, $($arg)*)
+    };
+}
+
+#[macro_export]
+macro_rules! pgen_error {
+    ($($arg:tt)*) => {
+        $crate::pgen_diag!($crate::ast_pipeline::Severity::Error, $($arg)*)
+    };
+}
+
+#[macro_export]
+macro_rules! pgen_fatal {
+    ($($arg:tt)*) => {
+        $crate::pgen_diag!($crate::ast_pipeline::Severity::Fatal, $($arg)*)
     };
 }
 
@@ -775,6 +918,58 @@ pub fn parse_quantifier_bounds(quantifier: &str) -> Option<(usize, Option<usize>
             }
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod diag_severity_tests {
+    use super::*;
+
+    // DIAG-SEVERITY.2: the core invariant — a severity-bearing diagnostic must emit
+    // even at the very verbosity setting (`None`) that masks every trace level. This
+    // is the regression test for the defect that hid the SV depth-exceeded error.
+    #[test]
+    fn severity_diagnostics_emit_regardless_of_verbosity() {
+        // The exact masking setting the closed-loop gate runs at:
+        set_global_trace_verbosity(TraceVerbosity::None);
+
+        // CONTRAST (the bug): a verbosity-gated trace is suppressed at None — even High.
+        assert!(
+            !trace_enabled(TraceLevel::High),
+            "a High *trace* (verbosity) must be suppressed at verbosity None"
+        );
+
+        // THE FIX: the severity path still writes, with NO verbosity gate. Drive the
+        // testable core into an in-memory buffer (no stderr capture needed).
+        let mut buf: Vec<u8> = Vec::new();
+        write_diagnostic(
+            &mut buf,
+            Severity::Error,
+            "stimuli_generator.rs",
+            4377,
+            "generate_rule",
+            format_args!("Stimuli generation depth exceeded max_depth={}", 24),
+        )
+        .expect("write_diagnostic must not fail on an in-memory buffer");
+        let rendered = String::from_utf8(buf).expect("utf8");
+        assert!(
+            rendered.contains("ERROR"),
+            "diagnostic must carry the ERROR severity tag, got: {rendered}"
+        );
+        assert!(
+            rendered.contains("Stimuli generation depth exceeded max_depth=24"),
+            "diagnostic must carry the message verbatim, got: {rendered}"
+        );
+    }
+
+    // Severity is an orderable scale so callers can threshold (e.g. error-and-above).
+    #[test]
+    fn severity_is_ordered_warning_lt_error_lt_fatal() {
+        assert!(Severity::Warning < Severity::Error);
+        assert!(Severity::Error < Severity::Fatal);
+        assert_eq!(Severity::Warning.as_str(), "WARN");
+        assert_eq!(Severity::Error.as_str(), "ERROR");
+        assert_eq!(Severity::Fatal.as_str(), "FATAL");
     }
 }
 
