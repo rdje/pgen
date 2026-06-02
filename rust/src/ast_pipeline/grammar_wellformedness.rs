@@ -57,16 +57,27 @@ impl WellformednessIssue {
 /// Minimum terminal-atom count of a node given the current per-rule estimates (Purdom
 /// phase-1 / `.7.4.2` logic, standalone). `None` while undeterminable. A rule that stays
 /// `None` after the fixpoint has no finite derivation = non-terminating.
-fn node_min_terminal_length(node: &ASTNode, min_len: &HashMap<String, usize>) -> Option<usize> {
+///
+/// `defined` = the set of rules actually defined in THIS grammar. A reference to a rule
+/// NOT in `defined` is an EXTERNAL / include reference (PGEN's `include(...)` system
+/// resolves it elsewhere) — it is treated as a terminating atom (length 1), NOT a dead
+/// end, so a rule that merely references an included rule is never mis-flagged as
+/// non-terminating. Without this, standalone analysis of a grammar with includes
+/// false-positives (e.g. ebnf.ebnf's `annotation_list := semantic_annotation+`).
+fn node_min_terminal_length(
+    node: &ASTNode,
+    min_len: &HashMap<String, usize>,
+    defined: &HashSet<&str>,
+) -> Option<usize> {
     match node {
         ASTNode::Or { alternatives } => alternatives
             .iter()
-            .filter_map(|a| node_min_terminal_length(a, min_len))
+            .filter_map(|a| node_min_terminal_length(a, min_len, defined))
             .min(),
         ASTNode::Sequence { elements } => {
             let mut sum = 0usize;
             for e in elements {
-                sum = sum.saturating_add(node_min_terminal_length(e, min_len)?);
+                sum = sum.saturating_add(node_min_terminal_length(e, min_len, defined)?);
             }
             Some(sum)
         }
@@ -75,14 +86,18 @@ fn node_min_terminal_length(node: &ASTNode, min_len: &HashMap<String, usize>) ->
             if min == 0 {
                 Some(0)
             } else {
-                Some(min.saturating_mul(node_min_terminal_length(element, min_len)?))
+                Some(min.saturating_mul(node_min_terminal_length(element, min_len, defined)?))
             }
         }
         ASTNode::Lookahead { .. } => Some(0),
         ASTNode::Atom { value } => match value {
-            ASTValue::Node(inner) => node_min_terminal_length(inner, min_len),
+            ASTValue::Node(inner) => node_min_terminal_length(inner, min_len, defined),
             ASTValue::Token(parts) => match referenced_rule(parts) {
-                Some(rule) => min_len.get(rule).copied(),
+                // A reference to a rule defined HERE: its current estimate (None until
+                // resolved). A reference to an UNDEFINED rule (external / include): treat
+                // as a terminating atom so it never causes a false non-terminating flag.
+                Some(rule) if defined.contains(rule) => min_len.get(rule).copied(),
+                Some(_) => Some(1),
                 None => Some(1),
             },
         },
@@ -98,12 +113,13 @@ pub fn detect_nonterminating_rules(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
 ) -> Vec<WellformednessIssue> {
+    let defined: HashSet<&str> = grammar.keys().map(|s| s.as_str()).collect();
     let mut min_len: HashMap<String, usize> = HashMap::new();
     loop {
         let mut changed = false;
         for rule in rule_order {
             let Some(body) = grammar.get(rule) else { continue };
-            if let Some(candidate) = node_min_terminal_length(body, &min_len) {
+            if let Some(candidate) = node_min_terminal_length(body, &min_len, &defined) {
                 match min_len.get(rule.as_str()) {
                     Some(&existing) if existing <= candidate => {}
                     _ => {
@@ -595,6 +611,27 @@ mod tests {
         assert!(
             !nonterm.iter().any(|i| matches!(i, WellformednessIssue::NonTerminating { rule } if rule == "lr" || rule == "t")),
             "a left-recursive rule WITH a base alternative is NOT non-terminating: {nonterm:?}"
+        );
+    }
+
+    #[test]
+    fn reference_to_undefined_include_rule_is_not_nonterminating() {
+        // Mirrors ebnf.ebnf's `annotation_list := semantic_annotation+` where
+        // semantic_annotation is defined via include(...) — i.e. NOT in this grammar.
+        // It must NOT be flagged non-terminating (the include resolves it elsewhere).
+        let mut g = HashMap::new();
+        g.insert(
+            "annotation_list".into(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("semantic_annotation")), // undefined here
+                quantifier: "+".into(),
+            },
+        );
+        let order: Vec<String> = vec!["annotation_list".into()];
+        let nonterm = detect_nonterminating_rules(&g, &order);
+        assert!(
+            nonterm.is_empty(),
+            "a rule referencing an undefined (included) rule must NOT be flagged non-terminating: {nonterm:?}"
         );
     }
 

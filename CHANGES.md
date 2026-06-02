@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-SOTA-0009 (leaves PARSE-SOTA.8.1 corrected + .9.1): **Fix the well-formedness reject (was bypassed for non-profiled grammars + a false positive on include refs); add `--lint-grammar` mode. Verified via the Makefile.**
+
+Code (rust/src/main.rs + rust/src/ast_pipeline/grammar_wellformedness.rs) — no grammar/generated change, no release bump.
+
+PROPER VERIFICATION (director: "verify via the Makefile") EXPOSED TWO FLAWS in -0008: (1) the non-terminating reject was placed in apply_grammar_profile_filter, which EARLY-RETURNS for non-profiled grammars → the check was BYPASSED for ebnf/regex/vhdl/etc. (only SV, profiled, ran it); the -0008 "verified clean" claim was checking nothing. (2) FALSE POSITIVE: ebnf's annotation_list / inline_semantic_annotation were flagged non-terminating because they reference semantic_annotation, which ebnf.ebnf provides via include(...) — undefined when ebnf is analyzed standalone.
+
+FIXES: (1) detect_nonterminating_rules now treats a reference to a rule NOT defined in this grammar (external / include) as a terminating atom (not a dead end), so include-using grammars are not mis-flagged (+ unit test reference_to_undefined_include_rule_is_not_nonterminating). (2) Moved the reject to the TRUE single chokepoint load_grammar_bundle_from_json_value (every build path goes through it: --generate-parser/-stimuli, make focus_*, --lint-grammar), via a check_grammar_wellformed helper; removed the bypassed copy from apply_grammar_profile_filter. (3) Added the `--lint-grammar` opt-in CLI mode (A2 surfacing): reports left-recursion (informational — PGEN handles it), non-terminating (error), and ordered-choice shadowing (warning) with counts + details.
+
+RE-VERIFIED (the sanctioned way): `--lint-grammar` on ALL 8 shipped grammars (regex/json/ebnf/vhdl/rtl_const_expr/rtl_frontend/return_annotation/semantic_annotation) = 0 non-terminating (false positives gone); `make focus_regex` builds the regex parser cleanly with the check in the load path (authoritative — exit 0, "Regex parser artifact ready"); lib (no-features) 584/584; binary clippy 0. Shadowing counts: regex=1, semantic_annotation=3, rest=0 (low; opt-in, no per-load noise). The rigor discipline working: the Makefile verification the director insisted on caught an over-claim that ad-hoc invocation had masked.
+
 ## 2026-06-02 - PGEN-PARSE-SOTA-0008 (leaf PARSE-SOTA.8.1 / A1 WIRING): **Grammars with non-terminating rules are now REJECTED at load time (always-on pgen_error!); verified zero false-fires on all shipped grammars.**
 
 Code (rust/src/main.rs) — NO grammar/generated change, no release bump.

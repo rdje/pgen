@@ -84,6 +84,13 @@ struct Args {
     #[arg(long)]
     no_validate: bool,
 
+    /// PARSE-SOTA.9.1 (adoption A2): run the static grammar well-formedness LINT over the
+    /// loaded grammar (left-recursion info, non-terminating errors, ordered-choice
+    /// shadowing warnings) and print a report, then exit. Opt-in (lints are not emitted on
+    /// every generate); the non-terminating REJECT remains always-on at load.
+    #[arg(long)]
+    lint_grammar: bool,
+
     /// Generate high-performance Rust parser instead of JSON output
     #[arg(long)]
     generate_parser: bool,
@@ -899,6 +906,19 @@ fn main() -> Result<()> {
         && !args.generate_parser
         && !args.generate_stimuli
         && !args.generate_stimuli_module;
+
+    // PARSE-SOTA.9.1 (adoption A2): opt-in grammar well-formedness LINT.
+    if args.lint_grammar {
+        let grammar = apply_grammar_profile_filter(
+            load_grammar_bundle(
+                &args.input_path,
+                &mut pipeline,
+                args.emit_raw_ast_json.as_deref(),
+            )?,
+            args.grammar_profile.as_deref(),
+        )?;
+        return run_grammar_lint(&grammar);
+    }
 
     let result = if standalone_raw_ast_export {
         let output_path = args
@@ -1788,6 +1808,30 @@ fn write_json_dump_with_limit(
     })
 }
 
+/// PARSE-SOTA.8.1 (adoption A1): grammar well-formedness guard. Reject a grammar that has
+/// NON-TERMINATING rules (no finite terminal derivation — genuinely ill-formed, which
+/// neither PGEN's LR-elimination nor its runtime cycle-breaking can rescue), surfaced via
+/// the always-on DIAG-SEVERITY pgen_error! channel. Left recursion is deliberately NOT
+/// rejected (PGEN handles it). References to rules defined elsewhere (the `include(...)`
+/// system) are NOT mis-flagged — see grammar_wellformedness::detect_nonterminating_rules.
+fn check_grammar_wellformed(grammar: &LoadedGrammar) -> Result<()> {
+    let nonterminating = pgen::ast_pipeline::grammar_wellformedness::detect_nonterminating_rules(
+        &grammar.grammar_tree,
+        &grammar.rule_order,
+    );
+    if !nonterminating.is_empty() {
+        for issue in &nonterminating {
+            pgen::pgen_error!("{}", issue.message());
+        }
+        return Err(anyhow::anyhow!(
+            "grammar '{}' is ill-formed: {} non-terminating rule(s) (see errors above)",
+            grammar.grammar_name,
+            nonterminating.len()
+        ));
+    }
+    Ok(())
+}
+
 fn load_grammar_bundle(
     input_path: &str,
     pipeline: &mut RustASTPipeline,
@@ -1838,7 +1882,7 @@ fn load_grammar_bundle_from_json_value(
     pipeline: &mut RustASTPipeline,
 ) -> Result<LoadedGrammar> {
     let json_value = normalize_legacy_generation_ast_dump(json_value);
-    if let Some(raw_ast) = json_value.get("raw_ast") {
+    let grammar = if let Some(raw_ast) = json_value.get("raw_ast") {
         let raw_ast_array = raw_ast
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("Invalid raw_ast format"))?;
@@ -1850,25 +1894,32 @@ fn load_grammar_bundle_from_json_value(
             .unwrap_or("unknown")
             .to_string();
 
-        Ok(LoadedGrammar {
+        LoadedGrammar {
             grammar_name,
             grammar_tree,
             rule_order,
             annotations,
-        })
+        }
     } else if json_value.get("grammar_tree").is_some() && json_value.get("rule_order").is_some() {
         let transformed: TransformedASTJson = serde_json::from_value(json_value)?;
-        Ok(LoadedGrammar {
+        LoadedGrammar {
             grammar_name: transformed.grammar_name,
             grammar_tree: transformed.grammar_tree,
             rule_order: transformed.rule_order,
             annotations: transformed.metadata.annotations,
-        })
+        }
     } else {
-        Err(anyhow::anyhow!(
+        return Err(anyhow::anyhow!(
             "Unknown JSON format - expected raw_ast or grammar_tree/rule_order"
-        ))
-    }
+        ));
+    };
+
+    // PARSE-SOTA.8.1 (A1): the SINGLE grammar-load chokepoint every build path goes
+    // through (--generate-parser/-stimuli, `make focus_*`, --lint-grammar). Reject a
+    // grammar with NON-TERMINATING rules here so it can never be silently bypassed (the
+    // earlier placement in the profile filter was skipped for non-profiled grammars).
+    check_grammar_wellformed(&grammar)?;
+    Ok(grammar)
 }
 
 fn normalize_legacy_generation_ast_dump(mut json_value: serde_json::Value) -> serde_json::Value {
@@ -2042,33 +2093,62 @@ fn apply_grammar_profile_filter(
         .annotations
         .map(|entries| filter_annotations_by_profile(entries, &retained_rules));
 
-    // PARSE-SOTA.8.1 (adoption A1): grammar well-formedness guard. REJECT a grammar that
-    // has NON-TERMINATING rules (no finite terminal derivation — genuinely ill-formed,
-    // which neither PGEN's LR-elimination nor its runtime cycle-breaking can rescue) at
-    // load time, surfaced via the always-on DIAG-SEVERITY pgen_error! channel. Left
-    // recursion is deliberately NOT rejected (PGEN handles it). Pure analysis over the
-    // (profile-filtered) grammar_tree; well-formed grammars emit nothing.
-    let nonterminating = pgen::ast_pipeline::grammar_wellformedness::detect_nonterminating_rules(
-        &retained_grammar_tree,
-        &retained_rule_order,
-    );
-    if !nonterminating.is_empty() {
-        for issue in &nonterminating {
-            pgen::pgen_error!("{}", issue.message());
-        }
-        return Err(anyhow::anyhow!(
-            "grammar '{}' is ill-formed: {} non-terminating rule(s) (see errors above)",
-            grammar.grammar_name,
-            nonterminating.len()
-        ));
-    }
-
     Ok(LoadedGrammar {
         grammar_name: grammar.grammar_name,
         grammar_tree: retained_grammar_tree,
         rule_order: retained_rule_order,
         annotations: retained_annotations,
     })
+}
+
+/// PARSE-SOTA.9.1 (adoption A2): run the static grammar well-formedness lint and print a
+/// report. Left-recursion is informational (PGEN handles it); ordered-choice shadowing is
+/// a warning (unreachable alternatives); non-terminating rules are errors (also rejected
+/// at load by .8.1, so a loaded grammar shows 0). Returns Err iff non-terminating rules
+/// remain (scriptable exit code).
+fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
+    use pgen::ast_pipeline::grammar_wellformedness::{
+        detect_left_recursion, detect_nonterminating_rules, detect_ordered_choice_shadowing,
+    };
+    let g = &grammar.grammar_tree;
+    let order = &grammar.rule_order;
+    let lr = detect_left_recursion(g, order);
+    let nonterm = detect_nonterminating_rules(g, order);
+    let shadow = detect_ordered_choice_shadowing(g, order);
+
+    println!(
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (warning)",
+        grammar.grammar_name,
+        g.len(),
+        lr.len(),
+        nonterm.len(),
+        shadow.len()
+    );
+    for issue in lr.iter().take(10) {
+        println!("  [info]  {}", issue.message());
+    }
+    if lr.len() > 10 {
+        println!("  [info]  ... and {} more left-recursive rules", lr.len() - 10);
+    }
+    for issue in shadow.iter().take(40) {
+        println!("  [warn]  {}", issue.message());
+    }
+    if shadow.len() > 40 {
+        println!("  [warn]  ... and {} more shadowing findings", shadow.len() - 40);
+    }
+    for issue in &nonterm {
+        println!("  [error] {}", issue.message());
+    }
+
+    if nonterm.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "grammar '{}' has {} non-terminating rule(s)",
+            grammar.grammar_name,
+            nonterm.len()
+        ))
+    }
 }
 
 fn default_parser_output_path(input_path: &str) -> String {
