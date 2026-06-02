@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-PARSE-SOTA-0003 (leaf PARSE-SOTA.7): **Top-level mdBook gains an "Academic Foundations" chapter — every literature reference (authors/title/venue/year/URL) from both groundings, thoroughly documented.**
+
+Pure docs / live-book — NO code, NO release bump. Director-directed: "all these literature references (books/articles/papers + their authors) shall be thoroughly documented in the top-level mdBook"; [[feedback_regex_book_live]] (the book is the user's window — keep in lockstep).
+
+Added docs/book/src/academic-foundations.md (6 sections: A grammar-based test generation & coverage; B PEG/packrat theory; C parser-generator architecture & general parsing; D attribute grammars, name resolution & the annotation/store layer; E AST/IR design & lossless trees; F error recovery & diagnostics) — ~60 primary sources, each with authors + title + venue + year + stable URL + a one-line "how it grounds PGEN", plus a verification-flag note. Registered in docs/book/src/SUMMARY.md after "Developer Architecture". Cross-links the two in-repo research syntheses (PARSE-SOTA-research-synthesis.md + SV-EXH-PROOF-7.3-literature-grounded-literal-zero-design.md). HTML rebuilt in lockstep (docs/book-html, academic-foundations.html 58 KB). VERIFIED: make -C rust mdbook_docs_gate = "✅ mdBook docs gate passed".
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0139 (leaf SV-EXH-PROOF.7.4.2, SVEXH-Slice-128): **Purdom phase-1 shortest-derivation (min-terminal-length) table — PURE analysis, generation byte-identical; foundation for literal-0 minimal witnesses.**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) but PURE ANALYSIS — NO generation change, NO grammar/codegen/generated change, NO release bump. Second step of the director-greenlit `.7.4` literal-0 path; literature-grounded (Purdom, BIT 1972; see .7.3 synthesis).

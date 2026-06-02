@@ -123,6 +123,13 @@
   tree/leaf; clear "already-strong, leave alone" list; director review gate before
   any adoption is scheduled.`
 
+- ID: `PARSE-SOTA.7`
+  Status: `done` (`-0003`, 2026-06-02, pure-docs / live-book)
+  Goal: `Per director directive 2026-06-02 ("all literature references — books/articles/papers + authors — shall be thoroughly documented in the top-level mdBook") and [[feedback_regex_book_live]]: add a thorough, citable Academic Foundations chapter to the top-level mdBook consolidating EVERY reference from BOTH groundings (this tree + SV-EXH-PROOF.7.3), each with authors/title/venue/year/URL + how it grounds PGEN.`
+  Acceptance: `new chapter docs/book/src/academic-foundations.md + SUMMARY.md entry; HTML rebuilt in lockstep (docs/book-html); mdbook_docs_gate green; organized by area (grammar-based test generation, PEG/packrat theory, parser generators, attribute grammars/scope graphs, AST/IR & lossless trees, error recovery); verification-flag note carried.`
+  Verification: `done — docs/book/src/academic-foundations.md (6 sections A–F, ~60 primary sources, each authors+title+venue+year+URL + PGEN-relevance), added to SUMMARY.md after Developer Architecture; mdbook build OK (academic-foundations.html 58 KB rendered); make -C rust mdbook_docs_gate = "✅ mdBook docs gate passed". Cross-references both in-repo syntheses (PARSE-SOTA-research-synthesis.md + SV-EXH-PROOF-7.3-...). Pure docs; no code; no release bump.`
+  Commit: `PGEN-PARSE-SOTA-0003`
+
 ---
 
 ## Current Frontier
