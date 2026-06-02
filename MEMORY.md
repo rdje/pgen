@@ -12,9 +12,9 @@
 - Live status: `LIVE_ACHIEVEMENT_STATUS.md`; changelog: `CHANGES.md`.
 
 ## Current state (OVERWRITE this block each update — do not append)
-- latest_commit: `1357812f` PGEN-PARSE-SOTA-0007 (A1 re-scope). Pushed through d60b73e3; unpushed ~11. MEMORY-ARCH + DIAG-SEVERITY trees CLOSED.
-- active_work_unit: rolling `PARSE-SOTA` (Tier-A adoptions) per director "pick next tree, roll to exhaustion". `SV-EXH-PROOF.7.4.3` DONE+KEPT (witness pass, monotone, real-SV-verified 72/150).
-- next_action: PARSE-SOTA `.8.1`/`.9.1` WIRING (now unblocked — main.rs clean after .7.4.3): wire detect_nonterminating_rules (REJECT via pgen_error!) + shadowing (WARN via pgen_warn!) into the grammar-load/generate path — FIRST verify 0 non-terminating + acceptable shadowing on ALL shipped grammars (VHDL/regex/json/ebnf; SV already verified 0 non-terminating). Then `.10` A4 round-trip/golden, `.11` A5 _meta. Also: `SV-EXH-PROOF.7.4.4` (context-gating tail — the 63 "other" witness failures; verify cause then reach-from-context); full canonical 888->X gate run (def. number for .7.4.3, prior bg runs killed).
+- latest_commit: `9af539a5` PGEN-PARSE-SOTA-0009 (A1 wiring corrected + A2 --lint-grammar). Pushed through d60b73e3; unpushed ~14. MEMORY-ARCH + DIAG-SEVERITY trees CLOSED.
+- active_work_unit: rolling `PARSE-SOTA` (Tier-A) per director "roll to exhaustion". A1 (.8/.8.1) + A2 (.9/.9.1) DONE+VERIFIED (via `make focus_regex` + --lint-grammar on all 8 grammars = 0 non-terminating). `SV-EXH-PROOF.7.4.3` DONE+KEPT.
+- next_action: PARSE-SOTA `.10` (A4 round-trip/determinism + golden-file AST tests) + `.11` (A5 ship the approved `_meta` carrier). Also: `SV-EXH-PROOF.7.4.4` (context-gating tail — the 63 "other" witness failures; verify cause then reach-from-context); full canonical 888->X gate run (def. number for .7.4.3). VERIFY GRAMMAR/PARSER WORK VIA THE Makefile targets (make focus_<grammar>), per director — not ad-hoc ast_pipeline invocations.
 - in_flight_uncommitted: this MEMORY.md sync.
 - blockers: none.
 
