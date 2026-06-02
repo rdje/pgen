@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-DIAG-SEVERITY-0004 (leaf DIAG-SEVERITY.3.1): **Canonical `GenerationErrorReason` enum (single source of truth) + un-masked `max_rule_visits` (2nd structural-budget failure).**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — NO grammar/codegen/generated change, no release bump.
+
+Per director ask ("list all the error-by-reason classification; capture it"): added a canonical `GenerationErrorReason` enum {DepthExceeded, RuleVisitLimit, TargetTimeout, HelperTimeout, Other} + `classify_generation_error()` = the single place that maps a failure to its reason (cannot drift across call sites). Both target-drive Err arms (generate_until_targets + _with_filter) now classify via the canonical match — behavior-equivalent (the prefixes are mutually exclusive and mode-correlated, so dropping the old helper_probe_active guard cannot change counts). Un-masked the SECOND structural-budget failure the .3 taxonomy revealed: `max_rule_visits` (default 8) — added RULE_VISIT_LIMIT_ERROR_PREFIX + is_rule_visit_limit_error + a rule_visit_limit_errors counter, threaded into TargetDriveSummary (new #[serde(default)] field) + summary_line + the completion trace; the once-per-run aggregate pgen_warn! now reports BOTH structural-budget reasons (depth + rule-visit). 2 unit tests: classify_generation_error_maps_each_reason (canonical list) + summary asserts rule_visit_limit_errors=N. lib (no-features) 571/571; clippy 0 errors (all enum variants constructed). Per-reason counts surface in the always-printed summary_line (run-log, gate-greppable); a structured gap-report-JSON surface is deferred (needs a main.rs write). Frontier: .4 enforcement gate, .5 book lockstep.
+
 ## 2026-06-02 - PGEN-DIAG-SEVERITY-0003 (leaf DIAG-SEVERITY.3): **Error-by-reason classification — generation failures are now bucketed by REASON (depth_exceeded) and surfaced unconditionally; full reason taxonomy captured.**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — NO grammar/codegen/generated change, no release bump.

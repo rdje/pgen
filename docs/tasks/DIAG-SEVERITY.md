@@ -74,7 +74,9 @@ the defect is specific to the `ast_pipeline` custom trace mechanism.
   Commit: `PGEN-DIAG-SEVERITY-0003`
 
 - ID: `DIAG-SEVERITY.3.1`
-  Status: `pending` (code — canonical enumerated reason taxonomy)
+  Status: `done` (`-0004`, 2026-06-02, code)
+  Verification: `done — stimuli_generator.rs: a canonical GenerationErrorReason enum {DepthExceeded, RuleVisitLimit, TargetTimeout, HelperTimeout, Other} + classify_generation_error() = THE single source of truth; both target-drive Err arms (generate_until_targets + _with_filter) now classify via the match (behavior-equivalent: prefixes are mutually exclusive + mode-correlated, so dropping the old helper_probe_active guard cannot change counts); un-masked max_rule_visits (RULE_VISIT_LIMIT_ERROR_PREFIX + is_rule_visit_limit_error + rule_visit_limit_errors counter), threaded into TargetDriveSummary + summary_line + completion trace; the once-per-run pgen_warn! now covers BOTH structural-budget reasons (depth + rule-visit). 2 unit tests: classify_generation_error_maps_each_reason (canonical list) + summary asserts rule_visit_limit_errors. lib 571/571; clippy 0 errors (all enum variants constructed). NOTE: per-reason counts surface in the always-printed summary_line (run-log, gate-greppable); a structured gap-report-JSON surface would need a main.rs write (deferred — noted). NO grammar/codegen/generated change, no release bump.`
+  Commit: `PGEN-DIAG-SEVERITY-0004`
   Goal: `Per director ask ("list all the error-by-reason classification; capture it"): consolidate the scattered prefix-matchers + parallel usize counters into a SINGLE source of truth — a `GenerationErrorReason` enum {DepthExceeded, RuleVisitLimit, TargetTimeout, HelperTimeout, QuantifierConfig, ZeroWeight, SemanticEval, Other} + classify_generation_error(&Error) -> GenerationErrorReason + a per-reason tally (map/struct) surfaced in TargetDriveSummary AND the gap-report JSON summary. Classify the remaining reasons found by the .3 taxonomy (esp. the masked max_rule_visits, the other sibling of depth). The enum IS the enumerated list (cannot drift); the book (.5) + taxonomy doc mirror it.`
   Acceptance: `one GenerationErrorReason enum = the exhaustive list; every generation Err classified through it; per-reason counts in the gap-report JSON summary (durable, gate-assertable); rule_visit_limit no longer anonymous; lib+clippy green.`
 
@@ -86,7 +88,7 @@ BUDGET failures (the masked-cause class) are the ones that matter for the SV res
 | Reason | Error message (prefix) | Raised at | Class | Surfaced? |
 |---|---|---|---|---|
 | **depth_exceeded** | `Stimuli generation depth exceeded max_depth=` | `stimuli_generator.rs:4426` | structural budget | **YES (.3)** — bucket + summary + pgen_warn! |
-| **rule_visit_limit** | `Stimuli generation exceeded max_rule_visits=` | `:4438` | structural budget | **NOT YET** — anonymous (sibling of depth!) → `.3.1` |
+| **rule_visit_limit** | `Stimuli generation exceeded max_rule_visits=` | `:4438` | structural budget | **YES (.3.1)** — bucket + summary + pgen_warn! (un-masked) |
 | target_timeout | `Stimuli generation target timeout exceeded` | const `:27` | time budget | yes (pre-existing bucket) |
 | helper_timeout | `Stimuli generation helper timeout exceeded` | const `:26` | time budget | yes (pre-existing bucket) |
 | quantifier_config | `Unsupported quantifier format` / `Unknown quantifier` | `:5565` / `:5594` | grammar/config | no (rare; → `.3.1` Other) |
@@ -156,7 +158,9 @@ migrates the (B) sites + closes the (A)-risk by construction.
 | — | `DIAG-SEVERITY.1` | `done` (`-0001`) | Audit complete (above). |
 | — | `DIAG-SEVERITY.2` | `done` (`-0002`) | Severity mechanism landed: Severity enum + emit_diagnostic (always-on) + pgen_warn!/error!/fatal! macros; 570/570, clippy clean. |
 | — | `DIAG-SEVERITY.3` | `done` (`-0003`) | Error-by-reason: depth_exceeded bucket + summary + once-per-run pgen_warn!; taxonomy documented; revealed max_rule_visits as a 2nd masked budget failure. 570/570. |
-| 1 | `DIAG-SEVERITY.3.1` | `pending` (frontier) | Canonical GenerationErrorReason enum (single source of truth) + classify the remaining reasons (esp. masked max_rule_visits) + per-reason counts in the gap-report JSON. |
+| — | `DIAG-SEVERITY.3.1` | `done` (`-0004`) | Canonical GenerationErrorReason enum (single source of truth) + un-masked max_rule_visits; 571/571. |
+| 1 | `DIAG-SEVERITY.4` | `pending` (frontier) | Enforcement gate (mirror MEMORY-ARCH E2/E4) so a masked-severity site cannot regress. |
+| 2 | `DIAG-SEVERITY.5` | `pending` | Book lockstep (diagnostics severity model + reason taxonomy) + close. |
 | 3 | `DIAG-SEVERITY.4` | `pending` | Enforcement gate (cannot regress). |
 | 4 | `DIAG-SEVERITY.5` | `pending` | Book lockstep + close. |
 

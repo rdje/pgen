@@ -31,6 +31,29 @@ const TARGET_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation target timeout exc
 // the SV residual's dominant cause (depth-budget exhaustion, SV-EXH-PROOF.7.4.3a)
 // visible at the gate level instead of masked.
 const DEPTH_EXCEEDED_ERROR_PREFIX: &str = "Stimuli generation depth exceeded max_depth=";
+// DIAG-SEVERITY.3.1: the SECOND structural-budget failure (sibling of depth-exceeded),
+// raised at `generate_rule` (~4438) when a rule is entered more than `max_rule_visits`
+// times in one derivation. The .3 taxonomy revealed it was also anonymous; classifying
+// it un-masks a second potential contributor to the SV residual.
+const RULE_VISIT_LIMIT_ERROR_PREFIX: &str = "Stimuli generation exceeded max_rule_visits=";
+
+/// DIAG-SEVERITY.3.1 (PGEN-DIAG-SEVERITY-0004): the canonical, drift-proof enumeration of
+/// stimuli generation-failure reasons — the single source of truth for "classify errors
+/// by reason" (director ask). `classify_generation_error` is the one place that maps an
+/// error to its reason; counters/telemetry derive from it. The two STRUCTURAL-BUDGET
+/// reasons (DepthExceeded, RuleVisitLimit) are the residual-relevant class
+/// (SV-EXH-PROOF.7.4.3a). See the taxonomy table in docs/tasks/DIAG-SEVERITY.md.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GenerationErrorReason {
+    DepthExceeded,
+    RuleVisitLimit,
+    TargetTimeout,
+    HelperTimeout,
+    /// Any other generation failure (incl. expected PEG backtracking, quantifier/weight/
+    /// semantic config errors). Folded into the generic `generation_errors` total; split
+    /// into finer reasons only if one ever proves residual-relevant.
+    Other,
+}
 
 #[derive(Debug, Clone, Copy)]
 struct GenerationTimeoutBudget {
@@ -786,6 +809,10 @@ pub struct TargetDriveSummary {
     /// anonymous `generation_errors` count. `#[serde(default)]` keeps older JSON loadable.
     #[serde(default)]
     pub depth_exceeded_errors: usize,
+    /// DIAG-SEVERITY.3.1: generation attempts that failed by hitting `max_rule_visits`
+    /// (the second structural-budget reason; sibling of `depth_exceeded_errors`).
+    #[serde(default)]
+    pub rule_visit_limit_errors: usize,
     #[serde(default)]
     pub target_timeout_errors: usize,
     #[serde(default)]
@@ -859,13 +886,14 @@ struct TargetProbeHistory {
 impl TargetDriveSummary {
     pub fn summary_line(&self) -> String {
         format!(
-            "Target-driven generation: resolved {}/{} targets in {} attempts (generation_successes={}, generation_errors={}, depth_exceeded_errors={}, target_timeout_errors={}, helper_timeout_errors={}, reach_plan_activations={})",
+            "Target-driven generation: resolved {}/{} targets in {} attempts (generation_successes={}, generation_errors={}, depth_exceeded_errors={}, rule_visit_limit_errors={}, target_timeout_errors={}, helper_timeout_errors={}, reach_plan_activations={})",
             self.resolved_targets,
             self.total_targets,
             self.attempts,
             self.generation_successes,
             self.generation_errors,
             self.depth_exceeded_errors,
+            self.rule_visit_limit_errors,
             self.target_timeout_errors,
             self.helper_timeout_errors,
             self.reach_plan_activations
@@ -1310,6 +1338,32 @@ impl<'a> StimuliGenerator<'a> {
     /// SV-residual cause is surfaced, not masked in a generic error tally.
     fn is_depth_exceeded_error(error: &anyhow::Error) -> bool {
         Self::is_timeout_error_with_prefix(error, DEPTH_EXCEEDED_ERROR_PREFIX)
+    }
+
+    /// DIAG-SEVERITY.3.1: a generation failure caused by hitting the per-rule visit
+    /// limit (`max_rule_visits`) — the second structural-budget reason.
+    fn is_rule_visit_limit_error(error: &anyhow::Error) -> bool {
+        Self::is_timeout_error_with_prefix(error, RULE_VISIT_LIMIT_ERROR_PREFIX)
+    }
+
+    /// DIAG-SEVERITY.3.1: THE canonical classifier — the single place that maps a
+    /// generation failure to its `GenerationErrorReason`. All reason tallies derive from
+    /// this, so the classification cannot drift across call sites. Priority order is
+    /// irrelevant for correctness (the prefixes are mutually exclusive) but fixed for
+    /// determinism. Anything unrecognised (incl. expected PEG backtracking and rare
+    /// quantifier/weight/semantic config errors) is `Other`.
+    fn classify_generation_error(error: &anyhow::Error) -> GenerationErrorReason {
+        if Self::is_depth_exceeded_error(error) {
+            GenerationErrorReason::DepthExceeded
+        } else if Self::is_rule_visit_limit_error(error) {
+            GenerationErrorReason::RuleVisitLimit
+        } else if Self::is_target_timeout_error(error) {
+            GenerationErrorReason::TargetTimeout
+        } else if Self::is_helper_timeout_error(error) {
+            GenerationErrorReason::HelperTimeout
+        } else {
+            GenerationErrorReason::Other
+        }
     }
 
     fn is_timeout_error_with_prefix(error: &anyhow::Error, prefix: &str) -> bool {
@@ -2321,8 +2375,9 @@ impl<'a> StimuliGenerator<'a> {
         let mut generation_errors = 0usize;
         let mut target_timeout_errors = 0usize;
         let mut helper_timeout_errors = 0usize;
-        // DIAG-SEVERITY.3: classify depth-limit failures separately (see Err arm below).
+        // DIAG-SEVERITY.3/.3.1: classify structural-budget failures separately (Err arm).
         let mut depth_exceeded_errors = 0usize;
+        let mut rule_visit_limit_errors = 0usize;
         let mut best_remaining = applicable_targets.len();
         let mut stagnant_iterations = 0usize;
 
@@ -2453,14 +2508,22 @@ impl<'a> StimuliGenerator<'a> {
                 }
                 Err(error) => {
                     generation_errors = generation_errors.saturating_add(1);
-                    // DIAG-SEVERITY.3: classify the failure REASON (was: anonymous
-                    // count). Depth-exceeded is mutually exclusive with the timeouts.
-                    if Self::is_depth_exceeded_error(&error) {
-                        depth_exceeded_errors = depth_exceeded_errors.saturating_add(1);
-                    } else if helper_probe_active && Self::is_helper_timeout_error(&error) {
-                        helper_timeout_errors = helper_timeout_errors.saturating_add(1);
-                    } else if !helper_probe_active && Self::is_target_timeout_error(&error) {
-                        target_timeout_errors = target_timeout_errors.saturating_add(1);
+                    // DIAG-SEVERITY.3/.3.1: classify the failure REASON via the canonical
+                    // classifier (single source of truth) instead of an anonymous count.
+                    match Self::classify_generation_error(&error) {
+                        GenerationErrorReason::DepthExceeded => {
+                            depth_exceeded_errors = depth_exceeded_errors.saturating_add(1);
+                        }
+                        GenerationErrorReason::RuleVisitLimit => {
+                            rule_visit_limit_errors = rule_visit_limit_errors.saturating_add(1);
+                        }
+                        GenerationErrorReason::TargetTimeout => {
+                            target_timeout_errors = target_timeout_errors.saturating_add(1);
+                        }
+                        GenerationErrorReason::HelperTimeout => {
+                            helper_timeout_errors = helper_timeout_errors.saturating_add(1);
+                        }
+                        GenerationErrorReason::Other => {}
                     }
                 }
             }
@@ -2516,7 +2579,7 @@ impl<'a> StimuliGenerator<'a> {
         self.trace(
             TraceLevel::Low,
             format_args!(
-                "Completed target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={} depth_exceeded_errors={} target_timeout_errors={} helper_timeout_errors={}",
+                "Completed target-driven generation: entry='{}' resolved_targets={}/{} attempts={} generation_successes={} generation_errors={} depth_exceeded_errors={} rule_visit_limit_errors={} target_timeout_errors={} helper_timeout_errors={}",
                 resolved_entry,
                 resolved_targets,
                 total_targets,
@@ -2524,20 +2587,27 @@ impl<'a> StimuliGenerator<'a> {
                 generation_successes,
                 generation_errors,
                 depth_exceeded_errors,
+                rule_visit_limit_errors,
                 target_timeout_errors,
                 helper_timeout_errors
             ),
         );
 
-        // DIAG-SEVERITY.3: an AGGREGATE, once-per-run, severity-Warning diagnostic that
-        // is NEVER gated by verbosity (the correct use of the .2 mechanism — not
-        // per-attempt spam). Surfaces the depth-budget cause that was previously masked.
-        if depth_exceeded_errors > 0 {
+        // DIAG-SEVERITY.3/.3.1: an AGGREGATE, once-per-run, severity-Warning diagnostic
+        // that is NEVER gated by verbosity (the correct use of the .2 mechanism — not
+        // per-attempt spam). Surfaces the STRUCTURAL-BUDGET causes (depth + rule-visit)
+        // that were previously masked in an anonymous error count.
+        let structural_budget_failures =
+            depth_exceeded_errors.saturating_add(rule_visit_limit_errors);
+        if structural_budget_failures > 0 {
             crate::pgen_warn!(
-                "target-driven stimuli generation: {} of {} attempts failed by exceeding max_depth={} (deep-factored rules cannot reach+complete within the budget from entry '{}'; see SV-EXH-PROOF.7.4.3a). {} of {} targets remain unresolved.",
-                depth_exceeded_errors,
+                "target-driven stimuli generation: {} of {} attempts failed on a structural budget (depth_exceeded={} of max_depth={}, rule_visit_limit={} of max_rule_visits={}) — deep-factored rules cannot reach+complete from entry '{}'; see SV-EXH-PROOF.7.4.3a. {} of {} targets remain unresolved.",
+                structural_budget_failures,
                 attempts,
+                depth_exceeded_errors,
                 self.config.max_depth,
+                rule_visit_limit_errors,
+                self.config.max_rule_visits,
                 resolved_entry,
                 unresolved_targets.len(),
                 total_targets
@@ -2552,6 +2622,7 @@ impl<'a> StimuliGenerator<'a> {
                 generation_successes,
                 generation_errors,
                 depth_exceeded_errors,
+                rule_visit_limit_errors,
                 target_timeout_errors,
                 helper_timeout_errors,
                 total_targets,
@@ -2596,6 +2667,7 @@ impl<'a> StimuliGenerator<'a> {
             let mut generation_successes = 0usize;
             let mut generation_errors = 0usize;
             let mut depth_exceeded_errors = 0usize; // DIAG-SEVERITY.3
+            let mut rule_visit_limit_errors = 0usize; // DIAG-SEVERITY.3.1
             let mut target_timeout_errors = 0usize;
             let mut helper_timeout_errors = 0usize;
             let mut best_remaining = applicable_targets.len();
@@ -2788,16 +2860,26 @@ impl<'a> StimuliGenerator<'a> {
                     }
                     Err(error) => {
                         generation_errors = generation_errors.saturating_add(1);
-                        if Self::is_depth_exceeded_error(&error) {
-                            depth_exceeded_errors = depth_exceeded_errors.saturating_add(1);
-                        } else if helper_probe_active && Self::is_helper_timeout_error(&error) {
-                            helper_timeout_errors = helper_timeout_errors.saturating_add(1);
-                            validation_summary.helper_timeout_errors =
-                                validation_summary.helper_timeout_errors.saturating_add(1);
-                        } else if !helper_probe_active && Self::is_target_timeout_error(&error) {
-                            target_timeout_errors = target_timeout_errors.saturating_add(1);
-                            validation_summary.target_timeout_errors =
-                                validation_summary.target_timeout_errors.saturating_add(1);
+                        // DIAG-SEVERITY.3/.3.1: canonical reason classification.
+                        match Self::classify_generation_error(&error) {
+                            GenerationErrorReason::DepthExceeded => {
+                                depth_exceeded_errors = depth_exceeded_errors.saturating_add(1);
+                            }
+                            GenerationErrorReason::RuleVisitLimit => {
+                                rule_visit_limit_errors =
+                                    rule_visit_limit_errors.saturating_add(1);
+                            }
+                            GenerationErrorReason::TargetTimeout => {
+                                target_timeout_errors = target_timeout_errors.saturating_add(1);
+                                validation_summary.target_timeout_errors =
+                                    validation_summary.target_timeout_errors.saturating_add(1);
+                            }
+                            GenerationErrorReason::HelperTimeout => {
+                                helper_timeout_errors = helper_timeout_errors.saturating_add(1);
+                                validation_summary.helper_timeout_errors =
+                                    validation_summary.helper_timeout_errors.saturating_add(1);
+                            }
+                            GenerationErrorReason::Other => {}
                         }
                     }
                 }
@@ -2878,6 +2960,7 @@ impl<'a> StimuliGenerator<'a> {
                     generation_successes,
                     generation_errors,
                     depth_exceeded_errors,
+                    rule_visit_limit_errors,
                     target_timeout_errors,
                     helper_timeout_errors,
                     total_targets,
@@ -12378,6 +12461,41 @@ mod tests {
     }
 
     #[test]
+    fn classify_generation_error_maps_each_reason() {
+        // DIAG-SEVERITY.3.1: the canonical classifier is the single source of truth for
+        // the error-by-reason taxonomy. Each structural-budget / timeout prefix must map
+        // to its reason; anything else is Other (incl. expected PEG backtracking).
+        let depth = anyhow::anyhow!(
+            "Stimuli generation depth exceeded max_depth=24 while expanding rule 'x'"
+        );
+        let visits = anyhow::anyhow!("Stimuli generation exceeded max_rule_visits=8 for rule 'y'");
+        let target = anyhow::anyhow!("Stimuli generation target timeout exceeded after 1000ms");
+        let helper = anyhow::anyhow!("Stimuli generation helper timeout exceeded after 1000ms");
+        let other = anyhow::anyhow!("All explicit branch probabilities are zero");
+
+        assert_eq!(
+            StimuliGenerator::classify_generation_error(&depth),
+            GenerationErrorReason::DepthExceeded
+        );
+        assert_eq!(
+            StimuliGenerator::classify_generation_error(&visits),
+            GenerationErrorReason::RuleVisitLimit
+        );
+        assert_eq!(
+            StimuliGenerator::classify_generation_error(&target),
+            GenerationErrorReason::TargetTimeout
+        );
+        assert_eq!(
+            StimuliGenerator::classify_generation_error(&helper),
+            GenerationErrorReason::HelperTimeout
+        );
+        assert_eq!(
+            StimuliGenerator::classify_generation_error(&other),
+            GenerationErrorReason::Other
+        );
+    }
+
+    #[test]
     fn target_drive_summary_reports_helper_timeout_errors() {
         let summary = TargetDriveSummary {
             entry_rule: "start".to_string(),
@@ -12385,6 +12503,7 @@ mod tests {
             generation_successes: 5,
             generation_errors: 3,
             depth_exceeded_errors: 2,
+            rule_visit_limit_errors: 1,
             target_timeout_errors: 1,
             helper_timeout_errors: 2,
             total_targets: 9,
@@ -12401,6 +12520,10 @@ mod tests {
         assert!(
             summary.summary_line().contains("depth_exceeded_errors=2"),
             "DIAG-SEVERITY.3: target-drive summaries must expose depth-exceeded counts (the masked SV-residual cause)"
+        );
+        assert!(
+            summary.summary_line().contains("rule_visit_limit_errors=1"),
+            "DIAG-SEVERITY.3.1: target-drive summaries must expose rule-visit-limit counts (the 2nd masked structural-budget cause)"
         );
         assert!(
             summary.summary_line().contains("target_timeout_errors=1"),
