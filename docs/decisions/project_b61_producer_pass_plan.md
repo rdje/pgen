@@ -1,0 +1,39 @@
+<!-- Decision record (layer C) — migrated 2026-06-02 from harness-home memory
+     (~/.claude/projects/.../memory/project_b61_producer_pass_plan.md) by MEMORY-ARCH.2 (PGEN-MEMORY-ARCH-0003).
+     Now the tracked system of record; the ~/.claude copy is a cache. Content preserved verbatim below. -->
+
+---
+name: project_b61_producer_pass_plan
+description: SV-EXH-PROOF.3.3.4.b.6 producer/consumer pass — route pivot, state, and the conditional engine-primitive backlog
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: 8c2d85c8-f843-4500-981d-c2bbf763bdc7
+---
+
+`.b.6` = SV producer + consumer passes for context-aware parsing — the payoff that fixes the uvm `if(a.b.c(x))` method-call ambiguity (`.b.4` diagnosis).
+
+**ROUTE PIVOT (2026-05-22, user-confirmed).** A capability audit (Explore) found the RICH type-carrying producer needs ~3-4 new engine primitives: fan-out emission, `$ref`-to-substructure resolution (the resolver scalar-izes every `$ref` — a non-scalar `$data_type` fails), predicate-language nesting + list/exists, `predicate_defs` codegen. KEY INSIGHT: the `a.b.c(x)` disambiguation is a name-**presence** question ("is the chain head a declared name?"), NOT a type-**kind** question — so the MINIMAL producer needs ZERO primitives. Decision: build minimal-first, let the `.b.6.2` consumer's result decide if any primitive is genuinely needed. The 3-4 primitives are now a **conditional backlog**, opened only if `.b.6.2` proves the need.
+
+**DONE so far:**
+- `.b.6.1.1` (PGEN-SV-EXH-PROOF-0034, `25e5c10d`) — `@fact_kind:` schema declarations in `systemverilog.ebnf` (type_name+variable_binding+type_binding; type_name `exportable:true`). Also fixed a pre-existing codegen gap: `generate_compiled_semantic_runtime_annotations_tokens` never serialised `fact_kinds` into generated parsers — fixed via `generate_fact_kind_decl_tokens` + `CompiledSemanticRuntimeAnnotations::set_fact_kinds`.
+- `.b.6.1.2` (PGEN-SV-EXH-PROOF-0035, `cdbc7594`) — minimal `variable_binding` producer: `@emit_fact: { kind: variable_binding, name: $name.body }` on `variable_decl_assignment`. That decl-site ELEMENT rule executes once per variable → natural per-element fan-out, ZERO new primitives.
+
+**⚠ Cross-slice hazard (handled in `.b.6.1.1`, keep in mind for future `@fact_kind:` edits):** adding ANY `@fact_kind:` block flips `exportable_fact_kinds()` off the `.b.5.3` MVP-0 fallback → must keep `type_name` declared `exportable:true` or veer cross-file export regresses.
+
+**⚠ STILL-OPEN twin codegen gap (owned by `.b.6.2` IF it needs composed predicates):** the `predicate_defs` registry is NOT codegen-emitted (`PredicateDef.body` is a recursive `PredicateExpr` needing its own token serialiser) — a generated parser's `predicate_defs` is always empty; `.b.5.1.5.c`'s composed-predicate dispatch works only on the unit-test path. NOT a blocker for the minimal `.b.6.2` (built-in `has_fact` predicate, no `@predicate_def:`).
+
+**`.b.6.2` ROOT CAUSE — precisely traced from the grammar (2026-05-22):**
+`split_hierarchical_callable_receiver := (scope)? ( identifier constant_bit_select dot !callable_method_call_body )* identifier` (sv:2696). For `a.b.c(x)`: the loop's iter-1 (consume `a.`) runs `!callable_method_call_body` against `b.c(x)`. `callable_method_call_body := built_in_method_call | …` → `built_in_method_call := array_manipulation_call` → `array_manipulation_call := array_method_name attribute_instance* ( lparen list_of_arguments rparen )? …` — the parens group is `?`-OPTIONAL, so `array_manipulation_call` matches a BARE `b`. So `!callable_method_call_body` trips (sees `b` as a cmcb) → iter-1 FAILS → loop consumes ZERO path segments → receiver collapses to just `a` → outer `split_direct_callable_method_call := …receiver dot callable_method_call_body` then matches only `a.b`, leaving `.c(x)` unconsumed → FAIL. (iter-2 against `c(x)` correctly stops — `c(x)` is a real cmcb. Only NON-final iters are broken.) Confirms `.b.4`'s empirical 2-level-passes / 3-level-fails boundary.
+
+**Why it is genuinely semantic (not a 1-token structural fix):** the bare-parens form is LRM-correct — `arr.unique` is a real bare array-method call, and a bare method's result CAN chain (`arr.unique.size`). So a bare `identifier` followed by `.` is syntactically ambiguous between path-member and bare-method. Resolving it needs to know whether the identifier is a field vs a method — i.e. semantic context.
+
+**`.b.6.2` DONE 2026-05-22 (PGEN-SV-EXH-PROOF-0036) — consumer mechanism landed, but uvm did NOT move.** Fix: new rule `context_member_method_call := identifier ( dot identifier &dot )+ dot callable_method_call_body ( dot method_call_body )*`, added as `call_primary`'s priority-first FIRST branch, gated by `@predicate has_fact(variable_binding, $head) phase: post`. Refined root cause: `call_primary` uses `split_direct_callable_method_call` with NO chain wrapper (whereas `method_call` chains via `( dot method_call_body )*`), so `a.b.c(x)` matches only `a.b`. The new branch parses the full chain; `&dot` bounds the member loop; the `post`-gate is a regression firewall (only fires for known-variable heads). VERIFIED: `a.b.c(x)`, `!a.b.c(x)`, AND the exact uvm shape `function void f(); uvm_seed_map seed_map; if(!seed_map.seed_table.exists(type_id)) begin end endfunction` ALL parse (all failed before); corpus 10/14 (no regression); features-on 607/607; RGX 44/44.
+
+**`.b.6.2.1` DONE 2026-05-22 (PGEN-SV-EXH-PROOF-0037).** Bisection of the 85K-line uvm_pkg body → uvm's deep parse position advanced ~5243 → ~5521 from `.b.6.2`; current minimal failing construct: `return uvm_bit_vector_utils#(uvm_bitstream_t)::to_string(...)` at preprocessed line 5521.
+
+**`.b.6.2.2` DONE 2026-05-23 (PGEN-SV-EXH-PROOF-0038) — systematic predicate-`$<rulename>`-ref defect class fixed (17 instances).** `--trace` of `int x = a::b;` showed `non_typedef_package_scope`'s `@predicate` deterministically raising `"Semantic runtime could not resolve attribute reference 'package_identifier'"`. The pattern: 17 `@predicate ... args:[..., $<rulename>, ...]` refs across the SV grammar where `<rulename>` is a sub-rule whose content shapes to `{body:scalar}` via the `non_keyword_identifier -> {body: $2.body}` chain — the Json-mode resolver looks up `<rulename>` as a top-level field, doesn't find it, raises `ContextualError`, the rule hard-rejects. ALWAYS broken pre-existing (`.b.5.3` byte-identical) — masked because the affected constructs weren't reached before `.b.6.2` advanced uvm. Fix: drill via dotted refs (`$body`, `$head.body`, `$body.name.body`, `$scope.name.body` per the rule's `->` shape). Verified end-to-end with a freshly-rebuilt release `parseability_probe`: `a::b`, `C::m()`, `C#(int)::m(a)` (declared class), AND the EXACT uvm body shape ALL parse. `.b.6.2.3` closed-by-evidence — the 17-instance fix subsumed the parameterized `#(...)::` form.
+
+**⚠ Stale-probe trap (lesson for future regen cycles):** `parseability_probe` is a `--features generated_parsers` static-include build that EMBEDS the SV parser at build time. If you regen `systemverilog_parser.rs` AFTER the probe was last built, the probe is silently stale and probe pass/fail lies. Mitigation: after a regen, `touch rust/src/lib.rs` and `cargo build --release --features generated_parsers --bin parseability_probe` before trusting probe results — or check `target/release/parseability_probe` mtime > `generated/systemverilog_parser.rs` mtime. Belongs in [[feedback_verify_sv_parser_regen_mtime]].
+
+**NEXT:** SV external-corpus triage with the fresh state (running 2026-05-23) will report uvm corpus movement. Three plausible outcomes per Phase 5's framing: (a) uvm parses fully — 10/14→11/14 or higher; (b) uvm advances further but stops at a new construct (next .b.6.2.x diagnose-and-fix); (c) `.b.6.3` verification + book + release bump 1.0.126→1.0.127 if the corpus moves cleanly.

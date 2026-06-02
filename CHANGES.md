@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-MEMORY-ARCH-0003 (leaf MEMORY-ARCH.2): **docs/decisions/ (layer C) created + ALL 54 durable ~/.claude records migrated into git — untracked-memory exposure CLOSED.**
+
+Pure docs — NO code, NO release bump. The high-value, exposure-closing leaf.
+
+Created docs/decisions/ and migrated ALL 54 durable harness-home memory records (45 feedback_ standing disciplines/guidance + 7 project_ work-facts/vision + 2 reference_ pointers; ~236 KB) into tracked files, each preserving the ORIGINAL content verbatim (self-verified: 0 content mismatches across all 54 via tail-after-banner diff vs source) with a provenance banner (migration date + note that ~/.claude is now a cache). Generated docs/decisions/INDEX.md DERIVED from each record's name/description frontmatter (54 rows + category) so it cannot drift. MEMORY.md itself excluded (layer A → .3). Effect: every durable discipline/decision — including this campaign's no-guess discipline, the parser-agnostic mandate, director-role, fix-hierarchy, commit-workflow, etc. — is now git-tracked and harness-portable; it survives a machine loss or a switch to any other AI tool, which was the standard's #1 exposure for pgen. Records migrated as-is (faithful preservation over reformatting); future edits can ADR-ify individual records. Frontier → MEMORY-ARCH.3 (replace the stale 1.37 MB root MEMORY.md with the bounded resume pointer).
+
 ## 2026-06-02 - PGEN-MEMORY-ARCH-0002 (leaf MEMORY-ARCH.1): **MEMORY_ARCHITECTURE.md added at repo root (verbatim from the standard) + README doc-map pointers.**
 
 Pure docs — NO code, NO release bump. First implementation leaf of the MEMORY-ARCH tree.

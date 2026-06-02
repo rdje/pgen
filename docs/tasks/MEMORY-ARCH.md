@@ -80,11 +80,11 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
   Commit: `done — PGEN-MEMORY-ARCH-0002`
 
 - ID: `MEMORY-ARCH.2`
-  Status: `pending`
-  Goal: `Create docs/decisions/ (layer C) + INDEX.md, and MIGRATE ALL durable records currently in ~/.claude (the feedback_*/project_*/reference_* memory files: standing disciplines, decisions, env quirks, failed-approach learnings) into dated ADR-style records (Context → Decision → Consequences), linked from the related task-trees and the INDEX. Closes the untracked-memory exposure.`
+  Status: `done` (`PGEN-MEMORY-ARCH-0003`, 2026-06-02)
+  Goal: `Create docs/decisions/ (layer C) + INDEX.md, and MIGRATE ALL durable records currently in ~/.claude (the feedback_*/project_*/reference_* memory files: standing disciplines, decisions, env quirks, failed-approach learnings) into ADR-style records, linked from the INDEX. Closes the untracked-memory exposure.`
   Acceptance: `docs/decisions/ with INDEX in sync with the record files; every durable ~/.claude memory has a tracked record; records are plain-text self-describing; committed.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — created docs/decisions/ + migrated ALL 54 durable ~/.claude memory records (45 feedback_ + 7 project_ + 2 reference_; ~236 KB; MEMORY.md itself excluded — that is layer A, handled by .3) into tracked files, each preserving the original content VERBATIM (self-verified: tail-after-banner diff vs source = 0 mismatches across all 54) with a provenance banner noting the migration + that ~/.claude is now a cache. Generated INDEX.md DERIVED from each record's frontmatter (name/description → 54 rows, category from filename prefix) so it cannot drift. The records keep their original frontmatter (name/description/metadata.type) → plain-text + self-describing per the standard. This CLOSES THE UNTRACKED-MEMORY EXPOSURE: every durable discipline/decision (incl. this campaign's no-guess discipline, parser-agnostic mandate, director-role, fix-hierarchy, etc.) is now git-tracked + harness-portable. NO code, no release bump. Note: the records are migrated as-is (not re-authored into strict Context→Decision→Consequences prose) — faithful preservation was prioritized over reformatting; future edits can ADR-ify individual records. Frontier → MEMORY-ARCH.3 (root MEMORY.md → bounded pointer).`
+  Commit: `done — PGEN-MEMORY-ARCH-0003`
 
 - ID: `MEMORY-ARCH.3`
   Status: `pending`
