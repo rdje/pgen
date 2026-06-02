@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0133 (leaf SV-EXH-PROOF.7.2.18, DESIGN — no code): **Route-to-literal-0 design recorded; route C (rule-targeted reach, no quantifier-forcing) decomposed; awaiting director decision.**
+
+Pure design — NO code, NO release bump. New doc docs/tasks/SV-EXH-PROOF-7.2.18-route-decision-design.md.
+
+CAPABILITY GAP (source-confirmed): set_reach_plan / compute_reach_path / try_install_reach_plan_for_status are BRANCH-ONLY (need node_path+branch_index); a never_hit RULE target has node_path=None, so the reach driver structurally CANNOT target it today — which is why the 750 never_hit rules (the bigger lever from .7.2.17) are untouched.
+
+ROUTE C (rule-targeted reach WITHOUT quantifier-forcing): "reach rule R" = "enter R once" = steer to the OR-branch that introduces R — i.e. reduce a rule target to a BRANCH target via a new compute_rule_reach_target(entry,rule) over the EXISTING collect_rule_reference_sites graph (.7.2.1), then reuse compute_reach_path UNCHANGED + the concentrated single-plan mechanism that produced 888. Decomposed: .7.2.19 = analysis-only translation layer (zero generation change, unit-tested); .7.2.20 = the ONE driver-wiring behavior change, measured vs 888 with instant-revert. DELIBERATELY EXCLUDED: quantifier-forcing (.7.2.10 ablation-proven harmful = diversity collapse), rotation escalation, any generate_quantified change.
+
+ALTERNATIVE: accept-with-evidence at 888 (the residual is a classified, 100%-reachable steerable coverage gap, not a structural limit) — equally signoff; literal-0 becomes a tracked enhancement. RECOMMENDATION: build .7.2.19 (zero-risk analysis) first, then .7.2.20 for sign-off + measured run; fall back to accept-with-evidence if .7.2.20 doesn't beat 888. Not re-measuring the 888 baseline partition for a before-number (route identical for 888 and 1717; a 50-min gate changes no decision). Best-known runtime stays .7.2.8/888 (generation path byte-identical). AWAITING DIRECTOR: route C vs accept-with-evidence.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0132 (leaf SV-EXH-PROOF.7.2.17, READ-ONLY diagnostic): **Residual partition measured via the .7.2.16 classification — 100% reachable, ZERO structurally-unreachable; literal-0 is attainable in principle.**
 
 Pure read-only diagnostic — NO code, NO release bump. Used the .7.2.16 reach_classification field to answer "is literal-0 attainable or is some residual structural?"
