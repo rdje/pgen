@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-MEMORY-ARCH-0004 (leaf MEMORY-ARCH.3): **Root MEMORY.md demoted from a stale 1.37 MB blob to the bounded 23-line layer-A resume pointer.**
+
+Pure docs — NO code, NO release bump.
+
+Overwrote the tracked root MEMORY.md (was 18562 lines / 1.37 MB of stale carried-forward session prose, last real update 2026-05-05 SV-Slice-19 era — current-state + durable-facts + history all conflated, the standard's #1 anti-pattern) with the bounded resume-pointer template: 23 lines / 2.1 KB (≤ the ~50-line target and the 60-line check cap). Now holds: How-to-resume (routes to MEMORY_ARCHITECTURE.md + README + docs/tasks/ + docs/TASK_TREE.md + COMMIT.md + docs/decisions/INDEX.md + LIVE_ACHIEVEMENT_STATUS.md + CHANGES.md) + an OVERWRITE-only Current-state block (latest_commit / active_work_unit+frontier / next_action / in_flight / blockers) + a short other-open-threads note. The old 1.37 MB content is PRESERVED in git (last touched b632c680) — not deleted, just no longer carried forward (standard §6). The tracked root MEMORY.md is now canonical layer A; the ~/.claude harness MEMORY.md is a cache (its durable records were migrated to docs/decisions/ in .2). Frontier → MEMORY-ARCH.4 (enforcement kit: check script + .githooks + core.hooksPath + CI + bootstrap pointers).
+
 ## 2026-06-02 - PGEN-MEMORY-ARCH-0003 (leaf MEMORY-ARCH.2): **docs/decisions/ (layer C) created + ALL 54 durable ~/.claude records migrated into git — untracked-memory exposure CLOSED.**
 
 Pure docs — NO code, NO release bump. The high-value, exposure-closing leaf.

@@ -87,11 +87,11 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
   Commit: `done — PGEN-MEMORY-ARCH-0003`
 
 - ID: `MEMORY-ARCH.3`
-  Status: `pending`
-  Goal: `Reconcile layer A: REPLACE the stale 1.37 MB tracked root MEMORY.md with the bounded ≤~50-line resume-pointer template (current_commit / active_work_unit+frontier / next_action / in_flight / blockers). History stays in git. Make the tracked root MEMORY.md canonical; the ~/.claude pointer stops being the system of record.`
+  Status: `done` (`PGEN-MEMORY-ARCH-0004`, 2026-06-02)
+  Goal: `Reconcile layer A: REPLACE the stale 1.37 MB tracked root MEMORY.md with the bounded ≤~50-line resume-pointer template. History stays in git. Make the tracked root MEMORY.md canonical.`
   Acceptance: `root MEMORY.md ≤ the line cap, overwrite-only resume-pointer shape, no history; points at MEMORY_ARCHITECTURE.md + docs/tasks/ + docs/decisions/; committed.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — overwrote the root MEMORY.md (was 18562 lines / 1.37 MB of stale carried-forward session prose, last real update 2026-05-05 SV-Slice-19 era — pure layer-A/B/D content conflated, the standard's #1 anti-pattern) with the bounded resume-pointer template: now 23 lines / 2.1 KB (≤ the ~50-line target + the 60-line check cap). Contains How-to-resume (points at MEMORY_ARCHITECTURE.md + README + docs/tasks/ + docs/TASK_TREE.md + COMMIT.md + docs/decisions/INDEX.md + LIVE_ACHIEVEMENT_STATUS.md + CHANGES.md) + the OVERWRITE-only Current-state block (latest_commit / active_work_unit+frontier / next_action / in_flight / blockers) + a short Other-open-threads note (SV-EXH-PROOF paused at logged checkpoint). The old 1.37 MB content is PRESERVED in git (HEAD~:MEMORY.md = 1369466 bytes; last touched commit b632c680) — not deleted, just no longer carried forward, per the standard §6. The tracked root MEMORY.md is now canonical layer A; the ~/.claude/.../memory/MEMORY.md (53-line harness index) is now a cache (its durable referenced records were migrated to docs/decisions/ in .2). NO code, no release bump. Frontier → MEMORY-ARCH.4 (enforcement kit).`
+  Commit: `done — PGEN-MEMORY-ARCH-0004`
 
 - ID: `MEMORY-ARCH.4`
   Status: `pending`
