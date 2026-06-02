@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-DIAG-SEVERITY-0001 (DIAG-SEVERITY tree creation + leaf .1 audit): **New ACTIVE tree — severity (warning/error/fatal) must NEVER be gated by a trace/verbosity level; codebase-wide correction.**
+
+Pure docs — NO code, NO release bump. Director-directed (emphatic): "warnings, errors and fatals shall never, ever, ever be masked by a trace level; trace levels apply to info only; create a task-tree to correct this in the entire codebase."
+
+PRINCIPLE: a diagnostic of severity ≥ Warning emits unconditionally; verbosity governs informational output only. ROOT DEFECT (source-cited): PGEN's `TraceLevel` (ast_pipeline/mod.rs) is a pure verbosity scale (Low/Medium/High/Debug — no severity), and both the central sink `trace_log` and the per-generator `trace()` (stimuli_generator.rs:1248) early-return when verbosity < level — so error text routed through `trace()` is masked at low verbosity. This is exactly why the SV depth-exceeded error (the 888 residual's dominant cause) stayed invisible all of `.7.2`.
+
+Created docs/tasks/DIAG-SEVERITY.md + registered Active in docs/TASK_TREE.md. Leaves: `.1` AUDIT (done — masked sites: stimuli_generator.rs:4437 + :4021 `Err(err) => self.trace(...)` [visibility-masked, value still propagates]; :2432 error-classification gap [only timeouts bucketed → depth-exceeded vanishes into a generic count]; semantic_runtime.rs:1740/2047/2145 are genuine Debug guards — fine; TraceLevel census 54/13/3/1); `.2` add a Severity dimension (Warning+ bypasses the verbosity gate) + ADR; `.3` migrate masked sites + add error-by-reason buckets to the gap-report summary; `.4` enforcement gate (mirror MEMORY-ARCH E2/E4 — flag any masked-severity site, pre-commit + CI); `.5` book lockstep + close. Principle saved as [[feedback_severity_never_gated_by_verbosity]]. The rest of the codebase already uses always-on eprintln!/log — the defect is specific to the ast_pipeline custom trace.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0140 (leaf SV-EXH-PROOF.7.4.3a, SVEXH-Slice-129): **ROOT CAUSE of the stimuli residual, fully explained — it is a DEPTH-BUDGET exhaustion problem, not weighting/steering/counting.**
 
 Pure docs — tools-first head-on root-cause investigation; NO code, NO release bump. Director-directed: fully explain step-by-step WHY the residual fails before any fix.
