@@ -3586,6 +3586,124 @@ impl<'a> StimuliGenerator<'a> {
         Some(chain)
     }
 
+    /// SV-EXH-PROOF.7.2.19 (PGEN-SV-EXH-PROOF-0134, ANALYSIS ONLY — no generation
+    /// change): translate a never-hit RULE target into a BRANCH target the
+    /// (branch-only) reach machinery can steer to. "Reach rule R" = "enter R at
+    /// least once"; R is entered when the OR-decision that introduces R selects the
+    /// alternative referencing R. So we find that OR site and return it as a branch
+    /// target `(via_rule, node_path, branch_index)` such that
+    /// `compute_reach_path(entry, via_rule, node_path, branch_index)` (UNCHANGED)
+    /// steers generation into R.
+    ///
+    /// Algorithm (reuses the exact `compute_reach_path` BFS over the rule-reference
+    /// graph, so it inherits its determinism + cycle-safety): BFS from `entry_rule`
+    /// recording, per discovered rule, the `(predecessor_rule, reference-site
+    /// node_path)` it was discovered through. To produce a branch target for
+    /// `target_rule`, walk up that discovery chain to the FIRST hop whose
+    /// reference-site path contains an `o{i}` (OR) segment — the deepest such `o{i}`
+    /// on that path is the OR node + alternative whose selection enters the next
+    /// rule on the way to `target_rule`. Return `(that hop's predecessor rule, the
+    /// OR node's group path, the alternative index)`.
+    ///
+    /// If NO hop on the chain crosses an OR (every introduction is in a plain
+    /// sequence, i.e. unconditionally taken once the parent is entered), then
+    /// `target_rule` is generated whenever the entry is — there is no branch to
+    /// force and a rule-reach plan is neither possible nor needed; returns `None`.
+    /// Also `None` if `target_rule == entry_rule` (already the root) or is
+    /// graph-unreachable. GENERAL/parser-agnostic — keyed only on the reference
+    /// graph + path encoding, no rule-name special-casing.
+    ///
+    /// PURE analysis: returns a descriptor only; performs NO generation and mutates
+    /// nothing. The driver wiring that consumes it is a SEPARATE leaf (`.7.2.20`).
+    #[allow(dead_code)]
+    fn compute_rule_reach_target(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+    ) -> Option<(String, String, usize)> {
+        if target_rule == entry_rule {
+            return None;
+        }
+        if !self.grammar_tree.contains_key(target_rule) {
+            return None;
+        }
+
+        use std::collections::VecDeque;
+        // discovered[rule] = (predecessor_rule, reference-site node_path in predecessor)
+        let mut discovered: HashMap<String, Option<(String, String)>> = HashMap::new();
+        discovered.insert(entry_rule.to_string(), None);
+        let mut queue: VecDeque<String> = VecDeque::new();
+        queue.push_back(entry_rule.to_string());
+
+        while let Some(rule_name) = queue.pop_front() {
+            if rule_name == target_rule {
+                break;
+            }
+            let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
+                continue;
+            };
+            let mut sites: Vec<RuleReferenceSite> = Vec::new();
+            Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            for site in sites {
+                if !self.grammar_tree.contains_key(site.referenced_rule.as_str()) {
+                    continue;
+                }
+                if discovered.contains_key(site.referenced_rule.as_str()) {
+                    continue;
+                }
+                discovered.insert(
+                    site.referenced_rule.clone(),
+                    Some((rule_name.clone(), site.node_path.clone())),
+                );
+                queue.push_back(site.referenced_rule);
+            }
+        }
+
+        if !discovered.contains_key(target_rule) {
+            return None; // graph-unreachable from entry
+        }
+
+        // Walk the discovery chain target → entry; the FIRST hop (closest to the
+        // target) whose reference-site path crosses an OR gives the branch to force.
+        let mut cursor = target_rule.to_string();
+        loop {
+            let Some(Some((pred_rule, site_path))) = discovered.get(&cursor) else {
+                break; // reached entry (predecessor None) — no OR on the whole chain
+            };
+            if let Some((or_node_path, branch_index)) =
+                Self::deepest_or_on_path(site_path)
+            {
+                return Some((pred_rule.clone(), or_node_path, branch_index));
+            }
+            cursor = pred_rule.clone();
+        }
+        None
+    }
+
+    /// SV-EXH-PROOF.7.2.19: given a reference-site `node_path` (the
+    /// `collect_branch_groups` encoding), return the DEEPEST `o{i}` (OR
+    /// alternative) crossed on it as `(or_node_group_path, branch_index)` — i.e.
+    /// the last OR choice on the way to the site, whose `or_node_group_path` is the
+    /// prefix up to (not including) that `o{i}` segment. `None` if the path crosses
+    /// no OR (the reference is unconditional within its parent).
+    fn deepest_or_on_path(node_path: &str) -> Option<(String, usize)> {
+        let mut prefix = String::from("root");
+        let mut deepest: Option<(String, usize)> = None;
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('o') {
+                if let Ok(index) = index_str.parse::<usize>() {
+                    deepest = Some((prefix.clone(), index));
+                }
+            }
+            prefix.push('/');
+            prefix.push_str(segment);
+        }
+        deepest
+    }
+
     /// SV-EXH-PROOF.7.2.1: walk `node_path` (the `collect_branch_groups`
     /// encoding) from a rule's root, emitting a `ReachDirective` for every
     /// `o{i}` (Or-alternative) segment crossed — i.e. the OR choices that must be
@@ -14847,5 +14965,64 @@ mod tests {
             r1.summary.total_branches, r2.summary.total_branches,
             "classification must not change coverage summary"
         );
+    }
+
+    // ---- SV-EXH-PROOF.7.2.19: rule -> branch reach translation (analysis only) ----
+
+    #[test]
+    fn compute_rule_reach_target_finds_or_branch_introducing_a_rule() {
+        // synthetic_reach_grammar: start := mid_a | mid_b ; mid_b := ("kw" deep) | "lit"
+        // deep := "p"|"q"|"r". `deep` is reachable ONLY via start->o1 (mid_b) then
+        // mid_b->o0 ("kw" deep). The DEEPEST OR introducing `deep` is mid_b::root#0.
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+
+        let tgt = generator
+            .compute_rule_reach_target("start", "deep")
+            .expect("deep is reachable behind ORs, so a rule-reach branch target must exist");
+        // `deep` is introduced inside mid_b at root/s0 (the "kw deep" sequence) which
+        // sits under mid_b::root#0. The deepest OR on that site path is mid_b::root#0.
+        assert_eq!(
+            tgt,
+            ("mid_b".to_string(), "root".to_string(), 0),
+            "rule-reach target for `deep` must be the OR branch mid_b::root#0 that introduces it; got {:?}",
+            tgt
+        );
+
+        // And the translated branch target must yield a valid reach plan via the
+        // UNCHANGED compute_reach_path (entry -> that branch).
+        let (via_rule, node_path, branch_index) = tgt;
+        let plan = generator
+            .compute_reach_path("start", &via_rule, &node_path, branch_index)
+            .expect("the translated branch target must be reachable by a plan");
+        assert!(!plan.is_empty(), "reach plan to the introducing branch must be non-empty");
+    }
+
+    #[test]
+    fn compute_rule_reach_target_none_for_unconditional_or_trivial_cases() {
+        // A rule referenced UNCONDITIONALLY (no OR on the path) needs no branch
+        // forcing: start := pre body ; body := "x". `body` is always generated when
+        // start is, so there is no branch target -> None.
+        let mut g = HashMap::new();
+        g.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("pre"), rule_ref("body")],
+            },
+        );
+        g.insert("pre".to_string(), token("string", "P"));
+        g.insert("body".to_string(), token("string", "x"));
+        let rule_order: Vec<String> = g.keys().cloned().collect();
+        let generator = simple_generator(&g, &rule_order, 1);
+
+        assert_eq!(
+            generator.compute_rule_reach_target("start", "body"),
+            None,
+            "an unconditionally-referenced rule has no OR to force -> None"
+        );
+        // entry itself, and an unknown rule, are also None.
+        assert_eq!(generator.compute_rule_reach_target("start", "start"), None);
+        assert_eq!(generator.compute_rule_reach_target("start", "does_not_exist"), None);
     }
 }

@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0134 (leaf SV-EXH-PROOF.7.2.19): **Route-C step 1 — rule→branch reach translation (`compute_rule_reach_target`); ANALYSIS ONLY, zero generation change.**
+
+Engine code (rust/src/ast_pipeline/stimuli_generator.rs) — pure analysis added; NO generation-behavior change, NO release bump. NO-WORKAROUNDS level 5 (minimal parser-agnostic generator-analysis capability). Route C from the .7.2.18 director decision.
+
+WHAT: the reach driver is branch-only (compute_reach_path needs node_path+branch_index), so a never_hit RULE (the 750-target bigger lever, .7.2.17) can't be targeted. Added compute_rule_reach_target(entry, target_rule) -> Option<(via_rule, node_path, branch_index)> + helper deepest_or_on_path: reuses the EXACT compute_reach_path BFS over the rule-reference graph (collect_rule_reference_sites, .7.2.1), recording per discovered rule its (predecessor, reference-site path); walks the discovery chain target→entry to the first hop whose site path crosses an OR and returns the deepest o{i} there as the branch to force (selecting it enters the next rule toward the target). None when target==entry / unreachable / referenced unconditionally (no OR to force → generated whenever entry is). This is the missing translation that lets the unchanged branch machinery target a rule, with NO new forcing primitive.
+
+PURE analysis: returns a descriptor, calls no generation, mutates nothing. VERIFIED: 2 new tests (finds the introducing OR branch + feeds compute_reach_path to a valid plan; None for unconditional/entry-self/unknown). lib no-features 565/565 (+2); lib --features generated_parsers 626/626 (+2); source clippy clean. PROOF no-generation-change: git diff vs the 888 baseline (c6480943) shows ZERO changes to any generation fn — .7.2.16 + .7.2.19 are analysis/reporting only. Best-known runtime stays .7.2.8/888 (generation byte-identical). NEXT: .7.2.20 wires this into the driver (the ONE measured behavior change) — needs sign-off + a measured gate run vs 888 with instant-revert.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0133 (leaf SV-EXH-PROOF.7.2.18, DESIGN — no code): **Route-to-literal-0 design recorded; route C (rule-targeted reach, no quantifier-forcing) decomposed; awaiting director decision.**
 
 Pure design — NO code, NO release bump. New doc docs/tasks/SV-EXH-PROOF-7.2.18-route-decision-design.md.
