@@ -150,7 +150,9 @@
   JSON/EBNF). NO grammar/generated change for the analysis; wiring is a measured sub-step.`
 
 - ID: `PARSE-SOTA.9` (adoption A2 ⭐ — static ordered-choice shadowing lint)
-  Status: `pending` (code; director-greenlit 2026-06-02)
+  Status: `analysis DONE` (`-0006`, 2026-06-02; sound shadowing detection landed; wiring = `.9.1`)
+  Verification: `done (analysis sub-step) — detect_ordered_choice_shadowing() in grammar_wellformedness.rs: walks every Or node (with node_path) and flags an alternative UNREACHABLE in two SOUND-ONLY cases — (1) DuplicateAlternative (exact structural copy of an earlier alt, compared via serde value) and (2) FixedTerminalPrefix (an earlier alternative that is an entirely-fixed-terminal sequence prefixing a later alternative's leading fixed terminals — the canonical PEG `a | ab` quirk where PEG commits to `a`). Deliberately conservative (rule-reference / quantifier / alternation alternatives are NOT treated as fixed prefixes, since a rule can fail) → NO false positives. 4 unit tests: duplicate detected; `a | ab` prefix detected; NO false positive on distinct terminals / longer-before-shorter (`ab | a`) / rule-ref alternatives; nested-Or node_path reported. lib (no-features) 581/581 (+4); clippy 0 errors. WIRING (emit pgen_warn! at generate time + verify acceptable on the shipped grammars) is sub-step .9.1, after .7.4.3 commits. The fuller semantic-superset shadowing (general | specific, e.g. provisional_X ⊇ known_X) needs store/predicate reasoning — a later refinement, NOT this structural slice.`
+  Commit: `PGEN-PARSE-SOTA-0006`
   Goal: `The out-of-the-box win: a static lint over each Or node that flags an
   alternative UNREACHABLE because an earlier alternative subsumes its prefix (the PEG
   "A := a | ab" quirk; ALL(*) critique) — the exact catch-all-shadows-specific defect
@@ -190,7 +192,8 @@
 | — | `PARSE-SOTA.1`–`.6` | `done` (`-0002`, 2026-06-02) | 5 parallel literature sweeps + synthesis landed in docs/tasks/PARSE-SOTA-research-synthesis.md. KEY: the existing flow is a recognized published architecture (store-gates-rules = SPEG/Nez/data-dependent grammars; memo delta-replay = Laurent & Mens SLE 2016; RETURN = synthesized attributes; codegen = staged combinators) — VALIDATED, not idiosyncratic. Prioritized adoption backlog §1: Tier A (A1 well-formedness check, A2 ordered-choice shadowing lint ⭐, A3 labeled failures, A4 round-trip/golden-file testing, A5 ship `_meta`) all engine-untouched; Tier B (B1 memo-soundness audit ⭐, B2 cut operator, B3 parametric rules); Tier C (C1 scope graphs, C2 error recovery, C3 grammar modules); + an explicit do-NOT-adopt list (GLL/GLR/Earley engine swap, red-green trees, incremental parsing, runtime left-recursion). |
 | — | director review | `done` (2026-06-02) | Director greenlit Tier A (A1/A2/A4/A5) → now owned leaves `.8`–`.11`. |
 | 1 | `PARSE-SOTA.8` (A1 well-formedness) | `pending` (frontier) | Static left-recursion + non-terminating-rule detection, rejected via pgen_error!; reuses .7.4.2 min-length + DIAG-SEVERITY channel. Lowest-risk Tier-A win. Starts once SV-EXH-PROOF.7.4.3 commits (frees stimuli_generator.rs). |
-| 2 | `PARSE-SOTA.9` (A2 ⭐ shadowing lint) | `pending` | The out-of-the-box ordered-choice shadowing lint (attacks the recurring SV catch-all defect class). |
+| — | `PARSE-SOTA.9` (A2 ⭐ shadowing lint) | `analysis DONE` (`-0006`) | Sound shadowing detection (duplicate + fixed-terminal-prefix) landed, 581/581; wiring = `.9.1` (after `.7.4.3`). |
+| 2 | `PARSE-SOTA.8.1` / `.9.1` (wiring) | `pending` | Wire A1 reject (pgen_error!) + A2 warn (pgen_warn!) into grammar load/generate + verify on shipped grammars — needs `.7.4.3` committed (frees main.rs). |
 | 3 | `PARSE-SOTA.10` / `.11` (A4 round-trip / A5 `_meta`) | `pending` | Robustness + fidelity. |
 
 ## Decisions

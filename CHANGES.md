@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-PARSE-SOTA-0006 (leaf PARSE-SOTA.9 / adoption A2 ⭐, analysis): **Static ordered-choice SHADOWING lint — sound detection of unreachable alternatives.**
+
+Code (extends rust/src/ast_pipeline/grammar_wellformedness.rs) — PURE ANALYSIS, no generation/grammar/generated change, no release bump. Same new module as A1 → no conflict with the in-flight SV-EXH-PROOF.7.4.3.
+
+detect_ordered_choice_shadowing(grammar, rule_order): walks every Or node (with node_path) and flags an alternative UNREACHABLE in two SOUND-ONLY structural cases — (1) DuplicateAlternative (exact structural copy of an earlier alt, via serde value compare) and (2) FixedTerminalPrefix (an earlier all-fixed-terminal alternative prefixing a later alternative's leading fixed terminals — the canonical PEG `a | ab` quirk the ALL(*) authors flag and the SV grammar work repeatedly hits as catch-all-shadows-specific). Conservative by design (rule-reference/quantifier/alternation alternatives are not treated as guaranteed prefixes) → NO false positives. 4 unit tests (duplicate; `a | ab`; no-false-positive on distinct/longer-first/rule-ref; nested-Or node_path). lib (no-features) 581/581 (+4); clippy 0 errors.
+
+NEXT (.9.1, after .7.4.3 commits): emit pgen_warn! at generate time + verify acceptable on the shipped grammars. The fuller semantic-superset shadowing (general|specific, e.g. provisional_X ⊇ known_X) needs store/predicate reasoning — a later refinement.
+
 ## 2026-06-02 - PGEN-PARSE-SOTA-0005 (leaf PARSE-SOTA.8 / adoption A1, analysis): **Static grammar well-formedness — left-recursion detection (Ford POPL 2004 §3.6).**
 
 Code (NEW self-contained module rust/src/ast_pipeline/grammar_wellformedness.rs + a mod decl) — PURE ANALYSIS, no generation/grammar/generated change, no release bump. In a new file so it does NOT conflict with the in-flight (uncommitted) SV-EXH-PROOF.7.4.3 witness-pass diff.

@@ -208,6 +208,182 @@ fn dfs(
     false
 }
 
+// ---------------------------------------------------------------------------
+// PARSE-SOTA.9 / adoption A2 (⭐): static ordered-choice SHADOWING lint.
+//
+// In a PEG ordered choice `a / b`, an alternative is UNREACHABLE if an earlier
+// alternative always matches whenever it could (the `A := a | ab` quirk that the ALL(*)
+// authors call out and that the SystemVerilog grammar work repeatedly hits as
+// catch-all-shadows-specific). A general subsumption check risks false positives, so this
+// lint is deliberately SOUND-ONLY — it flags just the two unambiguous structural cases:
+//   (1) a DUPLICATE alternative (an exact structural copy of an earlier one), and
+//   (2) an earlier alternative that is a FIXED-TERMINAL prefix of a later one
+//       (`a` before `a b` → `a b` is dead, because PEG commits to `a`).
+// It is a WARNING (emitted via the DIAG-SEVERITY pgen_warn! channel when wired), not a
+// hard error. Pure analysis.
+// ---------------------------------------------------------------------------
+
+/// An ordered-choice alternative shadowed (made unreachable) by an earlier one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShadowingIssue {
+    pub rule: String,
+    pub node_path: String,
+    /// Index of the unreachable alternative.
+    pub shadowed_index: usize,
+    /// Index of the earlier alternative that shadows it.
+    pub by_index: usize,
+    pub reason: ShadowingReason,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ShadowingReason {
+    /// Exact structural duplicate of the earlier alternative.
+    DuplicateAlternative,
+    /// The earlier alternative is a fixed-terminal prefix of this one (PEG commits first).
+    FixedTerminalPrefix,
+}
+
+impl ShadowingIssue {
+    pub fn message(&self) -> String {
+        let why = match self.reason {
+            ShadowingReason::DuplicateAlternative => "is an exact duplicate of",
+            ShadowingReason::FixedTerminalPrefix => "is a fixed-terminal prefix of",
+        };
+        format!(
+            "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — alternative #{} {} it (PEG commits to the earlier alternative); reorder (specific before general) or merge",
+            self.rule, self.node_path, self.shadowed_index, self.by_index, why
+        )
+    }
+}
+
+/// If `node` is composed ENTIRELY of fixed terminals (a terminal atom, or a sequence of
+/// fixed-terminal pieces), return that ordered list of lexemes; else None (a rule
+/// reference, alternation, quantifier, lookahead, or any non-fixed structure → not a
+/// guaranteed fixed match, so unsound to treat as a prefix).
+fn fixed_terminal_seq(node: &ASTNode) -> Option<Vec<String>> {
+    match node {
+        ASTNode::Atom { value } => match value {
+            ASTValue::Token(parts) => {
+                if referenced_rule(parts).is_some() {
+                    None // a rule reference can fail → not a guaranteed fixed match
+                } else if let (Some(TokenValue::String(_)), Some(TokenValue::String(v))) =
+                    (parts.first(), parts.get(1))
+                {
+                    Some(vec![v.clone()])
+                } else {
+                    None
+                }
+            }
+            ASTValue::Node(inner) => fixed_terminal_seq(inner),
+        },
+        ASTNode::Sequence { elements } => {
+            let mut seq = Vec::new();
+            for e in elements {
+                seq.extend(fixed_terminal_seq(e)?); // any non-fixed element → not fixed
+            }
+            Some(seq)
+        }
+        _ => None,
+    }
+}
+
+/// The leading fixed-terminal lexemes of `node` (a possibly-empty prefix). Used to test
+/// whether an earlier fixed sequence prefixes a later alternative.
+fn leading_fixed_terminals(node: &ASTNode) -> Vec<String> {
+    match node {
+        ASTNode::Sequence { elements } => {
+            let mut seq = Vec::new();
+            for e in elements {
+                match fixed_terminal_seq(e) {
+                    Some(part) => seq.extend(part),
+                    None => break, // stop at the first non-fixed element
+                }
+            }
+            seq
+        }
+        other => fixed_terminal_seq(other).unwrap_or_default(),
+    }
+}
+
+fn ast_eq(a: &ASTNode, b: &ASTNode) -> bool {
+    // ASTNode derives Serialize; compare structurally via the serialized value.
+    match (serde_json::to_value(a), serde_json::to_value(b)) {
+        (Ok(va), Ok(vb)) => va == vb,
+        _ => false,
+    }
+}
+
+/// Detect shadowed (unreachable) alternatives in every ordered choice of every rule.
+/// PURE analysis; deterministic order via `rule_order` + source order of Or nodes.
+pub fn detect_ordered_choice_shadowing(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<ShadowingIssue> {
+    let mut issues = Vec::new();
+    for rule in rule_order {
+        let Some(body) = grammar.get(rule) else { continue };
+        collect_shadowing(rule, body, "root", &mut issues);
+    }
+    issues
+}
+
+fn collect_shadowing(rule: &str, node: &ASTNode, path: &str, out: &mut Vec<ShadowingIssue>) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            for (j, alt_j) in alternatives.iter().enumerate() {
+                for (i, alt_i) in alternatives.iter().enumerate().take(j) {
+                    let reason = if ast_eq(alt_i, alt_j) {
+                        Some(ShadowingReason::DuplicateAlternative)
+                    } else if let Some(prefix) = fixed_terminal_seq(alt_i) {
+                        // alt_i is a guaranteed fixed match; if it prefixes alt_j's leading
+                        // fixed terminals, PEG commits to alt_i and alt_j is unreachable.
+                        let later = leading_fixed_terminals(alt_j);
+                        if !prefix.is_empty()
+                            && later.len() >= prefix.len()
+                            && later[..prefix.len()] == prefix[..]
+                        {
+                            Some(ShadowingReason::FixedTerminalPrefix)
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
+                    if let Some(reason) = reason {
+                        out.push(ShadowingIssue {
+                            rule: rule.to_string(),
+                            node_path: path.to_string(),
+                            shadowed_index: j,
+                            by_index: i,
+                            reason,
+                        });
+                        break; // one shadower per alternative is enough
+                    }
+                }
+            }
+            for (idx, alt) in alternatives.iter().enumerate() {
+                collect_shadowing(rule, alt, &format!("{}/o{}", path, idx), out);
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for (idx, e) in elements.iter().enumerate() {
+                collect_shadowing(rule, e, &format!("{}/s{}", path, idx), out);
+            }
+        }
+        ASTNode::Quantified { element, .. } => {
+            collect_shadowing(rule, element, &format!("{}/q", path), out);
+        }
+        ASTNode::Lookahead { element, .. } => {
+            collect_shadowing(rule, element, &format!("{}/l", path), out);
+        }
+        ASTNode::Atom { value } => {
+            if let ASTValue::Node(inner) = value {
+                collect_shadowing(rule, inner, &format!("{}/a", path), out);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -308,5 +484,80 @@ mod tests {
         let order: Vec<String> = vec!["a".into(), "b".into()];
         let issues = detect_left_recursion(&g, &order);
         assert!(issues.is_empty(), "a consuming prefix breaks left recursion: {issues:?}");
+    }
+
+    // ---- PARSE-SOTA.9 / A2: ordered-choice shadowing lint ----
+
+    #[test]
+    fn detects_duplicate_alternative() {
+        // r := "a" | "a"   → the 2nd alternative is a dead duplicate.
+        let mut g = HashMap::new();
+        g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));
+        let order: Vec<String> = vec!["r".into()];
+        let issues = detect_ordered_choice_shadowing(&g, &order);
+        assert_eq!(issues.len(), 1, "exactly one shadowed alt: {issues:?}");
+        assert_eq!(issues[0].shadowed_index, 1);
+        assert_eq!(issues[0].by_index, 0);
+        assert_eq!(issues[0].reason, ShadowingReason::DuplicateAlternative);
+    }
+
+    #[test]
+    fn detects_fixed_terminal_prefix_shadowing() {
+        // r := "a" | "a" "b"   → "a" commits first, so `a b` is unreachable (the a|ab quirk).
+        let mut g = HashMap::new();
+        g.insert(
+            "r".into(),
+            or(vec![token("string", "a"), seq(vec![token("string", "a"), token("string", "b")])]),
+        );
+        let order: Vec<String> = vec!["r".into()];
+        let issues = detect_ordered_choice_shadowing(&g, &order);
+        assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
+        assert_eq!(issues[0].shadowed_index, 1);
+        assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn no_false_positive_distinct_or_longer_first() {
+        // (a) distinct terminals; (b) longer-before-shorter (`ab | a`: `a` IS reachable on
+        // input "a" alone, so NOT shadowed); (c) rule-reference alternatives (a rule can
+        // fail, so it is unsound to treat as a guaranteed prefix).
+        let mut g = HashMap::new();
+        g.insert("distinct".into(), or(vec![token("string", "a"), token("string", "b")]));
+        g.insert(
+            "longer_first".into(),
+            or(vec![seq(vec![token("string", "a"), token("string", "b")]), token("string", "a")]),
+        );
+        g.insert("rule_alts".into(), or(vec![rule_ref("x"), rule_ref("y")]));
+        g.insert("x".into(), token("string", "x"));
+        g.insert("y".into(), token("string", "y"));
+        let order: Vec<String> = vec![
+            "distinct".into(),
+            "longer_first".into(),
+            "rule_alts".into(),
+            "x".into(),
+            "y".into(),
+        ];
+        let issues = detect_ordered_choice_shadowing(&g, &order);
+        assert!(
+            issues.is_empty(),
+            "no false positives on distinct/longer-first/rule-ref alternatives: {issues:?}"
+        );
+    }
+
+    #[test]
+    fn shadowing_reports_nested_or_node_path() {
+        // r := "p" ("a" | "a")   → the dup is in a NESTED Or; path must point at it.
+        let mut g = HashMap::new();
+        g.insert(
+            "r".into(),
+            seq(vec![
+                token("string", "p"),
+                or(vec![token("string", "a"), token("string", "a")]),
+            ]),
+        );
+        let order: Vec<String> = vec!["r".into()];
+        let issues = detect_ordered_choice_shadowing(&g, &order);
+        assert_eq!(issues.len(), 1);
+        assert_eq!(issues[0].node_path, "root/s1", "path must locate the nested Or");
     }
 }
