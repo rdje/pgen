@@ -12,10 +12,10 @@
 - Live status: `LIVE_ACHIEVEMENT_STATUS.md`; changelog: `CHANGES.md`.
 
 ## Current state (OVERWRITE this block each update — do not append)
-- latest_commit: `14524a18` — "PGEN-MEMORY-ARCH-0003 (MEMORY-ARCH.2): docs/decisions layer C + migrate 54 records" (ahead of origin: ~17; push at ~30)
-- active_work_unit: `MEMORY-ARCH` → frontier leaf: `MEMORY-ARCH.3` (in progress — demote root MEMORY.md to this bounded pointer)
-- next_action: finish `MEMORY-ARCH.3` (this file), then `MEMORY-ARCH.4` (enforcement kit: check script + .githooks + core.hooksPath + CI + bootstrap pointers), then `.5` (verify gates bite + close).
-- in_flight_uncommitted: this MEMORY.md rewrite (being committed as `MEMORY-ARCH.3`).
+- latest_commit: `0ed9d83c` — "PGEN-MEMORY-ARCH-0005 (MEMORY-ARCH.4): enforcement kit E1–E4" (ahead of origin ~20; push at ~30) — being superseded by the MEMORY-ARCH.5 close commit
+- active_work_unit: none in flight — `MEMORY-ARCH` tree CLOSED (`-0001..0006`, durable memory architecture adopted, E1–E4 enforced, hooks armed via core.hooksPath).
+- next_action: pick the next thread. Primary open item: SV-EXH-PROOF `.7.2.21` director decision (accept-with-evidence at 888 vs commission a new non-steering coverage mechanism). Backlog: 9 proposed skeleton trees (PNR/linter/compiler-elaborator/...).
+- in_flight_uncommitted: the MEMORY-ARCH.5 close (this file + LIVE/CHANGES/TASK_TREE + tree node) being committed now.
 - blockers: none.
 
 ## Other open threads (not the active unit)

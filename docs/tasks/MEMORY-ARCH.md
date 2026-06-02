@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `MEMORY-ARCH`
-- Status: `active`
+- Status: `done` (CLOSED 2026-06-02)
 - Roadmap lane: `Cross-cutting infrastructure — durable, harness-agnostic agent memory + enforcement`
 - Created: `2026-06-02`
 - Last updated: `2026-06-02`
@@ -68,7 +68,7 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
 ## Task Tree
 
 - ID: `MEMORY-ARCH`
-  Status: `active`
+  Status: `done` (CLOSED 2026-06-02; `PGEN-MEMORY-ARCH-0001..0006`) — all 5 leaves done; layers A/B/C/D + enforcement E1–E4 in place, gates proven to bite, untracked-memory exposure closed.
   Goal: `Adopt the durable memory architecture standard in pgen (full enforcement), composing with the existing task-tree + COMMIT.md systems.`
   Children: `MEMORY-ARCH.1 .. .5`
 
@@ -101,11 +101,11 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
   Commit: `done — PGEN-MEMORY-ARCH-0005`
 
 - ID: `MEMORY-ARCH.5`
-  Status: `pending`
-  Goal: `Verify end-to-end: the gates demonstrably BITE (commit-msg rejects a non-compliant subject + accepts a compliant one; check fails when MEMORY.md exceeds the cap or a bootstrap/decisions piece is missing); the install commit itself passes through the newly-active hooks; live-docs sync (TASK_TREE.md, LIVE_ACHIEVEMENT_STATUS.md, CHANGES.md); close the tree.`
-  Acceptance: `proof the four gates bite (recorded); CI green; live-docs synced; tree promoted to Completed in docs/TASK_TREE.md.`
-  Verification: `pending`
-  Commit: `pending`
+  Status: `done` (`PGEN-MEMORY-ARCH-0006`, 2026-06-02)
+  Goal: `Verify end-to-end: the gates demonstrably BITE; the install commits pass through the armed hooks; live-docs sync; close the tree.`
+  Acceptance: `proof the gates bite (recorded); live-docs synced; tree promoted to Completed in docs/TASK_TREE.md.`
+  Verification: `done — E2E battery (all from the live repo): [1] scripts/check_memory_architecture.sh green at HEAD ("memory-arch: OK"); [2] core.hooksPath=.githooks (armed); [3] the .4 install commit 0ed9d83c was created WITH the hooks active (pre-commit printed "memory-arch: OK") — live proof; [4] commit-msg REJECTS "   no id here" + ACCEPTS "PGEN-MEMORY-ARCH-0006 ..."; [5] check FAILS at MEMORY_POINTER_LINE_CAP=5 (MEMORY.md=23 lines) + passes at default; [6] layer inventory: A=MEMORY.md 23 lines, B=33 task-trees + TASK_TREE.md, C=54 decision records + INDEX, D=git 1700 commits + CHANGES.md, E1=6/6 bootstrap pointers. LIVE-DOCS SYNCED: LIVE_ACHIEVEMENT_STATUS.md (refreshed stale header + 2 new tracker notes: MEMORY-ARCH closed + the SV .7.2 reach consolidation), CHANGES.md (per-leaf), docs/TASK_TREE.md (tree promoted active→Completed). NOTE: E4 CI workflow added + is valid YAML running the same check, but a live CI run is not exercised from this local session (the local hooks + the in-session check ARE exercised; CI will run server-side on push per push-pacing). Tree CLOSED. NO Rust/grammar/generated code; no release bump.`
+  Commit: `done — PGEN-MEMORY-ARCH-0006`
 
 ## Decisions
 

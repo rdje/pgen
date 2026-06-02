@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-MEMORY-ARCH-0006 (leaf MEMORY-ARCH.5, tree CLOSED): **End-to-end verification + live-docs sync; MEMORY-ARCH tree CLOSED — durable harness-agnostic agent memory fully adopted.**
+
+Docs/live-status only — NO code, NO release bump. Closes the MEMORY-ARCH tree.
+
+E2E verification battery (live repo): self-check green at HEAD; hooks armed (core.hooksPath=.githooks); the .4 install commit (0ed9d83c) was created WITH the hooks active (pre-commit printed "memory-arch: OK") — live proof; commit-msg rejects "   no id here" + accepts a valid subject; the check fails at MEMORY_POINTER_LINE_CAP=5 + passes at default; layer inventory A(23-line MEMORY.md)/B(33 task-trees + TASK_TREE.md)/C(54 decision records + INDEX)/D(git 1700 commits + CHANGES.md)/E1(6/6 bootstrap pointers). Live-docs synced: LIVE_ACHIEVEMENT_STATUS.md (refreshed stale header + 2 tracker notes — MEMORY-ARCH closed + SV .7.2 reach consolidation), docs/TASK_TREE.md (MEMORY-ARCH promoted active→Completed). E4 CI workflow is valid + will run server-side on push (not exercised from this local session; the local hooks + in-session check ARE exercised). Tree CLOSED.
+
+OUTCOME: pgen now has the full 4-layer durable memory architecture with E1–E4 enforcement. The key win — every durable discipline/decision (54 records) is git-tracked + portable, no longer stranded in untracked ~/.claude; memory survives session/crash/machine loss + model/harness switch, and non-compliance fails fast (hooks) + cannot merge (CI).
+
 ## 2026-06-02 - PGEN-MEMORY-ARCH-0005 (leaf MEMORY-ARCH.4): **Enforcement kit E1–E4 — check script + .githooks (armed) + CI gate + 6 bootstrap pointers; commit-msg regex verified against all 1699 historical subjects before arming.**
 
 Shell/yaml/md only — NO Rust/grammar/generated code, NO release bump.
