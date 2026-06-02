@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0136 (leaf SV-EXH-PROOF.7 / .7.2): **Consolidated reach-driver campaign state, observations + conclusions into the task tree (".7.2 CAMPAIGN SUMMARY").**
+
+Pure docs — NO code, NO release bump. Single addressable consolidation of the whole `.7.2` reach campaign (per director request to "log the current state, observations, what I did, the outcome, conclusions" before moving to the memory-architecture work).
+
+Added a ".7.2 CAMPAIGN SUMMARY" block under the `.7.2` umbrella node in docs/tasks/SV-EXH-PROOF.md capturing: the goal (parser-agnostic amend of stimuli_generator.rs to cover all reachable EBNF → focused_replay_target_count=0); what was built (.7.2.1–.7.2.19 reach machinery, all parser-agnostic); the measured results table (888 best-known vs three regressions: .7.2.10=1982, .7.2.12=1717, .7.2.20=1883); the durable finding (every steering-INTENSIFICATION regresses via DIVERSITY COLLAPSE — successes up, distinct coverage down; aggressive target-steering is the wrong lever; concentrated .7.2.8 steering at 888 is the ceiling); the .7.2.17 reachability evidence (residual 100% reachable, 0 no_reach_path → literal-0 attainable in principle, a generator-capability gap not a grammar wall); and the conclusion (steering family exhausted; literal-0 needs a DIFFERENT diversity-preserving parser-agnostic mechanism). Also refreshed the stale `.7` umbrella Status line to reflect the campaign outcome + the `.7.2.21` frontier decision.
+
+Invariants reaffirmed in the record: every code change task-tree-owned first; regressions measured-before-commit or reverted byte-identical to the 888 blob; origin/main never polluted; generation path currently byte-identical to 888 (HEAD=.7.2.19, read-only analysis only on top). AWAITING director decision (.7.2.21): accept-with-evidence at 888 vs commission a new mechanism. NEXT (director-sequenced): the MEMORY-ARCH tree.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0135 (leaf SV-EXH-PROOF.7.2.20): **Route-C step 2 (rule-reach driver wiring) MEASURED a REGRESSION (replay_target_count 1883 vs 888) → DISCARDED uncommitted. Route C rejected.**
 
 Negative result — NO code landed (the change was measured uncommitted, then discarded), NO release bump.

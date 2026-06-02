@@ -500,7 +500,7 @@ literal over a failing surface.
   Commit: `done — SVEXH-Slice-98 (PGEN-SV-EXH-PROOF-0109); clean-run confirmed SVEXH-Slice-102 (PGEN-SV-EXH-PROOF-0113)`
 
 - ID: `SV-EXH-PROOF.7`
-  Status: `in_progress` (umbrella — .7.1 investigation done, .7.2 design recorded + accepted; .7.2.1 code campaign opening)
+  Status: `in_progress` (umbrella — reach-driver campaign .7.2.1–.7.2.20 COMPLETE; best-known residual = 888, down from the 1273 dead-hook / ≈2660 initial; steering approach exhausted (3 measured regressions, see ".7.2 CAMPAIGN SUMMARY"); literal-0 needs a DIFFERENT parser-agnostic mechanism. FRONTIER = .7.2.21 director decision: accept-with-evidence at 888 vs commission a new diversity-preserving mechanism. SV main parser stays Mostly Done.)
   Goal: `Close focused_replay_target_debt_zero — the ONE remaining Done-criterion for the systemverilog main parser (Mostly Done -> Done). The closed-loop target-driven stimuli generator leaves focused_replay_target_count > 0 residual coverage targets (≈1482 in the .5.2.3-era measurement: down from ≈2660 initial, but not 0); the triage shows most are reason "never_selected" (≈645), led by property_expr_sv_2017. Drive the target-driven generator to cover every reachable rule/branch so focused_replay_target_count reaches 0.`
   Acceptance: `sv_parser_family_status_gate computes systemverilog="Done" (focused_replay_target_debt_zero=true, i.e. focused_replay_target_count=0) with the LIVE row updated to "Done" in lockstep; SV external corpus stays 14/14; no regression; full grammar/generator-edit lockstep per [[feedback_grammar_edit_proof_gate_lockstep]] for every code change; every code change task-tree-owned (user 2026-05-31).`
   Verification: `pending — tools-first per [[feedback_why_and_where_before_solution]]: read the fresh replay-gap target triage (rust/target/sv_parser_family_status_gate/work/sv_parser_aggregate_contract_gate/...) to enumerate the residual targets + WHY "never_selected"; per [[feedback_ast_pipeline_parser_agnostic]] any stimuli_generator.rs change must be a GENERAL grammar-structure property, never hardcode rule names/sigils. Expected to be a multi-slice campaign (.7.1, .7.2, ...).`
@@ -519,6 +519,61 @@ literal over a failing surface.
   Acceptance: `design recorded (mechanism + where it hooks into stimuli_generator.rs + how it stays GENERAL + verification plan); implementation is a SEPARATE code-leaf (.7.2.1+) opened only after the design is accepted.`
   Verification: `done — full design in companion doc docs/tasks/SV-EXH-PROOF-7.2-target-reach-design.md (committed -0113). Mechanism = a TargetReachPlan generalizing two existing engine primitives (the mutation_active all-candidates bypass @~3636 + forced_or_branch_for_site per-site forcing @~3699), driven by StimuliCoverageTarget.depends_on (@515) + a predecessor-tracked compute_reachable_rules (@2927); GENERAL (no hardcoded rule names) per [[feedback_ast_pipeline_parser_agnostic]]; NO-WORKAROUNDS level 5 (minimal engine generalization, not a kludge); decomposed into .7.2.1..7.2.4 with per-target + aggregate + hard no-regression verification (corpus 14/14, lib 609/609, RGX 44/0). ACCEPTED by director 2026-06-01 → .7.2.1 code campaign authorized. The .6 clean-run prerequisite is satisfied (-0113).`
   Commit: `done — SVEXH-Slice-102 (PGEN-SV-EXH-PROOF-0113)`
+
+  ### .7.2 CAMPAIGN SUMMARY (consolidated state + observations + conclusions — 2026-06-02, HEAD 5aa3d623)
+
+  **Goal:** carefully amend `rust/src/ast_pipeline/stimuli_generator.rs`, in a
+  GENERAL parser-agnostic way (no hardcoded rule names/sigils, benefits every PGEN
+  parser per [[feedback_ast_pipeline_parser_agnostic]]), to cover every reachable
+  rule+branch of the grammar → drive `focused_replay_target_count` to literal 0.
+
+  **What was built (the reach machinery; all landed + tested, all parser-agnostic):**
+  - `.7.2.1` `compute_reach_path` + `collect_rule_reference_sites` — reach-path graph analysis (no generation change).
+  - `.7.2.2` `ActiveReachPlan` wired into the OR-decision (steer the forced branch); default-None → byte-identical production path until installed.
+  - `.7.2.3` `ReachOutcome` (Reached/SelectedButFailed/NotReached) — honest per-plan outcome from existing coverage counters.
+  - `.7.2.4`/`.7.2.5` driver hook + `reach_plan_activations` observability.
+  - `.7.2.7` fixed the `.7.2.4` dead-guard (deeper-fallback threshold) → hook actually fires on the corpus.
+  - `.7.2.16` read-only `reach_classification` in the gap report (route B).
+  - `.7.2.19` `compute_rule_reach_target` — rule→introducing-branch translation (analysis only).
+
+  **Measured results (full `sv_parser_aggregate_contract_gate` closed-loop replay; replay_target_count = residual, lower is better; deterministic seed so signal-not-noise):**
+  | state | replay_target_count | resolved/2660 | gen_successes | note |
+  |---|---|---|---|---|
+  | `.7.2.6` dead hook (activations=0) | 1273 | 1387 | 714 | hook never fired |
+  | **`.7.2.8` baseline (concentrated steering)** | **888** | **1772** | **2221** | BEST-KNOWN; the kept state |
+  | `.7.2.10` quantifier-forcing only | 1982 | 679 | 4615 | REGRESSION (reverted .7.2.13) |
+  | `.7.2.12` quantifier-forcing + rotation | 1717 | 943 | 2359 | REGRESSION (reverted) |
+  | `.7.2.20` rule-reach steering | 1883 | 777 | 4840 | REGRESSION (discarded uncommitted) |
+
+  **Key observation (the durable finding):** every steering-INTENSIFICATION attempt
+  REGRESSED via the SAME mechanism — **diversity collapse**: forcing the generator
+  toward specific targets raises generation_successes (more valid samples) but those
+  samples are near-IDENTICAL, so resolved coverage FALLS. The ablation (`.7.2.14`)
+  isolated `.7.2.10`-only as worst (1982); rule-reach (`.7.2.20`) reproduced it
+  (1883). So the lever is wrong: **aggressive target-steering of any kind hurts**;
+  the gentle/concentrated `.7.2.8` steering at **888** is this approach's CEILING.
+
+  **Reachability evidence (`.7.2.17`, the signoff fact):** the residual is **100%
+  reachable** — partition (1717 sample): 967 reachable_by_plan + 750
+  reachable_rule_not_generated + **0 no_reach_path**. So literal-0 is attainable in
+  PRINCIPLE; the gap is generator capability, NOT grammar structure. (888 baseline =
+  same classes, fewer of each; not separately re-measured — route-invariant.)
+
+  **Conclusion:** the target-steering family of amendments has been honestly
+  exhausted (3 measured regressions). 888 is the best the steering approach reaches.
+  Reaching literal-0 needs a DIFFERENT parser-agnostic mechanism — one that
+  PRESERVES sample diversity while reaching rare targets (not more forcing). That is
+  `.7.2.21`'s decision: accept-with-evidence at 888 (literal-0 = tracked future
+  enhancement requiring a new mechanism) vs commission that new mechanism now —
+  DIRECTOR call (literal-0 was the director-set bar). AWAITING that decision.
+
+  **Invariants held throughout:** every code change task-tree-owned first; every
+  regression measured-before-commit (uncommitted) or reverted byte-identical to the
+  proven-good 888 blob; `origin/main` never polluted (still at the pre-campaign
+  state); generation path currently byte-identical to 888 (HEAD = `.7.2.19`, only
+  read-only analysis/reporting added on top). Discipline references:
+  [[feedback_no_codebase_change_without_tool_backed_facts]] (born from this
+  campaign's `.7.2.10` regression), [[feedback_ast_pipeline_parser_agnostic]].
 
 - ID: `SV-EXH-PROOF.7.2.1`
   Status: `done` (`-0115`, 2026-06-01)
