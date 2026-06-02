@@ -68,15 +68,38 @@ the defect is specific to the `ast_pipeline` custom trace mechanism.
   written; NO masking remains possible via the new API.`
 
 - ID: `DIAG-SEVERITY.3`
-  Status: `pending` (code — migrate the audited masked sites)
-  Goal: `Reroute every (A)/(B) site from .1 to the always-on severity channel; keep
-  (C) info/debug sites level-gated. Include the .7.4.3a exemplars (stimuli_generator.rs
-  :4021, :4437) and the error-by-reason classification gap at :2432 (only timeouts are
-  bucketed → add depth_exceeded / recursion_pressure / other reason buckets, surfaced in
-  the gap-report summary). One module/site-group per sub-leaf, each measured.`
-  Acceptance: `each masked error/warning now visible at verbosity none; error tallies
-  carry a reason breakdown; lib+clippy green; behavioral proof (run at low verbosity, the
-  message appears).`
+  Status: `done` (`-0003`, 2026-06-02, code) — error-by-reason classification: the high-value, correct fix
+  Goal: `Surface generation-error REASONS unconditionally (the aggregate masking that hid the depth cause), rather than converting per-attempt PEG-backtrack breadcrumbs to stderr spam (those are EXPECTED control flow = info/debug, correctly level-gated — confirmed nuance, see Decisions). Add a depth_exceeded bucket at the target-drive Err arm (was: only timeouts bucketed → depth vanished into a generic count), surface it in the always-printed TargetDriveSummary.summary_line, and emit a once-per-run AGGREGATE pgen_warn! (the correct use of the .2 mechanism — never gated, not per-attempt).`
+  Verification: `done — stimuli_generator.rs: const DEPTH_EXCEEDED_ERROR_PREFIX + is_depth_exceeded_error (reuses the generic is_timeout_error_with_prefix chain matcher); a depth_exceeded_errors counter classified in BOTH target-drive loops (generate_until_targets + _with_filter), threaded into TargetDriveSummary (new #[serde(default)] field) + summary_line + the completion trace; a once-per-run pgen_warn! when depth_exceeded_errors>0 (always-on, references SV-EXH-PROOF.7.4.3a). Unit test target_drive_summary_reports_helper_timeout_errors extended to assert depth_exceeded_errors=2 in the summary line. lib (no-features) 570/570; clippy 0 errors. KEY BONUS: building the full taxonomy (below) revealed a SECOND structural-budget failure — max_rule_visits exceeded (:4438) — also currently anonymous; routed to .3.1. NO grammar/codegen/generated change, no release bump.`
+  Commit: `PGEN-DIAG-SEVERITY-0003`
+
+- ID: `DIAG-SEVERITY.3.1`
+  Status: `pending` (code — canonical enumerated reason taxonomy)
+  Goal: `Per director ask ("list all the error-by-reason classification; capture it"): consolidate the scattered prefix-matchers + parallel usize counters into a SINGLE source of truth — a `GenerationErrorReason` enum {DepthExceeded, RuleVisitLimit, TargetTimeout, HelperTimeout, QuantifierConfig, ZeroWeight, SemanticEval, Other} + classify_generation_error(&Error) -> GenerationErrorReason + a per-reason tally (map/struct) surfaced in TargetDriveSummary AND the gap-report JSON summary. Classify the remaining reasons found by the .3 taxonomy (esp. the masked max_rule_visits, the other sibling of depth). The enum IS the enumerated list (cannot drift); the book (.5) + taxonomy doc mirror it.`
+  Acceptance: `one GenerationErrorReason enum = the exhaustive list; every generation Err classified through it; per-reason counts in the gap-report JSON summary (durable, gate-assertable); rule_visit_limit no longer anonymous; lib+clippy green.`
+
+## Generation error-reason taxonomy (DIAG-SEVERITY.3 — source-cited)
+
+Every failure the stimuli generation path can raise, and its classification. STRUCTURAL-
+BUDGET failures (the masked-cause class) are the ones that matter for the SV residual:
+
+| Reason | Error message (prefix) | Raised at | Class | Surfaced? |
+|---|---|---|---|---|
+| **depth_exceeded** | `Stimuli generation depth exceeded max_depth=` | `stimuli_generator.rs:4426` | structural budget | **YES (.3)** — bucket + summary + pgen_warn! |
+| **rule_visit_limit** | `Stimuli generation exceeded max_rule_visits=` | `:4438` | structural budget | **NOT YET** — anonymous (sibling of depth!) → `.3.1` |
+| target_timeout | `Stimuli generation target timeout exceeded` | const `:27` | time budget | yes (pre-existing bucket) |
+| helper_timeout | `Stimuli generation helper timeout exceeded` | const `:26` | time budget | yes (pre-existing bucket) |
+| quantifier_config | `Unsupported quantifier format` / `Unknown quantifier` | `:5565` / `:5594` | grammar/config | no (rare; → `.3.1` Other) |
+| zero_weight | `All explicit branch probabilities are zero` / `Computed branch weights are all zero` | `:5676` / `:5710` | grammar/config | no (→ `.3.1` Other) |
+| semantic_eval | `Semantic relational expression/operand cannot be empty` | `:8134` / `:8306` | semantic | no (→ `.3.1` Other) |
+| other | (any uncaught generation Err) | — | residual | folded into `generation_errors` total |
+
+EXPECTED control flow (NOT a severity error): a plain rule-attempt failure that the PEG
+generator handles by backtracking to another alternative. These are per-attempt
+breadcrumbs (`Err(err) => self.trace(...)` at `:4021`/`:4437`) — correctly level-gated
+info/debug; converting them to always-on would be stderr spam AND mislabel expected
+failures as errors. The masking that hurt us was the AGGREGATE one (no reason on the
+2,472-failure count), fixed by `.3` + `.3.1`.
 
 - ID: `DIAG-SEVERITY.4`
   Status: `pending` (enforcement — cannot regress)
@@ -132,7 +155,8 @@ migrates the (B) sites + closes the (A)-risk by construction.
 | --- | --- | --- | --- |
 | — | `DIAG-SEVERITY.1` | `done` (`-0001`) | Audit complete (above). |
 | — | `DIAG-SEVERITY.2` | `done` (`-0002`) | Severity mechanism landed: Severity enum + emit_diagnostic (always-on) + pgen_warn!/error!/fatal! macros; 570/570, clippy clean. |
-| 1 | `DIAG-SEVERITY.3` | `pending` (frontier) | Migrate masked sites (stimuli_generator.rs:4021/4437) to pgen_error! + add error-by-reason buckets at :2432. |
+| — | `DIAG-SEVERITY.3` | `done` (`-0003`) | Error-by-reason: depth_exceeded bucket + summary + once-per-run pgen_warn!; taxonomy documented; revealed max_rule_visits as a 2nd masked budget failure. 570/570. |
+| 1 | `DIAG-SEVERITY.3.1` | `pending` (frontier) | Canonical GenerationErrorReason enum (single source of truth) + classify the remaining reasons (esp. masked max_rule_visits) + per-reason counts in the gap-report JSON. |
 | 3 | `DIAG-SEVERITY.4` | `pending` | Enforcement gate (cannot regress). |
 | 4 | `DIAG-SEVERITY.5` | `pending` | Book lockstep + close. |
 
@@ -142,3 +166,13 @@ migrates the (B) sites + closes the (A)-risk by construction.
   trace verbosity is info-only. Whole-codebase correction owned here. The general
   mechanism (a Severity dimension) is the signoff fix, not per-site `eprintln!` patches —
   though migrated sites may route to the existing always-on channel.
+- `2026-06-02` (.3 NUANCE — director-agreed): the high-value, correct fix is
+  **error-by-reason classification surfaced unconditionally (aggregate)**, NOT converting
+  per-attempt PEG-backtrack `Err` breadcrumbs to stderr — those are EXPECTED control flow
+  (try alternative → fail → backtrack), legitimately info/debug, and flooding stderr with
+  them would both spam and mislabel expected failures as errors. The masking that cost us
+  the `.7.2` campaign was the *aggregate* one: 2,472 failures counted with no reason. The
+  reason taxonomy is captured (table above) + enumerated canonically in code by `.3.1`
+  (`GenerationErrorReason` enum = the single, drift-proof list) + mirrored in the book
+  (`.5`). Building the taxonomy surfaced `max_rule_visits` as a second, still-anonymous
+  structural-budget failure.

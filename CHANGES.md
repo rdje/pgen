@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-DIAG-SEVERITY-0003 (leaf DIAG-SEVERITY.3): **Error-by-reason classification — generation failures are now bucketed by REASON (depth_exceeded) and surfaced unconditionally; full reason taxonomy captured.**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — NO grammar/codegen/generated change, no release bump.
+
+The high-value, correct fix (director-agreed): surface generation-error REASONS at the AGGREGATE level — NOT convert per-attempt PEG-backtrack breadcrumbs to stderr (those are expected control flow = info/debug, correctly level-gated). The masking that cost us the .7.2 campaign was the aggregate one: 2,472 failures counted with NO reason. Added: `DEPTH_EXCEEDED_ERROR_PREFIX` + `is_depth_exceeded_error` (reuses the generic error-chain prefix matcher); a `depth_exceeded_errors` counter classified in BOTH target-drive loops (generate_until_targets + _with_filter); threaded into `TargetDriveSummary` (new #[serde(default)] field) + its always-printed `summary_line` + the completion trace; and a once-per-run AGGREGATE `pgen_warn!` (the correct use of the .2 always-on mechanism — never gated, references SV-EXH-PROOF.7.4.3a) when depth_exceeded_errors>0. Unit test extended to assert `depth_exceeded_errors=N` in the summary. lib (no-features) 570/570; clippy 0 errors.
+
+CAPTURED + LISTED (per director ask "list all the error-by-reason classification"): a full generation error-reason taxonomy table in docs/tasks/DIAG-SEVERITY.md (depth_exceeded, rule_visit_limit, target_timeout, helper_timeout, quantifier_config, zero_weight, semantic_eval, other) with each message prefix + source line + class. **KEY BONUS:** building the taxonomy revealed a SECOND structural-budget failure — `max_rule_visits exceeded` (:4438) — also currently anonymous, the sibling of depth_exceeded. Routed to new leaf .3.1: consolidate the scattered prefix-matchers into a single canonical `GenerationErrorReason` enum (the drift-proof enumerated list) + classify the remaining reasons (esp. max_rule_visits) + surface per-reason counts in the gap-report JSON (durable, gate-assertable). Per-attempt breadcrumbs (:4021/:4437) stay level-gated info/debug (expected control flow) — documented nuance.
+
 ## 2026-06-02 - PGEN-DIAG-SEVERITY-0002 (leaf DIAG-SEVERITY.2): **Severity mechanism — warnings/errors/fatals now emit UNCONDITIONALLY, never gated by trace verbosity.**
 
 Code (rust/src/ast_pipeline/mod.rs) — PURELY ADDITIVE (no existing trace line changed → trace behavior unchanged); NO grammar/codegen/generated change, no release bump.
