@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-PARSE-SOTA-0004 (leaves PARSE-SOTA.8–.11): **Tier-A adoption backlog promoted to concrete owned implementation leaves (A1 well-formedness, A2 ⭐shadowing lint, A4 round-trip/golden, A5 `_meta`).**
+
+Pure docs — NO code, no release bump. Doctrine: a task-tree leaf must own any code change before it lands; this converts the director-greenlit §1 backlog into scoped leaves so implementation can begin cleanly.
+
+`.8` (A1) static grammar well-formedness check — detect left-recursive + non-terminating rules (Ford POPL 2004 §3.6; reuses the `.7.4.2` min-length fixpoint), rejected at generate time via the DIAG-SEVERITY `pgen_error!` always-on channel (nice synergy — the diagnostics fix gives well-formedness errors a proper home). `.9` (A2 ⭐) static ordered-choice shadowing/unreachable-alternative lint (FIRST-set/prefix-subsumption; `pgen_warn!`) — the out-of-the-box win attacking the recurring SV catch-all-shadows-specific defect class; no mainstream PEG generator ships one. `.10` (A4) round-trip/determinism property + golden-file AST snapshots (closes the meaning-drift gap the structural shape-contract misses). `.11` (A5) ship the approved additive `_meta` carrier (schema-compatible; unlocks A4's round-trip oracle + the linter lane). FRONTIER = `.8`, which begins once `SV-EXH-PROOF.7.4.3` commits (it has an uncommitted witness-pass diff in stimuli_generator.rs that `.8` would build on — kept clean per one-thing-at-a-time). Director review of the backlog: DONE (recorded in docs/TASK_TREE.md).
+
 ## 2026-06-02 - PGEN-DIAG-SEVERITY-0006 (leaf DIAG-SEVERITY.5, TREE CLOSED): **Book lockstep — diagnostics severity model + error-reason taxonomy documented; DIAG-SEVERITY tree CLOSED.**
 
 Pure docs / live-book — NO code, no release bump.
