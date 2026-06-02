@@ -27,7 +27,7 @@
 ## Root
 
 - ID: `PARSE-SOTA`
-  Status: `active` (frontier — research branches `.1`–`.5` then synthesis `.6`)
+  Status: `active` (research `.1`–`.6` DONE in `-0002`; FRONTIER = director review of the §1 adoption backlog → schedule Tier-A items as owned leaves)
   Goal: `Survey the published state of the art for every stage of the PGEN
   parser-generator path and weigh OUR implementation against it; produce a
   citation-backed capability-gap audit and a prioritized adoption backlog that
@@ -48,7 +48,7 @@
 ## Leaves
 
 - ID: `PARSE-SOTA.1`
-  Status: `pending` (research — PEG/packrat parsing theory & the runtime parser model)
+  Status: `done` (`-0002`; research — PEG/packrat parsing theory & the runtime parser model)
   Goal: `Survey PEG + packrat parsing theory and weigh our recursive-descent +
   memoization runtime against it: Ford (PEG, POPL 2004; packrat, ICFP 2002);
   left-recursion in packrat (Warth, Douglass, Millstein 2008; Medeiros et al.);
@@ -62,7 +62,7 @@
   techniques w/ blast-radius note.`
 
 - ID: `PARSE-SOTA.2`
-  Status: `pending` (research — parser-generator architecture, EBNF→IR→codegen)
+  Status: `done` (`-0002`; research — parser-generator architecture, EBNF→IR→codegen)
   Goal: `Survey parser-generator and codegen architecture: recursive-descent codegen;
   parser combinators (Hutton & Meijer); ANTLR ALL(*) adaptive LL(*) (Parr, Harwell,
   Fisher, OOPSLA 2014); GLL (Scott & Johnstone); GLR (Tomita); Earley (1970) / Marpa
@@ -74,7 +74,7 @@
   named techniques + whether each fits a PEG/recursive-descent generator; blast radius.`
 
 - ID: `PARSE-SOTA.3`
-  Status: `pending` (research — semantic actions, attribute grammars & the annotation/store layer)
+  Status: `done` (`-0002`; research — semantic actions, attribute grammars & the annotation/store layer)
   Goal: `Survey the theory under our return-annotation + semantic-annotation + semantic-
   store layer: attribute grammars (Knuth 1968); reference attribute grammars & JastAdd
   (Hedin; Ekman & Hedin); circular/higher-order AGs; scope graphs & name resolution
@@ -88,7 +88,7 @@
   formal models; named adoptable primitives; parser-agnostic + fix-hierarchy framing.`
 
 - ID: `PARSE-SOTA.4`
-  Status: `pending` (research — AST/IR design, lossless syntax trees, the JSON shape-contract)
+  Status: `done` (`-0002`; research — AST/IR design, lossless syntax trees, the JSON shape-contract)
   Goal: `Survey AST/IR & concrete-syntax design: concrete vs abstract syntax;
   lossless/full-fidelity syntax trees & red-green trees (Roslyn; Swift libSyntax;
   rust-analyzer rowan); tree-sitter CST; incremental parsing & reuse (Wagner & Graham
@@ -101,7 +101,7 @@
   blast radius + which would be a new tree.`
 
 - ID: `PARSE-SOTA.5`
-  Status: `pending` (research — error recovery & diagnostics for signoff quality)
+  Status: `done` (`-0002`; research — error recovery & diagnostics for signoff quality)
   Goal: `Survey syntax error recovery & diagnostics — central to "signoff/robust":
   panic-mode & error productions; Burke-Fisher; noise-skipping; PEG error reporting via
   furthest-failure & labeled failures (Ford; Maidl, Mascarenhas, Ierusalimschy,
@@ -113,7 +113,7 @@
   named adoptable recovery/reporting techniques; blast radius.`
 
 - ID: `PARSE-SOTA.6`
-  Status: `pending` (synthesis — capability-gap audit + prioritized adoption backlog)
+  Status: `done` (`-0002`; synthesis — capability-gap audit + prioritized adoption backlog in docs/tasks/PARSE-SOTA-research-synthesis.md §1)
   Goal: `Synthesize .1–.5 into ONE prioritized, risk-assessed adoption backlog: for
   each candidate technique — what it is (citation), the gain (more signoff/robust/
   accurate/precise), the blast radius, the NO-WORKAROUNDS fix-hierarchy level, and
@@ -129,8 +129,8 @@
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `PARSE-SOTA.1`–`.5` | `pending` | The 5 stage research branches — run in parallel (independent literature areas). |
-| 2 | `PARSE-SOTA.6` | `pending` | Synthesis + prioritized adoption backlog once `.1`–`.5` land. |
+| — | `PARSE-SOTA.1`–`.6` | `done` (`-0002`, 2026-06-02) | 5 parallel literature sweeps + synthesis landed in docs/tasks/PARSE-SOTA-research-synthesis.md. KEY: the existing flow is a recognized published architecture (store-gates-rules = SPEG/Nez/data-dependent grammars; memo delta-replay = Laurent & Mens SLE 2016; RETURN = synthesized attributes; codegen = staged combinators) — VALIDATED, not idiosyncratic. Prioritized adoption backlog §1: Tier A (A1 well-formedness check, A2 ordered-choice shadowing lint ⭐, A3 labeled failures, A4 round-trip/golden-file testing, A5 ship `_meta`) all engine-untouched; Tier B (B1 memo-soundness audit ⭐, B2 cut operator, B3 parametric rules); Tier C (C1 scope graphs, C2 error recovery, C3 grammar modules); + an explicit do-NOT-adopt list (GLL/GLR/Earley engine swap, red-green trees, incremental parsing, runtime left-recursion). |
+| 1 | director review | `pending` | Director reviews the §1 backlog; each scheduled Tier-A item becomes its own owned, measured leaf (likely under PARSE-SOTA or the existing engine trees). NO code until then. |
 
 ## Decisions
 
