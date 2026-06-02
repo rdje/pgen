@@ -3061,6 +3061,37 @@ mod tests {
         assert_eq!(diagnostic.code, "E_INVALID_ARGUMENT");
     }
 
+    /// PARSE-SOTA.10 / adoption A4: PARSE-DETERMINISM — parsing the same input repeatedly
+    /// must yield a byte-identical AST dump. Guards against non-deterministic parsing (e.g.
+    /// HashMap-iteration order in the semantic store leaking into the typed AST), a class
+    /// the parse→unparse round-trip framework (test_runner/round_trip_tests.rs) and the
+    /// structural ast_shape_contract do NOT directly assert. (A4's other facets —
+    /// round-trip, generation-determinism, structural shape — are already covered by
+    /// existing infra; this fills the remaining gap. See PARSE-SOTA-research-synthesis §1.)
+    #[cfg(feature = "generated_parsers")]
+    #[test]
+    fn parse_ast_dump_is_deterministic_regex() {
+        let inputs = ["a|bc", "(ab)*c+", "[A-Za-z0-9_]+", "foo(bar|baz)?d", "x{2,4}y"];
+        let opts = AstDumpOptions::default();
+        for input in inputs {
+            let first = parse_regex_default_ast_dump(input, &opts);
+            assert_eq!(
+                first.status,
+                ParseStatus::Success,
+                "regex parse of {input:?} should succeed (diagnostic: {:?})",
+                first.diagnostic
+            );
+            assert!(first.ast_dump.is_some(), "success must carry an AST dump for {input:?}");
+            for run in 1..=3 {
+                let again = parse_regex_default_ast_dump(input, &opts);
+                assert_eq!(
+                    again.ast_dump, first.ast_dump,
+                    "parse of {input:?} must be deterministic (run {run} produced a different AST dump)"
+                );
+            }
+        }
+    }
+
     #[test]
     fn ast_dump_payload_truncates_with_diagnostics_envelope() {
         let payload = serde_json::json!({

@@ -173,7 +173,9 @@
   positives on the shipped grammars (else it is noise); lib+clippy green.`
 
 - ID: `PARSE-SOTA.10` (adoption A4 — round-trip / determinism + golden-file tests)
-  Status: `pending` (code/tests; director-greenlit 2026-06-02)
+  Status: `done` (`-0010`, 2026-06-02; gap filled — most facets already covered)
+  Verification: `done — VERIFIED-EXISTING-COVERAGE first (use what we have, don't reinvent): A4's round-trip property is already covered by test_runner/round_trip_tests.rs (a full parse/unparse/round_trip framework with per-suite expected_round_trip goldens) + the per-grammar round-trip gates (e.g. make sv_roundtrip_contract_gate); structural meaning is pinned by the ast_shape_contract per-grammar manifests (test_data/ast_shape_contract/*_v1.json + the running-parser drift test); generation-determinism is relied on by the gates (fixed seeds). The ONE genuine GAP (grep-confirmed not asserted anywhere) was PARSE-determinism — parse the same input twice → identical AST — which the parse→unparse round-trip does not directly assert and which matters because the semantic store uses HashMaps (iteration-order non-determinism risk). FILLED: parse_ast_dump_is_deterministic_regex in embedding_api.rs — parses 5 representative regex inputs 3× each via parse_regex_default_ast_dump and asserts byte-identical ast_dump (PASS, --features generated_parsers). lib (no-features) 584/584; (features) determinism test passes; clippy 0. The per-node parse(node._meta.source_text) re-parse oracle from the research is DEFERRED to after A5 (_meta) lands (it needs _meta.source_text). No grammar/codegen/generated change, no release bump.`
+  Commit: `PGEN-PARSE-SOTA-0010`
   Goal: `Close the meaning-drift gap the structural ast_shape_contract misses (Pactflow;
   Rendel-Ostermann): add (i) a parser-determinism + structural-idempotence property over
   the corpus, (ii) golden-file input→expected-JSON AST snapshots per grammar, and (once
@@ -203,7 +205,8 @@
 | — | `PARSE-SOTA.9` (A2 ⭐ shadowing lint) | `analysis DONE` (`-0006`) | Sound shadowing detection (duplicate + fixed-terminal-prefix) landed, 581/581; wiring = `.9.1` (after `.7.4.3`). |
 | — | `PARSE-SOTA.8.1` (A1 wiring) | `done` (`-0008`) | Non-terminating REJECT wired into grammar load (pgen_error!); verified zero false-fires across all shipped grammars. |
 | — | `PARSE-SOTA.9.1` (A2 wiring) | `done` (`-0009`) | `--lint-grammar` opt-in mode (left-recursion info + non-terminating error + shadowing warning report). Shadowing counts: regex=1, semantic_annotation=3, rest=0 (low; opt-in, no per-load noise). |
-| 2 | `PARSE-SOTA.10` / `.11` (A4 round-trip / A5 `_meta`) | `pending` (frontier) | Robustness + fidelity. |
+| — | `PARSE-SOTA.10` (A4) | `done` (`-0010`) | Parse-determinism test added (the genuine gap); round-trip/shape/gen-determinism already covered by existing infra. |
+| 2 | `PARSE-SOTA.11` (A5 `_meta`) | `pending` (frontier) | Ship the approved additive `_meta` carrier (span/line_col/source_text/trivia). |
 | 3 | `PARSE-SOTA.10` / `.11` (A4 round-trip / A5 `_meta`) | `pending` | Robustness + fidelity. |
 
 ## Decisions

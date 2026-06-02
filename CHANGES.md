@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-SOTA-0010 (leaf PARSE-SOTA.10 / adoption A4): **Parse-determinism test (the genuine gap); A4's other facets already covered by existing infra.**
+
+Code (tests only, rust/src/embedding_api.rs) — no codegen/grammar/generated change, no release bump.
+
+VERIFIED-EXISTING-COVERAGE first ("use what we have, don't reinvent"): A4's round-trip property is already covered by test_runner/round_trip_tests.rs (full parse/unparse/round_trip framework + per-suite expected_round_trip goldens) + the per-grammar round-trip gates (e.g. make sv_roundtrip_contract_gate); structural meaning by the ast_shape_contract manifests + drift test; generation-determinism by the gates' fixed seeds. The ONE genuine gap (grep-confirmed unasserted) was PARSE-determinism — parse the same input twice → identical AST — which the parse→unparse round-trip doesn't directly assert and which matters because the semantic store uses HashMaps (iteration-order non-determinism risk). FILLED: parse_ast_dump_is_deterministic_regex — parses 5 representative regex inputs 3x each via parse_regex_default_ast_dump and asserts byte-identical ast_dump (PASS under --features generated_parsers). lib (no-features) 584/584; clippy 0. The per-node parse(node._meta.source_text) re-parse oracle (from the research) is DEFERRED to after A5 (_meta) lands. Frontier: .11 (A5 _meta carrier).
+
 ## 2026-06-03 - PGEN-PARSE-SOTA-0009 (leaves PARSE-SOTA.8.1 corrected + .9.1): **Fix the well-formedness reject (was bypassed for non-profiled grammars + a false positive on include refs); add `--lint-grammar` mode. Verified via the Makefile.**
 
 Code (rust/src/main.rs + rust/src/ast_pipeline/grammar_wellformedness.rs) — no grammar/generated change, no release bump.
