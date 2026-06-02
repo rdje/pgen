@@ -13,7 +13,21 @@ SwiftSyntax full-fidelity model (PARSE-SOTA research §E); enables round-trip / 
 uses and unlocks A4's deferred `parse(node._meta.source_text)` re-parse oracle. **Schema
 stays 1** (additive sibling key; older consumers ignore it).
 
-## Implementation surface (tools-first, file:line)
+## Implementation surface — TWO surfaces (tools-first, file:line)
+PGEN builds typed AST objects in **two places**, and `_meta` must attach in BOTH (PGEN's
+two-surface architecture):
+1. **Runtime interpreter** — `rust/src/ast_pipeline/unified_return_ast.rs` (object build at
+   `:636`–`:706`, `let mut map = serde_json::Map::new(); … Ok(Value::Object(map))`). Used by
+   the bootstrap path. A change here is runtime (shared lib), no regen, but affects every
+   object the interpreter builds.
+2. **Codegen** — `rust/src/ast_pipeline/return_annotation_handler.rs` (emits the object-
+   construction Rust into the generated parsers; `:355` shows `ParseNode { … span: 0..0 }`).
+   A change here requires **regenerating all 10 `generated/*_parser.rs`**.
+A consistent `_meta` requires editing BOTH surfaces in lockstep (else the bootstrap and the
+generated parsers disagree) — this is the core reason A5 is a coordinated, multi-slice
+effort, not a single edit.
+
+## Original single-site note (superseded by the two-surface finding above)
 - **Object construction:** `rust/src/ast_pipeline/ast_based_generator.rs:6774` — the
   `key: "kind"` insertion is where each typed object's fields are built; `_meta` attaches
   here (one more key per object).
