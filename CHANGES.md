@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-PARSE-SOTA-0005 (leaf PARSE-SOTA.8 / adoption A1, analysis): **Static grammar well-formedness — left-recursion detection (Ford POPL 2004 §3.6).**
+
+Code (NEW self-contained module rust/src/ast_pipeline/grammar_wellformedness.rs + a mod decl) — PURE ANALYSIS, no generation/grammar/generated change, no release bump. In a new file so it does NOT conflict with the in-flight (uncommitted) SV-EXH-PROOF.7.4.3 witness-pass diff.
+
+detect_left_recursion(grammar, rule_order) -> Vec<WellformednessIssue>: Ford's PEG well-formedness condition — a nullable fixpoint (conservative; terminals treated as never-nullable so there are NO false positives for a rejection check) + a left-edge call graph (a Sequence extends past a leading element only while it is nullable; Quantified/Lookahead expose their element at the left edge) + cycle detection that records the recursion path for the diagnostic. Detects direct, indirect, and nullable-prefix left recursion — the class that loops/stack-overflows at runtime. 5 unit tests (direct expr:=expr…, indirect a→b→a, nullable-prefix DETECTED; the iterative `next (OP next)*` idiom PGEN uses + a consuming-prefix chain NOT flagged → no false positives). lib (no-features) 577/577 (+5); clippy 0 errors.
+
+NEXT (sub-step .8.1, after .7.4.3 commits): wire the reject at generate time via the DIAG-SEVERITY pgen_error! channel + verify no false positives on the shipped grammars (SV/VHDL/regex/JSON/EBNF) + add non-terminating-rule detection (reuses the .7.4.2 min-length fixpoint).
+
 ## 2026-06-02 - PGEN-PARSE-SOTA-0004 (leaves PARSE-SOTA.8–.11): **Tier-A adoption backlog promoted to concrete owned implementation leaves (A1 well-formedness, A2 ⭐shadowing lint, A4 round-trip/golden, A5 `_meta`).**
 
 Pure docs — NO code, no release bump. Doctrine: a task-tree leaf must own any code change before it lands; this converts the director-greenlit §1 backlog into scoped leaves so implementation can begin cleanly.

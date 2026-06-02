@@ -131,7 +131,9 @@
   Commit: `PGEN-PARSE-SOTA-0003`
 
 - ID: `PARSE-SOTA.8` (adoption A1 — static grammar well-formedness check)
-  Status: `pending` (code; director-greenlit 2026-06-02)
+  Status: `analysis DONE` (`-0005`, 2026-06-02; left-recursion detection landed; wiring = `.8.1`)
+  Verification: `done (analysis sub-step) — new self-contained module rust/src/ast_pipeline/grammar_wellformedness.rs: detect_left_recursion(grammar, rule_order) -> Vec<WellformednessIssue> via Ford's well-formedness (POPL 2004 §3.6) — a nullable fixpoint (conservative: terminals never-nullable, so NO false positives) + a left-edge call graph (Sequence extends past a nullable leading element; Quantified/Lookahead expose their element at the left edge) + cycle detection (records the recursion path for the diagnostic). PARSER-AGNOSTIC, pure analysis (no I/O, no generation), in a NEW file (no conflict with the in-flight .7.4.3). 5 unit tests: direct (expr:=expr...), indirect (a->b->a), nullable-prefix left recursion DETECTED; the iterative `next (OP next)*` idiom + a consuming-prefix chain NOT flagged (no false positives). lib (no-features) 577/577 (+5); clippy 0 errors. WIRING (reject at generate time via pgen_error! + real-grammar no-false-positive verification on SV/VHDL/regex/JSON/EBNF) is sub-step .8.1, after .7.4.3 commits (frees the generate path). NON-TERMINATING-rule detection (reuses .7.4.2 min-length) also deferred to .8.1.`
+  Commit: `PGEN-PARSE-SOTA-0005`
   Goal: `Static well-formedness analysis over the compiled grammar IR (Ford, PEG, POPL
   2004 §3.6): detect (a) LEFT-RECURSIVE rules (a rule reachable from itself through only
   nullable left-edge positions → infinite loop / stack overflow at runtime) and (b)
