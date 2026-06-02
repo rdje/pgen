@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-MEMORY-ARCH-0001 (leaf MEMORY-ARCH, tree creation): **Opened the MEMORY-ARCH task tree to own adoption of the durable agent-memory architecture (full enforcement) — task-tree-owned FIRST, before any code.**
+
+Pure docs — NO code, NO release bump. Creates the owning unit before any MEMORY-ARCH file work, per the task-tree doctrine.
+
+Created docs/tasks/MEMORY-ARCH.md (5 leaves) + registered it `active` in docs/TASK_TREE.md. Goal: adopt the portable, harness-agnostic Durable Agent Memory Architecture standard (source: specforge/MEMORY_ARCHITECTURE.md) in pgen so agent memory survives session/crash/machine loss + model/harness switch and is mechanically enforced. Director decisions (2026-06-02): FULL enforcement (E1 bootstrap pointers · E2 self-check · E3 git hooks · E4 CI); REPLACE the stale 1.37 MB tracked root MEMORY.md with the bounded resume pointer; MIGRATE ALL durable ~/.claude records into tracked docs/decisions/ (layer C); sequenced after the SV .7.2 reach campaign's logged checkpoint. Leaves: .1 standard+README pointer · .2 docs/decisions/ + migrate-all · .3 root MEMORY.md → bounded pointer · .4 enforcement kit (check script + .githooks + core.hooksPath + CI + bootstrap pointers; commit-msg regex adapted to pgen's PGEN-/Slice scheme + VERIFIED against real subjects before arming) · .5 verify gates bite + live-docs sync + close. COMPOSES with (does not replace) the existing task-tree + COMMIT.md systems. Frontier = MEMORY-ARCH.1.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0136 (leaf SV-EXH-PROOF.7 / .7.2): **Consolidated reach-driver campaign state, observations + conclusions into the task tree (".7.2 CAMPAIGN SUMMARY").**
 
 Pure docs — NO code, NO release bump. Single addressable consolidation of the whole `.7.2` reach campaign (per director request to "log the current state, observations, what I did, the outcome, conclusions" before moving to the memory-architecture work).
