@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-SV-EXH-PROOF-0135 (leaf SV-EXH-PROOF.7.2.20): **Route-C step 2 (rule-reach driver wiring) MEASURED a REGRESSION (replay_target_count 1883 vs 888) → DISCARDED uncommitted. Route C rejected.**
+
+Negative result — NO code landed (the change was measured uncommitted, then discarded), NO release bump.
+
+WHAT WAS TRIED: wired compute_rule_reach_target (.7.2.19) into the target-drive loops so a top-pending never_hit RULE is translated to its introducing OR branch and steered via the SAME concentrated reach plan that produced 888 — NO quantifier-forcing, NO rotation, NO generate_quantified change. Added a read-only reach_target_is_installable predicate so non-installable rules still fall back to the helper-probe. Unit-verified (a never_hit RULE now installs a plan; lib 566/627; clippy clean). Mid-implementation I caught + fixed two honest issues: a stale-field compile error in my own test, and a STALE assertion ("hook must decline a rule") that .7.2.20 deliberately changes.
+
+MEASUREMENT (uncommitted, full sv_parser_aggregate_contract_gate, AGG720_EXIT=0): closed-loop replay "resolved 777/2660 ... generation_successes=4840, target_timeout_errors=134, reach_plan_activations=4724"; **replay_target_count = 1883**. The gate measured .7.2.20 (4724 activations >> the 888-baseline's 2606 confirms rule-reach was active). 1883 is a REGRESSION vs 888 (worse even than .7.2.12's 1717), SAME diversity-collapse signature: generation_successes 2221→4840 (DOUBLED) while resolved FELL 1772→777.
+
+CONCLUSION (fact-backed): rule-reach steering, like quantifier-forcing (.7.2.10), collapses sample diversity. The broader lesson: AGGRESSIVE TARGET-STEERING is the wrong lever (not just quantifier-forcing specifically); concentrated .7.2.8 steering at 888 is the reach approach's ceiling. PER THE PRE-SET RULE (1883 >= 888 → discard): discarded via git checkout -- stimuli_generator.rs → restored byte-identical to .7.2.19 HEAD (blob dfd43cc1); .7.2.20 NEVER committed; origin never polluted; generation path byte-identical to 888. → fall back to accept-with-evidence (.7.2.18 §5), routed to .7.2.21: the residual is a classified, 100%-reachable steerable coverage gap (NOT structural), and literal-0 needs a DIFFERENT (non-steering) mechanism — a tracked future enhancement, surfaced to director.
+
 ## 2026-06-02 - PGEN-SV-EXH-PROOF-0134 (leaf SV-EXH-PROOF.7.2.19): **Route-C step 1 — rule→branch reach translation (`compute_rule_reach_target`); ANALYSIS ONLY, zero generation change.**
 
 Engine code (rust/src/ast_pipeline/stimuli_generator.rs) — pure analysis added; NO generation-behavior change, NO release bump. NO-WORKAROUNDS level 5 (minimal parser-agnostic generator-analysis capability). Route C from the .7.2.18 director decision.
