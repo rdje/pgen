@@ -12,7 +12,7 @@
 - Live status: `LIVE_ACHIEVEMENT_STATUS.md`; changelog: `CHANGES.md`.
 
 ## Current state (OVERWRITE this block each update — do not append)
-- latest_commit: `<the -0137 / .7.3 research commit>` (ahead of origin ~21; push at ~30). MEMORY-ARCH tree CLOSED (`-0001..0006`).
+- latest_commit: `7cced916` PGEN-SV-EXH-PROOF-0137 (.7.3 research) — then PGEN-PARSE-SOTA-0001 (this commit, PARSE-SOTA tree creation). Ahead of origin ~22; push at ~30. MEMORY-ARCH tree CLOSED (`-0001..0006`).
 - active_work_unit: `SV-EXH-PROOF` → frontier `.7.4` (literature-grounded literal-0, commissioned by `.7.3`). Also opening a new `PARSE-SOTA` tree to ground the EBNF→parser-generator path in literature (director ask 2026-06-02).
 - next_action: (a) create the `PARSE-SOTA` tree + run its literature research; (b) begin `.7.4.1` (pin the coverage criterion `replay_target_count` measures + reachable-target-set under the PEG guard, pure docs). `.7.4` lands phased + measured per the no-regression discipline; director sign-off before any generation-behavior change.
 - in_flight_uncommitted: none after the `-0137` commit.
