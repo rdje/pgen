@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — MEMORY-ARCH E3 (PGEN-MEMORY-ARCH-0005)
+# Run the memory-architecture self-check; block the commit on any breach.
+exec "$(git rev-parse --show-toplevel)/scripts/check_memory_architecture.sh"

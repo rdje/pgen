@@ -1,0 +1,39 @@
+name: memory-architecture-gate
+
+# MEMORY-ARCH E4 (PGEN-MEMORY-ARCH-0005): the un-bypassable backstop for the
+# durable-memory-architecture invariants. Runs the SAME self-check script the local
+# pre-commit hook runs (single source of truth), so a non-compliant branch fails the
+# build and cannot merge — `git commit --no-verify` does not reach CI.
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  memory-architecture-gate:
+    name: memory-architecture-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Run memory-architecture self-check (E2)
+        run: bash scripts/check_memory_architecture.sh
+
+      - name: Validate commit subjects carry an identifier-shaped leading token (E3 mirror)
+        # Permissive by design (see scripts/check_memory_architecture.sh notes): pgen
+        # subject styles are varied; this rejects only blank/garbage-led subjects.
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          if [ -n "$base" ]; then range="$base..HEAD"; else range="HEAD~1..HEAD"; fi
+          bad=0
+          while IFS= read -r s; do
+            printf '%s' "$s" | grep -Eq '^[A-Za-z][A-Za-z0-9._-]+' || { echo "non-compliant subject: $s" >&2; bad=1; }
+          done < <(git log --format='%s' "$range" 2>/dev/null || true)
+          exit $bad

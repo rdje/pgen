@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# .githooks/commit-msg — MEMORY-ARCH E3 (PGEN-MEMORY-ARCH-0005)
+# Require a non-empty, identifier-shaped leading token in the subject. Permissive by
+# design (see scripts/check_memory_architecture.sh + the tree notes): pgen subject
+# styles are varied; this rejects only blank/garbage-led subjects. The work-unit-id
+# convention (e.g. "SVEXH-Slice-N (PGEN-...): ..." or "PGEN-<FAMILY>-<NNNN>: ...") is
+# carried by discipline + COMMIT.md + review, with CI as the backstop.
+subject="$(head -1 "$1")"
+if ! printf '%s' "$subject" | grep -Eq '^[A-Za-z][A-Za-z0-9._-]+'; then
+  echo "commit-msg: subject must begin with an identifier-shaped token (a work-unit id is expected, e.g. 'PGEN-<FAMILY>-<NNNN>: ...' or '<TREE>-Slice-N (...): ...')." >&2
+  exit 1
+fi
+exit 0

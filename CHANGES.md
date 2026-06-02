@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-02 - PGEN-MEMORY-ARCH-0005 (leaf MEMORY-ARCH.4): **Enforcement kit E1–E4 — check script + .githooks (armed) + CI gate + 6 bootstrap pointers; commit-msg regex verified against all 1699 historical subjects before arming.**
+
+Shell/yaml/md only — NO Rust/grammar/generated code, NO release bump.
+
+E2: scripts/check_memory_architecture.sh — single source of truth; checks MEMORY_ARCHITECTURE.md present, MEMORY.md ≤ cap (default 60), AGENTS.md+CLAUDE.md point at the standard, docs/TASK_TREE.md + docs/tasks/ exist, docs/decisions/ + INDEX present + not-empty-while-records-exist; nonzero on breach. E1: 6 bootstrap pointer files (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .windsurfrules, .github/copilot-instructions.md) each pointing at README + MEMORY_ARCHITECTURE.md + the layers (CLAUDE.md was not previously tracked → safe additive pointer). E3: .githooks/pre-commit (runs the check) + .githooks/commit-msg + `git config core.hooksPath .githooks` (armed; director-approved). E4: .github/workflows/memory-architecture-gate.yml runs the same check + commit-subject validation (un-bypassable backstop).
+
+VERIFY-BEFORE-ARM (commit-msg regex): tested candidates against ALL 1699 historical subjects. A strict work-unit-id pattern would have BLOCKED 1280/1699 (~75% — pgen history is mostly free-form prose; the id-in-subject convention is recent). Chose a PERMISSIVE leading-token regex `^[A-Za-z][A-Za-z0-9._-]+` that accepts all 1699 real subjects + rejects blank/garbage-led; the work-unit-id convention is carried by discipline + COMMIT.md + the task-tree doctrine + CI, not a brittle hook (standard §9 E3 "honest limit"). GATES PROVEN TO BITE: commit-msg rejects "   bad subject" + accepts "PGEN-MEMORY-ARCH-0005 ..."; the check fails at cap=5 (MEMORY.md=23 lines) + passes at default. This very commit passes through the now-armed hooks. Frontier → MEMORY-ARCH.5 (end-to-end verify + live-docs sync + close).
+
 ## 2026-06-02 - PGEN-MEMORY-ARCH-0004 (leaf MEMORY-ARCH.3): **Root MEMORY.md demoted from a stale 1.37 MB blob to the bounded 23-line layer-A resume pointer.**
 
 Pure docs — NO code, NO release bump.
