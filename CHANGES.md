@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0004 (leaf STIMULI-SIGNOFF.2.3): **k-path coverage is now USABLE — pub API + `--report-k-path-coverage` CLI; gap #1 capability CLOSED. SV k=2 universe = 4105.**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs + rust/src/main.rs) — read-only report path, generation unchanged, no release bump.
+
+WHAT: pub k_path_coverage_report(entry, samples, k) (generate samples with recording on → (covered, universe)) + a `--report-k-path-coverage K` CLI mode (mirrors --lint-grammar; opt-in, additive). Completes the k-path metric (gap #1): universe (.2.1) + numerator (.2.2) + usable report (.2.3).
+
+MEASURED on real SV (ast_pipeline <sv_gen_ast> --grammar-profile sv_2017 --report-k-path-coverage 2 --count 30 --seed 1): entry systemverilog_file, **k=2 universe = 4105 k-paths; 30 diverse-pass samples cover 679 (16.5%)** — the first k-path measurement on SV; the signoff-bar denominator is now concrete and the residual is re-expressible as k-path debt.
+
+VERIFIED: lib (no-features) 586/586 (k-path tests pass); source-strict clippy 0; binary builds + runs on SV. NO grammar/codegen/generated change. .2.4 OPTIONAL: wire the recorder into the full closed-loop SV gate (target-drive + witness, not just diverse) + formally restate "literal-0" as chosen-k coverage. KM card gap #1 → CLOSED (capability).
+
 ## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0003 (leaf STIMULI-SIGNOFF.2.2): **k-path coverage NUMERATOR — the k-path MEASURE is now complete (universe + covered + coverage).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — read-only instrumentation, default-OFF → generation byte-identical (monotone), no release bump.

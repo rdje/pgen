@@ -91,6 +91,12 @@ struct Args {
     #[arg(long)]
     lint_grammar: bool,
 
+    /// STIMULI-SIGNOFF.2.3 (adoption D): opt-in k-path coverage REPORT at depth N. Generates
+    /// `--count` samples from `--entry-rule` (or the first rule) and prints covered/universe
+    /// k-paths (Havrikov-Zeller). Read-only; does not change generation. Use small N (2-3).
+    #[arg(long, value_name = "K")]
+    report_k_path_coverage: Option<usize>,
+
     /// Generate high-performance Rust parser instead of JSON output
     #[arg(long)]
     generate_parser: bool,
@@ -918,6 +924,25 @@ fn main() -> Result<()> {
             args.grammar_profile.as_deref(),
         )?;
         return run_grammar_lint(&grammar);
+    }
+
+    // STIMULI-SIGNOFF.2.3 (adoption D): opt-in k-path coverage report.
+    if let Some(k) = args.report_k_path_coverage {
+        let grammar = apply_grammar_profile_filter(
+            load_grammar_bundle(
+                &args.input_path,
+                &mut pipeline,
+                args.emit_raw_ast_json.as_deref(),
+            )?,
+            args.grammar_profile.as_deref(),
+        )?;
+        return run_k_path_coverage_report(
+            &grammar,
+            k,
+            args.entry_rule.as_deref(),
+            args.count,
+            args.seed.unwrap_or(0),
+        );
     }
 
     let result = if standalone_raw_ast_export {
@@ -2120,6 +2145,50 @@ fn apply_grammar_profile_filter(
 /// a warning (unreachable alternatives); non-terminating rules are errors (also rejected
 /// at load by .8.1, so a loaded grammar shows 0). Returns Err iff non-terminating rules
 /// remain (scriptable exit code).
+/// STIMULI-SIGNOFF.2.3 (adoption D): k-path coverage report — generate `samples` derivations
+/// from `entry` (or the first rule) and print covered/universe k-paths (Havrikov-Zeller).
+/// Read-only instrumentation; generation itself is unchanged.
+fn run_k_path_coverage_report(
+    grammar: &LoadedGrammar,
+    k: usize,
+    entry: Option<&str>,
+    samples: usize,
+    seed: u64,
+) -> Result<()> {
+    let entry_rule = entry
+        .map(|s| s.to_string())
+        .or_else(|| grammar.rule_order.first().cloned())
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "grammar '{}' has no rules to report k-path coverage for",
+                grammar.grammar_name
+            )
+        })?;
+    let config = StimuliConfig {
+        seed: Some(seed),
+        ..Default::default()
+    };
+    let mut generator = StimuliGenerator::new(
+        grammar.grammar_name.clone(),
+        &grammar.grammar_tree,
+        &grammar.rule_order,
+        grammar.annotations.as_ref(),
+        config,
+    );
+    let samples = samples.max(1);
+    let (covered, universe) = generator.k_path_coverage_report(&entry_rule, samples, k);
+    let pct = if universe > 0 {
+        100.0 * covered as f64 / universe as f64
+    } else {
+        0.0
+    };
+    println!(
+        "k-path coverage: grammar='{}' entry='{}' k={} samples={} -> covered {}/{} k-paths ({:.1}% of the universe)",
+        grammar.grammar_name, entry_rule, k, samples, covered, universe, pct
+    );
+    Ok(())
+}
+
 fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         detect_left_recursion, detect_nonterminating_rules, detect_ordered_choice_shadowing,

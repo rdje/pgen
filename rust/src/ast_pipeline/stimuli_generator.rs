@@ -3912,6 +3912,20 @@ impl<'a> StimuliGenerator<'a> {
         Some((hit, universe.len()))
     }
 
+    /// STIMULI-SIGNOFF.2.3 (PGEN-STIMULI-SIGNOFF-0004): public k-path coverage REPORT — the
+    /// usable surface over `.2.1` (universe / `compute_k_paths`) + `.2.2` (recorder). Generates
+    /// `samples` derivations from `entry` with k-path recording ON, then returns
+    /// `(covered_in_universe, universe_size)` for depth `k`. Intended for a one-shot report
+    /// run (it leaves recording enabled, caller-scoped). Generation itself is unchanged —
+    /// recording is read-only instrumentation.
+    pub fn k_path_coverage_report(&mut self, entry: &str, samples: usize, k: usize) -> (usize, usize) {
+        self.enable_k_path_recording(k);
+        for _ in 0..samples {
+            let _ = self.generate_from_entry(entry);
+        }
+        self.k_path_coverage().unwrap_or((0, 0))
+    }
+
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis — no generation
     /// behavior change): like `collect_rule_references`, but also records WHERE
     /// each rule reference occurs, using the same `node_path` encoding as
