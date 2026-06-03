@@ -3,7 +3,12 @@
 #   - MEMORY-ARCH E3 (PGEN-MEMORY-ARCH-0005): durable-memory-architecture invariants.
 #   - DIAG-SEVERITY.4 + DOCPATH (PGEN-DIAG-SEVERITY-0005): severity-never-masked +
 #     live-docs repo-root-relative paths.
+#   - KNOWLEDGE-MAP (PGEN-KNOWLEDGE-MAP-0001): regen+stage the derived Knowledge Map, then
+#     validate facts + sync (regenerate-and-stage makes map drift structurally impossible).
 set -e
 ROOT="$(git rev-parse --show-toplevel)"
 "$ROOT/scripts/check_memory_architecture.sh"
 "$ROOT/scripts/check_diagnostics_and_docpaths.sh"
+"$ROOT/knowledge-map/scripts/gen_knowledge_map.sh" >/dev/null
+git add "$("$ROOT/knowledge-map/scripts/gen_knowledge_map.sh" --print-map-path)" 2>/dev/null || true
+"$ROOT/knowledge-map/scripts/check_knowledge_map.sh"

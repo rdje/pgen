@@ -30,6 +30,11 @@ jobs:
         # repo-root-relative paths. Same script the local pre-commit hook runs.
         run: bash scripts/check_diagnostics_and_docpaths.sh
 
+      - name: Validate Knowledge Map facts + assert the map is in sync (KNOWLEDGE-MAP)
+        # Derived question-keyed retrieval index over durable facts (knowledge-map/ bundle).
+        # Same script the local pre-commit hook runs; a stale map or invalid fact fails here.
+        run: bash knowledge-map/scripts/check_knowledge_map.sh
+
       - name: Validate commit subjects carry an identifier-shaped leading token (E3 mirror)
         # Permissive by design (see scripts/check_memory_architecture.sh notes): pgen
         # subject styles are varied; this rejects only blank/garbage-led subjects.
