@@ -77,10 +77,36 @@ are genuine ill-formed sites (runtime-guarded, low-urgency) → the 7 grammar FI
 follow-up targeted leaves (`.2.1`-`.2.7`, each: analyze intended quantifier/body, fix, regen
 + verify corpus/shape-contracts — NOT done here; the detector is the `.2` deliverable).
 
-### `.3` — memo-soundness audit; adopt conditional memoization if needed — PENDING
-Prove memoization delivers the intended complexity. If `.1` shows statefulness breaks it,
-adopt CC 2020's **conditional memoization** (parser-agnostic engine change, explicit auth +
-strict scope per the engine-change discipline).
+### `.3` — root-cause + fix DESIGN (DONE, PGEN-PARSE-TERMINATION-0003); implementation = `.3.1`
+Director signed off the engine change. WHY+WHERE-first investigation (tools: code read +
+macOS `sample` profile of the store_3200 parse) **PINNED the root cause and CORRECTED the
+leaf's premise** — it is **NOT** CC 2020 conditional memoization:
+- **ROOT CAUSE (profiled, decisive):** `with_semantic_runtime_rule_transaction` (codegen
+  `ast_based_generator.rs:1281-1283`) does `std::mem::take(&mut self.semantic_runtime_state)`
+  then `= original.clone()` — a **full clone of the entire `SemanticRuntimeState`** (facts
+  BTreeMap/HashMap, scopes, strings, vecs) on EVERY rule transaction, restored by `= original`
+  on failure. O(state) per call × O(rule-calls) = **O(N²)**. The profile's hot frames are
+  `SemanticRuntimeState::clone` (clone_subtree / String::clone / HashMap::clone / to_vec) +
+  `drop_in_place<SemanticRuntimeState>`, all under `with_semantic_runtime_rule_transaction`.
+  (NOT the memo — keyed (rule,pos), never cleared; NOT has_fact — indexed `by_kind`, O(1);
+  the width baseline is linear because it runs no transactions over a growing store.)
+- **FIX (efficient snapshot/restore — Laurent & Mens SLE 2016):** replace the take+clone
+  snapshot with `self.semantic_runtime_state.checkpoint()` (O(1)) and the err-restore
+  `= original` with `self.semantic_runtime_state.rollback_to_named(cp, Some(rule_name))`
+  (O(changes)). `rollback_to_named` is VERIFIED COMPLETE (truncates facts + the by_kind
+  fact_index, truncates scope_arena, restores active_chain, **un-closes** scopes, rebuilds
+  `scopes`) and is ALREADY used + proven in the try_parse branch path (SV corpus 14/14). Also
+  translate the in-IIFE `original_semantic_runtime_state.facts().len()` (`:1385`) →
+  `cp.fact_len`; rule_context push/pop is unaffected (checkpoint/rollback don't touch it).
+- **EXPECTED IMPACT:** per-transaction O(state) → O(changes) ⇒ store-gated parsing
+  N^1.66 → ~N^1.0 (linear, matching the width baseline); fixes the super-linearity + likely
+  the historical uvm_pkg slowness.
+
+### `.3.1` — implement the checkpoint/rollback swap — PENDING (turnkey from `.3`)
+Apply the codegen change above; **regen all 10 parsers**; VERIFY: the `.1` linearity probe
+(store now ~N^1.0), SV external corpus 14/14, lib (no-features + generated_parsers),
+shape-contracts, determinism. A delicate engine change touching every parser → its own
+focused slice with the full battery (not a session-tail rush). KM [[stateful-packrat-not-linear]].
 
 ### `.4` — runtime step-budget watchdog (hang → classified severity error) — PENDING
 A hard per-parse step/time budget that converts a would-be hang into a `pgen_error!`-class

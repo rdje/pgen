@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-TERMINATION-0003 (leaf PARSE-TERMINATION.3, root-cause + fix DESIGN): **profiled the super-linearity to a full-state CLONE per rule transaction — NOT conditional memoization; fix = checkpoint/rollback_to.**
+
+Docs/investigation only — NO code change (the engine edit is the turnkey .3.1, deliberately NOT rushed at session tail). Director signed off the engine change; this slice does the WHY+WHERE-first investigation it demanded.
+
+CORRECTS THE LEAF'S PREMISE: TERMINATION.3 assumed CC 2020 conditional memoization. A macOS `sample` profile of the store_3200 parse + a code read DISPROVE that and pin the actual O(N²): it is NOT the memo (keyed (rule,pos), never cleared) and NOT has_fact (indexed by_kind, O(1)). The hot path is `with_semantic_runtime_rule_transaction` CLONING THE ENTIRE SemanticRuntimeState per rule transaction (std::mem::take + .clone(), ast_based_generator.rs:1281-1283) + the matching drop_in_place — O(state) per call × O(rule-calls) = O(N²). (The width baseline is linear because it runs no transactions over a growing store.)
+
+FIX DESIGNED + DE-RISKED (efficient snapshot/restore, Laurent & Mens SLE 2016): swap the clone-snapshot/clone-restore for checkpoint() (O(1)) + rollback_to_named(cp) (O(changes)). rollback_to_named VERIFIED COMPLETE (truncates facts + by_kind fact_index, truncates scope_arena, restores active_chain, un-closes scopes, rebuilds scopes) and is ALREADY used + proven in the try_parse path (SV corpus 14/14). Also translate the in-IIFE original_state.facts().len() (:1385) -> cp.fact_len; rule_context push/pop unaffected. EXPECTED: store-gated parsing N^1.66 -> ~N^1.0 (linear); fixes the super-linearity + likely the uvm slowness.
+
+Implementation = PARSE-TERMINATION.3.1 (codegen swap + regen 10 parsers + full verify: linearity probe + SV corpus 14/14 + lib both feature-sets + shape-contracts + determinism) — a delicate every-parser engine change, so its own focused slice. KM card stateful-packrat-not-linear updated with the pinned root cause + fix.
+
 ## 2026-06-03 - PGEN-PARSE-TERMINATION-0002 (leaf PARSE-TERMINATION.2): **static nullable-repetition detector (loop-without-consuming) — found 7 real SV sites.**
 
 Code (rust/src/ast_pipeline/grammar_wellformedness.rs + rust/src/main.rs) — additive static analysis + lint wiring, no engine/grammar/codegen change, no release bump.

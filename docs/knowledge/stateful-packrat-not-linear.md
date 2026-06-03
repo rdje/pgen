@@ -38,4 +38,15 @@ vs N wires, N ∈ {100..3200}): **stateful store-gated parsing scales ~N^1.66 wi
 per-doubling ratio that GROWS toward 4 (2.45→2.89→3.24→3.58→3.84) — trending QUADRATIC**
 (0.11 s → 34.8 s for 100→3200); the **stateless baseline is ~N^1.08 = linear** (0.04 s →
 1.70 s). So PGEN's stateful packrat is *not* linear — confirmed, not assumed. Likely the
-cause of historical uvm_pkg parse slowness. Fix = conditional memoization (`PARSE-TERMINATION.3`).
+cause of historical uvm_pkg parse slowness.
+
+**ROOT CAUSE PINNED (`PARSE-TERMINATION.3`, 2026-06-03 — profiled; corrects the "conditional
+memoization" guess):** it is NOT the memo (keyed (rule,pos), never cleared) and NOT has_fact
+(indexed `by_kind`, O(1)). A macOS `sample` profile of the store_3200 parse shows the hot path
+is **`with_semantic_runtime_rule_transaction` cloning the ENTIRE `SemanticRuntimeState`** per
+rule transaction (`std::mem::take` + `.clone()`, `ast_based_generator.rs:1281-1283`) + the
+matching `drop_in_place` — O(state) per call × O(rule-calls) = O(N²). **FIX (efficient
+snapshot/restore, Laurent & Mens SLE 2016):** swap the clone-snapshot/clone-restore for the
+existing, proven-complete `checkpoint()` + `rollback_to_named()` (O(changes)) — already used in
+the try_parse path. Implementation = `PARSE-TERMINATION.3.1` (codegen swap + regen 10 parsers +
+verify). Expected: store-gated parsing N^1.66 → ~N^1.0 (linear).
