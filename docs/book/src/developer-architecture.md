@@ -2,6 +2,46 @@
 
 Once you move past user-facing commands, the next step is understanding how the Rust-first platform is organized.
 
+## Parsing Model — where PGEN stands (PEG, Packrat, data-dependent)
+
+PGEN is a **packrat-memoized, data-dependent (stateful) Parsing Expression Grammar (PEG)
+parser-generator** — in the same family as SPEG / Nez / data-dependent grammars, with
+automatic left-recursion elimination, synthesized-attribute return annotations, and a
+semantic store. The three terms:
+
+- **PEG** (Ford, POPL 2004): a *recognition-based* grammar. Alternatives use **ordered
+  choice** — the first matching alternative commits, so a PEG is **never ambiguous** (unlike
+  a CFG used by yacc/bison/ANTLR). It has greedy/possessive repetition and **syntactic
+  predicates** `&e` / `!e` (unlimited lookahead that consumes nothing). PGEN is a faithful
+  PEG: ordered choice, `&`/`!`, greedy quantifiers.
+- **Packrat** (Ford, ICFP 2002): the **linear-time *implementation* of a PEG** via
+  memoizing every `(rule, position)` result, which eliminates PEG's worst-case exponential
+  backtracking. PGEN does this (its `MemoEntry` cache). Packrat assumes a **pure** parse
+  function.
+- **Data-dependent / stateful PEG** (SPEG, Nez, Yakker): a PEG extended with parse-time
+  **state** — a symbol table the grammar consults to decide rules, enabling
+  context-sensitivity (e.g. SystemVerilog *type-vs-expression* disambiguation). PGEN's
+  **semantic store** (`@emit_fact` + `@predicate`-gated rules + scope tree) is exactly this.
+  Because the store makes the parse function *impure*, PGEN attaches a **semantic *delta*** to
+  each memo entry and replays it on cache hits (the published-correct fix, Laurent & Mens,
+  SLE 2016).
+
+**Left recursion is handled for you — automatically.** You write the *natural*
+left-recursive EBNF (e.g. `expr := expr "+" term | term`); the **AST pipeline eliminates it
+at transform time** (the `eliminate_left_recursive_patterns` pass, on by default; toggle
+`--eliminate-left-recursion`), handling direct and indirect/chained cases, plus a runtime
+cycle-breaker. You do **not** rewrite grammars into tail-rule form by hand — that would be
+impractical for real expression/operator grammars, and it would distort the AST and the
+annotations.
+
+Two consequences worth remembering:
+
+- Because it's a **PEG**, *alternative order is meaningful* — an earlier alternative can
+  shadow a later one (`a | ab` makes `ab` unreachable). PGEN ships a shadowing lint for this.
+- Because the store makes packrat **stateful**, the textbook linear-time guarantee is *not*
+  automatic — verifying and preserving near-linear time under state is an explicit,
+  tracked correctness concern (see the parser termination work).
+
 ## Core Areas
 
 ### Rust AST pipeline

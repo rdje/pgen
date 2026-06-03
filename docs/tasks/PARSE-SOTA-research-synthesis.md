@@ -163,8 +163,10 @@ a module layer (import/modify/compose) would help the *huge* SV grammar. **Gramm
   the same safety statically via A2.
 - Red-green / persistent trees + incremental parsing — in-memory live-edit optimizations;
   zero payoff for a batch JSON emitter (revisit only if PGEN becomes editor-resident).
-- Runtime left-recursion (Warth seed/grow; Medeiros bounded) — our grammar-authoring
-  elimination idiom works and avoids a partial-semantic-side-effect hazard in our memo.
+- Runtime left-recursion (Warth seed/grow; Medeiros bounded) — NOT adopted: PGEN instead
+  eliminates LR with an AUTOMATIC transform-time pipeline pass (default-on), which avoids a
+  partial-semantic-side-effect hazard in our memo. (Author writes natural left-recursive
+  EBNF; the pipeline rewrites it — manual authoring-time elimination would be impractical.)
 
 ---
 
@@ -178,8 +180,15 @@ a module layer (import/modify/compose) would help the *huge* SV grammar. **Gramm
   Our delta-replay is the published-correct fix (Laurent & Mens, SLE 2016). Open half:
   memo-reuse soundness + linear-time under state (Chida CC 2020 → conditional memoization).
   → **B1, A1.**
-- Left recursion: we eliminate at authoring time (correct choice); runtime support (Warth
-  2008 / Medeiros 2014) not worth the side-effect hazard. → do-not-adopt.
+- Left recursion: PGEN eliminates it **AUTOMATICALLY in the AST pipeline** — a transform-time
+  pass `eliminate_left_recursive_patterns` (default-on via `eliminate_left_recursion: true`,
+  toggle `--eliminate-left-recursion`; handles direct + indirect/chain via
+  `detect_/apply_left_recursive_chain_plan`) + runtime `mutual_recursion_handler`
+  cycle-breaking. It is **transparent to the EBNF author** (NOT authoring-time manual
+  elimination — that would be impractical for natural expression/operator grammars). Runtime
+  LR *support* (Warth 2008 seed-grow / Medeiros 2014) is the not-adopted approach (avoids a
+  partial-semantic-side-effect hazard in our memo). Verified `mod.rs:1488/1523/1588/1640`,
+  `main.rs:309/900/1828`. → do-not-adopt *runtime* LR; our automatic transform-time pass stays.
 - Cut (Mizushima 2010) + bounded memo (Redziejowski) for space. → **B2.**
 
 ### .2 Parser-generator architecture & codegen

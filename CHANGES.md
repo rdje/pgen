@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-SOTA-0013 (doc correction + parsing-model capture): **Correct the left-recursion characterization (AUTOMATIC AST-pipeline pass, NOT authoring-time) + capture PGEN's PEG/Packrat/data-dependent placement (KM card + mdBook).**
+
+Pure docs — NO code change. TRIGGER: director caught an inaccuracy — I had stated (echoing PARSE-SOTA-research-synthesis.md) that left recursion is "eliminated at authoring time." Tools-first check of the AST pipeline DISPROVED it.
+
+VERIFIED (rust/src/ast_pipeline/mod.rs:1488/1523/1588/1640, rust/src/main.rs:309/900/1828): left-recursion elimination is an AUTOMATIC transform-time pipeline pass (eliminate_left_recursive_patterns), DEFAULT-ON (eliminate_left_recursion: true in PipelineConfig::default(); toggle --eliminate-left-recursion), handling direct + indirect/chain (detect_/apply_left_recursive_chain_plan), + runtime mutual_recursion_handler cycle-breaking — TRANSPARENT to the EBNF author (the author writes natural left-recursive EBNF; manual authoring-time elimination would be impractical for expression/operator grammars). A1 well-formedness deliberately does NOT reject LR ("PGEN handles it", main.rs:1828).
+
+FIXED the two inaccurate PARSE-SOTA-research-synthesis.md lines (166-167, 181-182). CAPTURED the full corrected parsing-model placement — PGEN = packrat-memoized, data-dependent/stateful PEG (SPEG/Nez/Yakker family; semantic-delta replay = Laurent & Mens SLE 2016; ordered-choice PEG = Ford POPL 2004; packrat = Ford ICFP 2002; synthesized attributes = Knuth 1968) — as KM card docs/knowledge/pgen-parsing-model.md + an mdBook "Parsing Model" section in docs/book/src/developer-architecture.md (books-are-the-window lockstep). Reinforces verify-don't-guess + the KM's purpose: a wrong durable fact propagated into an answer until the director caught it.
+
 ## 2026-06-03 - PGEN-PARSE-PILLARS-0001 (3 new parser-agnostic sign-off trees + literature grounding): **PARSE-COMPLETENESS / PARSE-TERMINATION / PARSE-FIDELITY authored, research-grounded, with KM cards.**
 
 Pure docs/planning — NO grammar/Rust/codegen/generated change. Director-commissioned 2026-06-03 ("1 tree per parser failure mode; research the literature first so we don't reinvent; solve elegantly/efficiently/zero-regression").
