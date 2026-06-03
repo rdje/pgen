@@ -12,9 +12,9 @@
 - Live status: `LIVE_ACHIEVEMENT_STATUS.md`; changelog: `CHANGES.md`.
 
 ## Current state (OVERWRITE this block each update — do not append)
-- latest_commit: (this commit) `PGEN-KNOWLEDGE-MAP-0001` (tree KNOWLEDGE-MAP .1) — derived question-keyed retrieval layer (`knowledge-map/` bundle + `docs/knowledge/` facts + KM gate in pre-commit/CI) so an AI never re-does archaeology. Prior: `af0e18f3` PARSE-SOTA-0012, `-0142` SV-EXH-PROOF.7.4.4.1. unpushed ~21.
-- active_work_unit: KNOWLEDGE-MAP `.1` DONE+VERIFIED. Returning to `SV-EXH-PROOF.7.4.4` (literal-0 residual tail, RE-SCOPED by `.7.4.4.1`). PARSE-SOTA Tier-A `.11` (A5 _meta) parked: delicate two-surface codegen, deferred to a focused session per its design doc.
-- next_action: pick up `SV-EXH-PROOF.7.4.4` (RE-SCOPED) — witness "other" tail is SLOW GENERATION not context-gating (other=0 proven). FIX = Purdom min-length-guided greedy witness expansion (reuse `.7.4.2`'s table); measure vs 888; MONOTONE; director sign-off before the generation change lands; VERIFY VIA Makefile (make focus_<grammar>). KNOWLEDGE-MAP `.2` = add a fact card on demand whenever a durable fact is established or archaeology is caught (NOT a sweep).
+- latest_commit: (this commit) `PGEN-SV-EXH-PROOF-0143` (leaf .7.4.4) — Purdom shortest-derivation ordering for the witness pass (witness_mode-gated, monotone): same-binary A/B (seed 712001, 150-target sample) Purdom OFF 101 resolved/39 timeout → ON 124/23 (+23/−16, other=0). Prior: `PGEN-KNOWLEDGE-MAP-0001` (KM bundle), `af0e18f3` PARSE-SOTA-0012, `-0142` .7.4.4.1. unpushed ~22.
+- active_work_unit: `SV-EXH-PROOF.7.4.4` DONE (Purdom witness ordering; lib 584/584; source-strict clippy 0). KNOWLEDGE-MAP `.1` DONE. PARSE-SOTA Tier-A `.11` (A5 _meta) parked: delicate two-surface codegen, deferred to a focused session.
+- next_action: run the FULL canonical `888->X` closed-loop gate (the 30-60min `make` SV stimuli quality gate) to record the definitive replay_target_count with .7.4.3 witness + .7.4.4 Purdom ordering combined (NOT yet claimed — KEEP so far rests on the monotonicity proof + same-binary A/B). If a tractable tail remains after that, `.7.4.5` (secondary lever: tuned per-witness budget / Purdom in generate_quantified). VERIFY VIA Makefile. KNOWLEDGE-MAP `.2` = add a fact card on demand (NOT a sweep).
 - in_flight_uncommitted: none (this commit includes MEMORY.md sync).
 - blockers: none. (Pre-existing: full-workspace `cargo test` RED from stale GlobalOptions ctors at parseability_probe.rs:738/754 — unrelated; use `cargo test --lib`.)
 

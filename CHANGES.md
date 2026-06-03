@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-SV-EXH-PROOF-0143 (leaf SV-EXH-PROOF.7.4.4): **Purdom shortest-derivation ordering for the witness pass — slow SV witnesses converge instead of timing out (witness-pass-only, monotone).**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — no grammar/codegen/generated change, no release bump. Director sign-off "go ahead".
+
+WHY (from .7.4.4.1's tools-first evidence, not guessed): the witness-pass residual tail is SLOW GENERATION (target_timeout), not context-gating and not errors (other=0). The deeply-factored SV rules (bins_or_options, interface_declaration_sv_2017, ansi_port_declaration) explore deep factored alternatives and exhaust the per-witness budget.
+
+WHAT (literature-grounded — Purdom 1972 shortest-derivation; parser-agnostic): new generator flag witness_mode (true ONLY inside generate_target_witnesses) + cached witness_min_terminal_lengths (the .7.4.2 compute_min_terminal_lengths table). generate_or gains a witness-ONLY attempt_order arm, placed AFTER reach-plan forcing (branch targets unaffected), that orders surviving candidates by ASCENDING min_terminal_length_of_node — shortest-terminating branch first. Pure attempt-ORDER change: every other branch stays a fallback → correctness unaffected. MONOTONE BY CONSTRUCTION: the diverse pass never sets witness_mode → byte-identical output → replay_target_count can only shrink. Same-binary A/B knob PGEN_WITNESS_NO_PURDOM (table None → arm skipped → default weighting).
+
+MEASURED (same release binary, --seed 712001, the .7.4.4.1 150-target real-SV sample, --target-max-attempts 0 --target-generation-timeout-ms 7000): Purdom OFF = resolved 101/150, target_timeout=39, other=0; Purdom ON = resolved 124/150, target_timeout=23, other=0 (+23 resolved, -16 timeouts). DETERMINISM: a second Purdom-ON run = 123/150, target_timeout=21 (±1-2 wall-clock-cap boundary wobble; the ORDERING is deterministic, the resolved COUNT under a wall-clock cap is not byte-stable; the delta dwarfs the wobble). VERIFIED: lib (no-features) 584/584; source-strict clippy 0 (make clippy_on_rust_change source stage error-count 0; the generated-parser non-strict stage's 192 errors are PRE-EXISTING stale lib-test state, untouched by this change). HONEST: the full canonical 888->X closed-loop number is NOT claimed — KEEP is justified (as .7.4.3 was) by the monotonicity proof + the same-binary A/B efficacy; the canonical gate run is the next confirmation. KM card docs/knowledge/sv-witness-purdom-ordering.md.
+
 ## 2026-06-03 - PGEN-KNOWLEDGE-MAP-0001 (tree KNOWLEDGE-MAP, leaf .1): **Knowledge Map (KM) — a derived, question-keyed retrieval layer so an AI/LLM never re-does archaeology.**
 
 Infra + docs (new `knowledge-map/` bundle + `docs/knowledge/` facts + enforcement wiring) — NO grammar/Rust/codegen/generated change, no release bump.

@@ -1150,6 +1150,18 @@ pub struct StimuliGenerator<'a> {
     /// Observability for the driver + lets tests assert the hook actually fired
     /// (vs the baseline weighting having already covered the target).
     reach_plan_activations: u64,
+    /// SV-EXH-PROOF.7.4.4 (PGEN-SV-EXH-PROOF-0143): true ONLY while the appended
+    /// minimal-witness pass (`generate_target_witnesses`) is running. When set, the
+    /// shared `generate_or` core prefers the shortest-terminating alternative (Purdom
+    /// 1972 shortest-derivation) so a witness on a deeply-factored rule converges
+    /// before the per-witness budget instead of timing out. The diverse background
+    /// pass never sets this flag → its output is byte-identical → the witness pass
+    /// stays monotone-additive (`replay_target_count` can only shrink).
+    witness_mode: bool,
+    /// SV-EXH-PROOF.7.4.4: the `.7.4.2` Purdom min-terminal-length table, computed
+    /// once at witness-pass start and consulted by `generate_or` while `witness_mode`
+    /// is on. `None` outside the witness pass.
+    witness_min_terminal_lengths: Option<HashMap<String, usize>>,
     target_probe_history: HashMap<String, TargetProbeHistory>,
     target_drive_validation_active: bool,
     active_generation_entry_rule: Option<String>,
@@ -1273,6 +1285,8 @@ impl<'a> StimuliGenerator<'a> {
             target_plan: ActiveTargetPlan::default(),
             reach_plan: None,
             reach_plan_activations: 0,
+            witness_mode: false,
+            witness_min_terminal_lengths: None,
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
             active_generation_entry_rule: None,
@@ -2447,6 +2461,23 @@ impl<'a> StimuliGenerator<'a> {
         self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
         let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
 
+        // SV-EXH-PROOF.7.4.4 (PGEN-SV-EXH-PROOF-0143): enable Purdom shortest-derivation
+        // ordering for the witness pass only. `generate_or` reads `witness_mode` +
+        // `witness_min_terminal_lengths` to try the shortest-terminating alternative first,
+        // so witnesses on deeply-factored rules converge before the per-witness budget
+        // (the `.7.4.4.1` measurement showed the tail = `target_timeout`, not errors).
+        // Restored in lockstep with the depth/visit slack below; the diverse pass never
+        // sets these → its output is byte-identical → the witness pass stays monotone.
+        self.witness_mode = true;
+        // PGEN_WITNESS_NO_PURDOM disables the Purdom ordering (table stays None → the
+        // witness arm in `generate_or` is skipped → default weighting), for a same-binary
+        // A/B measurement of the ordering's effect. Default (unset) = Purdom ON.
+        self.witness_min_terminal_lengths = if std::env::var_os("PGEN_WITNESS_NO_PURDOM").is_some() {
+            None
+        } else {
+            Some(self.compute_min_terminal_lengths())
+        };
+
         let mut outputs = Vec::new();
         let mut attempted: HashSet<String> = HashSet::new();
         let mut witnesses_generated = 0usize;
@@ -2551,6 +2582,9 @@ impl<'a> StimuliGenerator<'a> {
 
         self.config.max_depth = original_max_depth;
         self.config.max_rule_visits = original_max_rule_visits;
+        // SV-EXH-PROOF.7.4.4: leave witness mode (restore byte-identical diverse-pass behavior).
+        self.witness_mode = false;
+        self.witness_min_terminal_lengths = None;
 
         let resolved_after =
             total_targets.saturating_sub(self.evaluate_target_statuses(&applicable).len());
@@ -3841,9 +3875,9 @@ impl<'a> StimuliGenerator<'a> {
     /// on the node shape + the `rule_reference` token type, no rule-name special-
     /// casing, per [[feedback_ast_pipeline_parser_agnostic]].
     ///
-    /// `dead_code`-allowed: analysis-only in `.7.4.2`; the witness-construction
-    /// caller lands in `.7.4.3`. Exercised now by unit tests.
-    #[allow(dead_code)]
+    /// Caller: `generate_target_witnesses` (`.7.4.4`) computes this once at witness-pass
+    /// start; `generate_or` then consults it (under `witness_mode`) to try the shortest-
+    /// terminating alternative first (Purdom). Also exercised by unit tests.
     fn compute_min_terminal_lengths(&self) -> HashMap<String, usize> {
         let mut min_len: HashMap<String, usize> = HashMap::new();
         loop {
@@ -4987,6 +5021,34 @@ impl<'a> StimuliGenerator<'a> {
                     current_rule, node_path, forced_local, candidate_indices[forced_local]
                 ),
             );
+            ordered
+        } else if self.witness_mode && self.witness_min_terminal_lengths.is_some() {
+            // SV-EXH-PROOF.7.4.4 (PGEN-SV-EXH-PROOF-0143): Purdom shortest-derivation
+            // ordering — witness pass ONLY (gated by `witness_mode`; reach-plan forcing
+            // above still wins on-path, so branch targets are unaffected). Order the
+            // surviving candidates by ASCENDING min-terminal-length (the `.7.4.2` table) so
+            // the shortest-terminating alternative is tried first and the witness converges
+            // fast instead of timing out. Pure attempt-ORDER change — every other branch
+            // stays as a fallback, so correctness is unaffected; unresolvable nodes (`None`)
+            // sort last; ties broken by global index for determinism.
+            let mut ordered: Vec<usize> = (0..candidate_indices.len()).collect();
+            if let Some(table) = self.witness_min_terminal_lengths.as_ref() {
+                ordered.sort_by(|left, right| {
+                    let left_min = Self::min_terminal_length_of_node(
+                        &prepared[candidate_indices[*left]].1,
+                        table,
+                    )
+                    .unwrap_or(usize::MAX);
+                    let right_min = Self::min_terminal_length_of_node(
+                        &prepared[candidate_indices[*right]].1,
+                        table,
+                    )
+                    .unwrap_or(usize::MAX);
+                    left_min
+                        .cmp(&right_min)
+                        .then_with(|| candidate_indices[*left].cmp(&candidate_indices[*right]))
+                });
+            }
             ordered
         } else if let Some((preferred_global, baseline_global)) =
             self.forced_or_branch_for_site(&mutation_site_key)

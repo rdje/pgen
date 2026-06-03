@@ -3,15 +3,18 @@
 > **AUTO-GENERATED — DO NOT EDIT.** Regenerate with `knowledge-map/scripts/gen_knowledge_map.sh`.
 > Source of truth = YAML front-matter in: `docs/knowledge docs/decisions`. Edit the fact files, never this map.
 > A fact is any `.md` whose front-matter has a non-empty `answers:` list.
-> **4** facts · **20** question keys.
+> **5** facts · **25** question keys.
 
 ## Questions → fact
 
 - "are warnings and errors hidden at low verbosity" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - "how do I tell a depth failure from a visit-limit or timeout failure" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - "how does the generator steer to a specific coverage target" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
+- "how to make slow deeply-factored SV witnesses converge" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
+- "how were the slow witness timeouts reduced" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
 - "what are never_hit / never_selected / selected_but_failed reasons" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what do the stimuli generation error reasons mean" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
+- "what does PGEN_WITNESS_NO_PURDOM do" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
 - "what does the Stimuli generation depth exceeded message mean" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what does the stimuli coverage gap report measure" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what is GenerationErrorReason / classify_generation_error" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
@@ -19,11 +22,13 @@
 - "what is replay_target_count / the stimuli residual" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what is the root cause of the uncovered SV coverage branches" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what is the two-surface architecture (runtime interpreter vs codegen)" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
+- "what is witness_mode / the Purdom witness ordering" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
 - "what must I edit to add a sibling key to every AST object" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
 - "where are depth_exceeded_errors / target_timeout_errors counted" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - "where are typed AST objects constructed in PGEN" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
 - "which files build the AST object map" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
 - "why can't deeply-nested SV rules be generated from the top entry" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
+- "why do SV witnesses time out instead of erroring" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
 - "why does replay_target_count plateau (e.g. at 888)" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "why doesn't the SystemVerilog stimuli residual reach zero" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "why is the _meta carrier (A5) a coordinated multi-surface change" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
@@ -65,3 +70,12 @@ _Why the SV stimuli residual doesn't reach literal zero — depth-budget exhaust
 - **evidence:** `rust/src/ast_pipeline/stimuli_generator.rs (depth gate ~:4377, near-limit guard ~:4509/:5413, depth-slack retry ~:4869); docs/tasks/SV-EXH-PROOF.md leaf .7.4.3a (PGEN-SV-EXH-PROOF-0140)`
 - **reverify:** `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - **source:** [`docs/knowledge/sv-residual-depth-budget-cause.md`](docs/knowledge/sv-residual-depth-budget-cause.md)
+
+### sv-witness-purdom-ordering
+_The SV residual tail is slow witness generation — Purdom ordering (witness-mode) fixes it_
+
+- **answers:** why do SV witnesses time out instead of erroring | what is witness_mode / the Purdom witness ordering | how were the slow witness timeouts reduced | what does PGEN_WITNESS_NO_PURDOM do | how to make slow deeply-factored SV witnesses converge
+- **date:** 2026-06-03 · **status:** current
+- **evidence:** `rust/src/ast_pipeline/stimuli_generator.rs (generate_or witness arm + generate_target_witnesses witness_mode/witness_min_terminal_lengths); docs/tasks/SV-EXH-PROOF.md leaf .7.4.4 (PGEN-SV-EXH-PROOF-0143)`
+- **reverify:** `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
+- **source:** [`docs/knowledge/sv-witness-purdom-ordering.md`](docs/knowledge/sv-witness-purdom-ordering.md)
