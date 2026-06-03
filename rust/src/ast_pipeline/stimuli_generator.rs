@@ -1185,6 +1185,12 @@ pub struct StimuliGenerator<'a> {
     /// once at witness-pass start and consulted by `generate_or` while `witness_mode`
     /// is on. `None` outside the witness pass.
     witness_min_terminal_lengths: Option<HashMap<String, usize>>,
+    /// SV-EXH-PROOF.7.4.6.3: derivation-CONSTRUCTION sub-mode (implies `witness_mode`). When
+    /// true, `generate_or` commits to the single shortest (min-length) branch with NO
+    /// backtracking, and `generate_quantified` emits the MINIMUM repetition count — so a
+    /// witness is built as the minimal derivation tree in O(tree-size), no search/timeout.
+    /// The caller (`generate_target_witnesses`) tries this first and falls back to search.
+    construct_mode: bool,
     /// STIMULI-SIGNOFF.2.2 (PGEN-STIMULI-SIGNOFF-0003): k-path coverage NUMERATOR recorder.
     /// `None` = OFF (default → zero overhead, generation byte-identical → monotone). When
     /// `Some((k, set))`, every `generate_rule` entry records the last-k window of the live
@@ -1326,6 +1332,7 @@ impl<'a> StimuliGenerator<'a> {
             reach_plan_activations: 0,
             witness_mode: false,
             witness_min_terminal_lengths: None,
+            construct_mode: false,
             k_path_recording: None,
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
@@ -2584,7 +2591,18 @@ impl<'a> StimuliGenerator<'a> {
             // SV-EXH-PROOF.7.4.5: the witness pass uses its OWN budget (max(primary, floor)),
             // not the tiny 5 ms primary target-drive guard it used to reuse here.
             let timeout = self.witness_generation_timeout();
-            let result = self.generate_from_entry_with_optional_timeout(&entry_rule, timeout);
+            // SV-EXH-PROOF.7.4.6.3: try derivation CONSTRUCTION first — bounded (O(tree-size),
+            // no search/timeout). The reach plan set above still forces a branch target's
+            // branch; construct_mode min-lengths every other choice. If the committed shortest
+            // path dead-ends, fall back to the .7.4.5 search-with-budget.
+            self.construct_mode = true;
+            let construct_result =
+                self.generate_from_entry_with_optional_timeout(&entry_rule, timeout);
+            self.construct_mode = false;
+            let result = match construct_result {
+                Ok(sample) => Ok(sample),
+                Err(_) => self.generate_from_entry_with_optional_timeout(&entry_rule, timeout),
+            };
             if plan_installed {
                 self.clear_reach_plan();
             }
@@ -2647,6 +2665,7 @@ impl<'a> StimuliGenerator<'a> {
         // SV-EXH-PROOF.7.4.4: leave witness mode (restore byte-identical diverse-pass behavior).
         self.witness_mode = false;
         self.witness_min_terminal_lengths = None;
+        self.construct_mode = false; // defensive (also reset per-iteration after each attempt)
 
         let resolved_after =
             total_targets.saturating_sub(self.evaluate_target_statuses(&applicable).len());
@@ -5219,6 +5238,15 @@ impl<'a> StimuliGenerator<'a> {
                         .then_with(|| candidate_indices[*left].cmp(&candidate_indices[*right]))
                 });
             }
+            // SV-EXH-PROOF.7.4.6.3: derivation CONSTRUCTION — commit to the single shortest
+            // (min-length) branch with NO backtracking. The min-length-table-guided path is a
+            // complete valid minimal derivation, so dropping the fallbacks makes the witness
+            // bounded (O(tree-size), no search) instead of timing out. Reach-plan forcing
+            // above still wins on-path (branch targets unaffected); if the committed path
+            // fails downstream the witness errors and the caller falls back to search.
+            if self.construct_mode {
+                ordered.truncate(1);
+            }
             ordered
         } else if let Some((preferred_global, baseline_global)) =
             self.forced_or_branch_for_site(&mutation_site_key)
@@ -5970,7 +5998,10 @@ impl<'a> StimuliGenerator<'a> {
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
         let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "quantifier");
-        let repeat_candidates: Vec<usize> = if let Some((preferred_repeats, baseline_repeats)) =
+        let repeat_candidates: Vec<usize> = if self.construct_mode {
+            // SV-EXH-PROOF.7.4.6.3: minimal derivation → emit exactly the minimum repetitions.
+            vec![min_repeat]
+        } else if let Some((preferred_repeats, baseline_repeats)) =
             self.forced_quantifier_repeats_for_site(&mutation_site_key)
         {
             let mut candidates = Vec::new();

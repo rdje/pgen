@@ -66,3 +66,17 @@ minimal derivation tree directly (Purdom shortest-terminating, backtrack-free, O
 no timeout). Lesson refined: profile pinned the *per-step* costs (caching, real but partial);
 measuring against the GLOBAL goal (literal-0) showed the *step-count/search* is the dominant
 barrier → construction. Caching is kept (free speedup for all generation + gate runtime).
+
+**`.7.4.6.3` derivation-directed CONSTRUCTION (DONE, PGEN-SV-EXH-PROOF-0148):** a
+`construct_mode` flag — a SUB-mode of `witness_mode`, so it is NEVER active in the diverse pass
+(monotone). When set, `generate_or`'s witness arm commits to the SINGLE shortest-terminating
+alternative (`ordered.truncate(1)` after the Purdom min-length sort — no backtrack) and
+`generate_quantified` emits the minimum legal repeat count. `generate_target_witnesses` tries
+construction FIRST (bounded, O(tree-size), no search) and falls back to the `.7.4.5` search on
+failure. It reuses ALL existing validity machinery (spacing/terminals/round-trip guards) — only
+the production CHOICE is forced. **Witness-pass proof** (150-sample, 7000 ms, seed 712001):
+resolved **146/150** (was 124 search / 81 original; +22), **target_timeout=1** (was 23–55 —
+near-eliminated), 31 s — construction makes deeply-factored witnesses BOUNDED + fast, the
+seconds→budget bridge caching could not give. This is the confirmation that **construction, not
+caching, is the literal-0 lever.** lib 588/588; clippy 0; monotone (witness-pass-only, search
+fallback). Canonical-gate residual (273 → ?) measured separately.

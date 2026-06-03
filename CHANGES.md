@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-SV-EXH-PROOF-0148 (leaf SV-EXH-PROOF.7.4.6.3): **derivation-directed CONSTRUCTION (construct_mode) — the literal-0 lever; witness pass 146/150, timeouts near-eliminated.**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — monotone (witness-pass-only), no regen, no release bump.
+
+WHAT: after .6.1/.6.2 proved caching alone can't bridge seconds→budget, reinstated the original derivation-CONSTRUCTION idea. Added `construct_mode` — a SUB-mode of `witness_mode` (so NEVER active in the diverse/default pass → monotone). When set: generate_or's witness arm commits to the SINGLE shortest-terminating alternative (`ordered.truncate(1)` after the .7.4.2 Purdom min-length sort — no backtrack); generate_quantified emits the minimum legal repeat count. generate_target_witnesses tries construction FIRST (bounded, O(tree-size), no search) and FALLS BACK to the .7.4.5 search on failure. Reuses ALL existing validity machinery (spacing/terminals/round-trip guards) — only the production CHOICE is forced.
+
+WITNESS-PASS PROOF (150-sample, 7000ms, seed 712001): resolved 0→146/150 (was 124 search / 81 original; +22), target_timeout=1 (was 23-55 — near-eliminated), 31.4s. Construction makes deeply-factored witnesses BOUNDED + fast — the seconds→budget bridge caching could not give. Confirms: construction, NOT caching, is the literal-0 lever.
+
+VERIFIED MONOTONE: witness pass is additive (residual can only shrink); search fallback on construction failure; diverse pass byte-identical. lib (no-features) 588/588; source-strict clippy 0. CANONICAL GATE residual (273 → ?) measurement in flight — amended on landing.
+
 ## 2026-06-04 - PGEN-SV-EXH-PROOF-0147 (leaf SV-EXH-PROOF.7.4.6.2): **node_is_nullable cache (sound, ~24% speedup) — but HONEST: caching is insufficient for literal-0; construction (.7.4.6.3) is the real lever.**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — monotone speedup, no regen, no release bump.
