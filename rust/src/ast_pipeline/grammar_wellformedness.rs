@@ -36,6 +36,12 @@ pub enum WellformednessIssue {
     /// bottoming out at terminals) — it can never produce/parse a complete string. This is
     /// genuinely ill-formed and IS reject-worthy.
     NonTerminating { rule: String },
+    /// WARNING (PARSE-TERMINATION.2): an UNBOUNDED quantifier (`*`/`+`/`{N,}`) at `node_path`
+    /// in `rule` has a NULLABLE body — it can iterate without consuming input ("loop without
+    /// consuming", Ford PEG well-formedness, POPL 2004 §3.6). PGEN's runtime zero-length guard
+    /// prevents an actual hang, but the grammar is ill-formed (the repetition is meaningless)
+    /// and it is almost always a grammar bug.
+    NullableRepetition { rule: String, node_path: String },
 }
 
 impl WellformednessIssue {
@@ -49,6 +55,10 @@ impl WellformednessIssue {
             WellformednessIssue::NonTerminating { rule } => format!(
                 "grammar well-formedness ERROR: rule '{}' has no finite terminal derivation (it can never produce a complete string) — it is ill-formed; add a terminating alternative",
                 rule
+            ),
+            WellformednessIssue::NullableRepetition { rule, node_path } => format!(
+                "grammar well-formedness WARNING: rule '{}' has an unbounded repetition at '{}' over a NULLABLE body (can loop without consuming input — Ford PEG well-formedness POPL 2004 §3.6); the runtime is zero-length-guarded but the grammar is ill-formed (likely a bug — the body should consume, or use a bounded quantifier)",
+                rule, node_path
             ),
         }
     }
@@ -203,6 +213,67 @@ fn compute_nullable(grammar: &HashMap<String, ASTNode>, rule_order: &[String]) -
         }
     }
     nullable
+}
+
+/// PARSE-TERMINATION.2 (static no-hang surface): detect UNBOUNDED repetitions over a
+/// NULLABLE body — `e*` / `e+` / `e{N,}` where `e` can match the empty string. Such a
+/// repetition can iterate without consuming input (Ford PEG well-formedness, POPL 2004 §3.6,
+/// "loop without consuming") — the classic PEG infinite-loop hazard. PGEN's runtime is
+/// zero-length-guarded so this does not actually hang, but the grammar is ill-formed; this
+/// surfaces it as a lint WARNING. Reuses the `compute_nullable` fixpoint. Deterministic,
+/// parser-agnostic (keyed only on ASTNode structure + nullability). Returns
+/// `WellformednessIssue::NullableRepetition` for each site.
+pub fn detect_nullable_repetition(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<WellformednessIssue> {
+    let nullable = compute_nullable(grammar, rule_order);
+    let mut out = Vec::new();
+    for rule in rule_order {
+        let Some(body) = grammar.get(rule) else { continue };
+        collect_nullable_repetition(rule, body, "root", &nullable, &mut out);
+    }
+    out
+}
+
+fn collect_nullable_repetition(
+    rule: &str,
+    node: &ASTNode,
+    path: &str,
+    nullable: &HashMap<String, bool>,
+    out: &mut Vec<WellformednessIssue>,
+) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            for (i, a) in alternatives.iter().enumerate() {
+                collect_nullable_repetition(rule, a, &format!("{path}/o{i}"), nullable, out);
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for (i, e) in elements.iter().enumerate() {
+                collect_nullable_repetition(rule, e, &format!("{path}/s{i}"), nullable, out);
+            }
+        }
+        ASTNode::Quantified { element, quantifier } => {
+            let (_, max) = parse_quantifier_bounds(quantifier).unwrap_or((0, None));
+            // Unbounded (max == None: `*`, `+`, `{N,}`) over a nullable body = the hazard.
+            if max.is_none() && node_nullable(element, nullable) {
+                out.push(WellformednessIssue::NullableRepetition {
+                    rule: rule.to_string(),
+                    node_path: path.to_string(),
+                });
+            }
+            collect_nullable_repetition(rule, element, &format!("{path}/q"), nullable, out);
+        }
+        ASTNode::Lookahead { element, .. } => {
+            collect_nullable_repetition(rule, element, &format!("{path}/l"), nullable, out);
+        }
+        ASTNode::Atom { value } => {
+            if let ASTValue::Node(inner) = value {
+                collect_nullable_repetition(rule, inner, &format!("{path}/a"), nullable, out);
+            }
+        }
+    }
 }
 
 /// Rules referenced at the LEFT EDGE of `node` — i.e. reachable before any input is
@@ -699,6 +770,70 @@ mod tests {
     /// artifact is absent, e.g. fresh CI). Run with:
     ///   PGEN_WELLFORMEDNESS_GEN_AST=<…/systemverilog_gen_ast.json> cargo test --lib \
     ///     shipped_grammar_is_well_formed -- --nocapture
+    #[test]
+    fn detects_nullable_repetition() {
+        // r := nullable_body*     (unbounded `*` over a nullable body -> WARN)
+        // nullable_body := "x"?   (nullable: min 0)
+        let mut g = HashMap::new();
+        g.insert(
+            "r".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("nullable_body")),
+                quantifier: "*".to_string(),
+            },
+        );
+        g.insert(
+            "nullable_body".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(token("string", "x")),
+                quantifier: "?".to_string(),
+            },
+        );
+        let order = vec!["r".to_string(), "nullable_body".to_string()];
+        let issues = detect_nullable_repetition(&g, &order);
+        assert_eq!(
+            issues.len(),
+            1,
+            "exactly one nullable-repetition site (`r := nullable_body*`); got {:?}",
+            issues
+        );
+        assert!(
+            matches!(&issues[0], WellformednessIssue::NullableRepetition { rule, .. } if rule == "r"),
+            "the flagged rule must be `r`; got {:?}",
+            issues[0]
+        );
+    }
+
+    #[test]
+    fn no_false_positive_nonnullable_or_bounded_repetition() {
+        // r := a*   (unbounded but `a` is NON-nullable -> fine)
+        // s := a?   (bounded -> never flagged regardless of nullability)
+        // a := "x"  (consumes input -> non-nullable)
+        let mut g = HashMap::new();
+        g.insert(
+            "r".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("a")),
+                quantifier: "*".to_string(),
+            },
+        );
+        g.insert(
+            "s".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("a")),
+                quantifier: "?".to_string(),
+            },
+        );
+        g.insert("a".to_string(), token("string", "x"));
+        let order = vec!["r".to_string(), "s".to_string(), "a".to_string()];
+        let issues = detect_nullable_repetition(&g, &order);
+        assert!(
+            issues.is_empty(),
+            "non-nullable `a*` and bounded `a?` must NOT be flagged; got {:?}",
+            issues
+        );
+    }
+
     #[test]
     fn shipped_grammar_is_well_formed() {
         let Ok(path) = std::env::var("PGEN_WELLFORMEDNESS_GEN_AST") else {

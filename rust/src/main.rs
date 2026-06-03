@@ -2191,21 +2191,24 @@ fn run_k_path_coverage_report(
 
 fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
-        detect_left_recursion, detect_nonterminating_rules, detect_ordered_choice_shadowing,
+        detect_left_recursion, detect_nonterminating_rules, detect_nullable_repetition,
+        detect_ordered_choice_shadowing,
     };
     let g = &grammar.grammar_tree;
     let order = &grammar.rule_order;
     let lr = detect_left_recursion(g, order);
     let nonterm = detect_nonterminating_rules(g, order);
     let shadow = detect_ordered_choice_shadowing(g, order);
+    let nullrep = detect_nullable_repetition(g, order);
 
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (warning)",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (warning), nullable_repetition={} (warning)",
         grammar.grammar_name,
         g.len(),
         lr.len(),
         nonterm.len(),
-        shadow.len()
+        shadow.len(),
+        nullrep.len()
     );
     for issue in lr.iter().take(10) {
         println!("  [info]  {}", issue.message());
@@ -2218,6 +2221,15 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     }
     if shadow.len() > 40 {
         println!("  [warn]  ... and {} more shadowing findings", shadow.len() - 40);
+    }
+    for issue in nullrep.iter().take(40) {
+        println!("  [warn]  {}", issue.message());
+    }
+    if nullrep.len() > 40 {
+        println!(
+            "  [warn]  ... and {} more nullable-repetition findings",
+            nullrep.len() - 40
+        );
     }
     for issue in &nonterm {
         println!("  [error] {}", issue.message());

@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-TERMINATION-0002 (leaf PARSE-TERMINATION.2): **static nullable-repetition detector (loop-without-consuming) — found 7 real SV sites.**
+
+Code (rust/src/ast_pipeline/grammar_wellformedness.rs + rust/src/main.rs) — additive static analysis + lint wiring, no engine/grammar/codegen change, no release bump.
+
+WHAT: detect_nullable_repetition flags an UNBOUNDED quantifier (`*`/`+`/`{N,}`, max==None) over a NULLABLE body — the "loop without consuming" hazard (Ford PEG well-formedness, POPL 2004 §3.6). Reuses the existing compute_nullable/node_nullable fixpoint; deterministic, parser-agnostic. New WellformednessIssue::NullableRepetition{rule, node_path}; wired into --lint-grammar as a WARNING (runtime is zero-length-guarded → not an actual hang, but the grammar is ill-formed). Complements .1's DYNAMIC super-linearity finding with the STATIC hazard.
+
+RAN on shipped grammars: regex/ebnf/vhdl/rtl_frontend = 0 findings; SystemVerilog = 7 REAL findings (bins_or_empty, bins_or_options [also a deeply-factored slow-witness rule from .7.4], module_path_concatenation, rs_code_block, rs_production_list_sv_2017/_2023, select_condition). These are genuine ill-formed sites (runtime-guarded, low-urgency) → the 7 grammar FIXES are follow-up targeted leaves (.2.1-.2.7), NOT done here (the detector is the .2 deliverable).
+
+VERIFIED: unit tests detects_nullable_repetition + no_false_positive_nonnullable_or_bounded_repetition; lib (no-features) 588/588 (+2); source-strict clippy 0; --lint-grammar runs on all shipped grammars. NO engine/grammar/codegen/generated change.
+
 ## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0004 (leaf STIMULI-SIGNOFF.2.3): **k-path coverage is now USABLE — pub API + `--report-k-path-coverage` CLI; gap #1 capability CLOSED. SV k=2 universe = 4105.**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs + rust/src/main.rs) — read-only report path, generation unchanged, no release bump.

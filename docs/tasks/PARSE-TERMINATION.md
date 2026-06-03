@@ -60,9 +60,22 @@ No code change (measurement only). Inputs/timings under `rust/target/w74/lin/` (
 KM card [[stateful-packrat-not-linear]] updated with the empirical confirmation. → justifies
 `.3` (conditional memoization) as the fix.
 
-### `.2` — static no-hang surface: confirm + extend A1 — PENDING
-Confirm A1 well-formedness covers every family; extend to *loop-without-consuming* detection
-(a rule that can match empty inside `*`/`+`).
+### `.2` — static no-hang surface: nullable-repetition detector — DONE (PGEN-PARSE-TERMINATION-0002, 2026-06-03)
+Extended `grammar_wellformedness.rs` with `detect_nullable_repetition` — flags an UNBOUNDED
+quantifier (`*`/`+`/`{N,}`, i.e. `max == None`) over a NULLABLE body (the "loop without
+consuming" hazard, Ford PEG well-formedness POPL 2004 §3.6). Reuses the existing
+`compute_nullable`/`node_nullable` fixpoint; deterministic, parser-agnostic. New
+`WellformednessIssue::NullableRepetition { rule, node_path }` + wired into `--lint-grammar`
+as a WARNING (runtime is zero-length-guarded, so it's not an actual hang — but the grammar is
+ill-formed). Unit-tested (positive + no-false-positive on non-nullable/bounded); lib 588/588;
+source-strict clippy 0.
+**RAN on shipped grammars: regex/ebnf/vhdl/rtl_frontend = 0; SystemVerilog = 7 real findings:**
+`bins_or_empty` (root/o0), `bins_or_options` (root/o1/s5 — note: also a deeply-factored
+slow-witness rule from `.7.4`), `module_path_concatenation` (root), `rs_code_block` (root),
+`rs_production_list_sv_2017`/`_2023` (root/o0/s1), `select_condition` (root/s4/q/s1). These
+are genuine ill-formed sites (runtime-guarded, low-urgency) → the 7 grammar FIXES are
+follow-up targeted leaves (`.2.1`-`.2.7`, each: analyze intended quantifier/body, fix, regen
++ verify corpus/shape-contracts — NOT done here; the detector is the `.2` deliverable).
 
 ### `.3` — memo-soundness audit; adopt conditional memoization if needed — PENDING
 Prove memoization delivers the intended complexity. If `.1` shows statefulness breaks it,
