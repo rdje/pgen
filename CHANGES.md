@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-RGX-0078-QUEUE-0001 (record director-queued follow-up + broaden correctness-before-speed): **after SV→Done, attempt RGX-0078 (regex parser slowness); functionality & accuracy THEN speed.**
+
+Docs/memory only — NO code change. Records a future, cross-repo, SV→Done-conditioned directive so it is not lost.
+
+DIRECTIVE (user 2026-06-03): right after the SV main parser convincingly goes Mostly-Done → Done, attempt another round at PGEN-RGX-0078 (rgx/pgen-issues/) — the pgen regex parser is ~360× slower than PCRE2 no-JIT compile (~85× JIT); closure criterion = geomean PGEN-parse / PCRE2-compile < 5×. Try NEW speed techniques; use the PCRE2 test corpus + the vendorable pgen_iteration_flow harness. KEY: regex's cause ≠ SV's — regex has no semantic predicates → takes the fast-path that skips the SemanticRuntimeState clone (PARSE-TERMINATION.3's target), so that fix won't help regex; profile regex separately (macOS sample) and act on the fact.
+
+PRINCIPLE (user 2026-06-03, reinforced + broadened): "functionality & accuracy THEN speed, in that order." Suspects pgen parsers aren't as fast as possible; speed work begins once a parser is accurate — a DELIBERATE SPEED PHASE across ALL parser families. First instances entering it: regex (RGX-0078) + SV's super-linearity (PARSE-TERMINATION.3; SV is accurate at corpus 14/14 so its O(N²) is fair game). Both PROFILE-first, must not regress accuracy.
+
+RECORDED: decision records project_rgx_0078_regex_slowness_followup + broadened feedback_correctness_before_speed (+ ~/.claude mirror); KM card rgx-0078-regex-slowness-followup; MEMORY queued-thread note. Also (prior commit 746ad2e9) PARSE-TERMINATION.3.1 lost-facts subtlety recorded.
+
 ## 2026-06-03 - PGEN-PARSE-TERMINATION-0003 (leaf PARSE-TERMINATION.3, root-cause + fix DESIGN): **profiled the super-linearity to a full-state CLONE per rule transaction — NOT conditional memoization; fix = checkpoint/rollback_to.**
 
 Docs/investigation only — NO code change (the engine edit is the turnkey .3.1, deliberately NOT rushed at session tail). Director signed off the engine change; this slice does the WHY+WHERE-first investigation it demanded.

@@ -13,6 +13,8 @@ metadata:
 
 **User-set policy (2026-05-24, emphatic + repeated):** correctness first, speed second. Universal. Applies to every parser pgen generates.
 
+**REINFORCED + BROADENED (user 2026-06-03):** *"It is always functionality & accuracy then speed, in that order."* The user SUSPECTS pgen parsers may not run as fast as they possibly can — but speed work waits until a parser is accurate and does its job (parses its target language source). Implication: there is a **deliberate SPEED PHASE, across ALL parser families, that begins once each is accurate.** First instances now entering that phase: **regex** (conformant → `RGX-0078`, [[project_rgx_0078_regex_slowness_followup]], geomean PGEN/PCRE2 < 5×) and **SV's super-linearity** (the parser is accurate — corpus 14/14 — so its O(N²) `with_semantic_runtime_rule_transaction` clone is fair game: `PARSE-TERMINATION.3`, [[stateful-packrat-not-linear]]). Both are SPEED-on-an-already-ACCURATE-parser → in-scope; both must be PROFILED first (tools, not guessing) and must not regress accuracy/conformance.
+
 **Frame of reference:**
 - Commercial SV compilers parse `uvm_pkg.sv` (3MB, ~90K preprocessed lines) in **<1 second**.
 - A chip design contains **hundreds to thousands** of SV/VHDL/Verilog files; full compilation must still be fast (commercial tools do whole-design elaboration in seconds-to-minutes).
