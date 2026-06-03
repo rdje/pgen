@@ -4,14 +4,17 @@
 
 ---
 name: push-pacing-push-is-release-pace-it
-description: "Pushing = releasing. Wait ~30 commits or explicit user \"push now\". Do NOT auto-push after every PNT slice. Updated 2026-05-26 — supersedes the 2026-05-19 absolute-no-push override AND my over-eager every-slice push pattern this session."
+description: "Pushing = releasing. Push every 100 commits OR explicit user \"push now\"; do NOT ask for / suggest push while unpushed < 100. Updated 2026-06-03 (cadence RAISED ~30 -> 100); supersedes the 2026-05-26 ~30 cadence."
 metadata: 
   node_type: memory
   type: feedback
   originSessionId: 5737d722-67a3-4fc9-8c42-f79e2ff1db07
 ---
 
-**⛔ ACTIVE RULE (user, 2026-05-26, after over-eager push behavior this session):**
+**⛔ ACTIVE RULE (user, 2026-06-03 — RAISES the cadence, supersedes ~30):**
+> "push shall occur every 100 commits or whenever I explicitly ask for it." + "do not ask for push unless there are at least 100 commits."
+
+(Prior rule, user 2026-05-26 — superseded by the 100-commit cadence above:)
 > "Please, stop pushing after everything PNT loop. Pushing is releasing. Wait at least around 30 commits or unless I explicitly ask for it."
 
 **Why:** push to `origin/main` IS the release surface. Every push lands on remote, where downstream consumers (RGX, anything else) can pull. Pacing pushes protects the user's review window — they want to look at the accumulated slice queue before any of it goes live.
@@ -21,9 +24,10 @@ metadata:
 - After each commit, do NOT run `git push`.
 - Track unpushed-commit count vs `origin/main` silently as work progresses.
 - Push only when EITHER:
-  - The unpushed count reaches **~30** (the natural batch boundary), OR
+  - The unpushed count reaches **100** (the batch boundary, user 2026-06-03), OR
   - The user explicitly says "push" / "push now" / "ship it" / similar.
-- If the user explicitly says "hold" / "don't push yet" / similar, that pauses even the 30-batch trigger until lifted.
+- **Do NOT even ASK about / suggest pushing while unpushed < 100** (user 2026-06-03, emphatic). Just keep committing.
+- If the user explicitly says "hold" / "don't push yet" / similar, that pauses even the 100-batch trigger until lifted.
 - A one-time "push" grant pushes the current accumulation only; do NOT generalize it into a standing per-slice push policy.
 - After a push, the count resets — the cadence resumes from there.
 
@@ -41,11 +45,12 @@ metadata:
 - 2026-05-17: explicit "hold" supersedes the 30-cap.
 - 2026-05-18: "push every 30" was the default cadence.
 - 2026-05-19: absolute no-push override (suspended the 30-cap; required explicit per-push auth).
-- 2026-05-26 (this entry): the override is LIFTED back to the 2026-05-18 default — ~30-commit cadence OR explicit user "push now". Explicit hold still supersedes when given.
+- 2026-05-26: ~30-commit cadence OR explicit user "push now".
+- 2026-06-03 (CURRENT): cadence RAISED to **100 commits** OR explicit ask; do NOT ask for / suggest push while unpushed < 100. Explicit hold still supersedes.
 
 **Decision tree:**
 - About to push? Did the user explicitly say push? → push.
-- Have ~30 unpushed commits accumulated AND no explicit hold? → push.
+- Have 100 unpushed commits accumulated AND no explicit hold? → push.
 - Otherwise → commit, do NOT push.
 
 **Restore tag:** `checkpoint/sv-exh-proof-3.2-clean` @ `41bef35e` (still valid).
