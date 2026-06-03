@@ -1,7 +1,8 @@
 # PARSE-TERMINATION — the parser never hangs; bounded, near-linear time (parser-agnostic)
 
-> Task tree. **Metadata** — Status: `proposed` (literature-grounded; awaiting first leaf);
-> Created: 2026-06-03; Roadmap lane: parser sign-off pillar **B** (of 4). Owns failure mode
+> Task tree. **Metadata** — Status: `active` (`.1` measurement DONE 2026-06-03 — CC 2020
+> risk CONFIRMED empirically); Created: 2026-06-03; Roadmap lane: parser sign-off pillar
+> **B** (of 4). Owns failure mode
 > **(1.b) hang** — non-termination or super-linear blow-up (catastrophic backtracking) on
 > valid input.
 >
@@ -42,11 +43,22 @@ hang-free — this is a live, previously-unexamined risk. See [[stateful-packrat
   statefulness, which CC 2020 says we cannot assume.
 
 ## Leaves
-### `.1` — MEASURE whether PGEN's stateful packrat is actually linear (tools-first) — PENDING (next)
-Per [[feedback_why_and_where_before_solution]]: build a **complexity-scaling probe** (parse
--time vs input-size on a scaling corpus per family) and look for super-linear growth BEFORE
-any fix. This either clears the CC 2020 risk empirically or pins a concrete pathological
-case to fix. No code change beyond the probe.
+### `.1` — MEASURE whether PGEN's stateful packrat is actually linear (tools-first) — DONE (2026-06-03)
+Built a complexity-scaling probe: parsed SV inputs of size N ∈ {100..3200} via
+`parseability_probe --parse systemverilog`, two families — **store** (N `typedef t; t v;`
+pairs, exercising the store-gated type-identifier rule = the stateful path) and **width**
+(N `wire w;`, stateless baseline). **RESULT (decisive, CC 2020 risk CONFIRMED):**
+- **store (stateful):** 100→3200 = 32× input, 0.11 s → **34.8 s** = 316× → **~N^1.66**, and
+  the per-doubling ratio *grows* monotonically (2.45 → 2.89 → 3.24 → 3.58 → 3.84 →≈4) —
+  **trending QUADRATIC**.
+- **width (stateless):** 0.04 s → 1.70 s = 42× → **~N^1.08 = linear** (packrat works as
+  advertised when there's no state).
+**So PGEN's stateful (semantic-store) packrat is NOT linear** — exactly Chida & Kawakoya
+CC 2020. Likely explains historical uvm_pkg slowness (thousands of type decls/uses → the
+super-linear store path). Not a hang (all completed), but a real super-linear risk at scale.
+No code change (measurement only). Inputs/timings under `rust/target/w74/lin/` (gitignored).
+KM card [[stateful-packrat-not-linear]] updated with the empirical confirmation. → justifies
+`.3` (conditional memoization) as the fix.
 
 ### `.2` — static no-hang surface: confirm + extend A1 — PENDING
 Confirm A1 well-formedness covers every family; extend to *loop-without-consuming* detection
@@ -67,5 +79,8 @@ Assert sub-quadratic parse-time slope on the scaling corpus; catches a hang's *p
 (super-linear) before it becomes a hang.
 
 ## Frontier
-`.1` (measure linearity — resolves the CC 2020 risk with facts). The fix path (`.3`/`.4`)
-follows the measurement, not a guess.
+`.1` DONE — measurement CONFIRMED super-linear (≈quadratic-trending) stateful parsing.
+Next: `.3` (memo-soundness audit → **conditional memoization**, CC 2020's fix — restores
+linearity for store-gated rules; a parser-agnostic engine change, explicit auth + strict
+scope) is now evidence-justified; `.5` (complexity-regression gate) can lock the curve in CI
+so a regression can't reappear. Fix path is grounded in `.1`'s facts, not a guess.

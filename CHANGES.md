@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-TERMINATION-0001 (leaf PARSE-TERMINATION.1, tools-first measurement): **CONFIRMED — PGEN's stateful (semantic-store) packrat is NOT linear (super-linear, trending quadratic); stateless baseline is linear.**
+
+Measurement only — NO code change. The CC 2020 / [[stateful-packrat-not-linear]] risk verified empirically with facts (per the discipline: measure before any fix), activating tree PARSE-TERMINATION.
+
+PROBE: `parseability_probe --parse systemverilog` (release, generated_parsers + focus_systemverilog) on SV inputs of size N ∈ {100,200,400,800,1600,3200}, two families — STORE (N `typedef t; t v;` pairs → exercises the store-gated type-identifier rule = stateful path) vs WIDTH (N `wire w;` → stateless baseline). RESULT: store 0.11 s → 34.8 s (100→3200 = 32×, 316× time = ~N^1.66) with a per-doubling ratio that GROWS monotonically 2.45→2.89→3.24→3.58→3.84 (→4 = quadratic); width 0.04 s → 1.70 s (~N^1.08 = LINEAR). So PGEN's stateful packrat is super-linear/quadratic-trending while the stateless baseline is linear — exactly Chida & Kawakoya CC 2020. Not a hang (all parses completed) but a real scale risk; likely the cause of historical uvm_pkg parse slowness. Inputs/timings under rust/target/w74/lin/ (gitignored). FIX (evidence-justified): PARSE-TERMINATION.3 = memo-soundness audit → conditional memoization (CC 2020) to restore linearity; PARSE-TERMINATION.5 = complexity-regression gate to lock the curve. KM card updated with the empirical confirmation.
+
 ## 2026-06-03 - PGEN-PARSE-SOTA-0013 (doc correction + parsing-model capture): **Correct the left-recursion characterization (AUTOMATIC AST-pipeline pass, NOT authoring-time) + capture PGEN's PEG/Packrat/data-dependent placement (KM card + mdBook).**
 
 Pure docs — NO code change. TRIGGER: director caught an inaccuracy — I had stated (echoing PARSE-SOTA-research-synthesis.md) that left recursion is "eliminated at authoring time." Tools-first check of the AST pipeline DISPROVED it.

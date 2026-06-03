@@ -31,3 +31,11 @@ stateful packrat is actually linear (a complexity-scaling probe) before claiming
 and adopt conditional memoization if it isn't. This also sharpens the already-backlogged
 PARSE-SOTA "memo-soundness audit." Owned by `PARSE-TERMINATION.1`/`.3`. Related:
 [[try_parse_must_snapshot_semantic_state]], [[feedback_question_bypasses_manual_cleanup]].
+
+**✅ EMPIRICALLY CONFIRMED on PGEN/SV (`PARSE-TERMINATION.1`, 2026-06-03).** A
+complexity-scaling probe (`parseability_probe --parse systemverilog`, N typedef+use pairs
+vs N wires, N ∈ {100..3200}): **stateful store-gated parsing scales ~N^1.66 with a
+per-doubling ratio that GROWS toward 4 (2.45→2.89→3.24→3.58→3.84) — trending QUADRATIC**
+(0.11 s → 34.8 s for 100→3200); the **stateless baseline is ~N^1.08 = linear** (0.04 s →
+1.70 s). So PGEN's stateful packrat is *not* linear — confirmed, not assumed. Likely the
+cause of historical uvm_pkg parse slowness. Fix = conditional memoization (`PARSE-TERMINATION.3`).
