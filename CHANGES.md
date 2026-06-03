@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0003 (leaf STIMULI-SIGNOFF.2.2): **k-path coverage NUMERATOR — the k-path MEASURE is now complete (universe + covered + coverage).**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — read-only instrumentation, default-OFF → generation byte-identical (monotone), no release bump.
+
+WHAT: k_path_recording field (Option<(k, set)>, None = OFF by default = zero overhead) + enable_k_path_recording(k) + covered_k_paths() + k_path_coverage() = (covered∩universe, |universe|). generate_rule records the last-k window of the live rule call_stack at each rule entry (the injection sits right after the existing call_stack.push; read-only — never changes a generation decision, same safety pattern as witness_mode). Pairs with .2.1's compute_k_paths (the universe). So PGEN now has the FULL k-path coverage metric (Havrikov & Zeller ASE 2019): denominator (.2.1) + numerator (.2.2) + coverage ratio.
+
+VERIFIED: unit test k_path_numerator_records_covered_paths_within_universe (default OFF; after enable+generate: covered non-empty, covered ⊆ universe, a start-> edge always covered, k=2 universe=5); lib (no-features) 586/586 (+1); source-strict clippy 0. NO grammar/codegen/generated change. .2.3 PENDING (integration): wire the recorder into the SV gate + restate the signoff bar (rule+branch ≈ k≤2) as chosen-k coverage + re-express the 273 residual as k-path debt.
+
 ## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0002 (leaf STIMULI-SIGNOFF.2.1): **k-path coverage UNIVERSE (denominator) — compute_k_paths, the metric that defines the signoff bar.**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — PURE analysis, NO generation change, no release bump. Closes the top stimuli gap's first slice (gap #1, k-path coverage).

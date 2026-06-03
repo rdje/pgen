@@ -1170,6 +1170,12 @@ pub struct StimuliGenerator<'a> {
     /// once at witness-pass start and consulted by `generate_or` while `witness_mode`
     /// is on. `None` outside the witness pass.
     witness_min_terminal_lengths: Option<HashMap<String, usize>>,
+    /// STIMULI-SIGNOFF.2.2 (PGEN-STIMULI-SIGNOFF-0003): k-path coverage NUMERATOR recorder.
+    /// `None` = OFF (default → zero overhead, generation byte-identical → monotone). When
+    /// `Some((k, set))`, every `generate_rule` entry records the last-k window of the live
+    /// rule call-stack as a covered k-path. Read-only instrumentation (never changes a
+    /// generation decision). Pairs with `compute_k_paths(k)` (the universe/denominator).
+    k_path_recording: Option<(usize, HashSet<Vec<String>>)>,
     target_probe_history: HashMap<String, TargetProbeHistory>,
     target_drive_validation_active: bool,
     active_generation_entry_rule: Option<String>,
@@ -1295,6 +1301,7 @@ impl<'a> StimuliGenerator<'a> {
             reach_plan_activations: 0,
             witness_mode: false,
             witness_min_terminal_lengths: None,
+            k_path_recording: None,
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
             active_generation_entry_rule: None,
@@ -3879,6 +3886,32 @@ impl<'a> StimuliGenerator<'a> {
         paths
     }
 
+    /// STIMULI-SIGNOFF.2.2 (PGEN-STIMULI-SIGNOFF-0003): turn ON k-path coverage recording at
+    /// depth `k`. Default is OFF (`k_path_recording == None`) → generation is byte-identical.
+    /// Enabling makes `generate_rule` record covered k-paths (read-only; no decision change).
+    #[allow(dead_code)]
+    fn enable_k_path_recording(&mut self, k: usize) {
+        self.k_path_recording = Some((k.max(1), HashSet::new()));
+    }
+
+    /// The set of k-paths covered so far (numerator), or `None` if recording is off.
+    #[allow(dead_code)]
+    fn covered_k_paths(&self) -> Option<&HashSet<Vec<String>>> {
+        self.k_path_recording.as_ref().map(|(_, set)| set)
+    }
+
+    /// k-path COVERAGE = (covered ∩ universe, universe size) for the recording depth `k`.
+    /// `compute_k_paths(k)` is the universe (denominator); the recorder is the numerator. The
+    /// covered set is filtered to the universe (a covered window is always a real reference
+    /// chain, so this only guards against hint/shortcut artifacts). `None` if recording is off.
+    #[allow(dead_code)]
+    fn k_path_coverage(&self) -> Option<(usize, usize)> {
+        let (k, covered) = self.k_path_recording.as_ref()?;
+        let universe: HashSet<Vec<String>> = self.compute_k_paths(*k).into_iter().collect();
+        let hit = covered.iter().filter(|p| universe.contains(*p)).count();
+        Some((hit, universe.len()))
+    }
+
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis — no generation
     /// behavior change): like `collect_rule_references`, but also records WHERE
     /// each rule reference occurs, using the same `node_path` encoding as
@@ -4895,6 +4928,14 @@ impl<'a> StimuliGenerator<'a> {
         }
 
         call_stack.push(rule_name.to_string());
+        // STIMULI-SIGNOFF.2.2: record the covered k-path (last-k window of the live call
+        // stack). OFF by default (zero overhead / byte-identical generation); read-only.
+        if let Some((k, set)) = self.k_path_recording.as_mut() {
+            let n = call_stack.len();
+            if n >= *k {
+                set.insert(call_stack[n - *k..].to_vec());
+            }
+        }
         let result = self.generate_node(rule_node, rule_name, depth + 1, call_stack, "root");
         call_stack.pop();
         if result.is_ok() {
@@ -15800,6 +15841,51 @@ mod tests {
             g.compute_k_paths(3),
             g.compute_k_paths(3),
             "k-path enumeration must be deterministic"
+        );
+    }
+
+    #[test]
+    fn k_path_numerator_records_covered_paths_within_universe() {
+        // STIMULI-SIGNOFF.2.2: covered k-paths (numerator) recorded from generation, all
+        // within the compute_k_paths universe (denominator). Default = OFF (monotone).
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut g = simple_generator(&grammar_tree, &rule_order, 10);
+
+        // Default: recording OFF (byte-identical generation; the monotone safety property).
+        assert!(
+            g.covered_k_paths().is_none(),
+            "k-path recording must be OFF by default"
+        );
+        assert!(g.k_path_coverage().is_none());
+
+        // Enable k=2 recording, generate from the entry several times.
+        g.enable_k_path_recording(2);
+        for _ in 0..20 {
+            let _ = g.generate_from_entry("start");
+        }
+
+        let universe: HashSet<Vec<String>> = g.compute_k_paths(2).into_iter().collect();
+        let covered = g.covered_k_paths().expect("recording is on").clone();
+        assert!(
+            !covered.is_empty(),
+            "generation from `start` must cover at least one k-path"
+        );
+        for p in &covered {
+            assert!(
+                universe.contains(p),
+                "every covered k-path must be in the universe; {:?} was not",
+                p
+            );
+        }
+        let (hit, total) = g.k_path_coverage().expect("recording is on");
+        assert_eq!(total, 5, "k=2 universe is 5 reference edges");
+        assert!((1..=5).contains(&hit), "covered-in-universe count in [1,5]; got {hit}");
+        // `start` always expands to mid_a or mid_b, so a start-> edge is always covered.
+        assert!(
+            covered.contains(&vec!["start".to_string(), "mid_a".to_string()])
+                || covered.contains(&vec!["start".to_string(), "mid_b".to_string()]),
+            "a `start`-> reference edge must be covered; got {covered:?}"
         );
     }
 
