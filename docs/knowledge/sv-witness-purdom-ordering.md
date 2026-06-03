@@ -40,6 +40,14 @@ the witness pass runs in-gate and cut the closed-loop residual **2770 → 753 (�
 (2017: 1736→2291/2590; 2023: 775→2238/2691); `closed_loop_replay_targets_total=753`, of
 which **~99% is `target_timeout` (746)** — ~zero genuine errors. The residual tail's root
 cause is the gate's tiny per-witness budget **`closed_loop_target_generation_timeout_ms=5`**
-(5 ms) — witnesses for deeply-factored rules can't finish in 5 ms even Purdom-ordered. The
-remaining literal-0 lever (`.7.4.5`) is a dedicated, tuned witness-pass budget decoupled from
-that 5 ms primary target-drive budget (+ Purdom min-count in `generate_quantified`).
+(5 ms) — witnesses for deeply-factored rules can't finish in 5 ms even Purdom-ordered.
+
+**`.7.4.5` (PGEN-SV-EXH-PROOF-0145):** gave the witness pass its OWN budget decoupled from
+that 5 ms primary — `witness_generation_timeout() = max(primary, WITNESS_TIMEOUT_FLOOR_MS=200)`
+(env `PGEN_WITNESS_TIMEOUT_FLOOR_MS` overrides). Canonical gate **753 → 273 (−64%)**, still
+PASS, ~25.8 min. Budget is a real but *diminishing* lever (150-sample curve: 200 ms→77,
+500→72, 1000→79, 2000→89 resolved of 150, wall-clock 42/82/146 s), so 200 ms is the
+conservative routine default; literal-0 pushes use the env. The terminal lever (`.7.4.6`,
+proposed) is to replace witness **search** with **derivation-directed construction** (build
+the min-derivation tree via the `.7.4.2` table, backtrack-free → no timeout) to dissolve the
+budget tradeoff and drive 273 → literal-0.

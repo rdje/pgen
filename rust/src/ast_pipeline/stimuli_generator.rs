@@ -25,6 +25,14 @@ use std::time::{Duration, Instant};
 
 const HELPER_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation helper timeout exceeded";
 const TARGET_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation target timeout exceeded";
+// SV-EXH-PROOF.7.4.5 (PGEN-SV-EXH-PROOF-0145): default per-witness budget FLOOR (ms). The
+// witness pass is a deliberate, count-bounded, monotone pass, so it can afford more time
+// than the (often tiny) PRIMARY target-drive budget it used to reuse — e.g. the SV gate's
+// `closed_loop_target_generation_timeout_ms=5` left ~99% of the residual as `target_timeout`
+// (.7.4.4 canonical run: 753, of which 746 were timeouts). The witness budget is
+// `max(primary, floor)` so it NEVER shrinks below the primary; override the floor with
+// `PGEN_WITNESS_TIMEOUT_FLOOR_MS` for tuning/A-B (0 disables the floor → reuse the primary).
+const WITNESS_TIMEOUT_FLOOR_MS: u64 = 200;
 // DIAG-SEVERITY.3 (PGEN-DIAG-SEVERITY-0003): the depth-limit error raised at
 // `generate_rule` (this file, ~4379). Classifying generation failures by this reason —
 // instead of folding them into an anonymous `generation_errors` count — is what makes
@@ -1459,6 +1467,26 @@ impl<'a> StimuliGenerator<'a> {
         )
     }
 
+    /// SV-EXH-PROOF.7.4.5 (PGEN-SV-EXH-PROOF-0145): the per-witness budget. Decoupled from
+    /// the PRIMARY target-drive budget (which is a pathological-attempt guard — the SV gate
+    /// sets it to 5 ms): the witness pass runs ONE deliberate, count-bounded witness per
+    /// uncovered target and is monotone, so a slow-but-resolvable witness deserves more time.
+    /// Budget = `max(primary, floor)` (floor default `WITNESS_TIMEOUT_FLOOR_MS`, overridable
+    /// via `PGEN_WITNESS_TIMEOUT_FLOOR_MS`): NEVER below the primary (so callers that already
+    /// gave witnesses a generous budget — e.g. the .7.4.4 A/B's 7000 ms — are unchanged), and
+    /// unbounded primary (0) stays unbounded. Classified as `TargetTimeout` (same prefix).
+    fn witness_generation_timeout(&self) -> Option<GenerationTimeoutBudget> {
+        let primary_ms = self.config.target_generation_timeout_ms;
+        if primary_ms == 0 {
+            return None; // unbounded primary → witnesses stay unbounded (prior behavior)
+        }
+        let floor_ms = std::env::var("PGEN_WITNESS_TIMEOUT_FLOOR_MS")
+            .ok()
+            .and_then(|raw| raw.trim().parse::<u64>().ok())
+            .unwrap_or(WITNESS_TIMEOUT_FLOOR_MS);
+        Self::timeout_budget_from_ms(primary_ms.max(floor_ms), TARGET_TIMEOUT_ERROR_PREFIX)
+    }
+
     fn target_drive_generation_timeout(
         &self,
         helper_probe_active: bool,
@@ -2521,7 +2549,9 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
 
-            let timeout = self.target_drive_generation_timeout(false);
+            // SV-EXH-PROOF.7.4.5: the witness pass uses its OWN budget (max(primary, floor)),
+            // not the tiny 5 ms primary target-drive guard it used to reuse here.
+            let timeout = self.witness_generation_timeout();
             let result = self.generate_from_entry_with_optional_timeout(&entry_rule, timeout);
             if plan_installed {
                 self.clear_reach_plan();

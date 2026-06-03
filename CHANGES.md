@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-SV-EXH-PROOF-0145 (leaf SV-EXH-PROOF.7.4.5): **Dedicated witness budget decoupled from the 5 ms primary — canonical SV replay residual 753 -> 273 (-64%).**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — no grammar/codegen/generated change, no release bump. Director sign-off "Go ahead".
+
+WHY (from .7.4.4's canonical run): the residual tail was ~99% target_timeout, root cause = the gate's per-witness budget closed_loop_target_generation_timeout_ms=5 (5 ms), which the witness pass was REUSING. Deeply-factored witnesses need hundreds of ms even Purdom-ordered.
+
+WHAT (parser-agnostic, witness-pass-only, monotone): const WITNESS_TIMEOUT_FLOOR_MS=200 + witness_generation_timeout() = max(primary, floor) — NEVER below the primary (so callers that already gave a generous budget are unchanged), unbounded primary (0) stays unbounded, classified TargetTimeout. generate_target_witnesses uses it instead of the 5 ms target_drive_generation_timeout(false). env PGEN_WITNESS_TIMEOUT_FLOOR_MS overrides (A/B + literal-0 pushes).
+
+MEASURED: controlled same-binary 150-sample A/B (gate-like 5 ms primary, only floor varies) — floor=5(old) 64 resolved/76 timeout -> floor=200 77/66; tradeoff curve floor=500 72/68 (42 s), 1000 79/63 (82 s), 2000 89/49 (146 s) => budget is a REAL but DIMINISHING lever (wall-clock scales steeply), so 200 ms = conservative routine default. CANONICAL GATE (make sv_stimuli_quality_gate, 200 ms default, exit 0 PASS, 2/2 profiles, parse_full 16/16, realistic 730/730, ~25.8 min): closed_loop_replay_targets_total 753 -> 273 (-480, -64%); profile_2017 witness 761->2412/2590 (timeout 165, other 1), profile_2023 2137->2598/2691 (timeout 83, other 0); residual still ~91% target_timeout. lib (no-features) 584/584; source-strict clippy 0. NOT literal-0; opened .7.4.6 = replace witness SEARCH with derivation-directed CONSTRUCTION (Purdom min-derivation-tree, backtrack-free, no timeout) to dissolve the budget tradeoff and drive 273 -> 0. KM card docs/knowledge/sv-witness-purdom-ordering.md.
+
 ## 2026-06-03 - PGEN-SV-EXH-PROOF-0144 (leaf SV-EXH-PROOF.7.4.4 canonical confirmation + .7.4.5 opened): **Canonical gate run — witness pass cut the closed-loop residual 2770 -> 753 (-73%); the 753 tail is ~99% target_timeout, root cause = the gate's 5 ms per-witness budget.**
 
 Docs/measurement only (no code) — recording the canonical `make sv_stimuli_quality_gate` result for the combined `.7.4.3` witness pass + `.7.4.4` Purdom ordering, and opening `.7.4.5`.
