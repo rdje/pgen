@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-PILLARS-0002 (PARSE-COMPLETENESS.1 + PARSE-FIDELITY.1 frontier leaves): **the two no-external-tooling pillar frontier leaves — harness design + oracle inventory.**
+
+Pure docs — NO code change. The PARSE-* frontier leaves doable in-session without external tooling/sign-off.
+
+PARSE-COMPLETENESS.1 (harness DESIGN, done): parser-agnostic reference-oracle registry (SV→slang primary + Verible; regex→pcre2test [already the RGX oracle]; VHDL→GHDL; self-differential fallback); verdict = accept/reject only (AST-diff is Pillar C); invariant `reference_majority_accept ∧ rust_reject == 0` (each violation = a targeted grammar-fix sub-leaf); reuse the existing diff_taxonomy + sv_external_corpus_triage_gate (test-harness, zero engine change); pin reference-parser versions. .2 (the actual run) is DIRECTOR-GATED on provisioning slang/Verible + the sv-tests corpus (a real-world setup action, not taken unprompted).
+
+PARSE-FIDELITY.1 (oracle INVENTORY, done; tool-verified): existing (1.c) oracles = round-trip (round_trip_tests.rs + return/semantic/sv roundtrip gates), 8 AST-shape-contract manifests + drift gate, sv_semantic_scope_contract_gate, closed-loop parser_rejections==0. Gaps → leaves: .2 per-node _meta round-trip (blocked on PARSE-SOTA.11), .3 metamorphic/EMI, .4 differential-vs-slang, .5 invertible-syntax. KEY: the existing oracles' EXHAUSTIVENESS is bounded by Pillar D coverage — (1.c) is fully proven only at literal-0.
+
+All three pillar trees now `active` (.1 each done); TASK_TREE rows + frontiers synced. Engine-change leaves (PARSE-TERMINATION.3 conditional memoization; SV-EXH-PROOF.7.4.6) remain gated on sign-off.
+
 ## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0001 (leaf STIMULI-SIGNOFF.1, capability-gap audit): **6 stimuli-generator gaps vs the literature signoff bar → defined as ordered leaves .2-.7.**
 
 Pure docs — NO code change. Lands the capability-gap audit (the tree's .1), so the 6 gaps are now task-tree-owned (answers "are the gaps tracked?" — yes, now).

@@ -1,6 +1,7 @@
 # PARSE-FIDELITY — the parser builds the CORRECT AST (no silent mis-parse; parser-agnostic)
 
 > Task tree. **Metadata** — Status: `proposed` (literature-grounded; awaiting first leaf);
+> Status: `active` (`.1` oracle inventory DONE 2026-06-03).
 > Created: 2026-06-03; Roadmap lane: parser sign-off pillar **C** (of 4). Owns failure mode
 > **(1.c) mis-parse** — the parser *accepts* the input but produces the **wrong AST**
 > (silently, with no error signal). The most dangerous mode: a parser that accepts
@@ -47,9 +48,23 @@ mis-parse hunter on *real* input. So PARSE-FIDELITY = round-trip ⊗ shape-contr
 stimuli-at-literal-0 ([[stimuli-residual-coverage-model]]) ⊗ semantic-projection-diff.
 
 ## Leaves
-### `.1` — inventory existing fidelity oracles (audit, pure docs) — PENDING (next)
-Map what round-trip gates + shape contracts + semantic gates already prove, per family, and
-where the gaps are. ("Use what we have" before adding.)
+### `.1` — inventory existing fidelity oracles (audit, pure docs) — DONE (2026-06-03)
+Tool-verified inventory of what already proves (1.c), per the codebase:
+- **Round-trip oracles (strong, gated):** `src/test_runner/round_trip_tests.rs` +
+  `return_ast_roundtrip_gate` / `semantic_ast_roundtrip_gate` / `sv_roundtrip_contract_gate`
+  (+ the aggregate `return_full_contract_gate` / `semantic_full_contract_gate`). Prove
+  generate→unparse→reparse equivalence for return + semantic ASTs and the SV stimuli loop.
+- **AST shape contracts (structural, per-rule):** 8 manifests
+  (`test_data/ast_shape_contract/{regex,return_annotation,rtl_const_expr,rtl_frontend,semantic_annotation,systemverilog_preprocessor,systemverilog,vhdl}_v1.json`) + the drift gate — pin each rule's emitted object shape.
+- **Semantic/scope contract:** `sv_semantic_scope_contract_gate` — catches the
+  type-vs-scope mis-parse class (e.g. `T::P` wrongly accepted for a plain typedef).
+- **Closed-loop self-consistency:** the stimuli gate's `parser_rejections == 0`.
+**GAPS (→ the leaves below):** (a) per-NODE source round-trip (`parse(node._meta.source_text)
+≡ node`) — needs A5 `_meta` (`PARSE-SOTA.11`, parked) → `.2`; (b) metamorphic/EMI
+(reference-free) → `.3`; (c) differential semantic-projection vs slang → `.4`; (d)
+by-construction invertibility → `.5`. **And the exhaustiveness of ALL the above is bounded by
+Pillar D coverage** — the existing oracles only fire on constructs the generator actually
+produces, so (1.c) is exhaustively proven only at literal-0 ([[stimuli-residual-coverage-model]]).
 
 ### `.2` — per-node source round-trip via A5 `_meta` — PENDING (depends on PARSE-SOTA.11)
 `parse(node._meta.source_text) ≡ node` for every node — the strongest local fidelity oracle.

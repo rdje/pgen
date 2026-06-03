@@ -1,6 +1,6 @@
 # PARSE-COMPLETENESS — the parser never rejects valid input (parser-agnostic; SV-first)
 
-> Task tree. **Metadata** — Status: `proposed` (literature-grounded; awaiting first leaf);
+> Task tree. **Metadata** — Status: `active` (`.1` harness design DONE 2026-06-03);
 > Created: 2026-06-03; Roadmap lane: parser sign-off pillar **A** (of 4). Owns failure mode
 > **(1.a) reject** — the parser returns a parse error on input that is actually valid.
 >
@@ -45,11 +45,25 @@ Not about the *stimuli generator's* coverage residual (that is Pillar D / `STIMU
   reject is found (then a normal targeted grammar fix slice).
 
 ## Leaves
-### `.1` — differential-oracle harness design (pure docs) — PENDING (next)
-Own the existing `diff_taxonomy` infra; pin the reference set (slang primary; Verible;
-Verilator/UHDM) + verdict semantics (accept/reject only — AST-diff is Pillar C) + the
-`reference_passed ∧ rust_failed == 0` invariant. Parser-agnostic: each family names its own
-reference oracle(s).
+### `.1` — differential-oracle harness design (pure docs) — DONE (2026-06-03)
+The design (turnkey for whenever the reference tooling is provisioned):
+- **Reference-oracle registry (parser-agnostic):** each family names its own reference
+  parser(s) — SV → **slang** (primary, most-compliant per chipsalliance `sv-tests`) +
+  **Verible** (secondary), Verilator/UHDM optional; **regex → `pcre2test`** (already the RGX
+  oracle — proves the pattern generalizes); VHDL → GHDL; etc. A family with no external
+  reference falls back to self-differential (round-trip only — Pillar C).
+- **Verdict semantics:** accept/reject ONLY (structural AST-diff is Pillar C / `PARSE-FIDELITY`).
+- **Invariant (the gate):** for every input, NOT (PGEN rejects AND a *majority* of references
+  accept) — i.e. `reference_majority_accept ∧ rust_reject == 0`. Each violation is a (1.a)
+  defect → a targeted, task-tree-owned grammar fix sub-leaf (no broad sweeps).
+- **Reuse, don't rebuild:** extend the existing `diff_taxonomy_rust_failed_reference_passed`
+  surface + `sv_external_corpus_triage_gate.sh`; this is a *test harness* (zero engine change
+  unless a real reject is found).
+- **Determinism / pinning:** pin reference-parser versions (as RGX pins `pcre2test` 10.47) so
+  verdicts are reproducible; record versions in the gate output.
+- **DEPENDENCY (flagged, director-gated):** `.2` (the actual differential run) needs the
+  reference binaries (slang/Verible) + the `sv-tests` corpus provisioned — a real-world setup
+  action, NOT taken unprompted.
 
 ### `.2` — ingest the `sv-tests` compliance corpus + run differential — PENDING
 Wire chipsalliance `sv-tests` as a completeness corpus; run rust-vs-references; triage every
