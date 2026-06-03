@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0001 (leaf STIMULI-SIGNOFF.1, capability-gap audit): **6 stimuli-generator gaps vs the literature signoff bar → defined as ordered leaves .2-.7.**
+
+Pure docs — NO code change. Lands the capability-gap audit (the tree's .1), so the 6 gaps are now task-tree-owned (answers "are the gaps tracked?" — yes, now).
+
+HAS (code-verified, grep stimuli_generator.rs): Purdom shortest-derivation; rule+branch coverage targets + gap report + reach_classification; directed reach plans (SEARCH-based); constraint/negative/recovery profiles; delimiter-aware shrinking; + AHEAD of typical academic fuzzers on (a) closed-loop round-trip self-consistency (parser_rejections==0) and (b) semantic-store-aware (data-dependent) = context-VALID generation.
+
+SIX GAPS vs the literature → leaves: .2 k-path coverage metric (Havrikov & Zeller ASE 2019 / Tribble — TOP, DEFINES the signoff bar; ours is rule+branch ≈k=1/2); .3 code-coverage feedback (coverage-guided grammar fuzzing — ours is grammar-coverage-only); .4 directed/learned generation (FDLOOP, arXiv 2508.01472 2025 — CO-OWNED with SV-EXH-PROOF.7.4.6 = the literal-0 reach); .5 uniform/Boltzmann (secondary); .6 full grammar-tree-aware shrinking (secondary); .7 grammar-mutation maturity metric (TOSEM 2025, secondary). Signoff-critical few = #1 k-path + #4 code-coverage (a Havrikov-Zeller pair) + #2 directed/FDLOOP. KM card stimuli-generator-capability-gaps. STIMULI-SIGNOFF now active; frontier .2.
+
 ## 2026-06-03 - PGEN-PARSE-TERMINATION-0001 (leaf PARSE-TERMINATION.1, tools-first measurement): **CONFIRMED — PGEN's stateful (semantic-store) packrat is NOT linear (super-linear, trending quadratic); stateless baseline is linear.**
 
 Measurement only — NO code change. The CC 2020 / [[stateful-packrat-not-linear]] risk verified empirically with facts (per the discipline: measure before any fix), activating tree PARSE-TERMINATION.

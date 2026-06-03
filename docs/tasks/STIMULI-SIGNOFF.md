@@ -40,14 +40,56 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
 ## Task Tree
 
 - ID: `STIMULI-SIGNOFF`
-  Status: `proposed`
+  Status: `active` (`.1` audit DONE 2026-06-03; 6 gaps → leaves `.2`–`.7`)
   Goal: `Signoff-grade, parser-agnostic EBNF stimuli generator via capability-gap closure.`
-  Children: `STIMULI-SIGNOFF.1`
+  Children: `.1` audit → `.2` k-path coverage · `.3` code-coverage feedback · `.4` directed/learned generation · `.5` uniform/Boltzmann · `.6` grammar-tree-aware shrinking · `.7` mutation-maturity metric
 
 - ID: `STIMULI-SIGNOFF.1`
-  Status: `pending`
-  Goal: `CAPABILITY-GAP AUDIT (pure docs): enumerate, out-of-the-box, what a signoff EBNF stimuli generator SHOULD do that ours doesn't yet; seed it with the SV-EXH-PROOF.7 reachability finding ([[project_sv7_never_selected_rootcause]] — 358 never_selected branches are a reachability, not weighting, problem). Produce a prioritized gap list → ordered leaf plan. Tools-first; no code until a code leaf owns it.`
+  Status: `done` (`PGEN-STIMULI-SIGNOFF-0001`, 2026-06-03)
+  Goal: `CAPABILITY-GAP AUDIT (pure docs): enumerate, out-of-the-box, what a signoff EBNF stimuli generator SHOULD do that ours doesn't yet; seed it with the SV-EXH-PROOF.7 reachability finding ([[project_sv7_never_selected_rootcause]]). Produce a prioritized gap list → ordered leaf plan. Tools-first; no code until a code leaf owns it.`
   Acceptance: `Prioritized capability-gap list + ordered leaf plan recorded; each gap tagged parser-agnostic-by-design.`
+  Verification: `done — audit from the live literature sweep (2026-06-03) + the code-verified generator feature surface. HAS (grep-verified in stimuli_generator.rs): Purdom shortest-derivation (min_terminal), rule+branch coverage targets + gap report + reach_classification (StimuliCoverageTarget), directed reach plans (reach_plan, SEARCH-based), constraint/negative/recovery profiles, delimiter-aware shrinking, closed-loop round-trip self-consistency (parser_rejections==0), and — AHEAD of typical academic fuzzers — semantic-store-aware (data-dependent) generation = context-VALID inputs (declare-before-use). SIX GAPS vs the literature signoff bar → ordered leaves .2-.7. Full reasoning + citations in KM card [[stimuli-generator-capability-gaps]]. Pure docs.`
+  Commit: `PGEN-STIMULI-SIGNOFF-0001`
+
+- ID: `STIMULI-SIGNOFF.2`
+  Status: `pending` (gap #1 — TOP; defines the signoff bar)
+  Goal: `k-PATH COVERAGE METRIC (Havrikov & Zeller, ASE 2019; tool Tribble). Generalize coverage from rule+branch (≈k=1/2) to a chosen-k path measure (a syntactic element in the context of its depth-k ancestors). This DEFINES "exhaustive coverage" more rigorously than rule+branch — "every depth-k context combination covered". Parser-agnostic grammar-structure property; re-express the SV residual as k-path debt.`
+  Acceptance: `a k-path measure computed over any grammar; the signoff bar restated in k-path terms; SV residual re-expressed. Code leaf, tools-first.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.3`
+  Status: `pending` (gap #4 — pairs with .2)
+  Goal: `CODE-COVERAGE FEEDBACK (coverage-guided grammar fuzzing). Close the loop on the PARSER's actual code coverage (Havrikov-Zeller thesis: input k-path coverage drives code coverage): use generated-input code coverage to steer generation. Today PGEN is grammar-coverage-driven ONLY — the deepest signal that we exercised the parser, not just enumerated the grammar, is missing. Parser-agnostic (instrument the generated parser).`
+  Acceptance: `generation steered by measured parser code coverage; coverage delta reported. Code leaf.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.4`
+  Status: `pending` (gap #2 — CO-OWNED with SV-EXH-PROOF.7.4.6)
+  Goal: `DIRECTED / LEARNED GENERATION (FDLOOP, Kirschner & Soremekun, arXiv 2508.01472, 2025) — goal-specific inputs via probabilistic-grammar learning + feedback, to reach deep targets our deterministic reach-plan SEARCH times out on. CO-OWNED: SV-EXH-PROOF.7.4.6 is the SV application (derivation-directed construction → literal-0); this leaf is the GENERAL parser-agnostic capability. Read FDLOOP before building.`
+  Acceptance: `directed generation reaches targets the search misses; SV residual 273 → ~0; parser-agnostic.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.5`
+  Status: `pending` (gap #3 — secondary)
+  Goal: `UNIFORM RANDOM GENERATION (Boltzmann samplers, Duchon et al. 2004) — uniform-by-size sampling of derivations for unbiased coverage of the deep tail (a distribution guarantee our weighted diverse pass lacks). Secondary for SIGNOFF (directed + k-path matter more for "guarantee every construct"); valued for unbiased exploration.`
+  Acceptance: `approximate-size-uniform generation available as a strategy; parser-agnostic.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.6`
+  Status: `pending` (gap #5 — secondary)
+  Goal: `FULL GRAMMAR-TREE-AWARE SHRINKING — drop-optional / collapse-alternation / prune-subtree / reduce-repetition reduction while preserving the failing property (we have delimiter-aware structural minimization only — see the book's stimuli shrinker note). Parser-agnostic.`
+  Acceptance: `grammar-tree-aware minimizer reduces counterexamples beyond the delimiter-aware baseline; property-preserving.`
+  Verification: `pending`
+  Commit: `pending`
+
+- ID: `STIMULI-SIGNOFF.7`
+  Status: `pending` (gap #6 — secondary)
+  Goal: `GRAMMAR-MUTATION MATURITY METRIC (Grammar Mutation for Testing Input Parsers, TOSEM 2025) — use grammar mutation to QUANTIFY generator+grammar maturity (we generate mutations but don't use them as a maturity metric). Parser-agnostic.`
+  Acceptance: `a mutation-based maturity score computed per grammar; reported.`
   Verification: `pending`
   Commit: `pending`
 
@@ -55,7 +97,11 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `STIMULI-SIGNOFF.1` | `pending` (proposed) | The audit defines the lane; `SV-EXH-PROOF.7` is already surfacing concrete gaps to seed it. |
+| 1 | `STIMULI-SIGNOFF.1` | `done` (`-0001`) | Audit landed; 6 gaps → leaves `.2`–`.7` (KM [[stimuli-generator-capability-gaps]]). |
+| 2 | `STIMULI-SIGNOFF.2` | `pending` | k-path metric DEFINES the signoff bar (rule+branch under-defines "done"). |
+| 3 | `STIMULI-SIGNOFF.4` | `pending` | directed/FDLOOP = the literal-0 reach (co-owned by `SV-EXH-PROOF.7.4.6`). |
+| 4 | `STIMULI-SIGNOFF.3` | `pending` | code-coverage feedback pairs with `.2` (input→code coverage). |
+| — | `.5` / `.6` / `.7` | `pending` | secondary (uniform/Boltzmann · grammar-tree shrinking · mutation-maturity metric). |
 
 ## Decisions
 

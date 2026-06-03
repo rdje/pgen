@@ -3,7 +3,7 @@
 > **AUTO-GENERATED — DO NOT EDIT.** Regenerate with `knowledge-map/scripts/gen_knowledge_map.sh`.
 > Source of truth = YAML front-matter in: `docs/knowledge docs/decisions`. Edit the fact files, never this map.
 > A fact is any `.md` whose front-matter has a non-empty `answers:` list.
-> **11** facts · **54** question keys.
+> **12** facts · **59** question keys.
 
 ## Questions → fact
 
@@ -11,6 +11,7 @@
 - "does PGEN handle left recursion automatically or must the author eliminate it" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
 - "does packrat memoization guarantee no catastrophic backtracking here" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
 - "does the semantic store affect parse-time complexity" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
+- "does the stimuli generator have all the necessary features" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
 - "how do I tell a depth failure from a visit-limit or timeout failure" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - "how do we detect mis-parse (accepted but wrong AST)" -> [parse-fidelity-oracles](docs/knowledge/parse-fidelity-oracles.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-FIDELITY.md literature grounding`
 - "how do we prove the parser never rejects valid input" -> [parse-completeness-differential-oracle](docs/knowledge/parse-completeness-differential-oracle.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-COMPLETENESS.md literature grounding`
@@ -23,12 +24,14 @@
 - "how were the slow witness timeouts reduced" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
 - "is PGEN a PEG or a CFG parser generator" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
 - "is PGEN stateless or stateful packrat" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
+- "is PGEN's generator behind or ahead of academic grammar fuzzers" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
 - "is PGEN's parser guaranteed linear time / hang-free" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
 - "is the parser failing on real inputs or is it the stimuli generator" -> [parser-signoff-four-pillars](docs/knowledge/parser-signoff-four-pillars.md) · 2026-06-03 · reverify: `grep -l "parser sign-off pillar" docs/tasks/PARSE-*.md`
 - "is there a published technique for the literal-0 / derivation-directed generation idea" -> [grammar-coverage-and-directed-generation](docs/knowledge/grammar-coverage-and-directed-generation.md) · 2026-06-03 · reverify: `see docs/tasks/SV-EXH-PROOF.md (.7.4.x) + docs/tasks/STIMULI-SIGNOFF.md`
 - "is there a ready-made SV compliance test suite" -> [parse-completeness-differential-oracle](docs/knowledge/parse-completeness-differential-oracle.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-COMPLETENESS.md literature grounding`
 - "what are never_hit / never_selected / selected_but_failed reasons" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what are the remaining problem types for the SV parser" -> [parser-signoff-four-pillars](docs/knowledge/parser-signoff-four-pillars.md) · 2026-06-03 · reverify: `grep -l "parser sign-off pillar" docs/tasks/PARSE-*.md`
+- "what are the stimuli generator capability gaps" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
 - "what coverage metric for grammar-based generation (k-path)" -> [grammar-coverage-and-directed-generation](docs/knowledge/grammar-coverage-and-directed-generation.md) · 2026-06-03 · reverify: `see docs/tasks/SV-EXH-PROOF.md (.7.4.x) + docs/tasks/STIMULI-SIGNOFF.md`
 - "what do the stimuli generation error reasons mean" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what does PGEN_WITNESS_NO_PURDOM do" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
@@ -39,6 +42,7 @@
 - "what is PGEN with respect to PEG and Packrat" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
 - "what is focused_replay_target_debt_zero / literal-0" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what is invertible syntax / bidirectional parsing pretty-printing" -> [parse-fidelity-oracles](docs/knowledge/parse-fidelity-oracles.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-FIDELITY.md literature grounding`
+- "what is missing from the stimuli generator vs the literature" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
 - "what is replay_target_count / the stimuli residual" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what is the difference between parser failures and the stimuli residual" -> [parser-signoff-four-pillars](docs/knowledge/parser-signoff-four-pillars.md) · 2026-06-03 · reverify: `grep -l "parser sign-off pillar" docs/tasks/PARSE-*.md`
 - "what is the fix for stateful packrat non-linearity" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
@@ -50,6 +54,7 @@
 - "what is witness_mode / the Purdom witness ordering" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
 - "what must I edit to add a sibling key to every AST object" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
 - "what reference parsers / corpus to use for SystemVerilog differential testing" -> [parse-completeness-differential-oracle](docs/knowledge/parse-completeness-differential-oracle.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-COMPLETENESS.md literature grounding`
+- "what should a signoff-grade EBNF stimuli generator do that ours doesn't" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
 - "where are depth_exceeded_errors / target_timeout_errors counted" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - "where are typed AST objects constructed in PGEN" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
 - "where does PGEN stand in the parsing literature" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
@@ -135,6 +140,15 @@ _Stimuli generation error-reason taxonomy (and severity is never gated by verbos
 - **evidence:** `rust/src/ast_pipeline/stimuli_generator.rs (GenerationErrorReason, classify_generation_error, *_errors counters, TargetDriveSummary); rust/src/ast_pipeline/mod.rs (Severity, emit_diagnostic, pgen_warn!/error!/fatal!); docs/tasks/DIAG-SEVERITY.md`
 - **reverify:** `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - **source:** [`docs/knowledge/stimuli-generation-error-reasons.md`](docs/knowledge/stimuli-generation-error-reasons.md)
+
+### stimuli-generator-capability-gaps
+_Stimuli generator — what it has vs the literature signoff bar (6 gaps)_
+
+- **answers:** does the stimuli generator have all the necessary features | what is missing from the stimuli generator vs the literature | what are the stimuli generator capability gaps | is PGEN's generator behind or ahead of academic grammar fuzzers | what should a signoff-grade EBNF stimuli generator do that ours doesn't
+- **date:** 2026-06-03 · **status:** current
+- **evidence:** `grep stimuli_generator.rs (reach_plan, StimuliCoverageTarget, min_terminal/purdom, {mutation,constraint,negative,recovery}_mode, shrink); literature sweep 2026-06-03; docs/tasks/STIMULI-SIGNOFF.md (.1 audit)`
+- **reverify:** `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
+- **source:** [`docs/knowledge/stimuli-generator-capability-gaps.md`](docs/knowledge/stimuli-generator-capability-gaps.md)
 
 ### stimuli-residual-coverage-model
 _What the stimuli residual / replay_target_count actually is (coverage model)_
