@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-SV-EXH-PROOF-0144 (leaf SV-EXH-PROOF.7.4.4 canonical confirmation + .7.4.5 opened): **Canonical gate run — witness pass cut the closed-loop residual 2770 -> 753 (-73%); the 753 tail is ~99% target_timeout, root cause = the gate's 5 ms per-witness budget.**
+
+Docs/measurement only (no code) — recording the canonical `make sv_stimuli_quality_gate` result for the combined `.7.4.3` witness pass + `.7.4.4` Purdom ordering, and opening `.7.4.5`.
+
+RESULT (gate exit 0, PASS — parse_full 16/16, realistic corpus 730/730, declared_shadow 16/0): the witness pass RAN in-gate and cut the closed-loop residual 2770 -> 753 (-73%). profile_2017: witness resolved 1736 -> 2291 of 2590 (residual 854 -> 299; target_timeout=290, other=1); profile_2023: 775 -> 2238 of 2691 (1916 -> 453; target_timeout=456, other=0); closed_loop_replay_targets_total=753. The residual is ~99% target_timeout (746 of 753; other 1+0) — confirmed slow-generation, ~zero genuine errors. ROOT CAUSE of the tail PINNED: closed_loop_target_generation_timeout_ms=5 — the gate gives each witness only 5 ms, but deeply-factored witnesses need hundreds of ms even Purdom-ordered (the .7.4.4 A/B used 7000 ms). NOT literal-0. Opened .7.4.5: a dedicated, tuned witness-pass budget DECOUPLED from the 5 ms primary target-drive budget (the witness pass is deliberate + count-bounded + monotone, so it can afford more time) + Purdom min-count in generate_quantified; measure vs 753; MONOTONE; director sign-off before landing. KM card docs/knowledge/sv-witness-purdom-ordering.md updated.
+
 ## 2026-06-03 - PGEN-SV-EXH-PROOF-0143 (leaf SV-EXH-PROOF.7.4.4): **Purdom shortest-derivation ordering for the witness pass — slow SV witnesses converge instead of timing out (witness-pass-only, monotone).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — no grammar/codegen/generated change, no release bump. Director sign-off "go ahead".

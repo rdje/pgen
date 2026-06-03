@@ -34,3 +34,12 @@ with **Purdom 1972 shortest-derivation ordering**, scoped to the witness pass:
 
 Caveat: the ordering is deterministic, but the resolved *count* under a wall-clock cap has
 small timing-induced wobble at the boundary; the +23 delta dwarfs it.
+
+**Canonical gate confirmation** (`make sv_stimuli_quality_gate`, `PGEN-SV-EXH-PROOF-0144`):
+the witness pass runs in-gate and cut the closed-loop residual **2770 → 753 (−73%)**
+(2017: 1736→2291/2590; 2023: 775→2238/2691); `closed_loop_replay_targets_total=753`, of
+which **~99% is `target_timeout` (746)** — ~zero genuine errors. The residual tail's root
+cause is the gate's tiny per-witness budget **`closed_loop_target_generation_timeout_ms=5`**
+(5 ms) — witnesses for deeply-factored rules can't finish in 5 ms even Purdom-ordered. The
+remaining literal-0 lever (`.7.4.5`) is a dedicated, tuned witness-pass budget decoupled from
+that 5 ms primary target-drive budget (+ Purdom min-count in `generate_quantified`).
