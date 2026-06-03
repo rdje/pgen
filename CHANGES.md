@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-PARSE-PILLARS-0001 (3 new parser-agnostic sign-off trees + literature grounding): **PARSE-COMPLETENESS / PARSE-TERMINATION / PARSE-FIDELITY authored, research-grounded, with KM cards.**
+
+Pure docs/planning — NO grammar/Rust/codegen/generated change. Director-commissioned 2026-06-03 ("1 tree per parser failure mode; research the literature first so we don't reinvent; solve elegantly/efficiently/zero-regression").
+
+DECOMPOSITION (decision [[project_parser_signoff_pillars]]): parser issues = two surfaces. Surface 1 = parser correctness on input, three modes — (1.a) reject → tree PARSE-COMPLETENESS; (1.b) hang → tree PARSE-TERMINATION; (1.c) mis-parse → tree PARSE-FIDELITY. Surface 2 = stimuli EBNF coverage → STIMULI-SIGNOFF + SV-EXH-PROOF.7.4 (already owned). Tool-verified: Surface 1 has NO known failing tracked inputs (SV external corpus 14/14; round-trip 16/16; realistic 730/730); the "753"→273 residual is Surface 2 (generator coverage), NOT parser-input failures. All pillars parser-AGNOSTIC, SV-first.
+
+LIVE LITERATURE SWEEP (so we adopt, not reinvent): A = differential testing (McKeeman 1998; Csmith PLDI 2011; EMI PLDI 2014) + ready oracle/corpus (slang, Verible, Verilator, chipsalliance sv-tests) + grammar-vs-spec coverage (Lämmel FASE 2001) + grammar-mutation maturity (TOSEM 2025). B = Ford packrat ICFP 2002 + PEG well-formedness POPL 2004; ⚠️ Chida & Kawakoya CC 2020 (stateful packrat may be EXPONENTIAL — PGEN's semantic store = state — + conditional-memoization fix); Warth PEPM 2008. C = invertible syntax (Rendel & Ostermann 2010) + metamorphic (Chen 1998)/EMI + round-trip + A5 _meta. D = Purdom 1972; k-path + Tribble (Havrikov & Zeller ASE 2019); Directed Grammar-Based Test Generation/FDLOOP (arXiv 2508.01472, 2025) for .7.4.6; Boltzmann samplers.
+
+STRUCTURING RULE (answers "do we track the findings?"): trees own WORK (adoption = leaves); the Knowledge Map owns the literature FINDINGS as cards (so nobody re-searches); WARNINGS become acceptance criteria of the owning tree (not separate trees). NEW KM cards: parser-signoff-four-pillars, parse-completeness-differential-oracle, stateful-packrat-not-linear, parse-fidelity-oracles, grammar-coverage-and-directed-generation. Trees registered in docs/TASK_TREE.md (Proposed); each frontier = .1 (design/audit/measure, tools-first).
+
 ## 2026-06-03 - PGEN-SV-EXH-PROOF-0145 (leaf SV-EXH-PROOF.7.4.5): **Dedicated witness budget decoupled from the 5 ms primary — canonical SV replay residual 753 -> 273 (-64%).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — no grammar/codegen/generated change, no release bump. Director sign-off "Go ahead".
