@@ -835,6 +835,12 @@ pub struct TargetDriveSummary {
 /// AFTER the diverse + target-drive passes and only ADDS coverage (monotone: residual can
 /// only shrink). Failures are classified by the canonical `GenerationErrorReason`
 /// (DIAG-SEVERITY) so a residual tail's cause is visible, not masked.
+/// SV-EXH-PROOF.7.4.4.1: cap on the number of "other"-class witness-failure samples
+/// collected into the summary. Bounded so the diagnostic never blows up memory/disk
+/// (a per-target Debug trace at debug verbosity produced a 6.9 GB log). 40 is enough to
+/// characterise the residual tail's cause distribution without retaining every failure.
+const WITNESS_OTHER_FAILURE_SAMPLE_CAP: usize = 40;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct WitnessSummary {
     pub total_targets: usize,
@@ -849,12 +855,25 @@ pub struct WitnessSummary {
     pub other_failures: usize,
     #[serde(default)]
     pub no_entry_rule: usize,
+    /// SV-EXH-PROOF.7.4.4.1: timeout failures, classified separately from `other_failures`
+    /// so a bounded per-generation budget does not pollute the genuine-error tally.
+    #[serde(default)]
+    pub target_timeout_failures: usize,
+    #[serde(default)]
+    pub helper_timeout_failures: usize,
+    /// SV-EXH-PROOF.7.4.4.1 (TOOL-BUILD): bounded sample of the "other"-class witness
+    /// failures (the residual tail), each "target_id=.. rule=.. type=.. node_path=..
+    /// branch=.. reason=.." (reason = full anyhow error chain). Capped at
+    /// `WITNESS_OTHER_FAILURE_SAMPLE_CAP`. Lets the tail be characterised on tangible
+    /// proof at default verbosity ([[feedback_why_and_where_before_solution]]).
+    #[serde(default)]
+    pub other_failure_samples: Vec<String>,
 }
 
 impl WitnessSummary {
     pub fn summary_line(&self) -> String {
         format!(
-            "Witness pass: resolved {} -> {} of {} reachable targets (+{} via {} witnesses; failures depth_exceeded={}, rule_visit_limit={}, other={}, no_entry={})",
+            "Witness pass: resolved {} -> {} of {} reachable targets (+{} via {} witnesses; failures depth_exceeded={}, rule_visit_limit={}, target_timeout={}, helper_timeout={}, other={}, no_entry={})",
             self.resolved_before,
             self.resolved_after,
             self.total_targets,
@@ -862,6 +881,8 @@ impl WitnessSummary {
             self.witnesses_generated,
             self.depth_exceeded_failures,
             self.rule_visit_limit_failures,
+            self.target_timeout_failures,
+            self.helper_timeout_failures,
             self.other_failures,
             self.no_entry_rule
         )
@@ -2433,6 +2454,11 @@ impl<'a> StimuliGenerator<'a> {
         let mut rule_visit_limit_failures = 0usize;
         let mut other_failures = 0usize;
         let mut no_entry_rule = 0usize;
+        // SV-EXH-PROOF.7.4.4.1: timeouts classified separately so `other` is genuine errors.
+        let mut target_timeout_failures = 0usize;
+        let mut helper_timeout_failures = 0usize;
+        // SV-EXH-PROOF.7.4.4.1: bounded WHY+WHERE samples for the "other"-class tail.
+        let mut other_failure_samples: Vec<String> = Vec::new();
 
         loop {
             let pending = self.evaluate_target_statuses(&applicable);
@@ -2481,8 +2507,43 @@ impl<'a> StimuliGenerator<'a> {
                     GenerationErrorReason::RuleVisitLimit => {
                         rule_visit_limit_failures = rule_visit_limit_failures.saturating_add(1);
                     }
-                    _ => {
+                    // SV-EXH-PROOF.7.4.4.1: classify TIMEOUTS separately (DIAG-SEVERITY:
+                    // classify by reason, never lump). The old `_ =>` arm folded
+                    // TargetTimeout + HelperTimeout into `other_failures`, so a bounded
+                    // per-generation budget polluted the "other" tally with slow-but-not-
+                    // erroring targets — masking whether "other" means a GENUINE generation
+                    // error. With these arms, `other_failures` is strictly genuine errors.
+                    GenerationErrorReason::TargetTimeout => {
+                        target_timeout_failures = target_timeout_failures.saturating_add(1);
+                    }
+                    GenerationErrorReason::HelperTimeout => {
+                        helper_timeout_failures = helper_timeout_failures.saturating_add(1);
+                    }
+                    GenerationErrorReason::Other => {
                         other_failures = other_failures.saturating_add(1);
+                        // SV-EXH-PROOF.7.4.4.1 (TOOL-BUILD, WHY+WHERE before any fix):
+                        // the "other" witness failures previously discarded their cause,
+                        // leaving the residual tail uncharacterisable — the context-gating
+                        // hypothesis could be neither confirmed nor refuted from the
+                        // counters alone. Collect a BOUNDED sample of (WHY = error chain)
+                        // + (WHERE = target identity) into the summary so the tail is
+                        // diagnosed on tangible proof, not a guess
+                        // ([[feedback_why_and_where_before_solution]]) at DEFAULT verbosity.
+                        // Deliberately a bounded in-summary sample, NOT a per-target Debug
+                        // trace: a Debug trace here required global debug verbosity, which
+                        // floods every atom dispatch and produced a 6.9 GB log in seconds —
+                        // disk is a critical resource that shall not be wasted.
+                        if other_failure_samples.len() < WITNESS_OTHER_FAILURE_SAMPLE_CAP {
+                            other_failure_samples.push(format!(
+                                "target_id='{}' rule='{}' type={:?} node_path={:?} branch={:?} reason={:#}",
+                                status.id,
+                                status.rule_name,
+                                status.target_type,
+                                status.node_path,
+                                status.branch_index,
+                                error
+                            ));
+                        }
                     }
                 },
             }
@@ -2505,6 +2566,9 @@ impl<'a> StimuliGenerator<'a> {
                 rule_visit_limit_failures,
                 other_failures,
                 no_entry_rule,
+                target_timeout_failures,
+                helper_timeout_failures,
+                other_failure_samples,
             },
         ))
     }

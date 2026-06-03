@@ -1448,6 +1448,20 @@ fn main() -> Result<()> {
             let (witness_samples, witness_summary) =
                 generator.generate_target_witnesses(&target_report.targets)?;
             println!("{}", witness_summary.summary_line());
+            // SV-EXH-PROOF.7.4.4.1 (TOOL-BUILD, WHY+WHERE): surface a bounded sample of
+            // the "other"-class witness failures so the residual tail's cause is visible
+            // on tangible proof (not guessed). Printed at default verbosity; bounded in
+            // the generator so it can never flood disk.
+            if !witness_summary.other_failure_samples.is_empty() {
+                println!(
+                    "Witness 'other'-failure samples ({} of {} shown | target_id | rule | type | node_path | branch | reason):",
+                    witness_summary.other_failure_samples.len(),
+                    witness_summary.other_failures
+                );
+                for sample in &witness_summary.other_failure_samples {
+                    println!("- {sample}");
+                }
+            }
             generated_samples.extend(witness_samples);
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
