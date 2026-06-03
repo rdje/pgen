@@ -6771,12 +6771,28 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn regex_matches_entire(pattern: &str, candidate: &str) -> bool {
-        if let Ok(re) = regex::Regex::new(pattern) {
-            if let Some(matched) = re.find(candidate) {
-                return matched.start() == 0 && matched.end() == candidate.len();
-            }
+        // SV-EXH-PROOF.7.4.6.1: cache compiled terminal regexes. `Regex::new(P)` is
+        // deterministic + costly, and the generator recompiles the same terminal patterns
+        // (identifiers, numbers, ...) constantly during witness/diverse generation (profiled:
+        // ~15% of witness self-time). PURE monotone speedup — same match result, no recompile.
+        // Thread-local so it needs no signature/state change and is safe across the generator's
+        // single-threaded use; no re-entrancy (`find` calls nothing back into here).
+        thread_local! {
+            static REGEX_COMPILE_CACHE: std::cell::RefCell<HashMap<String, Option<regex::Regex>>> =
+                std::cell::RefCell::new(HashMap::new());
         }
-        false
+        REGEX_COMPILE_CACHE.with(|cache| {
+            let mut cache = cache.borrow_mut();
+            let compiled = cache
+                .entry(pattern.to_string())
+                .or_insert_with(|| regex::Regex::new(pattern).ok());
+            if let Some(re) = compiled.as_ref() {
+                if let Some(matched) = re.find(candidate) {
+                    return matched.start() == 0 && matched.end() == candidate.len();
+                }
+            }
+            false
+        })
     }
 
     fn regex_candidate_satisfies_contract(

@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-SV-EXH-PROOF-0146 (leaf SV-EXH-PROOF.7.4.6.1): **regex compile cache + .7.4.6 RE-SCOPED by profiling (witness slowness = redundant recompute, NOT search/construction); + 24h artifact cleanup (~24 GB reclaimed).**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — monotone speedup, no regen, no release bump.
+
+RE-SCOPE (WHY+WHERE-first, director signed off via "(a)"): .7.4.6 assumed "replace witness SEARCH with derivation-directed CONSTRUCTION." A macOS sample profile of slow witness generation (interface_declaration_sv_2017, 40 witnesses, 473s) DISPROVES that — the cost is NOT search/backtracking (no construction engine needed); it is REDUNDANT RECOMPUTATION: node_is_nullable (~26K self-time, recomputed recursively per generate_sequence call, no cache) + regex compilation (~6K, terminal patterns recompiled per call). Fix = surgical CACHING (monotone, no regen — generation uses the grammar, not generated parsers). Same lesson as TERMINATION.3: profile first; the assumed fix was wrong.
+
+.7.4.6.1 DONE: regex_matches_entire compiled regex::Regex::new(pattern) on EVERY call; now a thread-local pattern->compiled cache (compile once, reuse) — pure monotone speedup (same match result), addresses the ~15% regex share. lib (no-features) 588/588 (regex-gen tests pass = behavior unchanged); source-strict clippy 0. .7.4.6.2 (the dominant node_is_nullable ~26K win) PENDING — needs fixpoint-vs-per-call equivalence verification to stay monotone.
+
+ARTIFACT CLEANUP (24h cadence, REMOVE UNUSED ARTIFACTS directive): target/ 48 GB -> 24 GB (~24 GB reclaimed) — deleted sv_probe_build.log (4.3 GB build-log flood), cargo sweep --time 1 (539 MiB), target/sv_stimuli_quality_gate (19 GB reproducible gate state), target/ebnf_frontend_build (744 MB), scratch logs/sample/tmp files. Kept release/ast_pipeline, the SV gen_ast, target/debug (needed for lib tests). KM card sv-witness-purdom-ordering updated with the re-scoping.
+
 ## 2026-06-03 - PGEN-RGX-0078-QUEUE-0001 (record director-queued follow-up + broaden correctness-before-speed): **after SV→Done, attempt RGX-0078 (regex parser slowness); functionality & accuracy THEN speed.**
 
 Docs/memory only — NO code change. Records a future, cross-repo, SV→Done-conditioned directive so it is not lost.

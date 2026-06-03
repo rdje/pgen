@@ -47,7 +47,14 @@ that 5 ms primary — `witness_generation_timeout() = max(primary, WITNESS_TIMEO
 (env `PGEN_WITNESS_TIMEOUT_FLOOR_MS` overrides). Canonical gate **753 → 273 (−64%)**, still
 PASS, ~25.8 min. Budget is a real but *diminishing* lever (150-sample curve: 200 ms→77,
 500→72, 1000→79, 2000→89 resolved of 150, wall-clock 42/82/146 s), so 200 ms is the
-conservative routine default; literal-0 pushes use the env. The terminal lever (`.7.4.6`,
-proposed) is to replace witness **search** with **derivation-directed construction** (build
-the min-derivation tree via the `.7.4.2` table, backtrack-free → no timeout) to dissolve the
-budget tradeoff and drive 273 → literal-0.
+conservative routine default; literal-0 pushes use the env.
+
+**`.7.4.6` RE-SCOPED by profiling (2026-06-04 — the "derivation-construction" assumption was
+WRONG):** a macOS `sample` profile of slow witness generation shows the cost is NOT
+search/backtracking (so no construction engine is needed) — it is **redundant recomputation**:
+`node_is_nullable` (~26K self-time; recomputed recursively per `generate_sequence` call, no
+cache, recurses through referenced rules) + regex compile (~6K; terminal patterns recompiled
+per call). Fix = surgical CACHING (monotone, no regen): **`.7.4.6.1` caches compiled regexes
+(DONE)**; **`.7.4.6.2` memoizes nullability** (the big ~26K win; needs fixpoint-vs-per-call
+equivalence verification to stay monotone). This is the same lesson as `TERMINATION.3`:
+profile first; the assumed fix was wrong.
