@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-SV-EXH-PROOF-0149 (leaf SV-EXH-PROOF.7.4.6.3 gate landing + .7.4.6.4 opened): **canonical gate residual 273 → 97 (−64%) with construction; SV main parser stays Mostly Done (honest, 97 ≠ literal-0).**
+
+Docs/tracking only — records the global-metric landing for the -0148 construct_mode change. No code change.
+
+CANONICAL GATE (make sv_stimuli_quality_gate, exit 0, ~22min): closed_loop_replay_targets_total 273 → 97 (−64%). FULL ARC: ~2660 initial → 888 (.7.2 plateau) → 753 (.7.4.4 Purdom ordering) → 273 (.7.4.5 dedicated budget) → 97 (.7.4.6.3 construction). Realistic corpus 730/730 PASS; declared_shadow 16/16; parse_full_failures 0. Construction confirmed as the dominant literal-0 lever (the −176 from 273 is the single biggest single-slice drop since the 888 plateau).
+
+NOT literal-0: the 97 residual is dominated by ~66 target_timeout (replay witness passes 2017+2023 = 33+33) — targets where construct_mode's single-shortest-branch commit DEAD-ENDS, so generate_target_witnesses falls back to the .7.4.5 SEARCH and times out at the gate's 200ms floor. SV main parser stays **Mostly Done** (focused_replay_target_debt_zero unmet at 97) — honest, not over-claimed.
+
+NEXT: opened leaf .7.4.6.4 (WHY+WHERE first per [[feedback_why_and_where_before_solution]]): diagnose the ~66 dead-end targets, then bounded LIMITED-BACKTRACK construction (on a dead-end, try the next-shortest sibling before full search) — parser-agnostic, monotone. Target: 97 → ~0.
+
 ## 2026-06-04 - PGEN-SV-EXH-PROOF-0148 (leaf SV-EXH-PROOF.7.4.6.3): **derivation-directed CONSTRUCTION (construct_mode) — the literal-0 lever; witness pass 146/150, timeouts near-eliminated.**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — monotone (witness-pass-only), no regen, no release bump.

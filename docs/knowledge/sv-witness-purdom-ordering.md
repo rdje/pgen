@@ -79,4 +79,11 @@ resolved **146/150** (was 124 search / 81 original; +22), **target_timeout=1** (
 near-eliminated), 31 s — construction makes deeply-factored witnesses BOUNDED + fast, the
 seconds→budget bridge caching could not give. This is the confirmation that **construction, not
 caching, is the literal-0 lever.** lib 588/588; clippy 0; monotone (witness-pass-only, search
-fallback). Canonical-gate residual (273 → ?) measured separately.
+fallback). **Canonical gate (`PGEN-SV-EXH-PROOF-0149`, exit 0, ~22 min): closed-loop residual
+273 → 97 (−64%)** — full arc ~2660 → 888 (.7.2) → 753 (Purdom) → 273 (budget) → **97
+(construction)**; realistic corpus 730/730, parse_full_failures 0. **NOT literal-0:** the 97 is
+dominated by ~66 `target_timeout` (replay 2017+2023 = 33+33) — targets where the single
+shortest-branch commit DEAD-ENDS and falls back to the .7.4.5 search, which times out at the
+200 ms floor. The literal-0 follow-up (`.7.4.6.4`) is bounded LIMITED-BACKTRACK construction:
+on a dead-end, try the next-shortest sibling before full search. SV main parser stays
+**Mostly Done** (the `focused_replay_target_debt_zero` criterion is unmet at 97 — honest).
