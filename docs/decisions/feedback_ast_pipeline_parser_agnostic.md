@@ -11,6 +11,18 @@ metadata:
   originSessionId: 8c2d85c8-f843-4500-981d-c2bbf763bdc7
 ---
 
+**⛔ STANDING, ABSOLUTE — reaffirmed emphatically (director, 2026-06-04):**
+"all engine code change shall be parser-agnostic, no compromise here, no
+exception, and that's really, really non-negotiable. Any infringement to this
+doctrine would be catastrophic." This is a HARD gate on every engine/AST-pipeline
+edit — not a preference, not a default that yields to convenience. There is no
+"SV-only just this once". An SV-specific (or any grammar-specific) engine change
+poisons every other parser that shares the engine → catastrophic. The
+parser-specific *decision* belongs in the `.ebnf`; the engine provides only the
+generic mechanism. Self-check BEFORE landing any engine/pipeline diff: the
+production logic must contain ZERO grammar/parser identifiers (rule names, sigils,
+family names); if it names one, it is wrong — generalize or move it to the grammar.
+
 **Binding (user, 2026-05-18, during RGX-0084):** every change to the
 shared AST pipeline / semantic-annotation runtime
 (`rust/src/ast_pipeline/semantic_runtime.rs`, the `@predicate` /
