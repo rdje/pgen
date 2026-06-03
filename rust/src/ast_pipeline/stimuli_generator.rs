@@ -33,6 +33,21 @@ const TARGET_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation target timeout exc
 // `max(primary, floor)` so it NEVER shrinks below the primary; override the floor with
 // `PGEN_WITNESS_TIMEOUT_FLOOR_MS` for tuning/A-B (0 disables the floor → reuse the primary).
 const WITNESS_TIMEOUT_FLOOR_MS: u64 = 200;
+
+// SV-EXH-PROOF.7.4.6.2: nullability cache — the dominant witness-generation cost is
+// `node_is_nullable` recomputing a STATIC grammar property recursively on every call. This
+// thread-local cache is grammar-GUARDED (rule-name keys are grammar-specific, so it is cleared
+// when the active grammar changes — see `StimuliGenerator::new`). SOUND / monotone BY
+// CONSTRUCTION: a rule's nullability is cached ONLY when its computation was CYCLE-FREE (no
+// back-edge into the `visiting` set) — i.e. context-INDEPENDENT — so a cache hit equals the
+// per-call DFS result exactly. Cyclic / context-dependent results are never cached (recomputed,
+// behaviour unchanged). Generation output is therefore byte-identical; this is pure speedup.
+thread_local! {
+    static NULLABLE_CACHE: std::cell::RefCell<HashMap<String, bool>> =
+        std::cell::RefCell::new(HashMap::new());
+    static NULLABLE_CACHE_GRAMMAR: std::cell::RefCell<Option<String>> =
+        std::cell::RefCell::new(None);
+}
 // DIAG-SEVERITY.3 (PGEN-DIAG-SEVERITY-0003): the depth-limit error raised at
 // `generate_rule` (this file, ~4379). Classifying generation failures by this reason —
 // instead of folding them into an anonymous `generation_errors` count — is what makes
@@ -1255,6 +1270,16 @@ impl<'a> StimuliGenerator<'a> {
         annotations: Option<&'a Annotations>,
         config: StimuliConfig,
     ) -> Self {
+        // SV-EXH-PROOF.7.4.6.2: the thread-local nullability cache is keyed by rule name, which
+        // is grammar-specific — clear it whenever the active grammar changes so a different
+        // grammar's rule of the same name can never return a stale cached value.
+        NULLABLE_CACHE_GRAMMAR.with(|g| {
+            let mut g = g.borrow_mut();
+            if g.as_deref() != Some(grammar_name.as_str()) {
+                NULLABLE_CACHE.with(|c| c.borrow_mut().clear());
+                *g = Some(grammar_name.clone());
+            }
+        });
         let rng = if let Some(seed) = config.seed {
             StdRng::seed_from_u64(seed)
         } else {
@@ -7285,22 +7310,47 @@ impl<'a> StimuliGenerator<'a> {
     /// keeping such an element *required*). Fully agnostic; used to
     /// skip nullable parts (e.g. optional leading trivia) when
     /// resolving a construct's mandatory closer lexeme.
+    /// SV-EXH-PROOF.7.4.6.2: `hit_cycle` is set to `true` if this result was influenced by a
+    /// back-edge into `visiting` (a recursion cycle) OR the depth cutoff — i.e. it is
+    /// context-DEPENDENT and must NOT be cached. A rule-reference result is cached in
+    /// `NULLABLE_CACHE` only when its sub-computation was cycle-free (context-independent), so a
+    /// cache hit equals the per-call DFS exactly (monotone — generation output unchanged).
     fn node_is_nullable(
         tree: &HashMap<String, ASTNode>,
         node: &ASTNode,
         depth: usize,
         visiting: &mut HashSet<String>,
+        hit_cycle: &mut bool,
     ) -> bool {
         if depth > 32 {
+            *hit_cycle = true; // depth cutoff → path-dependent result; never cache it
             return false;
         }
         match node {
-            ASTNode::Or { alternatives } => alternatives
-                .iter()
-                .any(|a| Self::node_is_nullable(tree, a, depth + 1, visiting)),
-            ASTNode::Sequence { elements } => elements
-                .iter()
-                .all(|e| Self::node_is_nullable(tree, e, depth + 1, visiting)),
+            ASTNode::Or { alternatives } => {
+                // any(): nullable if any alternative is. Accumulate hit_cycle over explored alts.
+                for a in alternatives {
+                    let mut c = false;
+                    if Self::node_is_nullable(tree, a, depth + 1, visiting, &mut c) {
+                        *hit_cycle |= c;
+                        return true;
+                    }
+                    *hit_cycle |= c;
+                }
+                false
+            }
+            ASTNode::Sequence { elements } => {
+                // all(): nullable iff every element is. Accumulate hit_cycle over explored elems.
+                for e in elements {
+                    let mut c = false;
+                    let n = Self::node_is_nullable(tree, e, depth + 1, visiting, &mut c);
+                    *hit_cycle |= c;
+                    if !n {
+                        return false;
+                    }
+                }
+                true
+            }
             ASTNode::Lookahead { .. } => true,
             ASTNode::Quantified {
                 element,
@@ -7310,25 +7360,41 @@ impl<'a> StimuliGenerator<'a> {
                 if q.starts_with('?') || q.starts_with('*') || q.starts_with("{0") {
                     true
                 } else {
-                    Self::node_is_nullable(tree, element, depth + 1, visiting)
+                    Self::node_is_nullable(tree, element, depth + 1, visiting, hit_cycle)
                 }
             }
             ASTNode::Atom { value } => match value {
                 ASTValue::Node(n) => {
-                    Self::node_is_nullable(tree, n, depth + 1, visiting)
+                    Self::node_is_nullable(tree, n, depth + 1, visiting, hit_cycle)
                 }
                 ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
                     Some(("rule_reference", name)) => {
-                        if !visiting.insert(name.to_string()) {
+                        if visiting.contains(name) {
+                            *hit_cycle = true; // back-edge → context-dependent
                             return false;
                         }
+                        // Cache hit: stored entries are cycle-free (context-independent), so this
+                        // equals what a fresh DFS would compute — return it without recursing.
+                        if let Some(cached) = NULLABLE_CACHE.with(|c| c.borrow().get(name).copied())
+                        {
+                            return cached;
+                        }
+                        visiting.insert(name.to_string());
+                        let mut sub_cycle = false;
                         let r = tree
                             .get(name)
                             .map(|n| {
-                                Self::node_is_nullable(tree, n, depth + 1, visiting)
+                                Self::node_is_nullable(tree, n, depth + 1, visiting, &mut sub_cycle)
                             })
                             .unwrap_or(false);
                         visiting.remove(name);
+                        if sub_cycle {
+                            *hit_cycle = true; // this rule's result depended on a cycle → don't cache
+                        } else {
+                            NULLABLE_CACHE.with(|c| {
+                                c.borrow_mut().insert(name.to_string(), r);
+                            });
+                        }
                         r
                     }
                     Some(("quoted_string", s)) => s.is_empty(),
@@ -7384,7 +7450,7 @@ impl<'a> StimuliGenerator<'a> {
                         Self::terminal_literal_of_node(tree, e, depth + 1, visiting)
                     {
                         out.push_str(&lit);
-                    } else if Self::node_is_nullable(tree, e, 0, &mut HashSet::new()) {
+                    } else if Self::node_is_nullable(tree, e, 0, &mut HashSet::new(), &mut false) {
                         // nullable (e.g. optional leading trivia) ⇒ skip
                     } else {
                         return None;
@@ -7593,7 +7659,7 @@ impl<'a> StimuliGenerator<'a> {
                 for e in elements {
                     if Self::node_is_newline_terminator(tree, e, depth + 1, visiting) {
                         found = true;
-                    } else if Self::node_is_nullable(tree, e, 0, &mut HashSet::new()) {
+                    } else if Self::node_is_nullable(tree, e, 0, &mut HashSet::new(), &mut false) {
                         // nullable (e.g. optional leading trivia) ⇒ skip
                     } else {
                         return false;

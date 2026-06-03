@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-SV-EXH-PROOF-0147 (leaf SV-EXH-PROOF.7.4.6.2): **node_is_nullable cache (sound, ~24% speedup) — but HONEST: caching is insufficient for literal-0; construction (.7.4.6.3) is the real lever.**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — monotone speedup, no regen, no release bump.
+
+WHAT: node_is_nullable recomputed a STATIC grammar property recursively per call (~26K self-time = the dominant witness cost). Added a SOUND, monotone-BY-CONSTRUCTION cache (avoids the fixpoint-equivalence risk): thread-local NULLABLE_CACHE, grammar-guarded (cleared in new() on grammar change; rule-name keys are grammar-specific). A rule's nullability is cached ONLY when its computation was CYCLE-FREE (node_is_nullable now threads a hit_cycle flag; back-edge into visiting / depth cutoff sets it) — i.e. context-INDEPENDENT, so a cache hit equals the per-call DFS exactly.
+
+VERIFIED MONOTONE: lib (no-features) 588/588 (output unchanged); source-strict clippy 0; same-seed determinism byte-identical. SPEEDUP: interface_declaration_sv_2017 x10 = 90.5s vs ~118s baseline = ~24% (matches the profiled share; with .6.1 regex cache ~25-40% combined). KEEP — a free monotone speedup for ALL generation (witness + diverse + gate runtime).
+
+⚠️ HONEST FINDING (corrects the .7.4.6 "caching not construction" re-scope, measured against the GLOBAL goal): 9s/witness is still ~45x the gate's 200ms budget, so caching does NOT bridge seconds->200ms and does NOT meaningfully reduce the literal-0 residual (273). The witnesses are fundamentally slow from the SEARCH itself (~75% self-time = generate_node/rule/sequence recursion + backtracking, which per-step caching can't remove). So the ORIGINAL derivation-CONSTRUCTION idea IS the real lever -> reinstated as .7.4.6.3 (build the minimal derivation tree directly, backtrack-free, O(tree-size), no timeout). Lesson: profile pinned per-step costs (caching), but measuring vs the global metric showed step-count/search is the dominant barrier.
+
 ## 2026-06-04 - PGEN-SV-EXH-PROOF-0146 (leaf SV-EXH-PROOF.7.4.6.1): **regex compile cache + .7.4.6 RE-SCOPED by profiling (witness slowness = redundant recompute, NOT search/construction); + 24h artifact cleanup (~24 GB reclaimed).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs) — monotone speedup, no regen, no release bump.

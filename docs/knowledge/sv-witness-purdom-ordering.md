@@ -54,7 +54,15 @@ WRONG):** a macOS `sample` profile of slow witness generation shows the cost is 
 search/backtracking (so no construction engine is needed) — it is **redundant recomputation**:
 `node_is_nullable` (~26K self-time; recomputed recursively per `generate_sequence` call, no
 cache, recurses through referenced rules) + regex compile (~6K; terminal patterns recompiled
-per call). Fix = surgical CACHING (monotone, no regen): **`.7.4.6.1` caches compiled regexes
-(DONE)**; **`.7.4.6.2` memoizes nullability** (the big ~26K win; needs fixpoint-vs-per-call
-equivalence verification to stay monotone). This is the same lesson as `TERMINATION.3`:
-profile first; the assumed fix was wrong.
+per call). Surgical CACHING landed (monotone, no regen): **`.7.4.6.1` regex compile cache (DONE)** +
+**`.7.4.6.2` nullability cache (DONE — sound cache-only-cycle-free, ~24%)**.
+**⚠️ BUT caching is INSUFFICIENT for literal-0 (honest correction, 2026-06-04):** combined
+~25-40% speedup, but witnesses are still ~9 s each — ~45× the gate's 200 ms budget — so
+caching does NOT bridge seconds→budget and does NOT meaningfully reduce the residual (273).
+The witnesses are fundamentally slow from the **search** itself (~75% of self-time is the
+generate_node/rule/sequence recursion + backtracking, which per-step caching can't remove).
+So the **original derivation-CONSTRUCTION idea IS the real lever** (`.7.4.6.3`): build the
+minimal derivation tree directly (Purdom shortest-terminating, backtrack-free, O(tree-size),
+no timeout). Lesson refined: profile pinned the *per-step* costs (caching, real but partial);
+measuring against the GLOBAL goal (literal-0) showed the *step-count/search* is the dominant
+barrier → construction. Caching is kept (free speedup for all generation + gate runtime).
