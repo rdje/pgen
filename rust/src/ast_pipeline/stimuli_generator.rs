@@ -3819,6 +3819,66 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
+    /// STIMULI-SIGNOFF.2 (PGEN-STIMULI-SIGNOFF-0002, PURE analysis — no generation change):
+    /// enumerate the grammar's **k-path coverage universe** (Havrikov & Zeller,
+    /// "Systematically Covering Input Structure", ASE 2019). A k-path is a length-k chain of
+    /// nonterminals `n1 -> n2 -> ... -> nk` where each `n_{i+1}` is directly referenced in
+    /// `n_i`'s body (the rule-reference graph, via `collect_rule_references`). k=1 = every
+    /// rule (≈ our rule coverage); k=2 = every reference edge (≈ our branch coverage); k>=3 =
+    /// the deeper ancestor-context combinations our current rule+branch metric does NOT
+    /// measure — i.e. the gap the signoff bar should close. The returned set's size is the
+    /// coverage DENOMINATOR; a later slice tracks the covered subset (numerator) from
+    /// generation. Determinism: built in `rule_order` with sorted successors; no RNG/time.
+    /// GENERAL/parser-agnostic (keyed only on the rule-reference graph). NOTE: the k-path
+    /// count grows combinatorially in k — callers should use small k (2-3) on large grammars.
+    /// `dead_code`-allowed: analysis-only first slice; the coverage-tracking caller lands next.
+    #[allow(dead_code)]
+    fn compute_k_paths(&self, k: usize) -> Vec<Vec<String>> {
+        if k == 0 {
+            return Vec::new();
+        }
+        // Direct rule-reference adjacency: rule -> sorted successors that exist in the grammar.
+        let mut adj: HashMap<String, Vec<String>> = HashMap::new();
+        for rule_name in self.rule_order.iter() {
+            let Some(node) = self.grammar_tree.get(rule_name.as_str()) else {
+                continue;
+            };
+            let mut refs: HashSet<String> = HashSet::new();
+            self.collect_rule_references(node, &mut refs);
+            let mut succ: Vec<String> = refs
+                .into_iter()
+                .filter(|r| self.grammar_tree.contains_key(r.as_str()))
+                .collect();
+            succ.sort();
+            adj.insert(rule_name.clone(), succ);
+        }
+        // Level 1 = every defined rule (in rule_order for determinism).
+        let mut paths: Vec<Vec<String>> = self
+            .rule_order
+            .iter()
+            .filter(|r| self.grammar_tree.contains_key(r.as_str()))
+            .map(|r| vec![r.clone()])
+            .collect();
+        // Extend each path by one referenced rule, k-1 times.
+        for _ in 1..k {
+            let mut next: Vec<Vec<String>> = Vec::new();
+            for path in &paths {
+                if let Some(succ) = path.last().and_then(|last| adj.get(last)) {
+                    for s in succ {
+                        let mut extended = path.clone();
+                        extended.push(s.clone());
+                        next.push(extended);
+                    }
+                }
+            }
+            paths = next;
+            if paths.is_empty() {
+                break;
+            }
+        }
+        paths
+    }
+
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis — no generation
     /// behavior change): like `collect_rule_references`, but also records WHERE
     /// each rule reference occurs, using the same `node_path` encoding as
@@ -15698,6 +15758,48 @@ mod tests {
             table.get("start"),
             Some(&1),
             "start's shortest derivation goes via mid_b (1), not mid_a (2)"
+        );
+    }
+
+    #[test]
+    fn k_path_universe_on_synthetic_grammar() {
+        // STIMULI-SIGNOFF.2: k-path coverage universe (Havrikov & Zeller, ASE 2019).
+        // synthetic_reach_grammar rule-reference graph (6 rules):
+        //   start  -> {mid_a, mid_b}
+        //   mid_a  -> {leaf_x, leaf_y}
+        //   mid_b  -> {deep}
+        //   deep / leaf_x / leaf_y -> {}  (terminals only)
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let g = simple_generator(&grammar_tree, &rule_order, 1);
+
+        assert_eq!(g.compute_k_paths(0).len(), 0, "k=0 is empty");
+        assert_eq!(g.compute_k_paths(1).len(), 6, "k=1 = every rule (6)");
+        // k=2 edges: start->mid_a, start->mid_b, mid_a->leaf_x, mid_a->leaf_y, mid_b->deep
+        assert_eq!(g.compute_k_paths(2).len(), 5, "k=2 = reference edges (5)");
+        // k=3 chains: [start,mid_a,leaf_x], [start,mid_a,leaf_y], [start,mid_b,deep]
+        let k3 = g.compute_k_paths(3);
+        assert_eq!(k3.len(), 3, "k=3 = depth-3 chains (3); got {:?}", k3);
+        assert!(
+            k3.contains(&vec![
+                "start".to_string(),
+                "mid_b".to_string(),
+                "deep".to_string()
+            ]),
+            "the deep-context k-path start->mid_b->deep must be in the k=3 universe (the kind \
+             of context combination rule+branch coverage does NOT measure); got {:?}",
+            k3
+        );
+        assert_eq!(
+            g.compute_k_paths(4).len(),
+            0,
+            "no length-4 chain exists (deepest is start->mid_b->deep, length 3)"
+        );
+        // Deterministic given a fixed rule_order (two calls identical within the run).
+        assert_eq!(
+            g.compute_k_paths(3),
+            g.compute_k_paths(3),
+            "k-path enumeration must be deterministic"
         );
     }
 

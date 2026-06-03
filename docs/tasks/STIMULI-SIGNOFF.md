@@ -52,11 +52,11 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
   Commit: `PGEN-STIMULI-SIGNOFF-0001`
 
 - ID: `STIMULI-SIGNOFF.2`
-  Status: `pending` (gap #1 — TOP; defines the signoff bar)
+  Status: `in progress` (gap #1 — TOP; defines the signoff bar) — `.2.1` universe DONE; `.2.2` covered-subset + bar restatement pending
   Goal: `k-PATH COVERAGE METRIC (Havrikov & Zeller, ASE 2019; tool Tribble). Generalize coverage from rule+branch (≈k=1/2) to a chosen-k path measure (a syntactic element in the context of its depth-k ancestors). This DEFINES "exhaustive coverage" more rigorously than rule+branch — "every depth-k context combination covered". Parser-agnostic grammar-structure property; re-express the SV residual as k-path debt.`
   Acceptance: `a k-path measure computed over any grammar; the signoff bar restated in k-path terms; SV residual re-expressed. Code leaf, tools-first.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `.2.1 DONE (PGEN-STIMULI-SIGNOFF-0002) — the coverage UNIVERSE (denominator). Implemented compute_k_paths(k) in stimuli_generator.rs (PURE analysis, no generation change, like .7.4.2's min-length table): enumerates length-k chains of nonterminals over the rule-reference graph (reuses collect_rule_references), deterministic (rule_order + sorted successors). k=1 = rules (≈ our rule coverage); k=2 = reference edges (≈ branch coverage); k>=3 = the deeper ancestor-context combinations our rule+branch metric does NOT measure. Unit-tested on synthetic_reach_grammar (k=1→6, k=2→5, k=3→3 incl. start->mid_b->deep, k=4→0, determinism). lib 585/585; source-strict clippy 0; #[allow(dead_code)] until the .2.2 caller. .2.2 PENDING: track the COVERED k-path subset (numerator) from generation + restate the SV signoff bar (currently rule+branch ≈ k≤2) as chosen-k coverage + re-express the residual as k-path debt. NOTE: k-path count grows combinatorially → bound k (2-3) on SV.`
+  Commit: `PGEN-STIMULI-SIGNOFF-0002 (.2.1)`
 
 - ID: `STIMULI-SIGNOFF.3`
   Status: `pending` (gap #4 — pairs with .2)

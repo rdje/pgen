@@ -29,7 +29,9 @@ code-verified feature surface).
 **SIX GAPS vs the signoff bar** (→ leaves `STIMULI-SIGNOFF.2`–`.7`):
 1. **k-path coverage (k>2)** — Havrikov & Zeller, ASE 2019 (Tribble). Ours is rule+branch
    (≈k=1/2). The principled "covered the input STRUCTURE" metric; **defines** exhaustive
-   coverage. **TOP gap** (`.2`).
+   coverage. **TOP gap** (`.2`). PARTIAL: the coverage UNIVERSE/denominator is implemented
+   (`compute_k_paths`, `STIMULI-SIGNOFF.2.1`); covered-subset (numerator) + bar restatement
+   pending (`.2.2`).
 2. **Learned/probabilistic directed generation** — FDLOOP, arXiv 2508.01472 (2025). Ours is
    deterministic reach-plan SEARCH (times out on deep targets). **Co-owned with
    `SV-EXH-PROOF.7.4.6`** — the literal-0 reach (`.4`).

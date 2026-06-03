@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-03 - PGEN-STIMULI-SIGNOFF-0002 (leaf STIMULI-SIGNOFF.2.1): **k-path coverage UNIVERSE (denominator) — compute_k_paths, the metric that defines the signoff bar.**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs) — PURE analysis, NO generation change, no release bump. Closes the top stimuli gap's first slice (gap #1, k-path coverage).
+
+WHAT: compute_k_paths(k) enumerates the grammar's k-path coverage universe (Havrikov & Zeller, "Systematically Covering Input Structure", ASE 2019) — length-k chains of nonterminals n1->...->nk over the rule-reference graph (reuses collect_rule_references), deterministic (rule_order + sorted successors). k=1 = rules (≈ our rule coverage); k=2 = reference edges (≈ branch coverage); k>=3 = the deeper ancestor-context combinations our rule+branch metric does NOT measure — i.e. the gap the signoff bar must close. Returns the universe (the coverage DENOMINATOR). Analysis-only (#[allow(dead_code)] until the .2.2 caller), mirroring .7.4.2's min-length table. NOTE: k-path count grows combinatorially → bound k (2-3) on SV.
+
+VERIFIED: unit test k_path_universe_on_synthetic_grammar (k=1→6, k=2→5, k=3→3 incl. start->mid_b->deep, k=4→0, determinism); lib (no-features) 585/585 (+1); source-strict clippy 0. NO grammar/codegen/generated change. .2.2 PENDING: covered-subset (numerator) from generation + restate the SV signoff bar (rule+branch ≈ k≤2) as chosen-k coverage + re-express the residual as k-path debt. KM card stimuli-generator-capability-gaps gap #1 → PARTIAL.
+
 ## 2026-06-03 - PGEN-PARSE-PILLARS-0002 (PARSE-COMPLETENESS.1 + PARSE-FIDELITY.1 frontier leaves): **the two no-external-tooling pillar frontier leaves — harness design + oracle inventory.**
 
 Pure docs — NO code change. The PARSE-* frontier leaves doable in-session without external tooling/sign-off.
