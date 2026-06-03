@@ -102,11 +102,24 @@ leaf's premise** — it is **NOT** CC 2020 conditional memoization:
   N^1.66 → ~N^1.0 (linear, matching the width baseline); fixes the super-linearity + likely
   the historical uvm_pkg slowness.
 
-### `.3.1` — implement the checkpoint/rollback swap — PENDING (turnkey from `.3`)
-Apply the codegen change above; **regen all 10 parsers**; VERIFY: the `.1` linearity probe
-(store now ~N^1.0), SV external corpus 14/14, lib (no-features + generated_parsers),
-shape-contracts, determinism. A delicate engine change touching every parser → its own
-focused slice with the full battery (not a session-tail rush). KM [[stateful-packrat-not-linear]].
+### `.3.1` — implement the checkpoint/rollback swap — PENDING (NOT a clean swap — subtlety below)
+Apply the fix in `with_semantic_runtime_rule_transaction` (codegen `ast_based_generator.rs`).
+`generated/` is GITIGNORED (not committed) → the commit is the codegen `.rs` only; regen is
+local verification. The 4 sites: snapshot (`:1281-1283`), entry-fact-len read (`:1385`),
+failure-restore (`:1552`), and the codegen self-test assertion (`:7622`,
+"let original_semantic_runtime_state" → update to assert checkpoint/rollback).
+⚠️ **DISCOVERED SUBTLETY (2026-06-03, found while scoping the edit — NOT a 3-line swap):** the
+success path does `std::mem::take(&mut self.semantic_runtime_state)` mid-function (`:1389`)
+for the commit/delta machinery, then restores it (`:1546`). The original full-clone restore
+(`self.state = original`) is robust to a failure BETWEEN the take and the put-back. A naive
+`rollback_to(checkpoint)` would run on an EMPTIED `self.state` on that path → cannot restore
+pre-checkpoint facts → **lost-facts correctness hole**. So `.3.1` must EITHER restructure the
+transaction/commit machinery to operate on `self.state` in place (no mid-`take`) OR
+restore-the-taken-state-before-rollback on the failure path. This is a careful refactor of the
+transaction machinery, not a swap → a dedicated, fully-tested focused slice. VERIFY: `.1`
+linearity probe (store → ~N^1.0), SV external corpus 14/14, lib (no-features +
+generated_parsers), shape-contracts, determinism, AND a targeted test for the
+failure-between-take-and-putback path. KM [[stateful-packrat-not-linear]].
 
 ### `.4` — runtime step-budget watchdog (hang → classified severity error) — PENDING
 A hard per-parse step/time budget that converts a would-be hang into a `pgen_error!`-class
