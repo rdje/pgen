@@ -3,7 +3,7 @@
 > **AUTO-GENERATED — DO NOT EDIT.** Regenerate with `knowledge-map/scripts/gen_knowledge_map.sh`.
 > Source of truth = YAML front-matter in: `docs/knowledge docs/decisions`. Edit the fact files, never this map.
 > A fact is any `.md` whose front-matter has a non-empty `answers:` list.
-> **14** facts · **70** question keys.
+> **16** facts · **86** question keys.
 
 ## Questions → fact
 
@@ -12,7 +12,19 @@
 - "does packrat memoization guarantee no catastrophic backtracking here" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
 - "does the semantic store affect parse-time complexity" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
 - "does the stimuli generator have all the necessary features" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
+- "how do I dump the grammar IR / gen_ast.json used by stimuli generation" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
+- "how do I dump the parsed AST of a grammar rule" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
+- "how do I generate grammar stimuli from the command line" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
+- "how do I lint a grammar for well-formedness from the CLI" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
+- "how do I regenerate a parser from its grammar" -> [makefile-targets-reference](docs/knowledge/makefile-targets-reference.md) · 2026-06-04 · reverify: ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
+- "how do I regenerate the SystemVerilog parser after a grammar edit" -> [makefile-targets-reference](docs/knowledge/makefile-targets-reference.md) · 2026-06-04 · reverify: ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
+- "how do I run clippy the project-sanctioned way" -> [makefile-targets-reference](docs/knowledge/makefile-targets-reference.md) · 2026-06-04 · reverify: ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
+- "how do I run the SV stimuli quality gate or the external-corpus triage" -> [makefile-targets-reference](docs/knowledge/makefile-targets-reference.md) · 2026-06-04 · reverify: ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
+- "how do I run the ast_pipeline binary and what are its modes" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
+- "how do I run the mdbook docs gate" -> [makefile-targets-reference](docs/knowledge/makefile-targets-reference.md) · 2026-06-04 · reverify: ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
+- "how do I run the witness pass (target-report-input) by hand" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
 - "how do I tell a depth failure from a visit-limit or timeout failure" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
+- "how do I write generated stimuli to a file (--output vs positional path)" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
 - "how do we detect mis-parse (accepted but wrong AST)" -> [parse-fidelity-oracles](docs/knowledge/parse-fidelity-oracles.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-FIDELITY.md literature grounding`
 - "how do we prove the parser never rejects valid input" -> [parse-completeness-differential-oracle](docs/knowledge/parse-completeness-differential-oracle.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-COMPLETENESS.md literature grounding`
 - "how does the generator steer to a specific coverage target" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
@@ -31,6 +43,7 @@
 - "is the parser failing on real inputs or is it the stimuli generator" -> [parser-signoff-four-pillars](docs/knowledge/parser-signoff-four-pillars.md) · 2026-06-03 · reverify: `grep -l "parser sign-off pillar" docs/tasks/PARSE-*.md`
 - "is there a published technique for the literal-0 / derivation-directed generation idea" -> [grammar-coverage-and-directed-generation](docs/knowledge/grammar-coverage-and-directed-generation.md) · 2026-06-03 · reverify: `see docs/tasks/SV-EXH-PROOF.md (.7.4.x) + docs/tasks/STIMULI-SIGNOFF.md`
 - "is there a ready-made SV compliance test suite" -> [parse-completeness-differential-oracle](docs/knowledge/parse-completeness-differential-oracle.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-COMPLETENESS.md literature grounding`
+- "what Makefile targets exist and which do I use" -> [makefile-targets-reference](docs/knowledge/makefile-targets-reference.md) · 2026-06-04 · reverify: ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
 - "what are never_hit / never_selected / selected_but_failed reasons" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what are the non-covering branch targets in SV stimuli coverage" -> [sv-literal-0-residual-decomposition](docs/knowledge/sv-literal-0-residual-decomposition.md) · 2026-06-04 · reverify: `run the witness pass (--target-report-input <150-sample> --target-max-attempts 0 --target-generation-timeout-ms 200 --seed 712001 --output /tmp/o.json) and read the "Witness 'target_timeout'-failure samples" + "still-UNRESOLVED samples" stdout lines; or `make sv_stimuli_quality_gate` for closed_loop_replay_targets_total`
 - "what are the remaining problem types for the SV parser" -> [parser-signoff-four-pillars](docs/knowledge/parser-signoff-four-pillars.md) · 2026-06-03 · reverify: `grep -l "parser sign-off pillar" docs/tasks/PARSE-*.md`
@@ -41,6 +54,7 @@
 - "what does the Stimuli generation depth exceeded message mean" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what does the stimuli coverage gap report measure" -> [stimuli-residual-coverage-model](docs/knowledge/stimuli-residual-coverage-model.md) · 2026-06-03 · reverify: `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what does the witness construction speedup (Cow) do" -> [sv-literal-0-residual-decomposition](docs/knowledge/sv-literal-0-residual-decomposition.md) · 2026-06-04 · reverify: `run the witness pass (--target-report-input <150-sample> --target-max-attempts 0 --target-generation-timeout-ms 200 --seed 712001 --output /tmp/o.json) and read the "Witness 'target_timeout'-failure samples" + "still-UNRESOLVED samples" stdout lines; or `make sv_stimuli_quality_gate` for closed_loop_replay_targets_total`
+- "what env vars tune stimuli/witness generation" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
 - "what is GenerationErrorReason / classify_generation_error" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
 - "what is PEG / what is Packrat / what is a data-dependent grammar" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
 - "what is PGEN with respect to PEG and Packrat" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
@@ -65,12 +79,14 @@
 - "what should a signoff-grade EBNF stimuli generator do that ours doesn't" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
 - "what to do after the SV main parser reaches Done" -> [rgx-0078-regex-slowness-followup](docs/knowledge/rgx-0078-regex-slowness-followup.md) · 2026-06-03 · reverify: `cat the RGX issue yaml; run the pgen_iteration_flow harness (PCRE2-relative bench)`
 - "where are depth_exceeded_errors / target_timeout_errors counted" -> [stimuli-generation-error-reasons](docs/knowledge/stimuli-generation-error-reasons.md) · 2026-06-03 · reverify: `grep -n "GenerationErrorReason\|classify_generation_error" rust/src/ast_pipeline/stimuli_generator.rs`
+- "where are the gate shell scripts and how do I run one directly" -> [makefile-targets-reference](docs/knowledge/makefile-targets-reference.md) · 2026-06-04 · reverify: ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
 - "where are typed AST objects constructed in PGEN" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
 - "where does PGEN stand in the parsing literature" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
 - "which files build the AST object map" -> [ast-two-surface-construction](docs/knowledge/ast-two-surface-construction.md) · 2026-06-03 · reverify: `grep -n "serde_json::Map::new\|Value::Object" rust/src/ast_pipeline/unified_return_ast.rs`
 - "which task tree owns parser reject / hang / mis-parse" -> [parser-signoff-four-pillars](docs/knowledge/parser-signoff-four-pillars.md) · 2026-06-03 · reverify: `grep -l "parser sign-off pillar" docs/tasks/PARSE-*.md`
 - "why can't deeply-nested SV rules be generated from the top entry" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "why do SV witnesses time out instead of erroring" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
+- "why does ast_pipeline say it requires --features ebnf_dual_run" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
 - "why does replay_target_count plateau (e.g. at 888)" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "why doesn't the SystemVerilog stimuli residual reach zero" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "why is the SV stimuli residual not literal-0" -> [sv-literal-0-residual-decomposition](docs/knowledge/sv-literal-0-residual-decomposition.md) · 2026-06-04 · reverify: `run the witness pass (--target-report-input <150-sample> --target-max-attempts 0 --target-generation-timeout-ms 200 --seed 712001 --output /tmp/o.json) and read the "Witness 'target_timeout'-failure samples" + "still-UNRESOLVED samples" stdout lines; or `make sv_stimuli_quality_gate` for closed_loop_replay_targets_total`
@@ -79,6 +95,15 @@
 - "why might the SV parser hang or go exponential" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
 
 ## Facts (by id)
+
+### ast-pipeline-cli-reference
+_ast_pipeline CLI — modes, key flags, env vars, and the gotchas_
+
+- **answers:** how do I run the ast_pipeline binary and what are its modes | how do I generate grammar stimuli from the command line | how do I dump the grammar IR / gen_ast.json used by stimuli generation | why does ast_pipeline say it requires --features ebnf_dual_run | how do I run the witness pass (target-report-input) by hand | what env vars tune stimuli/witness generation | how do I write generated stimuli to a file (--output vs positional path) | how do I lint a grammar for well-formedness from the CLI | how do I dump the parsed AST of a grammar rule
+- **date:** 2026-06-04 · **status:** current
+- **evidence:** `rust/src/main.rs (arg parsing); `rust/target/release/ast_pipeline --help``
+- **reverify:** `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
+- **source:** [`docs/knowledge/ast-pipeline-cli-reference.md`](docs/knowledge/ast-pipeline-cli-reference.md)
 
 ### ast-two-surface-construction
 _PGEN builds typed AST objects on TWO surfaces that must change in lockstep_
@@ -97,6 +122,15 @@ _Don't reinvent stimuli coverage / targeted generation — k-path, Tribble, FDLO
 - **evidence:** `Purdom 1972 sentence generator; Havrikov & Zeller, Systematically Covering Input Structure (k-paths), ASE 2019 + tool Tribble; Kirschner & Soremekun, Directed Grammar-Based Test Generation (FDLOOP), arXiv 2508.01472 (2025); Boltzmann samplers (Duchon et al. 2004; USAIN BOLTZ); EMI (PLDI 2014)`
 - **reverify:** `see docs/tasks/SV-EXH-PROOF.md (.7.4.x) + docs/tasks/STIMULI-SIGNOFF.md`
 - **source:** [`docs/knowledge/grammar-coverage-and-directed-generation.md`](docs/knowledge/grammar-coverage-and-directed-generation.md)
+
+### makefile-targets-reference
+_rust/Makefile — the targets you actually reach for (regen, gates, clippy, book)_
+
+- **answers:** what Makefile targets exist and which do I use | how do I regenerate a parser from its grammar | how do I regenerate the SystemVerilog parser after a grammar edit | how do I run the SV stimuli quality gate or the external-corpus triage | how do I run clippy the project-sanctioned way | how do I run the mdbook docs gate | where are the gate shell scripts and how do I run one directly
+- **date:** 2026-06-04 · **status:** current
+- **evidence:** `rust/Makefile (phony targets); rust/scripts/*.sh (gate implementations)`
+- **reverify:** ``grep -oE "^[a-zA-Z_][a-zA-Z0-9_]*:" rust/Makefile | sort -u` for the live target list; `ls rust/scripts/*.sh` for gates`
+- **source:** [`docs/knowledge/makefile-targets-reference.md`](docs/knowledge/makefile-targets-reference.md)
 
 ### parse-completeness-differential-oracle
 _Don't reinvent the no-reject oracle — differential testing + ready-made SV corpus_
