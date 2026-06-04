@@ -1499,6 +1499,17 @@ fn main() -> Result<()> {
                     println!("- {sample}");
                 }
             }
+            // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): surface targets still UNRESOLVED after the
+            // witness pass (incl. the non-covering class: construct Ok but witness uncovered).
+            if !witness_summary.unresolved_after_samples.is_empty() {
+                println!(
+                    "Witness still-UNRESOLVED samples ({} shown | target_id | rule | type | node_path | branch | attempted):",
+                    witness_summary.unresolved_after_samples.len()
+                );
+                for sample in &witness_summary.unresolved_after_samples {
+                    println!("- {sample}");
+                }
+            }
             generated_samples.extend(witness_samples);
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples

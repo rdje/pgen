@@ -904,6 +904,12 @@ pub struct WitnessSummary {
     /// sampled, so the residual's WHERE (which rules/types dead-end) was invisible.
     #[serde(default)]
     pub timeout_failure_samples: Vec<String>,
+    /// SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): bounded sample of targets STILL unresolved after the
+    /// witness pass — surfaces the non-covering class (construct Ok, witness didn't cover) that
+    /// never errors. `attempted=true` means a witness WAS generated for it yet it stayed
+    /// uncovered.
+    #[serde(default)]
+    pub unresolved_after_samples: Vec<String>,
 }
 
 impl WitnessSummary {
@@ -2711,8 +2717,27 @@ impl<'a> StimuliGenerator<'a> {
         self.witness_min_terminal_lengths = None;
         self.construct_mode = false; // defensive (also reset per-iteration after each attempt)
 
-        let resolved_after =
-            total_targets.saturating_sub(self.evaluate_target_statuses(&applicable).len());
+        let final_unresolved = self.evaluate_target_statuses(&applicable);
+        let resolved_after = total_targets.saturating_sub(final_unresolved.len());
+        // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): sample the targets STILL unresolved after the
+        // witness pass — includes the "construct succeeded but the witness did not cover the
+        // target" (non-covering) class, which never errors and so is invisible to the failure
+        // counters. Each: target_id | rule | type | node_path | branch | attempted.
+        let unresolved_after_samples: Vec<String> = final_unresolved
+            .iter()
+            .take(WITNESS_OTHER_FAILURE_SAMPLE_CAP)
+            .map(|status| {
+                format!(
+                    "target_id='{}' rule='{}' type={:?} node_path={:?} branch={:?} attempted={}",
+                    status.id,
+                    status.rule_name,
+                    status.target_type,
+                    status.node_path,
+                    status.branch_index,
+                    attempted.contains(&status.id)
+                )
+            })
+            .collect();
 
         Ok((
             outputs,
@@ -2730,6 +2755,7 @@ impl<'a> StimuliGenerator<'a> {
                 other_failure_samples,
                 construct_attempt_failures,
                 timeout_failure_samples,
+                unresolved_after_samples,
             },
         ))
     }

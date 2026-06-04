@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-SV-EXH-PROOF-0151 (leaf SV-EXH-PROOF.7.4.6.4 tool extension; .7.4.6.6 opened): **residual fully DECOMPOSED — (A) property_expr timeouts (budget-solvable, ~3000ms post-Cow) + (B) 4 non-covering branches (ambiguous/left-recursive rules).**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs + main.rs) — pure diagnostic (monotone, no generation change), no regen, no release bump.
+
+- TOOL: witness summary now also samples the targets STILL UNRESOLVED after the pass (unresolved_after_samples) — surfaces the NON-COVERING class (construct Ok, witness uncovered) that never errors and so was invisible to the failure counters.
+- DECOMPOSITION of the 97 (150-sample): (A) property_expr deep-branch TIMEOUTS — post-Cow witness-floor sweep resolves them at ~3000ms (budget lever, now affordable via the 2x speedup; parser-agnostic env). (B) exactly 4 NON-COVERING branches: net_type_declaration_sv_2017 #0/#1 (overlapping branches) + sequence_expr #4/#8 (left-recursive rule, auto-eliminated). (B)'s WHY not yet pinned (branch-coverage-mechanism trace needed) → opened .7.4.6.6.
+- lib 588/588; clippy source 0. Honest: literal-0 is NOT yet reached; the residual is now characterized into two named causes with distinct levers.
+
 ## 2026-06-04 - PGEN-SV-EXH-PROOF-0150 (leaves SV-EXH-PROOF.7.4.6.4 tool-build + .7.4.6.5 fix): **residual pinned to property_expr construction COST (not dead-ends); 2× construction speedup via Cow (parser-agnostic, monotone).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs + main.rs) — monotone (byte-identical generation), no regen, no release bump.
