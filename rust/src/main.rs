@@ -2215,8 +2215,9 @@ fn run_k_path_coverage_report(
 fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         detect_left_recursion, detect_nonterminating_rules, detect_nullable_repetition,
-        detect_ordered_choice_shadowing,
+        detect_ordered_choice_shadowing, detect_profile_orphans,
     };
+    use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
     let order = &grammar.rule_order;
     let lr = detect_left_recursion(g, order);
@@ -2224,14 +2225,54 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     let shadow = detect_ordered_choice_shadowing(g, order);
     let nullrep = detect_nullable_repetition(g, order);
 
+    // ANNOTATION-COMPOSITION.2: extract each rule's @profiles set from the annotations (same
+    // shape the generator filters by) + the profile universe, then sweep for profile orphans.
+    let mut rule_profiles: HashMap<String, Vec<String>> = HashMap::new();
+    let mut profile_universe: std::collections::BTreeSet<String> = Default::default();
+    if let Some(ann) = grammar.annotations.as_ref() {
+        for (rule, entries) in &ann.semantic_annotations {
+            for annotation in entries {
+                let is_profiles = annotation
+                    .name()
+                    .map(|n| n.trim().to_ascii_lowercase())
+                    == Some("profiles".to_string());
+                if !is_profiles {
+                    continue;
+                }
+                if let Some(list) = parse_semantic_string_list(annotation.ast().payload_text()) {
+                    let profs: Vec<String> = list
+                        .into_iter()
+                        .map(|v| v.trim().to_ascii_lowercase())
+                        .filter(|v| !v.is_empty())
+                        .collect();
+                    if !profs.is_empty() {
+                        for p in &profs {
+                            profile_universe.insert(p.clone());
+                        }
+                        rule_profiles.insert(rule.clone(), profs);
+                    }
+                }
+            }
+        }
+    }
+    let all_profiles: Vec<String> = profile_universe.into_iter().collect();
+    // A profile-specific orphan needs ≥2 profiles to exist (the "satisfiable elsewhere" test).
+    let orphans = if all_profiles.len() >= 2 {
+        detect_profile_orphans(g, order, &rule_profiles, &all_profiles)
+    } else {
+        Vec::new()
+    };
+
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (warning), nullable_repetition={} (warning)",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (warning), nullable_repetition={} (warning), profile_orphans={} (warning; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         lr.len(),
         nonterm.len(),
         shadow.len(),
-        nullrep.len()
+        nullrep.len(),
+        orphans.len(),
+        all_profiles
     );
     for issue in lr.iter().take(10) {
         println!("  [info]  {}", issue.message());
@@ -2252,6 +2293,15 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         println!(
             "  [warn]  ... and {} more nullable-repetition findings",
             nullrep.len() - 40
+        );
+    }
+    for issue in orphans.iter().take(40) {
+        println!("  [warn]  {}", issue.message());
+    }
+    if orphans.len() > 40 {
+        println!(
+            "  [warn]  ... and {} more profile-orphan findings",
+            orphans.len() - 40
         );
     }
     for issue in &nonterm {

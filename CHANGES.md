@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0003 (leaf ANNOTATION-COMPOSITION.2): **profile-consistency LINT — and the sweep found 36 sibling @profiles orphans (the canary was NOT isolated).**
+
+Code (rust/src/ast_pipeline/grammar_wellformedness.rs + main.rs) — pure analysis, parser-agnostic, no regen, no release bump.
+
+- LINT: WellformednessIssue::ProfileOrphan + node_satisfiable (composition algebra from the doctrine: terminal=⊤, rule-ref=defined&&present-under-profile&&satisfiable, sequence=AND/∩, alternation=OR/∪, optional/star=⊤, plus=inner, lookahead=⊤, EXTERNAL/undefined ref=⊤ for soundness/no-false-positives) + detect_profile_orphans (per-profile SATISFIABILITY fixpoint mirroring compute_nullable; flags PRESENT-but-unsatisfiable rules, only when satisfiable under another profile so genuine non-termination isn't conflated). Wired into --lint-grammar (builds rule_profiles from the @profiles annotations + the profile universe; runs when ≥2 profiles).
+- SWEEP (the payoff): `--lint-grammar grammars/systemverilog.ebnf` → **profile_orphans=36** (22 sv_2017 + 14 sv_2023). binary_module_path_operator (.3) was NOT isolated — 36 siblings, many edition-rename pairs (nettype_declaration/net_type_declaration, rs_production/production, nonconsecutive_repetition/non_consecutive_repetition, ...). Reported as WARNINGS (lint exit still tied to non_terminating=0). The 36 are a remediation backlog (leaf .6) — each needs LRM-grounded analysis; some may be latent parser gaps. NEVER silence by mass-tagging.
+- VERIFIED: 2 unit tests (orphan + star-guarded-not-orphan); lib (no-features) 590/0; clippy source 0.
+
 ## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0002 (leaf ANNOTATION-COMPOSITION.3): **canary grammar fix — binary_module_path_operator @profiles orphan resolved (collapsed to canonical style); latent sv_2017 parser gap closed.**
 
 Grammar (grammars/systemverilog.ebnf) — strictly-more-permissive under sv_2017; AST shape changes for a corpus-UNEXERCISED rule (no live drift). generated/ is GITIGNORED → grammar source committed, regen local.
