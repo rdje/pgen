@@ -604,19 +604,15 @@ binary_digit := x_digit                 -> {kind: "x"}
              | kw_n_0_b6589fc6          -> {kind: "0"}
              | kw_n_1_356a192b          -> {kind: "1"}
 
-@profiles: ["sv_2023"]
-binary_module_path_operator_sv_2023 := equal               -> {kind: "equal"}
-                                     | not_equal           -> {kind: "not_equal"}
-                                     | logical_and         -> {kind: "logical_and"}
-                                     | logical_or          -> {kind: "logical_or"}
-                                     | bitwise_and         -> {kind: "bitwise_and"}
-                                     | bitwise_or          -> {kind: "bitwise_or"}
-                                     | bitwise_xor         -> {kind: "bitwise_xor"}
-                                     | reduction_xnor_alt  -> {kind: "reduction_xnor_alt"}
-                                     | reduction_xnor      -> {kind: "reduction_xnor"}
-
-binary_module_path_operator := binary_module_path_operator_sv_2023
-                            -> {body: $1}
+binary_module_path_operator := equal                -> {kind: "equal"}
+                            | not_equal           -> {kind: "not_equal"}
+                            | logical_and         -> {kind: "logical_and"}
+                            | logical_or          -> {kind: "logical_or"}
+                            | bitwise_and         -> {kind: "bitwise_and"}
+                            | bitwise_or          -> {kind: "bitwise_or"}
+                            | bitwise_xor         -> {kind: "bitwise_xor"}
+                            | reduction_xnor_alt  -> {kind: "reduction_xnor_alt"}
+                            | reduction_xnor      -> {kind: "reduction_xnor"}
 
 binary_value_tail := kw_sv_rule_c82a06f6 | binary_digit
 binary_value := binary_digit ( binary_value_tail )* -> {first: $1, rest: $2}

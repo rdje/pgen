@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0002 (leaf ANNOTATION-COMPOSITION.3): **canary grammar fix — binary_module_path_operator @profiles orphan resolved (collapsed to canonical style); latent sv_2017 parser gap closed.**
+
+Grammar (grammars/systemverilog.ebnf) — strictly-more-permissive under sv_2017; AST shape changes for a corpus-UNEXERCISED rule (no live drift). generated/ is GITIGNORED → grammar source committed, regen local.
+
+- FIX: collapsed `binary_module_path_operator` to match its sibling `unary_module_path_operator` (canonical operator-rule style) — one profile-neutral rule, 9 bare {kind} branches; removed the spurious `@profiles: ["sv_2023"]` tag + the `binary_module_path_operator_sv_2023` variant + the `{body}` wrapper.
+- WHY (director's questions answered): it is NOT a 2023-only construct — IEEE 1800 §A.6.2 operators (== != && || & | ^ ^~ ~^) are edition-invariant, and the sibling unary_module_path_operator is untagged/bare-{kind}. The @profiles tag was a bug → a PROFILE ORPHAN: present-but-unsatisfiable under sv_2017 (the profile filter removed its only production, leaving a dangling reference), surfaced by the stimuli generator as rule::binary_module_path_operator "Missing rule".
+- VERIFIED: regen (parser mtime > grammar; variant count=0); orphan resolves under BOTH profiles (was "Missing" under sv_2017); shape contract 13/13 (corpus-unexercised → no drift; calibration_history note added); lib --features generated_parsers --lib 650/0; SV external corpus triage 14/14 (0 fail / 0 skip). Also closes a LATENT sv_2017 PARSER gap (module-path == chains).
+- This is the canary for the ANNOTATION-COMPOSITION doctrine; the .2 lint will sweep all 185 @profiles-tagged rules for siblings.
+
 ## 2026-06-04 - PGEN-SV-EXH-PROOF-0153 (leaf SV-EXH-PROOF.7.4.6.6 measurement): **gate@3000ms DISPROVES budget as a lever (120 > 97); residual is a TARGET-UNIVERSE-correctness problem + carries run-to-run variance.**
 
 Docs/tracking only — records a canonical-gate measurement. No code change.
