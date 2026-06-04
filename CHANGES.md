@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0004 (leaf ANNOTATION-COMPOSITION.6.1): **characterized the 36 @profiles orphans — 3 classes; blanket fixes are UNSAFE (invariant traps).**
+
+Pure investigation (tool-backed) — no code change.
+
+- ALL 36 share the structure `base := base_sv_<EDITION>` (untagged base aliasing a SINGLE-edition variant; the other edition's variant never exists). Tool-verified taxonomy — the CORRECT fix DIFFERS per class, so neither a blanket tag NOR a blanket derive-by-default is safe:
+  - (A) sv_2023-NEW features (~9): genuinely 2023-only → tag base @profiles sv_2023. SAFE.
+  - (B) edition-RENAME pairs (net_type_declaration↔nettype_declaration, production↔rs_production, weight_specification↔rs_weight_specification, list_of_parameter_assignments↔list_of_parameter_value_assignments, ...): construct served in both editions under different names → tag each base to its variant's edition. SAFE.
+  - (C) invariant TRAPS (the binary_module_path_operator class): CONFIRMED non_zero_decimal_digit (variant = literally digit "1"; decimal_digit is profile-neutral) + non_zero_unsigned_number (transitive); NEEDS LRM check: range_list/open_range_list, open_value_range. → must be NEUTRALIZED (the .3 collapse), NEVER tagged (tagging would create a REAL parser gap).
+- Conclusion: per-rule LRM §A grounding required; the .2 lint is the regression backstop. Fix batches: .6.2 Class A, .6.3 Class B, .6.4 Class C + lock the lint at 0.
+
 ## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0003 (leaf ANNOTATION-COMPOSITION.2): **profile-consistency LINT — and the sweep found 36 sibling @profiles orphans (the canary was NOT isolated).**
 
 Code (rust/src/ast_pipeline/grammar_wellformedness.rs + main.rs) — pure analysis, parser-agnostic, no regen, no release bump.
