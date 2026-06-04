@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0005 (leaf ANNOTATION-COMPOSITION.6.4, partial): **Class-C trap fix — neutralize non_zero_decimal_digit family (2 of 36 orphans; profile_orphans 36 → 34).**
+
+Grammar (grammars/systemverilog.ebnf) — strictly-more-permissive (adds the invariant digits 1-9 back under sv_2023); shape-IDENTICAL. generated/ GITIGNORED → grammar source committed, regen local.
+
+- FIX (the .3 collapse pattern, Class C = invariant trap): non_zero_decimal_digit had a spurious `@profiles: ["sv_2017"]` on its only variant (digits 1-9 — edition-invariant lexical bedrock, identical in every SV edition; decimal_digit itself is profile-neutral). Removed the tag + the _sv_2017 variant + the alias → collapsed to a single profile-neutral `non_zero_decimal_digit := kw_n_1 -> {kind:"1"} | ... | kw_n_9 -> {kind:"9"}`. The base had NO wrapper (just an alias), so the output shape is IDENTICAL (no schema/manifest change). non_zero_unsigned_number (which references it) resolves TRANSITIVELY.
+- WHY this is unambiguous (no LRM lookup needed): decimal digits 1-9 are not an edition feature; tagging them sv_2017 was the binary_module_path_operator bug class. NEVER tag a Class-C trap (would create a real parser gap under the other edition).
+- VERIFIED: lint profile_orphans 36 → 34 (both gone); regen (parser mtime > grammar; variant count=0); lib --features generated_parsers --lib 652/0; corpus 14/14 confirm in flight (strictly-more-permissive + shape-identical → cannot regress).
+- Remaining 34: Class A (sv_2023-new → tag), Class B (rename-pairs → tag), rest of Class C (range_list/open_range_list, open_value_range → LRM §A.8.3 check). All LRM-grounded, no guessing.
+
 ## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0004 (leaf ANNOTATION-COMPOSITION.6.1): **characterized the 36 @profiles orphans — 3 classes; blanket fixes are UNSAFE (invariant traps).**
 
 Pure investigation (tool-backed) — no code change.

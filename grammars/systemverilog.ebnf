@@ -3420,18 +3420,15 @@ non_port_program_item := attribute_instance* continuous_assign
                        | program_generate_item
                              -> {kind: "program_generate_item",            body: $1}
 
-@profiles: ["sv_2017"]
-non_zero_decimal_digit_sv_2017 := kw_n_1_356a192b -> {kind: "1"}
-                                | kw_n_2_da4b9237 -> {kind: "2"}
-                                | kw_n_3_77de68da -> {kind: "3"}
-                                | kw_n_4_1b645389 -> {kind: "4"}
-                                | kw_n_5_ac3478d6 -> {kind: "5"}
-                                | kw_n_6_c1dfd96e -> {kind: "6"}
-                                | kw_n_7_902ba3cd -> {kind: "7"}
-                                | kw_n_8_fe5dbbce -> {kind: "8"}
-                                | kw_n_9_0ade7c2c -> {kind: "9"}
-
-non_zero_decimal_digit := non_zero_decimal_digit_sv_2017
+non_zero_decimal_digit := kw_n_1_356a192b -> {kind: "1"}
+                        | kw_n_2_da4b9237 -> {kind: "2"}
+                        | kw_n_3_77de68da -> {kind: "3"}
+                        | kw_n_4_1b645389 -> {kind: "4"}
+                        | kw_n_5_ac3478d6 -> {kind: "5"}
+                        | kw_n_6_c1dfd96e -> {kind: "6"}
+                        | kw_n_7_902ba3cd -> {kind: "7"}
+                        | kw_n_8_fe5dbbce -> {kind: "8"}
+                        | kw_n_9_0ade7c2c -> {kind: "9"}
 
 // @profiles: ["sv_2017"]
 // non_zero_unsigned_number_sv_2017 := non_zero_decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )*
