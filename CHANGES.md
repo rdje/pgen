@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-SV-EXH-PROOF-0153 (leaf SV-EXH-PROOF.7.4.6.6 measurement): **gate@3000ms DISPROVES budget as a lever (120 > 97); residual is a TARGET-UNIVERSE-correctness problem + carries run-to-run variance.**
+
+Docs/tracking only — records a canonical-gate measurement. No code change.
+
+- Ran the canonical gate at PGEN_WITNESS_TIMEOUT_FLOOR_MS=3000 (post-Cow). Result: closed_loop_replay_targets_total = 120 — WORSE than the default-200ms 97. DECISIVE NEGATIVE: raising the witness budget is NOT the literal-0 lever (do not raise the gate floor).
+- Exposes (i) the residual has real run-to-run VARIANCE (97↔120; the gate's 5ms target-drive budget) → deltas < ~25 are noise; (ii) the non-covering cluster is CONCENTRATED in LEFT-RECURSIVE rules (sequence_expr #0..#11, many property_expr_sv_2023 branches) — covered during seeding IN CONTEXT but the witness pass roots STANDALONE at the rule, so the forced branch is pruned/context-gated and a different branch generates (Ok, non-covering); (iii) a phantom rule::binary_module_path_operator target references binary_module_path_operator_sv_2023 = "Missing rule in grammar".
+- REFRAME: literal-0 is gated by target-universe correctness + context-dependent standalone witnesses, NOT generation difficulty or budget. Next (.7.4.6.6): targeted trace to pin the standalone non-covering WHY; any universe change must PROVE phantom/unreachable (never game the metric, [[feedback_corpus_expected_from_spec_not_fix]]).
+
 ## 2026-06-04 - PGEN-SV-EXH-PROOF-0151 (leaf SV-EXH-PROOF.7.4.6.4 tool extension; .7.4.6.6 opened): **residual fully DECOMPOSED — (A) property_expr timeouts (budget-solvable, ~3000ms post-Cow) + (B) 4 non-covering branches (ambiguous/left-recursive rules).**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs + main.rs) — pure diagnostic (monotone, no generation change), no regen, no release bump.
