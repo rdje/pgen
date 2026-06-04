@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-06-04 - PGEN-SV-EXH-PROOF-0150 (leaves SV-EXH-PROOF.7.4.6.4 tool-build + .7.4.6.5 fix): **residual pinned to property_expr construction COST (not dead-ends); 2× construction speedup via Cow (parser-agnostic, monotone).**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs + main.rs) — monotone (byte-identical generation), no regen, no release bump.
+
+WHY+WHERE (.7.4.6.4, TOOL-BUILD): extended the witness pass to SAMPLE the target_timeout class (was counted, never sampled) with construct_failed + construct_reason, and to count construct_fell_back_to_search. DECISIVE (150-sample @200ms): all 5 residual timeouts are BRANCHES of property_expr_sv_2017 (10-15 at root, timing out at root/o35), construct_reason=TargetTimeout — construction does NOT structurally dead-end (no DepthExceeded/RuleVisitLimit); it runs OUT OF TIME. property_expr is the most recursive SV rule.
+
+TWO hypotheses DISPROVEN by same-binary sweep (PGEN_CONSTRUCT_BACKTRACK_K=1..8, both OR-width and quantifier-count limited-backtrack = NO effect, 141/timeout5 throughout) → REVERTED (no codebase change on a disproven hypothesis). Budget also disproven as a cheap lever (200ms=1000ms=141; only 7000ms=146).
+
+ROOT CAUSE (profiled, macOS sample): construction ALLOCATION CHURN — strip_probability_prefix cloned EVERY OR alternative's subtree on every generate_or call; deep property_expr recursion → O(depth × grammar-subtree) clone churn (malloc/memmove/ASTNode-clone dominated the profile).
+
+FIX (.7.4.6.5): strip_probability_prefix now returns Cow<ASTNode> — borrow in the common no-prefix case, own only the rare stripped case; prepared vec holds Cow; read sites use .as_ref(). MEASURED: 150-sample witness @7000ms wall 31.4s → 14.8s (2.1×), resolution byte-identical (146/150). MONOTONE: diverse + unbounded witness byte-identical across runs (--output cmp); lib 588/588; clippy source 0. Parser-agnostic (generic ASTNode, zero grammar identifiers — per the 2026-06-04 emphatic engine doctrine). Benefits EVERY parser's generation (the speed phase). Does NOT alone reach literal-0 (property_expr ~3s even at 2×, still > the gate's 200ms budget = honest-irreducible at that budget); monotone-improving for the gate. Gate residual (≤97) + faster runtime confirm in flight.
+
 ## 2026-06-04 - PGEN-SV-EXH-PROOF-0149 (leaf SV-EXH-PROOF.7.4.6.3 gate landing + .7.4.6.4 opened): **canonical gate residual 273 → 97 (−64%) with construction; SV main parser stays Mostly Done (honest, 97 ≠ literal-0).**
 
 Docs/tracking only — records the global-metric landing for the -0148 construct_mode change. No code change.

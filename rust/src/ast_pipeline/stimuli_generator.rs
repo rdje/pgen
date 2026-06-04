@@ -891,12 +891,25 @@ pub struct WitnessSummary {
     /// proof at default verbosity ([[feedback_why_and_where_before_solution]]).
     #[serde(default)]
     pub other_failure_samples: Vec<String>,
+    /// SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD, WHY+WHERE before fix): how many target witnesses
+    /// had the CONSTRUCTION attempt return Err and therefore fell back to the search path.
+    /// Distinguishes "construction dead-ended → slow search → timeout" from "construction
+    /// succeeded but didn't cover" — the two have opposite fixes. `#[serde(default)]` keeps
+    /// older JSON loadable.
+    #[serde(default)]
+    pub construct_attempt_failures: usize,
+    /// SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): bounded sample of the TARGET_TIMEOUT-class witness
+    /// failures (the residual tail at the gate's tight budget) — same shape as
+    /// `other_failure_samples`. The target_timeout class was previously counted but never
+    /// sampled, so the residual's WHERE (which rules/types dead-end) was invisible.
+    #[serde(default)]
+    pub timeout_failure_samples: Vec<String>,
 }
 
 impl WitnessSummary {
     pub fn summary_line(&self) -> String {
         format!(
-            "Witness pass: resolved {} -> {} of {} reachable targets (+{} via {} witnesses; failures depth_exceeded={}, rule_visit_limit={}, target_timeout={}, helper_timeout={}, other={}, no_entry={})",
+            "Witness pass: resolved {} -> {} of {} reachable targets (+{} via {} witnesses; failures depth_exceeded={}, rule_visit_limit={}, target_timeout={}, helper_timeout={}, other={}, no_entry={}; construct_fell_back_to_search={})",
             self.resolved_before,
             self.resolved_after,
             self.total_targets,
@@ -907,7 +920,8 @@ impl WitnessSummary {
             self.target_timeout_failures,
             self.helper_timeout_failures,
             self.other_failures,
-            self.no_entry_rule
+            self.no_entry_rule,
+            self.construct_attempt_failures
         )
     }
 }
@@ -2557,6 +2571,9 @@ impl<'a> StimuliGenerator<'a> {
         let mut helper_timeout_failures = 0usize;
         // SV-EXH-PROOF.7.4.4.1: bounded WHY+WHERE samples for the "other"-class tail.
         let mut other_failure_samples: Vec<String> = Vec::new();
+        // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): construct-vs-search attribution + timeout sampling.
+        let mut construct_attempt_failures = 0usize;
+        let mut timeout_failure_samples: Vec<String> = Vec::new();
 
         loop {
             let pending = self.evaluate_target_statuses(&applicable);
@@ -2599,9 +2616,21 @@ impl<'a> StimuliGenerator<'a> {
             let construct_result =
                 self.generate_from_entry_with_optional_timeout(&entry_rule, timeout);
             self.construct_mode = false;
+            let construct_result_was_err = construct_result.is_err();
+            // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): capture WHY construction dead-ended (depth /
+            // visit-limit / timeout / other) — the min-terminal-length-guided path can be short
+            // in terminals yet too DEEP to complete within max_depth.
+            let construct_err_reason: String = match &construct_result {
+                Ok(_) => "none".to_string(),
+                Err(e) => format!("{:?}", Self::classify_generation_error(e)),
+            };
             let result = match construct_result {
                 Ok(sample) => Ok(sample),
-                Err(_) => self.generate_from_entry_with_optional_timeout(&entry_rule, timeout),
+                Err(_) => {
+                    // SV-EXH-PROOF.7.4.6.4: construction dead-ended for this target → search.
+                    construct_attempt_failures = construct_attempt_failures.saturating_add(1);
+                    self.generate_from_entry_with_optional_timeout(&entry_rule, timeout)
+                }
             };
             if plan_installed {
                 self.clear_reach_plan();
@@ -2626,6 +2655,21 @@ impl<'a> StimuliGenerator<'a> {
                     // error. With these arms, `other_failures` is strictly genuine errors.
                     GenerationErrorReason::TargetTimeout => {
                         target_timeout_failures = target_timeout_failures.saturating_add(1);
+                        // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD): sample the timeout tail's WHERE
+                        // (which rules/types/branches dead-end) — previously uncharacterised.
+                        if timeout_failure_samples.len() < WITNESS_OTHER_FAILURE_SAMPLE_CAP {
+                            timeout_failure_samples.push(format!(
+                                "target_id='{}' rule='{}' type={:?} node_path={:?} branch={:?} construct_failed={} construct_reason={} search_reason={:#}",
+                                status.id,
+                                status.rule_name,
+                                status.target_type,
+                                status.node_path,
+                                status.branch_index,
+                                construct_result_was_err,
+                                construct_err_reason,
+                                error
+                            ));
+                        }
                     }
                     GenerationErrorReason::HelperTimeout => {
                         helper_timeout_failures = helper_timeout_failures.saturating_add(1);
@@ -2684,6 +2728,8 @@ impl<'a> StimuliGenerator<'a> {
                 target_timeout_failures,
                 helper_timeout_failures,
                 other_failure_samples,
+                construct_attempt_failures,
+                timeout_failure_samples,
             },
         ))
     }
@@ -5073,7 +5119,9 @@ impl<'a> StimuliGenerator<'a> {
             return Ok(String::new());
         }
 
-        let prepared: Vec<(Option<u32>, ASTNode)> = alternatives
+        // SV-EXH-PROOF.7.4.6.5: Cow — borrow each alternative in the common (no probability
+        // prefix) case instead of deep-cloning all of them (the profiled construction hot spot).
+        let prepared: Vec<(Option<u32>, std::borrow::Cow<ASTNode>)> = alternatives
             .iter()
             .map(|node| self.strip_probability_prefix(node))
             .collect();
@@ -5083,17 +5131,17 @@ impl<'a> StimuliGenerator<'a> {
         if depth >= self.config.max_depth.saturating_sub(1) {
             let min_ref_count = candidate_indices
                 .iter()
-                .map(|idx| self.count_rule_references(&prepared[*idx].1, current_rule))
+                .map(|idx| self.count_rule_references(prepared[*idx].1.as_ref(), current_rule))
                 .min()
                 .unwrap_or(0);
 
             candidate_indices.retain(|idx| {
-                self.count_rule_references(&prepared[*idx].1, current_rule) == min_ref_count
+                self.count_rule_references(prepared[*idx].1.as_ref(), current_rule) == min_ref_count
             });
         }
 
         candidate_indices.retain(|idx| {
-            let missing = self.missing_rule_references(&prepared[*idx].1);
+            let missing = self.missing_rule_references(prepared[*idx].1.as_ref());
             if missing.is_empty() {
                 true
             } else if prepared[*idx].0.is_some() {
@@ -5224,12 +5272,12 @@ impl<'a> StimuliGenerator<'a> {
             if let Some(table) = self.witness_min_terminal_lengths.as_ref() {
                 ordered.sort_by(|left, right| {
                     let left_min = Self::min_terminal_length_of_node(
-                        &prepared[candidate_indices[*left]].1,
+                        prepared[candidate_indices[*left]].1.as_ref(),
                         table,
                     )
                     .unwrap_or(usize::MAX);
                     let right_min = Self::min_terminal_length_of_node(
-                        &prepared[candidate_indices[*right]].1,
+                        prepared[candidate_indices[*right]].1.as_ref(),
                         table,
                     )
                     .unwrap_or(usize::MAX);
@@ -5339,10 +5387,10 @@ impl<'a> StimuliGenerator<'a> {
                                 current_rule,
                                 node_path,
                                 *global_idx,
-                                &prepared[*global_idx].1,
+                                prepared[*global_idx].1.as_ref(),
                             );
                             let recursion_penalty = self.recursion_pressure_penalty(
-                                &prepared[*global_idx].1,
+                                prepared[*global_idx].1.as_ref(),
                                 call_stack,
                                 depth,
                             );
@@ -5357,7 +5405,7 @@ impl<'a> StimuliGenerator<'a> {
                                 current_rule,
                                 node_path,
                                 *global_idx,
-                                &prepared[*global_idx].1,
+                                prepared[*global_idx].1.as_ref(),
                                 depth,
                                 call_stack,
                             );
@@ -5399,7 +5447,7 @@ impl<'a> StimuliGenerator<'a> {
         let mut last_error: Option<anyhow::Error> = None;
         for local_idx in attempt_order {
             let selected_global = candidate_indices[local_idx];
-            let selected_node = prepared[selected_global].1.clone();
+            let selected_node = prepared[selected_global].1.as_ref().clone();
             self.coverage.record_branch_selected(
                 &group_key,
                 current_rule,
@@ -6163,7 +6211,17 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
-    fn strip_probability_prefix(&self, node: &ASTNode) -> (Option<u32>, ASTNode) {
+    /// SV-EXH-PROOF.7.4.6.5: returns `Cow::Borrowed(node)` in the common (no probability
+    /// prefix) case — the prior version cloned EVERY alternative's subtree on every
+    /// `generate_or` call (profiled as the dominant construction cost: deep `property_expr`
+    /// recursion clones the full branch set per OR visit → O(depth x grammar-subtree) churn).
+    /// Output is identical (the stripped node is the same); only the wasted clone is removed.
+    /// Parser-agnostic (generic ASTNode), monotone (byte-identical generation).
+    fn strip_probability_prefix<'n>(
+        &self,
+        node: &'n ASTNode,
+    ) -> (Option<u32>, std::borrow::Cow<'n, ASTNode>) {
+        use std::borrow::Cow;
         match node {
             ASTNode::Sequence { elements } => {
                 let mut index = 0usize;
@@ -6179,24 +6237,27 @@ impl<'a> StimuliGenerator<'a> {
                 }
 
                 if index == 0 {
-                    return (None, node.clone());
+                    return (None, Cow::Borrowed(node));
                 }
 
-                let remainder = elements[index..].to_vec();
+                let mut remainder = elements[index..].to_vec();
                 let stripped = match remainder.len() {
                     0 => ASTNode::Sequence { elements: vec![] },
-                    1 => remainder[0].clone(),
+                    1 => remainder.pop().unwrap(),
                     _ => ASTNode::Sequence {
                         elements: remainder,
                     },
                 };
-                (probability, stripped)
+                (probability, Cow::Owned(stripped))
             }
             _ => {
                 if let Some(weight) = self.extract_probability_from_node(node) {
-                    (Some(weight), ASTNode::Sequence { elements: vec![] })
+                    (
+                        Some(weight),
+                        Cow::Owned(ASTNode::Sequence { elements: vec![] }),
+                    )
                 } else {
-                    (None, node.clone())
+                    (None, Cow::Borrowed(node))
                 }
             }
         }

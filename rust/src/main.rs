@@ -1487,6 +1487,18 @@ fn main() -> Result<()> {
                     println!("- {sample}");
                 }
             }
+            // SV-EXH-PROOF.7.4.6.4 (TOOL-BUILD, WHY+WHERE): surface the target_timeout tail —
+            // which rules/types dead-end + whether construction failed before search.
+            if !witness_summary.timeout_failure_samples.is_empty() {
+                println!(
+                    "Witness 'target_timeout'-failure samples ({} of {} shown | target_id | rule | type | node_path | branch | construct_failed | reason):",
+                    witness_summary.timeout_failure_samples.len(),
+                    witness_summary.target_timeout_failures
+                );
+                for sample in &witness_summary.timeout_failure_samples {
+                    println!("- {sample}");
+                }
+            }
             generated_samples.extend(witness_samples);
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
