@@ -2215,7 +2215,8 @@ fn run_k_path_coverage_report(
 fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         detect_left_recursion, detect_nonterminating_rules, detect_nullable_repetition,
-        detect_ordered_choice_shadowing, detect_profile_orphans, detect_unreachable_rules,
+        detect_ordered_choice_shadowing, detect_profile_orphans, detect_unbound_fact_kinds,
+        detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -2227,6 +2228,15 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     // GRAMMAR-WELLFORMED.A1b: structural reachability — rules defined but unreachable from any
     // root (entry + unreferenced secondary entries). A dead rule is a well-formedness defect.
     let unreachable = detect_unreachable_rules(g, order);
+
+    // GRAMMAR-WELLFORMED.F1: data-dependent binding-before-use — a @predicate consulting a
+    // fact-kind that no @emit_fact establishes (the fact can never be bound). Hard gate (all
+    // authored grammars are clean: SV's consulted kinds all have emitters).
+    let unbound_facts = grammar
+        .annotations
+        .as_ref()
+        .map(detect_unbound_fact_kinds)
+        .unwrap_or_default();
 
     // ANNOTATION-COMPOSITION.2: extract each rule's @profiles set from the annotations (same
     // shape the generator filters by) + the profile universe, then sweep for profile orphans.
@@ -2269,7 +2279,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     let shadow_hard_count = shadow.iter().filter(|i| i.reason.is_hard_gate()).count();
     let shadow_warn_count = shadow.len() - shadow_hard_count;
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_matches_shadowing={} (warning, A2 backlog), unreachable_rules={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_matches_shadowing={} (warning, A2 backlog), unreachable_rules={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         lr.len(),
@@ -2277,6 +2287,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         shadow_hard_count,
         shadow_warn_count,
         unreachable.len(),
+        unbound_facts.len(),
         nullrep.len(),
         orphans.len(),
         all_profiles
@@ -2286,6 +2297,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     }
     if unreachable.len() > 40 {
         println!("  [error] ... and {} more unreachable rules", unreachable.len() - 40);
+    }
+    for issue in unbound_facts.iter().take(40) {
+        println!("  [error] {}", issue.message());
+    }
+    if unbound_facts.len() > 40 {
+        println!("  [error] ... and {} more unbound fact-kinds", unbound_facts.len() - 40);
     }
     for issue in lr.iter().take(10) {
         println!("  [info]  {}", issue.message());
@@ -2341,7 +2358,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         println!("  [error] {}", issue.message());
     }
 
-    if nonterm.is_empty() && orphans.is_empty() && shadow_hard.is_empty() && unreachable.is_empty() {
+    if nonterm.is_empty()
+        && orphans.is_empty()
+        && shadow_hard.is_empty()
+        && unreachable.is_empty()
+        && unbound_facts.is_empty()
+    {
         Ok(())
     } else {
         let mut problems = Vec::new();
@@ -2363,6 +2385,11 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         // "no useless symbols" — the reachable half). Hard failure.
         if !unreachable.is_empty() {
             problems.push(format!("{} unreachable rule(s)", unreachable.len()));
+        }
+        // GRAMMAR-WELLFORMED.F1: a @predicate consulting a fact-kind nothing emits = binding-
+        // before-use (the fact can never be established). Hard failure.
+        if !unbound_facts.is_empty() {
+            problems.push(format!("{} unbound fact-kind(s)", unbound_facts.len()));
         }
         Err(anyhow::anyhow!(
             "grammar '{}' has {}",

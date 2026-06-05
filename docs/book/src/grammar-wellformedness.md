@@ -117,11 +117,18 @@ which case PEG *does* backtrack and try `b`, so `b` is live. Implementing the ge
 falsely accuse live branches of being dead — the opposite of an honest linter. PGEN sticks to the
 two *sound, decidable* forms (fixed-terminal-prefix and always-succeeds).
 
-On the **well-*defined*** layer, attribute completeness for synthesized attributes (`$N`) is already
-enforced as a hard validation error (above). The one substantive check still open is data-dependent
-*binding-before-use* — proving that every fact a `@predicate` consults can actually be established by
-some `@emit_fact` (its sound, decidable core: a consulted fact-*kind* that nothing ever emits can
-never be true, so the predicate is dead).
+On the **well-*defined*** layer, all three axes are now enforced. Attribute non-circularity holds by
+construction (synthesized-only annotations). Attribute completeness for synthesized attributes (`$N`)
+is a hard validation error (above). And data-dependent **binding-before-use** is now checked: every
+fact a `@predicate` consults must be establishable by some `@emit_fact`. Its sound, decidable core —
+a consulted fact-*kind* that nothing ever emits — is a hard gate: `has_fact`, `lacks_fact`,
+`fact_attribute_equals`, and `fact_count_at_least` all read the exact store `@emit_fact` populates, so
+consulting a kind with no producer means the predicate can never be satisfied (the rule is dead, or
+the kind is a typo). The check enumerates emitters across every annotation surface (so none is missed)
+and only flags *literal* consulted kinds (a dynamic kind is skipped, never falsely accused). As with
+the FIRST-domination exclusion, the *undecidable* refinement — proving a fact is established **earlier
+in some actual parse**, not merely somewhere — is left out on purpose; the kind-existence core is the
+sound part. With this, **the linter proves the decidable core of every axis in the contract above.**
 
 On the **constructive side**, the generator's coverage measurement is now **deterministic**: the
 generation budget was changed from a wall-clock timeout to a fixed step counter, so a seeded run

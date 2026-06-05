@@ -199,8 +199,22 @@ subtle dead branch"), never a silent accept.
   has an emitting source") is the sound core of `F1` (done there) — it is a data-dependent, not a
   synthesized-attribute, condition. ⇒ E2 holds for its decidable synthesized-attribute scope with no
   new code; the fact scope is F1.
-- `F1` — **data-dependent binding-before-use** (Jim et al. 2010): every `@predicate`'s referenced
-  fact is establishable earlier in some parse (static twin of C2) → gate. *Effort: medium-high.*
+- `F1` — **data-dependent binding-before-use** (Jim et al. 2010) — **DONE (PGEN-GRAMMAR-WELLFORMED-0008),
+  HARD GATE.** Sound decidable core: a `@predicate` that consults a fact-KIND no `@emit_fact` ever
+  emits. `new detect_unbound_fact_kinds(annotations)`: enumerates EMITTED kinds (every `@emit_fact`
+  carries a literal `kind`) across ALL annotation surfaces (rule-level + per-branch + mid-sequence —
+  complete, the soundness requirement) and CONSULTED kinds from each `@predicate` (parsing the inline
+  expression via `parse_predicate_expression` + the structured form, walking has_fact / lacks_fact /
+  fact_attribute_equals / fact_count_at_least — the four primitives whose `args[0]` is a kind and which
+  query the exact `fact_index` `@emit_fact` populates). A consulted kind ∉ emitted ⇒ the fact can never
+  be established (has_fact always-false / lacks_fact always-true) = binding-before-use. CONSERVATIVE on
+  the consult side (literal kinds only; dynamic/arg-ref kinds skipped → under-report, never
+  false-accuse). VERIFIED: 0 across ALL 17 grammars (SV's consulted {type_name, variable_binding} ⊆
+  emitted {type_name, variable_binding, checker_name, let_name, package, …}); SV `--lint-grammar` exit
+  0. Unit-tested (`detects_unbound_fact_kind_but_not_bound_one` + `unbound_fact_kind_skips_dynamic_kinds_
+  and_finds_branch_emitters`). The undecidable refinement — per-NAME + parse-ORDER reachability
+  ("establishable EARLIER in some parse") — is deliberately NOT attempted; the kind-existence core is
+  the sound decidable subset (cf. A2's exclusion of unsound general FIRST-domination).
 
 ## Current Frontier
 
@@ -214,7 +228,9 @@ subtle dead branch"), never a silent accept.
 | — | `GRAMMAR-WELLFORMED.A2` | `done` (`-0006`) | Sound subset of FIRST-domination — earlier-ALWAYS-SUCCEEDS shadowing. 0 false positives; found 52 real SV dead branches (warning-staged). General unsound FIRST-domination deliberately excluded. |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `pending` | Clean the 52 SV `always_matches` defects LRM-grounded (parse-neutral, one at a time, measure global metric) → promote EarlierAlwaysMatches to the hard gate. |
 | — | `GRAMMAR-WELLFORMED.E2` | `done` (`-0007`, satisfied by existing validation) | `$N` attribute completeness already enforced (`E_RET_POS_OUT_OF_RANGE`, hard under strict mode, test-locked); consulted-fact completeness → F1. |
-| 1 | `GRAMMAR-WELLFORMED.F1` | `pending` | Data-dependent binding-before-use (Jim 2010) — the substantive remaining well-DEFINEDNESS check: fact-KIND completeness (consulted-but-never-emitted) as the sound decidable core, over `@predicate`/`@emit_fact`. |
+| — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
+| 1 | `GRAMMAR-WELLFORMED.A2.1` | `pending` | Clean the 52 SV `always_matches` defects LRM-grounded (parse-neutral, one at a time) → promote EarlierAlwaysMatches to the hard gate. (Grammar surgery — the linter side is now done.) |
+| 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). |
 
 ## Decisions
 - `2026-06-05`: Created from the director brainstorm. The frame UNIFIES the linter (static proof) +

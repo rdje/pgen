@@ -13,7 +13,11 @@
 //! nullability (terminals are treated as never-nullable) so we never over-report a
 //! well-formed grammar as left-recursive.
 
-use super::{ASTNode, ASTValue, TokenValue, parse_quantifier_bounds};
+use super::predicate_expr::{
+    PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
+};
+use super::semantic_runtime::{SemanticRuntimeDirective, parse_semantic_runtime_directive};
+use super::{ASTNode, ASTValue, Annotations, SemanticAnnotation, TokenValue, parse_quantifier_bounds};
 use std::collections::{HashMap, HashSet};
 
 /// A detected grammar well-formedness issue.
@@ -63,6 +67,19 @@ pub enum WellformednessIssue {
     /// nothing references, i.e. a secondary entry such as a `*_multi_entry_root`). A dead rule;
     /// a well-formed grammar has none (Hopcroft–Ullman "no useless symbols" — the reachable half).
     UnreachableRule { rule: String },
+    /// ERROR (GRAMMAR-WELLFORMED.F1, data-dependent binding-before-use — Jim/Mandelbaum/Walker,
+    /// POPL 2010): `rule`'s `@predicate` consults a fact `kind` (via `primitive`, one of
+    /// `has_fact`/`lacks_fact`/`fact_attribute_equals`/`fact_count_at_least`) that NO `@emit_fact`
+    /// anywhere in the grammar ever emits. `has_fact` & co. query exactly the store `@emit_fact`
+    /// populates, so the consulted fact can never be established — the predicate is degenerate
+    /// (`has_fact` always false → the rule is dead; `lacks_fact` always true → the gate is a no-op).
+    /// The SOUND, decidable core of binding-before-use: a fact-kind used but with no producing
+    /// source. (Per-name / parse-ORDER reachability is undecidable and deliberately not attempted.)
+    UnboundFactKind {
+        rule: String,
+        kind: String,
+        primitive: String,
+    },
 }
 
 impl WellformednessIssue {
@@ -99,6 +116,10 @@ impl WellformednessIssue {
             WellformednessIssue::UnreachableRule { rule } => format!(
                 "grammar well-formedness ERROR: rule '{}' is DEFINED but UNREACHABLE from any entry/root by transitive reference — a dead rule (a well-formed grammar has no useless symbols). Remove it, or reference it from a reachable rule, or make it a top-level entry.",
                 rule
+            ),
+            WellformednessIssue::UnboundFactKind { rule, kind, primitive } => format!(
+                "grammar well-formedness ERROR: rule '{}' consults fact-kind '{}' via {}(...), but NO @emit_fact in the grammar emits kind '{}' — the fact can never be established (binding-before-use, Jim et al. POPL 2010). The predicate is degenerate (has_fact always-false / lacks_fact always-true). Fix: emit '{}' somewhere with @emit_fact, or correct the consulted kind (likely a typo).",
+                rule, kind, primitive, kind, kind
             ),
         }
     }
@@ -646,6 +667,155 @@ pub fn detect_profile_orphans(
     out
 }
 
+/// The fact-query primitives whose FIRST argument is a fact-KIND and which read the store that
+/// `@emit_fact` populates (`semantic_runtime.rs`: each does `self.fact_index...(args[0])`). A kind
+/// consulted via any of these but emitted by nothing can never be established.
+const FACT_QUERY_PRIMITIVES: [&str; 4] = [
+    "has_fact",
+    "lacks_fact",
+    "fact_attribute_equals",
+    "fact_count_at_least",
+];
+
+/// A literal (statically-known) fact-kind value, or `None` for a dynamic/arg-ref value (which we
+/// conservatively skip — under-report, never false-accuse).
+fn literal_fact_kind(value: &PredicateValue) -> Option<String> {
+    match value {
+        PredicateValue::StringLit(s) | PredicateValue::IdentLit(s) => Some(s.clone()),
+        _ => None,
+    }
+}
+
+fn collect_consulted_kinds_in_call(call: &PrimitiveCall, out: &mut Vec<(String, String)>) {
+    if FACT_QUERY_PRIMITIVES.contains(&call.name.as_str()) {
+        if let Some(kind) = call.args.first().and_then(literal_fact_kind) {
+            out.push((kind, call.name.clone()));
+        }
+    }
+}
+
+fn collect_consulted_kinds_in_value(value: &PredicateValue, out: &mut Vec<(String, String)>) {
+    if let PredicateValue::AttributeOf { call, .. } = value {
+        collect_consulted_kinds_in_call(call, out);
+    }
+}
+
+/// Walk a parsed predicate expression collecting `(kind, primitive)` for every literal fact-kind
+/// consulted by a fact-query primitive anywhere in the boolean/comparison tree.
+fn collect_consulted_kinds(expr: &PredicateExpr, out: &mut Vec<(String, String)>) {
+    match expr {
+        PredicateExpr::Call(call) => collect_consulted_kinds_in_call(call, out),
+        PredicateExpr::Not(inner) => collect_consulted_kinds(inner, out),
+        PredicateExpr::And(a, b) | PredicateExpr::Or(a, b) => {
+            collect_consulted_kinds(a, out);
+            collect_consulted_kinds(b, out);
+        }
+        PredicateExpr::Compare { lhs, op: _, rhs } => {
+            collect_consulted_kinds_in_value(lhs, out);
+            collect_consulted_kinds_in_value(rhs, out);
+        }
+        PredicateExpr::In { lhs, set } => {
+            collect_consulted_kinds_in_value(lhs, out);
+            for v in set {
+                collect_consulted_kinds_in_value(v, out);
+            }
+        }
+    }
+}
+
+/// Extract `(kind, primitive)` consulted by a single `@predicate` spec — handling BOTH the inline
+/// expression form (`@predicate: has_fact(type_name, $1)`, where the whole expression text is in
+/// `spec.name`) AND the structured form (`@predicate: {name: has_fact, args: [type_name, $1]}`).
+fn consulted_kinds_in_predicate(spec_name: &str, args: &[super::UnifiedSemanticValue]) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    // Inline expression form: the text parses into a PredicateExpr tree.
+    if let Ok(expr) = parse_predicate_expression(spec_name) {
+        collect_consulted_kinds(&expr, &mut out);
+    }
+    // Structured form: the directive IS a bare fact-query primitive named in `spec_name` with the
+    // kind in args[0]. (Covers payloads where the expression isn't a parseable inline string.)
+    if FACT_QUERY_PRIMITIVES.contains(&spec_name) {
+        if let Some(kind) = args.first().and_then(|v| match v {
+            super::UnifiedSemanticValue::String(s) | super::UnifiedSemanticValue::Identifier(s) => {
+                Some(s.clone())
+            }
+            _ => None,
+        }) {
+            out.push((kind, spec_name.to_string()));
+        }
+    }
+    out
+}
+
+/// GRAMMAR-WELLFORMED.F1 — data-dependent BINDING-BEFORE-USE (Jim/Mandelbaum/Walker, POPL 2010),
+/// sound decidable core. A `@predicate` may only consult a fact-KIND that some `@emit_fact` can
+/// establish. `has_fact`/`lacks_fact`/`fact_attribute_equals`/`fact_count_at_least` all query the
+/// exact store `@emit_fact` populates (`fact_index`), so a consulted kind that NOTHING emits can
+/// never be true — the predicate is degenerate and the rule effectively dead.
+///
+/// SOUNDNESS: the emitted-kind set is COMPLETE — every `@emit_fact` carries a literal `kind`
+/// (`parse_emit_fact` requires a non-empty scalar) and `fact_index` is populated only from emitted
+/// facts. We enumerate emit_facts across ALL annotation surfaces (rule-level, per-branch, and
+/// mid-sequence) so no emitter is missed. On the CONSULTED side we only flag LITERAL kinds; a
+/// dynamic/arg-ref kind is skipped (under-report, never false-accuse). PURE; parser-agnostic.
+pub fn detect_unbound_fact_kinds(annotations: &Annotations) -> Vec<WellformednessIssue> {
+    let mut emitted: HashSet<String> = HashSet::new();
+    // (rule, kind, primitive) consulted — collected first so we can flag after the full emit sweep.
+    let mut consulted: Vec<(String, String, String)> = Vec::new();
+
+    let mut visit = |rule: &str, ann: &SemanticAnnotation| {
+        match parse_semantic_runtime_directive(ann) {
+            Ok(Some(SemanticRuntimeDirective::EmitFact(spec))) => {
+                emitted.insert(spec.kind);
+            }
+            Ok(Some(SemanticRuntimeDirective::Predicate(spec))) => {
+                for (kind, primitive) in consulted_kinds_in_predicate(&spec.name, &spec.args) {
+                    consulted.push((rule.to_string(), kind, primitive));
+                }
+            }
+            _ => {}
+        }
+    };
+
+    // Sweep every annotation surface so emit-enumeration is complete (soundness) and every
+    // consult site is checked.
+    for (rule, anns) in &annotations.semantic_annotations {
+        for ann in anns {
+            visit(rule, ann);
+        }
+    }
+    for (rule, branches) in &annotations.branch_semantic_annotations {
+        for branch in branches {
+            for ann in branch {
+                visit(rule, ann);
+            }
+        }
+    }
+    for (rule, branches) in &annotations.branch_mid_sequence_semantic_annotations {
+        for branch in branches {
+            for mid in branch {
+                visit(rule, &mid.annotation);
+            }
+        }
+    }
+
+    // Deterministic order: sort the findings (HashMap iteration order is non-deterministic).
+    let mut out: Vec<WellformednessIssue> = consulted
+        .into_iter()
+        .filter(|(_, kind, _)| !emitted.contains(kind))
+        .map(|(rule, kind, primitive)| WellformednessIssue::UnboundFactKind { rule, kind, primitive })
+        .collect();
+    out.sort_by(|a, b| match (a, b) {
+        (
+            WellformednessIssue::UnboundFactKind { rule: r1, kind: k1, primitive: p1 },
+            WellformednessIssue::UnboundFactKind { rule: r2, kind: k2, primitive: p2 },
+        ) => (r1, k1, p1).cmp(&(r2, k2, p2)),
+        _ => std::cmp::Ordering::Equal,
+    });
+    out.dedup();
+    out
+}
+
 /// Rules referenced at the LEFT EDGE of `node` — i.e. reachable before any input is
 /// necessarily consumed. A `Sequence` extends past a leading element only while that
 /// element is nullable; a quantifier/lookahead exposes its element at the left edge.
@@ -990,6 +1160,73 @@ mod tests {
     }
     fn look(element: ASTNode, positive: bool) -> ASTNode {
         ASTNode::Lookahead { element: Box::new(element), positive }
+    }
+    fn sem_named(name: &str, value: crate::ast_pipeline::UnifiedSemanticValue) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: name.to_string(),
+            ast: crate::ast_pipeline::UnifiedSemanticAST::Structured {
+                canonical: String::new(),
+                value,
+            },
+        }
+    }
+    fn emit_fact_ann(kind: &str) -> SemanticAnnotation {
+        use crate::ast_pipeline::{UnifiedSemanticProperty as P, UnifiedSemanticValue as V};
+        sem_named(
+            "emit_fact",
+            V::Object(vec![
+                P { key: "kind".into(), value: V::Identifier(kind.into()) },
+                P { key: "name".into(), value: V::RuleReference("$1".into()) },
+            ]),
+        )
+    }
+    fn predicate_ann(expr: &str) -> SemanticAnnotation {
+        sem_named("predicate", crate::ast_pipeline::UnifiedSemanticValue::String(expr.into()))
+    }
+
+    #[test]
+    fn detects_unbound_fact_kind_but_not_bound_one() {
+        // GRAMMAR-WELLFORMED.F1: a @predicate consulting a fact-kind no @emit_fact emits is a
+        // binding-before-use defect; one whose kind IS emitted is clean.
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("producer".into(), vec![emit_fact_ann("type_name")]);
+        ann.semantic_annotations
+            .insert("good".into(), vec![predicate_ann("has_fact(type_name, head)")]);
+        ann.semantic_annotations
+            .insert("bad".into(), vec![predicate_ann("has_fact(nonexistent_kind, head)")]);
+        let issues = detect_unbound_fact_kinds(&ann);
+        assert!(
+            issues.iter().any(|i| matches!(i,
+                WellformednessIssue::UnboundFactKind { rule, kind, .. }
+                if rule == "bad" && kind == "nonexistent_kind")),
+            "must flag the consulted-but-never-emitted fact-kind: {issues:?}"
+        );
+        assert!(
+            !issues.iter().any(|i| matches!(i,
+                WellformednessIssue::UnboundFactKind { kind, .. } if kind == "type_name")),
+            "must NOT flag a kind that IS emitted by some @emit_fact: {issues:?}"
+        );
+    }
+
+    #[test]
+    fn unbound_fact_kind_skips_dynamic_kinds_and_finds_branch_emitters() {
+        // (a) a dynamic (arg-ref) kind is conservatively skipped — never false-accused.
+        // (b) an emitter living in a BRANCH-level annotation still counts (complete enumeration).
+        let mut ann = Annotations::default();
+        ann.branch_semantic_annotations
+            .insert("producer".into(), vec![vec![emit_fact_ann("class_name")]]);
+        ann.semantic_annotations.insert(
+            "consumer".into(),
+            vec![
+                predicate_ann("has_fact(class_name, head)"), // bound by the branch emitter -> clean
+                predicate_ann("has_fact($k, head)"),         // dynamic kind -> skipped
+            ],
+        );
+        let issues = detect_unbound_fact_kinds(&ann);
+        assert!(
+            issues.is_empty(),
+            "branch-level emitter must satisfy the consult; dynamic kind must be skipped: {issues:?}"
+        );
     }
 
     #[test]
