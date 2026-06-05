@@ -2295,12 +2295,16 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
             nullrep.len() - 40
         );
     }
+    // ANNOTATION-COMPOSITION.6: profile orphans are now a HARD failure (the grammar was
+    // remediated to 0). A @profiles orphan is a real grammar defect (present-but-unsatisfiable
+    // under an edition); locking it at 0 stops regressions. Grammars with < 2 profiles never
+    // produce orphans (the detector is skipped), so this only binds the SV grammar.
     for issue in orphans.iter().take(40) {
-        println!("  [warn]  {}", issue.message());
+        println!("  [error] {}", issue.message());
     }
     if orphans.len() > 40 {
         println!(
-            "  [warn]  ... and {} more profile-orphan findings",
+            "  [error] ... and {} more profile-orphan findings",
             orphans.len() - 40
         );
     }
@@ -2308,13 +2312,20 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         println!("  [error] {}", issue.message());
     }
 
-    if nonterm.is_empty() {
+    if nonterm.is_empty() && orphans.is_empty() {
         Ok(())
     } else {
+        let mut problems = Vec::new();
+        if !nonterm.is_empty() {
+            problems.push(format!("{} non-terminating rule(s)", nonterm.len()));
+        }
+        if !orphans.is_empty() {
+            problems.push(format!("{} profile-orphan rule(s)", orphans.len()));
+        }
         Err(anyhow::anyhow!(
-            "grammar '{}' has {} non-terminating rule(s)",
+            "grammar '{}' has {}",
             grammar.grammar_name,
-            nonterm.len()
+            problems.join(" + ")
         ))
     }
 }

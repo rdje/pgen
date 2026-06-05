@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-ANNOTATION-COMPOSITION-0006 (leaf ANNOTATION-COMPOSITION.6): **@profiles orphans 36 → 0 (all classified + fixed, corpus 14/14); lint LOCKED as a hard gate.**
+
+Code (grammars/systemverilog.ebnf — 32 @profiles tags; rust/src/main.rs — lint hard-fail). generated/ GITIGNORED → grammar + codegen committed, regen local.
+
+- Remediated all remaining 34 @profiles orphans (after .3 binary_module_path_operator + .6.4 non_zero_decimal_digit). Each CLASSIFIED before fixing (NEVER mass-tag-to-silence, per [[feedback_corpus_expected_from_spec_not_fix]]): (a) edition-RENAME pairs (net_type_declaration↔nettype_declaration, production↔rs_production, weight_specification↔rs_weight_specification, list_of_parameter_assignments↔list_of_parameter_value_assignments, interface_instance_identifier↔interface_port_identifier, elaboration_system_task↔elaboration_severity_system_task, open_range_list↔range_list, non_consecutive_repetition↔nonconsecutive_repetition, net_type_identifier↔nettype_identifier) → tag each base to its variant's edition; (b) sv_2023-NEW features (final_specifier, forward_type, dynamic_override_specifiers, incomplete_class_scoped_type, ...) → tag sv_2023; (c) sv_2023-CALLER-ONLY (severity_system_task, type_parameter_declaration — reached only via sv_2023 rules; 2017 $fatal/type-params use other paths) → tag sv_2023. No further true traps (only non_zero_decimal_digit was).
+- EMPIRICAL SAFETY: tagging is CASCADE-FREE (first rename-pair test = clean −2, no new caller-orphans → callers are edition-consistent); the CORPUS is the wrong-tag oracle (uvm exercises every tagged construct under BOTH editions). VERIFIED: lint profile_orphans 36→0; no cascade; regen compiles; lib (features) 652/0; SV external corpus 14/14 (fresh).
+- LINT LOCKED (main.rs run_grammar_lint): --lint-grammar now HARD-FAILS on profile_orphans>0 (was a warning). SV at 0 passes; regex/other <2-profile grammars unaffected (orphan check skipped). New orphans can't be silently introduced.
+- Realizes the doctrine via R3 (explicit @profiles + the consistency lint gate). .4 (derive-by-default, R1) would make the 32 tags AUTOMATIC — a future elegance, not an orphan-blocker.
+
 ## 2026-06-05 - PGEN-PARSE-TERMINATION-0010 (MILESTONE): **uvm 26 GB / hang CURED end-to-end — SV corpus 14/14 again, host-safe.**
 
 Docs/tracking only — records the corpus confirmation. No code change.

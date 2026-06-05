@@ -924,6 +924,7 @@ class_constraint := constraint_prototype   -> {kind: "prototype",   body: $1}
 class_constructor_arg_sv_2023 := tf_port_item            -> {kind: "tf_port_item", body: $1}
                                | kw_default_7505d64a     -> {kind: "default"}
 
+@profiles: ["sv_2023"]
 class_constructor_arg := class_constructor_arg_sv_2023
                       -> {body: $1}
 
@@ -931,6 +932,7 @@ class_constructor_arg := class_constructor_arg_sv_2023
 class_constructor_arg_list_sv_2023 := class_constructor_arg ( comma class_constructor_arg )*
                                    -> [$1, $2::2*]
 
+@profiles: ["sv_2023"]
 class_constructor_arg_list := class_constructor_arg_list_sv_2023
                            -> {body: $1}
 
@@ -1736,6 +1738,7 @@ data_type_or_implicit := data_type          -> {kind: "data_type",     body: $1}
 data_type_or_incomplete_class_scoped_type_sv_2023 := data_type                     -> {kind: "data_type",            body: $1}
                                                    | incomplete_class_scoped_type  -> {kind: "incomplete_class_scoped", body: $1}
 
+@profiles: ["sv_2023"]
 data_type_or_incomplete_class_scoped_type := data_type_or_incomplete_class_scoped_type_sv_2023
                                            -> {body: $1}
 
@@ -1903,6 +1906,7 @@ dynamic_array_variable_identifier := variable_identifier
 dynamic_override_specifiers_sv_2023 := ( initial_or_extends_specifier )? ( final_specifier )?
                                     -> {initial_or_extends: $1, final: $2}
 
+@profiles: ["sv_2023"]
 dynamic_override_specifiers := dynamic_override_specifiers_sv_2023
                             -> {body: $1}
 
@@ -1943,6 +1947,7 @@ edge_symbol := kw_r_4dc7c9ec -> {kind: "r"}
 elaboration_severity_system_task_sv_2023 := severity_system_task
                                          -> {body: $1}
 
+@profiles: ["sv_2023"]
 elaboration_severity_system_task := elaboration_severity_system_task_sv_2023
                                  -> {body: $1}
 
@@ -1956,6 +1961,7 @@ elaboration_system_task_sv_2017 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_n
                                  | kw_sv_dollar_info_d116cb1c ( lparen ( list_of_arguments )? rparen )? semi
                                           -> {kind: "info",    args: $2}
 
+@profiles: ["sv_2017"]
 elaboration_system_task := elaboration_system_task_sv_2017
                         -> {body: $1}
 
@@ -2096,6 +2102,7 @@ final_construct := kw_final_d594c2cc function_statement
 final_specifier_sv_2023 := colon kw_final_d594c2cc
                         -> {kind: "final"}
 
+@profiles: ["sv_2023"]
 final_specifier := final_specifier_sv_2023
                 -> {body: $1}
 
@@ -2129,6 +2136,7 @@ forward_type_sv_2023 := kw_enum_e338e8e3                            -> {kind: "e
                       | kw_class_8d767bf5                           -> {kind: "class"}
                       | kw_interface_5ea2d81a kw_class_8d767bf5     -> {kind: "interface_class"}
 
+@profiles: ["sv_2023"]
 forward_type := forward_type_sv_2023
              -> {body: $1}
 
@@ -2371,6 +2379,7 @@ incomplete_class_scoped_type_sv_2023 := type_identifier scope_resolution type_id
                                       | incomplete_class_scoped_type scope_resolution type_identifier_or_class_type
                                               -> {kind: "recursive", body: $1, tail: $3}
 
+@profiles: ["sv_2023"]
 incomplete_class_scoped_type := incomplete_class_scoped_type_sv_2023
                              -> {body: $1}
 
@@ -2397,6 +2406,7 @@ initial_construct := kw_initial_8ad7d21c statement_or_null
 initial_or_extends_specifier_sv_2023 := colon kw_initial_8ad7d21c -> {kind: "initial"}
                                       | colon kw_extends_2b781ff8 -> {kind: "extends"}
 
+@profiles: ["sv_2023"]
 initial_or_extends_specifier := initial_or_extends_specifier_sv_2023
                              -> {body: $1}
 
@@ -2533,6 +2543,7 @@ interface_identifier := @probe_sample: "I" declaration_identifier
 @profiles: ["sv_2017"]
 interface_instance_identifier_sv_2017 := identifier
 
+@profiles: ["sv_2017"]
 interface_instance_identifier := interface_instance_identifier_sv_2017
 
 interface_instantiation := interface_identifier ( parameter_value_assignment )? hierarchical_instance ( comma hierarchical_instance )* semi
@@ -2560,6 +2571,7 @@ interface_port_header := interface_identifier ( dot modport_identifier )?    -> 
 @profiles: ["sv_2023"]
 interface_port_identifier_sv_2023 := identifier
 
+@profiles: ["sv_2023"]
 interface_port_identifier := interface_port_identifier_sv_2023
 
 join_keyword := kw_join_c455b38e      -> {kind: "join"}
@@ -2715,6 +2727,7 @@ list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma or
                                        | named_parameter_assignment ( comma named_parameter_assignment )*
                                               -> {kind: "named",   items: [$1, $2::2*]}
 
+@profiles: ["sv_2017"]
 list_of_parameter_assignments := list_of_parameter_assignments_sv_2017
                               -> {body: $1}
 
@@ -2724,6 +2737,7 @@ list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( co
                                               | named_parameter_assignment ( comma named_parameter_assignment )*
                                                      -> {kind: "named",   items: [$1, $2::2*]}
 
+@profiles: ["sv_2023"]
 list_of_parameter_value_assignments := list_of_parameter_value_assignments_sv_2023
                                     -> {body: $1}
 
@@ -3339,12 +3353,14 @@ net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type net_type_identifie
                              -> {data_type: $2, name: $3, with_clause: $4}
                               | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier net_type_identifier semi
 
+@profiles: ["sv_2017"]
 net_type_declaration := net_type_declaration_sv_2017
                      -> {body: $1}
 
 @profiles: ["sv_2017"]
 net_type_identifier_sv_2017 := declaration_identifier
 
+@profiles: ["sv_2017"]
 net_type_identifier := net_type_identifier_sv_2017
 
 @profiles: ["sv_2023"]
@@ -3353,12 +3369,14 @@ nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type nettype_identifier 
                               | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? nettype_identifier nettype_identifier semi
                                       -> {kind: "nettype",    scope: $2, base: $3, name: $4}
 
+@profiles: ["sv_2023"]
 nettype_declaration := nettype_declaration_sv_2023
                     -> {body: $1}
 
 @profiles: ["sv_2023"]
 nettype_identifier_sv_2023 := declaration_identifier
 
+@profiles: ["sv_2023"]
 nettype_identifier := nettype_identifier_sv_2023
 
 next_state := output_symbol -> {kind: "symbol", body: $1}
@@ -3368,6 +3386,7 @@ next_state := output_symbol -> {kind: "symbol", body: $1}
 non_consecutive_repetition_sv_2017 := ( assign const_or_range_expression )?
                                    -> {range: $1}
 
+@profiles: ["sv_2017"]
 non_consecutive_repetition := non_consecutive_repetition_sv_2017
                            -> {body: $1}
 
@@ -3443,6 +3462,7 @@ nonblocking_assignment := variable_lvalue less_equal ( delay_or_event_control )?
 nonconsecutive_repetition_sv_2023 := ( assign const_or_range_expression )?
                                   -> {range: $1}
 
+@profiles: ["sv_2023"]
 nonconsecutive_repetition := nonconsecutive_repetition_sv_2023
                           -> {body: $1}
 
@@ -3478,6 +3498,7 @@ octal_value := octal_digit ( octal_value_tail )* -> {first: $1, rest: $2}
 open_range_list_sv_2017 := open_value_range ( comma open_value_range )*
                         -> [$1, $2::2*]
 
+@profiles: ["sv_2017"]
 open_range_list := open_range_list_sv_2017
                 -> {body: $1}
 
@@ -3485,6 +3506,7 @@ open_range_list := open_range_list_sv_2017
 open_value_range_sv_2017 := value_range
                          -> {body: $1}
 
+@profiles: ["sv_2017"]
 open_value_range := open_value_range_sv_2017
                  -> {body: $1}
 
@@ -3999,18 +4021,21 @@ procedural_timing_control_statement := procedural_timing_control statement_or_nu
 production_sv_2017 := ( data_type_or_void )? production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
                    -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
+@profiles: ["sv_2017"]
 production := production_sv_2017
            -> {body: $1}
 
 @profiles: ["sv_2017"]
 production_identifier_sv_2017 := identifier
 
+@profiles: ["sv_2017"]
 production_identifier := production_identifier_sv_2017
 
 @profiles: ["sv_2017"]
 production_item_sv_2017 := production_identifier ( lparen list_of_arguments rparen )?
                         -> {name: $1, args: $2}
 
+@profiles: ["sv_2017"]
 production_item := production_item_sv_2017
                 -> {body: $1}
 
@@ -4403,6 +4428,7 @@ range_expression := expression        -> {kind: "expression",        body: $1}
 range_list_sv_2023 := value_range ( comma value_range )*
                    -> [$1, $2::2*]
 
+@profiles: ["sv_2023"]
 range_list := range_list_sv_2023
            -> {body: $1}
 
@@ -4477,18 +4503,21 @@ rs_prod := rs_prod_sv_2017 -> {kind: "sv_2017", body: $1}
 rs_production_sv_2023 := ( data_type_or_void )? rs_production_identifier ( lparen tf_port_list rparen )? colon rs_rule ( bitwise_or rs_rule )* semi
                       -> {return_type: $1, name: $2, ports: $3, rules: [$5, $6::2*]}
 
+@profiles: ["sv_2023"]
 rs_production := rs_production_sv_2023
               -> {body: $1}
 
 @profiles: ["sv_2023"]
 rs_production_identifier_sv_2023 := identifier
 
+@profiles: ["sv_2023"]
 rs_production_identifier := rs_production_identifier_sv_2023
 
 @profiles: ["sv_2023"]
 rs_production_item_sv_2023 := rs_production_identifier ( lparen list_of_arguments rparen )?
                             -> {name: $1, args: $2}
 
+@profiles: ["sv_2023"]
 rs_production_item := rs_production_item_sv_2023
                    -> {body: $1}
 
@@ -4534,6 +4563,7 @@ rs_weight_specification_sv_2023 := integral_number          -> {kind: "number", 
                                  | ps_identifier            -> {kind: "identifier", body: $1}
                                  | lparen expression rparen -> {kind: "expression", body: $2}
 
+@profiles: ["sv_2023"]
 rs_weight_specification := rs_weight_specification_sv_2023
                         -> {body: $1}
 
@@ -4689,6 +4719,7 @@ severity_system_task_sv_2023 := kw_sv_dollar_fatal_ecc3c9fd ( lparen finish_numb
                               | kw_sv_dollar_info_d116cb1c ( lparen ( list_of_arguments )? rparen )? semi
                                        -> {kind: "info",    args: $2}
 
+@profiles: ["sv_2023"]
 severity_system_task := severity_system_task_sv_2023
                      -> {body: $1}
 
@@ -5237,6 +5268,7 @@ checked_type_identifier := type_identifier -> { body: $1.body }
 type_identifier_or_class_type_sv_2023 := type_identifier -> {kind: "type_identifier", body: $1}
                                        | class_type      -> {kind: "class_type",      body: $1}
 
+@profiles: ["sv_2023"]
 type_identifier_or_class_type := type_identifier_or_class_type_sv_2023
                               -> {body: $1}
 
@@ -5244,6 +5276,7 @@ type_identifier_or_class_type := type_identifier_or_class_type_sv_2023
 type_parameter_declaration_sv_2023 := kw_type_d0a3e7f8 ( forward_type )? list_of_type_assignments
                                    -> {forward_type: $2, items: $3}
 
+@profiles: ["sv_2023"]
 type_parameter_declaration := type_parameter_declaration_sv_2023
                            -> {body: $1}
 
@@ -5490,6 +5523,7 @@ weight_specification_sv_2017 := integral_number          -> {kind: "number",    
                               | ps_identifier            -> {kind: "identifier", body: $1}
                               | lparen expression rparen -> {kind: "expression", body: $2}
 
+@profiles: ["sv_2017"]
 weight_specification := weight_specification_sv_2017
                      -> {body: $1}
 
