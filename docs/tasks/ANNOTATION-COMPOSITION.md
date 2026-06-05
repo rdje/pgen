@@ -70,11 +70,11 @@
   Commit: `PGEN-ANNOTATION-COMPOSITION-0006`
 
 - ID: `ANNOTATION-COMPOSITION.4`
-  Status: `pending` (elegant RESOLUTION — derive-by-default)
+  Status: `done` (PGEN-ANNOTATION-COMPOSITION-0007, 2026-06-05 — derive-by-default DERIVATION + RESOLUTION-aid landed)
   Goal: `Make a rule's effective @profiles set DERIVED from its productions (bottom-up via the algebra) rather than hand-declared; treat an explicit @profiles as a VERIFIED ASSERTION (declared ⊆ derived) + auto-gate alternation branches to their referents' profiles. Eliminates the orphan class structurally (you cannot under-tag into inconsistency). Parser-gen + stimuli-gen consume the derived value. Measure: the orphan class becomes unrepresentable; no regression in corpus/shape; determinism.`
   Acceptance: `derivation matches hand-tags where they were correct; conflicts (if any) reported with the minimal-edit suggestion; corpus 14/14; shape contract green; parser-agnostic; lib+clippy green.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — IMPLEMENTED the doctrine's R1 DERIVE + the minimal-edit RESOLUTION (the high-value, sound parts): (1) pub fn derive_rule_profiles (grammar_wellformedness.rs) = each rule's DERIVED profile set = the profiles under which it is SATISFIABLE (the .2 composition-algebra fixpoint, now extracted to a shared compute_sat_by_profile helper, DRY); (2) ProfileOrphan now carries suggested_profiles (the derived satisfiable set) and the lint message states the CONCRETE minimal fix ("tag with @profiles: [<derived>]") — the "elegant RESOLUTION" + "minimal-edit suggestion" from the acceptance. The "verified assertion (declared ⊆ derived)" is exactly the existing orphan hard-gate (a declared-but-unsatisfiable profile IS a ProfileOrphan), so consistency is already UNREPRESENTABLE past the gate (.6). Unit-tested (the orphan fix-suggestion = [sv_2023]; derive base/variant/universal). lib (no-features) 592/0; SV --lint-grammar exit 0 (orphans=0, no regression). DEFERRED sub-part (documented, with trigger): the generator CONSUMING derived to auto-eliminate the 32 manual tags — it is a NO-OP behaviorally (derived == declared for the current grammar, since orphans=0 + tags correct) and an engine change, so per engine-last-resort + no-change-without-measurable-effect it is deferred; the lint already enforces consistency as a hard gate, and now SUGGESTS the exact fix. Revisit if manual tagging becomes a maintenance burden or a new under-tagged profile-specific rule pattern emerges.`
+  Commit: `PGEN-ANNOTATION-COMPOSITION-0007`
 
 - ID: `ANNOTATION-COMPOSITION.5`
   Status: `pending` (tag-AGNOSTIC generalization)
@@ -91,5 +91,5 @@
 | — | `ANNOTATION-COMPOSITION.2` | `done` (`-0003`) | Profile-consistency LINT landed; SWEEP found 36 sibling orphans (22 sv_2017 + 14 sv_2023). |
 | — | `ANNOTATION-COMPOSITION.6.1` | `done` (`-0004`) | Characterized the 36 → 3 classes (A sv_2023-new, B rename-pairs, C invariant-traps); blanket fixes UNSAFE (traps). |
 | — | `ANNOTATION-COMPOSITION.6` | `done` (`-0006`) | **profile_orphans 36 → 0** (all classified + fixed, corpus 14/14) + lint LOCKED as a hard gate. The concrete orphan defect is EXHAUSTED. |
-| 1 | `ANNOTATION-COMPOSITION.4` | `pending` (FRONTIER) | Derive-by-default — the doctrine's elegant resolution (R1); would make the 32 manual @profiles tags AUTOMATIC + orphan class unrepresentable. |
-| 2 | `ANNOTATION-COMPOSITION.5` | `pending` | Tag-agnostic TagKind registry — the next tag plugs in; the general framework the director asked for. |
+| — | `ANNOTATION-COMPOSITION.4` | `done` (`-0007`) | Derive-by-default DERIVE (`derive_rule_profiles`) + minimal-edit RESOLUTION (orphan findings now suggest the exact `@profiles` fix). Generator auto-consume deferred (no-op + engine-last-resort). |
+| 1 | `ANNOTATION-COMPOSITION.5` | `pending` (FRONTIER) | Tag-agnostic TagKind registry — the next tag plugs in; the general framework the director asked for. |

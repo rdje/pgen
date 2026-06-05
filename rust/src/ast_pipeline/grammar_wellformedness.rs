@@ -50,7 +50,14 @@ pub enum WellformednessIssue {
     /// See [[project_semantic_annotation_composition_doctrine]]. Composition algebra: a
     /// sequence needs ALL required parts satisfiable (∩), an alternation needs ANY (∪), and an
     /// optional/star element is absorbing (⊤, never makes its container an orphan).
-    ProfileOrphan { rule: String, profile: String },
+    /// `suggested_profiles` (ANNOTATION-COMPOSITION.4 — derive-by-default RESOLUTION) = the DERIVED
+    /// set of profiles under which `rule` IS satisfiable (the minimal `@profiles` tag that makes the
+    /// orphan disappear). Empty = satisfiable under none of the declared profiles (a deeper defect).
+    ProfileOrphan {
+        rule: String,
+        profile: String,
+        suggested_profiles: Vec<String>,
+    },
     /// ERROR (GRAMMAR-WELLFORMED.A1b): `rule` is DEFINED but UNREACHABLE — not reachable, by
     /// transitive reference, from any ROOT (the canonical entry `rule_order[0]` OR any rule that
     /// nothing references, i.e. a secondary entry such as a `*_multi_entry_root`). A dead rule;
@@ -74,10 +81,21 @@ impl WellformednessIssue {
                 "grammar well-formedness WARNING: rule '{}' has an unbounded repetition at '{}' over a NULLABLE body (can loop without consuming input — Ford PEG well-formedness POPL 2004 §3.6); the runtime is zero-length-guarded but the grammar is ill-formed (likely a bug — the body should consume, or use a bounded quantifier)",
                 rule, node_path
             ),
-            WellformednessIssue::ProfileOrphan { rule, profile } => format!(
-                "grammar well-formedness WARNING: rule '{}' is present under profile '{}' but is NOT satisfiable there — every production references a rule absent under '{}' (a @profiles ORPHAN: the profile filter removed what it needs, leaving a dangling reference). Fix: tag '{}' with a matching @profiles, give it a production valid under '{}', or remove the spurious tag on the referenced rule (see the semantic-annotation composition doctrine)",
-                rule, profile, profile, rule, profile
-            ),
+            WellformednessIssue::ProfileOrphan { rule, profile, suggested_profiles } => {
+                let fix = if suggested_profiles.is_empty() {
+                    " — but it is satisfiable under NO declared profile, so the real fix is a production valid under some profile (or remove the rule; it may be globally dead)".to_string()
+                } else {
+                    format!(
+                        " — DERIVED minimal fix (ANNOTATION-COMPOSITION.4): tag '{}' with @profiles: [{}] (the profiles where it IS satisfiable)",
+                        rule,
+                        suggested_profiles.join(", ")
+                    )
+                };
+                format!(
+                    "grammar well-formedness ERROR: rule '{}' is present under profile '{}' but is NOT satisfiable there — every production references a rule absent under '{}' (a @profiles ORPHAN){}",
+                    rule, profile, profile, fix
+                )
+            }
             WellformednessIssue::UnreachableRule { rule } => format!(
                 "grammar well-formedness ERROR: rule '{}' is DEFINED but UNREACHABLE from any entry/root by transitive reference — a dead rule (a well-formed grammar has no useless symbols). Remove it, or reference it from a reachable rule, or make it a top-level entry.",
                 rule
@@ -442,22 +460,15 @@ fn node_satisfiable(
     }
 }
 
-/// ANNOTATION-COMPOSITION.2: detect @profiles ORPHANS — a rule PRESENT under a profile but NOT
-/// satisfiable there (every production references a rule the profile filter removed → dangling).
-/// A rule is reported under `profile` only if it IS satisfiable under some OTHER profile, so a
-/// genuinely non-terminating rule (unsatisfiable everywhere) is NOT mis-reported here (that is
-/// `detect_nonterminating_rules`' job) — this isolates the *profile-specific* breakage.
-/// `rule_profiles`: rule -> its @profiles list (absent/empty = universal). `all_profiles`: the
-/// profile universe (union of declared profiles). PURE; parser-agnostic.
-pub fn detect_profile_orphans(
+/// The per-profile satisfiability fixpoint (shared by `detect_profile_orphans` +
+/// `derive_rule_profiles`): `result[profile][rule]` = is `rule` satisfiable under `profile`.
+fn compute_sat_by_profile(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
     rule_profiles: &HashMap<String, Vec<String>>,
     all_profiles: &[String],
-) -> Vec<WellformednessIssue> {
-    // Rules actually defined in THIS grammar (a reference outside this set is external/include).
+) -> HashMap<String, HashMap<String, bool>> {
     let defined: HashSet<String> = grammar.keys().cloned().collect();
-    // Per-profile satisfiability fixpoint.
     let mut sat_by_profile: HashMap<String, HashMap<String, bool>> = HashMap::new();
     for profile in all_profiles {
         let mut sat: HashMap<String, bool> = HashMap::new();
@@ -480,6 +491,60 @@ pub fn detect_profile_orphans(
         }
         sat_by_profile.insert(profile.clone(), sat);
     }
+    sat_by_profile
+}
+
+/// ANNOTATION-COMPOSITION.4 (derive-by-default — the doctrine's R1): the DERIVED `@profiles` set
+/// per rule = the profiles under which the rule is SATISFIABLE (the composition-algebra fixpoint).
+/// A rule's effective profiles can thus be COMPUTED from its productions rather than hand-declared;
+/// an explicit `@profiles` then reads as a *verified assertion* (declared ⊆ derived — a
+/// declared-but-unsatisfiable profile is exactly a `ProfileOrphan`). Consumed today as the orphan
+/// fix-suggestion (`suggested_profiles`); a future option is the generator consuming it to
+/// auto-eliminate manual tags (deferred — the lint already makes inconsistency a hard-gate, so that
+/// is a no-op-behaviour convenience, not a correctness need). PURE; deterministic; parser-agnostic.
+pub fn derive_rule_profiles(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    rule_profiles: &HashMap<String, Vec<String>>,
+    all_profiles: &[String],
+) -> HashMap<String, Vec<String>> {
+    let sat_by_profile = compute_sat_by_profile(grammar, rule_order, rule_profiles, all_profiles);
+    let mut derived: HashMap<String, Vec<String>> = HashMap::new();
+    for rule in rule_order {
+        if !grammar.contains_key(rule) {
+            continue;
+        }
+        let profiles: Vec<String> = all_profiles
+            .iter()
+            .filter(|p| {
+                sat_by_profile
+                    .get(*p)
+                    .and_then(|s| s.get(rule))
+                    .copied()
+                    .unwrap_or(false)
+            })
+            .cloned()
+            .collect();
+        derived.insert(rule.clone(), profiles);
+    }
+    derived
+}
+
+/// ANNOTATION-COMPOSITION.2: detect @profiles ORPHANS — a rule PRESENT under a profile but NOT
+/// satisfiable there (every production references a rule the profile filter removed → dangling).
+/// A rule is reported under `profile` only if it IS satisfiable under some OTHER profile, so a
+/// genuinely non-terminating rule (unsatisfiable everywhere) is NOT mis-reported here (that is
+/// `detect_nonterminating_rules`' job) — this isolates the *profile-specific* breakage.
+/// `rule_profiles`: rule -> its @profiles list (absent/empty = universal). `all_profiles`: the
+/// profile universe (union of declared profiles). PURE; parser-agnostic.
+pub fn detect_profile_orphans(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    rule_profiles: &HashMap<String, Vec<String>>,
+    all_profiles: &[String],
+) -> Vec<WellformednessIssue> {
+    // Rules actually defined in THIS grammar (a reference outside this set is external/include).
+    let sat_by_profile = compute_sat_by_profile(grammar, rule_order, rule_profiles, all_profiles);
 
     let mut out = Vec::new();
     for profile in all_profiles {
@@ -502,9 +567,23 @@ pub fn detect_profile_orphans(
                         .unwrap_or(false)
             });
             if satisfiable_elsewhere {
+                // ANNOTATION-COMPOSITION.4: the DERIVED minimal fix = the profiles where the rule
+                // IS satisfiable; tagging it with these makes the orphan disappear.
+                let suggested_profiles: Vec<String> = all_profiles
+                    .iter()
+                    .filter(|q| {
+                        sat_by_profile
+                            .get(*q)
+                            .and_then(|s| s.get(rule))
+                            .copied()
+                            .unwrap_or(false)
+                    })
+                    .cloned()
+                    .collect();
                 out.push(WellformednessIssue::ProfileOrphan {
                     rule: rule.clone(),
                     profile: profile.clone(),
+                    suggested_profiles,
                 });
             }
         }
@@ -836,12 +915,35 @@ mod tests {
         let all = vec!["sv_2017".into(), "sv_2023".into()];
         let issues = detect_profile_orphans(&g, &order, &profiles, &all);
         assert!(
-            issues.iter().any(|i| matches!(i, WellformednessIssue::ProfileOrphan { rule, profile } if rule == "base" && profile == "sv_2017")),
-            "base must be flagged a profile orphan under sv_2017: {issues:?}"
+            issues.iter().any(|i| matches!(i, WellformednessIssue::ProfileOrphan { rule, profile, suggested_profiles }
+                if rule == "base" && profile == "sv_2017" && suggested_profiles == &vec!["sv_2023".to_string()])),
+            "base must be flagged a profile orphan under sv_2017 WITH the derived fix-suggestion @profiles:[sv_2023] (ANNOTATION-COMPOSITION.4): {issues:?}"
         );
         assert!(
             !issues.iter().any(|i| matches!(i, WellformednessIssue::ProfileOrphan { profile, .. } if profile == "sv_2023")),
             "no orphan under sv_2023 (variant is present there): {issues:?}"
+        );
+    }
+
+    #[test]
+    fn derive_rule_profiles_computes_satisfiable_set_per_rule() {
+        // base := variant ; variant @profiles [sv_2023] ; universal := <terminal> (untagged).
+        let mut g = HashMap::new();
+        g.insert("base".into(), rule_ref("variant"));
+        g.insert("variant".into(), token("string", "=="));
+        g.insert("universal".into(), token("string", "x"));
+        let order: Vec<String> = vec!["base".into(), "variant".into(), "universal".into()];
+        let mut profiles: HashMap<String, Vec<String>> = HashMap::new();
+        profiles.insert("variant".into(), vec!["sv_2023".into()]);
+        let all = vec!["sv_2017".into(), "sv_2023".into()];
+        let derived = derive_rule_profiles(&g, &order, &profiles, &all);
+        // variant is tagged sv_2023 → satisfiable only there; base references it → likewise only sv_2023.
+        assert_eq!(derived.get("variant"), Some(&vec!["sv_2023".to_string()]));
+        assert_eq!(derived.get("base"), Some(&vec!["sv_2023".to_string()]));
+        // a plain-terminal untagged rule is satisfiable under both profiles.
+        assert_eq!(
+            derived.get("universal"),
+            Some(&vec!["sv_2017".to_string(), "sv_2023".to_string()])
         );
     }
 

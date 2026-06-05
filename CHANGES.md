@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-ANNOTATION-COMPOSITION-0007 (leaf ANNOTATION-COMPOSITION.4): **derive-by-default — `derive_rule_profiles` + the minimal-edit RESOLUTION (orphan findings now suggest the exact `@profiles` fix).**
+
+Code (rust/src/ast_pipeline/grammar_wellformedness.rs). Lint-level only — no codegen/regen.
+
+- Implements the doctrine's R1 DERIVE + the "elegant RESOLUTION" the leaf asked for: (1) `pub fn derive_rule_profiles` = each rule's DERIVED `@profiles` set = the profiles under which it is SATISFIABLE (the .2 composition-algebra fixpoint, extracted to a shared `compute_sat_by_profile` helper — DRY with `detect_profile_orphans`); (2) `ProfileOrphan` now carries `suggested_profiles` (the derived satisfiable set) and the lint message states the CONCRETE minimal fix: "tag with @profiles: [<derived>]" — the acceptance's "minimal-edit suggestion".
+- The "verified assertion (declared ⊆ derived)" is exactly the existing orphan HARD gate (a declared-but-unsatisfiable profile IS a ProfileOrphan), so inconsistency is already UNREPRESENTABLE past the gate (.6); now the lint also tells you the exact fix. VERIFIED: unit-tested (orphan fix-suggestion = [sv_2023]; derive base/variant/universal); lib (no-features) 592/0; SV --lint-grammar exit 0 (orphans=0).
+- DEFERRED sub-part (documented + trigger): the GENERATOR consuming derived to auto-eliminate the 32 manual tags is a NO-OP behaviorally (derived == declared for the current grammar) + an engine change → deferred per engine-last-resort + no-change-without-measurable-effect; the lint already enforces consistency + suggests the fix. Revisit if manual tagging burdens or a new under-tagged pattern emerges. Frontier → `.5` (tag-agnostic TagKind registry).
+
 ## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0005 (leaf GRAMMAR-WELLFORMED.B1): **the literal-0 residual is now DETERMINISTIC — wall-clock generation deadline replaced by a step-counter budget; gate residual = 84 IDENTICAL across two runs.**
 
 Code (rust/src/ast_pipeline/stimuli_generator.rs). Lib generator change → the gate picks it up on its own rebuild; no parser regen needed.
