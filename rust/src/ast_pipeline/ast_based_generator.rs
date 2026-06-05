@@ -5175,7 +5175,17 @@ impl AstBasedGenerator {
                 let can_match_empty: bool = REGEX_CACHE.with(|cache| -> Result<bool, regex::Error> {
                     let mut cache = cache.borrow_mut();
                     if !cache.contains_key(pattern) {
-                        let compiled = regex::Regex::new(pattern)?;
+                        // PARSE-TERMINATION.7.1: ANCHOR the terminal match at the parse position.
+                        // match_regex only ever accepts a match at offset 0 (it filters
+                        // m.start()==0), but an UNANCHORED `find` scans the ENTIRE remaining
+                        // haystack (up to MBs) on every FAILING terminal attempt (the common PEG
+                        // ordered-choice case) looking for the pattern elsewhere, then discards it
+                        // — O(remaining input) per call = the dominant parse-time root (uvm). A
+                        // leading `\A` (with `(?:..)` to preserve the pattern's precedence) makes
+                        // `find` anchored => O(match length), no haystack scan. Semantically
+                        // identical (same start-0 match or None). The cache key stays the ORIGINAL
+                        // pattern so call sites still share the compiled instance.
+                        let compiled = regex::Regex::new(&format!(r"\A(?:{})", pattern))?;
                         let empties = compiled
                             .find("")
                             .map(|m| m.start() == 0 && m.end() == 0)

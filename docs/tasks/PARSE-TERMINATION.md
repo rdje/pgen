@@ -226,6 +226,21 @@ HONEST: a real but MODEST win — the `re.find("")` was a contributor, NOT the d
 DOMINANT remaining TIME root is the match VOLUME / parse complexity (needs a fresh profile) PLUS
 the gate's debug build; the MEMORY root is the memo (`.6`). Monotone (identical output).
 
+### `.7.1` — ANCHOR terminal regex matching (the DOMINANT parse-time root) — DONE (PGEN-PARSE-TERMINATION-0009, 2026-06-05)
+THE big time cure. A post-`.7` `sample` of the release uvm parse was dominated by `memchr::memmem`
++ `regex_automata` `find_rev`/`find_fwd` + aho-corasick teddy — i.e. **unanchored regex search
+scanning the haystack**. ROOT: `match_regex` did `re.find(haystack).filter(|m| m.start()==0)` — an
+UNANCHORED find that, on every FAILING terminal attempt (the common PEG ordered-choice case),
+scans the ENTIRE remaining input (up to 2.89 MB) for the pattern *elsewhere*, then discards it =
+O(remaining input) per call = O(N^2) parse time. FIX: compile the pattern ANCHORED at the parse
+position — `regex::Regex::new("\\A(?:{pattern})")` — so `find` only checks offset 0 = O(match
+length), no haystack scan. Semantically identical (the parser only ever accepted start-0 matches);
+the `(?:..)` preserves the pattern's precedence; cache key stays the original pattern.
+VERIFIED: regen compiles; lib (features) 652/0; **RGX broader-corpus conformance PASSED (0 parse
+failures — anchoring does NOT break regex-on-regex)**; **release uvm parse 163 s → 71 s (~2.3×;
+~2.5× vs the pre-`.7` 181 s), still PASSES**. Parser-agnostic, monotone. Likely also restores the
+gate's 14/14 (debug uvm should now fit the 1800 s timeout — corpus run pending).
+
 ### `.7-historical` — original finding (kept for provenance)
 `match_regex` in EVERY generated parser recomputes the STATIC `can_match_empty` per call by
 running `re.find("")` (executing the compiled regex against the empty string) — millions of

@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-PARSE-TERMINATION-0009 (leaf PARSE-TERMINATION.7.1): **ANCHOR terminal regex matching — the dominant parse-time root; uvm 181s → 71s (~2.5×).**
+
+Code (codegen: rust/src/ast_pipeline/ast_based_generator.rs, match_regex). generated/ GITIGNORED → codegen .rs committed, regen local.
+
+- A post-.7 sample of the release uvm parse was dominated by memchr::memmem + regex_automata find_rev/find_fwd + aho-corasick teddy = UNANCHORED regex search scanning the haystack. ROOT: match_regex did `re.find(haystack).filter(|m| m.start()==0)` — unanchored find scans the ENTIRE remaining input (up to 2.89 MB) on every FAILING terminal attempt (the common PEG ordered-choice case), then discards the non-start-0 match = O(remaining input) per call = O(N²) parse time.
+- FIX: compile the pattern ANCHORED — `regex::Regex::new("\\A(?:{pattern})")` — so find only checks offset 0 = O(match length), no haystack scan. Semantically identical (parser only accepted start-0 matches); `(?:..)` preserves precedence; cache key stays the original pattern.
+- VERIFIED: regen compiles; lib (features) 652/0; **RGX broader-corpus conformance PASSED (0 parse failures — anchoring does NOT break regex-on-regex)**; **release uvm parse 163s → 71s (~2.3×; ~2.5× vs the original 181s), still PASSES**. Parser-agnostic, monotone. Likely restores the gate's 14/14 (debug uvm should now fit the 1800s timeout — corpus run pending).
+
 ## 2026-06-05 - PGEN-PARSE-TERMINATION-0008 (leaf PARSE-TERMINATION.7): **match_regex caches can_match_empty (kills the per-call re.find("")); uvm release parse 181s → 163s (~10%).**
 
 Code (codegen: rust/src/ast_pipeline/ast_based_generator.rs, match_regex). generated/ GITIGNORED → codegen .rs committed, regen local.
