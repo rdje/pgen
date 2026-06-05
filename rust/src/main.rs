@@ -2266,13 +2266,16 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         Vec::new()
     };
 
+    let shadow_hard_count = shadow.iter().filter(|i| i.reason.is_hard_gate()).count();
+    let shadow_warn_count = shadow.len() - shadow_hard_count;
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), unreachable_rules={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), always_matches_shadowing={} (warning, A2 backlog), unreachable_rules={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         lr.len(),
         nonterm.len(),
-        shadow.len(),
+        shadow_hard_count,
+        shadow_warn_count,
         unreachable.len(),
         nullrep.len(),
         orphans.len(),
@@ -2290,11 +2293,27 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     if lr.len() > 10 {
         println!("  [info]  ... and {} more left-recursive rules", lr.len() - 10);
     }
-    for issue in shadow.iter().take(40) {
+    // GRAMMAR-WELLFORMED.A2: split shadowing into the HARD-gated reasons (exact-duplicate +
+    // fixed-terminal-prefix — all authored grammars are clean at 0) and the newly-added
+    // EARLIER-ALWAYS-MATCHES reason, which is sound but still has an unfixed SV backlog (the
+    // `( X )?`-as-an-alternative anti-pattern), so it is reported as a WARNING until cleaned
+    // (A2.1 promotes it), mirroring how exact-dup shadowing was staged before A1a.
+    let (shadow_hard, shadow_warn): (Vec<_>, Vec<_>) =
+        shadow.iter().partition(|i| i.reason.is_hard_gate());
+    for issue in shadow_hard.iter().take(40) {
+        println!("  [error] {}", issue.message());
+    }
+    if shadow_hard.len() > 40 {
+        println!("  [error] ... and {} more committed-shadowing findings", shadow_hard.len() - 40);
+    }
+    for issue in shadow_warn.iter().take(40) {
         println!("  [warn]  {}", issue.message());
     }
-    if shadow.len() > 40 {
-        println!("  [warn]  ... and {} more shadowing findings", shadow.len() - 40);
+    if shadow_warn.len() > 40 {
+        println!(
+            "  [warn]  ... and {} more always-matches shadowing findings (A2 backlog — not yet a hard gate)",
+            shadow_warn.len() - 40
+        );
     }
     for issue in nullrep.iter().take(40) {
         println!("  [warn]  {}", issue.message());
@@ -2322,7 +2341,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         println!("  [error] {}", issue.message());
     }
 
-    if nonterm.is_empty() && orphans.is_empty() && shadow.is_empty() && unreachable.is_empty() {
+    if nonterm.is_empty() && orphans.is_empty() && shadow_hard.is_empty() && unreachable.is_empty() {
         Ok(())
     } else {
         let mut problems = Vec::new();
@@ -2334,9 +2353,11 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         }
         // GRAMMAR-WELLFORMED.A1a: a shadowed ordered-choice alternative is an UNREACHABLE
         // (dead) branch — a well-formedness defect (PEG ordered-choice hygiene; the branch-level
-        // analogue of an unreachable rule). Now a HARD failure, like profile orphans.
-        if !shadow.is_empty() {
-            problems.push(format!("{} shadowed (unreachable) branch(es)", shadow.len()));
+        // analogue of an unreachable rule). The exact-dup + fixed-prefix reasons are the HARD
+        // gate (all grammars clean); EARLIER-ALWAYS-MATCHES (A2) is a warning backlog (above),
+        // not gated here until A2.1 cleans the SV `( X )?`-alternative defects.
+        if !shadow_hard.is_empty() {
+            problems.push(format!("{} shadowed (unreachable) branch(es)", shadow_hard.len()));
         }
         // GRAMMAR-WELLFORMED.A1b: a defined-but-unreachable rule is a dead rule (Hopcroft–Ullman
         // "no useless symbols" — the reachable half). Hard failure.

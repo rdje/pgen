@@ -120,8 +120,33 @@ subtle dead branch"), never a silent accept.
   safety). VERIFIED: SV unreachable_rules=0 (multi-entry handled correctly), ALL 10 authored grammars
   =0, SV lint exit 0; lib (no-features) grammar_wellformedness 17/0. Follow-up `A1b.1`: catch
   unreferenced dead orphans (needs an entry-declaration so an orphan ≠ a secondary entry).
-- `A2` — extend FIRST-set OVERLAP → **FIRST-set DOMINATION → unreachable** (rung 4); add to the hard
-  gate; fix grammar findings. *Effort: medium. Reuses `branch_first_set`.*
+- `A2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0006):** the SOUND DECIDABLE SUBSET of FIRST-domination —
+  **earlier-branch-ALWAYS-SUCCEEDS shadowing.** New `node_always_succeeds`/`compute_always_succeeds`
+  (the dual of `compute_nullable`, differing ONLY on the lookahead arm: a predicate `&e`/`!e` is
+  nullable but CAN FAIL, so it is NOT always-succeeds → no false positive). In an ordered choice, an
+  earlier alternative that always succeeds (`e?`, `e*`, an all-optional sequence, or a ref to such a
+  rule) makes every later alternative provably dead (PEG commits to the first success).
+  `ShadowingReason::EarlierAlwaysMatches` + `is_hard_gate()`. CONSERVATIVE (only flags PROVEN
+  always-success → never false-accuses a live branch). Unit-tested (positive: `e?`/`e*`/all-optional/
+  nullable-ref; negative: lookahead earlier branch does NOT shadow). VERIFIED across all 17 grammars:
+  ZERO false positives on the clean authored grammars; it found **52 REAL dead branches in
+  `systemverilog.ebnf`** (the recurring `( X )?`-as-an-alternative anti-pattern — e.g.
+  `consecutive_repetition`, `covergroup_value_range_sv_2023`, `bins_or_empty`, `boolean_abbrev_*`).
+  STAGED AS A WARNING (not yet the hard gate) — mirrors how exact-dup shadowing was staged before
+  A1a promoted it; SV stays `--lint-grammar` exit 0 (hard gate = exact-dup + fixed-prefix, both 0)
+  while the 52 are a loud `always_matches_shadowing` backlog. The general (UNSOUND) FIRST-domination
+  is deliberately NOT added: FIRST(a)⊇FIRST(b) does NOT imply a shadows b in PEG (a may match the
+  first token then fail, after which b IS tried) — adding it would false-accuse live branches,
+  violating "never game / never falsely reclassify". The two sound forms (fixed-terminal-prefix +
+  always-succeeds) are the decidable, zero-false-positive core.
+- `A2.1` — **FRONTIER: clean the 52 SV `always_matches_shadowing` defects LRM-grounded, then promote
+  EarlierAlwaysMatches to the hard gate.** Each is a latent (not active) defect — the dead branch
+  never fires today because alt #0 always wins, so a fix CHANGES parse behavior and MUST be verified
+  parse-neutral against the SV corpus + the global stimuli metric, ONE change at a time
+  ([[feedback_no_codebase_change_without_tool_backed_facts]], never derive expecteds from the fix).
+  Root cause is mostly a spurious `( X )?` wrapper on an alternative that should be required (the SV
+  boolean-abbrev / covergroup-range / bins idioms). When warnings reach 0, flip
+  `ShadowingReason::EarlierAlwaysMatches::is_hard_gate()` → true. *Effort: high (multi-slice).*
 
 ### Phase B — make the constructive proof deterministic (the count becomes signal)
 - `B1` — **DONE (code, PGEN-GRAMMAR-WELLFORMED-0005; gate-residual confirm in flight):** replaced the
@@ -174,8 +199,10 @@ subtle dead branch"), never a silent accept.
 | — | `GRAMMAR-WELLFORMED.A1b` | `done` (`-0003`) | Structural unreachability now a hard, multi-entry-safe gate; all grammars =0. The headline "no unreachable rules" is enforced. |
 | — | `GRAMMAR-WELLFORMED.E1` | `done` (`-0004`, satisfied by construction) | Attribute non-circularity holds structurally (synthesized-only annotation language). |
 | — | `GRAMMAR-WELLFORMED.B1` | `done` (`-0005`) | Deterministic step-budget replaces the wall-clock deadline → residual = 84 IDENTICAL across two runs (the ±25 noise gone). The literal-0 metric is now signal. |
-| 1 | `GRAMMAR-WELLFORMED.A2` | `pending` | FIRST-domination shadowing — ⚠️ soundness: FIRST-domination alone ≠ shadowing (needs a commit analysis); do the sound decidable subset or a warning first. |
+| — | `GRAMMAR-WELLFORMED.A2` | `done` (`-0006`) | Sound subset of FIRST-domination — earlier-ALWAYS-SUCCEEDS shadowing. 0 false positives; found 52 real SV dead branches (warning-staged). General unsound FIRST-domination deliberately excluded. |
+| 1 | `GRAMMAR-WELLFORMED.A2.1` | `pending` | Clean the 52 SV `always_matches` defects LRM-grounded (parse-neutral, one at a time, measure global metric) → promote EarlierAlwaysMatches to the hard gate. |
 | 2 | `GRAMMAR-WELLFORMED.F1` | `pending` | Data-dependent binding-before-use (Jim 2010) — the substantive remaining well-DEFINEDNESS check (a fact-flow analysis over `@predicate`/`@emit_fact`). |
+| 3 | `GRAMMAR-WELLFORMED.E2` | `pending` | Attribute completeness — every referenced `$N`/consulted fact has a defining source (static, low-risk like A2). |
 
 ## Decisions
 - `2026-06-05`: Created from the director brainstorm. The frame UNIFIES the linter (static proof) +

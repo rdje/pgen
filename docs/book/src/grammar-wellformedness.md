@@ -31,8 +31,10 @@ independent axis. (This is literature-grounded, not invented; sources at the end
    empty-matching body (which would loop without consuming). *(Ford, PEG, 2004.)*
 3. **No dead branches.** In an ordered choice `a | b | …`, a later alternative is *shadowed* if an
    earlier one always matches first — it can never be selected, so it is unreachable. This is the
-   branch-level form of "useless symbol." (Exact-duplicate shadowing is detected and gated today;
-   the more general FIRST-set domination is in progress.)
+   branch-level form of "useless symbol." Three *sound* forms are detected: exact-duplicate and
+   fixed-terminal-prefix (both hard gates today), and earlier-always-succeeds (a warning while the
+   grammar is being cleaned). The general FIRST-set-domination heuristic is *deliberately omitted* as
+   unsound for PEG (see "Where PGEN stands").
 4. **No dangling references, no profile orphans.** Every referenced rule is defined, and every rule
    present under a language profile (e.g. `sv_2017` vs `sv_2023`) is actually satisfiable under it.
 
@@ -91,9 +93,26 @@ branch as "doesn't count."
 ## Where PGEN stands
 
 The linter (`--lint-grammar`) already proves: termination, profile-orphan freedom, exact-duplicate
-shadow freedom, and **structural reachability** ("no unreachable rules", multi-entry-aware) — all
-hard gates — plus **attribute non-circularity**, which holds by construction (the annotation
-language is synthesized-only). In progress: FIRST-domination shadowing and the rest of the
+and fixed-terminal-prefix shadow freedom, and **structural reachability** ("no unreachable rules",
+multi-entry-aware) — all hard gates — plus **attribute non-circularity**, which holds by construction
+(the annotation language is synthesized-only).
+
+It *also* now detects a second sound form of dead branch: an **earlier alternative that always
+succeeds**. In an ordered choice `a | b`, if `a` can never fail (it is `e?`, `e*`, an all-optional
+sequence, or a reference to such a rule), then PEG commits to `a` on every input and `b` is
+unreachable. This is distinct from nullability — a lookahead `&e`/`!e` consumes nothing (nullable)
+but *can* fail, so it never triggers this rule (no false positives). The analysis is deliberately
+conservative: it flags a later branch only when the earlier one is *provably* always-succeeding,
+never on a guess. It found 52 real dead branches in the SystemVerilog grammar (a recurring
+"`( X )?` written as an alternative" mistake) — those are surfaced as warnings first and will become
+a hard gate once the grammar is cleaned, exactly the way exact-duplicate shadowing was staged.
+
+A note on what is **left out on purpose:** the *general* "FIRST-set domination" heuristic — "if
+everything `b` could start with, `a` could also start with, then `b` is dead" — is **unsound for
+PEG** and is intentionally not implemented. `a` might match the first token and then fail later, in
+which case PEG *does* backtrack and try `b`, so `b` is live. Implementing the general heuristic would
+falsely accuse live branches of being dead — the opposite of an honest linter. PGEN sticks to the
+two *sound, decidable* forms (fixed-terminal-prefix and always-succeeds). The remaining work is the
 well-*defined* layer (attribute completeness, binding-before-use).
 
 On the **constructive side**, the generator's coverage measurement is now **deterministic**: the

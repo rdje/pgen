@@ -336,6 +336,61 @@ fn compute_nullable(grammar: &HashMap<String, ASTNode>, rule_order: &[String]) -
     nullable
 }
 
+/// Does `node` ALWAYS SUCCEED — i.e. match (possibly empty) on EVERY input, never failing?
+/// This is the dual of nullability for ordered-choice shadowing: in `a | b`, if `a` always
+/// succeeds, PEG commits to `a` and `b` is unreachable (GRAMMAR-WELLFORMED.A2). It DIFFERS from
+/// `node_nullable` on syntactic predicates: a lookahead `&e`/`!e` consumes no input (so it is
+/// *nullable*) but it can FAIL, so it does NOT always succeed. CONSERVATIVE: anything we cannot
+/// PROVE always-succeeds is `false` — so we only ever UNDER-report (miss a shadow), never
+/// false-accuse a live branch of being dead.
+fn node_always_succeeds(node: &ASTNode, always: &HashMap<String, bool>) -> bool {
+    match node {
+        // ordered choice succeeds if ANY alternative always succeeds.
+        ASTNode::Or { alternatives } => alternatives.iter().any(|a| node_always_succeeds(a, always)),
+        // sequence succeeds only if EVERY element always succeeds.
+        ASTNode::Sequence { elements } => elements.iter().all(|e| node_always_succeeds(e, always)),
+        ASTNode::Quantified { element, quantifier } => {
+            let (min, _) = parse_quantifier_bounds(quantifier).unwrap_or((0, None));
+            // `?` / `*` / `{0,M}` always succeed (zero matches is a match); `+` / `{N,}` need
+            // the body to always succeed.
+            min == 0 || node_always_succeeds(element, always)
+        }
+        // A syntactic predicate is consume-free but CAN FAIL — never "always succeeds".
+        ASTNode::Lookahead { .. } => false,
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => node_always_succeeds(inner, always),
+            ASTValue::Token(parts) => match referenced_rule(parts) {
+                Some(rule) => always.get(rule).copied().unwrap_or(false),
+                None => false, // a terminal lexeme can fail (input may differ)
+            },
+        },
+    }
+}
+
+/// Fixpoint over the grammar: which rules ALWAYS SUCCEED. Same monotone-upward shape as
+/// `compute_nullable`; an undefined/unknown rule stays `false` (conservative).
+fn compute_always_succeeds(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> HashMap<String, bool> {
+    let mut always: HashMap<String, bool> = HashMap::new();
+    loop {
+        let mut changed = false;
+        for rule in rule_order {
+            let Some(body) = grammar.get(rule) else { continue };
+            let value = node_always_succeeds(body, &always);
+            if always.get(rule).copied().unwrap_or(false) != value {
+                always.insert(rule.clone(), value);
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    always
+}
+
 /// PARSE-TERMINATION.2 (static no-hang surface): detect UNBOUNDED repetitions over a
 /// NULLABLE body — `e*` / `e+` / `e{N,}` where `e` can match the empty string. Such a
 /// repetition can iterate without consuming input (Ford PEG well-formedness, POPL 2004 §3.6,
@@ -731,6 +786,24 @@ pub enum ShadowingReason {
     DuplicateAlternative,
     /// The earlier alternative is a fixed-terminal prefix of this one (PEG commits first).
     FixedTerminalPrefix,
+    /// The earlier alternative ALWAYS SUCCEEDS (e.g. `e?`, `e*`, an all-optional sequence) — so
+    /// PEG commits to it on every input and this one can never be tried.
+    EarlierAlwaysMatches,
+}
+
+impl ShadowingReason {
+    /// Is this reason part of the HARD `--lint-grammar` gate yet? The exact-duplicate and
+    /// fixed-terminal-prefix reasons are gated (every authored grammar was cleaned to 0 — A1a/.1/.2);
+    /// `EarlierAlwaysMatches` is the newly-added A2 detector and currently has an UNFIXED backlog in
+    /// the SV grammar (the `( X )?`-as-an-alternative anti-pattern), so it is surfaced as a WARNING
+    /// until that backlog is cleaned LRM-grounded, exactly as exact-dup shadowing was staged before
+    /// A1a promoted it. Promote here once the warnings reach 0 (GRAMMAR-WELLFORMED.A2.1).
+    pub fn is_hard_gate(&self) -> bool {
+        match self {
+            ShadowingReason::DuplicateAlternative | ShadowingReason::FixedTerminalPrefix => true,
+            ShadowingReason::EarlierAlwaysMatches => false,
+        }
+    }
 }
 
 impl ShadowingIssue {
@@ -738,6 +811,7 @@ impl ShadowingIssue {
         let why = match self.reason {
             ShadowingReason::DuplicateAlternative => "is an exact duplicate of",
             ShadowingReason::FixedTerminalPrefix => "is a fixed-terminal prefix of",
+            ShadowingReason::EarlierAlwaysMatches => "always matches (never fails) earlier than",
         };
         format!(
             "grammar shadowing: in rule '{}' (ordered choice at {}), alternative #{} is unreachable — alternative #{} {} it (PEG commits to the earlier alternative); reorder (specific before general) or merge",
@@ -809,21 +883,32 @@ pub fn detect_ordered_choice_shadowing(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
 ) -> Vec<ShadowingIssue> {
+    let always = compute_always_succeeds(grammar, rule_order);
     let mut issues = Vec::new();
     for rule in rule_order {
         let Some(body) = grammar.get(rule) else { continue };
-        collect_shadowing(rule, body, "root", &mut issues);
+        collect_shadowing(rule, body, "root", &always, &mut issues);
     }
     issues
 }
 
-fn collect_shadowing(rule: &str, node: &ASTNode, path: &str, out: &mut Vec<ShadowingIssue>) {
+fn collect_shadowing(
+    rule: &str,
+    node: &ASTNode,
+    path: &str,
+    always: &HashMap<String, bool>,
+    out: &mut Vec<ShadowingIssue>,
+) {
     match node {
         ASTNode::Or { alternatives } => {
             for (j, alt_j) in alternatives.iter().enumerate() {
                 for (i, alt_i) in alternatives.iter().enumerate().take(j) {
                     let reason = if ast_eq(alt_i, alt_j) {
                         Some(ShadowingReason::DuplicateAlternative)
+                    } else if node_always_succeeds(alt_i, always) {
+                        // An earlier alternative that always succeeds makes this one (and every
+                        // later one) unreachable — PEG commits to the first success.
+                        Some(ShadowingReason::EarlierAlwaysMatches)
                     } else if let Some(prefix) = fixed_terminal_seq(alt_i) {
                         // alt_i is a guaranteed fixed match; if it prefixes alt_j's leading
                         // fixed terminals, PEG commits to alt_i and alt_j is unreachable.
@@ -852,23 +937,23 @@ fn collect_shadowing(rule: &str, node: &ASTNode, path: &str, out: &mut Vec<Shado
                 }
             }
             for (idx, alt) in alternatives.iter().enumerate() {
-                collect_shadowing(rule, alt, &format!("{}/o{}", path, idx), out);
+                collect_shadowing(rule, alt, &format!("{}/o{}", path, idx), always, out);
             }
         }
         ASTNode::Sequence { elements } => {
             for (idx, e) in elements.iter().enumerate() {
-                collect_shadowing(rule, e, &format!("{}/s{}", path, idx), out);
+                collect_shadowing(rule, e, &format!("{}/s{}", path, idx), always, out);
             }
         }
         ASTNode::Quantified { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/q", path), out);
+            collect_shadowing(rule, element, &format!("{}/q", path), always, out);
         }
         ASTNode::Lookahead { element, .. } => {
-            collect_shadowing(rule, element, &format!("{}/l", path), out);
+            collect_shadowing(rule, element, &format!("{}/l", path), always, out);
         }
         ASTNode::Atom { value } => {
             if let ASTValue::Node(inner) = value {
-                collect_shadowing(rule, inner, &format!("{}/a", path), out);
+                collect_shadowing(rule, inner, &format!("{}/a", path), always, out);
             }
         }
     }
@@ -899,6 +984,12 @@ mod tests {
     }
     fn or(alts: Vec<ASTNode>) -> ASTNode {
         ASTNode::Or { alternatives: alts }
+    }
+    fn quant(element: ASTNode, q: &str) -> ASTNode {
+        ASTNode::Quantified { element: Box::new(element), quantifier: q.to_string() }
+    }
+    fn look(element: ASTNode, positive: bool) -> ASTNode {
+        ASTNode::Lookahead { element: Box::new(element), positive }
     }
 
     #[test]
@@ -1152,6 +1243,62 @@ mod tests {
         assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn detects_always_succeeds_branch_shadowing() {
+        // GRAMMAR-WELLFORMED.A2 (sound subset): an earlier alternative that ALWAYS SUCCEEDS
+        // makes every later one unreachable (PEG commits to the first success).
+        //   opt    := "x"? | "y"           → `"x"?` always succeeds → `"y"` dead
+        //   star   := "z"* | "w"           → `"z"*` always succeeds → `"w"` dead
+        //   allopt := ("a"? "b"?) | "c"    → an all-optional sequence always succeeds → `"c"` dead
+        //   nref   := nullable_rule | "d"  → ref to an always-succeeding rule → `"d"` dead
+        let mut g = HashMap::new();
+        g.insert("opt".into(), or(vec![quant(token("string", "x"), "?"), token("string", "y")]));
+        g.insert("star".into(), or(vec![quant(token("string", "z"), "*"), token("string", "w")]));
+        g.insert(
+            "allopt".into(),
+            or(vec![
+                seq(vec![quant(token("string", "a"), "?"), quant(token("string", "b"), "?")]),
+                token("string", "c"),
+            ]),
+        );
+        g.insert("nref".into(), or(vec![rule_ref("nullable_rule"), token("string", "d")]));
+        g.insert("nullable_rule".into(), quant(token("string", "n"), "?"));
+        let order: Vec<String> = vec![
+            "opt".into(),
+            "star".into(),
+            "allopt".into(),
+            "nref".into(),
+            "nullable_rule".into(),
+        ];
+        let issues = detect_ordered_choice_shadowing(&g, &order);
+        for rule in ["opt", "star", "allopt", "nref"] {
+            assert!(
+                issues.iter().any(|i| i.rule == rule
+                    && i.shadowed_index == 1
+                    && i.reason == ShadowingReason::EarlierAlwaysMatches),
+                "rule '{rule}' second branch must be flagged EarlierAlwaysMatches: {issues:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn lookahead_earlier_branch_does_not_shadow() {
+        // A syntactic predicate is nullable (consumes nothing) but CAN FAIL — so it does NOT
+        // always succeed and must NOT shadow a later branch (the soundness line that separates
+        // `always_succeeds` from `nullable`).
+        //   pos := &"a" | "b"     (&"a" fails on input not starting "a" → "b" reachable)
+        //   neg := !"a" | "a"     (!"a" fails on input starting "a" → "a" reachable)
+        let mut g = HashMap::new();
+        g.insert("pos".into(), or(vec![look(token("string", "a"), true), token("string", "b")]));
+        g.insert("neg".into(), or(vec![look(token("string", "a"), false), token("string", "a")]));
+        let order: Vec<String> = vec!["pos".into(), "neg".into()];
+        let issues = detect_ordered_choice_shadowing(&g, &order);
+        assert!(
+            issues.is_empty(),
+            "a lookahead earlier branch can fail, so it must not shadow a later branch: {issues:?}"
+        );
     }
 
     #[test]
