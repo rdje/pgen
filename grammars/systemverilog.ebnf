@@ -1797,13 +1797,11 @@ defparam_assignment := hierarchical_parameter_identifier assign constant_mintypm
 @profiles: ["sv_2017"]
 delay_sv_2017 := @probe_sample: "#1" hash delay_value                                                                                                  -> {kind: "value", body: $2}
               | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen                              -> {kind: "triple_optional", first: $3, rest: $4}
-              | hash delay_value                                                                                                                       -> {kind: "value", body: $2}
               | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen                                                              -> {kind: "pair_optional", first: $3, second: $4}
 
 @profiles: ["sv_2023"]
 delay_sv_2023 := hash delay_value                                                                                                                      -> {kind: "value", body: $2}
               | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen                                                              -> {kind: "pair_optional", first: $3, second: $4}
-              | hash delay_value                                                                                                                       -> {kind: "value", body: $2}
               | hash lparen mintypmax_expression ( comma mintypmax_expression ( comma mintypmax_expression )? )? rparen                              -> {kind: "triple_optional", first: $3, rest: $4}
 
 delay := delay_sv_2017 -> {body: $1}
@@ -1891,10 +1889,7 @@ dpi_task_proto := task_prototype
                -> {body: $1}
 
 drive_strength := lparen strength comma strength rparen           -> {kind: "pair_strength", first: $2, second: $4}
-               | lparen strength comma strength rparen           -> {kind: "pair_strength", first: $2, second: $4}
                | lparen strength comma kw_highz_ed790878 rparen  -> {kind: "strength_highz", first: $2}
-               | lparen strength comma kw_highz_ed790878 rparen  -> {kind: "strength_highz", first: $2}
-               | lparen kw_highz_ed790878 comma strength rparen  -> {kind: "highz_strength", second: $4}
                | lparen kw_highz_ed790878 comma strength rparen  -> {kind: "highz_strength", second: $4}
 
 dynamic_array_new := kw_new_c2a6b03f lbrack expression rbrack ( lparen expression rparen )?
@@ -1981,8 +1976,6 @@ enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input
                      -> {name: $1, output: $3, input: $5, enable: $7}
 
 enable_gatetype := kw_bufif_8c9c7ee6 -> {kind: "bufif"}
-                | kw_bufif_8c9c7ee6 -> {kind: "bufif"}
-                | kw_notif_8743f903 -> {kind: "notif"}
                 | kw_notif_8743f903 -> {kind: "notif"}
 
 enable_terminal := expression
@@ -2389,10 +2382,8 @@ indexed_range := expression plus colon constant_expression  -> {kind: "plus_inde
                | expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
 
 init_val := kw_n_1_tick_b_f4c81681  -> {kind: "1'b"}
-         | kw_n_1_tick_b_f4c81681  -> {kind: "1'b"}
          | kw_n_1_tick_bx_ab9cb068 -> {kind: "1'bx"}
          | kw_n_1_tick_bX_70a6d618 -> {kind: "1'bX"}
-         | kw_n_1_tick_B_9f69eb32  -> {kind: "1'B"}
          | kw_n_1_tick_B_9f69eb32  -> {kind: "1'B"}
          | kw_n_1_tick_Bx_0a99de19 -> {kind: "1'Bx"}
          | kw_n_1_tick_BX_874bf116 -> {kind: "1'BX"}
@@ -2747,8 +2738,6 @@ list_of_path_delay_expressions := @probe_sample: "1" t_path_delay_expression
                                 | trise_path_delay_expression comma tfall_path_delay_expression comma tz_path_delay_expression
                                 | t01_path_delay_expression comma t10_path_delay_expression comma t0z_path_delay_expression comma tz1_path_delay_expression comma t1z_path_delay_expression comma tz0_path_delay_expression
                                 | t01_path_delay_expression comma t10_path_delay_expression comma t0z_path_delay_expression comma tz1_path_delay_expression comma t1z_path_delay_expression comma tz0_path_delay_expression comma t0x_path_delay_expression comma tx1_path_delay_expression comma t1x_path_delay_expression comma tx0_path_delay_expression comma txz_path_delay_expression comma tzx_path_delay_expression
-                                | @probe_sample: "1,2" trise_path_delay_expression comma tfall_path_delay_expression
-                                | @probe_sample: "1,2,3" trise_path_delay_expression comma tfall_path_delay_expression comma tz_path_delay_expression
                                 | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression
                                 | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma txz_path_delay_expression comma tzx_path_delay_expression
 
@@ -3335,13 +3324,10 @@ net_port_type := net_port_type_sv_2017 -> {kind: "sv_2017", body: $1}
                | net_port_type_sv_2023 -> {kind: "sv_2023", body: $1}
 
 net_type := kw_supply_076df715 -> {kind: "supply"}
-         | kw_supply_076df715 -> {kind: "supply"}
          | kw_tri_54bf01f1    -> {kind: "tri"}
          | kw_triand_51bca013 -> {kind: "triand"}
          | kw_trior_56b8b9f0  -> {kind: "trior"}
          | kw_trireg_f7901823 -> {kind: "trireg"}
-         | kw_tri_54bf01f1    -> {kind: "tri"}
-         | kw_tri_54bf01f1    -> {kind: "tri"}
          | kw_uwire_9143a634  -> {kind: "uwire"}
          | kw_wire_6e1c6849   -> {kind: "wire"}
          | kw_wand_4be59aff   -> {kind: "wand"}
@@ -3806,8 +3792,6 @@ part_select_range := constant_range -> {kind: "range",         body: $1}
                    | indexed_range  -> {kind: "indexed_range", body: $1}
 
 pass_en_switchtype := kw_tranif_02d116e0 -> {kind: "tranif"}
-                   | kw_tranif_02d116e0 -> {kind: "tranif"}
-                   | kw_rtranif_75c812fc -> {kind: "rtranif"}
                    | kw_rtranif_75c812fc -> {kind: "rtranif"}
 
 pass_enable_switch_instance := ( name_of_instance )? lparen inout_terminal comma inout_terminal comma enable_terminal rparen
@@ -4124,8 +4108,6 @@ property_expr_sv_2017 := sequence_expr
                               -> {kind: "or",                  lhs: $1, rhs: $3}
                        | property_expr kw_and_cffa50a3 property_expr
                               -> {kind: "and",                 lhs: $1, rhs: $3}
-                       | sequence_expr
-                              -> {kind: "sequence_dup",        body: $1}
                        | implies property_expr
                               -> {kind: "implies_unary",       body: $2}
                        | sequence_expr or_assign property_expr
@@ -4198,8 +4180,6 @@ property_expr_sv_2023 := sequence_expr
                               -> {kind: "or",                  lhs: $1, rhs: $3}
                        | property_expr kw_and_cffa50a3 property_expr
                               -> {kind: "and",                 lhs: $1, rhs: $3}
-                       | sequence_expr
-                              -> {kind: "sequence_dup",        body: $1}
                        | implies property_expr
                               -> {kind: "implies_unary",       body: $2}
                        | sequence_expr or_assign property_expr
@@ -4368,11 +4348,9 @@ pull_gate_instance := ( name_of_instance )? lparen output_terminal rparen
                    -> {name: $1, output: $3}
 
 pulldown_strength := lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
-                  | lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
                   | lparen strength rparen                -> {kind: "single", value: $2}
 
 pullup_strength := lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
-                | lparen strength comma strength rparen -> {kind: "pair", first: $2, second: $4}
                 | lparen strength rparen                -> {kind: "single", value: $2}
 
 pulse_control_specparam := kw_PATHPULSE_dollar_e0f78dc5 assign lparen reject_limit_value ( comma error_limit_value )? rparen
@@ -4568,12 +4546,8 @@ rs_weight_specification := rs_weight_specification_sv_2023
                         -> {body: $1}
 
 scalar_constant := kw_n_1_tick_b_f4c81681 -> {kind: "1'b"}
-                | kw_n_1_tick_b_f4c81681 -> {kind: "1'b"}
-                | kw_n_1_tick_B_9f69eb32 -> {kind: "1'B"}
                 | kw_n_1_tick_B_9f69eb32 -> {kind: "1'B"}
                 | tick kw_b_e9d71f5e     -> {kind: "'b"}
-                | tick kw_b_e9d71f5e     -> {kind: "'b"}
-                | tick kw_B_ae4f281d     -> {kind: "'B"}
                 | tick kw_B_ae4f281d     -> {kind: "'B"}
                 | kw_n_1_356a192b        -> {kind: "1"}
                 | kw_n_0_b6589fc6        -> {kind: "0"}
@@ -5397,7 +5371,6 @@ unary_operator := plus                  -> {kind: "plus"}
                 | reduction_xnor_alt    -> {kind: "reduction_xnor_alt"}
 
 unique_priority := kw_unique_58037c00   -> {kind: "unique"}
-                | kw_unique_58037c00   -> {kind: "unique"}
                 | kw_priority_3345867e -> {kind: "priority"}
 
 @profiles: ["sv_2017"]
