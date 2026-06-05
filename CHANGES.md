@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0004 (leaf GRAMMAR-WELLFORMED.E1, analysis): **attribute non-circularity (Knuth) is SATISFIED BY CONSTRUCTION — PGEN's annotation language is synthesized-only.**
+
+Docs only (tree + book chapter). No code — the result is a structural proof, not a runtime check.
+
+- Tools-first source check: PGEN return annotations are PURELY SYNTHESIZED — `UnifiedReturnAST::PositionalRef { index }` (`$N`/`$0` = the rule's OWN children/match, bottom-up) + literals/access/spread; there is NO inherited (parent/sibling/top-down) attribute construct in the annotation language (grep: zero inherited refs, only test strings). A synthesized-only attribute grammar is NON-CIRCULAR BY CONSTRUCTION (a cycle requires inherited attributes feeding back up — Knuth 1968). ⇒ well-definedness requirement #5 (attribute non-circularity) holds STRUCTURALLY; no detector is needed (the proof is the language design). The store flow `@predicate`/`@emit_fact` is a SEPARATE data-dependent axis (= F1, Jim 2010), not classic attribute circularity. If an inherited construct is ever added, Knuth's bounded cycle test becomes required (re-open E1). Recorded in the GRAMMAR-WELLFORMED tree + the Part II book chapter.
+
 ## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0003 (leaf GRAMMAR-WELLFORMED.A1b): **structural unreachability is now a HARD `--lint-grammar` gate — "no unreachable rules" enforced, multi-entry-safe.**
 
 Code (rust/src/ast_pipeline/grammar_wellformedness.rs — detect_unreachable_rules + UnreachableRule issue + unit test; rust/src/main.rs — run_grammar_lint wires + gates it).

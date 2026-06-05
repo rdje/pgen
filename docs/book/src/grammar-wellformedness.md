@@ -44,7 +44,12 @@ apply:
 
 5. **Attribute non-circularity.** No annotation value may depend, transitively, on itself. A
    circular attribute definition makes the grammar's *meaning* undefined. *(Knuth, 1968 — the
-   circularity test is famously expensive in the worst case but cheap on real grammars.)*
+   circularity test is famously expensive in the worst case but cheap on real grammars.)* **PGEN
+   satisfies this by construction:** its return annotations are purely *synthesized* (`$N` refers
+   only to a rule's own children, bottom-up) — there is no inherited (top-down) attribute construct,
+   and a synthesized-only attribute grammar cannot be circular. So this needs no runtime check; the
+   proof is the annotation language's design. (The store-based `@predicate`/`@emit_fact` flow is a
+   *separate*, data-dependent axis — see requirement 7.)
 6. **Attribute completeness.** Every attribute or binding a rule reads (`$N`, a consulted fact) has
    a defining source — no "use of an undefined value."
 7. **Binding before use.** Every `@predicate` may only consult facts that *can be established

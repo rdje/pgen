@@ -137,9 +137,17 @@ subtle dead branch"), never a silent accept.
   type-position use), sequencing prelude→target. *Effort: high; generator currently semantics-blind.*
 
 ### Phase D — well-DEFINEDNESS (the semantic layer the literature exposed; NEW)
-- `E1` — **attribute non-circularity** (Knuth 1968): a dependency-cycle check over return-annotation
-  (`$N`) / `@semantic_value` attributes → hard gate. *Effort: medium-high (Knuth's test; exponential
-  worst-case but feasible — bound it).*
+- `E1` — **attribute non-circularity** (Knuth 1968) — **DONE / SATISFIED BY CONSTRUCTION
+  (PGEN-GRAMMAR-WELLFORMED-0004, analysis).** Tools-first source check: PGEN's return annotations are
+  PURELY SYNTHESIZED — `UnifiedReturnAST::PositionalRef { index }` (`$N`/`$0` = the rule's OWN
+  children/match, bottom-up) plus literals/access/spread; there is NO inherited/parent/sibling
+  attribute construct in the annotation language (grep: zero inherited refs — only test strings). A
+  synthesized-only attribute grammar is **non-circular by construction** (a cycle requires inherited
+  attributes feeding back up; Knuth 1968). ⇒ E1 holds STRUCTURALLY — no runtime cycle is possible,
+  so no detector is needed; the proof is the annotation-language design. (The store flow
+  `@predicate`/`@emit_fact` is DATA-DEPENDENT, a SEPARATE axis = `F1`, not classic attribute
+  circularity.) If an inherited construct is ever added, Knuth's bounded cycle test becomes required
+  (re-open E1).
 - `E2` — **attribute completeness**: every referenced `$N` / consulted fact has a defining source →
   gate. *Effort: medium.*
 - `F1` — **data-dependent binding-before-use** (Jim et al. 2010): every `@predicate`'s referenced
@@ -152,8 +160,9 @@ subtle dead branch"), never a silent accept.
 | — | `GRAMMAR-WELLFORMED.A1a` | `done` (`-0154`) | Shadowing now a hard gate; SV well-formed re: dead branches; embodies "a well-defined EBNF has no unreachable rules". |
 | — | `GRAMMAR-WELLFORMED.A1a.1/.2` | `done` (`-0002`) | regex + semantic_annotation shadows cleaned → ALL authored grammars pass the shadowing hard gate. |
 | — | `GRAMMAR-WELLFORMED.A1b` | `done` (`-0003`) | Structural unreachability now a hard, multi-entry-safe gate; all grammars =0. The headline "no unreachable rules" is enforced. |
-| 1 | `GRAMMAR-WELLFORMED.A2` | `pending` | FIRST-domination shadowing (extend the existing FIRST-set machinery). |
-| 2 | `GRAMMAR-WELLFORMED.E1` | `pending` | Attribute non-circularity — the biggest well-DEFINEDNESS gap (Knuth). |
+| — | `GRAMMAR-WELLFORMED.E1` | `done` (`-0004`, satisfied by construction) | Attribute non-circularity holds structurally (synthesized-only annotation language). |
+| 1 | `GRAMMAR-WELLFORMED.A2` | `pending` | FIRST-domination shadowing — ⚠️ soundness: FIRST-domination alone ≠ shadowing (needs a commit analysis); do the sound decidable subset or a warning first. |
+| 2 | `GRAMMAR-WELLFORMED.F1` | `pending` | Data-dependent binding-before-use (Jim 2010) — the substantive remaining well-DEFINEDNESS check (a fact-flow analysis over `@predicate`/`@emit_fact`). |
 
 ## Decisions
 - `2026-06-05`: Created from the director brainstorm. The frame UNIFIES the linter (static proof) +
