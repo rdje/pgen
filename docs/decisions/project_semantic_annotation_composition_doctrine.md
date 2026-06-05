@@ -99,6 +99,33 @@ an ad-hoc per-tag check. Composes with the PARSE-SOTA well-formedness lints (`.8
   removed from the stimuli universe ONLY as a *consequence* of fixing/deriving the grammar's
   real tags — never by trimming the target list to make a number go to zero.
 
+## Extension recipe — adding a new tag-kind (ANNOTATION-COMPOSITION.5)
+
+`@profiles` is instance #1, fully worked (derive + check + resolve). A second tag-kind follows the
+SAME shape — no checker rewrite, no special-casing:
+
+1. **Declare its four parts** (the principle above): value domain; composition algebra (how a
+   sequence / alternation / quantifier / reference composes the tag — `seq=∩`, `alt=∪`, `opt/star=⊤`,
+   `ref=referent's value`); consistency invariant (`present ⇒ …`); resolution policy (derive-by-default
+   / auto-gate / explicit-as-verified-assertion).
+2. **Provide two pure functions** over `ASTNode` + a `rule → tag-values` map + the value universe,
+   mirroring the `@profiles` worked instance in `grammar_wellformedness.rs`:
+   - a **DERIVE** function (cf. `derive_rule_profiles`) — the per-value fixpoint giving each rule's
+     derived tag-set; reuse the `compute_sat_by_profile` fixpoint skeleton;
+   - a **CHECK** function (cf. `detect_profile_orphans`) returning `WellformednessIssue`s, each
+     carrying the **derived minimal fix** (cf. `suggested_profiles`).
+3. **Wire it into `run_grammar_lint`** alongside the existing detectors (one line), and into the
+   generator's profile-filter if the tag gates generation (the way `@profiles` does).
+
+**Why no generic runtime registry yet — deferred on purpose.** There is exactly ONE real tag-kind
+(`@profiles`). Building a generic dispatch engine + a contrived second tag to exercise it would be
+premature abstraction — it would be shaped around `@profiles`' specifics and likely mis-fit a real
+second tag, against the fix hierarchy's "concrete justification for level-3+ additions"
+([[feedback_no_workarounds_fix_hierarchy]]) and the rule-of-three. The model + this recipe are
+documented and the worked instance is in place; **extract the shared abstraction FROM the two
+instances when a real second tag-kind arrives.** (`ANNOTATION-COMPOSITION.5`: model + recipe DONE;
+generic-registry implementation deferred with this trigger.)
+
 Owned by the **`ANNOTATION-COMPOSITION`** task tree (`docs/tasks/ANNOTATION-COMPOSITION.md`).
 First instance + canary: `binary_module_path_operator` (`@profiles`). Related:
 [[feedback_grammar_rules_must_consult_store]], [[reference_annotation_binds_following_rule]].

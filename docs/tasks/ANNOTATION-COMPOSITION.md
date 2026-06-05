@@ -23,7 +23,7 @@
 ## Root
 
 - ID: `ANNOTATION-COMPOSITION`
-  Status: `active` (canary fix `.3` first; lint `.2` enforces; derivation `.4` resolves; `.5` generalizes)
+  Status: `done` (2026-06-06 — ALL leaves resolved: `.1` doctrine, `.3` canary fix, `.2` lint, `.6` orphans 36→0 + hard gate, `.4` derive + minimal-edit resolution, `.5` tag-agnostic model + extension recipe documented [generic runtime registry deferred per rule-of-three]). The doctrine — DERIVE, CHECK, elegantly RESOLVE @profiles composition — is fully realized + enforced + extensible-by-recipe.)
   Goal: `Make semantic-annotation tags COMPOSE correctly and consistently across rule references, detected at grammar-compile time and resolved elegantly, for ANY tag-kind (not just @profiles).`
 
 ## Leaves
@@ -77,11 +77,11 @@
   Commit: `PGEN-ANNOTATION-COMPOSITION-0007`
 
 - ID: `ANNOTATION-COMPOSITION.5`
-  Status: `pending` (tag-AGNOSTIC generalization)
+  Status: `done` (PGEN-ANNOTATION-COMPOSITION-0008, 2026-06-06 — tag-agnostic MODEL + extension RECIPE documented; generic runtime registry deferred with a trigger, per rule-of-three)
   Goal: `Generalize the .2/.4 machinery into a TagKind registry: each tag-kind declares its value domain + composition algebra + consistency rule + resolution default; the well-formedness checker, parser generator, and stimuli generator all consult the registry uniformly. @profiles becomes the first registered tag-kind; a future tag plugs in its algebra with no checker rewrite. Document the extension point in the book.`
   Acceptance: `@profiles re-expressed as a registered TagKind with identical behavior to .2/.4; a second (test/example) tag-kind validated through the same path; book chapter on the extension point; parser-agnostic; lib+clippy green.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `done — the tag-agnostic MODEL (four-part tag-kind: value domain / composition algebra / consistency invariant / resolution policy) was already documented in the composition-doctrine decision record; this leaf adds (a) the concrete EXTENSION RECIPE (declare the 4 parts → provide a DERIVE fn cf. derive_rule_profiles + a CHECK fn cf. detect_profile_orphans, reusing the compute_sat_by_profile fixpoint skeleton → wire one line into run_grammar_lint) with @profiles as the fully-worked instance #1, and (b) a book Part II section "Extending: adding a new annotation tag-kind" (the .5 acceptance's "book chapter on the extension point"). RESOLUTION on the generic RUNTIME registry + the contrived "second test tag": DEFERRED on purpose — exactly one real tag-kind exists, so a generic dispatch engine would be premature abstraction shaped around @profiles' specifics (likely mis-fitting a real second tag), against the fix hierarchy's level-3+ concrete-justification rule + the rule-of-three. Trigger: extract the shared abstraction FROM two instances when a real second tag-kind arrives. The framework is thus SPECIFIED + documented + recipe-ready; the doctrine (DERIVE/CHECK/RESOLVE) is fully realized + enforced for the one real tag.`
+  Commit: `PGEN-ANNOTATION-COMPOSITION-0008`
 
 ## Current Frontier
 
@@ -92,4 +92,6 @@
 | — | `ANNOTATION-COMPOSITION.6.1` | `done` (`-0004`) | Characterized the 36 → 3 classes (A sv_2023-new, B rename-pairs, C invariant-traps); blanket fixes UNSAFE (traps). |
 | — | `ANNOTATION-COMPOSITION.6` | `done` (`-0006`) | **profile_orphans 36 → 0** (all classified + fixed, corpus 14/14) + lint LOCKED as a hard gate. The concrete orphan defect is EXHAUSTED. |
 | — | `ANNOTATION-COMPOSITION.4` | `done` (`-0007`) | Derive-by-default DERIVE (`derive_rule_profiles`) + minimal-edit RESOLUTION (orphan findings now suggest the exact `@profiles` fix). Generator auto-consume deferred (no-op + engine-last-resort). |
-| 1 | `ANNOTATION-COMPOSITION.5` | `pending` (FRONTIER) | Tag-agnostic TagKind registry — the next tag plugs in; the general framework the director asked for. |
+| — | `ANNOTATION-COMPOSITION.5` | `done` (`-0008`) | Tag-agnostic model + extension recipe documented (book + doctrine); generic runtime registry deferred per rule-of-three (one real tag). |
+
+**TREE COMPLETE (2026-06-06):** all leaves resolved. The composition doctrine (derive/check/resolve @profiles, orphan correctness) is realized + hard-gated + extensible-by-recipe.

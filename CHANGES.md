@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-ANNOTATION-COMPOSITION-0008 (leaf ANNOTATION-COMPOSITION.5 — TREE COMPLETE): **tag-agnostic TagKind MODEL + extension RECIPE documented; generic runtime registry deferred (rule-of-three). The ANNOTATION-COMPOSITION tree is now fully exhausted.**
+
+Docs (composition-doctrine decision record + Part II book chapter + tree + TASK_TREE registry + LIVE). No code.
+
+- The four-part tag-agnostic MODEL (value domain / composition algebra / consistency invariant / resolution policy) was already in the doctrine record; this leaf adds the concrete EXTENSION RECIPE — to add a tag-kind: declare the 4 parts → provide a DERIVE fn (cf. `derive_rule_profiles`) + a CHECK fn (cf. `detect_profile_orphans`) reusing the `compute_sat_by_profile` fixpoint skeleton → wire one line into `run_grammar_lint` — with `@profiles` as the fully-worked instance #1. Plus a Part II book section "Extending: adding a new annotation tag-kind" (the .5 acceptance's book-chapter requirement).
+- The generic RUNTIME registry + a contrived "second test tag" are DEFERRED on purpose: exactly ONE real tag-kind exists, so a generic dispatch engine would be premature abstraction (shaped around @profiles' specifics, likely mis-fitting a real second tag) — against the fix hierarchy's level-3+ concrete-justification rule + the rule-of-three. Trigger: extract the abstraction FROM two instances when a real second tag-kind arrives. The framework is thus SPECIFIED + documented + recipe-ready.
+- **TREE COMPLETE:** ANNOTATION-COMPOSITION all leaves resolved (`.1` doctrine, `.2` lint, `.3` canary, `.6` orphans 36→0 + hard gate, `.4` derive + minimal-edit resolution, `.5` model + recipe). The doctrine — DERIVE, CHECK, elegantly RESOLVE @profiles composition — is realized + hard-gated + extensible-by-recipe. Registry (docs/TASK_TREE.md) + LIVE updated to done.
+
 ## 2026-06-06 - PGEN-ANNOTATION-COMPOSITION-0007 (leaf ANNOTATION-COMPOSITION.4): **derive-by-default — `derive_rule_profiles` + the minimal-edit RESOLUTION (orphan findings now suggest the exact `@profiles` fix).**
 
 Code (rust/src/ast_pipeline/grammar_wellformedness.rs). Lint-level only — no codegen/regen.

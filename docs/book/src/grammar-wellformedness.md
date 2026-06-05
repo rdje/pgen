@@ -104,6 +104,20 @@ place, the static proof (linter) and the constructive proof (generator) can fina
 equal, reproducible footing. The design rationale and ordered build plan live in the
 `GRAMMAR-WELLFORMED` task tree.
 
+## Extending: adding a new annotation tag-kind
+
+Profile tags (`@profiles`) are the first *tag-kind* whose values **compose across rule references**
+— a rule present under a profile must be *satisfiable* under it (else it's an orphan), and the
+linter both checks that and suggests the derived minimal fix. The composition machinery is written
+to be **tag-agnostic**: a tag-kind is defined by four things — its value domain, its composition
+algebra (how a sequence/alternation/quantifier/reference combine the tag), its consistency
+invariant, and its resolution policy. A second tag-kind plugs in by following the same shape — a
+*derive* function (cf. `derive_rule_profiles`) and a *check* function (cf. `detect_profile_orphans`)
+over the AST, wired into the linter — with no rewrite of the existing checks. The concrete recipe
+and the worked `@profiles` instance live in the composition-doctrine decision record; a generic
+runtime registry is deliberately deferred until a second real tag-kind exists (so the abstraction is
+extracted from two instances, not guessed from one).
+
 ## Sources
 
 - B. Ford, *Parsing Expression Grammars: A Recognition-Based Syntactic Foundation*, POPL 2004.
