@@ -142,11 +142,40 @@ subtle dead branch"), never a silent accept.
 - `A2.1` — **FRONTIER: clean the 52 SV `always_matches_shadowing` defects LRM-grounded, then promote
   EarlierAlwaysMatches to the hard gate.** Each is a latent (not active) defect — the dead branch
   never fires today because alt #0 always wins, so a fix CHANGES parse behavior and MUST be verified
-  parse-neutral against the SV corpus + the global stimuli metric, ONE change at a time
-  ([[feedback_no_codebase_change_without_tool_backed_facts]], never derive expecteds from the fix).
-  Root cause is mostly a spurious `( X )?` wrapper on an alternative that should be required (the SV
-  boolean-abbrev / covergroup-range / bins idioms). When warnings reach 0, flip
+  parse-neutral (or parse-IMPROVING, LRM-grounded) against the SV corpus + the global stimuli metric,
+  ONE change/family at a time ([[feedback_no_codebase_change_without_tool_backed_facts]], never derive
+  expecteds from the fix). When warnings reach 0, flip
   `ShadowingReason::EarlierAlwaysMatches::is_hard_gate()` → true. *Effort: high (multi-slice).*
+
+  **Investigation (2026-06-06, tools-first) — 26 rules / ~7 fix families:**
+  1. **boolean-abbrev family** (`consecutive_repetition` #1#2, `boolean_abbrev`/`_sv_2017`/`_sv_2023`):
+     `consecutive_repetition := ( star const_or_range )? | ( star )? | ( plus )?` — each alt is
+     `( X )?` so the rule always-succeeds (matches empty), killing `[*]`/`[+]` AND shadowing
+     boolean_abbrev's later branches. ROOT = the spurious `?`; LRM-grounded fix (IEEE 1800 §16.9.2,
+     `[*n]`/`[*]`/`[+]`) = drop the `?` (make each required). ⚠️ MUST fix `non_consecutive_repetition_sv_2017`,
+     `nonconsecutive_repetition_sv_2023`, `goto_repetition` IN THE SAME SLICE (all are `( X )?` too —
+     fixing only `consecutive_repetition` just exposes the next as the shadower). ⚠️ ANNOTATION RISK:
+     the `?`-groups carry `-> {range: $1}`; removing `?` while keeping the `( )` group preserves `$1`,
+     but VERIFY with `parseability_probe --parse-dump-ast-pretty` ([[feedback_ebnf_consult_annotation_docs]]).
+  2. **covergroup-range family** (`covergroup_value_range` #1, `covergroup_value_range_sv_2023` #2#3#4):
+     alt #1 = `( expr : expr )?` always-succeeds → dollar/tolerance variants dead. Same `?`-drop fix
+     (LRM §A.9.3 value ranges).
+  3. **rs-prod family** (`rs_prod_sv_2017` #2#3#4, `rs_prod_sv_2023` #2#3): alt #1 always-matches.
+  4. **implicit-type/port family** (`let_formal_type`, `property_formal_type`, `net_port_type`/`_sv_2017`/
+     `_sv_2023`, `port`, `ansi_port_declaration`): alt #0 = a `data_type_or_implicit`-like rule that
+     always-succeeds (implicit type matches empty) → trailing keyword/variant branches dead. Needs
+     care: the always-succeed may be LEGITIMATE (implicit type) → the later branch may be the genuine
+     dead one to RESTRUCTURE, not a simple `?`-drop. Per-rule LRM analysis required.
+  5. **list-of-arguments family** (`list_of_arguments` #1#2, `let_list_of_arguments`,
+     `property_list_of_arguments`, `list_of_checker_port_connections`, `class_constructor_super_args`,
+     `class_constructor_arg_sv_2023`): all-optional element list always-succeeds.
+  6. **module-path family** (`module_path_primary` #3#4#5, `module_path_mintypmax_expression`).
+  7. **`sv_multi_entry_root`** (#1#2) — NOT a grammar defect: it is the A1b reachability MARKER
+     (an unreferenced union of `systemverilog_file`|`library_text`|`systemverilog_parseable_file` so the
+     latter two count as reachable roots). `systemverilog_file` is `*`-based (always-succeeds), so the
+     later alts are unreachable AS A PARSED ordered choice — but the rule is never PARSED. Resolution:
+     EXEMPT marker rules (e.g. recognize the `*_multi_entry_root` role / an `@entry`-style marker), do
+     NOT "fix" by grammar edit. This is the one case to handle in the LINTER, not the grammar.
 
 ### Phase B — make the constructive proof deterministic (the count becomes signal)
 - `B1` — **DONE (code, PGEN-GRAMMAR-WELLFORMED-0005; gate-residual confirm in flight):** replaced the
