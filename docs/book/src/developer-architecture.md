@@ -1,5 +1,10 @@
 # Developer Architecture
 
+> **Part II · Inside PGEN.** From here on, the book is for contributors who modify
+> PGEN's internals. It explains *how the engine works* in depth (in prose, not pasted
+> Rust — the [Source Map](source-map.md) points to the code for the last 100%). If you
+> only *use* PGEN, you do not need Part II — Part I has everything you need.
+
 Once you move past user-facing commands, the next step is understanding how the Rust-first platform is organized.
 
 ## Parsing Model — where PGEN stands (PEG, Packrat, data-dependent)

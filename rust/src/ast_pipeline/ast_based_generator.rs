@@ -482,6 +482,10 @@ impl AstBasedGenerator {
                 // siphash is overkill. FxHash is the same fast hasher rustc uses
                 // internally; ~3-4× faster on small integer keys.
                 memo: rustc_hash::FxHashMap<(RuleId, usize), MemoEntry<'input>>,
+                // PARSE-TERMINATION.6 — failed `(rule, position)` probes (the
+                // majority) live here with no per-entry value/allocation; the
+                // backtrack position is the key itself.
+                memo_fail: rustc_hash::FxHashSet<(RuleId, usize)>,
                 recursion_guard: RecursionGuard,
                 grammar_profile: Option<String>,
                 recovery_events: Vec<RecoveryEvent>,
@@ -810,6 +814,7 @@ impl AstBasedGenerator {
                     // case without growth; FxHashMap doubles past that. The cost is
                     // a one-time allocation at parser construction (cheap).
                     memo: rustc_hash::FxHashMap::with_capacity_and_hasher(256, Default::default()),
+                    memo_fail: rustc_hash::FxHashSet::default(),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     grammar_profile: None,
                     recovery_events: Vec::new(),
@@ -975,7 +980,12 @@ impl AstBasedGenerator {
                 // starts with an empty registry).
                 self.semantic_runtime_state
                     .set_predicate_defs(self.semantic_runtime_annotations.clone_predicate_defs());
-                self.#parse_method()
+                let parse_outcome = self.#parse_method();
+                // PARSE-TERMINATION.6 (WHY+WHERE): opt-in memo footprint report.
+                if std::env::var("PGEN_REPORT_MEMO_STATS").is_ok() {
+                    self.report_memo_stats();
+                }
+                parse_outcome
             }
 
             pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
@@ -5364,6 +5374,65 @@ impl AstBasedGenerator {
                 }
             }
 
+            // PARSE-TERMINATION.6 (WHY+WHERE): opt-in memo footprint report.
+            // Gated by env PGEN_REPORT_MEMO_STATS; zero cost otherwise.
+            // Subtree-node count is a memory proxy (each MemoEntry clones a
+            // full ParseNode subtree). Identifies which rules dominate the
+            // packrat memo so a SOUND selective-memoization bound can target
+            // them. Parser-agnostic; emitted into every generated parser.
+            fn parse_node_size_proxy(node: &ParseNode<'input>) -> usize {
+                1 + match &node.content {
+                    ParseContent::Terminal(_) => 0,
+                    ParseContent::TransformedTerminal(_) => 0,
+                    ParseContent::Json(_) => 0,
+                    ParseContent::Sequence(items) => items.iter().map(Self::parse_node_size_proxy).sum(),
+                    ParseContent::Alternative(inner) => Self::parse_node_size_proxy(inner),
+                    ParseContent::Quantified(items, _) => items.iter().map(Self::parse_node_size_proxy).sum(),
+                }
+            }
+
+            fn report_memo_stats(&self) {
+                // per rule: (success_entries, subtree_node_sum, failure_entries)
+                let mut per_rule: std::collections::HashMap<RuleId, (usize, usize, usize)> =
+                    std::collections::HashMap::new();
+                let mut total_nodes = 0usize;
+                for ((rule_id, _pos), entry) in self.memo.iter() {
+                    let sz = match &entry.result {
+                        Some(node) => Self::parse_node_size_proxy(node),
+                        None => 0,
+                    };
+                    total_nodes += sz;
+                    let e = per_rule.entry(*rule_id).or_insert((0, 0, 0));
+                    e.0 += 1;
+                    e.1 += sz;
+                }
+                for (rule_id, _pos) in self.memo_fail.iter() {
+                    let e = per_rule.entry(*rule_id).or_insert((0, 0, 0));
+                    e.2 += 1;
+                }
+                let mut rows: Vec<(RuleId, (usize, usize, usize))> = per_rule.into_iter().collect();
+                eprintln!(
+                    "=== MEMO STATS: {} success entries + {} cached failures = {} total, {} subtree-nodes, {} distinct rules ===",
+                    self.memo.len(),
+                    self.memo_fail.len(),
+                    self.memo.len() + self.memo_fail.len(),
+                    total_nodes,
+                    rows.len()
+                );
+                rows.sort_by(|a, b| b.1 .1.cmp(&a.1 .1));
+                eprintln!("--- top 30 rules by subtree-node-sum (memory proxy) ---");
+                for (rid, (ok, szsum, fail)) in rows.iter().take(30) {
+                    let name = Self::RULE_NAMES.get(*rid as usize).copied().unwrap_or("?");
+                    eprintln!("  nodes={:>11} ok={:>9} fail={:>9}  {}", szsum, ok, fail, name);
+                }
+                rows.sort_by(|a, b| (b.1 .0 + b.1 .2).cmp(&(a.1 .0 + a.1 .2)));
+                eprintln!("--- top 15 rules by total entry-count (ok+fail) ---");
+                for (rid, (ok, szsum, fail)) in rows.iter().take(15) {
+                    let name = Self::RULE_NAMES.get(*rid as usize).copied().unwrap_or("?");
+                    eprintln!("  total={:>9} ok={:>9} fail={:>9} nodes={:>11}  {}", ok + fail, ok, fail, szsum, name);
+                }
+            }
+
             fn memoized_call<F>(
                 &mut self,
                 rule_id: RuleId,
@@ -5374,6 +5443,21 @@ impl AstBasedGenerator {
             {
                 let key = (rule_id, self.position);
 
+                // PARSE-TERMINATION.6 — SPLIT MEMO. Failures (the ~81% majority on
+                // real grammars) carry no payload beyond "this rule failed here →
+                // backtrack to this position", and that position IS the key, so they
+                // live in a lean set with no per-entry value/allocation.
+                if self.memo_fail.contains(&key) {
+                    if self.trace_enabled() {
+                        self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memo hit for rule {} at position {} - cached failure", rule_id, self.position));
+                    }
+                    return Err(ParseError::Backtrack {
+                        position: key.1,
+                    });
+                }
+
+                // The success map holds only successful parses (`result` is always
+                // `Some`); a cache hit replays the cached node + semantic delta.
                 if let Some(entry) = self.memo.get(&key) {
                     if let Some(node) = &entry.result {
                         self.position = entry.end_pos;
@@ -5395,14 +5479,6 @@ impl AstBasedGenerator {
                         }
 
                         return Ok((node.clone(), entry.raw_semantic_content.clone()));
-                    } else {
-                        if self.trace_enabled() {
-                            self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memo miss for rule {} at position {} - cached failure", rule_id, self.position));
-                        }
-                        self.position = entry.end_pos;
-                        return Err(ParseError::Backtrack {
-                            position: entry.end_pos,
-                        });
                     }
                 }
 
@@ -5410,7 +5486,6 @@ impl AstBasedGenerator {
                     self.logger.log_debug(#filename, self.position as u32, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
                 }
 
-                let start_pos = key.1;
                 // SV-EXH-PROOF.3.3.4.b.6.2.36.4 — capture entry checkpoint
                 // BEFORE f(self) so we can extract the body's delta after.
                 let memo_entry_checkpoint = self.semantic_runtime_state.checkpoint();
@@ -5433,15 +5508,9 @@ impl AstBasedGenerator {
                         self.logger.log_info(#filename, self.position as u32, &format!("💾 Memoized successful result for rule {} at position {}", rule_id, self.position));
                     }
                 } else {
-                    self.memo.insert(
-                        key,
-                        MemoEntry {
-                            result: None,
-                            raw_semantic_content: None,
-                            end_pos: start_pos,
-                            semantic_delta: None,
-                        },
-                    );
+                    // PARSE-TERMINATION.6 — record the failure in the lean set
+                    // (no value: the backtrack position is the key itself).
+                    self.memo_fail.insert(key);
                     if self.trace_enabled() {
                         self.logger.log_warning(#filename, self.position as u32, &format!("💾 Memoized failed result for rule {} at position {}", rule_id, self.position));
                     }
@@ -7454,6 +7523,13 @@ mod semantic_usage_tests {
             rendered.contains("memo: rustc_hash :: FxHashMap < (RuleId, usize), MemoEntry < 'input > >")
                 || rendered.contains("memo: rustc_hash::FxHashMap<(RuleId, usize), MemoEntry<'input>>"),
             "generated parser should memoize rich entries instead of bare shaped nodes, got: {}",
+            rendered
+        );
+        // PARSE-TERMINATION.6 — the SPLIT memo: failures live in a lean set.
+        assert!(
+            rendered.contains("memo_fail: rustc_hash :: FxHashSet < (RuleId, usize) >")
+                || rendered.contains("memo_fail: rustc_hash::FxHashSet<(RuleId, usize)>"),
+            "generated parser should carry the lean memo_fail set for cached failures, got: {}",
             rendered
         );
         assert!(

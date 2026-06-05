@@ -25,6 +25,19 @@ Its job is to explain:
 
 The book is not meant to be a thin welcome page. It is intended to become the comprehensive outward-facing documentation system for the project.
 
+The book itself is organized into **two clearly-separated parts** (see
+[How To Use This Book](how-to-use-this-book.md)):
+
+- **Part I · Using PGEN** — for everyone who uses PGEN. *What it does and how to use
+  it*, with examples and commands, no internals.
+- **Part II · Inside PGEN** — for contributors who modify the engine. *How PGEN works
+  internally*, in depth, explained in prose (not pasted Rust). Normal users can skip it.
+
+This split is deliberate: the deep "how it works" material is fenced into Part II so it
+never gets in the way of someone who only wants to use PGEN, while still giving
+would-be contributors a thorough, readable account of the internals before they reach
+for the code.
+
 ### 2. Contracts and Reference Docs
 
 The maintained docs under `docs/contracts/`, `docs/reference/`, and selected `rust/docs/` files are the deep authoritative detail behind the book.

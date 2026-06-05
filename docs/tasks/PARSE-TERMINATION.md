@@ -206,16 +206,75 @@ survives `.3.1`. Revisit after `.3.1`.
 Assert sub-quadratic parse-time slope on the scaling corpus; catches a hang's *precursor*
 (super-linear) before it becomes a hang.
 
-### `.6` — unbounded packrat MEMO = the remaining uvm MEMORY root (~11.6 GB) — PENDING (NEW, from `.3.1` verification)
-After `.3.1` removed the per-rule clone, a RELEASE uvm parse still peaks ~11.6 GB (fluctuating
-down as rules rollback). The remaining bulk is the **packrat memo** — keyed `(rule_id, position)`,
-**never cleared** (`.3`/SV-EXH-PROOF.3.3.4.b.6.2.36.4: `MemoEntry` stores the AST result + a
-`semantic_delta`), so over uvm's 2.89 MB × thousands of rules it accumulates millions of entries =
-GB. WHY+WHERE first (heap profile / memo-size instrumentation: count entries + bytes), then a
-parser-agnostic bound: e.g. position-windowed eviction, or drop memo entries whose left edge is
-behind the committed frontier (packrat normally keeps all; a streaming/forward-only parser can
-evict). Must stay sound (memo correctness) + not regress corpus 14/14. Likely the bigger of the
-two remaining roots for a small host.
+### `.6` — unbounded packrat MEMO = the remaining uvm MEMORY root (~12.7 GB) — IN PROGRESS (research + WHY+WHERE, 2026-06-05)
+After `.3.1` removed the per-rule clone, a RELEASE uvm parse still peaks ~12.7 GB. The remaining
+bulk is the **packrat memo** — keyed `(rule_id, position)`, **never cleared**
+(`.3`/SV-EXH-PROOF.3.3.4.b.6.2.36.4: `MemoEntry` stores `result: Option<ParseNode>` — a CLONE of
+the full AST subtree — plus `raw_semantic_content` + `semantic_delta`), so over uvm's 2.89 MB ×
+thousands of rules it accumulates millions of entries each holding a subtree = GB. **NON-URGENT**
+(uvm fits the host + cap, corpus 14/14) — a "make uvm leaner still" optimization, but the LAST
+memory root. ⚠️ This is a genuine RESEARCH-CLASS problem (bounding packrat memory without losing
+the linear-time guarantee is a known hard tradeoff) → research-first
+([[feedback_research_grounded_sota_no_trial_and_revert]]), NOT a marathon-end rush; a naive
+eviction can reintroduce the exact exponential backtracking THIS TREE exists to prevent.
+
+**Literature grounding (citations + the SOTA map):**
+- ⭐ **Mizushima, Maeda, Yamaguchi — cut operators (PASTE 2010)** — the gold standard for bounded
+  space: a `cut` marks a commit point past which no earlier backtracking is possible, so the memo
+  *before* the cut can be deallocated → **nearly-constant** space, **provably sound**. Cost: cut
+  placement (manual annotation or static FIRST/FOLLOW-style inference); a *wrong* cut breaks the
+  parse (forbids needed backtracking). Parser-agnostic IF expressed as an EBNF/engine construct
+  (fits the [[project_vision_and_discipline]] "parser-agnostic features the EBNF cleanly uses").
+- ⭐ **Selective memoization** (Ford thesis 2002 §; Redziejowski; ohm/pegjs practice) — memoize
+  ONLY rules that benefit (recursive / expensive / actually re-hit); SKIP structurally-trivial
+  bounded non-recursive rules. **Sound** (un-memoized = re-parse) and **cannot reintroduce
+  exponential time** because the skipped rules are bounded-cost + non-recursive (the recursive
+  rules where packrat's guarantee matters STAY memoized). **Lowest risk, parser-agnostic, no
+  grammar edits** (a structural classifier in the generator decides). = the recommended FIRST lever.
+- **Elastic / sliding-window packrat** (heap upper-bounded by a window buffer) — REJECTED as the
+  first lever: a backtrack beyond the window re-parses → can blow up super-linearly (the linearity
+  risk this tree fights).
+
+**WHY+WHERE — DONE 2026-06-05. The investigation OVERTURNED the long-standing assumption that
+"the residual ~12 GB = the memo." It is NOT. Three memo-shape hypotheses were each REFUTED by the
+global metric, and a `vmmap` profile finally pinned the real cause.** Tools-first throughout.
+
+*Step 1 — memo census (instrument `report_memo_stats`, env `PGEN_REPORT_MEMO_STATS`, zero-cost
+otherwise).* Release uvm parse (`case_uvm_compat_pkg_2017_bootstrap_1`, 3.0 MB): **25,918,799 memo
+probes, 21,012,279 (81%) cached FAILURES**; total success subtree-nodes only **5.49 M (~350 MB)**;
+711 rules; top-by-count all cheap lexical rules (trivia/comments/`tick`/`dot`/`lparen`/operators/
+`escaped_identifier`). Baseline peak RSS **14.27 GB**.
+
+*Step 2 — three REFUTED fixes (each measured, not assumed):*
+- **Rc-share subtrees** — refuted by step 1: subtrees are only ~350 MB.
+- **Box the `MemoEntry` optional fields** (the fat `semantic_delta` = 5 `Vec`s ≈ 120 B is `None`
+  for ~all entries) — IMPLEMENTED + measured: **RSS 14.27 → 14.82 GB (WORSE)**, time 76 → 65 s.
+  Boxing traded one compact table for ~10 M tiny heap allocations whose macOS allocator overhead
+  negated the inline saving. REVERTED.
+- **Split memo** (failures → lean `FxHashSet<(RuleId,usize)>`, no value/alloc; successes → unboxed
+  `HashMap`) — IMPLEMENTED + measured: parse PASSES, **RSS 14.27 → 14.68 GB (unchanged)**, time
+  76 → **61 s (~20% FASTER)**. So shrinking the memo's per-entry storage does NOT move RSS ⇒ the
+  memo per-entry size/count was **never** the hog. (KEPT anyway — see below: it is a real speedup +
+  a cleaner failure representation, just not a memory fix.)
+
+*Step 3 — `vmmap` profile (the decisive WHY+WHERE).* Uncapped uvm parse, default macOS malloc zone:
+**physical footprint 27 GB; ALLOCATED (live) 13.7 GB across 71,785,596 allocations (71.8 M);
+FRAG 13.4 GB = 50%.** So the residual memory is **(a) 13.7 GB of live data spread over ~72 M small
+allocations + (b) ~13.4 GB of allocator fragmentation that 72 M small allocs induce** — NOT the
+memo's `MemoEntry` shape. (Under the `.4.0` `ulimit -v` cap the same parse is forced tight to
+~14.7 GB and still PASSES — so uvm already fits the host-safe cap; this is a headroom/peak issue.)
+
+**CORRECTED levers (for a fresh, well-scoped slice — `.6` is NON-URGENT: uvm fits the cap, 14/14):**
+- **`.6.1` parser-agnostic global allocator** (e.g. mimalloc/jemalloc via `#[global_allocator]`):
+  directly attacks the 50% fragmentation (the kind of many-small-alloc workload these allocators
+  are built for); uncapped peak ~27 → ~14 GB expected. A dependency + build-level choice (flag to
+  the director) — parser-agnostic, low-risk, its own measured slice.
+- **`.6.2` reduce the allocation COUNT** (the 13.7 GB live / 72 M allocs floor): architectural —
+  arena/bump allocation for `ParseNode`s, fewer per-rule transient clones. Bigger, harder; the real
+  floor below ~14 GB. Needs its own design.
+The split-memo (`.6.0`, this slice) lands as the speed/representation win + the corrected diagnosis
++ the reusable `report_memo_stats` instrument. VERIFY for `.6.0`: corpus 14/14, lib
+(no-features + generated_parsers), determinism unchanged.
 
 ### `.7` — parser regex-match per-call redundancy (TIME) — DONE (PGEN-PARSE-TERMINATION-0008, 2026-06-05)
 LANDED: `match_regex` codegen now caches `(Regex, can_match_empty)` together — `can_match_empty`

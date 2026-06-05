@@ -758,7 +758,18 @@ pub struct ParseNode<'input> {
     pub span: std::ops::Range<usize>,
 }
 
-/// Memoization entry
+/// Memoization entry for a SUCCESSFUL parse.
+///
+/// PARSE-TERMINATION.6 — the packrat memo is SPLIT by outcome. On real grammars
+/// ~81% of `(rule, position)` probes are cached FAILURES (uvm: 21 M of 25.9 M),
+/// and a failure carries no information beyond "this rule failed here → backtrack
+/// to this position" — which IS the key. So failures live in a lean
+/// `FxHashSet<(RuleId, usize)>` (one contiguous table, no value, no allocation),
+/// and only SUCCESSES carry a `MemoEntry` (kept inline/unboxed — there are few of
+/// them, and a prior experiment confirmed that boxing the fields instead just
+/// trades the compact table for millions of tiny heap allocations whose allocator
+/// overhead on macOS negates the saving). Memoization behaviour is unchanged —
+/// pure storage reshape, zero linearity impact.
 #[derive(Debug, Clone)]
 pub struct MemoEntry<'input> {
     pub result: Option<ParseNode<'input>>,

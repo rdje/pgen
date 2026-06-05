@@ -1,8 +1,11 @@
 # Summary
 
-- [Welcome](index.md)
-- [How To Use This Book](how-to-use-this-book.md)
-- [Documentation Model](documentation-model.md)
+[Welcome](index.md)
+[How To Use This Book](how-to-use-this-book.md)
+[Documentation Model](documentation-model.md)
+
+# Part I · Using PGEN
+
 - [Platform Overview](platform-overview.md)
 - [Getting Started](getting-started.md)
 - [User-Facing Surfaces](user-facing-surfaces.md)
@@ -10,14 +13,18 @@
 - [Debugging With `parseability_probe`](parseability-probe-debug.md)
 - [Annotation System](annotation-system.md)
 - [The Semantic Store: Parser Memory](semantic-store.md)
-- [Embedding and Downstream Integration](embedding-and-downstream-integration.md)
-- [Parser Families](parser-families.md)
-- [Roadmap and Live Status](roadmap-and-live-status.md)
-- [Quality and Closure Model](quality-and-closure-model.md)
 - [Stimuli and Quality](stimuli-and-quality.md)
+- [Parser Families](parser-families.md)
+- [Embedding and Downstream Integration](embedding-and-downstream-integration.md)
 - [Contracts and Support](contracts-and-support.md)
+- [Roadmap and Live Status](roadmap-and-live-status.md)
+
+# Part II · Inside PGEN
+
 - [Developer Architecture](developer-architecture.md)
+- [Inside the Parser: Termination & Performance](inside-parser-performance.md)
 - [Academic Foundations](academic-foundations.md)
 - [Parser Hooks](parser-hooks.md)
+- [Quality and Closure Model](quality-and-closure-model.md)
 - [Operations and Governance](operations-and-governance.md)
 - [Source Map](source-map.md)

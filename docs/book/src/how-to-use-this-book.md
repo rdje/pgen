@@ -1,48 +1,47 @@
 # How To Use This Book
 
-This book is ordered from broad orientation to deeper implementation detail.
+This book is the main surface the outside world reads to understand PGEN. It is
+written for **two different readers**, and it is split into two clearly-marked
+parts so each reader knows exactly where to look — and what they can safely skip.
 
-It is also intended to become the main documentation surface that the outside world reads to understand PGEN.
+## The two parts
 
-## Suggested Reading Path
+### Part I · Using PGEN — *for everyone*
 
-1. `Platform Overview`
-2. `Documentation Model`
-3. `Getting Started`
-4. `User-Facing Surfaces`
-5. `CLI and Workflows`
-6. `Annotation System`
-7. `Embedding and Downstream Integration`
-8. `Parser Families`
-9. `Roadmap and Live Status`
-10. `Quality and Closure Model`
-11. `Stimuli and Quality`
-12. `Contracts and Support`
-13. `Developer Architecture`
-14. `Operations and Governance`
+This is for you if you want to **build, run, and consume** PGEN parsers: write a
+grammar, add annotations, generate a parser, debug it, embed it, and read its
+output. It explains *what PGEN does and how to use it* in plain terms, with
+examples and commands — no engine internals, no Rust.
 
-## Reader Modes
+**If you only use PGEN, Part I is all you need. You can stop at the end of it.**
 
-### If you are new to PGEN
+### Part II · Inside PGEN — *for those who modify the internals*
 
-Focus first on:
+This is for the smaller audience that is **not afraid to change how PGEN itself
+works** — the parsing engine, the code generator, the performance and termination
+machinery, the quality gates. It goes *all-in* on **how PGEN works internally**,
+in much more depth than Part I, so a contributor can reason about the engine
+before touching it.
 
-- the platform model,
-- the standard commands,
-- the active parser families,
-- the user-facing guide and roadmap.
+Part II deliberately explains mechanisms in prose and diagrams rather than pasting
+Rust: if you want the last 100% of detail, the code is the source of truth and the
+[Source Map](source-map.md) points you straight to it. A reader who just wants to
+*use* PGEN does not need to read Part II at all — the "scary internals" live here
+on purpose, fenced off, so they never get in a normal user's way.
 
-### If you already use PGEN
+> **Rule of thumb:** if a sentence would only matter to someone editing PGEN's own
+> source, it belongs in Part II. If it helps someone *use* PGEN, it belongs in Part I.
 
-Use this book to:
+## Suggested reading path
 
-- revisit exact contract boundaries,
-- understand how new proof lanes fit into the broader doctrine,
-- discover related surfaces you may have been using only indirectly.
+**Using PGEN (Part I):** Platform Overview → Getting Started → User-Facing Surfaces
+→ CLI and Workflows → Debugging With `parseability_probe` → Annotation System → The
+Semantic Store → Stimuli and Quality → Parser Families → Embedding and Downstream
+Integration → Contracts and Support → Roadmap and Live Status.
 
-### If you are developing PGEN itself
-
-Use this book as the high-level entrypoint before diving into the deeper reference docs and code. It is designed to keep future sessions from starting from scratch on the same conceptual questions.
+**Inside PGEN (Part II):** Developer Architecture → Inside the Parser: Termination &
+Performance → Academic Foundations → Parser Hooks → Quality and Closure Model →
+Operations and Governance → Source Map.
 
 ## Live-Document Rule
 
