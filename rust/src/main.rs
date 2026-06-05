@@ -2215,7 +2215,7 @@ fn run_k_path_coverage_report(
 fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         detect_left_recursion, detect_nonterminating_rules, detect_nullable_repetition,
-        detect_ordered_choice_shadowing, detect_profile_orphans,
+        detect_ordered_choice_shadowing, detect_profile_orphans, detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -2224,6 +2224,9 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     let nonterm = detect_nonterminating_rules(g, order);
     let shadow = detect_ordered_choice_shadowing(g, order);
     let nullrep = detect_nullable_repetition(g, order);
+    // GRAMMAR-WELLFORMED.A1b: structural reachability — rules defined but unreachable from any
+    // root (entry + unreferenced secondary entries). A dead rule is a well-formedness defect.
+    let unreachable = detect_unreachable_rules(g, order);
 
     // ANNOTATION-COMPOSITION.2: extract each rule's @profiles set from the annotations (same
     // shape the generator filters by) + the profile universe, then sweep for profile orphans.
@@ -2264,16 +2267,23 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     };
 
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), unreachable_rules={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         lr.len(),
         nonterm.len(),
         shadow.len(),
+        unreachable.len(),
         nullrep.len(),
         orphans.len(),
         all_profiles
     );
+    for issue in unreachable.iter().take(40) {
+        println!("  [error] {}", issue.message());
+    }
+    if unreachable.len() > 40 {
+        println!("  [error] ... and {} more unreachable rules", unreachable.len() - 40);
+    }
     for issue in lr.iter().take(10) {
         println!("  [info]  {}", issue.message());
     }
@@ -2312,7 +2322,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         println!("  [error] {}", issue.message());
     }
 
-    if nonterm.is_empty() && orphans.is_empty() && shadow.is_empty() {
+    if nonterm.is_empty() && orphans.is_empty() && shadow.is_empty() && unreachable.is_empty() {
         Ok(())
     } else {
         let mut problems = Vec::new();
@@ -2327,6 +2337,11 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         // analogue of an unreachable rule). Now a HARD failure, like profile orphans.
         if !shadow.is_empty() {
             problems.push(format!("{} shadowed (unreachable) branch(es)", shadow.len()));
+        }
+        // GRAMMAR-WELLFORMED.A1b: a defined-but-unreachable rule is a dead rule (Hopcroft–Ullman
+        // "no useless symbols" — the reachable half). Hard failure.
+        if !unreachable.is_empty() {
+            problems.push(format!("{} unreachable rule(s)", unreachable.len()));
         }
         Err(anyhow::anyhow!(
             "grammar '{}' has {}",

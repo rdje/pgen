@@ -110,11 +110,16 @@ subtle dead branch"), never a silent accept.
   `contract`, `feature` in `predefined_annotation`). Both now `--lint-grammar` exit 0 (shadowing=0).
   Parse-neutral (exact-dup alternatives never fired); regen + lib generated_parsers 652/0.
   **⇒ ALL authored grammars now pass the shadowing hard gate** (the A1a gate is fully green).
-- `A1b` — **structural unreachability (rule-from-entry) as a HARD gate.** ⚠️ MUST be MULTI-ENTRY-aware:
-  SV has several roots (`systemverilog_file`, `sv_multi_entry_root`, `systemverilog_parseable_file`);
-  a single-entry fixpoint would FALSE-flag parseable-only rules. Compute reachability from ALL roots
-  (or referenced-by-nothing roots), per-profile. *Effort: medium (correctness-critical — false +
-  hard gate = wrong reject).*
+- `A1b` — **DONE (PGEN-GRAMMAR-WELLFORMED-0003):** structural unreachability is now a HARD
+  `--lint-grammar` gate. `detect_unreachable_rules` (grammar_wellformedness.rs): roots = `rule_order[0]`
+  ∪ every unreferenced rule (a secondary entry, e.g. `sv_multi_entry_root` which unions in
+  `systemverilog_file`/`library_text`/`systemverilog_parseable_file`), reachability = transitive
+  closure. MULTI-ENTRY-SAFE (the unreferenced `sv_multi_entry_root` is a root → no false positives;
+  CONSERVATIVE: catches referenced-but-unreachable dead ISLANDS; an unreferenced dead orphan is
+  treated as a root → not flagged, a safe false-negative). Unit-tested (dead-island + multi-entry
+  safety). VERIFIED: SV unreachable_rules=0 (multi-entry handled correctly), ALL 10 authored grammars
+  =0, SV lint exit 0; lib (no-features) grammar_wellformedness 17/0. Follow-up `A1b.1`: catch
+  unreferenced dead orphans (needs an entry-declaration so an orphan ≠ a secondary entry).
 - `A2` — extend FIRST-set OVERLAP → **FIRST-set DOMINATION → unreachable** (rung 4); add to the hard
   gate; fix grammar findings. *Effort: medium. Reuses `branch_first_set`.*
 
@@ -146,7 +151,8 @@ subtle dead branch"), never a silent accept.
 | --- | --- | --- | --- |
 | — | `GRAMMAR-WELLFORMED.A1a` | `done` (`-0154`) | Shadowing now a hard gate; SV well-formed re: dead branches; embodies "a well-defined EBNF has no unreachable rules". |
 | — | `GRAMMAR-WELLFORMED.A1a.1/.2` | `done` (`-0002`) | regex + semantic_annotation shadows cleaned → ALL authored grammars pass the shadowing hard gate. |
-| 1 | `GRAMMAR-WELLFORMED.A1b` | `pending` | Structural unreachability (multi-entry-aware) — the headline "no unreachable rules". |
+| — | `GRAMMAR-WELLFORMED.A1b` | `done` (`-0003`) | Structural unreachability now a hard, multi-entry-safe gate; all grammars =0. The headline "no unreachable rules" is enforced. |
+| 1 | `GRAMMAR-WELLFORMED.A2` | `pending` | FIRST-domination shadowing (extend the existing FIRST-set machinery). |
 | 2 | `GRAMMAR-WELLFORMED.E1` | `pending` | Attribute non-circularity — the biggest well-DEFINEDNESS gap (Knuth). |
 
 ## Decisions

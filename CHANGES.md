@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0003 (leaf GRAMMAR-WELLFORMED.A1b): **structural unreachability is now a HARD `--lint-grammar` gate — "no unreachable rules" enforced, multi-entry-safe.**
+
+Code (rust/src/ast_pipeline/grammar_wellformedness.rs — detect_unreachable_rules + UnreachableRule issue + unit test; rust/src/main.rs — run_grammar_lint wires + gates it).
+
+- `detect_unreachable_rules`: a rule DEFINED but not reachable, by transitive reference, from any ROOT is a dead rule (Hopcroft–Ullman "no useless symbols"). Roots = `rule_order[0]` (the canonical entry the parser's parse() dispatches to) ∪ every UNREFERENCED rule (a secondary entry — e.g. SV's `sv_multi_entry_root`, which is unreferenced and unions in `systemverilog_file`/`library_text`/`systemverilog_parseable_file`). MULTI-ENTRY-SAFE: because `sv_multi_entry_root` is an unreferenced root, `library_text`/parseable and their subgraphs are reachable → NO false positives (a single-`rule_order[0]` fixpoint would have wrongly flagged them). CONSERVATIVE: catches referenced-but-unreachable dead ISLANDS; an unreferenced dead orphan is treated as a root (safe false-negative → follow-up A1b.1 once entries are declared). References to undefined (external/include) rules are ignored.
+- WIRED + GATED in run_grammar_lint (hard failure like shadowing/orphans/non_terminating; report line gains `unreachable_rules=N (error)`). VERIFIED: SV unreachable_rules=0 (multi-entry handled correctly), ALL 10 authored grammars =0, SV `--lint-grammar` exit 0; lib (no-features) grammar_wellformedness 17/0 incl. a new unit test (dead-island detection + multi-entry-root safety). Parser-agnostic; deterministic.
+- This makes well-formedness requirement #2 (reachable / no useless symbols — the reachable half) go ⚠️→✅: the linter now PROVES it. Frontier → A2 (FIRST-domination shadowing), E1 (attribute non-circularity).
+
 ## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0002 (leaf GRAMMAR-WELLFORMED.A1a.1/.2): **cleaned the last shadowed branches in regex + semantic_annotation — ALL authored grammars now pass the shadowing hard gate.**
 
 Code (grammars/regex.ebnf, grammars/semantic_annotation.ebnf — grammar IS code). generated/ GITIGNORED → grammars committed, parsers regen'd locally.

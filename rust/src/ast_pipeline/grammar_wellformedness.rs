@@ -51,6 +51,11 @@ pub enum WellformednessIssue {
     /// sequence needs ALL required parts satisfiable (∩), an alternation needs ANY (∪), and an
     /// optional/star element is absorbing (⊤, never makes its container an orphan).
     ProfileOrphan { rule: String, profile: String },
+    /// ERROR (GRAMMAR-WELLFORMED.A1b): `rule` is DEFINED but UNREACHABLE — not reachable, by
+    /// transitive reference, from any ROOT (the canonical entry `rule_order[0]` OR any rule that
+    /// nothing references, i.e. a secondary entry such as a `*_multi_entry_root`). A dead rule;
+    /// a well-formed grammar has none (Hopcroft–Ullman "no useless symbols" — the reachable half).
+    UnreachableRule { rule: String },
 }
 
 impl WellformednessIssue {
@@ -72,6 +77,10 @@ impl WellformednessIssue {
             WellformednessIssue::ProfileOrphan { rule, profile } => format!(
                 "grammar well-formedness WARNING: rule '{}' is present under profile '{}' but is NOT satisfiable there — every production references a rule absent under '{}' (a @profiles ORPHAN: the profile filter removed what it needs, leaving a dangling reference). Fix: tag '{}' with a matching @profiles, give it a production valid under '{}', or remove the spurious tag on the referenced rule (see the semantic-annotation composition doctrine)",
                 rule, profile, profile, rule, profile
+            ),
+            WellformednessIssue::UnreachableRule { rule } => format!(
+                "grammar well-formedness ERROR: rule '{}' is DEFINED but UNREACHABLE from any entry/root by transitive reference — a dead rule (a well-formed grammar has no useless symbols). Remove it, or reference it from a reachable rule, or make it a top-level entry.",
+                rule
             ),
         }
     }
@@ -179,6 +188,87 @@ fn referenced_rule(parts: &[TokenValue]) -> Option<&str> {
     } else {
         None
     }
+}
+
+/// Collect every rule referenced ANYWHERE in `node` (all positions, including inside
+/// lookaheads) into `out`. Building block for structural reachability (GRAMMAR-WELLFORMED.A1b).
+fn collect_node_rule_refs(node: &ASTNode, out: &mut HashSet<String>) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            for a in alternatives {
+                collect_node_rule_refs(a, out);
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for e in elements {
+                collect_node_rule_refs(e, out);
+            }
+        }
+        ASTNode::Quantified { element, .. } => collect_node_rule_refs(element, out),
+        ASTNode::Lookahead { element, .. } => collect_node_rule_refs(element, out),
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => collect_node_rule_refs(inner, out),
+            ASTValue::Token(parts) => {
+                if let Some(r) = referenced_rule(parts) {
+                    out.insert(r.to_string());
+                }
+            }
+        },
+    }
+}
+
+/// GRAMMAR-WELLFORMED.A1b: rules DEFINED but UNREACHABLE from any root. Roots = the canonical
+/// entry (`rule_order[0]`) PLUS every rule that NOTHING references (a secondary entry, e.g. a
+/// `*_multi_entry_root` that unions in the alternative start symbols). Reachability = transitive
+/// closure of rule references from the roots. Multi-entry-SAFE (an unreferenced top is a root,
+/// never a false "unreachable") and conservative (an unreferenced dead orphan is treated as a
+/// root → not flagged; only referenced-but-unreachable dead ISLANDS are caught — false negatives
+/// are safe, false positives would wrongly reject a good grammar). References to undefined
+/// (external/include) rules are ignored. Deterministic (iterates `rule_order`).
+pub fn detect_unreachable_rules(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<WellformednessIssue> {
+    let mut refs_of: HashMap<&str, HashSet<String>> = HashMap::new();
+    let mut referenced: HashSet<String> = HashSet::new();
+    for (rule, body) in grammar {
+        let mut refs = HashSet::new();
+        collect_node_rule_refs(body, &mut refs);
+        refs.retain(|r| grammar.contains_key(r));
+        for r in &refs {
+            referenced.insert(r.clone());
+        }
+        refs_of.insert(rule.as_str(), refs);
+    }
+    let mut reachable: HashSet<String> = HashSet::new();
+    let mut stack: Vec<String> = Vec::new();
+    if let Some(entry) = rule_order.first() {
+        if grammar.contains_key(entry) && reachable.insert(entry.clone()) {
+            stack.push(entry.clone());
+        }
+    }
+    for rule in rule_order {
+        if grammar.contains_key(rule)
+            && !referenced.contains(rule)
+            && reachable.insert(rule.clone())
+        {
+            stack.push(rule.clone());
+        }
+    }
+    while let Some(rule) = stack.pop() {
+        if let Some(refs) = refs_of.get(rule.as_str()) {
+            for r in refs {
+                if reachable.insert(r.clone()) {
+                    stack.push(r.clone());
+                }
+            }
+        }
+    }
+    rule_order
+        .iter()
+        .filter(|r| grammar.contains_key(r.as_str()) && !reachable.contains(r.as_str()))
+        .map(|r| WellformednessIssue::UnreachableRule { rule: r.clone() })
+        .collect()
 }
 
 /// Can `node` match the empty string (succeed without consuming input)? Uses the current
@@ -753,6 +843,38 @@ mod tests {
             !issues.iter().any(|i| matches!(i, WellformednessIssue::ProfileOrphan { profile, .. } if profile == "sv_2023")),
             "no orphan under sv_2023 (variant is present there): {issues:?}"
         );
+    }
+
+    #[test]
+    fn detects_unreachable_rule_but_respects_multi_entry_roots() {
+        // entry (rule_order[0]) -> main_body ; multi_entry (unreferenced root) -> alt_entry ;
+        // dead_a <-> dead_b (mutual cycle, referenced only by each other → no root reaches them).
+        let mut g = HashMap::new();
+        g.insert("entry".into(), rule_ref("main_body"));
+        g.insert("main_body".into(), token("string", "x"));
+        g.insert("multi_entry".into(), rule_ref("alt_entry")); // unreferenced → a root
+        g.insert("alt_entry".into(), token("string", "y")); // reachable via the multi_entry root
+        g.insert("dead_a".into(), rule_ref("dead_b")); // dead island
+        g.insert("dead_b".into(), rule_ref("dead_a")); // dead island
+        let order: Vec<String> = ["entry", "main_body", "multi_entry", "alt_entry", "dead_a", "dead_b"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let issues = detect_unreachable_rules(&g, &order);
+        for dead in ["dead_a", "dead_b"] {
+            assert!(
+                issues.iter().any(|i| matches!(i, WellformednessIssue::UnreachableRule { rule } if rule == dead)),
+                "{dead} must be flagged unreachable (dead island): {issues:?}"
+            );
+        }
+        // entry/main_body reachable from the canonical entry; multi_entry is an unreferenced ROOT
+        // and alt_entry is reachable via it — none may be false-flagged (multi-entry safety).
+        for keep in ["entry", "main_body", "multi_entry", "alt_entry"] {
+            assert!(
+                !issues.iter().any(|i| matches!(i, WellformednessIssue::UnreachableRule { rule } if rule == keep)),
+                "{keep} must NOT be flagged (reachable or a root): {issues:?}"
+            );
+        }
     }
 
     #[test]
