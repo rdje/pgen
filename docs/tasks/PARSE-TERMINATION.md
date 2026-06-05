@@ -102,7 +102,29 @@ leaf's premise** — it is **NOT** CC 2020 conditional memoization:
   N^1.66 → ~N^1.0 (linear, matching the width baseline); fixes the super-linearity + likely
   the historical uvm_pkg slowness.
 
-### `.3.1` — implement the checkpoint/rollback swap — PENDING (NOT a clean swap — subtlety below)
+### `.3.1` — implement the checkpoint/rollback swap — DONE (PGEN-PARSE-TERMINATION-0007, 2026-06-05)
+LANDED. Codegen (`ast_based_generator.rs`, the `with_semantic_runtime_rule_transaction` quote!):
+the O(N) full-state `take`+`.clone()` is replaced by an O(1) `checkpoint()`; the err-restore
+`self.state = original` is replaced by `rollback_to_named(checkpoint, Some(rule_name))`
+(O(changes)). The lost-facts subtlety (the mid-fn `mem::take` for the txn borrow-checker) is
+handled by an INNER closure returning `ParseResult<()>` so any `?` returns LOCALLY; the taken
+state is ALWAYS moved back into `self.semantic_runtime_state` BEFORE propagating, so the outer
+`rollback_to_named` operates on a POPULATED state. `node` stays owned by the outer scope (not
+moved into the closure) so `semantic_raw_content`'s borrow stays valid. Codegen self-test updated
+to assert the checkpoint/rollback shape + the ABSENCE of the per-rule clone.
+VERIFIED: regen compiles; lib (no-features) 590/0 + (features) 652/0 (shape contract incl.);
+**release uvm parse PASSES** (`parse_full passed` — NO lost facts; the gate's debug failures were
+1800 s TIMEOUTS, proven by the exact ~1800 s parse-log mtime gaps, NOT rejections); **memory
+26 GB → ~11.6 GB peak, fluctuating DOWN (11.9→6.2 GB = rollback FREEING)**. CORRECTNESS + the
+clone-memory cure confirmed.
+⚠️ HONEST — `.3.1` is the *clone* cure, NOT the full uvm cure. TWO roots remain (the user's "address
+the root"): (1) the remaining ~11.6 GB = the unbounded packrat MEMO (keyed (rule_id,position),
+never cleared) → new leaf `.6`; (2) parse TIME: uvm ~181 s release vs >1800 s debug (the gate uses
+debug → times out → corpus 10/14). Time sub-causes: the gate's debug build + `match_regex` runs
+`re.find("")` EVERY call to recompute the static `can_match_empty` → leaf `.7`. The gate's 14/14 is
+NOT restored until the time roots land (the `.4.0` timeout now exposes the debug slowness).
+
+### `.3.1-historical` — original design + subtlety (kept for provenance)
 Apply the fix in `with_semantic_runtime_rule_transaction` (codegen `ast_based_generator.rs`).
 `generated/` is GITIGNORED (not committed) → the commit is the codegen `.rs` only; regen is
 local verification. The 4 sites: snapshot (`:1281-1283`), entry-fact-len read (`:1385`),
@@ -182,6 +204,28 @@ survives `.3.1`. Revisit after `.3.1`.
 ### `.5` — complexity-regression gate (CI) — PENDING
 Assert sub-quadratic parse-time slope on the scaling corpus; catches a hang's *precursor*
 (super-linear) before it becomes a hang.
+
+### `.6` — unbounded packrat MEMO = the remaining uvm MEMORY root (~11.6 GB) — PENDING (NEW, from `.3.1` verification)
+After `.3.1` removed the per-rule clone, a RELEASE uvm parse still peaks ~11.6 GB (fluctuating
+down as rules rollback). The remaining bulk is the **packrat memo** — keyed `(rule_id, position)`,
+**never cleared** (`.3`/SV-EXH-PROOF.3.3.4.b.6.2.36.4: `MemoEntry` stores the AST result + a
+`semantic_delta`), so over uvm's 2.89 MB × thousands of rules it accumulates millions of entries =
+GB. WHY+WHERE first (heap profile / memo-size instrumentation: count entries + bytes), then a
+parser-agnostic bound: e.g. position-windowed eviction, or drop memo entries whose left edge is
+behind the committed frontier (packrat normally keeps all; a streaming/forward-only parser can
+evict). Must stay sound (memo correctness) + not regress corpus 14/14. Likely the bigger of the
+two remaining roots for a small host.
+
+### `.7` — parser regex-match per-call redundancy (TIME root) — PENDING (NEW, from `.3.2`/user 2026-06-05)
+`match_regex` in EVERY generated parser recomputes the STATIC `can_match_empty` per call by
+running `re.find("")` (executing the compiled regex against the empty string) — millions of
+redundant regex executions on uvm. Also two HashMap-by-pattern-string lookups per call
+(`contains_key` + `get`). FIX (codegen, parser-agnostic, monotone): cache `(Regex, can_match_empty)`
+together — compute `can_match_empty` ONCE at compile/insert, read the bool per call; single
+`entry()` lookup. The compiled-regex cache already exists (the `.7.4.6.1`-class pattern, here in
+the parser). Measure the uvm parse-time delta. NOTE: the gate's DEBUG build is the larger time
+factor (uvm ~181 s release vs >1800 s debug) → also consider a release probe for the gate's parse
+step to restore corpus 14/14 (gate change, separate).
 
 ## Frontier
 `.1` DONE — measurement CONFIRMED super-linear (≈quadratic-trending) stateful parsing.

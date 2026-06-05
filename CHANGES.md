@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-PARSE-TERMINATION-0007 (leaf PARSE-TERMINATION.3.1): **O(N²)→O(changes) cure — per-rule full-state clone replaced by checkpoint/rollback; uvm memory 26 GB → ~11.6 GB, uvm parses correctly.**
+
+Code (codegen: rust/src/ast_pipeline/ast_based_generator.rs, the with_semantic_runtime_rule_transaction quote!). generated/ GITIGNORED → codegen .rs committed, regen local.
+
+- FIX: the transaction wrapper did `std::mem::take + .clone()` of the ENTIRE SemanticRuntimeState per rule (O(N) clone × O(rule-calls) = O(N²) — the ~N^1.66 super-linearity + the uvm 26 GB). Replaced with an O(1) `checkpoint()`; the err-restore (`self.state = original`) replaced with `rollback_to_named(checkpoint, Some(rule_name))` (O(changes), Laurent & Mens SLE 2016).
+- LOST-FACTS SUBTLETY handled: the mid-fn `mem::take` (borrow-checker workaround for the &self apply_* methods) now runs in an INNER closure returning ParseResult<()> so any `?` returns LOCALLY; the taken state is ALWAYS moved back into self.state BEFORE propagating → the outer rollback operates on a POPULATED state. node stays owned by the outer scope so semantic_raw_content's borrow stays valid. Codegen self-test updated (asserts checkpoint/rollback + ABSENCE of the per-rule clone).
+- VERIFIED: regen compiles; lib (no-features) 590/0 + (features) 652/0; **release uvm parse PASSES** (parse_full passed — NO lost facts; the gate's debug failures were 1800 s TIMEOUTS, proven by exact ~1800 s parse-log mtime gaps, NOT rejections); **memory 26 GB → ~11.6 GB peak, fluctuating DOWN (rollback freeing)**.
+- HONEST — `.3.1` is the CLONE cure, not the full uvm cure. TWO roots remain (director "address the root"): (1) the remaining ~11.6 GB = the unbounded packrat MEMO (never cleared) → leaf .6; (2) parse TIME (uvm ~181 s release vs >1800 s debug — the gate uses debug → times out → corpus 10/14): the debug build + match_regex's per-call `re.find("")` recomputing the static can_match_empty → leaf .7. The gate's 14/14 is NOT restored until the time roots land.
+
 ## 2026-06-05 - PGEN-PARSE-TERMINATION-0006 (leaf PARSE-TERMINATION.4.0): **gate-level resource guard — the SV corpus gate can no longer eat the host (memory cap + timeout per parse).**
 
 Gate script (rust/scripts/sv_external_corpus_triage_gate.sh) — safety net for the .3.2 26 GB event. No Rust/grammar change.

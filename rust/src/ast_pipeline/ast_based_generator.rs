@@ -1270,17 +1270,23 @@ impl AstBasedGenerator {
                     return Ok(node);
                 }
 
-                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — push BEFORE the take so
-                // BOTH the saved `original_semantic_runtime_state` and the
-                // active clone hold the same rule_context_stack. On the
-                // err-restore path the clone is discarded and original
-                // becomes self.state; the matching pop then correctly
-                // removes our pushed entry regardless of result.is_err().
+                // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — push the rule context here; PARSE-TERMINATION.3.1
+                // takes the entry checkpoint just below (self.semantic_runtime_state stays in
+                // place, so the pushed context is on the same state the checkpoint snapshots and
+                // the rollback restores). The matching pop runs after the err-restore regardless
+                // of result.is_err().
                 self.semantic_runtime_state.push_rule_context(rule_name);
 
-                let original_semantic_runtime_state =
-                    std::mem::take(&mut self.semantic_runtime_state);
-                self.semantic_runtime_state = original_semantic_runtime_state.clone();
+                // PARSE-TERMINATION.3.1: O(1) checkpoint REPLACES the former O(N) full-state
+                // clone (`take` + `.clone()`), which was the O(N^2) per-rule cost behind the
+                // ~N^1.66 stateful-parse super-linearity and the uvm ~26 GB blow-up
+                // (PARSE-TERMINATION.1/.3/.3.2). `self.semantic_runtime_state` now STAYS in place
+                // (holds the pre-body facts); the rule body mutates it directly; any non-commit
+                // exit `rollback_to_named`s to this checkpoint below (O(changes), Laurent & Mens
+                // SLE 2016). The lost-facts subtlety (the mid-fn `take` for the txn machinery) is
+                // handled by an inner closure that ALWAYS restores the taken state before any
+                // error propagates — see below.
+                let semantic_runtime_checkpoint = self.semantic_runtime_state.checkpoint();
                 // ============================================================
                 // SV-EXH-PROOF.3.3.3 FIX — exception-safe semantic-state restore.
                 //
@@ -1382,12 +1388,22 @@ impl AstBasedGenerator {
                         // emitted`; the delta is exactly the facts the
                         // rule's body contributed.
                         let semantic_runtime_entry_fact_len: usize =
-                            original_semantic_runtime_state.facts().len();
+                            semantic_runtime_checkpoint.fact_len();
                         let (node, semantic_raw_content) = f(self)?;
                         let semantic_raw_content =
                             semantic_raw_content.as_ref().unwrap_or(&node.content);
+                        // PARSE-TERMINATION.3.1: O(1) mid-`take` (a borrow-checker workaround so
+                        // the `&self` apply_* methods can run while the txn mutates the taken
+                        // state). The txn section runs in an INNER closure returning
+                        // `ParseResult<()>` so any `?` returns LOCALLY; we then ALWAYS move the
+                        // taken state back into `self.semantic_runtime_state` BEFORE propagating
+                        // an error — so the outer `rollback_to_named` operates on a POPULATED
+                        // state (the lost-facts hole). `node` stays owned by THIS scope (not moved
+                        // into the closure) so `semantic_raw_content` (which borrows `node`) stays
+                        // valid; the closure borrows `node`/`semantic_raw_content` read-only.
                         let mut semantic_runtime_state =
                             std::mem::take(&mut self.semantic_runtime_state);
+                        let semantic_txn_result: ParseResult<()> = (|| -> ParseResult<()> {
                         // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — name the
                         // transaction with the owning rule so its Drop
                         // auto-rollback (the once-anonymous code path) now
@@ -1515,10 +1531,10 @@ impl AstBasedGenerator {
                                     );
                                 }
                             }
-                            Err(ParseError::Backtrack {
+                            return Err(ParseError::Backtrack {
                                 position: node.span.start,
-                            })
-                        } else {
+                            });
+                        }
                             // `SV-EXH-PROOF.3.3.4.a` MVP-0: process
                             // `@export_to_library` here — AFTER the rule's
                             // body has emitted all its facts (so the artifact
@@ -1543,13 +1559,22 @@ impl AstBasedGenerator {
                                 }
                             }
                             let _ = semantic_runtime_transaction.commit();
-                            self.semantic_runtime_state = semantic_runtime_state;
-                            Ok(node)
-                        }
+                            Ok(())
+                        })();
+                        // PARSE-TERMINATION.3.1: ALWAYS move the taken state back (commit kept its
+                        // changes; a non-commit drop of the txn auto-rolled-back its own effects),
+                        // BEFORE propagating, so the outer rollback_to_named below operates on a
+                        // POPULATED state — no lost-facts hole.
+                        self.semantic_runtime_state = semantic_runtime_state;
+                        semantic_txn_result?;
+                        Ok(node)
                     }
                 })();
                 if result.is_err() {
-                    self.semantic_runtime_state = original_semantic_runtime_state;
+                    // PARSE-TERMINATION.3.1: O(changes) rollback to the entry checkpoint instead
+                    // of restoring a full O(N) clone. `rule_name` names the rollback in the trace.
+                    self.semantic_runtime_state
+                        .rollback_to_named(semantic_runtime_checkpoint, Some(rule_name));
                 }
                 // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — pop the rule context.
                 // Pairs with the `push_rule_context` above. Stack discipline:
@@ -7615,22 +7640,30 @@ mod semantic_usage_tests {
 
         assert!(
             rendered.contains("std::mem::take("),
-            "generated parser helper should detach semantic runtime state before parsing, got: {}",
+            "generated parser helper should detach semantic runtime state for the txn machinery, got: {}",
+            rendered
+        );
+        // PARSE-TERMINATION.3.1: the O(N) full-state clone is replaced by an O(1) entry
+        // checkpoint; the parent-failure restore is an O(changes) rollback to it.
+        assert!(
+            rendered.contains("let semantic_runtime_checkpoint")
+                && rendered.contains(".checkpoint()"),
+            "generated parser helper should snapshot an O(1) entry checkpoint (not a full clone), got: {}",
             rendered
         );
         assert!(
-            rendered.contains("let original_semantic_runtime_state"),
-            "generated parser helper should preserve the original semantic runtime snapshot for rollback, got: {}",
+            !rendered.contains("original_semantic_runtime_state.clone()"),
+            "generated parser helper must NOT clone the full semantic runtime state per rule (the O(N^2) regression), got: {}",
             rendered
         );
         assert!(
-            rendered.matches("std::mem::take(").count() >= 2,
-            "generated parser should refresh semantic runtime state from child-rule commits before applying parent effects, got: {}",
+            rendered.contains("rollback_to_named(semantic_runtime_checkpoint"),
+            "generated parser should rollback to the entry checkpoint when the parent rule fails, got: {}",
             rendered
         );
         assert!(
             rendered.contains("if result.is_err()"),
-            "generated parser should restore the original semantic runtime snapshot when the parent rule fails, got: {}",
+            "generated parser should restore semantic runtime state when the parent rule fails, got: {}",
             rendered
         );
     }
