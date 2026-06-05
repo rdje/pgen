@@ -187,11 +187,12 @@ external-corpus triage gate now runs every PARSE under a subshell `ulimit -v` (a
 `PGEN_SV_TRIAGE_PARSE_TIMEOUT_S`, default 1800 s), scoped to parses only (NOT the cargo build).
 A runaway parse is now a **classified `parse_fail`/timeout**, never silent host exhaustion.
 VERIFIED: scr1 (healthy) passes under the 16 GB cap; uvm under a 2 GB cap is killed at the
-timeout having NEVER exceeded the cap (host-safe). **⚠️ INTERIM CONSEQUENCE:** on this 24 GB
-host uvm needs ~26 GB (the O(N²) clone), so uvm cases will be classified `parse_fail` under the
-auto cap UNTIL `.3.1` lands — this is the HONEST state (uvm doesn't fit host RAM yet), and is
-restored to PASS by `.3.1` (which drops uvm to MB). Reversible: `PGEN_SV_TRIAGE_MEM_CAP_KB=0`
-disables the cap. KM [[sv-corpus-gate-uvm-memory]].
+timeout having NEVER exceeded the cap (host-safe). **✅ INTERIM RESOLVED (2026-06-05,
+PGEN-PARSE-TERMINATION-0010):** `.3.1` (memory 26 GB→~12.7 GB) + `.7.1` (time 181 s→71 s) made
+debug uvm fit BOTH the auto memory cap (16.8 GB) AND the 1800 s timeout — the **SV external
+corpus is 14/14 again UNDER the resource guard** (host-safe). So the guard now protects the host
+*without* sacrificing any case. Reversible: `PGEN_SV_TRIAGE_MEM_CAP_KB=0` disables the cap. KM
+[[sv-corpus-gate-uvm-memory]].
 #### `.4.1` — ENGINE step/time watchdog — PENDING (lower priority after `.3.1`)
 A hard per-parse step/time budget IN the parser that converts a would-be hang into a
 `pgen_error!`-class **severity** diagnostic (always emitted, never verbosity-gated —
@@ -238,8 +239,10 @@ length), no haystack scan. Semantically identical (the parser only ever accepted
 the `(?:..)` preserves the pattern's precedence; cache key stays the original pattern.
 VERIFIED: regen compiles; lib (features) 652/0; **RGX broader-corpus conformance PASSED (0 parse
 failures — anchoring does NOT break regex-on-regex)**; **release uvm parse 163 s → 71 s (~2.3×;
-~2.5× vs the pre-`.7` 181 s), still PASSES**. Parser-agnostic, monotone. Likely also restores the
-gate's 14/14 (debug uvm should now fit the 1800 s timeout — corpus run pending).
+~2.5× vs the pre-`.7` 181 s), still PASSES**. Parser-agnostic, monotone. **CONFIRMED: the SV
+external corpus is 14/14 again** (PGEN-PARSE-TERMINATION-0010) — with `.3.1` + `.7.1`, debug uvm
+fits BOTH the 1800 s timeout AND the 16.8 GB cap, so all 14 cases pass UNDER the `.4.0` resource
+guard (host-safe).
 
 ### `.7-historical` — original finding (kept for provenance)
 `match_regex` in EVERY generated parser recomputes the STATIC `can_match_empty` per call by
@@ -253,6 +256,15 @@ factor (uvm ~181 s release vs >1800 s debug) → also consider a release probe f
 step to restore corpus 14/14 (gate change, separate).
 
 ## Frontier
+**2026-06-05 MILESTONE (PGEN-PARSE-TERMINATION-0010): the uvm 26 GB / hang is CURED end-to-end.**
+`.4.0` (gate resource guard — host can't be exhausted) + `.3.1` (memory 26 GB→~12.7 GB via
+checkpoint/rollback) + `.7`/`.7.1` (parse time 181 s→71 s, the dominant root = anchoring terminal
+regex matching) → **SV external corpus 14/14 again, host-safe, under the cap+timeout**. uvm parses
+correctly (no lost facts), ~2.5× faster, ~2× leaner. ONE root remains: `.6` the unbounded packrat
+MEMO = the residual ~12.7 GB — now NON-URGENT (host safe, 14/14 holds); a "make uvm leaner still"
+optimization, not a blocker. Other leaves: `.4.1` engine step-watchdog (deferred), `.5` complexity
+CI gate (pending). Below: original `.1`/`.3` history.
+
 `.1` DONE — measurement CONFIRMED super-linear (≈quadratic-trending) stateful parsing.
 `.3` root-cause DONE (O(N²) `SemanticRuntimeState` clone). **`.3.2` (2026-06-05) = a REAL-WORLD
 HIT: uvm_pkg parse → ~26 GB RAM + apparent hang during the corpus gate — the failure mode this

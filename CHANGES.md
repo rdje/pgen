@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-PARSE-TERMINATION-0010 (MILESTONE): **uvm 26 GB / hang CURED end-to-end — SV corpus 14/14 again, host-safe.**
+
+Docs/tracking only — records the corpus confirmation. No code change.
+
+- The .3.2 incident (uvm parse → ~26 GB > host 24 GB → swap-thrash/"stuck") is cured: `.4.0` gate resource guard (host can't be exhausted) + `.3.1` memory cure (26 GB → ~12.7 GB via checkpoint/rollback) + `.7`/`.7.1` time cure (181 s → 71 s, dominant root = anchoring terminal regex matching). With the cures, debug uvm fits BOTH the 1800 s timeout AND the 16.8 GB cap.
+- CONFIRMED: sv_external_corpus_triage_gate = **parse_pass_total 14 / fail 0 / skip 0 UNDER the resource guard** (fresh report). uvm parses correctly (no lost facts), ~2.5× faster, ~2× leaner; the host is protected. The `.4.0` interim (uvm classified-fail under the cap) is RESOLVED.
+- ONE root remains: `.6` the unbounded packrat MEMO (residual ~12.7 GB) — now NON-URGENT (host safe, 14/14 holds); a leaner-still optimization, not a blocker.
+
 ## 2026-06-05 - PGEN-PARSE-TERMINATION-0009 (leaf PARSE-TERMINATION.7.1): **ANCHOR terminal regex matching — the dominant parse-time root; uvm 181s → 71s (~2.5×).**
 
 Code (codegen: rust/src/ast_pipeline/ast_based_generator.rs, match_regex). generated/ GITIGNORED → codegen .rs committed, regen local.
