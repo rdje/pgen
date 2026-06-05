@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0007 (leaf GRAMMAR-WELLFORMED.E2): **attribute completeness — SATISFIED BY EXISTING VALIDATION (verified, no new code).**
+
+Docs only (tree + Part II book chapter). Tools-first verification, like E1.
+
+- The well-DEFINEDNESS contract's "attribute completeness" axis (Knuth's modular well-definedness: every referenced attribute/binding has a defining source) is, for the SYNTHESIZED-attribute half (`$N` positional refs), ALREADY ENFORCED. `annotation_validator.rs` raises `E_RET_POS_OUT_OF_RANGE` (`AnnotationSeverity::Error`) when a return annotation references a positional capture with no defining child, plus the bound checks `W_RET_BRANCH_INDEX_OOB` / `W_RET_POS_RULE_BOUND` / `W_RET_BRANCH_NOT_SEQUENCE`.
+- It is HARD: `ast_generator_direct.rs:152` aborts parser generation when `strict_validation && has_errors()` (strict mode = CI default / `PGEN_STRICT_ANNOTATION_VALIDATION=1`). It is regression-locked by `return_validator_honors_capture_index_bounds` (out-of-range `$N` ⇒ `E_RET_POS_OUT_OF_RANGE` error) and `grammar_aware_validation_warns_when_positional_ref_exceeds_branch_bound`.
+- PGEN's return AST is dynamic JSON (no static field-existence checking on `$1.field`), so the only DECIDABLE completeness condition for synthesized attributes is the positional-binding range — which is what is enforced. ⇒ E2 holds for its decidable scope with no new code (the proof is the existing strict validation).
+- The CONSULTED-FACT completeness half ("a `@predicate`'s fact kind has an emitting source") is a DATA-DEPENDENT condition, not a synthesized-attribute one; it is the sound decidable core of `F1` (binding-before-use) and is delivered there. Frontier now: F1 (the substantive fact-flow check), then A2.1 (clean+promote the 52 SV always-matches defects).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0006 (leaf GRAMMAR-WELLFORMED.A2): **earlier-ALWAYS-SUCCEEDS shadowing — the SOUND decidable subset of FIRST-domination; found 52 real SV dead branches (warning-staged).**
 
 Code: `rust/src/ast_pipeline/grammar_wellformedness.rs` (new `node_always_succeeds` + `compute_always_succeeds` + `ShadowingReason::EarlierAlwaysMatches` + `is_hard_gate()`), `rust/src/main.rs` (`run_grammar_lint` partitions shadowing into hard-gated vs warning). Docs: GRAMMAR-WELLFORMED tree + Part II book chapter + LIVE. No grammar/parser change → no regen.

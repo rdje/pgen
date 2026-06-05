@@ -53,7 +53,10 @@ apply:
    proof is the annotation language's design. (The store-based `@predicate`/`@emit_fact` flow is a
    *separate*, data-dependent axis — see requirement 7.)
 6. **Attribute completeness.** Every attribute or binding a rule reads (`$N`, a consulted fact) has
-   a defining source — no "use of an undefined value."
+   a defining source — no "use of an undefined value." The synthesized-attribute half is enforced
+   today: a return annotation that references a positional capture `$N` with no defining child is a
+   hard validation error (`E_RET_POS_OUT_OF_RANGE`) that blocks parser generation under strict mode
+   (the CI default). The consulted-*fact* half is requirement 7 below.
 7. **Binding before use.** Every `@predicate` may only consult facts that *can be established
    earlier* in some parse. A rule gated on a fact that nothing can ever emit before it is, in
    effect, dead. *(Jim, Mandelbaum, Walker — data-dependent grammars, 2010.)*
@@ -112,8 +115,13 @@ everything `b` could start with, `a` could also start with, then `b` is dead" �
 PEG** and is intentionally not implemented. `a` might match the first token and then fail later, in
 which case PEG *does* backtrack and try `b`, so `b` is live. Implementing the general heuristic would
 falsely accuse live branches of being dead — the opposite of an honest linter. PGEN sticks to the
-two *sound, decidable* forms (fixed-terminal-prefix and always-succeeds). The remaining work is the
-well-*defined* layer (attribute completeness, binding-before-use).
+two *sound, decidable* forms (fixed-terminal-prefix and always-succeeds).
+
+On the **well-*defined*** layer, attribute completeness for synthesized attributes (`$N`) is already
+enforced as a hard validation error (above). The one substantive check still open is data-dependent
+*binding-before-use* — proving that every fact a `@predicate` consults can actually be established by
+some `@emit_fact` (its sound, decidable core: a consulted fact-*kind* that nothing ever emits can
+never be true, so the predicate is dead).
 
 On the **constructive side**, the generator's coverage measurement is now **deterministic**: the
 generation budget was changed from a wall-clock timeout to a fixed step counter, so a seeded run

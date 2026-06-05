@@ -185,8 +185,20 @@ subtle dead branch"), never a silent accept.
   `@predicate`/`@emit_fact` is DATA-DEPENDENT, a SEPARATE axis = `F1`, not classic attribute
   circularity.) If an inherited construct is ever added, Knuth's bounded cycle test becomes required
   (re-open E1).
-- `E2` — **attribute completeness**: every referenced `$N` / consulted fact has a defining source →
-  gate. *Effort: medium.*
+- `E2` — **attribute completeness** — **DONE / SATISFIED BY EXISTING VALIDATION
+  (PGEN-GRAMMAR-WELLFORMED-0007, analysis).** The synthesized-attribute half — every `$N` has a
+  defining source — is ALREADY enforced: `annotation_validator.rs` emits `E_RET_POS_OUT_OF_RANGE`
+  (`AnnotationSeverity::Error`) for a positional ref with no defining child capture, plus the bound
+  checks `W_RET_BRANCH_INDEX_OOB` / `W_RET_POS_RULE_BOUND` / `W_RET_BRANCH_NOT_SEQUENCE`. It is HARD:
+  `ast_generator_direct.rs:152` aborts parser generation when `strict_validation && has_errors()`
+  (strict mode is the CI default / `PGEN_STRICT_ANNOTATION_VALIDATION=1`), and it is regression-
+  locked by `return_validator_honors_capture_index_bounds` + `grammar_aware_validation_warns_when_
+  positional_ref_exceeds_branch_bound`. PGEN's return AST is dynamic JSON (no static field-existence
+  on `$1.field`), so the only DECIDABLE completeness condition for synthesized attributes is the
+  positional-binding range — which is enforced. The CONSULTED-FACT half ("a `@predicate`'s fact kind
+  has an emitting source") is the sound core of `F1` (done there) — it is a data-dependent, not a
+  synthesized-attribute, condition. ⇒ E2 holds for its decidable synthesized-attribute scope with no
+  new code; the fact scope is F1.
 - `F1` — **data-dependent binding-before-use** (Jim et al. 2010): every `@predicate`'s referenced
   fact is establishable earlier in some parse (static twin of C2) → gate. *Effort: medium-high.*
 
@@ -201,8 +213,8 @@ subtle dead branch"), never a silent accept.
 | — | `GRAMMAR-WELLFORMED.B1` | `done` (`-0005`) | Deterministic step-budget replaces the wall-clock deadline → residual = 84 IDENTICAL across two runs (the ±25 noise gone). The literal-0 metric is now signal. |
 | — | `GRAMMAR-WELLFORMED.A2` | `done` (`-0006`) | Sound subset of FIRST-domination — earlier-ALWAYS-SUCCEEDS shadowing. 0 false positives; found 52 real SV dead branches (warning-staged). General unsound FIRST-domination deliberately excluded. |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `pending` | Clean the 52 SV `always_matches` defects LRM-grounded (parse-neutral, one at a time, measure global metric) → promote EarlierAlwaysMatches to the hard gate. |
-| 2 | `GRAMMAR-WELLFORMED.F1` | `pending` | Data-dependent binding-before-use (Jim 2010) — the substantive remaining well-DEFINEDNESS check (a fact-flow analysis over `@predicate`/`@emit_fact`). |
-| 3 | `GRAMMAR-WELLFORMED.E2` | `pending` | Attribute completeness — every referenced `$N`/consulted fact has a defining source (static, low-risk like A2). |
+| — | `GRAMMAR-WELLFORMED.E2` | `done` (`-0007`, satisfied by existing validation) | `$N` attribute completeness already enforced (`E_RET_POS_OUT_OF_RANGE`, hard under strict mode, test-locked); consulted-fact completeness → F1. |
+| 1 | `GRAMMAR-WELLFORMED.F1` | `pending` | Data-dependent binding-before-use (Jim 2010) — the substantive remaining well-DEFINEDNESS check: fact-KIND completeness (consulted-but-never-emitted) as the sound decidable core, over `@predicate`/`@emit_fact`. |
 
 ## Decisions
 - `2026-06-05`: Created from the director brainstorm. The frame UNIFIES the linter (static proof) +
