@@ -121,7 +121,43 @@ linearity probe (store → ~N^1.0), SV external corpus 14/14, lib (no-features +
 generated_parsers), shape-contracts, determinism, AND a targeted test for the
 failure-between-take-and-putback path. KM [[stateful-packrat-not-linear]].
 
-### `.4` — runtime step-budget watchdog (hang → classified severity error) — PENDING
+### `.3.2` — EMPIRICAL real-world instance: uvm_pkg parse → ~26 GB RAM + apparent hang (PGEN-PARSE-TERMINATION-0005, 2026-06-05, OBSERVATION)
+**Director surfaced (2026-06-05):** during `sv_external_corpus_triage_gate`, the
+`case_uvm_compat_pkg_2017_bootstrap_1` parse — `target/debug/parseability_probe --parse
+systemverilog <uvm_pkg.sv, 2.89 MB preprocessed> --profile 2017 --lib-out …` (PID 3519) —
+consumed **~26 GB RAM and appeared stuck**. Killed to free the host (the gate is reproducible;
+no data lost). This is the FIRST real-world hit of the failure mode this tree exists for.
+**Tool evidence (controlled reproduction, debug build, `ulimit -v 12 GB` cap, this session):**
+- Isolated `--parse` AND `--parse --lib-out` of uvm_pkg: RSS **60 → 104 MB over 36 s** but did
+  NOT finish — so the **early/shallow parse is modest memory but SLOW**; the **26 GB blows up
+  DEEPER** in the parse (super-linear, past the first ~100 MB phase), on uvm's deeply-nested
+  store-gated constructs. (`--lib-out` did NOT itself balloon early → not the fact-export.)
+- macOS `sample` of the early phase: hot self-time is **REGEX MATCHING** — `memchr` /
+  `aho-corasick` teddy / `regex_automata` DFA (`next_state`, `ByteClasses::get`,
+  `is_aligned_to`) — i.e. terminal/token matching over the 2.89 MB text dominates the bulk phase.
+**Interpretation (two cost components):**
+1. **MEMORY/super-linear (the 26 GB):** consistent with `.1`'s ~N^1.66 + `.3`'s pinned O(N²)
+   `with_semantic_runtime_rule_transaction` **full `SemanticRuntimeState` clone** — on uvm's
+   thousands of type decls the cloned-per-rule state grows, and the per-rule clone on deep
+   store-gated rules balloons to GB. The 26 GB is the **real-world MEMORY face** of the known
+   TIME super-linearity. → `.3.1` (checkpoint/rollback swap) is the fix; **urgency raised.**
+2. **TIME/regex (the early bulk phase):** a LIKELY SECOND, possibly-separate cost — the PARSER
+   appears to spend heavily in regex terminal matching (cf. the GENERATOR's per-call regex
+   recompile fixed in SV-EXH-PROOF.7.4.6.1; check whether the generated parser recompiles
+   terminal regexes per call / per position rather than once). Own follow-up probe.
+**NOT caused by** `ANNOTATION-COMPOSITION.6.4` (the just-committed `non_zero_decimal_digit`
+fix): it is a NO-OP under profile 2017 (the rule was present under 2017 before AND after; it was
+only a *sv_2023* orphan). Verified via `git show HEAD~1`.
+**ACTIONS:** (a) raises `.3.1` urgency (kills component 1); (b) raises `.4` urgency — a
+memory/step **watchdog would have converted the 26 GB into a classified severity error instead
+of exhausting the host** (this is the watchdog's reason to exist, now PROVEN by a real event);
+(c) INTERIM SAFETY — the SV corpus gate should run uvm cases under `ulimit -v` + a timeout so an
+OOM is a *classified failure*, not silent host-RAM exhaustion; (d) a future controlled
+long-capped run to pinpoint the exact rule/depth where memory explodes + confirm the
+clone-vs-regex split + check parser regex recompilation. See [[stateful-packrat-not-linear]],
+[[sv-corpus-gate-uvm-memory]].
+
+### `.4` — runtime step-budget watchdog (hang → classified severity error) — PENDING — URGENCY RAISED by `.3.2`
 A hard per-parse step/time budget that converts a would-be hang into a `pgen_error!`-class
 **severity** diagnostic (always emitted, never verbosity-gated — DIAG-SEVERITY), with the
 reason classified. Bounded by construction; additive ⇒ zero regression.
@@ -132,7 +168,11 @@ Assert sub-quadratic parse-time slope on the scaling corpus; catches a hang's *p
 
 ## Frontier
 `.1` DONE — measurement CONFIRMED super-linear (≈quadratic-trending) stateful parsing.
-Next: `.3` (memo-soundness audit → **conditional memoization**, CC 2020's fix — restores
-linearity for store-gated rules; a parser-agnostic engine change, explicit auth + strict
-scope) is now evidence-justified; `.5` (complexity-regression gate) can lock the curve in CI
-so a regression can't reappear. Fix path is grounded in `.1`'s facts, not a guess.
+`.3` root-cause DONE (O(N²) `SemanticRuntimeState` clone). **`.3.2` (2026-06-05) = a REAL-WORLD
+HIT: uvm_pkg parse → ~26 GB RAM + apparent hang during the corpus gate — the failure mode this
+tree exists for, observed in the wild.** This raises the priority of **`.3.1`** (the
+checkpoint/rollback fix that kills the O(N²) clone) and **`.4`** (the watchdog that converts an
+OOM/hang into a classified severity error — proven necessary by the 26 GB event). NEXT (director
+to sequence): `.3.1` fix (careful refactor, lost-facts subtlety) and/or `.4` watchdog +
+interim `ulimit`/timeout on the gate's uvm cases; plus a `.3.2` follow-up probe (pinpoint the
+exact rule/depth of the memory explosion + check parser regex recompilation). Grounded in facts.

@@ -3,7 +3,7 @@
 > **AUTO-GENERATED — DO NOT EDIT.** Regenerate with `knowledge-map/scripts/gen_knowledge_map.sh`.
 > Source of truth = YAML front-matter in: `docs/knowledge docs/decisions`. Edit the fact files, never this map.
 > A fact is any `.md` whose front-matter has a non-empty `answers:` list.
-> **16** facts · **86** question keys.
+> **17** facts · **90** question keys.
 
 ## Questions → fact
 
@@ -32,6 +32,7 @@
 - "how to generate an input that reaches a specific grammar production (directed)" -> [grammar-coverage-and-directed-generation](docs/knowledge/grammar-coverage-and-directed-generation.md) · 2026-06-03 · reverify: `see docs/tasks/SV-EXH-PROOF.md (.7.4.x) + docs/tasks/STIMULI-SIGNOFF.md`
 - "how to generate deep witnesses without timeout (.7.4.6)" -> [grammar-coverage-and-directed-generation](docs/knowledge/grammar-coverage-and-directed-generation.md) · 2026-06-03 · reverify: `see docs/tasks/SV-EXH-PROOF.md (.7.4.x) + docs/tasks/STIMULI-SIGNOFF.md`
 - "how to make slow deeply-factored SV witnesses converge" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
+- "how to run the SV corpus gate safely without exhausting host RAM" -> [sv-corpus-gate-uvm-memory](docs/knowledge/sv-corpus-gate-uvm-memory.md) · 2026-06-05 · reverify: ``ulimit -v 12582912; target/debug/parseability_probe --parse systemverilog <uvm_pkg.preprocessed.sv> --profile 2017` and watch RSS — slow, and memory climbs super-linearly deeper in the parse`
 - "how to speed up the pgen regex parser" -> [rgx-0078-regex-slowness-followup](docs/knowledge/rgx-0078-regex-slowness-followup.md) · 2026-06-03 · reverify: `cat the RGX issue yaml; run the pgen_iteration_flow harness (PCRE2-relative bench)`
 - "how to test parser correctness without a reference AST" -> [parse-fidelity-oracles](docs/knowledge/parse-fidelity-oracles.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-FIDELITY.md literature grounding`
 - "how were the slow witness timeouts reduced" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
@@ -39,6 +40,7 @@
 - "is PGEN stateless or stateful packrat" -> [pgen-parsing-model](docs/knowledge/pgen-parsing-model.md) · 2026-06-03 · reverify: `grep -n "eliminate_left_recursion\|eliminate_left_recursive_patterns" rust/src/ast_pipeline/mod.rs rust/src/main.rs`
 - "is PGEN's generator behind or ahead of academic grammar fuzzers" -> [stimuli-generator-capability-gaps](docs/knowledge/stimuli-generator-capability-gaps.md) · 2026-06-03 · reverify: `see docs/tasks/STIMULI-SIGNOFF.md leaves .2-.7`
 - "is PGEN's parser guaranteed linear time / hang-free" -> [stateful-packrat-not-linear](docs/knowledge/stateful-packrat-not-linear.md) · 2026-06-03 · reverify: `see docs/tasks/PARSE-TERMINATION.md; grep -n "memoiz" rust/src/ast_pipeline/*.rs`
+- "is the SV parser slow / memory-heavy on uvm and why" -> [sv-corpus-gate-uvm-memory](docs/knowledge/sv-corpus-gate-uvm-memory.md) · 2026-06-05 · reverify: ``ulimit -v 12582912; target/debug/parseability_probe --parse systemverilog <uvm_pkg.preprocessed.sv> --profile 2017` and watch RSS — slow, and memory climbs super-linearly deeper in the parse`
 - "is the SV stateful-packrat fix relevant to regex slowness" -> [rgx-0078-regex-slowness-followup](docs/knowledge/rgx-0078-regex-slowness-followup.md) · 2026-06-03 · reverify: `cat the RGX issue yaml; run the pgen_iteration_flow harness (PCRE2-relative bench)`
 - "is the parser failing on real inputs or is it the stimuli generator" -> [parser-signoff-four-pillars](docs/knowledge/parser-signoff-four-pillars.md) · 2026-06-03 · reverify: `grep -l "parser sign-off pillar" docs/tasks/PARSE-*.md`
 - "is there a published technique for the literal-0 / derivation-directed generation idea" -> [grammar-coverage-and-directed-generation](docs/knowledge/grammar-coverage-and-directed-generation.md) · 2026-06-03 · reverify: `see docs/tasks/SV-EXH-PROOF.md (.7.4.x) + docs/tasks/STIMULI-SIGNOFF.md`
@@ -87,7 +89,9 @@
 - "why can't deeply-nested SV rules be generated from the top entry" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "why do SV witnesses time out instead of erroring" -> [sv-witness-purdom-ordering](docs/knowledge/sv-witness-purdom-ordering.md) · 2026-06-03 · reverify: `PGEN_WITNESS_NO_PURDOM=1 vs unset, rerun the witness pass (--target-report-input <sample> --target-max-attempts 0 --target-generation-timeout-ms 7000 --seed 712001) and compare resolved / target_timeout`
 - "why does ast_pipeline say it requires --features ebnf_dual_run" -> [ast-pipeline-cli-reference](docs/knowledge/ast-pipeline-cli-reference.md) · 2026-06-04 · reverify: `run `rust/target/release/ast_pipeline --help` (flags can change); for .ebnf input the binary must be built `--features ebnf_dual_run``
+- "why does parsing uvm_pkg / uvm_compat_pkg use tens of GB of memory" -> [sv-corpus-gate-uvm-memory](docs/knowledge/sv-corpus-gate-uvm-memory.md) · 2026-06-05 · reverify: ``ulimit -v 12582912; target/debug/parseability_probe --parse systemverilog <uvm_pkg.preprocessed.sv> --profile 2017` and watch RSS — slow, and memory climbs super-linearly deeper in the parse`
 - "why does replay_target_count plateau (e.g. at 888)" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
+- "why does the SV external corpus gate eat huge RAM or seem stuck" -> [sv-corpus-gate-uvm-memory](docs/knowledge/sv-corpus-gate-uvm-memory.md) · 2026-06-05 · reverify: ``ulimit -v 12582912; target/debug/parseability_probe --parse systemverilog <uvm_pkg.preprocessed.sv> --profile 2017` and watch RSS — slow, and memory climbs super-linearly deeper in the parse`
 - "why doesn't the SystemVerilog stimuli residual reach zero" -> [sv-residual-depth-budget-cause](docs/knowledge/sv-residual-depth-budget-cause.md) · 2026-06-03 · reverify: `grep -n "max_depth\|depth exceeded\|DEPTH_EXCEEDED" rust/src/ast_pipeline/stimuli_generator.rs`
 - "why is the SV stimuli residual not literal-0" -> [sv-literal-0-residual-decomposition](docs/knowledge/sv-literal-0-residual-decomposition.md) · 2026-06-04 · reverify: `run the witness pass (--target-report-input <150-sample> --target-max-attempts 0 --target-generation-timeout-ms 200 --seed 712001 --output /tmp/o.json) and read the "Witness 'target_timeout'-failure samples" + "still-UNRESOLVED samples" stdout lines; or `make sv_stimuli_quality_gate` for closed_loop_replay_targets_total`
 - "why is the SystemVerilog main parser still Mostly Done not Done" -> [sv-literal-0-residual-decomposition](docs/knowledge/sv-literal-0-residual-decomposition.md) · 2026-06-04 · reverify: `run the witness pass (--target-report-input <150-sample> --target-max-attempts 0 --target-generation-timeout-ms 200 --seed 712001 --output /tmp/o.json) and read the "Witness 'target_timeout'-failure samples" + "still-UNRESOLVED samples" stdout lines; or `make sv_stimuli_quality_gate` for closed_loop_replay_targets_total`
@@ -212,6 +216,15 @@ _What the stimuli residual / replay_target_count actually is (coverage model)_
 - **evidence:** `rust/src/ast_pipeline/stimuli_generator.rs (StimuliCoverageTarget {Rule,Branch}, generate_gap_report, compute_reach_path, forced_or_branch_for_site, set_reach_plan); docs/tasks/SV-EXH-PROOF.md`
 - **reverify:** `grep -n "StimuliCoverageTarget\|replay_target\|reach_classification" rust/src/ast_pipeline/stimuli_generator.rs`
 - **source:** [`docs/knowledge/stimuli-residual-coverage-model.md`](docs/knowledge/stimuli-residual-coverage-model.md)
+
+### sv-corpus-gate-uvm-memory
+_The SV corpus gate's uvm parse can consume ~26 GB RAM and appear to hang — cap it_
+
+- **answers:** why does the SV external corpus gate eat huge RAM or seem stuck | why does parsing uvm_pkg / uvm_compat_pkg use tens of GB of memory | is the SV parser slow / memory-heavy on uvm and why | how to run the SV corpus gate safely without exhausting host RAM
+- **date:** 2026-06-05 · **status:** current
+- **evidence:** `docs/tasks/PARSE-TERMINATION.md leaf .3.2 (PGEN-PARSE-TERMINATION-0005); .1 (N^1.66 super-linear) + .3 (O(N^2) SemanticRuntimeState clone)`
+- **reverify:** ``ulimit -v 12582912; target/debug/parseability_probe --parse systemverilog <uvm_pkg.preprocessed.sv> --profile 2017` and watch RSS — slow, and memory climbs super-linearly deeper in the parse`
+- **source:** [`docs/knowledge/sv-corpus-gate-uvm-memory.md`](docs/knowledge/sv-corpus-gate-uvm-memory.md)
 
 ### sv-literal-0-residual-decomposition
 _The SV literal-0 residual — what it is, why it is not yet 0, and the two named causes_

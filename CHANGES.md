@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-PARSE-TERMINATION-0005 (leaf PARSE-TERMINATION.3.2, OBSERVATION): **real-world hit — uvm_pkg parse → ~26 GB RAM + apparent hang during the corpus gate (the failure mode this tree exists for).**
+
+Investigation/log only (director-surfaced) — no code change.
+
+- During sv_external_corpus_triage_gate, the uvm_compat_pkg_2017 bootstrap parse (debug parseability_probe parsing uvm_pkg.sv, 2.89 MB preprocessed, --profile 2017 --lib-out) consumed ~26 GB RAM + appeared stuck (PID 3519). Killed to free the host.
+- TOOL EVIDENCE (controlled reproduction, ulimit -v 12 GB cap): isolated --parse AND --parse --lib-out of uvm_pkg = RSS 60→104 MB over 36 s but did NOT finish → early/shallow parse is modest memory but SLOW; the 26 GB blows up DEEPER (super-linear). macOS sample of the early phase = REGEX matching dominated (memchr / aho-corasick / regex_automata DFA).
+- INTERPRETATION (2 components): (1) the 26 GB = real-world MEMORY face of the known O(N²) with_semantic_runtime_rule_transaction full-SemanticRuntimeState-clone (PARSE-TERMINATION.1 ~N^1.66 / .3 root cause) → raises .3.1 (checkpoint/rollback fix) urgency; (2) regex terminal matching dominates the early phase → likely a SECOND cost (check parser regex recompilation, cf .7.4.6.1).
+- NOT caused by ANNOTATION-COMPOSITION.6.4 (no-op under profile 2017; verified via git show HEAD~1).
+- ACTIONS: raises .3.1 + .4 (watchdog — would have converted the OOM into a classified severity error instead of exhausting the host) urgency; interim = run the gate's uvm cases under ulimit -v + timeout. KM card sv-corpus-gate-uvm-memory added.
+
 ## 2026-06-04 - PGEN-ANNOTATION-COMPOSITION-0005 (leaf ANNOTATION-COMPOSITION.6.4, partial): **Class-C trap fix — neutralize non_zero_decimal_digit family (2 of 36 orphans; profile_orphans 36 → 34).**
 
 Grammar (grammars/systemverilog.ebnf) — strictly-more-permissive (adds the invariant digits 1-9 back under sv_2023); shape-IDENTICAL. generated/ GITIGNORED → grammar source committed, regen local.
