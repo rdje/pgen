@@ -124,8 +124,20 @@ subtle dead branch"), never a silent accept.
   gate; fix grammar findings. *Effort: medium. Reuses `branch_first_set`.*
 
 ### Phase B — make the constructive proof deterministic (the count becomes signal)
-- `B1` — replace the wall-clock generation deadline (`Instant::now`) with a DETERMINISTIC step/visit
-  budget (reuse `max_depth`/`max_rule_visits`). *Effort: medium.*
+- `B1` — **DONE (code, PGEN-GRAMMAR-WELLFORMED-0005; gate-residual confirm in flight):** replaced the
+  wall-clock generation deadline with a DETERMINISTIC step counter. `GenerationTimeoutBudget` and
+  `ActiveGenerationDeadline` now carry a step budget/deadline (not `Duration`/`Instant`); a
+  monotonic `generation_step_counter: Cell<u64>` bumps once per `generation_deadline_exceeded`
+  check (called at every rule/node chokepoint via `enforce_generation_deadline`); the ms config maps
+  to steps via `generation_steps_per_ms()` (env `PGEN_GENERATION_STEPS_PER_MS`, default 1000) so the
+  gate's existing ms budgets keep working but the cutoff is machine-INDEPENDENT. `std::time::{Duration,
+  Instant}` removed from the generator → the only non-seeded input is gone ⇒ a seeded run yields the
+  SAME residual every time (the literal-0 measurement prerequisite). VERIFIED: lib (no-features)
+  591/0; the two timeout-abort unit tests pass with `step_budget: 0`; **canonical gate run TWICE →
+  closed_loop_replay_targets_total = 84 BOTH times (DETERMINISTIC — the ±25 wobble of 97/89/105/120
+  is GONE)**, gate passes both, realistic corpus green. 84 < the old noisy band → the `.7.4.6.7`
+  de-dup's effect is now measurable. THE LITERAL-0 METRIC IS NOW SIGNAL, NOT NOISE — the constructive
+  half of the duality can now be driven + measured deterministically.
 - `B2` — replace the timed search-fallback with BOUNDED-ORDERED backtracking (next-shortest sibling at
   the last choice point, depth-bounded). *Effort: medium.*
 
@@ -161,6 +173,7 @@ subtle dead branch"), never a silent accept.
 | — | `GRAMMAR-WELLFORMED.A1a.1/.2` | `done` (`-0002`) | regex + semantic_annotation shadows cleaned → ALL authored grammars pass the shadowing hard gate. |
 | — | `GRAMMAR-WELLFORMED.A1b` | `done` (`-0003`) | Structural unreachability now a hard, multi-entry-safe gate; all grammars =0. The headline "no unreachable rules" is enforced. |
 | — | `GRAMMAR-WELLFORMED.E1` | `done` (`-0004`, satisfied by construction) | Attribute non-circularity holds structurally (synthesized-only annotation language). |
+| — | `GRAMMAR-WELLFORMED.B1` | `done` (`-0005`) | Deterministic step-budget replaces the wall-clock deadline → residual = 84 IDENTICAL across two runs (the ±25 noise gone). The literal-0 metric is now signal. |
 | 1 | `GRAMMAR-WELLFORMED.A2` | `pending` | FIRST-domination shadowing — ⚠️ soundness: FIRST-domination alone ≠ shadowing (needs a commit analysis); do the sound decidable subset or a warning first. |
 | 2 | `GRAMMAR-WELLFORMED.F1` | `pending` | Data-dependent binding-before-use (Jim 2010) — the substantive remaining well-DEFINEDNESS check (a fact-flow analysis over `@predicate`/`@emit_fact`). |
 

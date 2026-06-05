@@ -21,7 +21,8 @@ use serde_json::Value as JsonValue;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::panic::Location;
-use std::time::{Duration, Instant};
+// GRAMMAR-WELLFORMED.B1: wall-clock time (`std::time::{Duration, Instant}`) is no longer used —
+// the generation budget is a DETERMINISTIC step counter, so no run-to-run timing variance.
 
 const HELPER_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation helper timeout exceeded";
 const TARGET_TIMEOUT_ERROR_PREFIX: &str = "Stimuli generation target timeout exceeded";
@@ -80,16 +81,35 @@ pub enum GenerationErrorReason {
 
 #[derive(Debug, Clone, Copy)]
 struct GenerationTimeoutBudget {
-    duration: Duration,
+    /// GRAMMAR-WELLFORMED.B1: a DETERMINISTIC budget in generation STEPS (deadline-checks),
+    /// replacing the old wall-clock `Duration`. Derived from the ms budget × steps-per-ms, so
+    /// the existing ms config still drives it — but the cutoff is machine-INDEPENDENT (a seeded
+    /// run produces the SAME residual every time, the literal-0 prerequisite).
+    step_budget: u64,
     error_prefix: &'static str,
     budget_ms: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
 struct ActiveGenerationDeadline {
-    deadline: Instant,
+    /// GRAMMAR-WELLFORMED.B1: the step-counter value at which generation is over budget
+    /// (`start_step + step_budget`). Deterministic — no wall clock.
+    step_deadline: u64,
     error_prefix: &'static str,
     budget_ms: u64,
+}
+
+/// GRAMMAR-WELLFORMED.B1: how many generation STEPS (deadline-checks, ≈ per rule/node) one
+/// millisecond of the configured budget maps to. The mapping is fixed (deterministic); the value
+/// only sets the budget MAGNITUDE so existing ms config (gate's witness/target budgets) keeps
+/// working. Env-tunable so the magnitude can be calibrated without recompiling.
+const DEFAULT_GENERATION_STEPS_PER_MS: u64 = 1000;
+fn generation_steps_per_ms() -> u64 {
+    std::env::var("PGEN_GENERATION_STEPS_PER_MS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|&v| v > 0)
+        .unwrap_or(DEFAULT_GENERATION_STEPS_PER_MS)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1225,6 +1245,10 @@ pub struct StimuliGenerator<'a> {
     mutation_replay: Option<ActiveGrammarMutationReplay>,
     mutation_site_visit_counters: HashMap<String, u64>,
     active_generation_deadline: Option<ActiveGenerationDeadline>,
+    // GRAMMAR-WELLFORMED.B1: monotonic generation-step counter (interior-mutable so the
+    // &self deadline check can bump it). Drives the DETERMINISTIC step budget that replaced
+    // the wall-clock deadline → a seeded run yields the same residual every time.
+    generation_step_counter: std::cell::Cell<u64>,
     // SV-EXH-PROOF.2.3.2 (P-a): per-`generate_regex_sample` set of
     // chars to exclude from ALL regex-class materialization, derived
     // from a permissive *leading* negated class in the rule's own
@@ -1362,6 +1386,7 @@ impl<'a> StimuliGenerator<'a> {
             mutation_replay: None,
             mutation_site_visit_counters: HashMap::new(),
             active_generation_deadline: None,
+            generation_step_counter: std::cell::Cell::new(0),
             regex_content_forbidden: HashSet::new(),
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
@@ -1452,7 +1477,7 @@ impl<'a> StimuliGenerator<'a> {
             None
         } else {
             Some(GenerationTimeoutBudget {
-                duration: Duration::from_millis(timeout_ms),
+                step_budget: timeout_ms.saturating_mul(generation_steps_per_ms()),
                 error_prefix,
                 budget_ms: timeout_ms,
             })
@@ -1460,8 +1485,14 @@ impl<'a> StimuliGenerator<'a> {
     }
 
     fn generation_deadline_exceeded(&self) -> bool {
+        // GRAMMAR-WELLFORMED.B1: count one generation STEP per deadline-check (called at every
+        // rule/node generation chokepoint via enforce_generation_deadline) and compare to the
+        // step deadline. Deterministic — no wall clock; only the seeded generation drives the
+        // counter, so a given (seed, grammar, budget) yields the SAME residual every run.
+        let step = self.generation_step_counter.get().saturating_add(1);
+        self.generation_step_counter.set(step);
         self.active_generation_deadline
-            .map(|deadline| Instant::now() >= deadline.deadline)
+            .map(|deadline| step >= deadline.step_deadline)
             .unwrap_or(false)
     }
 
@@ -1581,7 +1612,10 @@ impl<'a> StimuliGenerator<'a> {
         let previous_deadline = self.active_generation_deadline;
         if let Some(timeout_budget) = timeout_budget {
             self.active_generation_deadline = Some(ActiveGenerationDeadline {
-                deadline: Instant::now() + timeout_budget.duration,
+                step_deadline: self
+                    .generation_step_counter
+                    .get()
+                    .saturating_add(timeout_budget.step_budget),
                 error_prefix: timeout_budget.error_prefix,
                 budget_ms: timeout_budget.budget_ms,
             });
@@ -13033,7 +13067,7 @@ mod tests {
             .generate_from_entry_with_optional_timeout(
                 "start",
                 Some(GenerationTimeoutBudget {
-                    duration: Duration::from_millis(0),
+                    step_budget: 0,
                     error_prefix: HELPER_TIMEOUT_ERROR_PREFIX,
                     budget_ms: 0,
                 }),
@@ -13066,7 +13100,7 @@ mod tests {
             .generate_from_entry_with_optional_timeout(
                 "start",
                 Some(GenerationTimeoutBudget {
-                    duration: Duration::from_millis(0),
+                    step_budget: 0,
                     error_prefix: TARGET_TIMEOUT_ERROR_PREFIX,
                     budget_ms: 0,
                 }),

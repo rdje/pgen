@@ -90,12 +90,19 @@ branch as "doesn't count."
 
 ## Where PGEN stands
 
-The linter (`--lint-grammar`) already proves: termination, profile-orphan freedom, and — now —
-exact-duplicate shadow freedom (a hard gate). In progress: structural reachability as a gate
-(multi-entry-aware), FIRST-domination shadowing, and the whole well-*defined* layer (attribute
-non-circularity, completeness, binding-before-use). The constructive side (the generator witnessing
-every reachable branch) is tracked alongside — see the SystemVerilog exhaustive-proof work. The
-design rationale and ordered build plan live in the `GRAMMAR-WELLFORMED` task tree.
+The linter (`--lint-grammar`) already proves: termination, profile-orphan freedom, exact-duplicate
+shadow freedom, and **structural reachability** ("no unreachable rules", multi-entry-aware) — all
+hard gates — plus **attribute non-circularity**, which holds by construction (the annotation
+language is synthesized-only). In progress: FIRST-domination shadowing and the rest of the
+well-*defined* layer (attribute completeness, binding-before-use).
+
+On the **constructive side**, the generator's coverage measurement is now **deterministic**: the
+generation budget was changed from a wall-clock timeout to a fixed step counter, so a seeded run
+produces the *same* residual every time. That matters because a *completeness* number that wobbled
+run-to-run could never be driven to a hard zero — it has to be a stable signal first. With that in
+place, the static proof (linter) and the constructive proof (generator) can finally be compared on
+equal, reproducible footing. The design rationale and ordered build plan live in the
+`GRAMMAR-WELLFORMED` task tree.
 
 ## Sources
 

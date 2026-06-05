@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0005 (leaf GRAMMAR-WELLFORMED.B1): **the literal-0 residual is now DETERMINISTIC — wall-clock generation deadline replaced by a step-counter budget; gate residual = 84 IDENTICAL across two runs.**
+
+Code (rust/src/ast_pipeline/stimuli_generator.rs). Lib generator change → the gate picks it up on its own rebuild; no parser regen needed.
+
+- ROOT (pinned earlier, `.7.4.6` + the director's "it shouldn't be non-deterministic" challenge): the residual wobbled (97/89/105/120, ±~25) because witness generation ran under a WALL-CLOCK deadline (`generation_deadline_exceeded` → `Instant::now() >= deadline`) — which hard targets time out is machine-/load-dependent. The UNIVERSE is finite + deterministic; the non-determinism was purely this measurement artifact.
+- FIX: replaced the wall-clock deadline with a DETERMINISTIC step counter. `GenerationTimeoutBudget`/`ActiveGenerationDeadline` now carry a step budget/deadline (not `Duration`/`Instant`); a monotonic `generation_step_counter: Cell<u64>` bumps once per `generation_deadline_exceeded` check (called at every rule/node chokepoint via `enforce_generation_deadline`); the ms config maps to steps via `generation_steps_per_ms()` (env `PGEN_GENERATION_STEPS_PER_MS`, default 1000) so the gate's existing ms budgets keep driving it — but the cutoff is machine-INDEPENDENT. `std::time::{Duration,Instant}` removed from the generator: the ONLY non-seeded input is gone ⇒ deterministic by construction.
+- VERIFIED: lib (no-features) 591/0 (the two timeout-abort unit tests pass with `step_budget: 0`); **canonical gate run TWICE → closed_loop_replay_targets_total = 84 BOTH times** (the ±25 wobble GONE — empirical proof + by-construction), gate passes both, realistic corpus green. 84 < the old noisy band, so the `.7.4.6.7` de-dup's effect is now MEASURABLE. ⇒ the literal-0 metric is SIGNAL, not noise; the constructive half of the well-formedness duality can be driven + measured deterministically. Book Part II chapter updated.
+
 ## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0004 (leaf GRAMMAR-WELLFORMED.E1, analysis): **attribute non-circularity (Knuth) is SATISFIED BY CONSTRUCTION — PGEN's annotation language is synthesized-only.**
 
 Docs only (tree + book chapter). No code — the result is a structural proof, not a runtime check.
