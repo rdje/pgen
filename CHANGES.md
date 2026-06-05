@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-PARSE-TERMINATION-0006 (leaf PARSE-TERMINATION.4.0): **gate-level resource guard — the SV corpus gate can no longer eat the host (memory cap + timeout per parse).**
+
+Gate script (rust/scripts/sv_external_corpus_triage_gate.sh) — safety net for the .3.2 26 GB event. No Rust/grammar change.
+
+- Every PARSE now runs under a subshell `ulimit -v` (auto-sized ~70% of host RAM; env PGEN_SV_TRIAGE_MEM_CAP_KB, 0=off) + `timeout` (env PGEN_SV_TRIAGE_PARSE_TIMEOUT_S, default 1800 s), scoped to parses only (NOT the cargo build). A runaway parse is now a CLASSIFIED parse_fail/timeout, never silent host exhaustion.
+- VERIFIED: scr1 (healthy) passes under a 16 GB cap; uvm under a 2 GB cap is killed at the timeout having NEVER exceeded the cap (host-safe).
+- ⚠️ INTERIM: on this 24 GB host uvm needs ~26 GB (the O(N²) clone), so uvm cases are classified parse_fail under the auto cap UNTIL PARSE-TERMINATION.3.1 lands — the HONEST state (uvm doesn't fit host RAM yet); restored to PASS by .3.1 (drops uvm to MB). Reversible via PGEN_SV_TRIAGE_MEM_CAP_KB=0.
+- Engine step/time watchdog (.4.1) deferred (lower priority once .3.1 removes the blowup; avoids hot-path overhead). NEXT: (1) PARSE-TERMINATION.3.1 — the O(N²)→linear cure.
+
 ## 2026-06-05 - PGEN-PARSE-TERMINATION-0005 (leaf PARSE-TERMINATION.3.2, OBSERVATION): **real-world hit — uvm_pkg parse → ~26 GB RAM + apparent hang during the corpus gate (the failure mode this tree exists for).**
 
 Investigation/log only (director-surfaced) — no code change.

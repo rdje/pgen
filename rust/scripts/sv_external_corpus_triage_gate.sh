@@ -23,6 +23,34 @@ STRICT_WARNING_CODES="${PGEN_SV_EXTERNAL_CORPUS_TRIAGE_STRICT_WARNING_CODES:-non
 
 AST_PIPELINE_BIN="$RUST_DIR/target/debug/ast_pipeline"
 PARSE_PROBE_BIN="$RUST_DIR/target/debug/parseability_probe"
+
+# PARSE-TERMINATION.4 (safety net for the .3.2 observation): bound each PARSE's memory + time
+# so a super-linear parse (uvm hit ~26 GB > host RAM -> swap-thrash, PARSE-TERMINATION.3.2)
+# becomes a CLASSIFIED parse failure, never silent host exhaustion. Scoped to parses only (NOT
+# the cargo build). Auto-sizes the memory cap to ~70% of host RAM; override with
+# PGEN_SV_TRIAGE_MEM_CAP_KB (0 = disable the cap), timeout with PGEN_SV_TRIAGE_PARSE_TIMEOUT_S.
+# NOTE: until PARSE-TERMINATION.3.1 (the O(N^2) clone fix) lands, uvm cases may hit this cap on
+# a small host and be classified as parse_fail — that is the HONEST state (uvm doesn't fit host
+# RAM yet), not a silent host-killing swap. Raise/disable the cap on a large host.
+if [[ -n "${PGEN_SV_TRIAGE_MEM_CAP_KB:-}" ]]; then
+    PARSE_MEM_CAP_KB="$PGEN_SV_TRIAGE_MEM_CAP_KB"
+elif _hm=$(sysctl -n hw.memsize 2>/dev/null); then
+    PARSE_MEM_CAP_KB=$(( _hm / 1024 * 70 / 100 ))
+elif [[ -r /proc/meminfo ]]; then
+    PARSE_MEM_CAP_KB=$(( $(awk '/^MemTotal/{print $2}' /proc/meminfo) * 70 / 100 ))
+else
+    PARSE_MEM_CAP_KB=16777216
+fi
+PARSE_TIMEOUT_S="${PGEN_SV_TRIAGE_PARSE_TIMEOUT_S:-1800}"
+echo "parse resource guard: mem_cap_kb=${PARSE_MEM_CAP_KB} (0=off) timeout_s=${PARSE_TIMEOUT_S}"
+# Run a parse under the memory cap + timeout (subshell so the limit does not leak to the gate).
+capped_probe() {
+    (
+        if [[ "$PARSE_MEM_CAP_KB" != "0" ]]; then ulimit -v "$PARSE_MEM_CAP_KB" 2>/dev/null || true; fi
+        if command -v timeout >/dev/null 2>&1; then exec timeout "$PARSE_TIMEOUT_S" "$@"; else exec "$@"; fi
+    )
+}
+
 GRAMMAR_FILE="$ROOT_DIR/grammars/systemverilog.ebnf"
 GRAMMAR_JSON="$WORK_DIR/systemverilog_external_corpus_triage_grammar.json"
 PARSER_OUT="$WORK_DIR/systemverilog_external_corpus_triage_parser.rs"
@@ -429,7 +457,7 @@ for case_json in "${case_rows[@]}"; do
                         break
                     fi
                     if ! run_optional_logged "$bootstrap_parse_label" \
-                        "$PARSE_PROBE_BIN" --parse systemverilog "$bootstrap_pp_out" \
+                        capped_probe "$PARSE_PROBE_BIN" --parse systemverilog "$bootstrap_pp_out" \
                         --profile "$case_profile" --lib-out "$case_lib_dir"; then
                         case_parse_status="fail"
                         case_status="parse_fail"
@@ -457,7 +485,7 @@ for case_json in "${case_rows[@]}"; do
             if [[ "$case_parse_status" == "fail" ]]; then
                 : # bootstrap already populated the failure; skip main parse
             elif run_optional_logged "$case_parse_label" \
-                "$PARSE_PROBE_BIN" --parse systemverilog "$case_preprocessed_file" --profile "$case_profile" "${parse_extra_args[@]}"; then
+                capped_probe "$PARSE_PROBE_BIN" --parse systemverilog "$case_preprocessed_file" --profile "$case_profile" "${parse_extra_args[@]}"; then
                 case_parse_status="pass"
                 parse_pass_total=$((parse_pass_total + 1))
                 case_status="pass"

@@ -157,10 +157,27 @@ long-capped run to pinpoint the exact rule/depth where memory explodes + confirm
 clone-vs-regex split + check parser regex recompilation. See [[stateful-packrat-not-linear]],
 [[sv-corpus-gate-uvm-memory]].
 
-### `.4` — runtime step-budget watchdog (hang → classified severity error) — PENDING — URGENCY RAISED by `.3.2`
-A hard per-parse step/time budget that converts a would-be hang into a `pgen_error!`-class
-**severity** diagnostic (always emitted, never verbosity-gated — DIAG-SEVERITY), with the
-reason classified. Bounded by construction; additive ⇒ zero regression.
+### `.4` — watchdog / resource guard (hang|blowup → classified failure, never host exhaustion) — PARTIAL
+#### `.4.0` — GATE-LEVEL resource guard (memory cap + timeout) — DONE (PGEN-PARSE-TERMINATION-0006, 2026-06-05)
+Immediate safety net for the `.3.2` event (uvm ~26 GB > host 24 GB → swap-thrash). The SV
+external-corpus triage gate now runs every PARSE under a subshell `ulimit -v` (auto-sized to
+~70% of host RAM; env `PGEN_SV_TRIAGE_MEM_CAP_KB`, 0=off) **+** `timeout` (env
+`PGEN_SV_TRIAGE_PARSE_TIMEOUT_S`, default 1800 s), scoped to parses only (NOT the cargo build).
+A runaway parse is now a **classified `parse_fail`/timeout**, never silent host exhaustion.
+VERIFIED: scr1 (healthy) passes under the 16 GB cap; uvm under a 2 GB cap is killed at the
+timeout having NEVER exceeded the cap (host-safe). **⚠️ INTERIM CONSEQUENCE:** on this 24 GB
+host uvm needs ~26 GB (the O(N²) clone), so uvm cases will be classified `parse_fail` under the
+auto cap UNTIL `.3.1` lands — this is the HONEST state (uvm doesn't fit host RAM yet), and is
+restored to PASS by `.3.1` (which drops uvm to MB). Reversible: `PGEN_SV_TRIAGE_MEM_CAP_KB=0`
+disables the cap. KM [[sv-corpus-gate-uvm-memory]].
+#### `.4.1` — ENGINE step/time watchdog — PENDING (lower priority after `.3.1`)
+A hard per-parse step/time budget IN the parser that converts a would-be hang into a
+`pgen_error!`-class **severity** diagnostic (always emitted, never verbosity-gated —
+DIAG-SEVERITY), classified by reason. Bounded by construction; additive. DEFERRED rationale:
+`.3.1` (the O(N²)→linear cure) removes the actual blowup, and the `.4.0` gate guard covers the
+gate; an always-on hot-path step counter is a perf cost ([[feedback_correctness_before_speed]],
+[[feedback_prefer_grammar_leave_engine_alone]]) better justified only if a residual pathology
+survives `.3.1`. Revisit after `.3.1`.
 
 ### `.5` — complexity-regression gate (CI) — PENDING
 Assert sub-quadratic parse-time slope on the scaling corpus; catches a hang's *precursor*
