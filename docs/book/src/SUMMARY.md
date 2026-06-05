@@ -23,6 +23,7 @@
 
 - [Developer Architecture](developer-architecture.md)
 - [Inside the Parser: Termination & Performance](inside-parser-performance.md)
+- [Grammar Well-Formedness & Well-Definedness](grammar-wellformedness.md)
 - [Academic Foundations](academic-foundations.md)
 - [Parser Hooks](parser-hooks.md)
 - [Quality and Closure Model](quality-and-closure-model.md)

@@ -2264,7 +2264,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
     };
 
     println!(
-        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (warning), nullable_repetition={} (warning), profile_orphans={} (warning; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — left_recursive={} (informational, handled by PGEN), non_terminating={} (error), ordered_choice_shadowing={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         lr.len(),
@@ -2312,7 +2312,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         println!("  [error] {}", issue.message());
     }
 
-    if nonterm.is_empty() && orphans.is_empty() {
+    if nonterm.is_empty() && orphans.is_empty() && shadow.is_empty() {
         Ok(())
     } else {
         let mut problems = Vec::new();
@@ -2321,6 +2321,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar) -> Result<()> {
         }
         if !orphans.is_empty() {
             problems.push(format!("{} profile-orphan rule(s)", orphans.len()));
+        }
+        // GRAMMAR-WELLFORMED.A1a: a shadowed ordered-choice alternative is an UNREACHABLE
+        // (dead) branch — a well-formedness defect (PEG ordered-choice hygiene; the branch-level
+        // analogue of an unreachable rule). Now a HARD failure, like profile orphans.
+        if !shadow.is_empty() {
+            problems.push(format!("{} shadowed (unreachable) branch(es)", shadow.len()));
         }
         Err(anyhow::anyhow!(
             "grammar '{}' has {}",
