@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0002 (leaf GRAMMAR-WELLFORMED.A1a.1/.2): **cleaned the last shadowed branches in regex + semantic_annotation — ALL authored grammars now pass the shadowing hard gate.**
+
+Code (grammars/regex.ebnf, grammars/semantic_annotation.ebnf — grammar IS code). generated/ GITIGNORED → grammars committed, parsers regen'd locally.
+
+- A1a made exact-duplicate shadowing a HARD `--lint-grammar` gate; the remaining authored grammars with shadowing were regex (1) + semantic_annotation (3). Removed each tool-proven-dead exact-duplicate alternative: regex `directive_special` had `'^'` listed twice (#5 and #23 → removed the 2nd); semantic_annotation `predefined_annotation` had duplicate annotation-name literals `"interface"` (#32/#74), `"contract"` (#37/#74), `"feature"` (#61/#66) → removed the later occurrence of each. Each name/char is still recognized via its first occurrence (PEG commits to it) → parse-neutral.
+- VERIFIED: regex + semantic_annotation `--lint-grammar` exit 0 (ordered_choice_shadowing 1→0 and 3→0); regen compiles; lib (generated_parsers) 652/0 (shape contracts + annotation tests intact). Rigorous, NOT metric-gaming ([[feedback_corpus_expected_from_spec_not_fix]]): each removed alternative is the lint-proven dead twin of an earlier identical one.
+- **⇒ ALL authored grammars now pass the A1a shadowing hard gate** (the gate is fully green across the codebase, not just SV). Frontier → A1b structural-unreachability (multi-entry-aware), E1 attribute non-circularity.
+
 ## 2026-06-05 - PGEN-GRAMMAR-WELLFORMED-0001 (leaf GRAMMAR-WELLFORMED.A1a): **the grammar linter becomes a WELL-FORMEDNESS PROVER — exact-duplicate shadowing is now a HARD `--lint-grammar` gate; + the literature-grounded well-formed/well-defined contract recorded (tree + book).**
 
 Code (rust/src/main.rs — run_grammar_lint). Docs (new GRAMMAR-WELLFORMED task tree + new Part II book chapter + TASK_TREE registry + LIVE).

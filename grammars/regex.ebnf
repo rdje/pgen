@@ -1025,7 +1025,7 @@ directive_payload_char = /([^)])/
 directive_name    = /([A-Za-z][A-Za-z0-9_\-]*)/
 directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'
-directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '^' | '_' | '{' | '|' | '}' | '~'
+directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '_' |'{' | '|' | '}' | '~'
 
 # PCRE2 extended character class syntax (?[ ... ]). `body` is the
 # raw `extended_class_content` shape (Quantified-* of

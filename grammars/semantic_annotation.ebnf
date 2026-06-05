@@ -63,7 +63,7 @@ predefined_annotation :=
     # Language and platform annotations
     "language" | "dialect" | "target" | "platform" | "architecture" |
     "runtime" | "framework" | "library" | "dependency" | "requires" |
-    "extension" | "feature" | "capability" | "standard" | "specification" |
+    "extension" | "capability" | "standard" | "specification" |
     
     # Code generation annotations
     "generate" | "emit" | "output" | "format" | "template" | "transform" |
@@ -71,7 +71,7 @@ predefined_annotation :=
     
     # Semantic role annotations
     "role" | "purpose" | "intent" | "pattern" | "strategy" | "principle" |
-    "abstraction" | "implementation" | "interface" | "contract" | "protocol"
+    "abstraction" | "implementation" | "protocol"
     -> $1
 
 # User-defined custom annotation names

@@ -105,8 +105,11 @@ subtle dead branch"), never a silent accept.
   gate (was warning), alongside `profile_orphans`/`non_terminating`. SV passes (shadowing=0 after the
   de-dup); regex (1) + semantic_annotation (3) now correctly FAIL the gate (surfaced TODOs — the
   lint is opt-in, not in CI, so no build breakage). Report labels corrected (shadowing/orphans=error).
-- `A1a.1` / `A1a.2` — clean the regex (1) + semantic_annotation (3) shadowed branches (same de-dup as
-  SV's 25), then both pass the gate. *Effort: low each (+regen+verify).*
+- `A1a.1` / `A1a.2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0002):** cleaned regex (1: a duplicate `'^'` in
+  `directive_special`) + semantic_annotation (3: duplicate annotation-name literals `interface`,
+  `contract`, `feature` in `predefined_annotation`). Both now `--lint-grammar` exit 0 (shadowing=0).
+  Parse-neutral (exact-dup alternatives never fired); regen + lib generated_parsers 652/0.
+  **⇒ ALL authored grammars now pass the shadowing hard gate** (the A1a gate is fully green).
 - `A1b` — **structural unreachability (rule-from-entry) as a HARD gate.** ⚠️ MUST be MULTI-ENTRY-aware:
   SV has several roots (`systemverilog_file`, `sv_multi_entry_root`, `systemverilog_parseable_file`);
   a single-entry fixpoint would FALSE-flag parseable-only rules. Compute reachability from ALL roots
@@ -142,9 +145,9 @@ subtle dead branch"), never a silent accept.
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `GRAMMAR-WELLFORMED.A1a` | `done` (`-0154`) | Shadowing now a hard gate; SV well-formed re: dead branches; embodies "a well-defined EBNF has no unreachable rules". |
-| 1 | `GRAMMAR-WELLFORMED.A1a.1/.2` | `pending` | Clean regex(1)+semantic_annotation(3) shadows so all authored grammars pass the gate. |
-| 2 | `GRAMMAR-WELLFORMED.A1b` | `pending` | Structural unreachability (multi-entry-aware) — the headline "no unreachable rules". |
-| 3 | `GRAMMAR-WELLFORMED.E1` | `pending` | Attribute non-circularity — the biggest well-DEFINEDNESS gap (Knuth). |
+| — | `GRAMMAR-WELLFORMED.A1a.1/.2` | `done` (`-0002`) | regex + semantic_annotation shadows cleaned → ALL authored grammars pass the shadowing hard gate. |
+| 1 | `GRAMMAR-WELLFORMED.A1b` | `pending` | Structural unreachability (multi-entry-aware) — the headline "no unreachable rules". |
+| 2 | `GRAMMAR-WELLFORMED.E1` | `pending` | Attribute non-circularity — the biggest well-DEFINEDNESS gap (Knuth). |
 
 ## Decisions
 - `2026-06-05`: Created from the director brainstorm. The frame UNIFIES the linter (static proof) +
