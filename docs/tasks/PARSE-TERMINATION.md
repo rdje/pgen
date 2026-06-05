@@ -216,7 +216,17 @@ behind the committed frontier (packrat normally keeps all; a streaming/forward-o
 evict). Must stay sound (memo correctness) + not regress corpus 14/14. Likely the bigger of the
 two remaining roots for a small host.
 
-### `.7` — parser regex-match per-call redundancy (TIME root) — PENDING (NEW, from `.3.2`/user 2026-06-05)
+### `.7` — parser regex-match per-call redundancy (TIME) — DONE (PGEN-PARSE-TERMINATION-0008, 2026-06-05)
+LANDED: `match_regex` codegen now caches `(Regex, can_match_empty)` together — `can_match_empty`
+is computed ONCE at compile/insert (the `re.find("")` is now once-per-pattern, not per call) and
+read as a cached bool. Confirmed in the generated parser (`find("")` count 1 = compile-time only).
+VERIFIED: regen compiles; lib (features) 652/0; release uvm parse PASSES. MEASURED: release uvm
+parse 181 s → **163 s (~10%)**, peak RSS ~12.7 GB (unchanged — memory is the memo, not this).
+HONEST: a real but MODEST win — the `re.find("")` was a contributor, NOT the dominant cost. The
+DOMINANT remaining TIME root is the match VOLUME / parse complexity (needs a fresh profile) PLUS
+the gate's debug build; the MEMORY root is the memo (`.6`). Monotone (identical output).
+
+### `.7-historical` — original finding (kept for provenance)
 `match_regex` in EVERY generated parser recomputes the STATIC `can_match_empty` per call by
 running `re.find("")` (executing the compiled regex against the empty string) — millions of
 redundant regex executions on uvm. Also two HashMap-by-pattern-string lookups per call

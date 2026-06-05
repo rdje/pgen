@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-05 - PGEN-PARSE-TERMINATION-0008 (leaf PARSE-TERMINATION.7): **match_regex caches can_match_empty (kills the per-call re.find("")); uvm release parse 181s → 163s (~10%).**
+
+Code (codegen: rust/src/ast_pipeline/ast_based_generator.rs, match_regex). generated/ GITIGNORED → codegen .rs committed, regen local.
+
+- Director-spotted (2026-06-05): match_regex ran `re.find("")` on EVERY call to recompute the STATIC can_match_empty (does the pattern match "") — millions of redundant regex executions on large inputs. FIX: cache (Regex, can_match_empty) together; compute can_match_empty ONCE at compile/insert; read the cached bool per call. (find("") count in the generated parser is now 1 = compile-time only.)
+- VERIFIED: regen compiles; lib (features) 652/0; release uvm parse PASSES. MEASURED: release uvm 181s → 163s (~10%), peak RSS ~12.7 GB unchanged (memory is the memo, not this). Monotone (identical output).
+- HONEST: a real but MODEST win — re.find("") was a contributor, NOT the dominant cost. Dominant remaining TIME root = match volume / parse complexity (+ the gate's debug build); MEMORY root = the unbounded packrat memo (~12.7 GB, leaf .6). Next: profile post-.7 to pin the dominant time; bound the memo.
+
 ## 2026-06-05 - PGEN-PARSE-TERMINATION-0007 (leaf PARSE-TERMINATION.3.1): **O(N²)→O(changes) cure — per-rule full-state clone replaced by checkpoint/rollback; uvm memory 26 GB → ~11.6 GB, uvm parses correctly.**
 
 Code (codegen: rust/src/ast_pipeline/ast_based_generator.rs, the with_semantic_runtime_rule_transaction quote!). generated/ GITIGNORED → codegen .rs committed, regen local.

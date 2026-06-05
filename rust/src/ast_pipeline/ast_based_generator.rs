@@ -5161,24 +5161,30 @@ impl AstBasedGenerator {
                 // of each fresh borrow of the cloned instance, defeating the
                 // regex crate's internal cache pool. Doing the search in
                 // place fixes it.
+                // PARSE-TERMINATION.7: cache (Regex, can_match_empty) together. `can_match_empty`
+                // is a STATIC property of the pattern (does it match ""), so it is computed ONCE
+                // at compile/insert — NOT recomputed per call (the former `re.find("")` on every
+                // match_regex call was millions of redundant regex executions on large inputs).
                 thread_local! {
-                    static REGEX_CACHE: RefCell<HashMap<String, regex::Regex>> =
+                    static REGEX_CACHE: RefCell<HashMap<String, (regex::Regex, bool)>> =
                         RefCell::new(HashMap::new());
                 }
 
-                // Phase 1: ensure pattern is compiled and cached, and (if
-                // needed) compute `can_match_empty` for layout-skip. Both
-                // reads can be done without exposing the Regex past the
-                // closure boundary.
+                // Phase 1: ensure pattern is compiled + cached (with its precomputed
+                // can_match_empty) and read the cached bool — no per-call regex execution.
                 let can_match_empty: bool = REGEX_CACHE.with(|cache| -> Result<bool, regex::Error> {
                     let mut cache = cache.borrow_mut();
                     if !cache.contains_key(pattern) {
                         let compiled = regex::Regex::new(pattern)?;
-                        cache.insert(pattern.to_string(), compiled);
+                        let empties = compiled
+                            .find("")
+                            .map(|m| m.start() == 0 && m.end() == 0)
+                            .unwrap_or(false);
+                        cache.insert(pattern.to_string(), (compiled, empties));
                     }
-                    let re = cache.get(pattern).expect("just inserted");
+                    let (_re, empties) = cache.get(pattern).expect("just inserted");
                     if #allow_layout_skip_for_regexes {
-                        Ok(re.find("").map(|m| m.start() == 0 && m.end() == 0).unwrap_or(false))
+                        Ok(*empties)
                     } else {
                         Ok(false)
                     }
@@ -5201,7 +5207,7 @@ impl AstBasedGenerator {
                 // self.input outside the closure for the typed return.
                 let match_end: Option<usize> = REGEX_CACHE.with(|cache| {
                     let cache = cache.borrow();
-                    let re = cache.get(pattern).expect("compiled in phase 1");
+                    let (re, _empties) = cache.get(pattern).expect("compiled in phase 1");
                     re.find(haystack).filter(|m| m.start() == 0).map(|m| m.end())
                 });
 
