@@ -82,6 +82,61 @@ Both green on the same grammar = reachability proven statically *and* constructi
 **Exhaustive coverage ("literal-0" uncovered branches) is exactly the point where these two proofs
 meet.**
 
+## The attribution rule (no unexplained residual)
+
+The duality has a sharp operational consequence. When the stimuli generator **fails to reach** a
+target — a branch, a rule, or any EBNF fragment — there are exactly **two** possible causes, and the
+failure must be attributed to one of them. It is **never** silently accepted as a "residual":
+
+1. **Generator deficiency** (a constructor gap) — the target genuinely *is* reachable, so the
+   generator must be improved to witness it; **or**
+2. **EBNF not well-formed** — the target is genuinely *unreachable* (a dead branch or rule), so the
+   fix belongs in the *grammar*, not the generator.
+
+The **linter is the adjudicator**: for the decidable cases it *proves* which of the two it is. The
+undecidable remainder is flagged loudly on that exact target for manual adjudication — still never
+silently accepted.
+
+A subtlety worth stating explicitly, because it inverts the natural instinct: **an unreachable target
+is first and foremost a signal that the *grammar* is ill-formed — not that the generator is weak.**
+So the correct order of suspicion is *grammar-first*: when the generator can't reach something, run
+the linter **before** adding generator machinery. If the linter proves the target unreachable, chasing
+it in the generator would be wasted effort that could never succeed — the dead branch must be fixed at
+the source. Only once the linter confirms the target really *is* reachable is it a generator gap.
+
+This turns "literal-0 coverage" from a number to drive down into a **theorem**: coverage is complete
+exactly when, for every target, the two proofs agree — every reachable target witnessed, every
+unreachable target removed at the source. And it makes every uncovered target a *ticket* assigned to
+either the grammar or the generator, rather than a shrug.
+
+## Worked example: a real bug the linter caught
+
+This is not hypothetical. The always-succeeds shadowing check found a genuine defect in the
+SystemVerilog grammar — a cluster of sequence "boolean abbreviation" rules written like this:
+
+```
+consecutive_repetition := ( star const_or_range_expression )?   -> {kind: "star_range", range: $1}
+                        | ( star )?                              -> {kind: "star"}
+                        | ( plus )?                              -> {kind: "plus"}
+```
+
+Every alternative is individually wrapped `( … )?`. Because an optional can never fail, the **first**
+alternative always succeeds, so PEG commits to it and the `[*]` and `[+]` forms (alternatives two and
+three) are **unreachable** — and worse, the rule silently emits an empty `star_range` node on every
+sequence expression even when there is no repetition at all. The signature is too regular to be
+hand-written; it looks like an extraction artifact from translating the IEEE 1800 grammar out of the
+LRM PDF, where an "optional" marker was attached to each alternative instead of to the construct as a
+whole. The same shape recurs across several rule families (covergroup value-ranges, randsequence
+productions, …).
+
+The stimuli generator had been quietly failing to cover these branches — they were part of the
+coverage residual we kept attributing to "the generator needs to try harder." The attribution rule
+resolves it cleanly: the linter *proved* the branches unreachable, so the blame is **EBNF
+well-formedness**, and the fix is a one-character-per-arm grammar correction (drop the spurious `?`;
+the optionality already lives correctly at the caller, `( boolean_abbrev )?`). After the fix the
+`[*]`/`[+]`/`[=n]`/`[->n]` forms parse, the junk empty nodes disappear, and the branches become
+genuinely reachable — so the generator can witness them. Two proofs, made to agree.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

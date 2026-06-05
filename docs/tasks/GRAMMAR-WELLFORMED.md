@@ -69,6 +69,22 @@ Both green on the same grammar ⟹ reachability proven twice (static + construct
 **Literal-0 stimuli coverage stops being a goal in itself — it is the OBSERVABLE CONSEQUENCE of
 "linter proves well-formed" + "generator constructively confirms it."**
 
+**The ATTRIBUTION RULE (director directive, 2026-06-06 — binding; the operational form of the
+duality).** When the stimuli generator FAILS TO REACH a target (branch / rule / EBNF fragment) there
+are EXACTLY TWO possible causes, and it MUST be attributed to one — NEVER silently accepted as a
+residual: (1) **generator deficiency** — the target IS reachable → improve the generator; or (2)
+**EBNF not well-formed** — the target is genuinely unreachable (dead branch/rule) → fix the GRAMMAR.
+The **linter is the ADJUDICATOR**: for the decidable cases it PROVES which; the undecidable remainder
+is flagged loudly on that exact target for manual adjudication (still never silently accepted).
+⚠️ ORDER OF SUSPICION = **GRAMMAR-FIRST**: an unreachable target is FIRST a well-formedness signal, NOT
+evidence the generator is weak (this inverts the historical SV literal-0 instinct of chasing the
+generator). Run the linter BEFORE adding generator machinery — chasing a linter-proven-dead branch in
+the generator is wasted effort that can never succeed. ⇒ literal-0 is a THEOREM (both proofs agree for
+every target), and every uncovered target is a TICKET (grammar or generator), not a shrug. FIRST
+WORKED EXAMPLE: the boolean-abbrev `?`-per-arm bug (A2.1, below) — generator couldn't reach 7 branches
+→ linter PROVED them unreachable → blame = EBNF → grammar fixed. Composes with
+[[feedback_prefer_grammar_leave_engine_alone]] (grammar-first is also the cheaper, more-correct fix).
+
 **Decidability boundary (honest):** the linter proves the DECIDABLE core; the generator's
 construction extends the proof into the undecidable region (it witnesses what static analysis
 can't decide) and corroborates the rest. A branch neither linter-provable-unreachable nor
@@ -148,7 +164,25 @@ subtle dead branch"), never a silent accept.
   `ShadowingReason::EarlierAlwaysMatches::is_hard_gate()` → true. *Effort: high (multi-slice).*
 
   **Investigation (2026-06-06, tools-first) — 26 rules / ~7 fix families:**
-  1. **boolean-abbrev family** (`consecutive_repetition` #1#2, `boolean_abbrev`/`_sv_2017`/`_sv_2023`):
+  1. **boolean-abbrev family** — **DONE (PGEN-GRAMMAR-WELLFORMED-0010, leaf A2.1.1).** Dropped the
+     spurious `?` on each arm of `consecutive_repetition` (3 arms), `non_consecutive_repetition_sv_2017`,
+     `nonconsecutive_repetition_sv_2023`, `goto_repetition` (kept the `( )` group so `-> {range:$1}` is
+     preserved). LRM-grounded (IEEE 1800 §16.9.2 — `[*n]`/`[*]`/`[+]` are required forms; the single
+     optionality lives at the caller `( boolean_abbrev )?` / `( sequence_abbrev )?`, verified across ALL
+     call sites). The spurious `?` is almost certainly an LRM-PDF→.ebnf extraction artifact (the
+     `( X )?`-per-arm signature is too regular to be hand-authored). VERIFIED: lint always_matches
+     **52→45** (the 7 boolean-abbrev findings resolved, NO new shadowers exposed because all three
+     sub-rules were fixed together); SV parser regenerated fresh (mtime confirmed) + strict annotation
+     validation passed; regenerated parser COMPILES clean (release); common-case sequence (no abbrev)
+     still parses; the one ad-hoc parse failure seen was an UNRELATED port-list issue (Family 4),
+     pre-existing, not in the official corpus. Full official corpus + closed-loop global metric =
+     deferred milestone verification (director: "we'll see later"). THE FIRST WORKED EXAMPLE OF THE
+     ATTRIBUTION RULE (generator-couldn't-reach → linter-proved-unreachable → grammar fixed).
+     ⚠️ SEPARATE FINDING (logged, NOT part of this fix): this grammar models SVA repetition BRACKET-LESS
+     (`star const_or_range` = `*N`, not `[*N]`) — so real SV `a[*3]`/`a[*]`/`a[+]` still fail to parse
+     (verified: `[*3]` rejected; no-abbrev sequence parses → no regression). Missing `[`/`]` around the
+     boolean/sequence-abbrev is a distinct COMPLETENESS gap (likely the same extraction artifact dropping
+     brackets) → its own ticket; orthogonal to the dead-branch `?` fix. Original:
      `consecutive_repetition := ( star const_or_range )? | ( star )? | ( plus )?` — each alt is
      `( X )?` so the rule always-succeeds (matches empty), killing `[*]`/`[+]` AND shadowing
      boolean_abbrev's later branches. ROOT = the spurious `?`; LRM-grounded fix (IEEE 1800 §16.9.2,
@@ -255,10 +289,9 @@ subtle dead branch"), never a silent accept.
 | — | `GRAMMAR-WELLFORMED.E1` | `done` (`-0004`, satisfied by construction) | Attribute non-circularity holds structurally (synthesized-only annotation language). |
 | — | `GRAMMAR-WELLFORMED.B1` | `done` (`-0005`) | Deterministic step-budget replaces the wall-clock deadline → residual = 84 IDENTICAL across two runs (the ±25 noise gone). The literal-0 metric is now signal. |
 | — | `GRAMMAR-WELLFORMED.A2` | `done` (`-0006`) | Sound subset of FIRST-domination — earlier-ALWAYS-SUCCEEDS shadowing. 0 false positives; found 52 real SV dead branches (warning-staged). General unsound FIRST-domination deliberately excluded. |
-| 1 | `GRAMMAR-WELLFORMED.A2.1` | `pending` | Clean the 52 SV `always_matches` defects LRM-grounded (parse-neutral, one at a time, measure global metric) → promote EarlierAlwaysMatches to the hard gate. |
 | — | `GRAMMAR-WELLFORMED.E2` | `done` (`-0007`, satisfied by existing validation) | `$N` attribute completeness already enforced (`E_RET_POS_OUT_OF_RANGE`, hard under strict mode, test-locked); consulted-fact completeness → F1. |
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
-| 1 | `GRAMMAR-WELLFORMED.A2.1` | `pending` | Clean the 52 SV `always_matches` defects LRM-grounded (parse-neutral, one at a time) → promote EarlierAlwaysMatches to the hard gate. (Grammar surgery — the linter side is now done.) |
+| 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (family 1/7 done `-0010`; always_matches **52→45**) | Clean the SV `always_matches` defects LRM-grounded, family by family → promote EarlierAlwaysMatches to the hard gate. ✓ boolean-abbrev family (first worked example of the ATTRIBUTION RULE). Remaining: covergroup-range, rs-prod, implicit-type/port, list-of-arguments, module-path, sv_multi_entry_root (linter-exempt). |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). |
 
 ## Decisions
