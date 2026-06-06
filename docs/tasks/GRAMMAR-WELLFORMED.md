@@ -397,7 +397,20 @@ certificates, not faith".
 - `G.4` — **certificate-COVERAGE gate**: for the SV grammar require every fragment to carry a valid
   certificate (`UNKNOWN` = 0) with all certificates checking → HARD gate. *That number, at 0, is the
   objective proof the linter is trustworthy on this grammar.* Folds in A2.1 (each grammar fix moves a
-  fragment from `dead`/`UNKNOWN` to witnessed-reachable). *Effort: medium (gate + baseline).*
+  fragment from `dead`/`UNKNOWN` to witnessed-reachable).
+  - `G.4.1` — **DONE (`-0022`): the capstone coverage LOGIC.** `certificate_coverage(all_fragments,
+    proof_covered, witness_covered) -> CertificateCoverageReport { total, covered_by_proof,
+    covered_by_witness, unknown }` + `is_fully_certified()` (⟺ `unknown` empty). Pure + deterministic;
+    the caller passes the ALREADY-VERIFIED proof/witness fragment sets (each fragment passed its
+    independent checker). Unit-tested (proof/witness/UNKNOWN classification; fully-certified flips when
+    the last UNKNOWN gets a witness). **⇒ the ENTIRE certifying-linter framework now exists + is
+    unit-tested: PROOF side (4 verdict checkers) + WITNESS side (model/producer/checker) + the coverage
+    capstone.**
+  - `G.4.2` — the real-SV GATE wiring (heavy): a run that gathers VERIFIED proofs (linter dead-verdicts
+    → certs → `verify_wellformedness_certificate`) + VERIFIED witnesses (generator `witness_certificates()`
+    → `verify_reachability_witness` via `parse_and_cover_systemverilog`), feeds `certificate_coverage`,
+    and HARD-gates on `is_fully_certified()`. Needs `generated_parsers` + a generation run + the heavy
+    closed-loop verification (director: "we'll see later"). The objective trust number lands here.
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 

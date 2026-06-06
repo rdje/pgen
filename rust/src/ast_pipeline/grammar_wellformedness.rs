@@ -1515,6 +1515,55 @@ fn collect_covered_rules(node: &super::ParseNode<'_>, out: &mut HashSet<String>)
     }
 }
 
+/// GRAMMAR-WELLFORMED.G.4: the certificate-COVERAGE report — the capstone that unifies the two
+/// duality sides. For every grammar fragment, is it covered by a verified unreachability PROOF (the
+/// linter proved it dead) or a verified reachability WITNESS (the generator demonstrated it
+/// reachable)? `unknown` = fragments with NEITHER — the attribution-rule TICKETS, never silently
+/// accepted. The caller supplies the ALREADY-VERIFIED proof/witness fragment sets (each fragment in
+/// them passed its independent checker — `verify_wellformedness_certificate` /
+/// `verify_reachability_witness`). PURE + deterministic (iterates `all_fragments`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CertificateCoverageReport {
+    pub total: usize,
+    pub covered_by_proof: Vec<String>,
+    pub covered_by_witness: Vec<String>,
+    /// Fragments with no verified proof AND no verified witness — the UNKNOWN tickets.
+    pub unknown: Vec<String>,
+}
+
+impl CertificateCoverageReport {
+    /// FULLY CERTIFIED ⟺ no UNKNOWN fragment — every fragment carries a verified PROOF or WITNESS.
+    /// This is the objective "the linter is trustworthy on this grammar" number (`unknown.len()==0`).
+    pub fn is_fully_certified(&self) -> bool {
+        self.unknown.is_empty()
+    }
+}
+
+pub fn certificate_coverage(
+    all_fragments: &[String],
+    proof_covered: &HashSet<String>,
+    witness_covered: &HashSet<String>,
+) -> CertificateCoverageReport {
+    let mut covered_by_proof = Vec::new();
+    let mut covered_by_witness = Vec::new();
+    let mut unknown = Vec::new();
+    for f in all_fragments {
+        if proof_covered.contains(f) {
+            covered_by_proof.push(f.clone());
+        } else if witness_covered.contains(f) {
+            covered_by_witness.push(f.clone());
+        } else {
+            unknown.push(f.clone());
+        }
+    }
+    CertificateCoverageReport {
+        total: all_fragments.len(),
+        covered_by_proof,
+        covered_by_witness,
+        unknown,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1909,6 +1958,27 @@ mod tests {
         assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn certificate_coverage_classifies_proof_witness_unknown() {
+        // GRAMMAR-WELLFORMED.G.4: every fragment is proof-covered, witness-covered, or UNKNOWN;
+        // fully-certified iff UNKNOWN is empty.
+        let fragments: Vec<String> =
+            ["a", "b", "c", "d"].iter().map(|s| s.to_string()).collect();
+        let proof: HashSet<String> = ["a".to_string()].into_iter().collect(); // a proven dead
+        let witness: HashSet<String> = ["b".to_string(), "c".to_string()].into_iter().collect(); // b,c witnessed
+        let report = certificate_coverage(&fragments, &proof, &witness);
+        assert_eq!(report.total, 4);
+        assert_eq!(report.covered_by_proof, vec!["a".to_string()]);
+        assert_eq!(report.covered_by_witness, vec!["b".to_string(), "c".to_string()]);
+        assert_eq!(report.unknown, vec!["d".to_string()]); // d = neither -> ticket
+        assert!(!report.is_fully_certified(), "an UNKNOWN fragment means NOT fully certified");
+        // Once d is witnessed, the grammar is fully certified.
+        let witness2: HashSet<String> =
+            ["b", "c", "d"].iter().map(|s| s.to_string()).collect();
+        let report2 = certificate_coverage(&fragments, &proof, &witness2);
+        assert!(report2.unknown.is_empty() && report2.is_fully_certified());
     }
 
     #[test]

@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0022 (leaf GRAMMAR-WELLFORMED.G.4.1): **the certificate-coverage capstone LOGIC — the entire certifying-linter framework now exists + is unit-tested.**
+
+Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
+
+- `certificate_coverage(all_fragments, proof_covered, witness_covered) -> CertificateCoverageReport { total, covered_by_proof, covered_by_witness, unknown }` + `is_fully_certified()` (⟺ `unknown` empty). The capstone that unifies the duality: every fragment must carry a verified unreachability PROOF or a verified reachability WITNESS; `unknown` = the attribution-rule tickets (never silently accepted). Pure + deterministic; the caller passes the ALREADY-VERIFIED proof/witness fragment sets.
+- Unit-tested (`certificate_coverage_classifies_proof_witness_unknown`): proof/witness/UNKNOWN classification; `is_fully_certified()` is false with an UNKNOWN and flips true once the last UNKNOWN gets a witness. Module suite 29/29.
+- **⇒ the ENTIRE certifying-linter framework is now implemented + unit-tested:** PROOF side (`verify_wellformedness_certificate`, 4 decidable verdict types) + WITNESS side (`ReachabilityWitness` + generator `witness_certificates()` + `verify_reachability_witness` + `parse_and_cover_systemverilog`) + the COVERAGE capstone (`certificate_coverage`/`is_fully_certified`). "Verified, not trusted" is realized end-to-end in code.
+- REMAINING: G.4.2 the real-SV gate WIRING (gather verified proofs + verified witnesses from a closed-loop run, gate on `is_fully_certified()`; needs `generated_parsers` + a generation run + the heavy verification); G.2.2 standalone checker bin; Phase H per-grammar; A2.1 deep cases.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0021 (leaf GRAMMAR-WELLFORMED.G.3.3): **the real witness replay (parse_and_cover) — the WITNESS side is now wired end-to-end.**
 
 Code (`grammar_wellformedness.rs` + `parser_registry.rs`). Pure-analysis walk lib-tested; SV glue compiles under `--features generated_parsers`.
