@@ -78,14 +78,15 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   optional declarative follow-restriction annotation for what derivation can't infer (notation TBD).
   Subsumes `enforce_word_boundary_spacing` (a crude special case of B). On by default; opt-out only for
   negative-test generation.
-  - **Open design question — the NOTATION (director-raised 2026-06-06, deferred to `.2`).** Return
-    annotations use `->`, semantic annotations use `@`; lexical annotations need their own EBNF syntax.
-    The name/syntax will stick for years, so decide deliberately. Candidates: adopt/adapt **SDF's
-    follow-restriction operator `-/-`** (`A -/- [chars]` — literature-grounded, ties straight to the
-    survey) vs. mint a fresh sigil. Constraints: must read distinctly from `->` and `@`; attaches at
-    the terminal/token level (lexical constraints are about token boundaries); and since most
-    faithfulness is **derived** from the regexes, the notation only ever appears for the *rare explicit*
-    declaration — so it can be lightweight. Decide with the director.
+  - **NOTATION — DECIDED (`-0008`, with the director 2026-06-06).** `[> LIST ]` ("must be followed by")
+    and `[>! LIST ]` ("must NOT be followed by"), where `LIST` is one or more items — each a `/regex/`
+    or a `"string"`, freely **mixed** — separated by whitespace and/or commas; the list is a **union**
+    (`[>! /\w/, "endmodule"]` = "not followed by any of these"). The enclosing `[ … ]` bounds the list
+    cleanly — the director's rationale for the bracket over a bare sigil + single spec. Directive
+    position (binds to the following rule). Unambiguous despite reusing `[ ]` because no
+    `rule_expression` can start with `>` (so `[>`/`[>!` is never an optional). `[< ]`/`[<! ]` reserved
+    for lookbehind. Chosen over `-/-` (SDF) and `~>`/`@>` for being bounded, list-friendly, readable.
+    Full record: [[project_lexical_annotations_fourth_pillar]].
 - `.3` — **IMPLEMENT — Obligations A + B (derivation only; no EBNF notation needed).**
   - **A — intra-token anchor honoring. DONE (`-0005`).** `generate_from_regex_hir`'s alternation
     picker now prefers branches that are NOT pure zero-width assertions (`regex_branch_is_anchor_only`
@@ -119,9 +120,20 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   - **`.3d` (i) distinct-longer-token (operator) fusion — DEFERRED.** `<`+`<`→`<<` where the previous
     token is a fixed literal but a longer token spans the boundary; needs cross-terminal analysis (the
     leaf guard can't see it). Rare, not currently biting — a deliberate completeness pass when it bites.
-- `.3c` — **Obligation C (declarative follow-restriction annotation).** Deferred until the EBNF
-  **notation** is agreed with the director (see `.2` note). Then: EBNF surface → annotation compiler →
-  follow-restriction table consulted by Obligation B.
+- `.3c` — **Obligation C (declarative follow-restriction annotation). UNBLOCKED** (notation decided
+  `-0008`). A substantial, careful implementation (touches the meta-grammar), to do as its own focused
+  pass:
+  1. **Meta-grammar** (`grammars/ebnf.ebnf`): add `lexical_annotation := "[" (">" | ">!") follow_item
+     (","? follow_item)* "]"` with `follow_item := regex | string`; extend
+     `annotation_list := (semantic_annotation | lexical_annotation)+`. Regenerate the EBNF/bootstrap
+     parser (foundational — verify the whole compile pipeline still round-trips).
+  2. **IR**: carry the parsed follow-restrictions (polarity + item list) on the rule/directive.
+  3. **Generator** (Obligation B path): consult the declared follow-restrictions alongside the derived
+     ones — `[>! …]` forbids the listed follows (insert a separator if the next token would match one);
+     `[> …]` requires one of the listed follows. This also gives a DECLARATIVE answer to the deferred
+     operator-fusion case (`.3d` (i)) without cross-terminal analysis.
+  4. Tests + book examples; verify the gate stays at `sample_parse_failures` 0.
+  Notation: `[> LIST ]` / `[>! LIST ]`, `LIST` = mixed `/regex/`+`"string"` items, ws/comma-separated.
 - `.4` — **VERIFY + GENERALIZE.** Re-run the certificate-coverage gate (the verifier): SV
   `sample_parse_failures → 0` from the general mechanism; then every grammar with a registered parser
   (ties into `GRAMMAR-WELLFORMED` Phase H). Retire the comment-newline and word-fusion special cases as

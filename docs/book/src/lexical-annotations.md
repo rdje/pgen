@@ -68,3 +68,31 @@ single-case prototype of this pillar and will be subsumed by it.
 This is grounded in established work — maximal-munch lexical disambiguation and SDF2 *follow
 restrictions* on the parsing side, and Oppen/Wadler unparsing (pretty-printing) on the generation side;
 see the tree's [SOTA research synthesis](../../tasks/LEXICAL-ANNOTATIONS-research-synthesis.md).
+
+## Notation
+
+When derivation can't infer a boundary rule, you declare it. A lexical annotation sits **above the
+rule** (like `@…` directives) and reads:
+
+- `[> LIST ]` — the rule's token **must be followed by** one of `LIST`.
+- `[>! LIST ]` — the rule's token **must not be followed by** any of `LIST`.
+
+`LIST` is one or more **items**, each a `/regex/` or a `"string"`, freely mixed and separated by
+whitespace and/or commas; the list is a **union** ("any of these"). The enclosing `[ … ]` bounds the
+list. (`[< … ]` / `[<! … ]` are reserved for "preceded by", should a grammar ever need lookbehind.)
+
+```ebnf
+[>! /\w/]                        # an identifier must not be followed by another word char
+identifier := /[A-Za-z_]\w*/
+
+[> /\n|$/]                       # a line comment must be followed by newline-or-EOF
+line_comment := /\/\/[^\n]*(\n|$)/
+
+[>! "(", "[", /\d/]              # this token must not be directly followed by ( or [ or a digit
+some_token := /.../
+```
+
+Although `[ … ]` is also "optional" inside a rule *body*, `[>` / `[>!` is unambiguous: no rule
+expression can begin with `>`, so `[>` is never an optional. Most grammars need **no** lexical
+annotations at all — the regex-derived rules cover the common cases; this is the explicit escape hatch
+for the rest.

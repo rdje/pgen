@@ -68,6 +68,24 @@ flag-driven *prototype* of this pillar — evidence it should be first-class and
 **Naming.** Prefer **lexical annotations**; **layout annotations** is an accepted synonym (director
 2026-06-06).
 
+**Notation (decided 2026-06-06, with the director).** A lexical annotation is written `[> LIST ]`
+("must be followed by") or `[>! LIST ]` ("must NOT be followed by"), where `LIST` is one or more
+**items** — each a `/regex/` or a `"string"`, freely mixed — separated by whitespace and/or commas.
+The list denotes a **union**: `[>! /\w/, "endmodule"]` = "not followed by *any* of {word-char,
+`endmodule`}"; `[> /\n/ /\r/]` = "followed by one of {LF, CR}". A single item is just a list of one.
+The enclosing `[ … ]` is precisely what bounds the list cleanly — the reason a bracket is preferred
+over a bare sigil + single spec (director rationale 2026-06-06).
+
+It sits in the **directive position** (in `annotation_list`, binding to the following rule, like `@…`).
+Although `[ … ]` is `optional_element` in rule *bodies*, `[>` / `[>!` is **unambiguous** — no
+`rule_expression` can start with `>` (its first char is always `"` `/` `[` `(` or a letter), so `[>`
+can never be an optional. `[< LIST ]` / `[<! LIST ]` are **reserved** for "preceded by" (lookbehind)
+should a grammar ever need it. The `>` semantics echo lookahead assertions; the form is bounded
+(visible `[` … `]`) and distinct from `->` (return) and `@` (semantic). Examples: `[>! /\w/]` above an
+identifier/keyword (anti-fusion); `[> /\n|$/]` above a line comment (needs a trailing newline);
+`[>! "(", "["]` (a token that must not be directly followed by an opening bracket). Chosen over `-/-`
+(SDF) and `~>`/`@>` alternatives for being bounded, list-friendly, and readable.
+
 Owned by the [`LEXICAL-ANNOTATIONS`](../tasks/LEXICAL-ANNOTATIONS.md) tree (survey →
 [research synthesis](../tasks/LEXICAL-ANNOTATIONS-research-synthesis.md) → design → implement → verify);
 book chapter [`lexical-annotations.md`](../book/src/lexical-annotations.md). Feeds

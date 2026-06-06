@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0008 (leaf LEXICAL-ANNOTATIONS notation): the lexical-annotation NOTATION is decided.
+
+Decided with the director: `[> LIST ]` ("must be followed by") and `[>! LIST ]` ("must NOT be followed by"), where `LIST` is one or more items — each a `/regex/` or a `"string"`, freely mixed — separated by whitespace and/or commas; the list is a UNION ("any of these"). The enclosing `[ … ]` bounds the list — the director's rationale for a bracket over a bare sigil + single spec (it cleanly encloses a list of mixed specs). Directive position (binds to the following rule, like `@…`). Unambiguous despite reusing `[ ]` (optional in rule bodies) because no rule-expression can start with `>`, so `[>`/`[>!` is never an optional. `[< … ]`/`[<! … ]` reserved for lookbehind. Chosen over `-/-` (SDF) and `~>`/`@>` for being bounded, list-friendly, and readable.
+
+Pure-docs slice: recorded in the decision record (`project_lexical_annotations_fourth_pillar`), the tree (`.3c` now UNBLOCKED with the implementation plan), and the book chapter (`lexical-annotations.md`, with examples).
+
+NEXT — `.3c` IMPLEMENT (substantial, careful, touches the META-GRAMMAR): (1) `grammars/ebnf.ebnf` add `lexical_annotation := "[" (">" | ">!") follow_item (","? follow_item)* "]"`, `follow_item := regex | string`, extend `annotation_list`; regen the bootstrap EBNF parser + verify the pipeline round-trips; (2) carry the follow-restrictions on the rule IR; (3) generator (Obligation B) consults declared restrictions alongside derived ones — also a declarative answer to operator fusion; (4) tests + gate stays at `sample_parse_failures` 0.
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0007 (leaf LEXICAL-ANNOTATIONS.3d): lexical faithfulness is ON by default (config-level).
 
 `StimuliConfig::default()` now sets `enforce_word_boundary_spacing: true` — valid generation should always produce text that re-lexes to the intended tokens, so faithfulness is the default for any programmatic generator; negative-test generation opts out explicitly.
