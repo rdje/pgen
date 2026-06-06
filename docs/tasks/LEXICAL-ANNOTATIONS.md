@@ -1,7 +1,8 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.3` IMPLEMENT — **Obligation B** (A done `-0005`).
-> **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md).
+> **Status:** `active` (2026-06-06). **Frontier:** `.3d` (on-by-default flag policy + operator-fusion)
+> and/or `.3c` (declarative annotation, after the notation decision). `.3` Obligations A (`-0005`) + B
+> (`-0006`) DONE. **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md).
 > **Family / slice-id prefix:** `PGEN-LEXICAL-ANNOTATIONS-<NNNN>`.
 > **Decision record:** [`project_lexical_annotations_fourth_pillar`](../decisions/project_lexical_annotations_fourth_pillar.md).
 > **Book chapter:** [`docs/book/src/lexical-annotations.md`](../book/src/lexical-annotations.md).
@@ -94,11 +95,25 @@ justified because pillars 1–3 structurally cannot express it (see the decision
     ×2 (the comment-`$` swallow fixed at source); `witness 199 → 191` (RNG-path shift — different
     samples; all 50 now parse vs 49). Pinned by
     `obligation_a_line_comment_regex_always_terminates_with_newline`; 130 generator tests green.
-  - **B — inter-token boundary separation (NEXT).** Track the last emitted terminal's regex; replace
-    the char-class word-boundary check with the regex boundary test + minimal-separator ladder; subsume
-    `enforce_word_boundary_spacing`. (Word fusion is currently still handled by the slice-2 flag, so the
-    metric is already 0 — B is the general/elegant replacement, measured to keep it at 0 with the flag
-    off.)
+  - **B — inter-token boundary separation. DONE (`-0006`)** (regex-derived intra-terminal trailing
+    guard). `apply_word_boundary_spacing` is generalized from a `\b`-string match + space to a
+    regex-DERIVED rule: an open-ended terminal (trailing `\b`, OR a greedy unbounded class repetition
+    like `\w*`/`[0-9]+`/`[^\n]*`) self-terminates with the minimal separator its tail class cannot
+    absorb (space, else newline). New helpers `regex_terminal_trailing_separator` / `regex_hir_tail` /
+    `regex_tail_greedy_blocker` / `regex_class_contains`. This subsumes the `\b` special case into the
+    principled regex test, at the leaf (no pipeline refactor), and covers greedy terminals for ANY
+    grammar — not just those whose regex happens to end in `\b`. Flag-gated (low blast radius). VERIFIED:
+    gate `sample_parse_failures` stays 0; `witness` unchanged at 191 (SV terminals already use `\b`, so
+    SV output is identical — the win is principle + coverage of non-`\b` grammars); pinned by
+    `obligation_b_regex_derived_trailing_separator`; 132 generator tests green.
+  - **`.3d` — REMAINING (deferred, documented honestly).** Two pieces B-as-implemented does NOT cover:
+    (i) **distinct-longer-token fusion** (operator fusion `<`+`<`→`<<`, where the previous token is a
+    fixed literal but a longer token spans the boundary) — needs cross-terminal analysis or the next
+    token; rare, not currently biting. (ii) **on-by-default / flag removal** — making faithfulness the
+    default rather than gated by `enforce_word_boundary_spacing` (the "fully subsume the flag" step).
+    This is a generation-default POLICY change with blast radius (affects all callers' output + needs a
+    negative-test-generation opt-out), so it earns its own measured slice (full-suite measurement +
+    any output-asserting test updates), not a rushed bundle.
 - `.3c` — **Obligation C (declarative follow-restriction annotation).** Deferred until the EBNF
   **notation** is agreed with the director (see `.2` note). Then: EBNF surface → annotation compiler →
   follow-restriction table consulted by Obligation B.

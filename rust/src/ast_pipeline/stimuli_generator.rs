@@ -7010,18 +7010,88 @@ impl<'a> StimuliGenerator<'a> {
         if !self.config.enforce_word_boundary_spacing {
             return candidate;
         }
-        if !Self::pattern_has_terminal_word_boundary(pattern) {
-            return candidate;
+        // LEXICAL-ANNOTATIONS.3 — Obligation B (intra-terminal trailing guard, regex-derived).
+        // If this terminal's regex match can be EXTENDED by appending a character (its tail is
+        // "open" — a trailing `\b` word-boundary assertion, OR a greedy unbounded repetition of a
+        // character class), then the next token can fuse onto it. Append the minimal separator the
+        // regex CANNOT absorb (a space, else a newline) so the boundary survives re-lexing. This
+        // generalizes the prior `\b`-only / space-only rule to any open-ended terminal and any
+        // minimal separator, derived from the regex itself (parser-agnostic). Conservative: only
+        // known-open tails trigger a guard, so self-delimiting terminals (fixed literals, closing
+        // delimiters) are untouched.
+        match Self::regex_terminal_trailing_separator(pattern, &candidate) {
+            Some(sep) => {
+                let mut out = candidate;
+                out.push_str(sep);
+                out
+            }
+            None => candidate,
         }
-        let Some(last_char) = candidate.chars().last() else {
-            return candidate;
-        };
-        if !Self::is_word_char(last_char) {
-            return candidate;
+    }
+
+    /// LEXICAL-ANNOTATIONS.3 — Obligation B. The minimal trailing separator needed so that
+    /// `candidate` (a value matching `pattern`) cannot have the next token fuse onto it, or `None`
+    /// if the terminal is self-delimiting. See `apply_word_boundary_spacing`.
+    fn regex_terminal_trailing_separator(pattern: &str, candidate: &str) -> Option<&'static str> {
+        if candidate.is_empty() {
+            return None;
         }
-        let mut spaced = candidate;
-        spaced.push(' ');
-        spaced
+        // (1) Trailing `\b`: a word boundary is asserted, so a non-word char must follow.
+        // Keep the proven string-level detection for this case.
+        if Self::pattern_has_terminal_word_boundary(pattern) {
+            return candidate
+                .chars()
+                .last()
+                .filter(|c| Self::is_word_char(*c))
+                .map(|_| " ");
+        }
+        // (2) Greedy unbounded class repetition at the tail (e.g. `\w*`, `[0-9]+`, `[^\n]*`):
+        // the match can absorb more chars of that class, so guard with the minimal separator the
+        // class does NOT contain.
+        let hir = regex_syntax::parse(pattern.trim()).ok()?;
+        Self::regex_tail_greedy_blocker(&hir)
+    }
+
+    /// The last meaningful sub-HIR of `hir` (unwrapping trailing `Concat`/`Capture`).
+    fn regex_hir_tail(hir: &Hir) -> Option<&Hir> {
+        match hir.kind() {
+            HirKind::Concat(parts) => parts.last().and_then(Self::regex_hir_tail),
+            HirKind::Capture(capture) => Self::regex_hir_tail(&capture.sub),
+            _ => Some(hir),
+        }
+    }
+
+    /// If the regex tail is a greedy unbounded repetition of a character class, return the minimal
+    /// separator that class cannot absorb (`" "` then `"\n"`); else `None`.
+    fn regex_tail_greedy_blocker(hir: &Hir) -> Option<&'static str> {
+        let tail = Self::regex_hir_tail(hir)?;
+        if let HirKind::Repetition(rep) = tail.kind() {
+            if rep.max.is_none() {
+                if let HirKind::Class(class) = rep.sub.kind() {
+                    if !Self::regex_class_contains(class, ' ') {
+                        return Some(" ");
+                    }
+                    if !Self::regex_class_contains(class, '\n') {
+                        return Some("\n");
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Whether a regex character class contains `ch`.
+    fn regex_class_contains(class: &Class, ch: char) -> bool {
+        match class {
+            Class::Unicode(u) => u.ranges().iter().any(|r| r.start() <= ch && ch <= r.end()),
+            Class::Bytes(b) => {
+                let c = ch as u32;
+                c <= 0xFF
+                    && b.ranges()
+                        .iter()
+                        .any(|r| (r.start() as u32) <= c && c <= (r.end() as u32))
+            }
+        }
     }
 
     fn pattern_has_terminal_word_boundary(pattern: &str) -> bool {
@@ -10083,6 +10153,31 @@ mod tests {
                 "seed {seed}: Obligation A — comment must terminate with a newline, got {s:?}"
             );
         }
+    }
+
+    /// LEXICAL-ANNOTATIONS.3 — Obligation B (inter-token faithfulness, intra-terminal trailing
+    /// guard). The minimal trailing separator is DERIVED from the terminal's regex: open-ended
+    /// terminals (trailing `\b`, or a greedy unbounded class repetition) self-terminate with the
+    /// smallest separator their tail class cannot absorb; self-delimiting terminals are untouched.
+    /// This generalizes the prior `\b`-string-only / space-only rule.
+    #[test]
+    fn obligation_b_regex_derived_trailing_separator() {
+        use StimuliGenerator as G;
+        // greedy word/number tails (no `\b`) -> minimal space guard
+        assert_eq!(G::regex_terminal_trailing_separator(r"[0-9]+", "782"), Some(" "));
+        assert_eq!(
+            G::regex_terminal_trailing_separator(r"[A-Za-z_][A-Za-z0-9_]*", "abc"),
+            Some(" ")
+        );
+        // a `[^\n]*` tail can absorb a space, so the minimal guard escalates to a newline
+        assert_eq!(G::regex_terminal_trailing_separator(r"x[^\n]*", "xabc"), Some("\n"));
+        // trailing `\b` with a word-char tail -> space (subsumed legacy case)
+        assert_eq!(G::regex_terminal_trailing_separator(r"endprogram\b", "endprogram"), Some(" "));
+        // self-delimiting terminals -> no guard
+        assert_eq!(G::regex_terminal_trailing_separator("<", "<"), None);
+        assert_eq!(G::regex_terminal_trailing_separator(r#""[^"]*""#, "\"x\""), None);
+        // empty candidate -> no guard
+        assert_eq!(G::regex_terminal_trailing_separator(r"[0-9]+", ""), None);
     }
 
     fn simple_generator_with_pending_frontier_extra_stagnation<'a>(

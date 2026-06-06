@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0006 (leaf LEXICAL-ANNOTATIONS.3 Obligation B): inter-token faithfulness — regex-derived trailing guard (subsumes the `\b` hack).
+
+Second implementation slice of the 4th pillar. `apply_word_boundary_spacing` is generalized from a `\b`-string match + hardcoded space to a regex-DERIVED rule: an open-ended terminal — trailing `\b`, OR a greedy unbounded class repetition (`\w*`, `[0-9]+`, `[^\n]*`) — self-terminates with the minimal separator its tail class cannot absorb (a space, else a newline). New helpers `regex_terminal_trailing_separator` / `regex_hir_tail` / `regex_tail_greedy_blocker` / `regex_class_contains`.
+
+This subsumes the `\b` special case into the principled local boundary test, at the leaf (no pipeline refactor), and now covers greedy terminals for ANY grammar — not just those whose regex ends in `\b`. Flag-gated (so the 130 flag-off generator tests are unaffected — low blast radius).
+
+VERIFIED (gate, 50 diverse, sv_2017, seed 1): `sample_parse_failures` stays 0; `witness` unchanged at 191 (SV terminals already use `\b`, so SV output is byte-identical — the gain is principle + coverage of non-`\b` grammars, not an SV metric move). Pinned by `obligation_b_regex_derived_trailing_separator`; 132 stimuli_generator tests green.
+
+GENERATOR change only (no parser regen). Honestly deferred to `.3d` (its own measured slice): (i) distinct-longer-token operator fusion (`<`+`<`→`<<`) — needs cross-terminal analysis, rare/not biting; (ii) on-by-default / flag removal — a generation-default policy change with blast radius (all callers + a negative-gen opt-out).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0005 (leaf LEXICAL-ANNOTATIONS.3 Obligation A): intra-token faithfulness — honor regex anchors (fixes the comment-`$` swallow at source).
 
 First implementation slice of the 4th pillar. `generate_from_regex_hir`'s alternation picker now prefers branches that are NOT pure zero-width assertions: a bare `$`/`^`/`\b` branch is never realized inline when a concrete sibling exists, so `(\n|$)` in the line-comment regex always yields `\n`. New helpers `regex_branch_is_anchor_only` / `regex_hir_can_produce_nonempty` / `regex_hir_contains_look`. A genuine empty branch (no assertion) stays pickable, so optional-alternative variety is preserved.
