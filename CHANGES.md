@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0005 (leaf LEXICAL-ANNOTATIONS.3 Obligation A): intra-token faithfulness — honor regex anchors (fixes the comment-`$` swallow at source).
+
+First implementation slice of the 4th pillar. `generate_from_regex_hir`'s alternation picker now prefers branches that are NOT pure zero-width assertions: a bare `$`/`^`/`\b` branch is never realized inline when a concrete sibling exists, so `(\n|$)` in the line-comment regex always yields `\n`. New helpers `regex_branch_is_anchor_only` / `regex_hir_can_produce_nonempty` / `regex_hir_contains_look`. A genuine empty branch (no assertion) stays pickable, so optional-alternative variety is preserved.
+
+GENERATOR change only (stimuli_generator.rs) — no parser regen (this is the runtime generator, not codegen).
+
+VERIFIED (gate, 50 diverse, sv_2017, seed 1), deterministic ×2: `sample_parse_failures 1 → 0` — the residual `//`-comment-swallows-`;` defect is fixed AT SOURCE (the comment now always carries its terminating newline), not patched. `witness 199 → 191` / `UNKNOWN 1140 → 1148`: a sampling shift from the changed RNG path (different diverse samples), not a capability regression — and now all 50 samples parse (vs 49). Pinned by new test `obligation_a_line_comment_regex_always_terminates_with_newline` (64 seeds); 130 stimuli_generator tests green.
+
+NEXT: Obligation B (inter-token boundary separation via the regex boundary test) — the general replacement for `enforce_word_boundary_spacing`.
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0004 (leaf LEXICAL-ANNOTATIONS.2): DESIGN — the faithful-rendering invariant (two derived obligations + a declarative escape hatch).
 
 Design doc `docs/tasks/LEXICAL-ANNOTATIONS-design.md` (no code). The invariant LEX-FAITHFUL: re-lexing/re-parsing the generator's output recovers the intended token sequence (and tree), with each separator MINIMAL. Achieved by:

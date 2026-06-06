@@ -7227,12 +7227,27 @@ impl<'a> StimuliGenerator<'a> {
                 if parts.is_empty() {
                     return String::new();
                 }
-                let idx = if parts.len() == 1 {
-                    0
+                // LEXICAL-ANNOTATIONS.3 — Obligation A (intra-token faithfulness): prefer
+                // alternation branches that are NOT pure zero-width assertions. A bare anchor
+                // branch (`$`, `^`, `\b`) realizes to "" and ASSERTS an input boundary; chosen
+                // inline (where the assertion is false) it yields a token valid ONLY at that
+                // boundary — e.g. the line-comment regex `//[^\n]*(\n|$)` picking the `$` branch
+                // emits a comment with no terminating newline, which then swallows whatever
+                // follows on the line. Preferring a concrete sibling (here `\n`) makes every
+                // emitted surface a complete, valid token. A genuine empty branch (no assertion)
+                // is NOT anchor-only and stays pickable, so optional-alternative variety is kept.
+                let preferred: Vec<&Hir> = parts
+                    .iter()
+                    .filter(|p| !Self::regex_branch_is_anchor_only(p))
+                    .collect();
+                let chosen: &Hir = if !preferred.is_empty() {
+                    let i = if preferred.len() == 1 { 0 } else { self.rng.gen_range(0..preferred.len()) };
+                    preferred[i]
                 } else {
-                    self.rng.gen_range(0..parts.len())
+                    let i = if parts.len() == 1 { 0 } else { self.rng.gen_range(0..parts.len()) };
+                    &parts[i]
                 };
-                self.generate_from_regex_hir(&parts[idx])
+                self.generate_from_regex_hir(chosen)
             }
         }
     }
@@ -7263,6 +7278,43 @@ impl<'a> StimuliGenerator<'a> {
             out.push_str(&unit);
         }
         out
+    }
+
+    /// LEXICAL-ANNOTATIONS.3 — Obligation A helper. A regex branch is "anchor-only" if it
+    /// produces NO characters AND contains a look-around assertion (`$`, `^`, `\b`, …).
+    /// Realizing it inline emits nothing but asserts an input boundary that may not hold, so the
+    /// alternation picker avoids it when a concrete sibling exists. A genuine empty branch (no
+    /// assertion) is NOT anchor-only and stays pickable.
+    fn regex_branch_is_anchor_only(hir: &Hir) -> bool {
+        !Self::regex_hir_can_produce_nonempty(hir) && Self::regex_hir_contains_look(hir)
+    }
+
+    /// Whether a regex HIR can yield a non-empty string on some realization.
+    fn regex_hir_can_produce_nonempty(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => false,
+            HirKind::Literal(Literal(bytes)) => !bytes.is_empty(),
+            HirKind::Class(_) => true,
+            HirKind::Repetition(rep) => {
+                rep.max != Some(0) && Self::regex_hir_can_produce_nonempty(&rep.sub)
+            }
+            HirKind::Capture(capture) => Self::regex_hir_can_produce_nonempty(&capture.sub),
+            HirKind::Concat(parts) => parts.iter().any(Self::regex_hir_can_produce_nonempty),
+            HirKind::Alternation(parts) => parts.iter().any(Self::regex_hir_can_produce_nonempty),
+        }
+    }
+
+    /// Whether a regex HIR contains any look-around assertion.
+    fn regex_hir_contains_look(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Look(_) => true,
+            HirKind::Empty | HirKind::Literal(_) | HirKind::Class(_) => false,
+            HirKind::Repetition(rep) => Self::regex_hir_contains_look(&rep.sub),
+            HirKind::Capture(capture) => Self::regex_hir_contains_look(&capture.sub),
+            HirKind::Concat(parts) | HirKind::Alternation(parts) => {
+                parts.iter().any(Self::regex_hir_contains_look)
+            }
+        }
     }
 
     /// SV-EXH-PROOF.2.3.2 (P-a): derive the structural-hazard set from
@@ -10004,6 +10056,33 @@ mod tests {
                 trace_verbosity: TraceVerbosity::None,
             },
         )
+    }
+
+    /// LEXICAL-ANNOTATIONS.3 — Obligation A (intra-token faithfulness). The line-comment regex
+    /// `//[^\n]*(\n|$)` must NEVER be realized via the bare `$` branch when generated inline: every
+    /// generated comment must carry its terminating newline, otherwise it swallows whatever follows
+    /// on the line (the G.4.7-slice-3 defect). With the old uniform alternation pick ~half of
+    /// realizations dropped the newline; the anchor-preference makes it 100%.
+    #[test]
+    fn obligation_a_line_comment_regex_always_terminates_with_newline() {
+        let grammar_tree: HashMap<String, ASTNode> = HashMap::new();
+        let rule_order: Vec<String> = Vec::new();
+        let pattern = r"//[^\n]*(\n|$)";
+        for seed in 0..64u64 {
+            let mut g = simple_generator_with_profiles(
+                &grammar_tree,
+                &rule_order,
+                seed,
+                StimuliMutationMode::Baseline,
+                StimuliConstraintProfile::Baseline,
+            );
+            let s = g.generate_regex_sample(pattern, "line_comment");
+            assert!(s.starts_with("//"), "seed {seed}: expected a // comment, got {s:?}");
+            assert!(
+                s.ends_with('\n'),
+                "seed {seed}: Obligation A — comment must terminate with a newline, got {s:?}"
+            );
+        }
     }
 
     fn simple_generator_with_pending_frontier_extra_stagnation<'a>(

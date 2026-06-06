@@ -1,7 +1,7 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.3` IMPLEMENT (Obligations A + B; derivation-only,
-> no EBNF notation needed). **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md).
+> **Status:** `active` (2026-06-06). **Frontier:** `.3` IMPLEMENT — **Obligation B** (A done `-0005`).
+> **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md).
 > **Family / slice-id prefix:** `PGEN-LEXICAL-ANNOTATIONS-<NNNN>`.
 > **Decision record:** [`project_lexical_annotations_fourth_pillar`](../decisions/project_lexical_annotations_fourth_pillar.md).
 > **Book chapter:** [`docs/book/src/lexical-annotations.md`](../book/src/lexical-annotations.md).
@@ -85,11 +85,20 @@ justified because pillars 1–3 structurally cannot express it (see the decision
     the terminal/token level (lexical constraints are about token boundaries); and since most
     faithfulness is **derived** from the regexes, the notation only ever appears for the *rare explicit*
     declaration — so it can be lightweight. Decide with the director.
-- `.3` — **IMPLEMENT (NEXT) — Obligations A + B (derivation only; no EBNF notation needed).** A: honor
-  regex anchors in `generate_from_regex_hir` (anchor arm + alternation branch selection). B: track the
-  last emitted terminal's regex; replace the char-class word-boundary check with the regex boundary test
-  + minimal-separator ladder; subsume `enforce_word_boundary_spacing`. Regenerate parsers; commit codegen
-  only (generated/ is local). **Unblocked by the notation decision** — A+B are pure derivation.
+- `.3` — **IMPLEMENT — Obligations A + B (derivation only; no EBNF notation needed).**
+  - **A — intra-token anchor honoring. DONE (`-0005`).** `generate_from_regex_hir`'s alternation
+    picker now prefers branches that are NOT pure zero-width assertions (`regex_branch_is_anchor_only`
+    + `regex_hir_can_produce_nonempty`/`regex_hir_contains_look`), so a bare `$`/`^`/`\b` branch is
+    never realized inline when a concrete sibling exists — e.g. `(\n|$)` always yields `\n`. This is a
+    GENERATOR change (no parser regen). **VERIFIED:** gate `sample_parse_failures 1 → 0`, deterministic
+    ×2 (the comment-`$` swallow fixed at source); `witness 199 → 191` (RNG-path shift — different
+    samples; all 50 now parse vs 49). Pinned by
+    `obligation_a_line_comment_regex_always_terminates_with_newline`; 130 generator tests green.
+  - **B — inter-token boundary separation (NEXT).** Track the last emitted terminal's regex; replace
+    the char-class word-boundary check with the regex boundary test + minimal-separator ladder; subsume
+    `enforce_word_boundary_spacing`. (Word fusion is currently still handled by the slice-2 flag, so the
+    metric is already 0 — B is the general/elegant replacement, measured to keep it at 0 with the flag
+    off.)
 - `.3c` — **Obligation C (declarative follow-restriction annotation).** Deferred until the EBNF
   **notation** is agreed with the director (see `.2` note). Then: EBNF surface → annotation compiler →
   follow-restriction table consulted by Obligation B.
