@@ -137,6 +137,29 @@ the optionality already lives correctly at the caller, `( boolean_abbrev )?`). A
 `[*]`/`[+]`/`[=n]`/`[->n]` forms parse, the junk empty nodes disappear, and the branches become
 genuinely reachable — so the generator can witness them. Two proofs, made to agree.
 
+**This was not a one-off.** Run across the whole SystemVerilog grammar, the always-succeeds check
+surfaced **52** dead branches, and they cluster into a *systematic* class: the LRM-to-`.ebnf`
+extraction repeatedly **dropped delimiters**, leaving wrapper rules that can match nothing and
+therefore always succeed:
+
+- `[ ]` dropped → `consecutive_repetition`, `covergroup_value_range` (the range forms `[lo:hi]`)
+- `{ }` dropped → `rs_code_block` (`{ … }` randsequence block — one fix cleared **11** shadow
+  sites), `module_path_concatenation` and `module_path_multiple_concatenation` (the cascade
+  through them resolved the whole module-path family)
+
+Restoring the delimiter is the LRM-grounded fix and frequently *also* closes a real parse gap (the
+delimiter-less form couldn't accept real SystemVerilog). A second, smaller class was *lost ordering*:
+the LRM grammar is an order-independent CFG, but a PEG must try the specific form before a nullable
+general one — so a handful of rules (`let_formal_type`, `port`, the argument lists, …) just needed
+their alternatives reordered specific-before-general. Together these cleared 44 of the 52.
+
+The residual handful is the *honest* part of the picture: a few rules (`net_port_type`, the
+port-headers) are genuinely ambiguous on a bare identifier — "is this name a net type, or a data
+type?" — which no amount of reordering can settle. Those are flagged for **semantic store-gating**
+(consult the fact store: *is this identifier a declared nettype?*), not silently dropped. That is the
+attribution rule doing its job: every one of the 52 became a ticket — most "fix the grammar," a few
+"needs a semantic gate" — and none a shrug.
+
 ## Trusting the linter: certificates, not faith
 
 The linter is the **fulcrum** of the whole sign-off model — it is the *prover* of well-formedness, the

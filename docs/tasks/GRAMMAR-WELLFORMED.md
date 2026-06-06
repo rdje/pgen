@@ -209,15 +209,31 @@ subtle dead branch"), never a silent accept.
      lost delimiter made a wrapper rule nullable/always-succeeds. The linter (A2) surfaced a whole CLASS
      of LRM-PDF→.ebnf extraction bugs. Restoring the delimiter is the LRM-grounded fix (and often also
      closes a real parse gap — the bracket-less forms couldn't parse real SV).
-  4. **implicit-type/port family** (`let_formal_type`, `property_formal_type`, `net_port_type`/`_sv_2017`/
-     `_sv_2023`, `port`, `ansi_port_declaration`): alt #0 = a `data_type_or_implicit`-like rule that
-     always-succeeds (implicit type matches empty) → trailing keyword/variant branches dead. Needs
-     care: the always-succeed may be LEGITIMATE (implicit type) → the later branch may be the genuine
-     dead one to RESTRUCTURE, not a simple `?`-drop. Per-rule LRM analysis required.
-  5. **list-of-arguments family** (`list_of_arguments` #1#2, `let_list_of_arguments`,
-     `property_list_of_arguments`, `list_of_checker_port_connections`, `class_constructor_super_args`,
-     `class_constructor_arg_sv_2023`): all-optional element list always-succeeds.
-  6. **module-path family** (`module_path_primary` #3#4#5, `module_path_mintypmax_expression`).
+  4. **formal-type / keyword-after-nullable family — DONE (`-0014`, REORDER).** `let_formal_type`,
+     `sequence_formal_type`, `property_formal_type`, `port`, `class_constructor_super_args`,
+     `class_constructor_arg_sv_2023`, and the inline `class_declaration_sv_2023` extends-clause: a
+     nullable general form (`data_type_or_implicit` / `list_of_arguments` / `( port_expression )?`)
+     was FIRST, shadowing a specific keyword/`.`-form (`untyped`/`sequence`/`property`/`default`/named).
+     FIX = REORDER specific-before-nullable-general (the PEG-correct realization of the order-independent
+     LRM CFG). Clean; annotations travel with each arm.
+  4b. **port-header / net-type family — DEFERRED (needs nettype STORE-GATING).** `net_port_type`,
+     `net_port_type_sv_2017`/`_sv_2023`, `ansi_port_declaration` (inner `net_port_header |
+     interface_port_header`): alt #0 (`( net_type )? data_type_or_implicit`) is LEGITIMATELY nullable
+     (implicit type), so it always-succeeds and shadows `net_type_identifier` / `interconnect` /
+     `interface_port_header`. `interconnect` could be reordered first (keyword), but `net_type_identifier`
+     and `interface_port_header` are BARE IDENTIFIERS that overlap a data-type identifier — reordering
+     them first would mis-parse real data types. The SOUND fix is SEMANTIC STORE-GATING (gate
+     `net_type_identifier` on `has_fact(nettype, …)`, `interface_port_header` on `has_fact(interface, …)`)
+     per [[feedback_grammar_rules_must_consult_store]] — which also needs the grammar to EMIT those fact
+     kinds. A careful semantic sub-campaign; 6 of the residual 8 always-matches. Warning-staged meanwhile.
+  5. **list-of-arguments family — DONE (`-0014`, REORDER).** `list_of_arguments` (mixed|named|ordered,
+     ordered catch-all LAST), `let_/property_/sequence_list_of_arguments` (named_only first), and
+     `list_of_checker_port_connections` (named first): the all-optional ORDERED form always-succeeds and
+     must be the LAST (catch-all) arm; the non-nullable named/mixed forms go first.
+  6. **module-path family — DONE (`-0014`, DELIMITER `{ }`).** `module_path_concatenation` +
+     `module_path_multiple_concatenation` were `( … )*` (LRM: `{ … }`) → nullable, cascading up
+     concat→primary→operand→expression→mintypmax. Restoring the braces (both rules) resolved
+     `module_path_primary` #3#4#5 + `module_path_mintypmax_expression` #1 (4 findings via the cascade).
   7. **`sv_multi_entry_root`** (#1#2) — NOT a grammar defect: it is the A1b reachability MARKER
      (an unreferenced union of `systemverilog_file`|`library_text`|`systemverilog_parseable_file` so the
      latter two count as reachable roots). `systemverilog_file` is `*`-based (always-succeeds), so the
@@ -366,7 +382,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.A2` | `done` (`-0006`) | Sound subset of FIRST-domination — earlier-ALWAYS-SUCCEEDS shadowing. 0 false positives; found 52 real SV dead branches (warning-staged). General unsound FIRST-domination deliberately excluded. |
 | — | `GRAMMAR-WELLFORMED.E2` | `done` (`-0007`, satisfied by existing validation) | `$N` attribute completeness already enforced (`E_RET_POS_OUT_OF_RANGE`, hard under strict mode, test-locked); consulted-fact completeness → F1. |
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
-| 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (families 1+2+3 done; always_matches **52→27**) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter extraction artifacts** (`[ ]`/`{ }` lost in LRM-PDF→.ebnf → nullable wrappers). Remaining (~27): implicit-type/port, list-of-arguments, module-path, sv_multi_entry_root (linter-exempt). |
+| 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
