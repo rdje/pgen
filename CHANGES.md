@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0015 (leaf GRAMMAR-WELLFORMED.G.2, in progress): **certifying linter — generalized certificate + checker to the rule-level UnreachableRule verdict; + A2.1 residual clarification.**
+
+Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
+
+- Generalized `WellformednessCertificate` {`DeadAlternative(UnreachabilityCertificate)` | `UnreachableRule { rule }`} + `verify_wellformedness_certificate` (the independent checker, dispatching per variant). The `UnreachableRule` checker re-derives reachability DIRECTLY via a shared `reachable_rules` helper (refactored out of `detect_unreachable_rules` — single source of truth for the roots-∪-unreferenced transitive closure). Never trusts the detector.
+- Unit-tested (`unreachable_rule_certificate_verifies_and_rejects`): a valid unreachable-rule certificate re-verifies; a bogus one (the reachable rule `keep` claimed unreachable) is REJECTED; the generalized checker also dispatches `DeadAlternative` to the shadowing checker. Module suite 24/24.
+- A2.1 residual clarified: `sv_multi_entry_root` CANNOT be deleted (the `sv_formal_exhaustive_closure_gate` contract uses it as `entry_rule` for multi-entry reachability analysis — DEVELOPMENT_NOTES ~8085/8105); the clean resolution is the documented `reachability_entry_rules: [...]` toolchain refactor (A1b.1). Both A2.1 residual families (port-header store-gating 6; sv_multi_entry_root 2) are deferred deep work; A2 stays warning-staged.
+- NEXT: G.2.1 (profile-orphan + unbound-fact certificates — need annotations/profiles context), G.2.2 (standalone checker binary), G.3 (reachability witnesses from the generator), G.4 (certificate-coverage gate).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0014 (leaf GRAMMAR-WELLFORMED.A2.1 families 4+5+6): **formal-type/port reorders + list-of-arguments reorders + module-path & bins_or_empty delimiter restoration + class_declaration — always_matches 27→8 (cumulative 52→8); + KM fact.**
 
 Grammar fix (`grammars/systemverilog.ebnf`) + KM fact + book + tree + LIVE. generated/ regenerated locally (gitignored).

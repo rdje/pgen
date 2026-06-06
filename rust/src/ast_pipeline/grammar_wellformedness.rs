@@ -268,6 +268,22 @@ pub fn detect_unreachable_rules(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
 ) -> Vec<WellformednessIssue> {
+    let reachable = reachable_rules(grammar, rule_order);
+    rule_order
+        .iter()
+        .filter(|r| grammar.contains_key(r.as_str()) && !reachable.contains(r.as_str()))
+        .map(|r| WellformednessIssue::UnreachableRule { rule: r.clone() })
+        .collect()
+}
+
+/// The set of rules REACHABLE from the roots (the canonical entry `rule_order[0]` PLUS every rule
+/// nothing references — a secondary entry), by transitive reference. Shared core of A1b
+/// (`detect_unreachable_rules`) and the certifying CHECKER (`verify_wellformedness_certificate`).
+/// Deterministic; references to undefined (external/include) rules are ignored.
+pub fn reachable_rules(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> HashSet<String> {
     let mut refs_of: HashMap<&str, HashSet<String>> = HashMap::new();
     let mut referenced: HashSet<String> = HashSet::new();
     for (rule, body) in grammar {
@@ -303,11 +319,7 @@ pub fn detect_unreachable_rules(
             }
         }
     }
-    rule_order
-        .iter()
-        .filter(|r| grammar.contains_key(r.as_str()) && !reachable.contains(r.as_str()))
-        .map(|r| WellformednessIssue::UnreachableRule { rule: r.clone() })
-        .collect()
+    reachable
 }
 
 /// Can `node` match the empty string (succeed without consuming input)? Uses the current
@@ -1278,6 +1290,47 @@ pub fn verify_unreachability_certificate(
     }
 }
 
+/// GRAMMAR-WELLFORMED.G.2: a certificate for ANY decidable unreachability verdict (generalizes the
+/// shadowing `UnreachabilityCertificate`). Each variant carries enough to be re-derived from the
+/// grammar by the independent checker. (Profile-orphan + unbound-fact certificates — which need the
+/// annotations/profiles context — are the planned G.2.1 extension; witnesses for REACHABLE fragments
+/// are G.3.)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WellformednessCertificate {
+    /// An ordered-choice alternative is dead (shadowing) — see `UnreachabilityCertificate`.
+    DeadAlternative(UnreachabilityCertificate),
+    /// A rule is unreachable from every root (A1b).
+    UnreachableRule { rule: String },
+}
+
+/// THE CHECKER (G.2): independently re-validate ANY unreachability certificate against the grammar.
+/// Dispatches per variant; each re-derives the claim directly (never trusts the detector). `Ok(())`
+/// iff the certificate genuinely holds.
+pub fn verify_wellformedness_certificate(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    cert: &WellformednessCertificate,
+) -> Result<(), String> {
+    match cert {
+        WellformednessCertificate::DeadAlternative(c) => {
+            verify_unreachability_certificate(grammar, rule_order, c)
+        }
+        WellformednessCertificate::UnreachableRule { rule } => {
+            if !grammar.contains_key(rule) {
+                return Err(format!("certificate cites unknown rule '{rule}'"));
+            }
+            // Re-derive reachability from the roots, independently.
+            if reachable_rules(grammar, rule_order).contains(rule) {
+                Err(format!(
+                    "certificate claims rule '{rule}' UNREACHABLE, but it IS reachable from a root"
+                ))
+            } else {
+                Ok(())
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1629,6 +1682,43 @@ mod tests {
         assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn unreachable_rule_certificate_verifies_and_rejects() {
+        // GRAMMAR-WELLFORMED.G.2: a rule-level unreachability certificate re-verifies; a bogus one
+        // (a reachable rule claimed unreachable) is REJECTED.
+        // entry -> keep (reachable). island <-> other reference each other but nothing reachable
+        // references them and neither is unreferenced (so neither is a root) -> dead island.
+        let mut g = HashMap::new();
+        g.insert("entry".into(), rule_ref("keep"));
+        g.insert("keep".into(), token("string", "k"));
+        g.insert("island".into(), rule_ref("other"));
+        g.insert("other".into(), rule_ref("island"));
+        let order: Vec<String> =
+            vec!["entry".into(), "keep".into(), "island".into(), "other".into()];
+        let issues = detect_unreachable_rules(&g, &order);
+        assert!(
+            issues.iter().any(|i| matches!(i, WellformednessIssue::UnreachableRule { rule } if rule == "island")),
+            "island must be flagged unreachable: {issues:?}"
+        );
+        let cert = WellformednessCertificate::UnreachableRule { rule: "island".into() };
+        assert!(
+            verify_wellformedness_certificate(&g, &order, &cert).is_ok(),
+            "valid unreachable-rule certificate must verify"
+        );
+        let bogus = WellformednessCertificate::UnreachableRule { rule: "keep".into() };
+        assert!(
+            verify_wellformedness_certificate(&g, &order, &bogus).is_err(),
+            "claiming the reachable rule 'keep' unreachable must be rejected"
+        );
+        // the generalized checker also dispatches DeadAlternative correctly.
+        let mut g2 = HashMap::new();
+        g2.insert("o".into(), or(vec![quant(token("string", "x"), "?"), token("string", "y")]));
+        let order2: Vec<String> = vec!["o".into()];
+        let sh = detect_ordered_choice_shadowing(&g2, &order2);
+        let wrapped = WellformednessCertificate::DeadAlternative(sh[0].certificate());
+        assert!(verify_wellformedness_certificate(&g2, &order2, &wrapped).is_ok());
     }
 
     #[test]

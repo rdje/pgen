@@ -234,12 +234,17 @@ subtle dead branch"), never a silent accept.
      `module_path_multiple_concatenation` were `( … )*` (LRM: `{ … }`) → nullable, cascading up
      concat→primary→operand→expression→mintypmax. Restoring the braces (both rules) resolved
      `module_path_primary` #3#4#5 + `module_path_mintypmax_expression` #1 (4 findings via the cascade).
-  7. **`sv_multi_entry_root`** (#1#2) — NOT a grammar defect: it is the A1b reachability MARKER
-     (an unreferenced union of `systemverilog_file`|`library_text`|`systemverilog_parseable_file` so the
-     latter two count as reachable roots). `systemverilog_file` is `*`-based (always-succeeds), so the
-     later alts are unreachable AS A PARSED ordered choice — but the rule is never PARSED. Resolution:
-     EXEMPT marker rules (e.g. recognize the `*_multi_entry_root` role / an `@entry`-style marker), do
-     NOT "fix" by grammar edit. This is the one case to handle in the LINTER, not the grammar.
+  7. **`sv_multi_entry_root`** (#1#2) — DEFERRED, NOT a grammar defect: it is a DELIBERATE non-parsed
+     reachability MARKER (`systemverilog_file`|`library_text`|`systemverilog_parseable_file`) consumed by
+     `sv_formal_exhaustive_closure_gate`'s contract as its `entry_rule` for multi-entry reachability
+     analysis (see DEVELOPMENT_NOTES ~8085/8105: a deliberate construct; parser-gen still defaults to
+     `systemverilog_file`). ⚠️ It CANNOT simply be deleted (that breaks the closure-gate contract) and it
+     must NOT be reordered/edited (it's never parsed). The clean resolution is the documented long-term
+     toolchain fix: give the closure-gate contract a `reachability_entry_rules: [...]` ARRAY distinct
+     from the parser-gen entry → then `sv_multi_entry_root` is removed and `library_text`/
+     `systemverilog_parseable_file` are declared entries (this is `A1b.1`, the entry-declaration leaf).
+     Until then the 2 findings stay a benign WARNING (always-matches is warning-staged). A2 promotion to
+     a hard gate is blocked on this + the 4b store-gating family.
 
 ### Phase B — make the constructive proof deterministic (the count becomes signal)
 - `B1` — **DONE (code, PGEN-GRAMMAR-WELLFORMED-0005; gate-residual confirm in flight):** replaced the
@@ -342,9 +347,14 @@ certificates, not faith".
   validates rather than rubber-stamps. Pure analysis, no regen; module suite 23/23. NEXT (`G.1.1`,
   optional refinement): structural always-succeeds witnesses (trivially checkable, no fixpoint) for
   full independence; extend certificates to A1b unreachable-rule / profile-orphan / F1 unbound-fact.*
-- `G.2` — **the independent CHECKER** (small, auditable, separate from the linter): (a) replays each
-  reachability WITNESS through the real parser and asserts it exercises the claimed fragment; (b)
-  re-validates each unreachability PROOF independently. Trust rests here. *Effort: medium-high.*
+- `G.2` — **the independent CHECKER** (small, auditable, separate from the linter): re-validates each
+  unreachability PROOF independently + (later) replays each reachability WITNESS. **IN PROGRESS
+  (`-0015`):** generalized `WellformednessCertificate` {`DeadAlternative` | `UnreachableRule`} +
+  `verify_wellformedness_certificate` — the rule-level `UnreachableRule` checker re-derives reachability
+  via a shared `reachable_rules` helper (refactored out of `detect_unreachable_rules`); unit-tested
+  (valid cert verifies; a reachable rule claimed unreachable is rejected; dispatch to the shadowing
+  checker works). NEXT `G.2.1`: profile-orphan + unbound-fact certificates (need the annotations/profiles
+  context); `G.2.2`: a standalone checker binary. Witness replay = G.3. *Effort: medium-high.*
 - `G.3` — **witness producer wiring**: the stimuli generator emits, per reachable fragment, a minimal
   witness input (the duality); fragments it can't witness become `UNKNOWN` tickets. *Effort: high
   (reuses the generator's reach/replay machinery).*
