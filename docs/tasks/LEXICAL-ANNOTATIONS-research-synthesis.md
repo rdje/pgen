@@ -95,11 +95,14 @@ treats regex anchors (`HirKind::Look`) as empty. That is the gap.
 6. **Subsume the prototype.** `enforce_word_boundary_spacing` becomes one derived case (the `\b` follow
    restriction); the flag and the comment-newline special case retire as instances.
 
-**Direction (per the director's clarification, confirmed by the literature):** the mechanism is
-**generation-side enforcement**; parsing already supplies maximal munch and acts as verifier. The
-*constraints* are direction-neutral (SDF uses follow restrictions for *parsing* disambiguation), so the
-same declarative annotations could later serve parse-time disambiguation — a latent bonus, not today's
-goal.
+**Direction — BOTH, generation-dominant today (per the director, refined 2026-06-06; confirmed by the
+literature).** Lexical-surface constraints are direction-neutral: SDF uses the *same* follow
+restrictions to disambiguate **parsing**, and an unparser uses the same boundary facts to render
+**generation** faithfully. So lexical annotations can steer **both**. In PGEN today they are needed for
+**generation far more often**, because the parser already supplies maximal munch (covering most of its
+side) while the generator has no lexical discipline. The design (`.2`) is therefore generation-side
+enforcement, deliberately built so the *same* declarative annotations can also serve parse-time
+disambiguation if maximal munch ever proves insufficient.
 
 ## 4. Do-not-adopt / scope guards
 

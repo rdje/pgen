@@ -43,10 +43,14 @@ timeunit 1 ps //note ;    # ✗ the // comment with no newline swallows the `;` 
 Both are valid *trees* that render to *invalid text*. Pillars 1–3 cannot prevent this; the lexical
 pillar is what does.
 
-So, in one line: **lexical annotations are enforced during generation.** Parsing already honours the
-same surface rules (via maximal munch), and now also *verifies* them — PGEN's certificate-coverage gate
-re-parses every generated sample, so a faithfulness violation is caught immediately. Enforcer = the
-generator; verifier = the parser.
+So, in one line: **lexical annotations can steer both parsing and generation, but in PGEN today they
+are needed for generation far more often.** The constraints are a property of the lexical interface that
+*both* directions cross — the same kind of rule can disambiguate parsing (as it does in scannerless
+parsers) and enforce faithful rendering in generation. PGEN's parser simply already covers most of its
+side automatically (maximal munch), while the generator has no such discipline — so generation is where
+they bite today. Parsing also *verifies* the result: the certificate-coverage gate re-parses every
+generated sample, so a faithfulness violation is caught immediately. Today: enforcer = the generator;
+honourer + verifier = the parser.
 
 ## The shape of the solution (being designed)
 

@@ -1,6 +1,6 @@
 ---
 name: project-lexical-annotations-fourth-pillar
-description: "Director architecture decision (2026-06-06): PGEN has a FOURTH declarative pillar — LEXICAL (a.k.a. LAYOUT) ANNOTATIONS — beyond EBNF + return annotations + semantic annotations. It governs surface faithfulness (the characters emitted must re-lex to the intended tokens). It is enforced in GENERATION; parsing already honours it via maximal munch and serves as the verifier. To be designed generally + parser-agnostically, never as a hack."
+description: "Director architecture decision (2026-06-06): PGEN has a FOURTH declarative pillar — LEXICAL (a.k.a. LAYOUT) ANNOTATIONS — beyond EBNF + return annotations + semantic annotations. It governs surface faithfulness (the characters emitted must re-lex to the intended tokens). It can STEER BOTH parsing and generation, but in PGEN today affects generation far more often (the parser already resolves most token boundaries via maximal munch; the generator has no lexical discipline). Parsing also verifies faithfulness by re-parsing generated output. To be designed generally + parser-agnostically, never as a hack."
 metadata:
   node_type: memory
   type: project
@@ -21,17 +21,22 @@ pillars, not three:
 Pillars 1–3 fully pin down the **tree** and its meaning but say **nothing** about how that tree is
 rendered to **characters** (token separation, mandatory newlines, layout). That gap is the 4th pillar.
 
-**Why it was invisible / which direction it serves.** Parsing (text → tree) honours the lexical surface
-*automatically* via the lexer's **maximal munch** (longest match) — implicit in regex matching — so the
-parser never needed an explicit mechanism and parses valid input fine. Generation (tree → text) has no
-maximal munch to lean on, so it must **actively enforce** the separation. Therefore the 4th-pillar
-*mechanism* is **a generation concern** (confirmed by the director: "lexical annotations affect only
-the generation"). Parsing then doubles as the **verifier**: the certifying gate re-parses generated
-output, checking the invariant `render(t)` re-lexes to `t`. Enforcer = generator; verifier = parser.
+**Which direction it serves — BOTH, generation-dominant today.** Lexical-surface constraints are a
+property of the language's lexical interface, and *both* directions traverse it, so they can **steer
+both parsing and generation**: on the parse side as **disambiguation** (SDF2 follow restrictions /
+reject productions resolve longest-match ambiguities and keyword reservation), on the generate side as
+**faithful-rendering enforcement** (insert separators so output re-lexes correctly). **In PGEN today
+they are needed for generation far more often**, because the parser already resolves most token
+boundaries *automatically* via **maximal munch** (longest match, implicit in regex matching) while the
+generator has **no** lexical discipline at all. So today's enforcer-most-needed is the generator; the
+parser both *honours* the constraints (maximal munch) and *verifies* faithfulness (the certifying gate
+re-parses generated output, checking `render(t)` re-lexes to `t`).
 
-*Footnote (honest):* the constraints are direction-neutral — SDF2 uses the same declarative "follow
-restrictions" to disambiguate *parsing*. So the same lexical annotations could later serve parse-time
-disambiguation if maximal munch ever proves insufficient — a latent bonus, not today's role.
+This **refines** the director's earlier "affects only generation" reading (director 2026-06-06): the
+pillar is **bidirectional** — it may steer both parsing and generation; the generation skew is a fact
+about PGEN's *current* state (parser has maximal munch, generator has nothing), not about the pillar's
+nature. Practically, the `.2`–`.4` work is generation-side enforcement, designed so the *same*
+declarative lexical annotations can serve parse-time disambiguation if ever needed.
 
 **Why pillars 1–3 cannot express it (the no-workarounds justification).** EBNF is token/rule-level and
 *assumes* a tokenization; it does not state the character-level separation needed to *achieve* it.

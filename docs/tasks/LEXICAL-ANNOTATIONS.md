@@ -23,9 +23,14 @@ text that does **not** re-lex to the tokens it intended.
 
 This is a genuine **fourth pillar — LEXICAL (a.k.a. LAYOUT) ANNOTATIONS** — governing **surface
 faithfulness**: *the characters emitted must re-lex (and re-parse) to exactly the tokens they were meant
-to be.* It is **enforced in generation**; the parser **already honours** it via maximal munch and now
-**verifies** it (the certifying gate re-parses every generated sample). Prefer the name *lexical
-annotations*; *layout annotations* is an accepted synonym.
+to be.* The pillar is **bidirectional** — lexical-surface constraints can **steer both parsing and
+generation** (SDF uses the same follow restrictions for parse-time disambiguation). **In PGEN today
+they are needed for generation far more often**, because the parser already resolves most token
+boundaries via **maximal munch** while the generator has **no** lexical discipline at all. So the
+`.2`–`.4` work is generation-side enforcement; the parser both **honours** the constraints (maximal
+munch) and **verifies** faithfulness (the certifying gate re-parses every generated sample) — designed
+so the *same* annotations can serve parsing if ever needed. Prefer the name *lexical annotations*;
+*layout annotations* is an accepted synonym.
 
 ### Origin (the two real defects that proved the gap)
 
