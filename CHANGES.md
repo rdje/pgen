@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-MEMORY-ARCH-0021 (handoff readiness): sync the task-tree index + frontiers for a fresh agent.
+
+Ensured the recovery surfaces are accurate + consistent so a new agent can continue cleanly:
+- `docs/TASK_TREE.md`: the **LEXICAL-ANNOTATIONS** row (was stale at "FRONTIER = .2 DESIGN") now reflects DONE (survey/design/notation/derivation A/B/faithful-default `-0001..-0010`), the `.3c` tokenizer-only attempt REVERTED after audit (`-0012`), and FRONTIER = re-land `.3c` COMPLETE on the per-rule/per-branch design. The **GRAMMAR-WELLFORMED** row (was stale at `-0008`) now reflects Phase G (certifying linter + the certificate-coverage gate, run on SV) DONE and FRONTIER = drive `UNKNOWN`→0 + Phase H + checker bin + A2.1 deep.
+- `docs/tasks/LEXICAL-ANNOTATIONS.md` header frontier synced + a ⚠️ "read the AST-pipeline KM cards before touching pipeline code" banner.
+- Resume pointer (`MEMORY.md`) already current (the `-0012` audit/revert block).
+
+State for handoff: working tree clean; lib 607/607 + ebnf_frontend 17/17 green; pipeline free of the reverted half-feature (ebnf_frontend.rs byte-identical to its pre-`.3c` state); holistic model + disciplines captured in KM cards + decision records.
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0012 (leaf LEXICAL-ANNOTATIONS.3c): AUDIT + REVERT the step-1 tokenizer half-feature.
 
 Director-directed: after a thorough holistic study of the AST pipeline, audit the latest pipeline change and remove any potentially-faulty code. Audited `-0011` (the inline lexical-annotation tokenizer in the hand-written `src/ebnf_frontend.rs`):

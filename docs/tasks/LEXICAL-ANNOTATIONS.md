@@ -1,8 +1,15 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.3d` (on-by-default flag policy + operator-fusion)
-> and/or `.3c` (declarative annotation, after the notation decision). `.3` Obligations A (`-0005`) + B
-> (`-0006`) DONE. **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md).
+> **Status:** `active` (2026-06-06). **Frontier:** `.3c` — re-land the declarative follow-restriction
+> annotation **COMPLETE** (tokenizer + IR handler + generator consumption) in ONE verified slice, on the
+> **per-rule/per-branch** design the generator can consume (the `-0011` tokenizer-only attempt was
+> REVERTED after audit `-0012` — see `.3c`). Derivation half DONE + measured: A `-0005` (anchors),
+> B `-0006` (regex-derived trailing guard), `-0007` (faithful-by-default); gate `sample_parse_failures`
+> 25→1→0. Design + notation LOCKED. Also pending: `.3d` (operator fusion + CLI default-on), `.4` verify.
+> ⚠️ **Read the AST-pipeline KM cards ([[ast-pipeline-architecture]], [[ebnf-frontend-architecture]]) and
+> [[feedback_understand_subsystem_holistically_first]] BEFORE touching any pipeline code.**
+> **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md) ·
+> [`research synthesis`](LEXICAL-ANNOTATIONS-research-synthesis.md).
 > **Family / slice-id prefix:** `PGEN-LEXICAL-ANNOTATIONS-<NNNN>`.
 > **Decision record:** [`project_lexical_annotations_fourth_pillar`](../decisions/project_lexical_annotations_fourth_pillar.md).
 > **Book chapter:** [`docs/book/src/lexical-annotations.md`](../book/src/lexical-annotations.md).
