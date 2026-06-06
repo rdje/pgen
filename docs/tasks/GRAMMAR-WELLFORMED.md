@@ -136,6 +136,24 @@ subtle dead branch"), never a silent accept.
   safety). VERIFIED: SV unreachable_rules=0 (multi-entry handled correctly), ALL 10 authored grammars
   =0, SV lint exit 0; lib (no-features) grammar_wellformedness 17/0. Follow-up `A1b.1`: catch
   unreferenced dead orphans (needs an entry-declaration so an orphan ≠ a secondary entry).
+- `A1b.2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0032, 2026-06-06):** SV closure-contract no-regression FLOOR
+  re-baseline (v2→v3) after two LEGITIMATE profile-variant collapses that landed since the v2 baseline.
+  `sv_syntax_closure_gate` was failing 2 violations — `defined_rule_count 1453 < min_total_rules 1455`
+  and `reachable_rules 1406 < min_reachable_rules 1407`. ROOT CAUSE (tools-first, decisive): `git diff`
+  of the defined-rule-name set between the v2 baseline commit `f5b25b3d` (1455 rules) and HEAD (1453)
+  showed EXACTLY two names disappeared — `binary_module_path_operator_sv_2023` (collapsed into its
+  canonical form by `PGEN-ANNOTATION-COMPOSITION-0002`; it was REACHABLE → −1 reachable) and
+  `non_zero_decimal_digit_sv_2017` (collapsed into the base by `PGEN-ANNOTATION-COMPOSITION-0005`; it was
+  a BLESSED unreachable number orphan → −1 total, −1 unreachable). Both are documented, leaf-owned,
+  corpus-14/14-verified grammar cleanups — NOT regressions; the stale no-regression floors simply weren't
+  lowered in lockstep (the contract even still listed the deleted `non_zero_decimal_digit_sv_2017` in its
+  blessed list). FIX (honest closure-debt management per the contract's own drift policy): contract v3 —
+  `min_total_rules` 1455→1453, `min_reachable_rules` 1407→1406, `max_unreachable_rules` 50→49 (matches the
+  now-49 blessed-orphan surface); dropped `non_zero_decimal_digit_sv_2017` from the blessed list; v3 prose
+  records the two collapses + responsible commits. Contract-only change (no grammar/Rust edit). VERIFIED:
+  `sv_syntax_closure_gate` ✅ (defined 1453, reachable 1406, unreachable 49 — all within v3); reachability
+  is otherwise unchanged (no real loss masked). Surfaced during `LEXICAL-ANNOTATIONS.3d (ii-CLI)`
+  verification as a pre-existing failure; fixed here on its own leaf per the doctrine.
 - `A2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0006):** the SOUND DECIDABLE SUBSET of FIRST-domination —
   **earlier-branch-ALWAYS-SUCCEEDS shadowing.** New `node_always_succeeds`/`compute_always_succeeds`
   (the dual of `compute_nullable`, differing ONLY on the lookahead arm: a predicate `&e`/`!e` is

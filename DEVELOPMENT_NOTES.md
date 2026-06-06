@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-06 - GRAMMAR-WELLFORMED.A1b.2 — sv_syntax_closure_gate floor re-baseline (PGEN-GRAMMAR-WELLFORMED-0032)
+
+### Root cause (tools-first, decisive — not inference)
+The gate failed two MIN-floor checks (`defined_rule_count 1453 < 1455`, `reachable_rules 1406 < 1407`). These are static functions of `grammars/systemverilog.ebnf` + the closure analyzer; `git diff --stat 2368c3a2 HEAD` proved the grammar + the closure contract were byte-unchanged across my LEXICAL-ANNOTATIONS work (so my work did not cause it). Going further back, `comm -23` of the defined-rule-name sets at the contract-v2 baseline commit `f5b25b3d` (1455 rules) vs HEAD (1453) yielded EXACTLY two removed names: `binary_module_path_operator_sv_2023` (ANNOTATION-COMPOSITION-0002, reachable) and `non_zero_decimal_digit_sv_2017` (ANNOTATION-COMPOSITION-0005, blessed-unreachable). The three metric deltas reconcile perfectly: total 1455→1453 (−2), reachable 1407→1406 (−1, the reachable collapse), unreachable 50→49 (−1, the blessed-orphan collapse).
+
+### Fix decision
+Re-baseline the stale floors down (not restore the rules): both removals were intentional, leaf-owned, verified profile-variant collapses (redundant `*_sv_2017`/`*_sv_2023` variants folded into their canonical/base rules), so the grammar is correct and the floors lagged. Per the contract's own drift policy this is honest closure-debt management. Contract-only edit (v2→v3): floors 1455→1453 / 1407→1406, ceiling 50→49, blessed list drops the deleted orphan, prose records the provenance. No Rust/grammar/codegen change → no clippy/regen; `sv_syntax_closure_gate` now ✅.
+
 ## 2026-06-06 - LEXICAL-ANNOTATIONS.3d (ii-CLI) — faithful-by-default CLI (PGEN-LEXICAL-ANNOTATIONS-0015)
 
 ### Change

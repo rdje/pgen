@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0032 (leaf GRAMMAR-WELLFORMED.A1b.2): fix sv_syntax_closure_gate — re-baseline stale no-regression floors (v2→v3).
+
+`sv_syntax_closure_gate` was failing two violations — `defined_rule_count 1453 < min_total_rules 1455` and `reachable_rules 1406 < min_reachable_rules 1407` (surfaced as the pre-existing failure during the `-0015` verification sweep). ROOT CAUSE (tools-first, decisive): a `git diff` of the defined-rule-name set between the contract-v2 baseline commit `f5b25b3d` (1455 rules) and HEAD (1453) showed EXACTLY two names disappeared, both LEGITIMATE profile-variant collapses that landed since v2:
+
+- `binary_module_path_operator_sv_2023` — collapsed into its canonical form by `PGEN-ANNOTATION-COMPOSITION-0002` (it was REACHABLE → −1 reachable).
+- `non_zero_decimal_digit_sv_2017` — collapsed into the base `non_zero_decimal_digit` by `PGEN-ANNOTATION-COMPOSITION-0005` (it was a BLESSED unreachable number orphan → −1 total, −1 unreachable).
+
+Both are documented, leaf-owned, corpus-14/14-verified grammar cleanups (NOT regressions); the stale no-regression floors simply were not lowered in lockstep (the contract even still listed the deleted `non_zero_decimal_digit_sv_2017` in its blessed list). FIX (honest closure-debt management per the contract's own drift policy — re-baseline, never mask): contract `systemverilog_syntax_closure_contract.json` v2→v3 — `min_total_rules` 1455→1453, `min_reachable_rules` 1407→1406, `max_unreachable_rules` 50→49 (matches the now-49 blessed-orphan surface); dropped `non_zero_decimal_digit_sv_2017` from the blessed list; v3 prose records the two collapses + their commits. CONTRACT-ONLY change (no grammar/Rust/codegen edit), so reachability is otherwise unchanged and no real loss is masked. VERIFIED: `sv_syntax_closure_gate` ✅ (defined 1453, reachable 1406, unreachable 49 — all within v3). LIVE_ACHIEVEMENT_STATUS unchanged (SV stays `Mostly Done`; this is internal closure-debt management, not a parser-family status change).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0015 (leaf LEXICAL-ANNOTATIONS.3d ii-CLI): make --generate-stimuli faithful-by-default.
 
 The production CLI now defaults to lexical faithfulness, matching the library `StimuliConfig::default()` (which flipped in `-0007`). Previously `--generate-stimuli` / `--generate-stimuli-module` were faithful-OFF unless you passed `--enforce-word-boundary-spacing`.
