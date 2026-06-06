@@ -1,5 +1,5 @@
 use super::{
-    ASTNode, ASTValue, Annotations, SemanticAnnotation, SemanticAssociativity,
+    ASTNode, ASTValue, Annotations, FollowItem, SemanticAnnotation, SemanticAssociativity,
     SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
     TraceVerbosity, UnifiedSemanticAST, UnifiedSemanticValue, extract_semantic_directive,
     global_trace_verbosity, normalize_semantic_scalar, parse_canonical_transform_expression,
@@ -5114,7 +5114,7 @@ impl<'a> StimuliGenerator<'a> {
                     ),
                 );
                 self.coverage.record_rule_success(rule_name);
-                return Ok(sample_hint);
+                return Ok(self.apply_lexical_follow_restriction(rule_name, sample_hint));
             }
         }
 
@@ -5146,7 +5146,9 @@ impl<'a> StimuliGenerator<'a> {
                 format_args!("↰ exit generate_rule(rule='{}'): error={}", rule_name, err),
             ),
         }
-        result
+        // LEXICAL-ANNOTATIONS.3c — self-terminate the rule's surface per any declared
+        // FORBID follow-restriction before handing it to the caller.
+        result.map(|sample| self.apply_lexical_follow_restriction(rule_name, sample))
     }
 
     fn generate_node(
@@ -7007,6 +7009,68 @@ impl<'a> StimuliGenerator<'a> {
     ) -> bool {
         Self::regex_matches_entire(pattern, candidate)
             && self.value_satisfies_constraints(candidate, constraints)
+    }
+
+    /// LEXICAL-ANNOTATIONS.3c — Obligation C consumption (generation side). If
+    /// `rule_name` declares a FORBID follow-restriction (`[>! LIST ]`), self-terminate
+    /// its rendered `output` with the minimal separator the forbidden set cannot absorb,
+    /// so the rule's last token can never fuse with whatever the generator emits next.
+    /// This mirrors the derived trailing guard (`apply_word_boundary_spacing`) but is
+    /// driven by the DECLARED restriction, covering fusions derivation cannot infer
+    /// (e.g. a fixed-literal operator `<` immediately followed by another `<`). REQUIRE
+    /// (`[> LIST ]`) is a parse-side disambiguation constraint and a documented
+    /// generation no-op (the pillar is bidirectional; generation cannot force a
+    /// successor token locally). Gated on the lexical-faithfulness mode
+    /// (`enforce_word_boundary_spacing`, default on) so negative-test generation opts out
+    /// uniformly. Self-terminating on the rule's whole output, so it is robust against
+    /// every downstream concatenation path (the separator is baked into the returned
+    /// string before any caller appends to it).
+    fn apply_lexical_follow_restriction(&self, rule_name: &str, output: String) -> String {
+        if !self.config.enforce_word_boundary_spacing || output.is_empty() {
+            return output;
+        }
+        let Some(annotations) = self.annotations else {
+            return output;
+        };
+        let Some(restriction) = annotations.lexical_follow_restrictions.get(rule_name) else {
+            return output;
+        };
+        if !restriction.forbid {
+            return output;
+        }
+        let sep = Self::forbid_follow_separator(&restriction.items);
+        let mut out = output;
+        out.push_str(sep);
+        out
+    }
+
+    /// The minimal trailing separator (`" "` then `"\n"`) whose leading character is not
+    /// itself a forbidden follow, so inserting it genuinely breaks the forbidden
+    /// boundary. Falls back to a space when every candidate is forbidden (pathological —
+    /// e.g. a restriction that forbids all whitespace).
+    fn forbid_follow_separator(items: &[FollowItem]) -> &'static str {
+        for sep in [" ", "\n"] {
+            let sep_char = sep.chars().next().expect("separator is non-empty");
+            if !Self::char_starts_forbidden_item(sep_char, items) {
+                return sep;
+            }
+        }
+        " "
+    }
+
+    /// Whether `c` could begin a match of any forbidden item — i.e. placing `c`
+    /// immediately after the rule would still violate the FORBID restriction. A literal
+    /// item is "started" by `c` when it begins with `c`; a regex item is checked by an
+    /// anchored single-character match (a malformed/uncompilable pattern is treated as
+    /// not-started — conservative, never panics).
+    fn char_starts_forbidden_item(c: char, items: &[FollowItem]) -> bool {
+        let probe = c.to_string();
+        items.iter().any(|item| match item {
+            FollowItem::Literal(lit) => lit.starts_with(c),
+            FollowItem::Regex(pattern) => regex::Regex::new(&format!("^(?:{})", pattern))
+                .map(|re| re.find(&probe).map(|m| m.start() == 0).unwrap_or(false))
+                .unwrap_or(false),
+        })
     }
 
     fn apply_word_boundary_spacing(&self, pattern: &str, candidate: String) -> String {
@@ -10181,6 +10245,104 @@ mod tests {
         assert_eq!(G::regex_terminal_trailing_separator(r#""[^"]*""#, "\"x\""), None);
         // empty candidate -> no guard
         assert_eq!(G::regex_terminal_trailing_separator(r"[0-9]+", ""), None);
+    }
+
+    // LEXICAL-ANNOTATIONS.3c — the minimal-separator chooser for a FORBID list.
+    #[test]
+    fn forbid_follow_separator_picks_minimal_breaking_char() {
+        use StimuliGenerator as G;
+        // Forbidding a word-class / a literal operator: a space breaks the boundary.
+        assert_eq!(
+            G::forbid_follow_separator(&[FollowItem::Regex(r"\w".to_string())]),
+            " "
+        );
+        assert_eq!(
+            G::forbid_follow_separator(&[FollowItem::Literal("<".to_string())]),
+            " "
+        );
+        // Forbidding whitespace itself escalates the space candidate to a newline.
+        assert_eq!(
+            G::forbid_follow_separator(&[FollowItem::Regex(r"[ ]".to_string())]),
+            "\n"
+        );
+    }
+
+    // LEXICAL-ANNOTATIONS.3c — Obligation C (declarative follow-restriction), generation
+    // side, END-TO-END through the IR. A FORBID directive (`[>! "<"]`) on `lt := "<"`
+    // makes every `lt` surface self-terminate, so two adjacent `lt` tokens in
+    // `doc := lt lt` cannot fuse into the distinct longer token `<<` — the deferred
+    // `.3d` (i) operator-fusion case the derived obligations cannot infer (a fixed
+    // literal has no open-ended regex tail). Faithfulness off (negative-test mode) opts
+    // out, and the tokens fuse — proving the restriction (not some unrelated default) is
+    // what prevents the fusion.
+    #[test]
+    fn lexical_forbid_follow_restriction_prevents_distinct_longer_token_fusion() {
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+
+        let raw_ast = vec![
+            serde_json::json!([
+                ["rule", "doc"],
+                ["rule_reference", "lt"],
+                ["rule_reference", "lt"]
+            ]),
+            serde_json::json!([
+                ["rule", "lt"],
+                [
+                    "lexical_annotation",
+                    { "polarity": "forbid", "items": [{ "kind": "literal", "value": "<" }] }
+                ],
+                ["quoted_string", "<"]
+            ]),
+        ];
+        let (grammar_tree, rule_order, annotations) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform should succeed");
+        let annotations = annotations.expect("annotations present");
+
+        // Faithfulness ON (default): FORBID self-terminates `lt`, so `<` never fuses.
+        let mut on_gen = StimuliGenerator::new(
+            "lex".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&annotations),
+            StimuliConfig {
+                seed: Some(7),
+                max_depth: 8,
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let on = on_gen
+            .generate_from_entry("doc")
+            .expect("generation (faithful) should succeed");
+        assert!(on.contains('<'), "should still emit the `<` tokens: {:?}", on);
+        assert!(
+            !on.contains("<<"),
+            "FORBID restriction must prevent `<`+`<` fusion, got {:?}",
+            on
+        );
+
+        // Faithfulness OFF (negative-test opt-out): no separator, the tokens fuse.
+        let mut off_gen = StimuliGenerator::new(
+            "lex".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&annotations),
+            StimuliConfig {
+                seed: Some(7),
+                max_depth: 8,
+                enforce_word_boundary_spacing: false,
+                ..StimuliConfig::default()
+            },
+        );
+        let off = off_gen
+            .generate_from_entry("doc")
+            .expect("generation (opt-out) should succeed");
+        assert!(
+            off.contains("<<"),
+            "with faithfulness off the tokens fuse (opt-out), got {:?}",
+            off
+        );
     }
 
     fn simple_generator_with_pending_frontier_extra_stagnation<'a>(

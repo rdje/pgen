@@ -34,11 +34,19 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
         .any(|annotation| annotation.contains('\n'));
     let mut raw_ast = Vec::with_capacity(scanned_rules.len());
     let mut has_inline_semantic_annotations = false;
+    // LEXICAL-ANNOTATIONS.3c — when a grammar declares before-rule lexical
+    // follow-restriction directives (`[> …]` / `[>! …]`), the generated
+    // `EbnfParser` (built from the seed `grammars/ebnf.ebnf`) does not yet know
+    // the construct, so its cross-check would spuriously fail. Gate the soft
+    // cross-check on their presence, exactly as `has_inline_semantic_annotations`
+    // already does for inline semantic annotations.
+    let mut has_lexical_annotations = false;
     for rule in &scanned_rules {
         let converted = convert_scanned_rule(rule)?;
         has_inline_semantic_annotations |=
             contains_token_type(&converted, "semantic_annotation_inline")
                 || contains_token_type(&converted, "semantic_annotation_mid_sequence");
+        has_lexical_annotations |= contains_token_type(&converted, "lexical_annotation");
         raw_ast.push(converted);
     }
 
@@ -50,7 +58,7 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     // yet (cold-clone bootstrap), letting the hand-written path bootstrap
     // it without compile-time circular dependencies.
     #[cfg(has_generated_ebnf_parser)]
-    if !has_inline_semantic_annotations {
+    if !has_inline_semantic_annotations && !has_lexical_annotations {
         let mut parser = EbnfParser::new(input, runtime_logger_box("generated.ebnf_frontend"));
         if let Err(err) = parser.parse_full_grammar_file() {
             if !has_multiline_annotations && generated_verify_required() {
@@ -64,7 +72,11 @@ pub fn parse_ebnf_text_to_raw_ast_envelope(
     }
     #[cfg(not(has_generated_ebnf_parser))]
     {
-        let _ = (has_inline_semantic_annotations, has_multiline_annotations);
+        let _ = (
+            has_inline_semantic_annotations,
+            has_multiline_annotations,
+            has_lexical_annotations,
+        );
     }
     let source_file_value = source_file.unwrap_or("<memory>");
 
@@ -104,6 +116,11 @@ fn contains_token_type(rule_tokens: &Value, expected_type: &str) -> bool {
 struct ScannedRule {
     name: String,
     annotations: Vec<String>,
+    /// LEXICAL-ANNOTATIONS.3c — before-rule lexical follow-restriction directives
+    /// (`[> LIST ]` / `[>! LIST ]`) collected at column 0 immediately above this
+    /// rule, in source order. Each entry is the raw directive line (outer `[ … ]`
+    /// included); it is parsed into a structured token by `convert_scanned_rule`.
+    lexical_annotations: Vec<String>,
     expression: String,
     return_annotation: Option<String>,
 }
@@ -112,6 +129,9 @@ fn scan_top_level_rules(input: &str) -> Result<Vec<ScannedRule>> {
     let lines: Vec<&str> = input.lines().collect();
     let mut rules = Vec::new();
     let mut pending_annotations = Vec::new();
+    // LEXICAL-ANNOTATIONS.3c — before-rule follow-restriction directives pending
+    // attachment to the next rule header, collected in source order.
+    let mut pending_lexical_annotations: Vec<String> = Vec::new();
     let mut idx = 0usize;
 
     while idx < lines.len() {
@@ -139,6 +159,19 @@ fn scan_top_level_rules(input: &str) -> Result<Vec<ScannedRule>> {
             continue;
         }
 
+        // LEXICAL-ANNOTATIONS.3c — a before-rule lexical follow-restriction
+        // directive: `[> LIST ]` ("must be followed by") or `[>! LIST ]`
+        // ("must NOT be followed by"). Unambiguous at column 0: no rule header,
+        // `@` annotation, or include directive begins with `[>`. It binds the
+        // next rule header (collected like a `@` annotation). The body-level
+        // `[ … ]` optional-group tokenization in `tokenize_rule_expression` is
+        // untouched — these directives are stripped here before the body is seen.
+        if trimmed.starts_with("[>") {
+            pending_lexical_annotations.push(trimmed.to_string());
+            idx += 1;
+            continue;
+        }
+
         if let Some((rule_name, first_body)) = parse_rule_header(trimmed) {
             let (body, next_idx) = collect_rule_body(&lines, idx, first_body);
             // The whole body — including any `->` annotations — is handed to
@@ -151,6 +184,7 @@ fn scan_top_level_rules(input: &str) -> Result<Vec<ScannedRule>> {
             rules.push(ScannedRule {
                 name: rule_name,
                 annotations: std::mem::take(&mut pending_annotations),
+                lexical_annotations: std::mem::take(&mut pending_lexical_annotations),
                 expression: body.trim().to_string(),
                 return_annotation: None,
             });
@@ -175,6 +209,22 @@ fn convert_scanned_rule(rule: &ScannedRule) -> Result<Value> {
         if let Some((name, payload)) = parse_semantic_annotation_text(raw_annotation) {
             tokens.push(json!(["semantic_annotation", [name, payload]]));
         }
+    }
+
+    // LEXICAL-ANNOTATIONS.3c — emit a structured `lexical_annotation` token per
+    // before-rule follow-restriction directive. The token payload is a JSON object
+    // `{ "polarity": "forbid"|"require", "items": [{ "kind": "regex"|"literal",
+    // "value": "…" }, …] }`. `transform_from_raw_ast` consumes it into the rule's
+    // `Annotations.lexical_follow_restrictions`. A malformed directive is a hard
+    // grammar error (fail loudly — never emit a corrupt half-token).
+    for raw_directive in &rule.lexical_annotations {
+        let payload = parse_lexical_annotation_line(raw_directive).with_context(|| {
+            format!(
+                "malformed lexical follow-restriction directive on rule '{}': '{}'",
+                rule.name, raw_directive
+            )
+        })?;
+        tokens.push(json!(["lexical_annotation", payload]));
     }
 
     tokens.extend(tokenize_rule_expression(&rule.expression)?);
@@ -871,6 +921,66 @@ fn parse_regex_literal(input: &str, start: usize) -> Option<(String, usize)> {
     None
 }
 
+/// LEXICAL-ANNOTATIONS.3c — parse a before-rule follow-restriction directive line
+/// (`[> LIST ]` / `[>! LIST ]`) into the structured token payload consumed by the
+/// IR. `LIST` is one or more items, each a `/regex/` or a `"string"`/`'string'`
+/// literal, freely mixed and separated by whitespace and/or commas (the list is a
+/// union). Returns `None` on any malformed input (unknown polarity, no items,
+/// stray token, or unterminated literal) so the caller can fail loudly.
+///
+/// Polarity: `[> …]` is REQUIRE ("must be followed by one of LIST"); `[>! …]` is
+/// FORBID ("must NOT be immediately followed by any of LIST").
+fn parse_lexical_annotation_line(line: &str) -> Option<Value> {
+    let trimmed = line.trim();
+    let bytes = trimmed.as_bytes();
+    if bytes.first().copied() != Some(b'[') || bytes.get(1).copied() != Some(b'>') {
+        return None;
+    }
+    let mut idx = 2usize;
+    let polarity = if bytes.get(idx).copied() == Some(b'!') {
+        idx += 1;
+        "forbid"
+    } else {
+        "require"
+    };
+
+    let mut items: Vec<Value> = Vec::new();
+    let mut closed = false;
+    while idx < bytes.len() {
+        let ch = bytes[idx] as char;
+        if ch.is_whitespace() || ch == ',' {
+            idx += 1;
+            continue;
+        }
+        if ch == ']' {
+            closed = true;
+            idx += 1;
+            break;
+        }
+        if ch == '/' {
+            let (pattern, next) = parse_regex_literal(trimmed, idx)?;
+            items.push(json!({ "kind": "regex", "value": pattern }));
+            idx = next;
+            continue;
+        }
+        if ch == '"' || ch == '\'' {
+            let (literal, next) = parse_quoted_literal(trimmed, idx)?;
+            items.push(json!({ "kind": "literal", "value": literal }));
+            idx = next;
+            continue;
+        }
+        // Any other character inside the directive is malformed.
+        return None;
+    }
+
+    // The list must be non-empty and the bracket must close, with nothing after it.
+    if !closed || items.is_empty() || trimmed.get(idx..).map(str::trim) != Some("") {
+        return None;
+    }
+
+    Some(json!({ "polarity": polarity, "items": items }))
+}
+
 fn parse_identifier(input: &str, start: usize) -> Option<(String, usize)> {
     let bytes = input.as_bytes();
     let first = *bytes.get(start)? as char;
@@ -1007,8 +1117,8 @@ fn classify_return_annotation(body: &str) -> &'static str {
 mod tests {
     use super::{
         classify_return_annotation, parse_ebnf_file_to_raw_ast_envelope,
-        parse_ebnf_text_to_raw_ast_envelope, parse_semantic_annotation_text,
-        tokenize_rule_expression,
+        parse_ebnf_text_to_raw_ast_envelope, parse_lexical_annotation_line,
+        parse_semantic_annotation_text, tokenize_rule_expression,
     };
     use std::collections::BTreeSet;
     use std::path::PathBuf;
@@ -1461,5 +1571,94 @@ entry = alpha
                 expected
             );
         }
+    }
+
+    // LEXICAL-ANNOTATIONS.3c — the before-rule follow-restriction directive parser.
+    #[test]
+    fn parses_lexical_follow_restriction_directives() {
+        // FORBID with a mixed regex + literal union list.
+        let forbid = parse_lexical_annotation_line("[>! /\\w/, \"endmodule\"]")
+            .expect("forbid directive should parse");
+        assert_eq!(forbid["polarity"], "forbid");
+        assert_eq!(forbid["items"][0]["kind"], "regex");
+        assert_eq!(forbid["items"][0]["value"], "\\w");
+        assert_eq!(forbid["items"][1]["kind"], "literal");
+        assert_eq!(forbid["items"][1]["value"], "endmodule");
+
+        // REQUIRE with a single literal item.
+        let require =
+            parse_lexical_annotation_line("[> \"x\"]").expect("require directive should parse");
+        assert_eq!(require["polarity"], "require");
+        assert_eq!(require["items"].as_array().expect("items array").len(), 1);
+        assert_eq!(require["items"][0]["kind"], "literal");
+
+        // Malformed: unknown polarity body, empty list, stray token, trailing junk.
+        assert!(parse_lexical_annotation_line("[x]").is_none());
+        assert!(parse_lexical_annotation_line("[>!]").is_none());
+        assert!(parse_lexical_annotation_line("[>! foo]").is_none());
+        assert!(parse_lexical_annotation_line("[>! \"a\"] extra").is_none());
+    }
+
+    // LEXICAL-ANNOTATIONS.3c — a before-rule directive binds the next rule header and
+    // surfaces as a `lexical_annotation` token in the raw_ast envelope.
+    #[test]
+    fn before_rule_lexical_annotation_binds_following_rule() {
+        let grammar = "[>! \"<\"]\nlt := \"<\"\nother := \"y\"\n";
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(grammar, "lex_test", None)
+            .expect("envelope should parse");
+        let raw_ast = envelope["raw_ast"].as_array().expect("raw_ast array");
+
+        // The directive attaches to `lt` (the following rule), not `other`.
+        let lt_rule = raw_ast
+            .iter()
+            .find(|rule| {
+                rule.as_array()
+                    .and_then(|tokens| tokens.first())
+                    .and_then(|head| head.as_array())
+                    .and_then(|head| head.get(1))
+                    .and_then(serde_json::Value::as_str)
+                    == Some("lt")
+            })
+            .expect("rule `lt` should be present");
+        let lt_tokens = lt_rule.as_array().expect("lt tokens");
+        let lexical = lt_tokens
+            .iter()
+            .find(|token| {
+                token
+                    .as_array()
+                    .and_then(|parts| parts.first())
+                    .and_then(serde_json::Value::as_str)
+                    == Some("lexical_annotation")
+            })
+            .expect("lt should carry a lexical_annotation token");
+        let payload = &lexical.as_array().expect("token array")[1];
+        assert_eq!(payload["polarity"], "forbid");
+        assert_eq!(payload["items"][0]["kind"], "literal");
+        assert_eq!(payload["items"][0]["value"], "<");
+
+        // `other` must NOT carry the directive.
+        let other_rule = raw_ast
+            .iter()
+            .find(|rule| {
+                rule.as_array()
+                    .and_then(|tokens| tokens.first())
+                    .and_then(|head| head.as_array())
+                    .and_then(|head| head.get(1))
+                    .and_then(serde_json::Value::as_str)
+                    == Some("other")
+            })
+            .expect("rule `other` should be present");
+        assert!(
+            !other_rule
+                .as_array()
+                .expect("other tokens")
+                .iter()
+                .any(|token| token
+                    .as_array()
+                    .and_then(|parts| parts.first())
+                    .and_then(serde_json::Value::as_str)
+                    == Some("lexical_annotation")),
+            "follow-restriction must bind only the immediately following rule"
+        );
     }
 }

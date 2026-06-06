@@ -2145,6 +2145,12 @@ fn filter_annotations_by_profile(
     let mut semantic_annotations = annotations.semantic_annotations;
     semantic_annotations.retain(|rule_name, _| retained_rules.contains(rule_name));
 
+    // LEXICAL-ANNOTATIONS.3c — profile-filter the per-rule follow-restrictions
+    // consistently with the other per-rule maps: a rule pruned by the active profile
+    // takes its lexical follow-restriction with it.
+    let mut lexical_follow_restrictions = annotations.lexical_follow_restrictions;
+    lexical_follow_restrictions.retain(|rule_name, _| retained_rules.contains(rule_name));
+
     let mut pre_lr_elim_branch_return_annotations = annotations
         .pre_lr_elim_branch_return_annotations;
     if let Some(snapshot) = pre_lr_elim_branch_return_annotations.as_mut() {
@@ -2156,6 +2162,7 @@ fn filter_annotations_by_profile(
         branch_semantic_annotations,
         branch_mid_sequence_semantic_annotations,
         semantic_annotations,
+        lexical_follow_restrictions,
         pre_lr_elim_branch_return_annotations,
     }
 }

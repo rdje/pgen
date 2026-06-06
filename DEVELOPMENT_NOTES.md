@@ -1,4 +1,47 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-06 - LEXICAL-ANNOTATIONS.3c — declarative follow-restriction re-landed COMPLETE (PGEN-LEXICAL-ANNOTATIONS-0013)
+
+### Root design decision (why per-rule, why self-terminating)
+The `-0011` attempt was tokenizer-only and emitted a token with no IR handler → the catch-all in
+`extract_rule_annotations` would have pushed it into `syntax_elements` and corrupted the grammar IR the
+moment any grammar used `[>` (reverted in `-0012`). The re-land rule therefore demanded an ATOMIC
+vertical: tokenizer + IR handler + generator consumption together. Two design facts drove the shape:
+
+1. **Per-rule, not inline.** The annotation consumption matrix (KM `ast-pipeline-architecture`) is
+   decisive: position-specific (mid-sequence/inline) annotations are **codegen-only** — the stimuli
+   generator does not consume them. A follow-restriction exists to steer the GENERATOR (Obligation B),
+   so an inline form would be generator-unconsumable. The **before-rule** directive binds the *rule*
+   (per-rule granularity) → generator-visible. Inline is deferred precisely because shipping it
+   tokenizer-only would reproduce the `-0011` half-feature.
+2. **Self-terminating, not pending-state.** A rule's full rendered surface is produced by
+   `generate_rule` and then concatenated by callers via many paths (`append_generated_segment`,
+   `format!`, quantifier loops). Tracking a "pending restriction" across those paths is fragile. Instead
+   the FORBID separator is baked into the rule's returned string at `generate_rule`'s Ok-exits, so it is
+   robust against every downstream concatenation — and it mirrors the existing derived trailing guard
+   (`apply_word_boundary_spacing`). The separator is chosen minimally (space → newline) as the first
+   candidate whose leading char is not itself a forbidden follow.
+
+### What landed (files)
+- `src/ebnf_frontend.rs`: `ScannedRule.lexical_annotations`; `scan_top_level_rules` collects column-0
+  `[>` lines; `parse_lexical_annotation_line` (reuses `parse_regex_literal`/`parse_quoted_literal`);
+  `convert_scanned_rule` emits `["lexical_annotation", {polarity, items}]`; generated cross-check gated
+  on `has_lexical_annotations`. Tokenizer body `[`-as-optional path UNTOUCHED.
+- `src/ast_pipeline/mod.rs`: `FollowItem`, `FollowRestriction` (+ `from_token_payload`);
+  `Annotations.lexical_follow_restrictions` (`#[serde(default)]`); `extract_rule_annotations`
+  `"lexical_annotation"` arm before the catch-all; threaded through `ParsedRuleContent` /
+  `transform_from_raw_ast` + the annotations-present gate.
+- `src/ast_pipeline/stimuli_generator.rs`: `apply_lexical_follow_restriction` / `forbid_follow_separator`
+  / `char_starts_forbidden_item`; applied at both `generate_rule` Ok-exits.
+- `src/main.rs`: `filter_annotations_by_profile` filters + constructs the new map (caught only by
+  `clippy --all-targets`, not `cargo test --lib` — the `ast_pipeline` bin's explicit struct literal).
+
+### Verification
+lib 610/610 (no-features) + 632/632 (`ebnf_dual_run`); `generated_parsers` compiles; source clippy clean
+(generated `==`-debt pre-existing, non-strict). Zero blast radius proven by construction (0/17 grammars
+declare `[>`; helper is a pass-through with no restriction) + the unchanged generation tests. The
+cross-grammar certificate-coverage gate re-run is the dedicated `.4` leaf; SV is unaffected by
+construction here.
+
 ## 2026-05-31 - TASKTREE-GOV — **Governance tree stood up + SESSION-PAUSE CONTINUITY CHECKPOINT** (PGEN-TASKTREE-GOV-0001, doc-only)
 
 ### What landed this slice

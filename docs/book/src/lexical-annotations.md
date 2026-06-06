@@ -1,9 +1,11 @@
 # Lexical Annotations — the 4th pillar (surface faithfulness)
 
-> **Status: design in progress** (tree [`LEXICAL-ANNOTATIONS`]). This chapter introduces the concept
-> and why it exists; the concrete annotation surface and engine mechanism are being designed and will
-> be documented here as they land. *Lexical annotations* is the preferred name; *layout annotations* is
-> an accepted synonym.
+> **Status: landing incrementally** (tree [`LEXICAL-ANNOTATIONS`]). The derived obligations (A
+> intra-token anchor honouring, B inter-token boundary separation) and the **before-rule declarative
+> follow-restriction** `[> … ]` / `[>! … ]` are implemented and consumed by the stimuli generator (see
+> *Notation* and *What the generator does with it* below). Still to come: the inline (per-element) form
+> and the cross-grammar verification sweep. *Lexical annotations* is the preferred name; *layout
+> annotations* is an accepted synonym.
 
 ## Three pillars describe the tree; a fourth describes the text
 
@@ -96,3 +98,35 @@ Although `[ … ]` is also "optional" inside a rule *body*, `[>` / `[>!` is unam
 expression can begin with `>`, so `[>` is never an optional. Most grammars need **no** lexical
 annotations at all — the regex-derived rules cover the common cases; this is the explicit escape hatch
 for the rest.
+
+## What the generator does with it
+
+A before-rule directive binds the **rule that immediately follows it** (exactly like a `@…` directive —
+see [Annotation reference][annot-binds]). The directive is recorded per-rule, so the stimuli generator
+can consume it (per-rule and per-branch annotations are generator-visible; per-element ones are not).
+
+- **`[>! LIST ]` (forbid)** is enforced during generation. Whenever the generator emits the rule's
+  surface, it **self-terminates** that surface with the *minimal* separator the forbidden set cannot
+  absorb — a single space, escalating to a newline only if a space would itself be a forbidden follow.
+  Because the separator is baked into the rule's rendered text before anything is appended after it, the
+  rule's last token can never fuse with whatever comes next, no matter how the surrounding rules
+  concatenate. This is what lets a grammar forbid a *distinct-longer-token* fusion that derivation
+  cannot infer — e.g. a fixed literal `<` immediately followed by another `<` becoming `<<`:
+
+  ```ebnf
+  [>! "<"]            # the `<` token must never be directly followed by another `<`
+  lt := "<"
+  #  doc := lt lt   →  "< <"  (faithful)   rather than   "<<"  (a different token)
+  ```
+
+- **`[> LIST ]` (require)** is recorded for the **parsing** direction (follow restrictions also
+  disambiguate scannerless parsing). Generation performs no insertion for it: faithfulness violations
+  come from *fusion* (which `forbid` prevents), and the generator cannot force a *successor* token
+  locally. So `require` is carried and available, but a documented generation no-op today.
+
+Enforcement is part of the **lexical-faithfulness mode**, which is **on by default**. Negative-test
+generation — which deliberately produces malformed lexical surface — opts out, and then follow
+restrictions (and all other faithfulness guards) are not applied. The certificate-coverage gate
+re-parses every generated sample, so any faithfulness gap surfaces as a parse failure.
+
+[annot-binds]: ./annotation-system.md

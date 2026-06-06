@@ -1070,6 +1070,57 @@ pub struct MidSequenceSemanticAnnotation {
     pub annotation: SemanticAnnotation,
 }
 
+/// LEXICAL-ANNOTATIONS.3c — one item in a follow-restriction list. The list is a
+/// union: a `Regex` item matches if its pattern matches the follow text; a
+/// `Literal` item matches the exact string. Items are derived from the EBNF
+/// `[> /regex/ "string" … ]` / `[>! … ]` before-rule directive.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub enum FollowItem {
+    Regex(String),
+    Literal(String),
+}
+
+/// LEXICAL-ANNOTATIONS.3c — a per-rule lexical follow-restriction (the declarative
+/// "Obligation C" of the faithful-rendering invariant). A rule annotated with
+/// `[>! LIST ]` must NOT be immediately followed by any item in `LIST`
+/// (`forbid == true`); `[> LIST ]` must be followed by one of them
+/// (`forbid == false`). FORBID is consumed by the stimuli generator as a minimal
+/// self-terminating separator; REQUIRE is carried for parse-side disambiguation
+/// (the bidirectional pillar) and is a documented generation no-op today.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub struct FollowRestriction {
+    pub forbid: bool,
+    pub items: Vec<FollowItem>,
+}
+
+impl FollowRestriction {
+    /// Parse the structured token payload emitted by the EBNF frontend
+    /// (`{ "polarity": "forbid"|"require", "items": [{ "kind": …, "value": … }] }`).
+    /// Returns `None` for any malformed payload so the caller can fail loudly
+    /// (mirrors the frontend's strict parse — never silently accept a half-token).
+    pub fn from_token_payload(payload: &serde_json::Value) -> Option<Self> {
+        let forbid = match payload.get("polarity").and_then(|v| v.as_str())? {
+            "forbid" => true,
+            "require" => false,
+            _ => return None,
+        };
+        let raw_items = payload.get("items").and_then(|v| v.as_array())?;
+        let mut items = Vec::with_capacity(raw_items.len());
+        for raw in raw_items {
+            let value = raw.get("value").and_then(|v| v.as_str())?.to_string();
+            match raw.get("kind").and_then(|v| v.as_str())? {
+                "regex" => items.push(FollowItem::Regex(value)),
+                "literal" => items.push(FollowItem::Literal(value)),
+                _ => return None,
+            }
+        }
+        if items.is_empty() {
+            return None;
+        }
+        Some(FollowRestriction { forbid, items })
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Default)]
 pub struct Annotations {
     #[serde(default)]
@@ -1082,6 +1133,12 @@ pub struct Annotations {
         std::collections::HashMap<String, Vec<Vec<MidSequenceSemanticAnnotation>>>,
     #[serde(default)]
     pub semantic_annotations: std::collections::HashMap<String, Vec<SemanticAnnotation>>,
+    /// LEXICAL-ANNOTATIONS.3c — per-rule lexical follow-restrictions declared via
+    /// the before-rule `[> … ]` / `[>! … ]` directive. Keyed by rule name. Additive
+    /// and `#[serde(default)]` so deserialization of pre-existing artifacts (which
+    /// lack this key) stays backward-compatible.
+    #[serde(default)]
+    pub lexical_follow_restrictions: std::collections::HashMap<String, FollowRestriction>,
     /// Pre-LR-elim snapshot of `branch_return_annotations`. Populated by
     /// the LR-elim pass before it rewrites annotations into the
     /// `_pgen_lr_chain` shape (Strategy 3a). The inventory builder uses
@@ -1334,6 +1391,8 @@ struct ParsedRuleContent {
     branch_semantic_annotations: Vec<Vec<SemanticAnnotation>>,
     branch_mid_sequence_semantic_annotations: Vec<Vec<MidSequenceSemanticAnnotation>>,
     semantic_annotations: Vec<SemanticAnnotation>,
+    /// LEXICAL-ANNOTATIONS.3c — the rule's before-rule follow-restriction, if any.
+    lexical_follow_restriction: Option<FollowRestriction>,
 }
 
 #[derive(Debug, Clone)]
@@ -1343,6 +1402,8 @@ struct ExtractedRuleAnnotations {
     branch_semantic_annotations: Vec<Vec<SemanticAnnotation>>,
     branch_mid_sequence_semantic_annotations: Vec<Vec<MidSequenceSemanticAnnotation>>,
     semantic_annotations: Vec<SemanticAnnotation>,
+    /// LEXICAL-ANNOTATIONS.3c — the rule's before-rule follow-restriction, if any.
+    lexical_follow_restriction: Option<FollowRestriction>,
 }
 
 impl RustASTPipeline {
@@ -1463,6 +1524,16 @@ impl RustASTPipeline {
                                     .or_default()
                                     .extend(parsed_rule.semantic_annotations.clone());
                             }
+                            // LEXICAL-ANNOTATIONS.3c — record the rule's before-rule
+                            // follow-restriction. A rule may be split across multiple raw
+                            // arrays (merged into one OR node above); the directive is
+                            // declared once, so first-writer-wins keeps it stable.
+                            if let Some(restriction) = &parsed_rule.lexical_follow_restriction {
+                                annotations
+                                    .lexical_follow_restrictions
+                                    .entry(rule_name.clone())
+                                    .or_insert_with(|| restriction.clone());
+                            }
                         }
                         if let Some(existing_rule) = grammar_tree.get(&rule_name).cloned() {
                             let mut merged_alternatives = Self::as_alternatives(&existing_rule);
@@ -1521,7 +1592,11 @@ impl RustASTPipeline {
                 || !annotations
                     .branch_mid_sequence_semantic_annotations
                     .is_empty()
-                || !annotations.semantic_annotations.is_empty())
+                || !annotations.semantic_annotations.is_empty()
+                // LEXICAL-ANNOTATIONS.3c — a grammar that declares only lexical
+                // follow-restrictions (no other annotations) must still surface its
+                // `Annotations` so the generator can consume the restriction.
+                || !annotations.lexical_follow_restrictions.is_empty())
         {
             Some(annotations)
         } else {
@@ -2133,6 +2208,7 @@ impl RustASTPipeline {
                 branch_semantic_annotations: vec![Vec::new()],
                 branch_mid_sequence_semantic_annotations: vec![Vec::new()],
                 semantic_annotations: Vec::new(),
+                lexical_follow_restriction: None,
             });
         }
 
@@ -2169,6 +2245,7 @@ impl RustASTPipeline {
                 branch_semantic_annotations,
                 branch_mid_sequence_semantic_annotations,
                 semantic_annotations: extracted.semantic_annotations,
+                lexical_follow_restriction: extracted.lexical_follow_restriction,
             });
         }
 
@@ -2240,6 +2317,7 @@ impl RustASTPipeline {
             branch_semantic_annotations,
             branch_mid_sequence_semantic_annotations,
             semantic_annotations: extracted.semantic_annotations,
+            lexical_follow_restriction: extracted.lexical_follow_restriction,
         })
     }
 
@@ -2253,6 +2331,9 @@ impl RustASTPipeline {
         let mut branch_mid_sequence_semantic_annotations: Vec<Vec<MidSequenceSemanticAnnotation>> =
             vec![Vec::new()];
         let mut semantic_annotations = Vec::new();
+        // LEXICAL-ANNOTATIONS.3c — the rule's before-rule follow-restriction (per-rule,
+        // so the stimuli generator can consume it; see the annotation consumption matrix).
+        let mut lexical_follow_restriction: Option<FollowRestriction> = None;
         let mut branch_syntax_positions: Vec<usize> = vec![0];
 
         let mut group_depth = 0usize;
@@ -2404,6 +2485,24 @@ impl RustASTPipeline {
                         );
                     }
                 }
+                // LEXICAL-ANNOTATIONS.3c — the before-rule follow-restriction directive
+                // (`[> … ]` / `[>! … ]`). It MUST have an explicit arm here: the catch-all
+                // `_ =>` below would otherwise push the token into `syntax_elements` and
+                // corrupt the IR (the exact defect that got the `-0011` tokenizer-only
+                // attempt reverted). The directive is per-rule, so it never participates in
+                // branch/position bookkeeping.
+                "lexical_annotation" => {
+                    let payload = arr.get(1).and_then(FollowRestriction::from_token_payload);
+                    match payload {
+                        Some(restriction) => lexical_follow_restriction = Some(restriction),
+                        None => {
+                            return Err(anyhow::anyhow!(
+                                "malformed lexical follow-restriction token in grammar IR: {:?}",
+                                item
+                            ));
+                        }
+                    }
+                }
                 "semantic_annotation_inline" => {
                     if let Some(payload) = arr.get(1) {
                         if let Some(annotation) =
@@ -2514,6 +2613,7 @@ impl RustASTPipeline {
             branch_semantic_annotations,
             branch_mid_sequence_semantic_annotations,
             semantic_annotations,
+            lexical_follow_restriction,
         })
     }
 
@@ -3579,6 +3679,52 @@ mod tests {
         assert_eq!(branch_semantic_annotations.len(), 2);
         assert!(branch_semantic_annotations[0].is_empty());
         assert!(branch_semantic_annotations[1].is_empty());
+    }
+
+    // LEXICAL-ANNOTATIONS.3c — a `lexical_annotation` token in the raw_ast is parsed
+    // into a per-rule `FollowRestriction`, carried into `Annotations`, and NEVER leaks
+    // into `syntax_elements` (which would corrupt the IR — the `-0011` revert cause).
+    #[test]
+    fn transform_from_raw_ast_carries_lexical_follow_restriction() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![json!([
+            ["rule", "lt"],
+            [
+                "lexical_annotation",
+                {
+                    "polarity": "forbid",
+                    "items": [
+                        { "kind": "regex", "value": "\\w" },
+                        { "kind": "literal", "value": "<" }
+                    ]
+                }
+            ],
+            ["quoted_string", "<"]
+        ])];
+
+        let (grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        let restriction = annotations
+            .lexical_follow_restrictions
+            .get("lt")
+            .expect("rule `lt` should carry a follow-restriction");
+        assert!(restriction.forbid, "[>! …] is a FORBID restriction");
+        assert_eq!(restriction.items.len(), 2);
+        assert_eq!(restriction.items[0], FollowItem::Regex("\\w".to_string()));
+        assert_eq!(restriction.items[1], FollowItem::Literal("<".to_string()));
+
+        // The directive token must NOT have leaked into the rule's syntax: `lt`'s body
+        // is exactly the single `"<"` terminal (an Atom), not a sequence padded with the
+        // annotation token.
+        let lt_node = grammar_tree.get("lt").expect("rule `lt` should exist");
+        assert!(
+            matches!(lt_node, ASTNode::Atom { .. }),
+            "lt body must be a single terminal Atom, got {:?}",
+            lt_node
+        );
     }
 
     #[test]

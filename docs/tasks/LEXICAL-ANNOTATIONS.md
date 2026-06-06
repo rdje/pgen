@@ -1,11 +1,18 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.3c` — re-land the declarative follow-restriction
-> annotation **COMPLETE** (tokenizer + IR handler + generator consumption) in ONE verified slice, on the
-> **per-rule/per-branch** design the generator can consume (the `-0011` tokenizer-only attempt was
-> REVERTED after audit `-0012` — see `.3c`). Derivation half DONE + measured: A `-0005` (anchors),
-> B `-0006` (regex-derived trailing guard), `-0007` (faithful-by-default); gate `sample_parse_failures`
-> 25→1→0. Design + notation LOCKED. Also pending: `.3d` (operator fusion + CLI default-on), `.4` verify.
+> **Status:** `active` (2026-06-06). **Frontier:** `.3d` (i) distinct-longer-token operator fusion via
+> the now-landed declarative path + CLI default-on; then `.4` verify+generalize (cross-grammar gate
+> re-run). **`.3c` DONE (`-0013`)** — re-landed the declarative follow-restriction **COMPLETE** in ONE
+> verified slice on the **per-rule** (before-rule) design the generator consumes: tokenizer
+> (`ebnf_frontend.rs`) + IR handler (`mod.rs`, `FollowRestriction` carried per-rule in `Annotations`) +
+> generator consumption (`stimuli_generator.rs`, FORBID self-terminates the rule surface with the
+> minimal separator). Additive + gated on `[>` presence (0/17 grammars use it → byte-identical on all
+> existing grammars; lib 610/610 no-features + 632/632 `ebnf_dual_run`, source clippy clean). REQUIRE
+> (`[> …]`) is carried for the parse direction (documented generation no-op); the **inline** (per-element)
+> form stays DEFERRED — per the annotation consumption matrix it is generator-unconsumable, so adding it
+> tokenizer-only would re-create the `-0011` half-feature. Derivation half DONE + measured: A `-0005`
+> (anchors), B `-0006` (regex-derived trailing guard), `-0007` (faithful-by-default); gate
+> `sample_parse_failures` 25→1→0. Design + notation LOCKED.
 > ⚠️ **Read the AST-pipeline KM cards ([[ast-pipeline-architecture]], [[ebnf-frontend-architecture]]) and
 > [[feedback_understand_subsystem_holistically_first]] BEFORE touching any pipeline code.**
 > **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md) ·
@@ -127,16 +134,50 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   - **`.3d` (i) distinct-longer-token (operator) fusion — DEFERRED.** `<`+`<`→`<<` where the previous
     token is a fixed literal but a longer token spans the boundary; needs cross-terminal analysis (the
     leaf guard can't see it). Rare, not currently biting — a deliberate completeness pass when it bites.
-- `.3c` — **Obligation C (declarative follow-restriction annotation). NOT STARTED — step-1 tokenizer
-  REVERTED after audit (`-0012`).** The `-0011` inline tokenizer was REVERTED: a director-directed audit
-  found it was an *incomplete, potentially-faulty half-feature in the foundational tokenizer* — it
-  emitted a `lexical_annotation_inline` token with **no downstream handler** (`extract_rule_annotations`
-  has no arm for it → its catch-all `_ =>` would push it into `syntax_elements`, corrupting the IR, the
-  moment any grammar used `[>`). Dormant-safe only because no grammar uses `[>` (audited: 0/17), and the
-  inline *position-specific* design is itself wrong for the generator (consumption matrix:
-  position-specific annotations are codegen-only, see [[ast-pipeline-architecture]]). **Re-land RULE:
-  land the feature COMPLETE (tokenizer + IR handler + generator consumption) in one verified slice, on
-  the per-rule / per-branch design the generator can actually consume — never tokenizer-only.**
+- `.3c` — **Obligation C (declarative follow-restriction annotation). DONE (`-0013`, 2026-06-06).**
+  Re-landed COMPLETE on the **per-rule (before-rule)** design — the re-land RULE satisfied (tokenizer +
+  IR handler + generator consumption in ONE verified slice, never tokenizer-only). What landed:
+  1. **Frontend** (`src/ebnf_frontend.rs`): `scan_top_level_rules` collects column-0 `[>` / `[>!`
+     directive lines (pending → bound to the next rule, exactly like `@` annotations);
+     `parse_lexical_annotation_line` parses the `LIST` (mixed `/regex/` + `"string"`, ws/comma-separated,
+     union) reusing `parse_regex_literal` / `parse_quoted_literal`; `convert_scanned_rule` emits a
+     structured `["lexical_annotation", {polarity, items}]` token; the soft generated cross-check is
+     gated off when lexical annotations are present (like `has_inline_semantic_annotations`). The
+     body-level `[ … ]` optional tokenization is UNTOUCHED (directives are stripped at column 0 before
+     the body is seen) → low blast radius.
+  2. **IR** (`src/ast_pipeline/mod.rs`): `FollowRestriction { forbid, items: Vec<FollowItem> }` +
+     `FollowItem::{Regex,Literal}`; `Annotations.lexical_follow_restrictions: HashMap<String,
+     FollowRestriction>` (additive, `#[serde(default)]`); `extract_rule_annotations` has an explicit
+     `"lexical_annotation"` arm (BEFORE the catch-all — closes the exact `-0011` IR-corruption hazard)
+     that parses the payload (malformed ⇒ hard error, never a silent half-token); threaded through
+     `ParsedRuleContent` → `transform_from_raw_ast` (incl. the annotations-present gate).
+  3. **Generator** (`src/ast_pipeline/stimuli_generator.rs`): `generate_rule`'s output self-terminates per
+     a FORBID restriction with the minimal separator the forbidden set can't absorb (space→newline),
+     robust against every concatenation path; REQUIRE is a documented generation no-op (parse-direction).
+     Gated on the lexical-faithfulness mode (`enforce_word_boundary_spacing`, default on) → negative-test
+     generation opts out uniformly.
+  - **Why per-rule only (inline DEFERRED):** the annotation consumption matrix
+    ([[ast-pipeline-architecture]]) makes position-specific (inline) annotations codegen-only — the
+    stimuli generator cannot consume them. A follow-restriction exists to steer the GENERATOR, so the
+    inline form would be generator-unconsumable; adding it tokenizer-only would re-create the `-0011`
+    half-feature. The before-rule (per-rule) form is the complete, generator-consumable unit.
+  - **VERIFIED:** lib 610/610 (no-features, +3 tests) + 632/632 (`ebnf_dual_run`, +2 frontend tests);
+    `generated_parsers` compiles; source clippy clean (generated-clippy `==` debt pre-existing,
+    non-strict). Zero blast radius by construction (0/17 grammars declare `[>` → byte-identical
+    generation; the helper is a pass-through when no restriction is declared). New tests:
+    `parses_lexical_follow_restriction_directives`, `before_rule_lexical_annotation_binds_following_rule`
+    (frontend); `transform_from_raw_ast_carries_lexical_follow_restriction` (IR);
+    `forbid_follow_separator_picks_minimal_breaking_char`,
+    `lexical_forbid_follow_restriction_prevents_distinct_longer_token_fusion` (generator, end-to-end).
+  - The full cross-grammar certificate-coverage gate re-run (`sample_parse_failures` across every
+    grammar with a registered parser) is the dedicated **`.4`** leaf; SV is unaffected here **by
+    construction** (no grammar declares `[>`).
+  -----
+  **(historical) `.3c` step-1 (`-0011`) REVERTED after audit (`-0012`):** the `-0011` inline tokenizer
+  emitted a `lexical_annotation_inline` token with **no downstream handler** (catch-all `_ =>` would
+  corrupt the IR the moment any grammar used `[>`); dormant-safe only because 0/17 grammars used it.
+  **Re-land RULE (now satisfied):** land COMPLETE (tokenizer + IR handler + generator consumption) in
+  one verified slice, on the per-rule design the generator can actually consume — never tokenizer-only.
   ⚠️ **Corrected understanding (`-0010`, see KM [[ebnf-frontend-architecture]]):** PGEN's
   authoritative EBNF parser is the **hand-written `src/ebnf_frontend.rs`** — NOT the generated
   `generated/ebnf.rs` (that's a soft, non-fatal cross-check). So this is a **Rust-code change to the
