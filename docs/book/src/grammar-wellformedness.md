@@ -137,6 +137,84 @@ the optionality already lives correctly at the caller, `( boolean_abbrev )?`). A
 `[*]`/`[+]`/`[=n]`/`[->n]` forms parse, the junk empty nodes disappear, and the branches become
 genuinely reachable — so the generator can witness them. Two proofs, made to agree.
 
+## Trusting the linter: certificates, not faith
+
+The linter is the **fulcrum** of the whole sign-off model — it is the *prover* of well-formedness, the
+*adjudicator* of every generator reach-failure, and the thing that turns "literal-0 coverage" from a
+number you chase into a property you prove. A tool with that much riding on it must be one you
+**never have to doubt.** This section explains how that trust is *earned* — not asserted.
+
+### Why "always give a definite yes/no" is impossible
+
+For PGEN's grammar class — stateful, data-dependent PEGs with `@predicate`s — deciding whether an
+arbitrary fragment is reachable is, in general, **undecidable.** This is a mathematical wall, not a
+PGEN limitation:
+
+- The purely *structural* question (which rules are reachable from the start symbol, as a graph) *is*
+  decidable — classic reduced-grammar analysis (Hopcroft–Ullman), and PGEN's reachability check is
+  complete there.
+- But "is this *ordered-choice arm* ever selected" depends on whether some input makes the earlier
+  arms fail and this one match — a PEG language-difference question, undecidable in general.
+- And `@predicate`s make it strictly worse: "can this predicate ever be true" is asking whether a
+  program state is reachable — Rice's-theorem territory, provably undecidable.
+
+So no tool — ours or anyone's — can be **complete** (catch every dead fragment, always, with a
+guaranteed definite answer). Any tool that *claims* to is lying.
+
+### Sound, not complete — the right trade for a judge
+
+The property we actually need, and *can* guarantee, is **soundness**: when the linter commits to a
+verdict, that verdict is correct. It never declares a live fragment dead, and never declares a dead
+fragment live. The price of soundness is an honest third answer — **`UNKNOWN`** — for the fragments
+it cannot settle. That is not a wrong answer; it is the linter refusing to guess. A judge that never
+convicts the innocent (even if it sometimes returns "not proven") is exactly what you want; the
+opposite trade — a complete judge that sometimes convicts the innocent — would be worse than useless,
+because you would "fix" branches that were never broken.
+
+This is why every check PGEN ships is a *sound decidable subset* and why the unsound heuristics
+(general FIRST-set domination, parse-order predicate reachability) are deliberately excluded: they
+would buy completeness at the cost of soundness — the wrong direction.
+
+### The mechanism: a certifying algorithm
+
+Soundness on its own is a promise. To make it something you *verify* rather than *trust*, the linter
+is built as a **certifying algorithm** (Mehlhorn, McConnell et al.): every verdict ships with a
+checkable **certificate**, and a second, deliberately tiny program validates the certificate. You
+then trust the small checker — which you can read in an afternoon — instead of the linter's complex
+internals.
+
+| Verdict | Certificate | How you check it |
+|---|---|---|
+| **reachable** | a **witness** — a concrete derivation *and* an input string that exercises the fragment | replay the input through the real parser; watch it hit the fragment |
+| **unreachable** | a **proof** — the exact decidable argument (which sound rule fired, and the chain) | a small checker re-validates the argument |
+| **`UNKNOWN`** | *(none — by design)* | it is an honest "I cannot prove this either way," never a guess |
+
+The witness producer for the "reachable" case is the **stimuli generator** — this is the duality made
+operational: the linter claims reachability, the generator *demonstrates* it. And the binding
+discipline is: **no definite verdict without a certificate.** It is precisely because the linter
+refuses to speak without a proof that you never have to doubt it when it does.
+
+### Undecidability lives in `UNKNOWN` — and we drain it on the grammar we ship
+
+The undecidability theorem is about *all possible grammars*. It does **not** stop us from fully
+certifying the *one* grammar we sign off. The two proofs close the gap:
+
+- For the actual grammar, we drive the `UNKNOWN` bucket to **zero** — every fragment is either
+  witnessed-reachable or proven-unreachable.
+- Anything stuck in `UNKNOWN` (the linter can't prove it dead *and* the generator can't witness it)
+  is the flagged ticket from the attribution rule. A human adjudicates it once: the resolution either
+  *produces a witness* (the grammar/generator is fixed so it becomes reachable) or *produces a proof*
+  (it really is dead → removed at the source). Either way it leaves `UNKNOWN`.
+
+When that bucket reaches zero with every certificate checking, **the shipped grammar is fully
+certified**: you have not *trusted* the linter — you have *verified* every claim it made. That
+certificate-coverage number, at zero `UNKNOWN`, is the objective, demonstrable statement that the
+linter is trustworthy *on this grammar*.
+
+> **The bottom line.** We do not aim for "100% complete" — that is provably impossible. We aim for
+> **100% sound, with the unknown region driven to zero and never hidden.** That is achievable, it is
+> provable, and it replaces *trust* with *verification* — which is stronger.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

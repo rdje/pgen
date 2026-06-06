@@ -279,6 +279,43 @@ subtle dead branch"), never a silent accept.
   ("establishable EARLIER in some parse") — is deliberately NOT attempted; the kind-existence core is
   the sound decidable subset (cf. A2's exclusion of unsound general FIRST-domination).
 
+### Phase G — the CERTIFYING LINTER (trustworthiness — director directive 2026-06-06)
+
+**Frame (binding, from an extended director brainstorm 2026-06-06).** The linter is the FULCRUM of
+sign-off (prover + adjudicator + theorem-maker), so it must be one we NEVER have to doubt. Trust is
+EARNED, not asserted: make the linter a **certifying algorithm** (Mehlhorn/McConnell et al.) — every
+verdict ships a checkable CERTIFICATE that a tiny independent CHECKER validates; we trust the small
+checker, not the linter's internals. Theoretical bound (honest): exact reachability is UNDECIDABLE for
+this grammar class (structural reachability decidable — Hopcroft–Ullman; PEG arm-selection +
+data-dependent predicate truth undecidable — Rice). So the linter is necessarily SOUND-not-COMPLETE:
+it NEVER falsely convicts, and the cost is an honest `UNKNOWN` for what it can't settle (NEVER a
+guess). Certificates: **reachable → a WITNESS** (derivation + input string; the stimuli GENERATOR is
+the witness producer = the duality made operational; replay through the real parser); **unreachable →
+a PROOF** (the decidable argument: which sound rule fired + the chain; re-validated by the checker);
+`UNKNOWN` → no certificate (honest). BINDING DISCIPLINE: **no definite verdict without a certificate.**
+Undecidability lives ENTIRELY in `UNKNOWN`; the theorem is about ALL grammars, NOT the one we ship —
+so for the actual SV grammar we DRAIN `UNKNOWN` to ZERO (every fragment witnessed-reachable or
+proven-unreachable; the residue is adjudicated once per the attribution rule → witness or proof,
+never silently accepted). Goal = "100% SOUND with `UNKNOWN` driven to 0 and never hidden" → verified,
+not trusted. Recorded: [[feedback_certifying_linter_trustworthiness]] + book "Trusting the linter:
+certificates, not faith".
+
+- `G.1` — **certificate MODEL + certifying the `dead` checks.** Define a structured `Certificate`
+  (verdict ∈ {Reachable(witness) | Unreachable(proof) | Unknown} + the certificate payload). Make the
+  existing decidable `dead` checks (A2 shadowing reasons, A1b unreachable-rule, profile-orphan, F1
+  unbound-fact-kind) emit a structured UNREACHABILITY PROOF (the reason + the chain), not just a
+  human message. *Effort: medium; mostly formalizing what the checks already know.*
+- `G.2` — **the independent CHECKER** (small, auditable, separate from the linter): (a) replays each
+  reachability WITNESS through the real parser and asserts it exercises the claimed fragment; (b)
+  re-validates each unreachability PROOF independently. Trust rests here. *Effort: medium-high.*
+- `G.3` — **witness producer wiring**: the stimuli generator emits, per reachable fragment, a minimal
+  witness input (the duality); fragments it can't witness become `UNKNOWN` tickets. *Effort: high
+  (reuses the generator's reach/replay machinery).*
+- `G.4` — **certificate-COVERAGE gate**: for the SV grammar require every fragment to carry a valid
+  certificate (`UNKNOWN` = 0) with all certificates checking → HARD gate. *That number, at 0, is the
+  objective proof the linter is trustworthy on this grammar.* Folds in A2.1 (each grammar fix moves a
+  fragment from `dead`/`UNKNOWN` to witnessed-reachable). *Effort: medium (gate + baseline).*
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
@@ -292,9 +329,17 @@ subtle dead branch"), never a silent accept.
 | — | `GRAMMAR-WELLFORMED.E2` | `done` (`-0007`, satisfied by existing validation) | `$N` attribute completeness already enforced (`E_RET_POS_OUT_OF_RANGE`, hard under strict mode, test-locked); consulted-fact completeness → F1. |
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (family 1/7 done `-0010`; always_matches **52→45**) | Clean the SV `always_matches` defects LRM-grounded, family by family → promote EarlierAlwaysMatches to the hard gate. ✓ boolean-abbrev family (first worked example of the ATTRIBUTION RULE). Remaining: covergroup-range, rs-prod, implicit-type/port, list-of-arguments, module-path, sv_multi_entry_root (linter-exempt). |
-| 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). |
+| 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (director-approved 2026-06-06; starting G.1) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. The trustworthiness foundation: "verified, not trusted." G.1 (certificate model + certifying the `dead` checks) → G.2 (checker) → G.3 (witness producer) → G.4 (coverage gate). |
+| 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions
+- `2026-06-06`: **Extended director brainstorm on linter TRUSTWORTHINESS** → Phase G (the certifying
+  linter) + [[feedback_unreachable_target_attribution_rule]] + [[feedback_certifying_linter_trustworthiness]].
+  Crystallized: the linter is the fulcrum (prover + adjudicator + theorem-maker) → must be never-doubted
+  → achieved via a certifying algorithm (witness/proof certificates + independent checker), sound-not-
+  complete (exact reachability undecidable for data-dependent PEG), `UNKNOWN` drained to 0 on the shipped
+  grammar. Logged in the top-level book ("Trusting the linter: certificates, not faith" + "The attribution
+  rule" + "Worked example"). Director: "we can't afford to doubt the grammar linter."
 - `2026-06-05`: Created from the director brainstorm. The frame UNIFIES the linter (static proof) +
   the stimuli generator (constructive proof) of reachability. Cross-refs: `PARSE-SOTA` (existing
   lint checks A1/.9), `SV-EXH-PROOF.7` (the generator/literal-0 consumer), `PARSE-TERMINATION`
