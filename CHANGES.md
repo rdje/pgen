@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-GRAMMAR-WELLFORMED-0035 (leaf GRAMMAR-WELLFORMED.G.4.9): classify the regex witness-parseability residuals as STRUCTURAL (not lexical) (docs).
+
+Classified the 6 `sample_parse_failures` that `H.1`'s regex cert-coverage surfaced. Tools-first (`parseability_probe`): the failing witness samples cluster on rare regex constructs — `\u{…}` unicode escape, backtracking-control verbs `(*name)`/`(*pla:)`/`(*scs:…)`, branch-reset `(?|…)`, subroutine call `(?P>…)`, conditional `(?(…))`.
+
+CLASSIFICATION: STRUCTURAL generator↔grammar round-trip mismatches, NOT lexical. The over-separation hypothesis (faithful-by-default inserting spaces inside the constructs) was DISPROVEN decisively: `a{1,1}` and `a{1 ,1 }` BOTH parse (quantifier spaces are harmless), while `\u{b7a2}` and `(*xjDD)` are rejected WITH OR WITHOUT the space — the constructs themselves are rejected, the spaces are red herrings. So the regex generator produces these rare forms but the regex parse side does not accept them (same class as the SV `use_clause` residual fixed in G.4.8). This CONFIRMS the LEXICAL-ANNOTATIONS tree close was correct (the residuals are structural → owned by GRAMMAR-WELLFORMED G.4, not the lexical pillar).
+
+ROUTED: each construct is a per-construct generator↔grammar reconciliation follow-up (its own leaf, like G.4.8 was for `use_clause`), or folded into the `UNKNOWN`→0 / witness-parseability drive. Investigation-only (no code change). LIVE_ACHIEVEMENT_STATUS unchanged.
+
 ## 2026-06-07 - PGEN-LEXICAL-ANNOTATIONS-0020: close the LEXICAL-ANNOTATIONS tree (the 4th pillar — done) (docs).
 
 The 4th declarative pillar (lexical/layout annotations — surface faithfulness) is landed, tested, and verified working, so the tree is marked `done` (director-directed close, the (c) of the (a)→(b)→(c) sequence):

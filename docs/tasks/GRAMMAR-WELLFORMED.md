@@ -199,6 +199,20 @@ subtle dead branch"), never a silent accept.
   regex worker stack, no profile/stdlib) + set `parse_and_cover: Some(parse_and_cover_regex)` on the regex
   entry. Phase H continues for vhdl / svpp / rtl_* / json (each: regen + a registry fn). Acceptance:
   `--report-certificate-coverage` runs for regex (no bail) + reports its sample_parse_failures.
+- `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
+  residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
+  (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
+  escape, backtracking-control verbs `(*name)` / `(*pla:)` / `(*scs:…)`, branch-reset `(?|…)`, subroutine
+  call `(?P>…)`, and conditional `(?(…))`. CLASSIFICATION: **STRUCTURAL generator↔grammar round-trip
+  mismatches, NOT lexical.** The over-separation hypothesis (faithful-by-default inserting spaces inside
+  the constructs) was DISPROVEN: `a{1,1}` and `a{1 ,1 }` BOTH parse (quantifier spaces harmless), while
+  `\u{b7a2}` and `(*xjDD)` are rejected WITH OR WITHOUT the space — the constructs themselves are
+  rejected, the spaces are red herrings. So the generator produces these rare forms but the regex parse
+  side does not accept them (same class as the SV `use_clause` G.4.8 residual). CONFIRMS the
+  LEXICAL-ANNOTATIONS close was correct (structural → owned here, not lexical). ROUTED: each construct is
+  a per-construct generator↔grammar reconciliation follow-up (own leaf, like G.4.8 was for use_clause) —
+  e.g. `G.4.9.{1..}` (or fold into the `UNKNOWN`→0 / witness-parseability drive). No code change this
+  slice (classification). Investigation-only.
 - `A2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0006):** the SOUND DECIDABLE SUBSET of FIRST-domination —
   **earlier-branch-ALWAYS-SUCCEEDS shadowing.** New `node_always_succeeds`/`compute_always_succeeds`
   (the dual of `compute_nullable`, differing ONLY on the lookahead arm: a predicate `&e`/`!e` is
