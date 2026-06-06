@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0017 (leaf GRAMMAR-WELLFORMED.G.2.1b): **certifying linter — ProfileOrphan certificate; the PROOF-side certifier is COMPLETE (all 4 decidable dead-verdict types).**
+
+Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
+
+- Added `extract_profile_context(annotations)` (pulls each rule's `@profiles` set + the profile universe — shared with `run_grammar_lint`'s inline logic) + `WellformednessCertificate::ProfileOrphan { rule, profile }`. The checker re-derives per-profile satisfiability (`compute_sat_by_profile`) and confirms the rule is PRESENT under `profile` but NOT satisfiable there AND satisfiable under some OTHER profile — faithful to `detect_profile_orphans` (a profile-SPECIFIC orphan, not a globally non-terminating rule).
+- Unit-tested (`profile_orphan_certificate_verifies_and_rejects`): a valid profile-orphan certificate re-verifies; a bogus one (an orphan claimed under a profile where the rule IS satisfiable) is REJECTED. Module suite 26/26.
+- **⇒ the certifying linter's PROOF side is COMPLETE:** all 4 decidable dead-verdict types — DeadAlternative (shadowing), UnreachableRule, UnboundFactKind, ProfileOrphan — ship a checkable certificate that `verify_wellformedness_certificate` re-derives independently, each with valid-verifies + bogus-rejected coverage. REMAINING in Phase G: G.2.2 standalone checker binary; G.3 reachability WITNESSES (the generator side); G.4 certificate-coverage gate (`UNKNOWN`=0, per-grammar = Phase H).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0016 (leaf GRAMMAR-WELLFORMED.G.2.1): **certifying linter — UnboundFactKind certificate + checker (3 of 4 decidable verdict types now certified).**
 
 Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.

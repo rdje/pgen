@@ -356,9 +356,15 @@ certificates, not faith".
   checker works). **`G.2.1` (`-0016`):** added the `UnboundFactKind` certificate — `verify_wellformedness_certificate`
   now takes `annotations` and re-collects emitted kinds via the extracted `collect_emitted_fact_kinds`,
   confirming the consulted kind is unemitted; unit-tested (valid verifies; an emitted kind claimed
-  unbound is rejected; honestly refuses without annotations). ⇒ the checker certifies 3 of the 4
-  decidable dead-verdict types. REMAINING: `ProfileOrphan` certificate (`G.2.1b`, needs profile-context
-  extraction); `G.2.2` standalone checker binary; witness replay = `G.3`. *Effort: medium-high.*
+  unbound is rejected; honestly refuses without annotations). **`G.2.1b` (`-0017`):** added the
+  `ProfileOrphan` certificate — `extract_profile_context` pulls `@profiles`/universe from the
+  annotations, the checker re-derives per-profile satisfiability (`compute_sat_by_profile`) and confirms
+  present-but-unsatisfiable-here + satisfiable-elsewhere (faithful to `detect_profile_orphans`);
+  unit-tested (valid verifies; an orphan claimed under a satisfiable profile is rejected). **⇒ the
+  PROOF-side certifier is COMPLETE — all 4 decidable dead-verdict types (shadowing, unreachable-rule,
+  unbound-fact, profile-orphan) ship a checkable certificate, each with valid-verifies + bogus-rejected
+  tests.** REMAINING: `G.2.2` standalone checker binary; witness replay (reachable side) = `G.3`.
+  *Effort: medium-high.*
 - `G.3` — **witness producer wiring**: the stimuli generator emits, per reachable fragment, a minimal
   witness input (the duality); fragments it can't witness become `UNKNOWN` tickets. *Effort: high
   (reuses the generator's reach/replay machinery).*

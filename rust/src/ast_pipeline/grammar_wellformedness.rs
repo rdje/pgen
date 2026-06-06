@@ -16,6 +16,7 @@
 use super::predicate_expr::{
     PredicateExpr, PredicateValue, PrimitiveCall, parse_predicate_expression,
 };
+use super::semantic_directive_registry::parse_semantic_string_list;
 use super::semantic_runtime::{SemanticRuntimeDirective, parse_semantic_runtime_directive};
 use super::{ASTNode, ASTValue, Annotations, SemanticAnnotation, TokenValue, parse_quantifier_bounds};
 use std::collections::{HashMap, HashSet};
@@ -616,6 +617,38 @@ pub fn derive_rule_profiles(
         derived.insert(rule.clone(), profiles);
     }
     derived
+}
+
+/// Extract each rule's `@profiles` set + the profile universe from the annotations (the same shape
+/// the generator filters by, and `run_grammar_lint` computes inline). Shared by the profile-orphan
+/// certificate checker (G.2.1b). A rule absent from the map is universal (present under all profiles).
+pub fn extract_profile_context(
+    annotations: &Annotations,
+) -> (HashMap<String, Vec<String>>, Vec<String>) {
+    let mut rule_profiles: HashMap<String, Vec<String>> = HashMap::new();
+    let mut universe: std::collections::BTreeSet<String> = Default::default();
+    for (rule, entries) in &annotations.semantic_annotations {
+        for annotation in entries {
+            if annotation.name().map(|n| n.trim().to_ascii_lowercase()).as_deref() != Some("profiles")
+            {
+                continue;
+            }
+            if let Some(list) = parse_semantic_string_list(annotation.ast().payload_text()) {
+                let profs: Vec<String> = list
+                    .into_iter()
+                    .map(|v| v.trim().to_ascii_lowercase())
+                    .filter(|v| !v.is_empty())
+                    .collect();
+                if !profs.is_empty() {
+                    for p in &profs {
+                        universe.insert(p.clone());
+                    }
+                    rule_profiles.insert(rule.clone(), profs);
+                }
+            }
+        }
+    }
+    (rule_profiles, universe.into_iter().collect())
 }
 
 /// ANNOTATION-COMPOSITION.2: detect @profiles ORPHANS — a rule PRESENT under a profile but NOT
@@ -1330,6 +1363,8 @@ pub enum WellformednessCertificate {
     UnreachableRule { rule: String },
     /// A `@predicate` in `rule` consults a fact-`kind` no `@emit_fact` establishes (F1).
     UnboundFactKind { rule: String, kind: String },
+    /// `rule` is present under `profile` but not satisfiable there (a @profiles orphan).
+    ProfileOrphan { rule: String, profile: String },
 }
 
 /// THE CHECKER (G.2): independently re-validate ANY wellformedness certificate against the grammar.
@@ -1372,6 +1407,40 @@ pub fn verify_wellformedness_certificate(
                 ))
             } else {
                 Ok(())
+            }
+        }
+        WellformednessCertificate::ProfileOrphan { rule, profile } => {
+            let Some(ann) = annotations else {
+                return Err(format!(
+                    "profile-orphan certificate for rule '{rule}' under '{profile}' needs the annotations to re-check"
+                ));
+            };
+            if !grammar.contains_key(rule) {
+                return Err(format!("certificate cites unknown rule '{rule}'"));
+            }
+            // Re-derive per-profile satisfiability independently; the claim holds iff `rule` is
+            // PRESENT under `profile` yet NOT satisfiable there.
+            let (rule_profiles, all_profiles) = extract_profile_context(ann);
+            let sat_by_profile =
+                compute_sat_by_profile(grammar, rule_order, &rule_profiles, &all_profiles);
+            let present = rule_present_under_profile(rule, &rule_profiles, profile);
+            let sat_here = sat_by_profile
+                .get(profile)
+                .and_then(|s| s.get(rule))
+                .copied()
+                .unwrap_or(false);
+            // Mirror detect_profile_orphans: a profile-SPECIFIC orphan is satisfiable under some
+            // OTHER profile (else it is globally non-terminating, not a profile orphan).
+            let sat_elsewhere = all_profiles.iter().any(|q| {
+                q != profile
+                    && sat_by_profile.get(q).and_then(|s| s.get(rule)).copied().unwrap_or(false)
+            });
+            if present && !sat_here && sat_elsewhere {
+                Ok(())
+            } else {
+                Err(format!(
+                    "certificate claims '{rule}' is a @profiles orphan under '{profile}', but present={present} sat_here={sat_here} sat_elsewhere={sat_elsewhere} (not a profile orphan)"
+                ))
             }
         }
     }
@@ -1430,6 +1499,49 @@ mod tests {
     }
     fn predicate_ann(expr: &str) -> SemanticAnnotation {
         sem_named("predicate", crate::ast_pipeline::UnifiedSemanticValue::String(expr.into()))
+    }
+    fn profiles_ann(list: &str) -> SemanticAnnotation {
+        // payload_text() returns the `canonical` string for a Structured AST; parse_semantic_string_list
+        // parses `[a, b]`-style lists from it.
+        SemanticAnnotation::Named {
+            name: "profiles".to_string(),
+            ast: crate::ast_pipeline::UnifiedSemanticAST::Structured {
+                canonical: list.to_string(),
+                value: crate::ast_pipeline::UnifiedSemanticValue::String(list.to_string()),
+            },
+        }
+    }
+
+    #[test]
+    fn profile_orphan_certificate_verifies_and_rejects() {
+        // GRAMMAR-WELLFORMED.G.2.1b: a profile-orphan certificate re-verifies; a bogus one is REJECTED.
+        // base := variant (untagged → present under all profiles); variant @profiles [sv_2023];
+        // dummy @profiles [sv_2017] (puts sv_2017 in the universe). Under sv_2017 base references the
+        // absent variant → base is a profile orphan under sv_2017; under sv_2023 it is satisfiable.
+        let mut g = HashMap::new();
+        g.insert("base".into(), rule_ref("variant"));
+        g.insert("variant".into(), token("string", "=="));
+        g.insert("dummy".into(), token("string", "d"));
+        let order: Vec<String> = vec!["base".into(), "variant".into(), "dummy".into()];
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("variant".into(), vec![profiles_ann("[sv_2023]")]);
+        ann.semantic_annotations.insert("dummy".into(), vec![profiles_ann("[sv_2017]")]);
+        let cert =
+            WellformednessCertificate::ProfileOrphan { rule: "base".into(), profile: "sv_2017".into() };
+        assert!(
+            verify_wellformedness_certificate(&g, &order, Some(&ann), &cert).is_ok(),
+            "valid profile-orphan certificate must verify: {:?}",
+            verify_wellformedness_certificate(&g, &order, Some(&ann), &cert)
+        );
+        // bogus: base is satisfiable under sv_2023 (variant present) → not an orphan there → rejected.
+        let bogus = WellformednessCertificate::ProfileOrphan {
+            rule: "base".into(),
+            profile: "sv_2023".into(),
+        };
+        assert!(
+            verify_wellformedness_certificate(&g, &order, Some(&ann), &bogus).is_err(),
+            "claiming an orphan under a profile where the rule IS satisfiable must be rejected"
+        );
     }
 
     #[test]
