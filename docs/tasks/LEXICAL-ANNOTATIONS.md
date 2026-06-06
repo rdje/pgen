@@ -71,7 +71,15 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   already holds (does B extend A's match? does A's terminator require a newline?), plus an optional
   **declarative follow-restriction lexical annotation** (SDF-style) for what derivation can't infer.
   Define how `enforce_word_boundary_spacing` is subsumed. Output: a design doc + the annotation surface
-  (if any) specified in `grammars/*.ebnf` terms. NO code yet.
+  specified in `grammars/*.ebnf` terms. NO code yet.
+  - **Open design question — the NOTATION (director-raised 2026-06-06, deferred to `.2`).** Return
+    annotations use `->`, semantic annotations use `@`; lexical annotations need their own EBNF syntax.
+    The name/syntax will stick for years, so decide deliberately. Candidates: adopt/adapt **SDF's
+    follow-restriction operator `-/-`** (`A -/- [chars]` — literature-grounded, ties straight to the
+    survey) vs. mint a fresh sigil. Constraints: must read distinctly from `->` and `@`; attaches at
+    the terminal/token level (lexical constraints are about token boundaries); and since most
+    faithfulness is **derived** from the regexes, the notation only ever appears for the *rare explicit*
+    declaration — so it can be lightweight. Decide with the director.
 - `.3` — **IMPLEMENT.** The generation-side enforcement in the engine (parser-agnostic): on emitting
   each token, insert the minimal separator (space → newline) that preserves faithfulness; honor regex
   anchors (`$`/`^`/`\b`) as position assertions rather than free empties. Regenerate parsers; commit
