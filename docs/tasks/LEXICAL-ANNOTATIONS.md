@@ -128,9 +128,20 @@ justified because pillars 1–3 structurally cannot express it (see the decision
     `true` explicitly so is unchanged). Faithful is now the correct default at the type level.
   - **`.3d` (ii-CLI) on-by-default for the production CLI — DEFERRED (surface change).** Making
     `--generate-stimuli` faithful-by-default is NOT a simple flag flip: `args.enforce_word_boundary_spacing`
-    is overloaded at `main.rs:770` as a "stimuli command present" sentinel, so inverting it misfires
-    there. Needs a clean opt-out flag (e.g. `--no-word-boundary-spacing`) + the `:770` guard fix + book
-    lockstep — its own deliberate slice.
+    is a clap bool flag defaulting `false` (`main.rs:243`), passed straight into `StimuliConfig` at three
+    sites (`main.rs:1116/1241/1293`), so the **CLI** is still faithful-OFF by default even though the
+    library `StimuliConfig::default()` flipped to `true` (`-0007`). It is also listed in the
+    stimuli-only-flag validation guard at `main.rs:770`. Clean design: add a `--no-word-boundary-spacing`
+    opt-out (`#[arg(long)]`, default false), set the effective value to `!args.no_word_boundary_spacing`
+    at the 3 sites, add the new flag to the `:770` guard, keep `--enforce-word-boundary-spacing` accepted
+    (now redundant) for back-compat, + CLI-reference/book lockstep.
+    **⚠️ BLAST-RADIUS SCOPING (`-0013`, verified):** this CHANGES the default output of `--generate-stimuli`
+    (separators now inserted) — NOT zero-blast-radius. **9 of 12** stimuli-invoking gate scripts under
+    `rust/scripts/` call `--generate-stimuli` WITHOUT the flag (only `sv_stimuli_quality_gate.sh`,
+    `sv_preprocessor_quality_gate.sh`, `vhdl_stimuli_quality_gate.sh` pass it). So this slice MUST run
+    each affected gate (the heavy SV/VHDL/annotation/ebnf stimuli gates) to confirm the faithful-by-default
+    flip is a no-op-or-improvement for them (and update any that pin exact byte output). A deliberate slice
+    with real verification cost — do it with the heavy gates, not under a tight budget.
   - **`.3d` (i) distinct-longer-token (operator) fusion — DEFERRED.** `<`+`<`→`<<` where the previous
     token is a fixed literal but a longer token spans the boundary; needs cross-terminal analysis (the
     leaf guard can't see it). Rare, not currently biting — a deliberate completeness pass when it bites.
