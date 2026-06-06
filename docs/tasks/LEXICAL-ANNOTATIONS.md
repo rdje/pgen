@@ -124,9 +124,15 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   `-0008`). A substantial, careful implementation (touches the meta-grammar), to do as its own focused
   pass:
   1. **Meta-grammar** (`grammars/ebnf.ebnf`): add `lexical_annotation := "[" (">" | ">!") follow_item
-     (","? follow_item)* "]"` with `follow_item := regex | string`; extend
-     `annotation_list := (semantic_annotation | lexical_annotation)+`. Regenerate the EBNF/bootstrap
-     parser (foundational — verify the whole compile pipeline still round-trips).
+     (","? follow_item)* "]"` with `follow_item := regex_pattern | quoted_string`. **Two placements**
+     (mirror semantic annotations): (a) **before-rule** — extend
+     `annotation_list := (semantic_annotation | lexical_annotation)+` (binds the rule's right boundary);
+     (b) **inline** — add `inline_lexical_annotation := lexical_annotation` to `sequence_element`, a
+     standalone element *structurally identical to* `inline_semantic_annotation` except it binds the
+     **preceding** element (semantic binds the following). Unambiguous vs `optional_element` because
+     `[>`/`[>!` can't begin a `rule_expression`. Regenerate the EBNF/bootstrap parser (foundational —
+     verify the whole compile pipeline still round-trips). NOT the parse-time `lookahead_assertion`
+     (`&X`/`!X`) — that's parsing; this is generation-faithfulness.
   2. **IR**: carry the parsed follow-restrictions (polarity + item list) on the rule/directive.
   3. **Generator** (Obligation B path): consult the declared follow-restrictions alongside the derived
      ones — `[>! …]` forbids the listed follows (insert a separator if the next token would match one);

@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0009 (leaf LEXICAL-ANNOTATIONS notation): design finalized — inline placement binds the PRECEDING item.
+
+Final design detail agreed with the director: lexical annotations have two placements, mirroring semantic annotations — (a) before-rule (in `annotation_list`, binds the rule's right boundary); (b) inline, a standalone `sequence_element` structurally identical to `inline_semantic_annotation`, EXCEPT it binds the PRECEDING item (semantic binds the FOLLOWING item — the sole difference, because a lexical annotation describes what may follow the token it's about). Per-branch placement falls out naturally (branches are sequences). Distinct from the parse-time `lookahead_assertion` (`&X`/`!X`): that constrains parsing, this constrains generation faithfulness.
+
+Pure-docs (decision record + tree). The design is now complete; `.3c` implementation (meta-grammar + bootstrap regen + IR + generator + tests) is the next focused effort.
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0008 (leaf LEXICAL-ANNOTATIONS notation): the lexical-annotation NOTATION is decided.
 
 Decided with the director: `[> LIST ]` ("must be followed by") and `[>! LIST ]` ("must NOT be followed by"), where `LIST` is one or more items — each a `/regex/` or a `"string"`, freely mixed — separated by whitespace and/or commas; the list is a UNION ("any of these"). The enclosing `[ … ]` bounds the list — the director's rationale for a bracket over a bare sigil + single spec (it cleanly encloses a list of mixed specs). Directive position (binds to the following rule, like `@…`). Unambiguous despite reusing `[ ]` (optional in rule bodies) because no rule-expression can start with `>`, so `[>`/`[>!` is never an optional. `[< … ]`/`[<! … ]` reserved for lookbehind. Chosen over `-/-` (SDF) and `~>`/`@>` for being bounded, list-friendly, and readable.

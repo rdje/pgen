@@ -76,7 +76,16 @@ The list denotes a **union**: `[>! /\w/, "endmodule"]` = "not followed by *any* 
 The enclosing `[ … ]` is precisely what bounds the list cleanly — the reason a bracket is preferred
 over a bare sigil + single spec (director rationale 2026-06-06).
 
-It sits in the **directive position** (in `annotation_list`, binding to the following rule, like `@…`).
+**Placement (decided 2026-06-06).** Two positions, mirroring semantic annotations:
+- **Before-rule** (in `annotation_list`) — binds the rule (its right boundary). Like `@…` directives.
+- **Inline** — a standalone `sequence_element`, *structurally identical* to `inline_semantic_annotation`.
+  The **only** difference: an inline **semantic** annotation binds the **following** item, whereas an
+  inline **lexical** annotation binds the **preceding** item (because it describes what may follow the
+  token it's about). This makes per-branch placement fall out naturally (branches are sequences). E.g.
+  `foo := kw identifier [>! /\w/] "="` constrains *that* `identifier`'s right boundary.
+
+It sits in the **directive position** (in `annotation_list`, binding to the following rule, like `@…`)
+or inline (binding the preceding element, per above).
 Although `[ … ]` is `optional_element` in rule *bodies*, `[>` / `[>!` is **unambiguous** — no
 `rule_expression` can start with `>` (its first char is always `"` `/` `[` `(` or a letter), so `[>`
 can never be an optional. `[< LIST ]` / `[<! LIST ]` are **reserved** for "preceded by" (lookbehind)
