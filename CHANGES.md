@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-LEXICAL-ANNOTATIONS-0020: close the LEXICAL-ANNOTATIONS tree (the 4th pillar — done) (docs).
+
+The 4th declarative pillar (lexical/layout annotations — surface faithfulness) is landed, tested, and verified working, so the tree is marked `done` (director-directed close, the (c) of the (a)→(b)→(c) sequence):
+
+- Mechanism: derived Obligation A (intra-token anchor honouring, `-0005`) + Obligation B (inter-token regex-derived separator, `-0006`) + the declarative `[> …]`/`[>! …]` follow-restriction (`.3c`, `-0013`, COMPLETE: tokenizer + IR + generator) + faithful-by-default CLI (`.3d` ii-CLI, `-0015`). Subsumes the old `enforce_word_boundary_spacing` flag (now the on-by-default faithfulness mode toggle).
+- Verification: round-trip / golden tests for Obligations A/B/C (`.4.3`, `-0018`); SV cert-coverage `sample_parse_failures` is now **0** (the lone residual was non-lexical/structural — classified in `.4.1` `-0017` and fixed in `GRAMMAR-WELLFORMED.G.4.8` `-0033`); cross-grammar faithful generation re-parses (`.4.2` `-0019` + the cross-family gate).
+- DEFERRED leaf `.3d` (i) distinct-longer-token operator fusion: no tool-backed failing case (don't change code speculatively) + now declaratively expressible via the landed `[>! …]`; reopen only with a concrete failing case.
+- Standing follow-up (NOT a lexical open item): per-grammar cert-coverage residuals (e.g. the regex 6 surfaced by `GRAMMAR-WELLFORMED.H.1` `-0034`) are classified lexical-vs-structural by the GRAMMAR-WELLFORMED cert-coverage gate; only a *lexical-faithfulness*-classified residual would reopen a lexical leaf (the SV precedent was structural → owned by GRAMMAR-WELLFORMED).
+
+Docs-only (tree status + headers). LIVE_ACHIEVEMENT_STATUS unchanged (no parser-family status change). The `(a)→(b)→(c)` director sequence is complete: (a) `-0033` use_clause fix, (b) `-0034` regex Phase-H wiring, (c) this close.
+
 ## 2026-06-07 - PGEN-GRAMMAR-WELLFORMED-0034 (leaf GRAMMAR-WELLFORMED.H.1): Phase H started — wire parse_and_cover for regex (cert-coverage now runs per-grammar for regex).
 
 Made `--report-certificate-coverage` run for `regex` (previously it hard-bailed for every grammar except `systemverilog`, the only one with `parse_and_cover`). TOOL-BACKED: the G.4.6 coverage instrumentation (`enable_coverage` / `exercised_rule_names`, via the transactional `coverage_stack`) is emitted UNCONDITIONALLY by the codegen (`ast_based_generator.rs` ~:577-938), so the non-SV parsers lacked it only because they were stale (generated pre-G.4.6) — no codegen change needed.

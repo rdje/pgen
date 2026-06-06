@@ -1,6 +1,19 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **`.4` (VERIFY+GENERALIZE) COMPLETE** — `.4.1` (`-0017`) classified
+> **Status:** `done` (2026-06-07, `PGEN-LEXICAL-ANNOTATIONS-0020` — director-directed close). The 4th
+> declarative pillar (lexical/layout annotations) is **landed, tested, and verified working**: derived
+> Obligations A (intra-token, `-0005`) + B (inter-token, `-0006`), the declarative `[> …]`/`[>! …]`
+> follow-restriction (`.3c` `-0013`), faithful-by-default CLI (`.3d` ii-CLI `-0015`), round-trip/golden
+> tests (`.4.3` `-0018`), and cross-grammar verification (`.4` `-0016`..`-0019`). SV cert-coverage
+> `sample_parse_failures` is **0** (the lone residual was non-lexical/structural — classified `.4.1` +
+> fixed in `GRAMMAR-WELLFORMED.G.4.8` `-0033`). **DEFERRED leaf `.3d` (i)** distinct-longer-token operator
+> fusion — no tool-backed failing case (don't change code speculatively) + now declaratively expressible
+> via the landed `[>! …]`; reopen only with a concrete failing case. **Standing follow-up (NOT a lexical
+> open item):** per-grammar cert-coverage residuals (e.g. the regex 6 surfaced by `GRAMMAR-WELLFORMED.H.1`
+> `-0034`) are classified lexical-vs-structural by the GRAMMAR-WELLFORMED cert-coverage gate — only a
+> *lexical-faithfulness*-classified residual would reopen a lexical leaf (the SV precedent was structural).
+>
+> **(historical) Status:** `active` (2026-06-06). **`.4` (VERIFY+GENERALIZE) COMPLETE** — `.4.1` (`-0017`) classified
 > the SV `sample_parse_failures=1` residual as a STRUCTURAL `config_declaration` gap (NOT lexical) +
 > ROUTED it to `GRAMMAR-WELLFORMED` G.4; `.4.3` (`-0018`) added three re-lex round-trip / golden tests
 > for Obligations A/B/C + confirmed the comment-newline/word-fusion special cases are now general
