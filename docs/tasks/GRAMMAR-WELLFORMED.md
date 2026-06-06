@@ -154,6 +154,27 @@ subtle dead branch"), never a silent accept.
   `sv_syntax_closure_gate` ✅ (defined 1453, reachable 1406, unreachable 49 — all within v3); reachability
   is otherwise unchanged (no real loss masked). Surfaced during `LEXICAL-ANNOTATIONS.3d (ii-CLI)`
   verification as a pre-existing failure; fixed here on its own leaf per the doctrine.
+- `G.4.8` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0033`, 2026-06-07): SV `use_clause` PEG ordered-choice
+  ambiguity FIXED (the witness-parseability residual routed from `LEXICAL-ANNOTATIONS.4.1`).** FIX LANDED:
+  reordered `use_clause` so the named_parameter-bearing alternatives precede the simple form + added an
+  explicit no-lib `use cell named_parameter_assignment+ (: config)?` alternative first (the
+  `-> {library,name,config}` annotation stays on the now-last simple alt). SV parser regenerated
+  (mtime-verified). VERIFIED: the previously-failing `cell j use \foo.\bar () : config` now parses + all
+  valid forms still parse (`parseability_probe`); SV cert-coverage `sample_parse_failures` **1 → 0**; SV
+  external corpus **14/14**; SV shape-contract GREEN; lib 613/613; release 1.0.136 → 1.0.137 (schema
+  stays 3, strictly-more-permissive). Contract + shape-contract manifest updated in lockstep. ORIGINAL
+  ROOT CAUSE (tools-first, `parseability_probe`): the cert-coverage
+  witness pass generated a config sample whose `use \foo .\foo ()` is a valid `use_clause` alt-3
+  derivation (cell=`\foo`, named_param=`.\foo()`, no lib), but the parser's PEG ordered choice committed
+  to the SIMPLE alt (`kw_use (library_identifier dot)? cell_identifier (colon kw_config)?`), greedily
+  matching `use \foo.\foo` as `lib.cell` and stranding the `()` → `did not consume full input`. Confirmed:
+  `cell x use y : config` ✓, `cell j use \foo.\bar .p() : config` ✓, but bare `cell j use \foo.\bar () :
+  config` ✗. FIX: reorder `use_clause` so the named_parameter-bearing alternatives PRECEDE the simple
+  alternative, and add an explicit no-lib `kw_use cell_identifier named_parameter_assignment+ (: config)?`
+  alternative first (so `use cell .param()` is matched before the simple form can grab `lib.cell`); the
+  `-> {library,name,config}` return annotation stays on the (now-last) simple alt. LRM-grounded (the
+  `[lib.]` in IEEE 1800 §A.1.5 use_clause is optional; this is a PEG specific-before-general reorder, the
+  A2.1 idiom). Requires SV regen + verification (corpus 14/14, shape-contract, cert-coverage re-run, lib).
 - `A2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0006):** the SOUND DECIDABLE SUBSET of FIRST-domination —
   **earlier-branch-ALWAYS-SUCCEEDS shadowing.** New `node_always_succeeds`/`compute_always_succeeds`
   (the dual of `compute_nullable`, differing ONLY on the lookahead arm: a predicate `&e`/`!e` is

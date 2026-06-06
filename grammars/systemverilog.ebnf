@@ -5390,10 +5390,18 @@ unpacked_dimension := lbrack constant_range rbrack         -> {kind: "range",   
 unsized_dimension := lbrack rbrack
                   -> {kind: "unsized"}
 
-use_clause := @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )?
-           -> {library: $2, name: $3, config: $4}
+# GRAMMAR-WELLFORMED.G.4.8 — the named_parameter-bearing alternatives MUST precede the simple
+# `use [lib.]cell [: config]` form, else PEG ordered choice commits the simple alt to `use lib.cell`
+# and strands a trailing `.param()` (the cert-coverage witness-parseability residual). The first
+# alternative is the explicit no-lib `use cell .param()` form so it is matched before the simple alt
+# can greedily read `cell .param` as `lib.cell`. The `-> {library,name,config}` return annotation stays
+# on the (now-last) simple alt. LRM §A.1.5: `[lib.]` is optional — this is a PEG specific-before-general
+# reorder, not a semantic change.
+use_clause := @probe_sample: "use top .P(1)" kw_use_04489a12 cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
+            | @probe_sample: "use l.top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
             | @probe_sample: "use .P(1)" kw_use_04489a12 named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
-            | @probe_sample: "use top .P(1)" kw_use_04489a12 ( library_identifier dot )? cell_identifier named_parameter_assignment ( comma named_parameter_assignment )* ( colon kw_config_dfba7aad )?
+            | @probe_sample: "use top" kw_use_04489a12 ( library_identifier dot )? cell_identifier ( colon kw_config_dfba7aad )?
+           -> {library: $2, name: $3, config: $4}
 
 @profiles: ["sv_2017"]
 # SV-EXH-PROOF.3.3.4.b.6.2.37.6 — per IEEE 1800 §A.8.3:
