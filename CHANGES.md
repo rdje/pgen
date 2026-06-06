@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0025 (leaf GRAMMAR-WELLFORMED.G.4.3, wiring): the real-SV certificate-coverage gate is WIRED — the binary now produces the SV proof/witness/UNKNOWN number.
+
+Code (`rust/src/main.rs`). Compile-verified both ways (dual-feature active + default cfg-out); the heavy RUN is the deferred closed-loop.
+
+- After the witness pass (`main.rs` ~:1474), a `#[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]` block — for the SV grammar — gathers the VERIFIED reachability witnesses (`gather_verified_witness_covered(generator.witness_certificates(), |s| parser_registry::parse_and_cover_systemverilog(s, profile))`) + the VERIFIED unreachability proofs (`gather_verified_proof_covered_rules(&grammar.grammar_tree, &grammar.rule_order)`), feeds `certificate_coverage`, and prints `CERTIFICATE-COVERAGE (G.4): total=… proof=… witness=… UNKNOWN=… fully_certified=… (re-verify failures: proofs=…, witnesses=…)`.
+- Verified to compile BOTH ways: `cargo build --bin ast_pipeline --features ebnf_dual_run,generated_parsers` (wiring active, RC=0) AND `--features ebnf_dual_run` (block cfg-compiled-out, RC=0). The double gate is needed because `parser_registry` is behind the `generated_parsers` FEATURE while `has_generated_systemverilog_parser` is a separate build.rs artifact cfg.
+- ⇒ the binary now PRODUCES the objective SV certificate-coverage number; only the heavy RUN remains (build dual-feature → generate an SV gap report → run the witness path with `--gap-priority-report-input <report>`; the SV closed-loop, minutes, mind uvm-memory). That run is the heavy verification the director deferred ("we'll see later"). Other grammars get their own `parse_and_cover_*` = Phase H.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0023 (leaf GRAMMAR-WELLFORMED.G.4.2): **the certificate-coverage ORCHESTRATION (gatherers) — the whole framework is now wired + tested; only the heavy real-SV run remains.**
 
 Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.

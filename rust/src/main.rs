@@ -1510,6 +1510,37 @@ fn main() -> Result<()> {
                     println!("- {sample}");
                 }
             }
+            // GRAMMAR-WELLFORMED.G.4.3: the certificate-coverage GATE (the duality capstone). For the
+            // SV grammar (the only one with `parse_and_cover` wired so far — others are Phase H), gather
+            // the VERIFIED reachability witnesses (each replayed through the REAL parser) + the VERIFIED
+            // unreachability proofs, then report proof/witness/UNKNOWN. UNKNOWN=0 with no re-verify
+            // failures = the objective "the linter is trustworthy on this grammar" number.
+            #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+            if grammar.grammar_name == "systemverilog" {
+                use pgen::ast_pipeline::grammar_wellformedness::{
+                    certificate_coverage, gather_verified_proof_covered_rules,
+                    gather_verified_witness_covered,
+                };
+                let profile = args.grammar_profile.as_deref();
+                let (witness_covered, witness_fails) = gather_verified_witness_covered(
+                    generator.witness_certificates(),
+                    |s| pgen::parser_registry::parse_and_cover_systemverilog(s, profile),
+                );
+                let (proof_covered, proof_fails) =
+                    gather_verified_proof_covered_rules(&grammar.grammar_tree, &grammar.rule_order);
+                let report =
+                    certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+                println!(
+                    "CERTIFICATE-COVERAGE (G.4): total={} proof={} witness={} UNKNOWN={} fully_certified={} (re-verify failures: proofs={}, witnesses={})",
+                    report.total,
+                    report.covered_by_proof.len(),
+                    report.covered_by_witness.len(),
+                    report.unknown.len(),
+                    report.is_fully_certified(),
+                    proof_fails.len(),
+                    witness_fails.len(),
+                );
+            }
             generated_samples.extend(witness_samples);
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples

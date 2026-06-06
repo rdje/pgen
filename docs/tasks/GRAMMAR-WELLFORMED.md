@@ -431,6 +431,17 @@ certificates, not faith".
     (minutes; mind the uvm-memory caveats) — this is the verification the director deferred "we'll see
     later". **The objective SV `UNKNOWN` number lands here** (closely tracks the existing coverage residual,
     now verified + split into proof/witness/unknown). Effort: medium wiring + a heavy run.
+    **WIRING DONE (`-0025`):** `main.rs` (after the witness pass) now has a
+    `#[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]` block that, for the SV
+    grammar, runs `gather_verified_witness_covered(generator.witness_certificates(), |s|
+    parse_and_cover_systemverilog(s, profile))` + `gather_verified_proof_covered_rules(&grammar.grammar_tree,
+    &grammar.rule_order)` → `certificate_coverage` and prints `CERTIFICATE-COVERAGE (G.4): total=… proof=…
+    witness=… UNKNOWN=… fully_certified=… (re-verify failures: proofs=…, witnesses=…)`. Compile-verified
+    BOTH ways: dual-feature build (`--features ebnf_dual_run,generated_parsers`) active, default build
+    (`ebnf_dual_run` only) cleanly compiles it out. ⇒ the binary now PRODUCES the number; only the heavy
+    RUN remains. RUN command: build dual-feature, generate a gap report for SV, then run the witness path
+    with `--gap-priority-report-input <report>` (the SV closed-loop, minutes; mind uvm-memory) → reads the
+    `CERTIFICATE-COVERAGE` line. That run is the deferred heavy verification.
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 
