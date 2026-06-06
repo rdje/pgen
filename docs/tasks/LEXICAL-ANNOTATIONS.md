@@ -120,8 +120,13 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   - **`.3d` (i) distinct-longer-token (operator) fusion — DEFERRED.** `<`+`<`→`<<` where the previous
     token is a fixed literal but a longer token spans the boundary; needs cross-terminal analysis (the
     leaf guard can't see it). Rare, not currently biting — a deliberate completeness pass when it bites.
-- `.3c` — **Obligation C (declarative follow-restriction annotation). UNBLOCKED** (notation decided
-  `-0008`). ⚠️ **Corrected understanding (`-0010`, see KM [[ebnf-frontend-architecture]]):** PGEN's
+- `.3c` — **Obligation C (declarative follow-restriction annotation). IN PROGRESS.** Inline tokenizer
+  DONE (`-0011`): `tokenize_rule_expression` `'['` case branches on `[>`/`[>!` →
+  `parse_inline_lexical_annotation` → `["lexical_annotation_inline", [polarity, [items]]]` (items
+  `["regex",p]`/`["quoted_string",s]`); optional `[ … ]` untouched. 4 unit tests + round-trip re-emit
+  of regex/ebnf/systemverilog grammars clean. NEXT: before-rule form (scan_top_level_rules) → IR
+  (transform_from_raw_ast) → generator (Obligation B). UNBLOCKED (notation decided `-0008`).
+  ⚠️ **Corrected understanding (`-0010`, see KM [[ebnf-frontend-architecture]]):** PGEN's
   authoritative EBNF parser is the **hand-written `src/ebnf_frontend.rs`** — NOT the generated
   `generated/ebnf.rs` (that's a soft, non-fatal cross-check). So this is a **Rust-code change to the
   hand-written frontend + the IR converter, NOT a bootstrap regen** (my earlier "regen the bootstrap

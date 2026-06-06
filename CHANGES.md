@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0011 (leaf LEXICAL-ANNOTATIONS.3c, step 1): hand-written frontend tokenizes the INLINE lexical annotation.
+
+First implementation step of `.3c` (the declarative follow-restriction), in the hand-written EBNF frontend (`src/ebnf_frontend.rs`) — no bootstrap regen, per the corrected understanding. `tokenize_rule_expression`'s `'['` case now branches: `parse_inline_lexical_annotation` parses `[> LIST ]` / `[>! LIST ]` (LIST = `/regex/` and/or `"string"` items, ws/comma-separated, union) → emits `["lexical_annotation_inline", [polarity, [items]]]` (binds the preceding element, doesn't open a group); anything else stays the ordinary optional `[ … ]`. Unambiguous because no rule-expression atom can begin with `>`.
+
+VERIFIED: 4 new unit tests (negative, positive, mixed regex+string list, and "optional still tokenizes as optional") + all 21 `ebnf_frontend` tests pass (`--features ebnf_dual_run`). ROUND-TRIP SAFETY: re-emitted raw AST for regex.ebnf / ebnf.ebnf / systemverilog.ebnf (all use `[ ]` optionals) — all clean, byte-behaviour preserved. NEXT: before-rule form (scan_top_level_rules), then transform_from_raw_ast (IR), then the generator (Obligation B).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0010 (leaf LEXICAL-ANNOTATIONS.3c prep; + KNOWLEDGE-MAP.2): corrected EBNF-frontend understanding + KM card.
 
 Director-directed careful study of how PGEN parses .ebnf, BEFORE changing anything. Corrected a misconception from my earlier Makefile archaeology:
