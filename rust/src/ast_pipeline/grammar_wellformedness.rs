@@ -770,27 +770,54 @@ fn consulted_kinds_in_predicate(spec_name: &str, args: &[super::UnifiedSemanticV
 /// facts. We enumerate emit_facts across ALL annotation surfaces (rule-level, per-branch, and
 /// mid-sequence) so no emitter is missed. On the CONSULTED side we only flag LITERAL kinds; a
 /// dynamic/arg-ref kind is skipped (under-report, never false-accuse). PURE; parser-agnostic.
-pub fn detect_unbound_fact_kinds(annotations: &Annotations) -> Vec<WellformednessIssue> {
+/// Collect every fact-KIND emitted by an `@emit_fact` across ALL annotation surfaces (rule-level,
+/// per-branch, mid-sequence). The COMPLETE emitter enumeration — the soundness basis for F1
+/// (`detect_unbound_fact_kinds`) and the G.2.1 unbound-fact certificate checker. Every `@emit_fact`
+/// carries a literal `kind` (`parse_emit_fact` requires a non-empty scalar).
+pub fn collect_emitted_fact_kinds(annotations: &Annotations) -> HashSet<String> {
     let mut emitted: HashSet<String> = HashSet::new();
-    // (rule, kind, primitive) consulted — collected first so we can flag after the full emit sweep.
-    let mut consulted: Vec<(String, String, String)> = Vec::new();
-
-    let mut visit = |rule: &str, ann: &SemanticAnnotation| {
-        match parse_semantic_runtime_directive(ann) {
-            Ok(Some(SemanticRuntimeDirective::EmitFact(spec))) => {
-                emitted.insert(spec.kind);
-            }
-            Ok(Some(SemanticRuntimeDirective::Predicate(spec))) => {
-                for (kind, primitive) in consulted_kinds_in_predicate(&spec.name, &spec.args) {
-                    consulted.push((rule.to_string(), kind, primitive));
-                }
-            }
-            _ => {}
+    let mut visit = |ann: &SemanticAnnotation| {
+        if let Ok(Some(SemanticRuntimeDirective::EmitFact(spec))) =
+            parse_semantic_runtime_directive(ann)
+        {
+            emitted.insert(spec.kind);
         }
     };
+    for anns in annotations.semantic_annotations.values() {
+        for ann in anns {
+            visit(ann);
+        }
+    }
+    for branches in annotations.branch_semantic_annotations.values() {
+        for branch in branches {
+            for ann in branch {
+                visit(ann);
+            }
+        }
+    }
+    for branches in annotations.branch_mid_sequence_semantic_annotations.values() {
+        for branch in branches {
+            for mid in branch {
+                visit(&mid.annotation);
+            }
+        }
+    }
+    emitted
+}
 
-    // Sweep every annotation surface so emit-enumeration is complete (soundness) and every
-    // consult site is checked.
+pub fn detect_unbound_fact_kinds(annotations: &Annotations) -> Vec<WellformednessIssue> {
+    let emitted = collect_emitted_fact_kinds(annotations);
+    // (rule, kind, primitive) consulted via a fact-query primitive.
+    let mut consulted: Vec<(String, String, String)> = Vec::new();
+    let mut visit = |rule: &str, ann: &SemanticAnnotation| {
+        if let Ok(Some(SemanticRuntimeDirective::Predicate(spec))) =
+            parse_semantic_runtime_directive(ann)
+        {
+            for (kind, primitive) in consulted_kinds_in_predicate(&spec.name, &spec.args) {
+                consulted.push((rule.to_string(), kind, primitive));
+            }
+        }
+    };
     for (rule, anns) in &annotations.semantic_annotations {
         for ann in anns {
             visit(rule, ann);
@@ -1301,14 +1328,18 @@ pub enum WellformednessCertificate {
     DeadAlternative(UnreachabilityCertificate),
     /// A rule is unreachable from every root (A1b).
     UnreachableRule { rule: String },
+    /// A `@predicate` in `rule` consults a fact-`kind` no `@emit_fact` establishes (F1).
+    UnboundFactKind { rule: String, kind: String },
 }
 
-/// THE CHECKER (G.2): independently re-validate ANY unreachability certificate against the grammar.
+/// THE CHECKER (G.2): independently re-validate ANY wellformedness certificate against the grammar.
 /// Dispatches per variant; each re-derives the claim directly (never trusts the detector). `Ok(())`
-/// iff the certificate genuinely holds.
+/// iff the certificate genuinely holds. `annotations` is needed only for the annotation-derived
+/// variants (`UnboundFactKind`); pass `None` for the pure-structural ones.
 pub fn verify_wellformedness_certificate(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
+    annotations: Option<&Annotations>,
     cert: &WellformednessCertificate,
 ) -> Result<(), String> {
     match cert {
@@ -1323,6 +1354,21 @@ pub fn verify_wellformedness_certificate(
             if reachable_rules(grammar, rule_order).contains(rule) {
                 Err(format!(
                     "certificate claims rule '{rule}' UNREACHABLE, but it IS reachable from a root"
+                ))
+            } else {
+                Ok(())
+            }
+        }
+        WellformednessCertificate::UnboundFactKind { rule, kind } => {
+            let Some(ann) = annotations else {
+                return Err(format!(
+                    "unbound-fact certificate for rule '{rule}' kind '{kind}' needs the annotations to re-check"
+                ));
+            };
+            // Re-collect every emitted kind independently; the claim holds iff none emits `kind`.
+            if collect_emitted_fact_kinds(ann).contains(kind) {
+                Err(format!(
+                    "certificate claims fact-kind '{kind}' (consulted in '{rule}') is unemitted, but an @emit_fact DOES emit it"
                 ))
             } else {
                 Ok(())
@@ -1704,12 +1750,12 @@ mod tests {
         );
         let cert = WellformednessCertificate::UnreachableRule { rule: "island".into() };
         assert!(
-            verify_wellformedness_certificate(&g, &order, &cert).is_ok(),
+            verify_wellformedness_certificate(&g, &order, None, &cert).is_ok(),
             "valid unreachable-rule certificate must verify"
         );
         let bogus = WellformednessCertificate::UnreachableRule { rule: "keep".into() };
         assert!(
-            verify_wellformedness_certificate(&g, &order, &bogus).is_err(),
+            verify_wellformedness_certificate(&g, &order, None, &bogus).is_err(),
             "claiming the reachable rule 'keep' unreachable must be rejected"
         );
         // the generalized checker also dispatches DeadAlternative correctly.
@@ -1718,7 +1764,38 @@ mod tests {
         let order2: Vec<String> = vec!["o".into()];
         let sh = detect_ordered_choice_shadowing(&g2, &order2);
         let wrapped = WellformednessCertificate::DeadAlternative(sh[0].certificate());
-        assert!(verify_wellformedness_certificate(&g2, &order2, &wrapped).is_ok());
+        assert!(verify_wellformedness_certificate(&g2, &order2, None, &wrapped).is_ok());
+    }
+
+    #[test]
+    fn unbound_fact_kind_certificate_verifies_and_rejects() {
+        // GRAMMAR-WELLFORMED.G.2.1: an unbound-fact certificate re-verifies; a bogus one (a kind that
+        // IS emitted, claimed unbound) is REJECTED.
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("producer".into(), vec![emit_fact_ann("type_name")]);
+        ann.semantic_annotations
+            .insert("bad".into(), vec![predicate_ann("has_fact(nonexistent_kind, head)")]);
+        let order: Vec<String> = vec![];
+        let g: HashMap<String, ASTNode> = HashMap::new();
+        let cert = WellformednessCertificate::UnboundFactKind {
+            rule: "bad".into(),
+            kind: "nonexistent_kind".into(),
+        };
+        assert!(
+            verify_wellformedness_certificate(&g, &order, Some(&ann), &cert).is_ok(),
+            "valid unbound-fact certificate must verify"
+        );
+        // bogus: 'type_name' IS emitted -> claiming it unbound must be rejected.
+        let bogus = WellformednessCertificate::UnboundFactKind {
+            rule: "x".into(),
+            kind: "type_name".into(),
+        };
+        assert!(
+            verify_wellformedness_certificate(&g, &order, Some(&ann), &bogus).is_err(),
+            "claiming an emitted kind unbound must be rejected"
+        );
+        // without annotations the checker honestly refuses.
+        assert!(verify_wellformedness_certificate(&g, &order, None, &cert).is_err());
     }
 
     #[test]

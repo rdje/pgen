@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0016 (leaf GRAMMAR-WELLFORMED.G.2.1): **certifying linter — UnboundFactKind certificate + checker (3 of 4 decidable verdict types now certified).**
+
+Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
+
+- Extracted `collect_emitted_fact_kinds(annotations)` (the complete emitter enumeration) from `detect_unbound_fact_kinds` — single source of truth for F1 + the certificate checker. Added `WellformednessCertificate::UnboundFactKind { rule, kind }`; `verify_wellformedness_certificate` now takes `annotations: Option<&Annotations>` and re-collects emitted kinds to confirm the consulted kind is unemitted (never trusts the detector).
+- Unit-tested (`unbound_fact_kind_certificate_verifies_and_rejects`): valid unbound-fact certificate re-verifies; a bogus one (an emitted kind claimed unbound) is REJECTED; the checker honestly refuses without annotations. Module suite 25/25.
+- ⇒ the certifying checker now covers 3 of the 4 decidable dead-verdict types (shadowing, unreachable-rule, unbound-fact). REMAINING: ProfileOrphan certificate (G.2.1b, needs profile-context extraction); G.2.2 standalone checker binary; G.3 reachability witnesses; G.4 coverage gate.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0015 (leaf GRAMMAR-WELLFORMED.G.2, in progress): **certifying linter — generalized certificate + checker to the rule-level UnreachableRule verdict; + A2.1 residual clarification.**
 
 Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
