@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0010 (leaf LEXICAL-ANNOTATIONS.3c prep; + KNOWLEDGE-MAP.2): corrected EBNF-frontend understanding + KM card.
+
+Director-directed careful study of how PGEN parses .ebnf, BEFORE changing anything. Corrected a misconception from my earlier Makefile archaeology:
+
+- **PGEN's authoritative EBNF parser is the HAND-WRITTEN `src/ebnf_frontend.rs`**, not the generated `generated/ebnf.rs`. Flow: `.ebnf` → ebnf_frontend (raw_ast token envelope) → `ast_pipeline/mod.rs::transform_from_raw_ast` (:1355) → grammar IR → generator. `generated/ebnf.rs` is only a NON-FATAL cross-check (warns on mismatch; skipped when inline semantic annotations present; hard-errors only if `PGEN_EBNF_FRONTEND_REQUIRE_GENERATED_VERIFY` is set, off by default).
+- **Consequence:** extending the EBNF meta-grammar syntax (the lexical-annotation `.3c` work) is a Rust-code change to the hand-written frontend (`tokenize_rule_expression` `'['` case + `scan_top_level_rules`) + `transform_from_raw_ast`, **NOT a bootstrap regen** of `generated/ebnf.rs`. My earlier "regen the bootstrap parser" plan was the wrong, riskier path.
+
+NEW KM card `docs/knowledge/ebnf-frontend-architecture.md` (answers: "how does PGEN parse .ebnf", "hand-written or generated", "how to extend the meta-grammar syntax", "do I need a bootstrap regen") so this is never re-derived. `.3c` plan in the tree corrected accordingly. Pure-docs.
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0009 (leaf LEXICAL-ANNOTATIONS notation): design finalized — inline placement binds the PRECEDING item.
 
 Final design detail agreed with the director: lexical annotations have two placements, mirroring semantic annotations — (a) before-rule (in `annotation_list`, binds the rule's right boundary); (b) inline, a standalone `sequence_element` structurally identical to `inline_semantic_annotation`, EXCEPT it binds the PRECEDING item (semantic binds the FOLLOWING item — the sole difference, because a lexical annotation describes what may follow the token it's about). Per-branch placement falls out naturally (branches are sequences). Distinct from the parse-time `lookahead_assertion` (`&X`/`!X`): that constrains parsing, this constrains generation faithfulness.
