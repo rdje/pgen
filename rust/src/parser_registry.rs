@@ -94,6 +94,12 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 
 type ParseSampleFn = fn(&str) -> bool;
 
+/// GRAMMAR-WELLFORMED.G.4: a grammar's witness-verification hook — parse `sample` through its REAL
+/// generated parser and return `(parsed_ok, rules_exercised)` (the rule names PRESENT in the
+/// successful AST). Registered per-grammar in the table below; the pipeline dispatches generically
+/// via `parse_and_cover(grammar_name, …)` and never names a grammar.
+type ParseAndCoverFn = fn(&str, Option<&str>) -> (bool, std::collections::HashSet<String>);
+
 #[cfg(has_generated_systemverilog_parser)]
 fn normalize_generated_grammar_profile<'a>(
     grammar_name: &str,
@@ -117,6 +123,10 @@ fn normalize_generated_grammar_profile<'a>(
 pub struct GeneratedParserRegistryEntry {
     pub grammar_name: &'static str,
     parse_sample: ParseSampleFn,
+    /// GRAMMAR-WELLFORMED.G.4: the witness-verification hook, when this grammar's parser supports it
+    /// (`None` until wired — Phase H wires the rest). Kept here so the per-grammar knowledge lives in
+    /// the registry table (data-driven), never in the pipeline.
+    parse_and_cover: Option<ParseAndCoverFn>,
 }
 
 impl GeneratedParserRegistryEntry {
@@ -389,6 +399,26 @@ fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>)
     parser.parse_full_systemverilog_file().is_ok()
 }
 
+/// GRAMMAR-WELLFORMED.G.4 (parser-AGNOSTIC dispatch): verify a witness/sample by parsing it through
+/// the grammar's REAL generated parser, returning `(parsed_ok, rules_exercised)`, or `None` when no
+/// generated parser is registered for `grammar_name` (the gate then skips — it cannot witness-verify
+/// that grammar yet; Phase H registers more). The grammar-name → parser mapping lives HERE (the
+/// registry's job, like the existing per-grammar parse closures), so the PIPELINE (e.g. `main.rs`)
+/// stays parser-agnostic — it calls this with `grammar.grammar_name` and never names a grammar.
+pub fn parse_and_cover(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> Option<(bool, std::collections::HashSet<String>)> {
+    let cover = find_entry(grammar_name)?.parse_and_cover?;
+    Some(cover(sample, grammar_profile))
+}
+
+/// Whether a generated parser with `parse_and_cover` support is registered for `grammar_name`.
+pub fn supports_parse_and_cover(grammar_name: &str) -> bool {
+    find_entry(grammar_name).is_some_and(|entry| entry.parse_and_cover.is_some())
+}
+
 /// GRAMMAR-WELLFORMED.G.3.3: parse `sample` through the REAL SystemVerilog parser and return
 /// `(parsed_ok, rules_exercised)` — the `parse_and_cover` closure that
 /// `grammar_wellformedness::verify_reachability_witness` needs to independently re-validate a
@@ -632,58 +662,70 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "return_annotation",
         parse_sample: parse_with_return_annotation,
+        parse_and_cover: None,
     },
     GeneratedParserRegistryEntry {
         grammar_name: "semantic_annotation",
         parse_sample: parse_with_semantic_annotation,
+        parse_and_cover: None,
     },
     GeneratedParserRegistryEntry {
         grammar_name: "builtin_return_annotation",
         parse_sample: parse_with_builtin_return_annotation,
+        parse_and_cover: None,
     },
     GeneratedParserRegistryEntry {
         grammar_name: "builtin_semantic_annotation",
         parse_sample: parse_with_builtin_semantic_annotation,
+        parse_and_cover: None,
     },
     #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
     GeneratedParserRegistryEntry {
         grammar_name: "ebnf",
         parse_sample: parse_with_ebnf,
+        parse_and_cover: None,
     },
     #[cfg(has_generated_json_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "json",
         parse_sample: parse_with_json,
+        parse_and_cover: None,
     },
     #[cfg(has_generated_regex_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "regex",
         parse_sample: parse_with_regex,
+        parse_and_cover: None,
     },
     #[cfg(has_generated_rtl_const_expr_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "rtl_const_expr",
         parse_sample: parse_with_rtl_const_expr,
+        parse_and_cover: None,
     },
     #[cfg(has_generated_rtl_frontend_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "rtl_frontend",
         parse_sample: parse_with_rtl_frontend,
+        parse_and_cover: None,
     },
     #[cfg(has_generated_systemverilog_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog",
         parse_sample: parse_with_systemverilog,
+        parse_and_cover: Some(parse_and_cover_systemverilog),
     },
     #[cfg(has_generated_systemverilog_preprocessor_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog_preprocessor",
         parse_sample: parse_with_systemverilog_preprocessor,
+        parse_and_cover: None,
     },
     #[cfg(has_generated_vhdl_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "vhdl",
         parse_sample: parse_with_vhdl,
+        parse_and_cover: None,
     },
     // Add future grammars here once their generated parser artifacts compile cleanly.
     // Examples: json, regex, systemverilog, vhdl.

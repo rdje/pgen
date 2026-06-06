@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0027 (leaf GRAMMAR-WELLFORMED.G.4, parser-agnostic FIX): the certificate-coverage gate is now PARSER-AGNOSTIC (data-driven registry dispatch) + the no-corner-cutting discipline recorded.
+
+Code (`rust/src/parser_registry.rs`, `rust/src/main.rs`) + decision record. Restores the absolute parser-agnostic doctrine the director stressed is project-critical.
+
+- **The violation (owned):** `-0025`/`-0026` hardcoded `if grammar.grammar_name == "systemverilog"` + a direct `parse_and_cover_systemverilog` call IN THE PIPELINE (`main.rs`) — a corner cut to rush the first G.4.4 run. Per [[feedback_ast_pipeline_parser_agnostic]] the pipeline must NEVER name a grammar.
+- **The fix (elegant, data-driven, consistent with the existing registry):** added `ParseAndCoverFn` + an `Option<ParseAndCoverFn>` field on `GeneratedParserRegistryEntry`; each table entry registers its hook (SV = `Some(parse_and_cover_systemverilog)`, the rest `None` until Phase H). `parser_registry::parse_and_cover(grammar_name, …)` / `supports_parse_and_cover(grammar_name)` dispatch via the existing `find_entry` table lookup — NO `match` on names. `main.rs` calls them generically with `grammar.grammar_name` (runtime data). 
+- **Proven agnostic:** grammar-name literals in the framework (`grammar_wellformedness.rs`) = 0; in the `main.rs` G.4 block = 0; grammar names live ONLY in `parser_registry` (its legitimate registration boundary, as data). Builds: default `ast_pipeline` (cfg-out), dual-feature (gate active), and `--lib --features generated_parsers` all RC=0; parser_registry 18/18 + grammar_wellformedness 30/30 tests pass.
+- **Discipline recorded:** `docs/decisions/feedback_quality_over_speed_no_corners.md` (+ INDEX) — director directive (emphatic): never cut corners / quick-and-dirty; not in a hurry; want quality, well-thought algorithms, elegant code, very high QoR; take the time to do it right. Reinforces correctness-before-speed + no-workarounds + (absolute) parser-agnostic.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0026 (leaf GRAMMAR-WELLFORMED.G.4.3, FIRST REAL RUN): the certificate-coverage gate RAN end-to-end on real SV + surfaced a genuine finding.
 
 Doc/result (tree + LIVE). The run used the dual-feature `ast_pipeline` from `-0025`.
