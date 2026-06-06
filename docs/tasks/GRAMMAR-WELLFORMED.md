@@ -383,14 +383,17 @@ certificates, not faith".
     return-type, or caller change), so it is verified by lib-build (no closed-loop needed — the captured
     witnesses are exactly what the already-validated witness pass produced). The constructive half of the
     duality now produces certificates the `verify_reachability_witness` checker (G.3.1) consumes.
-  - `G.3.3` — the real `parse_and_cover`: a coverage-instrumented replay through the generated parser
-    (the parseability/closed-loop layer) supplies the closure `verify_reachability_witness` needs.
-    **DE-RISKED:** the generated parser ALREADY has per-rule call-count instrumentation
-    (`--dump-rule-call-counts`, `parseability_probe.rs`; counters bumped on every rule entry), so
-    `parse_and_cover(input)` = parse + collect the rules whose count>0 (rule-level coverage; branch-level
-    is a follow-up). Wiring at the probe/closed-loop layer (needs `generated_parsers` + the grammar's
-    parser at runtime → heavier to test than the pure-analysis pieces). Then `G.4` ties proof+witness:
-    every fragment carries a verified PROOF or WITNESS ⇒ `UNKNOWN`=0 (the objective trust number).
+  - `G.3.3` — the real `parse_and_cover` — **DONE (`-0021`).** Two pieces: (1) `parse_node_covered_rules`
+    (grammar_wellformedness.rs) — the parser-AGNOSTIC SOUND coverage extractor: walks a SUCCESSFUL
+    `ParseNode` tree collecting the rule names PRESENT in it (NOT the speculatively-attempted-and-failed
+    rules a per-rule call counter would over-count → unsound), unit-tested + composed with the witness
+    checker; (2) `parser_registry::parse_and_cover_systemverilog(sample, profile)` — the SV glue: build
+    the real SV parser, `parse_full_systemverilog_file`, walk the AST → `(parsed_ok, rules_exercised)`,
+    the exact closure `verify_reachability_witness` needs. Compiles under `--features generated_parsers`.
+    ⇒ the WITNESS side is wired END-TO-END: generator EMITS witnesses (G.3.2) → `parse_and_cover_*`
+    (G.3.3) → `verify_reachability_witness` (G.3.1). (Branch-level coverage + per-grammar `parse_and_cover_*`
+    = Phase H follow-ups.) Then `G.4` ties proof+witness: every fragment a verified PROOF or WITNESS ⇒
+    `UNKNOWN`=0 (the objective trust number).
 - `G.4` — **certificate-COVERAGE gate**: for the SV grammar require every fragment to carry a valid
   certificate (`UNKNOWN` = 0) with all certificates checking → HARD gate. *That number, at 0, is the
   objective proof the linter is trustworthy on this grammar.* Folds in A2.1 (each grammar fix moves a

@@ -1488,6 +1488,33 @@ where
     Ok(())
 }
 
+/// GRAMMAR-WELLFORMED.G.3.3: the SOUND "fragments exercised by an input" set — the rule names
+/// PRESENT in a SUCCESSFUL parse tree. This walks the final AST, so it counts rules actually in the
+/// parse, NOT rules merely ATTEMPTED-and-failed during PEG backtracking (which the per-rule call
+/// counters would over-count → an unsound witness check). Parser-AGNOSTIC (any grammar's `ParseNode`).
+/// The `parse_and_cover` closure `verify_reachability_witness` needs is: "did it parse" +
+/// `parse_node_covered_rules(&ast)`.
+pub fn parse_node_covered_rules(node: &super::ParseNode<'_>) -> HashSet<String> {
+    let mut out = HashSet::new();
+    collect_covered_rules(node, &mut out);
+    out
+}
+
+fn collect_covered_rules(node: &super::ParseNode<'_>, out: &mut HashSet<String>) {
+    out.insert(node.rule_name.to_string());
+    match &node.content {
+        super::ParseContent::Sequence(children) | super::ParseContent::Quantified(children, _) => {
+            for c in children {
+                collect_covered_rules(c, out);
+            }
+        }
+        super::ParseContent::Alternative(child) => collect_covered_rules(child, out),
+        super::ParseContent::Terminal(_)
+        | super::ParseContent::TransformedTerminal(_)
+        | super::ParseContent::Json(_) => {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1882,6 +1909,28 @@ mod tests {
         assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn parse_node_covered_rules_walks_the_ast() {
+        // GRAMMAR-WELLFORMED.G.3.3: the covered set = rule names PRESENT in the parse tree.
+        use crate::ast_pipeline::{ParseContent, ParseNode};
+        let leaf = ParseNode { rule_name: "leaf", content: ParseContent::Terminal("x"), span: 0..1 };
+        let inner =
+            ParseNode { rule_name: "inner", content: ParseContent::Sequence(vec![leaf]), span: 0..1 };
+        let root = ParseNode {
+            rule_name: "root",
+            content: ParseContent::Alternative(Box::new(inner)),
+            span: 0..1,
+        };
+        let covered = parse_node_covered_rules(&root);
+        assert!(covered.contains("root") && covered.contains("inner") && covered.contains("leaf"));
+        // And it composes with the witness checker: a witness for "inner" verifies via a real walk.
+        let parse_and_cover = |_input: &str| (true, parse_node_covered_rules(&root));
+        let w = ReachabilityWitness { fragment: "inner".into(), input: "x".into() };
+        assert!(verify_reachability_witness(parse_and_cover, &w).is_ok());
+        let miss = ReachabilityWitness { fragment: "absent".into(), input: "x".into() };
+        assert!(verify_reachability_witness(parse_and_cover, &miss).is_err());
     }
 
     #[test]

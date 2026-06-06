@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0021 (leaf GRAMMAR-WELLFORMED.G.3.3): **the real witness replay (parse_and_cover) — the WITNESS side is now wired end-to-end.**
+
+Code (`grammar_wellformedness.rs` + `parser_registry.rs`). Pure-analysis walk lib-tested; SV glue compiles under `--features generated_parsers`.
+
+- `parse_node_covered_rules(&ParseNode)` (grammar_wellformedness.rs): the parser-AGNOSTIC, SOUND coverage extractor — walks a SUCCESSFUL parse tree collecting the rule names PRESENT in it. Sound because it uses the final AST, NOT per-rule call counters (which over-count rules merely ATTEMPTED-and-failed during PEG backtracking → would over-claim coverage). Unit-tested (`parse_node_covered_rules_walks_the_ast`) + composed with `verify_reachability_witness` (real walk feeds the checker; hit verifies, miss rejected). Module suite 28/28.
+- `parser_registry::parse_and_cover_systemverilog(sample, profile)` (cfg `has_generated_systemverilog_parser`): the SV glue — builds the real SV parser, `parse_full_systemverilog_file`, walks the AST → `(parsed_ok, rules_exercised)` — exactly the `parse_and_cover` closure `verify_reachability_witness` needs. Compiles under `--features generated_parsers` (BUILD_RC=0).
+- ⇒ the WITNESS side of the duality is wired END-TO-END: generator EMITS `ReachabilityWitness` (G.3.2) → `parse_and_cover_systemverilog` (G.3.3) → `verify_reachability_witness` (G.3.1). Branch-level coverage + per-grammar `parse_and_cover_*` are Phase H follow-ups. REMAINING: G.4 (the `UNKNOWN`=0 gate: every fragment a verified PROOF or WITNESS — the objective trust number; needs the heavy closed-loop verification), G.2.2 checker bin, Phase H per-grammar.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0019 (leaf GRAMMAR-WELLFORMED.G.3.2): **the generator now EMITS reachability-witness certificates (the constructive half of the duality).**
 
 Code (`rust/src/ast_pipeline/stimuli_generator.rs`). Purely additive; verified by lib-build (no generation-behavior change → no closed-loop needed).

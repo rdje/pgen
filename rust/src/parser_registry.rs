@@ -389,6 +389,32 @@ fn parse_with_systemverilog_profile(sample: &str, grammar_profile: Option<&str>)
     parser.parse_full_systemverilog_file().is_ok()
 }
 
+/// GRAMMAR-WELLFORMED.G.3.3: parse `sample` through the REAL SystemVerilog parser and return
+/// `(parsed_ok, rules_exercised)` — the `parse_and_cover` closure that
+/// `grammar_wellformedness::verify_reachability_witness` needs to independently re-validate a
+/// reachability witness. Coverage = the rule names PRESENT in the SUCCESSFUL AST (sound; not the
+/// speculatively-attempted-and-failed rules a per-rule call counter would over-count).
+#[cfg(has_generated_systemverilog_parser)]
+pub fn parse_and_cover_systemverilog(
+    sample: &str,
+    grammar_profile: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let mut parser =
+        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+    let normalized_profile = normalize_generated_grammar_profile("systemverilog", grammar_profile);
+    parser.set_grammar_profile(normalized_profile);
+    if preload_systemverilog_stdlib(&mut parser, normalized_profile).is_err() {
+        return (false, std::collections::HashSet::new());
+    }
+    match parser.parse_full_systemverilog_file() {
+        Ok(node) => (
+            true,
+            crate::ast_pipeline::grammar_wellformedness::parse_node_covered_rules(&node),
+        ),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog_detail_profile(
     sample: &str,
