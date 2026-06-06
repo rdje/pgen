@@ -193,7 +193,10 @@ impl Default for StimuliConfig {
             mutation_mode: StimuliMutationMode::Baseline,
             constraint_profile: StimuliConstraintProfile::Baseline,
             negative_profile: StimuliNegativeProfile::Baseline,
-            enforce_word_boundary_spacing: false,
+            // LEXICAL-ANNOTATIONS.3d — lexical faithfulness is ON by default: valid generation should
+            // always produce text that re-lexes to the intended tokens. Negative-test generation opts
+            // out explicitly (sets this false). (Was false; flipped 2026-06-06.)
+            enforce_word_boundary_spacing: true,
             trace_verbosity: global_trace_verbosity(),
         }
     }

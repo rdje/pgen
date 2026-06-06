@@ -106,14 +106,19 @@ justified because pillars 1–3 structurally cannot express it (see the decision
     gate `sample_parse_failures` stays 0; `witness` unchanged at 191 (SV terminals already use `\b`, so
     SV output is identical — the win is principle + coverage of non-`\b` grammars); pinned by
     `obligation_b_regex_derived_trailing_separator`; 132 generator tests green.
-  - **`.3d` — REMAINING (deferred, documented honestly).** Two pieces B-as-implemented does NOT cover:
-    (i) **distinct-longer-token fusion** (operator fusion `<`+`<`→`<<`, where the previous token is a
-    fixed literal but a longer token spans the boundary) — needs cross-terminal analysis or the next
-    token; rare, not currently biting. (ii) **on-by-default / flag removal** — making faithfulness the
-    default rather than gated by `enforce_word_boundary_spacing` (the "fully subsume the flag" step).
-    This is a generation-default POLICY change with blast radius (affects all callers' output + needs a
-    negative-test-generation opt-out), so it earns its own measured slice (full-suite measurement +
-    any output-asserting test updates), not a rushed bundle.
+  - **`.3d` (ii) on-by-default — LIBRARY/CONFIG default flipped. DONE (`-0007`).** `StimuliConfig::default()`
+    now has `enforce_word_boundary_spacing: true` — lexical faithfulness is the default for any
+    programmatic generator; negative-test generation opts out explicitly. **MEASURED: full lib suite
+    607/607 green** (zero blast radius — the explicit-`false` tests are unaffected; the gate sets it
+    `true` explicitly so is unchanged). Faithful is now the correct default at the type level.
+  - **`.3d` (ii-CLI) on-by-default for the production CLI — DEFERRED (surface change).** Making
+    `--generate-stimuli` faithful-by-default is NOT a simple flag flip: `args.enforce_word_boundary_spacing`
+    is overloaded at `main.rs:770` as a "stimuli command present" sentinel, so inverting it misfires
+    there. Needs a clean opt-out flag (e.g. `--no-word-boundary-spacing`) + the `:770` guard fix + book
+    lockstep — its own deliberate slice.
+  - **`.3d` (i) distinct-longer-token (operator) fusion — DEFERRED.** `<`+`<`→`<<` where the previous
+    token is a fixed literal but a longer token spans the boundary; needs cross-terminal analysis (the
+    leaf guard can't see it). Rare, not currently biting — a deliberate completeness pass when it bites.
 - `.3c` — **Obligation C (declarative follow-restriction annotation).** Deferred until the EBNF
   **notation** is agreed with the director (see `.2` note). Then: EBNF surface → annotation compiler →
   follow-restriction table consulted by Obligation B.

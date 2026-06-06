@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0007 (leaf LEXICAL-ANNOTATIONS.3d): lexical faithfulness is ON by default (config-level).
+
+`StimuliConfig::default()` now sets `enforce_word_boundary_spacing: true` — valid generation should always produce text that re-lexes to the intended tokens, so faithfulness is the default for any programmatic generator; negative-test generation opts out explicitly.
+
+MEASURED: full `cargo test --lib` suite 607/607 green — zero blast radius (the explicit-`false` generator tests are unaffected; the certificate gate sets the flag `true` explicitly so is unchanged). GENERATOR change only (no parser regen).
+
+Deferred (each its own slice): (ii-CLI) making `--generate-stimuli` faithful-by-default is a surface change — `args.enforce_word_boundary_spacing` is overloaded at `main.rs:770` as a "stimuli command present" sentinel, so it needs a clean opt-out flag + the guard fix + book lockstep; (i) distinct-longer-token operator fusion (`<`+`<`→`<<`) needs cross-terminal analysis (rare/not biting). The `.3c` declarative follow-restriction annotation remains blocked on the NOTATION decision (SDF `-/-` vs fresh sigil).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0006 (leaf LEXICAL-ANNOTATIONS.3 Obligation B): inter-token faithfulness — regex-derived trailing guard (subsumes the `\b` hack).
 
 Second implementation slice of the 4th pillar. `apply_word_boundary_spacing` is generalized from a `\b`-string match + hardcoded space to a regex-DERIVED rule: an open-ended terminal — trailing `\b`, OR a greedy unbounded class repetition (`\w*`, `[0-9]+`, `[^\n]*`) — self-terminates with the minimal separator its tail class cannot absorb (a space, else a newline). New helpers `regex_terminal_trailing_separator` / `regex_hir_tail` / `regex_tail_greedy_blocker` / `regex_class_contains`.
