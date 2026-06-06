@@ -1,6 +1,7 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.2` DESIGN (begins once `.1` survey lands).
+> **Status:** `active` (2026-06-06). **Frontier:** `.3` IMPLEMENT (Obligations A + B; derivation-only,
+> no EBNF notation needed). **Design:** [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md).
 > **Family / slice-id prefix:** `PGEN-LEXICAL-ANNOTATIONS-<NNNN>`.
 > **Decision record:** [`project_lexical_annotations_fourth_pillar`](../decisions/project_lexical_annotations_fourth_pillar.md).
 > **Book chapter:** [`docs/book/src/lexical-annotations.md`](../book/src/lexical-annotations.md).
@@ -66,12 +67,16 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   (SDF2 follow restrictions / reject productions, scannerless lexical syntax, maximal munch, unparsing
   / pretty-printing, grammar-based test generation) and map each to PGEN; write the decision record +
   book stub. Establishes the cited ground per the research-grounded-SOTA discipline. **DONE.**
-- `.2` — **DESIGN (NEXT).** The parser-agnostic primitive: the *faithful-rendering invariant*
-  (`render(t)` re-lexes to `t`), with separation **auto-derived from the token regexes** the generator
-  already holds (does B extend A's match? does A's terminator require a newline?), plus an optional
-  **declarative follow-restriction lexical annotation** (SDF-style) for what derivation can't infer.
-  Define how `enforce_word_boundary_spacing` is subsumed. Output: a design doc + the annotation surface
-  specified in `grammars/*.ebnf` terms. NO code yet.
+- `.2` — **DESIGN. DONE (`-0004`)** — see [`LEXICAL-ANNOTATIONS-design.md`](LEXICAL-ANNOTATIONS-design.md).
+  The faithful-rendering invariant `LEX-FAITHFUL` (`render(t)` re-lexes/re-parses to `t`), achieved by
+  **two derived obligations + one declarative escape hatch**: **(A) intra-token faithfulness** (each
+  surface is a complete valid token — honor regex anchors `$`/`^` as assertions, prefer concrete
+  alternation branches; fixes the comment-`$` bug at source); **(B) inter-token faithfulness** (between
+  adjacent surfaces, insert the *minimal* separator — `""`→`" "`→`"\n"` — such that the previous token's
+  regex doesn't over-match; derived by a local greedy-match boundary test, sound for PEG); **(C)** an
+  optional declarative follow-restriction annotation for what derivation can't infer (notation TBD).
+  Subsumes `enforce_word_boundary_spacing` (a crude special case of B). On by default; opt-out only for
+  negative-test generation.
   - **Open design question — the NOTATION (director-raised 2026-06-06, deferred to `.2`).** Return
     annotations use `->`, semantic annotations use `@`; lexical annotations need their own EBNF syntax.
     The name/syntax will stick for years, so decide deliberately. Candidates: adopt/adapt **SDF's
@@ -80,10 +85,14 @@ justified because pillars 1–3 structurally cannot express it (see the decision
     the terminal/token level (lexical constraints are about token boundaries); and since most
     faithfulness is **derived** from the regexes, the notation only ever appears for the *rare explicit*
     declaration — so it can be lightweight. Decide with the director.
-- `.3` — **IMPLEMENT.** The generation-side enforcement in the engine (parser-agnostic): on emitting
-  each token, insert the minimal separator (space → newline) that preserves faithfulness; honor regex
-  anchors (`$`/`^`/`\b`) as position assertions rather than free empties. Regenerate parsers; commit
-  codegen only (generated/ is local).
+- `.3` — **IMPLEMENT (NEXT) — Obligations A + B (derivation only; no EBNF notation needed).** A: honor
+  regex anchors in `generate_from_regex_hir` (anchor arm + alternation branch selection). B: track the
+  last emitted terminal's regex; replace the char-class word-boundary check with the regex boundary test
+  + minimal-separator ladder; subsume `enforce_word_boundary_spacing`. Regenerate parsers; commit codegen
+  only (generated/ is local). **Unblocked by the notation decision** — A+B are pure derivation.
+- `.3c` — **Obligation C (declarative follow-restriction annotation).** Deferred until the EBNF
+  **notation** is agreed with the director (see `.2` note). Then: EBNF surface → annotation compiler →
+  follow-restriction table consulted by Obligation B.
 - `.4` — **VERIFY + GENERALIZE.** Re-run the certificate-coverage gate (the verifier): SV
   `sample_parse_failures → 0` from the general mechanism; then every grammar with a registered parser
   (ties into `GRAMMAR-WELLFORMED` Phase H). Retire the comment-newline and word-fusion special cases as

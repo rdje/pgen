@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0004 (leaf LEXICAL-ANNOTATIONS.2): DESIGN — the faithful-rendering invariant (two derived obligations + a declarative escape hatch).
+
+Design doc `docs/tasks/LEXICAL-ANNOTATIONS-design.md` (no code). The invariant LEX-FAITHFUL: re-lexing/re-parsing the generator's output recovers the intended token sequence (and tree), with each separator MINIMAL. Achieved by:
+- **(A) intra-token faithfulness** — each emitted surface is a complete valid token. Honor regex anchors `$`/`^` as assertions (don't realize a zero-width end-anchor branch inline; prefer the concrete sibling, e.g. choose `
+` over `$` in `(
+|$)`). Fixes the comment-`$` swallow (G.4.7 slice 3) at the source.
+- **(B) inter-token faithfulness** — between adjacent surfaces insert the minimal separator (`""`→`" "`→`"
+"`) such that the previous token's regex does not over-match across the boundary, decided by a local greedy-match boundary test (sound for PEG's greedy, no-intra-regex-backtrack matching). Fixes word/number/operator fusion uniformly; subsumes `enforce_word_boundary_spacing` (a crude char-class special case).
+- **(C) declarative follow-restriction annotation** — optional escape hatch for what derivation can't infer; **notation deferred** to a director decision (SDF `-/-` vs fresh sigil).
+- On by default for valid generation; opt-out only for negative-test generation.
+
+Sequencing decision: `.3` implements A + B (pure derivation — NOT blocked by the notation decision); `.3c` adds Obligation C once the notation is agreed. Verifier = the existing certificate-coverage gate. Parser-agnostic throughout; bidirectional bonus (the same follow-restriction table could later feed parse-time disambiguation).
+
+Tree updated (`.2` DONE, frontier `.3`); resume pointer synced.
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0002 (leaf LEXICAL-ANNOTATIONS.1.1): framing refinement — the 4th pillar is BIDIRECTIONAL (generation-dominant today), not generation-only.
 
 Director refinement (2026-06-06): lexical annotations may steer BOTH parsing and generation, but happen to affect generation more often. This supersedes the "generation-only (with a parsing footnote)" framing committed in `-0001`. The lexical-surface constraints are a property of the language's lexical interface that BOTH directions traverse — SDF uses the same follow restrictions to disambiguate parsing, and an unparser uses the same boundary facts to render generation faithfully. In PGEN today they're needed for generation far more often because the parser already resolves most boundaries via maximal munch while the generator has no lexical discipline; the generation skew is a fact about PGEN's current state, not the pillar's nature.
