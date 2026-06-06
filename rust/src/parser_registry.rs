@@ -316,6 +316,29 @@ fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
     })
 }
 
+/// GRAMMAR-WELLFORMED.H.1 — parse `sample` through the REAL regex parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_systemverilog`: enable the transactional `coverage_stack`, parse, and return the
+/// PARSER's own record of the committed rules on a SUCCESSFUL parse. Runs on the dedicated regex worker
+/// stack (regex can deeply recurse — RGX-0085). No profile / stdlib (regex has neither). PCRE2 compile
+/// validation is intentionally NOT applied here — cert-coverage asks "did the GRAMMAR parse + which rules
+/// were exercised", not "is the pattern PCRE2-valid".
+#[cfg(has_generated_regex_parser)]
+pub fn parse_and_cover_regex(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    run_generated_regex_on_dedicated_stack(sample, |owned_sample| {
+        let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        parser.enable_coverage();
+        Ok(match parser.parse_full_regex() {
+            Ok(_) => (true, parser.exercised_rule_names()),
+            Err(_) => (false, std::collections::HashSet::new()),
+        })
+    })
+    .unwrap_or((false, std::collections::HashSet::new()))
+}
+
 #[cfg(has_generated_rtl_const_expr_parser)]
 fn parse_with_rtl_const_expr(sample: &str) -> bool {
     let mut parser =
@@ -730,7 +753,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "regex",
         parse_sample: parse_with_regex,
-        parse_and_cover: None,
+        parse_and_cover: Some(parse_and_cover_regex),
         parse_detail: None,
     },
     #[cfg(has_generated_rtl_const_expr_parser)]

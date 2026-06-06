@@ -175,6 +175,30 @@ subtle dead branch"), never a silent accept.
   `-> {library,name,config}` return annotation stays on the (now-last) simple alt. LRM-grounded (the
   `[lib.]` in IEEE 1800 §A.1.5 use_clause is optional; this is a PEG specific-before-general reorder, the
   A2.1 idiom). Requires SV regen + verification (corpus 14/14, shape-contract, cert-coverage re-run, lib).
+- `H.1` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0034`, 2026-06-07): Phase H STARTED — `parse_and_cover`
+  wired for `regex` (first non-SV grammar); `--report-certificate-coverage` now runs for regex.** Added
+  `parse_and_cover_regex` to `parser_registry.rs` (mirrors `parse_and_cover_systemverilog`, on the
+  dedicated regex worker stack, no profile/stdlib, PCRE2-compile validation intentionally omitted) + set
+  `parse_and_cover: Some(parse_and_cover_regex)` on the regex entry. The regex parser was regenerated
+  (mtime-verified) to pick up the unconditional G.4.6 coverage codegen (`enable_coverage` /
+  `exercised_rule_names`) — no codegen change. VERIFIED: `ast_pipeline regex.ebnf
+  --report-certificate-coverage --entry-rule regex` now RUNS (no bail) → `total=206 proof=0 witness=73
+  UNKNOWN=133 (sample_parse_failures=6)`; the regex regen is conformant (RGX broader-corpus gate ✅ — the
+  critical downstream is unaffected); `parser_registry` tests 18/0; lib `--features generated_parsers`
+  compiles. NEW FINDING (honest, Phase-H-surfaced): regex has **6** witness-parseability
+  `sample_parse_failures` (a regex generator↔grammar round-trip residual now MEASURABLE for the first
+  time — a follow-up G.4/Phase-H investigation, NOT a regression). Phase H continues for vhdl / svpp /
+  rtl_* / json (each: regen + a `parse_and_cover_<grammar>` registry fn). ORIGINAL scope:
+  Today only `systemverilog` sets `parse_and_cover`
+  in `parser_registry.rs`; the cert-coverage gate hard-bails for every other grammar (`supports_parse_and_cover`
+  false → "Phase H wires more grammars"). The G.4.6 coverage instrumentation (`enable_coverage` /
+  `exercised_rule_names`, via the transactional `coverage_stack`) is emitted UNCONDITIONALLY by the codegen
+  (`ast_based_generator.rs` ~:577-938) — so the only reason non-SV parsers lack it is staleness (generated
+  pre-G.4.6). FIX (no codegen change): regenerate the regex parser (gets the coverage methods) + add a
+  `parse_and_cover_regex` registry function (mirrors `parse_and_cover_systemverilog`, on the dedicated
+  regex worker stack, no profile/stdlib) + set `parse_and_cover: Some(parse_and_cover_regex)` on the regex
+  entry. Phase H continues for vhdl / svpp / rtl_* / json (each: regen + a registry fn). Acceptance:
+  `--report-certificate-coverage` runs for regex (no bail) + reports its sample_parse_failures.
 - `A2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0006):** the SOUND DECIDABLE SUBSET of FIRST-domination —
   **earlier-branch-ALWAYS-SUCCEEDS shadowing.** New `node_always_succeeds`/`compute_always_succeeds`
   (the dual of `compute_nullable`, differing ONLY on the lookahead arm: a predicate `&e`/`!e` is
