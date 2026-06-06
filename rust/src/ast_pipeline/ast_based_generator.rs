@@ -549,6 +549,38 @@ impl AstBasedGenerator {
                 // no save/restore). Parser-agnostic primitive; benefits
                 // every grammar pgen builds.
                 furthest_position: usize,
+                // GRAMMAR-WELLFORMED.G.4.6 — TRANSACTIONAL PARSE-COVERAGE.
+                // The certifying linter's WITNESS side needs the rules a
+                // SUCCESSFUL parse genuinely exercises — i.e. the rules of the
+                // ACCEPTED parse tree, NOT (a) the output AST's `rule_name`s
+                // (return annotations fold whole subtrees into
+                // `ParseContent::Json`, erasing the children's rule identities)
+                // and NOT (b) `rule_call_counts` (monotone entry counts that
+                // include speculative attempts later backtracked). Both are
+                // wrong: (a) under-counts, (b) over-counts.
+                //
+                // This stack is the rigorous source: rule-ids are pushed at
+                // rule entry (below), and — crucially — it is TRANSACTIONAL.
+                // `try_parse` (the universal speculation wrapper) snapshots its
+                // length on entry and truncates back to it on failure, exactly
+                // as it already does for `position`, the recursion stack, and
+                // the semantic checkpoint. So a rule entered inside a
+                // speculation that is later rolled back has its push removed
+                // too. After a successful top-level parse every failure
+                // necessarily occurred inside some rolled-back `try_parse`
+                // (else the parse would have failed), so the surviving entries
+                // are EXACTLY the rules of the accepted parse — sound (no
+                // backtracked attempts) and complete (annotation folding can't
+                // hide them: this records entries, not output nodes).
+                //
+                // OPT-IN: pushes happen only when `coverage_enabled` is set
+                // (via `enable_coverage`), so ordinary parsing pays nothing —
+                // the field stays an empty Vec and `try_parse`'s
+                // snapshot/truncate is O(1) on it. Cost is borne only by the
+                // certification gate, which parses small clean witness samples.
+                // Parser-AGNOSTIC: every generated parser gains it identically.
+                coverage_stack: Vec<u32>,
+                coverage_enabled: bool,
             }
         }
     }
@@ -849,6 +881,10 @@ impl AstBasedGenerator {
                     ),
                     // SV-EXH-PROOF.3.3.4.b.6.2.25 — furthest-position init.
                     furthest_position: 0,
+                    // GRAMMAR-WELLFORMED.G.4.6 — coverage off by default
+                    // (opt-in via enable_coverage); empty stack = zero cost.
+                    coverage_stack: Vec::new(),
+                    coverage_enabled: false,
                 }
             }
 
@@ -877,6 +913,32 @@ impl AstBasedGenerator {
             /// Same length as `rule_call_counts()`; same indexing.
             pub fn rule_names() -> &'static [&'static str] {
                 Self::RULE_NAMES
+            }
+
+            /// GRAMMAR-WELLFORMED.G.4.6 — opt in to TRANSACTIONAL PARSE-COVERAGE.
+            /// Clears any prior coverage and enables per-rule-entry recording on
+            /// the transactional `coverage_stack`. Call immediately before the
+            /// parse whose accepted-tree rule set you want; read it back with
+            /// `exercised_rule_names()` after a SUCCESSFUL parse. Off by default
+            /// so ordinary parsing carries zero coverage overhead.
+            pub fn enable_coverage(&mut self) {
+                self.coverage_enabled = true;
+                self.coverage_stack.clear();
+            }
+
+            /// GRAMMAR-WELLFORMED.G.4.6 — the rules EXERCISED by the accepted
+            /// parse, as names. Sound + complete for the witness side: it is the
+            /// de-duplicated set of rule entries that survived all speculative
+            /// rollbacks (so: committed successes only — no backtracked attempts,
+            /// and immune to return-annotation `ParseContent::Json` folding,
+            /// since it records entries rather than output nodes). Meaningful
+            /// only after a successful parse made with coverage enabled; returns
+            /// an empty set otherwise. Indices map through `RULE_NAMES`.
+            pub fn exercised_rule_names(&self) -> std::collections::HashSet<String> {
+                self.coverage_stack
+                    .iter()
+                    .filter_map(|&id| Self::RULE_NAMES.get(id as usize).map(|s| s.to_string()))
+                    .collect()
             }
 
             /// SV-EXH-PROOF.3.3.4.b.6.2.17 — opt in to RULE-LEVEL TARGETED TRACE.
@@ -2385,6 +2447,16 @@ impl AstBasedGenerator {
                 // codegen-emitted RuleId for THIS rule) as the array index.
                 self.rule_call_counts[Self::#rule_const as usize]
                     .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
+                // GRAMMAR-WELLFORMED.G.4.6 — transactional parse-coverage push.
+                // Record this rule entry on the coverage stack (opt-in). Unlike
+                // the monotone counter above, this push is rolled back by
+                // `try_parse` if the enclosing speculation fails, so on a
+                // successful parse only ACCEPTED-tree entries survive. O(1) push
+                // of a u32; gated so disabled parsing pays nothing.
+                if self.coverage_enabled {
+                    self.coverage_stack.push(Self::#rule_const as u32);
+                }
 
                 // SV-EXH-PROOF.3.3.4.b.6.2.25 — FURTHEST-POSITION TRACKING.
                 // Update the monotone max of position. Single max + assignment
@@ -5268,6 +5340,12 @@ impl AstBasedGenerator {
             {
                 let saved_pos = self.position;
                 let saved_stack_len = self.recursion_guard.parse_stack.len();
+                // GRAMMAR-WELLFORMED.G.4.6 — snapshot the transactional
+                // parse-coverage length so a failed speculation's rule-entry
+                // pushes are discarded on backtrack (mirrors position/stack/
+                // semantic rollback). O(1); when coverage is disabled the stack
+                // is empty so this is a trivial 0.
+                let saved_coverage_len = self.coverage_stack.len();
                 // ============================================================
                 // SV-EXH-PROOF.3.3.4.b.6.2.7 — speculative-parse semantic
                 // rollback (Bug A from the C3 diagnosis).
@@ -5345,6 +5423,10 @@ impl AstBasedGenerator {
                     Err(e) => {
                         // Backtrack
                         self.position = saved_pos;
+                        // GRAMMAR-WELLFORMED.G.4.6 — discard rule-entry pushes
+                        // recorded inside this failed speculation, so coverage
+                        // reflects only the accepted parse. No-op when disabled.
+                        self.coverage_stack.truncate(saved_coverage_len);
                         // SV-EXH-PROOF.3.3.4.b.6.2.36.2 — capture the rule
                         // at parse_stack top BEFORE truncating, so the
                         // rollback trace event identifies the failing
@@ -7305,6 +7387,54 @@ mod semantic_usage_tests {
                 .take(30)
                 .collect::<Vec<_>>()
                 .join("\n")
+        );
+    }
+
+    /// GRAMMAR-WELLFORMED.G.4.6 — pins the TRANSACTIONAL PARSE-COVERAGE wiring
+    /// at the codegen level so a future refactor of the rule-method or
+    /// `try_parse` template cannot silently drop it (which would regress the
+    /// certifying-linter witness side back to the broken AST-walk numbers).
+    /// All four pieces must be present and consistent: (1) the opt-in state
+    /// (`coverage_stack` + `coverage_enabled`), (2) the per-rule-entry push,
+    /// (3) the `try_parse` snapshot/truncate that makes it transactional, and
+    /// (4) the public `enable_coverage` / `exercised_rule_names` accessors.
+    #[test]
+    fn transactional_parse_coverage_wiring_is_emitted_at_codegen() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("r".to_string(), token("quoted_string", "v"));
+        let rule_order = vec!["r".to_string()];
+
+        let mut generator = AstBasedGenerator::new("coverage_wiring_test".to_string());
+        generator.enable_debug = false;
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "coverage_wiring_test.rs")
+            .expect("parser generation should succeed");
+
+        for needle in [
+            "coverage_stack",   // the transactional stack field
+            "coverage_enabled", // the opt-in gate
+            "saved_coverage_len", // try_parse snapshot of the stack length
+            "enable_coverage",  // public opt-in accessor
+            "exercised_rule_names", // public read-back accessor
+        ] {
+            assert!(
+                rendered.contains(needle),
+                "generated parser must carry the parse-coverage wiring token `{}`; rendered did not contain it",
+                needle
+            );
+        }
+        // The push must be gated by the opt-in flag (zero cost when disabled),
+        // and the rollback must truncate to the snapshot (transactionality).
+        // Whitespace-agnostic: `generate_parser` may return either the raw
+        // spaced token stream or rustfmt-formatted source.
+        let nospace: String = rendered.chars().filter(|c| !c.is_whitespace()).collect();
+        assert!(
+            nospace.contains("ifself.coverage_enabled"),
+            "the per-rule-entry coverage push must be gated by coverage_enabled"
+        );
+        assert!(
+            nospace.contains("coverage_stack.truncate(saved_coverage_len)"),
+            "try_parse must truncate the coverage stack back to its pre-speculation length on failure"
         );
     }
 

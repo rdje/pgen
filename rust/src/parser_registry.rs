@@ -419,11 +419,20 @@ pub fn supports_parse_and_cover(grammar_name: &str) -> bool {
     find_entry(grammar_name).is_some_and(|entry| entry.parse_and_cover.is_some())
 }
 
-/// GRAMMAR-WELLFORMED.G.3.3: parse `sample` through the REAL SystemVerilog parser and return
-/// `(parsed_ok, rules_exercised)` — the `parse_and_cover` closure that
+/// GRAMMAR-WELLFORMED.G.3.3 + G.4.6: parse `sample` through the REAL SystemVerilog parser and
+/// return `(parsed_ok, rules_exercised)` — the `parse_and_cover` closure that
 /// `grammar_wellformedness::verify_reachability_witness` needs to independently re-validate a
-/// reachability witness. Coverage = the rule names PRESENT in the SUCCESSFUL AST (sound; not the
-/// speculatively-attempted-and-failed rules a per-rule call counter would over-count).
+/// reachability witness.
+///
+/// Coverage = the parser's OWN transactional record of the rules in the ACCEPTED parse
+/// (`enable_coverage` + `exercised_rule_names`), NOT a walk of the output AST. The earlier
+/// AST-walk (`parse_node_covered_rules`) collapsed to ~one rule on annotated grammars because a
+/// `-> {…}` return annotation folds a rule's whole subtree into `ParseContent::Json`, erasing the
+/// children's rule identities. The transactional `coverage_stack` records rule ENTRIES and rolls
+/// them back with `try_parse` on speculation failure, so the surviving set is sound (committed
+/// successes only, no backtracked attempts — what a call counter would over-count) AND complete
+/// (annotation folding cannot hide an entry). The PARSER testifies to what it parsed — independent
+/// of the generator's own coverage claim ("verified, not trusted").
 #[cfg(has_generated_systemverilog_parser)]
 pub fn parse_and_cover_systemverilog(
     sample: &str,
@@ -436,11 +445,9 @@ pub fn parse_and_cover_systemverilog(
     if preload_systemverilog_stdlib(&mut parser, normalized_profile).is_err() {
         return (false, std::collections::HashSet::new());
     }
+    parser.enable_coverage();
     match parser.parse_full_systemverilog_file() {
-        Ok(node) => (
-            true,
-            crate::ast_pipeline::grammar_wellformedness::parse_node_covered_rules(&node),
-        ),
+        Ok(_) => (true, parser.exercised_rule_names()),
         Err(_) => (false, std::collections::HashSet::new()),
     }
 }

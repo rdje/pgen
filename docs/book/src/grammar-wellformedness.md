@@ -217,6 +217,38 @@ operational: the linter claims reachability, the generator *demonstrates* it. An
 discipline is: **no definite verdict without a certificate.** It is precisely because the linter
 refuses to speak without a proof that you never have to doubt it when it does.
 
+### "Watch it hit the fragment" — how a witness is checked, rigorously
+
+The witness check reads "replay the input through the real parser; watch it hit the fragment." That
+last clause hides a subtlety worth being precise about, because the obvious way to do it is **wrong**.
+
+The naive approach is to parse the input and then *walk the output AST*, collecting the rule name of
+every node. On a grammar with **return annotations** this silently fails. A rule written
+`r := … -> { … }` does not return a structural subtree — its annotation *folds the whole subtree into
+a single JSON value* (`ParseContent::Json`), which has no child nodes. So an AST walk stops at the
+first annotated rule and never sees anything beneath it. On a heavily-annotated grammar like
+SystemVerilog the walk collapses to **one** rule for an entire file — it would report almost
+everything as un-witnessed, even though the parse genuinely exercised hundreds of rules. (The other
+naive option — per-rule *call counters* — fails the opposite way: a PEG tries and backtracks
+alternatives, so a counter **over-counts**, crediting rules whose match was thrown away.)
+
+The correct source is to make the **parser itself testify** to what it parsed. PGEN's generated
+parsers carry an opt-in, **transactional coverage record**: each rule, on entry, pushes its id onto a
+coverage stack; the universal speculation wrapper (`try_parse`, which backs every `|`, `?`, `*`, `+`,
+and lookahead) snapshots the stack's length and, on backtrack, truncates back to it — exactly as it
+already rolls back the input position and the semantic state. After a *successful* parse, every
+failed attempt necessarily occurred inside some rolled-back speculation, so the entries that survive
+are **exactly the rules of the accepted parse**:
+
+- **sound** — no backtracked, thrown-away attempts (the call-counter failure mode), and
+- **complete** — annotation folding cannot hide a rule, because we record the *entry*, not the
+  output node (the AST-walk failure mode).
+
+This is "verified, not trusted" applied to the witness side: the certificate is checked by the real
+parser reporting its own behaviour, independent of whatever the generator *believed* it had covered.
+The record is off by default (ordinary parsing pays nothing) and the mechanism is parser-agnostic —
+every grammar PGEN compiles gets the same instrumentation for free.
+
 ### Undecidability lives in `UNKNOWN` — and we drain it on the grammar we ship
 
 The undecidability theorem is about *all possible grammars*. It does **not** stop us from fully

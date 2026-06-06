@@ -1488,12 +1488,17 @@ where
     Ok(())
 }
 
-/// GRAMMAR-WELLFORMED.G.3.3: the SOUND "fragments exercised by an input" set — the rule names
-/// PRESENT in a SUCCESSFUL parse tree. This walks the final AST, so it counts rules actually in the
-/// parse, NOT rules merely ATTEMPTED-and-failed during PEG backtracking (which the per-rule call
-/// counters would over-count → an unsound witness check). Parser-AGNOSTIC (any grammar's `ParseNode`).
-/// The `parse_and_cover` closure `verify_reachability_witness` needs is: "did it parse" +
-/// `parse_node_covered_rules(&ast)`.
+/// GRAMMAR-WELLFORMED.G.3.3: the rule names PRESENT in a parse tree — a sound AST walk over the
+/// STRUCTURAL `ParseNode` content.
+///
+/// ⚠️ NOT a valid parse-coverage source for ANNOTATED grammars (G.4.6 finding). A rule carrying a
+/// `-> {…}` return annotation folds its whole subtree into `ParseContent::Json`, which has no child
+/// `ParseNode`s — so this walk stops at the first annotated rule and never sees the rules folded
+/// beneath it. On heavily-annotated grammars (e.g. SystemVerilog) it collapses to ~one rule. The
+/// production witness-coverage path is the PARSER'S OWN transactional record
+/// (`enable_coverage` + `exercised_rule_names` on the generated parser), exposed grammar-agnostically
+/// via `parser_registry::parse_and_cover`. This walk is retained only for structural (annotation-free)
+/// trees in unit tests, where it is exact.
 pub fn parse_node_covered_rules(node: &super::ParseNode<'_>) -> HashSet<String> {
     let mut out = HashSet::new();
     collect_covered_rules(node, &mut out);

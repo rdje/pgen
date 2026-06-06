@@ -470,14 +470,31 @@ certificates, not faith".
     - **(F2) raw `generate_many` emits unparseable samples** (25/50) — the closed-loop gate
       filters/retries for parseability; raw generation does not. The witness side must use the
       parseable-stimuli path (or filter), not raw `generate_many`.
-  - `G.4.6` — **DESIGN FORK (deliberate, not rushed): the "rules a successful parse exercises" source.**
-    (a) **generator coverage** — `generator.coverage_metrics()` (which rules it built into each sample;
-    accurate, but trusts the generator — verification = the sample parses, i.e. validity not coverage);
-    (b) **parser-instrumented coverage** — record rules that SUCCEEDED in the FINAL accepted parse (the
-    rigorous, independent way; needs a parser feature distinguishing accepted-vs-backtracked, since
-    per-rule call counts OVER-count failed speculative attempts); (c) **raw/no-annotation parse** — a
-    parse mode that keeps the full rule-node tree so the AST-walk works (no Json fold). + use parseable
-    samples (fix F2). Decide deliberately (rigor vs feasibility); this is the crux of the witness side.
+  - `G.4.6` — **RESOLVED (`-0029`): TRANSACTIONAL PARSE-COVERAGE — the parser testifies to what it
+    parsed.** The fork was decided in favour of option (b) — parser-instrumented coverage — as the only
+    one consistent with "verified, not trusted" (option (a) trusts the generator's coverage; (c)'s
+    raw-parse mode would need every rule to emit two trees since the `-> {…}` transform builds `Json`
+    directly with no retained structural tree). The design is elegant and exploits the EXISTING universal
+    speculation choke point:
+    - **Codegen** (`ast_based_generator.rs`, parser-AGNOSTIC — every generated parser gains it): a
+      transactional `coverage_stack: Vec<u32>` + opt-in `coverage_enabled` flag on the parser struct.
+      At rule entry (beside the call-counter) `if coverage_enabled { coverage_stack.push(rule_id) }`.
+      In `try_parse` (the universal wrapper for `|`/`?`/`*`/`+`/`&`/`!`) snapshot `saved_coverage_len`
+      next to the existing position/parse-stack/semantic-checkpoint snapshots; on `Err`, `truncate` back.
+      So a rule entered inside a rolled-back speculation has its push removed too. After a SUCCESSFUL
+      top-level parse every failure necessarily happened inside some rolled-back `try_parse`, so the
+      surviving entries are EXACTLY the accepted-parse rules — **sound** (no backtracked attempts, which a
+      call counter over-counts) and **complete** (annotation `Json`-folding can't hide an ENTRY).
+      Public API: `enable_coverage()` + `exercised_rule_names() -> HashSet<String>` (via `RULE_NAMES`).
+    - **Registry** (`parser_registry.rs`): `parse_and_cover_systemverilog` now `enable_coverage()` →
+      parse → `exercised_rule_names()` (replacing the broken `parse_node_covered_rules` AST-walk). The
+      AST-walk is retained ONLY for annotation-free unit-test trees, with a ⚠️ doc warning.
+    - **Opt-in** so ordinary parsing pays nothing (empty stack ⇒ O(1) try_parse snapshot/truncate).
+    - **Pinned** by a codegen render-test (`transactional_parse_coverage_wiring_is_emitted_at_codegen`).
+    - **VERIFIED:** same gate (50 diverse, sv_2017, seed 1) went `witness=1 → witness=127` (deterministic
+      across two runs); `total=1339 proof=0 UNKNOWN=1212 (sample_parse_failures=25)`. The F1 finding is
+      FIXED. **F2 still open** (25/50 diverse samples don't parse — next leaf: feed the witness side from
+      the parseable-stimuli path so the count isn't capped by unparseable samples).
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 

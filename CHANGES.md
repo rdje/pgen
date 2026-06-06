@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0029 (leaf GRAMMAR-WELLFORMED.G.4.6): TRANSACTIONAL PARSE-COVERAGE — the parser testifies to what it parsed (fixes the AST-walk witness=1).
+
+The certifying linter's witness side needs "the rules a successful parse genuinely exercises." The previous AST-walk (`parse_node_covered_rules`) was WRONG for annotated grammars: a `-> {…}` return annotation folds a rule's whole subtree into `ParseContent::Json` (no child nodes), so the walk stopped at the first annotated rule → `witness=1` on SV. Per-rule call counts fail the opposite way (over-count backtracked attempts). Fix = make the PARSER testify (option (b), the only one consistent with "verified, not trusted").
+
+- **Codegen** (`rust/src/ast_pipeline/ast_based_generator.rs`, parser-AGNOSTIC — every generated parser gains it): a transactional `coverage_stack: Vec<u32>` + opt-in `coverage_enabled` on the parser struct. At rule entry (beside the call-counter) push the rule id when enabled. In `try_parse` (the universal speculation wrapper for `|`/`?`/`*`/`+`/`&`/`!`) snapshot `saved_coverage_len` next to the existing position / parse-stack / semantic-checkpoint snapshots, and `truncate` back on `Err`. So a rule entered inside a rolled-back speculation has its push removed too. After a successful top-level parse the survivors are EXACTLY the accepted-parse rules — sound (no backtracked attempts) AND complete (annotation folding can't hide an entry). Public API: `enable_coverage()` + `exercised_rule_names() -> HashSet<String>`. Off by default (ordinary parsing pays nothing). Pinned by a codegen render-test `transactional_parse_coverage_wiring_is_emitted_at_codegen`.
+- **Registry** (`rust/src/parser_registry.rs`): `parse_and_cover_systemverilog` now `enable_coverage()` → parse → `exercised_rule_names()`, replacing the AST-walk.
+- **Wellformedness** (`rust/src/ast_pipeline/grammar_wellformedness.rs`): `parse_node_covered_rules` kept ONLY for annotation-free unit-test trees, with a ⚠️ doc warning that it is not a coverage source for annotated grammars.
+- **VERIFIED:** same gate (50 diverse, sv_2017, seed 1) went `witness=1 → witness=127`, deterministic across two runs (`total=1339 proof=0 UNKNOWN=1212 sample_parse_failures=25`). All touched-module tests pass (30 + 57 + 1).
+- **Book** (`docs/book/src/grammar-wellformedness.md`): new subsection "Watch it hit the fragment — how a witness is checked, rigorously" explaining the AST-walk pitfall, the call-counter pitfall, and the transactional fix.
+- F2 still open: 25/50 diverse samples don't parse (the witness count is capped by unparseable samples) — next leaf feeds the witness side from the parseable-stimuli path. The generated parser is regenerated locally (gitignored); source codegen is committed.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0028 (leaf GRAMMAR-WELLFORMED.G.4.5): the CLEAN, parser-agnostic certificate-coverage MODE (`--report-certificate-coverage`) + two deep findings from the real run.
 
 Code (`rust/src/main.rs`). Replaces the rushed, concern-mixed witness-path block with a deliberate, dedicated, parser-agnostic mode.
