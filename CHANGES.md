@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0001 (leaf LEXICAL-ANNOTATIONS.1): the 4th pillar — open the tree + decision record + book stub + SOTA survey.
+
+Director architecture decision (2026-06-06): PGEN has a FOURTH declarative pillar beyond EBNF + return annotations + semantic annotations — **lexical (a.k.a. layout) annotations**, governing *surface faithfulness*: the characters the generator emits must re-lex/re-parse to exactly the tokens they were meant to be. Pillars 1–3 pin down the TREE; nothing pins down the TEXT. ENFORCED IN GENERATION (parsing already honours token boundaries via maximal munch, and now VERIFIES faithfulness by re-parsing generated samples — enforcer = generator, verifier = parser). Origin: two real generator defects the `GRAMMAR-WELLFORMED.G.4` gate caught (keyword fusion `endprogrammodule`; `//`-comment-swallows-`;`) — one missing capability, not two bugs. `enforce_word_boundary_spacing` is a one-case prototype to be subsumed.
+
+Pure-docs slice (no code). Establishes the cited ground per the research-grounded-SOTA discipline before any code.
+- NEW tree `docs/tasks/LEXICAL-ANNOTATIONS.md` (phased: `.1` survey ✓ → `.2` design → `.3` implement → `.4` verify) + row in `docs/TASK_TREE.md`.
+- NEW decision record `docs/decisions/project_lexical_annotations_fourth_pillar.md` (category project) + INDEX entry.
+- NEW book chapter (stub) `docs/book/src/lexical-annotations.md` + SUMMARY entry.
+- NEW SOTA survey `docs/tasks/LEXICAL-ANNOTATIONS-research-synthesis.md` — verified citations (SDF2 follow restrictions / Visser; maximal munch / Salomon & Cormack 1989; Oppen 1980 + Wadler unparsing; Havrikov & Zeller ASE 2019) with a worked mapping to PGEN.
+- Subsumes `GRAMMAR-WELLFORMED.G.4.7` slices 2/3 (word-boundary flag + comment-newline) as instances of the general pillar.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0031 (leaf GRAMMAR-WELLFORMED.G.4.7 slice 2): F2 fix — enable word-boundary spacing on witness generation (measured 25 -> 1).
 
 Level-1 fix (enable an existing feature, one line): `run_certificate_coverage_report` now sets `enforce_word_boundary_spacing: true` on the witness `StimuliConfig`. The default-off config fused adjacent word-tokens (e.g. `endprogram`+`module` -> `endprogrammodule`), making ~half the diverse samples unparseable and capping the witness count.
