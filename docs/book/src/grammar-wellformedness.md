@@ -249,6 +249,13 @@ parser reporting its own behaviour, independent of whatever the generator *belie
 The record is off by default (ordinary parsing pays nothing) and the mechanism is parser-agnostic —
 every grammar PGEN compiles gets the same instrumentation for free.
 
+One corollary: a witness only counts if it actually *parses*. A sample the generator believes covers a
+rule, but which the real parser rejects, contributes nothing — and is reported as a labelled
+sample-parse failure rather than silently dropped. This is also how generator defects surface: the
+witness side of the gate doubles as a parseability check on the generator's own output (for example, it
+caught the generator fusing adjacent keywords — `endprogram`+`module` → `endprogrammodule` — when
+mandatory word-boundary spacing was off).
+
 ### Undecidability lives in `UNKNOWN` — and we drain it on the grammar we ship
 
 The undecidability theorem is about *all possible grammars*. It does **not** stop us from fully

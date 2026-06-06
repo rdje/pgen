@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0031 (leaf GRAMMAR-WELLFORMED.G.4.7 slice 2): F2 fix — enable word-boundary spacing on witness generation (measured 25 -> 1).
+
+Level-1 fix (enable an existing feature, one line): `run_certificate_coverage_report` now sets `enforce_word_boundary_spacing: true` on the witness `StimuliConfig`. The default-off config fused adjacent word-tokens (e.g. `endprogram`+`module` -> `endprogrammodule`), making ~half the diverse samples unparseable and capping the witness count.
+
+- **MEASURED (50 diverse, sv_2017, seed 1), deterministic:** `sample_parse_failures 25 -> 1`, `witness 127 -> 199`, `UNKNOWN 1212 -> 1140`. One change resolved 24 of 25 failures.
+- **Residual 1/50 = a SECOND distinct defect, confirmed with the tool (NOT a guess):** the first hypothesis (malformed numeric/time literals `782_'daAD_`, `5907.5_80e280`) was DISPROVEN — they parse fine alone. The real cause is a generated `//` LINE COMMENT with no terminating newline: on a single-line sample it swallows everything to EOF (incl. the `;`), so the parse can't complete. Minimal repro confirmed via parseability_probe: `package p; timeunit 1 ps //c` + newline + `; endpackage` PASSES; the same all on one line FAILS. Deferred to slice 3 (ensure generated line-comment trivia is newline-terminated).
+- Book: `docs/book/src/grammar-wellformedness.md` notes the witness side doubles as a parseability check on the generator's own output (it caught the keyword-fusion defect).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0030 (leaf GRAMMAR-WELLFORMED.G.4.7 slice 1): F2 investigation — label the gate's parse failures + ROOT CAUSE (missing word-boundary spacing).
 
 Director directed a tools-first investigation of F2 (25/50 witness samples don't parse) BEFORE fixing, to avoid a band-aid masking a real defect.

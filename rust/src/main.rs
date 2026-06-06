@@ -2287,8 +2287,14 @@ fn run_certificate_coverage_report(
     // WITNESS side: generate CLEAN diverse full-file samples, parse each through the REAL parser, and
     // union the rules they exercise. Each such rule is verified-reachable (a concrete input parses +
     // exercises it). A sample that fails to parse is a generator bug (counted, never silently dropped).
+    //
+    // G.4.7 slice 2: enforce_word_boundary_spacing=true. The witnesses must be VALID source, and the
+    // default-off config fused adjacent word-tokens (e.g. `endprogram`+`module` -> `endprogrammodule`),
+    // making ~half the diverse samples unparseable and capping the witness count (F2). This is the
+    // existing word-boundary feature (append_generated_segment), not new code — a level-1 fix.
     let config = StimuliConfig {
         seed: Some(seed),
+        enforce_word_boundary_spacing: true,
         ..Default::default()
     };
     let mut generator = StimuliGenerator::new(

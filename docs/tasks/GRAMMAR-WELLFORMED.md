@@ -513,11 +513,20 @@ certificates, not faith".
       is true, and the gate's `StimuliConfig::default()` leaves it **false** (verified at :196). So this
       is a GENERATOR defect (invalid SV), but the fix is LEVEL-1 — enable an EXISTING feature, not new
       code. ATTRIBUTION-RULE outcome: a generator deficiency, not ill-formed EBNF.
-    - **Slice 2 (NEXT) — fix + measure.** Enable `enforce_word_boundary_spacing` on the gate's witness
-      generation (level-1, existing feature); re-run the gate; confirm `sample_parse_failures` drops
-      toward 0 and `witness` rises / `UNKNOWN` falls. If a residual remains, investigate the secondary
-      cause one-change-at-a-time. Then consider whether `true` should be the global default (broader
-      decision — may affect negative-test generation that intentionally wants boundary violations).
+    - **Slice 2 (`-0031`, DONE) — fix + measure.** Enabled `enforce_word_boundary_spacing: true` on the
+      gate's witness `StimuliConfig` (level-1, existing feature — one line, no new code). **MEASURED
+      (50 diverse, sv_2017, seed 1), deterministic:** `sample_parse_failures 25 → 1`, `witness 127 →
+      199`, `UNKNOWN 1212 → 1140`. 24 of 25 failures resolved by the one change.
+    - **Slice 3 (NEXT) — the residual 1/50, a SECOND distinct defect (confirmed with the tool, NOT a
+      guess).** The first guess (malformed numeric/time literals `782_'daAD_`, `5907.5_80e280`) was
+      DISPROVEN — they parse fine in isolation. The real cause: the generator emits a `//` LINE COMMENT
+      with NO terminating newline; since the whole sample is one line, the comment swallows everything
+      to EOF (incl. the `;` terminator) → "did not consume full input". Minimal repro confirmed:
+      `package p; timeunit 1 ps //c` + newline + `; endpackage` PASSES, but `package p; timeunit 1 ps
+      //c ; endpackage` (one line) FAILS. Fix direction: ensure generated `//` line-comment trivia is
+      newline-terminated (or not emitted where a newline can't follow). Then consider whether
+      `enforce_word_boundary_spacing=true` should be the GLOBAL default (broader decision — may affect
+      negative-test generation that intentionally wants boundary violations).
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 
