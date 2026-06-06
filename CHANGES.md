@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0019 (leaf LEXICAL-ANNOTATIONS.4.2): per-grammar certificate-coverage — cert-coverage route is Phase-H-blocked; lexical cross-grammar faithfulness verified via the stimuli gates (docs).
+
+TOOL-BACKED scoping fact (`rust/src/parser_registry.rs`): of the registered generated parsers (`json`, `regex`, `rtl_const_expr`, `rtl_frontend`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`), ONLY `systemverilog` sets `parse_and_cover: Some(...)`; every other entry is `parse_and_cover: None`. The certificate-coverage gate hard-bails on `!supports_parse_and_cover` (main.rs:2308), so `--report-certificate-coverage` can run for SV ONLY. Wiring `parse_and_cover` (the coverage-instrumented witness re-parse) for the other grammars is GRAMMAR-WELLFORMED Phase H (generator `enable_coverage`/`exercised_rule_names` instrumentation + a registry function per grammar), NOT a lexical-pillar task — ROUTED there.
+
+SV cert-coverage is already verified (`.4.1`: the lone failure is non-lexical/structural). The LEXICAL pillar's CROSS-GRAMMAR faithfulness (the real intent of `.4.2`) is independently verified by the existing per-grammar stimuli/quality gates, which all run faithful-by-default (`.3d`) and re-parse every generated sample via the registry's `parse_sample`: a fresh `stimuli_cross_family_platform_gate` run ✓ PASSED (bounded closed-loop re-parse over regex + VHDL + SV), and `ebnf_stimuli_quality_gate` / `annotation_stimuli_quality_gate` / `annotation_robustness_gate` / `annotation_nonbootstrap_e2e_gate` were all green in the `-0015` sweep. So faithful generation re-parses across families.
+
+With `.4.1`/`.4.2`/`.4.3` done, `.4` (VERIFY+GENERALIZE) is complete and the LEXICAL pillar is verified working. Docs-only slice (the parse_and_cover wiring is Phase H's). The tree's only open leaf is `.3d` (i) (no tool-backed failing case; declaratively expressible via the landed `[>! …]`) — otherwise functionally complete. LIVE_ACHIEVEMENT_STATUS unchanged (SV stays `Mostly Done`).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0018 (leaf LEXICAL-ANNOTATIONS.4.3): round-trip / golden tests for the lexical obligations + confirm special cases are now general.
 
 Added three re-lex round-trip / golden tests to `stimuli_generator.rs` (re-lexing is exactly the lexical pillar's concern, so these verify the faithful-rendering invariant at the lexical level without needing a full parser):

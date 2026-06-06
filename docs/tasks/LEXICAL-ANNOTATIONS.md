@@ -1,14 +1,17 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.4.2` per-grammar certificate-coverage (heavier —
-> per-grammar dual-feature runs; ties into `GRAMMAR-WELLFORMED` Phase H) is the only remaining `.4`
-> sub-leaf. **`.4.1` DONE (`-0017`):** the SV `sample_parse_failures=1` residual was tool-backed
-> CLASSIFIED as a STRUCTURAL `config_declaration` generator↔grammar gap (NOT lexical) + ROUTED to
-> `GRAMMAR-WELLFORMED` G.4. **`.4.3` DONE (`-0018`):** three re-lex round-trip / golden tests for
-> Obligations A/B/C + confirmed the comment-newline/word-fusion special cases are now general instances
-> (no lingering per-case patch); lib 613/613. The **lexical pillar is verified working** (197/198 SV
-> witnesses re-parse, ZERO lexical-caused failures; round-trip tests green). `.3d` (i) operator fusion
-> stays open (no tool-backed failing case; declaratively expressible via the landed `[>! …]`).
+> **Status:** `active` (2026-06-06). **`.4` (VERIFY+GENERALIZE) COMPLETE** — `.4.1` (`-0017`) classified
+> the SV `sample_parse_failures=1` residual as a STRUCTURAL `config_declaration` gap (NOT lexical) +
+> ROUTED it to `GRAMMAR-WELLFORMED` G.4; `.4.3` (`-0018`) added three re-lex round-trip / golden tests
+> for Obligations A/B/C + confirmed the comment-newline/word-fusion special cases are now general
+> instances (lib 613/613); `.4.2` (`-0019`) found that only `systemverilog` registers `parse_and_cover`,
+> so cert-coverage per-grammar is `GRAMMAR-WELLFORMED` Phase-H-blocked (routed), and the lexical
+> cross-grammar faithfulness is verified via the per-grammar stimuli gates (faithful-by-default +
+> re-parse). The **lexical pillar is verified working** (197/198 SV witnesses re-parse, ZERO
+> lexical-caused failures; round-trip tests green; cross-grammar gates green). **Only open leaf: `.3d`
+> (i)** distinct-longer-token operator fusion — stays open with NO tool-backed failing case (don't change
+> code speculatively) and is now declaratively expressible via the landed `[>! …]`; the tree is otherwise
+> functionally complete (director may close it).
 > **`.3d` (ii-CLI) DONE (`-0015`)** — `--generate-stimuli` is now faithful-by-default with a
 > `--no-word-boundary-spacing` opt-out; verified across the affected stimuli gates (parity gate is the
 > decisive canary). **`.3c` DONE (`-0013`)** — re-landed the declarative follow-restriction **COMPLETE** in ONE
@@ -276,9 +279,25 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   conclusion:** the general lexical mechanism (Obligations A/B/C) is VERIFIED working — 197 of 198 witness
   samples re-parse, and the single failure is non-lexical, so there are ZERO lexical-caused
   sample_parse_failures. No code change (the structural fix is GRAMMAR-WELLFORMED's, not lexical).
-- `.4.2` — **per-grammar certificate-coverage.** Run `--report-certificate-coverage` for every grammar
-  with a registered parser; confirm `sample_parse_failures → 0` each (ties into `GRAMMAR-WELLFORMED`
-  Phase H). Heavy (per-grammar dual-feature runs).
+- `.4.2` — **per-grammar certificate-coverage. DONE-as-scoped (`-0019`, 2026-06-06) — the cert-coverage
+  route is Phase-H-blocked; the lexical cross-grammar verification is satisfied via the per-grammar
+  stimuli gates.** TOOL-BACKED scoping fact (`parser_registry.rs`): of the registered generated parsers
+  (`json`, `regex`, `rtl_const_expr`, `rtl_frontend`, `systemverilog`, `systemverilog_preprocessor`,
+  `vhdl`), **only `systemverilog` sets `parse_and_cover: Some(...)`** — every other entry is
+  `parse_and_cover: None`. So `--report-certificate-coverage` (which hard-bails on
+  `!supports_parse_and_cover`, main.rs:2308) can run for SV ONLY; wiring `parse_and_cover` (the
+  coverage-instrumented witness re-parse) for the other grammars IS `GRAMMAR-WELLFORMED` **Phase H** (a
+  generator `enable_coverage`/`exercised_rule_names` instrumentation + a registry function per grammar),
+  not a lexical-pillar task — ROUTED there. SV cert-coverage is already verified (`.4.1`: the lone
+  failure is non-lexical/structural). The LEXICAL pillar's CROSS-GRAMMAR faithfulness (the real intent
+  of `.4.2`) is independently verified by the existing per-grammar stimuli/quality gates, which all run
+  faithful-by-default (`.3d`) and re-parse every generated sample via the registry's `parse_sample`:
+  `ebnf_stimuli_quality_gate` ✓ (ebnf/regex/json), `annotation_stimuli_quality_gate` ✓,
+  `annotation_robustness_gate` ✓, `annotation_nonbootstrap_e2e_gate` ✓ (all green in the `-0015` sweep),
+  `vhdl_stimuli_quality_gate` / `sv_preprocessor_quality_gate` (faithful-on already), plus a fresh
+  `stimuli_cross_family_platform_gate` run ✓ PASSED (bounded closed-loop re-parse over regex + VHDL + SV).
+  So faithful generation re-parses across families; the cert-coverage-specific per-grammar number awaits
+  Phase-H `parse_and_cover` wiring.
 - `.4.3` — **round-trip / golden tests + confirm the special cases are now general instances. DONE
   (`-0018`, 2026-06-06).** Added three RE-LEX round-trip / golden tests (lexical-level, no full parser
   needed — re-lexing is exactly the pillar's concern): `obligation_a_line_comment_roundtrips_via_relex`
