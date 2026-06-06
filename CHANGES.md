@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0016 (leaf LEXICAL-ANNOTATIONS.4): verify the certificate-coverage gate + split .4 (docs).
+
+Ran the `.4` verifier (the `--report-certificate-coverage` gate) on SV for the first time since the LEXICAL-ANNOTATIONS derivation work — a fresh dual-feature (`generated_parsers,ebnf_dual_run`) run, `--entry-rule systemverilog_file --grammar-profile sv_2017 --count 40 --seed 0`:
+
+`CERTIFICATE-COVERAGE: total=1339 proof=0 witness=197 UNKNOWN=1142 (sample_parse_failures=1, proof_reverify_failures=0)`.
+
+FINDING: `sample_parse_failures=1`, NOT 0 — the earlier GRAMMAR-WELLFORMED Phase-G note's `=0` was STALE (corrected in `docs/TASK_TREE.md`). The single failure is `[0] Parser did not consume full input at position 89 [furthest_position=271]`. DECISIVELY not caused by the LEXICAL-ANNOTATIONS work: `run_certificate_coverage_report` (main.rs:2298) hardcodes `enforce_word_boundary_spacing: true` and never reads the `.3d` CLI plumbing, and `.3c`/`.3d`/`-0032` are byte-identical for SV generation (`.3c` is gated on `[>`, unused by SV). The residual is from the A2.1 grammar edits (`-0013`/`-0014`) that changed `systemverilog.ebnf` after the Phase-G run, shifting the witness set; the backtrack-from-271 signature suggests a structural re-parse gap rather than a simple lexical fusion (197 of 198 witnesses DO re-parse → the lexical pillar's general mechanism is working broadly).
+
+`.4` is too broad for one signoff slice, so it is SPLIT (per the PNT splitting rule — this commit is the leaf's honest outcome): `.4.1` drive SV `sample_parse_failures → 0` (FRONTIER — first step is a TOOL-BUILD to surface the failing witness sample's text + classify it lexical-gap vs structural per [[feedback_why_and_where_before_solution]]); `.4.2` per-grammar certificate-coverage (Phase H tie-in); `.4.3` round-trip/golden tests + confirm the comment-newline/word-fusion special cases are now general instances. Docs only (no code change). LIVE_ACHIEVEMENT_STATUS unchanged (SV stays `Mostly Done`).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0032 (leaf GRAMMAR-WELLFORMED.A1b.2): fix sv_syntax_closure_gate — re-baseline stale no-regression floors (v2→v3).
 
 `sv_syntax_closure_gate` was failing two violations — `defined_rule_count 1453 < min_total_rules 1455` and `reachable_rules 1406 < min_reachable_rules 1407` (surfaced as the pre-existing failure during the `-0015` verification sweep). ROOT CAUSE (tools-first, decisive): a `git diff` of the defined-rule-name set between the contract-v2 baseline commit `f5b25b3d` (1455 rules) and HEAD (1453) showed EXACTLY two names disappeared, both LEGITIMATE profile-variant collapses that landed since v2:

@@ -1,8 +1,12 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.4` verify+generalize (cross-grammar certificate-gate
-> re-run); `.3d` (i) distinct-longer-token operator fusion stays open but has NO tool-backed failing case
-> (don't change code speculatively) and is now declaratively expressible via the landed `[>! …]` path.
+> **Status:** `active` (2026-06-06). **Frontier:** `.4.1` drive SV `sample_parse_failures → 0` — the
+> `-0016` verification run found **1** (not the Phase-G note's 0; NOT a LEXICAL regression — the
+> cert-coverage path hardcodes faithful + my changes are byte-identical for SV; residual is from the
+> A2.1 grammar edits, backtrack-from-271 signature ⇒ likely structural). First step = a TOOL-BUILD to
+> surface the failing witness sample + classify it (lexical gap vs structural). Then `.4.2` per-grammar,
+> `.4.3` round-trip/golden tests. `.3d` (i) operator fusion stays open (no tool-backed failing case;
+> declaratively expressible via the landed `[>! …]`).
 > **`.3d` (ii-CLI) DONE (`-0015`)** — `--generate-stimuli` is now faithful-by-default with a
 > `--no-word-boundary-spacing` opt-out; verified across the affected stimuli gates (parity gate is the
 > decisive canary). **`.3c` DONE (`-0013`)** — re-landed the declarative follow-restriction **COMPLETE** in ONE
@@ -232,10 +236,40 @@ justified because pillars 1–3 structurally cannot express it (see the decision
      operator-fusion case (`.3d` (i)) without cross-terminal analysis.
   4. Tests + book examples; verify the gate stays at `sample_parse_failures` 0.
   Notation: `[> LIST ]` / `[>! LIST ]`, `LIST` = mixed `/regex/`+`"string"` items, ws/comma-separated.
-- `.4` — **VERIFY + GENERALIZE.** Re-run the certificate-coverage gate (the verifier): SV
-  `sample_parse_failures → 0` from the general mechanism; then every grammar with a registered parser
-  (ties into `GRAMMAR-WELLFORMED` Phase H). Retire the comment-newline and word-fusion special cases as
-  now-covered instances. Add round-trip / golden tests.
+- `.4` — **VERIFY + GENERALIZE.** *(SPLIT `-0016` after the first SV verification run revealed a residual
+  the leaf is too broad to close in one slice — see sub-leaves.)* Re-run the certificate-coverage gate
+  (the verifier): SV `sample_parse_failures → 0` from the general mechanism; then every grammar with a
+  registered parser (ties into `GRAMMAR-WELLFORMED` Phase H). Retire the comment-newline and word-fusion
+  special cases as now-covered instances. Add round-trip / golden tests.
+  - **VERIFICATION RUN (`-0016`, tool-backed, 2026-06-06):** fresh dual-feature
+    (`generated_parsers,ebnf_dual_run`) `--report-certificate-coverage` on SV (`--entry-rule
+    systemverilog_file --grammar-profile sv_2017 --count 40 --seed 0`):
+    `total=1339 proof=0 witness=197 UNKNOWN=1142 (sample_parse_failures=1, proof_reverify_failures=0)`.
+    So **`sample_parse_failures=1`, not 0** — the earlier GRAMMAR-WELLFORMED Phase-G note's `=0` was
+    stale (corrected in `docs/TASK_TREE.md`). The single failure: `[0] Parser did not consume full input
+    at position 89 [furthest_position=271, +182 bytes deeper]`. **Decisively NOT caused by the
+    LEXICAL-ANNOTATIONS work:** `run_certificate_coverage_report` (main.rs:2298) HARDCODES
+    `enforce_word_boundary_spacing: true` (`..Default::default()`) — it never reads the `.3d` CLI
+    plumbing — and `.3c`/`.3d`/`-0032` are byte-identical for SV generation (`.3c` is gated on `[>`,
+    which SV does not use). The residual is from the A2.1 grammar edits (`-0013`/`-0014`) that changed
+    `systemverilog.ebnf` after the Phase-G run, shifting the witness set. The backtrack-from-271
+    signature SUGGESTS a STRUCTURAL (grammar/generator) re-parse gap rather than a simple lexical token
+    fusion — to be CONFIRMED by `.4.1`. 197 of 198 witness samples DO re-parse, so the lexical pillar's
+    general mechanism is working broadly.
+- `.4.1` — **drive SV `sample_parse_failures → 0`. FRONTIER.** The report does not yet print the failing
+  witness sample's TEXT, so per [[feedback_why_and_where_before_solution]] the first step is a TOOL-BUILD:
+  surface the failing sample text (+ its resolved target) in `run_certificate_coverage_report`, then get
+  the WHY+WHERE and CLASSIFY it — lexical-faithfulness gap (→ extend Obligation A/B or add a declarative
+  `[>! …]` follow-restriction) vs structural grammar/generator residual (→ route to `GRAMMAR-WELLFORMED`
+  G.4 / the witness-parseability work). Drive to 0, then re-verify deterministically.
+- `.4.2` — **per-grammar certificate-coverage.** Run `--report-certificate-coverage` for every grammar
+  with a registered parser; confirm `sample_parse_failures → 0` each (ties into `GRAMMAR-WELLFORMED`
+  Phase H). Heavy (per-grammar dual-feature runs).
+- `.4.3` — **round-trip / golden tests + retire the special cases as now-covered instances.** Add
+  round-trip/golden tests for the lexical obligations (A intra-token, B inter-token, C follow-restriction);
+  confirm the comment-newline (G.4.7 slice 3, fixed at source by Obligation A `-0005`) and word-fusion
+  (G.4.7 slice 2, generalized by Obligation B `-0006`; the flag is now the default-on mode toggle) special
+  cases are now general instances with no lingering per-case patch.
 
 ## Cross-links
 
