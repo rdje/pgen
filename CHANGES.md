@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0018 (leaf GRAMMAR-WELLFORMED.G.3.1): **certifying linter — the reachability WITNESS model + independent checker (the constructive dual of the proof side).**
+
+Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
+
+- `ReachabilityWitness { fragment, input }` — proof-BY-CONSTRUCTION that a fragment is reachable (the dual of the unreachability PROOF certificate). `verify_reachability_witness(parse_and_cover, witness)` — the independent WITNESS checker: parser-AGNOSTIC (the caller supplies a closure that replays `input` through the REAL grammar parser and returns `(parsed_ok, fragments_exercised)`); the witness holds iff the input PARSES and EXERCISES the claimed fragment. A witness that doesn't parse, or parses but misses its fragment, is REJECTED.
+- Unit-tested (`reachability_witness_verifies_parses_and_covers_else_rejects`) with a mock parser: valid witness verifies; non-parsing input rejected; right-input-wrong-fragment rejected. Module suite 27/27.
+- ⇒ both sides of the linter⟷generator DUALITY now have a certificate model + an independent checker: PROOF side (4 decidable unreachability verdict types, `verify_wellformedness_certificate`) + WITNESS side (`verify_reachability_witness`). REMAINING in G.3: G.3.2 (generator emits witnesses from its per-sample coverage), G.3.3 (the coverage-instrumented replay supplying the real `parse_and_cover`). Then G.4 (UNKNOWN=0 gate: every fragment has a verified proof OR witness).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0017 (leaf GRAMMAR-WELLFORMED.G.2.1b): **certifying linter — ProfileOrphan certificate; the PROOF-side certifier is COMPLETE (all 4 decidable dead-verdict types).**
 
 Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.

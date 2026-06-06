@@ -1446,6 +1446,48 @@ pub fn verify_wellformedness_certificate(
     }
 }
 
+/// GRAMMAR-WELLFORMED.G.3 — a reachability WITNESS certificate: proof-BY-CONSTRUCTION that
+/// `fragment` is reachable. `input` is a string that, when parsed, EXERCISES the fragment. This is
+/// the constructive dual of the unreachability PROOF (`WellformednessCertificate`): the linter says
+/// "reachable", the stimuli generator DEMONSTRATES it. Verified by replaying `input` through the real
+/// parser — so trust rests on the (tiny) replay, not on the generator's internals.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReachabilityWitness {
+    /// The rule or branch the witness exercises (e.g. `"my_rule"` or `"my_rule#2"`).
+    pub fragment: String,
+    /// The witness input string (a generator-produced sample that reaches `fragment`).
+    pub input: String,
+}
+
+/// THE WITNESS CHECKER (G.3): independently re-validate a reachability witness. The caller supplies
+/// `parse_and_cover` — it replays `input` through the REAL grammar parser and returns
+/// `(parsed_ok, fragments_exercised)`. The witness holds iff the input parses AND the parse genuinely
+/// exercises the claimed fragment. Parser-AGNOSTIC: the closure carries the grammar's parser, so this
+/// works for every PGEN grammar (Phase H). A witness that does not parse, or parses but misses its
+/// fragment, is REJECTED — exactly as the proof checker rejects a bogus proof.
+pub fn verify_reachability_witness<F>(
+    parse_and_cover: F,
+    witness: &ReachabilityWitness,
+) -> Result<(), String>
+where
+    F: Fn(&str) -> (bool, HashSet<String>),
+{
+    let (parsed, covered) = parse_and_cover(&witness.input);
+    if !parsed {
+        return Err(format!(
+            "reachability witness for '{}' does NOT parse — not a valid witness",
+            witness.fragment
+        ));
+    }
+    if !covered.contains(&witness.fragment) {
+        return Err(format!(
+            "reachability witness for '{}' parses but does NOT exercise that fragment",
+            witness.fragment
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1840,6 +1882,28 @@ mod tests {
         assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn reachability_witness_verifies_parses_and_covers_else_rejects() {
+        // GRAMMAR-WELLFORMED.G.3: a witness holds iff its input parses AND exercises the fragment.
+        // Mock parse_and_cover: input "ab" parses and covers {entry, branch_a}; anything else fails.
+        let parse_and_cover = |input: &str| -> (bool, std::collections::HashSet<String>) {
+            if input == "ab" {
+                (true, ["entry".to_string(), "branch_a".to_string()].into_iter().collect())
+            } else {
+                (false, std::collections::HashSet::new())
+            }
+        };
+        // valid witness: "ab" exercises branch_a.
+        let good = ReachabilityWitness { fragment: "branch_a".into(), input: "ab".into() };
+        assert!(verify_reachability_witness(parse_and_cover, &good).is_ok());
+        // rejected: input does not parse.
+        let no_parse = ReachabilityWitness { fragment: "branch_a".into(), input: "zz".into() };
+        assert!(verify_reachability_witness(parse_and_cover, &no_parse).is_err());
+        // rejected: parses but does not exercise the claimed fragment.
+        let wrong_fragment = ReachabilityWitness { fragment: "branch_b".into(), input: "ab".into() };
+        assert!(verify_reachability_witness(parse_and_cover, &wrong_fragment).is_err());
     }
 
     #[test]

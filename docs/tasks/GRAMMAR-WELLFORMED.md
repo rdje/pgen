@@ -368,6 +368,18 @@ certificates, not faith".
 - `G.3` — **witness producer wiring**: the stimuli generator emits, per reachable fragment, a minimal
   witness input (the duality); fragments it can't witness become `UNKNOWN` tickets. *Effort: high
   (reuses the generator's reach/replay machinery).*
+  - `G.3.1` — **DONE (`-0018`): the WITNESS certificate model + the independent checker.**
+    `ReachabilityWitness { fragment, input }` (constructive dual of the unreachability PROOF) +
+    `verify_reachability_witness(parse_and_cover, witness)` — parser-AGNOSTIC (the caller passes a
+    closure that replays `input` through the real grammar parser and returns `(parsed, fragments_
+    exercised)`); the witness holds iff the input PARSES and EXERCISES the claimed fragment. A witness
+    that doesn't parse, or parses but misses its fragment, is REJECTED. Unit-tested with a mock parser
+    (valid / no-parse / wrong-fragment). Mirrors the proof-side "model + checker first" pattern.
+  - `G.3.2` — generator EMITS witnesses: map its existing per-sample coverage (rule/branch covered
+    set) to `ReachabilityWitness`es (one per covered fragment, carrying a covering sample). *generator
+    layer.*
+  - `G.3.3` — the real `parse_and_cover`: a coverage-instrumented replay through the generated parser
+    (the parseability/closed-loop layer) supplies the closure `verify_reachability_witness` needs.
 - `G.4` — **certificate-COVERAGE gate**: for the SV grammar require every fragment to carry a valid
   certificate (`UNKNOWN` = 0) with all certificates checking → HARD gate. *That number, at 0, is the
   objective proof the linter is trustworthy on this grammar.* Folds in A2.1 (each grammar fix moves a
