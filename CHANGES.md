@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0018 (leaf LEXICAL-ANNOTATIONS.4.3): round-trip / golden tests for the lexical obligations + confirm special cases are now general.
+
+Added three re-lex round-trip / golden tests to `stimuli_generator.rs` (re-lexing is exactly the lexical pillar's concern, so these verify the faithful-rendering invariant at the lexical level without needing a full parser):
+
+- `obligation_a_line_comment_roundtrips_via_relex` — every generated `//[^\n]*(\n|$)` surface re-lexes (regex anchored at start) to the WHOLE surface (a complete token), across 64 seeds (Obligation A intra-token faithfulness).
+- `obligation_b_adjacent_word_terminals_roundtrip_no_fusion` — for `doc := w w`, with faithfulness ON the first word's regex re-lexes to LESS than the whole output (no fusion); with it OFF the two words fuse into a single token — proving the derived separator is what preserves the boundary (Obligation B inter-token faithfulness).
+- `obligation_c_forbid_follow_restriction_golden_and_relex` — the `[>! "<"] lt := "<"` / `doc := lt lt` grammar renders to the exact golden text `"< < "` and the `<` at offset 0 is never immediately followed by another `<` (Obligation C declarative follow-restriction).
+
+Also confirmed (grep + reasoning) there is NO lingering per-case patch for the comment-newline (G.4.7 slice 3, fixed at source by Obligation A `-0005`) or word-fusion (G.4.7 slice 2, generalized by Obligation B `-0006`; the flag is now the default-on mode toggle) special cases — both are now general instances of the derived obligations. VERIFIED: lib 613/613 (+3); `clippy_on_rust_change` source stage clean. Test-only change. With `.4.1` (residual classified structural + routed) and `.4.3` done, the LEXICAL pillar is verified working; the only remaining `.4` sub-leaf is `.4.2` (per-grammar certificate-coverage, heavier). LIVE_ACHIEVEMENT_STATUS unchanged (SV stays `Mostly Done`).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0017 (leaf LEXICAL-ANNOTATIONS.4.1): classify the SV sample_parse_failure as STRUCTURAL (not lexical) + route to GRAMMAR-WELLFORMED G.4 (docs).
 
 `.4.1`'s planned first step was a tool-build to surface the failing witness sample — but `run_certificate_coverage_report` (main.rs:2412) ALREADY prints the failing sample text; the `-0016` capture had just `grep`-filtered that line out. Re-ran the SV cert-coverage and read sample `[0]` (354 bytes):

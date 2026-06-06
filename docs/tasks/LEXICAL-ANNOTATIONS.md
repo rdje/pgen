@@ -1,13 +1,14 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.4.3` round-trip/golden tests (the tractable
-> lexical-pillar verification) + confirm the comment-newline/word-fusion special cases are now general
-> instances; `.4.2` per-grammar certificate-coverage is heavier (per-grammar dual-feature runs).
-> **`.4.1` DONE (`-0017`):** the SV `sample_parse_failures=1` residual was tool-backed CLASSIFIED as a
-> STRUCTURAL `config_declaration` generator↔grammar gap (NOT lexical — the sample's escaped-id/keyword
-> spacing is faithful) and ROUTED to `GRAMMAR-WELLFORMED` G.4; the lexical mechanism is verified working
-> (197/198 witnesses re-parse, ZERO lexical-caused failures). `.3d` (i) operator fusion stays open (no
-> tool-backed failing case; declaratively expressible via the landed `[>! …]`).
+> **Status:** `active` (2026-06-06). **Frontier:** `.4.2` per-grammar certificate-coverage (heavier —
+> per-grammar dual-feature runs; ties into `GRAMMAR-WELLFORMED` Phase H) is the only remaining `.4`
+> sub-leaf. **`.4.1` DONE (`-0017`):** the SV `sample_parse_failures=1` residual was tool-backed
+> CLASSIFIED as a STRUCTURAL `config_declaration` generator↔grammar gap (NOT lexical) + ROUTED to
+> `GRAMMAR-WELLFORMED` G.4. **`.4.3` DONE (`-0018`):** three re-lex round-trip / golden tests for
+> Obligations A/B/C + confirmed the comment-newline/word-fusion special cases are now general instances
+> (no lingering per-case patch); lib 613/613. The **lexical pillar is verified working** (197/198 SV
+> witnesses re-parse, ZERO lexical-caused failures; round-trip tests green). `.3d` (i) operator fusion
+> stays open (no tool-backed failing case; declaratively expressible via the landed `[>! …]`).
 > **`.3d` (ii-CLI) DONE (`-0015`)** — `--generate-stimuli` is now faithful-by-default with a
 > `--no-word-boundary-spacing` opt-out; verified across the affected stimuli gates (parity gate is the
 > decisive canary). **`.3c` DONE (`-0013`)** — re-landed the declarative follow-restriction **COMPLETE** in ONE
@@ -278,11 +279,19 @@ justified because pillars 1–3 structurally cannot express it (see the decision
 - `.4.2` — **per-grammar certificate-coverage.** Run `--report-certificate-coverage` for every grammar
   with a registered parser; confirm `sample_parse_failures → 0` each (ties into `GRAMMAR-WELLFORMED`
   Phase H). Heavy (per-grammar dual-feature runs).
-- `.4.3` — **round-trip / golden tests + retire the special cases as now-covered instances.** Add
-  round-trip/golden tests for the lexical obligations (A intra-token, B inter-token, C follow-restriction);
-  confirm the comment-newline (G.4.7 slice 3, fixed at source by Obligation A `-0005`) and word-fusion
-  (G.4.7 slice 2, generalized by Obligation B `-0006`; the flag is now the default-on mode toggle) special
-  cases are now general instances with no lingering per-case patch.
+- `.4.3` — **round-trip / golden tests + confirm the special cases are now general instances. DONE
+  (`-0018`, 2026-06-06).** Added three RE-LEX round-trip / golden tests (lexical-level, no full parser
+  needed — re-lexing is exactly the pillar's concern): `obligation_a_line_comment_roundtrips_via_relex`
+  (every generated `//[^\n]*(\n|$)` surface re-lexes, anchored at start, to the WHOLE surface = a complete
+  token, across 64 seeds); `obligation_b_adjacent_word_terminals_roundtrip_no_fusion` (`doc := w w`: with
+  faithfulness ON the first word's regex re-lexes to LESS than the whole output — no fusion; with it OFF
+  the two fuse into one token, proving the separator is what preserves the boundary);
+  `obligation_c_forbid_follow_restriction_golden_and_relex` (the `[>! "<"] lt := "<"` / `doc := lt lt`
+  grammar renders to the exact golden `"< < "` and the `<` at offset 0 is never immediately followed by
+  `<`). Confirmed (grep + reasoning) there is **no lingering per-case patch** for the comment-newline
+  (G.4.7 slice 3, fixed at source by Obligation A `-0005`) or word-fusion (G.4.7 slice 2, generalized by
+  Obligation B `-0006`; the flag is now the default-on mode toggle, `.3d`) special cases — both are now
+  general instances of the derived obligations. VERIFIED: lib 613/613 (+3); source clippy clean.
 
 ## Cross-links
 

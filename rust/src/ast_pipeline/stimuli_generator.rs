@@ -10345,6 +10345,157 @@ mod tests {
         );
     }
 
+    // LEXICAL-ANNOTATIONS.4.3 — Obligation A ROUND-TRIP. Every generated line-comment surface must
+    // RE-LEX (the comment regex anchored at the start) to EXACTLY itself — a complete token — not a
+    // prefix that leaves a dangling tail. This is the faithful-rendering invariant (`render(t)` re-lexes
+    // to `t`) verified directly at the lexical level (no full parser needed).
+    #[test]
+    fn obligation_a_line_comment_roundtrips_via_relex() {
+        let grammar_tree: HashMap<String, ASTNode> = HashMap::new();
+        let rule_order: Vec<String> = Vec::new();
+        let pattern = r"//[^\n]*(\n|$)";
+        let relex = Regex::new(&format!("^(?:{})", pattern)).expect("relex compiles");
+        for seed in 0..64u64 {
+            let mut g = simple_generator_with_profiles(
+                &grammar_tree,
+                &rule_order,
+                seed,
+                StimuliMutationMode::Baseline,
+                StimuliConstraintProfile::Baseline,
+            );
+            let s = g.generate_regex_sample(pattern, "line_comment");
+            let m = relex
+                .find(&s)
+                .unwrap_or_else(|| panic!("seed {seed}: comment must re-lex, got {s:?}"));
+            assert_eq!(m.start(), 0, "seed {seed}: re-lex must anchor at start of {s:?}");
+            assert_eq!(
+                m.end(),
+                s.len(),
+                "seed {seed}: Obligation A round-trip — the emitted comment must re-lex to the WHOLE \
+                 surface (a complete token), but matched only {:?} of {s:?}",
+                &s[m.start()..m.end()]
+            );
+        }
+    }
+
+    // LEXICAL-ANNOTATIONS.4.3 — Obligation B ROUND-TRIP. In `doc := w w`, with lexical faithfulness ON
+    // the two adjacent word terminals render with a separator, so the FIRST word's regex re-lexed at
+    // the start of the output matches ONLY the first word (it cannot fuse into the second). With
+    // faithfulness OFF the two fuse into a single token — proving the separator (not some unrelated
+    // default) is what preserves the boundary.
+    #[test]
+    fn obligation_b_adjacent_word_terminals_roundtrip_no_fusion() {
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        let word_pat = r"[A-Za-z_][A-Za-z0-9_]*";
+        let raw_ast = vec![
+            serde_json::json!([
+                ["rule", "doc"],
+                ["rule_reference", "w"],
+                ["rule_reference", "w"]
+            ]),
+            serde_json::json!([["rule", "w"], ["regex", word_pat]]),
+        ];
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform should succeed");
+        let relex = Regex::new(&format!("^(?:{})", word_pat)).expect("relex compiles");
+
+        // Faithful ON: the first word's re-lex stops before the second (no fusion).
+        let mut on = StimuliGenerator::new(
+            "rt".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(3),
+                max_depth: 6,
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let s_on = on.generate_from_entry("doc").expect("generation (faithful) should succeed");
+        let m_on = relex.find(&s_on).expect("first word must re-lex");
+        assert!(
+            m_on.end() < s_on.len(),
+            "Obligation B round-trip: the first word must NOT consume the whole output (no fusion), \
+             got {s_on:?} (match end {})",
+            m_on.end()
+        );
+
+        // Faithful OFF: the adjacent words fuse into one token (re-lex consumes the whole output).
+        let mut off = StimuliGenerator::new(
+            "rt".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(3),
+                max_depth: 6,
+                enforce_word_boundary_spacing: false,
+                ..StimuliConfig::default()
+            },
+        );
+        let s_off = off.generate_from_entry("doc").expect("generation (opt-out) should succeed");
+        let m_off = relex.find(&s_off).expect("first word must re-lex");
+        assert_eq!(
+            m_off.end(),
+            s_off.len(),
+            "with faithfulness off the adjacent words fuse into one token, got {s_off:?}"
+        );
+    }
+
+    // LEXICAL-ANNOTATIONS.4.3 — Obligation C GOLDEN + round-trip. The FORBID follow-restriction
+    // `[>! "<"]` on `lt := "<"` makes each `lt` self-terminate with the minimal separator the forbidden
+    // set cannot absorb (a space), so `doc := lt lt` renders to the exact golden text `"< < "` and the
+    // `<` at offset 0 is never immediately followed by another `<`.
+    #[test]
+    fn obligation_c_forbid_follow_restriction_golden_and_relex() {
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        let raw_ast = vec![
+            serde_json::json!([
+                ["rule", "doc"],
+                ["rule_reference", "lt"],
+                ["rule_reference", "lt"]
+            ]),
+            serde_json::json!([
+                ["rule", "lt"],
+                [
+                    "lexical_annotation",
+                    { "polarity": "forbid", "items": [{ "kind": "literal", "value": "<" }] }
+                ],
+                ["quoted_string", "<"]
+            ]),
+        ];
+        let (grammar_tree, rule_order, ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform should succeed");
+        let ann = ann.expect("annotations present");
+
+        let mut g = StimuliGenerator::new(
+            "lex".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&ann),
+            StimuliConfig {
+                seed: Some(1),
+                max_depth: 6,
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let s = g.generate_from_entry("doc").expect("generation should succeed");
+        // GOLDEN: each `lt` ("<") self-terminates with a single space (the minimal separator a FORBID
+        // of "<" cannot absorb), so two of them render to exactly "< < ".
+        assert_eq!(s, "< < ", "Obligation C golden faithful output");
+        // ROUND-TRIP: the `<` token at offset 0 is exactly one char and is NOT followed by another `<`.
+        assert_eq!(s.as_bytes().first(), Some(&b'<'));
+        assert_ne!(
+            s.as_bytes().get(1),
+            Some(&b'<'),
+            "FORBID: `<` must never be immediately followed by `<`, got {s:?}"
+        );
+    }
+
     fn simple_generator_with_pending_frontier_extra_stagnation<'a>(
         grammar_tree: &'a HashMap<String, ASTNode>,
         rule_order: &'a [String],
