@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0028 (leaf GRAMMAR-WELLFORMED.G.4.5): the CLEAN, parser-agnostic certificate-coverage MODE (`--report-certificate-coverage`) + two deep findings from the real run.
+
+Code (`rust/src/main.rs`). Replaces the rushed, concern-mixed witness-path block with a deliberate, dedicated, parser-agnostic mode.
+
+- **`--report-certificate-coverage`** + `run_certificate_coverage_report` (modelled on `--report-k-path-coverage`): a clean, self-contained, read-only mode that builds the generator, generates CLEAN diverse samples, verifies each via the registry's generic `parse_and_cover(grammar.grammar_name, …)` (NO grammar names — parser-agnostic), gathers verified unreachability proofs, and prints `CERTIFICATE-COVERAGE: … proof/witness/UNKNOWN/fully_certified`. Requires `--features generated_parsers` (clear bail otherwise). The old concern-mixed block in the `--generate-stimuli` witness path is REMOVED (generation and certification are now separate).
+- Builds both ways (default cfg-out + dual-feature); the pipeline still has zero grammar-name literals.
+- **First clean run (50 diverse samples, sv_2017): `total=1339 proof=0 witness=1 UNKNOWN=1338 (sample_parse_failures=25, proof_reverify_failures=0)`** — and that surfaced TWO real, deep issues (the gate doing its job):
+  - **(F1) AST-walk coverage is wrong for ANNOTATED grammars.** `parse_node_covered_rules` reads `ParseNode.rule_name`, but a rule with a `-> {…}` return annotation folds its subtree into `ParseContent::Json` (no child nodes), so the walk stops at the first annotated rule and never sees `expression`/`identifier`/… → `witness=1`. The witness-coverage SOURCE must be redesigned.
+  - **(F2) raw `generate_many` emits unparseable samples** (25/50) — the closed loop filters/retries; raw does not. Use the parseable-stimuli path.
+- **DESIGN FORK recorded (G.4.6, to decide deliberately):** the "rules a successful parse exercises" source — (a) generator coverage (accurate but trusts the generator; parse = validity), (b) parser-instrumented final-accepted-parse coverage (rigorous + independent; needs a parser feature; call-counts over-count backtracked attempts), or (c) a raw/no-annotation parse keeping the rule-node tree. This is the crux of the witness side — chosen carefully, not rushed (per the no-corner-cutting discipline).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0027 (leaf GRAMMAR-WELLFORMED.G.4, parser-agnostic FIX): the certificate-coverage gate is now PARSER-AGNOSTIC (data-driven registry dispatch) + the no-corner-cutting discipline recorded.
 
 Code (`rust/src/parser_registry.rs`, `rust/src/main.rs`) + decision record. Restores the absolute parser-agnostic doctrine the director stressed is project-critical.

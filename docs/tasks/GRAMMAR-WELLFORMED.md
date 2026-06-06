@@ -454,6 +454,30 @@ certificates, not faith".
     the target's rule via a per-rule parse entry (`parse_full_<rule>`, where the generated parser exposes
     one) / a coverage-instrumented sub-parse. ALSO the `fragment` identity: witness fragment = target id
     (may be `rule#branch`) vs `parse_node_covered_rules` = bare rule names → align (branch-level coverage).
+  - `G.4.5` — **the CLEAN dedicated mode (`-0028`) + two DEEP findings.** Replaced the rushed
+    concern-mixed witness-path block with a dedicated, parser-AGNOSTIC `--report-certificate-coverage`
+    mode (`run_certificate_coverage_report`, modelled on `--report-k-path-coverage`): build generator →
+    generate CLEAN diverse samples → `parser_registry::parse_and_cover(grammar.grammar_name,…)` (generic,
+    no grammar names) → `gather_verified_proof_covered_rules` → `certificate_coverage` → report. Builds
+    both ways; the concern-mixed `--generate-stimuli` block is removed. **RUN (50 diverse, sv_2017):**
+    `total=1339 proof=0 witness=1 UNKNOWN=1338 (sample_parse_failures=25, proof_reverify_failures=0)` —
+    surfaced TWO real issues the gate exists to find:
+    - **(F1) AST-walk coverage is wrong for ANNOTATED grammars.** `parse_node_covered_rules` collects
+      `ParseNode.rule_name`s, but a rule with a return annotation (`-> {…}`) folds its subtree into
+      `ParseContent::Json` (no child `ParseNode`s) — so the walk stops at the first annotated rule and
+      never sees `expression`/`identifier`/… → `witness=1`. The AST-walk massively UNDERCOUNTS. The
+      witness-coverage SOURCE needs a redesign (see the design fork below).
+    - **(F2) raw `generate_many` emits unparseable samples** (25/50) — the closed-loop gate
+      filters/retries for parseability; raw generation does not. The witness side must use the
+      parseable-stimuli path (or filter), not raw `generate_many`.
+  - `G.4.6` — **DESIGN FORK (deliberate, not rushed): the "rules a successful parse exercises" source.**
+    (a) **generator coverage** — `generator.coverage_metrics()` (which rules it built into each sample;
+    accurate, but trusts the generator — verification = the sample parses, i.e. validity not coverage);
+    (b) **parser-instrumented coverage** — record rules that SUCCEEDED in the FINAL accepted parse (the
+    rigorous, independent way; needs a parser feature distinguishing accepted-vs-backtracked, since
+    per-rule call counts OVER-count failed speculative attempts); (c) **raw/no-annotation parse** — a
+    parse mode that keeps the full rule-node tree so the AST-walk works (no Json fold). + use parseable
+    samples (fix F2). Decide deliberately (rigor vs feasibility); this is the crux of the witness side.
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 

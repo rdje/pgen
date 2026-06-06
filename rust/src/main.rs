@@ -97,6 +97,15 @@ struct Args {
     #[arg(long, value_name = "K")]
     report_k_path_coverage: Option<usize>,
 
+    /// GRAMMAR-WELLFORMED.G.4: opt-in CERTIFICATE-COVERAGE report (the linter⟷generator duality
+    /// capstone). For every rule, is it covered by a verified unreachability PROOF or a verified
+    /// reachability WITNESS (a clean diverse `--count` sample that parses through the real parser and
+    /// exercises it)? Prints proof/witness/UNKNOWN; `UNKNOWN`=0 with no failures = the objective
+    /// "trustworthy on this grammar" number. Read-only. Requires `--features generated_parsers` (needs
+    /// the grammar's parser to verify witnesses); parser-agnostic via the registry.
+    #[arg(long)]
+    report_certificate_coverage: bool,
+
     /// Generate high-performance Rust parser instead of JSON output
     #[arg(long)]
     generate_parser: bool,
@@ -945,6 +954,33 @@ fn main() -> Result<()> {
         );
     }
 
+    if args.report_certificate_coverage {
+        let grammar = apply_grammar_profile_filter(
+            load_grammar_bundle(
+                &args.input_path,
+                &mut pipeline,
+                args.emit_raw_ast_json.as_deref(),
+            )?,
+            args.grammar_profile.as_deref(),
+        )?;
+        #[cfg(feature = "generated_parsers")]
+        return run_certificate_coverage_report(
+            &grammar,
+            args.entry_rule.as_deref(),
+            args.count,
+            args.seed.unwrap_or(0),
+            args.grammar_profile.as_deref(),
+        );
+        #[cfg(not(feature = "generated_parsers"))]
+        {
+            let _ = &grammar;
+            anyhow::bail!(
+                "--report-certificate-coverage requires building with --features generated_parsers \
+                 (the witness side parses generated samples through the grammar's real parser)"
+            );
+        }
+    }
+
     let result = if standalone_raw_ast_export {
         let output_path = args
             .emit_raw_ast_json
@@ -1510,52 +1546,11 @@ fn main() -> Result<()> {
                     println!("- {sample}");
                 }
             }
-            // GRAMMAR-WELLFORMED.G.4: the certificate-coverage GATE (the duality capstone) —
-            // PARSER-AGNOSTIC. The pipeline never names a grammar: it asks the parser_registry whether
-            // a generated parser is registered for THIS grammar (`grammar.grammar_name` is runtime
-            // data), and if so verifies the witnesses via the registry's generic `parse_and_cover`.
-            // The per-grammar parser hook lives in `parser_registry` (its registration boundary), not
-            // here. The reachability WITNESSES are the FULL-FILE diverse samples (rooted at the entry →
-            // they parse via the grammar's full-file entry); each sample's parse-coverage is a VERIFIED
-            // set of witnessed rules. A sample that fails to parse = a generator bug (counted, never
-            // silently dropped). UNKNOWN=0 with no failures = the objective trust number.
-            #[cfg(feature = "generated_parsers")]
-            if pgen::parser_registry::supports_parse_and_cover(&grammar.grammar_name) {
-                use pgen::ast_pipeline::grammar_wellformedness::{
-                    certificate_coverage, gather_verified_proof_covered_rules,
-                };
-                let profile = args.grammar_profile.as_deref();
-                let mut witness_covered: std::collections::HashSet<String> =
-                    std::collections::HashSet::new();
-                let mut sample_parse_failures = 0usize;
-                for sample in &generated_samples {
-                    if let Some((parsed, covered)) = pgen::parser_registry::parse_and_cover(
-                        &grammar.grammar_name,
-                        sample,
-                        profile,
-                    ) {
-                        if parsed {
-                            witness_covered.extend(covered);
-                        } else {
-                            sample_parse_failures += 1;
-                        }
-                    }
-                }
-                let (proof_covered, proof_fails) =
-                    gather_verified_proof_covered_rules(&grammar.grammar_tree, &grammar.rule_order);
-                let report =
-                    certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
-                println!(
-                    "CERTIFICATE-COVERAGE (G.4): total={} proof={} witness={} UNKNOWN={} fully_certified={} (sample_parse_failures={}, proof_reverify_failures={})",
-                    report.total,
-                    report.covered_by_proof.len(),
-                    report.covered_by_witness.len(),
-                    report.unknown.len(),
-                    report.is_fully_certified(),
-                    sample_parse_failures,
-                    proof_fails.len(),
-                );
-            }
+            // NOTE: certificate-coverage (GRAMMAR-WELLFORMED.G.4) is NOT computed here. The witness
+            // pass above produces reach-plan-FORCED samples (which often don't parse on replay), so it
+            // is the wrong witness source. The certificate-coverage gate is its own clean, dedicated,
+            // parser-agnostic mode — `--report-certificate-coverage` / `run_certificate_coverage_report`
+            // — which uses CLEAN diverse samples. Keeping generation and certification separate.
             generated_samples.extend(witness_samples);
             merged_coverage = generator.coverage_metrics().clone();
             generated_samples
@@ -2255,6 +2250,100 @@ fn run_k_path_coverage_report(
         "k-path coverage: grammar='{}' entry='{}' k={} samples={} -> covered {}/{} k-paths ({:.1}% of the universe)",
         grammar.grammar_name, entry_rule, k, samples, covered, universe, pct
     );
+    Ok(())
+}
+
+/// GRAMMAR-WELLFORMED.G.4: the certificate-coverage report (the linter⟷generator duality capstone),
+/// PARSER-AGNOSTIC. For every rule the grammar must carry either a verified unreachability PROOF (the
+/// linter proves it dead) or a verified reachability WITNESS (a clean diverse `--count` sample that
+/// parses through the grammar's REAL parser and exercises it). Witnesses are the DIVERSE full-file
+/// samples (the closed loop guarantees they parse) — NOT the reach-plan-forced ones. `UNKNOWN`=0 with
+/// no re-verify/parse failures is the objective "trustworthy on this grammar" number. Rule-level
+/// (branch-level is a deliberate follow-up). Dispatch is by `grammar.grammar_name` through the
+/// registry — this function names no grammar.
+#[cfg(feature = "generated_parsers")]
+fn run_certificate_coverage_report(
+    grammar: &LoadedGrammar,
+    entry: Option<&str>,
+    samples: usize,
+    seed: u64,
+    profile: Option<&str>,
+) -> Result<()> {
+    use pgen::ast_pipeline::grammar_wellformedness::{
+        certificate_coverage, gather_verified_proof_covered_rules,
+    };
+    if !pgen::parser_registry::supports_parse_and_cover(&grammar.grammar_name) {
+        anyhow::bail!(
+            "certificate-coverage: no generated parser is registered for grammar '{}' — cannot \
+             verify reachability witnesses through a real parser (Phase H wires more grammars)",
+            grammar.grammar_name
+        );
+    }
+    let entry_rule = entry
+        .map(|s| s.to_string())
+        .or_else(|| grammar.rule_order.first().cloned())
+        .ok_or_else(|| anyhow::anyhow!("grammar '{}' has no rules", grammar.grammar_name))?;
+
+    // WITNESS side: generate CLEAN diverse full-file samples, parse each through the REAL parser, and
+    // union the rules they exercise. Each such rule is verified-reachable (a concrete input parses +
+    // exercises it). A sample that fails to parse is a generator bug (counted, never silently dropped).
+    let config = StimuliConfig {
+        seed: Some(seed),
+        ..Default::default()
+    };
+    let mut generator = StimuliGenerator::new(
+        grammar.grammar_name.clone(),
+        &grammar.grammar_tree,
+        &grammar.rule_order,
+        grammar.annotations.as_ref(),
+        config,
+    );
+    let samples = samples.max(1);
+    let diverse = generator.generate_many(samples, Some(entry_rule.as_str()))?;
+    let mut witness_covered: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut sample_parse_failures = 0usize;
+    for sample in &diverse {
+        if let Some((parsed, covered)) =
+            pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile)
+        {
+            if parsed {
+                witness_covered.extend(covered);
+            } else {
+                sample_parse_failures += 1;
+            }
+        }
+    }
+
+    // PROOF side: the rules a verified unreachability certificate proves dead (re-checked, not trusted).
+    let (proof_covered, proof_fails) =
+        gather_verified_proof_covered_rules(&grammar.grammar_tree, &grammar.rule_order);
+
+    let report = certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+    println!(
+        "CERTIFICATE-COVERAGE: grammar='{}' entry='{}' samples={} total={} proof={} witness={} UNKNOWN={} fully_certified={} (sample_parse_failures={}, proof_reverify_failures={})",
+        grammar.grammar_name,
+        entry_rule,
+        samples,
+        report.total,
+        report.covered_by_proof.len(),
+        report.covered_by_witness.len(),
+        report.unknown.len(),
+        report.is_fully_certified(),
+        sample_parse_failures,
+        proof_fails.len(),
+    );
+    if !report.unknown.is_empty() {
+        let shown = report.unknown.len().min(25);
+        println!(
+            "  UNKNOWN rules ({} of {} shown): {:?}",
+            shown,
+            report.unknown.len(),
+            &report.unknown[..shown]
+        );
+    }
+    if !proof_fails.is_empty() {
+        println!("  WARNING proof re-verify FAILURES (linter bugs to fix): {:?}", proof_fails);
+    }
     Ok(())
 }
 
