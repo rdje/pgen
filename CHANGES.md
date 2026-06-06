@@ -1,4 +1,17 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0015 (leaf LEXICAL-ANNOTATIONS.3d ii-CLI): make --generate-stimuli faithful-by-default.
+
+The production CLI now defaults to lexical faithfulness, matching the library `StimuliConfig::default()` (which flipped in `-0007`). Previously `--generate-stimuli` / `--generate-stimuli-module` were faithful-OFF unless you passed `--enforce-word-boundary-spacing`.
+
+- `src/main.rs`: added a `--no-word-boundary-spacing` clap opt-out; a single-source-of-truth helper `effective_word_boundary_spacing(enforce, no_spacing) = enforce || !no_spacing` applied at all three `StimuliConfig`-construction sites so the in-memory and generated-module paths stay consistent; the new flag added to the stimuli-only-flag validation guard + its error message. The legacy `--enforce-word-boundary-spacing` is still accepted (now redundant; explicit-on wins over the opt-out).
+- Book: `docs/book/src/lexical-annotations.md` documents the CLI default-on + the `--no-word-boundary-spacing` opt-out with examples.
+
+VERIFICATION (the slice changes the DEFAULT CLI output, so this is NOT zero-blast-radius — 9 of 12 stimuli-invoking gate scripts run `--generate-stimuli` without the flag, so each affected gate was exercised): guard smoke (rejects `--no-word-boundary-spacing` without a stimuli command); **`stimuli_module_parity_gate` ✅** (the decisive canary — in-memory vs compiled-module parity holds under faithful-by-default), `ast_dump_contract_gate` ✅, `annotation_stimuli_quality_gate` ✅, `ebnf_stimuli_quality_gate` ✅, `annotation_robustness_gate` ✅, `annotation_nonbootstrap_e2e_gate` ✅, `ebnf_frontend_readiness` ✅; lib 610/610; source clippy clean. `sv_syntax_closure_gate` fails on `reachable_rules 1406 < min 1407` — **PRE-EXISTING** static grammar/contract drift (decisively cleared: `grammars/systemverilog.ebnf` + the closure contract + the analyzer are byte-unchanged since pre-session and this slice touches none of them; owned by GRAMMAR-WELLFORMED A2.1). FRONTIER → `.4` (cross-grammar certificate gate); `.3d` (i) operator fusion stays open (no tool-backed failing case; declaratively expressible via the landed `[>! …]`).
+
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0014 (leaf LEXICAL-ANNOTATIONS.3d): record .3d (ii-CLI) blast-radius scoping (pure docs).
+
+Routed the `.3c`-session scoping finding to the task tree + resume pointer so it is not re-derived: the `.3d (ii-CLI)` design (clap flag, the 3 config sites, the validation guard) and the verified blast radius (9 of 12 stimuli-invoking gate scripts call `--generate-stimuli` without the flag → flipping the default needs a multi-gate sweep). No code change.
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0013 (leaf LEXICAL-ANNOTATIONS.3c): re-land the declarative follow-restriction COMPLETE (tokenizer + IR + generator).
 
 Re-landed Obligation C (the declarative lexical follow-restriction) the right way after the `-0011`/`-0012` audit+revert: the COMPLETE vertical in ONE verified slice, on the **per-rule (before-rule)** design the stimuli generator can actually consume (the annotation consumption matrix makes inline/position-specific annotations codegen-only — KM `ast-pipeline-architecture`). Three stages, all parser-agnostic:

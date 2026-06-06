@@ -1,8 +1,11 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.3d` (i) distinct-longer-token operator fusion via
-> the now-landed declarative path + CLI default-on; then `.4` verify+generalize (cross-grammar gate
-> re-run). **`.3c` DONE (`-0013`)** — re-landed the declarative follow-restriction **COMPLETE** in ONE
+> **Status:** `active` (2026-06-06). **Frontier:** `.4` verify+generalize (cross-grammar certificate-gate
+> re-run); `.3d` (i) distinct-longer-token operator fusion stays open but has NO tool-backed failing case
+> (don't change code speculatively) and is now declaratively expressible via the landed `[>! …]` path.
+> **`.3d` (ii-CLI) DONE (`-0015`)** — `--generate-stimuli` is now faithful-by-default with a
+> `--no-word-boundary-spacing` opt-out; verified across the affected stimuli gates (parity gate is the
+> decisive canary). **`.3c` DONE (`-0013`)** — re-landed the declarative follow-restriction **COMPLETE** in ONE
 > verified slice on the **per-rule** (before-rule) design the generator consumes: tokenizer
 > (`ebnf_frontend.rs`) + IR handler (`mod.rs`, `FollowRestriction` carried per-rule in `Annotations`) +
 > generator consumption (`stimuli_generator.rs`, FORBID self-terminates the rule surface with the
@@ -126,7 +129,23 @@ justified because pillars 1–3 structurally cannot express it (see the decision
     programmatic generator; negative-test generation opts out explicitly. **MEASURED: full lib suite
     607/607 green** (zero blast radius — the explicit-`false` tests are unaffected; the gate sets it
     `true` explicitly so is unchanged). Faithful is now the correct default at the type level.
-  - **`.3d` (ii-CLI) on-by-default for the production CLI — DEFERRED (surface change).** Making
+  - **`.3d` (ii-CLI) on-by-default for the production CLI — DONE (`-0015`, 2026-06-06).** `--generate-stimuli`
+    / `--generate-stimuli-module` are now **faithful by default**. Added a `--no-word-boundary-spacing`
+    opt-out (`Args`, clap), a single-source-of-truth helper `effective_word_boundary_spacing(enforce, no_spacing)
+    = enforce || !no_spacing` applied at all three `StimuliConfig`-construction sites (`main.rs:1121/1249/1304`)
+    so the in-memory and generated-module paths stay consistent, and the new flag added to the
+    stimuli-only-flag validation guard (`:774`) + its error message. The legacy
+    `--enforce-word-boundary-spacing` stays accepted (now redundant; explicit-on still wins). **VERIFIED**
+    (the blast-radius scoping below drove the gate selection): guard smoke (rejects `--no-word-boundary-spacing`
+    without a stimuli command); `stimuli_module_parity_gate` ✅ (the decisive canary — in-memory vs compiled-module
+    parity holds under faithful-by-default), `ast_dump_contract_gate` ✅, `annotation_stimuli_quality_gate` ✅,
+    `ebnf_stimuli_quality_gate` ✅, `annotation_robustness_gate` ✅, `annotation_nonbootstrap_e2e_gate` ✅, the
+    ebnf/hdl frontend readiness reports ✅; lib 610/610; source clippy clean. `sv_syntax_closure_gate` fails
+    on `reachable_rules 1406 < min 1407` — **PRE-EXISTING** static grammar/contract drift (decisively cleared:
+    `grammars/systemverilog.ebnf` + the closure contract + the analyzer are byte-unchanged since pre-session,
+    and this slice touches none of them; owned by GRAMMAR-WELLFORMED A2.1, not this slice). Book chapter
+    documents the CLI default-on + opt-out.
+  - **(historical) `.3d` (ii-CLI) DEFERRAL note.** Making
     `--generate-stimuli` faithful-by-default is NOT a simple flag flip: `args.enforce_word_boundary_spacing`
     is a clap bool flag defaulting `false` (`main.rs:243`), passed straight into `StimuliConfig` at three
     sites (`main.rs:1116/1241/1293`), so the **CLI** is still faithful-OFF by default even though the

@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-06 - LEXICAL-ANNOTATIONS.3d (ii-CLI) — faithful-by-default CLI (PGEN-LEXICAL-ANNOTATIONS-0015)
+
+### Change
+The library `StimuliConfig::default()` flipped to faithful (`enforce_word_boundary_spacing: true`) in `-0007`, but the CLI still passed a default-`false` clap bool straight into the config at three sites, so `ast_pipeline --generate-stimuli` was faithful-OFF by default. This slice makes the CLI faithful-by-default: `--no-word-boundary-spacing` opt-out + helper `effective_word_boundary_spacing(enforce, no_spacing) = enforce || !no_spacing` at `main.rs:1121/1249/1304` + the flag added to the `:774` stimuli-only-flag guard. The helper takes the two `Copy` bool fields (not `&Args`) so it composes at a site where `args.output` is already partially moved. Legacy `--enforce-word-boundary-spacing` stays accepted (explicit-on wins over opt-out).
+
+### Verification design (why these gates)
+This CHANGES THE DEFAULT CLI OUTPUT (separators now inserted) → not zero-blast-radius. The risk is two-fold: (a) gates that pin exact byte output, and (b) the in-memory vs generated-module parity. Selection: the only two affected gates with byte comparisons are `stimuli_module_parity_gate` and `ast_dump_contract_gate` — both run + PASS (the AST is whitespace-independent; the parity gate proves both faithful paths stay consistent because all three config sites use the same effective value). The remaining affected gates are parseability/flow (faithful output is monotone-MORE-parseable → safe); the representative set (`annotation_stimuli_quality`, `ebnf_stimuli_quality`, `annotation_robustness`, `annotation_nonbootstrap_e2e`, `ebnf_frontend_readiness`) all PASS. `sv_syntax_closure_gate` failure (`reachable_rules 1406 < 1407`) is PRE-EXISTING static grammar/contract drift — proven by `git diff` showing `systemverilog.ebnf` + the closure contract byte-unchanged since pre-session `2368c3a2`, and this slice touches neither.
+
 ## 2026-06-06 - LEXICAL-ANNOTATIONS.3c — declarative follow-restriction re-landed COMPLETE (PGEN-LEXICAL-ANNOTATIONS-0013)
 
 ### Root design decision (why per-rule, why self-terminating)

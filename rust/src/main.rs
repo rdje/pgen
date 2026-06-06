@@ -238,9 +238,13 @@ struct Args {
     #[arg(long, default_value_t = 1000)]
     target_helper_generation_timeout_ms: u64,
 
-    /// Append a delimiter space after terminal word-boundary regex samples (for example `keyword\\b`) to reduce merged-token stimuli
+    /// DEPRECATED / redundant: lexical faithfulness (minimal token separation so generated stimuli re-lex to the intended tokens) is now ON by default. This flag is still accepted for backward compatibility and forces faithfulness on; use `--no-word-boundary-spacing` to opt out (for example negative-test generation).
     #[arg(long)]
     enforce_word_boundary_spacing: bool,
+
+    /// Opt out of lexical faithfulness for generated stimuli (LEXICAL-ANNOTATIONS.3d): do NOT insert the minimal token separators. Use for negative-test generation that intentionally produces malformed lexical surface. Without this flag, faithful spacing is applied by default.
+    #[arg(long)]
+    no_word_boundary_spacing: bool,
 
     /// Validate generated stimuli by parsing each sample with the matching generated parser
     #[arg(long)]
@@ -767,10 +771,11 @@ fn main() -> Result<()> {
             || args.stimuli_negative_profile != "baseline"
             || args.stimuli_constraint_profile != "baseline"
             || args.stimuli_mutation_mode != "baseline"
-            || args.enforce_word_boundary_spacing;
+            || args.enforce_word_boundary_spacing
+            || args.no_word_boundary_spacing;
         if has_shared_stimuli_flags {
             return Err(anyhow::anyhow!(
-                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--stimuli-corpus-json/--gap-report-*/--recovery-stimuli-mode/--stimuli-negative-profile/--stimuli-constraint-profile/--stimuli-mutation-mode/--enforce-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
+                "--validate-parseability/--parseability-report-json/--parseability-max-attempts/--coverage-*/--stimuli-corpus-json/--gap-report-*/--recovery-stimuli-mode/--stimuli-negative-profile/--stimuli-constraint-profile/--stimuli-mutation-mode/--enforce-word-boundary-spacing/--no-word-boundary-spacing require --generate-stimuli or --generate-stimuli-module"
             ));
         }
     }
@@ -1113,7 +1118,10 @@ fn main() -> Result<()> {
             mutation_mode,
             constraint_profile,
             negative_profile,
-            enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
+            enforce_word_boundary_spacing: effective_word_boundary_spacing(
+                args.enforce_word_boundary_spacing,
+                args.no_word_boundary_spacing,
+            ),
             trace_verbosity,
         };
         let mut generator = StimuliGenerator::new(
@@ -1238,7 +1246,10 @@ fn main() -> Result<()> {
                     mutation_mode,
                     constraint_profile,
                     negative_profile,
-                    enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
+                    enforce_word_boundary_spacing: effective_word_boundary_spacing(
+                        args.enforce_word_boundary_spacing,
+                        args.no_word_boundary_spacing,
+                    ),
                     trace_verbosity,
                 },
             );
@@ -1290,7 +1301,10 @@ fn main() -> Result<()> {
             mutation_mode,
             constraint_profile,
             negative_profile,
-            enforce_word_boundary_spacing: args.enforce_word_boundary_spacing,
+            enforce_word_boundary_spacing: effective_word_boundary_spacing(
+                args.enforce_word_boundary_spacing,
+                args.no_word_boundary_spacing,
+            ),
             trace_verbosity,
         };
 
@@ -2125,6 +2139,18 @@ fn rule_profile_matches(annotations: &Annotations, rule_name: &str, active_profi
         Some(allowed) if !allowed.is_empty() => allowed.iter().any(|value| value == active_profile),
         _ => true,
     }
+}
+
+/// LEXICAL-ANNOTATIONS.3d (ii-CLI) — the effective lexical-faithfulness setting for the
+/// production CLI. Faithfulness is ON by default (matching `StimuliConfig::default()`); the
+/// `--no-word-boundary-spacing` opt-out turns it off (e.g. negative-test generation). The legacy
+/// `--enforce-word-boundary-spacing` flag is still honored as an explicit force-on (so an explicit
+/// enable wins over the opt-out if both are passed). Single source of truth for the three
+/// `StimuliConfig`-construction sites so the in-memory and generated-module paths stay consistent.
+/// Takes the two flag values (both `Copy`) rather than `&Args` so it composes at call sites where
+/// other `Args` fields have already been partially moved.
+fn effective_word_boundary_spacing(enforce_flag: bool, no_spacing_flag: bool) -> bool {
+    enforce_flag || !no_spacing_flag
 }
 
 fn filter_annotations_by_profile(

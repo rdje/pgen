@@ -129,4 +129,20 @@ generation — which deliberately produces malformed lexical surface — opts ou
 restrictions (and all other faithfulness guards) are not applied. The certificate-coverage gate
 re-parses every generated sample, so any faithfulness gap surfaces as a parse failure.
 
+On the command line, `ast_pipeline … --generate-stimuli` (and `--generate-stimuli-module`) is now
+**faithful by default** — you no longer pass a flag to get faithful output. To opt out (for negative-test
+generation), pass `--no-word-boundary-spacing`:
+
+```bash
+# faithful by default — generated samples re-lex to their intended tokens
+ast_pipeline grammar.ebnf --generate-stimuli --output samples.txt
+
+# opt out — allow malformed lexical surface (negative-test generation)
+ast_pipeline grammar.ebnf --generate-stimuli --no-word-boundary-spacing --output samples.txt
+```
+
+The legacy `--enforce-word-boundary-spacing` flag is still accepted (it now just forces the default on)
+and is redundant; prefer relying on the default and using `--no-word-boundary-spacing` only when you
+deliberately want malformed output.
+
 [annot-binds]: ./annotation-system.md
