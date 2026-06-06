@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0013 (leaf GRAMMAR-WELLFORMED.A2.1 families 2+3): **covergroup-range + rs-prod dead branches fixed — DROPPED-DELIMITER extraction artifacts; + all-grammars certification scope.**
+
+Grammar fix (`grammars/systemverilog.ebnf`) + docs (tree A2.1 families 2/3 + Phase H all-grammars + certifying doctrine scope + LIVE). generated/ regenerated locally (gitignored).
+
+- **SYSTEMATIC ROOT CAUSE found.** The SV always-matches dead branches are dominantly DROPPED-DELIMITER extraction artifacts: the LRM-PDF→.ebnf extraction lost `[ ]` / `{ }` delimiters, making wrapper rules nullable/always-succeeds. The A2 linter surfaced a whole CLASS of these.
+- **Family 3 (rs-prod) — `rs_code_block`.** Was `( data_declaration* statement_or_null* )*` (star-over-star, always-succeeds) → shadowed the later `rs_prod_*` arms and **11** always-matches sites (widely-used sub-rule). LRM form is `{ data_declaration* statement_or_null* }`. FIX: `rs_code_block := lbrace ( … ) rbrace` (`body: $1`→`$2`). always_matches 45→34.
+- **Family 2 (covergroup-range).** LRM range forms are `[ … ]`-bracketed (`bins b = {[0:10]}`); extraction dropped the brackets → parens + spurious `?`. FIX: restored `lbrack ( … ) rbrack` + dropped `?` on `covergroup_value_range_sv_2017` (range) + `_sv_2023` (range/dollar_lo/dollar_hi/tolerance); `body: $1`→`$2`. Restoring the brackets fixes BOTH the always-succeeds AND the would-be prefix-overlap (bracketed forms start with `[`, no reorder needed). always_matches 34→27.
+- **Verified:** lint always_matches 52→27 cumulative (families 1+2+3); SV `--lint-grammar` rc=0 (hard gate green, unbound_facts=0); SV parser regenerated fresh (mtime confirmed) + strict annotation validation passed + regenerated parser COMPILES clean. Corpus + closed-loop deferred per director steer ("we'll see later").
+- **ALL-GRAMMARS CERTIFICATION SCOPE (director directive 2026-06-06).** Full certification is NOT SV-only — every PGEN grammar (VHDL, regex, RTL, annotation/EBNF/preprocessor, future) must reach the same bar (static checks pass + `UNKNOWN`=0). The linter + Phase G are parser-agnostic so the SAME certification applies unchanged; the F1 sweep already showed the hand-authored non-SV grammars are statically clean (0 always-matches/unbound/unreachable/orphan) — SV is the outlier. Recorded as tree Phase H (H.1 per-grammar G.4 gate; H.2 roll each non-SV grammar; H.3 a new grammar is "done" only when fully certified) + the certifying-linter decision record.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0012 (leaf GRAMMAR-WELLFORMED.G.1): **the certifying linter — certificate model + the independent re-checker for unreachability verdicts.**
 
 Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.

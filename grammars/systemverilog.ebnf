@@ -1521,15 +1521,15 @@ covergroup_range_list := covergroup_value_range ( comma covergroup_value_range )
                       -> [$1, $2::2*]
 
 @profiles: ["sv_2017"]
-covergroup_value_range_sv_2017 := covergroup_expression                                  -> {kind: "expression", body: $1}
-                                | ( covergroup_expression colon covergroup_expression )? -> {kind: "range",      body: $1}
+covergroup_value_range_sv_2017 := covergroup_expression                                               -> {kind: "expression", body: $1}
+                                | lbrack ( covergroup_expression colon covergroup_expression ) rbrack -> {kind: "range",      body: $2}
 
 @profiles: ["sv_2023"]
-covergroup_value_range_sv_2023 := covergroup_expression                                            -> {kind: "expression", body: $1}
-                                | ( covergroup_expression colon covergroup_expression )?           -> {kind: "range",      body: $1}
-                                | ( kw_dollar colon covergroup_expression )?                       -> {kind: "dollar_lo",  body: $1}
-                                | ( covergroup_expression colon kw_dollar )?                       -> {kind: "dollar_hi",  body: $1}
-                                | ( covergroup_expression plus slash minus covergroup_expression )? -> {kind: "tolerance",  body: $1}
+covergroup_value_range_sv_2023 := covergroup_expression                                                  -> {kind: "expression", body: $1}
+                                | lbrack ( covergroup_expression colon covergroup_expression ) rbrack    -> {kind: "range",      body: $2}
+                                | lbrack ( kw_dollar colon covergroup_expression ) rbrack                -> {kind: "dollar_lo",  body: $2}
+                                | lbrack ( covergroup_expression colon kw_dollar ) rbrack                -> {kind: "dollar_hi",  body: $2}
+                                | lbrack ( covergroup_expression plus slash minus covergroup_expression ) rbrack -> {kind: "tolerance",  body: $2}
 
 covergroup_value_range := covergroup_value_range_sv_2017 -> {kind: "sv_2017", body: $1}
                         | covergroup_value_range_sv_2023 -> {kind: "sv_2023", body: $1}
@@ -4446,8 +4446,8 @@ rs_case_item_sv_2023 := case_item_expression ( comma case_item_expression )* col
 rs_case_item := rs_case_item_sv_2017 -> {kind: "sv_2017", body: $1}
               | rs_case_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
-rs_code_block := ( data_declaration* statement_or_null* )*
-              -> {body: $1}
+rs_code_block := lbrace ( data_declaration* statement_or_null* ) rbrace
+              -> {body: $2}
 
 @profiles: ["sv_2017"]
 rs_if_else_sv_2017 := kw_if_958f57f5 lparen expression rparen production_item ( kw_else_ae050f5b production_item )?

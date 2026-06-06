@@ -58,6 +58,21 @@ certify the decidable `dead` checks (unreachability PROOFs); G.2 the independent
 producer; G.4 certificate-coverage gate (`UNKNOWN`=0 on SV, hard). Folds in A2.1 (each
 grammar fix moves a fragment from dead/`UNKNOWN` to witnessed-reachable).
 
+**Scope: ALL grammars, current AND future (director directive 2026-06-06).** Full certification is
+NOT SV-only — every PGEN grammar (SystemVerilog, VHDL, regex, RTL, the annotation/EBNF grammars, and
+any future one) must reach the same bar: well-formed + well-defined (static checks pass) AND
+`UNKNOWN`=0 with all certificates checking. The machinery already generalizes — the linter
+(`--lint-grammar`) and Phase G are PARSER-AGNOSTIC by construction (they key only on the grammar AST +
+annotations, zero grammar-specific identifiers; cf. [[feedback_ast_pipeline_parser_agnostic]]), so the
+SAME certification applies to each grammar unchanged. Empirical head start: the F1 all-grammars sweep
+(`PGEN-GRAMMAR-WELLFORMED-0008`) showed the hand-authored non-SV grammars (json, regex, vhdl, rtl_*,
+return/semantic/builtin annotation grammars, sv_preprocessor) ALREADY at 0 always-matches / 0
+unbound-fact / 0 unreachable / 0 orphan — they are already statically clean; SV is the outlier (its
+LRM-PDF extraction artifacts). So per-grammar certification = (a) static checks (mostly already green
+off-SV) + (b) the G.4 certificate-coverage gate (`UNKNOWN`=0 with witnesses) run PER grammar. `G.4`
+becomes a per-grammar gate; a future `GRAMMAR-WELLFORMED` phase rolls each non-SV grammar to full
+certification (most are a short hop).
+
 Book: `docs/book/src/grammar-wellformedness.md` — "Trusting the linter: certificates, not
 faith". Tree: `docs/tasks/GRAMMAR-WELLFORMED.md` Phase G. Reinforces
 [[feedback_always_signoff_decisions.md]] (verify, don't over-claim) and

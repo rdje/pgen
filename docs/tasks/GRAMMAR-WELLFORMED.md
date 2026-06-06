@@ -191,10 +191,24 @@ subtle dead branch"), never a silent accept.
      fixing only `consecutive_repetition` just exposes the next as the shadower). ⚠️ ANNOTATION RISK:
      the `?`-groups carry `-> {range: $1}`; removing `?` while keeping the `( )` group preserves `$1`,
      but VERIFY with `parseability_probe --parse-dump-ast-pretty` ([[feedback_ebnf_consult_annotation_docs]]).
-  2. **covergroup-range family** (`covergroup_value_range` #1, `covergroup_value_range_sv_2023` #2#3#4):
-     alt #1 = `( expr : expr )?` always-succeeds → dollar/tolerance variants dead. Same `?`-drop fix
-     (LRM §A.9.3 value ranges).
-  3. **rs-prod family** (`rs_prod_sv_2017` #2#3#4, `rs_prod_sv_2023` #2#3): alt #1 always-matches.
+  2. **covergroup-range family — DONE (`-0013`).** The LRM range forms are `[ … ]`-BRACKETED
+     (`bins b = {[0:10]}`); extraction dropped the brackets → parens + spurious `?` → always-succeeds.
+     FIX: restored `lbrack ( … ) rbrack` + dropped `?` on `covergroup_value_range_sv_2017` (range) +
+     `covergroup_value_range_sv_2023` (range/dollar_lo/dollar_hi/tolerance); `body: $1`→`$2` (group is
+     now the 2nd element after `lbrack`). Restoring the brackets fixes BOTH the always-succeeds AND the
+     would-be prefix-overlap (bracketed forms start with `[`, so the bare-expr arm no longer shadows
+     them — no reorder needed). always_matches 34→27. rc=0, regen+compile clean.
+  3. **rs-prod family — DONE (`-0013`).** Root cause = a NULLABLE sub-rule: `rs_code_block :=
+     ( data_declaration* statement_or_null* )*` (star-over-star) always-succeeds → shadowed the later
+     `rs_prod_*` arms (and 11 always-matches sites total — it's a widely-used sub-rule). The LRM form is
+     `{ data_declaration* statement_or_null* }` (brace-delimited); extraction dropped the braces + added
+     a spurious outer `*`. FIX: `rs_code_block := lbrace ( … ) rbrace` (`body: $1`→`$2`). always_matches
+     45→34. rc=0, regen+compile clean.
+     **⇒ SYSTEMATIC FINDING: the SV always-matches defects are dominantly DROPPED-DELIMITER extraction
+     artifacts** — `[ ]` (consecutive_repetition, covergroup ranges), `{ }` (rs_code_block) — where the
+     lost delimiter made a wrapper rule nullable/always-succeeds. The linter (A2) surfaced a whole CLASS
+     of LRM-PDF→.ebnf extraction bugs. Restoring the delimiter is the LRM-grounded fix (and often also
+     closes a real parse gap — the bracket-less forms couldn't parse real SV).
   4. **implicit-type/port family** (`let_formal_type`, `property_formal_type`, `net_port_type`/`_sv_2017`/
      `_sv_2023`, `port`, `ansi_port_declaration`): alt #0 = a `data_type_or_implicit`-like rule that
      always-succeeds (implicit type matches empty) → trailing keyword/variant branches dead. Needs
@@ -323,6 +337,23 @@ certificates, not faith".
   objective proof the linter is trustworthy on this grammar.* Folds in A2.1 (each grammar fix moves a
   fragment from `dead`/`UNKNOWN` to witnessed-reachable). *Effort: medium (gate + baseline).*
 
+### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
+
+**Scope (binding).** Full certification is NOT SV-only — EVERY PGEN grammar (SystemVerilog, VHDL,
+regex, RTL const-expr/frontend, the annotation/EBNF/preprocessor grammars, and any FUTURE grammar)
+must reach the same bar: static checks pass (well-formed + well-defined) AND `UNKNOWN`=0 with all
+certificates checking (G.4 run per grammar). The machinery already generalizes — the linter +
+Phase G are PARSER-AGNOSTIC ([[feedback_ast_pipeline_parser_agnostic]]), so each grammar uses the
+SAME certification unchanged. HEAD START (the F1 all-grammars sweep, `-0008`): the hand-authored
+non-SV grammars are ALREADY at 0 always-matches / 0 unbound-fact / 0 unreachable / 0 orphan — they
+are statically clean; SV is the outlier (its LRM-PDF extraction artifacts). So per-grammar
+certification = static checks (mostly already green off-SV) + the per-grammar G.4 coverage gate.
+- `H.1` — make `G.4`'s certificate-coverage gate parameterized PER GRAMMAR (not SV-hardcoded).
+- `H.2` — roll each non-SV grammar to full certification (VHDL, regex, RTL, …) — most are a short hop
+  given they are already statically clean; the work is mainly witness coverage (G.3 per grammar).
+- `H.3` — a new grammar is "done" only when it is fully certified (add to the per-grammar gate). The
+  universal closure bar already in `LIVE_ACHIEVEMENT_STATUS.md` is extended with "fully certified".
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
@@ -335,7 +366,7 @@ certificates, not faith".
 | — | `GRAMMAR-WELLFORMED.A2` | `done` (`-0006`) | Sound subset of FIRST-domination — earlier-ALWAYS-SUCCEEDS shadowing. 0 false positives; found 52 real SV dead branches (warning-staged). General unsound FIRST-domination deliberately excluded. |
 | — | `GRAMMAR-WELLFORMED.E2` | `done` (`-0007`, satisfied by existing validation) | `$N` attribute completeness already enforced (`E_RET_POS_OUT_OF_RANGE`, hard under strict mode, test-locked); consulted-fact completeness → F1. |
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
-| 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (family 1/7 done `-0010`; always_matches **52→45**) | Clean the SV `always_matches` defects LRM-grounded, family by family → promote EarlierAlwaysMatches to the hard gate. ✓ boolean-abbrev family (first worked example of the ATTRIBUTION RULE). Remaining: covergroup-range, rs-prod, implicit-type/port, list-of-arguments, module-path, sv_multi_entry_root (linter-exempt). |
+| 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (families 1+2+3 done; always_matches **52→27**) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter extraction artifacts** (`[ ]`/`{ }` lost in LRM-PDF→.ebnf → nullable wrappers). Remaining (~27): implicit-type/port, list-of-arguments, module-path, sv_multi_entry_root (linter-exempt). |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
