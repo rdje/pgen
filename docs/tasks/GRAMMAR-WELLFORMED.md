@@ -496,6 +496,29 @@ certificates, not faith".
       FIXED. **F2 still open** (25/50 diverse samples don't parse — next leaf: feed the witness side from
       the parseable-stimuli path so the count isn't capped by unparseable samples).
 
+  - `G.4.7` — **F2: the witness-sample parse failures (25/50).** The witness count is capped because
+    half the diverse samples don't parse. Director directed a tools-first investigation BEFORE fixing
+    (avoid a band-aid masking a real defect).
+    - **Slice 1 (`-0030`, DONE) — investigate + build the diagnostic.** Made the gate LABEL its
+      sample-parse failures instead of silently counting them ("never silently dropped"): new registry
+      `parse_detail` hook + `parse_error(grammar,…)` (data-driven, parser-AGNOSTIC — the SV detail
+      parser, which augments errors with `furthest_position`, lives in the registry table as data); the
+      gate now prints `SAMPLE-PARSE FAILURES` with the error + sample for the first few. **ROOT CAUSE
+      (verified with the tool, not inferred):** every failure is "did not consume full input" caused by
+      MISSING mandatory whitespace between adjacent word-like tokens — the diverse generator emits
+      `endprogram`+`module` as `endprogrammodule`, `generate`+`endgenerate` as `generateendgenerate`,
+      `default`+`liblist` as `defaultliblist`, `timeunit`+`99356` fused, etc., so the lexer reads one
+      wrong token and the parse stops. Confirmed at source: `append_generated_segment`
+      (stimuli_generator.rs:7059) inserts the separator ONLY when `config.enforce_word_boundary_spacing`
+      is true, and the gate's `StimuliConfig::default()` leaves it **false** (verified at :196). So this
+      is a GENERATOR defect (invalid SV), but the fix is LEVEL-1 — enable an EXISTING feature, not new
+      code. ATTRIBUTION-RULE outcome: a generator deficiency, not ill-formed EBNF.
+    - **Slice 2 (NEXT) — fix + measure.** Enable `enforce_word_boundary_spacing` on the gate's witness
+      generation (level-1, existing feature); re-run the gate; confirm `sample_parse_failures` drops
+      toward 0 and `witness` rises / `UNKNOWN` falls. If a residual remains, investigate the secondary
+      cause one-change-at-a-time. Then consider whether `true` should be the global default (broader
+      decision — may affect negative-test generation that intentionally wants boundary violations).
+
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 
 **Scope (binding).** Full certification is NOT SV-only — EVERY PGEN grammar (SystemVerilog, VHDL,

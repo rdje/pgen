@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0030 (leaf GRAMMAR-WELLFORMED.G.4.7 slice 1): F2 investigation — label the gate's parse failures + ROOT CAUSE (missing word-boundary spacing).
+
+Director directed a tools-first investigation of F2 (25/50 witness samples don't parse) BEFORE fixing, to avoid a band-aid masking a real defect.
+
+- **Diagnostic tool (permanent, parser-AGNOSTIC):** the certificate-coverage gate now LABELS its sample-parse failures instead of silently counting them. New registry `parse_detail` hook (`ParseDetailFn`) + `parse_error(grammar, sample, profile)` — data-driven, the per-grammar detail parser (the SV one augments errors with `furthest_position`) lives in the registry table as DATA, never in the pipeline. `run_certificate_coverage_report` prints a bounded `SAMPLE-PARSE FAILURES` block (error + sample) for the first few failures.
+- **ROOT CAUSE (verified with the tool, not inferred):** every failure is "Parser did not consume full input" caused by MISSING mandatory whitespace between adjacent word-like tokens. The diverse generator emits `endprogram`+`module` as `endprogrammodule`, `generate`+`endgenerate` as `generateendgenerate`, `default`+`liblist` as `defaultliblist`, `timeunit`+`99356` fused, etc. → the lexer reads one wrong token → parse stops. Confirmed at source: `append_generated_segment` (stimuli_generator.rs:7059) inserts the separator ONLY when `config.enforce_word_boundary_spacing` is true, and the gate's `StimuliConfig::default()` leaves it FALSE (:196).
+- **Verdict:** a GENERATOR defect (invalid SV), but the fix is LEVEL-1 — enable an EXISTING feature, not new code. Attribution-rule outcome: generator deficiency, not ill-formed EBNF.
+- **Next (slice 2):** enable `enforce_word_boundary_spacing` on the gate's witness generation, re-run, confirm `sample_parse_failures` → ~0 and `witness` rises / `UNKNOWN` falls (one change, measured).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0029 (leaf GRAMMAR-WELLFORMED.G.4.6): TRANSACTIONAL PARSE-COVERAGE — the parser testifies to what it parsed (fixes the AST-walk witness=1).
 
 The certifying linter's witness side needs "the rules a successful parse genuinely exercises." The previous AST-walk (`parse_node_covered_rules`) was WRONG for annotated grammars: a `-> {…}` return annotation folds a rule's whole subtree into `ParseContent::Json` (no child nodes), so the walk stopped at the first annotated rule → `witness=1` on SV. Per-rule call counts fail the opposite way (over-count backtracked attempts). Fix = make the PARSER testify (option (b), the only one consistent with "verified, not trusted").

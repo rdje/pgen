@@ -2302,6 +2302,10 @@ fn run_certificate_coverage_report(
     let diverse = generator.generate_many(samples, Some(entry_rule.as_str()))?;
     let mut witness_covered: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut sample_parse_failures = 0usize;
+    // G.4.7: LABEL parse failures (error + sample), never silently count them — a parse failure is a
+    // generator-produced sample the real parser rejects, and seeing WHY is how we tell a generator
+    // defect from an expected diverse-generation miss. (error, sample) for the first few.
+    let mut failures: Vec<(String, String)> = Vec::new();
     for sample in &diverse {
         if let Some((parsed, covered)) =
             pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile)
@@ -2310,6 +2314,16 @@ fn run_certificate_coverage_report(
                 witness_covered.extend(covered);
             } else {
                 sample_parse_failures += 1;
+                let err = match pgen::parser_registry::parse_error(
+                    &grammar.grammar_name,
+                    sample,
+                    profile,
+                ) {
+                    Some(Err(e)) => e,
+                    Some(Ok(())) => "(re-parse unexpectedly succeeded)".to_string(),
+                    None => "(no detail-capable parser registered)".to_string(),
+                };
+                failures.push((err, sample.clone()));
             }
         }
     }
@@ -2343,6 +2357,21 @@ fn run_certificate_coverage_report(
     }
     if !proof_fails.is_empty() {
         println!("  WARNING proof re-verify FAILURES (linter bugs to fix): {:?}", proof_fails);
+    }
+    if !failures.is_empty() {
+        let shown = failures.len().min(5);
+        println!(
+            "  SAMPLE-PARSE FAILURES ({} of {} shown — these cap the witness count; each is a \
+             generated sample the real parser rejects):",
+            shown,
+            failures.len()
+        );
+        for (i, (err, sample)) in failures.iter().take(shown).enumerate() {
+            let preview: String = sample.chars().take(2000).collect();
+            let truncated = if sample.len() > preview.len() { " …[truncated]" } else { "" };
+            println!("    [{i}] error: {err}");
+            println!("    [{i}] sample ({} bytes): {preview}{truncated}", sample.len());
+        }
     }
     Ok(())
 }
