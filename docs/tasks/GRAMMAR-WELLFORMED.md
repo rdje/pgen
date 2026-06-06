@@ -385,6 +385,12 @@ certificates, not faith".
     duality now produces certificates the `verify_reachability_witness` checker (G.3.1) consumes.
   - `G.3.3` — the real `parse_and_cover`: a coverage-instrumented replay through the generated parser
     (the parseability/closed-loop layer) supplies the closure `verify_reachability_witness` needs.
+    **DE-RISKED:** the generated parser ALREADY has per-rule call-count instrumentation
+    (`--dump-rule-call-counts`, `parseability_probe.rs`; counters bumped on every rule entry), so
+    `parse_and_cover(input)` = parse + collect the rules whose count>0 (rule-level coverage; branch-level
+    is a follow-up). Wiring at the probe/closed-loop layer (needs `generated_parsers` + the grammar's
+    parser at runtime → heavier to test than the pure-analysis pieces). Then `G.4` ties proof+witness:
+    every fragment carries a verified PROOF or WITNESS ⇒ `UNKNOWN`=0 (the objective trust number).
 - `G.4` — **certificate-COVERAGE gate**: for the SV grammar require every fragment to carry a valid
   certificate (`UNKNOWN` = 0) with all certificates checking → HARD gate. *That number, at 0, is the
   objective proof the linter is trustworthy on this grammar.* Folds in A2.1 (each grammar fix moves a
