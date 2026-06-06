@@ -442,6 +442,18 @@ certificates, not faith".
     RUN remains. RUN command: build dual-feature, generate a gap report for SV, then run the witness path
     with `--gap-priority-report-input <report>` (the SV closed-loop, minutes; mind uvm-memory) → reads the
     `CERTIFICATE-COVERAGE` line. That run is the deferred heavy verification.
+    **FIRST REAL RUN (`-0026`, bounded to 40 targets, sv_2017):** `CERTIFICATE-COVERAGE (G.4): total=1339
+    proof=0 witness=0 UNKNOWN=1339 fully_certified=false (re-verify failures: proofs=0, witnesses=10)`.
+    The gate RAN end-to-end on real SV — and surfaced a genuine finding (the gate WORKING, per the
+    attribution rule: it refused to count witnesses that don't verify). ROOT CAUSE: the witness pass roots
+    each witness at the TARGET'S OWN RULE → a sub-rule FRAGMENT (e.g. a bare `expression`), but
+    `parse_and_cover_systemverilog` parses via `parse_full_systemverilog_file` (the TOP entry), so a bare
+    fragment doesn't parse as a full SV file → all 10 witnesses correctly rejected. ⇒ **`G.4.4`**: the
+    witness↔checker contract must agree on PARSE ENTRY — either (a) the witness pass produces FULL-FILE
+    witnesses that embed the fragment (so `parse_full_systemverilog_file` covers it), or (b) verify from
+    the target's rule via a per-rule parse entry (`parse_full_<rule>`, where the generated parser exposes
+    one) / a coverage-instrumented sub-parse. ALSO the `fragment` identity: witness fragment = target id
+    (may be `rule#branch`) vs `parse_node_covered_rules` = bare rule names → align (branch-level coverage).
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 

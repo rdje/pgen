@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0026 (leaf GRAMMAR-WELLFORMED.G.4.3, FIRST REAL RUN): the certificate-coverage gate RAN end-to-end on real SV + surfaced a genuine finding.
+
+Doc/result (tree + LIVE). The run used the dual-feature `ast_pipeline` from `-0025`.
+
+- **First real run** (bounded to 40 targets, sv_2017): `CERTIFICATE-COVERAGE (G.4): total=1339 proof=0 witness=0 UNKNOWN=1339 fully_certified=false (re-verify failures: proofs=0, witnesses=10)`. The gate executed end-to-end on the real SV grammar + parser — the framework works.
+- **Genuine finding (the gate WORKING, per the attribution rule — never silently accept):** all 10 generated witnesses FAILED the independent re-verify, because the witness pass roots each witness at the TARGET'S OWN RULE (a sub-rule fragment, e.g. a bare `expression`), but `parse_and_cover_systemverilog` parses via `parse_full_systemverilog_file` (the TOP entry) — a bare fragment doesn't parse as a full SV file, so each was correctly rejected (not counted). The gate refused to over-claim coverage.
+- **⇒ G.4.4 (the fix path):** the witness↔checker contract must agree on the PARSE ENTRY — either (a) the witness pass emits FULL-FILE witnesses embedding the fragment (so the top-entry parse covers it), or (b) verify from the target's rule via a per-rule parse entry / coverage-instrumented sub-parse. Also align the `fragment` identity (witness fragment = target id, possibly `rule#branch`; `parse_node_covered_rules` returns bare rule names → branch-level coverage). The honest first number (`UNKNOWN=1339`) reflects that no witness verified under the current full-file-only entry — exactly the kind of real gap an end-to-end certifying gate exists to surface.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0025 (leaf GRAMMAR-WELLFORMED.G.4.3, wiring): the real-SV certificate-coverage gate is WIRED — the binary now produces the SV proof/witness/UNKNOWN number.
 
 Code (`rust/src/main.rs`). Compile-verified both ways (dual-feature active + default cfg-out); the heavy RUN is the deferred closed-loop.
