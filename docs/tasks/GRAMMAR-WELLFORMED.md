@@ -416,12 +416,21 @@ certificates, not faith".
     mock parser (dead island proven + reachable rules witnessed ⇒ fully certified; a non-parsing witness
     is a recorded failure, not counted). **⇒ the WHOLE framework + orchestration is in code + tested;
     the only un-exercised bit is the real-SV invocation.**
-  - `G.4.3` — the real-SV GATE RUN (heavy): a thin caller wiring the REAL inputs — the generator's witness
-    pass on SV (`witness_certificates()`) + `parse_and_cover_systemverilog` + the linter — into the G.4.2
-    gatherers + `certificate_coverage`, then HARD-gate on `is_fully_certified()`. Needs `generated_parsers`
-    + a full SV generation run + the heavy closed-loop verification (director: "we'll see later"). **The
-    objective SV `UNKNOWN` number lands here** (closely tracks the existing coverage residual, now
-    verified + split into proof/witness/unknown).
+  - `G.4.3` — the real-SV GATE RUN (heavy). **DE-RISKED + wiring located (2026-06-06):** (a) the
+    integration is VIABLE — `cargo build --bin ast_pipeline --features ebnf_dual_run,generated_parsers`
+    COMPILES (so one binary can both generate witnesses AND call `parse_and_cover_systemverilog`); the
+    `has_generated_systemverilog_parser` cfg is set when the SV parser artifact exists. (b) WIRING POINT:
+    `main.rs` ~`:1474`, right after `generator.generate_target_witnesses(&target_report.targets)` — at
+    that point `generator.witness_certificates()` holds the `ReachabilityWitness`es (G.3.2),
+    `resolved_entry_rule` + `args.grammar_profile` are in scope. Add a `#[cfg(has_generated_systemverilog_parser)]`
+    block: `gather_verified_witness_covered(generator.witness_certificates(), |s| parse_and_cover_systemverilog(s, profile))`
+    + `gather_verified_proof_covered_rules(grammar, rule_order)` (needs the raw grammar/rule_order in scope
+    — add a generator accessor or thread them in) → `certificate_coverage(rule_order, …)` → print
+    proof/witness/UNKNOWN + hard-gate on `is_fully_certified()`. (c) RUN = the HEAVY closed-loop: it needs
+    a precomputed gap report (`--gap-priority-report-input`) then the witness pass over the full SV grammar
+    (minutes; mind the uvm-memory caveats) — this is the verification the director deferred "we'll see
+    later". **The objective SV `UNKNOWN` number lands here** (closely tracks the existing coverage residual,
+    now verified + split into proof/witness/unknown). Effort: medium wiring + a heavy run.
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 
