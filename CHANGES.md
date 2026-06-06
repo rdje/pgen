@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0012 (leaf LEXICAL-ANNOTATIONS.3c): AUDIT + REVERT the step-1 tokenizer half-feature.
+
+Director-directed: after a thorough holistic study of the AST pipeline, audit the latest pipeline change and remove any potentially-faulty code. Audited `-0011` (the inline lexical-annotation tokenizer in the hand-written `src/ebnf_frontend.rs`):
+
+- **Audit 1 (existing grammars):** 0 of 17 grammars contain `[>` → the new `[` branch never fires; round-trip re-emit (regex/ebnf/systemverilog) clean. Dormant for all current grammars.
+- **Audit 2 (downstream):** there is **NO downstream handler** for the emitted `lexical_annotation_inline` token — `extract_rule_annotations` has no arm for it, so its catch-all `_ =>` would push it into `syntax_elements` (the grammar structure) and corrupt the IR the moment any grammar used `[>`. So `-0011` was an **incomplete, potentially-faulty half-feature in the foundational tokenizer** — and the inline *position-specific* design is itself wrong for the generator (consumption matrix: position-specific annotations are codegen-only — KM `ast-pipeline-architecture`).
+
+**REVERTED** `-0011`: restored the `'['` case, removed `parse_inline_lexical_annotation` + its 4 tests. Verified: builds clean (no unused-fn warning), `ebnf_frontend` tests 17/17, round-trip re-emit clean, zero `lexical` residue in `ebnf_frontend.rs`. The derivation half (Obligations A `-0005`, B `-0006`, faithful-default `-0007`) is SEPARATE, measured, and stands. Re-land rule for `.3c`: land the feature COMPLETE (tokenizer + IR handler + generator consumption) in one verified slice, on the per-rule/per-branch design the generator can consume — never tokenizer-only.
+
+Also this session: thorough holistic AST-pipeline study (read the architecture docs end-to-end + verified the core IR in code) → KM cards `ast-pipeline-architecture` + `ebnf-frontend-architecture`; new STANDING discipline `feedback_understand_subsystem_holistically_first` (no piecemeal grep-and-infer).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0011 (leaf LEXICAL-ANNOTATIONS.3c, step 1): hand-written frontend tokenizes the INLINE lexical annotation.
 
 First implementation step of `.3c` (the declarative follow-restriction), in the hand-written EBNF frontend (`src/ebnf_frontend.rs`) — no bootstrap regen, per the corrected understanding. `tokenize_rule_expression`'s `'['` case now branches: `parse_inline_lexical_annotation` parses `[> LIST ]` / `[>! LIST ]` (LIST = `/regex/` and/or `"string"` items, ws/comma-separated, union) → emits `["lexical_annotation_inline", [polarity, [items]]]` (binds the preceding element, doesn't open a group); anything else stays the ordinary optional `[ … ]`. Unambiguous because no rule-expression atom can begin with `>`.

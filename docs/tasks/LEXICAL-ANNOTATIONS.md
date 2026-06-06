@@ -120,12 +120,16 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   - **`.3d` (i) distinct-longer-token (operator) fusion — DEFERRED.** `<`+`<`→`<<` where the previous
     token is a fixed literal but a longer token spans the boundary; needs cross-terminal analysis (the
     leaf guard can't see it). Rare, not currently biting — a deliberate completeness pass when it bites.
-- `.3c` — **Obligation C (declarative follow-restriction annotation). IN PROGRESS.** Inline tokenizer
-  DONE (`-0011`): `tokenize_rule_expression` `'['` case branches on `[>`/`[>!` →
-  `parse_inline_lexical_annotation` → `["lexical_annotation_inline", [polarity, [items]]]` (items
-  `["regex",p]`/`["quoted_string",s]`); optional `[ … ]` untouched. 4 unit tests + round-trip re-emit
-  of regex/ebnf/systemverilog grammars clean. NEXT: before-rule form (scan_top_level_rules) → IR
-  (transform_from_raw_ast) → generator (Obligation B). UNBLOCKED (notation decided `-0008`).
+- `.3c` — **Obligation C (declarative follow-restriction annotation). NOT STARTED — step-1 tokenizer
+  REVERTED after audit (`-0012`).** The `-0011` inline tokenizer was REVERTED: a director-directed audit
+  found it was an *incomplete, potentially-faulty half-feature in the foundational tokenizer* — it
+  emitted a `lexical_annotation_inline` token with **no downstream handler** (`extract_rule_annotations`
+  has no arm for it → its catch-all `_ =>` would push it into `syntax_elements`, corrupting the IR, the
+  moment any grammar used `[>`). Dormant-safe only because no grammar uses `[>` (audited: 0/17), and the
+  inline *position-specific* design is itself wrong for the generator (consumption matrix:
+  position-specific annotations are codegen-only, see [[ast-pipeline-architecture]]). **Re-land RULE:
+  land the feature COMPLETE (tokenizer + IR handler + generator consumption) in one verified slice, on
+  the per-rule / per-branch design the generator can actually consume — never tokenizer-only.**
   ⚠️ **Corrected understanding (`-0010`, see KM [[ebnf-frontend-architecture]]):** PGEN's
   authoritative EBNF parser is the **hand-written `src/ebnf_frontend.rs`** — NOT the generated
   `generated/ebnf.rs` (that's a soft, non-fatal cross-check). So this is a **Rust-code change to the

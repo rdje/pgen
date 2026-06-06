@@ -524,22 +524,11 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                 idx += 1;
             }
             '[' => {
-                // LEXICAL-ANNOTATIONS.3c — `[>` / `[>!` introduces an inline lexical annotation
-                // (generation-time follow-restriction) that binds the PRECEDING element. It is
-                // unambiguous against the optional `[ rule_expression ]` because no rule-expression
-                // atom can begin with `>`. Anything else keeps the existing optional behaviour.
-                if let Some((token, next_idx)) = parse_inline_lexical_annotation(expression, idx)? {
-                    tokens.push(token);
-                    // An annotation on the preceding element: it does NOT open a group or change
-                    // branch syntax state.
-                    idx = next_idx;
-                } else {
-                    optional_depth = optional_depth.saturating_add(1);
-                    tokens.push(json!(["group_open", "("]));
-                    sequence_group_depth = sequence_group_depth.saturating_add(1);
-                    branch_has_syntax = true;
-                    idx += 1;
-                }
+                optional_depth = optional_depth.saturating_add(1);
+                tokens.push(json!(["group_open", "("]));
+                sequence_group_depth = sequence_group_depth.saturating_add(1);
+                branch_has_syntax = true;
+                idx += 1;
             }
             ']' => {
                 if optional_depth > 0 {
@@ -668,85 +657,6 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
     }
 
     Ok(tokens)
-}
-
-/// LEXICAL-ANNOTATIONS.3c — parse an inline lexical annotation `[> LIST ]` / `[>! LIST ]` starting
-/// at `start` (which must point at `[`). `LIST` is one or more items, each a `/regex/` or a
-/// `"string"`/`'string'`, separated by whitespace and/or commas; the list is a union. Returns
-/// `Ok(Some((token, next_idx)))` with `token = ["lexical_annotation_inline", [polarity, [items…]]]`
-/// (polarity `">"` or `">!"`, each item `["regex", p]` or `["quoted_string", s]`), or `Ok(None)` when
-/// this `[` is NOT a lexical annotation (i.e. an ordinary optional `[ … ]`, since its body cannot
-/// begin with `>`). Errors only once committed to `[>` but the body is malformed.
-fn parse_inline_lexical_annotation(input: &str, start: usize) -> Result<Option<(Value, usize)>> {
-    let bytes = input.as_bytes();
-    debug_assert_eq!(bytes.get(start).copied(), Some(b'['));
-    let mut idx = start + 1;
-    while idx < bytes.len() && (bytes[idx] as char).is_whitespace() {
-        idx += 1;
-    }
-    // Not a lexical annotation unless the first non-space char is '>' → leave it to `[ … ]` optional.
-    if bytes.get(idx).copied() != Some(b'>') {
-        return Ok(None);
-    }
-    idx += 1;
-    let negative = bytes.get(idx).copied() == Some(b'!');
-    if negative {
-        idx += 1;
-    }
-    let polarity = if negative { ">!" } else { ">" };
-
-    let mut items: Vec<Value> = Vec::new();
-    loop {
-        while idx < bytes.len() {
-            let c = bytes[idx] as char;
-            if c.is_whitespace() || c == ',' {
-                idx += 1;
-            } else {
-                break;
-            }
-        }
-        match bytes.get(idx).map(|b| *b as char) {
-            None => {
-                return Err(anyhow!(
-                    "unterminated lexical annotation (missing ']') in '{}'",
-                    input
-                ));
-            }
-            Some(']') => {
-                idx += 1;
-                break;
-            }
-            Some('/') => {
-                let (pattern, next_idx) = parse_regex_literal(input, idx).ok_or_else(|| {
-                    anyhow!("unterminated /regex/ in lexical annotation in '{}'", input)
-                })?;
-                items.push(json!(["regex", pattern]));
-                idx = next_idx;
-            }
-            Some('"') | Some('\'') => {
-                let (literal, next_idx) = parse_quoted_literal(input, idx).ok_or_else(|| {
-                    anyhow!("unterminated \"string\" in lexical annotation in '{}'", input)
-                })?;
-                items.push(json!(["quoted_string", literal]));
-                idx = next_idx;
-            }
-            Some(other) => {
-                return Err(anyhow!(
-                    "lexical annotation items must be /regex/ or \"string\" (found '{}') in '{}'",
-                    other,
-                    input
-                ));
-            }
-        }
-    }
-    if items.is_empty() {
-        return Err(anyhow!(
-            "empty lexical annotation '[{} ]' (needs at least one /regex/ or \"string\") in '{}'",
-            polarity,
-            input
-        ));
-    }
-    Ok(Some((json!(["lexical_annotation_inline", [polarity, items]]), idx)))
 }
 
 fn parse_inline_semantic_annotation(
@@ -1138,62 +1048,6 @@ mod tests {
         let rendered = serde_json::to_string(&tokens).expect("json");
         assert!(rendered.contains("[\"regex\",\"[A-Z]+\"]"));
         assert!(rendered.contains("[\"quantifier\",\"2,8\"]"));
-    }
-
-    #[test]
-    fn tokenizes_inline_lexical_annotation_negative() {
-        // LEXICAL-ANNOTATIONS.3c: `[>! …]` after an element binds the preceding element and emits a
-        // lexical_annotation_inline token; the preceding rule_reference is untouched.
-        let tokens = tokenize_rule_expression(r"ident [>! /\w/]")
-            .expect("inline lexical annotation should tokenize");
-        let rendered = serde_json::to_string(&tokens).expect("json");
-        assert!(
-            rendered.contains(r#"["rule_reference","ident"]"#),
-            "preceding element must be kept: {rendered}"
-        );
-        assert!(
-            rendered.contains(r#"["lexical_annotation_inline",[">!",[["regex","\\w"]]]]"#),
-            "got: {rendered}"
-        );
-    }
-
-    #[test]
-    fn tokenizes_inline_lexical_annotation_positive() {
-        let tokens =
-            tokenize_rule_expression(r"c [> /x/]").expect("positive lexical annotation tokenizes");
-        let rendered = serde_json::to_string(&tokens).expect("json");
-        assert!(
-            rendered.contains(r#"["lexical_annotation_inline",[">",[["regex","x"]]]]"#),
-            "got: {rendered}"
-        );
-    }
-
-    #[test]
-    fn tokenizes_inline_lexical_annotation_mixed_list() {
-        let tokens = tokenize_rule_expression(r#"kw [>! /\d/, "end"]"#)
-            .expect("mixed regex+string list tokenizes");
-        let rendered = serde_json::to_string(&tokens).expect("json");
-        assert!(
-            rendered.contains(
-                r#"["lexical_annotation_inline",[">!",[["regex","\\d"],["quoted_string","end"]]]]"#
-            ),
-            "got: {rendered}"
-        );
-    }
-
-    #[test]
-    fn optional_bracket_still_tokenizes_as_optional_not_lexical() {
-        // The `[` disambiguation must not regress ordinary optionals.
-        let tokens = tokenize_rule_expression("[ a ]").expect("optional should tokenize");
-        let rendered = serde_json::to_string(&tokens).expect("json");
-        assert!(
-            rendered.contains(r#"["group_open","("]"#) && rendered.contains(r#"["operator","?"]"#),
-            "optional must still produce a group + `?`: {rendered}"
-        );
-        assert!(
-            !rendered.contains("lexical_annotation"),
-            "a plain optional must NOT be read as a lexical annotation: {rendered}"
-        );
     }
 
     #[test]
