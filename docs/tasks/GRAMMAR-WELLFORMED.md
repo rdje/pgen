@@ -375,11 +375,14 @@ certificates, not faith".
     exercised)`); the witness holds iff the input PARSES and EXERCISES the claimed fragment. A witness
     that doesn't parse, or parses but misses its fragment, is REJECTED. Unit-tested with a mock parser
     (valid / no-parse / wrong-fragment). Mirrors the proof-side "model + checker first" pattern.
-  - `G.3.2` — generator EMITS witnesses. **DE-RISKED:** the generator ALREADY has a per-target witness
-    pass — `generate_target_witnesses(&report.targets)` (`stimuli_generator.rs:2563`, called `:13144`;
-    the SV-EXH-PROOF.7.4.x machinery, `WitnessSummary`). G.3.2 is an ADAPTER: capture each resolved
-    target's witness TEXT (today it's counted, not retained) and surface `ReachabilityWitness {
-    fragment, input }` from the generation result. *generator layer; bounded but careful (large file).*
+  - `G.3.2` — generator EMITS witnesses — **DONE (`-0019`).** `StimuliGenerator` now captures a
+    `ReachabilityWitness { fragment: target.id, input: witness_sample }` for each resolved reachable
+    target in `generate_target_witnesses` (at the per-target success arm, `stimuli_generator.rs:2680`),
+    cleared per pass and exposed via `pub fn witness_certificates(&self) -> &[ReachabilityWitness]`.
+    Purely ADDITIVE (a new field mirroring `generation_step_counter` + the getter; no generation-logic,
+    return-type, or caller change), so it is verified by lib-build (no closed-loop needed — the captured
+    witnesses are exactly what the already-validated witness pass produced). The constructive half of the
+    duality now produces certificates the `verify_reachability_witness` checker (G.3.1) consumes.
   - `G.3.3` — the real `parse_and_cover`: a coverage-instrumented replay through the generated parser
     (the parseability/closed-loop layer) supplies the closure `verify_reachability_witness` needs.
 - `G.4` — **certificate-COVERAGE gate**: for the SV grammar require every fragment to carry a valid

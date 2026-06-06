@@ -1249,6 +1249,11 @@ pub struct StimuliGenerator<'a> {
     // &self deadline check can bump it). Drives the DETERMINISTIC step budget that replaced
     // the wall-clock deadline → a seeded run yields the same residual every time.
     generation_step_counter: std::cell::Cell<u64>,
+    // GRAMMAR-WELLFORMED.G.3.2: reachability WITNESS certificates captured by the last
+    // `generate_target_witnesses` pass — one `ReachabilityWitness { fragment, input }` per resolved
+    // reachable target (its id + the witness input). The constructive half of the certifying linter
+    // (the dual of the unreachability PROOF); read via `witness_certificates()`.
+    witness_certificates: Vec<super::grammar_wellformedness::ReachabilityWitness>,
     // SV-EXH-PROOF.2.3.2 (P-a): per-`generate_regex_sample` set of
     // chars to exclude from ALL regex-class materialization, derived
     // from a permissive *leading* negated class in the rule's own
@@ -1387,6 +1392,7 @@ impl<'a> StimuliGenerator<'a> {
             mutation_site_visit_counters: HashMap::new(),
             active_generation_deadline: None,
             generation_step_counter: std::cell::Cell::new(0),
+            witness_certificates: Vec::new(),
             regex_content_forbidden: HashSet::new(),
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
@@ -2560,6 +2566,13 @@ impl<'a> StimuliGenerator<'a> {
     /// depth/visit slack (×2) so even deeper rules complete; the per-witness timeout makes
     /// pathologically-recursive rules fail (counted) rather than hang. Failures are
     /// classified by reason (DIAG-SEVERITY) so any tail's cause is visible.
+    /// GRAMMAR-WELLFORMED.G.3.2: the reachability WITNESS certificates captured by the most recent
+    /// `generate_target_witnesses` pass — one per resolved reachable target. Each is verified by
+    /// replaying its `input` through the real parser (`grammar_wellformedness::verify_reachability_witness`).
+    pub fn witness_certificates(&self) -> &[super::grammar_wellformedness::ReachabilityWitness] {
+        &self.witness_certificates
+    }
+
     pub fn generate_target_witnesses(
         &mut self,
         targets: &[StimuliCoverageTarget],
@@ -2600,6 +2613,8 @@ impl<'a> StimuliGenerator<'a> {
         };
 
         let mut outputs = Vec::new();
+        // GRAMMAR-WELLFORMED.G.3.2: capture a reachability WITNESS per resolved target this pass.
+        self.witness_certificates.clear();
         let mut attempted: HashSet<String> = HashSet::new();
         let mut witnesses_generated = 0usize;
         let mut depth_exceeded_failures = 0usize;
@@ -2677,6 +2692,15 @@ impl<'a> StimuliGenerator<'a> {
             }
             match result {
                 Ok(sample) => {
+                    // GRAMMAR-WELLFORMED.G.3.2: record the constructive reachability witness for
+                    // this target (its id + the witness input) — verified later by replaying
+                    // `input` through the real parser (`verify_reachability_witness`).
+                    self.witness_certificates.push(
+                        super::grammar_wellformedness::ReachabilityWitness {
+                            fragment: status.id.clone(),
+                            input: sample.clone(),
+                        },
+                    );
                     outputs.push(sample);
                     witnesses_generated = witnesses_generated.saturating_add(1);
                 }

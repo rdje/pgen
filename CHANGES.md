@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0019 (leaf GRAMMAR-WELLFORMED.G.3.2): **the generator now EMITS reachability-witness certificates (the constructive half of the duality).**
+
+Code (`rust/src/ast_pipeline/stimuli_generator.rs`). Purely additive; verified by lib-build (no generation-behavior change → no closed-loop needed).
+
+- `StimuliGenerator` captures a `ReachabilityWitness { fragment: target.id, input: witness_sample }` for each resolved reachable target in `generate_target_witnesses` (at the per-target success arm, `:2680`), cleared per pass, exposed via the new `pub fn witness_certificates(&self) -> &[ReachabilityWitness]`. New field mirrors `generation_step_counter` (single construction site); fully-qualified type so no new import.
+- This reuses the EXISTING, already-validated witness pass (SV-EXH-PROOF.7.4.x `generate_target_witnesses`) — the captured witnesses are exactly the inputs that pass already generated for reachable targets, so the capture is sound and requires no behavior change. No return-type/caller change (`main.rs:1474`, `:13144` unaffected).
+- ⇒ the constructive half of the linter⟷generator duality now PRODUCES certificates that the `verify_reachability_witness` checker (G.3.1) consumes. REMAINING: G.3.3 (the coverage-instrumented replay supplying the real `parse_and_cover` so witnesses are independently re-verified through the generated parser); G.4 (the `UNKNOWN`=0 gate: every fragment a verified PROOF or WITNESS); G.2.2 standalone checker bin; Phase H per-grammar.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0018 (leaf GRAMMAR-WELLFORMED.G.3.1): **certifying linter — the reachability WITNESS model + independent checker (the constructive dual of the proof side).**
 
 Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
