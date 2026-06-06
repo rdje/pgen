@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0017 (leaf LEXICAL-ANNOTATIONS.4.1): classify the SV sample_parse_failure as STRUCTURAL (not lexical) + route to GRAMMAR-WELLFORMED G.4 (docs).
+
+`.4.1`'s planned first step was a tool-build to surface the failing witness sample — but `run_certificate_coverage_report` (main.rs:2412) ALREADY prints the failing sample text; the `-0016` capture had just `grep`-filtered that line out. Re-ran the SV cert-coverage and read sample `[0]` (354 bytes):
+
+`… program p; endprogram module m; endmodule module m; endmodule config \foo  ;  design \foo  pSM \foo  Kfap ; default liblist \foo S \foo \foo ; cell uUmd .\foo liblist ; cell Jx use \foo .\foo () : config ; default liblist ; endconfig`
+
+Error `did not consume full input at position 89 [furthest 271]`; position 89 = the `design` keyword INSIDE the `config … endconfig` body (the parser consumed `program` + 2×`module` + `config \foo ;`, then could not parse the config body, explored to 271, backtracked).
+
+CLASSIFICATION (tool-backed): a STRUCTURAL `config_declaration` / library-config generator↔grammar gap, NOT a lexical-faithfulness gap. Proof it is not lexical: every escaped identifier `\foo` carries its required trailing whitespace (`\foo       ;`) and adjacent keywords are space-separated (`endprogram module`, never `endprogrammodule`) — the lexical surface is faithful; the parse fails on the structure of the generated config body (`cell Jx use \foo .\foo () : config` is a malformed `config_rule_statement`). ROUTED to GRAMMAR-WELLFORMED G.4 (witness-parseability / generator↔grammar closure). LEXICAL-PILLAR CONCLUSION: the general lexical mechanism (Obligations A/B/C) is VERIFIED working — 197 of 198 witness samples re-parse and the single failure is non-lexical, so there are ZERO lexical-caused sample_parse_failures. No code change (the structural fix is GRAMMAR-WELLFORMED's). LIVE_ACHIEVEMENT_STATUS unchanged (SV stays `Mostly Done`).
+
 ## 2026-06-06 - PGEN-LEXICAL-ANNOTATIONS-0016 (leaf LEXICAL-ANNOTATIONS.4): verify the certificate-coverage gate + split .4 (docs).
 
 Ran the `.4` verifier (the `--report-certificate-coverage` gate) on SV for the first time since the LEXICAL-ANNOTATIONS derivation work — a fresh dual-feature (`generated_parsers,ebnf_dual_run`) run, `--entry-rule systemverilog_file --grammar-profile sv_2017 --count 40 --seed 0`:

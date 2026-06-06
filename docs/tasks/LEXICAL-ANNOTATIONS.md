@@ -1,12 +1,13 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` (2026-06-06). **Frontier:** `.4.1` drive SV `sample_parse_failures → 0` — the
-> `-0016` verification run found **1** (not the Phase-G note's 0; NOT a LEXICAL regression — the
-> cert-coverage path hardcodes faithful + my changes are byte-identical for SV; residual is from the
-> A2.1 grammar edits, backtrack-from-271 signature ⇒ likely structural). First step = a TOOL-BUILD to
-> surface the failing witness sample + classify it (lexical gap vs structural). Then `.4.2` per-grammar,
-> `.4.3` round-trip/golden tests. `.3d` (i) operator fusion stays open (no tool-backed failing case;
-> declaratively expressible via the landed `[>! …]`).
+> **Status:** `active` (2026-06-06). **Frontier:** `.4.3` round-trip/golden tests (the tractable
+> lexical-pillar verification) + confirm the comment-newline/word-fusion special cases are now general
+> instances; `.4.2` per-grammar certificate-coverage is heavier (per-grammar dual-feature runs).
+> **`.4.1` DONE (`-0017`):** the SV `sample_parse_failures=1` residual was tool-backed CLASSIFIED as a
+> STRUCTURAL `config_declaration` generator↔grammar gap (NOT lexical — the sample's escaped-id/keyword
+> spacing is faithful) and ROUTED to `GRAMMAR-WELLFORMED` G.4; the lexical mechanism is verified working
+> (197/198 witnesses re-parse, ZERO lexical-caused failures). `.3d` (i) operator fusion stays open (no
+> tool-backed failing case; declaratively expressible via the landed `[>! …]`).
 > **`.3d` (ii-CLI) DONE (`-0015`)** — `--generate-stimuli` is now faithful-by-default with a
 > `--no-word-boundary-spacing` opt-out; verified across the affected stimuli gates (parity gate is the
 > decisive canary). **`.3c` DONE (`-0013`)** — re-landed the declarative follow-restriction **COMPLETE** in ONE
@@ -256,12 +257,24 @@ justified because pillars 1–3 structurally cannot express it (see the decision
     signature SUGGESTS a STRUCTURAL (grammar/generator) re-parse gap rather than a simple lexical token
     fusion — to be CONFIRMED by `.4.1`. 197 of 198 witness samples DO re-parse, so the lexical pillar's
     general mechanism is working broadly.
-- `.4.1` — **drive SV `sample_parse_failures → 0`. FRONTIER.** The report does not yet print the failing
-  witness sample's TEXT, so per [[feedback_why_and_where_before_solution]] the first step is a TOOL-BUILD:
-  surface the failing sample text (+ its resolved target) in `run_certificate_coverage_report`, then get
-  the WHY+WHERE and CLASSIFY it — lexical-faithfulness gap (→ extend Obligation A/B or add a declarative
-  `[>! …]` follow-restriction) vs structural grammar/generator residual (→ route to `GRAMMAR-WELLFORMED`
-  G.4 / the witness-parseability work). Drive to 0, then re-verify deterministically.
+- `.4.1` — **classify the SV `sample_parse_failures=1` residual + route it. DONE (`-0017`, 2026-06-06).**
+  No tool-build was needed — `run_certificate_coverage_report` ALREADY prints the failing sample text
+  (main.rs:2412); the `-0016` capture had just `grep`-filtered that line out. Re-ran + read sample `[0]`
+  (354 bytes): `… program p; endprogram module m; endmodule module m; endmodule config \foo  ;  design
+  \foo  pSM \foo  Kfap ; default liblist \foo S \foo \foo ; cell uUmd .\foo liblist ; cell Jx use \foo
+  .\foo () : config ; default liblist ; endconfig`. Error: `did not consume full input at position 89
+  [furthest 271]`; position 89 = the `design` keyword INSIDE the `config … endconfig` body (the parser
+  consumed `program`+2×`module`+`config \foo ;` then could not parse the config body, explored to 271,
+  backtracked). **CLASSIFICATION (tool-backed): STRUCTURAL `config_declaration` / library-config
+  generator↔grammar gap, NOT a lexical-faithfulness gap.** Proof it is not lexical: every escaped
+  identifier `\foo` carries its required trailing whitespace (`\foo       ;`) and adjacent keywords are
+  space-separated (`endprogram module`, never `endprogrammodule`) — the lexical surface is faithful; the
+  parse fails on the *structure* of the generated config body (e.g. `cell Jx use \foo .\foo () : config`
+  is a malformed `config_rule_statement`). **ROUTED to `GRAMMAR-WELLFORMED` G.4** (the witness-parseability
+  / generator↔grammar closure that owns "drive sample_parse_failures/UNKNOWN→0"). **Lexical-pillar
+  conclusion:** the general lexical mechanism (Obligations A/B/C) is VERIFIED working — 197 of 198 witness
+  samples re-parse, and the single failure is non-lexical, so there are ZERO lexical-caused
+  sample_parse_failures. No code change (the structural fix is GRAMMAR-WELLFORMED's, not lexical).
 - `.4.2` — **per-grammar certificate-coverage.** Run `--report-certificate-coverage` for every grammar
   with a registered parser; confirm `sample_parse_failures → 0` each (ties into `GRAMMAR-WELLFORMED`
   Phase H). Heavy (per-grammar dual-feature runs).
