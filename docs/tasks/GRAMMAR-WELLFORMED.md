@@ -300,11 +300,18 @@ never silently accepted). Goal = "100% SOUND with `UNKNOWN` driven to 0 and neve
 not trusted. Recorded: [[feedback_certifying_linter_trustworthiness]] + book "Trusting the linter:
 certificates, not faith".
 
-- `G.1` — **certificate MODEL + certifying the `dead` checks.** Define a structured `Certificate`
-  (verdict ∈ {Reachable(witness) | Unreachable(proof) | Unknown} + the certificate payload). Make the
-  existing decidable `dead` checks (A2 shadowing reasons, A1b unreachable-rule, profile-orphan, F1
-  unbound-fact-kind) emit a structured UNREACHABILITY PROOF (the reason + the chain), not just a
-  human message. *Effort: medium; mostly formalizing what the checks already know.*
+- `G.1` — **certificate MODEL + the independent CHECKER (seed) — DONE (PGEN-GRAMMAR-WELLFORMED-0012).**
+  `UnreachabilityCertificate { rule, node_path, dead_index, reason }` + `UnreachabilityReason`
+  {`DuplicateOf` | `FixedTerminalPrefixBy` | `EarlierArmAlwaysSucceeds`}; `ShadowingIssue::certificate()`
+  emits the structured PROOF for each shadowing `dead` verdict. `verify_unreachability_certificate`
+  (grammar, cert) is the INDEPENDENT CHECKER: `navigate_node_path` re-locates the cited `Or` node from
+  the grammar AST and re-derives the deadness DIRECTLY (exact-dup + fixed-prefix re-checks are trivial +
+  fully independent; always-succeeds re-derives via `node_always_succeeds`) — it never trusts the
+  detector. Unit-tested: every real certificate re-verifies; tampered (dead_index=shadower), bogus
+  (false duplicate claim), and unresolvable-path certificates are all REJECTED — proving the checker
+  validates rather than rubber-stamps. Pure analysis, no regen; module suite 23/23. NEXT (`G.1.1`,
+  optional refinement): structural always-succeeds witnesses (trivially checkable, no fixpoint) for
+  full independence; extend certificates to A1b unreachable-rule / profile-orphan / F1 unbound-fact.*
 - `G.2` — **the independent CHECKER** (small, auditable, separate from the linter): (a) replays each
   reachability WITNESS through the real parser and asserts it exercises the claimed fragment; (b)
   re-validates each unreachability PROOF independently. Trust rests here. *Effort: medium-high.*
@@ -329,7 +336,7 @@ certificates, not faith".
 | — | `GRAMMAR-WELLFORMED.E2` | `done` (`-0007`, satisfied by existing validation) | `$N` attribute completeness already enforced (`E_RET_POS_OUT_OF_RANGE`, hard under strict mode, test-locked); consulted-fact completeness → F1. |
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (family 1/7 done `-0010`; always_matches **52→45**) | Clean the SV `always_matches` defects LRM-grounded, family by family → promote EarlierAlwaysMatches to the hard gate. ✓ boolean-abbrev family (first worked example of the ATTRIBUTION RULE). Remaining: covergroup-range, rs-prod, implicit-type/port, list-of-arguments, module-path, sv_multi_entry_root (linter-exempt). |
-| 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (director-approved 2026-06-06; starting G.1) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. The trustworthiness foundation: "verified, not trusted." G.1 (certificate model + certifying the `dead` checks) → G.2 (checker) → G.3 (witness producer) → G.4 (coverage gate). |
+| 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions

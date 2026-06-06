@@ -1129,6 +1129,155 @@ fn collect_shadowing(
     }
 }
 
+// =============================================================================
+// GRAMMAR-WELLFORMED.G — the CERTIFYING LINTER (G.1: certificate model + the
+// independent re-checker for UNREACHABILITY verdicts).
+//
+// Every `dead` (unreachable) verdict ships a structured, self-contained CERTIFICATE.
+// `verify_unreachability_certificate` is the INDEPENDENT CHECKER: it re-navigates to
+// the cited node from the grammar and re-derives the claim directly — it does NOT
+// trust the detector's output. A certificate that fails to verify is a linter bug (or
+// a tampered certificate). The exact-duplicate and fixed-terminal-prefix re-checks are
+// trivial + fully independent; the always-succeeds re-check re-derives via
+// `node_always_succeeds` (a structural-witness form that needs no fixpoint is a planned
+// G.1.1 refinement). Reachability certificates (WITNESSES, generator-produced) are G.3.
+// =============================================================================
+
+/// The structured, checkable reason an ordered-choice alternative is unreachable.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnreachabilityReason {
+    /// Alternative `by` is an exact structural duplicate of the dead one.
+    DuplicateOf { by: usize },
+    /// Alternative `by` is a fixed-terminal prefix of the dead one (PEG commits to `by`).
+    FixedTerminalPrefixBy { by: usize },
+    /// Alternative `by` ALWAYS SUCCEEDS, so PEG commits before the dead one is ever tried.
+    EarlierArmAlwaysSucceeds { by: usize },
+}
+
+/// A certificate that one ordered-choice alternative is UNREACHABLE — the proof half of the
+/// certifying linter. Self-contained: `rule` + `node_path` locate the `Or` node, `dead_index`
+/// names the dead alternative, `reason` names the earlier alternative that kills it. An
+/// independent checker (`verify_unreachability_certificate`) re-derives this from the grammar.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UnreachabilityCertificate {
+    pub rule: String,
+    pub node_path: String,
+    pub dead_index: usize,
+    pub reason: UnreachabilityReason,
+}
+
+impl ShadowingIssue {
+    /// Emit the structured unreachability certificate for this shadowing finding (G.1).
+    pub fn certificate(&self) -> UnreachabilityCertificate {
+        let reason = match self.reason {
+            ShadowingReason::DuplicateAlternative => {
+                UnreachabilityReason::DuplicateOf { by: self.by_index }
+            }
+            ShadowingReason::FixedTerminalPrefix => {
+                UnreachabilityReason::FixedTerminalPrefixBy { by: self.by_index }
+            }
+            ShadowingReason::EarlierAlwaysMatches => {
+                UnreachabilityReason::EarlierArmAlwaysSucceeds { by: self.by_index }
+            }
+        };
+        UnreachabilityCertificate {
+            rule: self.rule.clone(),
+            node_path: self.node_path.clone(),
+            dead_index: self.shadowed_index,
+            reason,
+        }
+    }
+}
+
+/// Navigate the `node_path` (as produced by `collect_shadowing`: `root` then `/o{i}` ordered-choice
+/// alternative, `/s{i}` sequence element, `/q` quantifier element, `/l` lookahead element, `/a` atom
+/// inner) from a rule body to the cited node. Returns `None` if the path does not resolve (a
+/// structurally invalid certificate). Independent of the detector — pure navigation.
+fn navigate_node_path<'a>(body: &'a ASTNode, node_path: &str) -> Option<&'a ASTNode> {
+    let mut cur = body;
+    let mut segs = node_path.split('/');
+    if segs.next() != Some("root") {
+        return None;
+    }
+    for seg in segs {
+        if seg.is_empty() {
+            continue;
+        }
+        let (tag, idx) = seg.split_at(1);
+        match (tag, cur) {
+            ("o", ASTNode::Or { alternatives }) => {
+                cur = alternatives.get(idx.parse::<usize>().ok()?)?;
+            }
+            ("s", ASTNode::Sequence { elements }) => {
+                cur = elements.get(idx.parse::<usize>().ok()?)?;
+            }
+            ("q", ASTNode::Quantified { element, .. }) => cur = element,
+            ("l", ASTNode::Lookahead { element, .. }) => cur = element,
+            ("a", ASTNode::Atom { value: ASTValue::Node(inner) }) => cur = inner,
+            _ => return None,
+        }
+    }
+    Some(cur)
+}
+
+/// THE CHECKER (G.1/G.2 seed): independently re-validate an unreachability certificate against the
+/// grammar. Re-navigates to the cited `Or` node and re-derives the deadness claim DIRECTLY from the
+/// AST — it never trusts the detector. Returns `Ok(())` iff the certificate genuinely holds; `Err`
+/// (with the reason) means the certificate is invalid — a linter bug or a tampered/stale certificate.
+pub fn verify_unreachability_certificate(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    cert: &UnreachabilityCertificate,
+) -> Result<(), String> {
+    let body = grammar
+        .get(&cert.rule)
+        .ok_or_else(|| format!("certificate cites unknown rule '{}'", cert.rule))?;
+    let node = navigate_node_path(body, &cert.node_path)
+        .ok_or_else(|| format!("certificate path '{}' does not resolve in rule '{}'", cert.node_path, cert.rule))?;
+    let ASTNode::Or { alternatives } = node else {
+        return Err(format!("certificate path '{}' is not an ordered choice", cert.node_path));
+    };
+    let by = match &cert.reason {
+        UnreachabilityReason::DuplicateOf { by }
+        | UnreachabilityReason::FixedTerminalPrefixBy { by }
+        | UnreachabilityReason::EarlierArmAlwaysSucceeds { by } => *by,
+    };
+    if by >= cert.dead_index {
+        return Err(format!(
+            "certificate shadower #{by} is not earlier than the dead alternative #{}",
+            cert.dead_index
+        ));
+    }
+    let by_alt = alternatives
+        .get(by)
+        .ok_or_else(|| format!("certificate shadower index #{by} out of range"))?;
+    let dead_alt = alternatives
+        .get(cert.dead_index)
+        .ok_or_else(|| format!("certificate dead index #{} out of range", cert.dead_index))?;
+    let holds = match &cert.reason {
+        UnreachabilityReason::DuplicateOf { .. } => ast_eq(by_alt, dead_alt),
+        UnreachabilityReason::FixedTerminalPrefixBy { .. } => match fixed_terminal_seq(by_alt) {
+            Some(prefix) => {
+                let later = leading_fixed_terminals(dead_alt);
+                !prefix.is_empty() && later.len() >= prefix.len() && later[..prefix.len()] == prefix[..]
+            }
+            None => false,
+        },
+        UnreachabilityReason::EarlierArmAlwaysSucceeds { .. } => {
+            let always = compute_always_succeeds(grammar, rule_order);
+            node_always_succeeds(by_alt, &always)
+        }
+    };
+    if holds {
+        Ok(())
+    } else {
+        Err(format!(
+            "certificate for rule '{}' at '{}' does NOT hold: alternative #{by} does not shadow #{} ({:?})",
+            cert.rule, cert.node_path, cert.dead_index, cert.reason
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1480,6 +1629,63 @@ mod tests {
         assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn unreachability_certificates_verify_and_reject_tampering() {
+        // GRAMMAR-WELLFORMED.G.1: every dead-verdict certificate must independently re-verify, and a
+        // tampered/bogus certificate must be REJECTED by the checker (the trust comes from the checker).
+        //   r := "a" | "a"           exact duplicate
+        //   p := "a" | "a" "b"       fixed-terminal prefix
+        //   o := "x"? | "y"          earlier-always-succeeds
+        let mut g = HashMap::new();
+        g.insert("r".into(), or(vec![token("string", "a"), token("string", "a")]));
+        g.insert(
+            "p".into(),
+            or(vec![token("string", "a"), seq(vec![token("string", "a"), token("string", "b")])]),
+        );
+        g.insert("o".into(), or(vec![quant(token("string", "x"), "?"), token("string", "y")]));
+        let order: Vec<String> = vec!["r".into(), "p".into(), "o".into()];
+        let issues = detect_ordered_choice_shadowing(&g, &order);
+        assert!(!issues.is_empty(), "expected shadowing findings");
+        // (1) every real certificate independently re-verifies.
+        for iss in &issues {
+            let cert = iss.certificate();
+            assert!(
+                verify_unreachability_certificate(&g, &order, &cert).is_ok(),
+                "valid certificate must verify: {cert:?} -> {:?}",
+                verify_unreachability_certificate(&g, &order, &cert)
+            );
+        }
+        // (2) tamper: point the dead alternative at the shadower itself (by not < dead) -> rejected.
+        let mut tampered = issues.iter().find(|i| i.rule == "o").unwrap().certificate();
+        tampered.dead_index = 0;
+        assert!(
+            verify_unreachability_certificate(&g, &order, &tampered).is_err(),
+            "tampered certificate (dead_index == shadower) must be rejected"
+        );
+        // (3) bogus: claim an exact-duplicate relation where the alternatives are NOT identical.
+        let bogus = UnreachabilityCertificate {
+            rule: "p".into(),
+            node_path: "root".into(),
+            dead_index: 1,
+            reason: UnreachabilityReason::DuplicateOf { by: 0 },
+        };
+        assert!(
+            verify_unreachability_certificate(&g, &order, &bogus).is_err(),
+            "bogus duplicate claim must be rejected (the alternatives are not identical)"
+        );
+        // (4) a path that does not resolve is rejected.
+        let bad_path = UnreachabilityCertificate {
+            rule: "o".into(),
+            node_path: "root/s9".into(),
+            dead_index: 1,
+            reason: UnreachabilityReason::EarlierArmAlwaysSucceeds { by: 0 },
+        };
+        assert!(
+            verify_unreachability_certificate(&g, &order, &bad_path).is_err(),
+            "unresolvable path must be rejected"
+        );
     }
 
     #[test]

@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0012 (leaf GRAMMAR-WELLFORMED.G.1): **the certifying linter — certificate model + the independent re-checker for unreachability verdicts.**
+
+Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
+
+- First implementation step of Phase G ("verified, not trusted"). `UnreachabilityCertificate { rule, node_path, dead_index, reason }` + `UnreachabilityReason` {`DuplicateOf` | `FixedTerminalPrefixBy` | `EarlierArmAlwaysSucceeds`}; `ShadowingIssue::certificate()` emits the structured unreachability PROOF for each shadowing `dead` verdict.
+- **The independent CHECKER**: `verify_unreachability_certificate(grammar, rule_order, cert)` — `navigate_node_path` re-locates the cited `Or` node from the grammar AST and re-derives the deadness claim DIRECTLY (exact-duplicate + fixed-terminal-prefix re-checks are trivial and fully independent of the detector; the always-succeeds case re-derives via `node_always_succeeds`). It never trusts the detector's output — a certificate that fails to verify is a linter bug or a tampered/stale certificate.
+- Unit-tested (`unreachability_certificates_verify_and_reject_tampering`): every real certificate re-verifies, AND a tampered certificate (dead_index = the shadower), a bogus duplicate claim (alternatives not identical), and an unresolvable path are all REJECTED — proving the checker validates rather than rubber-stamps. Module suite 23/23.
+- Scope/next: this certifies the unreachability (PROOF) side for shadowing verdicts. G.1.1 (optional): structural always-succeeds witnesses (no fixpoint, fully independent) + extend certificates to A1b unreachable-rule / profile-orphan / F1 unbound-fact. G.2: a standalone checker binary. G.3: reachability WITNESSES from the generator. G.4: the certificate-coverage gate (`UNKNOWN`=0 on SV, hard).
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0011 (leaf GRAMMAR-WELLFORMED.G, frame + plan): **the CERTIFYING LINTER doctrine — "verified, not trusted" (director directive); logs the linter-trustworthiness brainstorm.**
 
 Docs only (book + tree Phase G + new decision record + INDEX + LIVE). No code yet — G.1 begins next.
