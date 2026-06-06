@@ -199,6 +199,22 @@ subtle dead branch"), never a silent accept.
   regex worker stack, no profile/stdlib) + set `parse_and_cover: Some(parse_and_cover_regex)` on the regex
   entry. Phase H continues for vhdl / svpp / rtl_* / json (each: regen + a registry fn). Acceptance:
   `--report-certificate-coverage` runs for regex (no bail) + reports its sample_parse_failures.
+- `H.2` — **BLOCKED (2026-06-07, attempt under `PGEN-GRAMMAR-WELLFORMED-0036`): Phase H for non-focus
+  grammars (vhdl/svpp/rtl_*/json) needs a canonical parser-regen recipe FIRST.** Wiring `parse_and_cover`
+  for vhdl (mirror the regex H.1 pattern: `parse_and_cover_vhdl` is trivial — no profile/stdlib/dedicated
+  stack) requires the vhdl parser to carry the unconditional G.4.6 coverage methods, i.e. a regen. But
+  unlike regex/SV there is **no `focus_vhdl` make target**, and `generated/vhdl.json` is **STALE**
+  (`vhdl.ebnf` mtime > `vhdl.json` mtime), and the committed `generated/vhdl_parser.rs` was produced from
+  a fresher source than the on-disk `vhdl.json` (parser mtime > json mtime) — so there is no clean,
+  canonical "regenerate vhdl" path to reproduce the current parser + add coverage. A correct regen needs
+  the full chain (frontend `vhdl.ebnf → fresh vhdl.json` via the `ebnf_dual_run` binary, then generator
+  `vhdl.json → vhdl_parser.rs` with the standard `--generate-parser --debug --trace
+  --eliminate-left-recursion` flags), then the HEAVY vhdl conformance re-verify (vhdl corpus triage /
+  stimuli gate) to confirm no regression. UNBLOCK: add a `focus_vhdl` (and `focus_<grammar>`) make target
+  that runs that chain deterministically — a small infra slice — THEN the per-grammar `parse_and_cover`
+  wiring (H.2..) is mechanical. NO tracked code change was made (the local `generated/vhdl_parser.rs` was
+  regenerated from the stale `vhdl.json` during investigation — harmless: untracked + regenerated
+  downstream by any vhdl gate/build; a correct regen needs the fresh-json chain above).
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
