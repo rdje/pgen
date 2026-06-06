@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0023 (leaf GRAMMAR-WELLFORMED.G.4.2): **the certificate-coverage ORCHESTRATION (gatherers) — the whole framework is now wired + tested; only the heavy real-SV run remains.**
+
+Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.
+
+- `gather_verified_proof_covered_rules(grammar, rule_order)` — runs `detect_unreachable_rules`, builds `UnreachableRule` certificates, RE-VERIFIES each via `verify_wellformedness_certificate`, returns `(covered_set, failures)`. A re-verify failure = a LINTER bug, returned in `failures`, NEVER silently counted as covered. (Rule-level: shadowing/orphan/unbound proofs concern branches/predicates within a reachable rule, not whole-rule deadness.)
+- `gather_verified_witness_covered(witnesses, parse_and_cover)` — re-verifies each `ReachabilityWitness` via `verify_reachability_witness` (replay through the real parser), returns `(covered_set, failures)`. A failure = a GENERATOR/witness bug, never counted. Parser-agnostic (Phase H).
+- Unit-tested end-to-end (`g4_2_gatherers_compose_into_full_certification`) with a mock parser: a dead island is proof-covered + the reachable rules are witness-covered ⇒ `certificate_coverage` reports `is_fully_certified()`; a deliberately non-parsing witness is a recorded failure (not counted). Module suite 30/30.
+- **⇒ the ENTIRE certifying-linter framework + orchestration is implemented + unit-tested.** The only un-exercised piece is `G.4.3` — the thin heavy real-SV RUN that supplies the REAL witnesses (generator pass) + REAL `parse_and_cover_systemverilog` + the linter into these gatherers and hard-gates on `is_fully_certified()`. That run (needs `generated_parsers` + a full SV generation + the heavy closed-loop verification) produces the objective SV `UNKNOWN` number. Also remaining: G.2.2 checker bin; Phase H per-grammar; A2.1 deep store-gating.
+
 ## 2026-06-06 - PGEN-GRAMMAR-WELLFORMED-0022 (leaf GRAMMAR-WELLFORMED.G.4.1): **the certificate-coverage capstone LOGIC — the entire certifying-linter framework now exists + is unit-tested.**
 
 Code (`rust/src/ast_pipeline/grammar_wellformedness.rs`). Pure analysis, no regen.

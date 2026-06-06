@@ -406,11 +406,22 @@ certificates, not faith".
     the last UNKNOWN gets a witness). **⇒ the ENTIRE certifying-linter framework now exists + is
     unit-tested: PROOF side (4 verdict checkers) + WITNESS side (model/producer/checker) + the coverage
     capstone.**
-  - `G.4.2` — the real-SV GATE wiring (heavy): a run that gathers VERIFIED proofs (linter dead-verdicts
-    → certs → `verify_wellformedness_certificate`) + VERIFIED witnesses (generator `witness_certificates()`
-    → `verify_reachability_witness` via `parse_and_cover_systemverilog`), feeds `certificate_coverage`,
-    and HARD-gates on `is_fully_certified()`. Needs `generated_parsers` + a generation run + the heavy
-    closed-loop verification (director: "we'll see later"). The objective trust number lands here.
+  - `G.4.2` — the ORCHESTRATION — **DONE (`-0023`): the gatherers (logic complete + tested).**
+    `gather_verified_proof_covered_rules(grammar, rule_order)` — runs `detect_unreachable_rules`, builds
+    `UnreachableRule` certs, RE-VERIFIES each via `verify_wellformedness_certificate`, returns the
+    covered set + any re-verify `failures` (a failure = a linter bug, never silently counted).
+    `gather_verified_witness_covered(witnesses, parse_and_cover)` — re-verifies each witness via
+    `verify_reachability_witness`, returns the covered set + `failures` (a failure = a generator/witness
+    bug). Both compose into `certificate_coverage` → `is_fully_certified()`. Unit-tested end-to-end with a
+    mock parser (dead island proven + reachable rules witnessed ⇒ fully certified; a non-parsing witness
+    is a recorded failure, not counted). **⇒ the WHOLE framework + orchestration is in code + tested;
+    the only un-exercised bit is the real-SV invocation.**
+  - `G.4.3` — the real-SV GATE RUN (heavy): a thin caller wiring the REAL inputs — the generator's witness
+    pass on SV (`witness_certificates()`) + `parse_and_cover_systemverilog` + the linter — into the G.4.2
+    gatherers + `certificate_coverage`, then HARD-gate on `is_fully_certified()`. Needs `generated_parsers`
+    + a full SV generation run + the heavy closed-loop verification (director: "we'll see later"). **The
+    objective SV `UNKNOWN` number lands here** (closely tracks the existing coverage residual, now
+    verified + split into proof/witness/unknown).
 
 ### Phase H — ALL-GRAMMARS certification (director directive 2026-06-06)
 

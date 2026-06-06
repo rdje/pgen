@@ -1564,6 +1564,57 @@ pub fn certificate_coverage(
     }
 }
 
+/// GRAMMAR-WELLFORMED.G.4.2 (proof gathering): the set of rules covered by a VERIFIED unreachability
+/// proof — i.e. rules `detect_unreachable_rules` flags AND `verify_wellformedness_certificate`
+/// independently re-confirms. (Rule-level: shadowing/orphan/unbound proofs concern branches/predicates
+/// WITHIN a reachable rule, not whole-rule deadness, so they do not make a RULE proof-covered.) A
+/// detector finding whose certificate fails to re-verify is a LINTER BUG — returned in `failures`,
+/// never silently counted as covered.
+pub fn gather_verified_proof_covered_rules(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> (HashSet<String>, Vec<String>) {
+    let mut covered = HashSet::new();
+    let mut failures = Vec::new();
+    for issue in detect_unreachable_rules(grammar, rule_order) {
+        if let WellformednessIssue::UnreachableRule { rule } = issue {
+            let cert = WellformednessCertificate::UnreachableRule { rule: rule.clone() };
+            match verify_wellformedness_certificate(grammar, rule_order, None, &cert) {
+                Ok(()) => {
+                    covered.insert(rule);
+                }
+                Err(e) => failures.push(format!("unreachable-rule proof for '{rule}' failed re-verify: {e}")),
+            }
+        }
+    }
+    (covered, failures)
+}
+
+/// GRAMMAR-WELLFORMED.G.4.2 (witness gathering): the set of fragments covered by a VERIFIED
+/// reachability witness — each witness replayed through the real parser (`parse_and_cover`) and
+/// confirmed to parse AND exercise its fragment. A witness that fails to re-verify (doesn't parse, or
+/// parses but misses its fragment) is a GENERATOR/witness bug — returned in `failures`, NOT counted.
+/// Parser-AGNOSTIC (the closure carries the grammar's parser) → works for every grammar (Phase H).
+pub fn gather_verified_witness_covered<F>(
+    witnesses: &[ReachabilityWitness],
+    parse_and_cover: F,
+) -> (HashSet<String>, Vec<String>)
+where
+    F: Fn(&str) -> (bool, HashSet<String>),
+{
+    let mut covered = HashSet::new();
+    let mut failures = Vec::new();
+    for w in witnesses {
+        match verify_reachability_witness(&parse_and_cover, w) {
+            Ok(()) => {
+                covered.insert(w.fragment.clone());
+            }
+            Err(e) => failures.push(e),
+        }
+    }
+    (covered, failures)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1958,6 +2009,42 @@ mod tests {
         assert_eq!(issues.len(), 1, "the `a | ab` quirk must flag `ab`: {issues:?}");
         assert_eq!(issues[0].shadowed_index, 1);
         assert_eq!(issues[0].reason, ShadowingReason::FixedTerminalPrefix);
+    }
+
+    #[test]
+    fn g4_2_gatherers_compose_into_full_certification() {
+        // GRAMMAR-WELLFORMED.G.4.2: the proof gatherer (verified unreachable rules) + the witness
+        // gatherer (verified witnesses) compose into certificate_coverage → full certification.
+        // entry->keep reachable; island<->other a dead island.
+        let mut g = HashMap::new();
+        g.insert("entry".into(), rule_ref("keep"));
+        g.insert("keep".into(), token("string", "k"));
+        g.insert("island".into(), rule_ref("other"));
+        g.insert("other".into(), rule_ref("island"));
+        let order: Vec<String> =
+            vec!["entry".into(), "keep".into(), "island".into(), "other".into()];
+        let (proof_covered, pf) = gather_verified_proof_covered_rules(&g, &order);
+        assert!(pf.is_empty(), "no proof should fail re-verify: {pf:?}");
+        assert!(proof_covered.contains("island") && proof_covered.contains("other"));
+        // witnesses for the reachable rules; a deliberately-bad one must be rejected (not counted).
+        let witnesses = vec![
+            ReachabilityWitness { fragment: "entry".into(), input: "k".into() },
+            ReachabilityWitness { fragment: "keep".into(), input: "k".into() },
+            ReachabilityWitness { fragment: "keep".into(), input: "BAD".into() },
+        ];
+        let parse_and_cover = |input: &str| -> (bool, std::collections::HashSet<String>) {
+            if input == "k" {
+                (true, ["entry".to_string(), "keep".to_string()].into_iter().collect())
+            } else {
+                (false, std::collections::HashSet::new())
+            }
+        };
+        let (witness_covered, wf) = gather_verified_witness_covered(&witnesses, parse_and_cover);
+        assert!(witness_covered.contains("entry") && witness_covered.contains("keep"));
+        assert_eq!(wf.len(), 1, "the non-parsing witness must be a recorded failure: {wf:?}");
+        // capstone: entry/keep witnessed + island/other proven ⇒ every rule covered ⇒ fully certified.
+        let report = certificate_coverage(&order, &proof_covered, &witness_covered);
+        assert!(report.is_fully_certified(), "all 4 rules proof- or witness-covered: {report:?}");
     }
 
     #[test]
