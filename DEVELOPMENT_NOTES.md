@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - EBNF-SOURCE-OF-TRUTH.2 — audit all parse paths for out-of-band acceptance validation (PGEN-EBNF-SOT-0002)
+
+### Goal
+Leaf `.2` of the EBNF-SOURCE-OF-TRUTH tree: enumerate every grammar's parse path and list each hand-written acceptance check applied AFTER the structural parse that is NOT mirrored in the EBNF (so the generator can't see it). The defect this protects against: the stimuli generator derives only from the EBNF, so any out-of-band acceptance narrowing makes it emit valid-per-EBNF strings the parser rejects (the regex `\u`/`(*verb)` trigger from `.1`).
+
+### Method (tools-first)
+All parse paths funnel through `parser_registry::parse_sample_detail_with_profile` (`parser_registry.rs:873`), a `match grammar_name` that dispatches to a per-grammar `parse_with_<grammar>_detail`. Read all 12 function bodies and, for each, checked for a Rust-level accept/reject decision after the generated `parse_full_*()` call. Cross-checked candidate validators with `grep` over `stimuli_generator.rs` and the grammar `.ebnf` (is it generator-aware / in-EBNF?).
+
+### Result
+**`regex` is the only grammar with an out-of-band acceptance validator.** `parse_with_regex_detail` (:301) runs `parser.parse_full_regex()` then `validate_regex_compile_contract(&owned_sample)` (`regex_compile_validation.rs`, :305) — neither referenced by the generator nor encoded in `regex.ebnf`. The other 11 paths (`return_annotation`, `semantic_annotation`, the two `builtin_*`, `ebnf`, `json`, `rtl_const_expr`, `rtl_frontend`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`) only call their generated parser and `map_err`. SV's `parse_with_systemverilog_detail_profile` (:501) adds `preload_systemverilog_stdlib` (the in-EBNF `@import_from_library` mechanism, before parse) and a `furthest_position` error-message enrichment (post-failure only) — neither narrows acceptance.
+
+The regex out-of-band surface is the full `validate_regex_compile_contract` = **10** sub-checks (not just the `.1` `\u`/`(*verb)` subset): `find_invalid_escape_i`, `find_invalid_property_escape`, `find_invalid_named_escape_or_group_name`, `find_invalid_counted_quantifier`, `find_invalid_numeric_callout`, `find_invalid_verb_construct`, `find_invalid_char_class_construct`, `find_invalid_quantified_anchor`, `find_invalid_scan_substring_capture_list`, `find_invalid_keep_out_escape_in_lookaround`. `.3` will resolve each (encode-in-EBNF vs relax) one-at-a-time, tools-first.
+
+Confirmed NOT in scope: `ast_pipeline/annotation_validator.rs` (build-time `@return`/`@semantic` annotation-DSL validation during grammar compilation; not referenced by `parser_registry.rs`; not a runtime sample-acceptance gate). `parse_and_cover_regex` deliberately skips the validator (:324) — it measures grammar coverage, not PCRE2 validity.
+
+### Consequence for the tree
+`.4` (generalize the fix to other grammars) is a no-op — there are no other instances. Remaining substantive work: `.3` (fix regex), `.5` (enforce so a new out-of-band gate can't silently reappear). Frontier advanced `.2 → .3`.
+
+### Validation
+Pure-docs audit; no Rust/grammar/codegen change. `make -C rust SHELL=/bin/bash mdbook_docs_gate` ✅ (book transparency note added); `scripts/check_diagnostics_and_docpaths.sh` OK; `scripts/check_memory_architecture.sh` OK.
+
 ## 2026-06-07 - DOCPATH.1 — extend the live-docs repo-relative guard to the full live-surface set (PGEN-DOCPATH-0002)
 
 ### Why (director directive + tools-first audit)

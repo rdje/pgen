@@ -68,6 +68,14 @@ unsupported `\u` and arbitrary verb names fail.)
 This rule is owned by the `EBNF-SOURCE-OF-TRUTH` task tree and recorded as a binding decision; you can
 inspect what the generator is deriving with `--trace high` (or `--trace debug`).
 
+**Audit scope (2026-06-07).** A repo-wide audit of every grammar's parse path (`parser_registry.rs`,
+the `parse_*_detail` dispatch) found that **`regex` is the *only* family that applies an out-of-band
+acceptance check** — `validate_regex_compile_contract` (10 PCRE2-compile sub-checks, of which the `\u`
+escape and the unrecognized-`(*verb)` cases are the ones the generator currently trips). Every other
+family (SystemVerilog, the SV preprocessor, VHDL, the RTL frontends, JSON, EBNF, and the annotation
+grammars) drives acceptance purely from its generated parser, with no hand-written post-parse rejection.
+So the inconsistency is bounded to one grammar, and the fix is tracked there.
+
 ## Why PGEN Works This Way
 
 PGEN targets domains where parser behavior materially affects downstream tooling and trust:
