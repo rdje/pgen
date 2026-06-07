@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.3 part-1 — `$text`/`$0` surface A + machinery (PGEN-REGEX-SELF-HOST-0005)
+
+### Landed (additive/dormant, 614/0)
+`UnifiedReturnAST::MatchedText` + `parse_bootstrap` (`$text`/`$0` → MatchedText) + `AstReturnTransformer`
+codegen (`ParseContent::Terminal(&parser.input[start_pos..parser.position])`) + 8 exhaustiveness sites + a
+unit test. The codegen slice is correct because at the transform splice point (`let result = { #transform }`
+inside the `|parser|` closure, after `#parse_logic`) `start_pos` (rule entry, bound by parse_logic) and
+`parser.position` (body end) are in scope, and the rule's final node is `span: start_pos..end_pos`.
+
+### The two-surface finding (BE-ALERT / tools-first end-to-end check)
+I did NOT stop at "it compiles + the unit test passes." I generated a throwaway `num = digit+ -> $text` via
+the real `ast_pipeline --generate-parser` path and inspected the OUTPUT: the inventory captured
+`raw_text:"$text"`, but the generated `parse_num` emitted `result.clone()` (passthrough), NOT the span
+Terminal. Root cause: `mod.rs::parse_return_annotation_ast` uses, in non-bootstrap mode (regex's mode), the
+GENERATED `Return_annotationParser` (built from `grammars/return_annotation.ebnf`) + `parse_generated_return_annotation`
+— **not** `parse_bootstrap`. `return_annotation.ebnf` has no `$text`/`$0`, so it fell to `Passthrough`. So
+surface A (bootstrap) is necessary but NOT sufficient for regex; surface B (the generated parser) is the
+critical path. Part-1 (this commit) lands surface A + the shared AST/codegen; part-2 extends surface B
+(`return_annotation.ebnf` + regen + the generated→AST conversion + `$0`=positional-index-0→MatchedText).
+
+Lesson reinforced: when a feature touches the return-annotation language, BOTH the hand-rolled bootstrap
+parser AND the generated `return_annotation.ebnf` parser must be extended (the two surfaces per
+`feedback_semantic_annotation_no_dotted_refs`), and the regex/non-bootstrap path uses the GENERATED one.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.3 design — the `$text` text-recovery primitive (PGEN-REGEX-SELF-HOST-0004)
 
 ### The finding (tool-backed; the grammar documents it)

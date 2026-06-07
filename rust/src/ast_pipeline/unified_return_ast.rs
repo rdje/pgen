@@ -96,6 +96,15 @@ pub enum UnifiedReturnAST {
 
     /// Passthrough - no explicit return annotation (implicit -> $1)
     Passthrough,
+
+    /// REGEX-SELF-HOSTING.3: `$text` (alias `$0`) — the rule's full matched
+    /// source text as one string Terminal (the native equivalent of a
+    /// `/.../`-with-capture). Codegen emits
+    /// `ParseContent::Terminal(&parser.input[start_pos..parser.position])`.
+    /// Lets a `/.../`-free grammar express quantified char-payloads
+    /// (`octal_digits = octal_digit+ -> $text` → `"777"`) without re-introducing
+    /// the structured Quantified shape that a bare `char+` produces.
+    MatchedText,
 }
 
 #[derive(Debug, Clone)]
@@ -620,6 +629,10 @@ impl UnifiedReturnAST {
                     ))
                 }
             }
+            UnifiedReturnAST::MatchedText => Err(
+                "$text / $0 (whole-match text) is not supported inside a left-recursion chain template"
+                    .to_string(),
+            ),
             UnifiedReturnAST::StringLiteral { value } => {
                 Ok(serde_json::Value::String(value.clone()))
             }
@@ -818,6 +831,14 @@ impl UnifiedReturnAST {
                 line!(),
                 &format!("Parsing value: '{}'", trimmed),
             );
+        }
+
+        // REGEX-SELF-HOSTING.3: `$text` (alias `$0`) — the rule's full matched text as one string
+        // Terminal (native equivalent of a `/.../` capture). Checked before the positional-ref path
+        // (`$text` is not a digit run, and `$0` is the whole-match index, distinct from the 1-based
+        // child refs `$1`..`$N`).
+        if trimmed == "$text" || trimmed == "$0" {
+            return Ok(UnifiedReturnAST::MatchedText);
         }
 
         // Check for positional reference $N (with potential modifiers)
@@ -1427,6 +1448,9 @@ impl UnifiedReturnAST {
             UnifiedReturnAST::PositionalRef { index } => {
                 format!("{}PositionalRef(${})\n", indent_str, index)
             }
+            UnifiedReturnAST::MatchedText => {
+                format!("{}MatchedText($text)\n", indent_str)
+            }
             UnifiedReturnAST::StringLiteral { value } => {
                 format!("{}StringLiteral(\"{}\")\n", indent_str, value)
             }
@@ -1580,6 +1604,13 @@ impl UnifiedReturnAST {
                 }
             }
 
+            // REGEX-SELF-HOSTING.3: `$text`/`$0` — the rule's matched span as a string Terminal
+            // (mirrors the `AstReturnTransformer` codegen; `start_pos`/`parser.position` are in scope
+            // at the rule-body splice point).
+            UnifiedReturnAST::MatchedText => Ok(format!(
+                "{}ParseContent::Terminal(&parser.input[start_pos..parser.position])",
+                indent
+            )),
             UnifiedReturnAST::StringLiteral { value } => Ok(format!(
                 "{}ParseContent::Terminal(r#\"{}\"#)",
                 indent, value

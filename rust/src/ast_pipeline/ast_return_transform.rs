@@ -82,6 +82,15 @@ impl AstReturnTransformer {
                 Self::generate_quantified_extraction(base, target, captured_vars)
             }
             UnifiedReturnAST::Passthrough => Self::generate_passthrough(captured_vars),
+            // REGEX-SELF-HOSTING.3: `$text` / `$0` — the rule's full matched source text as one
+            // string Terminal. At the splice point the rule's `start_pos` (entry, bound by the parse
+            // logic) and `parser.position` (body end) are in scope, and the final node is
+            // `span: start_pos..end_pos`, so this slice is exactly the matched substring. The native
+            // equivalent of a `/.../`-with-capture; lets a quantified char-payload (`octal_digit+`)
+            // emit `"777"` instead of the structured Quantified shape.
+            UnifiedReturnAST::MatchedText => Ok(quote! {
+                ParseContent::Terminal(&parser.input[start_pos..parser.position])
+            }),
         }
     }
 
@@ -698,6 +707,36 @@ mod tests {
 
     fn render(stream: TokenStream) -> String {
         stream.to_string()
+    }
+
+    /// REGEX-SELF-HOSTING.3: `$text` (and its alias `$0`) parse to `MatchedText` and codegen to a
+    /// matched-span string Terminal — no Rust `regex`, no structural shape.
+    #[test]
+    fn matched_text_dollar_text_and_dollar_zero_emit_span_terminal() {
+        let logger = crate::ast_pipeline::NoOpLogger;
+        for src in ["$text", "$0"] {
+            let ast = UnifiedReturnAST::parse_bootstrap(src, &logger)
+                .unwrap_or_else(|e| panic!("{src:?} should parse: {e}"));
+            assert!(
+                matches!(ast, UnifiedReturnAST::MatchedText),
+                "{src:?} should parse to MatchedText, got {ast:?}"
+            );
+            let rendered = render(
+                AstReturnTransformer::generate_transform(&ast, &["result".to_string()], "r")
+                    .expect("transform should generate"),
+            );
+            assert!(
+                rendered.contains("ParseContent :: Terminal")
+                    && rendered.contains("parser . input")
+                    && rendered.contains("start_pos")
+                    && rendered.contains("parser . position"),
+                "{src:?} should emit the matched-span Terminal, got: {rendered}"
+            );
+            assert!(
+                !rendered.contains("Regex") && !rendered.contains("match_regex"),
+                "{src:?} matched-text codegen must not use Rust regex, got: {rendered}"
+            );
+        }
     }
 
     /// Phase 2 typed-carrier contract: object literal annotations must emit a

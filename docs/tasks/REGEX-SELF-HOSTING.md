@@ -108,8 +108,27 @@ content.
   feature). No regex.ebnf change in `.2`. ⚠️ char-vs-byte/UTF-8 semantics fixed here so `.4`'s
   `[^\x00-\x7F]`-style conversions are exact (range-negation like `unicode_char` may also need an ascii
   guard or a char-value constraint — a `.4` design item).
-- ID: `.3`  Status: `in_progress` (`PGEN-REGEX-SELF-HOST-0004`/`-0005`)  Goal: **2nd enabling primitive — the
-  `-> $text` return-annotation** (with `$0` as an alias, director 2026-06-07). **WHY (tool-backed finding):**
+- ID: `.3`  Status: `in_progress` (part-1 done `PGEN-REGEX-SELF-HOST-0005`; **part-2 PENDING** = the
+  generated-parser surface).  Goal: **2nd enabling primitive — the `-> $text` return-annotation** (with
+  `$0` as an alias, director 2026-06-07).
+  **TWO SURFACES (tool-backed finding — both required, per [[feedback_semantic_annotation_no_dotted_refs]]):**
+  return annotations are parsed by TWO parsers: (A) the hand-rolled `parse_bootstrap` (bootstrap-mode
+  grammars + `embedding_api`), and (B) — for NON-bootstrap grammars like **regex** — the GENERATED
+  `Return_annotationParser` (built from `grammars/return_annotation.ebnf`) via
+  `mod.rs::parse_return_annotation_ast` → `parse_generated_return_annotation`. **Regex's `.4` uses surface B**,
+  so B is the critical path. (Diagnosed end-to-end: a throwaway `num = digit+ -> $text` parsed to
+  `Passthrough` — `result.clone()` in the generated `parse_num` — because B didn't recognize `$text`.)
+  **part-1 DONE (`-0005`, surface A + the shared machinery):** added `UnifiedReturnAST::MatchedText` +
+  `parse_bootstrap` `$text`/`$0` → MatchedText + codegen (`AstReturnTransformer` →
+  `ParseContent::Terminal(&parser.input[start_pos..parser.position])`) + the 8 exhaustiveness sites + a unit
+  test. ADDITIVE/dormant (no grammar uses `$text` yet → all parsers byte-identical; `cargo test --lib` 614/0).
+  **part-2 PENDING (surface B + `$0`):** (1) `return_annotation.ebnf` — add `matched_text_reference :=
+  "$text" -> {type:"matched_text"}` (or `"$0"`) wired into `primary_expression` (+ flat_spread/accessor
+  bases); (2) regen `generated/return_annotation_parser.rs` (bootstrap regen); (3) conversion —
+  `parse_generated_return_annotation_node`/`parse_generated_value_node` map the matched_text node → MatchedText,
+  AND the `from_json` "positional" arm maps `index == 0` → MatchedText (so `$0` works, no grammar change for
+  the alias); (4) re-test the throwaway `num = digit+ -> $text` → generated `parse_num` emits
+  `ParseContent::Terminal(&parser.input[start_pos..parser.position])`; regen-all byte-identical. **WHY (tool-backed finding):**
   the ~8 quantified payloads (`octal_digits`/`hex_digits`/`digits`/`prop_name`/`backreference_digits`/
   `hex_escape_short_payload`/`octal_escape_short_payload`/`name`) use `/.../`-with-capture SPECIFICALLY to
   emit the whole match as ONE flat string (`octal_digits` → `"777"`; the grammar's own comment at
@@ -171,6 +190,7 @@ content.
 | --- | --- | --- | --- |
 | `2026-06-07` | `.1` | grep `regex.json` node types (36 `"regex"`); codegen matcher audit (`match_string`/`match_regex` only; no native char-class/any-char); meta-grammar `[...]`→regex; per-`/.../ ` classification | SCOPING DONE — 1 engine primitive needed + mechanical conversions |
 | `2026-06-07` | `.2` (`-0003`) | codegen unit test (native matcher: chars/len_utf8, no regex); `cargo test --lib` 613/0; clippy strict source ✓; additivity (only regex refs `any_char` + DEFINES it → built-in dormant → regex regen 214 rules unchanged, parse_any_char still `match_regex`); END-TO-END throwaway grammar `"a" any_char "b"` → native `parse_any_char` on the real generate path | **DONE** — additive, no user-facing change (no book/contract) |
+| `2026-06-07` | `.3` part-1 (`-0005`) | `MatchedText` variant + `parse_bootstrap` `$text`/`$0` + codegen span-Terminal + 8 exhaustiveness sites + unit test `matched_text_dollar_text_and_dollar_zero_emit_span_terminal`; `cargo test --lib` 614/0; additive/dormant. END-TO-END diagnosis: throwaway `num = digit+ -> $text` still emits passthrough via the GENERATED return_annotation parser (surface B) → part-2 needed | **PART-1 DONE** (surface A + machinery); part-2 (surface B) pending |
 
 ## Commit Log
 
@@ -179,11 +199,19 @@ content.
 | `.1` | `PGEN-REGEX-SELF-HOST-0001` | scoping (pure docs); tool-backed feasibility + plan |
 | `.2` decision | `PGEN-REGEX-SELF-HOST-0002` | record director's any-char spelling = built-in `any_char` rule (docs) |
 | `.2` impl | `PGEN-REGEX-SELF-HOST-0003` | native `any_char` built-in in codegen + unit test; additive/dormant (byte-identical); end-to-end proven |
+| `.3` part-1 | `PGEN-REGEX-SELF-HOST-0005` | `$text`/`$0` surface A (bootstrap) + `MatchedText` AST + codegen + 8 exhaustiveness + test; additive/dormant; surface B (generated parser) diagnosed as the remaining critical path |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.3` part-1 (`PGEN-REGEX-SELF-HOST-0005`) — implemented the `$text`/`$0` primitive on
+  surface A (the hand-rolled `parse_bootstrap` + the shared `MatchedText` AST variant + codegen + 8
+  exhaustiveness sites + a unit test); additive/dormant (614/0). END-TO-END diagnosis revealed that
+  NON-bootstrap grammars (regex) parse return annotations via the GENERATED `Return_annotationParser`
+  (surface B), so a throwaway `num = digit+ -> $text` still produced a passthrough; part-2 (extend
+  `return_annotation.ebnf` + regen + the generated→AST conversion + `$0`-index-0 mapping) is the remaining
+  critical path before `.4` can use `-> $text` on regex.
 - `2026-06-07`: `.2` design decision (`PGEN-REGEX-SELF-HOST-0002`) — any-char primitive = built-in reserved
   rule name `any_char` (director pick); then `.2` IMPLEMENTATION DONE (`PGEN-REGEX-SELF-HOST-0003`): native
   `any_char` built-in added to the codegen (emitted for a `rule_reference` to `any_char` with no grammar

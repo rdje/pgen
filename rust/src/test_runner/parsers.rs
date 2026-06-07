@@ -8,6 +8,8 @@ use anyhow::Result;
 pub fn unparse_return_ast(ast: &UnifiedReturnAST) -> String {
     match ast {
         UnifiedReturnAST::PositionalRef { index } => format!("${}", index),
+        // REGEX-SELF-HOSTING.3: `$text` (alias `$0`) unparses to the canonical `$text`.
+        UnifiedReturnAST::MatchedText => "$text".to_string(),
         UnifiedReturnAST::StringLiteral { value } => format!("\"{}\"", value),
         UnifiedReturnAST::NumberLiteral { value } => {
             if value.fract() == 0.0 {

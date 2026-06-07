@@ -76,6 +76,8 @@ fn normalize_return_ast(input: &str) -> String {
 fn canonicalize_return_ast(ast: &UnifiedReturnAST) -> String {
     match ast {
         UnifiedReturnAST::PositionalRef { index } => format!("${}", index),
+        // REGEX-SELF-HOSTING.3: `$text` and its alias `$0` both canonicalize to `$text`.
+        UnifiedReturnAST::MatchedText => "$text".to_string(),
         UnifiedReturnAST::StringLiteral { value } => {
             format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
         }

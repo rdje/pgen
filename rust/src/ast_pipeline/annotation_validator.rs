@@ -415,7 +415,8 @@ impl AnnotationValidator {
             | UnifiedReturnAST::BooleanLiteral { .. }
             | UnifiedReturnAST::NullLiteral
             | UnifiedReturnAST::Identifier { .. }
-            | UnifiedReturnAST::Passthrough => {}
+            | UnifiedReturnAST::Passthrough
+            | UnifiedReturnAST::MatchedText => {}
         }
     }
 
@@ -2281,7 +2282,8 @@ impl AnnotationValidator {
             | UnifiedReturnAST::BooleanLiteral { .. }
             | UnifiedReturnAST::NullLiteral
             | UnifiedReturnAST::Identifier { .. }
-            | UnifiedReturnAST::Passthrough => 0,
+            | UnifiedReturnAST::Passthrough
+            | UnifiedReturnAST::MatchedText => 0,
         }
     }
 }

@@ -106,7 +106,10 @@ fn derive_shape_kind_from_ast(ast: &UnifiedReturnAST) -> ShapeKind {
         | UnifiedReturnAST::ArrayAccess { .. }
         | UnifiedReturnAST::Spread { .. }
         | UnifiedReturnAST::FlattenSpread { .. }
-        | UnifiedReturnAST::Passthrough => ShapeKind::Passthrough,
+        | UnifiedReturnAST::Passthrough
+        // REGEX-SELF-HOSTING.3: `$text`/`$0` emits a plain string Terminal (matched text); its
+        // static shape is a passthrough Terminal (the value is runtime, like a positional ref).
+        | UnifiedReturnAST::MatchedText => ShapeKind::Passthrough,
         UnifiedReturnAST::NumberLiteral { .. }
         | UnifiedReturnAST::BooleanLiteral { .. }
         | UnifiedReturnAST::NullLiteral

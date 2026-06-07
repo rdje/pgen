@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0005 (REGEX-SELF-HOSTING .3 part-1): the `$text`/`$0` return-annotation — surface A (bootstrap) + shared machinery (CODE; additive/dormant).
+
+Part-1 of the 2nd self-hosting primitive: a `-> $text` return-annotation (with `$0` as an alias) that emits
+a rule's full matched span text as one string Terminal — the native equivalent of a `/.../` capture, needed
+so the quantified char-payloads (`octal_digits = octal_digit+`) can drop `/.../` without re-introducing the
+structured Quantified shape (`digits: "777"`, not a list).
+
+- `UnifiedReturnAST::MatchedText` variant (`unified_return_ast.rs`); `parse_bootstrap` maps `$text` and `$0`
+  → `MatchedText`; `AstReturnTransformer` codegen emits
+  `ParseContent::Terminal(&parser.input[start_pos..parser.position])` (the rule's `start_pos`/`parser.position`
+  are in scope at the transform splice point; the final node is `span: start_pos..end_pos`). 8 non-exhaustive
+  `match` sites updated (validator, shape gate, the 2nd codegen path, LR-chain-template [unsupported there],
+  pretty-print, the two test-runner unparse/canonicalize → `$text`). New unit test
+  `matched_text_dollar_text_and_dollar_zero_emit_span_terminal`.
+- **Additive / dormant:** no grammar uses `$text`/`$0` yet → all parsers byte-identical; `cargo test --lib`
+  614/0; clippy strict source ✓. No user-facing change → no book/contract.
+
+**TOOL-BACKED FINDING (why this is only part-1):** non-bootstrap grammars (regex) parse return annotations
+via the GENERATED `Return_annotationParser` (built from `grammars/return_annotation.ebnf`) through
+`mod.rs::parse_return_annotation_ast` → `parse_generated_return_annotation`, NOT `parse_bootstrap`. A
+throwaway `num = digit+ -> $text` confirmed this end-to-end: the inventory captured `raw_text:"$text"` but the
+generated `parse_num` still emitted a passthrough (`result.clone()`), because surface B doesn't recognize
+`$text`. So **part-2** (extend `return_annotation.ebnf` + regen the generated return-annotation parser + map
+the generated node → `MatchedText` + map the `from_json` "positional" `index==0` → `MatchedText` for `$0`) is
+the remaining critical path before `.4` can use `-> $text` on regex. Recorded in the task tree.
+
 ## 2026-06-07 - PGEN-EBNF-BOOK-0001 (NEW PROPOSED TREE EBNF-BOOK): own (build later) a dedicated EBNF-authoring mdBook (docs).
 
 Director 2026-06-07: PGEN has no book documenting the EBNF *language itself* (how to author a `.ebnf`) — only
