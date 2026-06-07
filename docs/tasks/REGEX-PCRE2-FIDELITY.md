@@ -90,24 +90,28 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   encode (profile-gate / predicate) → migrate/refine the matching `validate_regex_compile_contract` check
   → verify PCRE2-oracle (default) + relaxed-mode + cert-coverage, tools-first, one at a time, measured.
   Children `.3.1`..`.3.10` map to rows 1–10 (start with the generator-tripping `\u`, then `(*verb)`, `[]`).
-- ID: `.3.1`  Status: `pending` (DESIGN PINNED `PGEN-REGEX-PCRE2-0004`)  Goal: PCRE2-align `\u` —
-  **scoped to the braced `\u{…}` (the generator-tripping form), AVOIDING a risky core `simple_escape`
-  restructure.** Tool-backed finding: the escape grammar has a `simple_escape` catch-all
-  (`escape_unit`'s last alt, `regex.ebnf:531`) that structurally accepts `\u`/`\U`/`\i`/`\F`/`\l`/`\L`
-  (non-braced), while `unicode_escape` (`:606`) accepts braced `\u{…}`; `find_invalid_escape_i` (the
-  validator) rejects all 6 letters regardless of brace. So "tag `unicode_escape` + drop the validator"
-  would regress non-braced `\u` in default (simple_escape would accept it). **Clean bounded design:**
-  (1) tag `unicode_escape` `@profiles:["relaxed"]` (default `pcre2` excludes it → braced `\u{…}` rejected
-  structurally; `relaxed` accepts); (2) refine `find_invalid_escape_i`'s `\u` arm to reject `\u` ONLY when
-  NOT followed by `{` (so the validator no longer fires on braced `\u{`, which the grammar now owns; the
-  6-letter non-braced rejection stays — it migrates in a later leaf); (3) **add the GENERATOR-side `pcre2`
-  default for regex** (cert-coverage + `--generate-stimuli` paths in `main.rs`) — ESSENTIAL: with `.2`
-  the witness/`parse_and_cover_regex` is `pcre2` (excludes `unicode_escape`), so if the generator stayed
-  permissive it would emit `\u{…}` the witness now rejects → a NEW cert-coverage failure. **Conformance-
-  neutral on the DEFAULT accepted language** (default rejected `\u{…}` before via the validator, rejects
-  it after via gating; non-braced backslash-u still validator-rejected) → RGX conformance unchanged; relaxed GAINS braced
-  `\u{…}`. Verify: `regex_pcre2_compile_oracle_gate` (default), relaxed probe, cert-coverage (no new fail),
-  lib, RGX conformance; regen `generated/regex_parser.rs`; released lockstep (manifest `unicode_escape`
+- ID: `.3.1`  Status: `pending` (DESIGN CORRECTED `PGEN-REGEX-PCRE2-0005`; the `-0004` "bounded" design
+  was SUPERSEDED as flawed)  Goal: PCRE2-align `\u`.
+  **⚠️ `-0004` correction (tool-backed): gating `unicode_escape` alone is INSUFFICIENT.** Empirically
+  (`parseability_probe`): `\g`/`\a` parse via the `simple_escape` catch-all; `\u{41}`/`\uZ` are rejected
+  by the VALIDATOR, not structurally — `simple_escape` (`escape_unit`'s last alt, `regex.ebnf:531/:543`,
+  `!"o{" !"x{" !"p{" !"P{" any_char`) matches `\u` (any letter). So with `unicode_escape` gated out in
+  default, `\u{…}` does NOT get rejected — it just shifts to `simple_escape` (parsed as `\u` + `{…}`), and
+  the `-0004` "refine the validator to not reject `\u{`" tweak would make default *accept* it. WRONG.
+  **Corrected design — the real lever is the `simple_escape` (+ `class_simple_escape`, `:449`) catch-all:**
+  (1) profile-gate the 6 unsupported escape letters (`i F l L u U`): a strict (untagged, always-active)
+  `simple_escape` variant that EXCLUDES them (`!"i" !"F" !"l" !"L" !"u" !"U"` added to the existing
+  `!"o{" !"x{" !"p{" !"P{"` + RGX-0087 `\8`/`\9` guards) + a `@profiles:["relaxed"]` variant that admits
+  them (`simple_escape = simple_escape_strict | simple_escape_relaxed`); same for `class_simple_escape`;
+  (2) tag `unicode_escape` `@profiles:["relaxed"]` (braced shape relaxed-only); (3) generator-side `pcre2`
+  default (the `.2` parse-side default's GENERATION twin — via `apply_grammar_profile_filter` defaulting
+  regex `None`→`pcre2`, `main.rs:2196`); (4) then `find_invalid_escape_i` can be FULLY removed (grammar
+  owns all 6). **MUST preserve** `simple_escape`'s existing guards (`\o{`/`\x{`/`\p{`/`\P{`, RGX-0087
+  `[89]`) + the `{type:"escape",kind:"shorthand",char:$N}` AST shape in both variants — a core-rule
+  restructure, higher-risk → careful released slice. Conformance-neutral on DEFAULT (default rejected the
+  6 escapes before via the validator, after via the strict variant) → RGX conformance unchanged; relaxed
+  GAINS them. Verify: `regex_pcre2_compile_oracle_gate` (default), relaxed probe, cert-coverage (no new
+  fail), lib, RGX conformance; regen `generated/regex_parser.rs`; released lockstep (manifest `unicode_escape`
   now relaxed-only + book + contract + ledger + release/contract bump). Fresh context for the lockstep.
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
@@ -195,7 +199,8 @@ wiring + the `normalize` default.
 | `.1` | `PGEN-REGEX-PCRE2-0001` | scoping |
 | `.2` design | `PGEN-REGEX-PCRE2-0002` | pinned the explicit-`pcre2`-default wiring plan |
 | `.2` | `PGEN-REGEX-PCRE2-0003` | parse-side `pcre2` default (Rust-only, no-op verified) |
-| `.3.1` design | `PGEN-REGEX-PCRE2-0004` | bounded `\u{…}` design (avoids simple_escape restructure) |
+| `.3.1` design | `PGEN-REGEX-PCRE2-0004` | bounded `\u{…}` design — SUPERSEDED (flawed: simple_escape catches `\u`) |
+| `.3.1` design correction | `PGEN-REGEX-PCRE2-0005` | the real lever is the simple_escape catch-all restructure |
 
 ## Changelog
 
@@ -204,7 +209,11 @@ wiring + the `normalize` default.
 - `2026-06-07`: `.2` design (`PGEN-REGEX-PCRE2-0002`) pinned the explicit-`pcre2`-default wiring (the
   `None => true` permissive-guard wrinkle); `.2` DONE (`PGEN-REGEX-PCRE2-0003`) — parse-side `pcre2`
   default wired (Rust-only, no-op verified). Frontier → `.3.1` (`\u`).
-- `2026-06-07`: `.3.1` DESIGN pinned (`PGEN-REGEX-PCRE2-0004`) — bounded to braced `\u{…}` (gate
-  `unicode_escape` + refine the validator `\u` arm to no-brace + ESSENTIAL generator-side `pcre2`
-  default), conformance-neutral, AVOIDING a risky core `simple_escape` restructure. Released
-  implementation (regen + lockstep + release bump) recommended for fresh context.
+- `2026-06-07`: `.3.1` DESIGN pinned (`PGEN-REGEX-PCRE2-0004`) — bounded to braced `\u{…}`. **SUPERSEDED
+  by `-0005` (DESIGN CORRECTION):** empirically (`\g`/`\a` parse; `\u{41}`/`\uZ` validator-rejected) the
+  `simple_escape` catch-all matches `\u`, so gating `unicode_escape` alone is INSUFFICIENT (shifts `\u{…}`
+  to `simple_escape`). The real lever is the `simple_escape`/`class_simple_escape` catch-all restructure
+  (profile-gate the 6 letters `i F l L u U`: strict-untagged excludes them, `@profiles:["relaxed"]`
+  admits them) + `unicode_escape` gate + generator-side `pcre2` default, then remove
+  `find_invalid_escape_i`. A core-rule restructure (preserve existing guards + AST shape) → higher-risk
+  released slice; careful fresh-context execution.
