@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-PCRE2-FIDELITY.3.1 — DESIGN COMPLETION for `\u` PCRE2-alignment (PGEN-REGEX-PCRE2-0006)
+
+### Why a third design pass
+`.3.1`'s pinned `-0005` design was a real improvement over `-0004` but still incomplete. Before touching the released regex grammar, I traced the full `\u` acceptance surface tools-first (`pcre2test` oracle + grammar/validator/codegen read) and found two gaps that would have produced a wrong implementation:
+
+1. **Omitted third catch-all.** The `\u`(+5) escapes can be accepted by THREE catch-alls, not two: `simple_escape` (atom, `regex.ebnf:581`), `class_simple_escape` (class, `:449`), and `class_range_literal_escape_letter` (class-range, `:486-487`). The last is an explicit letter list that includes `F L U I i l u`. `find_invalid_escape_i` rejects context-insensitively, so deleting it without gating the class-range path would make default-mode ACCEPT `[\u-\x7f]` — a fidelity regression. Design now covers all three.
+2. **The validator is a strict subset of PCRE2's rule.** `pcre2test` 10.47 shows PCRE2 rejects EVERY unrecognized `\<letter>` (`\u \U \F \l \L`→err 137, `\i \I \J …`→err 103), not just the validator's six. So `.3.1` (migrate the six, conformance-neutral) is a stepping stone; full escape fidelity is a recognized-escape WHITELIST → new discovered leaf `.3.11`.
+
+### Mechanism facts (verified, not assumed)
+- Profile guard is rule-level: `if !self.rule_profile_is_enabled(&[…]) { return Err(ParseError::Backtrack { position }); }` (`ast_based_generator.rs:2376`). A `@profiles:["relaxed"]` rule cleanly backtracks under a non-relaxed profile — so the strict/relaxed two-variant alternation (`foo = foo_strict | foo_relaxed`, the existing `escape_unit` passthrough pattern) is the right shape.
+- `rule_profile_is_enabled` (`:3806`): empty profiles → true; `None` active profile → true (PERMISSIVE). ⇒ regex must default GENERATION to explicit `pcre2` (the parse side was defaulted in `.2`).
+- `generated/` is gitignored (`0ed2b2ad`); regen is local-only, commit codegen + grammar only.
+
+### Result
+Exact edits + recomputed positional refs (`simple_escape_strict` `$15`→`$21`; `class_simple_escape_strict` `$5`→`$11`) + manifest churn pinned in `docs/tasks/REGEX-PCRE2-FIDELITY.md` ("`.3.1` DESIGN COMPLETION"). Oracle matrix → `docs/decisions/reference_pcre2_unsupported_escape_oracle.md`. `\I` stays accepted in `.3.1` (validator-parity; owned by `.3.11`). Docs-only; no code/regen/lockstep this slice.
+
 ## 2026-06-07 - REGEX-PCRE2-FIDELITY.1 — scope PCRE2-faithful-by-default regex with a relaxed opt-out (PGEN-REGEX-PCRE2-0001)
 
 Director directive: regex accepts/rejects exactly what PCRE2 does by default (PCRE2 = de-facto reference), opt-out `relaxed` mode, fix in the EBNF via semantic annotations, engine last resort. Full design + the 10-check encoding table live in `docs/tasks/REGEX-PCRE2-FIDELITY.md` `.1` and the decision `project_regex_pcre2_faithful_by_default_relaxed_optout.md`. Key feasibility facts (tool-backed): `@profiles` profile-gating is parser-agnostic (codegen profile guard for any grammar; `grammar_profile` plumbing generic); annotation value-constraints (`@predicate`/`len_bounds`/`numeric_bounds`) exist; `regex_pcre2_compile_oracle_gate` (`pcre2test`) is the oracle; `regex.ebnf` is single-profile (adding `relaxed` is additive). Design: default = strict-PCRE2 base, `relaxed` = additive opt-out; migrate `validate_regex_compile_contract`'s 10 sub-checks INTO `regex.ebnf` (profile-gate forbidden constructs; predicate value rules) then delete the validator. Subsumes EBNF-SOT.3 + the `[]` residual. Hard-case flag: `\K`-in-lookaround (contextual) may need a new parser-agnostic annotation primitive (rung 3), not engine. Pure-docs scoping; no code.

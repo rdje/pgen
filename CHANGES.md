@@ -1,4 +1,16 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-PCRE2-0006 (REGEX-PCRE2-FIDELITY .3.1 DESIGN COMPLETION): tool-backed final `\u` design across all three escape catch-alls (docs).
+
+Tools-first completion of the `.3.1` design before touching the released grammar (per the no-guessing / understand-fully / verify-against-the-executable-oracle disciplines). Ran the `pcre2test` 10.47 oracle and read the regex grammar, the validator, and the profile-gating codegen end-to-end.
+
+- **The `-0005` design was STILL incomplete.** It named only two catch-alls (`simple_escape`, `class_simple_escape`), but there is a THIRD: `class_range_literal_escape_letter` (`regex.ebnf:486-487`) explicitly lists `F L U I i l u`, so it would ACCEPT `\u`/`\U`/`\F`/`\l`/`\L`/`\i` in class-range position (`[\u-\x7f]`) the moment `find_invalid_escape_i` is deleted — a default-mode fidelity regression. `-0006` completes the design across all three catch-alls.
+- **Oracle (pcre2test 10.47, 8-bit & utf identical):** PCRE2 rejects `\u \U \F \l \L` (error 137) and `\i` (error 103) in atom, class, AND class-range; `alt_bsux` is the mode that gives `\u`/`\u{…}` meaning (the relaxed analogue). Recorded as the reusable decision record `reference_pcre2_unsupported_escape_oracle.md`.
+- **Broader tool-backed finding:** PCRE2 rejects EVERY unrecognized `\<letter>` (e.g. `\I \J` → error 103), not just the validator's six. PGEN's catch-alls accept the broad set, so `.3.1` (six-letter migration) is a conformance-NEUTRAL stepping stone; full PCRE2 escape fidelity is a WHITELIST, spun out as the new discovered leaf `.3.11`.
+- **Mechanism verified:** the profile guard is rule-level and emits a clean `Err(ParseError::Backtrack)` (`ast_based_generator.rs:2376`); `rule_profile_is_enabled` treats `None` as permissive, so the generator MUST default to an explicit `pcre2` profile. Pinned exact edits + recomputed positional refs (`simple_escape_strict` `$15`→`$21`, `class_simple_escape_strict` `$5`→`$11`) + manifest churn in the task file.
+- Resolved the profile-naming Open Question (explicit `pcre2`); `\K`-in-lookaround (#10) still open.
+
+Docs-only (task file, decision record + index, MEMORY.md, TASK_TREE.md, this entry). No code, no regen, no released lockstep. Frontier → `.3.1` IMPLEMENTATION. LIVE_ACHIEVEMENT_STATUS unchanged.
+
 ## 2026-06-07 - PGEN-MEMORY-ARCH-0023 (handoff hygiene): repair the DOCPATH Active-table row + sharpen the layer-A resume pointer (docs).
 
 Handoff-readiness pass (director request "ensure the repo is handoff ready"). Verified all layers + fixed two continuity defects:
