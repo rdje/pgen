@@ -108,13 +108,30 @@ content.
   feature). No regex.ebnf change in `.2`. ⚠️ char-vs-byte/UTF-8 semantics fixed here so `.4`'s
   `[^\x00-\x7F]`-style conversions are exact (range-negation like `unicode_char` may also need an ascii
   guard or a char-value constraint — a `.4` design item).
-- ID: `.3`  Status: `pending`  Goal: convert the SIMPLE positive char-classes (single + quantified) in
-  `regex.ebnf` to literal alternations — one batch (or a few), each regen + oracle byte-identical + lib +
-  RGX conformance + shape-contract. Removes ~20 of 36 `"regex"` nodes.
-- ID: `.4`  Status: `pending`  Goal: convert the NEGATED / content-until-delimiter / any-char classes using
-  `!"X" any_char` + the primitive (`unicode_char`, `name`, callout payloads, `directive_payload_*`,
-  `comment_text`, `any_char`). Removes the remaining ~16.
-- ID: `.5`  Status: `pending`  Goal: CAPSTONE — assert `regex.ebnf` has zero `/.../` and
+- ID: `.3`  Status: `in_progress` (`PGEN-REGEX-SELF-HOST-0004`/`-0005`)  Goal: **2nd enabling primitive — the
+  `-> $text` return-annotation** (with `$0` as an alias, director 2026-06-07). **WHY (tool-backed finding):**
+  the ~8 quantified payloads (`octal_digits`/`hex_digits`/`digits`/`prop_name`/`backreference_digits`/
+  `hex_escape_short_payload`/`octal_escape_short_payload`/`name`) use `/.../`-with-capture SPECIFICALLY to
+  emit the whole match as ONE flat string (`octal_digits` → `"777"`; the grammar's own comment at
+  `regex.ebnf:1186-1188` documents the deliberate switch from a char-rule chain that "emit[ted]
+  `[first_digit, [rest_digits]]`" to the regex literal "to emit a clean string Terminal"). So `char+` alone
+  would re-introduce the structure and break the AST contract (`digits: $N` must stay `"777"`, NOT a
+  Quantified node). `-> $text` makes a rule return its full matched span text as a string Terminal (native
+  equivalent of a `/.../` capture; uses the span the parser already tracks). Implement: add a `MatchedText`
+  variant to the return-annotation AST (`unified_return_ast.rs`) + parse `$text`/`$0` (bootstrap parser +
+  `return_annotation.ebnf`) + codegen (emit `ParseContent::Terminal(&self.input[node.span])`). Prove on a
+  throwaway grammar (`r = digit+ -> $text` over `"123"` → `"123"`). ADDITIVE (no existing annotation uses
+  `$text`/`$0`) → all parsers byte-identical. Lockstep: `docs/RETURN_ANNOTATIONS_REFERENCE.md` +
+  `PGEN_ANNOTATION_NORMATIVE_SPEC.md` + the return-annotation contract + annotation book chapter.
+- ID: `.4`  Status: `pending`  Goal: convert the POSITIVE char-classes in `regex.ebnf` to literals — single
+  ones (`digit`/`letter`/`hex_digit`/`octal_digit`/`whitespace`/`short_prop_letter`/… → `'c'` ordered-choice;
+  shape-safe one-char Terminal) and quantified ones (`digits = digit+ -> $text`, etc.; uses `.3`'s `$text`).
+  Batches, each regen + oracle byte-identical + lib + shape-contract + RGX conformance. Removes ~20 of 36.
+- ID: `.5`  Status: `pending`  Goal: convert the NEGATED / content-until-delimiter / any-char classes using
+  `!"X" any_char` (`.2`'s primitive) + `$text` for multi-char runs (`unicode_char`, `name`, callout
+  payloads, `directive_payload_*`, `comment_text`, `any_char`). ⚠️ range-negations like
+  `unicode_char [^\x00-\x7F]` may need an ascii guard. Removes the remaining ~16.
+- ID: `.6`  Status: `pending`  Goal: CAPSTONE — assert `regex.ebnf` has zero `/.../` and
   `generated/regex_parser.rs` contains no `match_regex`/`regex::Regex` call; add a gate/test that fails if a
   `/.../` reappears in `regex.ebnf`; lockstep (regex book "self-hosting" note + contract if a surface
   changed). THEN the tree is done and regex cert-coverage-clean resumes (director sequencing).
@@ -126,6 +143,14 @@ content.
 - `2026-06-07` (`.1`): full self-hosting requires ONE new parser-agnostic engine primitive (native
   any-single-character matcher); native `[...]` char-classes do NOT help (they compile to Rust regex). The
   rest is mechanical literal-alternation conversion. Engine change is justified (parser-agnostic, general).
+- `2026-06-07` (`.3` finding + decision, director): self-hosting needs a SECOND parser-agnostic primitive —
+  a **`-> $text` return-annotation** (with **`$0` as an alias**) that emits a rule's full matched span text as
+  one string Terminal. TOOL-BACKED: the quantified payloads use `/.../`-capture to return a flat string
+  (`octal_digits` → `"777"`), confirmed by the grammar's own comment (`regex.ebnf:1186-1188`: deliberate
+  switch from a char-rule chain emitting `[first,[rest]]` to a regex literal "to emit a clean string
+  Terminal"); a bare `char+` would re-break the AST contract. `$text` is the native equivalent of a `/.../`
+  capture (uses the parser's span). Additive (no existing annotation uses `$text`/`$0`). Spelling = `$text`
+  primary + `$0` alias (director).
 - `2026-06-07` (`.2` design, director): the any-char primitive is spelled as a **built-in reserved rule name
   `any_char`** (no new EBNF token/punctuation; closest to the `"..."`-only intent — grammars reference
   `any_char`, and negated classes are `!"X" any_char`). The codegen emits the native matcher for a

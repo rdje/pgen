@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.3 design — the `$text` text-recovery primitive (PGEN-REGEX-SELF-HOST-0004)
+
+### The finding (tool-backed; the grammar documents it)
+Before converting the quantified char-classes, I checked the AST-shape impact: `\o{777}` → `digits: "777"`
+(flat string). `regex.ebnf:1186-1188` says `octal_digits` was deliberately changed FROM a char-rule chain
+(which "emit[ted] `[first_digit, [rest_digits]]`") TO `/([0-7]+)/` "to emit a clean string Terminal." So
+the `/.../` quantified payloads exist precisely to flatten the match to one string — a bare `char+` would
+re-break that (`digits` would become a Quantified node, not `"777"`). Confirmed there is NO existing
+"matched text" annotation (`**` flattens to arrays, not strings).
+
+### The decision
+Add a `-> $text` return-annotation (director: `$0` as an alias) = the rule's full matched span text as one
+string Terminal — the native equivalent of a `/.../` capture, using the span the parser already tracks.
+Additive (no annotation uses `$text`/`$0`). This is the 2nd enabling primitive (with `any_char`).
+
+### Implementation surfaces (next slice, -0005)
+`UnifiedReturnAST::MatchedText` variant (`unified_return_ast.rs`) + parse `$text`/`$0` in `parse_bootstrap`
+(hand-rolled, the runtime path) AND the typed-JSON path AND `grammars/return_annotation.ebnf` (both
+surfaces in lockstep) + codegen `ParseContent::Terminal(&self.input[node.span])` + docs (RETURN_ANNOTATIONS_REFERENCE,
+ANNOTATION_NORMATIVE_SPEC, the return-annotation contract, the annotation book chapter). Single-char
+classes (`digit`→`'0'|…`) don't need `$text` (one-char Terminal is shape-safe); the quantified ones do.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.2 — native `any_char` engine primitive (PGEN-REGEX-SELF-HOST-0003)
 
 ### What landed

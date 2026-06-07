@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0004 (REGEX-SELF-HOSTING .3 DESIGN): the `$text` text-recovery return-annotation primitive (docs).
+
+Tool-backed design finding for self-hosting: the ~8 quantified payloads in `regex.ebnf`
+(`octal_digits`/`hex_digits`/`digits`/`prop_name`/`backreference_digits`/`hex_escape_short_payload`/
+`octal_escape_short_payload`/`name`) use `/.../`-with-capture **specifically** to emit the whole match as
+ONE flat string (`octal_digits` → `"777"`). The grammar's own comment (`regex.ebnf:1186-1188`) documents
+the deliberate switch from a char-rule chain that "emit[ted] `[first_digit, [rest_digits]]`" to a regex
+literal "to emit a clean string Terminal." So converting them to a bare `char+` would re-introduce the
+structure and break the AST contract (`digits: $N` must stay `"777"`, not a Quantified node).
+
+⇒ self-hosting needs a SECOND parser-agnostic primitive: a **`-> $text`** return-annotation (director: with
+**`$0` as an alias**) = a rule returns its full matched span text as one string Terminal — the native
+equivalent of a `/.../` capture (uses the parser's span). Re-scoped the REGEX-SELF-HOSTING tree: `.3` = the
+`$text` primitive (this design; implementation next), `.4` = convert positive char-classes (single → `'c'`
+ordered-choice [shape-safe]; quantified → `char+ -> $text`), `.5` = negated/any-char via `!"X" any_char`
+(`.2`'s primitive), `.6` = capstone (zero `/.../` + guard gate). Decision + finding recorded in the task
+tree. Docs-only; no code. Frontier → `.3` implementation (a careful, additive return-annotation-language
+change: AST variant + bootstrap parser + `return_annotation.ebnf` + codegen + 4 doc surfaces).
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0003 (REGEX-SELF-HOSTING .2): native `any_char` engine primitive (CODE; additive/dormant, byte-identical).
 
 The enabling engine primitive for self-hosting: a built-in native any-single-character matcher.
