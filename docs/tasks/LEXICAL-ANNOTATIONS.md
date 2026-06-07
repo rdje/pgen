@@ -1,6 +1,16 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `done` (2026-06-07, `PGEN-LEXICAL-ANNOTATIONS-0020` — director-directed close). The 4th
+> **Status:** `active` — **RE-OPENED 2026-06-07** for leaf **`.5`** (per this tree's own re-open clause:
+> a *lexical-faithfulness*-classified per-grammar cert-coverage residual reopens a lexical leaf). Tool-backed
+> finding `PGEN-EBNF-SOT-0003` (EBNF-SOURCE-OF-TRUTH.2.1): the regex cert-coverage `sample_parse_failures`
+> (39 at count 200) are STRUCTURAL and caused by `apply_word_boundary_spacing` over-inserting a trailing
+> `" "` separator after an identifier even when the next char is a closing delimiter `)` — breaking
+> `(*VERB )` / `(?P>NAME )` / `(?(COND ))` on re-parse. `--no-word-boundary-spacing` collapses it 39→2, so
+> ~37/39 are this over-insertion. This is a lexical-faithfulness defect (emitted chars must re-parse to the
+> intended tokens) → leaf `.5`. Frontier = `.5`. (Prior closure stands for `.1`–`.4`; see the historical
+> banner below.)
+>
+> **(historical) Status:** `done` (2026-06-07, `PGEN-LEXICAL-ANNOTATIONS-0020` — director-directed close). The 4th
 > declarative pillar (lexical/layout annotations) is **landed, tested, and verified working**: derived
 > Obligations A (intra-token, `-0005`) + B (inter-token, `-0006`), the declarative `[> …]`/`[>! …]`
 > follow-restriction (`.3c` `-0013`), faithful-by-default CLI (`.3d` ii-CLI `-0015`), round-trip/golden
@@ -324,6 +334,20 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   (G.4.7 slice 3, fixed at source by Obligation A `-0005`) or word-fusion (G.4.7 slice 2, generalized by
   Obligation B `-0006`; the flag is now the default-on mode toggle, `.3d`) special cases — both are now
   general instances of the derived obligations. VERIFIED: lib 613/613 (+3); source clippy clean.
+- `.5` — **word-boundary spacing must NOT separate before a closing delimiter (RE-OPENED, `pending`,
+  2026-06-07).** Goal: `apply_word_boundary_spacing` (`rust/src/ast_pipeline/stimuli_generator.rs:~7016`)
+  inserts a trailing `" "` separator after an identifier-class token to prevent fusion with a FOLLOWING
+  token — but it over-inserts when the following token is a closing delimiter (`)`, and likely `]`/`}`/
+  end-of-input) that cannot fuse with the preceding identifier into a different token. The spurious space
+  breaks `(*VERB )` / `(?P>NAME )` / `(?(COND ))` on re-parse (regex), while sub-rules that genuinely allow
+  trailing whitespace (`(*MARK:x )`, `a{1 ,1 }`) are unaffected. Root cause + evidence:
+  `EBNF-SOURCE-OF-TRUTH.2.1` (`PGEN-EBNF-SOT-0003`). **Acceptance:** the separator is suppressed when the
+  next emitted token's leading char cannot fuse with the preceding token (e.g. it is a closing delimiter /
+  the forbidden-follow set already prevents fusion); regex cert-coverage `sample_parse_failures` 39 → ~2
+  (count 200, seed 0); no regression in any grammar's stimuli / cross-family / closed-loop gates;
+  determinism preserved. Parser-agnostic generator change (benefits every grammar). Tools-first: re-measure
+  the 2 residual structural failures after the fix to confirm they are unrelated (a separate follow-up).
+  Verification: pending. Commit: pending.
 
 ## Cross-links
 

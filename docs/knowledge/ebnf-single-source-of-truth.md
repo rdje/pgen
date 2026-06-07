@@ -36,14 +36,26 @@ If the parser ALSO runs a separate validator the EBNF doesn't encode, then
 generated-but-rejected set. It is **not** the generator violating the grammar — it is the grammar not
 being the whole spec.
 
-## The canonical instance (regex, 2026-06-07)
+## The canonical instance (regex, 2026-06-07) — and a correction on the METRIC
 
-regex cert-coverage (`GRAMMAR-WELLFORMED.H.1`) reported 6 `sample_parse_failures`. The EBNF structurally
-accepts them (`unicode_escape = "u{" hex_digits "}"` → `\u{…}`; `directive_verb = "(*" directive_body
-")"` → `(*<any-name>)`), but `rust/src/regex_compile_validation.rs` (a post-parse PCRE2-compile check,
-referenced by neither the generator nor the EBNF) rejects `\u` ("unsupported regex escape") and
-unrecognized `(*verb)` names. So the generator emits EBNF-valid `\u{…}` / `(*xjDD)` and the validator
-rejects them. (`\x{b7a2}` / `(?|a)` / `(?P>n)` / `(?(1)a)` parse — only `\u` and unrecognized verbs fail.)
+The real EBNF-SOT defect (CONSUMER parse path): the EBNF structurally accepts
+`\u{…}` (`unicode_escape = "u{" hex_digits "}"`) and `(*<any-name>)`
+(`directive_verb = "(*" directive_body ")"`), but `rust/src/regex_compile_validation.rs`
+(`validate_regex_compile_contract`, referenced by neither the generator nor the EBNF) rejects `\u`
+("unsupported regex escape") and unrecognized `(*verb)` names. So `parse_with_regex_detail` (the path
+consumers use) rejects generator-valid `\u{…}` / `(*xjDD)`. (`\x{b7a2}` / `(?|a)` / `(?P>n)` / `(?(1)a)`
+parse — only `\u` and unrecognized verbs fail.) This is a genuine duality break and is owned by
+`EBNF-SOURCE-OF-TRUTH.3`.
+
+**⚠️ Metric correction (`PGEN-EBNF-SOT-0003`, EBNF-SOURCE-OF-TRUTH.2.1):** the `.1` claim that regex
+cert-coverage `sample_parse_failures` (the `GRAMMAR-WELLFORMED.H.1` "6") was caused by this validator was
+**wrong**. cert-coverage's witness path `parse_and_cover_regex` (`parser_registry.rs:327`) **deliberately
+omits the validator** (comment `:324`), so `\u`/`(*verb)` PARSE there and are scored as witnesses, never
+failures. The cert-coverage `sample_parse_failures` are STRUCTURAL — caused by the generator's
+`apply_word_boundary_spacing` over-inserting a trailing `" "` before a closing `)` (LEXICAL), not the
+validator. See `cert-coverage-measures-structural-not-validator`. Lesson: a "semantic message via
+`parseability_probe`" only proves the CONSUMER path runs a validator — it does NOT prove the cert-coverage
+metric (a different, validator-free path) is caused by it. Always check WHICH parse path the metric uses.
 
 ## How to act on a generated sample that fails to re-parse
 

@@ -187,7 +187,13 @@ subtle dead branch"), never a silent accept.
   critical downstream is unaffected); `parser_registry` tests 18/0; lib `--features generated_parsers`
   compiles. NEW FINDING (honest, Phase-H-surfaced): regex has **6** witness-parseability
   `sample_parse_failures` (a regex generator↔grammar round-trip residual now MEASURABLE for the first
-  time — a follow-up G.4/Phase-H investigation, NOT a regression). Phase H continues for vhdl / svpp /
+  time — a follow-up G.4/Phase-H investigation, NOT a regression). **ROOT-CAUSED 2026-06-07
+  (`PGEN-EBNF-SOT-0003`, EBNF-SOURCE-OF-TRUTH.2.1):** these witness-parseability `sample_parse_failures`
+  are STRUCTURAL — the stimuli generator's `apply_word_boundary_spacing` over-inserts a trailing `" "`
+  separator after an identifier even when the next char is `)`, breaking `(*VERB )` / `(?P>NAME )` /
+  `(?(COND ))` on re-parse (NOT the out-of-band validator — `parse_and_cover_regex` skips it). At count 200
+  the count is 39; `--no-word-boundary-spacing` collapses it 39→2. Fix routed to a re-opened
+  **`LEXICAL-ANNOTATIONS.5`** (its `apply_word_boundary_spacing` owns it). Phase H continues for vhdl / svpp /
   rtl_* / json (each: regen + a `parse_and_cover_<grammar>` registry fn). ORIGINAL scope:
   Today only `systemverilog` sets `parse_and_cover`
   in `parser_registry.rs`; the cert-coverage gate hard-bails for every other grammar (`supports_parse_and_cover`

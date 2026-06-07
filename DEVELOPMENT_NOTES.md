@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - EBNF-SOURCE-OF-TRUTH.2.1 — root-cause correction: regex cert-coverage failures are LEXICAL, not the validator (PGEN-EBNF-SOT-0003)
+
+### Why this slice exists
+Starting `.3` (fix the regex out-of-band validator) the right way — measure the baseline before changing code — exposed that `.1` mis-attributed the regex cert-coverage `sample_parse_failures`. This is a foundational correction (a prior root-cause was wrong), so per the BE-ALERT discipline I root-caused the actual mechanism and re-routed rather than building the `.3` fix on a false premise.
+
+### The two parse paths (the crux)
+- CONSUMER: `parse_with_regex_detail` (`parser_registry.rs:301`) = `parse_full_regex()` THEN `validate_regex_compile_contract` (`:305`). `parseability_probe --parse regex` uses this.
+- CERT-COVERAGE WITNESS: `parse_and_cover_regex` (`:327`) = `parse_full_regex()` ONLY; validator **intentionally omitted** (comment `:324`). `--report-certificate-coverage` `sample_parse_failures` is computed here.
+
+So cert-coverage `sample_parse_failures` measures the generator↔GRAMMAR **structural** duality and is **validator-free**. `\u{…}` / `(*verb)` parse structurally → witnesses, not failures, in cert-coverage.
+
+### Measurement (tools-first, deterministic)
+Regex-focused build: `cargo build --features generated_parsers,ebnf_dual_run --bin ast_pipeline` with `PGEN_{SYSTEMVERILOG,SYSTEMVERILOG_PREPROCESSOR,VHDL,RTL_CONST_EXPR,RTL_FRONTEND}_PARSER_PATH=/nonexistent` (skip the 70MB SV etc.; `build.rs` activates `has_generated_*` by file presence). Baseline `--report-certificate-coverage --entry-rule regex --count 200 --seed 0` = `sample_parse_failures=39`, identical across two runs (deterministic → signal). Bucketed the same 200 samples (dumped via `--generate-stimuli --count 200 --seed 0`, line 1 matches cert-coverage `[0]`) through `parseability_probe`: 39 STRUCTURAL + 8 validator-only (1 `\u` + 7 other). The 39 structural == cert-coverage's 39 (validator-only ones parse structurally → witnesses).
+
+CLINCHING experiment: regen the same 200 with `--no-word-boundary-spacing` → STRUCTURAL collapses 39→2. So ~37/39 are caused by `apply_word_boundary_spacing` (`ast_pipeline/stimuli_generator.rs:~7016`) inserting a trailing `" "` after an identifier-class token even when the next char is `)`. Clean-vs-spaced confirms per-construct: `(*ACCEPT)`✓/`(*ACCEPT )`✗, `(?P>Nae)`✓/`(?P>Nae )`✗, `(?(j))`✓/`(?(j ))`✗; sub-rules that allow trailing whitespace (`(*MARK:x )`, `a{1 ,1 }`) are unaffected.
+
+### Re-routing
+- `LEXICAL-ANNOTATIONS` RE-OPENED, leaf `.5`: fix `apply_word_boundary_spacing` to suppress the separator before a non-fusable closing delimiter. Acceptance: regex cert-coverage 39→~2, no regression in other grammars' gates. (This, not `.3`, drives the cert-coverage metric.)
+- `EBNF-SOURCE-OF-TRUTH.3` re-scoped: the validator defect is real but on the CONSUMER path; acceptance = generate→`parse_with_regex_detail` divergence → 0, not cert-coverage.
+- Corrected `GRAMMAR-WELLFORMED.H.1` note; corrected the `ebnf-single-source-of-truth` KM card; new decision record + KM card `cert-coverage-measures-structural-not-validator`.
+
+### Validation
+Pure-docs correction; no Rust/grammar/codegen change (the regex-focused build was for MEASUREMENT only, not committed; `generated/` is untracked per `0ed2b2ad`). docpath + memarch guards green; KM regen green.
+
 ## 2026-06-07 - EBNF-SOURCE-OF-TRUTH.2 — audit all parse paths for out-of-band acceptance validation (PGEN-EBNF-SOT-0002)
 
 ### Goal
