@@ -7087,6 +7087,17 @@ impl<'a> StimuliGenerator<'a> {
         // known-open tails trigger a guard, so self-delimiting terminals (fixed literals, closing
         // delimiters) are untouched.
         match Self::regex_terminal_trailing_separator(pattern, &candidate) {
+            // LEXICAL-ANNOTATIONS.5 — successor-aware deferral. When the terminal's tail needs a
+            // SPACE and the candidate ends with a lexical word char, do NOT bake it here: the join
+            // rule `append_generated_segment` (the single concat choke point for both sequences and
+            // quantifier repetition, working on the real accumulated characters so it crosses rule
+            // boundaries) inserts a space iff the NEXT emitted token actually starts with a word
+            // char — i.e. only when fusion is real. Baking the space eagerly here is successor-blind
+            // and over-inserts before a non-fusable closing delimiter (e.g. regex `(*VERB )` /
+            // `(?P>NAME )` / `(?(COND ))`) and at end-of-sample. The `"\n"` guard (non-word open
+            // classes like `[^\n]*` comments — which the join rule's word-char test cannot catch)
+            // and candidates ending in a non-word char keep the eager guard.
+            Some(" ") if Self::ends_with_lexical_word_char(&candidate) => candidate,
             Some(sep) => {
                 let mut out = candidate;
                 out.push_str(sep);
@@ -11776,7 +11787,11 @@ mod tests {
     }
 
     #[test]
-    fn word_boundary_spacing_policy_appends_separator_for_terminal_boundary() {
+    fn word_boundary_spacing_is_successor_aware_no_trailing_separator_for_lone_terminal() {
+        // LEXICAL-ANNOTATIONS.5: a lone open-tail terminal (`input\b`) has no successor that could
+        // fuse onto it, so word-boundary spacing must NOT bake a spurious trailing separator.
+        // (Pre-fix this asserted `ends_with(' ')` — the successor-blind over-insertion this leaf
+        // fixes. Inter-token separation is now applied successor-aware by append_generated_segment.)
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert("start".to_string(), token("regex", "input\\b"));
         let rule_order = vec!["start".to_string()];
@@ -11807,8 +11822,8 @@ mod tests {
             .generate_many(1, None)
             .expect("word-boundary spacing generation should succeed");
         assert!(
-            StimuliGenerator::regex_matches_entire(r"input\b", value[0].trim_end()),
-            "trimmed word-boundary sample must satisfy regex contract: {:?}",
+            StimuliGenerator::regex_matches_entire(r"input\b", value[0].as_str()),
+            "lone word-boundary terminal must satisfy its regex with no trailing separator: {:?}",
             value[0]
         );
         assert!(
@@ -11817,8 +11832,8 @@ mod tests {
             value[0]
         );
         assert!(
-            value[0].ends_with(' '),
-            "word-boundary spacing should append delimiter space: {:?}",
+            !value[0].ends_with(' ') && !value[0].ends_with('\n'),
+            "successor-aware spacing must not append a spurious trailing separator for a lone terminal: {:?}",
             value[0]
         );
     }
@@ -11887,6 +11902,59 @@ mod tests {
         assert!(
             StimuliGenerator::regex_matches_entire("[A-Za-z]+", parts[2]),
             "third segment must satisfy originating regex: {:?}",
+            value[0]
+        );
+    }
+
+    #[test]
+    fn word_boundary_spacing_not_inserted_before_non_fusable_closing_delimiter() {
+        // LEXICAL-ANNOTATIONS.5 regression lock: an open-tail word terminal (`[A-Za-z]+`)
+        // immediately followed by a literal closing delimiter `)` must NOT be separated — the
+        // delimiter cannot fuse with the identifier, so `name)` (not `name )`) is the faithful,
+        // re-parsable surface. Pre-fix the eager guard baked a trailing space → `name )` (the regex
+        // `(*VERB )` / `(?P>NAME )` / `(?(COND ))` defect). Separation is now successor-aware.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("regex", "[A-Za-z]+"), token("regex", "\\)")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let mut generator = StimuliGenerator::new(
+            "word_boundary_closing_delim".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(4242),
+                max_depth: 4,
+                max_repeat: 2,
+                max_rule_visits: 4,
+                target_pending_frontier_extra_stagnation: 8,
+                target_generation_timeout_ms: 0,
+                target_helper_generation_timeout_ms: 1000,
+                recovery_mode: RecoveryStimuliMode::Baseline,
+                mutation_mode: StimuliMutationMode::Baseline,
+                constraint_profile: StimuliConstraintProfile::Baseline,
+                negative_profile: StimuliNegativeProfile::Baseline,
+                enforce_word_boundary_spacing: true,
+                trace_verbosity: TraceVerbosity::None,
+            },
+        );
+
+        let value = generator
+            .generate_many(1, None)
+            .expect("closing-delimiter spacing generation should succeed");
+        assert!(
+            StimuliGenerator::regex_matches_entire(r"[A-Za-z]+\)", value[0].as_str()),
+            "open-tail terminal + closing delimiter must re-lex as `name)` with no interposed separator: {:?}",
+            value[0]
+        );
+        assert!(
+            !value[0].contains(' ') && !value[0].contains('\n'),
+            "successor-aware spacing must not insert a separator before a non-fusable `)`: {:?}",
             value[0]
         );
     }

@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - LEXICAL-ANNOTATIONS.5.1 — successor-aware word-boundary spacing: defer the eager guard to the join rule (PGEN-LEXICAL-ANNOTATIONS-0022)
+
+### Architecture (tools-first)
+Two word-boundary mechanisms coexist in the in-memory generator:
+1. EAGER terminal guard — `apply_word_boundary_spacing` (`stimuli_generator.rs:7076`), applied at terminal-render time, BAKES a separator into the terminal's returned string. Decision via `regex_terminal_trailing_separator` (:7102) → `regex_tail_greedy_blocker` (:7133): for a greedy unbounded word-class tail (e.g. `directive_name`'s `[A-Za-z0-9_\-]*`) it returns `Some(" ")` UNCONDITIONALLY — successor-blind.
+2. JOIN rule — `append_generated_segment` (:7196), the single concat choke point for BOTH `generate_sequence` (5824/5846/5861/5926) AND quantifier repetition (6217). It inserts a space iff the accumulated output ends AND the next segment starts with a lexical word char — successor-aware, operating on real chars (so it crosses rule boundaries). I confirmed no other path concatenates generated children via raw `push_str` (the only other `push_str(segment)` sites build node-path strings, not sample text).
+
+The over-insertion: the eager guard bakes a space after an open-tail identifier even when the successor is a non-fusable `)`, producing `(*VERB )` / `(?P>NAME )` / `(?(COND ))` which the grammar rejects. The join rule alone would be correct here (`gn`+`)` → no space; `gn`+identifier → space).
+
+### Fix
+In `apply_word_boundary_spacing`, add a match guard: `Some(" ") if ends_with_lexical_word_char(candidate) => candidate` — defer the space to the join rule (which is successor-aware). Kept `regex_terminal_trailing_separator` PURE (a function of the terminal alone; its unit test `obligation_b_regex_derived_trailing_separator` is unchanged). The `"\n"` guard (non-word open classes like `[^\n]*` — the join rule's word-char test can't catch those) and non-word-ending terminals keep the eager guard.
+
+### Verification
+- regex cert-coverage `sample_parse_failures` 39 → 9 (`ast_pipeline regex.ebnf --report-certificate-coverage --entry-rule regex --count 200 --seed 0`), deterministic across 2 runs (witness 98→112, UNKNOWN 108→94).
+- `cargo test --lib` 614/614. Renamed `word_boundary_spacing_policy_appends_separator_for_terminal_boundary` → `..._is_successor_aware_no_trailing_separator_for_lone_terminal` (it had asserted `ends_with(' ')` on a LONE terminal — i.e. it locked the over-insertion; corrected to assert no spurious trailing separator). Added `word_boundary_spacing_not_inserted_before_non_fusable_closing_delimiter` (open-tail terminal + `)` → `name)` not `name )`). obligation_a/b/c round-trip + `word_spacing_policy_separates_adjacent_word_segments_in_sequences` stay green (the join rule still separates adjacent words).
+- `make -C rust stimuli_cross_family_platform_gate` ✅ — regex_family_stimuli_quality + vhdl_stimuli_quality_bounded + sv_stimuli_quality_bounded all pass → NO regression across families (the every-grammar blast-radius proof).
+- clippy source stage 0 errors (warnings cited in stimuli_generator.rs are pre-existing, outside the edited regions). No parser regen (the fix is library-side, not codegen).
+
+### Residual → .5.2
+The 9 remaining are a SECOND over-insertion: the JOIN rule separates a fixed-literal prefix from a word-char arg — `callout = "(?C" callout_arg? ")"` renders `(?C`+`1` → `(?C 1)` (both "word chars" → coarse split), and `(?(R1))`→`(?(R 1))`. Confirmed clean-vs-spaced. The join rule lacks fusability info (is the left an OPEN class or a closed fixed literal?). `.5.2` = thread the left's open-tail class to the join (unifies both mechanisms); target 9 → ~2 (the `--no-word-boundary-spacing` non-spacing floor).
+
 ## 2026-06-07 - LEXICAL-ANNOTATIONS.5 — scoping/design: successor-aware word-boundary spacing (PGEN-LEXICAL-ANNOTATIONS-0021)
 
 Design-only slice (no code). Full execution-ready analysis lives in `docs/tasks/LEXICAL-ANNOTATIONS.md` `.5`. Summary: the word-boundary trailing guard (`apply_word_boundary_spacing`, `stimuli_generator.rs:7076`) is applied at terminal-render time and bakes the separator into the token (successor-blind by design, for concat-path robustness); `regex_tail_greedy_blocker` (:7133) returns a separator for any greedy-unbounded-class tail unconditionally → over-inserts before a non-fusable successor (`)`), breaking `(*VERB )`/`(?P>NAME )`/`(?(COND ))`. Correct fix: make separation successor-aware at concat time (`generate_sequence` :5757). Every-grammar blast radius → implementation checkpointed as its own focused slice (heavy SV/VHDL/regex/cross-family verification + determinism required). Root cause: `PGEN-EBNF-SOT-0003`.

@@ -7,8 +7,10 @@
 > `" "` separator after an identifier even when the next char is a closing delimiter `)` — breaking
 > `(*VERB )` / `(?P>NAME )` / `(?(COND ))` on re-parse. `--no-word-boundary-spacing` collapses it 39→2, so
 > ~37/39 are this over-insertion. This is a lexical-faithfulness defect (emitted chars must re-parse to the
-> intended tokens) → leaf `.5`. Frontier = `.5`. (Prior closure stands for `.1`–`.4`; see the historical
-> banner below.)
+> intended tokens) → leaf `.5`. **`.5.1` DONE** (`PGEN-LEXICAL-ANNOTATIONS-0022`: eager-guard deferral,
+> regex cert-coverage `sample_parse_failures` 39→9, deterministic, lib 614/614). **Frontier = `.5.2`**
+> (join-rule fusability awareness — the residual `(?C 1)`-family, to reach ~2). (Prior closure stands for
+> `.1`–`.4`; see the historical banner below.)
 >
 > **(historical) Status:** `done` (2026-06-07, `PGEN-LEXICAL-ANNOTATIONS-0020` — director-directed close). The 4th
 > declarative pillar (lexical/layout annotations) is **landed, tested, and verified working**: derived
@@ -334,43 +336,39 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   (G.4.7 slice 3, fixed at source by Obligation A `-0005`) or word-fusion (G.4.7 slice 2, generalized by
   Obligation B `-0006`; the flag is now the default-on mode toggle, `.3d`) special cases — both are now
   general instances of the derived obligations. VERIFIED: lib 613/613 (+3); source clippy clean.
-- `.5` — **word-boundary spacing must NOT separate before a closing delimiter (RE-OPENED, `pending`,
-  2026-06-07).** Goal: `apply_word_boundary_spacing` (`rust/src/ast_pipeline/stimuli_generator.rs:~7016`)
-  inserts a trailing `" "` separator after an identifier-class token to prevent fusion with a FOLLOWING
-  token — but it over-inserts when the following token is a closing delimiter (`)`, and likely `]`/`}`/
-  end-of-input) that cannot fuse with the preceding identifier into a different token. The spurious space
-  breaks `(*VERB )` / `(?P>NAME )` / `(?(COND ))` on re-parse (regex), while sub-rules that genuinely allow
-  trailing whitespace (`(*MARK:x )`, `a{1 ,1 }`) are unaffected. Root cause + evidence:
-  `EBNF-SOURCE-OF-TRUTH.2.1` (`PGEN-EBNF-SOT-0003`). **Acceptance:** the separator is suppressed when the
-  next emitted token's leading char cannot fuse with the preceding token (e.g. it is a closing delimiter /
-  the forbidden-follow set already prevents fusion); regex cert-coverage `sample_parse_failures` 39 → ~2
-  (count 200, seed 0); no regression in any grammar's stimuli / cross-family / closed-loop gates;
-  determinism preserved. Parser-agnostic generator change (benefits every grammar). Tools-first: re-measure
-  the 2 residual structural failures after the fix to confirm they are unrelated (a separate follow-up).
+- `.5` — **word-boundary spacing must be SUCCESSOR-AWARE (container; RE-OPENED 2026-06-07).** The generator
+  over-inserts separators that break re-parse. Root cause + evidence: `EBNF-SOURCE-OF-TRUTH.2.1`
+  (`PGEN-EBNF-SOT-0003`). Two distinct over-insertion mechanisms (both surfaced by regex cert-coverage,
+  count 200 / seed 0, baseline `sample_parse_failures=39`). Children: `.5.1` (eager guard), `.5.2` (join
+  rule). Design scoping recorded in `PGEN-LEXICAL-ANNOTATIONS-0021`.
+- `.5.1` — **eager terminal guard deferral. DONE (`PGEN-LEXICAL-ANNOTATIONS-0022`, 2026-06-07).** The
+  trailing guard (`apply_word_boundary_spacing`, `stimuli_generator.rs:7076`) baked a separator into an
+  open-tail terminal's returned string SUCCESSOR-BLIND (`regex_terminal_trailing_separator`:7102 →
+  `regex_tail_greedy_blocker`:7133 returns `Some(" ")` for any greedy word-class tail unconditionally), so
+  an identifier-class terminal before a non-fusable `)` got a spurious space (`(*VERB )` / `(?P>NAME )` /
+  `(?(COND ))`). FIX: when the needed separator is `" "` AND the candidate ends with a lexical word char,
+  DEFER to the join rule `append_generated_segment` (:7196) — the single concat choke point for sequences
+  AND quantifier repetition, operating on real chars so it crosses rule boundaries — which inserts a space
+  iff the NEXT token actually starts with a word char. `regex_terminal_trailing_separator` kept PURE (its
+  unit test unchanged); the `"\n"` guard (non-word open classes like `[^\n]*` comments) and non-word-ending
+  terminals keep the eager guard. **VERIFIED:** regex cert-coverage `sample_parse_failures` **39 → 9**
+  (count 200, seed 0), DETERMINISTIC across 2 runs (witness 98→112, UNKNOWN 108→94); lib `--lib` 614/614
+  (renamed `word_boundary_spacing_is_successor_aware_no_trailing_separator_for_lone_terminal` to lock the
+  corrected lone-terminal behavior + new `word_boundary_spacing_not_inserted_before_non_fusable_closing_delimiter`);
+  obligation_a/b/c roundtrip + word_spacing sequence tests green; `stimuli_cross_family_platform_gate`
+  [recorded at commit]. The `(*gn)`-type samples that were structural-fails now parse structurally and are
+  rejected only by the CONSUMER-path validator (EBNF-SOT.3's domain) — no NEW structural failures.
+- `.5.2` — **join-rule fusability awareness (`pending`).** The residual 9 (post-`.5.1`) are a SECOND
+  over-insertion: the join rule `append_generated_segment` separates ANY word-char-ending segment from a
+  word-char-starting segment, including a FIXED LITERAL prefix that cannot fuse — e.g. `callout = "(?C"
+  callout_arg? ")"` renders `(?C` + `1` → `(?C 1)` (the literal `(?C` ends in `C`, the arg starts with a
+  digit → coarse heuristic splits them), breaking re-parse. Confirmed: `(?C1)`✓/`(?C 1)`✗, `(?(R1))`✓/`(?(R
+  1))`✗. The join rule's word-char heuristic lacks fusability info (is the LEFT an OPEN class that could
+  absorb the right, or a closed fixed literal?). **Fix direction:** thread the left terminal's open-tail
+  class to the join so it separates only OPEN-left + matching-right (unifies both mechanisms correctly) —
+  the terminal→join metadata refactor. **Acceptance:** regex cert-coverage `sample_parse_failures` 9 → ~2
+  (the ~2 residual are non-spacing — `--no-word-boundary-spacing` floor); no regression across grammars.
   Verification: pending. Commit: pending.
-- `.5` — **Design analysis (`PGEN-LEXICAL-ANNOTATIONS-0021`, 2026-06-07) — why this is a careful engine
-  slice, not a one-liner.** Tools-first source read of `stimuli_generator.rs`: the trailing guard is
-  applied at TERMINAL-render time (`apply_word_boundary_spacing`, call sites :6850/:6884/:6896/:6952/:6965)
-  and **bakes the separator into the terminal's returned string** ("before any caller appends to it",
-  comment :7026) — intentionally, so it is robust across every concatenation path. The mechanism that
-  decides to append is `regex_terminal_trailing_separator` (:7102) → `regex_tail_greedy_blocker` (:7133):
-  for `directive_name = /([A-Za-z][A-Za-z0-9_\-]*)/` the tail is a greedy unbounded class, so it returns
-  `Some(" ")` UNCONDITIONALLY — with **no knowledge of the successor token**. That is the over-insertion:
-  eager (successor-blind) by design.
-  - **Correct fix = make separation successor-aware (concat-time).** Move the decision to
-    `generate_sequence` (:5757, joins via `generate_sequence_element` :5727): insert the minimal separator
-    between adjacent elements only when the LEFT element's tail is open AND the RIGHT element's head char
-    could actually extend that open class. This needs terminals to surface their "open-tail class" (defer
-    the separator instead of baking it), or `generate_sequence` to inspect the right sibling's first char
-    before keeping a baked trailing guard. Either way it touches a tested, every-grammar path.
-  - **Blast radius + required verification (why it is "expanding beyond a safe slice"):** the function is
-    used by ALL grammars' stimuli generation. A regression silently breaks lexical faithfulness. Acceptance
-    must run: regex cert-coverage 39→~2 (count 200, seed 0), `sv_stimuli_quality_gate`,
-    `vhdl_stimuli_quality_gate`, the regex stimuli/conformance gates, `stimuli_cross_family_platform_gate`,
-    the LEXICAL round-trip/golden tests (`.4.3`), and a determinism re-run — heavy, multi-minute gates.
-  - **CHECKPOINTED (not rushed)** per the batch rule "stop … for a task expanding beyond a safe slice".
-    Implementation is the next focused slice; the design above makes it execution-ready. No code changed in
-    this scoping slice.
 
 ## Cross-links
 
