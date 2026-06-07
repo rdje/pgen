@@ -166,12 +166,25 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
     `match_regex`); lib 615/0, generated_parsers 654/0, clippy ✓. The generator can no longer emit `[]`/`[^]`.
     (Note: the cert-cov COUNT is sample-dependent — at count 200/seed 0 it read 14→16 across the grammar
     change, NOT a regression: the empty-class CATEGORY is structurally gone; the residual is now spacing.)
-  - **(b) `(?(R N)` spacing** + **(c) name/condition spacing** — PENDING. `(?(R 1))` rejects / `(?(R1))`
-    passes; `(?P=a b)`/`(?(m _ _))` reject / `(?P=ab)` passes. Word-boundary-spacing residuals (the
-    LEXICAL-ANNOTATIONS `apply_word_boundary_spacing` over-insertion, like the `(*VERB )` family it fixed in
-    `.5`): the generator inserts a space between `R` and the recursion digit, and inside a `name`/condition.
-    Fix in the spacing generator (LEXICAL-ANNOTATIONS) so it doesn't separate inside `(?(R N)`/a name. THEN
-    re-measure → regex default `sample_parse_failures` → 0.
+  - **(b) `(?(R N)` spacing** + **(c) name/condition spacing** — PENDING, owned by **LEXICAL-ANNOTATIONS**
+    (re-open). CONFIRMED root-cause (2026-06-08, repros + grammar read): the word-boundary spacing's concat
+    join (`stimuli_generator.rs::append_generated_segment`, the choke point for sequences + quantifier
+    repetition) works on ACCUMULATED characters and CROSSES rule boundaries by design (so it separates
+    `module` + `automatic`). It inserts a space whenever the tail is word-shaped and the next char is a word
+    char — which is WRONG inside a single lexical token. **(c)** `name = (letter|'_'|unicode_char)(letter|
+    digit|'_'|unicode_char)* -> $text` is a CHAR-SEQUENCE (self-hosting; was a `/.../` single unit before),
+    so the join separates its chars → `(?P=a b c)`/`(?P<a b>x)` reject (vs `(?P=abc)` pass). **(b)**
+    `recursion_condition = "R" digits?` → the join separates `R` from `digits` → `(?(R 1)x)` rejects (vs
+    `(?(R1)x)` pass). SELF-HOSTING-INDUCED: the `/.../`→char-sequence/`$text` conversions exposed the join.
+    The hard part = the heuristic can't distinguish intra-token fusion (`R1`, name chars) from legitimate
+    inter-token separation (`module automatic`) by word-shape alone. FIX DIRECTION (LEXICAL-ANNOTATIONS,
+    careful, cross-grammar — must keep `stimuli_cross_family_platform_gate` green): a rule that IS one lexical
+    token must generate its body as ONE fused unit (no internal word-boundary join). For (c) the `$text`
+    annotation already declares "one token" → suppress the intra-rule join when generating a `$text` rule.
+    For (b) `recursion_condition` returns a STRUCTURED object (not `$text`) yet `R`+digits is one token → needs
+    a token-cohesion signal (e.g. a no-internal-spacing annotation, or treating a `literal + $text-rule`
+    adjacency as cohesive). THEN re-measure → regex default `sample_parse_failures` → 0. (cert-cov count is
+    sample-dependent — judge by the category being gone, not the raw number.)
 - ID: `.3.11`  Status: `pending` (DISCOVERED `PGEN-REGEX-PCRE2-0006`, tool-backed)  Goal: full PCRE2
   **escape whitelist** — strict/default mode accepts ONLY PCRE2's recognized escape letters; the broad
   `simple_escape`/`class_simple_escape`/`class_range_literal_escape_letter` catch-alls become the `relaxed`
