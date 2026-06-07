@@ -807,15 +807,15 @@ impl AstBasedGenerator {
                     })
                 }
             },
-            // REGEX-SELF-HOSTING.2 (PGEN-REGEX-SELF-HOST-0003): built-in native any-single-character
-            // matcher. A grammar that REFERENCES `any_char` without DEFINING it gets this native matcher
-            // instead of the Backtrack stub — consume exactly one Unicode scalar value (advance by its
-            // UTF-8 byte length), with NO `regex::Regex`. This lets a `/.../`-free grammar express
-            // negated/any-char classes as the `!"X" any_char` idiom (parser-agnostic; usable by any
-            // grammar). No leading-whitespace skipping (it matches the literal next character);
-            // Backtracks at end of input. A grammar that defines its own `any_char` rule keeps that
-            // definition (this built-in is dormant), so the change is additive + byte-identical.
-            "any_char" => quote! {
+            // REGEX-SELF-HOSTING.2/.5b: built-in native any-single-character matcher. A grammar that
+            // REFERENCES `builtin_any_char` without DEFINING it gets this native matcher instead of the
+            // Backtrack stub — consume exactly one Unicode scalar value (advance by its UTF-8 byte
+            // length), with NO `regex::Regex`. This lets a `/.../`-free grammar express negated/any-char
+            // classes as the `!<X> builtin_any_char` idiom (parser-agnostic; usable by any grammar). No
+            // leading-whitespace skipping (it matches the literal next character); Backtracks at end of
+            // input. The `builtin_` prefix (director 2026-06-07) namespaces these primitives so they can
+            // NEVER be shadowed by a same-named grammar rule (e.g. regex.ebnf's own `any_char` rule).
+            "builtin_any_char" => quote! {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                     let start_pos = self.position;
                     let matched_char = match self.input[start_pos..].chars().next() {
@@ -835,13 +835,12 @@ impl AstBasedGenerator {
                     })
                 }
             },
-            // REGEX-SELF-HOSTING.5 (PGEN-REGEX-SELF-HOST-0011): built-in native single-ASCII-character
-            // matcher. Like `any_char`, but matches one char ONLY when `ch.is_ascii()` (code point
-            // 0x00-0x7F); Backtracks on a non-ASCII char or end of input. Composes with the negation
-            // idiom to express the range-negation `[^\x00-\x7F]` as `unicode_char = !ascii_char any_char`
-            // (any char that is NOT ASCII). Parser-agnostic; dormant unless a grammar references
-            // `ascii_char` without defining it.
-            "ascii_char" => quote! {
+            // REGEX-SELF-HOSTING.5: built-in native single-ASCII-character matcher. Like
+            // `builtin_any_char`, but matches one char ONLY when `ch.is_ascii()` (code point 0x00-0x7F);
+            // Backtracks on a non-ASCII char or end of input. Composes with the negation idiom to express
+            // the range-negation `[^\x00-\x7F]` as `unicode_char = !builtin_ascii_char builtin_any_char`
+            // (any char that is NOT ASCII). Parser-agnostic; `builtin_` prefix avoids any rule-name shadow.
+            "builtin_ascii_char" => quote! {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                     let start_pos = self.position;
                     let matched_char = match self.input[start_pos..].chars().next() {
@@ -9649,15 +9648,15 @@ mod semantic_usage_tests {
 
     #[test]
     fn unresolved_reference_codegen_emits_native_any_char_matcher() {
-        // REGEX-SELF-HOSTING.2: a `rule_reference` to `any_char` with no grammar definition emits a
-        // native one-char matcher (no Rust `regex`), not the Backtrack stub.
+        // REGEX-SELF-HOSTING.2/.5b: a `rule_reference` to `builtin_any_char` with no grammar definition
+        // emits a native one-char matcher (no Rust `regex`), not the Backtrack stub.
         let generator = AstBasedGenerator::new("usage_test".to_string());
 
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
             "start".to_string(),
             ASTNode::Sequence {
-                elements: vec![token("rule_reference", "any_char")],
+                elements: vec![token("rule_reference", "builtin_any_char")],
             },
         );
         let rule_order = vec!["start".to_string()];
@@ -9670,8 +9669,8 @@ mod semantic_usage_tests {
             .join("\n");
 
         assert!(
-            rendered.contains("pub fn parse_any_char"),
-            "expected a parse_any_char method, got: {}",
+            rendered.contains("pub fn parse_builtin_any_char"),
+            "expected a parse_builtin_any_char method, got: {}",
             rendered
         );
         assert!(
@@ -9693,16 +9692,16 @@ mod semantic_usage_tests {
 
     #[test]
     fn unresolved_reference_codegen_emits_native_ascii_char_matcher() {
-        // REGEX-SELF-HOSTING.5: a `rule_reference` to `ascii_char` with no grammar definition emits a
-        // native one-ASCII-char matcher (`ch.is_ascii()` guard, no Rust `regex`) — the building block for
-        // the range-negation idiom `unicode_char = !ascii_char any_char`.
+        // REGEX-SELF-HOSTING.5: a `rule_reference` to `builtin_ascii_char` with no grammar definition
+        // emits a native one-ASCII-char matcher (`ch.is_ascii()` guard, no Rust `regex`) — the building
+        // block for the range-negation idiom `unicode_char = !builtin_ascii_char builtin_any_char`.
         let generator = AstBasedGenerator::new("usage_test".to_string());
 
         let mut grammar_tree = HashMap::new();
         grammar_tree.insert(
             "start".to_string(),
             ASTNode::Sequence {
-                elements: vec![token("rule_reference", "ascii_char")],
+                elements: vec![token("rule_reference", "builtin_ascii_char")],
             },
         );
         let rule_order = vec!["start".to_string()];
@@ -9715,8 +9714,8 @@ mod semantic_usage_tests {
             .join("\n");
 
         assert!(
-            rendered.contains("pub fn parse_ascii_char"),
-            "expected a parse_ascii_char method, got: {}",
+            rendered.contains("pub fn parse_builtin_ascii_char"),
+            "expected a parse_builtin_ascii_char method, got: {}",
             rendered
         );
         assert!(

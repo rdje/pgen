@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0012 (REGEX-SELF-HOSTING .5b): `builtin_` prefix + unicode_char/any_char-rule/special_char native (CODE; byte-identical).
+
+Resolves the `.5a` naming conflict (regex.ebnf's `any_char` RULE shadowed the built-in) via the director's
+suggestion to PREFIX the built-in primitives with `builtin_` — so no rename of the regex `any_char` rule (or
+its 7 escape-site refs) is needed.
+
+- **Codegen** (`ast_based_generator.rs`): the two built-in arms + their unit tests renamed
+  `any_char`→`builtin_any_char`, `ascii_char`→`builtin_ascii_char`. The `builtin_` namespace can never be
+  shadowed by a grammar rule.
+- **Grammar** (`regex.ebnf`): `unicode_char = !builtin_ascii_char builtin_any_char -> $2` (the range-negation
+  `[^\x00-\x7F]`; the built-ins are now ACTIVE — 2 native matchers in the generated parser); the `any_char`
+  RULE (the escape/code catch-all, distinct from the primitive) → `letter | digit | whitespace | special_char
+  | unicode_char` (kept its name + 7 refs); `special_char` → ASCII-punctuation literal ordered-choice.
+
+**Verified:** regex PCRE2 compile oracle BYTE-IDENTICAL; non-ASCII works end-to-end (`\é` →
+`{type:"escape", kind:"shorthand", char:"é"}` via simple_escape→any_char→unicode_char); regex shape-contract
+manifest `regex_v1.json` +1 (`unicode_char` `$2`); `cargo test --lib` 615/0, `--features generated_parsers`
+654/0; clippy strict ✓; `match_regex` calls in the generated regex parser down to 16. Conformance- AND
+shape-neutral → no book/contract. Remaining: `.5c` (`literal_char`/`class_literal`/`name` + content-until-
+delimiter payloads) + `.6` capstone (zero `/.../`).
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0011 (REGEX-SELF-HOSTING .5a): the `ascii_char` built-in primitive (CODE; additive/dormant, byte-identical).
 
 The range-negation primitive for `.5` (director-chosen 2026-06-07): a native single-ASCII-character matcher,

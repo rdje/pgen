@@ -1003,6 +1003,12 @@
         "normalized_text": "{kind: \"numeric\", value: $1.value, sign: $1.sign}"
       },
       {
+        "rule": "unicode_char",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
         "rule": "unicode_escape",
         "branch_index": 0,
         "annotation_type": "return_object",

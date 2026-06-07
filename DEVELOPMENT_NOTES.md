@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.5b — builtin_ prefix resolves the shadow; unicode_char native (PGEN-REGEX-SELF-HOST-0012)
+
+### The clean resolution (director's suggestion)
+The `.5a` finding was that regex.ebnf's `any_char` RULE shadows the built-in `any_char`, which would have
+forced renaming the rule + its 7 escape-site refs. The director suggested prefixing the built-ins with
+`builtin_`. That's strictly better: `builtin_any_char`/`builtin_ascii_char` can NEVER collide with a grammar
+rule, so the regex `any_char` rule keeps its name (and its 7 refs are untouched). General lesson worth
+keeping: namespace engine-provided built-in rule names (`builtin_*`) so grammars can define any rule name
+they like without shadowing a primitive.
+
+### What converted + the key proof
+`unicode_char = !builtin_ascii_char builtin_any_char -> $2` is the range-negation `[^\x00-\x7F]`: the
+`builtin_ascii_char` negative lookahead rejects ASCII, then `builtin_any_char` consumes the one non-ASCII
+char; `$2` returns it (the lookahead is positional element $1, matching the `simple_escape` idiom where
+lookaheads are counted). The built-ins are now ACTIVE (the regen log reported "2 unresolved reference
+fallback methods" = the two native matchers). Proof it works: `\é` parses to `char:"é"`. The `any_char` RULE
+(the escape catch-all) became `letter|digit|whitespace|special_char|unicode_char` — its original set exactly.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.5a — the ascii_char built-in + the any_char naming-conflict finding (PGEN-REGEX-SELF-HOST-0011)
 
 ### ascii_char primitive

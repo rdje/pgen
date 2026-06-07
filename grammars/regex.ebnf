@@ -1161,11 +1161,20 @@ nonzero_digit  = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
 hex_digit      = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
 octal_digit    = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
 whitespace     = ' ' | '\t' | '\n' | '\r' | '\f' | '\v'
-unicode_char   = /([^\x00-\x7F])/
+# REGEX-SELF-HOSTING.5b: `[^\x00-\x7F]` (any non-ASCII char) = `!builtin_ascii_char builtin_any_char`
+# (the `builtin_ascii_char` lookahead rejects ASCII; `builtin_any_char` then consumes the one
+# non-ASCII char). `$2` returns the matched char (the lookahead is positional element $1). Native —
+# no Rust regex.
+unicode_char   = !builtin_ascii_char builtin_any_char -> $2
 
-any_char       = /([A-Za-z0-9 \t\n\r\f\v!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~]|[^\x00-\x7F])/
+# REGEX-SELF-HOSTING.5b: the `any_char` RULE (the escape/code catch-all; NOT the `builtin_any_char`
+# primitive) = its original set `[A-Za-z0-9 \t\n\r\f\v <punct> \\]|[^\x00-\x7F]` expressed as the union
+# of the native sub-rules. Used by `simple_escape`/`class_simple_escape`/`control_escape`/code escapes.
+any_char       = letter | digit | whitespace | special_char | unicode_char
 
-special_char   = /([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/
+# REGEX-SELF-HOSTING.5b: `special_char` = the ASCII punctuation set as a literal ordered choice
+# (`"'"` = single-quote, `'"'` = double-quote, `'\\'` = backslash).
+special_char   = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '[' | ']' | '`' | '~'
 
 # Lexical helpers
 #
