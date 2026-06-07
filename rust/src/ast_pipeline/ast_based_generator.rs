@@ -2317,6 +2317,15 @@ impl AstBasedGenerator {
         // itself directly or transitively, the cache cannot observe a
         // hit it could not avoid by simply running the body once. The
         // emitted body is the same; only the wrapping differs.
+        // REGEX-SELF-HOSTING.4c: a rule's `@transform` applied to the matched SPAN text, for the
+        // case its body is NOT a single terminal (so the terminal-path `@transform` at the atom
+        // codegen did not fire — e.g. `digits = digit+` after self-hosting). The emitted block is a
+        // no-op when `result` is already a `TransformedTerminal` (terminal-body `@transform` rules),
+        // so it is additive and cannot double-apply. Or roots apply transforms per-branch.
+        let semantic_span_transform_tokens: TokenStream = match ast_node {
+            ASTNode::Or { .. } => quote! {},
+            _ => self.generate_post_body_span_transform(rule_name),
+        };
         let rule_body_inner = quote! {
             let semantic_capture_raw_for_post =
                 parser.semantic_runtime_annotations
@@ -2329,6 +2338,10 @@ impl AstBasedGenerator {
             // Apply rule-level return annotation for non-Or roots
             // (Or roots apply per-branch transforms inline)
             #post_parse_transform_tokens
+
+            // REGEX-SELF-HOSTING.4c: rule-level `@transform` over the matched span (no-op if the
+            // terminal-path @transform already produced a TransformedTerminal).
+            #semantic_span_transform_tokens
 
             #relational_guards
 
@@ -3747,6 +3760,51 @@ impl AstBasedGenerator {
                 index: 1,
             }),
         })
+    }
+
+    /// REGEX-SELF-HOSTING.4c: emit a rule-level `@transform` applied to the matched SPAN text, for
+    /// the case where the rule body is NOT a single terminal (so the terminal-path `@transform` at
+    /// the atom codegen — which inlines `match_regex(...).parse::<T>()` — did not fire). Lets a
+    /// self-hosted literal body (e.g. `digits = digit+`) keep its typed result (`usize`) without a
+    /// `/.../` body. Returns empty tokens when the rule has no `@transform`.
+    ///
+    /// The emitted block REBINDS `result` only when it is not already a `TransformedTerminal` — so
+    /// it is a no-op for terminal-body `@transform` rules (which already produced one), making this
+    /// purely additive (no double-apply, no regression on existing `@transform` rules in any grammar).
+    /// `start_pos` / `parser.position` are in scope at the splice point (the rule's matched span).
+    fn generate_post_body_span_transform(&self, rule_name: &str) -> TokenStream {
+        let Some(annotations) = &self.annotations else {
+            return quote! {};
+        };
+        let Some(semantic_annotations) = annotations.semantic_annotations.get(rule_name) else {
+            return quote! {};
+        };
+        for semantic_annotation in semantic_annotations {
+            if Self::semantic_directive_name(semantic_annotation).as_deref() != Some("transform") {
+                continue;
+            }
+            if let UnifiedSemanticAST::TransformExpr { expression } = semantic_annotation.ast() {
+                if let Some(transform) = parse_canonical_transform_expression(expression) {
+                    if let Ok(target_type) = syn::parse_str::<syn::Type>(&transform.target_type) {
+                        let default_expr: syn::Expr = syn::parse_str(&transform.default_expr)
+                            .unwrap_or_else(|_| {
+                                syn::parse_str("0").expect("fallback default expression")
+                            });
+                        return quote! {
+                            let result = if matches!(result, ParseContent::TransformedTerminal(_)) {
+                                result
+                            } else {
+                                let __pgen_span_text = parser.input[start_pos..parser.position].trim();
+                                let __pgen_transformed =
+                                    __pgen_span_text.parse::<#target_type>().unwrap_or(#default_expr);
+                                ParseContent::TransformedTerminal(__pgen_transformed.to_string())
+                            };
+                        };
+                    }
+                }
+            }
+        }
+        quote! {}
     }
 
     // FUTURE: bolder default — for a multi-element Sequence with EXACTLY

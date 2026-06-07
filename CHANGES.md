@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0010 (REGEX-SELF-HOSTING .4c): `@transform`-on-span codegen + the 3 digit `@transform` rules — `.4` DONE (CODE; byte-identical).
+
+A parser-agnostic codegen enhancement that lets a rule's `@transform` apply to a NATIVE literal body,
+completing `.4` (every positive char-class in `regex.ebnf` is now `/.../`-free).
+
+- **Codegen** (`ast_based_generator.rs`): new `generate_post_body_span_transform` emits, for a rule with a
+  `@transform`, a post-body block that parses the rule's matched SPAN text
+  (`parser.input[start_pos..parser.position].trim().parse::<T>().unwrap_or(D)`) into a `TransformedTerminal`.
+  It is GUARDED by `!matches!(result, ParseContent::TransformedTerminal(_))`, so it is a no-op for
+  terminal-body `@transform` rules (the atom-codegen path already produced a `TransformedTerminal`) — purely
+  additive, no double-apply, and verified non-regressing by regen'ing `return_annotation` (whose
+  `positive_integer`/`float`/`integer` carry `@transform`) and re-running the suite green.
+- **Grammar** (`regex.ebnf`): `digits = digit+`, `backreference_digits = nonzero_digit digit+`,
+  `backreference_digits_single = nonzero_digit` (all keep their `@transform: str::parse::<usize>()`).
+
+Previously `@transform` was only applied on the terminal/`/.../` path (`matched_str.parse::<T>()` where
+`matched_str` is the regex match), so these rules could not become literal bodies without losing their typed
+`usize` result (consumers use them as `{min,max}`/`index`/`{major,minor}` integers).
+
+**Verified:** regex PCRE2 compile oracle BYTE-IDENTICAL; `@transform` VALUES correct (`a{12}`→`min:12,max:12`,
+`\5`→`index:5`); `cargo test --lib` 614/0, `--features generated_parsers` 653/0 (with both `regex` and
+`return_annotation` regen'd); clippy strict ✓; `match_regex` calls in the generated regex parser down to 19.
+Conformance- AND value-neutral → no book/contract. Remaining for self-hosting: `.5` (negated/big classes via
+`!"X" any_char`), `.6` capstone.
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0009 (REGEX-SELF-HOSTING .4 batch B): `short_prop_letter`/`whitespace`/`prop_name` → native literals (CODE; byte-identical).
 
 Second `.4` batch — all remaining POSITIVE non-`@transform` char-classes in `regex.ebnf` go native:

@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.4c — @transform-on-span codegen; .4 done (PGEN-REGEX-SELF-HOST-0010)
+
+### The blocker + the fix
+`@transform` was codegen'd ONLY on the terminal/`/.../` atom path: `let matched_str = match_regex(pat);
+matched_str.parse::<T>()`. A literal body (`digit+`) yields a node, not a `&str`, so the 3 digit
+`@transform→usize` rules couldn't go native without losing their typed result. Fix = a parser-agnostic
+post-body transform: `generate_post_body_span_transform` emits (after the body parses)
+`result = if matches!(result, TransformedTerminal(_)) { result } else { TransformedTerminal(
+parser.input[start_pos..parser.position].trim().parse::<T>().unwrap_or(D).to_string()) }`. Spliced into
+`rule_body_inner` right after the return-annotation transform.
+
+### Why the runtime guard is the key design choice
+`!matches!(result, TransformedTerminal(_))` makes the block a no-op for terminal-body `@transform` rules
+(the atom path already produced a `TransformedTerminal`). So I did NOT have to detect at codegen time whether
+the terminal path "fired" (fragile), and the change is provably additive across EVERY grammar's `@transform`
+rules — verified by regen'ing `return_annotation` (terminal-body `@transform`) and re-running 653/0. This is
+the model for a parser-agnostic engine feature: general, guarded, zero regression, benefits any grammar.
+
+### Verification that mattered
+Oracle byte-identical is necessary but NOT sufficient here — `@transform` changes a VALUE, not accept/reject.
+So I checked the actual typed values: `a{12}`→`min:12,max:12` and `\5`→`index:5` (integers, not strings).
+That's the real proof the span-transform produces the same `usize` the `/.../` path did.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.4 batch B — short_prop_letter/whitespace/prop_name → literals (PGEN-REGEX-SELF-HOST-0009)
 
 ### Control-char literals work (the `\f`/`\v` question)

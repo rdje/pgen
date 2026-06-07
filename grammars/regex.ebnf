@@ -279,10 +279,10 @@ numeric_backreference_single = "\\" backreference_digits_single !"0" !"1" !"2" !
 # nonzero digit (the UNGATED N < 10 family). The transform on each
 # parses the matched digit string to a typed integer.
 @transform: str::parse::<usize>().unwrap_or(0)
-backreference_digits = /([1-9][0-9]+)/
+backreference_digits = nonzero_digit digit+
 
 @transform: str::parse::<usize>().unwrap_or(0)
-backreference_digits_single = /([1-9])/
+backreference_digits_single = nonzero_digit
 # Named-reference forms — surface the matched name string directly so
 # consumers don't walk the raw `["<", <name>, ">"]` Sequence wrapping.
 name_ref       = "<" name ">"  -> $2
@@ -1169,15 +1169,14 @@ special_char   = /([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/
 
 # Lexical helpers
 #
-# `digits` is rewritten from `digit+` to a single regex `/([0-9]+)/` paired
-# with a `@transform: str::parse::<usize>().unwrap_or(0)` semantic
-# annotation so the parser surfaces a typed integer at this rule directly,
-# instead of leaking a raw `Quantified(Terminal-per-char)` shape that
-# every consumer would have to walk and parse. Other rules referencing
-# `digit` (e.g. `backreference_digits = nonzero_digit digit*`) are
-# unaffected — they keep using the per-char `digit` rule.
+# REGEX-SELF-HOSTING.4c: `digits` = `digit+` paired with `@transform:
+# str::parse::<usize>()` so the parser surfaces a typed integer directly
+# (consumers use it as min/max/index/major/minor counts). The `@transform`
+# is applied to the rule's matched SPAN text (`generate_post_body_span_transform`
+# in `ast_based_generator.rs`), so a native `digit+` body keeps the `usize`
+# result WITHOUT a `/.../` body — no Rust regex.
 @transform: str::parse::<usize>().unwrap_or(0)
-digits         = /([0-9]+)/
+digits         = digit+
 # REGEX-SELF-HOSTING.4: `hex_digits` = `hex_digit+ -> $text`. The `-> $text`
 # return-annotation emits the whole matched run as ONE clean string Terminal
 # (native equivalent of the former `/.../` capture; no Rust regex), without

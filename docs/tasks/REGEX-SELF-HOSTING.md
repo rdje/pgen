@@ -166,15 +166,18 @@ content.
   `'\v'`→`\u{b}` — verified in the generated `parse_whitespace`); `prop_name` →
   `( letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^' )+ -> $text`. Oracle byte-identical;
   `\p{Lu}`→name "Lu", `\p{Greek}`→"Greek"; manifest +1 (`prop_name` `$text`); `match_regex` calls → 22.
-  **REMAINING (`.4c`):** the 3 `@transform → usize` rules (`digits`, `backreference_digits`,
-  `backreference_digits_single`) need a CODEGEN enhancement — `@transform` is currently applied as
-  `matched_str.parse::<usize>()` where `matched_str` is the BODY-MATCH value (a `&str` only for `/.../`/string
-  bodies); a literal body (`digit+`) yields a node, so `.parse()` won't compile. Fix = make `@transform`
-  operate on the rule's matched SPAN text (`&self.input[start..pos]`), parser-agnostic, so it composes with
-  any body. Tool-backed (generated `parse_digits`: `let matched_str = match_regex(...); matched_str.parse::<usize>()`).
-  Then those 3 convert to `digit+`/`nonzero_digit digit+`/`nonzero_digit`. The big sets
-  (`literal_char`/`class_literal`/`special_char`/`any_char`) + `name`/`unicode_char` are `.5` (negated
-  `[^\x00-\x7F]`).
+  **batch C / `.4c` DONE (`PGEN-REGEX-SELF-HOST-0010`):** parser-agnostic CODEGEN enhancement +
+  the 3 `@transform → usize` rules converted. `generate_post_body_span_transform` (`ast_based_generator.rs`)
+  emits a post-body block that applies a rule's `@transform` to the matched SPAN text
+  (`parser.input[start_pos..parser.position].trim().parse::<T>()`), guarded by
+  `!matches!(result, TransformedTerminal(_))` so it is a NO-OP for terminal-body `@transform` rules
+  (additive, no double-apply, no regression — confirmed by regen'ing `return_annotation` too). Converted
+  `digits = digit+`, `backreference_digits = nonzero_digit digit+`, `backreference_digits_single =
+  nonzero_digit` (keeping `@transform`). Verified oracle byte-identical, `@transform` VALUES correct
+  (`a{12}`→min/max 12, `\5`→index 5), lib 614/0 + generated_parsers 653/0 (both regex + return_annotation
+  regen'd), clippy ✓; `match_regex` calls → 19. **ALL POSITIVE char-classes now native.** Remaining = `.5`
+  (the negated/big sets `literal_char`/`class_literal`/`special_char`/`any_char` + `name`/`unicode_char`,
+  which contain `[^\x00-\x7F]`).
 - ID: `.5`  Status: `pending`  Goal: convert the NEGATED / content-until-delimiter / any-char classes using
   `!"X" any_char` (`.2`'s primitive) + `$text` for multi-char runs (`unicode_char`, `name`, callout
   payloads, `directive_payload_*`, `comment_text`, `any_char`). ⚠️ range-negations like
@@ -237,6 +240,7 @@ content.
 | `2026-06-07` | `.3a` (`-0007`) | `$0` (any index-0 spelling) → MatchedText in BOTH surfaces (bootstrap `parse_positional_ref` + `from_json`); new `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` for `$0::first`/`$0.x`/`$0[i]`; retired `E_RET_POS_ZERO`; re-pointed stress + chain-walker tests; lib 614/0, generated_parsers 653/0, clippy ✓, regex byte-identical; END-TO-END `$0`/`$00`/`$+0` → span Terminal; docs lockstep | **`.3a` DONE — `$0` enabled (Perl5)** |
 | `2026-06-07` | `.4` batch A (`-0008`) | converted 9 positive char-classes (`letter`/`digit`/`nonzero_digit`/`hex_digit`/`octal_digit` → `'c'` ordered-choice; `hex_digits`/`octal_digits` → `char+ -> $text`; `hex_escape_short_payload`/`octal_escape_short_payload` → bounded `-> $text`); regen → oracle BYTE-IDENTICAL; AST shapes preserved (`\o{777}`→"777", `\x{FF}`→"FF", `\17`→"17", `\xAB`→"AB"); regex shape-contract manifest +4 `$text` entries; lib 614/0, generated_parsers 653/0, clippy ✓; `match_regex` calls 25 | **`.4` batch A DONE**; @transform rules + whitespace + `.5` remaining |
 | `2026-06-07` | `.4` batch B (`-0009`) | converted `short_prop_letter` → `'c'` choice, `whitespace` → control-char literals (`'\f'`→`\u{c}`, `'\v'`→`\u{b}` verified in generated `parse_whitespace`), `prop_name` → `( letter\|digit\|whitespace\|… )+ -> $text`; oracle BYTE-IDENTICAL; `\p{Lu}`→"Lu", `\p{Greek}`→"Greek"; manifest +1 (`prop_name`); lib 614/0, generated_parsers 653/0, clippy ✓; `match_regex` calls → 22 | **`.4` batch B DONE**; only the 3 `@transform` rules (`.4c`, needs codegen) + `.5` remain |
+| `2026-06-07` | `.4c` (`-0010`) | codegen `generate_post_body_span_transform` (apply `@transform` to matched span, guarded by `!matches!(result, TransformedTerminal(_))` → no-op for terminal bodies) + converted `digits = digit+`, `backreference_digits = nonzero_digit digit+`, `backreference_digits_single = nonzero_digit`; oracle BYTE-IDENTICAL; `@transform` VALUES correct (`a{12}`→12, `\5`→5); additive (regen'd return_annotation too, 653/0); clippy ✓; `match_regex` calls → 19 | **`.4` DONE — all positive char-classes native**; `.5` (negated) remains |
 
 ## Commit Log
 
@@ -250,11 +254,23 @@ content.
 | `.3a` | `PGEN-REGEX-SELF-HOST-0007` | `$0` whole-match alias enabled (Perl5): index-0→MatchedText both surfaces + E_RET_WHOLE_MATCH_NOT_COMPOSABLE + retired E_RET_POS_ZERO; tests re-pointed; byte-identical. `$0` DONE |
 | `.4` batch A | `PGEN-REGEX-SELF-HOST-0008` | 9 positive char-classes → literals (`'c'` alternations + `char+ -> $text` + bounded payloads); oracle byte-identical; shapes preserved; manifest +4; `match_regex` calls → 25. The FIRST actual `/.../` removal from regex.ebnf |
 | `.4` batch B | `PGEN-REGEX-SELF-HOST-0009` | `short_prop_letter`/`whitespace`/`prop_name` → literals (control-char + `$text`); oracle byte-identical; manifest +1; `match_regex` calls → 22. Positive non-`@transform` classes now all literal |
+| `.4c` | `PGEN-REGEX-SELF-HOST-0010` | parser-agnostic codegen: apply `@transform` to matched span for non-terminal bodies (guarded, additive); converted the 3 `@transform→usize` digit rules; oracle byte-identical; values correct; `match_regex` calls → 19. ALL positive char-classes native |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.4c` (`PGEN-REGEX-SELF-HOST-0010`) — parser-agnostic codegen enhancement +
+  the 3 `@transform→usize` rules. `generate_post_body_span_transform` (`ast_based_generator.rs`) applies a
+  rule's `@transform` to the matched SPAN text (`parser.input[start_pos..parser.position].trim().parse::<T>()`),
+  emitted post-body and guarded by `!matches!(result, TransformedTerminal(_))` so terminal-body `@transform`
+  rules (which already produce a TransformedTerminal) are unaffected — additive, no double-apply, confirmed by
+  regen'ing `return_annotation` (its `positive_integer`/`float`/`integer` @transform rules) and re-running the
+  suite green. Converted `digits = digit+`, `backreference_digits = nonzero_digit digit+`,
+  `backreference_digits_single = nonzero_digit`. Oracle BYTE-IDENTICAL; `@transform` VALUES verified
+  (`a{12}`→min/max 12, `\5`→index 5); lib 614/0, generated_parsers 653/0, clippy ✓; `match_regex` calls → 19.
+  **`.4` is DONE — every POSITIVE char-class in `regex.ebnf` is now native.** Remaining: `.5` (negated/big
+  classes via `!"X" any_char`), `.6` capstone.
 - `2026-06-07`: `.4` batch B (`PGEN-REGEX-SELF-HOST-0009`) — converted `short_prop_letter` (`'c'` choice),
   `whitespace` (`' '|'\t'|'\n'|'\r'|'\f'|'\v'` — the codegen correctly encodes `'\f'`→`\u{c}`, `'\v'`→`\u{b}`,
   confirmed in the generated `parse_whitespace`), and `prop_name`
