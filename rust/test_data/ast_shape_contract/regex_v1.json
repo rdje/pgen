@@ -337,10 +337,16 @@
         "normalized_text": "$2"
       },
       {
-        "rule": "class_simple_escape",
+        "rule": "class_simple_escape_relaxed",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $5}"
+      },
+      {
+        "rule": "class_simple_escape_strict",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $11}"
       },
       {
         "rule": "code_block_lang",
@@ -889,10 +895,16 @@
         "normalized_text": "{sign: $1, value: $2}"
       },
       {
-        "rule": "simple_escape",
+        "rule": "simple_escape_relaxed",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $15}"
+      },
+      {
+        "rule": "simple_escape_strict",
+        "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"escape\", kind: \"shorthand\", char: $21}"
       },
       {
         "rule": "single_byte_escape",

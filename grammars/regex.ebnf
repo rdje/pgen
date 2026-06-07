@@ -446,7 +446,17 @@ class_escape_unit = single_byte_escape
 # mode-dependent `>0o377` range check is the mode-aware consumer's
 # job, not a parse-time grammar decision
 # (`feedback_ast_pipeline_parser_agnostic`).
-class_simple_escape = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
+# PGEN-REGEX-PCRE2-0006 (`REGEX-PCRE2-FIDELITY.3.1`): strict/relaxed pair so the
+# default (pcre2) profile rejects `\i \F \l \L \u \U` in class context too (PCRE2
+# rejects them there as well — oracle `pcre2test` 10.47). Conformance-neutral on
+# default (validator → grammar). Relaxed re-admits them. No digit guards here
+# (RGX-0088: class context admits `\<digit>` octal).
+class_simple_escape = class_simple_escape_strict | class_simple_escape_relaxed
+# Strict: original 4 guards PLUS the 6 letters → 10 lookaheads, `any_char` = `$11`.
+class_simple_escape_strict = !"o{" !"x{" !"p{" !"P{" !"i" !"F" !"l" !"L" !"u" !"U" any_char -> {type: "escape", kind: "shorthand", char: $11}
+# Relaxed opt-out: the original class catch-all (4 lookaheads, `any_char` = `$5`).
+@profiles: ["relaxed"]
+class_simple_escape_relaxed = !"o{" !"x{" !"p{" !"P{" any_char -> {type: "escape", kind: "shorthand", char: $5}
 
 @generate: generate_posix_class_check($3)
 @semantic_value: {type: "posix", name: $3, negated: $2 != null}
@@ -483,8 +493,19 @@ class_range_escape_unit = hex_escape
                         | class_range_simple_escape
 class_range_simple_escape = class_range_any_char_no_orphan_quote_end
 class_range_any_char_no_orphan_quote_end = class_range_literal_escape_letter | digit | whitespace | special_char | unicode_char
-class_range_literal_escape_letter = 'A' | 'F' | 'G' | 'I' | 'J' | 'L' | 'M' | 'O' | 'T' | 'U' | 'V' | 'Y'
-                                  | 'a' | 'b' | 'e' | 'f' | 'g' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'q' | 'r' | 't' | 'u' | 'v' | 'x' | 'y' | 'z'
+# PGEN-REGEX-PCRE2-0006 (`REGEX-PCRE2-FIDELITY.3.1`): strict/relaxed pair — the
+# THIRD `\u`-bearing catch-all (a class-range start/end escape letter). The default
+# (pcre2) strict variant DROPS the 6 PCRE2-unsupported letters `F L U i l u` so
+# `[\u-\x7f]` etc. reject by grammar once `find_invalid_escape_i` is gone. `I`
+# (uppercase) stays — it is outside the migrated validator set (PCRE2 also rejects
+# `\I`, but that broader divergence is owned by `.3.11`). Relaxed re-admits the 6.
+# (The sibling alts digit/whitespace/special_char/unicode_char cannot match an
+# ASCII letter, so dropping the letters here is sufficient.)
+class_range_literal_escape_letter = class_range_literal_escape_letter_strict | class_range_literal_escape_letter_relaxed
+class_range_literal_escape_letter_strict = 'A' | 'G' | 'I' | 'J' | 'M' | 'O' | 'T' | 'V' | 'Y'
+                                         | 'a' | 'b' | 'e' | 'f' | 'g' | 'j' | 'k' | 'm' | 'n' | 'o' | 'q' | 'r' | 't' | 'v' | 'x' | 'y' | 'z'
+@profiles: ["relaxed"]
+class_range_literal_escape_letter_relaxed = 'F' | 'L' | 'U' | 'i' | 'l' | 'u'
 letter_no_upper_e = 'A' | 'B' | 'C' | 'D' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
                   | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
 
@@ -576,9 +597,25 @@ single_byte_escape = "C" -> {type: "escape", kind: "single_byte"}
 # `{kind:"shorthand",char:"8"}` + literal `1`, so PGEN ACCEPTs a
 # pattern PCRE2 REJECTs (error 115). With the guards, `escape_unit`
 # exhausts (octal already failed on the `[89]` lead) ⇒ `atom` fails
-# ⇒ clean hard REJECT (PCRE2-faithful). 14 lookaheads now precede
-# `any_char`, so its positional ref is `$15` (was `$5`).
-simple_escape  = !"o{" !"x{" !"p{" !"P{" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" !"8" !"9" any_char -> {type: "escape", kind: "shorthand", char: $15}
+# ⇒ clean hard REJECT (PCRE2-faithful). 14 lookaheads precede
+# `any_char` in the relaxed variant ($15); the strict variant adds 6 more ($21).
+#
+# PGEN-REGEX-PCRE2-0006 (`REGEX-PCRE2-FIDELITY.3.1`): `simple_escape` is now a
+# strict/relaxed pair so the default (pcre2) profile rejects the six escape
+# letters PCRE2 does not support — `\i \F \l \L \u \U` — by GRAMMAR, migrating
+# `regex_compile_validation.rs::find_invalid_escape_i` into the EBNF (the EBNF
+# is the single source of truth). DEFAULT is conformance-neutral (these were
+# rejected by the validator before, by the strict variant after; oracle:
+# `pcre2test` 10.47 rejects all six in atom/class/class-range). The `relaxed`
+# profile re-admits them via `simple_escape_relaxed` (the original catch-all).
+simple_escape  = simple_escape_strict | simple_escape_relaxed
+# Strict (default/pcre2): the original guards PLUS `!"i" !"F" !"l" !"L" !"u" !"U"`.
+# 20 lookaheads precede `any_char`, so its positional ref is `$21`.
+simple_escape_strict = !"o{" !"x{" !"p{" !"P{" !"i" !"F" !"l" !"L" !"u" !"U" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" !"8" !"9" any_char -> {type: "escape", kind: "shorthand", char: $21}
+# Relaxed opt-out: the pre-PCRE2-fidelity catch-all (admits the six letters).
+# Identical to the historical `simple_escape` body — 14 lookaheads, `any_char` = `$15`.
+@profiles: ["relaxed"]
+simple_escape_relaxed = !"o{" !"x{" !"p{" !"P{" !"0" !"1" !"2" !"3" !"4" !"5" !"6" !"7" !"8" !"9" any_char -> {type: "escape", kind: "shorthand", char: $15}
 
 @type: "hexadecimal_escape"
 @description: "Hex escape sequences \xFF or \x{FFFF}"
@@ -603,6 +640,12 @@ hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
 @description: "Unicode escape sequence \u{FFFF}"
 @constraint: "must be valid Unicode code point"
 @precedence: {level: 9}
+# PGEN-REGEX-PCRE2-0006 (`REGEX-PCRE2-FIDELITY.3.1`): the braced `\u{…}` form is
+# PCRE2-unsupported by default (oracle `pcre2test` 10.47 → error 137; only
+# `PCRE2_ALT_BSUX`/`alt_bsux` gives it meaning), so it is relaxed-only. Referenced
+# by escape_unit / class_escape_unit / class_range_escape_unit — all gate off
+# together under the default (pcre2) profile.
+@profiles: ["relaxed"]
 unicode_escape = "u{" hex_digits "}" -> {type: "escape", kind: "unicode", digits: $2}
 
 @type: "octal_escape"

@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-PCRE2-FIDELITY.3.1 — IMPLEMENTATION: `\u`-family migrated validator→grammar (PGEN-REGEX-PCRE2-0007)
+
+### What landed
+The six PCRE2-unsupported escape letters `\i \F \l \L \u \U` (and braced `\u{…}`) now reject in the default (`pcre2`) profile **by grammar**, and a new `relaxed` profile re-admits them. Source edits (generated parser regenerated locally, gitignored): `grammars/regex.ebnf` (3 escape catch-alls split strict/`@profiles:["relaxed"]` + `unicode_escape` relaxed-gated), `rust/src/main.rs` (regex `pcre2` generation default + `generate_parser` codegen exemption), `rust/src/regex_compile_validation.rs` (`find_invalid_escape_i` + 2 tests deleted), `rust/src/embedding_api.rs` (both regex paths set `pcre2`), `regex_v1.json` (4 entries), oracle baseline env (45→46).
+
+### Two non-obvious bugs caught in-slice (BE-ALERT / tools-first)
+1. **Codegen-path profile filtering.** The regex `pcre2` generation default, added to the shared `apply_grammar_profile_filter`, was ALSO applied on the `generate_parser` (parser codegen) path — which FILTERED OUT the `@profiles:["relaxed"]` rule definitions before the parser was generated, so `simple_escape_relaxed` etc. became unresolved-reference **fallback stubs** (`Err(Backtrack)`) and `relaxed` mode rejected everything. Root-caused via the generated parser (only 1 `rule_profile_is_enabled` site; the 4 relaxed rules sat in the fallback region) + the regen log's "4 unresolved reference fallback methods". Fix: the codegen path emits the FULL grammar (all profiles) with RUNTIME guards; profile SELECTION is a parse-time concern. Only an explicit `--grammar-profile` filters at codegen.
+2. **Permissive embedding parse path.** `embedding_api::parse_generated_regex{,_ast_json}` created `RegexParser` without `set_grammar_profile`, so it ran `None` = permissive (all rules active). After deleting the validator's `\u` check, that ACCEPTED the six escapes in default. The integration-contract failure-sample tests flagged it. Fix: set `Some("pcre2")` on both paths (matching `parser_registry::parse_with_regex_detail`). Audited all `RegexParser::new` sites — released parse surfaces (embedding_api + parser_registry) now set the profile; internal tooling bins (perf/differential) are not accept/reject contract surfaces.
+
+### Conformance-neutrality proof (decisive baseline)
+The `regex_pcre2_compile_oracle_gate` initially failed `46 > 45`. Rather than assume causation, I stashed the implementation, regenerated + rebuilt the OLD parser, and re-ran the gate: it ALSO produced **46** false rejects with the IDENTICAL case-ID set (and identical 292 false-accept / 338 mismatch). So the change is exactly conformance-neutral and the 45→46 was a PRE-EXISTING stale baseline. Corrected the env to 46 with an honest justification (all 46 are documented strict-default divergence classes; corpus unchanged at 2195).
+
+### Versioning decision
+Surface-neutral for the embedding API (same accepted language [oracle byte-identical], same AST shape, same `E_PARSE_FAILURE` code + localizable location; only message text changed; `relaxed` not exposed via the embedding API). → **No version bump** (release `1.1.81` / contract `1.1.83` / schema `1` stay). Documented thoroughly in the handoff contract as a "Maintenance Update" (downstream should match on the diagnostic code, not the message text). Versioning is for surface changes; bumping a surface-neutral change would be inaccurate.
+
 ## 2026-06-07 - REGEX-PCRE2-FIDELITY.3.1 — DESIGN COMPLETION for `\u` PCRE2-alignment (PGEN-REGEX-PCRE2-0006)
 
 ### Why a third design pass

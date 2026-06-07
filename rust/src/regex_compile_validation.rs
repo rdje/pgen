@@ -16,9 +16,12 @@ impl RegexCompileValidationError {
 }
 
 pub fn validate_regex_compile_contract(input: &str) -> Result<(), RegexCompileValidationError> {
-    if let Some(error) = find_invalid_escape_i(input) {
-        return Err(error);
-    }
+    // REGEX-PCRE2-FIDELITY.3.1 (PGEN-REGEX-PCRE2-0006): the `\i \F \l \L \u \U` unsupported-escape
+    // check (`find_invalid_escape_i`) has been MIGRATED INTO `grammars/regex.ebnf` — the strict
+    // variants of `simple_escape`/`class_simple_escape`/`class_range_literal_escape_letter` reject
+    // these six in the default (pcre2) profile; the `relaxed` profile re-admits them. The EBNF is now
+    // the single source of truth for this rule ([[project_ebnf_is_single_source_of_truth]]), so the
+    // out-of-band validator no longer owns it.
     if let Some(error) = find_invalid_property_escape(input) {
         return Err(error);
     }
@@ -113,35 +116,6 @@ fn skip_quoted_literal_escape(bytes: &[u8], start: usize) -> usize {
         index += 1;
     }
     bytes.len()
-}
-
-fn find_invalid_escape_i(input: &str) -> Option<RegexCompileValidationError> {
-    let bytes = input.as_bytes();
-    let mut index = 0usize;
-    while index < bytes.len() {
-        match bytes[index] {
-            b'\\' => {
-                let unsupported_escape = match bytes.get(index + 1).copied() {
-                    Some(b'i') => Some("\\i"),
-                    Some(b'F') => Some("\\F"),
-                    Some(b'l') => Some("\\l"),
-                    Some(b'L') => Some("\\L"),
-                    Some(b'u') => Some("\\u"),
-                    Some(b'U') => Some("\\U"),
-                    _ => None,
-                };
-                if let Some(escape) = unsupported_escape {
-                    return Some(RegexCompileValidationError::new(
-                        index,
-                        format!("unsupported regex escape {escape}"),
-                    ));
-                }
-                index = skip_regex_escape(bytes, index);
-            }
-            _ => index += 1,
-        }
-    }
-    None
 }
 
 fn find_invalid_property_escape(input: &str) -> Option<RegexCompileValidationError> {
@@ -1717,20 +1691,14 @@ fn is_extended_class_start(bytes: &[u8], index: usize) -> bool {
 mod tests {
     use super::validate_regex_compile_contract;
 
-    #[test]
-    fn rejects_invalid_escape_i() {
-        let error = validate_regex_compile_contract(r"ab\idef").expect_err("must reject \\i");
-        assert!(error.message.contains("\\i"));
-    }
-
-    #[test]
-    fn rejects_pcre_unsupported_perl_escapes() {
-        for input in [r"\F", r"\l", r"\L", r"\u", r"\U"] {
-            let error = validate_regex_compile_contract(input)
-                .expect_err("must reject unsupported Perl escape");
-            assert!(error.message.contains("unsupported regex escape"));
-        }
-    }
+    // REGEX-PCRE2-FIDELITY.3.1 (PGEN-REGEX-PCRE2-0006): the `\i \F \l \L \u \U` unsupported-escape
+    // rejection has MOVED OUT of this validator INTO `grammars/regex.ebnf` (the strict variants of
+    // `simple_escape`/`class_simple_escape`/`class_range_literal_escape_letter` reject them in the
+    // default `pcre2` profile; `relaxed` re-admits them). The former `rejects_invalid_escape_i` /
+    // `rejects_pcre_unsupported_perl_escapes` validator unit tests were removed accordingly. The
+    // behaviour is now proven by the GRAMMAR parse path and the `pcre2test` oracle
+    // (`regex_pcre2_compile_oracle_gate`) — the EBNF is the single source of truth
+    // ([[project_ebnf_is_single_source_of_truth]]).
 
     #[test]
     fn allows_short_unicode_property_escapes() {

@@ -999,14 +999,22 @@ fn main() -> Result<()> {
             .output
             .unwrap_or_else(|| default_parser_output_path(&args.input_path));
 
-        let grammar = apply_grammar_profile_filter(
-            load_grammar_bundle(
-                &args.input_path,
-                &mut pipeline,
-                args.emit_raw_ast_json.as_deref(),
-            )?,
-            args.grammar_profile.as_deref(),
+        // PARSER CODEGEN always emits the FULL grammar (all profiles) with RUNTIME profile
+        // guards; profile SELECTION happens at parse time via `set_grammar_profile`. Only an
+        // EXPLICIT `--grammar-profile` filters here (rare/unused). Critically, the regex
+        // pcre2 GENERATION default in `apply_grammar_profile_filter` must NOT apply on this
+        // path — it would strip the `@profiles:["relaxed"]` rule DEFINITIONS from the parser,
+        // leaving their references unresolved (fallback stubs that always fail). The default
+        // belongs to the stimuli-generation paths only (REGEX-PCRE2-FIDELITY.3.1).
+        let loaded_grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
         )?;
+        let grammar = match args.grammar_profile.as_deref() {
+            Some(profile) => apply_grammar_profile_filter(loaded_grammar, Some(profile))?,
+            None => loaded_grammar,
+        };
         maybe_dump_generation_ast(
             &grammar,
             args.dump_gen_ast.as_deref(),
@@ -2197,6 +2205,18 @@ fn apply_grammar_profile_filter(
     grammar: LoadedGrammar,
     grammar_profile: Option<&str>,
 ) -> Result<LoadedGrammar> {
+    // REGEX-PCRE2-FIDELITY.3.1 (PGEN-REGEX-PCRE2-0006): regex is PCRE2-faithful BY DEFAULT on the
+    // GENERATION side too — an unspecified profile resolves to the strict `pcre2` profile (NOT
+    // permissive `None`), the generation twin of `.2`'s parse-side default in
+    // `parser_registry::normalize_generated_grammar_profile`. Without this, the
+    // `@profiles:["relaxed"]`-gated constructs (`simple_escape_relaxed`, `unicode_escape`, …) would NOT
+    // be filtered out of default-mode generation, so the generator could emit `\u` etc. that the
+    // (now grammar-strict) default-mode parser rejects.
+    let grammar_profile = match grammar_profile {
+        Some(profile) => Some(profile),
+        None if grammar.grammar_name == "regex" => Some("pcre2"),
+        None => None,
+    };
     let Some(profile) = grammar_profile else {
         return Ok(grammar);
     };

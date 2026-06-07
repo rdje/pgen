@@ -15,7 +15,7 @@ This is the document downstream projects such as RGX should read first when deci
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-05-18`
+  - `2026-06-07`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -33,6 +33,28 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Maintenance Update 2026-06-07 — REGEX-PCRE2-FIDELITY.3.1: `\u \U \F \l \L \i` rejection migrated from the host validator INTO the grammar; new `relaxed` profile (SURFACE-NEUTRAL; release/contract versions UNCHANGED)
+
+**What this is.** A PGEN-initiated PCRE2-fidelity refactor (director directive 2026-06-07; `PGEN-REGEX-PCRE2-0007`), **not** a downstream-reported bug. The six PCRE2-unsupported escape letters — `\i \F \l \L \u \U` (and the braced `\u{…}` form) — were previously rejected by an **out-of-band host-side validator** (`regex_compile_validation::find_invalid_escape_i`), which was invisible to the stimuli generator. That rejection is now expressed **inside `grammars/regex.ebnf`** (the EBNF is the single source of truth — `[[project_ebnf_is_single_source_of_truth]]`), via strict/relaxed variants of the three escape catch-alls (`simple_escape`, `class_simple_escape`, `class_range_literal_escape_letter`) plus a profile-gated `unicode_escape`; the validator's `\u`-family sub-check was deleted.
+
+**Versions UNCHANGED — no re-pin required.** Parser release stays `1.1.81`, contract stays `1.1.83`, AST-dump schema stays `1`. This change is **surface-neutral** for the stable `pgen::embedding_api` host surface:
+
+| What downstream consumes | Before | After |
+|---|---|---|
+| Default-mode accepted language (what parses / what rejects) | (baseline) | **identical** — `pcre2test` 10.47 compile oracle byte-identical (1857 matches / 46 false-rejects / 292 false-accepts; stash-baseline proven) |
+| `\i \F \l \L \u \U` and `\u{…}` in default (`regex_default`) | REJECT | REJECT (still PCRE2-faithful, all contexts: atom / class / class-range) |
+| AST shape of accepted escapes | `{type:"escape",kind:"shorthand",char}` / `{…,kind:"unicode",digits}` | **identical** |
+| Diagnostic **CODE** for the six escapes | `E_PARSE_FAILURE` (+ machine-localizable location) | `E_PARSE_FAILURE` (+ machine-localizable location) — **unchanged** |
+| Diagnostic **MESSAGE TEXT** for the six escapes | e.g. `unsupported regex escape \u` | e.g. `Parser did not consume full input at position N` — **CHANGED** |
+
+> **Action for downstream (RGX):** match on the diagnostic **CODE** (`E_PARSE_FAILURE`) and the structured **location**, **never** on the human-readable message text — the message string is not a contract surface and changed in this update.
+
+**New `relaxed` opt-out profile.** A `relaxed` grammar profile now re-admits `\i \F \l \L \u \U` and `\u{…}` (the conceptual analogue of PCRE2's `PCRE2_ALT_BSUX` for `\u`). It is selectable at the CLI / generator level via `--grammar-profile relaxed`. **The stable embedding API (`pgen::embedding_api`) continues to expose only the strict `regex_default` (PCRE2-faithful) profile** — selecting `relaxed` through the embedding API is a planned follow-on and is **not yet** part of this contract. Default = strict PCRE2; `relaxed` = additive superset.
+
+**Conformance proof.** `regex_pcre2_compile_oracle_gate` (`pcre2test` 10.47): default-mode accept/reject is byte-identical before and after (the false-reject set is the same 46 case IDs). `relaxed` accepts the six escapes.
+
+**Scope note.** This migrates **exactly** the validator's six-letter check. PCRE2 also rejects other unrecognized `\<letter>` escapes (e.g. `\I`, `\J`) which PGEN's default still accepts — a pre-existing, separately-tracked divergence (`REGEX-PCRE2-FIDELITY.3.11`, the full recognized-escape whitelist). The other nine `validate_regex_compile_contract` sub-checks remain in the host validator pending their own `REGEX-PCRE2-FIDELITY.3.x` leaves; the validator module is not yet removed.
 
 ## Release 1.1.81 / Contract 1.1.83 Highlights — PGEN-RGX-0088: octal `>0o377` is mode-dependent — FIX2.3's blanket parse-time reject REVERTED (mode-agnostic emission)
 

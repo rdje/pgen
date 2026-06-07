@@ -90,8 +90,9 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   encode (profile-gate / predicate) → migrate/refine the matching `validate_regex_compile_contract` check
   → verify PCRE2-oracle (default) + relaxed-mode + cert-coverage, tools-first, one at a time, measured.
   Children `.3.1`..`.3.10` map to rows 1–10 (start with the generator-tripping `\u`, then `(*verb)`, `[]`).
-- ID: `.3.1`  Status: `pending` (implementation; **DESIGN COMPLETE `PGEN-REGEX-PCRE2-0006`** — supersedes
-  `-0004`/`-0005`; see the "`.3.1` DESIGN COMPLETION" section below for the tool-backed final plan)
+- ID: `.3.1`  Status: **`done`** (`PGEN-REGEX-PCRE2-0007`; implemented per **DESIGN COMPLETE
+  `PGEN-REGEX-PCRE2-0006`**, which superseded `-0004`/`-0005`) — see the "`.3.1` DESIGN COMPLETION"
+  section below for the executed plan and the "`.3.1` IMPLEMENTATION OUTCOME" note.
   Goal: PCRE2-align `\u` (and its 5 validator siblings `\U \F \l \L \i`).
   **Design history (provenance):** `-0004` "bounded `\u{…}`" was flawed; `-0005` corrected to the
   `simple_escape`/`class_simple_escape` catch-all restructure but was STILL INCOMPLETE — it omitted the
@@ -234,18 +235,44 @@ conformance ratchet. Released lockstep: manifest + regex book + integration cont
 release/contract bump. Build: `ast_pipeline --features generated_parsers,ebnf_dual_run` +
 `PGEN_<big>_PARSER_PATH=/nonexistent`.
 
+## `.3.1` IMPLEMENTATION OUTCOME (2026-06-07, `PGEN-REGEX-PCRE2-0007`)
+
+Executed the DESIGN COMPLETION plan exactly. Landed (source only; `generated/regex_parser.rs` regenerated
+locally, gitignored): `regex.ebnf` — `simple_escape`/`class_simple_escape`/`class_range_literal_escape_letter`
+each split into strict/`@profiles:["relaxed"]` variants (recomputed refs `$21`/`$11`; `class_range` strict
+drops `F L U i l u`, keeps `I`) + `unicode_escape` tagged `@profiles:["relaxed"]`; `main.rs` — regex
+generation default `pcre2` in `apply_grammar_profile_filter` **and** an explicit exemption so the
+`generate_parser` codegen path always emits the FULL grammar (the default would otherwise strip the
+relaxed rules → unresolved-reference fallback stubs — a bug caught + fixed in-slice); `regex_compile_validation.rs`
+— `find_invalid_escape_i` + call site DELETED, two obsolete validator unit tests removed; `embedding_api.rs` —
+both regex parse paths now `set_grammar_profile(Some("pcre2"))` (the embedding default was permissive `None`
+→ leaked the 6 in default; caught by the contract failure-sample tests); manifest `regex_v1.json` (4
+strict/relaxed entries, alphabetical); oracle baseline env 45→46 (PRE-EXISTING drift, stash-baseline
+proven — see below).
+
+**Verified (tools-first):** behaviour matrix (default REJECTS `\i \F \l \L \u \U`/`\u{…}` in atom+class+class-range,
+ACCEPTS `\d \w \I`; `relaxed` ACCEPTS the 6) 15/15; AST shapes preserved (shorthand/unicode); `cargo test
+--lib` 612/0; `cargo test --lib --features generated_parsers` (heavy parsers skipped) 651/0 incl. regex
+shape-contract + integration-contract failure-sample tests; clippy strict source ✓ (generated `useless_vec`
+non-strict, pre-existing); **`regex_pcre2_compile_oracle_gate` GREEN** — and proven CONFORMANCE-NEUTRAL via a
+stash-baseline: the OLD parser (changes reverted) produced an IDENTICAL 46-element false-reject set (+292
+false-accept/+338 mismatch unchanged), so the gate's 45→46 was a PRE-EXISTING stale baseline, not a `.3.1`
+regression (all 46 are documented strict-default divergence classes); cert-coverage default 4 (all known
+structural residuals — empty `[]`/`[^]` ×3 + `(?(R 1)` ×1, none escape-related) / relaxed 3 (= prior floor).
+Released-parser lockstep: handoff contract "Maintenance Update 2026-06-07" (SURFACE-NEUTRAL — no version
+bump; same accepted language + AST shape + `E_PARSE_FAILURE` code; message text changed → match on code),
+regex book escapes chapter + Profiles section + changelog-index + regenerated tracked HTML, platform book
+`parser-families.md`. **No version bump** (release stays 1.1.81 / contract 1.1.83) — the embedding surface is
+unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracked follow-on).
+
 ## Current Frontier
 
-- `.3.1` — **IMPLEMENTATION** (design complete, `PGEN-REGEX-PCRE2-0006`): execute the three strict/relaxed
-  catch-all splits + `unicode_escape` relaxed-gate + generator-side `pcre2` default + delete
-  `find_invalid_escape_i`, exactly per "`.3.1` DESIGN COMPLETION" above. Released-parser slice (regen +
-  oracle gate + cert-coverage + relaxed tests + manifest + book + contract + ledger + release bump).
-- (superseded note) `.3.1` — gate `unicode_escape` (`\u`) `@profiles:["relaxed"]` + add the generator-side `pcre2` default +
-  drop the `\u` arm of `find_invalid_escape_i` → default rejects `\u` (matches PCRE2) + generator stops
-  emitting it; `relaxed` accepts. Then `.3.2` `(*verb)`, `.3.7` empty-`[]`. Each is a released-parser
-  slice: regen `generated/regex_parser.rs` + `regex_pcre2_compile_oracle_gate` (PCRE2 oracle) +
-  cert-coverage + relaxed tests + AST-shape manifest + regex book + integration contract + ledger +
-  release/contract bump. (`.2` default scaffolding DONE.)
+- `.3.2` — PCRE2-align `(*verb)` (validator check #6, `find_invalid_verb_construct`): gate `directive_name`
+  to the known PCRE2 verb/start-option set in the default (`pcre2`) profile; arbitrary verb names →
+  `relaxed`. Same released-parser slice shape as `.3.1` (regen + `regex_pcre2_compile_oracle_gate` +
+  cert-coverage + relaxed tests + manifest + regex book + handoff contract). Then `.3.7` empty-`[]`.
+  `.3.11` (full unrecognized-escape whitelist) and `.4`/`.5` (capstone: delete the validator + expose the
+  `relaxed` profile via the embedding API) remain.
 
 ## Decisions
 
@@ -289,6 +316,7 @@ release/contract bump. Build: `ast_pipeline --features generated_parsers,ebnf_du
 | `2026-06-07` | `.1` | mechanism greps (profiles/predicates/oracle), validator-check enumeration | confirmed feasible |
 | `2026-06-07` | `.2` | regex-focused build + cert-coverage (default 3, relaxed 3 = no-op) + lib 614/614 + regex tests 110/0 + clippy source 0 | DONE |
 | `2026-06-07` | `.3.1` design (`-0006`) | `pcre2test` 10.47 oracle matrix (6 letters reject in atom/class/class-range; broad unrecognized-escape reject); grammar read (3 catch-alls); profile-guard codegen read (clean backtrack, `None`=permissive); manifest read | DESIGN COMPLETE — found+fixed the omitted 3rd catch-all; spun out `.3.11` (full escape whitelist) |
+| `2026-06-07` | `.3.1` impl (`-0007`) | behaviour matrix 15/15 (default rejects 6 / relaxed accepts 6 / controls unchanged); AST shapes preserved; `cargo test --lib` 612/0; `--features generated_parsers` 651/0 (incl. shape-contract + contract failure-samples); clippy strict source ✓; `regex_pcre2_compile_oracle_gate` GREEN + stash-baseline CONFORMANCE-NEUTRAL (OLD≡NEW 46/292/338); cert-coverage default 4 (known residuals)/relaxed 3 | **DONE** — landed; baseline 45→46 (pre-existing drift); surface-neutral, no version bump |
 
 ## Commit Log
 
@@ -300,6 +328,7 @@ release/contract bump. Build: `ast_pipeline --features generated_parsers,ebnf_du
 | `.3.1` design | `PGEN-REGEX-PCRE2-0004` | bounded `\u{…}` design — SUPERSEDED (flawed: simple_escape catches `\u`) |
 | `.3.1` design correction | `PGEN-REGEX-PCRE2-0005` | the real lever is the simple_escape catch-all restructure (still incomplete — 2 catch-alls) |
 | `.3.1` design completion | `PGEN-REGEX-PCRE2-0006` | tool-backed (pcre2test oracle); completes the design across ALL 3 catch-alls + recomputed positional refs; spun out `.3.11` (full escape whitelist) |
+| `.3.1` implementation | `PGEN-REGEX-PCRE2-0007` | grammar 3-catch-all strict/relaxed split + `unicode_escape` relaxed + generator `pcre2` default (+ codegen-path exemption) + `find_invalid_escape_i` deleted + embedding `pcre2` default + manifest + oracle baseline 45→46 + handoff/book lockstep; conformance-neutral (stash-proven); no version bump |
 
 ## Changelog
 
@@ -316,6 +345,14 @@ release/contract bump. Build: `ast_pipeline --features generated_parsers,ebnf_du
   admits them) + `unicode_escape` gate + generator-side `pcre2` default, then remove
   `find_invalid_escape_i`. A core-rule restructure (preserve existing guards + AST shape) → higher-risk
   released slice; careful fresh-context execution.
+- `2026-06-07`: `.3.1` IMPLEMENTATION DONE (`PGEN-REGEX-PCRE2-0007`). Executed the completed design: 3
+  escape catch-alls split strict/`relaxed`, `unicode_escape` relaxed-gated, generator `pcre2` default
+  (+ a `generate_parser` codegen-path exemption so the FULL grammar is always emitted — the default would
+  otherwise strip the relaxed rules into fallback stubs, a bug caught + fixed in-slice), `find_invalid_escape_i`
+  deleted, embedding regex paths set `pcre2` (was permissive `None`). Conformance-NEUTRAL on the PCRE2
+  oracle (stash-baseline: OLD≡NEW 46/292/338) → no version bump (release 1.1.81 / contract 1.1.83 stay);
+  oracle baseline corrected 45→46 (pre-existing drift). Lockstep: handoff contract maintenance section,
+  regex book escapes/profiles/changelog + regenerated HTML, platform book. Frontier → `.3.2` `(*verb)`.
 - `2026-06-07`: `.3.1` DESIGN COMPLETION (`PGEN-REGEX-PCRE2-0006`, docs-only, tool-backed). Ran the
   `pcre2test` 10.47 oracle + read the grammar/validator/profile-gating codegen. **Found the `-0005`
   design was STILL incomplete:** it named only `simple_escape` + `class_simple_escape`, but there is a
