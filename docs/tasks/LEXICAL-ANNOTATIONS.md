@@ -7,10 +7,14 @@
 > `" "` separator after an identifier even when the next char is a closing delimiter `)` — breaking
 > `(*VERB )` / `(?P>NAME )` / `(?(COND ))` on re-parse. `--no-word-boundary-spacing` collapses it 39→2, so
 > ~37/39 are this over-insertion. This is a lexical-faithfulness defect (emitted chars must re-parse to the
-> intended tokens) → leaf `.5`. **`.5.1` DONE** (`PGEN-LEXICAL-ANNOTATIONS-0022`: eager-guard deferral,
-> regex cert-coverage `sample_parse_failures` 39→9, deterministic, lib 614/614). **Frontier = `.5.2`**
-> (join-rule fusability awareness — the residual `(?C 1)`-family, to reach ~2). (Prior closure stands for
-> `.1`–`.4`; see the historical banner below.)
+> intended tokens) → leaf `.5`. **`.5` COMPLETE** — `.5.1` (`PGEN-LEXICAL-ANNOTATIONS-0022`: eager-guard
+> deferral) + `.5.2` (`PGEN-LEXICAL-ANNOTATIONS-0023`: join-rule fusability awareness) together drove regex
+> cert-coverage `sample_parse_failures` **39 → 9 → 3**, deterministic, lib 614/614, cross-family gate ✅.
+> The word-boundary over-insertion (both eager-guard and join-rule mechanisms) is fully resolved. The
+> residual 3 are NOT word-boundary-spacing and are routed OUT: 2× empty char class `[]` (regex
+> grammar-modeling gap → `GRAMMAR-WELLFORMED.H.1`) + 1× `(?(R 1))` (a regex.ebnf `(?(R`-single-literal
+> tweak). **Tree re-CLOSED** (`done`); `.1`–`.5` complete. (Prior closure detail for `.1`–`.4` in the
+> historical banner below.)
 >
 > **(historical) Status:** `done` (2026-06-07, `PGEN-LEXICAL-ANNOTATIONS-0020` — director-directed close). The 4th
 > declarative pillar (lexical/layout annotations) is **landed, tested, and verified working**: derived
@@ -355,20 +359,31 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   (count 200, seed 0), DETERMINISTIC across 2 runs (witness 98→112, UNKNOWN 108→94); lib `--lib` 614/614
   (renamed `word_boundary_spacing_is_successor_aware_no_trailing_separator_for_lone_terminal` to lock the
   corrected lone-terminal behavior + new `word_boundary_spacing_not_inserted_before_non_fusable_closing_delimiter`);
-  obligation_a/b/c roundtrip + word_spacing sequence tests green; `stimuli_cross_family_platform_gate`
-  [recorded at commit]. The `(*gn)`-type samples that were structural-fails now parse structurally and are
-  rejected only by the CONSUMER-path validator (EBNF-SOT.3's domain) — no NEW structural failures.
-- `.5.2` — **join-rule fusability awareness (`pending`).** The residual 9 (post-`.5.1`) are a SECOND
-  over-insertion: the join rule `append_generated_segment` separates ANY word-char-ending segment from a
-  word-char-starting segment, including a FIXED LITERAL prefix that cannot fuse — e.g. `callout = "(?C"
-  callout_arg? ")"` renders `(?C` + `1` → `(?C 1)` (the literal `(?C` ends in `C`, the arg starts with a
-  digit → coarse heuristic splits them), breaking re-parse. Confirmed: `(?C1)`✓/`(?C 1)`✗, `(?(R1))`✓/`(?(R
-  1))`✗. The join rule's word-char heuristic lacks fusability info (is the LEFT an OPEN class that could
-  absorb the right, or a closed fixed literal?). **Fix direction:** thread the left terminal's open-tail
-  class to the join so it separates only OPEN-left + matching-right (unifies both mechanisms correctly) —
-  the terminal→join metadata refactor. **Acceptance:** regex cert-coverage `sample_parse_failures` 9 → ~2
-  (the ~2 residual are non-spacing — `--no-word-boundary-spacing` floor); no regression across grammars.
-  Verification: pending. Commit: pending.
+  obligation_a/b/c roundtrip + word_spacing sequence tests green; `stimuli_cross_family_platform_gate` ✅
+  (regex + VHDL + SV-2017, no regression). The `(*gn)`-type samples that were structural-fails now parse
+  structurally and are rejected only by the CONSUMER-path validator (EBNF-SOT.3's domain) — no NEW
+  structural failures.
+- `.5.2` — **join-rule fusability awareness. DONE (`PGEN-LEXICAL-ANNOTATIONS-0023`, 2026-06-07).** The
+  residual 9 (post-`.5.1`) were a SECOND over-insertion: the join rule `append_generated_segment`
+  separated ANY word-char-ending segment from a word-char-starting segment, including a structural literal
+  that cannot fuse — e.g. `callout = "(?C" callout_arg? ")"` rendered `(?C` + `1` → `(?C 1)`. FIX: track
+  the most-recently-rendered terminal's word-shape (`self.last_terminal_word_shaped`, set at BOTH terminal
+  paths: quoted-string literals in `generate_atom` and regex terminals in `apply_word_boundary_spacing`),
+  computed as "non-empty AND entirely lexical-word-chars" on the produced text. The concat loops thread it
+  via `append_segment_tracked`, and `append_generated_segment` now separates only when the output's TAIL
+  terminal is itself word-shaped — so a structural literal containing a non-word char (`(?C`, `(?{…})`)
+  stays adjacent to its word-char arg, while free word tokens (`module`/`automatic`, greedy `[A-Za-z]+`)
+  still separate. **VERIFIED:** regex cert-coverage `sample_parse_failures` **9 → 3** (count 200, seed 0),
+  DETERMINISTIC across 2 runs (witness 112→114); lib `--lib` 614/614; `stimuli_cross_family_platform_gate`
+  [recorded at commit] (regex + VHDL + SV-2017); clippy source 0 errors. **RESIDUAL 3 (characterized,
+  routed OUT — not word-boundary-spacing):** (a) 2× empty character class `[]` — the generator emits `[]`
+  (its `class_body = class_item*` allows zero items) but the regex parser rejects it STRUCTURALLY (PCRE2:
+  the first `]` after `[` is a literal member), with OR without a space — a regex grammar-modeling gap
+  (`GRAMMAR-WELLFORMED.H.1` regex-residual / a regex.ebnf char-class fix), NOT spacing; (b) 1× `(?(R 1))` —
+  the conditional-recursion `R` is a 1-char all-word literal my rule treats as fusable; distinguishing it
+  from a real keyword (`module`) is grammar-semantic, and a regex.ebnf tweak making `(?(R` a single literal
+  would resolve it (routed to a regex grammar follow-up). The word-boundary-spacing over-insertion itself
+  is now fully resolved (both eager-guard and join-rule mechanisms).
 
 ## Cross-links
 

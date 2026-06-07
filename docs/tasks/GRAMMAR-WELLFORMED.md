@@ -193,7 +193,15 @@ subtle dead branch"), never a silent accept.
   separator after an identifier even when the next char is `)`, breaking `(*VERB )` / `(?P>NAME )` /
   `(?(COND ))` on re-parse (NOT the out-of-band validator — `parse_and_cover_regex` skips it). At count 200
   the count is 39; `--no-word-boundary-spacing` collapses it 39→2. Fix routed to a re-opened
-  **`LEXICAL-ANNOTATIONS.5`** (its `apply_word_boundary_spacing` owns it). Phase H continues for vhdl / svpp /
+  **`LEXICAL-ANNOTATIONS.5`** (its `apply_word_boundary_spacing` owns it). **UPDATE 2026-06-07 — DONE in
+  `LEXICAL-ANNOTATIONS.5` (`-0022`/`-0023`):** successor-aware word-boundary spacing drove the count-200
+  residual **39 → 3** (deterministic; cross-family gate green). The remaining **3 are NOT word-boundary
+  spacing** and stay owned HERE / by a regex.ebnf grammar tweak: (a) 2× empty character class `[]` — the
+  generator emits `[]` (`class_body = class_item*` allows zero items) but the regex parser rejects it
+  STRUCTURALLY (PCRE2: the first `]` after `[` is a literal member) → a regex char-class grammar-modeling
+  gap; (b) 1× `(?(R 1))` — the conditional-recursion `R` (a 1-char all-word literal) → a regex.ebnf tweak
+  making `(?(R` a single literal would resolve it. These are the genuine regex witness-parseability
+  residuals now that the spacing noise is gone. Phase H continues for vhdl / svpp /
   rtl_* / json (each: regen + a `parse_and_cover_<grammar>` registry fn). ORIGINAL scope:
   Today only `systemverilog` sets `parse_and_cover`
   in `parser_registry.rs`; the cert-coverage gate hard-bails for every other grammar (`supports_parse_and_cover`

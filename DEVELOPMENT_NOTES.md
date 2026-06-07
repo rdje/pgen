@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - LEXICAL-ANNOTATIONS.5.2 — join-rule fusability awareness (PGEN-LEXICAL-ANNOTATIONS-0023)
+
+### The second over-insertion
+After `.5.1` deferred the eager guard to the join rule, 9 residual cert-coverage failures remained: the join rule `append_generated_segment` separates two word-char boundaries based ONLY on the chars (`output` ends word + `segment` starts word), so it split a structural literal from its arg — `callout = "(?C" callout_arg? ")"` → `(?C` (quoted-string literal, ends `C`) + `1` (regex digit) → `(?C 1)`. The string alone can't distinguish `(?C` (one structural literal, don't separate) from `a|b` (three terminals ending in a FREE identifier `b`, must separate) — both have a word char preceded by a non-word char. So the join needs the tail TERMINAL's shape, not just the string.
+
+### Fix (terminal word-shape tracked to the join)
+New runtime field `last_terminal_word_shaped`, set at BOTH terminal-text paths in `generate_atom`: the `quoted_string` arm (literals bypass `apply_word_boundary_spacing`) and the `regex` arm (via `apply_word_boundary_spacing`, on the RETURNED text so a baked `\n` from `[^\n]*` yields false). Predicate `is_word_shaped_literal` = "non-empty AND entirely lexical-word-chars" — true for `module`/`gn`/`782` (free word tokens that fuse), false for `(?C`/`(?{…})`/`)` (structural). The 4 concat loops (closer-split body+closer, normal, relational, quantifier) thread a local `prev_tail_ws` via `append_segment_tracked` (captures the tail shape of what's already in `output`, uses it for the append, then updates to the just-appended segment's tail shape; an empty segment leaves it unchanged). `append_generated_segment` gains `&& prev_tail_word_shaped`. `generate_regex_sample` is the sole regex-terminal text producer and always routes through `apply_word_boundary_spacing`, so the flag never goes stale for non-empty segments.
+
+Traced correct on all cases: `(?C`+`1`→`(?C1)` (prev tail `(?C` not word-shaped); `module`+`automatic`→`module automatic` (word-shaped); `a|b`+`c`→`a|b c` (`b` word-shaped); `gn`+`)`→`gn)` (the `)` non-word handles it).
+
+### Verification
+- regex cert-coverage `sample_parse_failures` 9 → 3 (count 200, seed 0), deterministic across 2 runs (witness 112→114).
+- `cargo test --lib` 614/614; obligation_a/b/c + word_boundary + word_spacing green.
+- `make -C rust stimuli_cross_family_platform_gate` ✅ (regex + VHDL + SV-2017) — no regression on the every-grammar blast radius.
+- clippy source 0 errors. No parser regen (library-side generator change).
+
+### Residual 3 (characterized, routed OUT — NOT word-boundary spacing)
+(a) 2× empty char class `[]` — generator emits `[]` (`class_body = class_item*` allows zero items); regex parser rejects it STRUCTURALLY with OR without a space (`(?{…})[]` and `[]*` both fail at the class; PCRE2: first `]` after `[` is literal) → a regex char-class grammar-modeling gap, routed to `GRAMMAR-WELLFORMED.H.1`. (b) 1× `(?(R 1))` — `R` is a 1-char all-word literal; distinguishing it from a real keyword is grammar-semantic; a regex.ebnf tweak making `(?(R` a single literal resolves it. The word-boundary over-insertion (eager + join) is now fully resolved → `.5` complete, LEXICAL-ANNOTATIONS re-closed.
+
 ## 2026-06-07 - LEXICAL-ANNOTATIONS.5.1 — successor-aware word-boundary spacing: defer the eager guard to the join rule (PGEN-LEXICAL-ANNOTATIONS-0022)
 
 ### Architecture (tools-first)

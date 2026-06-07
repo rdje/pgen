@@ -1267,6 +1267,14 @@ pub struct StimuliGenerator<'a> {
     // and the round-trip fails. Empty except during a qualifying
     // `generate_regex_sample` call. Parser-agnostic, all-lanes-safe.
     regex_content_forbidden: HashSet<char>,
+    // LEXICAL-ANNOTATIONS.5.2: word-shape of the MOST-RECENTLY-RENDERED terminal — true iff its
+    // produced text is a free word token (non-empty + entirely lexical-word-chars) that a following
+    // word char could fuse onto. Set at every terminal-render path (quoted-string literals in
+    // `generate_atom`; regex terminals in `apply_word_boundary_spacing`). Consulted by the concat
+    // loops (captured into a local per scope) so `append_generated_segment` separates two word-char
+    // boundaries ONLY when the left tail terminal is itself fusable — a structural literal whose tail
+    // happens to be a letter (e.g. `(?C`, `(?(R`) is NOT fusable and must stay adjacent to its arg.
+    last_terminal_word_shaped: bool,
     // SV-EXH-PROOF.2.3.2: grammar-scoped structural-sigil set `G`
     // (union of every permissive leading-negated content class's
     // printable complement across the whole grammar). Derived once
@@ -1397,6 +1405,7 @@ impl<'a> StimuliGenerator<'a> {
             generation_step_counter: std::cell::Cell::new(0),
             witness_certificates: Vec::new(),
             regex_content_forbidden: HashSet::new(),
+            last_terminal_word_shaped: false,
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
             closer_scopes_entered: 0,
@@ -5810,6 +5819,7 @@ impl<'a> StimuliGenerator<'a> {
                 self.structural_closer_forbidden.push(closer_lexeme);
                 self.closer_scopes_entered += 1;
                 let mut body_err: Option<anyhow::Error> = None;
+                let mut prev_tail_ws = false;
                 for idx in 0..closer_idx {
                     let element_path = format!("{}/s{}", node_path, idx);
                     match self.generate_sequence_element(
@@ -5821,7 +5831,9 @@ impl<'a> StimuliGenerator<'a> {
                         call_stack,
                         &element_path,
                     ) {
-                        Ok(generated) => self.append_generated_segment(&mut output, &generated),
+                        Ok(generated) => {
+                            self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws)
+                        }
                         Err(err) => {
                             body_err = Some(err);
                             break;
@@ -5843,10 +5855,11 @@ impl<'a> StimuliGenerator<'a> {
                         call_stack,
                         &element_path,
                     )?;
-                    self.append_generated_segment(&mut output, &generated);
+                    self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws);
                 }
                 return Ok(output);
             }
+            let mut prev_tail_ws = false;
             for idx in 0..elements.len() {
                 let element_path = format!("{}/s{}", node_path, idx);
                 let generated = self.generate_sequence_element(
@@ -5858,7 +5871,7 @@ impl<'a> StimuliGenerator<'a> {
                     call_stack,
                     &element_path,
                 )?;
-                self.append_generated_segment(&mut output, &generated);
+                self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws);
             }
             return Ok(output);
         }
@@ -5899,6 +5912,7 @@ impl<'a> StimuliGenerator<'a> {
                 closer_active = true;
             }
             let mut generation_failed = false;
+            let mut prev_tail_ws = false;
             for (idx, element) in elements.iter().enumerate() {
                 if closer_active {
                     if let Some((closer_idx, _)) = &closer {
@@ -5923,7 +5937,7 @@ impl<'a> StimuliGenerator<'a> {
                         if let Some(name) = capture_name {
                             named_captures.insert(name, generated.clone());
                         }
-                        self.append_generated_segment(&mut output, &generated);
+                        self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws);
                         captures.push(generated);
                     }
                     Err(err) => {
@@ -6024,7 +6038,14 @@ impl<'a> StimuliGenerator<'a> {
                 );
 
                 match token_type {
-                    "quoted_string" => Ok(token_value.to_string()),
+                    "quoted_string" => {
+                        // LEXICAL-ANNOTATIONS.5.2: quoted-string literals bypass
+                        // `apply_word_boundary_spacing`, so record their tail word-shape here. A
+                        // structural literal like `(?C` / `(?(R` is NOT word-shaped → the join rule
+                        // keeps it adjacent to its word-char argument.
+                        self.last_terminal_word_shaped = Self::is_word_shaped_literal(token_value);
+                        Ok(token_value.to_string())
+                    }
                     "rule_reference" => self.generate_rule(token_value, depth + 1, call_stack),
                     "regex" => {
                         let effective_pattern =
@@ -6196,6 +6217,7 @@ impl<'a> StimuliGenerator<'a> {
             self.enforce_generation_deadline(current_rule, node_path)?;
             let mut output = String::new();
             let mut failed = false;
+            let mut prev_tail_ws = false;
             for _ in 0..repeats {
                 self.enforce_generation_deadline(current_rule, &quantified_path)?;
                 match self.generate_node(
@@ -6214,7 +6236,7 @@ impl<'a> StimuliGenerator<'a> {
                         ) {
                             output.push('\n');
                         }
-                        self.append_generated_segment(&mut output, &generated)
+                        self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws)
                     }
                     Err(err) => {
                         failed = true;
@@ -7073,8 +7095,11 @@ impl<'a> StimuliGenerator<'a> {
         })
     }
 
-    fn apply_word_boundary_spacing(&self, pattern: &str, candidate: String) -> String {
+    fn apply_word_boundary_spacing(&mut self, pattern: &str, candidate: String) -> String {
         if !self.config.enforce_word_boundary_spacing {
+            // LEXICAL-ANNOTATIONS.5.2: still record the tail word-shape (spacing is off, but the
+            // flag must not go stale for the concat tracker).
+            self.last_terminal_word_shaped = Self::is_word_shaped_literal(&candidate);
             return candidate;
         }
         // LEXICAL-ANNOTATIONS.3 — Obligation B (intra-terminal trailing guard, regex-derived).
@@ -7086,7 +7111,7 @@ impl<'a> StimuliGenerator<'a> {
         // minimal separator, derived from the regex itself (parser-agnostic). Conservative: only
         // known-open tails trigger a guard, so self-delimiting terminals (fixed literals, closing
         // delimiters) are untouched.
-        match Self::regex_terminal_trailing_separator(pattern, &candidate) {
+        let result = match Self::regex_terminal_trailing_separator(pattern, &candidate) {
             // LEXICAL-ANNOTATIONS.5 — successor-aware deferral. When the terminal's tail needs a
             // SPACE and the candidate ends with a lexical word char, do NOT bake it here: the join
             // rule `append_generated_segment` (the single concat choke point for both sequences and
@@ -7104,7 +7129,11 @@ impl<'a> StimuliGenerator<'a> {
                 out
             }
             None => candidate,
-        }
+        };
+        // LEXICAL-ANNOTATIONS.5.2: record the word-shape of the RETURNED text (so a baked `"\n"`,
+        // e.g. from `[^\n]*`, correctly yields a non-fusable tail).
+        self.last_terminal_word_shaped = Self::is_word_shaped_literal(&result);
+        result
     }
 
     /// LEXICAL-ANNOTATIONS.3 — Obligation B. The minimal trailing separator needed so that
@@ -7204,8 +7233,22 @@ impl<'a> StimuliGenerator<'a> {
             .unwrap_or(false)
     }
 
-    fn append_generated_segment(&self, output: &mut String, segment: &str) {
+    /// LEXICAL-ANNOTATIONS.5.2: a rendered terminal's text is "word-shaped" — a free word token a
+    /// following word char could fuse onto — iff it is non-empty and entirely lexical-word-chars.
+    /// A structural literal whose tail is a letter but which contains a non-word char (e.g. `(?C`,
+    /// `(?(R`) is NOT word-shaped, so it must stay adjacent to a following word-char argument.
+    fn is_word_shaped_literal(text: &str) -> bool {
+        !text.is_empty() && text.chars().all(Self::is_lexical_word_char)
+    }
+
+    fn append_generated_segment(&self, output: &mut String, segment: &str, prev_tail_word_shaped: bool) {
+        // LEXICAL-ANNOTATIONS.5.2: separate two word-char boundaries ONLY when the accumulated
+        // output's TAIL terminal is itself a fusable word token (`prev_tail_word_shaped`). This stops
+        // the coarse word-char heuristic from splitting a structural literal from its word-char
+        // argument (e.g. `(?C` + `1` → `(?C1)`, `(?(R` + `1` → `(?(R1))`), while still separating
+        // adjacent free word tokens (`module` + `automatic`, two `[A-Za-z]+` runs).
         if self.config.enforce_word_boundary_spacing
+            && prev_tail_word_shaped
             && !output.is_empty()
             && !segment.is_empty()
             && Self::ends_with_lexical_word_char(output.as_str())
@@ -7214,6 +7257,27 @@ impl<'a> StimuliGenerator<'a> {
             output.push(' ');
         }
         output.push_str(segment);
+    }
+
+    /// LEXICAL-ANNOTATIONS.5.2: append `generated` to a concat scope's `output` while tracking the
+    /// word-shape of the output's tail terminal across elements. `prev_tail_word_shaped` carries the
+    /// tail shape of what is already in `output`; it is used for THIS append, then updated to
+    /// `generated`'s own tail shape (an empty `generated` leaves the tail unchanged). `self
+    /// .last_terminal_word_shaped` was set when `generated` was rendered (depth-first, so it reflects
+    /// `generated`'s tail terminal).
+    fn append_segment_tracked(
+        &self,
+        output: &mut String,
+        generated: &str,
+        prev_tail_word_shaped: &mut bool,
+    ) {
+        let cur_tail = if generated.is_empty() {
+            *prev_tail_word_shaped
+        } else {
+            self.last_terminal_word_shaped
+        };
+        self.append_generated_segment(output, generated, *prev_tail_word_shaped);
+        *prev_tail_word_shaped = cur_tail;
     }
 
     fn should_insert_quantified_separator(
