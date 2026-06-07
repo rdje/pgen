@@ -87,8 +87,18 @@ content.
   `regex`; codegen has only `match_string`/`match_regex`; native `[...]` also compiles to regex; ~20 simple
   classes convert to literal alternations, ~16 negated/any-char classes NEED a native any-char primitive.
 - ID: `.2`  Status: `pending`  Goal: DESIGN + add the parser-agnostic **any-single-character** engine
-  primitive (surface syntax + codegen `match_any_char` + meta-grammar `ebnf.ebnf` support); prove it on a
-  throwaway grammar; zero change to existing grammars (additive). No regex.ebnf change yet.
+  primitive. **SURFACE DECIDED (director 2026-06-07): a built-in reserved rule name `any_char`** — NO new
+  EBNF punctuation/token; grammars just reference `any_char` and `[^X]` becomes `!"X" any_char`. Plan:
+  codegen recognizes a `rule_reference` to `any_char` that has **no grammar definition** and emits a native
+  `parse_any_char()` calling a new `match_any_char` helper (consume exactly one char, advance by its UTF-8
+  byte length, Backtrack at EOF — NO `regex::Regex`). ADDITIVE + collision-free: the built-in activates ONLY
+  when `any_char` is referenced-but-undefined, so existing grammars (regex.ebnf still DEFINES
+  `any_char = /.../` until `.4`) are byte-identical. Prove on a throwaway grammar (`r = "a" any_char "b"`
+  matches `aXb`; `r = !"x" any_char` rejects `x`, accepts others). Regen ALL parsers → byte-identical.
+  Lockstep: document the `any_char` built-in in the EBNF reference + the platform book (new general EBNF
+  feature). No regex.ebnf change in `.2`. ⚠️ char-vs-byte/UTF-8 semantics fixed here so `.4`'s
+  `[^\x00-\x7F]`-style conversions are exact (range-negation like `unicode_char` may also need an ascii
+  guard or a char-value constraint — a `.4` design item).
 - ID: `.3`  Status: `pending`  Goal: convert the SIMPLE positive char-classes (single + quantified) in
   `regex.ebnf` to literal alternations — one batch (or a few), each regen + oracle byte-identical + lib +
   RGX conformance + shape-contract. Removes ~20 of 36 `"regex"` nodes.
@@ -107,11 +117,17 @@ content.
 - `2026-06-07` (`.1`): full self-hosting requires ONE new parser-agnostic engine primitive (native
   any-single-character matcher); native `[...]` char-classes do NOT help (they compile to Rust regex). The
   rest is mechanical literal-alternation conversion. Engine change is justified (parser-agnostic, general).
+- `2026-06-07` (`.2` design, director): the any-char primitive is spelled as a **built-in reserved rule name
+  `any_char`** (no new EBNF token/punctuation; closest to the `"..."`-only intent — grammars reference
+  `any_char`, and negated classes are `!"X" any_char`). The codegen emits the native matcher for a
+  `rule_reference` to `any_char` that has no grammar definition (additive; activates when a grammar drops
+  its own `any_char` definition).
 
 ## Open Questions
 
-- `.2`: surface spelling of the any-char primitive (reserved `any_char` rule vs `.` token vs `<any>`); char
-  vs byte semantics (UTF-8) so `[^\x00-\x7F]` etc. convert exactly.
+- ~~`.2`: surface spelling of the any-char primitive~~ **RESOLVED (director 2026-06-07): built-in reserved
+  rule name `any_char`** (no new EBNF punctuation; `[^X]` = `!"X" any_char`). Char-vs-byte/UTF-8 semantics
+  still to be fixed in `.2` implementation so `[^\x00-\x7F]`-style conversions are exact.
 - Whether to keep `any_char`'s historical positive enumeration anywhere for bounded behaviour, or make it
   the unbounded primitive everywhere (oracle decides per site).
 
