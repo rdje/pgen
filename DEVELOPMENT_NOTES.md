@@ -1,4 +1,8 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - LEXICAL-ANNOTATIONS.5 — scoping/design: successor-aware word-boundary spacing (PGEN-LEXICAL-ANNOTATIONS-0021)
+
+Design-only slice (no code). Full execution-ready analysis lives in `docs/tasks/LEXICAL-ANNOTATIONS.md` `.5`. Summary: the word-boundary trailing guard (`apply_word_boundary_spacing`, `stimuli_generator.rs:7076`) is applied at terminal-render time and bakes the separator into the token (successor-blind by design, for concat-path robustness); `regex_tail_greedy_blocker` (:7133) returns a separator for any greedy-unbounded-class tail unconditionally → over-inserts before a non-fusable successor (`)`), breaking `(*VERB )`/`(?P>NAME )`/`(?(COND ))`. Correct fix: make separation successor-aware at concat time (`generate_sequence` :5757). Every-grammar blast radius → implementation checkpointed as its own focused slice (heavy SV/VHDL/regex/cross-family verification + determinism required). Root cause: `PGEN-EBNF-SOT-0003`.
+
 ## 2026-06-07 - EBNF-SOURCE-OF-TRUTH.2.1 — root-cause correction: regex cert-coverage failures are LEXICAL, not the validator (PGEN-EBNF-SOT-0003)
 
 ### Why this slice exists

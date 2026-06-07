@@ -348,6 +348,29 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   determinism preserved. Parser-agnostic generator change (benefits every grammar). Tools-first: re-measure
   the 2 residual structural failures after the fix to confirm they are unrelated (a separate follow-up).
   Verification: pending. Commit: pending.
+- `.5` — **Design analysis (`PGEN-LEXICAL-ANNOTATIONS-0021`, 2026-06-07) — why this is a careful engine
+  slice, not a one-liner.** Tools-first source read of `stimuli_generator.rs`: the trailing guard is
+  applied at TERMINAL-render time (`apply_word_boundary_spacing`, call sites :6850/:6884/:6896/:6952/:6965)
+  and **bakes the separator into the terminal's returned string** ("before any caller appends to it",
+  comment :7026) — intentionally, so it is robust across every concatenation path. The mechanism that
+  decides to append is `regex_terminal_trailing_separator` (:7102) → `regex_tail_greedy_blocker` (:7133):
+  for `directive_name = /([A-Za-z][A-Za-z0-9_\-]*)/` the tail is a greedy unbounded class, so it returns
+  `Some(" ")` UNCONDITIONALLY — with **no knowledge of the successor token**. That is the over-insertion:
+  eager (successor-blind) by design.
+  - **Correct fix = make separation successor-aware (concat-time).** Move the decision to
+    `generate_sequence` (:5757, joins via `generate_sequence_element` :5727): insert the minimal separator
+    between adjacent elements only when the LEFT element's tail is open AND the RIGHT element's head char
+    could actually extend that open class. This needs terminals to surface their "open-tail class" (defer
+    the separator instead of baking it), or `generate_sequence` to inspect the right sibling's first char
+    before keeping a baked trailing guard. Either way it touches a tested, every-grammar path.
+  - **Blast radius + required verification (why it is "expanding beyond a safe slice"):** the function is
+    used by ALL grammars' stimuli generation. A regression silently breaks lexical faithfulness. Acceptance
+    must run: regex cert-coverage 39→~2 (count 200, seed 0), `sv_stimuli_quality_gate`,
+    `vhdl_stimuli_quality_gate`, the regex stimuli/conformance gates, `stimuli_cross_family_platform_gate`,
+    the LEXICAL round-trip/golden tests (`.4.3`), and a determinism re-run — heavy, multi-minute gates.
+  - **CHECKPOINTED (not rushed)** per the batch rule "stop … for a task expanding beyond a safe slice".
+    Implementation is the next focused slice; the design above makes it execution-ready. No code changed in
+    this scoping slice.
 
 ## Cross-links
 
