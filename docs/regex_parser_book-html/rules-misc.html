@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-852240a9.js";
+            window.path_to_searchindex_js = "searchindex-e6afd2c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -295,9 +295,32 @@
 </code></pre>
 <p>2-element Sequence.</p>
 <h3 id="directive_name"><a class="header" href="#directive_name"><code>directive_name</code></a></h3>
-<pre><code class="language-ebnf">directive_name = directive_name_start directive_name_continue*
+<pre><code class="language-ebnf">directive_name = directive_name_strict | directive_name_relaxed
 </code></pre>
-<p>2-element Sequence: <code>[&lt;first-char&gt;, &lt;Quantified of remaining chars&gt;]</code>.</p>
+<p><strong>REGEX-PCRE2-FIDELITY.3.2 — verb-name profile gating.</strong> The default (<code>pcre2</code>) profile accepts ONLY the
+recognized PCRE2 verb + start-option names (the EBNF now owns verb-name acceptance; the unrecognized-name
+rejection moved out of the host validator). <code>directive_name_strict</code> is an ordered choice of exactly those
+names — the 8 verbs (<code>MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN</code>) and 26 start-options (<code>UTF UTF8 UTF16 UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT TURKISH_CASING LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION CR LF CRLF ANY NUL ANYCRLF BSR_ANYCRLF BSR_UNICODE</code>), ordered longest-first for prefix overlaps. It is <strong>case-sensitive</strong>
+(PCRE2 rejects <code>(*accept)</code>/<code>(*Skip)</code>). The <code>@profiles: ["relaxed"]</code> variant <code>directive_name_relaxed</code>
+re-admits any <code>[A-Za-z][A-Za-z0-9_-]*</code> name.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th>default (<code>pcre2</code>)</th><th><code>relaxed</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>(*ACCEPT)</code> <code>(*FAIL)</code> <code>(*MARK:x)</code> <code>(*UTF)</code> <code>(*LIMIT_MATCH=100)</code></td><td>ACCEPT</td><td>ACCEPT</td></tr>
+<tr><td><code>(*FOO)</code> <code>(*BAR:x)</code> <code>(*MARKX)</code> <code>(*accept)</code> (unrecognized / wrong case)</td><td>REJECT</td><td>ACCEPT</td></tr>
+<tr><td><code>(*MARK)</code> (no arg), <code>a(*UTF)</code> (start-option not at start)</td><td>REJECT</td><td>REJECT (structural checks retained)</td></tr>
+</tbody>
+</table>
+</div>
+<p>The structural verb checks PCRE2 enforces beyond the name (MARK requires a non-empty argument;
+start-options must appear at the pattern start; <code>=value</code> must be numeric; only <code>ACCEPT</code> may be quantified)
+remain in the host compile-contract for now and apply in <strong>both</strong> profiles. <code>directive_name</code> has no return
+annotation (passthrough) so <code>directive_named</code>’s <code>name</code> field shape is unchanged.</p>
+<p>Both variants emit the matched name as text — <code>directive_name_relaxed</code> is a 2-element Sequence
+<code>[&lt;first-char&gt;, &lt;Quantified of remaining chars&gt;]</code>; <code>directive_name_strict</code> is the matched keyword Terminal.</p>
 <h3 id="directive_payload_suffix"><a class="header" href="#directive_payload_suffix"><code>directive_payload_suffix</code></a></h3>
 <pre><code class="language-ebnf">directive_payload_suffix = ":" directive_payload_simple?
                          | "=" directive_payload_simple?

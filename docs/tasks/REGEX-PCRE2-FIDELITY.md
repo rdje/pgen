@@ -121,6 +121,36 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   GAINS them. Verify: `regex_pcre2_compile_oracle_gate` (default), relaxed probe, cert-coverage (no new
   fail), lib, RGX conformance; regen `generated/regex_parser.rs`; released lockstep (manifest `unicode_escape`
   now relaxed-only + book + contract + ledger + release/contract bump). Fresh context for the lockstep.
+- ID: `.3.2`  Status: **`done`** (`PGEN-REGEX-PCRE2-0008`) — landed: `directive_name` split strict (8 verbs +
+  26 start-options, longest-first, case-sensitive) | `@profiles:["relaxed"]` catch-all; validator's
+  unrecognized-name reject removed (structural checks kept), so default rejects unrecognized verb names by
+  grammar (conformance-neutral: oracle 46/292/338 byte-identical) + relaxed re-admits arbitrary names.
+  VERIFIED: matrix (default rejects `(*FOO)`/`(*MARKX)`/`(*accept)`, accepts recognized; relaxed accepts
+  arbitrary; `(*MARK)`/`a(*UTF)` structural-reject both) + lib 612/0 + 651/0 + oracle GREEN + clippy strict
+  + cert-cov default 4→1 (only empty-`[]` residual left; relaxed 5 all empty-class residuals, no verb
+  failures) + both book gates GREEN. Surface-neutral, no version bump. Lockstep: regex book `directive_name`
+  + changelog + HTML, contract Maintenance-Update addendum, parser-families. Goal: PCRE2-align `(*verb)` NAMES — validator
+  check #6 `find_invalid_verb_construct` (NOTE: leaf numbers follow priority/work-order `\u`→`(*verb)`→`[]`,
+  NOT the validator row index; this is row 6 of the `.1` table). The grammar's `directive_name`
+  (`regex.ebnf`, `/([A-Za-z][A-Za-z0-9_\-]*)/`) accepts ANY name, so the generator emits `(*FOO)` that the
+  out-of-band validator rejects (the EBNF-SOT duality). **Design (tool-backed `pcre2test` 10.47):** split
+  `directive_name` into a strict (default `pcre2`) keyword ordered-choice of EXACTLY the recognized set —
+  8 verbs (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) + 26 start-options (`UTF UTF8 UTF16 UTF32 UCP
+  NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT CASELESS_RESTRICT
+  TURKISH_CASING LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION CR LF CRLF ANY NUL ANYCRLF
+  BSR_ANYCRLF BSR_UNICODE`), ordered **longest-first** for prefix overlaps (`FAIL`>`F`,
+  `UTF32/16/8`>`UTF`, `NOTEMPTY_ATSTART`>`NOTEMPTY`, `ANYCRLF`>`ANY`, `CRLF`>`CR`) — and a
+  `@profiles:["relaxed"]` catch-all variant = the original regex (`directive_name = directive_name_strict |
+  directive_name_relaxed`). Case-sensitive (`(*accept)`/`(*Skip)` → REJECT, matches PCRE2). Default then
+  rejects unrecognized verb names BY GRAMMAR (conformance-neutral: rejected before via validator); `relaxed`
+  re-admits arbitrary names. **No AST-shape/manifest change** (`directive_name` has no return annotation;
+  the strict/relaxed variants are passthrough). The finer STRUCTURAL checks (MARK-arg-required,
+  start-option position, `=value` numeric, quantified-ACCEPT-only) STAY in `find_invalid_verb_construct`
+  for now (harder to express in grammar; the validator's unrecognized-name branch becomes grammar-shadowed
+  but is removed at capstone `.4`). Verify: matrix (default rejects `(*FOO)`/`(*MARKX)`/`(*accept)`,
+  accepts the recognized set; relaxed accepts arbitrary) + `regex_pcre2_compile_oracle_gate` (no new
+  divergence) + cert-coverage + lib + clippy; regen LOCAL. Lockstep IFF surface changes (assess —
+  likely surface-neutral like `.3.1`, so book note only, no version bump).
 - ID: `.3.11`  Status: `pending` (DISCOVERED `PGEN-REGEX-PCRE2-0006`, tool-backed)  Goal: full PCRE2
   **escape whitelist** — strict/default mode accepts ONLY PCRE2's recognized escape letters; the broad
   `simple_escape`/`class_simple_escape`/`class_range_literal_escape_letter` catch-alls become the `relaxed`
@@ -267,12 +297,19 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
-- `.3.2` — PCRE2-align `(*verb)` (validator check #6, `find_invalid_verb_construct`): gate `directive_name`
-  to the known PCRE2 verb/start-option set in the default (`pcre2`) profile; arbitrary verb names →
-  `relaxed`. Same released-parser slice shape as `.3.1` (regen + `regex_pcre2_compile_oracle_gate` +
-  cert-coverage + relaxed tests + manifest + regex book + handoff contract). Then `.3.7` empty-`[]`.
-  `.3.11` (full unrecognized-escape whitelist) and `.4`/`.5` (capstone: delete the validator + expose the
-  `relaxed` profile via the embedding API) remain.
+- `.3.1` (`\u`-family) and `.3.2` (`(*verb)` names) are DONE. Next candidates, **pending a director
+  priority decision** (2026-06-07 the director surfaced two cross-cutting goals — see below):
+  - `.3.7` empty-`[]` (validator check #7) — **the cert-coverage lever**: the regex default cert-coverage
+    residual is now just the empty character class (`[]`/`[^]`) + one `(?(R 1)` form; closing these drives
+    regex default `sample_parse_failures` → 0. Highest-value for the "all parsers cert-coverage clean" goal.
+  - **REGEX-SELF-HOSTING** (NEW, director 2026-06-07): make `regex.ebnf` use ONLY literal `"..."`
+    terminals — eliminate every `/.../` regex-literal so the generated regex parser does not depend on
+    Rust's `regex` engine (self-hosting; no regex-to-parse-regex circularity). Big refactor (replace
+    `digit`/`letter`/`hex` classes / `unicode_char` / `special_char` / `directive_name_relaxed` / etc. with
+    literal-built rules). Composes with this tree (`.3.2`'s strict `directive_name` is already
+    `/.../`-free). Likely its own task tree once scoped.
+  - `.3.11` (full unrecognized-escape whitelist) and `.4`/`.5` capstone (delete `validate_regex_compile_contract`
+    + expose `relaxed` via the embedding API) remain.
 
 ## Decisions
 
@@ -317,6 +354,7 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `2026-06-07` | `.2` | regex-focused build + cert-coverage (default 3, relaxed 3 = no-op) + lib 614/614 + regex tests 110/0 + clippy source 0 | DONE |
 | `2026-06-07` | `.3.1` design (`-0006`) | `pcre2test` 10.47 oracle matrix (6 letters reject in atom/class/class-range; broad unrecognized-escape reject); grammar read (3 catch-alls); profile-guard codegen read (clean backtrack, `None`=permissive); manifest read | DESIGN COMPLETE — found+fixed the omitted 3rd catch-all; spun out `.3.11` (full escape whitelist) |
 | `2026-06-07` | `.3.1` impl (`-0007`) | behaviour matrix 15/15 (default rejects 6 / relaxed accepts 6 / controls unchanged); AST shapes preserved; `cargo test --lib` 612/0; `--features generated_parsers` 651/0 (incl. shape-contract + contract failure-samples); clippy strict source ✓; `regex_pcre2_compile_oracle_gate` GREEN + stash-baseline CONFORMANCE-NEUTRAL (OLD≡NEW 46/292/338); cert-coverage default 4 (known residuals)/relaxed 3 | **DONE** — landed; baseline 45→46 (pre-existing drift); surface-neutral, no version bump |
+| `2026-06-07` | `.3.2` impl (`-0008`) | verb matrix (default rejects `(*FOO)`/`(*MARKX)`/`(*accept)`, accepts 8 verbs + start-options; relaxed accepts arbitrary; `(*MARK)`/`a(*UTF)` structural-reject both); `cargo test --lib` 612/0; `--features generated_parsers` 651/0; clippy strict source ✓; `regex_pcre2_compile_oracle_gate` GREEN (46/292/338 byte-identical = conformance-neutral); cert-cov default 4→1 (only empty-`[]`; relaxed 5 = empty-class residuals, no verb failures); both book gates GREEN | **DONE** — surface-neutral, no version bump |
 
 ## Commit Log
 
@@ -329,6 +367,7 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `.3.1` design correction | `PGEN-REGEX-PCRE2-0005` | the real lever is the simple_escape catch-all restructure (still incomplete — 2 catch-alls) |
 | `.3.1` design completion | `PGEN-REGEX-PCRE2-0006` | tool-backed (pcre2test oracle); completes the design across ALL 3 catch-alls + recomputed positional refs; spun out `.3.11` (full escape whitelist) |
 | `.3.1` implementation | `PGEN-REGEX-PCRE2-0007` | grammar 3-catch-all strict/relaxed split + `unicode_escape` relaxed + generator `pcre2` default (+ codegen-path exemption) + `find_invalid_escape_i` deleted + embedding `pcre2` default + manifest + oracle baseline 45→46 + handoff/book lockstep; conformance-neutral (stash-proven); no version bump |
+| `.3.2` implementation | `PGEN-REGEX-PCRE2-0008` | `directive_name` strict (verbs+start-options, longest-first, case-sensitive) / `relaxed` split + validator unrecognized-name reject removed (structural checks kept) + book/contract/parser-families lockstep; conformance-neutral (oracle byte-identical); no version bump; no manifest change |
 
 ## Changelog
 
@@ -345,6 +384,16 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
   admits them) + `unicode_escape` gate + generator-side `pcre2` default, then remove
   `find_invalid_escape_i`. A core-rule restructure (preserve existing guards + AST shape) → higher-risk
   released slice; careful fresh-context execution.
+- `2026-06-07`: `.3.2` IMPLEMENTATION DONE (`PGEN-REGEX-PCRE2-0008`). PCRE2-align `(*verb)` NAMES: split
+  `directive_name` into a strict (default `pcre2`) ordered choice of the recognized 8 verbs + 26
+  start-options (longest-first for prefix overlaps; case-sensitive) and a `@profiles:["relaxed"]` catch-all;
+  removed the validator's unrecognized-name reject (kept the structural checks — MARK-arg, start-option
+  position, `=value`, quantified-ACCEPT). Default rejects unrecognized verb names by grammar
+  (conformance-neutral — oracle 46/292/338 byte-identical); `relaxed` re-admits arbitrary names. cert-cov
+  default 4→1. Surface-neutral → no version bump. Lockstep: regex book `directive_name` + changelog + HTML,
+  contract Maintenance-Update addendum, parser-families. DIRECTOR surfaced two cross-cutting goals
+  (cert-coverage-clean across all parsers; regex.ebnf `"..."`-only / self-hosting, no Rust regex engine) —
+  frontier now pending a priority decision (see Current Frontier).
 - `2026-06-07`: `.3.1` IMPLEMENTATION DONE (`PGEN-REGEX-PCRE2-0007`). Executed the completed design: 3
   escape catch-alls split strict/`relaxed`, `unicode_escape` relaxed-gated, generator `pcre2` default
   (+ a `generate_parser` codegen-path exemption so the FULL grammar is always emitted — the default would

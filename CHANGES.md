@@ -1,4 +1,43 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-PCRE2-0008 (REGEX-PCRE2-FIDELITY .3.2): `(*verb)` NAME acceptance migrated validator→grammar; default strict PCRE2 verb set + `relaxed` opt-out (CODE; conformance- & surface-neutral; no version bump).
+
+Second `.3.x` leaf of the PCRE2-faithful-by-default campaign. The grammar's `directive_name`
+(`/([A-Za-z][A-Za-z0-9_\-]*)/`) accepted ANY name, so the generator emitted `(*FOO)` that the out-of-band
+`find_invalid_verb_construct` validator rejected (the EBNF-SOT duality). Migrated verb/start-option NAME
+acceptance into `grammars/regex.ebnf`.
+
+- **Grammar:** `directive_name` split into `directive_name_strict` (default `pcre2`) — an ordered choice of
+  EXACTLY the recognized PCRE2 names: 8 verbs (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) + 26
+  start-options — ordered **longest-first** for prefix overlaps (`FAIL`>`F`, `UTF32/16/8`>`UTF`,
+  `NOTEMPTY_ATSTART`>`NOTEMPTY`, `ANYCRLF`>`ANY`, `CRLF`>`CR`), **case-sensitive** (PCRE2 rejects
+  `(*accept)`/`(*Skip)`); and a `@profiles:["relaxed"]` catch-all (`directive_name_relaxed`, the original
+  regex). `directive_name` has no return annotation (passthrough) ⇒ AST shape unchanged, **no manifest change**.
+- **Validator** (`regex_compile_validation.rs`): removed `find_invalid_verb_construct`'s final
+  unrecognized-name reject (advance instead) so the `relaxed` profile actually re-admits arbitrary verb
+  names (the validator is profile-unaware; leaving it would have blocked relaxed). Its **structural** checks
+  stay and apply in both profiles: MARK requires a non-empty arg, start-options must be at the pattern
+  start, `=value` numeric, only `ACCEPT` quantifiable. Updated one validator unit test (dropped the
+  `(*ploo:abc)` unrecognized-name case → now grammar-owned, proven at the parse layer).
+
+**Behaviour:** default REJECTS unrecognized/wrong-case verb names (`(*FOO)`, `(*MARKX)`, `(*accept)`) BY
+GRAMMAR + accepts the recognized verbs/start-options; `relaxed` (`--grammar-profile relaxed`) re-admits
+arbitrary names. `(*MARK)` (no arg) and `a(*UTF)` (start-option not at start) still reject in both profiles
+(structural checks). **Conformance-neutral** (`regex_pcre2_compile_oracle_gate` 46/292/338 byte-identical)
+⇒ **no version bump** (release 1.1.81 / contract 1.1.83 / schema 1 stay; surface-neutral). The `relaxed`
+profile is CLI-only (embedding-API exposure is the `.5` follow-on).
+
+**Verified:** verb matrix (default rejects unrecognized/case, accepts recognized; relaxed accepts
+arbitrary; `(*MARK)`/`a(*UTF)` structural-reject both); `cargo test --lib` 612/0; `--features
+generated_parsers` 651/0; clippy strict source ✓; oracle GREEN; cert-coverage default **4→1** (the lone
+residual is now empty `[]` — see below; relaxed 5 = all empty-class residuals, no verb failures); both book
+gates GREEN.
+
+**Lockstep (same-commit):** regex book `directive_name` chapter (`rules-misc.md`) + changelog-index +
+regenerated tracked HTML, integration-contract Maintenance-Update addendum, platform book
+`parser-families.md`. `generated/regex_parser.rs` regenerated locally (gitignored). LIVE unchanged. Frontier
+is now a director priority decision between **cert-coverage-clean** (`.3.7` empty-`[]` drives regex default
+cert-cov → 0) and **REGEX-SELF-HOSTING** (regex.ebnf `"..."`-only, drop the Rust regex-engine dependency).
+
 ## 2026-06-07 - PGEN-REGEX-PCRE2-0007 (REGEX-PCRE2-FIDELITY .3.1 IMPLEMENTATION): `\u \U \F \l \L \i` rejection migrated validator→grammar; default strict PCRE2 + `relaxed` opt-out (CODE; conformance- & surface-neutral; no version bump).
 
 First RELEASED-grammar leaf of REGEX-PCRE2-FIDELITY. Migrated the six PCRE2-unsupported escape letters `\i \F \l \L \u \U` (and the braced `\u{…}` form) out of the out-of-band host validator (`regex_compile_validation::find_invalid_escape_i`) INTO `grammars/regex.ebnf`, so the EBNF is the single source of truth.

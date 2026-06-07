@@ -1065,7 +1065,26 @@ directive_payload_char = /([^)])/
 # that emits a clean string Terminal of the matched verb name.
 # Char-set mirrors the previous chain: leading letter, then letters/
 # digits/underscore/hyphen.
-directive_name    = /([A-Za-z][A-Za-z0-9_\-]*)/
+# PGEN-REGEX-PCRE2-0008 (`REGEX-PCRE2-FIDELITY.3.2`): strict/relaxed split so the default (`pcre2`)
+# profile accepts ONLY the recognized PCRE2 verb + start-option names — the EBNF now owns verb-name
+# acceptance, migrating the unrecognized-name rejection out of `find_invalid_verb_construct` (the
+# finer structural checks — MARK-arg, start-option position, `=value`, quantified-ACCEPT — stay in the
+# validator for now; capstone `.4` removes it). Strict = an ordered choice of the 8 verbs + 26
+# start-options, ordered LONGEST-FIRST for prefix overlaps (`FAIL`>`F`, `UTF32/16/8`>`UTF`,
+# `NOTEMPTY_ATSTART`>`NOTEMPTY`, `ANYCRLF`>`ANY`, `CRLF`>`CR`). Case-sensitive (PCRE2 rejects
+# `(*accept)`/`(*Skip)`). `relaxed` re-admits any name (the original catch-all). No `->` on any of
+# these (passthrough) ⇒ `directive_named`'s `name:$1` shape is preserved; no manifest change.
+directive_name    = directive_name_strict | directive_name_relaxed
+directive_name_strict = "FAIL" | "F" | "ACCEPT" | "COMMIT" | "PRUNE" | "SKIP" | "THEN" | "MARK"
+                      | "UTF32" | "UTF16" | "UTF8" | "UTF" | "UCP"
+                      | "NOTEMPTY_ATSTART" | "NOTEMPTY"
+                      | "NO_AUTO_POSSESS" | "NO_DOTSTAR_ANCHOR" | "NO_JIT" | "NO_START_OPT"
+                      | "CASELESS_RESTRICT" | "TURKISH_CASING"
+                      | "LIMIT_HEAP" | "LIMIT_MATCH" | "LIMIT_DEPTH" | "LIMIT_RECURSION"
+                      | "CRLF" | "CR" | "LF" | "ANYCRLF" | "ANY" | "NUL"
+                      | "BSR_ANYCRLF" | "BSR_UNICODE"
+@profiles: ["relaxed"]
+directive_name_relaxed = /([A-Za-z][A-Za-z0-9_\-]*)/
 directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'
 directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '_' |'{' | '|' | '}' | '~'

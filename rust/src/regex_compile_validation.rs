@@ -512,10 +512,19 @@ fn find_invalid_verb_construct(input: &str) -> Option<RegexCompileValidationErro
                         continue;
                     }
                 } else {
-                    return Some(RegexCompileValidationError::new(
-                        index,
-                        "unrecognized PCRE2 verb or start option",
-                    ));
+                    // REGEX-PCRE2-FIDELITY.3.2 (PGEN-REGEX-PCRE2-0008): verb/start-option NAME
+                    // acceptance is now owned by grammars/regex.ebnf (directive_name strict/relaxed).
+                    // The default (pcre2) profile rejects an unrecognized name STRUCTURALLY (the parse
+                    // fails before this validator runs); the relaxed profile admits it. So the former
+                    // out-of-band "unrecognized PCRE2 verb or start option" reject is removed — advance
+                    // past the construct instead. (The recognized-name STRUCTURAL checks above —
+                    // MARK-arg, start-option position, =value, quantified-ACCEPT — stay until capstone
+                    // .4 removes the whole validator.)
+                    if let Some(group_end) = find_star_verb_end(bytes, index) {
+                        index = group_end + 1;
+                        continue;
+                    }
+                    index += 1;
                 }
             }
             _ => index += 1,
@@ -1978,7 +1987,13 @@ mod tests {
 
     #[test]
     fn rejects_invalid_pcre2_verb_shapes() {
-        for input in ["a(*MARK)b", "abc(*MARK:)pqr", "abc(*:)pqr", "(*ploo:abc)"] {
+        // REGEX-PCRE2-FIDELITY.3.2 (PGEN-REGEX-PCRE2-0008): the validator now keeps only the
+        // STRUCTURAL verb checks (e.g. MARK requires a non-empty argument). Unrecognized verb NAMES
+        // (e.g. `(*ploo:abc)`) are rejected by the GRAMMAR's strict `directive_name` in the default
+        // (pcre2) profile — not this out-of-band validator, which the `relaxed` profile must not block.
+        // The grammar-level unrecognized-name rejection is proven at the parse layer (behaviour matrix),
+        // not here.
+        for input in ["a(*MARK)b", "abc(*MARK:)pqr", "abc(*:)pqr"] {
             let error =
                 validate_regex_compile_contract(input).expect_err("must reject invalid verb shape");
             assert!(error.message.contains("verb") || error.message.contains("MARK"));

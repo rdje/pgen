@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-PCRE2-FIDELITY.3.2 — `(*verb)` NAME acceptance migrated validator→grammar (PGEN-REGEX-PCRE2-0008)
+
+### What landed
+`directive_name` (`grammars/regex.ebnf`) split into a strict (default `pcre2`) ordered choice of exactly the
+recognized PCRE2 verb (8) + start-option (26) names — longest-first for prefix overlaps, case-sensitive —
+and a `@profiles:["relaxed"]` catch-all (the original `/.../`). `find_invalid_verb_construct`'s final
+unrecognized-name reject removed (advance instead); its structural checks kept. One validator unit test
+updated. No manifest change (`directive_name` passthrough).
+
+### Non-obvious point (BE-ALERT)
+Unlike `.3.1` (where I deleted the whole `find_invalid_escape_i`), `find_invalid_verb_construct` is
+multi-purpose (name + structural). After only gating the grammar, the verb matrix showed RELAXED still
+rejecting `(*FOO)` — because the profile-UNAWARE validator still rejected unrecognized names after the
+grammar's relaxed catch-all accepted them. Lesson: to make `relaxed` truly re-admit a construct, the
+validator's reject for it must be REMOVED, not just shadowed by a grammar profile gate. Removed the
+unrecognized-name reject (kept structural checks) → relaxed accepts arbitrary verbs; default still rejects
+(grammar strict, parse fails before the validator runs → conformance-neutral, oracle byte-identical).
+
+### Scope
+Targeted (name gating). The structural verb checks (MARK-arg, start-option position, `=value`,
+quantified-ACCEPT) are harder to express in the grammar and stay in the validator; the full validator
+removal is capstone `.4`. The strict `directive_name` is `/.../`-free (uses only literal `"..."` keywords) —
+incidentally aligned with the director's emerging "regex.ebnf `"..."`-only / self-hosting" direction.
+
+### Versioning
+Surface-neutral (default accept/reject identical, AST shape unchanged, `E_PARSE_FAILURE` code unchanged) →
+no version bump. Documented in the contract's Maintenance-Update section.
+
 ## 2026-06-07 - REGEX-PCRE2-FIDELITY.3.1 — IMPLEMENTATION: `\u`-family migrated validator→grammar (PGEN-REGEX-PCRE2-0007)
 
 ### What landed

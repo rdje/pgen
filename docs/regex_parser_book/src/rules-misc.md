@@ -194,10 +194,32 @@ directive_named = directive_name directive_payload_suffix?
 ### `directive_name`
 
 ```ebnf
-directive_name = directive_name_start directive_name_continue*
+directive_name = directive_name_strict | directive_name_relaxed
 ```
 
-2-element Sequence: `[<first-char>, <Quantified of remaining chars>]`.
+**REGEX-PCRE2-FIDELITY.3.2 — verb-name profile gating.** The default (`pcre2`) profile accepts ONLY the
+recognized PCRE2 verb + start-option names (the EBNF now owns verb-name acceptance; the unrecognized-name
+rejection moved out of the host validator). `directive_name_strict` is an ordered choice of exactly those
+names — the 8 verbs (`MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN`) and 26 start-options (`UTF UTF8 UTF16
+UTF32 UCP NOTEMPTY NOTEMPTY_ATSTART NO_AUTO_POSSESS NO_DOTSTAR_ANCHOR NO_JIT NO_START_OPT
+CASELESS_RESTRICT TURKISH_CASING LIMIT_HEAP LIMIT_MATCH LIMIT_DEPTH LIMIT_RECURSION CR LF CRLF ANY NUL
+ANYCRLF BSR_ANYCRLF BSR_UNICODE`), ordered longest-first for prefix overlaps. It is **case-sensitive**
+(PCRE2 rejects `(*accept)`/`(*Skip)`). The `@profiles: ["relaxed"]` variant `directive_name_relaxed`
+re-admits any `[A-Za-z][A-Za-z0-9_-]*` name.
+
+| Pattern | default (`pcre2`) | `relaxed` |
+|---|---|---|
+| `(*ACCEPT)` `(*FAIL)` `(*MARK:x)` `(*UTF)` `(*LIMIT_MATCH=100)` | ACCEPT | ACCEPT |
+| `(*FOO)` `(*BAR:x)` `(*MARKX)` `(*accept)` (unrecognized / wrong case) | REJECT | ACCEPT |
+| `(*MARK)` (no arg), `a(*UTF)` (start-option not at start) | REJECT | REJECT (structural checks retained) |
+
+The structural verb checks PCRE2 enforces beyond the name (MARK requires a non-empty argument;
+start-options must appear at the pattern start; `=value` must be numeric; only `ACCEPT` may be quantified)
+remain in the host compile-contract for now and apply in **both** profiles. `directive_name` has no return
+annotation (passthrough) so `directive_named`'s `name` field shape is unchanged.
+
+Both variants emit the matched name as text — `directive_name_relaxed` is a 2-element Sequence
+`[<first-char>, <Quantified of remaining chars>]`; `directive_name_strict` is the matched keyword Terminal.
 
 ### `directive_payload_suffix`
 
