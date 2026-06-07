@@ -1,4 +1,19 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-EBNF-BOOK-0001 (NEW PROPOSED TREE EBNF-BOOK): own (build later) a dedicated EBNF-authoring mdBook (docs).
+
+Director 2026-06-07: PGEN has no book documenting the EBNF *language itself* (how to author a `.ebnf`) — only
+the platform book, 6 per-parser books, and scattered reference docs (`RETURN_ANNOTATIONS_REFERENCE`,
+`PGEN_ANNOTATION_NORMATIVE_SPEC`, `EBNF_INCLUDE_SYSTEM`, `BOOTSTRAP_MODE_SPECIFICATION`). Created an owning
+task-tree skeleton (`docs/tasks/EBNF-BOOK.md`, status `proposed` — own now, build later) for a curated
+EBNF-language mdBook covering: terminals (`"..."`/`'x'`/`[...]`/`/.../`/the `any_char` built-in), rules /
+ordered-choice / quantifiers (Layer-0) / lookaheads, **the implicit/passthrough return policy**, `$0`/`$text`,
+the return- and semantic-annotation languages, the `@include` system, and the bootstrap path. The director's
+specific ask — "expose all the passthrough thing in the EBNF book" — is captured: the tree records the exact
+implicit-return conditions now (synthetic `-> $1` only for a single-element non-Quantified body with no
+explicit `->`; suppressed for ≥2-element Sequences and Quantified bodies; `ast_based_generator.rs:3701-3750`)
+so the knowledge is durable until the book is authored. Registered in the TASK_TREE Proposed table. Docs-only;
+does not change the active frontier (REGEX-SELF-HOSTING `.3`); status unchanged across all parser-family rows.
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0004 (REGEX-SELF-HOSTING .3 DESIGN): the `$text` text-recovery return-annotation primitive (docs).
 
 Tool-backed design finding for self-hosting: the ~8 quantified payloads in `regex.ebnf`
