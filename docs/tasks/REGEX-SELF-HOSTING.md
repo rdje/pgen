@@ -193,12 +193,16 @@ content.
   name + 7 refs); `special_char` → literal punctuation ordered-choice. Verified oracle BYTE-IDENTICAL; `\é`
   → `char:"é"` (non-ASCII via simple_escape→any_char→unicode_char); manifest +1 (`unicode_char` `$2`); lib
   615/0, generated_parsers 654/0, clippy ✓; `match_regex` calls → 16.
-  **REMAINING (`.5c`+):** `literal_char` → `letter|digit|<its punct subset>|unicode_char`; `class_literal` →
-  `letter|digit|whitespace|<its punct>|unicode_char`; `name` →
-  `(letter|'_'|unicode_char)(letter|digit|'_'|unicode_char)* -> $text` (+manifest); plus the remaining
-  content-until-delimiter payloads (callout/comment/`directive_payload_*`/`comment_text`/
-  `directive_name_relaxed`) via `!"<delim>" builtin_any_char` runs + `$text`. Each force-regen + oracle
-  byte-identical + shape-contract + spot-check. Then `.6` capstone.
+  **batch `.5c` DONE (`PGEN-REGEX-SELF-HOST-0013`):** converted ALL remaining `/.../` — `literal_char`,
+  `class_literal`, `class_safe_special` (big positive sets → `<literals> | unicode_char`); `name` →
+  `(letter|'_'|unicode_char)(letter|digit|'_'|unicode_char)* -> $text`; the content-until-delimiter payloads
+  `comment_text`/`directive_payload_simple` → `(!")" builtin_any_char)* -> $text`, `directive_payload_char`
+  → `!")" builtin_any_char -> $2`, `directive_name_relaxed` → `letter (letter|digit|'_'|'-')* -> $text`, and
+  the 8 callout payloads → `( "XX" | !"X" builtin_any_char )* -> $text`. Manifest `regex_v1.json` synced from
+  the live inventory (+13 `$text`/`$2` entries → 172). **RESULT: ZERO `/.../` in regex.ebnf, ZERO `match_regex`
+  CALLS in the generated parser.** Oracle BYTE-IDENTICAL; spot-checks (`(?<foo>a)`→name "foo", `(?#hello)`→
+  text "hello", `\é`→"é"); lib 615/0, generated_parsers 654/0, clippy ✓. (3 `regex::Regex` refs remain = the
+  now-uncalled `match_regex` helper + its `use regex::Regex` import → `.6` elides them.)
 - ID: `.6`  Status: `pending`  Goal: CAPSTONE — assert `regex.ebnf` has zero `/.../` and
   `generated/regex_parser.rs` contains no `match_regex`/`regex::Regex` call; add a gate/test that fails if a
   `/.../` reappears in `regex.ebnf`; lockstep (regex book "self-hosting" note + contract if a surface
@@ -260,6 +264,7 @@ content.
 | `2026-06-07` | `.4c` (`-0010`) | codegen `generate_post_body_span_transform` (apply `@transform` to matched span, guarded by `!matches!(result, TransformedTerminal(_))` → no-op for terminal bodies) + converted `digits = digit+`, `backreference_digits = nonzero_digit digit+`, `backreference_digits_single = nonzero_digit`; oracle BYTE-IDENTICAL; `@transform` VALUES correct (`a{12}`→12, `\5`→5); additive (regen'd return_annotation too, 653/0); clippy ✓; `match_regex` calls → 19 | **`.4` DONE — all positive char-classes native**; `.5` (negated) remains |
 | `2026-06-07` | `.5a` (`-0011`) | `ascii_char` built-in (native `ch.is_ascii()` matcher, mirrors `any_char`) + codegen unit test `unresolved_reference_codegen_emits_native_ascii_char_matcher`; additive/dormant (nothing references it → regex byte-identical, `match_regex` calls still 19); lib 615/0 (+1), clippy ✓ | **`.5a` DONE** (the range-negation primitive); `.5b`+ grammar conversion remains |
 | `2026-06-07` | `.5b` (`-0012`) | director's `builtin_` prefix → renamed built-ins to `builtin_any_char`/`builtin_ascii_char` (no regex-rule rename needed); converted `unicode_char = !builtin_ascii_char builtin_any_char -> $2`, `any_char` RULE → `letter\|digit\|whitespace\|special_char\|unicode_char`, `special_char` → literal punctuation choice; oracle BYTE-IDENTICAL; `\é`→`char:"é"` (non-ASCII works); built-ins now ACTIVE (2 native matchers); manifest +1 (`unicode_char`); lib 615/0, generated_parsers 654/0, clippy ✓; `match_regex` calls → 16 | **`.5b` DONE**; `.5c` (literal_char/class_literal/name + payloads) + `.6` remain |
+| `2026-06-07` | `.5c` (`-0013`) | converted ALL remaining `/.../`: `literal_char`/`class_literal`/`class_safe_special` (big sets → `<literals>\|unicode_char`); `name` → `(…)(…)* -> $text`; `comment_text`/`directive_payload_simple` → `(!")" builtin_any_char)* -> $text`; `directive_payload_char` → `!")" builtin_any_char -> $2`; `directive_name_relaxed` → `letter (…)* -> $text`; 8 callout payloads → `( "XX" \| !"X" builtin_any_char )* -> $text`. Manifest synced (+13 → 172). **ZERO `/.../`, ZERO `match_regex` calls.** Oracle BYTE-IDENTICAL; spot-checks pass; lib 615/0, generated_parsers 654/0, clippy ✓ | **`.5` DONE**; only `.6` (elide the dead `match_regex` helper + guard gate) remains |
 
 ## Commit Log
 
@@ -276,11 +281,23 @@ content.
 | `.4c` | `PGEN-REGEX-SELF-HOST-0010` | parser-agnostic codegen: apply `@transform` to matched span for non-terminal bodies (guarded, additive); converted the 3 `@transform→usize` digit rules; oracle byte-identical; values correct; `match_regex` calls → 19. ALL positive char-classes native |
 | `.5a` | `PGEN-REGEX-SELF-HOST-0011` | `ascii_char` built-in (native `ch.is_ascii()`; the range-negation primitive for `unicode_char = !ascii_char any_char`); additive/dormant; byte-identical; lib 615/0 +1 test |
 | `.5b` | `PGEN-REGEX-SELF-HOST-0012` | `builtin_` prefix on the built-ins (avoids the regex-rule shadow); `unicode_char`/`any_char`-rule/`special_char` → native; built-ins now active; `\é` works; oracle byte-identical; `match_regex` calls → 16 |
+| `.5c` | `PGEN-REGEX-SELF-HOST-0013` | converted ALL remaining `/.../` (literal_char/class_literal/name/comment/callout/directive payloads); manifest synced (172); **ZERO `/.../`, ZERO `match_regex` calls**; oracle byte-identical. `.5` DONE |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.5c` (`PGEN-REGEX-SELF-HOST-0013`) — converted ALL remaining `/.../` in regex.ebnf:
+  `literal_char`/`class_literal`/`class_safe_special` (big positive sets → `<literals> | unicode_char`),
+  `name` (→ `(letter|'_'|unicode_char)(letter|digit|'_'|unicode_char)* -> $text`), and the
+  content-until-delimiter payloads (`comment_text`/`directive_payload_simple` → `(!")" builtin_any_char)*
+  -> $text`; `directive_payload_char` → `!")" builtin_any_char -> $2`; `directive_name_relaxed`; the 8
+  callout payloads → `( "XX" | !"X" builtin_any_char )* -> $text`). Shape-contract manifest synced from the
+  live inventory (+13 → 172). **RESULT: ZERO `/.../` in regex.ebnf and ZERO `match_regex` CALLS in the
+  generated parser.** Oracle BYTE-IDENTICAL; spot-checks (`(?<foo>a)`→name "foo", `(?#hello)`→text "hello",
+  `\é`→"é"); lib 615/0, generated_parsers 654/0, clippy ✓. `.5` DONE. `.6` (the capstone) elides the now-dead
+  `match_regex` helper + `use regex::Regex` (3 residual refs) so the regex parser drops the regex-crate link,
+  + adds a guard gate.
 - `2026-06-07`: `.5b` (`PGEN-REGEX-SELF-HOST-0012`) — adopted the director's `builtin_` prefix for the
   primitives (`builtin_any_char`/`builtin_ascii_char`), which cleanly avoids the `any_char`-rule shadow (NO
   rename of the regex `any_char` rule or its 7 refs needed). Renamed the codegen arms + unit tests, then

@@ -165,7 +165,9 @@ quoted_literal = "\\Q" quoted_literal_char* "\\E"      -> {type: "atom", kind: "
 quoted_literal_char = quoted_literal_escaped_char | letter | digit | whitespace | class_safe_special | ']' | unicode_char
 quoted_literal_escaped_char = "\\" quoted_literal_escape_tail
 quoted_literal_escape_tail = letter_no_upper_e | digit | whitespace | class_safe_special | ']' | unicode_char
-literal_char   = /([A-Za-z0-9!"#%&',\-\/:;<=>@\]{}_`~]|[^\x00-\x7F])/
+# REGEX-SELF-HOSTING.5c: `literal_char` = letter|digit|<its punct subset>|unicode_char (its original set
+# `[A-Za-z0-9!"#%&',\-\/:;<=>@\]{}_\`~]|[^\x00-\x7F]`). `'"'`=double-quote, `"'"`=single-quote.
+literal_char   = letter | digit | '!' | '"' | '#' | '%' | '&' | "'" | ',' | '-' | '/' | ':' | ';' | '<' | '=' | '>' | '@' | ']' | '{' | '}' | '_' | '`' | '~' | unicode_char
 
 # Dot
 dot            = "."
@@ -317,7 +319,9 @@ sign           = "+" | "-"
 # unicode_char` and `name_continue = name_start | digit`. The regex
 # captures the name as group 1 so the runtime emits the captured slice
 # as the Terminal value (the standard regex-literal codegen path).
-name           = /((?:[A-Za-z_]|[^\x00-\x7F])(?:[A-Za-z0-9_]|[^\x00-\x7F])*)/
+# REGEX-SELF-HOSTING.5c: `name` = name_start name_continue* with `-> $text` (clean string).
+# name_start = letter|'_'|unicode_char; name_continue = letter|digit|'_'|unicode_char.
+name           = ( letter | '_' | unicode_char ) ( letter | digit | '_' | unicode_char )* -> $text
 name_start     = letter | '_' | unicode_char
 name_continue  = name_start | digit
 brace_ws       = (' ' | '\t')+
@@ -397,9 +401,13 @@ empty_quoted_class_literal = "\\Q" "\\E"
 @generate: "ch == '" + escape_char($1) + "'"
 @semantic_value: {type: "literal", char: $1}
 @optimize: group_literals_for_switch($1)
-class_literal  = /([A-Za-z0-9 \t\n\r\f\v\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_]|[^\x00-\x7F])/
+# REGEX-SELF-HOSTING.5c: `class_literal` = letter|digit|whitespace|class_safe_special|unicode_char
+# (its original set: those plus `[^\x00-\x7F]`). One-char Terminal per branch (shape preserved).
+class_literal  = letter | digit | whitespace | class_safe_special | unicode_char
 
-class_safe_special = /([\[!@#$%\^&*()\-+={}|:;"'<>,.?\/`~_])/
+# REGEX-SELF-HOSTING.5c: `class_safe_special` = the in-class ASCII punctuation literal ordered-choice
+# (`'"'`=double-quote, `"'"`=single-quote; NO backslash inside a class).
+class_safe_special = '[' | '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '{' | '}' | '|' | ':' | ';' | '"' | "'" | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
 @generate: resolve_escape_pattern($1)
 @semantic_value: {type: "escape", pattern: $1}
@@ -789,7 +797,8 @@ atomic_group         = "(?>" pattern? ")"             -> {type: "atom", kind: "a
 # — `comment_text` now accepts the empty match — so the outer rule
 # drops the `?`. Consumers always read a string `text`.
 comment_group        = "(?#" comment_text ")"            -> {type: "atom", kind: "comment", text: $2}
-comment_text         = /([^)]*)/
+# REGEX-SELF-HOSTING.5c: any char except `)`, run to the comment close. `-> $text` = the body string.
+comment_text         = ( !")" builtin_any_char )* -> $text
 comment_char         = letter | digit | whitespace | comment_special | unicode_char
 comment_special      = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
@@ -922,14 +931,17 @@ callout_percent_string     = "%" callout_percent_payload "%"         -> {quote: 
 callout_hash_string        = "#" callout_hash_payload "#"            -> {quote: "hash", payload: $2}
 callout_dollar_string      = "$" callout_dollar_payload "$"          -> {quote: "dollar", payload: $2}
 callout_brace_string       = "{" callout_brace_payload "}"           -> {quote: "brace", payload: $2}
-callout_backtick_payload   = /([^`]|``)*/
-callout_single_payload     = /([^']|'')*/
-callout_double_payload     = /([^"]|"")*/
-callout_caret_payload      = /([^^]|\^\^)*/
-callout_percent_payload    = /([^%]|%%)*/
-callout_hash_payload       = /([^#]|##)*/
-callout_dollar_payload     = /([^$]|\$\$)*/
-callout_brace_payload      = /([^}]|}})*/
+# REGEX-SELF-HOSTING.5c: callout-string payloads — `([^X]|XX)*` (any char except the delimiter X, or a
+# doubled XX which escapes a literal X) → `( "XX" | !"X" builtin_any_char )* -> $text`. The doubled-delimiter
+# alternative is tried first (PEG ordered choice) so `XX` is consumed; a lone X terminates the run.
+callout_backtick_payload   = ( "``" | !"`" builtin_any_char )* -> $text
+callout_single_payload     = ( "''" | !"'" builtin_any_char )* -> $text
+callout_double_payload     = ( '""' | !'"' builtin_any_char )* -> $text
+callout_caret_payload      = ( "^^" | !"^" builtin_any_char )* -> $text
+callout_percent_payload    = ( "%%" | !"%" builtin_any_char )* -> $text
+callout_hash_payload       = ( "##" | !"#" builtin_any_char )* -> $text
+callout_dollar_payload     = ( "$$" | !"$" builtin_any_char )* -> $text
+callout_brace_payload      = ( "}}" | !"}" builtin_any_char )* -> $text
 # `modifier_spec` per-branch typed `{reset:<bool>, seq:<raw>}`.
 # `reset:true` for the `(?^...)` form (resets all flags first),
 # `reset:false` for the plain form. `seq` carries the raw
@@ -1058,8 +1070,8 @@ directive_payload_suffix = ":" directive_payload_simple?              -> {separa
 # to a regex literal `/([^)]*)/` — emits clean string Terminal of the payload
 # body (matches anything except the verb-closing `)`). Same pattern as
 # `comment_text` from slice 20.
-directive_payload_simple = /([^)]*)/
-directive_payload_char = /([^)])/
+directive_payload_simple = ( !")" builtin_any_char )* -> $text
+directive_payload_char = !")" builtin_any_char -> $2
 # `directive_name` rewritten from `directive_name_start
 # directive_name_continue*` chain (multi-element) to a regex literal
 # that emits a clean string Terminal of the matched verb name.
@@ -1084,7 +1096,7 @@ directive_name_strict = "FAIL" | "F" | "ACCEPT" | "COMMIT" | "PRUNE" | "SKIP" | 
                       | "CRLF" | "CR" | "LF" | "ANYCRLF" | "ANY" | "NUL"
                       | "BSR_ANYCRLF" | "BSR_UNICODE"
 @profiles: ["relaxed"]
-directive_name_relaxed = /([A-Za-z][A-Za-z0-9_\-]*)/
+directive_name_relaxed = letter ( letter | digit | '_' | '-' )* -> $text
 directive_name_start = letter
 directive_name_continue = directive_name_start | digit | '_' | '-'
 directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '_' |'{' | '|' | '}' | '~'

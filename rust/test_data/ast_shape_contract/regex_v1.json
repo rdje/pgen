@@ -247,10 +247,22 @@
         "normalized_text": "{type: \"atom\", kind: \"callout\", arg: $2}"
       },
       {
+        "rule": "callout_backtick_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
         "rule": "callout_backtick_string",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{quote: \"backtick\", payload: $2}"
+      },
+      {
+        "rule": "callout_brace_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "callout_brace_string",
@@ -259,10 +271,22 @@
         "normalized_text": "{quote: \"brace\", payload: $2}"
       },
       {
+        "rule": "callout_caret_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
         "rule": "callout_caret_string",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{quote: \"caret\", payload: $2}"
+      },
+      {
+        "rule": "callout_dollar_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "callout_dollar_string",
@@ -271,10 +295,22 @@
         "normalized_text": "{quote: \"dollar\", payload: $2}"
       },
       {
+        "rule": "callout_double_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
         "rule": "callout_double_string",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{quote: \"double\", payload: $2}"
+      },
+      {
+        "rule": "callout_hash_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "callout_hash_string",
@@ -283,10 +319,22 @@
         "normalized_text": "{quote: \"hash\", payload: $2}"
       },
       {
+        "rule": "callout_percent_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
         "rule": "callout_percent_string",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{quote: \"percent\", payload: $2}"
+      },
+      {
+        "rule": "callout_single_payload",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "callout_single_string",
@@ -365,6 +413,12 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"comment\", text: $2}"
+      },
+      {
+        "rule": "comment_text",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "concatenation",
@@ -469,10 +523,28 @@
         "normalized_text": "{kind: \"mark_shorthand\", payload: $2}"
       },
       {
+        "rule": "directive_name_relaxed",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
         "rule": "directive_named",
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{kind: \"named\", name: $1, payload: $2}"
+      },
+      {
+        "rule": "directive_payload_char",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$2"
+      },
+      {
+        "rule": "directive_payload_simple",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "directive_payload_suffix",
@@ -617,6 +689,12 @@
         "branch_index": 1,
         "annotation_type": "return_object",
         "normalized_text": "{reset: false, seq: $1}"
+      },
+      {
+        "rule": "name",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "name_ref",

@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0013 (REGEX-SELF-HOSTING .5c): ALL remaining `/.../` removed — regex.ebnf is now literal-only (CODE; byte-identical).
+
+The last grammar-conversion batch: every remaining `/.../` regex literal in `regex.ebnf` becomes native EBNF.
+
+- Big positive sets → `<literals> | unicode_char`: `literal_char`, `class_literal`, `class_safe_special`.
+- `name` → `( letter | '_' | unicode_char ) ( letter | digit | '_' | unicode_char )* -> $text`.
+- Content-until-delimiter payloads via the `!"<delim>" builtin_any_char` idiom + `$text`:
+  `comment_text`/`directive_payload_simple` → `( !")" builtin_any_char )* -> $text`; `directive_payload_char`
+  → `!")" builtin_any_char -> $2`; `directive_name_relaxed` → `letter ( letter | digit | '_' | '-' )* -> $text`;
+  the 8 callout payloads → `( "XX" | !"X" builtin_any_char )* -> $text` (doubled-delimiter escape first).
+- Shape-contract manifest `regex_v1.json` synced from the live pipeline inventory (+13 `$text`/`$2` entries
+  → 172).
+
+**RESULT: ZERO `/.../` in `regex.ebnf` and ZERO `match_regex` CALLS in the generated regex parser.** Verified:
+regex PCRE2 compile oracle BYTE-IDENTICAL; spot-checks (`(?<foo>a)`→`name:"foo"`, `(?#hello)`→`text:"hello"`,
+`\é`→`char:"é"`); `cargo test --lib` 615/0, `--features generated_parsers` 654/0; clippy strict ✓.
+Conformance- AND shape-neutral → no book/contract. Remaining: `.6` capstone — elide the now-dead `match_regex`
+helper + `use regex::Regex` import (3 residual refs) so the regex parser drops the regex-crate link, + a
+guard gate.
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0012 (REGEX-SELF-HOSTING .5b): `builtin_` prefix + unicode_char/any_char-rule/special_char native (CODE; byte-identical).
 
 Resolves the `.5a` naming conflict (regex.ebnf's `any_char` RULE shadowed the built-in) via the director's

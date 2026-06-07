@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.5c — regex.ebnf is literal-only; zero match_regex calls (PGEN-REGEX-SELF-HOST-0013)
+
+### The conversions
+The last big batch. Two reusable idioms carried it: (1) big single-char sets →
+`<printable literals> | unicode_char`; (2) content-until-delimiter runs → `( !"<delim>" builtin_any_char )*
+-> $text`. Callout payloads `([^X]|XX)*` map to `( "XX" | !"X" builtin_any_char )* -> $text` — the
+doubled-delimiter alternative MUST come first (PEG ordered choice) so `XX` is consumed before the
+single-char fallback sees a lone `X` and stops.
+
+### Manifest sync (the efficient way)
+13 new `-> $text`/`-> $2` rules = 13 new declared-annotation entries. Rather than hand-insert at 13
+alphabetical slots, I synced `regex_v1.json`'s `declared_annotation_inventory.annotations` from the live
+pipeline inventory (`generated/regex_return_annotations.json`) via a Python one-liner (both are alphabetical,
+same 4-field schema) — clean +13-entry diff, existing 159 untouched. This is the right move whenever the
+grammar's declared-annotation set changes deliberately.
+
+### Milestone + what .6 needs
+ZERO `/.../` in regex.ebnf, ZERO `match_regex` CALLS. But the generated parser still has 3 `regex::Regex`
+refs: the `match_regex` HELPER fn (called 0×) + its `use regex::Regex` import. So the regex crate is still
+LINKED. `.6` makes the codegen emit the `match_regex` helper + import ONLY when the grammar has ≥1 regex
+literal — so a fully-literal grammar (regex) drops the regex-crate dependency entirely — plus a guard gate.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.5b — builtin_ prefix resolves the shadow; unicode_char native (PGEN-REGEX-SELF-HOST-0012)
 
 ### The clean resolution (director's suggestion)
