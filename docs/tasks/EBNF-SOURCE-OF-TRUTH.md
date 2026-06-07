@@ -78,12 +78,13 @@ the general defect class this tree owns.
   LEXICAL), NOT validator (cert-coverage's `parse_and_cover_regex` skips the validator). Corrects `.1`'s
   attribution; re-scopes `.3` to the consumer path; routes the dominant cause to `LEXICAL-ANNOTATIONS.5`.
   See the "Root-cause correction" section below.
-- `.3` — **FIX regex** (the trigger), RE-SCOPED by `.2.1` to the CONSUMER path: for each validator-rejected
-  construct the generator emits, decide encode-in-EBNF (e.g. gate `directive_name` to the recognized PCRE2
-  verb set via a keyword rule / `@predicate`; drop or gate `unicode_escape` since `\u` is unsupported,
-  keeping `\x{…}`) vs relax-the-validator. Verify the generate→`parse_with_regex_detail` (consumer-path)
-  divergence → 0 + RGX conformance unchanged. NOT measured by cert-coverage `sample_parse_failures`
-  (validator-free). Each construct its own leaf, tools-first, one-at-a-time + measured.
+- `.3` — **FIX regex** (the trigger), RE-SCOPED by `.2.1` to the CONSUMER path. **SUBSUMED 2026-06-07 by
+  the `REGEX-PCRE2-FIDELITY` tree** per the director directive
+  ([[project_regex_pcre2_faithful_by_default_relaxed_optout]]): rather than a one-off encode-vs-relax per
+  construct, the whole `validate_regex_compile_contract` (10 sub-checks, incl. `\u`/`(*verb)`) migrates
+  INTO `regex.ebnf` as profile-gated semantic annotations — **default = strict PCRE2, `relaxed` = opt-out**
+  — and the out-of-band validator is deleted. Tracked there (`PGEN-REGEX-PCRE2-*`); this leaf is closed as
+  superseded. (The EBNF-SOT *principle* + `.5` enforcement gate remain this tree's contribution.)
 - `.4` — **GENERALIZE:** apply `.3`'s resolutions to the `.2` audit's other grammars.
 - `.5` — **ENFORCE (DONE, `PGEN-EBNF-SOT-0004`):** `scripts/check_ebnf_source_of_truth.sh` flags any NEW
   out-of-band acceptance validator wired into the parser registry — a `crate::*_validation::` reference in

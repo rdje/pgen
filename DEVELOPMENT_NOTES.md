@@ -1,4 +1,8 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-PCRE2-FIDELITY.1 — scope PCRE2-faithful-by-default regex with a relaxed opt-out (PGEN-REGEX-PCRE2-0001)
+
+Director directive: regex accepts/rejects exactly what PCRE2 does by default (PCRE2 = de-facto reference), opt-out `relaxed` mode, fix in the EBNF via semantic annotations, engine last resort. Full design + the 10-check encoding table live in `docs/tasks/REGEX-PCRE2-FIDELITY.md` `.1` and the decision `project_regex_pcre2_faithful_by_default_relaxed_optout.md`. Key feasibility facts (tool-backed): `@profiles` profile-gating is parser-agnostic (codegen profile guard for any grammar; `grammar_profile` plumbing generic); annotation value-constraints (`@predicate`/`len_bounds`/`numeric_bounds`) exist; `regex_pcre2_compile_oracle_gate` (`pcre2test`) is the oracle; `regex.ebnf` is single-profile (adding `relaxed` is additive). Design: default = strict-PCRE2 base, `relaxed` = additive opt-out; migrate `validate_regex_compile_contract`'s 10 sub-checks INTO `regex.ebnf` (profile-gate forbidden constructs; predicate value rules) then delete the validator. Subsumes EBNF-SOT.3 + the `[]` residual. Hard-case flag: `\K`-in-lookaround (contextual) may need a new parser-agnostic annotation primitive (rung 3), not engine. Pure-docs scoping; no code.
+
 ## 2026-06-07 - EBNF-SOURCE-OF-TRUTH.5 — enforcement gate for out-of-band acceptance validators (PGEN-EBNF-SOT-0004)
 
 ### Goal
