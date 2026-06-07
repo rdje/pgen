@@ -835,6 +835,32 @@ impl AstBasedGenerator {
                     })
                 }
             },
+            // REGEX-SELF-HOSTING.5 (PGEN-REGEX-SELF-HOST-0011): built-in native single-ASCII-character
+            // matcher. Like `any_char`, but matches one char ONLY when `ch.is_ascii()` (code point
+            // 0x00-0x7F); Backtracks on a non-ASCII char or end of input. Composes with the negation
+            // idiom to express the range-negation `[^\x00-\x7F]` as `unicode_char = !ascii_char any_char`
+            // (any char that is NOT ASCII). Parser-agnostic; dormant unless a grammar references
+            // `ascii_char` without defining it.
+            "ascii_char" => quote! {
+                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                    let start_pos = self.position;
+                    let matched_char = match self.input[start_pos..].chars().next() {
+                        Some(ch) if ch.is_ascii() => ch,
+                        _ => {
+                            return Err(ParseError::Backtrack {
+                                position: start_pos,
+                            });
+                        }
+                    };
+                    let end_pos = start_pos + matched_char.len_utf8();
+                    self.position = end_pos;
+                    Ok(ParseNode {
+                        rule_name: #rule_name,
+                        content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
+                        span: start_pos..end_pos,
+                    })
+                }
+            },
             _ => quote! {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                     Err(ParseError::Backtrack {
@@ -9661,6 +9687,46 @@ mod semantic_usage_tests {
         assert!(
             !rendered.contains("match_regex") && !rendered.contains("Regex"),
             "the native any_char matcher must NOT use Rust regex, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn unresolved_reference_codegen_emits_native_ascii_char_matcher() {
+        // REGEX-SELF-HOSTING.5: a `rule_reference` to `ascii_char` with no grammar definition emits a
+        // native one-ASCII-char matcher (`ch.is_ascii()` guard, no Rust `regex`) — the building block for
+        // the range-negation idiom `unicode_char = !ascii_char any_char`.
+        let generator = AstBasedGenerator::new("usage_test".to_string());
+
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "ascii_char")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let methods = generator.generate_unresolved_reference_methods(&grammar_tree, &rule_order);
+        let rendered = methods
+            .into_iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(
+            rendered.contains("pub fn parse_ascii_char"),
+            "expected a parse_ascii_char method, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("is_ascii"),
+            "expected the native ascii_char matcher to guard on ch.is_ascii(), got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("match_regex") && !rendered.contains("Regex"),
+            "the native ascii_char matcher must NOT use Rust regex, got: {}",
             rendered
         );
     }

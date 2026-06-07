@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.5a — the ascii_char built-in + the any_char naming-conflict finding (PGEN-REGEX-SELF-HOST-0011)
+
+### ascii_char primitive
+Added a native single-ASCII-char matcher (`ch.is_ascii()` guard) the same way as the `.2` `any_char` built-in
+(an arm in `generate_unresolved_reference_method`). Director chose `ascii_char` + `!ascii_char any_char` over
+a direct `non_ascii_char` for generality (ascii_char is reusable). Additive/dormant → regex byte-identical.
+
+### The naming conflict that shapes .5b
+regex.ebnf DEFINES an `any_char` RULE (a misnamed catch-all big-class: `[printable/ws/punct/backslash]|
+[^\x00-\x7F]`, used by 7 escape/code sites) which SHADOWS the `.2` built-in `any_char`. So `unicode_char =
+!ascii_char any_char` would resolve `any_char` to the RULE — and since that rule's non-ASCII branch IS
+unicode_char, that's a circular `any_char_rule → unicode_char → any_char_rule` (infinite parse recursion).
+Resolution: rename the regex RULE → `any_escape_char` (+ its 7 refs), freeing `any_char` for the truly-any
+built-in. Then `any_escape_char = letter|digit|whitespace|special_char|unicode_char` (its set is exactly that
+union — `special_char` already equals its punctuation set). Lesson: a built-in primitive's name can be
+shadowed by a same-named grammar rule; check for the shadow before composing the idiom.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.4c — @transform-on-span codegen; .4 done (PGEN-REGEX-SELF-HOST-0010)
 
 ### The blocker + the fix

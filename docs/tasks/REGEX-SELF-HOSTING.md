@@ -178,10 +178,23 @@ content.
   regen'd), clippy ✓; `match_regex` calls → 19. **ALL POSITIVE char-classes now native.** Remaining = `.5`
   (the negated/big sets `literal_char`/`class_literal`/`special_char`/`any_char` + `name`/`unicode_char`,
   which contain `[^\x00-\x7F]`).
-- ID: `.5`  Status: `pending`  Goal: convert the NEGATED / content-until-delimiter / any-char classes using
-  `!"X" any_char` (`.2`'s primitive) + `$text` for multi-char runs (`unicode_char`, `name`, callout
-  payloads, `directive_payload_*`, `comment_text`, `any_char`). ⚠️ range-negations like
-  `unicode_char [^\x00-\x7F]` may need an ascii guard. Removes the remaining ~16.
+- ID: `.5`  Status: `in_progress` — convert the NEGATED / big char-classes (those containing `[^\x00-\x7F]`).
+  **batch `.5a` DONE (`PGEN-REGEX-SELF-HOST-0011`):** the **`ascii_char` built-in** primitive (director-chosen
+  2026-06-07) — native single-ASCII-char matcher (`ch.is_ascii()` guard) added to
+  `generate_unresolved_reference_method` (mirrors `any_char`); the range-negation idiom is
+  `unicode_char = !ascii_char any_char`. Additive/dormant (nothing references `ascii_char` yet → regex
+  byte-identical, `match_regex` calls still 19; lib 615/0 +1 test; clippy ✓).
+  **REMAINING (`.5b`+, grammar conversion):** ⚠️ NAMING CONFLICT FINDING — regex.ebnf DEFINES an `any_char`
+  RULE (the misnamed catch-all big-class, used by 7 escape/code sites: `class_simple_escape`×2,
+  `simple_escape`×2, `control_escape`, `code_string_escape`, `code_escaped_char`) which SHADOWS the built-in
+  `any_char`. To use the truly-any built-in for `unicode_char` (and avoid a circular `any_char→unicode_char→
+  any_char`), RENAME the regex rule `any_char` → `any_escape_char` (+ its 7 refs), then: `unicode_char =
+  !ascii_char any_char` (built-in); `any_escape_char = letter | digit | whitespace | special_char |
+  unicode_char` (its set == letter|digit|ws|special_char|unicode_char); `special_char` → literal punctuation
+  choice; `literal_char` → `letter|digit|<its punct subset>|unicode_char`; `class_literal` →
+  `letter|digit|whitespace|<its punct>|unicode_char`; `name` → `(letter|'_'|unicode_char)(letter|digit|'_'|
+  unicode_char)* -> $text`. Each: force-regen + oracle byte-identical + shape-contract (+ `$text` manifest
+  entry for `name`) + AST spot-check.
 - ID: `.6`  Status: `pending`  Goal: CAPSTONE — assert `regex.ebnf` has zero `/.../` and
   `generated/regex_parser.rs` contains no `match_regex`/`regex::Regex` call; add a gate/test that fails if a
   `/.../` reappears in `regex.ebnf`; lockstep (regex book "self-hosting" note + contract if a surface
@@ -241,6 +254,7 @@ content.
 | `2026-06-07` | `.4` batch A (`-0008`) | converted 9 positive char-classes (`letter`/`digit`/`nonzero_digit`/`hex_digit`/`octal_digit` → `'c'` ordered-choice; `hex_digits`/`octal_digits` → `char+ -> $text`; `hex_escape_short_payload`/`octal_escape_short_payload` → bounded `-> $text`); regen → oracle BYTE-IDENTICAL; AST shapes preserved (`\o{777}`→"777", `\x{FF}`→"FF", `\17`→"17", `\xAB`→"AB"); regex shape-contract manifest +4 `$text` entries; lib 614/0, generated_parsers 653/0, clippy ✓; `match_regex` calls 25 | **`.4` batch A DONE**; @transform rules + whitespace + `.5` remaining |
 | `2026-06-07` | `.4` batch B (`-0009`) | converted `short_prop_letter` → `'c'` choice, `whitespace` → control-char literals (`'\f'`→`\u{c}`, `'\v'`→`\u{b}` verified in generated `parse_whitespace`), `prop_name` → `( letter\|digit\|whitespace\|… )+ -> $text`; oracle BYTE-IDENTICAL; `\p{Lu}`→"Lu", `\p{Greek}`→"Greek"; manifest +1 (`prop_name`); lib 614/0, generated_parsers 653/0, clippy ✓; `match_regex` calls → 22 | **`.4` batch B DONE**; only the 3 `@transform` rules (`.4c`, needs codegen) + `.5` remain |
 | `2026-06-07` | `.4c` (`-0010`) | codegen `generate_post_body_span_transform` (apply `@transform` to matched span, guarded by `!matches!(result, TransformedTerminal(_))` → no-op for terminal bodies) + converted `digits = digit+`, `backreference_digits = nonzero_digit digit+`, `backreference_digits_single = nonzero_digit`; oracle BYTE-IDENTICAL; `@transform` VALUES correct (`a{12}`→12, `\5`→5); additive (regen'd return_annotation too, 653/0); clippy ✓; `match_regex` calls → 19 | **`.4` DONE — all positive char-classes native**; `.5` (negated) remains |
+| `2026-06-07` | `.5a` (`-0011`) | `ascii_char` built-in (native `ch.is_ascii()` matcher, mirrors `any_char`) + codegen unit test `unresolved_reference_codegen_emits_native_ascii_char_matcher`; additive/dormant (nothing references it → regex byte-identical, `match_regex` calls still 19); lib 615/0 (+1), clippy ✓ | **`.5a` DONE** (the range-negation primitive); `.5b`+ grammar conversion remains |
 
 ## Commit Log
 
@@ -255,11 +269,19 @@ content.
 | `.4` batch A | `PGEN-REGEX-SELF-HOST-0008` | 9 positive char-classes → literals (`'c'` alternations + `char+ -> $text` + bounded payloads); oracle byte-identical; shapes preserved; manifest +4; `match_regex` calls → 25. The FIRST actual `/.../` removal from regex.ebnf |
 | `.4` batch B | `PGEN-REGEX-SELF-HOST-0009` | `short_prop_letter`/`whitespace`/`prop_name` → literals (control-char + `$text`); oracle byte-identical; manifest +1; `match_regex` calls → 22. Positive non-`@transform` classes now all literal |
 | `.4c` | `PGEN-REGEX-SELF-HOST-0010` | parser-agnostic codegen: apply `@transform` to matched span for non-terminal bodies (guarded, additive); converted the 3 `@transform→usize` digit rules; oracle byte-identical; values correct; `match_regex` calls → 19. ALL positive char-classes native |
+| `.5a` | `PGEN-REGEX-SELF-HOST-0011` | `ascii_char` built-in (native `ch.is_ascii()`; the range-negation primitive for `unicode_char = !ascii_char any_char`); additive/dormant; byte-identical; lib 615/0 +1 test |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.5a` (`PGEN-REGEX-SELF-HOST-0011`) — added the **`ascii_char`** built-in primitive
+  (director-chosen) for the range-negation: a native single-ASCII-char matcher (`ch.is_ascii()` guard) in
+  `generate_unresolved_reference_method`, mirroring `any_char`, so `unicode_char = !ascii_char any_char`
+  expresses `[^\x00-\x7F]`. Additive/dormant (nothing references `ascii_char` yet → regex byte-identical,
+  `match_regex` calls still 19; lib 615/0 with the new codegen test; clippy ✓). Surfaced the `.5b` naming
+  conflict: regex.ebnf's `any_char` RULE shadows the built-in (used by 7 escape sites) → must rename it to
+  `any_escape_char` so `unicode_char` can use the truly-any built-in without a circular reference.
 - `2026-06-07`: `.4c` (`PGEN-REGEX-SELF-HOST-0010`) — parser-agnostic codegen enhancement +
   the 3 `@transform→usize` rules. `generate_post_body_span_transform` (`ast_based_generator.rs`) applies a
   rule's `@transform` to the matched SPAN text (`parser.input[start_pos..parser.position].trim().parse::<T>()`),

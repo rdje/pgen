@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0011 (REGEX-SELF-HOSTING .5a): the `ascii_char` built-in primitive (CODE; additive/dormant, byte-identical).
+
+The range-negation primitive for `.5` (director-chosen 2026-06-07): a native single-ASCII-character matcher,
+the building block for `unicode_char = !ascii_char any_char` (= `[^\x00-\x7F]`, any non-ASCII char).
+
+- `generate_unresolved_reference_method` (`ast_based_generator.rs`) gains an `"ascii_char"` arm (mirrors the
+  `.2` `any_char` arm) — a `rule_reference` to `ascii_char` with no grammar definition emits a native matcher
+  that consumes one char ONLY when `ch.is_ascii()` (Backtracks on a non-ASCII char or EOF). No Rust `regex`.
+- New codegen unit test `unresolved_reference_codegen_emits_native_ascii_char_matcher`.
+
+**Additive / dormant:** nothing references `ascii_char` yet, so the regex parser regenerates byte-identical
+(`match_regex` calls still 19) and the oracle stays byte-identical; `cargo test --lib` 615/0 (+1), clippy ✓.
+No user-facing change → no book/contract.
+
+`.5b` (next) is the grammar conversion: rename the misnamed `any_char` RULE in regex.ebnf → `any_escape_char`
+(it shadows the built-in and is used by 7 escape sites), then `unicode_char = !ascii_char any_char` and
+convert the big classes (`special_char`/`literal_char`/`class_literal`/`any_escape_char`/`name`) to
+`<literals> | unicode_char`; then `.6` capstone (zero `/.../`).
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0010 (REGEX-SELF-HOSTING .4c): `@transform`-on-span codegen + the 3 digit `@transform` rules — `.4` DONE (CODE; byte-identical).
 
 A parser-agnostic codegen enhancement that lets a rule's `@transform` apply to a NATIVE literal body,
