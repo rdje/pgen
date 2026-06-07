@@ -36,6 +36,11 @@ jobs:
         # the local pre-commit hook runs.
         run: bash scripts/check_ebnf_source_of_truth.sh
 
+      - name: Run regex self-hosting guard (REGEX-SELF-HOSTING.6)
+        # regex.ebnf must stay /.../-free (native terminals only) so the generated regex parser never
+        # invokes Rust's regex engine. Same script the local pre-commit hook runs.
+        run: bash scripts/check_regex_self_hosting.sh
+
       - name: Validate Knowledge Map facts + assert the map is in sync (KNOWLEDGE-MAP)
         # Derived question-keyed retrieval index over durable facts (knowledge-map/ bundle).
         # Same script the local pre-commit hook runs; a stale map or invalid fact fails here.

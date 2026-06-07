@@ -12,6 +12,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 "$ROOT/scripts/check_memory_architecture.sh"
 "$ROOT/scripts/check_diagnostics_and_docpaths.sh"
 "$ROOT/scripts/check_ebnf_source_of_truth.sh"
+"$ROOT/scripts/check_regex_self_hosting.sh"
 "$ROOT/knowledge-map/scripts/gen_knowledge_map.sh" >/dev/null
 git add "$("$ROOT/knowledge-map/scripts/gen_knowledge_map.sh" --print-map-path)" 2>/dev/null || true
 "$ROOT/knowledge-map/scripts/check_knowledge_map.sh"

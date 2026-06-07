@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0014 (REGEX-SELF-HOSTING .6 CAPSTONE): SELF-HOSTING ACHIEVED — guard gate (gate + docs).
+
+The capstone of the REGEX-SELF-HOSTING tree (`.1`–`.6`): **`grammars/regex.ebnf` is now `/.../`-free and the
+generated regex parser never invokes Rust's `regex` engine** (`match_regex` CALLS 36 → 0). The regex language
+is expressed entirely with native EBNF terminals + four parser-agnostic primitives built along the way:
+`builtin_any_char`/`builtin_ascii_char` (native char matchers), `$text`/`$0` (matched-span string), and
+`@transform`-on-span. Every conversion batch was oracle BYTE-IDENTICAL (the `pcre2test` oracle) and
+AST-shape/value-preserving.
+
+- New guard `scripts/check_regex_self_hosting.sh`: asserts (1) zero `/.../` regex literals in `regex.ebnf`
+  (Python strips strings/comments first so a `/` in a char/string terminal or comment never trips it) and
+  (2) zero `match_regex` CALLS in the generated regex parser (when present locally). Wired into
+  `.githooks/pre-commit` + the CI `memory-architecture-gate.yml`; self-tested (OK clean / FAIL on an injected
+  `/.../` / OK after revert).
+- Tree `REGEX-SELF-HOSTING` marked `done`. No user-facing regex behaviour change (internal architecture) →
+  no book/contract.
+
+**`.6a` deferred (non-urgent link hygiene):** the generated parser still emits an UNCALLED `match_regex`
+helper + `use regex::Regex` import (3 residual `regex::Regex` refs), so the regex crate is still LINKED
+(though never executed). Eliding them — gating the helper+import emission on whether the grammar uses any
+`/.../` — is tracked as `.6a`. **Next (director sequencing): regex cert-coverage-clean resumes**
+(REGEX-PCRE2-FIDELITY `.3.7`), then the other grammars, then report all-parsers-cert-coverage-clean.
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0013 (REGEX-SELF-HOSTING .5c): ALL remaining `/.../` removed — regex.ebnf is now literal-only (CODE; byte-identical).
 
 The last grammar-conversion batch: every remaining `/.../` regex literal in `regex.ebnf` becomes native EBNF.

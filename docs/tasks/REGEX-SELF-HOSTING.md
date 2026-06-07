@@ -3,7 +3,10 @@
 ## Metadata
 
 - Tree ID: `REGEX-SELF-HOSTING`
-- Status: `active`
+- Status: `done` (SELF-HOSTING ACHIEVED 2026-06-07 — `regex.ebnf` is `/.../`-free and the generated regex
+  parser never invokes Rust's regex engine; `.1`–`.6` complete. Only `.6a` link-hygiene — eliding the DEAD
+  `match_regex` helper/import so the regex crate isn't even LINKED — remains `deferred`/non-urgent. Director
+  sequencing: regex cert-coverage-clean resumes next.)
 - Family / slice-id prefix: `PGEN-REGEX-SELF-HOST-<NNNN>`
 - Roadmap lane: regex parser quality / architecture — a self-hosting regex parser that does not depend on
   Rust's `regex` engine to parse regexes
@@ -203,10 +206,24 @@ content.
   CALLS in the generated parser.** Oracle BYTE-IDENTICAL; spot-checks (`(?<foo>a)`→name "foo", `(?#hello)`→
   text "hello", `\é`→"é"); lib 615/0, generated_parsers 654/0, clippy ✓. (3 `regex::Regex` refs remain = the
   now-uncalled `match_regex` helper + its `use regex::Regex` import → `.6` elides them.)
-- ID: `.6`  Status: `pending`  Goal: CAPSTONE — assert `regex.ebnf` has zero `/.../` and
-  `generated/regex_parser.rs` contains no `match_regex`/`regex::Regex` call; add a gate/test that fails if a
-  `/.../` reappears in `regex.ebnf`; lockstep (regex book "self-hosting" note + contract if a surface
-  changed). THEN the tree is done and regex cert-coverage-clean resumes (director sequencing).
+- ID: `.6`  Status: `DONE` (`PGEN-REGEX-SELF-HOST-0014`)  Goal: CAPSTONE guard. Added
+  `scripts/check_regex_self_hosting.sh` — asserts (1) `grammars/regex.ebnf` has ZERO `/.../` regex literals
+  (Python strip of strings/comments, so a `/` in a char/string terminal or comment never trips it), and
+  (2) the generated regex parser (if present locally) emits ZERO `match_regex` CALLS. Wired into
+  `.githooks/pre-commit` + the CI `memory-architecture-gate.yml`. Self-tested (OK on the clean tree; FAILs on
+  an injected `test_rule = /([abc])/`; OK after revert). **SELF-HOSTING ACHIEVED: regex.ebnf is literal-only
+  and the generated regex parser never invokes Rust's regex engine.** No book/contract (no user-facing
+  regex behaviour change). THEN regex cert-coverage-clean resumes (director sequencing).
+- ID: `.6a`  Status: `deferred` (link hygiene, NON-URGENT)  Goal: elide the now-DEAD `match_regex` helper +
+  `use regex::Regex` import from a fully-literal grammar's generated parser, so it no longer LINKS the regex
+  crate (currently 3 residual `regex::Regex` refs in `generated/regex_parser.rs` = the uncalled helper + its
+  import; `match_regex` is called 0×, so the engine never runs — this is compile-time link hygiene, not a
+  runtime concern). Codegen: compute `uses_match_regex` from the generated rule methods (the 5 emit sites are
+  all `parser.match_regex(#effective_regex_pattern,…)`), then gate `use regex::Regex` (`generate_imports`) +
+  the `match_regex` helper (`generate_helper_methods`, 108-line fn with 4 `#`-interpolations → extract into a
+  conditional fragment) on it. ⚠️ MUST stay additive for grammars that DO use `/.../` (sv/vhdl/return_annotation
+  keep the helper+import). Then strengthen the `.6` gate to assert ZERO `regex::Regex` refs too. Deferred from
+  `.6` (the 108-line `#`-interpolated extraction is too risky to rush; the helper is dead so it's non-urgent).
 - ID: `.3a`  Status: `DONE` (`PGEN-REGEX-SELF-HOST-0007`)  Goal: enable the **`$0` whole-match alias** of
   `$text` (director: "in Perl5 `$0` = whole match, `$1..$N` = captures — a clean extension"). RESOLVED the
   earlier collision the RIGHT way (not a guard): a tools-first trace showed `$00`/`$+0`/`$0::first` exist
@@ -265,6 +282,7 @@ content.
 | `2026-06-07` | `.5a` (`-0011`) | `ascii_char` built-in (native `ch.is_ascii()` matcher, mirrors `any_char`) + codegen unit test `unresolved_reference_codegen_emits_native_ascii_char_matcher`; additive/dormant (nothing references it → regex byte-identical, `match_regex` calls still 19); lib 615/0 (+1), clippy ✓ | **`.5a` DONE** (the range-negation primitive); `.5b`+ grammar conversion remains |
 | `2026-06-07` | `.5b` (`-0012`) | director's `builtin_` prefix → renamed built-ins to `builtin_any_char`/`builtin_ascii_char` (no regex-rule rename needed); converted `unicode_char = !builtin_ascii_char builtin_any_char -> $2`, `any_char` RULE → `letter\|digit\|whitespace\|special_char\|unicode_char`, `special_char` → literal punctuation choice; oracle BYTE-IDENTICAL; `\é`→`char:"é"` (non-ASCII works); built-ins now ACTIVE (2 native matchers); manifest +1 (`unicode_char`); lib 615/0, generated_parsers 654/0, clippy ✓; `match_regex` calls → 16 | **`.5b` DONE**; `.5c` (literal_char/class_literal/name + payloads) + `.6` remain |
 | `2026-06-07` | `.5c` (`-0013`) | converted ALL remaining `/.../`: `literal_char`/`class_literal`/`class_safe_special` (big sets → `<literals>\|unicode_char`); `name` → `(…)(…)* -> $text`; `comment_text`/`directive_payload_simple` → `(!")" builtin_any_char)* -> $text`; `directive_payload_char` → `!")" builtin_any_char -> $2`; `directive_name_relaxed` → `letter (…)* -> $text`; 8 callout payloads → `( "XX" \| !"X" builtin_any_char )* -> $text`. Manifest synced (+13 → 172). **ZERO `/.../`, ZERO `match_regex` calls.** Oracle BYTE-IDENTICAL; spot-checks pass; lib 615/0, generated_parsers 654/0, clippy ✓ | **`.5` DONE**; only `.6` (elide the dead `match_regex` helper + guard gate) remains |
+| `2026-06-07` | `.6` (`-0014`) | CAPSTONE guard `scripts/check_regex_self_hosting.sh` (zero `/.../` in regex.ebnf via Python string/comment-stripping + zero `match_regex` CALLS in the generated parser); wired into `.githooks/pre-commit` + CI; self-tested (OK / FAIL-on-injected-`/.../` / OK) | **`.6` DONE — SELF-HOSTING ACHIEVED**; `.6a` (dead-helper/import elision) deferred/non-urgent |
 
 ## Commit Log
 
@@ -282,11 +300,19 @@ content.
 | `.5a` | `PGEN-REGEX-SELF-HOST-0011` | `ascii_char` built-in (native `ch.is_ascii()`; the range-negation primitive for `unicode_char = !ascii_char any_char`); additive/dormant; byte-identical; lib 615/0 +1 test |
 | `.5b` | `PGEN-REGEX-SELF-HOST-0012` | `builtin_` prefix on the built-ins (avoids the regex-rule shadow); `unicode_char`/`any_char`-rule/`special_char` → native; built-ins now active; `\é` works; oracle byte-identical; `match_regex` calls → 16 |
 | `.5c` | `PGEN-REGEX-SELF-HOST-0013` | converted ALL remaining `/.../` (literal_char/class_literal/name/comment/callout/directive payloads); manifest synced (172); **ZERO `/.../`, ZERO `match_regex` calls**; oracle byte-identical. `.5` DONE |
+| `.6` | `PGEN-REGEX-SELF-HOST-0014` | capstone guard gate (`check_regex_self_hosting.sh`, wired pre-commit + CI); SELF-HOSTING ACHIEVED. `.6a` (link hygiene) deferred |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.6` (`PGEN-REGEX-SELF-HOST-0014`) — CAPSTONE. Added `scripts/check_regex_self_hosting.sh`
+  (asserts zero `/.../` in regex.ebnf — Python strip of strings/comments — and zero `match_regex` CALLS in
+  the generated parser if present), wired into `.githooks/pre-commit` + the CI `memory-architecture-gate.yml`.
+  Self-tested (OK clean; FAIL on an injected `/.../`; OK after revert). **SELF-HOSTING ACHIEVED: `regex.ebnf`
+  is literal-only and the generated regex parser never invokes Rust's regex engine.** Tree marked `done`.
+  `.6a` (eliding the DEAD `match_regex` helper/import so the regex crate isn't even LINKED) deferred as
+  non-urgent link hygiene. Next: regex cert-coverage-clean (REGEX-PCRE2-FIDELITY `.3.7`).
 - `2026-06-07`: `.5c` (`PGEN-REGEX-SELF-HOST-0013`) — converted ALL remaining `/.../` in regex.ebnf:
   `literal_char`/`class_literal`/`class_safe_special` (big positive sets → `<literals> | unicode_char`),
   `name` (→ `(letter|'_'|unicode_char)(letter|digit|'_'|unicode_char)* -> $text`), and the

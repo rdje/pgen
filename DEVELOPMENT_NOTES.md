@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.6 — capstone guard; SELF-HOSTING ACHIEVED (PGEN-REGEX-SELF-HOST-0014)
+
+### The milestone
+REGEX-SELF-HOSTING `.1`–`.6` is complete. `grammars/regex.ebnf` is `/.../`-free; the generated regex parser
+has zero `match_regex` CALLS — it never invokes Rust's `regex` engine. It got there with four reusable,
+parser-agnostic primitives (each director-sanctioned): `builtin_any_char`/`builtin_ascii_char` (native
+single-char / single-ASCII-char matchers), `$text`/`$0` (a rule's matched span as one string Terminal), and
+`@transform`-applied-to-the-span. The `pcre2test` oracle stayed BYTE-IDENTICAL across every batch, and the
+AST shape-contract caught every shape/manifest change — so "no behaviour change, just mechanism" is proven,
+not asserted.
+
+### The capstone guard
+`scripts/check_regex_self_hosting.sh` locks the invariant: zero `/.../` in regex.ebnf (Python strips
+strings/comments so a `/` inside a terminal or comment is ignored) + zero `match_regex` calls in the
+generated parser. Wired into pre-commit + CI. This is the durable protection against a `/.../` creeping back.
+
+### Honest residual → .6a
+3 `regex::Regex` refs remain: the now-DEAD `match_regex` helper (called 0×) + its `use regex::Regex` import.
+So the regex crate is still LINKED (compile-time) though never executed. Eliding them needs the codegen to
+gate the helper+import emission on `uses_match_regex` (the helper is a 108-line fn with 4 `#`-interpolations
+→ extract into a conditional fragment), kept additive for grammars that DO use `/.../`. Deferred as `.6a`
+(non-urgent — the engine never runs regardless). I chose NOT to rush this 108-line `#`-interpolated codegen
+surgery at the tail of a very long session; the gate + zero-calls is the meaningful, low-risk capstone.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.5c — regex.ebnf is literal-only; zero match_regex calls (PGEN-REGEX-SELF-HOST-0013)
 
 ### The conversions
