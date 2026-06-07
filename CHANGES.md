@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-MEMORY-ARCH-0023 (handoff hygiene): repair the DOCPATH Active-table row + sharpen the layer-A resume pointer (docs).
+
+Handoff-readiness pass (director request "ensure the repo is handoff ready"). Verified all layers + fixed two continuity defects:
+- **`docs/TASK_TREE.md`**: the `DOCPATH` Active-table row had been concatenated onto the end of the `GRAMMAR-WELLFORMED` row (a newline eaten by an earlier table edit) — `…GRAMMAR-WELLFORMED.md) || \`DOCPATH\``, so DOCPATH did not render as its own active-tree row. Split it back out; the Active table now correctly lists all 7 active trees (SV-EXH-PROOF, PARSE-SOTA, KNOWLEDGE-MAP, EBNF-SOURCE-OF-TRUTH, REGEX-PCRE2-FIDELITY, GRAMMAR-WELLFORMED, DOCPATH).
+- **`MEMORY.md`** (layer A): `active_work_unit` said "`.2` DONE (this commit)" but the latest commit is the `.3.1` design correction — corrected to name the latest (`.3.1` design, `-0005`) vs the last code (`.2`, `b7678993`) and the frontier (`.3.1` implementation).
+
+Handoff state verified: working tree clean (only the harness `.claude/scheduled_tasks.lock` + intentionally-untracked `generated/`); `git_message_brief.txt` 0 bytes + untracked; all 4 guards green (memory-arch, diagnostics+docpaths, ebnf-source-of-truth, knowledge-map); MEMORY.md 47/60 lines; resume pointer (`next_action`) crisp; 17 unpushed (≪ 200, push gated). Docs-only. LIVE_ACHIEVEMENT_STATUS unchanged.
+
 ## 2026-06-07 - PGEN-REGEX-PCRE2-0005 (REGEX-PCRE2-FIDELITY .3.1 design CORRECTION): the prior bounded `\u` design was flawed — the real lever is the simple_escape catch-all (docs).
 
 Tracing the parse path before implementing (tools-first) caught that the `-0004` "bounded" design is WRONG. Empirical (`parseability_probe`): `\g`/`\a` parse via the `simple_escape` catch-all; `\u{41}`/`\uZ` are rejected by the VALIDATOR, not structurally. `simple_escape` (`escape_unit`'s last alt, `regex.ebnf:531/:543`) matches `\u` (any letter). So gating `unicode_escape` alone does NOT make default reject `\u{…}` — it shifts to `simple_escape` (parsed as `\u`+`{…}`), and the `-0004` "don't reject `\u{`" validator tweak would make default ACCEPT it. Flawed.
