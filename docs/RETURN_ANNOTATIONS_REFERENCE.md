@@ -212,26 +212,33 @@ complex := '(' identifier operator number ')' -> {
 - **Literals count**: Every quoted string gets a position
 - **Groups count as one**: `(a b c)` is one element, not three
 
-### Whole-Match Text — `$text`
+### Whole-Match Text — `$text` (alias `$0`)
 
-`$text` returns the rule's **entire matched source text** as a single string `Terminal`,
-regardless of the body's internal structure. It is the native, Rust-regex-free equivalent of a
-`/.../`-with-capture: where `$1`..`$N` reference the *children*, `$text` references the *whole match*.
+`$text` (and its alias **`$0`**) returns the rule's **entire matched source text** as a single string
+`Terminal`, regardless of the body's internal structure. It is the native, Rust-regex-free equivalent
+of a `/.../`-with-capture. This mirrors the **Perl5 convention** — `$0` is the whole match,
+`$1`..`$N` are the captured children:
 
 ```ebnf
 # Build a multi-character token from single-char rules and recover it as ONE flat string:
 octal_digits := octal_digit+            -> $text     # "777", not ["7","7","7"]
-hex_escape   := 'x' hex_digit hex_digit -> $text     # "xFF"
+hex_escape   := 'x' hex_digit hex_digit -> $0        # "xFF"  ($0 == $text)
 ```
 
-Use `$text` when a quantified or multi-element body must yield the matched substring as a string
+Use `$text`/`$0` when a quantified or multi-element body must yield the matched substring as a string
 (the shape a `/.../` capture used to produce) instead of the structured `Quantified`/`Sequence` a
 bare `$1`/passthrough would yield. Codegen emits `ParseContent::Terminal(&input[start..end])` for the
-rule's span — no `regex` engine, no allocation.
+rule's span — no `regex` engine, no allocation. Any index-0 spelling (`$0`, `$00`, `$+0`) is the
+whole match.
 
-> Introduced by REGEX-SELF-HOSTING.3 to let a grammar drop `/.../` and still emit clean string
-> payloads. (A `$0` whole-match alias is planned but not yet enabled — it collides with the
-> positional-index-0 forms `$00`/`$0::…` and needs a lookahead guard; use `$text`.)
+> **Composition rule.** The whole match is a *flat string with no children*, so you may use `$text`/`$0`
+> only as a **base value** (bare, or inside `[...]`/`{...}`). Composing extraction/accessor on it —
+> `$0::first`, `$0.field`, `$0[i]` — is a **semantic error** (`E_RET_WHOLE_MATCH_NOT_COMPOSABLE`):
+> there is no "0th child" to index, since `$0` *is* the whole thing. Use `$1`..`$N` to compose on a
+> captured child.
+
+> Introduced by REGEX-SELF-HOSTING.3 (`$text`) / .3a (`$0` alias) to let a grammar drop `/.../` and
+> still emit clean string payloads.
 
 ---
 

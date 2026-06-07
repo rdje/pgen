@@ -281,6 +281,36 @@ impl AnnotationValidator {
         self.validate_return_ast(rule_name, annotation_index, ast, raw.as_deref(), report);
     }
 
+    /// REGEX-SELF-HOSTING.3a: `$0`/`$text` is the whole match — a flat string with no children to
+    /// index. Composing extraction (`::`), property (`.`) or index (`[]`) access on it is a semantic
+    /// error (`$1::first` extracts from the first child; `$0::first` has no "0th child" — `$0` IS the
+    /// whole thing). Flags `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` when the base of such an operator is the
+    /// whole-match.
+    fn reject_whole_match_composition(
+        base: &UnifiedReturnAST,
+        op: &str,
+        rule_name: &str,
+        annotation_index: usize,
+        raw_annotation: Option<&str>,
+        report: &mut AnnotationValidationReport,
+    ) {
+        if matches!(base, UnifiedReturnAST::MatchedText) {
+            report.diagnostics.push(AnnotationDiagnostic {
+                code: "E_RET_WHOLE_MATCH_NOT_COMPOSABLE",
+                severity: AnnotationSeverity::Error,
+                kind: AnnotationKind::Return,
+                rule_name: rule_name.to_string(),
+                annotation_index: Some(annotation_index),
+                message: format!(
+                    "Cannot apply {} to the whole-match `$0`/`$text`: it is a flat string with no \
+                     elements to index. Use `$1`..`$N` to compose on a captured child.",
+                    op
+                ),
+                annotation: raw_annotation.map(|s| s.to_string()),
+            });
+        }
+    }
+
     fn validate_return_ast(
         &self,
         rule_name: &str,
@@ -291,18 +321,10 @@ impl AnnotationValidator {
     ) {
         match ast {
             UnifiedReturnAST::PositionalRef { index } => {
-                if *index == 0 {
-                    report.diagnostics.push(AnnotationDiagnostic {
-                        code: "E_RET_POS_ZERO",
-                        severity: AnnotationSeverity::Error,
-                        kind: AnnotationKind::Return,
-                        rule_name: rule_name.to_string(),
-                        annotation_index: Some(annotation_index),
-                        message: "Positional reference '$0' is invalid for typed return validation; positions are 1-based.".to_string(),
-                        annotation: raw_annotation.map(|s| s.to_string()),
-                    });
-                }
-
+                // REGEX-SELF-HOSTING.3a: index 0 no longer reaches here — `$0` (any spelling) is
+                // lowered to `UnifiedReturnAST::MatchedText` (the whole-match, Perl5 convention) by
+                // both parse surfaces. Positional refs that survive are 1-based (`$1` = first child),
+                // so the former `E_RET_POS_ZERO` check is retired as unreachable.
                 if let Some(max_capture_index) = self.config.max_capture_index {
                     if *index > max_capture_index {
                         report.diagnostics.push(AnnotationDiagnostic {
@@ -332,9 +354,15 @@ impl AnnotationValidator {
                         annotation: raw_annotation.map(|s| s.to_string()),
                     });
                 }
+                Self::reject_whole_match_composition(
+                    base, "property access ('.')", rule_name, annotation_index, raw_annotation, report,
+                );
                 self.validate_return_ast(rule_name, annotation_index, base, raw_annotation, report);
             }
             UnifiedReturnAST::ArrayAccess { base, index } => {
+                Self::reject_whole_match_composition(
+                    base, "index access ('[]')", rule_name, annotation_index, raw_annotation, report,
+                );
                 self.validate_return_ast(rule_name, annotation_index, base, raw_annotation, report);
                 self.validate_return_ast(
                     rule_name,
@@ -345,6 +373,9 @@ impl AnnotationValidator {
                 );
             }
             UnifiedReturnAST::QuantifiedExtraction { base, target } => {
+                Self::reject_whole_match_composition(
+                    base, "extraction ('::')", rule_name, annotation_index, raw_annotation, report,
+                );
                 self.validate_return_ast(rule_name, annotation_index, base, raw_annotation, report);
                 if let ExtractionTarget::Index(idx) = target {
                     if *idx > 10_000 {
@@ -2296,24 +2327,50 @@ mod tests {
     };
 
     #[test]
-    fn return_validator_flags_zero_positional_reference() {
-        let mut annotations = Annotations::default();
-        annotations.branch_return_annotations.insert(
+    fn return_validator_whole_match_dollar_zero_semantics() {
+        use crate::ast_pipeline::unified_return_ast::ExtractionTarget;
+
+        // REGEX-SELF-HOSTING.3a: bare `$0` is the whole-match (`MatchedText`) — a valid base value,
+        // no error (the former `E_RET_POS_ZERO` is retired).
+        let mut bare = Annotations::default();
+        bare.branch_return_annotations.insert(
             "rule".to_string(),
             vec![Some(BranchAnnotation {
                 annotation_type: "return_scalar".to_string(),
                 annotation_content: "$0".to_string(),
-                parsed_ast: Some(UnifiedReturnAST::PositionalRef { index: 0 }),
+                parsed_ast: Some(UnifiedReturnAST::MatchedText),
             })],
         );
+        let report = AnnotationValidator::default().validate_annotations(&bare);
+        assert!(
+            !report.has_errors(),
+            "bare `$0` (whole-match) must be valid, got: {:?}",
+            report.diagnostics
+        );
 
-        let report = AnnotationValidator::default().validate_annotations(&annotations);
+        // But composing extraction/accessor on the whole-match (`$0::first`) is a semantic error:
+        // a flat whole-match string has no children to index.
+        let mut composed = Annotations::default();
+        composed.branch_return_annotations.insert(
+            "rule".to_string(),
+            vec![Some(BranchAnnotation {
+                annotation_type: "return_scalar".to_string(),
+                annotation_content: "$0::first".to_string(),
+                parsed_ast: Some(UnifiedReturnAST::QuantifiedExtraction {
+                    base: Box::new(UnifiedReturnAST::MatchedText),
+                    target: ExtractionTarget::First,
+                }),
+            })],
+        );
+        let report = AnnotationValidator::default().validate_annotations(&composed);
         assert!(report.has_errors());
         assert!(
             report
                 .diagnostics
                 .iter()
-                .any(|d| d.code == "E_RET_POS_ZERO")
+                .any(|d| d.code == "E_RET_WHOLE_MATCH_NOT_COMPOSABLE"),
+            "`$0::first` must flag E_RET_WHOLE_MATCH_NOT_COMPOSABLE, got: {:?}",
+            report.diagnostics
         );
     }
 

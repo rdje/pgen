@@ -358,13 +358,15 @@ impl UnifiedReturnAST {
                                     signed
                                 ));
                             }
-                            // Note: index 0 is NOT remapped to MatchedText here. The `$0`
-                            // whole-match alias is deferred (REGEX-SELF-HOSTING.3 follow-up): it
-                            // collides with the positional-index-0 machinery in extraction/accessor
-                            // bases and multi-digit forms (`$00`, `$0::first`), where it would make
-                            // this typed-JSON path and the bootstrap parser structurally disagree.
-                            // `$text` is the collision-free canonical spelling. A guarded `$0` (with
-                            // a not-followed-by-digit/modifier lookahead) can be added later.
+                            // REGEX-SELF-HOSTING.3a: `$0` is the whole-match (Perl5 convention).
+                            // Any index-0 spelling (`$0`, `$00`, `$+0`) lowers to `MatchedText` —
+                            // mirroring the bootstrap `parse_positional_ref` so both surfaces agree.
+                            // Valid only as a base value; composing extraction/accessor on it is
+                            // rejected by the annotation validator (a flat whole-match has no
+                            // children to index). Positional refs are 1-indexed (`$1` = first child).
+                            if signed == 0 {
+                                return Ok(UnifiedReturnAST::MatchedText);
+                            }
                             Ok(UnifiedReturnAST::PositionalRef {
                                 index: signed as usize,
                             })
@@ -972,8 +974,17 @@ impl UnifiedReturnAST {
             return Err(format!("Invalid positional index: '{}'", num_str));
         }
 
-        let base = UnifiedReturnAST::PositionalRef {
-            index: signed_index as usize,
+        // REGEX-SELF-HOSTING.3a: `$0` is the whole-match (Perl5 convention: `$0` = whole match,
+        // `$1`..`$N` = captures). Any index-0 spelling (`$0`, `$00`, `$+0`) lowers to `MatchedText`.
+        // It is valid only as a BASE VALUE; composing extraction/accessor on it (`$0::first`,
+        // `$0.x`, `$0[i]`) is caught downstream by the annotation validator (you cannot index a flat
+        // whole-match string). Mirrors the typed-JSON path (`parse_typed_return_value`).
+        let base = if signed_index == 0 {
+            UnifiedReturnAST::MatchedText
+        } else {
+            UnifiedReturnAST::PositionalRef {
+                index: signed_index as usize,
+            }
         };
         let parsed = Self::parse_postfix_chain(base, remaining, logger)?;
 
@@ -3129,9 +3140,11 @@ mod tests {
         let result = UnifiedReturnAST::parse_typed_return_value(&chain)
             .expect("chain walker should resolve typed _pgen_lr_chain");
 
+        // REGEX-SELF-HOSTING.3a: the `{positional, index:0}` initial lowers to the whole-match
+        // (`MatchedText`) at the final from_json step (`$0` = whole match, Perl5).
         let expected = UnifiedReturnAST::ArrayAccess {
             base: Box::new(UnifiedReturnAST::PropertyAccess {
-                base: Box::new(UnifiedReturnAST::PositionalRef { index: 0 }),
+                base: Box::new(UnifiedReturnAST::MatchedText),
                 property: "A".to_string(),
             }),
             index: Box::new(UnifiedReturnAST::NumberLiteral { value: 0.0 }),
@@ -3213,7 +3226,8 @@ mod tests {
 
         let result = UnifiedReturnAST::parse_typed_return_value(&chain)
             .expect("empty suffixes => initial passthrough");
-        assert_eq!(result, UnifiedReturnAST::PositionalRef { index: 0 });
+        // REGEX-SELF-HOSTING.3a: index-0 initial lowers to the whole-match (`$0` = whole match).
+        assert_eq!(result, UnifiedReturnAST::MatchedText);
     }
 
     #[test]
@@ -3389,9 +3403,13 @@ mod tests {
                                 property,
                             } => {
                                 assert_eq!(property, "A");
+                                // REGEX-SELF-HOSTING.3a: `$0`/`$+0` lower to the whole-match
+                                // (`MatchedText`). This test exercises the parser's accessor-chain
+                                // *consumption*; composing `.`/`[]`/`::` on the whole-match is a
+                                // separate validator error (E_RET_WHOLE_MATCH_NOT_COMPOSABLE).
                                 assert!(matches!(
                                     level0.as_ref(),
-                                    UnifiedReturnAST::PositionalRef { index: 0 }
+                                    UnifiedReturnAST::MatchedText
                                 ));
                             }
                             other => {
@@ -3413,11 +3431,11 @@ mod tests {
                             UnifiedReturnAST::QuantifiedExtraction {
                                 base,
                                 target: ExtractionTarget::First
-                            } if matches!(base.as_ref(), UnifiedReturnAST::PositionalRef { index: 0 })
+                            } if matches!(base.as_ref(), UnifiedReturnAST::MatchedText)
                         ));
                         assert!(matches!(
                             nested_index.as_ref(),
-                            UnifiedReturnAST::PositionalRef { index: 0 }
+                            UnifiedReturnAST::MatchedText
                         ));
                     }
                     other => panic!("expected nested array access index, got {:?}", other),

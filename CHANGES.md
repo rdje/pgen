@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0007 (REGEX-SELF-HOSTING .3a): `$0` whole-match alias ENABLED (Perl5) (CODE; byte-identical).
+
+Enables `$0` as the whole-match alias of `$text`, matching the Perl5 convention (`$0` = whole match,
+`$1`..`$N` = captured children) — the clean extension the director envisioned.
+
+**Why it's clean (tools-first):** every `$00`/`$+0`/`$0::first` occurrence traces to *synthetic stress
+probes* only (`full_consumption_regression.json` + a few unit tests), and positional index 0 was *already a
+hard error* (`E_RET_POS_ZERO`). So nothing real is lost by giving index 0 a meaning.
+
+- **Parse:** any index-0 spelling (`$0`, `$00`, `$+0`) lowers to `UnifiedReturnAST::MatchedText` consistently
+  in BOTH surfaces — bootstrap `parse_positional_ref` and the typed-JSON `from_json` (`positional` index 0).
+  No grammar change/regen needed (the existing `positional_reference` parses `$0`; the host maps it).
+- **Validate:** new `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` — composing extraction/property/index access on the
+  whole match (`$0::first`, `$0.field`, `$0[i]`, likewise `$text`) is a semantic error (a flat whole-match
+  has no "0th child" to index; use `$1`..`$N`). Retired `E_RET_POS_ZERO` (index 0 is now meaningful).
+- **Tests:** re-pointed the synthetic stress + LR-chain-walker tests to the new semantics ($0 → MatchedText);
+  repurposed the pos-zero validator test to assert bare `$0` is valid + `$0::first` flags the new error.
+
+**Verified:** lib 614/0, generated_parsers 653/0, clippy strict ✓, regex PCRE2 oracle BYTE-IDENTICAL,
+END-TO-END `$0`/`$00`/`$+0` → `ParseContent::Terminal(&parser.input[start_pos..parser.position])`. Docs
+lockstep: `RETURN_ANNOTATIONS_REFERENCE.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, book annotation table.
+**REGEX-SELF-HOSTING `.3` is now fully done (`$text` + `$0`); frontier → `.4`** (convert the regex
+char-classes).
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0006 (REGEX-SELF-HOSTING .3 part-2): `$text` on the GENERATED return-annotation surface — `.3` DONE for `$text` (CODE; additive, byte-identical).
 
 Completes the `-> $text` return-annotation primitive on the surface that non-bootstrap grammars (regex)

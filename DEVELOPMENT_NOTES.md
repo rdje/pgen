@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.3a — `$0` whole-match alias enabled (Perl5) (PGEN-REGEX-SELF-HOST-0007)
+
+### The reframe that unblocked it
+In part-2 I deferred `$0` (it "collided" with positional-index-0). The director pushed back with the Perl5
+framing (`$0`=whole match, `$1..$N`=captures — a clean extension) and asked why `$00` even exists. Tracing
+it answered both: (1) `$00`/`$+0`/`$0::first` appear ONLY in synthetic stress probes; (2) positional index 0
+was ALREADY `E_RET_POS_ZERO` (a hard error). So index 0 had no legitimate meaning — giving it the whole-match
+meaning *loses nothing* and is the principled fix, not a workaround. My earlier "collision" was self-inflicted
+(a half-measure: bootstrap mapped only bare `$0`, `from_json` mapped all index-0 → they disagreed).
+
+### What landed
+- Index 0 (any spelling) → `MatchedText` in BOTH parse surfaces: `parse_positional_ref` builds the base as
+  `MatchedText` when `signed_index == 0` (so `$0::first` composes as extraction{base: MatchedText}); the
+  `from_json` "positional" arm returns `MatchedText` for index 0. Consistency is the whole point — the
+  shape-contract crosscheck requires the two surfaces to agree.
+- `reject_whole_match_composition` helper → `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` on the base of
+  PropertyAccess / ArrayAccess / QuantifiedExtraction when it is `MatchedText`. `$0`/`$text` is valid only as
+  a base value.
+- Retired `E_RET_POS_ZERO` (unreachable now — index 0 never becomes `PositionalRef{0}`).
+- No grammar change/regen: `$0` rides the existing `positional_reference`; only the host lowering changed.
+
+### `$0::first` semantics (the question that clarified the rule)
+`::first` extracts the Nth child of a quantified repetition; the whole match is a flat string with no
+children. The extraction codegen already only accepts `PositionalRef{index > 0}` as a base (everything else →
+`<invalid_extraction_base>`), so `$0::first` never produced anything meaningful. Now it's a clean validator
+error instead of a silent sentinel.
+
+### Lesson
+A same-meaning alias for an existing token must be made consistent across BOTH parse surfaces AND checked
+against every context the token composes with (extraction/accessor/multi-digit) — and "is the colliding form
+even real?" is worth asking before adding guard machinery. Here the colliding forms were fuzz, and the token
+(index 0) was already an error, so the clean answer was to repurpose it, not guard around it.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.3 part-2 — `$text` on the generated surface; `.3` DONE (PGEN-REGEX-SELF-HOST-0006)
 
 ### Landed

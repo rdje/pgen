@@ -167,14 +167,19 @@ content.
   `generated/regex_parser.rs` contains no `match_regex`/`regex::Regex` call; add a gate/test that fails if a
   `/.../` reappears in `regex.ebnf`; lockstep (regex book "self-hosting" note + contract if a surface
   changed). THEN the tree is done and regex cert-coverage-clean resumes (director sequencing).
-- ID: `.3a`  Status: `deferred` (OPTIONAL — director is "OK with" `$0`, not requiring it)  Goal: enable the
-  **`$0` whole-match alias** of `$text`. Deferred from `.3` because a naive `$0`→MatchedText collides with
-  positional-index-0 (`$00`, `$0::first`, accessor/extraction bases) and makes the bootstrap + generated
-  surfaces disagree (broke the `$+0.A.A000[($0::first)[$00]]` regression corpus). To ship safely: add a
-  guarded alternative `'$' '0' <not-followed-by digit/`:`/`.`/`[`/`*`>` to `matched_text_reference` (a
-  negative lookahead so only BARE `$0` maps to MatchedText; `$00`/`$0::…` stay positional), mirror it in
-  `parse_bootstrap` (exact bare `$0`), regen, and re-pin the corpus. Not needed for `.4`/`.5`/`.6` (use
-  `$text`). Pick up only if the director wants `$0` usable.
+- ID: `.3a`  Status: `DONE` (`PGEN-REGEX-SELF-HOST-0007`)  Goal: enable the **`$0` whole-match alias** of
+  `$text` (director: "in Perl5 `$0` = whole match, `$1..$N` = captures — a clean extension"). RESOLVED the
+  earlier collision the RIGHT way (not a guard): a tools-first trace showed `$00`/`$+0`/`$0::first` exist
+  ONLY in synthetic stress probes, and positional index 0 was ALREADY a hard error (`E_RET_POS_ZERO`) — so
+  nothing real is lost by making **any index-0 spelling (`$0`/`$00`/`$+0`) → `MatchedText`** consistently in
+  BOTH surfaces (bootstrap `parse_positional_ref` + `from_json`). `$0` is valid only as a BASE value;
+  composing extraction/accessor on it (`$0::first`/`$0.x`/`$0[i]`) is a new semantic error
+  `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` (a flat whole-match has no children). Retired `E_RET_POS_ZERO`
+  (index 0 is now meaningful). Re-pointed the synthetic stress tests + chain-walker tests to the new
+  semantics ($0→MatchedText). Verified: lib 614/0, generated_parsers 653/0, clippy ✓, regex oracle
+  byte-identical, END-TO-END `$0`/`$00`/`$+0` → whole-match span Terminal. Docs lockstep
+  (RETURN_ANNOTATIONS_REFERENCE / NORMATIVE_SPEC / book annotation table). NO grammar change/regen needed
+  ($0 goes through the existing `positional_reference` → host maps index 0 → MatchedText).
 
 ## Decisions
 
@@ -213,6 +218,7 @@ content.
 | `2026-06-07` | `.2` (`-0003`) | codegen unit test (native matcher: chars/len_utf8, no regex); `cargo test --lib` 613/0; clippy strict source ✓; additivity (only regex refs `any_char` + DEFINES it → built-in dormant → regex regen 214 rules unchanged, parse_any_char still `match_regex`); END-TO-END throwaway grammar `"a" any_char "b"` → native `parse_any_char` on the real generate path | **DONE** — additive, no user-facing change (no book/contract) |
 | `2026-06-07` | `.3` part-1 (`-0005`) | `MatchedText` variant + `parse_bootstrap` `$text`/`$0` + codegen span-Terminal + 8 exhaustiveness sites + unit test `matched_text_dollar_text_and_dollar_zero_emit_span_terminal`; `cargo test --lib` 614/0; additive/dormant. END-TO-END diagnosis: throwaway `num = digit+ -> $text` still emits passthrough via the GENERATED return_annotation parser (surface B) → part-2 needed | **PART-1 DONE** (surface A + machinery); part-2 (surface B) pending |
 | `2026-06-07` | `.3` part-2 (`-0006`) | `return_annotation.ebnf` `matched_text_reference` + regen + `from_json` `{type:"matched_text"}`→MatchedText; manifest `return_annotation_v1.json` (matched_text entry + primary_expression branch 8→9); reverted `$0`→MatchedText (collision); lib 614/0, generated_parsers 653/0, clippy ✓, regex oracle byte-identical; END-TO-END throwaway `num = digit+ -> $text` → `Terminal(&parser.input[start_pos..parser.position])`; docs lockstep (3 surfaces) | **`.3` DONE for `$text`**; `$0` deferred (`.3a`) |
+| `2026-06-07` | `.3a` (`-0007`) | `$0` (any index-0 spelling) → MatchedText in BOTH surfaces (bootstrap `parse_positional_ref` + `from_json`); new `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` for `$0::first`/`$0.x`/`$0[i]`; retired `E_RET_POS_ZERO`; re-pointed stress + chain-walker tests; lib 614/0, generated_parsers 653/0, clippy ✓, regex byte-identical; END-TO-END `$0`/`$00`/`$+0` → span Terminal; docs lockstep | **`.3a` DONE — `$0` enabled (Perl5)** |
 
 ## Commit Log
 
@@ -223,11 +229,20 @@ content.
 | `.2` impl | `PGEN-REGEX-SELF-HOST-0003` | native `any_char` built-in in codegen + unit test; additive/dormant (byte-identical); end-to-end proven |
 | `.3` part-1 | `PGEN-REGEX-SELF-HOST-0005` | `$text`/`$0` surface A (bootstrap) + `MatchedText` AST + codegen + 8 exhaustiveness + test; additive/dormant; surface B (generated parser) diagnosed as the remaining critical path |
 | `.3` part-2 | `PGEN-REGEX-SELF-HOST-0006` | `$text` surface B (`return_annotation.ebnf` + regen + `from_json` mapping + manifest); end-to-end works; regex byte-identical; `$0` deferred (collision). `.3` DONE for `$text` |
+| `.3a` | `PGEN-REGEX-SELF-HOST-0007` | `$0` whole-match alias enabled (Perl5): index-0→MatchedText both surfaces + E_RET_WHOLE_MATCH_NOT_COMPOSABLE + retired E_RET_POS_ZERO; tests re-pointed; byte-identical. `$0` DONE |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.3a` (`PGEN-REGEX-SELF-HOST-0007`) — enabled the `$0` whole-match alias (Perl5: `$0`=whole
+  match, `$1..$N`=captures). A tools-first trace showed `$00`/`$+0`/`$0::first` exist only in synthetic
+  stress probes and positional index 0 was already a hard error (`E_RET_POS_ZERO`), so any index-0 spelling
+  now lowers to `MatchedText` consistently in both surfaces (bootstrap `parse_positional_ref` + `from_json`).
+  Added `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` (composing `::`/`.`/`[]` on the whole match is invalid — no "0th
+  child"); retired `E_RET_POS_ZERO`; re-pointed the stress + chain-walker tests. lib 614/0, generated_parsers
+  653/0, clippy ✓, regex byte-identical, END-TO-END `$0`/`$00`/`$+0` → span Terminal. No grammar change/regen
+  (the existing `positional_reference` parses `$0`; the host maps index 0 → MatchedText). Docs lockstep.
 - `2026-06-07`: `.3` part-2 (`PGEN-REGEX-SELF-HOST-0006`) — completed `$text` on the GENERATED
   return-annotation surface: added `matched_text_reference` to `return_annotation.ebnf`, regen'd the
   generated parser, mapped `{type:"matched_text"}` → `MatchedText`, and re-pinned the shape-contract

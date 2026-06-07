@@ -53,7 +53,7 @@ Semantic-directive payloads (`@emit_fact: { … }`, `@predicate: { … }`, `@exp
 |---|---|---|
 | `$<ident>` | Named ref into the current rule's shaped output (`->` rule) OR sub-rule-name descendant search (raw rule) | `$body` |
 | `$<int>` | Positional ref to the N'th child (1-indexed) of the current rule's parse content | `$1` |
-| `$text` | Whole-match ref — the rule's entire matched source text as one string `Terminal` (native, Rust-regex-free equivalent of a `/.../` capture; lets `octal_digit+ -> $text` yield `"777"` instead of a structured `Quantified`). REGEX-SELF-HOSTING.3. | `digit+ -> $text` |
+| `$text` / `$0` | Whole-match ref — the rule's entire matched source text as one string `Terminal` (native, Rust-regex-free equivalent of a `/.../` capture; Perl5 convention `$0`=whole match, `$1..$N`=captures; lets `octal_digit+ -> $text` yield `"777"` instead of a structured `Quantified`). Valid only as a base value — `$0::first`/`$0.x`/`$0[i]` is an error (`E_RET_WHOLE_MATCH_NOT_COMPOSABLE`). REGEX-SELF-HOSTING.3/.3a. | `digit+ -> $0` |
 | `$<head>.<ident>(\.<ident>)*` | Dotted property-access chain over the shaped JSON object-key path / raw sub-rule tree | `$name.body`, `$1.body.subkey` |
 | `$<head>(\.<ident>\|\[<int>\])*` | Mixed dotted + non-negative-integer indexed-access chain | `$items[0].name`, `$matrix[0][1]`, `$a.b[0].c[1].d.e[2].r.z` |
 

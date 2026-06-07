@@ -111,13 +111,18 @@ Normative input/output behavior for bootstrap return parsing:
 - Optional arrow stripping is recognized when that leading-whitespace-normalized input starts with `->` or `-> `.
 - Leading/trailing whitespace is then trimmed after optional arrow stripping.
 - Empty payload after normalization maps to passthrough (`$1` on round-trip).
-- Positional refs (`$N`) are supported, including bootstrap acceptance of `$0`.
-- Whole-match text (`$text`) is supported — returns the rule's full matched source text as one string
-  `Terminal` (the native, Rust-regex-free equivalent of a `/.../`-with-capture). Recognized on BOTH the
-  bootstrap surface (`parse_bootstrap`) and the generated `return_annotation.ebnf` surface
-  (`matched_text_reference := '$' 'text' -> {type: "matched_text"}` → `UnifiedReturnAST::MatchedText` →
-  codegen `ParseContent::Terminal(&input[start..end])`). REGEX-SELF-HOSTING.3. The `$0` whole-match alias
-  is NOT yet enabled (it collides with positional `$0`/`$00`/`$0::…`; needs a lookahead guard).
+- Positional refs (`$N`) are 1-based (`$1` = first child).
+- Whole-match text (`$text`, alias `$0`) is supported — returns the rule's full matched source text as one
+  string `Terminal` (the native, Rust-regex-free equivalent of a `/.../`-with-capture; Perl5 convention:
+  `$0` = whole match, `$1`..`$N` = captures). Recognized on BOTH the bootstrap surface (`parse_bootstrap`)
+  and the generated `return_annotation.ebnf` surface: `$text` via
+  `matched_text_reference := '$' 'text' -> {type: "matched_text"}`, and `$0` (any index-0 spelling — `$0`,
+  `$00`, `$+0`) via the positional path lowered to `UnifiedReturnAST::MatchedText` → codegen
+  `ParseContent::Terminal(&input[start..end])`. REGEX-SELF-HOSTING.3 (`$text`) / .3a (`$0`).
+- The whole match is a flat string and is valid only as a BASE value. Composing extraction/property/index
+  access on it (`$0::first`, `$0.field`, `$0[i]`, likewise for `$text`) is a semantic error
+  (`E_RET_WHOLE_MATCH_NOT_COMPOSABLE`) — there is no "0th child" to index. (The former `E_RET_POS_ZERO` is
+  retired: index 0 is now the meaningful whole-match, not an error.)
 - Extraction (`::first`, `::last`, `::N`) is supported, with `::0` rejected.
 - Spread suffix (`*`) is supported for positional/extraction forms.
 - Property/array access forms are supported.
