@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0001 (NEW TREE REGEX-SELF-HOSTING .1 SCOPING): make regex.ebnf `"..."`-only / Rust-regex-free (docs).
+
+Director directive 2026-06-07: PGEN's regex parser should not use `/.../` regex-literals in `regex.ebnf`,
+so the generated regex parser does not depend on Rust's `regex` engine to parse regexes (self-hosting; no
+regex-to-parse-regex circularity; acceptance decoupled from Rust-regex semantics). Sequenced FIRST; THEN
+resume regex cert-coverage-clean.
+
+Tool-backed `.1` scoping (no code): `generated/regex.json` has exactly **36 `"regex"` nodes** (one per
+`/.../` in `regex.ebnf`); each compiles to `match_regex` → `regex::Regex` in the generated parser. The
+codegen has only two terminal matchers — `match_string` (native byte comparison; Rust-regex-free) and
+`match_regex` (Rust regex); there is NO native character-class/range/any-char matcher, and native EBNF
+`[...]` is translated to a `"regex"` node upstream (so switching `/.../`→`[...]` would NOT remove the
+dependency). Plan: ~20 simple positive char-classes (`digit`/`letter`/`hex_digit`/… + quantified forms) →
+ordered-choice of `'c'` literal alternations (native `match_string` + the Layer-0 quantifier engine);
+~16 negated / content-until-delimiter / true-any-char classes (`unicode_char [^\x00-\x7F]`, `name`, the 7
+`callout_*_payload`, `directive_payload_*`, `comment_text`, `any_char`) need **one new parser-agnostic
+engine primitive: a native any-single-character matcher** (then `[^X]` = `!"X" any_char`). The engine change
+is justified (general/parser-agnostic — benefits any grammar wanting `/.../`-free). New tree
+`docs/tasks/REGEX-SELF-HOSTING.md` (leaves `.1`–`.5`) + decision record
+`project_regex_self_hosting_no_slash_literals.md`. Frontier → `.2` (design + add the any-char primitive).
+LIVE status unchanged (scoping). After this tree closes, regex cert-coverage-clean resumes
+(`REGEX-PCRE2-FIDELITY.3.7` empty-`[]` → regex default 0, then GRAMMAR-WELLFORMED Phase H).
+
 ## 2026-06-07 - PGEN-REGEX-PCRE2-0008 (REGEX-PCRE2-FIDELITY .3.2): `(*verb)` NAME acceptance migrated validator→grammar; default strict PCRE2 verb set + `relaxed` opt-out (CODE; conformance- & surface-neutral; no version bump).
 
 Second `.3.x` leaf of the PCRE2-faithful-by-default campaign. The grammar's `directive_name`

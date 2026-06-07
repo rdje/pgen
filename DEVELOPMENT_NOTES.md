@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.1 — scoping: regex.ebnf `"..."`-only / drop Rust regex-engine dependency (PGEN-REGEX-SELF-HOST-0001)
+
+### The finding (tool-backed)
+`generated/regex.json` has 36 `"regex"` nodes (= the 36 `/.../` in `regex.ebnf`); each → `match_regex` →
+`regex::Regex::new(r"\A(?:{pattern})")`. The codegen (`ast_based_generator.rs`) has exactly two terminal
+matchers: `match_string` (`~:5180`, native byte/str compare — used for `"string"`/`'char'` nodes) and
+`match_regex` (`~:5228`, Rust regex — used for `"regex"` nodes). No native char-class / range / any-char
+matcher exists, and the meta-grammar's native `[...]`/`[^...]`/`[a-z]` are translated to `"regex"` nodes
+upstream — so switching `/.../` → native `[...]` does NOT remove the Rust-regex dependency. Only the
+literal-string `match_string` path is Rust-regex-free.
+
+### Consequence for self-hosting
+- ~20 simple positive char-classes (single + quantified) convert mechanically to ordered-choice `'c'`
+  literal alternations + EBNF quantifiers (native).
+- ~16 negated / content-until-delimiter / true-any-char classes (`unicode_char [^\x00-\x7F]`, `name`, the 7
+  `callout_*_payload`, `directive_payload_*`, `comment_text`, `any_char`) CANNOT be enumerated with literals
+  → they need ONE new parser-agnostic engine primitive: a native **any-single-character** matcher
+  (`match_any_char`). Then `[^X]` = `!"X" any_char`, `[^X]*` = `( !"X" any_char )*`, "any char" = `any_char`.
+
+The engine primitive is general (any grammar can use it to avoid `/.../`), so it fits the
+parser-agnostic-feature carve-out of the leave-the-engine-alone discipline. It's the enabling first
+implementation step (`.2`). Pure-docs scoping slice; no code. New tree `REGEX-SELF-HOSTING` (`.1`–`.5`).
+
 ## 2026-06-07 - REGEX-PCRE2-FIDELITY.3.2 — `(*verb)` NAME acceptance migrated validator→grammar (PGEN-REGEX-PCRE2-0008)
 
 ### What landed
