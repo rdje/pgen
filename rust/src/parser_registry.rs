@@ -106,11 +106,21 @@ type ParseAndCoverFn = fn(&str, Option<&str>) -> (bool, std::collections::HashSe
 /// the registry table, never in the pipeline.
 type ParseDetailFn = fn(&str, Option<&str>) -> Result<(), String>;
 
-#[cfg(has_generated_systemverilog_parser)]
+#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
 fn normalize_generated_grammar_profile<'a>(
     grammar_name: &str,
     grammar_profile: Option<&'a str>,
 ) -> Option<&'a str> {
+    // REGEX-PCRE2-FIDELITY.2: regex is PCRE2-faithful BY DEFAULT — an unspecified/empty profile
+    // normalizes to the strict `pcre2` profile (NOT permissive `None`); `relaxed` is the opt-out.
+    // (The codegen profile guard `rule_profile_is_enabled` treats `None` as "all rules active", so a
+    // named default is required for `@profiles:["relaxed"]`-gated constructs to be excluded by default.)
+    if grammar_name == "regex" {
+        return match grammar_profile.map(|p| p.trim().to_ascii_lowercase()).as_deref() {
+            Some("relaxed") => Some("relaxed"),
+            _ => Some("pcre2"),
+        };
+    }
     let profile = grammar_profile?.trim();
     if profile.is_empty() {
         return None;
@@ -277,7 +287,7 @@ fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
 
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex(sample: &str) -> bool {
-    parse_with_regex_detail(sample).is_ok()
+    parse_with_regex_detail(sample, None).is_ok()
 }
 
 #[cfg(has_generated_regex_parser)]
@@ -298,18 +308,25 @@ where
 }
 
 #[cfg(has_generated_regex_parser)]
-fn parse_with_regex_detail(sample: &str) -> Result<(), String> {
-    run_generated_regex_on_dedicated_stack(sample, |owned_sample| {
+fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Result<(), String> {
+    // REGEX-PCRE2-FIDELITY.2: default = strict `pcre2` (PCRE2-faithful); `relaxed` opt-out. Owned into
+    // the 'static worker closure. No-op until `.3.x` gates constructs by `@profiles`.
+    let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
+    run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        parser.set_grammar_profile(profile.as_deref());
         parser.parse_full_regex().map_err(|err| err.to_string())?;
         validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)
     })
 }
 
 #[cfg(has_generated_regex_parser)]
-fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
-    run_generated_regex_on_dedicated_stack(sample, |owned_sample| {
+fn parse_with_regex_ast_json(sample: &str, grammar_profile: Option<&str>) -> Result<JsonValue, String> {
+    // REGEX-PCRE2-FIDELITY.2: default = strict `pcre2`; `relaxed` opt-out (owned into the worker closure).
+    let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
+    run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        parser.set_grammar_profile(profile.as_deref());
         let parsed = parser.parse_full_regex().map_err(|err| err.to_string())?;
         validate_regex_compile_contract(&owned_sample).map_err(|err| err.message)?;
         parse_node_to_json(&parsed)
@@ -320,16 +337,19 @@ fn parse_with_regex_ast_json(sample: &str) -> Result<JsonValue, String> {
 /// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
 /// `parse_and_cover_systemverilog`: enable the transactional `coverage_stack`, parse, and return the
 /// PARSER's own record of the committed rules on a SUCCESSFUL parse. Runs on the dedicated regex worker
-/// stack (regex can deeply recurse — RGX-0085). No profile / stdlib (regex has neither). PCRE2 compile
-/// validation is intentionally NOT applied here — cert-coverage asks "did the GRAMMAR parse + which rules
-/// were exercised", not "is the pattern PCRE2-valid".
+/// stack (regex can deeply recurse — RGX-0085). PCRE2 compile validation is intentionally NOT applied
+/// here — cert-coverage asks "did the GRAMMAR parse + which rules were exercised", not "is the pattern
+/// PCRE2-valid". REGEX-PCRE2-FIDELITY.2: honors the grammar profile (default = strict `pcre2`; `relaxed`
+/// opt-out) so the witness side parses under the same profile the generator generated for.
 #[cfg(has_generated_regex_parser)]
 pub fn parse_and_cover_regex(
     sample: &str,
-    _grammar_profile: Option<&str>,
+    grammar_profile: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
-    run_generated_regex_on_dedicated_stack(sample, |owned_sample| {
+    let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
+    run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+        parser.set_grammar_profile(profile.as_deref());
         parser.enable_coverage();
         Ok(match parser.parse_full_regex() {
             Ok(_) => (true, parser.exercised_rule_names()),
@@ -890,7 +910,7 @@ pub fn parse_sample_detail_with_profile(
         #[cfg(has_generated_json_parser)]
         "json" => Some(parse_with_json_detail(sample)),
         #[cfg(has_generated_regex_parser)]
-        "regex" => Some(parse_with_regex_detail(sample)),
+        "regex" => Some(parse_with_regex_detail(sample, grammar_profile)),
         #[cfg(has_generated_rtl_const_expr_parser)]
         "rtl_const_expr" => Some(parse_with_rtl_const_expr_detail(sample)),
         #[cfg(has_generated_rtl_frontend_parser)]
@@ -935,7 +955,7 @@ pub fn parse_sample_ast_json_with_profile(
         #[cfg(has_generated_json_parser)]
         "json" => Some(parse_with_json_ast_json(sample)),
         #[cfg(has_generated_regex_parser)]
-        "regex" => Some(parse_with_regex_ast_json(sample)),
+        "regex" => Some(parse_with_regex_ast_json(sample, grammar_profile)),
         #[cfg(has_generated_rtl_const_expr_parser)]
         "rtl_const_expr" => Some(parse_with_rtl_const_expr_ast_json(sample)),
         #[cfg(has_generated_rtl_frontend_parser)]

@@ -77,11 +77,15 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - ID: `REGEX-PCRE2-FIDELITY`  Status: `active`  Children: `.1`..`.5`
 - ID: `.1`  Status: `done`  Goal: scope — confirm mechanisms, enumerate PCRE2 rules, map each to its
   EBNF encoding, flag risks. Acceptance: the table above + the decision record. Commit: `PGEN-REGEX-PCRE2-0001`.
-- ID: `.2`  Status: `pending`  Goal: profile scaffolding — establish the **explicit `pcre2` default** so
-  profile-gated relaxed constructs are excluded by default (see the `.2` DESIGN below — this is a real
-  multi-site prerequisite uncovered while scoping `.3.1`, NOT a no-op rule-tag). Acceptance: default regex
-  parse/generate uses profile `pcre2`; `relaxed` selectable; with no constructs gated yet, behaviour is
-  unchanged (cert-coverage + lib + RGX conformance identical); gates green.
+- ID: `.2`  Status: `done` (`PGEN-REGEX-PCRE2-0003`)  Goal: profile scaffolding — establish the explicit
+  `pcre2` default (parse side). DONE: `normalize_generated_grammar_profile` gained a `regex` arm
+  (unspecified/`pcre2`/`strict` → `pcre2`; `relaxed` → `relaxed`; its cfg widened to
+  `any(sv, regex)`); `parse_with_regex_detail` / `parse_with_regex_ast_json` take + thread a profile and
+  `set_grammar_profile` (owned into the worker closure); `parse_and_cover_regex` honors its profile param;
+  the 2 dispatch call sites pass `grammar_profile`. VERIFIED no-op: regex cert-coverage `sample_parse_failures`
+  = 3 (default) AND 3 (`--grammar-profile relaxed`) — unchanged (no constructs gated yet); lib `--lib`
+  614/614; regex-focused tests 110/0; clippy source 0 errors. Rust-only (NO regen). The generator-side
+  default rides with `.3.1` (where it first matters for not emitting `\u`).
 - ID: `.3`  Status: `pending`  Goal: encode-in-EBNF per construct (one sub-leaf per row above), each:
   encode (profile-gate / predicate) → remove that check from `validate_regex_compile_contract` → verify
   PCRE2-oracle (default) + relaxed-mode + cert-coverage, tools-first, one at a time, measured. Children
@@ -124,9 +128,12 @@ wiring + the `normalize` default.
 
 ## Current Frontier
 
-- `.2` profile scaffolding (default `pcre2` / `relaxed` opt-out) — then `.3.1`/`.3.2`/`.3.7` (the
-  generator-tripping `\u` / `(*verb)` / empty-`[]` first, since those also close the cert-coverage
-  residual). Each behaviour-affecting leaf is a released-parser slice (full lockstep).
+- `.3.1` — gate `unicode_escape` (`\u`) `@profiles:["relaxed"]` + add the generator-side `pcre2` default +
+  drop the `\u` arm of `find_invalid_escape_i` → default rejects `\u` (matches PCRE2) + generator stops
+  emitting it; `relaxed` accepts. Then `.3.2` `(*verb)`, `.3.7` empty-`[]`. Each is a released-parser
+  slice: regen `generated/regex_parser.rs` + `regex_pcre2_compile_oracle_gate` (PCRE2 oracle) +
+  cert-coverage + relaxed tests + AST-shape manifest + regex book + integration contract + ledger +
+  release/contract bump. (`.2` default scaffolding DONE.)
 
 ## Decisions
 
@@ -160,14 +167,20 @@ wiring + the `normalize` default.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-07` | `.1` | mechanism greps (profiles/predicates/oracle), validator-check enumeration | confirmed feasible |
+| `2026-06-07` | `.2` | regex-focused build + cert-coverage (default 3, relaxed 3 = no-op) + lib 614/614 + regex tests 110/0 + clippy source 0 | DONE |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
-| `.1` | `PGEN-REGEX-PCRE2-0001` | scoping (this slice) |
+| `.1` | `PGEN-REGEX-PCRE2-0001` | scoping |
+| `.2` design | `PGEN-REGEX-PCRE2-0002` | pinned the explicit-`pcre2`-default wiring plan |
+| `.2` | `PGEN-REGEX-PCRE2-0003` | parse-side `pcre2` default (Rust-only, no-op verified) |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-PCRE2-0001`), per the director directive to
   make regex PCRE2-faithful by default with a relaxed opt-out, EBNF-driven.
+- `2026-06-07`: `.2` design (`PGEN-REGEX-PCRE2-0002`) pinned the explicit-`pcre2`-default wiring (the
+  `None => true` permissive-guard wrinkle); `.2` DONE (`PGEN-REGEX-PCRE2-0003`) — parse-side `pcre2`
+  default wired (Rust-only, no-op verified). Frontier → `.3.1` (`\u`).

@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-PCRE2-0003 (REGEX-PCRE2-FIDELITY .2): wire the explicit `pcre2` default for the regex parse paths (CODE, Rust-only, no-op).
+
+Establishes the parse-side strict-PCRE2 default the campaign needs (so `.3.x`'s `@profiles:["relaxed"]`-gated constructs are excluded by default). Rust-only in `rust/src/parser_registry.rs`; NO regen (the regex parser already carries the profile machinery).
+
+- `normalize_generated_grammar_profile`: new `regex` arm — unspecified/`pcre2`/`strict`/`default` → `Some("pcre2")`; `relaxed` → `Some("relaxed")`. Its cfg widened from `has_generated_systemverilog_parser` to `any(systemverilog, regex)` (it's now a regex dependency too).
+- `parse_with_regex_detail` / `parse_with_regex_ast_json` take a `grammar_profile: Option<&str>`, normalize it, and `set_grammar_profile` on the parser (owned into the `'static` worker closure). `parse_and_cover_regex` (cert-coverage witness) now honors its profile param. The 2 dispatch call sites (`parse_sample_detail_with_profile`, `parse_sample_ast_json_with_profile`) thread `grammar_profile` through.
+
+VERIFIED no-op (no constructs gated yet): regex cert-coverage `sample_parse_failures` = 3 in DEFAULT mode AND 3 with `--grammar-profile relaxed` (unchanged + `relaxed` selectable end-to-end); `cargo test --lib` 614/614; regex-focused tests 110/0; clippy source 0 errors. Behavioral no-op (profile set but no `@profiles` rule consults it → byte-identical parse) → RGX conformance unaffected by construction (the PCRE2-oracle ratchet begins in `.3.1`). FRONTIER → `.3.1` (`\u`). LIVE_ACHIEVEMENT_STATUS unchanged.
+
 ## 2026-06-07 - PGEN-REGEX-PCRE2-0002 (REGEX-PCRE2-FIDELITY .2 design): pin the explicit `pcre2`-default wiring `.3.1` requires (docs).
 
 Scoping `.3.1` (gate `unicode_escape`/`\u` to `relaxed`) surfaced a real prerequisite, recorded here tools-first: the codegen profile guard `rule_profile_is_enabled` (`ast_based_generator.rs:3806`) treats `grammar_profile = None` as PERMISSIVE (`None => true`, all gated rules active), and `normalize_generated_grammar_profile` (`parser_registry.rs:110`) returns `None` for an unspecified profile. So tagging `unicode_escape` `@profiles:["relaxed"]` with regex's current `None` default would leave `\u` ACCEPTED by default — the opposite of strict. ⇒ the default-strict design REQUIRES regex to default to an explicit named `pcre2` profile (not `None`); changing the `None => true` engine semantics is OUT (breaks SV's "None=all editions"; engine = last resort).
