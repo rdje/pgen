@@ -77,10 +77,11 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
 - ID: `REGEX-PCRE2-FIDELITY`  Status: `active`  Children: `.1`..`.5`
 - ID: `.1`  Status: `done`  Goal: scope — confirm mechanisms, enumerate PCRE2 rules, map each to its
   EBNF encoding, flag risks. Acceptance: the table above + the decision record. Commit: `PGEN-REGEX-PCRE2-0001`.
-- ID: `.2`  Status: `pending`  Goal: profile scaffolding — add the `relaxed` profile to `regex.ebnf`
-  (default = strict PCRE2) + opt-out plumbing (`--grammar-profile relaxed` / embedding API) + a baseline
-  test that default==current-strict and `relaxed` is selectable. Acceptance: profile selectable, no
-  behaviour change yet (no constructs gated), gates green.
+- ID: `.2`  Status: `pending`  Goal: profile scaffolding — establish the **explicit `pcre2` default** so
+  profile-gated relaxed constructs are excluded by default (see the `.2` DESIGN below — this is a real
+  multi-site prerequisite uncovered while scoping `.3.1`, NOT a no-op rule-tag). Acceptance: default regex
+  parse/generate uses profile `pcre2`; `relaxed` selectable; with no constructs gated yet, behaviour is
+  unchanged (cert-coverage + lib + RGX conformance identical); gates green.
 - ID: `.3`  Status: `pending`  Goal: encode-in-EBNF per construct (one sub-leaf per row above), each:
   encode (profile-gate / predicate) → remove that check from `validate_regex_compile_contract` → verify
   PCRE2-oracle (default) + relaxed-mode + cert-coverage, tools-first, one at a time, measured. Children
@@ -90,6 +91,36 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   EBNF is the sole source of truth.
 - ID: `.5`  Status: `pending`  Goal: verification — full `regex_pcre2_compile_oracle_gate` parity
   (default), relaxed-mode test suite, cert-coverage at floor, RGX conformance ratchet, lockstep.
+
+## `.2` DESIGN — the explicit `pcre2` default (uncovered scoping `.3.1`, 2026-06-07)
+
+**The wrinkle (tool-backed):** the codegen profile guard `rule_profile_is_enabled`
+(`ast_based_generator.rs:3806`) returns `true` when `grammar_profile` is `None`
+(`None => true` = permissive: ALL gated rules active). And `normalize_generated_grammar_profile`
+(`parser_registry.rs:110`) returns `None` for an unspecified/empty profile. So if regex's default stays
+`None`, a `@profiles:["relaxed"]` rule (e.g. `unicode_escape`) would be ENABLED by default → `\u` accepted
+by default — the OPPOSITE of strict. ⇒ the default-strict design REQUIRES regex to default to an explicit
+named profile **`pcre2`** (not `None`), so relaxed-tagged rules are excluded by default
+(`"pcre2" ∉ {"relaxed"}`). Changing the `None => true` engine semantics is OUT (it would break SV's
+"None = all editions" + is an engine change; last resort only).
+
+The regex generated parser ALREADY carries the profile machinery (`set_grammar_profile` /
+`grammar_profile` / `rule_profile_is_enabled` present), so **no regen is needed for `.2`** — it is Rust
+wiring + the `normalize` default.
+
+**`.2` implementation plan (precise sites):**
+1. `normalize_generated_grammar_profile` (`parser_registry.rs:110`): add a `"regex"` arm — unspecified/
+   empty/`pcre2`/`strict`/`default` → `Some("pcre2")`; `relaxed` → `Some("relaxed")`.
+2. Thread a profile into the regex parse paths (they currently take no profile): give
+   `parse_with_regex_detail` / `parse_with_regex_ast_json` a `grammar_profile: Option<&str>` param,
+   normalize it (`"regex"`), and `parser.set_grammar_profile(...)`. Update the dispatch
+   (`parse_sample_detail_with_profile` regex arm, `parse_with_regex_ast_json` caller) to pass the
+   incoming profile. `parse_and_cover_regex` already takes `_grammar_profile` — normalize + set it.
+3. Generation side: default the regex generator profile to `pcre2` when none is specified (the
+   cert-coverage + `--generate-stimuli` paths), so default-mode generation also excludes relaxed
+   constructs once `.3.x` gates them.
+4. Verify NO behaviour change (no constructs gated yet): regex cert-coverage identical (still 3), lib
+   614/614, RGX conformance unchanged. Then `.3.1` gates `unicode_escape` and the default flips to reject.
 
 ## Current Frontier
 
@@ -105,6 +136,13 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   [[project_ebnf_is_single_source_of_truth]] (the validator migrates IN and is removed).
 - `2026-06-07`: default profile name is the strict/PCRE2 base (relaxed is the additive opt-out), matching
   the PGEN convention that the base grammar is the default and a profile re-admits extras.
+- `2026-06-07`: **PCRE2 verification surfaces.** Primary in-repo oracle: `regex_pcre2_compile_oracle_gate`
+  (`pcre2test`) — directly proves default-mode accept/reject == PCRE2. Director hint: the external RGX
+  bug reports `~/Documents/github/rgx/pgen-issues/PGEN-RGX-0017..0028.yaml` carry the broader PCRE2
+  conformance corpus + how-to-run for the RGX PCRE2 conformance test (consult them for the full corpus +
+  methodology when ratcheting conformance). The regex corpus bundle (`regex_corpus_bundle/`,
+  `make -C rust regex_pcre2_compile_oracle_gate` / `regex_pcre2_textsafe_corpus_gate`) is the tracked
+  in-repo PCRE2 corpus surface.
 
 ## Open Questions
 
