@@ -124,6 +124,35 @@ can consume it (per-rule and per-branch annotations are generator-visible; per-e
   come from *fusion* (which `forbid` prevents), and the generator cannot force a *successor* token
   locally. So `require` is carried and available, but a documented generation no-op today.
 
+### Atomic lexical tokens stay fused (no internal spacing)
+
+Word-boundary spacing exists to keep two *separate* tokens from fusing (`endprogram` + `module` →
+`endprogrammodule`). But some rules **are themselves a single lexical token** assembled from
+character-level pieces — a `name`, a run of `digits`, a hex/octal escape payload. Those must **not**
+have their own characters separated, and must **not** be split from an adjacent character of the same
+token. The generator reads this straight from the rule's **declared return shape** — no extra
+annotation. A rule is treated as **one atomic lexical token** when either:
+
+- its return is **`$text` / `$0`** (the whole matched span returned as one string), or
+- it carries a **`@transform`** directive (the matched span parsed into a scalar).
+
+While such a rule is generated, every internal word-boundary separator is suppressed; and a token that
+*references* such a rule fuses with a preceding word character instead of being separated from it:
+
+```ebnf
+name = ( letter | '_' )( letter | digit | '_' )*  -> $text   # one token → "abc", never "a b c"
+
+@transform: str::parse::<usize>().unwrap_or(0)
+digits = digit+                                              # one token → "12", never "1 2"
+
+recursion_condition = "R" digits?  -> { kind: "recursion" }  #          → "R12", never "R 1"
+```
+
+This is what makes the regex stimuli generator emit PCRE2-faithful constructs like `(?P=name)`,
+`(?(R1)…)`, and `\xAB` rather than the space-broken `(?P=na me)` / `(?(R 1)…)` / `\x AB` that the
+parser would reject. It needs no notation — a rule that already declares `$text`/`$0`/`@transform`
+declares, by that very fact, that it is one token.
+
 Enforcement is part of the **lexical-faithfulness mode**, which is **on by default**. Negative-test
 generation — which deliberately produces malformed lexical surface — opts out, and then follow
 restrictions (and all other faithfulness guards) are not applied. The certificate-coverage gate

@@ -1,7 +1,8 @@
 use super::{
     ASTNode, ASTValue, Annotations, FollowItem, SemanticAnnotation, SemanticAssociativity,
     SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
-    TraceVerbosity, UnifiedSemanticAST, UnifiedSemanticValue, extract_semantic_directive,
+    TraceVerbosity, UnifiedReturnAST, UnifiedSemanticAST, UnifiedSemanticValue,
+    extract_semantic_directive,
     global_trace_verbosity, normalize_semantic_scalar, parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
     parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
@@ -1275,6 +1276,21 @@ pub struct StimuliGenerator<'a> {
     // boundaries ONLY when the left tail terminal is itself fusable — a structural literal whose tail
     // happens to be a letter (e.g. `(?C`, `(?(R`) is NOT fusable and must stay adjacent to its arg.
     last_terminal_word_shaped: bool,
+    // LEXICAL-ANNOTATIONS.6: >0 while generating the body of an ATOMIC lexical-token rule (return is
+    // `$text`/`$0` = `MatchedText`, or the rule carries a `@transform` directive). Such a rule is ONE
+    // flat token by construction, so every internal word-boundary join is suppressed while it is on the
+    // stack — the self-hosting `/.../`→char-sequence conversions (`name`, `hex_digits`, `octal_digits`,
+    // `prop_name`, `directive_name_relaxed`, comment/callout payloads) would otherwise have their own
+    // chars separated (`a b c`). A counter (not a bool) so nested atomic rules stay balanced.
+    atomic_token_depth: usize,
+    // LEXICAL-ANNOTATIONS.6: true iff the MOST-RECENTLY-COMPLETED leaf was a reference to an atomic
+    // lexical-token rule (see `atomic_token_depth`). Set in `generate_rule` on success; reset to false
+    // at every terminal leaf in `generate_atom` (literals/regex/number are not atomic-rule segments).
+    // Consulted by `append_segment_tracked` so the concat join does NOT separate a preceding word char
+    // from a following atomic-token-rule segment — an atomic token rule is a token-continuation, never
+    // a free keyword (fixes `recursion_condition` `"R" digits?` → `R1`, `hex_escape` `"x" payload` →
+    // `xAB`). Distinct from `last_terminal_word_shaped` (a structural-literal check on the rendered text).
+    last_terminal_from_atomic_rule: bool,
     // SV-EXH-PROOF.2.3.2: grammar-scoped structural-sigil set `G`
     // (union of every permissive leading-negated content class's
     // printable complement across the whole grammar). Derived once
@@ -1406,6 +1422,8 @@ impl<'a> StimuliGenerator<'a> {
             witness_certificates: Vec::new(),
             regex_content_forbidden: HashSet::new(),
             last_terminal_word_shaped: false,
+            atomic_token_depth: 0,
+            last_terminal_from_atomic_rule: false,
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
             closer_scopes_entered: 0,
@@ -5109,6 +5127,11 @@ impl<'a> StimuliGenerator<'a> {
             )
         })?;
 
+        // LEXICAL-ANNOTATIONS.6: is this rule one flat lexical token (return `$text`/`$0`, or a
+        // `@transform` directive)? Computed once (owned bool, no lingering borrow) and used by both
+        // return paths to drive intra-rule join suppression + the cross-rule cohesion signal.
+        let is_atomic = self.rule_is_lexically_atomic(rule_name);
+
         if Self::node_supports_rule_literal_override(rule_node) {
             if let Some(sample_hint) = self
                 .literalish_hint_for_rule(rule_name)
@@ -5123,6 +5146,9 @@ impl<'a> StimuliGenerator<'a> {
                     ),
                 );
                 self.coverage.record_rule_success(rule_name);
+                // The override emits the whole rule as one literal token; mark it atomic for the
+                // caller's cross-rule cohesion (LEXICAL-ANNOTATIONS.6).
+                self.last_terminal_from_atomic_rule = is_atomic;
                 return Ok(self.apply_lexical_follow_restriction(rule_name, sample_hint));
             }
         }
@@ -5136,10 +5162,23 @@ impl<'a> StimuliGenerator<'a> {
                 set.insert(call_stack[n - *k..].to_vec());
             }
         }
+        // LEXICAL-ANNOTATIONS.6: while an atomic-token rule's body is on the stack, suppress every
+        // internal word-boundary join (`append_generated_segment` checks `atomic_token_depth`). A
+        // counter so nested atomic rules stay balanced.
+        if is_atomic {
+            self.atomic_token_depth += 1;
+        }
         let result = self.generate_node(rule_node, rule_name, depth + 1, call_stack, "root");
+        if is_atomic {
+            self.atomic_token_depth -= 1;
+        }
         call_stack.pop();
         if result.is_ok() {
             self.coverage.record_rule_success(rule_name);
+            // LEXICAL-ANNOTATIONS.6: record whether THIS (just-completed) rule is an atomic lexical
+            // token, so a caller appending its rendering applies cross-rule cohesion. Set last (after
+            // the body), so the most-recently-completed rule wins over its inner sub-rules.
+            self.last_terminal_from_atomic_rule = is_atomic;
         }
         match &result {
             Ok(sample) => self.trace(
@@ -6036,6 +6075,11 @@ impl<'a> StimuliGenerator<'a> {
                         current_rule, depth, node_path, token_type, token_value
                     ),
                 );
+
+                // LEXICAL-ANNOTATIONS.6: a terminal leaf (literal/regex/number) is NOT an
+                // atomic-rule segment — clear the flag. The `rule_reference` arm re-sets it via
+                // `generate_rule` to reflect the referenced rule's atomicity.
+                self.last_terminal_from_atomic_rule = false;
 
                 match token_type {
                     "quoted_string" => {
@@ -7102,6 +7146,13 @@ impl<'a> StimuliGenerator<'a> {
             self.last_terminal_word_shaped = Self::is_word_shaped_literal(&candidate);
             return candidate;
         }
+        // LEXICAL-ANNOTATIONS.6: inside an atomic-token rule's body the whole rule is ONE lexical
+        // token, so a terminal must NOT bake an internal separator either (mirrors the join
+        // suppression in `append_generated_segment`); still record the tail word-shape.
+        if self.atomic_token_depth > 0 {
+            self.last_terminal_word_shaped = Self::is_word_shaped_literal(&candidate);
+            return candidate;
+        }
         // LEXICAL-ANNOTATIONS.3 — Obligation B (intra-terminal trailing guard, regex-derived).
         // If this terminal's regex match can be EXTENDED by appending a character (its tail is
         // "open" — a trailing `\b` word-boundary assertion, OR a greedy unbounded repetition of a
@@ -7241,13 +7292,64 @@ impl<'a> StimuliGenerator<'a> {
         !text.is_empty() && text.chars().all(Self::is_lexical_word_char)
     }
 
-    fn append_generated_segment(&self, output: &mut String, segment: &str, prev_tail_word_shaped: bool) {
+    /// LEXICAL-ANNOTATIONS.6: whether `rule_name` is an ATOMIC lexical-token rule — one that, by its
+    /// DECLARED return shape, produces a single flat token. Two declarative signals (NO new annotation
+    /// — Level 1 of the no-workarounds hierarchy): every branch returns `$text`/`$0` (`MatchedText`),
+    /// OR the rule carries a `@transform` directive (`@transform` parses the matched span into a scalar,
+    /// so the rule's surface IS one token). Both signals exist ONLY in `regex.ebnf` /
+    /// `return_annotation.ebnf` today, so SV/VHDL generation is byte-unaffected by construction.
+    fn rule_is_lexically_atomic(&self, rule_name: &str) -> bool {
+        let Some(annotations) = self.annotations else {
+            return false;
+        };
+        // (1) Return is MatchedText ($text / $0) on EVERY branch (a mixed-return rule is not atomic).
+        if let Some(branches) = annotations.branch_return_annotations.get(rule_name) {
+            if !branches.is_empty()
+                && branches.iter().all(|branch| {
+                    matches!(
+                        branch.as_ref().and_then(|ba| ba.parsed_ast.as_ref()),
+                        Some(UnifiedReturnAST::MatchedText)
+                    )
+                })
+            {
+                return true;
+            }
+        }
+        // (2) The rule carries a `@transform` directive (matched-span → scalar = one lexical token).
+        if let Some(semantic_annotations) = annotations.semantic_annotations.get(rule_name) {
+            if semantic_annotations.iter().any(|sa| {
+                matches!(sa.ast(), UnifiedSemanticAST::TransformExpr { .. })
+                    && self.semantic_directive_name(sa).as_deref() == Some("transform")
+            }) {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn append_generated_segment(
+        &self,
+        output: &mut String,
+        segment: &str,
+        prev_tail_word_shaped: bool,
+        segment_from_atomic_rule: bool,
+    ) {
         // LEXICAL-ANNOTATIONS.5.2: separate two word-char boundaries ONLY when the accumulated
         // output's TAIL terminal is itself a fusable word token (`prev_tail_word_shaped`). This stops
         // the coarse word-char heuristic from splitting a structural literal from its word-char
         // argument (e.g. `(?C` + `1` → `(?C1)`, `(?(R` + `1` → `(?(R1))`), while still separating
         // adjacent free word tokens (`module` + `automatic`, two `[A-Za-z]+` runs).
+        //
+        // LEXICAL-ANNOTATIONS.6 — two cohesion refinements:
+        //  (intra-rule) `atomic_token_depth > 0`: we are generating inside one atomic lexical token
+        //    (a `$text`/`@transform` rule) → NO internal separators (`name` → `abc`, not `a b c`).
+        //  (cross-rule) `segment_from_atomic_rule`: the incoming segment is the rendering of a
+        //    reference to an atomic lexical-token rule → it is a token-continuation, never a free
+        //    keyword, so it must stay glued to a preceding word char (`recursion_condition` `"R"` +
+        //    `digits` → `R1`; `hex_escape` `"x"` + payload → `xAB`).
         if self.config.enforce_word_boundary_spacing
+            && self.atomic_token_depth == 0
+            && !segment_from_atomic_rule
             && prev_tail_word_shaped
             && !output.is_empty()
             && !segment.is_empty()
@@ -7276,7 +7378,16 @@ impl<'a> StimuliGenerator<'a> {
         } else {
             self.last_terminal_word_shaped
         };
-        self.append_generated_segment(output, generated, *prev_tail_word_shaped);
+        // LEXICAL-ANNOTATIONS.6: the segment is an atomic-token-rule rendering iff it is non-empty
+        // and the most-recently-completed leaf came from an atomic rule (`generate_rule` set the flag;
+        // terminal leaves reset it). An empty segment carries no boundary, so it never separates.
+        let segment_from_atomic_rule = !generated.is_empty() && self.last_terminal_from_atomic_rule;
+        self.append_generated_segment(
+            output,
+            generated,
+            *prev_tail_word_shaped,
+            segment_from_atomic_rule,
+        );
         *prev_tail_word_shaped = cur_tail;
     }
 
@@ -12020,6 +12131,184 @@ mod tests {
             !value[0].contains(' ') && !value[0].contains('\n'),
             "successor-aware spacing must not insert a separator before a non-fusable `)`: {:?}",
             value[0]
+        );
+    }
+
+    #[test]
+    fn lexical_annotations_6_matched_text_rule_generates_one_fused_token() {
+        // LEXICAL-ANNOTATIONS.6 (case c): a `$text`/MatchedText rule is ONE lexical token, so a
+        // self-hosting char-sequence body (`name := [a-z] [a-z] [a-z]`) must render FUSED (`abc`),
+        // never `a b c`. Pre-fix the concat join separated its own word chars → the `(?P=a b c)`
+        // reject. The cohesion signal is the DECLARED return shape (no new annotation — Level 1).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "name".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("regex", "[a-z]"),
+                    token("regex", "[a-z]"),
+                    token("regex", "[a-z]"),
+                ],
+            },
+        );
+        let rule_order = vec!["name".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.branch_return_annotations.insert(
+            "name".to_string(),
+            vec![Some(crate::ast_pipeline::BranchAnnotation {
+                annotation_type: "return".to_string(),
+                annotation_content: "$text".to_string(),
+                parsed_ast: Some(UnifiedReturnAST::MatchedText),
+            })],
+        );
+
+        let mut generator = StimuliGenerator::new(
+            "rgx".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&annotations),
+            StimuliConfig {
+                seed: Some(11),
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let out = generator
+            .generate_from_entry("name")
+            .expect("atomic $text rule generation should succeed");
+        assert!(
+            !out.contains(' ') && !out.contains('\n'),
+            "atomic $text rule must render as one fused token (no internal separators): {:?}",
+            out
+        );
+        assert!(
+            StimuliGenerator::regex_matches_entire("[a-z]{3}", &out),
+            "atomic $text rule body should re-lex to its 3 fused letters: {:?}",
+            out
+        );
+    }
+
+    #[test]
+    fn lexical_annotations_6_token_fuses_with_following_atomic_rule_reference() {
+        // LEXICAL-ANNOTATIONS.6 (case b): in a NON-atomic rule (`cond := "R" digits`), the concat
+        // join must NOT separate the `"R"` literal from a following atomic-token-rule segment
+        // (`digits` is `$text`) — `R12`, never `R 1 2`. CONTROL: with `digits` NOT atomic the join DOES
+        // separate, proving the atomicity signal (not some unrelated default) is what fuses.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "cond".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "R"), token("rule_reference", "digits")],
+            },
+        );
+        grammar_tree.insert(
+            "digits".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("regex", "[0-9]"), token("regex", "[0-9]")],
+            },
+        );
+        let rule_order = vec!["cond".to_string(), "digits".to_string()];
+
+        // `digits` atomic ($text) → fused.
+        let mut atomic_ann = Annotations::default();
+        atomic_ann.branch_return_annotations.insert(
+            "digits".to_string(),
+            vec![Some(crate::ast_pipeline::BranchAnnotation {
+                annotation_type: "return".to_string(),
+                annotation_content: "$text".to_string(),
+                parsed_ast: Some(UnifiedReturnAST::MatchedText),
+            })],
+        );
+        let mut fused_gen = StimuliGenerator::new(
+            "rgx".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&atomic_ann),
+            StimuliConfig {
+                seed: Some(5),
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let fused = fused_gen
+            .generate_from_entry("cond")
+            .expect("atomic-segment cohesion generation should succeed");
+        assert!(
+            StimuliGenerator::regex_matches_entire("R[0-9]{2}", &fused),
+            "a literal followed by an atomic-token-rule reference must fuse to `R12`: {:?}",
+            fused
+        );
+
+        // CONTROL: `digits` NOT atomic → the join separates the word chars (atomicity is the cause).
+        let mut split_gen = StimuliGenerator::new(
+            "rgx".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(5),
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let split = split_gen
+            .generate_from_entry("cond")
+            .expect("control generation should succeed");
+        assert!(
+            split.contains(' '),
+            "without the atomicity signal the concat join separates the word chars: {:?}",
+            split
+        );
+    }
+
+    #[test]
+    fn lexical_annotations_6_transform_rule_is_lexically_atomic() {
+        // LEXICAL-ANNOTATIONS.6: the SECOND atomicity signal — a `@transform` directive (the real
+        // regex `digits = digit+ @transform: str::parse::<usize>()` rule has no `$text`). A
+        // `@transform` rule's surface is one scalar token, so its body must render fused (`12`).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "digits".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("regex", "[0-9]"), token("regex", "[0-9]")],
+            },
+        );
+        let rule_order = vec!["digits".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "digits".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "transform".to_string(),
+                ast: UnifiedSemanticAST::TransformExpr {
+                    expression: "str::parse::<usize>().unwrap_or(0)".to_string(),
+                },
+            }],
+        );
+
+        let mut generator = StimuliGenerator::new(
+            "rgx".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&annotations),
+            StimuliConfig {
+                seed: Some(13),
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        assert!(
+            generator.rule_is_lexically_atomic("digits"),
+            "a @transform rule must be classified lexically atomic"
+        );
+        let out = generator
+            .generate_from_entry("digits")
+            .expect("@transform atomic rule generation should succeed");
+        assert!(
+            StimuliGenerator::regex_matches_entire("[0-9]{2}", &out),
+            "@transform rule body should render as one fused scalar token (no internal space): {:?}",
+            out
         );
     }
 

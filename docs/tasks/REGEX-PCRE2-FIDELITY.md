@@ -151,9 +151,16 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   accepts the recognized set; relaxed accepts arbitrary) + `regex_pcre2_compile_oracle_gate` (no new
   divergence) + cert-coverage + lib + clippy; regen LOCAL. Lockstep IFF surface changes (assess —
   likely surface-neutral like `.3.1`, so book note only, no version bump).
-- ID: `.3.7`  Status: `in-progress` (root-cause `PGEN-REGEX-PCRE2-0009`; cause (a) DONE `PGEN-REGEX-PCRE2-0010`)
+- ID: `.3.7`  Status: `done` (root-cause `PGEN-REGEX-PCRE2-0009`; (a) DONE `PGEN-REGEX-PCRE2-0010`;
+  (b)+(c) DONE `PGEN-LEXICAL-ANNOTATIONS-0024` via the LEXICAL-ANNOTATIONS tree)
   Goal: drive regex DEFAULT-profile cert-coverage `sample_parse_failures` → 0. Root-caused (2026-06-08) into
-  3 generator↔parser round-trip causes (each minimal-repro'd via `parseability_probe --parse regex`):
+  3 generator↔parser round-trip causes (each minimal-repro'd via `parseability_probe --parse regex`).
+  **ALL THREE CLOSED:** regex DEFAULT cert-coverage `sample_parse_failures` **16→0** (count 200/seed 0,
+  deterministic), seed 7 17→0, count 500/seed 0 0 — the empty-class + spacing categories are gone. A
+  DISTINCT residual surfaced at seed 1 (18→1): `\98495*`, a **numeric-backreference over-generation** (the
+  generator emits `\98495` = a backref to a non-existent group, which the parser correctly REJECTS
+  PCRE2-faithfully). It is NOT spacing — the (b)/(c) fix UNMASKED it (the spacing bug had been emitting
+  `\9 8495`, which parsed as `\9`+literals). NEW leaf `.3.12` owns it (see below):
   - **(a) empty char class `[]`/`[^]`** — DONE (`-0010`). PCRE2: the first `]` after `[`/`[^` is a LITERAL
     member, so `[]`/`[^]` are unterminated, not empty classes. The former `char_class = "[" negation?
     class_initial_close? class_body "]"` (`class_body = class_item*`) let the generator emit `[]`/`[^]`
@@ -166,8 +173,15 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
     `match_regex`); lib 615/0, generated_parsers 654/0, clippy ✓. The generator can no longer emit `[]`/`[^]`.
     (Note: the cert-cov COUNT is sample-dependent — at count 200/seed 0 it read 14→16 across the grammar
     change, NOT a regression: the empty-class CATEGORY is structurally gone; the residual is now spacing.)
-  - **(b) `(?(R N)` spacing** + **(c) name/condition spacing** — PENDING, owned by **LEXICAL-ANNOTATIONS**
-    (re-open). CONFIRMED root-cause (2026-06-08, repros + grammar read): the word-boundary spacing's concat
+  - **(b) `(?(R N)` spacing** + **(c) name/condition spacing** — **DONE (`PGEN-LEXICAL-ANNOTATIONS-0024`,
+    2026-06-08)** via the LEXICAL-ANNOTATIONS tree (leaf `.6`, lexical-token cohesion). Fix = generator-only
+    declarative atomicity: a rule whose return is `$text`/`$0` (`MatchedText`) or which carries a
+    `@transform` directive is ONE lexical token, so (intra-rule) its internal word-boundary joins are
+    suppressed and (cross-rule) a preceding word char fuses with a following atomic-token-rule segment.
+    Fixes `name` (`abc`), `recursion_condition` (`R1`), `hex_escape` (`xAB`), `hex_digits`/`octal_digits`,
+    `prop_name`, `directive_name_relaxed`, the comment/callout payloads. Surface-neutral (no grammar/regen/
+    AST/version change). VERIFIED: cert-cov 16→0; repros pass; lib 618/0; cross-family + oracle + self-host
+    gates green. CONFIRMED root-cause (2026-06-08, repros + grammar read): the word-boundary spacing's concat
     join (`stimuli_generator.rs::append_generated_segment`, the choke point for sequences + quantifier
     repetition) works on ACCUMULATED characters and CROSSES rule boundaries by design (so it separates
     `module` + `automatic`). It inserts a space whenever the tail is word-shaped and the next char is a word
@@ -194,6 +208,18 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   the grammar; this leaf is the eventual full-fidelity end-state and would SUBSUME `.3.1`'s six
   exclusions (strict variant = recognized-only). Bigger/riskier restructure → its own design + released
   slice. Oracle facts: [[reference_pcre2_unsupported_escape_oracle]].
+- ID: `.3.12`  Status: `pending` (DISCOVERED `PGEN-LEXICAL-ANNOTATIONS-0024`, 2026-06-08, tool-backed)
+  Goal: **stop the generator emitting PCRE2-INVALID numeric backreferences.** Surfaced when the `.3.7`
+  (b)/(c) spacing fix UNMASKED it (it had been hidden because the spacing emitted `\9 8495` = `\9`+literals,
+  which parsed; the faithful generator now emits `\98495` which the parser correctly rejects). Tool-backed
+  (`parseability_probe --parse regex`): `\9` PASSES, `\98`/`\984`/`\98495*` REJECT (PCRE2-faithful: `\98…`
+  with no group 98 is err 115, the documented RGX-0087/0088 family). Root: `numeric_backreference =
+  "\\" backreference_digits` with `backreference_digits = nonzero_digit digit+` over-generates multi-digit
+  backreferences to non-existent groups. Fix direction (tools-first, careful): constrain backreference-digit
+  generation so the emitted index is a plausibly-valid group (e.g. a `@predicate`/`numeric_bounds` cap, or a
+  generation hint that keeps the value small), OR generate `\g{N}`/named forms; verify cert-cov seed 1 → 0
+  + RGX conformance + oracle. Low-frequency (seed-dependent); not a spacing concern. Composes with `.3.11`
+  (escape whitelist).
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
   EBNF is the sole source of truth.
@@ -331,9 +357,18 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 ## Current Frontier
 
-- `.3.1` (`\u`-family) and `.3.2` (`(*verb)` names) are DONE. Next candidates, **pending a director
-  priority decision** (2026-06-07 the director surfaced two cross-cutting goals — see below):
-  - `.3.7` — **the cert-coverage lever** (NOW THE FRONTIER, REGEX-SELF-HOSTING done 2026-06-08).
+- `.3.1` (`\u`-family), `.3.2` (`(*verb)` names), and **`.3.7` (cert-coverage clean — all 3 causes
+  closed)** are DONE. After `.3.7`, regex DEFAULT cert-coverage `sample_parse_failures` is **0 at most
+  seeds** (16→0/seed 0, 17→0/seed 7, 0/count 500); the only remaining residual is the seed-1 `\98495`
+  numeric-backreference over-generation, owned by the spun-out **`.3.12`** (a distinct, low-frequency
+  generator-fidelity gap unmasked by the spacing fix, NOT spacing). Next candidates, **pending a director
+  priority decision**:
+  - `.3.12` — numeric-backreference over-generation (drive seed-1 cert-cov → 0). Then the cert-coverage
+    lever is fully closed; proceed to GRAMMAR-WELLFORMED Phase H (wire cert-coverage for the other 10
+    grammars) toward the director's standing "all parsers cert-coverage clean" ask.
+  - `.3.11` (full unrecognized-escape whitelist) and `.4`/`.5` capstone (delete `validate_regex_compile_contract`
+    + expose `relaxed` via the embedding API) remain.
+  - (historical) `.3.7` — **the cert-coverage lever** (was the frontier; REGEX-SELF-HOSTING done 2026-06-08).
     RE-MEASURED 2026-06-08 (post-self-hosting): `ast_pipeline grammars/regex.ebnf
     --report-certificate-coverage --entry-rule regex --count 200 --seed 0` → `sample_parse_failures=14`
     (up from the pre-self-hosting 3 — NOT an accepted-language regression: oracle byte-identical; the
@@ -408,6 +443,7 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `2026-06-07` | `.3.2` impl (`-0008`) | verb matrix (default rejects `(*FOO)`/`(*MARKX)`/`(*accept)`, accepts 8 verbs + start-options; relaxed accepts arbitrary; `(*MARK)`/`a(*UTF)` structural-reject both); `cargo test --lib` 612/0; `--features generated_parsers` 651/0; clippy strict source ✓; `regex_pcre2_compile_oracle_gate` GREEN (46/292/338 byte-identical = conformance-neutral); cert-cov default 4→1 (only empty-`[]`; relaxed 5 = empty-class residuals, no verb failures); both book gates GREEN | **DONE** — surface-neutral, no version bump |
 | `2026-06-08` | `.3.7` root-cause (`-0009`) | `--report-certificate-coverage --entry-rule regex --count 200 --seed 0` → `sample_parse_failures=14`; `parseability_probe --parse regex` minimal repros isolated 3 causes (empty `[]`/`[^]`; `(?(R N)` spacing; name spacing); `\Q…\E`-with-`]` ruled out as red herrings | ROOT-CAUSE DONE (docs); 14 vs pre-self-hosting 3 = sample-set shift, oracle byte-identical (not a regression) |
 | `2026-06-08` | `.3.7` (a) impl (`-0010`) | `char_class` two-alt split (always ≥1 member); `[]`/`[^]` reject + `[]]`/`[^]]`/`[a-z]`/`[]x]`/`[\QxY\E]` pass; AST shapes preserved (`[]]`→initial_close:true; `[x]`→initial_close:[]); `regex_pcre2_compile_oracle_gate` BYTE-IDENTICAL; manifest synced 172→173; self-hosting gate OK (0 `/.../`, 0 `match_regex`); lib 615/0, generated_parsers 654/0, clippy ✓ | **(a) DONE** — empty-class category structurally eliminated; surface-neutral (no version bump); (b)/(c) spacing next |
+| `2026-06-08` | `.3.7` (b)+(c) impl (`PGEN-LEXICAL-ANNOTATIONS-0024`) | generator-only `$text`/`@transform` atomicity (intra-rule join suppression + cross-rule cohesion); cert-cov `sample_parse_failures` 16→**0** (count 200/seed 0 ×2), seed 7 17→0, count 500/seed 0 0, seed 1 18→**1** (the distinct `\98495` numeric-backref, routed to `.3.12`); repros `(?(R1)x)`/`(?P=abc)`/`(?P>vx)` pass; lib `--lib` 618/0 (+3 locks); `stimuli_cross_family_platform_gate` ✅; `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting gate OK; strict source clippy clean | **(b)+(c) DONE** — spacing category eliminated; surface-neutral (no version bump). `.3.7` CLOSED; spun out `.3.12` (numeric-backref over-generation, unmasked) |
 
 ## Commit Log
 
@@ -423,6 +459,7 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `.3.2` implementation | `PGEN-REGEX-PCRE2-0008` | `directive_name` strict (verbs+start-options, longest-first, case-sensitive) / `relaxed` split + validator unrecognized-name reject removed (structural checks kept) + book/contract/parser-families lockstep; conformance-neutral (oracle byte-identical); no version bump; no manifest change |
 | `.3.7` root-cause | `PGEN-REGEX-PCRE2-0009` | regex default cert-coverage = 14, root-caused into 3 causes (empty `[]`/`[^]`; `(?(R N)` spacing; name spacing); docs-only |
 | `.3.7` (a) char_class | `PGEN-REGEX-PCRE2-0010` | empty-class fix: `char_class` two-alt split (always ≥1 member) → generator can't emit `[]`/`[^]`; oracle byte-identical; AST shapes preserved; manifest 172→173; surface-neutral |
+| `.3.7` (b)+(c) spacing | `PGEN-LEXICAL-ANNOTATIONS-0024` (LEXICAL-ANNOTATIONS `.6`) | lexical-token cohesion (generator-only `$text`/`@transform` atomicity); cert-cov 16→0; spacing category eliminated; surface-neutral; spun out `.3.12` (numeric-backref over-generation, unmasked) |
 
 ## Changelog
 

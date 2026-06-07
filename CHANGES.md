@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-LEXICAL-ANNOTATIONS-0024 (LEXICAL-ANNOTATIONS .6 / REGEX-PCRE2-FIDELITY .3.7 (b)+(c)): lexical-token cohesion — atomic-token rules generate as one fused unit (CODE; generator-only, surface-neutral).
+
+Closed the (b)+(c) word-boundary-spacing residuals of the regex cert-coverage-clean campaign. The
+self-hosting `/.../`→native char-sequence/`$text` conversions had EXPOSED a class of word-boundary
+over-insertion the `.5.1`/`.5.2` mechanisms didn't cover: a rule that IS one lexical token (`name`,
+`digits`, `hex_escape`'s `"x" payload`) had its OWN word-char pieces separated by the cross-rule concat
+join (`a b c`, `R 1`, `\x AB`) — because word-shape alone cannot tell intra-token fusion (`R1`) from
+legitimate inter-token separation (`module automatic`).
+
+The missing signal is the rule's DECLARED return shape (no new annotation — Level 1 of the no-workarounds
+hierarchy). A rule is **lexically atomic** when its return is `$text`/`$0` (`MatchedText`) on every branch,
+OR it carries a `@transform` directive (matched span → scalar). Both signals exist only in `regex.ebnf` /
+`return_annotation.ebnf`, so SV/VHDL generation is byte-unaffected by construction.
+
+- `rust/src/ast_pipeline/stimuli_generator.rs` (generator-only):
+  - new `rule_is_lexically_atomic(rule_name)` — the declarative atomicity predicate.
+  - `atomic_token_depth` counter (inc/dec around an atomic rule's body in `generate_rule`) →
+    `append_generated_segment` + the eager guard in `apply_word_boundary_spacing` suppress ALL internal
+    word-boundary separators while one is on the stack (intra-rule, case (c)): `name`→`abc`, `digits`→`12`.
+  - `last_terminal_from_atomic_rule` flag (set in `generate_rule`, reset at terminal leaves in
+    `generate_atom`) → `append_segment_tracked` passes it so the join does NOT separate a preceding word
+    char from a following atomic-token-rule segment (cross-rule, case (b)): `recursion_condition`→`R12`,
+    `hex_escape`→`xAB`.
+  - +3 locking tests (`lexical_annotations_6_*`), incl. a control proving the atomicity signal (not a
+    default) is what fuses; the `module automatic` separation lock still passes (no free-token regression).
+- NO grammar change, NO regen, NO AST-shape change, NO version bump (same accepted language + AST shape;
+  only the generator's emitted samples are more PCRE2-faithful).
+
+VERIFIED: regex DEFAULT cert-coverage `sample_parse_failures` **16→0** (count 200/seed 0, deterministic),
+17→0 (seed 7), 0 (count 500/seed 0); minimal repros `(?(R1)x)`/`(?P=abc)`/`(?P>vx)` PASS (fused forms; the
+spaced forms correctly stay REJECTED); `cargo test --lib` **618/0**; `stimuli_cross_family_platform_gate`
+✅ (regex+VHDL+SV-2017); `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting gate OK; strict
+source clippy clean. HONEST residual: seed 1 has 1 failure (`\98495*`, a numeric-backreference
+over-generation the spacing fix UNMASKED — stash-proven pre-existing/masked, NOT spacing) → routed to the
+new `REGEX-PCRE2-FIDELITY.3.12`. **`.3.7` CLOSED; LEXICAL-ANNOTATIONS re-CLOSED (`.1`–`.6`).**
+
 ## 2026-06-08 - PGEN-REGEX-PCRE2-0010 (REGEX-PCRE2-FIDELITY .3.7 cause (a)): empty char class `[]`/`[^]` no longer generated (CODE; surface-neutral, byte-identical).
 
 First fix of the regex cert-coverage-clean campaign. PCRE2 treats the first `]` after `[`/`[^` as a LITERAL

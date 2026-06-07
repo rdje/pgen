@@ -1,6 +1,30 @@
 # Task Tree: LEXICAL-ANNOTATIONS (the 4th pillar)
 
-> **Status:** `active` — **RE-OPENED 2026-06-07** for leaf **`.5`** (per this tree's own re-open clause:
+> **Status:** `active` — **`.6` DONE (`PGEN-LEXICAL-ANNOTATIONS-0024`, 2026-06-08); tree re-CLOSED**
+> (`done`); `.1`–`.6` complete. **RE-OPENED 2026-06-08** for leaf **`.6`** (per this tree's own re-open
+> clause: a *lexical-faithfulness*-classified per-grammar cert-coverage residual reopens a lexical leaf).
+> The regex self-hosting work (`REGEX-SELF-HOSTING`, `/.../`→native char-sequence/`$text`) EXPOSED a new
+> class of the same word-boundary over-insertion: a rule that IS one lexical token now has its OWN chars
+> separated by the cross-rule concat join (`append_generated_segment`). Confirmed root-cause
+> `PGEN-REGEX-PCRE2-0011` (REGEX-PCRE2-FIDELITY `.3.7` (b)+(c)): **(c)** `name = (letter|'_'|unicode_char)
+> (letter|digit|'_'|unicode_char)* -> $text` renders `a b c` (join separates its chars) →
+> `(?P=a b c)` / `(?P<a b>x)` reject; **(b)** `recursion_condition = "R" digits?` renders `R 1` (join
+> separates the `"R"` literal from the `digits` token) → `(?(R 1)x)` rejects. The SAME family covers
+> `hex_escape = "x" hex_escape_short_payload` (`\x AB`), `hex_digits`/`octal_digits` (`A B C`),
+> `prop_name`, `directive_name_relaxed`, the comment/callout payloads — every atomic lexical token
+> rule. FIXED by leaf **`.6`** (lexical-token cohesion, generator-only, declarative `$text`/`@transform`
+> atomicity signal — see `.6` below). **VERIFIED:** regex DEFAULT cert-coverage `sample_parse_failures`
+> 16→**0** (count 200/seed 0), seed 7 17→0, count 500/seed 0 0; spacing CATEGORY eliminated across seeds;
+> minimal repros `(?(R1)x)`/`(?P=abc)`/`(?P>vx)` PASS; lib `--lib` 615→**618/0** (+3 locks);
+> `stimuli_cross_family_platform_gate` ✅ (regex+VHDL+SV-2017); `regex_pcre2_compile_oracle_gate`
+> byte-identical (parser unchanged); self-hosting gate OK; strict source clippy clean. **HONEST
+> residual:** at seed 1 ONE failure remains (18→1) — `\98495*`, a **distinct category** (numeric
+> backreference over-generation: the generator emits `\98495`, a backref to a non-existent group, which
+> the parser correctly REJECTS PCRE2-faithfully) that the spacing bug had been MASKING (it used to emit
+> `\9 8495`, parsed as a different thing). NOT a spacing regression (stash-proven pre-existing under the
+> spacing); ROUTED to **REGEX-PCRE2-FIDELITY** (numeric-escape/backreference faithfulness), not lexical.
+>
+> **(historical 2026-06-07 re-open) Status:** `active` — **RE-OPENED 2026-06-07** for leaf **`.5`** (per this tree's own re-open clause:
 > a *lexical-faithfulness*-classified per-grammar cert-coverage residual reopens a lexical leaf). Tool-backed
 > finding `PGEN-EBNF-SOT-0003` (EBNF-SOURCE-OF-TRUTH.2.1): the regex cert-coverage `sample_parse_failures`
 > (39 at count 200) are STRUCTURAL and caused by `apply_word_boundary_spacing` over-inserting a trailing
@@ -384,6 +408,57 @@ justified because pillars 1–3 structurally cannot express it (see the decision
   from a real keyword (`module`) is grammar-semantic, and a regex.ebnf tweak making `(?(R` a single literal
   would resolve it (routed to a regex grammar follow-up). The word-boundary-spacing over-insertion itself
   is now fully resolved (both eager-guard and join-rule mechanisms).
+- `.6` — **lexical-token cohesion: an atomic lexical-token rule generates as ONE fused unit; a token
+  fuses with a following atomic-token-rule reference (no cross-rule separation). DONE
+  (`PGEN-LEXICAL-ANNOTATIONS-0024`, 2026-06-08).** RE-OPENED 2026-06-08
+  for the **self-hosting-induced** word-boundary over-insertion confirmed by `PGEN-REGEX-PCRE2-0011`
+  (REGEX-PCRE2-FIDELITY `.3.7` (b)+(c)). The `.5.1`/`.5.2` mechanisms made *structural* literals (those
+  containing a non-word char, e.g. `(?C`) non-fusable, but a rule that is one lexical token built from
+  word-char pieces (`name`, `digits`, `hex_escape`'s `"x" payload`) still gets its own characters
+  separated by the concat join, because word-shape alone cannot distinguish intra-token fusion (`R1`,
+  name chars) from legitimate inter-token separation (`module automatic`). **The missing signal is the
+  rule's DECLARED return shape:** a rule whose return is `$text`/`$0` (`MatchedText`) or which carries a
+  `@transform` directive IS, by construction, a single flat lexical token. **Fix (two parts, generator
+  only — `stimuli_generator.rs`):**
+  - **(c) — intra-rule:** while generating an atomic-token rule (`rule_is_lexically_atomic` =
+    return is `MatchedText` OR rule has a `@transform` directive), suppress ALL internal word-boundary
+    joins (an `atomic_token_depth` counter consulted by `append_generated_segment` + the eager guard in
+    `apply_word_boundary_spacing`). Fixes `name`, `hex_digits`, `octal_digits`, `prop_name`,
+    `directive_name_relaxed`, the comment/callout/`directive_payload_simple` payloads.
+  - **(b) — cross-rule:** when the concat join appends a segment that was produced by a reference to an
+    atomic-token rule (tracked via `last_terminal_from_atomic_rule`, set in `generate_rule` and reset at
+    every terminal leaf in `generate_atom`), do NOT separate it from a preceding word char — an atomic
+    lexical token rule is a token-continuation, never a free keyword. Fixes `recursion_condition`
+    (`"R" digits?`) and `hex_escape` (`"x" payload`).
+  - **Blast radius:** `MatchedText` and `@transform` exist ONLY in `regex.ebnf` + `return_annotation.ebnf`
+    (tool-checked), so SV/VHDL generation is byte-unaffected by construction; the cross-family gate
+    (regex + VHDL + SV-2017) must stay green. Parser-agnostic, generation-only (no regen, no grammar
+    change, no parser/AST-shape change). Per the no-workarounds hierarchy this is **Level 1** — it
+    consults the EXISTING `$text`/`@transform` declarations, adding no new annotation.
+  - **Acceptance:** regex DEFAULT cert-coverage `sample_parse_failures` category (b)+(c) gone (count
+    200/seed 0 → its floor; cert-cov count is sample-dependent — judge by the category being gone);
+    minimal repros `(?(R1)x)` / `(?P=abc)` / `\xAB` pass; `stimuli_cross_family_platform_gate` green;
+    `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting gate green; `cargo test --lib` green
+    + new locking tests. Then REGEX-PCRE2-FIDELITY `.3.7` closes.
+  - **OUTCOME (`PGEN-LEXICAL-ANNOTATIONS-0024`, 2026-06-08).** Landed exactly as designed, generator-only
+    (`stimuli_generator.rs`): new `rule_is_lexically_atomic` (return `MatchedText` on every branch, OR a
+    `@transform` directive); an `atomic_token_depth` counter (inc/dec around an atomic rule's body in
+    `generate_rule`) suppresses internal joins in `append_generated_segment` + the eager guard in
+    `apply_word_boundary_spacing`; a `last_terminal_from_atomic_rule` flag (set in `generate_rule`, reset
+    at terminal leaves in `generate_atom`) drives the cross-rule cohesion via `append_segment_tracked`.
+    NO grammar change, NO regen, NO AST-shape change, NO version bump (surface-neutral — same accepted
+    language + AST shape; only the generator's emitted samples are more faithful). **VERIFIED:** regex
+    DEFAULT cert-coverage `sample_parse_failures` **16→0** (count 200/seed 0, deterministic ×2), seed 7
+    17→0, count 500/seed 0 0; minimal repros `(?(R1)x)`/`(?P=abc)`/`(?P>vx)` PASS (the fused forms the
+    generator now emits; the spaced `(?(R 1)x)`/`(?P=a b c)` correctly stay REJECTED); `cargo test --lib`
+    **618/0** (+3 locks: `lexical_annotations_6_matched_text_rule_generates_one_fused_token`,
+    `..._token_fuses_with_following_atomic_rule_reference` [+control], `..._transform_rule_is_lexically_atomic`);
+    `stimuli_cross_family_platform_gate` ✅; `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting
+    gate OK; strict source clippy clean. The `module automatic` separation lock
+    (`word_spacing_policy_separates_adjacent_word_segments_in_sequences`) still passes — no regression on
+    free-token separation. HONEST residual at seed 1 (18→1) is the `\98495*` numeric-backreference
+    over-generation (distinct category, stash-proven pre-existing/MASKED-by-spacing) → ROUTED to
+    REGEX-PCRE2-FIDELITY. **`.6` COMPLETE; LEXICAL-ANNOTATIONS re-CLOSED `done` (`.1`–`.6`).**
 
 ## Cross-links
 

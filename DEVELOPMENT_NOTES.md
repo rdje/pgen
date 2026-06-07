@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - LEXICAL-ANNOTATIONS.6 — lexical-token cohesion via declarative atomicity (PGEN-LEXICAL-ANNOTATIONS-0024)
+
+### The defect class: self-hosting unmasked an intra-token spacing bug
+Self-hosting converted regex's `/.../` single-token literals (`name`, `digits`, hex/octal payloads) into
+native char-sequence bodies. A char-sequence body has multiple elements, so the generator's concat join
+(`append_generated_segment`) — which inserts a space between two word-char boundaries to keep distinct
+tokens from fusing (`endprogram`+`module`) — started separating a single token's OWN characters
+(`name`→`a b c`, `recursion_condition` `"R" digits?`→`R 1`, `hex_escape` `"x" payload`→`\x AB`). The
+`.5.1`/`.5.2` mechanisms only made *structural* literals (those containing a non-word char, e.g. `(?C`)
+non-fusable; a pure-word token-prefix like `"R"` stayed word-shaped, so word-shape alone could not
+distinguish intra-token fusion (`R1`) from legitimate inter-token separation (`module automatic`).
+
+### The signal: the rule's declared return shape (no new annotation)
+A rule that, by its DECLARATION, returns one flat value IS one lexical token. Two existing signals:
+- return is `$text`/`$0` → `UnifiedReturnAST::MatchedText` on every branch (`branch_return_annotations`);
+- the rule carries a `@transform` directive (`semantic_annotations` → `TransformExpr`, directive name
+  "transform") — `@transform` parses the matched span into a scalar, so the surface is one token.
+`rule_is_lexically_atomic` checks both. Crucially, both signals exist ONLY in `regex.ebnf` /
+`return_annotation.ebnf` (tool-checked), so SV/VHDL generation is byte-unaffected by construction — the
+mechanism is parser-agnostic but its footprint today is the self-hosting grammars.
+
+### Two parts, generator-only (stimuli_generator.rs)
+- **Intra-rule (case c):** `atomic_token_depth` counter, inc/dec around an atomic rule's body in
+  `generate_rule`. While `> 0`, `append_generated_segment` AND the eager guard in
+  `apply_word_boundary_spacing` insert no separator — the whole rule is one token.
+- **Cross-rule (case b):** `last_terminal_from_atomic_rule`, set on success in `generate_rule` (so the
+  most-recently-completed rule wins over its inner sub-rules) and reset at every terminal leaf in
+  `generate_atom`. `append_segment_tracked` captures it and `append_generated_segment` skips the
+  separator when the incoming segment is an atomic-token-rule rendering — it's a token-continuation, not
+  a free keyword.
+
+### Honesty: a residual the fix UNMASKED (root-caused, routed, not bucketed)
+At seed 1 cert-coverage dropped 18→1, not →0. The 1 residual is `\98495*` — NOT spacing. The generator
+emits `\98495` (a numeric backreference to a non-existent group), which the parser correctly rejects
+PCRE2-faithfully (`\98…` = err 115, the RGX-0087/0088 family). It used to be HIDDEN: the spacing bug
+emitted `\9 8495`, which parsed as `\9`+literals. Stash-proven pre-existing (the pre-fix seed-1 set was
+all spacing). Routed to the new `REGEX-PCRE2-FIDELITY.3.12` (numeric-backreference over-generation), a
+distinct generator-fidelity gap — NOT a spacing regression.
+
+### Verification
+cert-cov `sample_parse_failures` 16→0 (seed 0, ×2), 17→0 (seed 7), 0 (count 500); repros
+`(?(R1)x)`/`(?P=abc)`/`(?P>vx)` pass; lib `--lib` 618/0 (+3 locks + the `module automatic` lock still
+green); cross-family ✅; regex oracle byte-identical; self-hosting OK; strict source clippy clean. No
+regen / grammar / AST / version change.
+
 ## 2026-06-08 - REGEX-SELF-HOSTING.6a — per-grammar elision; regex parser is regex-crate-free (PGEN-REGEX-SELF-HOST-0015)
 
 ### The pattern: per-grammar conditional emission of an engine-provided helper
