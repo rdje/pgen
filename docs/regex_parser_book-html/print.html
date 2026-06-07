@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e6afd2c8.js";
+            window.path_to_searchindex_js = "searchindex-7e6a0554.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-886313b4.js"></script>
@@ -188,6 +188,17 @@
 <p>If you are a downstream consumer, you should be able to read this book end-to-end and have everything you need to integrate the parser into your build, parse a regex source string, and traverse the resulting AST to produce whatever consumer-side representation you need (a compiled matcher, an evaluator, a pretty-printer, etc.).</p>
 <h2 id="book-status-live"><a class="header" href="#book-status-live">Book status: live</a></h2>
 <p>This is a <strong>live book</strong> — it is updated in lockstep with the regex parser. Every parser release that changes the AST shape lands together with the book updates that document the new shape, in the same commit window. Reading any commit’s snapshot of this book gives you the AST description for that commit’s parser. If you observe a shape that disagrees with the book, that’s a documentation bug — please report.</p>
+<h2 id="implementation-note-the-regex-parser-is-self-hosting"><a class="header" href="#implementation-note-the-regex-parser-is-self-hosting">Implementation note: the regex parser is self-hosting</a></h2>
+<p>As of 2026-06-08 (REGEX-SELF-HOSTING), the regex parser is <strong>self-hosting</strong>: <code>grammars/regex.ebnf</code> is
+expressed entirely with native EBNF terminals (literal strings, char literals, ordered-choice alternations,
+the <code>builtin_any_char</code>/<code>builtin_ascii_char</code> matchers, and the <code>$text</code>/<code>$0</code> whole-match and <code>@transform</code>
+annotations) — it contains <strong>no <code>/.../</code> regex literals</strong>. Consequently the generated <code>regex_parser.rs</code>
+<strong>does not use or even link Rust’s <code>regex</code> crate</strong> (a guard, <code>scripts/check_regex_self_hosting.sh</code>, enforces
+this). This is purely an implementation property: it does <strong>not</strong> change the accepted language, the runtime
+AST shape, the error codes, or any version in the contract — every conversion step was verified
+byte-identical against the <code>pcre2test</code> oracle. Downstream consumers need not change anything; the note is
+here because some integrators care that the regex parser carries no Rust-regex-engine dependency. (Every
+<em>other</em> PGEN parser remains free to use Rust’s regex engine; only the regex parser is held to this bar.)</p>
 <h2 id="what-this-book-is"><a class="header" href="#what-this-book-is">What this book is</a></h2>
 <ul>
 <li>The <strong>single source of truth</strong> for the regex parser’s runtime AST shape, by rule and by example.</li>
@@ -5047,6 +5058,10 @@ fn ast_snapshot_for_canonical_inputs() {
 <li>Until then, the contract document still shows <code>1.1.33 / 1.1.35</code> while this book describes the post-slice-3+4 shape that’s actually emitted by main HEAD.</li>
 </ul>
 <p>Below are the shape-change highlights of recent slices, with pointers to the contract sections (where applicable).</p>
+<h3 id="2026-06-08-maintenance-release-1181--contract-1183--unchanged--regex-self-hosting-the-regex-parser-is-now-self-hosting-no-rust-regex-crate-dependency"><a class="header" href="#2026-06-08-maintenance-release-1181--contract-1183--unchanged--regex-self-hosting-the-regex-parser-is-now-self-hosting-no-rust-regex-crate-dependency">2026-06-08 maintenance (release 1.1.81 / Contract 1.1.83 — UNCHANGED) — REGEX-SELF-HOSTING: the regex parser is now self-hosting (no Rust <code>regex</code>-crate dependency)</a></h3>
+<blockquote>
+<p><strong>For RGX maintainers</strong>: IMPLEMENTATION-ONLY, SURFACE-NEUTRAL (no version bump). <code>grammars/regex.ebnf</code> was converted to use ONLY native EBNF terminals — no <code>/.../</code> regex literals — so the generated <code>regex_parser.rs</code> contains zero <code>match_regex</code> calls and zero <code>regex::Regex</code> references (it no longer uses or links Rust’s <code>regex</code> crate). Built on four parser-agnostic primitives: <code>builtin_any_char</code>/<code>builtin_ascii_char</code>, <code>$text</code>/<code>$0</code> (whole-match string; Perl5 <code>$0</code>), and <code>@transform</code>-on-span. <strong>You need to do nothing</strong>: accepted language is BYTE-IDENTICAL (verified against the <code>pcre2test</code> oracle at every step), AST shape unchanged (shape-contract locked), error codes unchanged, all versions unchanged. Recorded for integrators who care that the embedded regex parser has no regex-engine dependency. Only the regex parser is held to this bar; every other PGEN parser still uses Rust regex. See <code>welcome.md</code> “Implementation note: the regex parser is self-hosting” and the contract’s “Maintenance Update 2026-06-08” section.</p>
+</blockquote>
 <h3 id="2026-06-07-maintenance-release-1181--contract-1183--unchanged--regex-pcre2-fidelity32-verbstart-option-name-acceptance-migrated-into-the-grammar-relaxed-re-admits-arbitrary-verb-names"><a class="header" href="#2026-06-07-maintenance-release-1181--contract-1183--unchanged--regex-pcre2-fidelity32-verbstart-option-name-acceptance-migrated-into-the-grammar-relaxed-re-admits-arbitrary-verb-names">2026-06-07 maintenance (release 1.1.81 / Contract 1.1.83 — UNCHANGED) — REGEX-PCRE2-FIDELITY.3.2: verb/start-option NAME acceptance migrated into the grammar; <code>relaxed</code> re-admits arbitrary verb names</a></h3>
 <blockquote>
 <p><strong>For RGX maintainers</strong>: SURFACE-NEUTRAL (no version bump). <code>directive_name</code> split into a strict (default <code>pcre2</code>) ordered choice of exactly the recognized PCRE2 verb (<code>MARK ACCEPT F FAIL COMMIT PRUNE SKIP THEN</code>) + start-option (26) names and a <code>@profiles:["relaxed"]</code> catch-all. Default now rejects unrecognized verb names (<code>(*FOO)</code>, <code>(*MARKX)</code>, wrong-case <code>(*accept)</code>) BY GRAMMAR — conformance-neutral (rejected before via the host validator; <code>regex_pcre2_compile_oracle_gate</code> false-reject set byte-identical at 46). The validator’s unrecognized-name reject was removed (so <code>relaxed</code> accepts arbitrary verb names); its STRUCTURAL checks (MARK needs an arg; start-options at pattern start; <code>=value</code> numeric; only <code>ACCEPT</code> quantifiable) stay and apply in both profiles. AST shape unchanged (no manifest change). See <code>rules-misc.md#directive_name</code>. Validator removal + embedding-API <code>relaxed</code> exposure are capstone <code>.4</code>/<code>.5</code>.</p>

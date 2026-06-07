@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - REGEX-SELF-HOSTING.6a — per-grammar elision; regex parser is regex-crate-free (PGEN-REGEX-SELF-HOST-0015)
+
+### The pattern: per-grammar conditional emission of an engine-provided helper
+The `match_regex` helper + `use regex::Regex` import are now emitted only when a grammar actually uses a
+`/.../` regex literal. Mechanism: a `uses_match_regex: Cell<bool>` on the generator, set after the rule
+methods are generated (`rule_methods.iter().any(|m| m.to_string().contains("match_regex"))` — robust: it
+reads the ACTUAL generated calls, so it can't miss an emit site), read by `generate_imports` (gate the
+import) and `generate_helper_methods` (the helper extracted into a `let match_regex_helper = if … { quote!{…} }
+else { quote!{} }` fragment, spliced as `#match_regex_helper`). Codegen order makes this safe: rule methods
+(set flag) → helpers → imports, all in one pass. This is the general shape for ANY engine-provided built-in
+that some grammars don't need.
+
+### The director's clarification that framed it
+"All grammars except regex.ebnf should be allowed to rely on Rust's regex engine." The per-grammar gate is
+exactly that — it's NOT a global removal. Verified additive on a main-path `/.../`-grammar: `rtl_const_expr`
+regen WITH .6a keeps `fn match_regex`/`use regex::Regex` and compiles; only regex (now `/.../`-free) elides
+them. The `.6` gate is regex-only (it greps `generated/regex_parser.rs`), so it never constrains the others.
+
+### Gotcha: a non-Default field hits every struct literal
+Adding `uses_match_regex` to the struct forced the field into `new()` + 40 test struct-literals (E0063 until
+all were updated — scripted the insertion after each `ebnf_grammar_name:`). Worth remembering before adding a
+field to a struct with many hand-written literals.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.6 — capstone guard; SELF-HOSTING ACHIEVED (PGEN-REGEX-SELF-HOST-0014)
 
 ### The milestone

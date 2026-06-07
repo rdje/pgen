@@ -15,7 +15,7 @@ This is the document downstream projects such as RGX should read first when deci
 - Regex AST-dump schema version:
   - `1`
 - Last updated:
-  - `2026-06-07`
+  - `2026-06-08`
 - Current grammar family label:
   - `regex`
 - Current stable host profile:
@@ -33,6 +33,14 @@ This is the document downstream projects such as RGX should read first when deci
 - The book documents: cold-clone build recipe, public API, the full AST envelope, every annotated/un-annotated rule shape, worked examples for every regex feature, migration from the pre-1.1.30 recursive envelope, schema versioning, glossary, and a release-by-release index.
 - Build it with `make regex_parser_book_gate` (uses `mdbook build docs/regex_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
+
+## Maintenance Update 2026-06-08 — REGEX-SELF-HOSTING (`.1`–`.6a`): the regex parser is now self-hosting; it no longer uses or links Rust's `regex` crate (IMPLEMENTATION-ONLY; SURFACE-NEUTRAL; release/contract versions UNCHANGED)
+
+**What this is.** A PGEN-initiated architecture change (director directive 2026-06-07/08; `PGEN-REGEX-SELF-HOST-0001..0015`), **not** a downstream-reported bug. `grammars/regex.ebnf` was converted to use ONLY native EBNF terminals — no `/.../` regex literals — built on four parser-agnostic primitives added for this: `builtin_any_char`/`builtin_ascii_char` (native single-char / single-ASCII-char matchers), `$text`/`$0` (a rule's matched span as one string Terminal; Perl5 convention), and `@transform`-applied-to-the-matched-span. Consequently the generated `regex_parser.rs` contains **zero `match_regex` calls and zero `regex::Regex` references** — it does not use or even link Rust's `regex` crate.
+
+**What downstream consumers must do: nothing.** This is purely an implementation property. The **accepted language is unchanged** (every conversion step was verified BYTE-IDENTICAL against the `pcre2test` oracle — same accept/reject set), the **runtime AST shape is unchanged** (locked by the regex AST shape-contract), the **error codes are unchanged**, and **all contract/release/schema versions are UNCHANGED** (surface-neutral). The note is recorded for integrators who care that the embedded regex parser carries no Rust-regex-engine dependency (binary size, no `regex`-crate version coupling).
+
+**Scope.** Only the regex parser is held to the no-regex-engine bar. Every OTHER PGEN parser (systemverilog, vhdl, rtl_*, the preprocessor, the annotation grammars, …) is free to use Rust's `regex` engine and continues to — the `match_regex` helper + `use regex::Regex` import are emitted per-grammar (only a `/.../`-free grammar elides them). A guard (`scripts/check_regex_self_hosting.sh`, wired into pre-commit + CI) enforces the regex parser stays `/.../`-free and regex-crate-free.
 
 ## Maintenance Update 2026-06-07 — REGEX-PCRE2-FIDELITY.3.1: `\u \U \F \l \L \i` rejection migrated from the host validator INTO the grammar; new `relaxed` profile (SURFACE-NEUTRAL; release/contract versions UNCHANGED)
 

@@ -214,16 +214,20 @@ content.
   an injected `test_rule = /([abc])/`; OK after revert). **SELF-HOSTING ACHIEVED: regex.ebnf is literal-only
   and the generated regex parser never invokes Rust's regex engine.** No book/contract (no user-facing
   regex behaviour change). THEN regex cert-coverage-clean resumes (director sequencing).
-- ID: `.6a`  Status: `deferred` (link hygiene, NON-URGENT)  Goal: elide the now-DEAD `match_regex` helper +
-  `use regex::Regex` import from a fully-literal grammar's generated parser, so it no longer LINKS the regex
-  crate (currently 3 residual `regex::Regex` refs in `generated/regex_parser.rs` = the uncalled helper + its
-  import; `match_regex` is called 0×, so the engine never runs — this is compile-time link hygiene, not a
-  runtime concern). Codegen: compute `uses_match_regex` from the generated rule methods (the 5 emit sites are
-  all `parser.match_regex(#effective_regex_pattern,…)`), then gate `use regex::Regex` (`generate_imports`) +
-  the `match_regex` helper (`generate_helper_methods`, 108-line fn with 4 `#`-interpolations → extract into a
-  conditional fragment) on it. ⚠️ MUST stay additive for grammars that DO use `/.../` (sv/vhdl/return_annotation
-  keep the helper+import). Then strengthen the `.6` gate to assert ZERO `regex::Regex` refs too. Deferred from
-  `.6` (the 108-line `#`-interpolated extraction is too risky to rush; the helper is dead so it's non-urgent).
+- ID: `.6a`  Status: `DONE` (`PGEN-REGEX-SELF-HOST-0015`, 2026-06-08)  Goal: elide the DEAD `match_regex`
+  helper + `use regex::Regex` import from a `/.../`-free grammar's generated parser so it does not even LINK
+  the regex crate. Codegen (`ast_based_generator.rs`): added a `uses_match_regex: Cell<bool>` field, set after
+  the rule methods are generated (`rule_methods.iter().any(|m| m.to_string().contains("match_regex"))`), then
+  gated `use regex::Regex` (`generate_imports`) + the `match_regex` helper (extracted into a conditional
+  fragment in `generate_helper_methods`) on it. **PER-GRAMMAR / ADDITIVE (director 2026-06-08: "all grammars
+  except regex.ebnf should be allowed to rely on Rust's regex engine"):** the flag is computed from EACH
+  grammar's own rule methods, so a grammar with ≥1 `/.../` keeps the helper+import. PROVEN: regex regen → 0
+  `regex::Regex` refs; `rtl_const_expr` (main-path, uses `/.../`) regen WITH `.6a` → `fn match_regex=1,
+  calls=4, use_regex=1` + COMPILES; `return_annotation`/`semantic_annotation` keep their helpers; the stale
+  sv/vhdl/sv_pp/ebnf parsers all `use_regex=1`. lib 615/0, generated_parsers 654/0, clippy ✓, regex oracle
+  byte-identical. (40 test struct-literals + `new()` gained the field.) STRENGTHENED the `.6` gate to assert
+  ZERO `regex::Regex` refs in `regex_parser.rs` (regex-only; never inspects the other parsers). **regex now
+  truly does not link Rust's regex crate.**
 - ID: `.3a`  Status: `DONE` (`PGEN-REGEX-SELF-HOST-0007`)  Goal: enable the **`$0` whole-match alias** of
   `$text` (director: "in Perl5 `$0` = whole match, `$1..$N` = captures — a clean extension"). RESOLVED the
   earlier collision the RIGHT way (not a guard): a tools-first trace showed `$00`/`$+0`/`$0::first` exist
@@ -283,6 +287,7 @@ content.
 | `2026-06-07` | `.5b` (`-0012`) | director's `builtin_` prefix → renamed built-ins to `builtin_any_char`/`builtin_ascii_char` (no regex-rule rename needed); converted `unicode_char = !builtin_ascii_char builtin_any_char -> $2`, `any_char` RULE → `letter\|digit\|whitespace\|special_char\|unicode_char`, `special_char` → literal punctuation choice; oracle BYTE-IDENTICAL; `\é`→`char:"é"` (non-ASCII works); built-ins now ACTIVE (2 native matchers); manifest +1 (`unicode_char`); lib 615/0, generated_parsers 654/0, clippy ✓; `match_regex` calls → 16 | **`.5b` DONE**; `.5c` (literal_char/class_literal/name + payloads) + `.6` remain |
 | `2026-06-07` | `.5c` (`-0013`) | converted ALL remaining `/.../`: `literal_char`/`class_literal`/`class_safe_special` (big sets → `<literals>\|unicode_char`); `name` → `(…)(…)* -> $text`; `comment_text`/`directive_payload_simple` → `(!")" builtin_any_char)* -> $text`; `directive_payload_char` → `!")" builtin_any_char -> $2`; `directive_name_relaxed` → `letter (…)* -> $text`; 8 callout payloads → `( "XX" \| !"X" builtin_any_char )* -> $text`. Manifest synced (+13 → 172). **ZERO `/.../`, ZERO `match_regex` calls.** Oracle BYTE-IDENTICAL; spot-checks pass; lib 615/0, generated_parsers 654/0, clippy ✓ | **`.5` DONE**; only `.6` (elide the dead `match_regex` helper + guard gate) remains |
 | `2026-06-07` | `.6` (`-0014`) | CAPSTONE guard `scripts/check_regex_self_hosting.sh` (zero `/.../` in regex.ebnf via Python string/comment-stripping + zero `match_regex` CALLS in the generated parser); wired into `.githooks/pre-commit` + CI; self-tested (OK / FAIL-on-injected-`/.../` / OK) | **`.6` DONE — SELF-HOSTING ACHIEVED**; `.6a` (dead-helper/import elision) deferred/non-urgent |
+| `2026-06-08` | `.6a` (`-0015`) | codegen `uses_match_regex` flag (per-grammar) gates `use regex::Regex` + the `match_regex` helper → a `/.../`-free grammar's parser doesn't LINK the regex crate. PROVEN per-grammar/additive: regex → 0 `regex::Regex` refs; `rtl_const_expr` regen WITH .6a → helper+import KEPT, compiles; sv/vhdl/etc. unaffected. Strengthened the `.6` gate to assert 0 `regex::Regex` refs (regex-only). lib 615/0, generated_parsers 654/0, clippy ✓, oracle byte-identical. Regex book/contract/handoff synced | **`.6a` DONE — regex truly regex-crate-free**; all other grammars keep Rust regex (director intent) |
 
 ## Commit Log
 
@@ -301,11 +306,23 @@ content.
 | `.5b` | `PGEN-REGEX-SELF-HOST-0012` | `builtin_` prefix on the built-ins (avoids the regex-rule shadow); `unicode_char`/`any_char`-rule/`special_char` → native; built-ins now active; `\é` works; oracle byte-identical; `match_regex` calls → 16 |
 | `.5c` | `PGEN-REGEX-SELF-HOST-0013` | converted ALL remaining `/.../` (literal_char/class_literal/name/comment/callout/directive payloads); manifest synced (172); **ZERO `/.../`, ZERO `match_regex` calls**; oracle byte-identical. `.5` DONE |
 | `.6` | `PGEN-REGEX-SELF-HOST-0014` | capstone guard gate (`check_regex_self_hosting.sh`, wired pre-commit + CI); SELF-HOSTING ACHIEVED. `.6a` (link hygiene) deferred |
+| `.6a` | `PGEN-REGEX-SELF-HOST-0015` | per-grammar `uses_match_regex` codegen gate → regex parser is regex-crate-free (0 `regex::Regex` refs); all other grammars keep Rust regex (proven on rtl_const_expr). Gate strengthened; book/contract/handoff synced |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-08`: `.6a` (`PGEN-REGEX-SELF-HOST-0015`) — the regex parser now does not even LINK Rust's regex
+  crate. Codegen gained a per-grammar `uses_match_regex` flag (set from whether a grammar's own generated
+  rule methods emit a `match_regex` call); `generate_imports` gates `use regex::Regex` and
+  `generate_helper_methods` gates the `match_regex` helper (extracted into a conditional fragment) on it.
+  PER-GRAMMAR / ADDITIVE (director 2026-06-08: "all grammars except regex.ebnf should be allowed to rely on
+  Rust's regex engine"): only a `/.../`-free grammar (regex) elides them; every other grammar keeps the
+  helper+import. PROVEN: regex → 0 `regex::Regex` refs; `rtl_const_expr` regen WITH .6a → helper+import kept +
+  compiles; sv/vhdl/etc. unaffected. Strengthened the `.6` gate to assert 0 `regex::Regex` refs in
+  regex_parser.rs. lib 615/0, generated_parsers 654/0, clippy ✓, oracle byte-identical. Synced the regex
+  book + integration contract + handoff (self-hosting note for RGX consumers). **REGEX-SELF-HOSTING fully
+  complete.** Next: regex cert-coverage-clean (REGEX-PCRE2-FIDELITY `.3.7`).
 - `2026-06-07`: `.6` (`PGEN-REGEX-SELF-HOST-0014`) — CAPSTONE. Added `scripts/check_regex_self_hosting.sh`
   (asserts zero `/.../` in regex.ebnf — Python strip of strings/comments — and zero `match_regex` CALLS in
   the generated parser if present), wired into `.githooks/pre-commit` + the CI `memory-architecture-gate.yml`.

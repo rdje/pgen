@@ -13,9 +13,13 @@
 #   (1) a `/.../` regex literal reappears in grammars/regex.ebnf, or
 #   (2) the generated regex parser (if present locally) emits a `match_regex` call.
 #
-# NOTE (REGEX-SELF-HOSTING.6a, pending): the generated parser still EMITS an (uncalled) `match_regex`
-# helper + `use regex::Regex` import — link hygiene, tracked separately. This gate asserts zero CALLS,
-# which is what makes the engine never run.
+# Scope: this gate concerns ONLY the regex parser. By design (director 2026-06-07) EVERY OTHER grammar
+# (sv, vhdl, rtl_*, the annotation grammars, json, …) is ALLOWED to use `/.../` and thus Rust's `regex`
+# engine — the `match_regex` helper + `use regex::Regex` import are emitted per-grammar (gated on whether
+# that grammar uses any `/.../`). This gate never inspects the other parsers.
+#
+# REGEX-SELF-HOSTING.6a made the regex parser fully regex-crate-free (the dead helper + import are elided
+# for a `/.../`-free grammar), so this gate also asserts ZERO `regex::Regex` references in regex_parser.rs.
 set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
@@ -49,13 +53,14 @@ if [ -n "$offending" ]; then
   exit 1
 fi
 
-# (2) Zero match_regex CALLS in the generated regex parser (only when it has been generated locally;
-# generated/ is gitignored, so CI regenerates before this runs).
+# (2) The generated regex parser (only when it has been generated locally; generated/ is gitignored, so
+# CI regenerates before this runs) must be fully regex-crate-free: zero `match_regex` calls AND zero
+# `regex::Regex` references (the helper + `use regex::Regex` import are elided for a /.../-free grammar).
 if [ -f "$GEN" ]; then
-  calls="$(grep -cE '\.match_regex *\(' "$GEN" || true)"
-  if [ "${calls:-0}" -ne 0 ]; then
-    echo "regex-self-hosting: FAIL — $GEN emits $calls match_regex call(s); the regex parser must not invoke Rust's regex engine." >&2
-    grep -nE '\.match_regex *\(' "$GEN" | head >&2
+  refs="$(grep -nE '\.match_regex *\(|regex::Regex|Regex::new|^use regex' "$GEN" || true)"
+  if [ -n "$refs" ]; then
+    echo "regex-self-hosting: FAIL — $GEN references Rust's regex engine; the regex parser must be regex-crate-free:" >&2
+    printf '%s\n' "$refs" | head >&2
     exit 1
   fi
 fi

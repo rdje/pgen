@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-REGEX-SELF-HOST-0015 (REGEX-SELF-HOSTING .6a): regex parser no longer LINKS Rust's regex crate (CODE; per-grammar/additive, byte-identical).
+
+The purist finish to self-hosting: the generated regex parser now neither CALLS nor LINKS Rust's `regex`
+crate. Codegen change, gated PER-GRAMMAR so every other grammar keeps Rust regex (director 2026-06-08: "all
+grammars except regex.ebnf should be allowed to rely on Rust's regex engine").
+
+- `ast_based_generator.rs`: new `uses_match_regex: Cell<bool>` field, set after the rule methods are generated
+  (`rule_methods.iter().any(|m| m.to_string().contains("match_regex"))`). `generate_imports` gates
+  `use regex::Regex`, and `generate_helper_methods` gates the `match_regex` helper (extracted into a
+  conditional fragment) on it. A grammar with ≥1 `/.../` keeps both; a `/.../`-free grammar (regex) emits
+  neither. (40 test struct-literals + `new()` gained the field.)
+- `scripts/check_regex_self_hosting.sh` strengthened: now asserts ZERO `regex::Regex`/`match_regex`/`use regex`
+  references in `generated/regex_parser.rs` (regex-only — it never inspects the other parsers).
+- Lockstep (per the director's "sync regex book/contract/handoff when done with .6a"): the regex parser book,
+  the integration contract, and the downstream handoff note that the regex parser is self-hosting (no
+  regex-crate dependency); behaviour/version unchanged.
+
+**Per-grammar / additive — PROVEN, not asserted:** regex regen → 0 `regex::Regex` refs; `rtl_const_expr`
+(main-path, uses `/.../`) regen WITH .6a → `fn match_regex=1, calls=4, use_regex=1` and COMPILES;
+`return_annotation`/`semantic_annotation` keep their helpers; the sv/vhdl/sv_pp/ebnf parsers all `use_regex=1`.
+`cargo test --lib` 615/0, `--features generated_parsers` 654/0; clippy strict ✓; regex oracle BYTE-IDENTICAL.
+**REGEX-SELF-HOSTING is fully complete.** Next: regex cert-coverage-clean (REGEX-PCRE2-FIDELITY `.3.7`).
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0014 (REGEX-SELF-HOSTING .6 CAPSTONE): SELF-HOSTING ACHIEVED — guard gate (gate + docs).
 
 The capstone of the REGEX-SELF-HOSTING tree (`.1`–`.6`): **`grammars/regex.ebnf` is now `/.../`-free and the

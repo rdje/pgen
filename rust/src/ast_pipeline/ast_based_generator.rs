@@ -81,6 +81,12 @@ pub struct AstBasedGenerator {
     /// caller's responsibility at the binary boundary; when `None`
     /// the registry lookup falls through to no-op.
     pub ebnf_grammar_name: Option<String>,
+    /// REGEX-SELF-HOSTING.6a: set true during codegen iff any generated rule method emits a
+    /// `match_regex` call (i.e. the grammar has ≥1 `/.../` regex literal). When false, the
+    /// `match_regex` helper + `use regex::Regex` import are ELIDED so a fully-literal grammar (regex)
+    /// does not link Rust's `regex` crate. Interior-mutable so it can be set behind `&self` during
+    /// codegen; computed once after the rule methods are generated, before imports/helpers are emitted.
+    pub uses_match_regex: std::cell::Cell<bool>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -204,6 +210,7 @@ impl AstBasedGenerator {
             emit_typed_entry_skeleton: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         }
     }
 
@@ -403,10 +410,19 @@ impl AstBasedGenerator {
     }
 
     fn generate_imports(&self) -> TokenStream {
+        // REGEX-SELF-HOSTING.6a: only import `regex::Regex` when the grammar actually uses a `/.../`
+        // regex literal (and thus the `match_regex` helper). A fully-literal grammar (regex) emits
+        // neither, so it does not link Rust's `regex` crate. (`uses_match_regex` is set during codegen
+        // before this runs.)
+        let regex_import = if self.uses_match_regex.get() {
+            quote! { use regex::Regex; }
+        } else {
+            quote! {}
+        };
         quote! {
             use std::collections::HashMap;
             use std::ops::Range;
-            use regex::Regex;
+            #regex_import
             use crate::ast_pipeline::{
                 Logger, ParseResult, ParseError, ParseContent, ParseNode, MemoEntry, RuleId, CycleType, RecursionGuard
             };
@@ -638,6 +654,17 @@ impl AstBasedGenerator {
             rule_methods.len(),
             file!(),
             line!()
+        );
+
+        // REGEX-SELF-HOSTING.6a: a grammar uses Rust's regex engine iff a generated rule method emits a
+        // `match_regex` call (the only call sites are `parser.match_regex(...)` from `/.../` regex-literal
+        // terminals). Computed here — after rule methods, before imports/helpers — so `generate_imports`
+        // (the `use regex::Regex` line) and `generate_helper_methods` (the `match_regex` helper) can ELIDE
+        // both for a fully-literal grammar (regex), dropping its `regex`-crate link entirely.
+        self.uses_match_regex.set(
+            rule_methods
+                .iter()
+                .any(|m| m.to_string().contains("match_regex")),
         );
 
         // Generate helper methods
@@ -3906,6 +3933,124 @@ impl AstBasedGenerator {
             normalized_grammar_name.as_str(),
             "regex" | "systemverilogpreprocessor"
         );
+        // REGEX-SELF-HOSTING.6a: emit the `match_regex` helper (Rust `regex` engine) ONLY when the grammar
+        // uses a `/.../` regex literal. A fully-literal grammar (regex) gets an empty fragment, so the
+        // generated parser neither defines nor links the regex engine. `uses_match_regex` is computed
+        // during codegen (after the rule methods) before this runs.
+        let match_regex_helper = if self.uses_match_regex.get() {
+            quote! {
+            fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {
+                use std::cell::RefCell;
+                use std::collections::HashMap;
+                // Thread-local cache: each pattern is compiled once per thread,
+                // and the resulting `regex::Regex` instance is **borrowed in
+                // place** for every subsequent match. The instance carries its
+                // own internal `Cache` pool (the lazy-DFA scratch space the
+                // regex crate uses across searches); reusing the same instance
+                // means that pool warms up once and is kept hot. The previous
+                // shape cloned the cached `Regex` out of the closure on every
+                // call; even though `Regex::clone()` is an O(1) Arc bump,
+                // Cargo profiles of PGEN-RGX-0073 (samply, post-Optim-#8)
+                // show 5.55% of self-time inside
+                // `regex_automata::hybrid::dfa::Lazy::init_cache` —
+                // i.e. the lazy DFA cache being re-initialized on first use
+                // of each fresh borrow of the cloned instance, defeating the
+                // regex crate's internal cache pool. Doing the search in
+                // place fixes it.
+                // PARSE-TERMINATION.7: cache (Regex, can_match_empty) together. `can_match_empty`
+                // is a STATIC property of the pattern (does it match ""), so it is computed ONCE
+                // at compile/insert — NOT recomputed per call (the former `re.find("")` on every
+                // match_regex call was millions of redundant regex executions on large inputs).
+                thread_local! {
+                    static REGEX_CACHE: RefCell<HashMap<String, (regex::Regex, bool)>> =
+                        RefCell::new(HashMap::new());
+                }
+
+                // Phase 1: ensure pattern is compiled + cached (with its precomputed
+                // can_match_empty) and read the cached bool — no per-call regex execution.
+                let can_match_empty: bool = REGEX_CACHE.with(|cache| -> Result<bool, regex::Error> {
+                    let mut cache = cache.borrow_mut();
+                    if !cache.contains_key(pattern) {
+                        // PARSE-TERMINATION.7.1: ANCHOR the terminal match at the parse position.
+                        // match_regex only ever accepts a match at offset 0 (it filters
+                        // m.start()==0), but an UNANCHORED `find` scans the ENTIRE remaining
+                        // haystack (up to MBs) on every FAILING terminal attempt (the common PEG
+                        // ordered-choice case) looking for the pattern elsewhere, then discards it
+                        // — O(remaining input) per call = the dominant parse-time root (uvm). A
+                        // leading `\A` (with `(?:..)` to preserve the pattern's precedence) makes
+                        // `find` anchored => O(match length), no haystack scan. Semantically
+                        // identical (same start-0 match or None). The cache key stays the ORIGINAL
+                        // pattern so call sites still share the compiled instance.
+                        let compiled = regex::Regex::new(&format!(r"\A(?:{})", pattern))?;
+                        let empties = compiled
+                            .find("")
+                            .map(|m| m.start() == 0 && m.end() == 0)
+                            .unwrap_or(false);
+                        cache.insert(pattern.to_string(), (compiled, empties));
+                    }
+                    let (_re, empties) = cache.get(pattern).expect("just inserted");
+                    if #allow_layout_skip_for_regexes {
+                        Ok(*empties)
+                    } else {
+                        Ok(false)
+                    }
+                }).map_err(|e| self.create_contextual_error(&format!(
+                    "Invalid regex pattern '{}': {}",
+                    pattern, e
+                )))?;
+
+                if skip_leading_whitespace && #allow_layout_skip_for_regexes {
+                    self.consume_layout_for_regex(can_match_empty);
+                }
+
+                let Some(haystack) = self.input.get(self.position..) else {
+                    return Err(self.create_contextual_error("Parser position is not on a UTF-8 boundary"));
+                };
+
+                // Phase 2: do the actual `find` inside the cache closure
+                // — no Regex clone, internal Cache pool stays hot. Returns
+                // just the byte length of the matched prefix; we re-borrow
+                // self.input outside the closure for the typed return.
+                let match_end: Option<usize> = REGEX_CACHE.with(|cache| {
+                    let cache = cache.borrow();
+                    let (re, _empties) = cache.get(pattern).expect("compiled in phase 1");
+                    re.find(haystack).filter(|m| m.start() == 0).map(|m| m.end())
+                });
+
+                if let Some(end_offset) = match_end {
+                    let start = self.position;
+                    self.position += end_offset;
+                    if self.trace_enabled() {
+                        self.logger.log_success(#filename, self.position as u32, &format!(
+                            "✅ Regex '{}' matched at position {} (len {})",
+                            pattern, start, end_offset
+                        ));
+                    }
+                    if let Some(slice) = self.input.get(start..self.position) {
+                        return Ok(slice);
+                    }
+                    return Err(self.create_contextual_error("Regex matched invalid UTF-8 span"));
+                }
+
+                if self.trace_enabled() {
+                    let preview = if self.position < self.input.len() {
+                        let end = (self.position + 10).min(self.input.len());
+                        self.byte_window_lossy(self.position, end)
+                    } else {
+                        "<EOF>".to_string()
+                    };
+                    self.logger.log_error(#filename, self.position as u32, &format!("❌ Regex '{}' no match at position {} (next: '{}')", pattern, self.position, preview));
+                }
+
+                Err(self.create_contextual_error(&format!(
+                    "No match for regex pattern '{}'",
+                    pattern
+                )))
+            }
+            }
+        } else {
+            quote! {}
+        };
         quote! {
             fn byte_window_lossy(&self, start: usize, end: usize) -> String {
                 if start >= end || start >= self.input.len() {
@@ -5336,114 +5481,7 @@ impl AstBasedGenerator {
                 Err(ParseError::Backtrack { position: start })
             }
 
-            fn match_regex(&mut self, pattern: &str, skip_leading_whitespace: bool) -> ParseResult<&'input str> {
-                use std::cell::RefCell;
-                use std::collections::HashMap;
-                // Thread-local cache: each pattern is compiled once per thread,
-                // and the resulting `regex::Regex` instance is **borrowed in
-                // place** for every subsequent match. The instance carries its
-                // own internal `Cache` pool (the lazy-DFA scratch space the
-                // regex crate uses across searches); reusing the same instance
-                // means that pool warms up once and is kept hot. The previous
-                // shape cloned the cached `Regex` out of the closure on every
-                // call; even though `Regex::clone()` is an O(1) Arc bump,
-                // Cargo profiles of PGEN-RGX-0073 (samply, post-Optim-#8)
-                // show 5.55% of self-time inside
-                // `regex_automata::hybrid::dfa::Lazy::init_cache` —
-                // i.e. the lazy DFA cache being re-initialized on first use
-                // of each fresh borrow of the cloned instance, defeating the
-                // regex crate's internal cache pool. Doing the search in
-                // place fixes it.
-                // PARSE-TERMINATION.7: cache (Regex, can_match_empty) together. `can_match_empty`
-                // is a STATIC property of the pattern (does it match ""), so it is computed ONCE
-                // at compile/insert — NOT recomputed per call (the former `re.find("")` on every
-                // match_regex call was millions of redundant regex executions on large inputs).
-                thread_local! {
-                    static REGEX_CACHE: RefCell<HashMap<String, (regex::Regex, bool)>> =
-                        RefCell::new(HashMap::new());
-                }
-
-                // Phase 1: ensure pattern is compiled + cached (with its precomputed
-                // can_match_empty) and read the cached bool — no per-call regex execution.
-                let can_match_empty: bool = REGEX_CACHE.with(|cache| -> Result<bool, regex::Error> {
-                    let mut cache = cache.borrow_mut();
-                    if !cache.contains_key(pattern) {
-                        // PARSE-TERMINATION.7.1: ANCHOR the terminal match at the parse position.
-                        // match_regex only ever accepts a match at offset 0 (it filters
-                        // m.start()==0), but an UNANCHORED `find` scans the ENTIRE remaining
-                        // haystack (up to MBs) on every FAILING terminal attempt (the common PEG
-                        // ordered-choice case) looking for the pattern elsewhere, then discards it
-                        // — O(remaining input) per call = the dominant parse-time root (uvm). A
-                        // leading `\A` (with `(?:..)` to preserve the pattern's precedence) makes
-                        // `find` anchored => O(match length), no haystack scan. Semantically
-                        // identical (same start-0 match or None). The cache key stays the ORIGINAL
-                        // pattern so call sites still share the compiled instance.
-                        let compiled = regex::Regex::new(&format!(r"\A(?:{})", pattern))?;
-                        let empties = compiled
-                            .find("")
-                            .map(|m| m.start() == 0 && m.end() == 0)
-                            .unwrap_or(false);
-                        cache.insert(pattern.to_string(), (compiled, empties));
-                    }
-                    let (_re, empties) = cache.get(pattern).expect("just inserted");
-                    if #allow_layout_skip_for_regexes {
-                        Ok(*empties)
-                    } else {
-                        Ok(false)
-                    }
-                }).map_err(|e| self.create_contextual_error(&format!(
-                    "Invalid regex pattern '{}': {}",
-                    pattern, e
-                )))?;
-
-                if skip_leading_whitespace && #allow_layout_skip_for_regexes {
-                    self.consume_layout_for_regex(can_match_empty);
-                }
-
-                let Some(haystack) = self.input.get(self.position..) else {
-                    return Err(self.create_contextual_error("Parser position is not on a UTF-8 boundary"));
-                };
-
-                // Phase 2: do the actual `find` inside the cache closure
-                // — no Regex clone, internal Cache pool stays hot. Returns
-                // just the byte length of the matched prefix; we re-borrow
-                // self.input outside the closure for the typed return.
-                let match_end: Option<usize> = REGEX_CACHE.with(|cache| {
-                    let cache = cache.borrow();
-                    let (re, _empties) = cache.get(pattern).expect("compiled in phase 1");
-                    re.find(haystack).filter(|m| m.start() == 0).map(|m| m.end())
-                });
-
-                if let Some(end_offset) = match_end {
-                    let start = self.position;
-                    self.position += end_offset;
-                    if self.trace_enabled() {
-                        self.logger.log_success(#filename, self.position as u32, &format!(
-                            "✅ Regex '{}' matched at position {} (len {})",
-                            pattern, start, end_offset
-                        ));
-                    }
-                    if let Some(slice) = self.input.get(start..self.position) {
-                        return Ok(slice);
-                    }
-                    return Err(self.create_contextual_error("Regex matched invalid UTF-8 span"));
-                }
-
-                if self.trace_enabled() {
-                    let preview = if self.position < self.input.len() {
-                        let end = (self.position + 10).min(self.input.len());
-                        self.byte_window_lossy(self.position, end)
-                    } else {
-                        "<EOF>".to_string()
-                    };
-                    self.logger.log_error(#filename, self.position as u32, &format!("❌ Regex '{}' no match at position {} (next: '{}')", pattern, self.position, preview));
-                }
-
-                Err(self.create_contextual_error(&format!(
-                    "No match for regex pattern '{}'",
-                    pattern
-                )))
-            }
+            #match_regex_helper
 
             fn try_parse<F, T>(&mut self, f: F) -> Option<T>
             where
@@ -6963,6 +7001,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         }
     }
 
@@ -6994,6 +7033,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         }
     }
 
@@ -7043,6 +7083,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         }
     }
 
@@ -7141,6 +7182,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         }
     }
 
@@ -7205,6 +7247,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         }
     }
 
@@ -7383,6 +7426,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let logic = generator
@@ -8157,6 +8201,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         assert_eq!(
@@ -8188,6 +8233,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         assert_eq!(generator.rule_branch_priorities("expr", 2), vec![1, 9]);
@@ -8216,6 +8262,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         assert_eq!(
@@ -8279,6 +8326,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let (
@@ -8352,6 +8400,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let logic = generator
@@ -8409,6 +8458,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let logic = generator
@@ -8435,6 +8485,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator.generate_types().to_string();
@@ -8462,6 +8513,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator.generate_parse_method("start").to_string();
@@ -8504,6 +8556,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator
@@ -8560,6 +8613,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let policy = generator.rule_coverage_target_policy("stmt");
@@ -8579,6 +8633,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -8642,6 +8697,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let method = generator
@@ -8683,6 +8739,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator
@@ -8738,6 +8795,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let policy = generator.rule_negative_case_policy("stmt");
@@ -8757,6 +8815,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -8815,6 +8874,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let method = generator
@@ -8853,6 +8913,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator
@@ -8902,6 +8963,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let policy = generator.rule_deterministic_partition_policy("stmt");
@@ -8921,6 +8983,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let types_rendered = generator.generate_types().to_string();
@@ -8994,6 +9057,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let method = generator
@@ -9031,6 +9095,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator
@@ -9099,6 +9164,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let logic = generator
@@ -9134,6 +9200,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator
@@ -9177,6 +9244,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         assert_eq!(
@@ -9217,6 +9285,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         assert_eq!(
@@ -9257,6 +9326,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let logic = generator
@@ -9313,6 +9383,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let logic = generator
@@ -9360,6 +9431,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let logic = generator
@@ -9411,6 +9483,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -9456,6 +9529,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let policy = generator.rule_relational_constraints("pair");
@@ -9507,6 +9581,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let method = generator
@@ -9550,6 +9625,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator
@@ -9584,6 +9660,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             parser_hook_registry: None,
             ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
         };
 
         let rendered = generator

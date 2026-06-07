@@ -12,6 +12,19 @@ If you are a downstream consumer, you should be able to read this book end-to-en
 
 This is a **live book** — it is updated in lockstep with the regex parser. Every parser release that changes the AST shape lands together with the book updates that document the new shape, in the same commit window. Reading any commit's snapshot of this book gives you the AST description for that commit's parser. If you observe a shape that disagrees with the book, that's a documentation bug — please report.
 
+## Implementation note: the regex parser is self-hosting
+
+As of 2026-06-08 (REGEX-SELF-HOSTING), the regex parser is **self-hosting**: `grammars/regex.ebnf` is
+expressed entirely with native EBNF terminals (literal strings, char literals, ordered-choice alternations,
+the `builtin_any_char`/`builtin_ascii_char` matchers, and the `$text`/`$0` whole-match and `@transform`
+annotations) — it contains **no `/.../` regex literals**. Consequently the generated `regex_parser.rs`
+**does not use or even link Rust's `regex` crate** (a guard, `scripts/check_regex_self_hosting.sh`, enforces
+this). This is purely an implementation property: it does **not** change the accepted language, the runtime
+AST shape, the error codes, or any version in the contract — every conversion step was verified
+byte-identical against the `pcre2test` oracle. Downstream consumers need not change anything; the note is
+here because some integrators care that the regex parser carries no Rust-regex-engine dependency. (Every
+*other* PGEN parser remains free to use Rust's regex engine; only the regex parser is held to this bar.)
+
 ## What this book is
 
 - The **single source of truth** for the regex parser's runtime AST shape, by rule and by example.
