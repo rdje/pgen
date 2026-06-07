@@ -76,6 +76,13 @@ family (SystemVerilog, the SV preprocessor, VHDL, the RTL frontends, JSON, EBNF,
 grammars) drives acceptance purely from its generated parser, with no hand-written post-parse rejection.
 So the inconsistency is bounded to one grammar, and the fix is tracked there.
 
+**Enforcement (2026-06-07).** A mechanical gate, `scripts/check_ebnf_source_of_truth.sh` (run in the
+pre-commit hook and CI), flags any *new* out-of-band acceptance validator wired into the parser registry
+— concretely, a `crate::*_validation::` reference in `rust/src/parser_registry.rs` beyond the one tracked
+instance (regex's `validate_regex_compile_contract`, pending its EBNF-encoding). So the defect class
+cannot silently reappear: a future grammar cannot quietly grow a hand-written post-parse gate the stimuli
+generator can't see.
+
 ## Why PGEN Works This Way
 
 PGEN targets domains where parser behavior materially affects downstream tooling and trust:

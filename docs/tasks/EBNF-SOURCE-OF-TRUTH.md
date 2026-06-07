@@ -1,7 +1,7 @@
 # Task Tree: EBNF-SOURCE-OF-TRUTH (the grammar is the single source of truth for the accepted language)
 
 > **Status:** `active` (2026-06-07). **Family / slice-id prefix:** `PGEN-EBNF-SOT-<NNNN>`.
-> **Frontier:** `LEXICAL-ANNOTATIONS.5` (the dominant lever — see `.2.1` root-cause correction below) then `.3` FIX regex (CONSUMER-path EBNF-SOT, re-scoped). `.2` audit DONE; `.2.1` correction DONE (cert-coverage failures are LEXICAL, not validator).
+> **Frontier:** `.3` FIX regex (CONSUMER-path EBNF-SOT, re-scoped; released-regex-grammar lockstep). DONE: `.2` audit, `.2.1` root-cause correction (cert-coverage failures are LEXICAL, not validator), `.5` enforcement gate (`scripts/check_ebnf_source_of_truth.sh`, pre-commit + CI). The cert-coverage lever `LEXICAL-ANNOTATIONS.5` is DONE (39→9→3).
 > **Decision record:** [`project_ebnf_is_single_source_of_truth`](../decisions/project_ebnf_is_single_source_of_truth.md).
 > **KM card:** [`docs/knowledge/ebnf-single-source-of-truth.md`](../knowledge/ebnf-single-source-of-truth.md).
 > **Book chapter:** [`docs/book/src/quality-and-closure-model.md`](../book/src/quality-and-closure-model.md) (the loud rule).
@@ -85,8 +85,14 @@ the general defect class this tree owns.
   divergence → 0 + RGX conformance unchanged. NOT measured by cert-coverage `sample_parse_failures`
   (validator-free). Each construct its own leaf, tools-first, one-at-a-time + measured.
 - `.4` — **GENERALIZE:** apply `.3`'s resolutions to the `.2` audit's other grammars.
-- `.5` — **ENFORCE:** a gate/lint so a new out-of-band acceptance check (a hand-written post-parse
-  rejection not encoded in the EBNF) is flagged — keeping the EBNF the single source of truth.
+- `.5` — **ENFORCE (DONE, `PGEN-EBNF-SOT-0004`):** `scripts/check_ebnf_source_of_truth.sh` flags any NEW
+  out-of-band acceptance validator wired into the parser registry — a `crate::*_validation::` reference in
+  `rust/src/parser_registry.rs` beyond the tracked allowlist (`regex_compile_validation`, pending `.3`).
+  Wired into `.githooks/pre-commit` + the CI workflow (`memory-architecture-gate.yml`), mirroring the
+  MEMORY-ARCH / DIAG-SEVERITY guard pattern. Verified: passes clean on the current tree; a simulated new
+  `crate::vhdl_compile_validation::…` reference FAILS it (negative test); restored clean. Book lockstep:
+  `quality-and-closure-model.md` notes the gate. So the defect class cannot silently reappear while `.3`
+  removes/relaxes the one existing instance.
 
 ## `.2` Audit result (2026-06-07, `PGEN-EBNF-SOT-0002`) — tools-first
 
@@ -179,10 +185,9 @@ measured deterministically (`--count 200 --seed 0`, identical across two runs):
 
 ## Current Frontier
 
-- **`LEXICAL-ANNOTATIONS.5`** (routed OUT of this tree — but the dominant lever for the cert-coverage
-  metric): fix `apply_word_boundary_spacing` so it does not insert a separator before a closing delimiter
-  / when the next token cannot merge with the preceding identifier. Acceptance: regex cert-coverage
-  `sample_parse_failures` 39 → ~2 (count 200, seed 0); no regression in other grammars' stimuli gates.
+- `.3` FIX regex (EBNF-SOT, CONSUMER path) — the remaining substantive leaf. (See below.)
+- **DONE this session:** `.2` audit, `.2.1` root-cause correction, `.5` enforcement gate.
+  `LEXICAL-ANNOTATIONS.5` (routed OUT — the cert-coverage lever) is also DONE (`-0022`/`-0023`, 39→9→3).
 - `.3` FIX regex (EBNF-SOT, CONSUMER path) — RE-SCOPED after `.2.1`: for the validator-rejected constructs
   the generator emits (`\u` via `find_invalid_escape_i`; unrecognized `(*verb)` via
   `find_invalid_verb_construct`), decide encode-in-EBNF (tighten the grammar to match PCRE2 — e.g. drop
@@ -220,17 +225,26 @@ measured deterministically (`--count 200 --seed 0`, identical across two runs):
   `(?P>Nae)`✓/`(?P>Nae )`✗, `(?(j))`✓/`(?(j ))`✗. Clinching: `--no-word-boundary-spacing` regen collapses
   STRUCTURAL 39→2. Source-confirmed `parse_and_cover_regex` (:327) omits the validator (:324). Pure-docs
   correction; no code change.
+- `.5` — `scripts/check_ebnf_source_of_truth.sh` passes clean on the tree (`ebnf-source-of-truth: OK`);
+  negative test (appended a simulated `use crate::vhdl_compile_validation::…` to `parser_registry.rs`)
+  FAILS it with the diagnostic, then restored clean. Wired into `.githooks/pre-commit` + CI
+  (`memory-architecture-gate.yml`). Book note added (`mdbook_docs_gate` green).
 
 ## Commit log
 
 - `.1` → `PGEN-EBNF-SOT-0001`.
 - `.2` → `PGEN-EBNF-SOT-0002`.
-- `.2.1` → `PGEN-EBNF-SOT-0003` (this slice).
+- `.2.1` → `PGEN-EBNF-SOT-0003`.
+- `.5` → `PGEN-EBNF-SOT-0004` (this slice).
 
 ## Changelog
 
 - 2026-06-07: tree created (`PGEN-EBNF-SOT-0001`), triggered by the regex cert-coverage `\u`/`(*verb)`
   finding routed from `GRAMMAR-WELLFORMED.H.1`/`.G.4.9`.
+- 2026-06-07: `.5` enforcement gate DONE (`PGEN-EBNF-SOT-0004`) — `scripts/check_ebnf_source_of_truth.sh`
+  flags any NEW out-of-band acceptance validator wired into the parser registry; pre-commit + CI wired.
+  Remaining substantive leaf: `.3` (consumer-path regex fix). `LEXICAL-ANNOTATIONS.5` (the cert-coverage
+  lever) DONE separately (39→9→3).
 - 2026-06-07: `.2` audit DONE (`PGEN-EBNF-SOT-0002`) — regex is the sole out-of-band-validator instance
   across all 12 parse paths; full 10-check surface recorded; `.4` reduced to no-op; frontier → `.3`.
 - 2026-06-07: `.2.1` root-cause correction DONE (`PGEN-EBNF-SOT-0003`) — cert-coverage `sample_parse_failures`

@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - EBNF-SOURCE-OF-TRUTH.5 — enforcement gate for out-of-band acceptance validators (PGEN-EBNF-SOT-0004)
+
+### Goal
+Lock the EBNF-single-source-of-truth invariant so the out-of-band-validator defect class (the trigger that created this tree) cannot silently reappear. The `.2` audit established that each grammar's `parse_with_*_detail` should derive acceptance purely from its generated parser; the ONE current exception is regex's `validate_regex_compile_contract` (tracked by `.3`).
+
+### Implementation
+`scripts/check_ebnf_source_of_truth.sh`: greps `rust/src/parser_registry.rs` for `crate::*_validation::` references (catches both `use` imports and inline-qualified calls — the established convention for an out-of-band validator module, e.g. `regex_compile_validation`), normalizes to module names, and FAILs on any beyond the allowlist (`regex_compile_validation`). Robust + low-false-positive: `annotation_validator` (build-time, `_validator` not `_validation`, not in the registry) is not matched. Wired into `.githooks/pre-commit` and `.github/workflows/memory-architecture-gate.yml`, alongside the memory-arch / diagnostics-docpath / knowledge-map guards.
+
+### Verification
+- Passes clean on the tree (`ebnf-source-of-truth: OK`).
+- Negative test: appended `use crate::vhdl_compile_validation::validate_vhdl_compile_contract;` to `parser_registry.rs` → gate FAILs naming `vhdl_compile_validation` + the remediation message; restored, passes again, registry clean.
+- Book: `quality-and-closure-model.md` documents the gate; `mdbook_docs_gate` green.
+- Tooling/gate only (no parser/codegen/grammar/generated, no released-parser surface) → no clippy/regen/RGX-conformance.
+
+### Sequencing note
+`.5` (enforce) lands before `.3` (fix the one existing instance): the gate allowlists `regex_compile_validation` (tracked by `.3`) and prevents NEW instances — lock the door now, clean the existing mess in `.3`. Mirrors how MEMORY-ARCH/DIAG-SEVERITY guards lock an invariant while known cases are allowlisted.
+
 ## 2026-06-07 - LEXICAL-ANNOTATIONS.5.2 — join-rule fusability awareness (PGEN-LEXICAL-ANNOTATIONS-0023)
 
 ### The second over-insertion

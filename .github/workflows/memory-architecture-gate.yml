@@ -30,6 +30,12 @@ jobs:
         # repo-root-relative paths. Same script the local pre-commit hook runs.
         run: bash scripts/check_diagnostics_and_docpaths.sh
 
+      - name: Run EBNF-single-source-of-truth guard (EBNF-SOURCE-OF-TRUTH.5)
+        # The EBNF (+ its annotations) is the single source of truth for the accepted language;
+        # flag any NEW out-of-band acceptance validator wired into the parser registry. Same script
+        # the local pre-commit hook runs.
+        run: bash scripts/check_ebnf_source_of_truth.sh
+
       - name: Validate Knowledge Map facts + assert the map is in sync (KNOWLEDGE-MAP)
         # Derived question-keyed retrieval index over durable facts (knowledge-map/ bundle).
         # Same script the local pre-commit hook runs; a stale map or invalid fact fails here.
