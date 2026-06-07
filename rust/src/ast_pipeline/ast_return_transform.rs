@@ -709,12 +709,12 @@ mod tests {
         stream.to_string()
     }
 
-    /// REGEX-SELF-HOSTING.3: `$text` (and its alias `$0`) parse to `MatchedText` and codegen to a
-    /// matched-span string Terminal — no Rust `regex`, no structural shape.
+    /// REGEX-SELF-HOSTING.3: `$text` parses to `MatchedText` and codegen to a matched-span string
+    /// Terminal — no Rust `regex`, no structural shape. (`$0` alias deferred — see the task tree.)
     #[test]
-    fn matched_text_dollar_text_and_dollar_zero_emit_span_terminal() {
+    fn matched_text_dollar_text_emits_span_terminal() {
         let logger = crate::ast_pipeline::NoOpLogger;
-        for src in ["$text", "$0"] {
+        for src in ["$text"] {
             let ast = UnifiedReturnAST::parse_bootstrap(src, &logger)
                 .unwrap_or_else(|e| panic!("{src:?} should parse: {e}"));
             assert!(

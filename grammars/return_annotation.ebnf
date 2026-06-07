@@ -26,6 +26,7 @@ expression := flat_spread_expression
 # Primary expressions (base values)
 primary_expression := object_literal
                     | array_literal
+                    | matched_text_reference
                     | positional_reference
                     | string_literal
                     | number_literal
@@ -114,6 +115,13 @@ accessor_base := positional_reference
 # Positional reference: $1, $2, $42
 positional_reference := '$' integer
 -> {type: "positional", index: $2}
+
+# REGEX-SELF-HOSTING.3: `$text` — the rule's full matched source text as one string Terminal
+# (the native equivalent of a `/.../`-with-capture). `$0` is an accepted alias, handled by
+# `positional_reference` above (index 0) + the host conversion (index 0 -> MatchedText). The
+# host (`unified_return_ast.rs`) maps this `{type:"matched_text"}` node to `UnifiedReturnAST::MatchedText`.
+matched_text_reference := '$' 'text'
+-> {type: "matched_text"}
 
 # String literals with quotes
 string_literal := ('"' string_content_double '"'

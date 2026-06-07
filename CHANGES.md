@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0006 (REGEX-SELF-HOSTING .3 part-2): `$text` on the GENERATED return-annotation surface — `.3` DONE for `$text` (CODE; additive, byte-identical).
+
+Completes the `-> $text` return-annotation primitive on the surface that non-bootstrap grammars (regex)
+actually use — the generated `Return_annotationParser` built from `grammars/return_annotation.ebnf`:
+
+- `return_annotation.ebnf`: new `matched_text_reference := '$' 'text' -> {type: "matched_text"}`, wired into
+  `primary_expression`; regen'd the generated return-annotation parser.
+- `unified_return_ast.rs`: `from_json` maps `{type: "matched_text"}` → `UnifiedReturnAST::MatchedText`.
+- `return_annotation_v1.json` (shape-contract manifest): inserted the `matched_text_reference` declared
+  annotation (alphabetical) + bumped `primary_expression`'s `branch_index` 8→9 (the new alternative shifted
+  the `'(' expression ')' -> $2` branch).
+
+**End-to-end proven:** a throwaway `num = digit+ -> $text` now generates
+`ParseContent::Terminal(&parser.input[start_pos..parser.position])` (was a passthrough before part-2).
+Verified: `cargo test --lib` 614/0, `--features generated_parsers` 653/0, clippy strict ✓, **regex PCRE2
+compile oracle BYTE-IDENTICAL** (additive — no grammar uses `$text` yet). Docs lockstep:
+`RETURN_ANNOTATIONS_REFERENCE.md`, `PGEN_ANNOTATION_NORMATIVE_SPEC.md`, `docs/book/src/annotation-system.md`.
+
+**`$0` alias DEFERRED (`.3a`):** a naive `$0`→MatchedText collides with the positional-index-0 machinery
+(`$00`, `$0::first`, accessor/extraction bases) and makes the bootstrap + generated surfaces structurally
+disagree (broke the `$+0.A.A000[($0::first)[$00]]` regression corpus). The `$0`→MatchedText paths from
+part-1 were reverted to keep the two surfaces consistent; `$0` needs a not-followed-by-digit/modifier
+lookahead guard in `matched_text_reference` to ship safely. `$text` is the collision-free canonical spelling
+and is fully shipped. Frontier → `.4` (convert the regex char-classes: single → `'c'` alternations,
+quantified payloads → `char+ -> $text`).
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0005 (REGEX-SELF-HOSTING .3 part-1): the `$text`/`$0` return-annotation — surface A (bootstrap) + shared machinery (CODE; additive/dormant).
 
 Part-1 of the 2nd self-hosting primitive: a `-> $text` return-annotation (with `$0` as an alias) that emits

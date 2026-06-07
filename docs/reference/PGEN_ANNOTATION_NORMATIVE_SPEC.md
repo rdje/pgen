@@ -112,6 +112,12 @@ Normative input/output behavior for bootstrap return parsing:
 - Leading/trailing whitespace is then trimmed after optional arrow stripping.
 - Empty payload after normalization maps to passthrough (`$1` on round-trip).
 - Positional refs (`$N`) are supported, including bootstrap acceptance of `$0`.
+- Whole-match text (`$text`) is supported — returns the rule's full matched source text as one string
+  `Terminal` (the native, Rust-regex-free equivalent of a `/.../`-with-capture). Recognized on BOTH the
+  bootstrap surface (`parse_bootstrap`) and the generated `return_annotation.ebnf` surface
+  (`matched_text_reference := '$' 'text' -> {type: "matched_text"}` → `UnifiedReturnAST::MatchedText` →
+  codegen `ParseContent::Terminal(&input[start..end])`). REGEX-SELF-HOSTING.3. The `$0` whole-match alias
+  is NOT yet enabled (it collides with positional `$0`/`$00`/`$0::…`; needs a lookahead guard).
 - Extraction (`::first`, `::last`, `::N`) is supported, with `::0` rejected.
 - Spread suffix (`*`) is supported for positional/extraction forms.
 - Property/array access forms are supported.

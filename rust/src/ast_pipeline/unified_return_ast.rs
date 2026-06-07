@@ -321,6 +321,9 @@ impl UnifiedReturnAST {
                                 property,
                             })
                         }
+                        // REGEX-SELF-HOSTING.3: `$text` — the rule's matched span text (the generated
+                        // return-annotation parser lowers `$text` to `{type: "matched_text"}`).
+                        "matched_text" => Ok(UnifiedReturnAST::MatchedText),
                         "positional" => {
                             let raw_index = map
                                 .get("index")
@@ -355,6 +358,13 @@ impl UnifiedReturnAST {
                                     signed
                                 ));
                             }
+                            // Note: index 0 is NOT remapped to MatchedText here. The `$0`
+                            // whole-match alias is deferred (REGEX-SELF-HOSTING.3 follow-up): it
+                            // collides with the positional-index-0 machinery in extraction/accessor
+                            // bases and multi-digit forms (`$00`, `$0::first`), where it would make
+                            // this typed-JSON path and the bootstrap parser structurally disagree.
+                            // `$text` is the collision-free canonical spelling. A guarded `$0` (with
+                            // a not-followed-by-digit/modifier lookahead) can be added later.
                             Ok(UnifiedReturnAST::PositionalRef {
                                 index: signed as usize,
                             })
@@ -833,11 +843,11 @@ impl UnifiedReturnAST {
             );
         }
 
-        // REGEX-SELF-HOSTING.3: `$text` (alias `$0`) — the rule's full matched text as one string
-        // Terminal (native equivalent of a `/.../` capture). Checked before the positional-ref path
-        // (`$text` is not a digit run, and `$0` is the whole-match index, distinct from the 1-based
-        // child refs `$1`..`$N`).
-        if trimmed == "$text" || trimmed == "$0" {
+        // REGEX-SELF-HOSTING.3: `$text` — the rule's full matched text as one string Terminal
+        // (native equivalent of a `/.../` capture). Checked before the positional-ref path (`$text`
+        // is not a digit run). The `$0` alias is DEFERRED (it collides with positional-index-0 in
+        // extraction/accessor/multi-digit forms; see the typed-JSON path note).
+        if trimmed == "$text" {
             return Ok(UnifiedReturnAST::MatchedText);
         }
 

@@ -212,6 +212,27 @@ complex := '(' identifier operator number ')' -> {
 - **Literals count**: Every quoted string gets a position
 - **Groups count as one**: `(a b c)` is one element, not three
 
+### Whole-Match Text — `$text`
+
+`$text` returns the rule's **entire matched source text** as a single string `Terminal`,
+regardless of the body's internal structure. It is the native, Rust-regex-free equivalent of a
+`/.../`-with-capture: where `$1`..`$N` reference the *children*, `$text` references the *whole match*.
+
+```ebnf
+# Build a multi-character token from single-char rules and recover it as ONE flat string:
+octal_digits := octal_digit+            -> $text     # "777", not ["7","7","7"]
+hex_escape   := 'x' hex_digit hex_digit -> $text     # "xFF"
+```
+
+Use `$text` when a quantified or multi-element body must yield the matched substring as a string
+(the shape a `/.../` capture used to produce) instead of the structured `Quantified`/`Sequence` a
+bare `$1`/passthrough would yield. Codegen emits `ParseContent::Terminal(&input[start..end])` for the
+rule's span — no `regex` engine, no allocation.
+
+> Introduced by REGEX-SELF-HOSTING.3 to let a grammar drop `/.../` and still emit clean string
+> payloads. (A `$0` whole-match alias is planned but not yet enabled — it collides with the
+> positional-index-0 forms `$00`/`$0::…` and needs a lookahead guard; use `$text`.)
+
 ---
 
 ## Arrays and Spreading

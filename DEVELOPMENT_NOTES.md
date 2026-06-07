@@ -1,4 +1,32 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.3 part-2 — `$text` on the generated surface; `.3` DONE (PGEN-REGEX-SELF-HOST-0006)
+
+### Landed
+`return_annotation.ebnf` gains `matched_text_reference := '$' 'text' -> {type: "matched_text"}` (wired into
+`primary_expression`); regen'd the generated return-annotation parser; `from_json` maps
+`{type:"matched_text"}` → `MatchedText`; shape-contract manifest re-pinned. `-> $text` now works end-to-end
+on BOTH the bootstrap and generated surfaces (throwaway `num = digit+ -> $text` → span Terminal). lib 614/0,
+generated_parsers 653/0, clippy ✓, regex oracle byte-identical.
+
+### The `$0` collision (why it's deferred)
+Running the FULL `--features generated_parsers` suite (not just the throwaway) surfaced the conflict that the
+throwaway alone hid: making `$0` → MatchedText broke `return_annotation_ast_shape_contract` on the stress
+corpus `$+0.A.A000[($0::first)[$00]]`. Root cause: `$0`/`$00`/`$+0` are valid positional-index-0 refs used
+as extraction/accessor BASES; the generated parser builds them via `positional_reference` (`'$' integer`) and
+my part-1 `from_json` `index==0`→MatchedText remapped them, while the bootstrap parser only remapped the
+EXACT bare `"$0"` — so the two surfaces disagreed on `$0::first`/`$00`. There is no clean way to make `$0`
+both "the whole-match alias" AND "a positional ref usable as an extraction base" without a lookahead guard
+(bare `$0` not followed by a digit or `::`/`.`/`[`/`*`). So I reverted all `$0`→MatchedText paths (keeping
+the two surfaces consistent and the corpus passing) and shipped `$text` only — the collision-free canonical
+spelling. `$0` is tracked as the deferred `.3a` (guarded grammar alternative). Lesson: a same-meaning ALIAS
+for an existing token must be checked against every context that token already composes with (extraction,
+accessor, multi-digit), not just the bare top-level case.
+
+### Manifest mechanics
+Adding an alternative to `primary_expression` shifted the `'(' expression ')' -> $2` branch from
+`branch_index` 8→9; the shape-contract crosscheck is an alphabetical-by-rule ordered list, so the new
+`matched_text_reference` entry slots between `flat_spread_expression` and `null_literal`.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.3 part-1 — `$text`/`$0` surface A + machinery (PGEN-REGEX-SELF-HOST-0005)
 
 ### Landed (additive/dormant, 614/0)
