@@ -1,4 +1,8 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-MEMORY-ARCH-0022 (handoff hygiene): relocate two completed trees from the Active to the Completed table in docs/TASK_TREE.md (docs).
+
+Layer-B index hygiene for handoff readiness (same kind as `-0021`): `LEXICAL-ANNOTATIONS` (done 2026-06-07, `-0020`) and `ANNOTATION-COMPOSITION` (done 2026-06-06, `-0001..0008`) were marked `done` but still sat in the **Active Task Trees** table. Moved both to the **Completed Task Trees** table (summary-level entries, like the other completed rows; full detail remains in their task files). The Active table now lists only genuinely-active trees: `SV-EXH-PROOF`, `PARSE-SOTA`, `KNOWLEDGE-MAP`, `EBNF-SOURCE-OF-TRUTH`, `GRAMMAR-WELLFORMED`. No status change (both were already `done`); pure docs. Verified: Active table has no `done` rows; both new Completed rows are well-formed (5 columns); memarch OK.
+
 ## 2026-06-07 - PGEN-EBNF-SOT-0001 (new tree EBNF-SOURCE-OF-TRUTH .1): root-cause how a grammar-driven generator can emit parser-rejected output; name the binding rule (docs).
 
 Answered (and root-caused) a foundational question the director flagged as fishy: how can the stimuli generator, which derives strings from the EBNF, produce strings the parser rejects? It should be impossible by construction — and the fact that it happened is a real defect, not something to classify-and-route.
