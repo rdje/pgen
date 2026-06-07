@@ -361,6 +361,12 @@
         "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: $2, initial_close: $3, body: $4}"
       },
       {
+        "rule": "char_class",
+        "branch_index": 1,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"atom\", kind: \"char_class\", negated: $2, initial_close: [], body: $3}"
+      },
+      {
         "rule": "class_escape",
         "branch_index": 0,
         "annotation_type": "return_scalar",

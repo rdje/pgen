@@ -347,7 +347,16 @@ posix_word_boundary_alias = "[[:<:]]" -> {type: "anchor", kind: "posix_word_star
 # the raw `class_body` shape (the typed `posix_class`,
 # `class_range`, `quoted_class_literal`, etc. inside propagate
 # already; class_body sub-rule typing is its own concern).
-char_class     = "[" negation? class_initial_close? class_body "]"   -> {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
+#
+# REGEX-PCRE2-FIDELITY.3.7: a char class must be NON-EMPTY (PCRE2 — the first `]` after `[`/`[^` is a
+# LITERAL member, so `[]`/`[^]` are unterminated, not empty classes). The former single body
+# `class_initial_close? class_body` let the stimuli generator emit `[]`/`[^]` (no-initial-close AND
+# empty-body), which the parser then rejects (a cert-coverage `sample_parse_failures` round-trip gap).
+# Split into two alts so a class always has >=1 member: alt 1 is the `[]...]` form (the first `]` is a
+# literal member → `initial_close: true`); alt 2 has >=1 non-`]` item (`initial_close: []`). AST shape
+# is preserved exactly (`[]]`→initial_close:true,body:[]; `[x]`→initial_close:[],body:[x]).
+char_class     = "[" negation? class_initial_close class_body "]"    -> {type: "atom", kind: "char_class", negated: $2, initial_close: $3, body: $4}
+               | "[" negation? class_body_nonempty "]"              -> {type: "atom", kind: "char_class", negated: $2, initial_close: [], body: $3}
 class_initial_close = "]"                                            -> true
 
 @generate: "^" if $1 else ""
@@ -358,6 +367,15 @@ negation       = "^"                                                 -> true
 @semantic_value: flatten($1)
 @validate: all($1, item => is_valid_class_item(item))
 class_body     = class_item*
+
+# REGEX-PCRE2-FIDELITY.3.7: the non-empty class body (>=1 item) used by `char_class` alt 2, so a class
+# whose first member is NOT a literal `]` still has at least one member (forbids `[]`/`[^]`). Same item
+# type + annotations as `class_body`; its value is the same flat class-item list (so the `char_class`
+# `body` shape is identical to alt 1).
+@generate: build_class_items_list($1)
+@semantic_value: flatten($1)
+@validate: all($1, item => is_valid_class_item(item))
+class_body_nonempty = class_item+
 
 @dispatch: {
     "range": generate_range_check($1.start, $1.end),

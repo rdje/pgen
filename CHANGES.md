@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-REGEX-PCRE2-0010 (REGEX-PCRE2-FIDELITY .3.7 cause (a)): empty char class `[]`/`[^]` no longer generated (CODE; surface-neutral, byte-identical).
+
+First fix of the regex cert-coverage-clean campaign. PCRE2 treats the first `]` after `[`/`[^` as a LITERAL
+member, so `[]`/`[^]` are unterminated, not empty classes — the parser correctly rejects them, but the
+stimuli generator was *emitting* them (a generator↔parser round-trip gap), because
+`char_class = "[" negation? class_initial_close? class_body "]"` with `class_body = class_item*` allowed the
+(no-initial-close AND empty-body) combination.
+
+- `grammars/regex.ebnf`: split `char_class` into two alternatives so a class always has ≥1 member —
+  alt 1 `"[" negation? class_initial_close class_body "]"` (the `[]…]` form; first `]` is a literal member →
+  `initial_close: true`) | alt 2 `"[" negation? class_body_nonempty "]"` (`class_body_nonempty = class_item+`;
+  `initial_close: []`). The generator can no longer produce `[]`/`[^]`.
+- AST shape **preserved exactly** — `[]]`→`{negated:[],initial_close:true,body:[]}`, `[x]`→`{initial_close:[],
+  body:[x]}`, `[^x]`→`{negated:true}`. Manifest `regex_v1.json` synced 172→173 (both char_class branches).
+
+Verified: `[]`/`[^]` reject; `[]]`/`[^]]`/`[a-z]`/`[]x]`/`[\QxY\E]` pass; `regex_pcre2_compile_oracle_gate`
+BYTE-IDENTICAL (conformance-neutral → no version bump); self-hosting gate OK (0 `/.../`, 0 `match_regex`);
+`cargo test --lib` 615/0, `--features generated_parsers` 654/0; clippy ✓. The cert-coverage *count* is
+sample-dependent (it read 14→16 across the grammar change) — not a regression: the empty-class CATEGORY is
+structurally eliminated; the remaining residual is the word-boundary-spacing causes (b)`(?(R N)`/(c) name,
+fixed next in the stimuli generator. Surface-neutral → no book/contract change.
+
 ## 2026-06-08 - PGEN-REGEX-PCRE2-0009 (REGEX-PCRE2-FIDELITY .3.7 ROOT-CAUSE): regex default cert-coverage residual measured + root-caused into 3 causes (docs).
 
 Started the regex cert-coverage-clean campaign (director sequencing after self-hosting). Re-measured the

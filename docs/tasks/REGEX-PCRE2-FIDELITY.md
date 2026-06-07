@@ -151,6 +151,27 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   accepts the recognized set; relaxed accepts arbitrary) + `regex_pcre2_compile_oracle_gate` (no new
   divergence) + cert-coverage + lib + clippy; regen LOCAL. Lockstep IFF surface changes (assess —
   likely surface-neutral like `.3.1`, so book note only, no version bump).
+- ID: `.3.7`  Status: `in-progress` (root-cause `PGEN-REGEX-PCRE2-0009`; cause (a) DONE `PGEN-REGEX-PCRE2-0010`)
+  Goal: drive regex DEFAULT-profile cert-coverage `sample_parse_failures` → 0. Root-caused (2026-06-08) into
+  3 generator↔parser round-trip causes (each minimal-repro'd via `parseability_probe --parse regex`):
+  - **(a) empty char class `[]`/`[^]`** — DONE (`-0010`). PCRE2: the first `]` after `[`/`[^` is a LITERAL
+    member, so `[]`/`[^]` are unterminated, not empty classes. The former `char_class = "[" negation?
+    class_initial_close? class_body "]"` (`class_body = class_item*`) let the generator emit `[]`/`[^]`
+    (no-initial-close AND empty-body). FIX = split `char_class` into two alts so a class always has ≥1
+    member: alt 1 `"[" negation? class_initial_close class_body "]"` (the `[]…]` form, `initial_close:true`)
+    | alt 2 `"[" negation? class_body_nonempty "]"` (`class_body_nonempty = class_item+`, `initial_close:[]`).
+    AST shape PRESERVED exactly (`[]]`→initial_close:true,body:[]; `[x]`→initial_close:[],body:[x];
+    `[^x]`→negated:true). VERIFIED: `[]`/`[^]` reject, `[]]`/`[^]]`/`[a-z]`/`[]x]`/`[\QxY\E]` pass; oracle
+    BYTE-IDENTICAL; manifest synced (172→173, both char_class branches); self-hosting intact (0 `/.../`, 0
+    `match_regex`); lib 615/0, generated_parsers 654/0, clippy ✓. The generator can no longer emit `[]`/`[^]`.
+    (Note: the cert-cov COUNT is sample-dependent — at count 200/seed 0 it read 14→16 across the grammar
+    change, NOT a regression: the empty-class CATEGORY is structurally gone; the residual is now spacing.)
+  - **(b) `(?(R N)` spacing** + **(c) name/condition spacing** — PENDING. `(?(R 1))` rejects / `(?(R1))`
+    passes; `(?P=a b)`/`(?(m _ _))` reject / `(?P=ab)` passes. Word-boundary-spacing residuals (the
+    LEXICAL-ANNOTATIONS `apply_word_boundary_spacing` over-insertion, like the `(*VERB )` family it fixed in
+    `.5`): the generator inserts a space between `R` and the recursion digit, and inside a `name`/condition.
+    Fix in the spacing generator (LEXICAL-ANNOTATIONS) so it doesn't separate inside `(?(R N)`/a name. THEN
+    re-measure → regex default `sample_parse_failures` → 0.
 - ID: `.3.11`  Status: `pending` (DISCOVERED `PGEN-REGEX-PCRE2-0006`, tool-backed)  Goal: full PCRE2
   **escape whitelist** — strict/default mode accepts ONLY PCRE2's recognized escape letters; the broad
   `simple_escape`/`class_simple_escape`/`class_range_literal_escape_letter` catch-alls become the `relaxed`
@@ -372,6 +393,8 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `2026-06-07` | `.3.1` design (`-0006`) | `pcre2test` 10.47 oracle matrix (6 letters reject in atom/class/class-range; broad unrecognized-escape reject); grammar read (3 catch-alls); profile-guard codegen read (clean backtrack, `None`=permissive); manifest read | DESIGN COMPLETE — found+fixed the omitted 3rd catch-all; spun out `.3.11` (full escape whitelist) |
 | `2026-06-07` | `.3.1` impl (`-0007`) | behaviour matrix 15/15 (default rejects 6 / relaxed accepts 6 / controls unchanged); AST shapes preserved; `cargo test --lib` 612/0; `--features generated_parsers` 651/0 (incl. shape-contract + contract failure-samples); clippy strict source ✓; `regex_pcre2_compile_oracle_gate` GREEN + stash-baseline CONFORMANCE-NEUTRAL (OLD≡NEW 46/292/338); cert-coverage default 4 (known residuals)/relaxed 3 | **DONE** — landed; baseline 45→46 (pre-existing drift); surface-neutral, no version bump |
 | `2026-06-07` | `.3.2` impl (`-0008`) | verb matrix (default rejects `(*FOO)`/`(*MARKX)`/`(*accept)`, accepts 8 verbs + start-options; relaxed accepts arbitrary; `(*MARK)`/`a(*UTF)` structural-reject both); `cargo test --lib` 612/0; `--features generated_parsers` 651/0; clippy strict source ✓; `regex_pcre2_compile_oracle_gate` GREEN (46/292/338 byte-identical = conformance-neutral); cert-cov default 4→1 (only empty-`[]`; relaxed 5 = empty-class residuals, no verb failures); both book gates GREEN | **DONE** — surface-neutral, no version bump |
+| `2026-06-08` | `.3.7` root-cause (`-0009`) | `--report-certificate-coverage --entry-rule regex --count 200 --seed 0` → `sample_parse_failures=14`; `parseability_probe --parse regex` minimal repros isolated 3 causes (empty `[]`/`[^]`; `(?(R N)` spacing; name spacing); `\Q…\E`-with-`]` ruled out as red herrings | ROOT-CAUSE DONE (docs); 14 vs pre-self-hosting 3 = sample-set shift, oracle byte-identical (not a regression) |
+| `2026-06-08` | `.3.7` (a) impl (`-0010`) | `char_class` two-alt split (always ≥1 member); `[]`/`[^]` reject + `[]]`/`[^]]`/`[a-z]`/`[]x]`/`[\QxY\E]` pass; AST shapes preserved (`[]]`→initial_close:true; `[x]`→initial_close:[]); `regex_pcre2_compile_oracle_gate` BYTE-IDENTICAL; manifest synced 172→173; self-hosting gate OK (0 `/.../`, 0 `match_regex`); lib 615/0, generated_parsers 654/0, clippy ✓ | **(a) DONE** — empty-class category structurally eliminated; surface-neutral (no version bump); (b)/(c) spacing next |
 
 ## Commit Log
 
@@ -385,6 +408,8 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 | `.3.1` design completion | `PGEN-REGEX-PCRE2-0006` | tool-backed (pcre2test oracle); completes the design across ALL 3 catch-alls + recomputed positional refs; spun out `.3.11` (full escape whitelist) |
 | `.3.1` implementation | `PGEN-REGEX-PCRE2-0007` | grammar 3-catch-all strict/relaxed split + `unicode_escape` relaxed + generator `pcre2` default (+ codegen-path exemption) + `find_invalid_escape_i` deleted + embedding `pcre2` default + manifest + oracle baseline 45→46 + handoff/book lockstep; conformance-neutral (stash-proven); no version bump |
 | `.3.2` implementation | `PGEN-REGEX-PCRE2-0008` | `directive_name` strict (verbs+start-options, longest-first, case-sensitive) / `relaxed` split + validator unrecognized-name reject removed (structural checks kept) + book/contract/parser-families lockstep; conformance-neutral (oracle byte-identical); no version bump; no manifest change |
+| `.3.7` root-cause | `PGEN-REGEX-PCRE2-0009` | regex default cert-coverage = 14, root-caused into 3 causes (empty `[]`/`[^]`; `(?(R N)` spacing; name spacing); docs-only |
+| `.3.7` (a) char_class | `PGEN-REGEX-PCRE2-0010` | empty-class fix: `char_class` two-alt split (always ≥1 member) → generator can't emit `[]`/`[^]`; oracle byte-identical; AST shapes preserved; manifest 172→173; surface-neutral |
 
 ## Changelog
 
