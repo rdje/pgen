@@ -1,4 +1,26 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0003 (REGEX-SELF-HOSTING .2): native `any_char` engine primitive (CODE; additive/dormant, byte-identical).
+
+The enabling engine primitive for self-hosting: a built-in native any-single-character matcher.
+`generate_unresolved_reference_method` (`rust/src/ast_pipeline/ast_based_generator.rs`) gains an
+`"any_char"` arm so that a `rule_reference` to `any_char` with NO grammar definition emits a native
+`parse_any_char` — read one char via `self.input[pos..].chars().next()`, advance by `len_utf8()`,
+`Backtrack` at EOF, **no `regex::Regex`**, no whitespace skipping. Parser-agnostic (any grammar can use it
+to express negated/any-char classes as the `!"X" any_char` idiom and stay `/.../`-free). Spelling decided by
+the director (`-0002`): a built-in reserved rule name `any_char` (no new EBNF punctuation).
+
+**Additive / byte-identical:** only `regex.ebnf` references `any_char` and it DEFINES it (`any_char = /.../`
+until `.4`), so the built-in is dormant — every parser regenerates unchanged (regex stays 214 rules;
+`parse_any_char` still uses `match_regex`). The built-in activates only when a grammar drops its own
+`any_char` definition (`.4`).
+
+**Verified:** new codegen unit test `unresolved_reference_codegen_emits_native_any_char_matcher` (asserts the
+native matcher — `chars()`/`len_utf8`, no regex); `cargo test --lib` 613/0; clippy strict source ✓; regex
+regen unchanged; END-TO-END on the real generate path — a throwaway grammar `test_rule = "a" any_char "b"`
+(any_char undefined) generated a native `parse_any_char` (no `regex::Regex`). No book/contract change (no
+user-facing behaviour change — dormant until `.4`/`.5`). Frontier → `.3` (convert the ~20 simple positive
+char-classes in regex.ebnf to literal `'c'` alternations, each oracle byte-identical).
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0001 (NEW TREE REGEX-SELF-HOSTING .1 SCOPING): make regex.ebnf `"..."`-only / Rust-regex-free (docs).
 
 Director directive 2026-06-07: PGEN's regex parser should not use `/.../` regex-literals in `regex.ebnf`,

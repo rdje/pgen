@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.2 — native `any_char` engine primitive (PGEN-REGEX-SELF-HOST-0003)
+
+### What landed
+A built-in native any-single-character matcher in the codegen. `generate_unresolved_reference_method`
+(`ast_based_generator.rs`) already special-cased `true`/`false`/`semantic_annotation` before its default
+Backtrack stub; added an `"any_char"` arm: a `rule_reference` to `any_char` with no grammar definition emits
+`parse_any_char` = `let matched_char = match self.input[start_pos..].chars().next() { Some(ch)=>ch, None=>Backtrack };
+self.position = start_pos + matched_char.len_utf8(); Ok(Terminal(&self.input[start_pos..end_pos]))`. Unicode
+scalar semantics (advance by UTF-8 byte length); no Rust regex; no whitespace skip.
+
+### Why this design (built-in via the unresolved-reference path)
+- Spelling = built-in reserved rule name `any_char` (director pick) — no new EBNF token/punctuation; grammars
+  just reference `any_char`.
+- Hooking the EXISTING unresolved-reference mechanism makes it ADDITIVE and collision-free: a grammar that
+  DEFINES `any_char` keeps its definition (built-in dormant). Only `regex.ebnf` references `any_char`, and it
+  defines it (`/.../`) until `.4`, so every parser regenerates byte-identical now. The built-in activates in
+  `.4` when regex.ebnf drops the definition.
+- Parser-agnostic (any grammar can go `/.../`-free with it): justified engine change per the
+  leave-the-engine-alone discipline's parser-agnostic-feature carve-out.
+
+### Verification
+Codegen unit test (native matcher emitted, no regex); `cargo test --lib` 613/0; clippy strict source ✓;
+regex regen unchanged (parse_any_char still match_regex); end-to-end — generated a throwaway parser from
+`test_rule = "a" any_char "b"` (any_char undefined) and confirmed a native `parse_any_char` on the real
+generate path (chars()/len_utf8, no `regex::Regex`). No user-facing change (dormant) → no book/contract.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.1 — scoping: regex.ebnf `"..."`-only / drop Rust regex-engine dependency (PGEN-REGEX-SELF-HOST-0001)
 
 ### The finding (tool-backed)

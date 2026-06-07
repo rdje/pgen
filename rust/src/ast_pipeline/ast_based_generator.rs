@@ -807,6 +807,34 @@ impl AstBasedGenerator {
                     })
                 }
             },
+            // REGEX-SELF-HOSTING.2 (PGEN-REGEX-SELF-HOST-0003): built-in native any-single-character
+            // matcher. A grammar that REFERENCES `any_char` without DEFINING it gets this native matcher
+            // instead of the Backtrack stub — consume exactly one Unicode scalar value (advance by its
+            // UTF-8 byte length), with NO `regex::Regex`. This lets a `/.../`-free grammar express
+            // negated/any-char classes as the `!"X" any_char` idiom (parser-agnostic; usable by any
+            // grammar). No leading-whitespace skipping (it matches the literal next character);
+            // Backtracks at end of input. A grammar that defines its own `any_char` rule keeps that
+            // definition (this built-in is dormant), so the change is additive + byte-identical.
+            "any_char" => quote! {
+                pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
+                    let start_pos = self.position;
+                    let matched_char = match self.input[start_pos..].chars().next() {
+                        Some(ch) => ch,
+                        None => {
+                            return Err(ParseError::Backtrack {
+                                position: start_pos,
+                            });
+                        }
+                    };
+                    let end_pos = start_pos + matched_char.len_utf8();
+                    self.position = end_pos;
+                    Ok(ParseNode {
+                        rule_name: #rule_name,
+                        content: ParseContent::Terminal(&self.input[start_pos..end_pos]),
+                        span: start_pos..end_pos,
+                    })
+                }
+            },
             _ => quote! {
                 pub fn #method_name(&mut self) -> ParseResult<ParseNode<'input>> {
                     Err(ParseError::Backtrack {
@@ -9531,6 +9559,50 @@ mod semantic_usage_tests {
         assert!(
             rendered.contains("\"true\""),
             "expected parse_true fallback to materialize boolean content, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn unresolved_reference_codegen_emits_native_any_char_matcher() {
+        // REGEX-SELF-HOSTING.2: a `rule_reference` to `any_char` with no grammar definition emits a
+        // native one-char matcher (no Rust `regex`), not the Backtrack stub.
+        let generator = AstBasedGenerator::new("usage_test".to_string());
+
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "any_char")],
+            },
+        );
+        let rule_order = vec!["start".to_string()];
+
+        let methods = generator.generate_unresolved_reference_methods(&grammar_tree, &rule_order);
+        let rendered = methods
+            .into_iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        assert!(
+            rendered.contains("pub fn parse_any_char"),
+            "expected a parse_any_char method, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("len_utf8"),
+            "expected the native any_char matcher to advance by one UTF-8 char (len_utf8), got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("chars"),
+            "expected the native any_char matcher to read one char via chars().next(), got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("match_regex") && !rendered.contains("Regex"),
+            "the native any_char matcher must NOT use Rust regex, got: {}",
             rendered
         );
     }

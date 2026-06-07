@@ -86,8 +86,17 @@ content.
 - ID: `.1`  Status: **`done`** (`PGEN-REGEX-SELF-HOST-0001`) — scoping: measured 36 `/.../`→`"regex"`→Rust
   `regex`; codegen has only `match_string`/`match_regex`; native `[...]` also compiles to regex; ~20 simple
   classes convert to literal alternations, ~16 negated/any-char classes NEED a native any-char primitive.
-- ID: `.2`  Status: `pending`  Goal: DESIGN + add the parser-agnostic **any-single-character** engine
-  primitive. **SURFACE DECIDED (director 2026-06-07): a built-in reserved rule name `any_char`** — NO new
+- ID: `.2`  Status: **`done`** (`PGEN-REGEX-SELF-HOST-0003`) — added the native `any_char` built-in to the
+  codegen (`generate_unresolved_reference_method` arm): a `rule_reference` to `any_char` with no grammar
+  definition emits `parse_any_char` = read one char (`self.input[pos..].chars().next()`), advance by
+  `len_utf8()`, `Backtrack` at EOF, NO `regex::Regex`; no whitespace skip. ADDITIVE/byte-identical (only
+  regex references `any_char`, and it DEFINES it → built-in dormant → regex parser unchanged, 214 rules).
+  VERIFIED: codegen unit test `unresolved_reference_codegen_emits_native_any_char_matcher` (asserts native
+  matcher, no regex); `cargo test --lib` 613/0; clippy strict source ✓; regex regen unchanged
+  (parse_any_char still `match_regex`); END-TO-END on the real generate path — throwaway grammar
+  `test_rule = "a" any_char "b"` (any_char undefined) generated a native `parse_any_char` (chars()/len_utf8,
+  no regex). No book/contract change (dormant; no user-facing change until `.4`/`.5`).
+  **SURFACE DECIDED (director 2026-06-07): a built-in reserved rule name `any_char`** — NO new
   EBNF punctuation/token; grammars just reference `any_char` and `[^X]` becomes `!"X" any_char`. Plan:
   codegen recognizes a `rule_reference` to `any_char` that has **no grammar definition** and emits a native
   `parse_any_char()` calling a new `match_any_char` helper (consume exactly one char, advance by its UTF-8
@@ -136,16 +145,26 @@ content.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-07` | `.1` | grep `regex.json` node types (36 `"regex"`); codegen matcher audit (`match_string`/`match_regex` only; no native char-class/any-char); meta-grammar `[...]`→regex; per-`/.../ ` classification | SCOPING DONE — 1 engine primitive needed + mechanical conversions |
+| `2026-06-07` | `.2` (`-0003`) | codegen unit test (native matcher: chars/len_utf8, no regex); `cargo test --lib` 613/0; clippy strict source ✓; additivity (only regex refs `any_char` + DEFINES it → built-in dormant → regex regen 214 rules unchanged, parse_any_char still `match_regex`); END-TO-END throwaway grammar `"a" any_char "b"` → native `parse_any_char` on the real generate path | **DONE** — additive, no user-facing change (no book/contract) |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `.1` | `PGEN-REGEX-SELF-HOST-0001` | scoping (pure docs); tool-backed feasibility + plan |
+| `.2` decision | `PGEN-REGEX-SELF-HOST-0002` | record director's any-char spelling = built-in `any_char` rule (docs) |
+| `.2` impl | `PGEN-REGEX-SELF-HOST-0003` | native `any_char` built-in in codegen + unit test; additive/dormant (byte-identical); end-to-end proven |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
-  make `regex.ebnf` `"..."`-only / Rust-regex-free. Frontier → `.2` (design + add the native
-  any-single-character engine primitive). After this tree closes, resume regex cert-coverage-clean
-  (`REGEX-PCRE2-FIDELITY.3.7` empty-`[]` → regex default cert-cov 0, then GRAMMAR-WELLFORMED Phase H).
+  make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.2` design decision (`PGEN-REGEX-SELF-HOST-0002`) — any-char primitive = built-in reserved
+  rule name `any_char` (director pick); then `.2` IMPLEMENTATION DONE (`PGEN-REGEX-SELF-HOST-0003`): native
+  `any_char` built-in added to the codegen (emitted for a `rule_reference` to `any_char` with no grammar
+  definition); additive/dormant (regex still defines `any_char` → byte-identical, 214 rules); verified by
+  unit test + lib 613/0 + clippy strict + end-to-end throwaway-grammar generation. No user-facing change
+  (no book/contract). Frontier → `.3` (convert the ~20 simple positive char-classes in `regex.ebnf` to
+  literal `'c'` alternations + EBNF quantifiers; each regen + oracle byte-identical). After the tree
+  closes, resume regex cert-coverage-clean (`REGEX-PCRE2-FIDELITY.3.7` empty-`[]` → regex default 0, then
+  GRAMMAR-WELLFORMED Phase H).
