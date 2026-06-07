@@ -155,10 +155,18 @@ content.
   throwaway grammar (`r = digit+ -> $text` over `"123"` → `"123"`). ADDITIVE (no existing annotation uses
   `$text`/`$0`) → all parsers byte-identical. Lockstep: `docs/RETURN_ANNOTATIONS_REFERENCE.md` +
   `PGEN_ANNOTATION_NORMATIVE_SPEC.md` + the return-annotation contract + annotation book chapter.
-- ID: `.4`  Status: `pending`  Goal: convert the POSITIVE char-classes in `regex.ebnf` to literals — single
-  ones (`digit`/`letter`/`hex_digit`/`octal_digit`/`whitespace`/`short_prop_letter`/… → `'c'` ordered-choice;
-  shape-safe one-char Terminal) and quantified ones (`digits = digit+ -> $text`, etc.; uses `.3`'s `$text`).
-  Batches, each regen + oracle byte-identical + lib + shape-contract + RGX conformance. Removes ~20 of 36.
+- ID: `.4`  Status: `in_progress` — convert the POSITIVE char-classes in `regex.ebnf` to literals, in
+  oracle-byte-identical batches. **batch A DONE (`PGEN-REGEX-SELF-HOST-0008`):** 9 rules — `letter`/`digit`/
+  `nonzero_digit`/`hex_digit`/`octal_digit` → `'c'` ordered-choice; `hex_digits`/`octal_digits` →
+  `char+ -> $text`; `hex_escape_short_payload`/`octal_escape_short_payload` → bounded `char char? … -> $text`.
+  Verified oracle byte-identical, AST shapes preserved (`\o{777}`→"777", `\x{FF}`→"FF"), regex shape-contract
+  manifest +4 `$text` entries (`regex_v1.json`), lib 614/0 + generated_parsers 653/0, clippy ✓; `match_regex`
+  calls down to 25. **REMAINING:** (b) the 3 `@transform → usize` rules (`digits`, `backreference_digits`,
+  `backreference_digits_single`) — verify `@transform` operates on the matched span (so a literal body keeps
+  the usize result) before converting; (c) `whitespace [ \t\n\r\f\v]` + `prop_name` — need control-char
+  literals (`'\t'`/`'\n'`/… — verify EBNF char-literal escape support first). `short_prop_letter` (printable)
+  can convert anytime. The big sets (`literal_char`/`class_literal`/`special_char`/`any_char`) + `name`/
+  `unicode_char` are `.5` (they contain the negated `[^\x00-\x7F]`).
 - ID: `.5`  Status: `pending`  Goal: convert the NEGATED / content-until-delimiter / any-char classes using
   `!"X" any_char` (`.2`'s primitive) + `$text` for multi-char runs (`unicode_char`, `name`, callout
   payloads, `directive_payload_*`, `comment_text`, `any_char`). ⚠️ range-negations like
@@ -219,6 +227,7 @@ content.
 | `2026-06-07` | `.3` part-1 (`-0005`) | `MatchedText` variant + `parse_bootstrap` `$text`/`$0` + codegen span-Terminal + 8 exhaustiveness sites + unit test `matched_text_dollar_text_and_dollar_zero_emit_span_terminal`; `cargo test --lib` 614/0; additive/dormant. END-TO-END diagnosis: throwaway `num = digit+ -> $text` still emits passthrough via the GENERATED return_annotation parser (surface B) → part-2 needed | **PART-1 DONE** (surface A + machinery); part-2 (surface B) pending |
 | `2026-06-07` | `.3` part-2 (`-0006`) | `return_annotation.ebnf` `matched_text_reference` + regen + `from_json` `{type:"matched_text"}`→MatchedText; manifest `return_annotation_v1.json` (matched_text entry + primary_expression branch 8→9); reverted `$0`→MatchedText (collision); lib 614/0, generated_parsers 653/0, clippy ✓, regex oracle byte-identical; END-TO-END throwaway `num = digit+ -> $text` → `Terminal(&parser.input[start_pos..parser.position])`; docs lockstep (3 surfaces) | **`.3` DONE for `$text`**; `$0` deferred (`.3a`) |
 | `2026-06-07` | `.3a` (`-0007`) | `$0` (any index-0 spelling) → MatchedText in BOTH surfaces (bootstrap `parse_positional_ref` + `from_json`); new `E_RET_WHOLE_MATCH_NOT_COMPOSABLE` for `$0::first`/`$0.x`/`$0[i]`; retired `E_RET_POS_ZERO`; re-pointed stress + chain-walker tests; lib 614/0, generated_parsers 653/0, clippy ✓, regex byte-identical; END-TO-END `$0`/`$00`/`$+0` → span Terminal; docs lockstep | **`.3a` DONE — `$0` enabled (Perl5)** |
+| `2026-06-07` | `.4` batch A (`-0008`) | converted 9 positive char-classes (`letter`/`digit`/`nonzero_digit`/`hex_digit`/`octal_digit` → `'c'` ordered-choice; `hex_digits`/`octal_digits` → `char+ -> $text`; `hex_escape_short_payload`/`octal_escape_short_payload` → bounded `-> $text`); regen → oracle BYTE-IDENTICAL; AST shapes preserved (`\o{777}`→"777", `\x{FF}`→"FF", `\17`→"17", `\xAB`→"AB"); regex shape-contract manifest +4 `$text` entries; lib 614/0, generated_parsers 653/0, clippy ✓; `match_regex` calls 25 | **`.4` batch A DONE**; @transform rules + whitespace + `.5` remaining |
 
 ## Commit Log
 
@@ -230,11 +239,22 @@ content.
 | `.3` part-1 | `PGEN-REGEX-SELF-HOST-0005` | `$text`/`$0` surface A (bootstrap) + `MatchedText` AST + codegen + 8 exhaustiveness + test; additive/dormant; surface B (generated parser) diagnosed as the remaining critical path |
 | `.3` part-2 | `PGEN-REGEX-SELF-HOST-0006` | `$text` surface B (`return_annotation.ebnf` + regen + `from_json` mapping + manifest); end-to-end works; regex byte-identical; `$0` deferred (collision). `.3` DONE for `$text` |
 | `.3a` | `PGEN-REGEX-SELF-HOST-0007` | `$0` whole-match alias enabled (Perl5): index-0→MatchedText both surfaces + E_RET_WHOLE_MATCH_NOT_COMPOSABLE + retired E_RET_POS_ZERO; tests re-pointed; byte-identical. `$0` DONE |
+| `.4` batch A | `PGEN-REGEX-SELF-HOST-0008` | 9 positive char-classes → literals (`'c'` alternations + `char+ -> $text` + bounded payloads); oracle byte-identical; shapes preserved; manifest +4; `match_regex` calls → 25. The FIRST actual `/.../` removal from regex.ebnf |
 
 ## Changelog
 
 - `2026-06-07`: tree created + `.1` scoping done (`PGEN-REGEX-SELF-HOST-0001`) per the director directive to
   make `regex.ebnf` `"..."`-only / Rust-regex-free.
+- `2026-06-07`: `.4` batch A (`PGEN-REGEX-SELF-HOST-0008`) — the FIRST actual `/.../` removal from
+  `regex.ebnf`. Converted 9 positive char-classes to literals: single (`letter`/`digit`/`nonzero_digit`/
+  `hex_digit`/`octal_digit` → `'c'` ordered-choice, shape-safe one-char Terminal) + quantified
+  (`hex_digits`/`octal_digits` → `char+ -> $text`) + bounded payloads (`hex_escape_short_payload`/
+  `octal_escape_short_payload` → `char char? … -> $text`). All native (`parse_digit`/etc. use no
+  `match_regex`). Regen → oracle BYTE-IDENTICAL; AST shapes preserved (`\o{777}`→"777", `\x{FF}`→"FF");
+  regex shape-contract manifest gained 4 `$text` declared-annotation entries (alphabetical); lib 614/0,
+  generated_parsers 653/0, clippy ✓; `match_regex` calls down to 25. Conformance- + shape-neutral → no
+  book/contract change. Remaining `.4`: the 3 `@transform→usize` rules (need a span-vs-value check) +
+  `whitespace`/`prop_name` (control-char literals); then `.5` (negated classes).
 - `2026-06-07`: `.3a` (`PGEN-REGEX-SELF-HOST-0007`) — enabled the `$0` whole-match alias (Perl5: `$0`=whole
   match, `$1..$N`=captures). A tools-first trace showed `$00`/`$+0`/`$0::first` exist only in synthetic
   stress probes and positional index 0 was already a hard error (`E_RET_POS_ZERO`), so any index-0 spelling

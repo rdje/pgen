@@ -632,9 +632,9 @@ hex_escape     = "x" hex_escape_short_payload                    -> {type: "esca
                | "x{" brace_ws? hex_digits brace_ws? "}"         -> {type: "escape", kind: "hex", digits: $3}
 
 # Short-form payload: 1-2 hex digits (PCRE2 `\xNN` semantics — extras
-# are treated as literal text). Regex literal so it emits a clean
-# string Terminal.
-hex_escape_short_payload = /([0-9A-Fa-f]{1,2})/
+# are treated as literal text). `-> $text` emits a clean string Terminal
+# (REGEX-SELF-HOSTING.4; native, no Rust regex).
+hex_escape_short_payload = hex_digit hex_digit? -> $text
 
 @type: "unicode_escape"
 @description: "Unicode escape sequence \u{FFFF}"
@@ -681,7 +681,7 @@ octal_escape   = "o{" brace_ws? octal_digits brace_ws? "}"  -> {type: "escape", 
 # _parser_agnostic`). RGX-0084/RGX-0087 (`\10`@9g/`\012`/`\199`@0g)
 # stay byte-identical; FIX2.1/.2 + the non-class `[89]`-backref
 # reject are FIX2.3-independent and unchanged.
-octal_escape_short_payload = /([0-7]{1,3})/
+octal_escape_short_payload = octal_digit octal_digit? octal_digit? -> $text
 
 @type: "control_escape"
 @description: "Control character escape \cA"
@@ -1150,15 +1150,16 @@ code_not_quote_or_backslash = letter | digit | whitespace | code_safe_special | 
 code_not_squote_or_backslash = letter | digit | whitespace | code_safe_special | unicode_char | '"' | '{' | '}'
 code_safe_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | ')' | '-' | '+' | '=' | '[' | ']' | '|' | ':' | ';' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
 
-# Basic character building blocks. Rules are expressed as /.../ regex
-# literals where it directly maps to a single character class — this
-# is the canonical EBNF form (codegen emits one match_regex call per
-# rule entry instead of N try_parse blocks per single-char alternative).
-letter         = /([A-Za-z])/
-digit          = /([0-9])/
-nonzero_digit  = /([1-9])/
-hex_digit      = /([0-9A-Fa-f])/
-octal_digit    = /([0-7])/
+# Basic character building blocks. Per REGEX-SELF-HOSTING (.4) these are
+# expressed as ordered-choice literal alternations (NOT `/.../` regex
+# literals) so the generated parser is independent of Rust's `regex`
+# engine. Each emits a single-char string Terminal — the same shape as
+# the former `/.../` single-character-class capture (oracle byte-identical).
+letter         = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T' | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z'
+digit          = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+nonzero_digit  = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+hex_digit      = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f'
+octal_digit    = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7'
 whitespace     = /([ \t\n\r\f\v])/
 unicode_char   = /([^\x00-\x7F])/
 
@@ -1177,14 +1178,16 @@ special_char   = /([!@#$%\^&*()\-+={}|\\\\:;"'<>,.?\/\[\]`~])/
 # unaffected — they keep using the per-char `digit` rule.
 @transform: str::parse::<usize>().unwrap_or(0)
 digits         = /([0-9]+)/
-# `hex_digits` rewritten from `hex_digit+` (multi-element chain
-# emitting `[first_digit, [rest_digits]]`) to a regex literal that
-# emits a clean string Terminal of the matched hex chars. Used by
-# `hex_escape` (braced form) and `unicode_escape`.
-hex_digits     = /([0-9A-Fa-f]+)/
-# `octal_digits` rewritten from `octal_digit+` (multi-element chain
-# emitting `[first_digit, [rest_digits]]`) to a regex literal that
-# emits a clean string Terminal of the matched octal chars. Used
-# by `octal_escape` (braced form).
-octal_digits   = /([0-7]+)/
+# REGEX-SELF-HOSTING.4: `hex_digits` = `hex_digit+ -> $text`. The `-> $text`
+# return-annotation emits the whole matched run as ONE clean string Terminal
+# (native equivalent of the former `/.../` capture; no Rust regex), without
+# the `[first_digit, [rest_digits]]` structure a bare `hex_digit+` would
+# produce. Used by `hex_escape` (braced form) and `unicode_escape`.
+hex_digits     = hex_digit+ -> $text
+# REGEX-SELF-HOSTING.4: `octal_digits` = `octal_digit+ -> $text`. The
+# `-> $text` return-annotation emits the whole matched run as ONE clean
+# string Terminal ("777"), the native equivalent of the former `/.../`
+# capture — WITHOUT re-introducing the `[first_digit, [rest_digits]]`
+# structure a bare `octal_digit+` would produce. Used by `octal_escape`.
+octal_digits   = octal_digit+ -> $text
 ws             = whitespace+

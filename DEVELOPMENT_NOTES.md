@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - REGEX-SELF-HOSTING.4 batch A — first `/.../` removal, 9 char-classes → literals (PGEN-REGEX-SELF-HOST-0008)
+
+### What converted (the two patterns, both proven)
+- Single-char class `X = /([abc])/` → `X = 'a' | 'b' | 'c'` (ordered choice of char literals). Shape-safe:
+  the matched alternative is a one-char string Terminal, same as the `/.../` capture. (`letter`, `digit`,
+  `nonzero_digit`, `hex_digit`, `octal_digit`.)
+- Quantified/bounded run `X = /([abc]+)/` → `X = base+ -> $text` (or explicit optionals for bounds). The
+  `-> $text` (REGEX-SELF-HOSTING.3) recovers the whole match as one flat string — without it a bare `base+`
+  would yield a structured `Quantified`, breaking the `digits:"777"` contract. (`hex_digits`, `octal_digits`,
+  `hex_escape_short_payload`, `octal_escape_short_payload`.)
+
+### Tooling gotcha (cost me a verification cycle)
+The `regex_pcre2_compile_oracle_gate`'s regen is mtime-gated and can run against a STALE
+`generated/regex_parser.rs` — after batch 2 the `match_regex` count hadn't moved and `parse_digit` still
+looked unconverted until I ran `make focus_regex` (FORCE regen). **Always force-regen (`focus_regex`) after a
+`regex.ebnf` edit and confirm the `match_regex` call count actually dropped before trusting the oracle.**
+(Added this to the `.4` next_action.)
+
+### Manifest mechanics
+Each rule that gains a `-> $text` becomes a new *declared annotation*, so the regex shape-contract manifest
+(`regex_v1.json`, alphabetical by rule) needs a `{rule, branch_index:0, annotation_type:"return_scalar",
+normalized_text:"$text"}` entry per converted quantified rule (4 here: `hex_digits`, `hex_escape_short_payload`,
+`octal_digits`, `octal_escape_short_payload`). Single-char `'c'` alternations add NO annotation (no `->`), so
+no manifest change for them.
+
+### Deferred within .4 (flagged, not skipped)
+`digits`/`backreference_digits`/`backreference_digits_single` carry `@transform → usize` — need to confirm
+`@transform` reads the matched span (not the rule value) before converting. `whitespace`/`prop_name` contain
+control chars (`\t\n\r\f\v`) — need EBNF char-literal escape support verified first.
+
 ## 2026-06-07 - REGEX-SELF-HOSTING.3a — `$0` whole-match alias enabled (Perl5) (PGEN-REGEX-SELF-HOST-0007)
 
 ### The reframe that unblocked it

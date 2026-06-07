@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0008 (REGEX-SELF-HOSTING .4 batch A): first `/.../` removal — 9 positive char-classes → native literals (CODE; byte-identical).
+
+The first batch of the actual self-hosting conversion: 9 positive character-classes in `regex.ebnf` move
+from `/.../` regex literals (→ Rust `regex`) to native EBNF literals, using the `.2`/`.3` primitives.
+
+- Single-char classes → `'c'` ordered-choice (shape-safe one-char string Terminal): `letter [A-Za-z]`,
+  `digit [0-9]`, `nonzero_digit [1-9]`, `hex_digit [0-9A-Fa-f]`, `octal_digit [0-7]`.
+- Quantified runs → `char+ -> $text` (the REGEX-SELF-HOSTING.3 whole-match primitive keeps the flat-string
+  shape): `hex_digits`, `octal_digits`.
+- Bounded payloads → explicit optionals `-> $text`: `hex_escape_short_payload = hex_digit hex_digit? -> $text`
+  (PCRE2 `\xNN`), `octal_escape_short_payload = octal_digit octal_digit? octal_digit? -> $text`.
+
+`parse_digit`/`parse_letter`/`parse_octal_digit`/`parse_hex_digit` now emit no `match_regex` — `match_regex`
+**calls** in the generated regex parser drop to 25.
+
+**Verified byte-identical / shape-preserving:** regex PCRE2 compile oracle BYTE-IDENTICAL; AST shapes
+unchanged (`\o{777}`→`digits:"777"`, `\17`→`"17"`, `\x{FF}`→`"FF"`, `\xAB`→`"AB"`); regex AST shape-contract
+manifest `regex_v1.json` gained 4 `$text` declared-annotation entries (alphabetical) for the new `-> $text`
+rules; `cargo test --lib` 614/0, `--features generated_parsers` 653/0; clippy strict source ✓. Conformance-
+AND shape-neutral → no user-facing behaviour change → no book/contract update. `generated/regex_parser.rs`
+regen is LOCAL (gitignored). Remaining `.4`: the 3 `@transform→usize` rules + `whitespace`/`prop_name`
+(control chars); then `.5` (negated classes), `.6` capstone.
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0007 (REGEX-SELF-HOSTING .3a): `$0` whole-match alias ENABLED (Perl5) (CODE; byte-identical).
 
 Enables `$0` as the whole-match alias of `$text`, matching the Perl5 convention (`$0` = whole match,
