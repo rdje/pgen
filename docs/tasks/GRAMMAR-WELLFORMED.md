@@ -229,6 +229,17 @@ subtle dead branch"), never a silent accept.
   a per-construct generator↔grammar reconciliation follow-up (own leaf, like G.4.8 was for use_clause) —
   e.g. `G.4.9.{1..}` (or fold into the `UNKNOWN`→0 / witness-parseability drive). No code change this
   slice (classification). Investigation-only.
+  **CORRECTION + ROOT-CAUSE (2026-06-07, `PGEN-EBNF-SOT-0001`):** the construct list above OVER-CLAIMED,
+  and the "STRUCTURAL, same class as use_clause" classification was WRONG. Tools-first re-check
+  (`parseability_probe --parse regex`) shows `(?|a)` / `(?P>n)` / `(?(1)a)` PARSE fine — only `\u` and
+  unrecognized `(*verb)` actually fail (I pattern-guessed from the complex samples instead of pinning each
+  failure — see [[feedback_be_alert_root_cause_fishy_immediately]]). The mechanism is NOT PEG-structural:
+  `regex.ebnf` STRUCTURALLY accepts `\u{…}` / `(*name)`, but `rust/src/regex_compile_validation.rs` (an
+  out-of-band post-parse validator, invisible to the generator + not encoded in the EBNF) rejects them.
+  This is a distinct, foundational DEFECT CLASS now OWNED by the new **`EBNF-SOURCE-OF-TRUTH`** tree (the
+  EBNF must be the single source of truth for the accepted language; see
+  [[project_ebnf_is_single_source_of_truth]]). The actual regex fix lives there (`.3`), not as a generic
+  G.4 structural reconciliation.
 - `A2` — **DONE (PGEN-GRAMMAR-WELLFORMED-0006):** the SOUND DECIDABLE SUBSET of FIRST-domination —
   **earlier-branch-ALWAYS-SUCCEEDS shadowing.** New `node_always_succeeds`/`compute_always_succeeds`
   (the dual of `compute_nullable`, differing ONLY on the lookahead arm: a predicate `&e`/`!e` is

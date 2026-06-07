@@ -29,6 +29,45 @@ The exact proof surface varies by family and maturity, but the general doctrine 
 
 This is why the repository talks so much about gates, contracts, and tracked evidence. They are not auxiliary paperwork; they are part of the product.
 
+## ⚠️ THE EBNF IS THE SINGLE SOURCE OF TRUTH FOR THE ACCEPTED LANGUAGE
+
+This is one of the load-bearing invariants of the whole closure model — state it loud:
+
+> **The EBNF grammar — together with its `@predicate` / `@generate` / `@semantic` annotations — is the
+> SINGLE SOURCE OF TRUTH for what a parser accepts. The stimuli generator derives samples from the EBNF
+> and *nothing else*. Therefore any acceptance constraint that lives OUTSIDE the EBNF — in a hand-written,
+> post-parse validation layer — is INVISIBLE to the generator, and the generator WILL emit
+> structurally-valid samples the parser rejects. An out-of-band acceptance gate the generator cannot see
+> is a DEFECT.**
+
+**Why this matters.** The proof-first model above leans on the **generator⟷parser duality**: the linter
+*proves* a grammar well-formed, and the generator *constructively corroborates* it by emitting samples
+that re-parse. That round-trip is only sound if the EBNF is the *complete* specification of the accepted
+language. The generator generates *by construction* from the EBNF, so it can only ever produce
+EBNF-valid strings. If the parser additionally enforces a validator the EBNF does not encode, then
+
+```
+accepted language = (EBNF structure) ∩ (out-of-band validator)
+generator's target =  EBNF structure
+generated-but-rejected =  EBNF structure \ validator   ← silent inconsistency
+```
+
+A grammar-driven generator emitting parser-rejected output is therefore never "normal" — it is a
+red flag that the grammar is not the whole spec, and it must be root-caused immediately, not waved through.
+
+**Worked example (regex).** `grammars/regex.ebnf` structurally accepts `\u{…}`
+(`unicode_escape = "u{" hex_digits "}"`) and `(*<any-name>)`
+(`directive_verb = "(*" directive_body ")"`), so the generator emits them. But a separate hand-written
+validator, `rust/src/regex_compile_validation.rs`, rejects `\u` ("unsupported regex escape") and
+unrecognized `(*verb)` names — a constraint the EBNF never states and the generator never sees. The fix
+direction is always one of: **encode the constraint in the EBNF** (a semantic annotation shared by
+generation and parsing — the preferred resolution), or **relax/remove the out-of-band validator**. Never
+leave the two out of sync. (PCRE2's actual braced form `\x{…}` parses fine; only the EBNF-modelled-but-
+unsupported `\u` and arbitrary verb names fail.)
+
+This rule is owned by the `EBNF-SOURCE-OF-TRUTH` task tree and recorded as a binding decision; you can
+inspect what the generator is deriving with `--trace high` (or `--trace debug`).
+
 ## Why PGEN Works This Way
 
 PGEN targets domains where parser behavior materially affects downstream tooling and trust:
