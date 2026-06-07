@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-REGEX-PCRE2-0009 (REGEX-PCRE2-FIDELITY .3.7 ROOT-CAUSE): regex default cert-coverage residual measured + root-caused into 3 causes (docs).
+
+Started the regex cert-coverage-clean campaign (director sequencing after self-hosting). Re-measured the
+regex default-profile certificate coverage post-self-hosting:
+`ast_pipeline grammars/regex.ebnf --report-certificate-coverage --entry-rule regex --count 200 --seed 0`
+→ `sample_parse_failures=14` (up from the pre-self-hosting 3 — NOT an accepted-language regression: the
+oracle is byte-identical; self-hosting changed the grammar STRUCTURE, so the stimuli generator explores
+different paths and surfaces more generator↔parser round-trip gaps).
+
+Root-caused into 3 isolated causes (each minimal-repro'd via `parseability_probe --parse regex`):
+- (a) **empty char class** `[]` / `[^]` REJECT (PCRE2: the first `]` after `[`/`[^]` is a literal member, so
+  an empty class is unterminated) while `[]]` / `[^]]` PASS. The generator emits `[]`/`[^]` because
+  `char_class = "[" negation? class_initial_close? class_body "]"` with `class_body = class_item*` allows the
+  (no-initial-close AND empty-body) combination. → a `regex.ebnf` char_class fix (this leaf).
+- (b) **`(?(R N)` spacing** — `(?(R 1))` REJECTS, `(?(R1))` PASSES (a space between `R` and the digit).
+- (c) **name spacing** — `(?P=a b)` / `(?P=_ _ _)` REJECT, `(?P=ab)` PASSES (a space inside a `name`).
+  (b)+(c) are word-boundary-spacing residuals (LEXICAL-ANNOTATIONS `apply_word_boundary_spacing`
+  over-insertion, like the `(*VERB )` family it fixed earlier).
+
+The `\Q…\E`-with-`]` samples in the failure list are RED HERRINGS — they parse fine. No code change yet
+(measurement + root-cause only). Next: fix (a) in regex.ebnf (preserving the `{negated,initial_close,body}`
+AST shape) + (b)/(c) in the spacing generator → re-measure → regex default `sample_parse_failures` → 0.
+
 ## 2026-06-08 - PGEN-REGEX-SELF-HOST-0015 (REGEX-SELF-HOSTING .6a): regex parser no longer LINKS Rust's regex crate (CODE; per-grammar/additive, byte-identical).
 
 The purist finish to self-hosting: the generated regex parser now neither CALLS nor LINKS Rust's `regex`

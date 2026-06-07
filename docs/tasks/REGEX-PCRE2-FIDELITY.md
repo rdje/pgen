@@ -299,9 +299,26 @@ unchanged; the `relaxed` profile is CLI-only (embedding-API exposure is a tracke
 
 - `.3.1` (`\u`-family) and `.3.2` (`(*verb)` names) are DONE. Next candidates, **pending a director
   priority decision** (2026-06-07 the director surfaced two cross-cutting goals — see below):
-  - `.3.7` empty-`[]` (validator check #7) — **the cert-coverage lever**: the regex default cert-coverage
-    residual is now just the empty character class (`[]`/`[^]`) + one `(?(R 1)` form; closing these drives
-    regex default `sample_parse_failures` → 0. Highest-value for the "all parsers cert-coverage clean" goal.
+  - `.3.7` — **the cert-coverage lever** (NOW THE FRONTIER, REGEX-SELF-HOSTING done 2026-06-08).
+    RE-MEASURED 2026-06-08 (post-self-hosting): `ast_pipeline grammars/regex.ebnf
+    --report-certificate-coverage --entry-rule regex --count 200 --seed 0` → `sample_parse_failures=14`
+    (up from the pre-self-hosting 3 — NOT an accepted-language regression: oracle byte-identical; the
+    self-hosting changed the grammar STRUCTURE so the generator explores different paths and surfaces more
+    generator↔parser round-trip gaps). **ROOT-CAUSED into 3 isolated causes (each minimal-repro'd via
+    `parseability_probe --parse regex`):** (a) **empty char class** `[]`/`[^]` REJECT (PCRE2: the first `]`
+    after `[`/`[^]` is a literal member, so an empty class is unterminated) while `[]]`/`[^]]` PASS — the
+    generator emits `[]`/`[^]` because `char_class = "[" negation? class_initial_close? class_body "]"` with
+    `class_body = class_item*` allows the (no-initial-close AND empty-body) combination; FIX = a `regex.ebnf`
+    char_class change that forbids that combination (require ≥1 member: an initial-close `]` OR ≥1
+    class_item), preserving the `{negated, initial_close, body}` AST shape (`[]]` dumps
+    `initial_close:true, negated:[], body:[]`); (b) **`(?(R N)` spacing** — `(?(R 1))` REJECTS, `(?(R1))`
+    PASSES → word-boundary spacing inserts a space between `R` and the recursion digit; (c) **name spacing**
+    — `(?P=a b)`/`(?P=_ _ _)` REJECT, `(?P=ab)` PASSES → word-boundary spacing inserts a space INSIDE a
+    `name`. (The `\Q…\E`-with-`]` samples in the failure list are RED HERRINGS — they parse fine.) Causes
+    (b)+(c) are LEXICAL-ANNOTATIONS spacing-generator residuals (the `apply_word_boundary_spacing`
+    over-insertion, like the earlier `(*VERB )` family); (a) is THIS leaf's `regex.ebnf` fix. Closing all
+    three drives regex default `sample_parse_failures` → 0. Highest-value for the "all parsers cert-coverage
+    clean" goal.
   - **REGEX-SELF-HOSTING** (NEW, director 2026-06-07): make `regex.ebnf` use ONLY literal `"..."`
     terminals — eliminate every `/.../` regex-literal so the generated regex parser does not depend on
     Rust's `regex` engine (self-hosting; no regex-to-parse-regex circularity). Big refactor (replace
