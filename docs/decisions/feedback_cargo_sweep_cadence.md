@@ -23,7 +23,7 @@ originSessionId: f74f4acc-7183-408a-ae5d-dcdce15a103c
 **How to apply:**
 
 ```bash
-cd /Users/richarddje/Documents/github/pgen/rust && cargo sweep --time 1
+cd rust && cargo sweep --time 1   # from the repo root
 ```
 
 `--time 1` keeps artifacts newer than 1 day. The user prefers this conservative threshold so a fresh release-mode probe build (~5 minutes) doesn't get cleaned when iterating on a slice.

@@ -8,8 +8,14 @@
 #       so the always-on diagnostic mechanism (Severity + emit_diagnostic + pgen_warn!/
 #       error!/fatal!) MUST exist, and no UNAMBIGUOUS severity (fatal/panic) may be
 #       routed through the verbosity-gated trace. (feedback_severity_never_gated_by_verbosity)
-#   (2) Every file path reference in LIVE docs/book must be repo-root-RELATIVE, never an
-#       absolute path capturing a local home dir. (PGEN-DOCPATH-0001)
+#   (2) Every repo-INTERNAL file path in a LIVE/maintained doc surface must be
+#       repo-root-RELATIVE, never a checkout-specific absolute path capturing a local home
+#       dir. Surfaces: docs/book/src, docs/contracts, PGEN_USER_GUIDE.md, README.md,
+#       docs/tasks, docs/decisions, KNOWLEDGE_MAP.md, docs/knowledge,
+#       LIVE_ACHIEVEMENT_STATUS.md. Append-only history (CHANGES.md/DEVELOPMENT_NOTES.md)
+#       and repo-EXTERNAL paths (point outside the repo; no repo-relative form) are out of
+#       scope. (PGEN-DOCPATH-0001 seeded book+contracts+guide+README; PGEN-DOCPATH-0002 /
+#       leaf DOCPATH.1 extended the guarded surface set to the rest of the live docs.)
 #
 # Sound by design: it passes clean on the current tree (verified at authoring) and only
 # flags the unambiguous anti-patterns, so it will not false-block ordinary commits.
@@ -40,9 +46,12 @@ if [ -n "$masked" ]; then
 fi
 
 # (2) LIVE docs must use repo-root-relative paths (no repo-internal absolute path).
-# Matches only paths INTO this repo (contain '/pgen/'); external refs in append-only
-# history are out of scope.
-absolute="$(git grep -nIE '/Users/[^ )`]*/pgen/' -- 'docs/book/src/**' 'docs/contracts/**' 'PGEN_USER_GUIDE.md' 'README.md' 2>/dev/null || true)"
+# Matches only paths INTO this repo (contain '/pgen/'); repo-external refs and append-only
+# history (CHANGES.md/DEVELOPMENT_NOTES.md) are deliberately out of scope.
+absolute="$(git grep -nIE '/Users/[^ )`]*/pgen/' -- \
+  'docs/book/src/**' 'docs/contracts/**' 'PGEN_USER_GUIDE.md' 'README.md' \
+  'docs/tasks/**' 'docs/decisions/**' 'KNOWLEDGE_MAP.md' 'docs/knowledge/**' 'LIVE_ACHIEVEMENT_STATUS.md' \
+  2>/dev/null || true)"
 if [ -n "$absolute" ]; then
   echo "docpath: FAIL — a LIVE doc carries a repo-internal ABSOLUTE path; make it repo-root-relative:" >&2
   echo "$absolute" >&2

@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-07 - DOCPATH.1 — extend the live-docs repo-relative guard to the full live-surface set (PGEN-DOCPATH-0002)
+
+### Why (director directive + tools-first audit)
+Director: file paths in live docs/book/task-trees/Knowledge Map must be repo-root-relative, not checkout-specific absolute paths. Rather than assume "they are all absolute," I measured. `git ls-files | xargs grep` for `/Users/richarddje` over the tracked tree = 313 occurrences across 227 files. Classifying each by whether the target is **inside** the repo (`.../github/pgen/...`, so a repo-relative form exists) vs **outside** it:
+
+- **20 repo-internal** — the real targets of the rule.
+- **293 repo-external** — IEEE LRM PDFs (`~/Documents/github/*.pdf`), sibling repos (`rgx`, `nexsim`, `specforge`, `airefactored`), `~/Downloads/...`. These point outside the repo root and have **no** repo-relative equivalent; almost all live in append-only history (`CHANGES.md`, `DEVELOPMENT_NOTES.md`) recording commands actually run / external bug-report provenance.
+
+Two facts shaped the fix: (a) the user-facing book (`docs/book/`) was already 100% clean of any `/Users/` leak; (b) `PGEN-DOCPATH-0001` had already relativized the repo-internal paths in the book + user guide and added a guard (`scripts/check_diagnostics_and_docpaths.sh`, part 2). The genuine gap vs. what the director named: that guard's glob set was only `docs/book/src`, `docs/contracts`, `PGEN_USER_GUIDE.md`, `README.md` — it did **not** protect `docs/tasks`, `docs/decisions`, `KNOWLEDGE_MAP.md`/`docs/knowledge`, or `LIVE_ACHIEVEMENT_STATUS.md`, and 2 repo-internal leaks were sitting in decision records.
+
+### Fix decision (director scope = "live surfaces only")
+- Extended the guard's part-2 grep to the 5 additional surfaces. Verified tools-first (before wiring) that the expanded scope flags **only** the 2 known decision-record leaks — so the guard, which runs in pre-commit, would not self-block.
+- Relativized those 2 leaks (`feedback_cargo_sweep_cadence.md`, `feedback_empirical_sweep_prebuild.md`).
+- Book lockstep: documented the guard's docpath role + guarded surface set in `developer-architecture.md` (closed a pre-existing doc gap — only the severity role had been written up).
+- Left append-only history + repo-external refs untouched (rewriting history corrupts the recovery trail per `MEMORY_ARCHITECTURE.md` §12, and external targets have no repo-relative form). Code/grammar/generated internal-path cases → `DOCPATH.2` (`deferred`).
+- Ownership: this guard is enforcement tooling and was created under a task tree precedent (`MEMORY-ARCH`, `DIAG-SEVERITY` both did so), so the extension is owned by the new `DOCPATH` tree rather than a bare doc slice — honoring the code-change doctrine.
+
+### Validation
+- `scripts/check_diagnostics_and_docpaths.sh` → `diagnostics+docpaths: OK` (after rephrasing an illustrative absolute path the guard correctly flagged in my own book edit — a live demonstration that the guard bites).
+- Independent grep over all 9 guarded surfaces → 0 repo-internal `/pgen/` paths.
+- `scripts/check_memory_architecture.sh` → `memory-arch: OK`.
+- `make -C rust SHELL=/bin/bash mdbook_docs_gate` → ✅.
+- No Rust/grammar/codegen/generated change → no clippy, no regen.
+
 ## 2026-06-06 - GRAMMAR-WELLFORMED.A1b.2 — sv_syntax_closure_gate floor re-baseline (PGEN-GRAMMAR-WELLFORMED-0032)
 
 ### Root cause (tools-first, decisive — not inference)

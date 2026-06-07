@@ -14,7 +14,7 @@ Instead:
 
 ```bash
 cargo build --release --features generated_parsers --bin parseability_probe
-PROBE=/Users/richarddje/Documents/github/pgen/rust/target/release/parseability_probe
+PROBE=rust/target/release/parseability_probe   # from the repo root
 for input in ...; do
   printf '%s' "$input" > /tmp/in.txt
   rm -f /tmp/out.json

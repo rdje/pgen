@@ -98,6 +98,17 @@ SystemVerilog stimuli-coverage residual for an entire campaign). It is enforced 
 fails if the always-on mechanism is removed or if an unambiguous severity is routed
 through the verbosity-gated trace.
 
+The same script also enforces a second, unrelated rule: **every repo-internal file path in
+a live/maintained documentation surface must be repo-root-relative**, never a
+checkout-specific absolute path that captures a local home directory (an absolute path
+rooted at `<your-home>/.../pgen/grammars/foo.ebnf` is non-portable and breaks on any other
+clone — write `grammars/foo.ebnf` instead). The
+guarded surfaces are `docs/book/src`, `docs/contracts`, `PGEN_USER_GUIDE.md`, `README.md`,
+`docs/tasks`, `docs/decisions`, `KNOWLEDGE_MAP.md`, `docs/knowledge`, and
+`LIVE_ACHIEVEMENT_STATUS.md`. Append-only history (`CHANGES.md`, `DEVELOPMENT_NOTES.md`) and
+repo-external references (which point outside the repository and have no repo-relative
+form) are deliberately out of scope.
+
 ### Error-by-reason classification
 
 Generation failures are classified — never folded into an anonymous count — by the single
