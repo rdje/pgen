@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-SELF-HOST-0009 (REGEX-SELF-HOSTING .4 batch B): `short_prop_letter`/`whitespace`/`prop_name` → native literals (CODE; byte-identical).
+
+Second `.4` batch — all remaining POSITIVE non-`@transform` char-classes in `regex.ebnf` go native:
+
+- `short_prop_letter [CLMNPSZclmnpsz]` → `'C'|'L'|…|'z'` ordered-choice.
+- `whitespace [ \t\n\r\f\v]` → `' '|'\t'|'\n'|'\r'|'\f'|'\v'`. The EBNF codegen correctly translates the
+  control-char literals (verified in the generated `parse_whitespace`: `'\f'`→`match_string("\u{c}")` =
+  form feed, `'\v'`→`match_string("\u{b}")` = vertical tab — neither is a valid Rust char escape, so the
+  codegen lowering to `\u{..}` is what makes this work).
+- `prop_name` → `( letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^' )+ -> $text` (uses the
+  already-converted `letter`/`digit`/`whitespace` rules + the `.3` whole-match primitive for the flat string).
+
+**Verified:** regex PCRE2 compile oracle BYTE-IDENTICAL; `\p{Lu}`→`name:"Lu"`, `\p{Greek}`→`"Greek"`;
+regex shape-contract manifest `regex_v1.json` +1 (`prop_name` `$text`, alphabetical); `cargo test --lib`
+614/0, `--features generated_parsers` 653/0; clippy strict ✓; `match_regex` calls down to 22. Conformance-
+AND shape-neutral → no book/contract.
+
+Remaining for self-hosting: `.4c` (the 3 `@transform→usize` rules `digits`/`backreference_digits`/
+`backreference_digits_single` — need a codegen tweak to apply `@transform` to the matched span, since a
+literal body isn't a `&str`), then `.5` (negated/big classes via `!"X" any_char`), `.6` capstone.
+
 ## 2026-06-07 - PGEN-REGEX-SELF-HOST-0008 (REGEX-SELF-HOSTING .4 batch A): first `/.../` removal — 9 positive char-classes → native literals (CODE; byte-identical).
 
 The first batch of the actual self-hosting conversion: 9 positive character-classes in `regex.ebnf` move

@@ -763,6 +763,12 @@
         "normalized_text": "{type: \"anchor\", kind: \"posix_word_end\"}"
       },
       {
+        "rule": "prop_name",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
         "rule": "property_escape",
         "branch_index": 0,
         "annotation_type": "return_object",
