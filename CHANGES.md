@@ -1,4 +1,10 @@
 # CHANGES.md
+## 2026-06-07 - PGEN-REGEX-PCRE2-0004 (REGEX-PCRE2-FIDELITY .3.1 design): pin a bounded, conformance-neutral `\u` plan that avoids a risky simple_escape restructure (docs).
+
+Tools-first scoping of `.3.1` (PCRE2-align `\u`) found a coupling that makes the naive "tag `unicode_escape` + drop the validator" WRONG: the escape grammar's `simple_escape` catch-all (`escape_unit`'s last alt, `regex.ebnf:531`) structurally accepts non-braced `\u`/`\U`/`\i`/`\F`/`\l`/`\L`, and `find_invalid_escape_i` rejects all 6 letters regardless of brace — so dropping the validator would regress non-braced `\u` in default (simple_escape accepts it), and fully fixing it would need a risky profile-conditional restructure of the heavily-guarded core `simple_escape`.
+
+Bounded design pinned instead (in `docs/tasks/REGEX-PCRE2-FIDELITY.md` `.3.1`): scope `.3.1` to the braced `\u{…}` (the generator-tripping form) — (1) gate `unicode_escape` `@profiles:["relaxed"]`; (2) refine `find_invalid_escape_i`'s `\u` arm to fire only on `\u` NOT followed by `{` (the grammar now owns braced `\u{`; non-braced stays validator-rejected, migrates later); (3) add the ESSENTIAL generator-side `pcre2` default (else the `.2` `pcre2` witness would reject generator-emitted `\u{…}` → a new cert-coverage failure). Conformance-NEUTRAL on the default accepted language (default rejected `\u{…}` before via the validator, after via gating) → RGX conformance unchanged; relaxed GAINS braced `\u{…}`. The released implementation (regen + PCRE2 oracle + lib + RGX conformance + AST-shape manifest + regex book + integration contract + ledger + release bump) is recommended for fresh context to hold the signoff bar. Docs-only. LIVE_ACHIEVEMENT_STATUS unchanged.
+
 ## 2026-06-07 - PGEN-REGEX-PCRE2-0003 (REGEX-PCRE2-FIDELITY .2): wire the explicit `pcre2` default for the regex parse paths (CODE, Rust-only, no-op).
 
 Establishes the parse-side strict-PCRE2 default the campaign needs (so `.3.x`'s `@profiles:["relaxed"]`-gated constructs are excluded by default). Rust-only in `rust/src/parser_registry.rs`; NO regen (the regex parser already carries the profile machinery).

@@ -87,9 +87,28 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   614/614; regex-focused tests 110/0; clippy source 0 errors. Rust-only (NO regen). The generator-side
   default rides with `.3.1` (where it first matters for not emitting `\u`).
 - ID: `.3`  Status: `pending`  Goal: encode-in-EBNF per construct (one sub-leaf per row above), each:
-  encode (profile-gate / predicate) → remove that check from `validate_regex_compile_contract` → verify
-  PCRE2-oracle (default) + relaxed-mode + cert-coverage, tools-first, one at a time, measured. Children
-  `.3.1`..`.3.10` map to rows 1–10 (start with the generator-tripping ones: `\u`, `(*verb)`, empty `[]`).
+  encode (profile-gate / predicate) → migrate/refine the matching `validate_regex_compile_contract` check
+  → verify PCRE2-oracle (default) + relaxed-mode + cert-coverage, tools-first, one at a time, measured.
+  Children `.3.1`..`.3.10` map to rows 1–10 (start with the generator-tripping `\u`, then `(*verb)`, `[]`).
+- ID: `.3.1`  Status: `pending` (DESIGN PINNED `PGEN-REGEX-PCRE2-0004`)  Goal: PCRE2-align `\u` —
+  **scoped to the braced `\u{…}` (the generator-tripping form), AVOIDING a risky core `simple_escape`
+  restructure.** Tool-backed finding: the escape grammar has a `simple_escape` catch-all
+  (`escape_unit`'s last alt, `regex.ebnf:531`) that structurally accepts `\u`/`\U`/`\i`/`\F`/`\l`/`\L`
+  (non-braced), while `unicode_escape` (`:606`) accepts braced `\u{…}`; `find_invalid_escape_i` (the
+  validator) rejects all 6 letters regardless of brace. So "tag `unicode_escape` + drop the validator"
+  would regress non-braced `\u` in default (simple_escape would accept it). **Clean bounded design:**
+  (1) tag `unicode_escape` `@profiles:["relaxed"]` (default `pcre2` excludes it → braced `\u{…}` rejected
+  structurally; `relaxed` accepts); (2) refine `find_invalid_escape_i`'s `\u` arm to reject `\u` ONLY when
+  NOT followed by `{` (so the validator no longer fires on braced `\u{`, which the grammar now owns; the
+  6-letter non-braced rejection stays — it migrates in a later leaf); (3) **add the GENERATOR-side `pcre2`
+  default for regex** (cert-coverage + `--generate-stimuli` paths in `main.rs`) — ESSENTIAL: with `.2`
+  the witness/`parse_and_cover_regex` is `pcre2` (excludes `unicode_escape`), so if the generator stayed
+  permissive it would emit `\u{…}` the witness now rejects → a NEW cert-coverage failure. **Conformance-
+  neutral on the DEFAULT accepted language** (default rejected `\u{…}` before via the validator, rejects
+  it after via gating; non-braced backslash-u still validator-rejected) → RGX conformance unchanged; relaxed GAINS braced
+  `\u{…}`. Verify: `regex_pcre2_compile_oracle_gate` (default), relaxed probe, cert-coverage (no new fail),
+  lib, RGX conformance; regen `generated/regex_parser.rs`; released lockstep (manifest `unicode_escape`
+  now relaxed-only + book + contract + ledger + release/contract bump). Fresh context for the lockstep.
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
   EBNF is the sole source of truth.
@@ -176,6 +195,7 @@ wiring + the `normalize` default.
 | `.1` | `PGEN-REGEX-PCRE2-0001` | scoping |
 | `.2` design | `PGEN-REGEX-PCRE2-0002` | pinned the explicit-`pcre2`-default wiring plan |
 | `.2` | `PGEN-REGEX-PCRE2-0003` | parse-side `pcre2` default (Rust-only, no-op verified) |
+| `.3.1` design | `PGEN-REGEX-PCRE2-0004` | bounded `\u{…}` design (avoids simple_escape restructure) |
 
 ## Changelog
 
@@ -184,3 +204,7 @@ wiring + the `normalize` default.
 - `2026-06-07`: `.2` design (`PGEN-REGEX-PCRE2-0002`) pinned the explicit-`pcre2`-default wiring (the
   `None => true` permissive-guard wrinkle); `.2` DONE (`PGEN-REGEX-PCRE2-0003`) — parse-side `pcre2`
   default wired (Rust-only, no-op verified). Frontier → `.3.1` (`\u`).
+- `2026-06-07`: `.3.1` DESIGN pinned (`PGEN-REGEX-PCRE2-0004`) — bounded to braced `\u{…}` (gate
+  `unicode_escape` + refine the validator `\u` arm to no-brace + ESSENTIAL generator-side `pcre2`
+  default), conformance-neutral, AVOIDING a risky core `simple_escape` restructure. Released
+  implementation (regen + lockstep + release bump) recommended for fresh context.
