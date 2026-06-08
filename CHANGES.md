@@ -1,4 +1,33 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0044 (GRAMMAR-WELLFORMED.H.5.1.1 INVESTIGATION): PROVE the svpp witness-parseability root cause tools-first (DOCS — no code change).
+
+The H.5.1 adjudication ("the generator under-fills the required macro name/payload") was an INFERENCE.
+This slice executes the documented FIRST STEP — a focused parser trace + byte-exact generator isolation —
+and PROVES the actual mechanism, which is different. No code change (investigation/docs only).
+
+- WHERE (parser, proven by `parseability_probe --trace-rules`): the exact rejecting production is
+  `identifier` in `macro_name := identifier := inline_trivia /[a-zA-Z_][a-zA-Z0-9_$]*/`. On the labeled
+  sample (`` `define/***/  \n… ``) `kw_define` matches `` `define ``; `inline_trivia` consumes the `/***/`
+  comment + 2 spaces; then the identifier regex is attempted at position 14 — a bare `\n` — and fails.
+  `macro_name`/`pp_define` fail; as the FIRST `pp_item` fails (and every alt fails at 0), `pp_item*` matches
+  zero items → `systemverilog_preprocessor_file` consumes nothing → "did not consume full input at position 0".
+- WHERE+WHY (generator, proven by `--stimuli-corpus-json` byte-exact isolation): the bare `\n` is INJECTED by
+  the faithful-spacing trailing guard. `space_or_tab := /[ \t]+/` generates `'    \n'`, `' \n'` (every sample
+  ends in `\n`); `--no-word-boundary-spacing` removes it (`'    '`, `' '`). EXACT SITE:
+  `StimuliGenerator::regex_tail_greedy_blocker` (`rust/src/ast_pipeline/stimuli_generator.rs:7314-7329`) — for
+  the whitespace-only class `[ \t]+` it returns `Some("\n")` (the minimal separator the class cannot absorb).
+  In a line-oriented grammar (`\n` terminates directives, excluded from `inline_trivia`) that pushes the macro
+  name onto the next line where the parser cannot consume the bare `\n`. The macro name IS generated — so the
+  H.5.1 "under-fills the name" framing is DISPROVEN and corrected in the task file.
+- CLOSED-LOOP A/B (dominant cause): full svpp, 40 samples, seed 0, re-parsed: default 24/40 fail (== cert-cov
+  `sample_parse_failures=24`); `--no-word-boundary-spacing` 8/40 fail. ⇒ `\n`-injection causes 16/24. The
+  residual 8 are mostly keyword-fusion NEWLY introduced by disabling spacing (`\b`+wordchar, e.g.
+  `` `ifndefR7Sh ``), confirming the fix must be SURGICAL (keep the `\b` separator; remove only the
+  `\n`-after-whitespace-class injection).
+- FIX DIRECTION (next H.5.1.1 step; SHARED code → GLOBAL measurement): `regex_tail_greedy_blocker` returns
+  `None` when the greedy tail class is whitespace-only; verify the cross-family stimuli gate + every grammar's
+  cert-coverage shows no regression before landing.
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0042 (GRAMMAR-WELLFORMED.H.5.1): LABEL the svpp witness-parseability residual — wire svpp `parse_detail` (CODE: parser_registry).
 
 svpp's HIGH witness-parseability residual (24/40 `sample_parse_failures`, surfaced by H.5) was opaque: the

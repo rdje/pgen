@@ -426,29 +426,65 @@ subtle dead branch"), never a silent accept.
   a GENERATOR-side deficiency (it under-fills the required macro name/payload of the directive productions),
   not a parser bug — the fix belongs in the generator (or, if `pp_define`'s name is grammar-optional, in the
   grammar). The actual fix is the follow-up `H.5.1.1`. NO grammar/
+  **⚠️ ADJUDICATION CORRECTED by `H.5.1.1` (`-0044`):** the "under-fills the required macro name/payload"
+  framing was an INFERENCE and is DISPROVEN. The byte-exact isolation + parser trace show the generator DOES
+  emit a valid macro name; the real mechanism is the faithful-spacing trailing guard injecting a bare `\n`
+  (`regex_tail_greedy_blocker` returns `"\n"` for the whitespace-only class `[ \t]+`), which pushes the macro
+  name onto the next line where the line-oriented parser's `inline_trivia` cannot consume the bare newline.
+  See the `H.5.1.1` entry for the proven WHERE+WHY + closed-loop A/B (24→8). This is a textbook case of
+  [[feedback_be_alert_root_cause_fishy_immediately]] (a label/inference ≠ the proven mechanism).
   generator behaviour change in this slice (labeling only; the residual count is unchanged). VERIFIED: lib
   `--features generated_parsers` builds; `parser_registry` lib tests pass; svpp cert-coverage now prints the
   labeled errors; strict SOURCE clippy ok. NO tracked-artifact change (`generated/` untracked). Frontier:
   `H.5.1.1` (adjudicate + fix the svpp residual from the now-visible labels) + drive each wired grammar's
   `UNKNOWN`→0.
-- `H.5.1.1` — **NOT STARTED (owned stub, 2026-06-08): FIX the now-labeled svpp witness-parseability residual
-  (generator-side).** Goal: the svpp stimuli generator emits ONLY well-formed preprocessor inputs so svpp
-  cert-coverage `sample_parse_failures` 24→0 and `pp_define`/`macro_*` move out of `UNKNOWN`. TOOLS-OBSERVED
-  STARTING POINT (from H.5.1's investigation — a LEAD to verify with a parser trace, NOT yet a proven
-  end-to-end mechanism): isolating `--entry-rule pp_define` shows the generator produces a MIX of valid
-  (`` `define ICVs3 ``, `` `definetad ``, `` `definebdK4( ``) and invalid (`` `define `` + whitespace-only)
-  forms. `pp_define := kw_define macro_name …` with `macro_name := identifier := inline_trivia
-  /[a-zA-Z_][a-zA-Z0-9_$]*/`, and isolating `--entry-rule inline_trivia` confirms `inline_trivia` GENERATES
-  NEWLINES (multi-line samples). Since `` `define `` directives are newline-terminated, a generated
-  identifier whose `inline_trivia` prefix injects a newline (or empty/degenerate trivia+token interplay)
-  plausibly breaks the directive-line. ⚠️ RISK/SCOPE: `inline_trivia` is SHARED across grammars, so any
-  generator change must be measured against the GLOBAL stimuli metric for EVERY grammar (no regression) —
-  this is the LEXICAL-ANNOTATIONS class (lexical-token cohesion / trivia generation), NOT a quick slice.
-  STRICT FIX HIERARCHY applies: prefer a grammar/annotation expression of the directive-line constraint over
-  an engine/generator change; if the generator must change, it must be a GENERAL parser-agnostic primitive,
-  one-thing-at-a-time, with the global metric measured (per [[feedback_no_codebase_change_without_tool_backed_facts]]
-  + [[feedback_no_workarounds_fix_hierarchy]]). FIRST STEP: a focused parser trace of one labeled failing
-  sample to PROVE the exact rejecting production before any code.
+- `H.5.1.1` — **IN PROGRESS (2026-06-08): root cause PROVEN tools-first; FIX is the remaining step.**
+  Goal: the svpp stimuli generator emits ONLY well-formed preprocessor inputs so svpp cert-coverage
+  `sample_parse_failures` 24→0 and `pp_define`/`macro_*` move out of `UNKNOWN`.
+  - **INVESTIGATION DONE (`PGEN-GRAMMAR-WELLFORMED-0044`, this slice) — PROVEN ROOT CAUSE (byte-exact
+    isolation + parser trace + closed-loop A/B; corrects the H.5.1 adjudication).** The FIRST STEP (a focused
+    parser trace of the labeled sample) is complete and decisive:
+    - **WHERE (parser side, PROVEN by `parseability_probe --trace-rules`):** the exact rejecting production
+      is `identifier` (`macro_name := identifier := inline_trivia /[a-zA-Z_][a-zA-Z0-9_$]*/`). On the labeled
+      sample `[0]` (`` `define/***/  \n… ``) the trace shows: `pp_define→kw_define` matches `` `define `` at 0;
+      `macro_name→identifier→inline_trivia` consumes `/***/` (block comment, 7→12) + `  ` (`space_or_tab`, 12→14);
+      then the identifier regex `[a-zA-Z_][a-zA-Z0-9_$]*` is attempted at position **14 — a bare `\n`** — and
+      fails (`rule_stack=[…, pp_define, macro_name, identifier]`). `macro_name`→`pp_define` fail. Because
+      `pp_define` is the FIRST `pp_item` and every other `pp_item` alt also fails at 0 (none start
+      `` `define ``; `non_directive_text`/`newline` cannot consume the leading backtick), `pp_item*` matches
+      **zero** items and `systemverilog_preprocessor_file` trivially succeeds consuming nothing → "Parser did
+      not consume full input at **position 0**".
+    - **WHERE+WHY (generator side, PROVEN by byte-exact `--stimuli-corpus-json` isolation):** the bare `\n` is
+      **injected by the faithful-spacing (lexical-cohesion) trailing guard**, NOT by the regex sampler and NOT
+      by an under-filled macro name. `space_or_tab := /[ \t]+/` generates `'    \n'`, `' \n'`, `'   \n'` (every
+      sample ends in a bare `\n`); with `--no-word-boundary-spacing` it correctly generates `'    '`, `' '`
+      (no `\n`). `inline_trivia := (space_or_tab|block_comment)*` accumulates these (`' \n \n \n'`). EXACT CODE
+      SITE: `StimuliGenerator::regex_tail_greedy_blocker` (`rust/src/ast_pipeline/stimuli_generator.rs:7314-7329`),
+      reached via `apply_word_boundary_spacing`→`regex_terminal_trailing_separator`. For an open-ended greedy
+      class-repetition tail it appends "the minimal separator the class cannot absorb": for `[ \t]+` the class
+      contains `' '` (so `" "` is skipped) but NOT `'\n'`, so it returns `Some("\n")`. In a LINE-ORIENTED
+      grammar where `\n` terminates directives and is excluded from `inline_trivia`, that injected `\n` pushes
+      the macro name onto the next line where the parser's `inline_trivia` (correctly) cannot consume the bare
+      `\n` → the identifier fails. The macro name **is** generated — it just lands off-line. (This DISPROVES
+      H.5.1's "the generator under-fills the required macro name/payload" inference.)
+    - **CLOSED-LOOP A/B (PROVEN dominant cause):** full svpp file, 40 samples, seed 0, re-parsed: **default
+      24/40 fail** (== cert-cov `sample_parse_failures=24`); **`--no-word-boundary-spacing` 8/40 fail**. So the
+      `\n`-injection causes **16 of 24** failures. The residual 8 (spacing-off) are a MIX dominated by
+      keyword-fusion failures NEWLY introduced BY disabling spacing (e.g. `` `ifndefR7Sh ``, `` `timescale63_ ``
+      — a `\b` keyword immediately followed by a word char with no separator), which is the very thing faithful
+      spacing exists to prevent. ⇒ disabling spacing is NOT the fix; the fix must be SURGICAL.
+  - **FIX DIRECTION (next step; the actual H.5.1.1 deliverable — strict fix-hierarchy + GLOBAL measurement).**
+    Tool-backed candidate (parser-agnostic, principled, surgical): in `regex_tail_greedy_blocker`, when the
+    greedy unbounded tail class is **whitespace-only** (every member is a whitespace char, e.g. `[ \t]`), return
+    `None` — a trailing run of whitespace needs no anti-fusion guard (whitespace already self-separates; the
+    `\n` is both pointless AND harmful in line-oriented grammars). This cleanly distinguishes `[ \t]+`
+    (whitespace-only → no guard) from `[^\n]*` (content class → keep the `\n` guard, correct for line comments).
+    ⚠️ RISK/SCOPE: `regex_tail_greedy_blocker` is SHARED across ALL grammars (LEXICAL-ANNOTATIONS class), so the
+    change must be a GENERAL primitive, one-thing-at-a-time, with the GLOBAL stimuli metric measured for EVERY
+    grammar (cross-family gate, each grammar's cert-coverage no-regression) before landing — per
+    [[feedback_no_codebase_change_without_tool_backed_facts]] + [[feedback_no_workarounds_fix_hierarchy]].
+    Acceptance: svpp cert-cov `sample_parse_failures` 24→ low/0, `pp_define`/`macro_*` leave `UNKNOWN`, and NO
+    other grammar's stimuli/cert-coverage regresses.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode

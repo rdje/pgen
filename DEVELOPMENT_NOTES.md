@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1.1 — PROVE the svpp witness-parseability root cause (PGEN-GRAMMAR-WELLFORMED-0044)
+
+### Goal
+Execute the documented FIRST STEP of H.5.1.1 (a focused parser trace to PROVE the exact rejecting production)
+before any code, and adjudicate the cause against the strict fix hierarchy + EBNF-single-source-of-truth.
+
+### Tools used (all tools-first, no guessing)
+- `parseability_probe --parse systemverilog_preprocessor <sample> --trace-rules pp_item,pp_define,macro_name,identifier,inline_trivia` (the generated-parser trace).
+- `ast_pipeline … --generate-stimuli --entry-rule <rule> --stimuli-corpus-json` (byte-exact per-sample isolation of `space_or_tab` / `inline_trivia` / `pp_define`).
+- A/B closed loop: full svpp file, 40 samples, seed 0, each re-parsed, default vs `--no-word-boundary-spacing`.
+
+### Proven root cause (two sides of one mechanism)
+- Parser side: the rejecting production is `identifier` (`macro_name := identifier := inline_trivia
+  /[a-zA-Z_][a-zA-Z0-9_$]*/`). On the labeled sample the identifier regex is attempted at a position that holds
+  a bare `\n` and fails (`rule_stack=[…, pp_define, macro_name, identifier]`). As the first `pp_item` fails and
+  every other `pp_item` alt also fails at offset 0, `pp_item*` matches zero items and the file rule succeeds
+  consuming nothing → "Parser did not consume full input at position 0".
+- Generator side: the bare `\n` is injected by the faithful-spacing trailing guard
+  `StimuliGenerator::regex_tail_greedy_blocker` (`rust/src/ast_pipeline/stimuli_generator.rs:7314-7329`),
+  reached via `apply_word_boundary_spacing` → `regex_terminal_trailing_separator`. For an open-ended greedy
+  class-repetition tail it appends "the minimal separator the class cannot absorb": for the whitespace-only
+  class `[ \t]+` the class contains `' '` (so `" "` is skipped) but NOT `'\n'`, so it returns `Some("\n")`.
+  `inline_trivia := (space_or_tab|block_comment)*` accumulates these. In the line-oriented SV preprocessor,
+  `\n` terminates directives and is excluded from `inline_trivia`, so the injected `\n` pushes the macro name
+  onto the next line — the macro name IS generated, it just lands off-line.
+
+### Evidence
+- `space_or_tab` default → `'    \n'`,`' \n'`,`'   \n'`; with `--no-word-boundary-spacing` → `'    '`,`' '`.
+- A/B: default 24/40 fail (== cert-cov `sample_parse_failures=24`); spacing-off 8/40 fail ⇒ `\n`-injection
+  causes 16/24. The residual 8 (spacing-off) are dominated by keyword-fusion NEWLY introduced by disabling
+  spacing (`\b` keyword + word char, e.g. `` `ifndefR7Sh ``, `` `timescale63_ ``) — NOT genuine residuals.
+
+### Adjudication / consequence
+- DISPROVES the H.5.1 inference ("generator under-fills the required macro name"). Corrected in the task file
+  per [[feedback_be_alert_root_cause_fishy_immediately]] (a label/inference is not a proven mechanism).
+- The grammar is NOT the defect — it correctly requires a `macro_name`. The defect is the generator's
+  grammar-class-blind treatment of `\n` as an innocuous separator. EBNF stays the single source of truth.
+- FIX (next step, SHARED code → measure the GLOBAL stimuli metric for every grammar): in
+  `regex_tail_greedy_blocker`, return `None` when the greedy tail class is whitespace-only (e.g. `[ \t]`) — a
+  trailing whitespace run needs no anti-fusion guard; leaves `[^\n]*` content classes (line comments) intact.
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1 — label the svpp witness-parseability residual (PGEN-GRAMMAR-WELLFORMED-0042)
 
 ### Goal
