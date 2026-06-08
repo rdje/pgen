@@ -1,4 +1,42 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-STORE-AWARE-GEN-0003 (STORE-AWARE-GEN .3 / REGEX-PCRE2-FIDELITY .3.12): fact_count_at_least-aware generation — the generator emits only valid numeric backreferences (CODE; generator-only, surface-neutral).
+
+Implemented the `.2` design MVP: the stimuli generator is now **semantic-store-aware** for the
+`fact_count_at_least` predicate, closing `REGEX-PCRE2-FIDELITY.3.12` (the generator no longer emits
+`\98495`-style backreferences to non-existent capture groups, which the parser correctly rejects
+PCRE2-faithfully). The generator becomes a second consumer of the EXISTING `@emit_fact` / `@predicate`
+vocabulary — the same grammar steers parse and generation; no new annotation.
+
+- `rust/src/ast_pipeline/stimuli_generator.rs` (generator-only):
+  - `gen_semantic_state: SemanticRuntimeState` + a `store_aware_gen` no-op gate; precomputed
+    `gen_emit_facts` / `gen_count_kinds` (`compute_store_aware_gen_directives`, reusing
+    `parse_semantic_runtime_directives` — the same parse the codegen uses).
+  - EMIT hook in `generate_rule` on success (mirror the parser's effect phase): a generated capture
+    group emits a `regex_capture_group` fact into the generation-time store.
+  - the sound NECESSARY-CONDITION prune (`gen_count_predicate_satisfiable`): a `fact_count_at_least(K,
+    $ref)` rule is unsatisfiable when `count(K) == 0` (no positive reference can match an empty fact set),
+    evaluated via the SAME `evaluate_predicate` the parser uses → `generate_rule` fails fast →
+    `generate_or` (which already retries the next branch) backtracks to a satisfiable alternative.
+  - `gen_semantic_state` checkpoint/rollback at `generate_or` AND `generate_quantified` (mirror the
+    parser's `try_parse` snapshot/restore) so a discarded alternative leaves no phantom facts.
+  - per-sample store reset in `generate_from_entry`.
+  - +2 locking tests (`store_aware_gen_count_predicate_necessary_condition`,
+    `store_aware_gen_off_for_predicate_free_grammar`).
+- Gated on `store_aware_gen` — only `regex` declares a `fact_count_at_least` predicate, so json/ebnf/SV/
+  VHDL generation is BYTE-IDENTICAL. NO grammar change, NO regen, NO AST change, NO version bump (the
+  regex PARSER is unchanged; only the generator emits more semantically-valid samples).
+- Book: `docs/book/src/stimuli-and-quality.md` gains a "Semantic Round-Trip: Context-Valid Generation"
+  section (the generator honours `@predicate` so generated samples satisfy the parser's semantic
+  constraints).
+
+VERIFIED: regex DEFAULT cert-coverage `sample_parse_failures` = **0 across the seed sweep** (seed
+0/1/7/13 + count 500/seed 0,1 — seed 1 was 1, the `\98495`); determinism byte-identical; backrefs still
+generated (construct not destroyed); `stimuli_cross_family_platform_gate` ✅; `regex_pcre2_compile_oracle_gate`
+byte-identical; self-hosting gate OK; `cargo test --lib` **620/0**; strict source clippy clean. HONEST
+scope: the MVP prunes the systematic `count(K)==0` category; the tight `$index ≤ count` bound (count ≥ 1
+over-value) is the `STORE-AWARE-GEN.4` refinement (did not arise in the sweep). **Regex DEFAULT
+cert-coverage is now fully clean.**
+
 ## 2026-06-08 - PGEN-STORE-AWARE-GEN-0002 (STORE-AWARE-GEN .2 DESIGN): tool-backed turnkey design for semantic-store-aware generation (DOCS).
 
 Pinned the exact, implementable mechanism so the `.3`–`.5` implementation is turnkey (no code in this

@@ -615,3 +615,40 @@ masking.
 > shifts a downstream burn-down metric, re-baseline that contract
 > honestly in the same slice after proving the genuine reachable
 > surface is intact.
+
+## Semantic Round-Trip: Context-Valid Generation
+
+Round-trip self-consistency has a **semantic** dimension as well as a structural one. A grammar can
+gate a rule with a **semantic predicate** — a `@predicate` annotation the parser evaluates against its
+semantic store — and the generator must honour that same predicate, or it emits a structurally-valid
+string the parser *semantically* rejects.
+
+The motivating case is a numeric backreference. The regex grammar gates it with
+
+```ebnf
+@emit_fact: { kind: regex_capture_group, name: capture }
+capture_open = "("                       # each capture group emits a fact at group-open
+
+@predicate: { name: fact_count_at_least, args: [regex_capture_group, $index], phase: post }
+numeric_backreference = "\" backreference_digits   # \NN is valid only if ≥ NN capture groups exist
+```
+
+The parser accepts `\3` only when group 3 exists. A predicate-**blind** generator would happily emit
+`\98495` in a pattern with no groups — which the parser correctly rejects (PCRE2: error 115, reference
+to a non-existent subpattern).
+
+PGEN's generator is **semantic-store-aware**: it maintains a generation-time semantic store, **emits the
+same facts the parser would** as it generates (a generated capture group emits `regex_capture_group`),
+and **consults the same predicate** before committing a gated rule. A `fact_count_at_least(K, …)` rule is
+unsatisfiable when zero `K` facts exist (no positive reference can match an empty set), so the generator
+*backtracks* to a satisfiable alternative (a single-digit `\1`, or it generates a capture group first)
+instead of emitting an invalid backreference. The store snapshots/rolls back in lockstep with the
+generator's own backtracking, exactly like the parser's speculation, so a discarded alternative leaves no
+phantom facts behind.
+
+This needs **no new annotation** — the generator becomes a second consumer of the existing
+`@emit_fact` / `@predicate` vocabulary, so the *same* grammar steers both parsing and generation. It is
+**on only for grammars that declare such a predicate** (today, regex): every other grammar generates
+byte-identically. The capability is tracked by the `STORE-AWARE-GEN` task tree; the first cut honours
+`fact_count_at_least`, with the other composable predicates (`has_fact`, `lacks_fact`,
+`fact_attribute_equals`, `resolve_path`) to follow.

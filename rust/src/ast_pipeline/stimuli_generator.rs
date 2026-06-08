@@ -1,8 +1,10 @@
 use super::{
     ASTNode, ASTValue, Annotations, FollowItem, SemanticAnnotation, SemanticAssociativity,
     SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
-    TraceVerbosity, UnifiedReturnAST, UnifiedSemanticAST, UnifiedSemanticValue,
-    extract_semantic_directive,
+    SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
+    SemanticRuntimeDirective, SemanticRuntimeState, TraceVerbosity, UnifiedReturnAST,
+    UnifiedSemanticAST, UnifiedSemanticValue, extract_semantic_directive,
+    parse_semantic_runtime_directives,
     global_trace_verbosity, normalize_semantic_scalar, parse_canonical_transform_expression,
     parse_semantic_bool, parse_semantic_branch_priorities, parse_semantic_charset,
     parse_semantic_constraint_expression, parse_semantic_coverage_target_weight,
@@ -1291,6 +1293,21 @@ pub struct StimuliGenerator<'a> {
     // a free keyword (fixes `recursion_condition` `"R" digits?` → `R1`, `hex_escape` `"x" payload` →
     // `xAB`). Distinct from `last_terminal_word_shaped` (a structural-literal check on the rendered text).
     last_terminal_from_atomic_rule: bool,
+    // STORE-AWARE-GEN.3: the generation-time semantic store — the generation-side dual of the parser's
+    // semantic runtime. EMITS the parser's facts as the generator generates and is consulted to gate
+    // selection so the generator emits only samples the parser accepts. Reset per sample. Active only
+    // when `store_aware_gen` (a grammar with a generative `fact_count_at_least` predicate — regex today).
+    gen_semantic_state: SemanticRuntimeState,
+    // STORE-AWARE-GEN.3: true iff the grammar has a `fact_count_at_least(K,$ref)` post-predicate (the
+    // only predicate honoured generation-side so far). Gates the ENTIRE store-aware path off otherwise →
+    // byte-identical generation for predicate-free grammars (json/ebnf/SV/VHDL).
+    store_aware_gen: bool,
+    // STORE-AWARE-GEN.3: rule → its `@emit_fact` specs (literal-resolved), emitted on rule success.
+    gen_emit_facts: HashMap<String, Vec<SemanticFactSpec>>,
+    // STORE-AWARE-GEN.3: rule → the fact-kinds K of its `fact_count_at_least(K,$ref)` post-predicates.
+    // The generation-time necessary condition `count(K) >= 1` is checked before the rule generates; on
+    // failure the rule is unsatisfiable (no positive `$ref` can match an empty fact set) → backtrack.
+    gen_count_kinds: HashMap<String, Vec<String>>,
     // SV-EXH-PROOF.2.3.2: grammar-scoped structural-sigil set `G`
     // (union of every permissive leading-negated content class's
     // printable complement across the whole grammar). Derived once
@@ -1388,6 +1405,17 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
+        // STORE-AWARE-GEN.3: precompute the generation-side semantic directives once. `gen_emit_facts`
+        // maps a rule to its `@emit_fact` specs (emitted into the generation-time store on rule
+        // success); `gen_count_kinds` maps a rule to the fact-kinds K for which it carries a
+        // `fact_count_at_least(K, $ref)` post-predicate whose threshold is a generated value (a
+        // `RuleReference`). `store_aware_gen` is true iff any such count-predicate exists — today ONLY
+        // `regex` uses `fact_count_at_least`, so SV/VHDL/json generation is byte-unaffected (the whole
+        // store-aware path is gated off when this is false).
+        let (gen_emit_facts, gen_count_kinds) =
+            Self::compute_store_aware_gen_directives(annotations);
+        let store_aware_gen = !gen_count_kinds.is_empty();
+
         let coverage = StimuliCoverageMetrics::new(
             grammar_name.clone(),
             rule_success_hits.len(),
@@ -1424,6 +1452,10 @@ impl<'a> StimuliGenerator<'a> {
             last_terminal_word_shaped: false,
             atomic_token_depth: 0,
             last_terminal_from_atomic_rule: false,
+            gen_semantic_state: SemanticRuntimeState::new(),
+            store_aware_gen,
+            gen_emit_facts,
+            gen_count_kinds,
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
             closer_scopes_entered: 0,
@@ -4726,6 +4758,11 @@ impl<'a> StimuliGenerator<'a> {
         );
         self.activate_deterministic_partition_for_entry(entry_rule);
         self.reset_mutation_runtime_state();
+        // STORE-AWARE-GEN.3: each sample starts with an empty generation-time store (facts from a prior
+        // sample must not influence this one). No-op cost for predicate-free grammars (gated).
+        if self.store_aware_gen {
+            self.gen_semantic_state = SemanticRuntimeState::new();
+        }
         let previous_active_entry = self
             .active_generation_entry_rule
             .replace(entry_rule.to_string());
@@ -5153,6 +5190,26 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
+        // STORE-AWARE-GEN.3: a rule gated by `fact_count_at_least(K, $ref)` is UNSATISFIABLE when no
+        // `K` fact has been emitted yet (no positive reference can match an empty fact set) — fail
+        // BEFORE generating so the caller's `generate_or` (which retries the next branch) backtracks to
+        // a satisfiable alternative (e.g. a single-digit `\1`, or generating a capture group first).
+        // This is the generation-side dual of the parser's post-predicate `Backtrack`. Gated on
+        // `store_aware_gen` (regex-only) → byte-identical for predicate-free grammars.
+        if self.store_aware_gen && !self.gen_count_predicate_satisfiable(rule_name) {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "STORE-AWARE-GEN: rule '{}' fact_count_at_least predicate unsatisfiable (0 source facts) — backtracking",
+                    rule_name
+                ),
+            );
+            return Err(anyhow!(
+                "STORE-AWARE-GEN: rule '{}' fact_count_at_least predicate unsatisfiable (zero source facts)",
+                rule_name
+            ));
+        }
+
         call_stack.push(rule_name.to_string());
         // STIMULI-SIGNOFF.2.2: record the covered k-path (last-k window of the live call
         // stack). OFF by default (zero overhead / byte-identical generation); read-only.
@@ -5179,6 +5236,12 @@ impl<'a> StimuliGenerator<'a> {
             // token, so a caller appending its rendering applies cross-rule cohesion. Set last (after
             // the body), so the most-recently-completed rule wins over its inner sub-rules.
             self.last_terminal_from_atomic_rule = is_atomic;
+            // STORE-AWARE-GEN.3: emit this rule's `@emit_fact` facts into the generation-time store on
+            // success (mirrors the parser's effect phase) — e.g. a generated capture group emits a
+            // `regex_capture_group` fact so a later backreference can be validated against the count.
+            if self.store_aware_gen {
+                self.gen_emit_facts_for_rule(rule_name);
+            }
         }
         match &result {
             Ok(sample) => self.trace(
@@ -5582,7 +5645,21 @@ impl<'a> StimuliGenerator<'a> {
         );
 
         let mut last_error: Option<anyhow::Error> = None;
+        // STORE-AWARE-GEN.3: snapshot the generation-time store before the branch tournament. Each
+        // branch attempt restarts from this pre-OR state (rollback at the top of the loop), so a
+        // FAILED branch's emitted facts (e.g. a capture group generated before the branch failed
+        // deeper) never leak into the next attempt; the WINNING branch returns immediately and keeps
+        // its facts. Mirrors the parser's `try_parse` semantic-state snapshot/restore. Gated on
+        // `store_aware_gen` → no-op for predicate-free grammars.
+        let or_store_checkpoint = if self.store_aware_gen {
+            Some(self.gen_semantic_state.checkpoint())
+        } else {
+            None
+        };
         for local_idx in attempt_order {
+            if let Some(checkpoint) = &or_store_checkpoint {
+                self.gen_semantic_state.rollback_to(checkpoint.clone());
+            }
             let selected_global = candidate_indices[local_idx];
             let selected_node = prepared[selected_global].1.as_ref().clone();
             self.coverage.record_branch_selected(
@@ -6257,7 +6334,20 @@ impl<'a> StimuliGenerator<'a> {
         let quantified_path = format!("{}/q", node_path);
         let mut last_error: Option<anyhow::Error> = None;
 
+        // STORE-AWARE-GEN.3: snapshot the generation-time store before the repeat-count tournament, and
+        // restart each candidate from it (rollback at the top of the loop) so a FAILED repeat count's
+        // partially-emitted facts never leak into the next attempt; the WINNING count returns and keeps
+        // its facts. Same `try_parse`-mirroring discipline as `generate_or`. Gated → no-op for
+        // predicate-free grammars.
+        let quantified_store_checkpoint = if self.store_aware_gen {
+            Some(self.gen_semantic_state.checkpoint())
+        } else {
+            None
+        };
         for repeats in repeat_candidates {
+            if let Some(checkpoint) = &quantified_store_checkpoint {
+                self.gen_semantic_state.rollback_to(checkpoint.clone());
+            }
             self.enforce_generation_deadline(current_rule, node_path)?;
             let mut output = String::new();
             let mut failed = false;
@@ -7290,6 +7380,101 @@ impl<'a> StimuliGenerator<'a> {
     /// `(?(R`) is NOT word-shaped, so it must stay adjacent to a following word-char argument.
     fn is_word_shaped_literal(text: &str) -> bool {
         !text.is_empty() && text.chars().all(Self::is_lexical_word_char)
+    }
+
+    /// STORE-AWARE-GEN.3: precompute, from the grammar's semantic annotations, (1) per-rule
+    /// `@emit_fact` specs (emitted into the generation-time store on rule success) and (2) per-rule
+    /// fact-kinds K gated by a `fact_count_at_least(K, $ref)` post-predicate whose threshold is a
+    /// generated value (a `RuleReference`). Parser-agnostic; reuses `parse_semantic_runtime_directives`
+    /// (the same parse the codegen uses), so the generator honours the SAME annotation vocabulary.
+    fn compute_store_aware_gen_directives(
+        annotations: Option<&Annotations>,
+    ) -> (
+        HashMap<String, Vec<SemanticFactSpec>>,
+        HashMap<String, Vec<String>>,
+    ) {
+        let mut emit_facts: HashMap<String, Vec<SemanticFactSpec>> = HashMap::new();
+        let mut count_kinds: HashMap<String, Vec<String>> = HashMap::new();
+        let Some(annotations) = annotations else {
+            return (emit_facts, count_kinds);
+        };
+        // A directive may bind at the rule level OR a branch level — flatten both per rule.
+        let mut per_rule: HashMap<String, Vec<&SemanticAnnotation>> = HashMap::new();
+        for (rule, anns) in &annotations.semantic_annotations {
+            per_rule.entry(rule.clone()).or_default().extend(anns.iter());
+        }
+        for (rule, branches) in &annotations.branch_semantic_annotations {
+            for branch in branches {
+                per_rule
+                    .entry(rule.clone())
+                    .or_default()
+                    .extend(branch.iter());
+            }
+        }
+        for (rule, anns) in per_rule {
+            let Ok(directives) = parse_semantic_runtime_directives(anns.into_iter()) else {
+                continue;
+            };
+            for directive in directives {
+                match directive {
+                    SemanticRuntimeDirective::EmitFact(spec) => {
+                        emit_facts.entry(rule.clone()).or_default().push(spec);
+                    }
+                    SemanticRuntimeDirective::Predicate(spec)
+                        if spec.name.trim() == "fact_count_at_least"
+                            && matches!(
+                                spec.args.get(1),
+                                Some(UnifiedSemanticValue::RuleReference(_))
+                            ) =>
+                    {
+                        if let Some(UnifiedSemanticValue::Identifier(kind)) = spec.args.first() {
+                            count_kinds
+                                .entry(rule.clone())
+                                .or_default()
+                                .push(kind.clone());
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        (emit_facts, count_kinds)
+    }
+
+    /// STORE-AWARE-GEN.3: the generation-time necessary condition for a rule gated by a
+    /// `fact_count_at_least(K, $ref)` post-predicate. `$ref` is a positive reference produced by the
+    /// rule (e.g. a backreference group number ≥ 1), so the predicate is UNSATISFIABLE whenever zero
+    /// `K` facts exist (`count(K) >= $ref` can't hold for any positive `$ref` when `count(K) == 0`).
+    /// Returns true if every gated kind has ≥ 1 fact (the rule may be generated), false if any is empty
+    /// (the rule must backtrack). Evaluated via the SAME `evaluate_predicate` the parser uses.
+    fn gen_count_predicate_satisfiable(&self, rule_name: &str) -> bool {
+        let Some(kinds) = self.gen_count_kinds.get(rule_name) else {
+            return true;
+        };
+        kinds.iter().all(|kind| {
+            let spec = SemanticPredicateSpec {
+                name: "fact_count_at_least".to_string(),
+                args: vec![
+                    UnifiedSemanticValue::Identifier(kind.clone()),
+                    UnifiedSemanticValue::Number("1".to_string()),
+                ],
+                phase: SemanticPredicatePhase::Post,
+                view: SemanticPredicateContentView::Raw,
+            };
+            // `Some(false)` = count < 1 (unsatisfiable). `Some(true)`/`None` = allow.
+            self.gen_semantic_state.evaluate_predicate(&spec) != Some(false)
+        })
+    }
+
+    /// STORE-AWARE-GEN.3: emit a rule's `@emit_fact` facts into the generation-time store on rule
+    /// success (mirrors the parser's effect phase). Regex's `@emit_fact { kind: regex_capture_group,
+    /// name: capture }` has literal args, so the precomputed spec is emitted directly.
+    fn gen_emit_facts_for_rule(&mut self, rule_name: &str) {
+        if let Some(specs) = self.gen_emit_facts.get(rule_name) {
+            for spec in specs.clone() {
+                self.gen_semantic_state.emit_fact(spec);
+            }
+        }
     }
 
     /// LEXICAL-ANNOTATIONS.6: whether `rule_name` is an ATOMIC lexical-token rule — one that, by its
@@ -12310,6 +12495,57 @@ mod tests {
             "@transform rule body should render as one fused scalar token (no internal space): {:?}",
             out
         );
+    }
+
+    #[test]
+    fn store_aware_gen_count_predicate_necessary_condition() {
+        // STORE-AWARE-GEN.3: a rule gated by `fact_count_at_least(K, $ref)` is UNSATISFIABLE when zero
+        // `K` facts exist (no positive reference can match an empty fact set), and becomes satisfiable
+        // once ≥ 1 `K` fact is emitted. This is the sound necessary condition that prunes an invalid
+        // numeric backreference (`\98495` with no capture groups) and is evaluated via the SAME
+        // `evaluate_predicate` the parser uses.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "x"));
+        let rule_order = vec!["start".to_string()];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+        generator.store_aware_gen = true;
+        generator
+            .gen_count_kinds
+            .insert("backref".to_string(), vec!["grp".to_string()]);
+
+        assert!(
+            !generator.gen_count_predicate_satisfiable("backref"),
+            "with zero `grp` facts the count predicate must be unsatisfiable (the rule must backtrack)"
+        );
+        generator.gen_semantic_state.emit_fact(SemanticFactSpec {
+            kind: "grp".to_string(),
+            name: crate::ast_pipeline::SemanticRuntimeValue::Identifier("g1".to_string()),
+            attributes: vec![],
+        });
+        assert!(
+            generator.gen_count_predicate_satisfiable("backref"),
+            "after emitting one `grp` fact the count predicate must be satisfiable"
+        );
+        assert!(
+            generator.gen_count_predicate_satisfiable("unrelated_rule"),
+            "a rule with no count predicate is always satisfiable"
+        );
+    }
+
+    #[test]
+    fn store_aware_gen_off_for_predicate_free_grammar() {
+        // STORE-AWARE-GEN.3: the no-op gate — a grammar with no generative `fact_count_at_least`
+        // predicate disables the ENTIRE store-aware path (byte-identical generation for json/ebnf/SV).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("regex", "[a-z]+"));
+        let rule_order = vec!["start".to_string()];
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+        assert!(
+            !generator.store_aware_gen,
+            "a grammar without a generative fact_count_at_least predicate must not activate store-aware generation"
+        );
+        assert!(generator.gen_count_kinds.is_empty());
+        assert!(generator.gen_emit_facts.is_empty());
     }
 
     #[test]

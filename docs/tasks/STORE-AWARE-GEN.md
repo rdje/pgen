@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `STORE-AWARE-GEN`
-- Status: `active` (`.1` SCOPING + `.2` DESIGN done — the plan is complete and the `.3`–`.5` implementation is turnkey; implementation sequenced per the director)
+- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done — the `fact_count_at_least`-aware MVP landed and closed `REGEX-PCRE2-FIDELITY.3.12`; frontier `.4` generalize to the other composable predicates, `.5` per-grammar verify)
 - Family / slice-id prefix: `PGEN-STORE-AWARE-GEN-<NNNN>`
 - Roadmap lane: stimuli-generator quality / parser sign-off pillars **C** (fidelity) + **D** (coverage) —
   the generator must emit only samples that satisfy the SAME semantic predicates the parser enforces
@@ -117,11 +117,30 @@ introduced (the generator becomes a second consumer of the existing one).
   for predicate-free grammars). Reuses `parse_semantic_runtime_directives` + the resolve helpers — no new
   runtime code. Includes the `.3` MVP scope, the verification matrix, risks/mitigations, and the
   no-workarounds-hierarchy placement (Level-3+, justified). The `.3`–`.5` implementation is now turnkey.
-- `.3` — **IMPLEMENT `fact_count_at_least`-aware generation (the regex `.3.12` driver).** The minimal,
-  highest-value first cut: emit `regex_capture_group` facts during generation + gate
-  `numeric_backreference`'s index by the live count. VERIFY: `(?(R…)` / `\NN` samples reference only
-  existing groups; regex cert-cov seed 1 → 0 + seed sweep; cross-family + oracle + lib green;
-  byte-identical for predicate-free grammars. Closes `REGEX-PCRE2-FIDELITY.3.12`.
+- `.3` — **IMPLEMENT `fact_count_at_least`-aware generation (the regex `.3.12` driver). DONE
+  (`PGEN-STORE-AWARE-GEN-0003`, 2026-06-08).** Landed exactly the `.2` design MVP, generator-only
+  (`stimuli_generator.rs`): `gen_semantic_state: SemanticRuntimeState` + `store_aware_gen` no-op gate +
+  precomputed `gen_emit_facts`/`gen_count_kinds` (via `compute_store_aware_gen_directives`, reusing
+  `parse_semantic_runtime_directives`); EMIT hook in `generate_rule` (on success, mirrors the parser's
+  effect phase — a generated capture group emits `regex_capture_group`); the sound NECESSARY-CONDITION
+  prune (`gen_count_predicate_satisfiable`: a `fact_count_at_least(K,$ref)` rule is unsatisfiable when
+  `count(K)==0` since no positive `$ref` can match an empty set — evaluated via the SAME
+  `evaluate_predicate`) → `generate_rule` fails fast → `generate_or` (which already retries the next
+  branch) backtracks to a satisfiable alternative; checkpoint/rollback of `gen_semantic_state` at
+  `generate_or` AND `generate_quantified` (mirrors `try_parse`); per-sample store reset in
+  `generate_from_entry`. NO grammar change, NO regen, NO AST change, NO version bump (surface-neutral;
+  the regex PARSER is unchanged — only the generator emits more semantically-valid samples). **VERIFIED:**
+  regex DEFAULT cert-coverage `sample_parse_failures` = **0 across the seed sweep** (seed 0/1/7/13 + count
+  500/seed 0,1 — seed 1 was 1 [`\98495`], now 0); determinism byte-identical; backrefs still generated
+  (construct not destroyed); json/VHDL/SV byte-identical (`stimuli_cross_family_platform_gate` ✅,
+  no-op gate); `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting OK; `cargo test --lib`
+  **620/0** (+2 locks: `store_aware_gen_count_predicate_necessary_condition`,
+  `store_aware_gen_off_for_predicate_free_grammar`); strict source clippy clean. **Closes
+  `REGEX-PCRE2-FIDELITY.3.12` — regex DEFAULT cert-coverage is now clean across all measured seeds.**
+  HONEST scope: the MVP prunes the `count(K)==0` category (the systematic one). The tight bound
+  (`$index ≤ count` when `count ≥ 1`) — a generated multi-digit backref whose value exceeds a non-zero
+  group count — is not yet enforced; it did not arise in the seed sweep (it needs ≥1 capture group AND a
+  backref value in `(count, generated]`), and is the natural `.4` value-constraint refinement.
 - `.4` — **GENERALIZE to the composable primitive set** (`has_fact`, `lacks_fact`,
   `fact_attribute_equals`, `resolve_path`): gate branch/value selection generally so any `@predicate`-
   gated rule generates only satisfiable samples. Tools-first, one primitive at a time, measured.
@@ -153,6 +172,7 @@ introduced (the generator becomes a second consumer of the existing one).
 | --- | --- | --- | --- |
 | `2026-06-08` | `.1` | tool-backed root cause (generator has no fact/predicate machinery — grep of `stimuli_generator.rs`; `fact_count_at_least` parse-only in `semantic_runtime.rs`/linter); SOTA cited (ISLa, data-dependent grammars, Fuzzing Book) | SCOPING DONE (docs) |
 | `2026-06-08` | `.2` | tool-backed design — verified the parser's emit/predicate runtime (`SemanticFactSpec`/`SemanticPredicateSpec`/`evaluate_predicate`/`emit_fact`/`checkpoint`/`rollback_to_named`/`extract_delta_since`/`apply_delta` in `semantic_runtime.rs`; codegen emit/predicate/try_parse sites in `ast_based_generator.rs`); pinned the generator hooks, the 2 predicate strategies, the checkpoint/rollback discipline, the no-op gate, the MVP scope + verification matrix | DESIGN DONE (docs) — `.3`–`.5` turnkey |
+| `2026-06-08` | `.3` | regex DEFAULT cert-coverage seed sweep (seed 0/1/7/13 + count 500/seed 0,1) all `sample_parse_failures=0` (seed 1 was 1); determinism byte-identical; backrefs still generated; json/VHDL/SV byte-identical (`stimuli_cross_family_platform_gate` ✅); `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting OK; `cargo test --lib` 620/0 (+2 locks); strict source clippy clean | **IMPLEMENT DONE** — closes `REGEX-PCRE2-FIDELITY.3.12`; generator-only, surface-neutral (no regen/version bump); MVP prunes the `count(K)==0` category, tight `$index≤count` bound deferred to `.4` |
 
 ## Commit Log
 
@@ -160,3 +180,4 @@ introduced (the generator becomes a second consumer of the existing one).
 | --- | --- | --- |
 | `.1` | `PGEN-STORE-AWARE-GEN-0001` | tree created + scoping + decision record + registered; trigger = `REGEX-PCRE2-FIDELITY.3.12` |
 | `.2` | `PGEN-STORE-AWARE-GEN-0002` | tool-backed design ([`STORE-AWARE-GEN-design.md`](STORE-AWARE-GEN-design.md)) — generator hooks, 2 predicate strategies, checkpoint/rollback discipline, no-op gate, MVP scope, verification matrix; `.3`–`.5` turnkey |
+| `.3` | `PGEN-STORE-AWARE-GEN-0003` | `fact_count_at_least`-aware generation MVP (generator-only): `gen_semantic_state` + no-op gate + emit hook + `count(K)==0` necessary-condition prune + `generate_or`/`generate_quantified` checkpoint/rollback + per-sample reset; closes `REGEX-PCRE2-FIDELITY.3.12` (cert-cov seed sweep all 0); surface-neutral, no regen/version bump |

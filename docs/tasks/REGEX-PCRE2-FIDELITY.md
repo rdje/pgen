@@ -208,8 +208,14 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   the grammar; this leaf is the eventual full-fidelity end-state and would SUBSUME `.3.1`'s six
   exclusions (strict variant = recognized-only). Bigger/riskier restructure → its own design + released
   slice. Oracle facts: [[reference_pcre2_unsupported_escape_oracle]].
-- ID: `.3.12`  Status: `pending` (DISCOVERED `PGEN-LEXICAL-ANNOTATIONS-0024`, 2026-06-08, tool-backed)
-  Goal: **stop the generator emitting PCRE2-INVALID numeric backreferences.** Surfaced when the `.3.7`
+- ID: `.3.12`  Status: **`done`** (DISCOVERED `PGEN-LEXICAL-ANNOTATIONS-0024`; CLOSED `PGEN-STORE-AWARE-GEN-0003`, 2026-06-08, via the `STORE-AWARE-GEN` tree)
+  Goal: **stop the generator emitting PCRE2-INVALID numeric backreferences.** CLOSED: the
+  semantic-store-aware generation MVP (`STORE-AWARE-GEN.3`) emits `regex_capture_group` facts during
+  generation and prunes `numeric_backreference` when no groups exist (the sound `count==0` necessary
+  condition), so the generator no longer emits `\98495`-style backrefs to non-existent groups. regex
+  DEFAULT cert-coverage `sample_parse_failures` = 0 across the seed sweep (seed 0/1/7/13 + count 500).
+  Surface-neutral (generator-only, no regen/version bump). The tight `$index ≤ count` bound (count ≥ 1
+  over-value) is the `STORE-AWARE-GEN.4` refinement (did not arise in the sweep). Surfaced when the `.3.7`
   (b)/(c) spacing fix UNMASKED it (it had been hidden because the spacing emitted `\9 8495` = `\9`+literals,
   which parsed; the faithful generator now emits `\98495` which the parser correctly rejects). Tool-backed
   (`parseability_probe --parse regex`): `\9` PASSES, `\98`/`\984`/`\98495*` REJECT (PCRE2-faithful: `\98…`

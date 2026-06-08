@@ -1,4 +1,48 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - STORE-AWARE-GEN.3 — fact_count_at_least-aware generation (PGEN-STORE-AWARE-GEN-0003)
+
+### The gap: the generator was predicate-blind
+The EBNF `@predicate` annotations are the single source of truth for the accepted language and the
+PARSER honours them (`numeric_backreference` is gated by `@predicate fact_count_at_least(regex_capture_group,
+$index)` — accepted only if that many capture groups exist), but the stimuli generator had ZERO
+predicate/fact machinery. So it over-generated `\98495` (a backref to a non-existent group) which the
+parser correctly rejects — a generator⟷parser duality break at the SEMANTIC level (REGEX-PCRE2-FIDELITY.3.12).
+
+### The MVP: emit + a sound necessary-condition prune (generator-only)
+The generator becomes a SECOND consumer of the existing `@emit_fact`/`@predicate` vocabulary (reusing
+`semantic_runtime.rs` — one evaluator, two drivers; no new annotation):
+- `gen_semantic_state: SemanticRuntimeState` + a `store_aware_gen` gate (true iff the grammar has a
+  `fact_count_at_least(K,$ref)` predicate — regex only today, so SV/VHDL/json are byte-identical).
+- `compute_store_aware_gen_directives` precomputes, per rule, the `@emit_fact` specs and the
+  `fact_count_at_least` fact-kinds (via `parse_semantic_runtime_directives` — the same parse the codegen
+  uses). Only the `$ref` (RuleReference) threshold case is collected (the generated-value case).
+- EMIT hook in `generate_rule` (on success → mirror the parser's effect phase): a generated capture
+  group emits `regex_capture_group`.
+- The PRUNE: `gen_count_predicate_satisfiable` builds `fact_count_at_least(K, 1)` and calls
+  `evaluate_predicate`; `Some(false)` means `count(K) == 0`, which makes the predicate unsatisfiable for
+  ANY positive `$ref` (the sound necessary condition — no magic min, no hardcoded bound). On failure
+  `generate_rule` returns `Err` BEFORE generating, and `generate_or` (which already retries the next
+  branch on `Err`) backtracks to a satisfiable alternative (a single-digit `\1`, or generates a group
+  first). This is the generation-side dual of the parser's post-predicate `Backtrack`.
+- Backtracking safety: `gen_semantic_state.checkpoint()`/`rollback_to()` at `generate_or` and
+  `generate_quantified` — one snapshot before the tournament, rollback at the top of each attempt, so a
+  failed branch/repeat-count's emitted facts never leak into the next; the winner returns and keeps its
+  facts. Mirrors the parser's `try_parse`. Per-sample reset in `generate_from_entry`.
+
+### Why generate-check-backtrack, not constraint-directed value-bounding (for the MVP)
+The design offered two strategies. The MVP uses the prune (necessary condition `count==0`) + the
+generator's existing `generate_or` retry, which is the smallest correct change and needs no backward
+value-constraint propagation into the char-sequence `backreference_digits` generation. The TIGHT bound
+(`$index ≤ count` when `count ≥ 1`) is strategy (A)'s value part — deferred to `.4` because it needs
+value-constraint injection and did not arise in the seed sweep (it needs ≥1 group AND a generated backref
+value in `(count, generated]`).
+
+### Verification
+regex DEFAULT cert-cov `sample_parse_failures` = 0 across seed 0/1/7/13 + count 500/seed 0,1 (seed 1 was
+1, the `\98495`); determinism byte-identical (generate ×2 → `cmp`); backrefs still generated; cross-family
+✅ (no-op gate proven for VHDL/SV; regex re-parses); regex oracle byte-identical (parser unchanged);
+self-hosting OK; lib 620/0 (+2 locks); strict source clippy clean. No regen/grammar/AST/version change.
+
 ## 2026-06-08 - LEXICAL-ANNOTATIONS.6 — lexical-token cohesion via declarative atomicity (PGEN-LEXICAL-ANNOTATIONS-0024)
 
 ### The defect class: self-hosting unmasked an intra-token spacing bug
