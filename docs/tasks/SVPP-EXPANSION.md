@@ -94,6 +94,49 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
   transformation deliverable. See [[project_svpp_expansion_stage_for_nexsim]].
 - **(director 2026-06-08, sequencing)** Build-later: sequenced strictly AFTER the locked program (every
   existing parser cert-coverage WIRED + clean + `UNKNOWN`=0). Do not pivot to building this until then.
+- **(director 2026-06-09, ARCHITECTURE — go all-in PGEN-native)** The expansion stage is a **parse-tree
+  transformation over the enhanced `svpp.ebnf` AST** — NOT a separate token-stream engine and NOT a separate
+  grammar. RATIONALE (objective, no fundamental blocker found): the industry token-stream model exists to
+  dodge one wall — *macros cross SV structural boundaries, so you can't preprocess over a parse tree of the
+  SV grammar*. svpp's AST is **not** an SV syntax tree; it is a flat, source-ordered `pp_item*` **structured
+  token/directive stream** (directives with internal structure + opaque `non_directive_text` runs), so it
+  NEVER hits that wall (it makes no SV-structural assumptions). Walking svpp's `pp_item` list with a stateful
+  macro table IS token-stream preprocessing, with the directive grammar recognized DECLARATIVELY (EBNF =
+  single source of truth) instead of ad-hoc scanner code. Every hard case maps cleanly: boundary-crossing
+  macro fragments + conditional-split constructs are text runs to substitute/keep/drop; token-paste/stringize
+  + rescan/recursion are engine logic over the modeled macro-body atoms; balanced function-macro args are a
+  context-free `macro_actual_args` rule; cross-boundary re-lexing (`` `HALF ``→`3.14` must not fuse with a
+  following ` e2`) is handled by PGEN's **lexical-faithfulness pillar (LEXICAL-ANNOTATIONS)** — an area PGEN
+  is AHEAD; provenance is structured (AST spans). The token-stream model's only genuine edges
+  (performance / streaming / malformed-input tolerance) are NON-FUNCTIONAL — none a capability/correctness
+  blocker, and all consistent with PGEN's parse-then-transform architecture + correctness-before-speed.
+  GAINS going PGEN-native: directive grammar validated by the well-formedness linter + cert-coverage;
+  expansion is a testable, proof-first transformation over a validated AST; structured provenance;
+  architectural consistency (the transformation dual; the macro table is the same stateful left-to-right
+  processing the semantic store already does). OBLIGATIONS (not blockers): `svpp.ebnf` must be a total/correct
+  grammar over the directive+text surface (proven by cert-coverage/linter); macro-usage recognition + output
+  must be lexically faithful (we have the pillar); full-AST performance on huge files is monitor-and-optimize-
+  later. The `.1` SCOPING read of IEEE 1800 §22 + slang/Verible/Verilator now CONFIRMS no SV-specific corner
+  breaks this + settles implementation details (output form, provenance carrier, token-paste/rescan corners)
+  — it does NOT re-litigate the architecture.
+  - **PROS/CONS (recorded 2026-06-09, balanced).** *Token-stream (industry) PROS:* streaming performance/low
+    memory (single lexical pass, no full AST); conceptual simplicity (lexer + substitution loop);
+    language-agnostic (grammar-blind directive filter); malformed-input tolerance; direct token-level
+    differential alignment with slang/Verible/Verilator. *Token-stream CONS for PGEN:* ad-hoc directive
+    recognition (NOT EBNF-validated → drifts from single-source-of-truth; linter/cert-coverage don't apply);
+    a SECOND separate technology beside the EBNF/AST pipeline (more surface, inconsistent); flatter
+    provenance; no reuse of the existing svpp grammar/AST. *Parse-tree (PGEN-native) PROS:* EBNF = single
+    source of truth (directive grammar validated by linter + cert-coverage + well-formedness); proof-first /
+    testable transformation over a validated AST (shape contracts, round-trip, deterministic gates);
+    structured provenance (AST spans — what downstream linters/elaborators need); architectural consistency
+    (transformation dual; macro table reuses semantic-store-style stateful processing); lexical-faithfulness
+    already solved (LEXICAL-ANNOTATIONS). *Parse-tree CONS:* heavier (build+walk AST vs streaming —
+    mitigable, correctness-first); a grammar-totality obligation on svpp.ebnf (provable via cert-coverage;
+    `non_directive_text` catch-all is near-total); the same subtle rescan/paste semantics must be encoded
+    (true of BOTH models). **WEIGHING:** every token-stream pro is NON-FUNCTIONAL (performance/simplicity/
+    agnosticism/tolerance/reference-alignment) — none is a capability the parse-tree lacks; every parse-tree
+    pro is a SIGNOFF-QUALITY/doctrine win (PGEN's differentiator). The parse-tree cons are real but
+    non-functional + mitigable. ⇒ parse-tree, all-in.
 
 ## Open questions
 
