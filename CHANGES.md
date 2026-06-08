@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-09 - PGEN-EXTERNAL-CORPUS-0007 (reference): record the official/recognized SV external test-corpus + reference-tooling GitHub repos (director-shared) (DOCS).
+
+Director shared (2026-06-09) the canonical SV external-corpus + reference-oracle repo list + acquisition recipe; recorded durably so EXTERNAL-CORPUS / PARSE-COMPLETENESS / SVPP-EXPANSION don't re-derive it.
+
+- **Recorded** [[reference_sv_external_corpus_and_oracle_repos]] (+ INDEX): `chipsalliance/sv-tests` = the SV external CORPUS (analogue of `regex_corpus_bundle/` PCRE2 + `json_corpus_bundle/` JSONTestSuite); `slang` / `verible` / `verilator` / `Surelog` = parser/compiler differential ORACLES; `UHDM` = elaborated-design data model. Includes the git-submodule recipe (`third_party/sv/`).
+- **Slots into:** EXTERNAL-CORPUS (sv-tests = SV external corpus, a `.3`-class item — characterize-don't-game; not blocking the locked program), PARSE-COMPLETENESS (slang/Verible/Verilator/Surelog = pillar-A differential oracles), SVPP-EXPANSION.1 (slang/Verible/Verilator = reference preprocessors to read — now to confirm/detail the decided parse-tree architecture).
+- **NOT acquired:** no `third_party/sv/` submodules / `.gitmodules` change — acquisition is a future slice (a real-world clone of 6 large repos) needing the director's go-ahead, and should pin/snapshot for reproducibility per the existing bundle pattern. Reference-recording only; no code; no status-row change.
+
 ## 2026-06-09 - PGEN-SVPP-EXPANSION-0003 (SVPP-EXPANSION architecture decision): the SV expansion stage is a PARSE-TREE transformation over the enhanced svpp.ebnf AST — PGEN-native, all-in; NO separate grammar, NO token-stream engine (DOCS).
 
 Director question 2026-06-09 ("are we allowed to think out of the box? any long-term blocker going parse-tree? anything token-stream can do that parse-tree can't?") → rigorous answer recorded; decision made.

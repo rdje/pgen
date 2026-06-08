@@ -73,7 +73,8 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 - ID: `SVPP-EXPANSION.1`
   Status: `pending` (activates when the locked program is met)
   Goal: SCOPING + SOTA survey — pin the exact expansion model against IEEE 1800-2017 §22 (compiler
-  directives) and the slang / Verible / Verilator preprocessing implementations; decide the architecture
+  directives) and the slang / Verible / Verilator preprocessing implementations (repo list + acquisition
+  recipe: [[reference_sv_external_corpus_and_oracle_repos]]); decide the architecture
   (transformation over the svpp AST → expanded source vs. token stream; where it lives in the pipeline;
   provenance/source-map carrier); enumerate the build leaves (`.2` macro substitution, `.3` conditional
   resolution, `.4` `include` inlining, `.5` integration + composition proof). Pure docs.
