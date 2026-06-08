@@ -740,6 +740,28 @@ fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonVa
     parse_node_to_json(&parsed)
 }
 
+/// GRAMMAR-WELLFORMED.H.5 — parse `sample` through the REAL systemverilog_preprocessor parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_json`: enable the transactional `coverage_stack`, parse, and return the PARSER's own
+/// record of the committed rules on a SUCCESSFUL parse. svpp has no grammar profile and its entry
+/// (`systemverilog_preprocessor_file := pp_item*`) is a flat item list, so neither a profile
+/// (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
+#[cfg(has_generated_systemverilog_preprocessor_parser)]
+pub fn parse_and_cover_systemverilog_preprocessor(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let mut parser = SystemverilogPreprocessorParser::new(
+        sample,
+        runtime_logger_box("generated.systemverilog_preprocessor"),
+    );
+    parser.enable_coverage();
+    match parser.parse_full_systemverilog_preprocessor_file() {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
 #[cfg(has_generated_vhdl_parser)]
 fn parse_with_vhdl(sample: &str) -> bool {
     let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
@@ -839,7 +861,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog_preprocessor",
         parse_sample: parse_with_systemverilog_preprocessor,
-        parse_and_cover: None,
+        parse_and_cover: Some(parse_and_cover_systemverilog_preprocessor),
         parse_detail: None,
     },
     #[cfg(has_generated_vhdl_parser)]

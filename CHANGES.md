@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0039 (GRAMMAR-WELLFORMED.H.5): wire `parse_and_cover` cert-coverage for `systemverilog_preprocessor` (CODE: Makefile + parser_registry).
+
+Phase H continues toward the locked program (all parsers cert-coverage WIRED): `systemverilog_preprocessor`
+(svpp) is the next grammar after rtl_const_expr (H.4). Same mechanical pattern the H.4 leaf made turnkey.
+
+- svpp entry `systemverilog_preprocessor_file := pp_item*` is a FLAT item list (not a deep precedence chain
+  like rtl_const_expr), has NO `@profiles`, and its regen is ZERO-drift (fresh json from ebnf byte-identical
+  to the on-disk json except `generated_at`), so it runs at the DEFAULT depth 24 — no `--max-depth` needed.
+- `rust/Makefile`: `SVPP_{EBNF,JSON,PARSER}` vars + `$(SVPP_JSON)`/`$(SVPP_PARSER)` rules +
+  `systemverilog_preprocessor_parser` + `focus_systemverilog_preprocessor` (mirror json/rtl_const_expr).
+- `rust/src/parser_registry.rs`: `parse_and_cover_systemverilog_preprocessor` (cfg
+  `has_generated_systemverilog_preprocessor_parser`; mirrors `parse_and_cover_json` — no profile, no worker
+  stack) + the registry entry set to `Some(...)`.
+- VERIFIED (default depth, count 40): seed 0 → `total=73 proof=0 witness=19 UNKNOWN=54 (sample_parse_failures=24)`,
+  same-seed DETERMINISTIC; seed 7 → `witness=7 UNKNOWN=66 (sample_parse_failures=32)`. `parser_registry` lib
+  tests 20/0; lib `--features generated_parsers` builds clean; json (`fully_certified`) / regex /
+  rtl_const_expr cert-coverage unaffected. NO tracked-artifact change (`generated/` is gitignored).
+- NEW FINDING (attribution rule — routed to follow-up `H.5.1`, NOT accepted): svpp has a HIGH
+  witness-parseability residual (24/40 `sample_parse_failures`; regex H.1 had 6/200, json 0). Tools-first
+  peek (`--generate-stimuli`): the svpp stimuli generator over-produces STRUCTURALLY-INVALID preprocessor
+  inputs — comment-dominated samples, `` `define `` with no valid macro name/body, stray punctuation as bare
+  `pp_item`s — so they don't re-parse. A generator↔svpp-grammar round-trip gap, now MEASURABLE because svpp
+  is wired. The H.5 deliverable (cert-coverage WIRED + RUNS deterministically) is complete; driving the
+  residual + UNKNOWN→0 is the follow-up (mirrors regex H.1 landing wired-with-residuals).
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0038 (GRAMMAR-WELLFORMED.H.4): wire `parse_and_cover` cert-coverage for `rtl_const_expr` (CODE: Makefile + parser_registry + main.rs).
 
 Phase H continues toward the locked program (all parsers cert-coverage WIRED): `rtl_const_expr` is the

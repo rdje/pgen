@@ -291,7 +291,7 @@ faithfully it matches the full JSON standard, which is measured separately again
 **Rolling the gate out per grammar (Phase H).** The certificate-coverage gate is parser-agnostic, so it is
 being wired to run for every PGEN grammar in turn (each grammar needs a small `parse_and_cover_<grammar>`
 adapter so the witness side can replay samples through that grammar's real parser). So far it runs for
-`json` (fully certified), `regex`, and `rtl_const_expr`. `rtl_const_expr` is a good illustration of an
+`json` (fully certified), `regex`, `rtl_const_expr`, and `systemverilog_preprocessor`. `rtl_const_expr` is a good illustration of an
 *honest, not-yet-complete* result: at a sufficient generation depth the report runs deterministically and
 reports e.g. `total=48 witness=41 UNKNOWN=7 (sample_parse_failures=0)` — every witness it produced re-parses
 cleanly (no round-trip failures), and the seven `UNKNOWN` rules are not hidden: they are a *loud, specific*

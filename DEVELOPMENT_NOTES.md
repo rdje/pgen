@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.5 — wire cert-coverage for systemverilog_preprocessor (PGEN-GRAMMAR-WELLFORMED-0039)
+
+### Goal
+Phase H per-grammar cert-coverage: make `--report-certificate-coverage` RUN for `systemverilog_preprocessor`
+(svpp), the next grammar after rtl_const_expr (H.4). Mechanical mirror of H.4 (the H.4 leaf documented the
+zero-drift regen recipe + the one-time bootstrap-ordering step).
+
+### The change
+- `rust/Makefile`: `SVPP_{EBNF,JSON,PARSER}` vars + regen rules + `systemverilog_preprocessor_parser` +
+  `focus_systemverilog_preprocessor` (byte-mirror of the rtl_const_expr block).
+- `rust/src/parser_registry.rs`: `parse_and_cover_systemverilog_preprocessor` (cfg
+  `has_generated_systemverilog_preprocessor_parser`; mirror `parse_and_cover_json` — svpp entry
+  `systemverilog_preprocessor_file := pp_item*` is a flat list, no profile, no worker stack) + entry
+  `Some(...)`. No `main.rs` change (svpp is not deeply recursive → default depth 24 suffices, unlike H.4).
+
+### Verification
+- Zero-drift regen confirmed (fresh json == on-disk json except `generated_at`); regen adds the 2 coverage
+  methods. `--report-certificate-coverage --entry-rule systemverilog_preprocessor_file --count 40`:
+  seed 0 → `total=73 proof=0 witness=19 UNKNOWN=54 (sample_parse_failures=24)`, same-seed deterministic;
+  seed 7 → `witness=7 UNKNOWN=66 (sample_parse_failures=32)`. `parser_registry` 20/0; lib builds; json
+  (`fully_certified`)/regex/rtl_const_expr unaffected.
+
+### Finding (attribution rule → routed to H.5.1, not accepted)
+svpp has a HIGH witness-parseability residual (24/40 sample_parse_failures @ seed 0 — vs regex H.1 6/200,
+json 0). Tools-first peek (`--generate-stimuli --count 5 --seed 0`): the svpp stimuli generator emits
+structurally-INVALID preprocessor inputs — comment-dominated samples (`/***r7*lg*/…`), `` `define `` with no
+valid macro name/body, and stray punctuation (`,`/`=`/`)`) as bare `pp_item`s — which the svpp parser
+correctly rejects. A generator↔grammar round-trip gap (same class as regex's witness-parseability residuals
++ SV G.4.7), now measurable because svpp is wired. Root-cause (generator deficiency vs loose `pp_item`
+productions) + the likely need for a svpp `parse_detail` adapter to label the exact errors → H.5.1.
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.4 — wire cert-coverage for rtl_const_expr (PGEN-GRAMMAR-WELLFORMED-0038)
 
 ### Goal

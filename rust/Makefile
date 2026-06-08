@@ -23,6 +23,7 @@ REGEX_EBNF = $(GRAMMARS_DIR)/regex.ebnf
 SYSTEMVERILOG_EBNF = $(GRAMMARS_DIR)/systemverilog.ebnf
 JSON_EBNF = $(GRAMMARS_DIR)/json.ebnf
 RTL_CONST_EXPR_EBNF = $(GRAMMARS_DIR)/rtl_const_expr.ebnf
+SVPP_EBNF = $(GRAMMARS_DIR)/systemverilog_preprocessor.ebnf
 
 # Generated JSON files (intermediate)
 SEMANTIC_ANNOTATION_JSON = $(GENERATED_DIR)/semantic_annotation.json
@@ -31,6 +32,7 @@ REGEX_JSON = $(GENERATED_DIR)/regex.json
 SYSTEMVERILOG_JSON = $(GENERATED_DIR)/systemverilog.json
 JSON_JSON = $(GENERATED_DIR)/json.json
 RTL_CONST_EXPR_JSON = $(GENERATED_DIR)/rtl_const_expr.json
+SVPP_JSON = $(GENERATED_DIR)/systemverilog_preprocessor.json
 
 # Generated Rust parser files (final output)
 SEMANTIC_ANNOTATION_PARSER = $(GENERATED_DIR)/semantic_annotation_parser.rs
@@ -39,6 +41,7 @@ REGEX_PARSER = $(GENERATED_DIR)/regex_parser.rs
 SYSTEMVERILOG_PARSER = $(GENERATED_DIR)/systemverilog_parser.rs
 JSON_PARSER = $(GENERATED_DIR)/json_parser.rs
 RTL_CONST_EXPR_PARSER = $(GENERATED_DIR)/rtl_const_expr_parser.rs
+SVPP_PARSER = $(GENERATED_DIR)/systemverilog_preprocessor_parser.rs
 
 # Compiled Rust parser executables
 SEMANTIC_ANNOTATION_EXE = $(GENERATED_DIR)/semantic_annotation_parser
@@ -248,6 +251,38 @@ rtl_const_expr_parser: $(RTL_CONST_EXPR_JSON) $(RUST_AST_PIPELINE)
 focus_rtl_const_expr: $(RTL_CONST_EXPR_PARSER)
 	@echo ""
 	@echo "✅ rtl_const_expr parser artifact ready: $(RTL_CONST_EXPR_PARSER)"
+	@echo ""
+
+# Generate systemverilog_preprocessor raw-AST JSON from EBNF (GRAMMAR-WELLFORMED.H.5 — Phase H cert-coverage)
+$(SVPP_JSON): $(SVPP_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating systemverilog_preprocessor JSON with debug output (Rust frontend)..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_FRONTEND_TO_JSON) $(SVPP_EBNF) --emit-raw-ast-json $(SVPP_JSON)
+
+# Generate final systemverilog_preprocessor parser from JSON
+$(SVPP_PARSER): $(SVPP_JSON) $(RUST_AST_PIPELINE)
+	@echo "Generating final systemverilog_preprocessor parser from JSON..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(SVPP_JSON) -o $(SVPP_PARSER)
+
+# systemverilog_preprocessor parser complete flow
+.PHONY: systemverilog_preprocessor_parser
+systemverilog_preprocessor_parser: $(SVPP_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for systemverilog_preprocessor parser..."
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(SVPP_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(SVPP_JSON) -o $(SVPP_PARSER)
+	@echo "✅ Generated: $(SVPP_PARSER)"
+	@echo "✅ systemverilog_preprocessor parser generated successfully!"
+
+# `make focus_systemverilog_preprocessor` — regenerate the svpp artifact so subsequent
+# `cargo test --features generated_parsers` invocations exercise the systemverilog_preprocessor
+# family (build.rs sets has_generated_systemverilog_preprocessor_parser when the artifact exists).
+.PHONY: focus_systemverilog_preprocessor
+focus_systemverilog_preprocessor: $(SVPP_PARSER)
+	@echo ""
+	@echo "✅ systemverilog_preprocessor parser artifact ready: $(SVPP_PARSER)"
 	@echo ""
 	@echo "Default cargo test will pick this up automatically."
 	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"
