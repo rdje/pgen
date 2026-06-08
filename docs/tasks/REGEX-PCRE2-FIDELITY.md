@@ -215,11 +215,16 @@ recognized PCRE2 verb + start-option list (from `pcre2_verb_argument_rule` / `is
   (`parseability_probe --parse regex`): `\9` PASSES, `\98`/`\984`/`\98495*` REJECT (PCRE2-faithful: `\98…`
   with no group 98 is err 115, the documented RGX-0087/0088 family). Root: `numeric_backreference =
   "\\" backreference_digits` with `backreference_digits = nonzero_digit digit+` over-generates multi-digit
-  backreferences to non-existent groups. Fix direction (tools-first, careful): constrain backreference-digit
-  generation so the emitted index is a plausibly-valid group (e.g. a `@predicate`/`numeric_bounds` cap, or a
-  generation hint that keeps the value small), OR generate `\g{N}`/named forms; verify cert-cov seed 1 → 0
-  + RGX conformance + oracle. Low-frequency (seed-dependent); not a spacing concern. Composes with `.3.11`
-  (escape whitelist).
+  backreferences to non-existent groups. Fix direction (director-decided 2026-06-08): the grammar already
+  gates this PCRE2-faithfully via `@predicate fact_count_at_least(regex_capture_group, $index)` on
+  `numeric_backreference`; the defect is that the GENERATOR is predicate-blind. A fixed `numeric_bounds`
+  cap would be a guess (the valid bound is the context-dependent capture-group count). The principled fix
+  is the new **semantic-store-aware generation** capability — owned by the **`STORE-AWARE-GEN`** tree
+  (director directive 2026-06-08, [[project_store_aware_generation]]): a generation-time semantic store
+  that emits `regex_capture_group` facts as it generates and gates the backreference index by
+  `fact_count_at_least`. `.3.12` is the concrete driver/closer of `STORE-AWARE-GEN.3`; verify cert-cov
+  seed 1 → 0 + seed sweep + RGX conformance + oracle. Low-frequency (seed-dependent); not a spacing
+  concern. Composes with `.3.11` (escape whitelist).
 - ID: `.4`  Status: `pending`  Goal: capstone — once all 10 checks are encoded, delete
   `validate_regex_compile_contract` + its module; `check_ebnf_source_of_truth.sh` green with no validator;
   EBNF is the sole source of truth.

@@ -1,4 +1,31 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-STORE-AWARE-GEN-0001 (STORE-AWARE-GEN .1 SCOPING): plan + task-tree-track semantic-store-aware (context-valid) stimuli generation (DOCS; new tree).
+
+Director directive (2026-06-08): "plan this new generator capability (semantic-store-aware generation
+honoring `fact_count_at_least`) for the stimuli generation at some point … task-tree track it so that we
+do not forget." Created the owning tree and recorded the durable direction; NO code (implementation is a
+deliberate effort sequenced "at some point").
+
+The capability is the generation-side DUAL of the parser's `@predicate`: the EBNF `@predicate` annotations
+are the single source of truth for the accepted language and the PARSER honours them (e.g.
+`numeric_backreference` is gated by `@predicate fact_count_at_least(regex_capture_group, $index)`), but
+the stimuli generator has ZERO predicate/fact machinery (tool-checked: `fact_count_at_least` is evaluated
+only in `semantic_runtime.rs` and the linter, never in `stimuli_generator.rs`) — so it over-generates
+semantically-invalid samples the parser correctly rejects (the regex `\98495` numeric-backreference, the
+`REGEX-PCRE2-FIDELITY.3.12` residual). The fix is a generation-time semantic store that emits the parser's
+facts and gates branch/value selection by the grammar's `@predicate`, reusing `semantic_runtime.rs` (one
+evaluator, two drivers). SAME annotations steer both parse and generation; no new annotation vocabulary.
+SOTA-grounded: ISLa "Input Invariants" (Steinhöfel & Zeller, ESEC/FSE 2022) + data-dependent grammars +
+the Fuzzing Book.
+
+- `docs/tasks/STORE-AWARE-GEN.md` (new tree): frame, SOTA survey, goal/non-goals/acceptance, leaves
+  `.1` scoping (this) → `.2` design → `.3` `fact_count_at_least` (the regex `.3.12` driver) → `.4`
+  generalize to the composable primitives → `.5` per-grammar cert-coverage closure.
+- `docs/decisions/project_store_aware_generation.md` (new layer-C record) + `INDEX.md` row.
+- `docs/TASK_TREE.md`: registered in the Active table (frontier `.2` design).
+- `docs/tasks/REGEX-PCRE2-FIDELITY.md`: `.3.12` now driven by `STORE-AWARE-GEN.3`.
+- `MEMORY.md`: resume pointer re-pointed to the new thrust.
+
 ## 2026-06-08 - PGEN-LEXICAL-ANNOTATIONS-0024 (LEXICAL-ANNOTATIONS .6 / REGEX-PCRE2-FIDELITY .3.7 (b)+(c)): lexical-token cohesion — atomic-token rules generate as one fused unit (CODE; generator-only, surface-neutral).
 
 Closed the (b)+(c) word-boundary-spacing residuals of the regex cert-coverage-clean campaign. The

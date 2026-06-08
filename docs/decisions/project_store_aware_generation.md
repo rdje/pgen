@@ -1,0 +1,49 @@
+---
+name: project-store-aware-generation
+description: PLANNED capability (director 2026-06-08) — the stimuli generator shall become semantic-store-aware (context-valid): it maintains a generation-time semantic store, emits the same facts the parser would, and honours the grammar's `@predicate` annotations (starting with `fact_count_at_least`) so it emits only samples that satisfy the same semantic constraints the parser enforces. The generation-side dual of the parser's store-gated rules; the SAME `@predicate`/`@emit_fact` annotations steer both parse and generation (no new annotation vocabulary). Tracked by tree STORE-AWARE-GEN; implementation deliberate / "at some point".
+metadata:
+  node_type: memory
+  type: project
+  director_directive: true
+  created: 2026-06-08
+  owning_tree: STORE-AWARE-GEN
+---
+
+**THE DIRECTIVE (director, 2026-06-08).** "Please plan this 'a new generator capability
+(semantic-store-aware generation honoring `fact_count_at_least`)' for the stimuli generation at some
+point. Task-tree track it, so that we do not forget." (In response to surfacing that the regex
+`REGEX-PCRE2-FIDELITY.3.12` residual — the generator emitting `\98495`, a backreference to a
+non-existent group — cannot be fixed cleanly without this capability.)
+
+**THE GAP (tool-backed, 2026-06-08).** PGEN's EBNF `@predicate` annotations are the single source of
+truth for the accepted language, and the PARSER honours them (e.g. `numeric_backreference` is gated by
+`@predicate: fact_count_at_least(regex_capture_group, $index)` — accepted only if that many capture
+groups exist). But the stimuli generator has **zero** fact/predicate machinery (`fact_count_at_least`
+is evaluated only in `semantic_runtime.rs` and the linter, never in `stimuli_generator.rs`). So the
+generator over-generates semantically-invalid samples the parser correctly rejects — a generator⟷parser
+duality break at the SEMANTIC level.
+
+**THE DECISION.** Build a generation-time semantic store + predicate evaluator (reusing
+`semantic_runtime.rs`, parser-agnostic) so the generator emits the parser's facts as it generates and
+gates its branch/value choices by the grammar's `@predicate` constraints. Start with
+`fact_count_at_least` (the regex `.3.12` driver: restrict a generated backreference index to ≤ the live
+count of emitted `regex_capture_group` facts), then generalize to the composable primitives
+(`has_fact`, `lacks_fact`, `fact_attribute_equals`, `resolve_path`). NO new annotation vocabulary — the
+generator becomes a second consumer of the existing one; NO fixed-bound guesses (the valid bound is
+context-dependent). Per the no-workarounds hierarchy this is a justified **Level-3+** general
+parser-agnostic generator capability (the generator structurally cannot otherwise honour a
+context-dependent predicate).
+
+**SOTA ANCHOR.** ISLa — "Input Invariants" (Steinhöfel & Zeller, ESEC/FSE 2022): declarative semantic
+constraints layered on a CFG to generate inputs satisfying grammar AND constraints. PGEN's
+`@predicate fact_count_at_least(...)` is exactly such a constraint; this is PGEN's native realization,
+reusing the existing annotation vocabulary. Also grounded in data-dependent grammars (Jim et al. POPL
+2010 — already PGEN's parse-side basis) and the Fuzzing Book's constraint-generation chapter.
+
+**STATUS.** PLANNED + task-tree tracked (tree `STORE-AWARE-GEN`, `.1` SCOPING done 2026-06-08). The
+implementation (`.2` design → `.3` `fact_count_at_least` → `.4` generalize → `.5` verify) is a
+deliberate effort sequenced "at some point" per the director; tracking now ensures it is not forgotten.
+
+Composes with [[project_ebnf_is_single_source_of_truth]] (extends the duality from structure to
+semantics) and the certifying-linter trustworthiness model (a generated witness must round-trip). Does
+NOT change the parser or grammar acceptance semantics (generation-only; the parser stays the oracle).
