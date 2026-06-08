@@ -12,6 +12,15 @@
 - Director directive: 2026-06-08 — "plan this new generator capability (semantic-store-aware generation
   honoring `fact_count_at_least`) for the stimuli generation at some point … task-tree track it so that
   we do not forget."
+- **SHARPENED directive: 2026-06-08 (same session, emphatic)** — triggered by the director observing the
+  svpp generator "is outputting garbage" (~48% comment chars/sample) and "is not properly steered by the
+  EBNF": **"the generator needs FULL support for the semantic fact store … it needs to output text based
+  on CONTEXT == semantic fact store."** This ELEVATES the tree from the single-predicate
+  `fact_count_at_least` MVP to FULL store-aware, **context-aware** generation across every grammar (all
+  predicate primitives + complete `@emit_fact` emission + scope-awareness) — the store IS the context that
+  stops garbage. See the [[project_store_aware_generation]] AMENDMENT (incl. the honest scope: the
+  comment-density knob + the svpp `condition_text` lexical-context residual are ADJACENT facets, not store
+  facts).
 - Decision record: [[project_store_aware_generation]]
 
 ## The frame (why this tree exists)

@@ -47,3 +47,32 @@ deliberate effort sequenced "at some point" per the director; tracking now ensur
 Composes with [[project_ebnf_is_single_source_of_truth]] (extends the duality from structure to
 semantics) and the certifying-linter trustworthiness model (a generated witness must round-trip). Does
 NOT change the parser or grammar acceptance semantics (generation-only; the parser stays the oracle).
+
+---
+
+**AMENDMENT — SHARPENED DIRECTIVE (director, 2026-06-08, same session, emphatic).** Triggered by the
+director observing that the svpp stimuli generator "is outputting garbage" (tool-backed: ~48% of every
+generated svpp sample is block-comment chars, ~9.4 comments/sample, plus stray-punctuation
+`condition_atom` soup) and concluding: **"it simply means the generator is not properly steered by the
+EBNF … the generator needs FULL support for the semantic fact store … it needs to output text based on
+CONTEXT == semantic fact store."**
+
+This ELEVATES the tree's scope. Store-aware generation is not just "honor `fact_count_at_least` to stop
+one bad backreference" — it is THE mechanism by which the generator becomes **context-aware** and stops
+emitting garbage. A signoff generator emits each token IN CONTEXT, and **the semantic fact store IS the
+context**: a `` `MACRO `` reference only after its `` `define ``; a type-position identifier only after
+its `typedef`; a scoped name only where the scope holds — by EMITTING (`@emit_fact`) and CONSULTING
+(`@predicate`/`has_fact`/`lacks_fact`/`fact_attribute_equals`/`resolve_path`) the SAME store the parser
+uses. Target = **FULL** support across every grammar (all predicate primitives + complete `@emit_fact`
+emission + scope-awareness during generation), not the single-predicate regex MVP.
+
+HONEST SCOPE NOTE (do not over-claim): full store-aware generation closes the **semantic** incoherence
+class (wrong identifiers / dangling references / predicate violations). It does NOT by itself fix two
+ADJACENT "garbage" facets that share the "properly-steered" goal: (1) **trivia/comment density** — the
+`*`-quantifier + `(space_or_tab | block_comment)*` sampling that yields the ~48% comment soup is a
+generation-WEIGHTING knob, not a store fact; (2) the svpp `condition_text` `\n` residual
+(`GRAMMAR-WELLFORMED.H.5.1.3`) is a LEXICAL-context issue (a flexible atom in a `+` list), not a
+semantic-store fact — the successor-aware `\n` deferral (H.5.1.3.1) was implemented + tools-measured
+INSUFFICIENT (over-fires on comment-led successors) + reverted; that residual routes to Phase C. "Context
+== store" is the dominant and deepest facet; the density knob + lexical-context are the other two facets
+of the same "make generation faithful/representative" program. [[project_stimuli_generator_signoff_vision]].

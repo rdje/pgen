@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0048 (GRAMMAR-WELLFORMED.H.5.1.3.1 close + STORE-AWARE-GEN reframe): generator GARBAGE / "context == semantic fact store" director insight captured; the successor-aware `\n` deferral was implemented, tools-measured insufficient, and reverted (NO code landed) (DOCS).
+
+Closes the `H.5.1.3.1` attempt and captures the director's strategic reframe of stimuli-generator quality.
+
+- `H.5.1.3.1` (attempt, reverted): the successor-aware `\n` deferral (defer the un-absorbable `\n`,
+  record the open tail class, insert at the join only when the next char is absorbed) was fully
+  implemented in `stimuli_generator.rs` and compiled with all invariant tests green — but tools-measured
+  INSUFFICIENT: svpp `sample_parse_failures` stayed 1. WHY (tool-proven): the failing
+  `` `elsif ( %4⏎/*comment*/ `" `` case has its successor starting with a COMMENT (`/`), which IS absorbed
+  by `condition_text`'s class, so the membership check fires the `\n` anyway — yet that absorption is
+  harmless. ROOT TRUTH: `condition_text` needs NO `\n` guard ever (a flexible atom in a `+` list), while
+  `[^\n]` line comments DO — a GRAMMATICAL-CONTEXT distinction no context-free class check captures. Reverted
+  (`stimuli_generator.rs` byte-identical to HEAD); residual routed to Phase C (constructive generation).
+- STORE-AWARE-GEN reframe (director 2026-06-08): the generator "outputs garbage" (~48% of every svpp sample
+  is block-comment chars) because it "is not properly steered by the EBNF"; the fix = "FULL support for the
+  semantic fact store … output text based on CONTEXT == semantic fact store." This ELEVATES the existing
+  STORE-AWARE-GEN tree from the `fact_count_at_least` MVP to full context-aware generation. Captured in
+  `docs/decisions/project_store_aware_generation.md` (AMENDMENT) + `docs/tasks/STORE-AWARE-GEN.md`. Honest
+  scope: the comment-density knob + the `condition_text` lexical-context residual are adjacent facets, not
+  store facts.
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0047 (GRAMMAR-WELLFORMED.H.5.1.3): svpp residual-1 ROOT-CAUSED (investigation CHECKPOINT — no code landed; unsound cheap fix reverted) (DOCS).
 
 Tools-first root-cause of the last svpp cert-coverage `sample_parse_failures` (1/40 @ seed 0). No code

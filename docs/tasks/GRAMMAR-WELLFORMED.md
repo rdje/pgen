@@ -607,6 +607,39 @@ subtle dead branch"), never a silent accept.
     own careful slice (`H.5.1.3.1`, full cross-grammar A/B), or (b) route it to Phase C (the constructive-generator
     home — `B2`/`C` bounded-ordered backtracking / successor-aware construction). This is a RARE residual (1/40 ≈
     2.5%, the last svpp `sample_parse_failures` at seed 0); the wired-cert-coverage program is unaffected.
+- `H.5.1.3.1` — **`done` (2026-06-08; deferral IMPLEMENTED → tools-measured INSUFFICIENT → REVERTED; NO code
+  landed; residual routed to Phase C). The director chose "implement now"; the successor-aware `\n`
+  deferral — the `\n` analogue of the LEXICAL-ANNOTATIONS.5 space deferral —** `regex_terminal_trailing_separator`
+  is UNCHANGED (it keeps returning `Some("\n")`, so the `[ \ta-z]+ → Some("\n")` invariant test still passes — the
+  deferral is a HIGHER-level decision, not a trailing-separator change). In `apply_word_boundary_spacing` the
+  `Some("\n")` case DEFERS instead of eager-baking: it records the open tail CLASS in a new generator field
+  `last_terminal_newline_guard_class: Option<Class>` (mirroring `last_terminal_word_shaped`). The concat join
+  (`append_generated_segment`, the single choke point) inserts `\n` ONLY when the next segment's first char is
+  ABSORBED by that class (would actually fuse). Threaded through `append_segment_tracked` via a parallel per-scope
+  local `prev_tail_guard: Option<Class>` (mirroring `prev_tail_ws`). CORRECTNESS: for `condition_text` followed by
+  a `` `" `` stringize → next char `` ` `` is EXCLUDED → no `\n` (FIX); for `[^\n]`/`[^\r\n]` line bodies followed
+  by any non-newline char → ABSORBED → `\n` (preserved); for `[ \ta-z]+` followed by a lowercase → ABSORBED → `\n`
+  (preserved), followed by an uppercase → EXCLUDED → no `\n` (strictly MORE faithful than the old eager guard).
+  Parser-agnostic; completes the successor-awareness the space guard already has.
+  - **OUTCOME (tools-measured, IMPLEMENTED THEN REVERTED):** the deferral was fully implemented (new field
+    `last_terminal_newline_guard_class`, `regex_terminal_newline_guard_class`, deferral arm in
+    `apply_word_boundary_spacing`, class-aware insertion in `append_generated_segment`, threaded via
+    `prev_tail_guard` through all 4 concat scopes; lib compiled, invariant tests green). **It did NOT fix the
+    target residual** (svpp `sample_parse_failures` stayed **1** at seed 0). TOOLS-PROVEN WHY: the failing
+    `` `elsif ( %4⏎/*comment*/ `" `` case has its successor segment START WITH A COMMENT (`/`), and `/` IS
+    absorbed by `condition_text`'s class → the membership check fires the `\n` ANYWAY. But absorbing that
+    comment is HARMLESS (it just extends the flexible `condition_text`); the `\n` is still wrong. ROOT TRUTH:
+    `condition_text` needs NO `\n` guard EVER (it is a flexible atom in a `condition_atom+` list — any successor
+    either is an excluded delimiter that self-separates, or is absorbed harmlessly), whereas `[^\n]` line
+    comments DO need it — and that distinction is GRAMMATICAL CONTEXT, which NO context-free class check (eager
+    OR successor-aware) can capture soundly. Incidental measured effect before revert: rtl_const_expr cert-cov
+    witness 41→45 / UNKNOWN 7→3 (fails 0) — an RNG-path side effect, not the goal. REVERTED (`stimuli_generator.rs`
+    byte-identical to HEAD; `[ \ta-z]+` invariant + lib green). **ROUTED:** the svpp `condition_text` residual is a
+    LEXICAL-context asymmetry → **Phase C** (constructive generation that models the parse). The director's
+    2026-06-08 reframe — the generator outputs garbage because it is not context-steered; "context == semantic
+    fact store" — elevates the broader fix to **STORE-AWARE-GEN** (full semantic-store-aware, context-aware
+    generation); see [[project_store_aware_generation]] AMENDMENT. (This specific residual is lexical-context, not
+    a store fact, so it stays a Phase C item; the store work is the larger context-awareness program.)
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
