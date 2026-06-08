@@ -975,6 +975,7 @@ fn main() -> Result<()> {
             args.count,
             args.seed.unwrap_or(0),
             args.grammar_profile.as_deref(),
+            args.max_depth,
         );
         #[cfg(not(feature = "generated_parsers"))]
         {
@@ -2321,6 +2322,7 @@ fn run_certificate_coverage_report(
     samples: usize,
     seed: u64,
     profile: Option<&str>,
+    max_depth: usize,
 ) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         certificate_coverage, gather_verified_proof_covered_rules,
@@ -2345,9 +2347,15 @@ fn run_certificate_coverage_report(
     // default-off config fused adjacent word-tokens (e.g. `endprogram`+`module` -> `endprogrammodule`),
     // making ~half the diverse samples unparseable and capping the witness count (F2). This is the
     // existing word-boundary feature (append_generated_segment), not new code — a level-1 fix.
+    // GRAMMAR-WELLFORMED.H.4: honor `--max-depth` (was hardcoded to the StimuliConfig default of 24,
+    // unlike every sibling report path which threads `args.max_depth`). The default stays 24 so json /
+    // regex / SV cert-coverage is byte-identical, but deeply-recursive grammars (e.g. rtl_const_expr,
+    // whose operator-precedence chain `conditional_expr → … → primary_expr → ( conditional_expr )` exceeds
+    // 24 after one nesting level) can raise the witness-generation depth budget so the report runs.
     let config = StimuliConfig {
         seed: Some(seed),
         enforce_word_boundary_spacing: true,
+        max_depth,
         ..Default::default()
     };
     let mut generator = StimuliGenerator::new(

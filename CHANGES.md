@@ -1,4 +1,35 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0038 (GRAMMAR-WELLFORMED.H.4): wire `parse_and_cover` cert-coverage for `rtl_const_expr` (CODE: Makefile + parser_registry + main.rs).
+
+Phase H continues toward the locked program (all parsers cert-coverage WIRED): `rtl_const_expr` is the
+next-simplest unwired grammar after json (H.3) / regex (H.1). `--report-certificate-coverage` now RUNS for
+rtl_const_expr.
+
+- **De-risked the H.2 mtime-staleness fear first (tools-first).** rtl_const_expr's on-disk
+  `generated/rtl_const_expr.json` is OLDER than `grammars/rtl_const_expr.ebnf` (same surface signature that
+  BLOCKED vhdl H.2), but it is a GIT-CHECKOUT illusion: regenerating the json from the current ebnf via the
+  `ebnf_dual_run` frontend is BYTE-IDENTICAL to the on-disk json except the `generated_at` timestamp ⇒ ZERO
+  grammar drift, so the parser regen is provably behaviour-preserving (it only ADDS the unconditional G.4.6
+  coverage instrumentation: 19646 → 19819 lines). This retires the staleness fear for svpp/rtl_frontend/vhdl.
+- `rust/Makefile`: canonical regen targets `$(RTL_CONST_EXPR_EBNF/JSON/PARSER)` + `rtl_const_expr_parser` +
+  `focus_rtl_const_expr` (mirror the json targets; the `focus_<grammar>` pattern the H.2 note asked for).
+- `rust/src/parser_registry.rs`: `parse_and_cover_rtl_const_expr` (cfg `has_generated_rtl_const_expr_parser`;
+  mirrors `parse_and_cover_json` — no profile, no worker stack) + the registry entry now
+  `parse_and_cover: Some(parse_and_cover_rtl_const_expr)`.
+- `rust/src/main.rs`: `run_certificate_coverage_report` now threads `--max-depth` (it was the ONLY report
+  path hardcoding `StimuliConfig`'s default 24; the k-path report already threads `args.max_depth`). The
+  default stays 24 so json/regex/SV cert-coverage is byte-identical, but rtl_const_expr's GENERATION-side
+  precedence chain (`conditional_expr → … → primary_expr`, ~15 deep; one `( … )` nesting exceeds 24 →
+  fatal `Stimuli generation depth exceeded`) can now raise the budget.
+- VERIFIED (`--max-depth 32`): `total=48 proof=0 witness=41 UNKNOWN=7 (sample_parse_failures=0)`, same-seed
+  DETERMINISTIC; seed 7 → `witness=45 UNKNOWN=3`. `sample_parse_failures=0` (no witness-parseability residual,
+  cleaner than regex's 3). `parser_registry` lib tests 20/0; lib `--features generated_parsers` builds clean;
+  json (`fully_certified`) + regex cert-coverage unaffected. UNKNOWN>0 is an honest residual (drive-to-0 is a
+  follow-up, as regex H.1). NO tracked-artifact change (`generated/` is gitignored). One-time bootstrap note:
+  the in-place transition needs a direct parser regen first (a pre-existing stale parser + the new registry
+  code → the `--features generated_parsers` generator rebuild would otherwise E0599 on the missing coverage
+  methods); fresh clones start with the parser ABSENT → cfg off → identical to the json flow.
+
 ## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0006 (EXTERNAL-CORPUS.2a HOLD): revert json.ebnf to the simplified grammar; defer the full JSON parser (CODE/grammar revert + DOCS).
 
 Director course-correction (incremental roadmap tuning, not a switch): the full JSON parser is to be

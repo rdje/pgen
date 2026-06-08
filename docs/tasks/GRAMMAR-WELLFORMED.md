@@ -268,6 +268,56 @@ subtle dead branch"), never a silent accept.
   `ast_pipeline grammars/json.ebnf --report-certificate-coverage --entry-rule json` RUNS (no bail) +
   reports its `sample_parse_failures`; `parser_registry` tests + lib `--features generated_parsers` build
   clean; no regression (json regen is local/gitignored; default build with json cfg off is unaffected).
+- `H.4` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0038`, 2026-06-08): Phase H continues — `parse_and_cover`
+  wired for `rtl_const_expr` (the next-simplest unwired grammar; the first of the svpp/rtl_* batch);
+  `--report-certificate-coverage` now runs for rtl_const_expr.** Mirrors the json H.3 / regex H.1 pattern.
+  **DE-RISK FIRST (tools-first, the H.2 staleness trap addressed head-on):** the on-disk
+  `generated/rtl_const_expr.json` mtime is OLDER than `grammars/rtl_const_expr.ebnf` (and the committed
+  parser is newer still) — the same surface signature that BLOCKED vhdl H.2. But the mtime skew is a
+  GIT-CHECKOUT ILLUSION, not content drift: regenerating the json from the current ebnf via the
+  `ebnf_dual_run` frontend yields a file BYTE-IDENTICAL to the on-disk json **except the `generated_at`
+  timestamp** (both 15900 bytes; `diff` excluding `generated_at` = empty) ⇒ **ZERO grammar drift**, so the
+  parser regen is provably behaviour-preserving (it only ADDS the unconditional G.4.6 coverage
+  instrumentation: committed 19646 → regen 19819 lines = +173 lines of `enable_coverage` /
+  `exercised_rule_names` / `coverage_stack`). Two independent regens agree (only the embedded output-path
+  string differs). Landed: (1) canonical regen targets `$(RTL_CONST_EXPR_EBNF/JSON/PARSER)` +
+  `rtl_const_expr_parser` + `focus_rtl_const_expr` in `rust/Makefile` (mirror the json targets); (2)
+  `parse_and_cover_rtl_const_expr` in `parser_registry.rs` (cfg `has_generated_rtl_const_expr_parser`;
+  mirrors `parse_and_cover_json` — rtl_const_expr has no grammar profile and no deep PARSE-stack recursion,
+  so no profile arg and no dedicated worker stack); (3) the cfg-gated rtl_const_expr registry entry set to
+  `parse_and_cover: Some(parse_and_cover_rtl_const_expr)`; (4) **`main.rs` `run_certificate_coverage_report`
+  now threads `--max-depth`** (it had hardcoded `StimuliConfig { ..Default::default() }` = 24, the lone
+  report path NOT honoring `args.max_depth`, unlike the k-path report). NEW FINDING (the attribution rule
+  in action — the witness pass surfaced it): at the default depth 24 the run does NOT bail, it FATAL-ERRORS
+  `Stimuli generation depth exceeded max_depth=24 while expanding rule 'primary_expr'` — rtl_const_expr's
+  GENERATION-side precedence chain (`conditional_expr → logical_or → … → unary_expr → primary_expr`, ~15
+  rules deep) already needs ~15, and one `( conditional_expr )` nesting doubles it past 24. This is a
+  GENERATION-depth budget, distinct from the PARSE-stack worker-stack concern. Threading `--max-depth`
+  keeps the default 24 (so json/regex/SV cert-coverage is byte-identical) while letting rtl_const_expr run
+  at `--max-depth 32`+. VERIFIED: `make focus_rtl_const_expr` regenerates `generated/rtl_const_expr_parser.rs`
+  carrying the coverage methods (grep confirmed 2); `ast_pipeline grammars/rtl_const_expr.ebnf
+  --report-certificate-coverage --entry-rule rtl_const_expr --max-depth 32` RUNS (no bail, no fatal):
+  count 8 seed 0 → `total=48 proof=0 witness=41 UNKNOWN=7 fully_certified=false (sample_parse_failures=0,
+  proof_reverify_failures=0)`, **same-seed DETERMINISTIC** (identical across two runs); seed 7 →
+  `witness=45 UNKNOWN=3` (its own deterministic result). **`sample_parse_failures=0`** ⇒ rtl_const_expr has
+  NO witness-parseability round-trip residual (cleaner than regex H.1's 3). UNKNOWN>0 is an honest residual
+  (driving it to 0 via more/targeted witnesses is a follow-up, exactly as regex H.1 landed with residuals);
+  `parser_registry` lib tests 20/0 (`--features generated_parsers`, incl. the rtl_const_expr adapter); lib
+  `--features generated_parsers` builds clean; json (`fully_certified=true`) + regex cert-coverage
+  UNAFFECTED (default depth 24 unchanged); behaviour-preserving (zero-drift proof above). NO tracked-artifact
+  change (`generated/` is gitignored; the regen is local). Default build (rtl_const_expr cfg off)
+  unaffected. **ONE-TIME BOOTSTRAP-ORDERING NOTE (for whoever wires svpp/rtl_frontend/vhdl next):** unlike
+  json/regex (which had NO pre-existing parser), these grammars already have a STALE pre-coverage parser on
+  disk, so `has_generated_<grammar>_parser` is ALREADY on — meaning the `$(RUST_AST_PIPELINE)` rebuild that
+  `make focus_<grammar>` triggers (it builds `--features generated_parsers`, repo convention) compiles the
+  NEW `parse_and_cover_<grammar>` against the still-stale parser's missing `enable_coverage` /
+  `exercised_rule_names` → E0599. RESOLUTION (one-time): regenerate the parser DIRECTLY first with the
+  already-built generator binary (`target/debug/ast_pipeline --generate-parser … <grammar>.json -o
+  generated/<grammar>_parser.rs`) so the methods exist BEFORE any `generated_parsers` lib build; thereafter
+  the focus target + lib build are clean. This is NOT a defect in the focus target (fresh clones start with
+  the parser ABSENT → cfg off → identical to the json flow); it is only the in-place transition snag. Frontier: svpp + rtl_frontend (each: a `focus_<grammar>` target + regen + a
+  `parse_and_cover_<grammar>` registry fn — same mechanical pattern, each its own leaf); then vhdl, whose
+  fresh-json regen chain is now de-risked by this slice's proof that the mtime skew is a checkout illusion.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
@@ -716,7 +766,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
-| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✗ H.2 vhdl (`-0036`, BLOCKED on the fresh-json regen chain / no `focus_vhdl`), ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**. NEXT: svpp / rtl_const_expr / rtl_frontend (each: a `focus_<grammar>` target + regen + a `parse_and_cover_<grammar>` registry fn — now mechanical); then vhdl once its regen chain exists. |
+| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✗ H.2 vhdl (`-0036`, BLOCKED on the fresh-json regen chain / no `focus_vhdl`), ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**. NEXT: svpp / rtl_frontend (each: a `focus_<grammar>` target + regen + a `parse_and_cover_<grammar>` registry fn — now mechanical); then vhdl, now de-risked by H.4's checkout-illusion proof. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions

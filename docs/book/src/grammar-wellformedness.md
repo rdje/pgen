@@ -288,6 +288,19 @@ left unknown, and every witness re-parses. This is the internal **well-formednes
 grammar is provably well-formed and every fragment is constructively reachable — separate from how
 faithfully it matches the full JSON standard, which is measured separately against external corpora.
 
+**Rolling the gate out per grammar (Phase H).** The certificate-coverage gate is parser-agnostic, so it is
+being wired to run for every PGEN grammar in turn (each grammar needs a small `parse_and_cover_<grammar>`
+adapter so the witness side can replay samples through that grammar's real parser). So far it runs for
+`json` (fully certified), `regex`, and `rtl_const_expr`. `rtl_const_expr` is a good illustration of an
+*honest, not-yet-complete* result: at a sufficient generation depth the report runs deterministically and
+reports e.g. `total=48 witness=41 UNKNOWN=7 (sample_parse_failures=0)` — every witness it produced re-parses
+cleanly (no round-trip failures), and the seven `UNKNOWN` rules are not hidden: they are a *loud, specific*
+backlog of fragments still awaiting a witness, to be driven to zero by generating more targeted samples.
+That non-zero `UNKNOWN`, openly reported, is exactly the point — the gate never pretends a grammar is fully
+certified until every fragment carries a checked certificate. (A deeply-recursive grammar like
+`rtl_const_expr`, whose operator-precedence chain is many rules deep, needs a larger `--max-depth` than the
+default so the witness generator can build valid samples; the report honors that flag.)
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

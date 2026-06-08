@@ -22,6 +22,7 @@ RETURN_ANNOTATION_EBNF = $(GRAMMARS_DIR)/return_annotation.ebnf
 REGEX_EBNF = $(GRAMMARS_DIR)/regex.ebnf
 SYSTEMVERILOG_EBNF = $(GRAMMARS_DIR)/systemverilog.ebnf
 JSON_EBNF = $(GRAMMARS_DIR)/json.ebnf
+RTL_CONST_EXPR_EBNF = $(GRAMMARS_DIR)/rtl_const_expr.ebnf
 
 # Generated JSON files (intermediate)
 SEMANTIC_ANNOTATION_JSON = $(GENERATED_DIR)/semantic_annotation.json
@@ -29,6 +30,7 @@ RETURN_ANNOTATION_JSON = $(GENERATED_DIR)/return_annotation.json
 REGEX_JSON = $(GENERATED_DIR)/regex.json
 SYSTEMVERILOG_JSON = $(GENERATED_DIR)/systemverilog.json
 JSON_JSON = $(GENERATED_DIR)/json.json
+RTL_CONST_EXPR_JSON = $(GENERATED_DIR)/rtl_const_expr.json
 
 # Generated Rust parser files (final output)
 SEMANTIC_ANNOTATION_PARSER = $(GENERATED_DIR)/semantic_annotation_parser.rs
@@ -36,6 +38,7 @@ RETURN_ANNOTATION_PARSER = $(GENERATED_DIR)/return_annotation_parser.rs
 REGEX_PARSER = $(GENERATED_DIR)/regex_parser.rs
 SYSTEMVERILOG_PARSER = $(GENERATED_DIR)/systemverilog_parser.rs
 JSON_PARSER = $(GENERATED_DIR)/json_parser.rs
+RTL_CONST_EXPR_PARSER = $(GENERATED_DIR)/rtl_const_expr_parser.rs
 
 # Compiled Rust parser executables
 SEMANTIC_ANNOTATION_EXE = $(GENERATED_DIR)/semantic_annotation_parser
@@ -213,6 +216,38 @@ json_parser: $(JSON_JSON) $(RUST_AST_PIPELINE)
 focus_json: $(JSON_PARSER)
 	@echo ""
 	@echo "✅ json parser artifact ready: $(JSON_PARSER)"
+	@echo ""
+
+# Generate rtl_const_expr raw-AST JSON from EBNF (GRAMMAR-WELLFORMED.H.4 — Phase H cert-coverage wiring)
+$(RTL_CONST_EXPR_JSON): $(RTL_CONST_EXPR_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating rtl_const_expr JSON with debug output (Rust frontend)..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_FRONTEND_TO_JSON) $(RTL_CONST_EXPR_EBNF) --emit-raw-ast-json $(RTL_CONST_EXPR_JSON)
+
+# Generate final rtl_const_expr parser from JSON
+$(RTL_CONST_EXPR_PARSER): $(RTL_CONST_EXPR_JSON) $(RUST_AST_PIPELINE)
+	@echo "Generating final rtl_const_expr parser from JSON..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(RTL_CONST_EXPR_JSON) -o $(RTL_CONST_EXPR_PARSER)
+
+# rtl_const_expr parser complete flow
+.PHONY: rtl_const_expr_parser
+rtl_const_expr_parser: $(RTL_CONST_EXPR_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for rtl_const_expr parser..."
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(RTL_CONST_EXPR_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(RTL_CONST_EXPR_JSON) -o $(RTL_CONST_EXPR_PARSER)
+	@echo "✅ Generated: $(RTL_CONST_EXPR_PARSER)"
+	@echo "✅ rtl_const_expr parser generated successfully!"
+
+# `make focus_rtl_const_expr` — regenerate the rtl_const_expr artifact so subsequent
+# `cargo test --features generated_parsers` invocations exercise the rtl_const_expr
+# family (build.rs sets has_generated_rtl_const_expr_parser when the artifact exists).
+.PHONY: focus_rtl_const_expr
+focus_rtl_const_expr: $(RTL_CONST_EXPR_PARSER)
+	@echo ""
+	@echo "✅ rtl_const_expr parser artifact ready: $(RTL_CONST_EXPR_PARSER)"
 	@echo ""
 	@echo "Default cargo test will pick this up automatically."
 	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"

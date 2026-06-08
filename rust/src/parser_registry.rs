@@ -405,6 +405,25 @@ fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String>
     parse_node_to_json(&parsed)
 }
 
+/// GRAMMAR-WELLFORMED.H.4 — parse `sample` through the REAL rtl_const_expr parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_json`: enable the transactional `coverage_stack`, parse, and return the PARSER's own
+/// record of the committed rules on a SUCCESSFUL parse. rtl_const_expr has no grammar profile and no deep
+/// recursion, so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
+#[cfg(has_generated_rtl_const_expr_parser)]
+pub fn parse_and_cover_rtl_const_expr(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let mut parser =
+        RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+    parser.enable_coverage();
+    match parser.parse_full_rtl_const_expr() {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
 #[cfg(has_generated_rtl_frontend_parser)]
 fn parse_with_rtl_frontend(sample: &str) -> bool {
     let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
@@ -799,7 +818,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "rtl_const_expr",
         parse_sample: parse_with_rtl_const_expr,
-        parse_and_cover: None,
+        parse_and_cover: Some(parse_and_cover_rtl_const_expr),
         parse_detail: None,
     },
     #[cfg(has_generated_rtl_frontend_parser)]

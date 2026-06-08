@@ -1,4 +1,52 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.4 — wire cert-coverage for rtl_const_expr (PGEN-GRAMMAR-WELLFORMED-0038)
+
+### Goal
+Phase H per-grammar cert-coverage: make `--report-certificate-coverage` RUN for `rtl_const_expr` (the
+next-simplest unwired grammar after json/regex), advancing the locked program "all parsers cert-coverage
+WIRED". Mirror the json H.3 / regex H.1 pattern: a `focus_<grammar>` regen target + a
+`parse_and_cover_<grammar>` registry fn + set the registry entry.
+
+### Root-cause / de-risk (tools-first)
+1. **mtime "staleness" is a checkout illusion.** All four unwired grammars (rtl_const_expr/rtl_frontend/
+   svpp/vhdl) show `generated/<g>.json` mtime < `grammars/<g>.ebnf` mtime (the signature that blocked vhdl
+   H.2). But git checkout does not preserve mtimes, and regenerating `rtl_const_expr.json` from the ebnf via
+   the `ebnf_dual_run` frontend yields a file byte-identical to the on-disk json EXCEPT `generated_at`
+   (`diff` excluding that line = empty; both 15900 bytes). ⇒ zero grammar drift; the parser regen is
+   behaviour-preserving, only ADDING the unconditional G.4.6 coverage instrumentation (19646 → 19819 lines,
+   +173 = `enable_coverage` / `exercised_rule_names` / `coverage_stack`). Two independent regens agree
+   (only the embedded output-path string differs).
+2. **The witness pass fatal-errors at the default depth (the attribution rule).** With the parser wired,
+   `ast_pipeline … --report-certificate-coverage` for rtl_const_expr did NOT bail — it errored
+   `Stimuli generation depth exceeded max_depth=24 while expanding rule 'primary_expr'`. The report hardcoded
+   `StimuliConfig { ..Default::default() }` (max_depth=24) and ignored `args.max_depth` — the lone report
+   path doing so (the k-path coverage report threads `args.max_depth`). rtl_const_expr's GENERATION-side
+   operator-precedence chain (`conditional_expr → logical_or → logical_and → … → unary_expr → primary_expr`)
+   is ~15 rules deep before a leaf, so one `( conditional_expr )` nesting exceeds 24. This is a GENERATION
+   depth budget, orthogonal to the PARSE-stack worker-stack concern (regex RGX-0085).
+
+### The change
+- `rust/Makefile`: `RTL_CONST_EXPR_{EBNF,JSON,PARSER}` vars + `$(RTL_CONST_EXPR_JSON): … --emit-raw-ast-json`
+  rule + `$(RTL_CONST_EXPR_PARSER): … RUST_GENERATOR` rule + `rtl_const_expr_parser` + `focus_rtl_const_expr`
+  phonies (byte-mirror of the json block).
+- `rust/src/parser_registry.rs`: `parse_and_cover_rtl_const_expr(sample, _profile)` — `enable_coverage()` →
+  `parse_full_rtl_const_expr()` → `exercised_rule_names()` (mirror `parse_and_cover_json`); registry entry
+  set to `Some(...)`.
+- `rust/src/main.rs`: `run_certificate_coverage_report` gains a `max_depth: usize` param threaded from
+  `args.max_depth`; the witness `StimuliConfig` sets `max_depth` (was `..Default::default()` = 24). Default
+  unchanged ⇒ json/regex/SV byte-identical.
+
+### Verification
+- `make focus_rtl_const_expr` regenerates `generated/rtl_const_expr_parser.rs` with the 2 coverage methods.
+- `--report-certificate-coverage --entry-rule rtl_const_expr --max-depth 32`: count 8 seed 0 →
+  `total=48 proof=0 witness=41 UNKNOWN=7 (sample_parse_failures=0, proof_reverify_failures=0)`, same-seed
+  deterministic (identical twice); seed 7 → `witness=45 UNKNOWN=3`. `sample_parse_failures=0`.
+- `parser_registry` lib tests 20/0 (`--features generated_parsers`). lib builds clean. json `fully_certified`
+  + regex still run (default depth 24 unchanged).
+- One-time bootstrap-ordering snag (a pre-existing stale parser present + new registry code → the
+  `--features generated_parsers` generator rebuild E0599s on the missing coverage methods) resolved by a
+  direct parser regen first; not a defect in the focus target (fresh clones start parser-absent → cfg off).
+
 ## 2026-06-08 - EXTERNAL-CORPUS.2a — upgrade json.ebnf to RFC 8259 (PGEN-EXTERNAL-CORPUS-0003)
 
 ### Goal + acceptance metric
