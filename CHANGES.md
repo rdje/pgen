@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0037 (GRAMMAR-WELLFORMED.H.3): Phase H — wire cert-coverage for `json` (CODE, registry + Makefile only).
+
+Phase H of the certifying linter wires `parse_and_cover` for the next-simplest unwired grammar, `json`
+(the resume-pointer-directed next step after H.1 regex / H.2 vhdl-blocked). json is genuinely unblocked
+unlike vhdl: `grammars/json.ebnf` is 1 KB, neither `generated/json.json` nor `generated/json_parser.rs`
+existed (so no staleness — the regen is fresh from source), and there is no heavy json conformance corpus.
+
+- **Makefile:** added canonical regen targets `$(JSON_JSON)` / `$(JSON_PARSER)` / `json_parser` /
+  `focus_json` (mirrors the regex targets; establishes the `focus_<grammar>` pattern the H.2 note asked
+  for so future per-grammar wiring is mechanical).
+- **`parser_registry.rs`:** added `parse_and_cover_json` (cfg `has_generated_json_parser`; mirrors
+  `parse_and_cover_systemverilog` minus profile/stdlib/worker-stack — json has no grammar profile and no
+  deep recursion) + set the cfg-gated json registry entry to `parse_and_cover: Some(parse_and_cover_json)`.
+- **Regenerated `generated/json_parser.rs`** (local; `generated/` is gitignored) — 9 rules, carries the
+  unconditional G.4.6 `enable_coverage` / `exercised_rule_names` coverage instrumentation (no codegen change).
+
+RESULT (deterministic across seed 0/1/7 + count 200/500): `CERTIFICATE-COVERAGE: grammar='json'
+entry='json' total=9 proof=0 witness=9 UNKNOWN=0 fully_certified=true (sample_parse_failures=0,
+proof_reverify_failures=0)` — **json is the FIRST grammar to report `fully_certified=true` via Phase H**
+(regex/H.1 still has UNKNOWN residuals; SV a large UNKNOWN).
+
+VERIFIED: `make focus_json` regenerates the parser; `parser_registry` lib tests 7/0 (incl. the json
+adapters); lib `--features generated_parsers` builds clean; strict source clippy 0 errors (generated stage
+non-strict, pre-existing debt only — `parse_and_cover_json` not flagged). NO tracked-artifact change; the
+default build (json cfg off) is unaffected; no version/release/contract change (internal quality surface).
+
 ## 2026-06-08 - PGEN-STORE-AWARE-GEN-0004 (STORE-AWARE-GEN .4 SCOPING): tools-first re-frame of the predicate generalization (DOCS).
 
 The director chose `.4` (deepen the store-aware-generation capability). Tools-first investigation

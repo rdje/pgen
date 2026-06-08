@@ -277,6 +277,17 @@ linter is trustworthy *on this grammar*.
 > **100% sound, with the unknown region driven to zero and never hidden.** That is achievable, it is
 > provable, and it replaces *trust* with *verification* — which is stronger.
 
+**First worked example — `json` is fully certified.** The `json` grammar is the first PGEN grammar to
+reach `UNKNOWN = 0` end-to-end through the gate. Running
+`ast_pipeline grammars/json.ebnf --report-certificate-coverage --entry-rule json` reports
+`total=9 proof=0 witness=9 UNKNOWN=0 fully_certified=true (sample_parse_failures=0)`, identically across
+seeds and sample counts — every one of its nine rules carries a checked reachability *witness*, none is
+left unknown, and every witness re-parses. This is the internal **well-formedness / coverage** property
+(the linter's claims about *this* grammar are all verified), not a statement about external conformance:
+`grammars/json.ebnf` is a deliberately *simplified* JSON grammar, so "fully certified" here means the
+grammar is provably well-formed and every fragment is constructively reachable — separate from how
+faithfully it matches the full JSON standard, which is measured separately against external corpora.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

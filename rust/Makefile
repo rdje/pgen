@@ -21,18 +21,21 @@ SEMANTIC_ANNOTATION_EBNF = $(GRAMMARS_DIR)/semantic_annotation.ebnf
 RETURN_ANNOTATION_EBNF = $(GRAMMARS_DIR)/return_annotation.ebnf
 REGEX_EBNF = $(GRAMMARS_DIR)/regex.ebnf
 SYSTEMVERILOG_EBNF = $(GRAMMARS_DIR)/systemverilog.ebnf
+JSON_EBNF = $(GRAMMARS_DIR)/json.ebnf
 
 # Generated JSON files (intermediate)
 SEMANTIC_ANNOTATION_JSON = $(GENERATED_DIR)/semantic_annotation.json
 RETURN_ANNOTATION_JSON = $(GENERATED_DIR)/return_annotation.json
 REGEX_JSON = $(GENERATED_DIR)/regex.json
 SYSTEMVERILOG_JSON = $(GENERATED_DIR)/systemverilog.json
+JSON_JSON = $(GENERATED_DIR)/json.json
 
 # Generated Rust parser files (final output)
 SEMANTIC_ANNOTATION_PARSER = $(GENERATED_DIR)/semantic_annotation_parser.rs
 RETURN_ANNOTATION_PARSER = $(GENERATED_DIR)/return_annotation_parser.rs
 REGEX_PARSER = $(GENERATED_DIR)/regex_parser.rs
 SYSTEMVERILOG_PARSER = $(GENERATED_DIR)/systemverilog_parser.rs
+JSON_PARSER = $(GENERATED_DIR)/json_parser.rs
 
 # Compiled Rust parser executables
 SEMANTIC_ANNOTATION_EXE = $(GENERATED_DIR)/semantic_annotation_parser
@@ -179,6 +182,41 @@ $(REGEX_PARSER): $(REGEX_JSON) $(RUST_AST_PIPELINE)
 	@echo "Generating final regex parser from JSON..."
 	@mkdir -p $(GENERATED_DIR)
 	$(RUST_GENERATOR) $(REGEX_JSON) -o $(REGEX_PARSER)
+
+# Generate json raw-AST JSON from EBNF (GRAMMAR-WELLFORMED.H.3 — Phase H cert-coverage wiring)
+$(JSON_JSON): $(JSON_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating json JSON with debug output (Rust frontend)..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_FRONTEND_TO_JSON) $(JSON_EBNF) --emit-raw-ast-json $(JSON_JSON)
+
+# Generate final json parser from JSON
+$(JSON_PARSER): $(JSON_JSON) $(RUST_AST_PIPELINE)
+	@echo "Generating final json parser from JSON..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(JSON_JSON) -o $(JSON_PARSER)
+
+# json parser complete flow
+.PHONY: json_parser
+json_parser: $(JSON_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for json parser..."
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(JSON_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(JSON_JSON) -o $(JSON_PARSER)
+	@echo "✅ Generated: $(JSON_PARSER)"
+	@echo "✅ json parser generated successfully!"
+
+# `make focus_json` — regenerate the json artifact so subsequent
+# `cargo test --features generated_parsers` invocations exercise the json
+# family (build.rs sets has_generated_json_parser when the artifact exists).
+.PHONY: focus_json
+focus_json: $(JSON_PARSER)
+	@echo ""
+	@echo "✅ json parser artifact ready: $(JSON_PARSER)"
+	@echo ""
+	@echo "Default cargo test will pick this up automatically."
+	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"
+	@echo ""
 
 # Generate systemverilog JSON from EBNF (parallel to regex; depends on Rust frontend only)
 $(SYSTEMVERILOG_JSON): $(SYSTEMVERILOG_EBNF) $(RUST_EBNF_FRONTEND_BIN)

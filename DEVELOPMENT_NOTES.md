@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.3 — Phase H: wire cert-coverage for `json` (PGEN-GRAMMAR-WELLFORMED-0037)
+
+### The gap: cert-coverage ran only for SV + regex
+The `--report-certificate-coverage` gate (Phase G) hard-bails for any grammar whose registry entry has
+`parse_and_cover: None` (`main.rs` → `supports_parse_and_cover` false). Only `systemverilog` (G.4.x) and
+`regex` (H.1) were wired. Phase H rolls `parse_and_cover` to every grammar so the gate runs per-grammar.
+
+### Why json next (not vhdl / H.2)
+H.2 (vhdl) is BLOCKED on a regen-recipe problem: a STALE `generated/vhdl.json`, a parser built from a
+fresher source, no `focus_vhdl` target, and a heavy vhdl conformance re-verify. json has none of those —
+`grammars/json.ebnf` is a 1 KB grammar, neither `generated/json.json` nor `generated/json_parser.rs`
+existed (no staleness; the regen is fresh from source), and there is no heavy json conformance corpus. So
+json is the genuinely-unblocked next step (the resume pointer pointed here).
+
+### The wiring (mirror H.1 regex)
+- **Makefile regen targets** `$(JSON_JSON)` / `$(JSON_PARSER)` / `json_parser` / `focus_json` mirror the
+  regex targets. This also establishes the `focus_<grammar>` pattern the H.2 note asked for, so the
+  remaining per-grammar wiring is mechanical.
+- **`parse_and_cover_json`** (`parser_registry.rs`, cfg `has_generated_json_parser`) is the simplest of the
+  three `parse_and_cover_*` fns: `enable_coverage()` → `parse_full_json()` → `exercised_rule_names()`,
+  returning `(parsed_ok, rules)`. No grammar profile, no stdlib preload, no dedicated worker stack
+  (json doesn't deeply recurse, unlike regex's RGX-0085 stack). The cfg-gated json registry entry's
+  `parse_and_cover` is flipped `None → Some(parse_and_cover_json)`.
+- **Regen** `generated/json_parser.rs` via `make focus_json` (9 rules). The generated parser carries the
+  unconditional G.4.6 transactional `coverage_stack` instrumentation (`enable_coverage` /
+  `exercised_rule_names`) — no codegen change; the only reason json lacked it before was that the parser
+  had never been generated.
+
+### Result + verification
+`CERTIFICATE-COVERAGE: grammar='json' entry='json' total=9 proof=0 witness=9 UNKNOWN=0
+fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)`, deterministic across seed
+0/1/7 and count 200/500 — json is the FIRST grammar `fully_certified=true` via Phase H. `parser_registry`
+lib tests 7/0; lib `--features generated_parsers` builds clean; strict source clippy 0 errors. `generated/`
+is gitignored so there is no tracked-artifact change; the default build (json cfg off) is unaffected.
+
 ## 2026-06-08 - STORE-AWARE-GEN.3 — fact_count_at_least-aware generation (PGEN-STORE-AWARE-GEN-0003)
 
 ### The gap: the generator was predicate-blind

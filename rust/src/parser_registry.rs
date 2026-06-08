@@ -285,6 +285,25 @@ fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
     parse_node_to_json(&parsed)
 }
 
+/// GRAMMAR-WELLFORMED.H.3 — parse `sample` through the REAL json parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_systemverilog`: enable the transactional `coverage_stack`, parse, and return the
+/// PARSER's own record of the committed rules on a SUCCESSFUL parse. json has no grammar profile and no
+/// deep recursion, so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack
+/// (unlike regex's RGX-0085 stack) is needed.
+#[cfg(has_generated_json_parser)]
+pub fn parse_and_cover_json(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+    parser.enable_coverage();
+    match parser.parse_full_json() {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
 #[cfg(has_generated_regex_parser)]
 fn parse_with_regex(sample: &str) -> bool {
     parse_with_regex_detail(sample, None).is_ok()
@@ -766,7 +785,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "json",
         parse_sample: parse_with_json,
-        parse_and_cover: None,
+        parse_and_cover: Some(parse_and_cover_json),
         parse_detail: None,
     },
     #[cfg(has_generated_regex_parser)]

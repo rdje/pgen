@@ -229,6 +229,45 @@ subtle dead branch"), never a silent accept.
   wiring (H.2..) is mechanical. NO tracked code change was made (the local `generated/vhdl_parser.rs` was
   regenerated from the stale `vhdl.json` during investigation — harmless: untracked + regenerated
   downstream by any vhdl gate/build; a correct regen needs the fresh-json chain above).
+- `H.3` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0037`, 2026-06-08): Phase H continues — `parse_and_cover`
+  wired for `json` (the simplest unwired grammar); `--report-certificate-coverage` now runs for json and
+  reports `fully_certified=true`.** RESULT (deterministic across seed 0/1/7 + count 200/500):
+  `CERTIFICATE-COVERAGE: grammar='json' entry='json' total=9 proof=0 witness=9 UNKNOWN=0
+  fully_certified=true (sample_parse_failures=0, proof_reverify_failures=0)` — **json is the FIRST
+  grammar to report `fully_certified=true` via Phase H cert-coverage** (regex/H.1 still has UNKNOWN
+  residuals + 6→3 witness-parseability failures; SV has a large UNKNOWN). All 9 json rules are
+  witnessed-reachable, 0 UNKNOWN, 0 sample-parse failures. Landed: (1) canonical regen targets
+  `$(JSON_JSON)`/`$(JSON_PARSER)`/`json_parser`/`focus_json` in `rust/Makefile` (mirror the regex targets;
+  establishes the `focus_<grammar>` pattern the H.2 note asked for); (2) `parse_and_cover_json` in
+  `parser_registry.rs` (cfg `has_generated_json_parser`; mirrors `parse_and_cover_systemverilog` minus
+  profile/stdlib/worker-stack — json has no grammar profile and no deep recursion); (3) the cfg-gated json
+  registry entry set to `parse_and_cover: Some(parse_and_cover_json)`. VERIFIED: `make focus_json`
+  regenerates `generated/json_parser.rs` (9 rules; carries the unconditional G.4.6 `enable_coverage` /
+  `exercised_rule_names` — no codegen change); `parser_registry` lib tests 7/0 (incl. the json adapters);
+  lib `--features generated_parsers` builds clean; strict source clippy 0 errors (generated stage
+  non-strict, pre-existing debt only — `parse_and_cover_json` not flagged). NO tracked-artifact change
+  (`generated/` is gitignored; the regen is local). Default build (json cfg off) unaffected. Frontier:
+  vhdl (H.2, still blocked on the fresh-json regen chain) + svpp / rtl_* (each: a `focus_<grammar>` target
+  + regen + a `parse_and_cover_<grammar>` registry fn, now mechanical given the json/regex pattern).
+  *(superseded plan text below kept for provenance)* **(original IN-PROGRESS plan)** Phase H continues — wire
+  `parse_and_cover` for `json` (the simplest unwired grammar; resume-pointer-directed next step).
+  WHY json (not vhdl/H.2): the H.2 blocker was vhdl-specific — a STALE `generated/vhdl.json`, a parser
+  built from a fresher source, no `focus_vhdl` target, and a HEAVY vhdl conformance re-verify. json has
+  NONE of those: `grammars/json.ebnf` is a 1 KB grammar, neither `generated/json.json` nor
+  `generated/json_parser.rs` exists yet (so there is no staleness — the regen is fresh from source), and
+  there is no heavy json conformance corpus. So json is genuinely unblocked while vhdl stays blocked. The
+  G.4.6 transactional coverage instrumentation (`enable_coverage` / `exercised_rule_names`) is emitted
+  UNCONDITIONALLY by the codegen, so a fresh json parser carries it with no codegen change (same as the
+  regex H.1 pattern). PLAN (mirror H.1): (1) add canonical regen targets `$(JSON_JSON)` / `$(JSON_PARSER)`
+  / `json_parser` / `focus_json` to `rust/Makefile` (mirrors the regex targets — also establishes the
+  `focus_<grammar>` pattern the H.2 note asked for); (2) regen `generated/json.json` (frontend
+  `--emit-raw-ast-json`) + `generated/json_parser.rs` (generator); (3) add `parse_and_cover_json` to
+  `parser_registry.rs` (cfg `has_generated_json_parser`; mirrors `parse_and_cover_systemverilog` minus
+  profile/stdlib/worker-stack — json has no grammar profile and no deep recursion); (4) set
+  `parse_and_cover: Some(parse_and_cover_json)` on the cfg-gated json registry entry. ACCEPTANCE:
+  `ast_pipeline grammars/json.ebnf --report-certificate-coverage --entry-rule json` RUNS (no bail) +
+  reports its `sample_parse_failures`; `parser_registry` tests + lib `--features generated_parsers` build
+  clean; no regression (json regen is local/gitignored; default build with json cfg off is unaffected).
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
@@ -677,6 +716,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
+| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✗ H.2 vhdl (`-0036`, BLOCKED on the fresh-json regen chain / no `focus_vhdl`), ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**. NEXT: svpp / rtl_const_expr / rtl_frontend (each: a `focus_<grammar>` target + regen + a `parse_and_cover_<grammar>` registry fn — now mechanical); then vhdl once its regen chain exists. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions
