@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `EXTERNAL-CORPUS`
-- Status: `active` (director-commissioned 2026-06-08; `.1` SCOPING DONE `PGEN-EXTERNAL-CORPUS-0001`; frontier `.2` JSON corpus acquisition + characterization)
+- Status: `active` (director-commissioned 2026-06-08; `.1` SCOPING + `.2` JSON corpus acquisition + characterization DONE [`json.ebnf` does NOT match RFC 8259 — measured y_ 81/95, n_ 158/188, 3 crashes — `json_corpus_bundle/`]; frontier `.2a` json.ebnf→RFC-8259 upgrade + `.2b` recursion/stack guard + `.3+` other grammars)
 - Family / slice-id prefix: `PGEN-EXTERNAL-CORPUS-<NNNN>`
 - Roadmap lane: cross-cutting parser sign-off — confidence requires TWO independent oracles
   (internal generator + external corpus) for every parser family
@@ -64,9 +64,20 @@ separate, tools-backed decision, never a silent reclassification.
 
 - `.1` — **SCOPING (this slice, DOCS):** capture the directive (decision record + this tree +
   registration + memory). The per-family plan + the recognized-corpus inventory below. NO code/test-data.
-- `.2` — **JSON external corpus (the director's first concrete ask).** Acquire an officially-recognized
-  JSON corpus, vendor an immutable snapshot (provenance + license), run the json parser over it, and
-  produce an honest characterization. Recognized corpora:
+- `.2` — **DONE (`PGEN-EXTERNAL-CORPUS-0002`, 2026-06-08): JSON external corpus acquired + the simplified
+  `json.ebnf` characterized against it.** Vendored **JSONTestSuite** (MIT, pinned commit `1ef36fa0`, 318
+  `test_parsing` files) as an immutable snapshot under `json_corpus_bundle/third_party/upstream/` (+ LICENSE
+  + PROVENANCE), with a reproducible runner `json_corpus_bundle/scripts/run_json_corpus.sh` and the dated
+  root-caused report `json_corpus_bundle/results/characterization.md`. **MEASURED (the data answer to the
+  director's Q1 "does json.ebnf match the official JSON standard?" → NO):** `y_` (MUST accept) **81/95**;
+  `n_` (MUST reject) **158/188** (28 wrongly accepted + 2 crash); `i_` 13 accept/21 reject/1 crash; **3
+  deep-nesting files ABORT (stack overflow)**. Every divergence root-causes to the SIMPLIFIED grammar (no
+  number **exponent**; no string **escapes** — `"[^"]*"` is both too narrow and too wide; **leading zeros**
+  allowed; loose **trailing/whitespace**) — grammar-scope limits, NOT engine bugs — plus a real
+  **robustness** defect (no recursion/stack guard; cf. RGX-0085). This is exactly the gap an external corpus
+  exposes and the internal generator (by construction) cannot. NO grammar/parser change this slice (pure
+  characterization, per characterize-don't-game). Spawns two evidence-gated follow-ups: (a) upgrade
+  `json.ebnf` toward RFC 8259; (b) a json-parser recursion/stack guard. Recognized corpora used/available:
   - **JSONTestSuite** (Nicolas Seriot, *"Parsing JSON is a Minefield"*, github.com/nst/JSONTestSuite,
     MIT) — the de-facto comprehensive corpus: `test_parsing/` files prefixed `y_` (MUST accept), `n_`
     (MUST reject), `i_` (implementation-defined). ~300+ files.
@@ -87,8 +98,10 @@ separate, tools-backed decision, never a silent reclassification.
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `EXTERNAL-CORPUS.1` | `done` (`PGEN-EXTERNAL-CORPUS-0001`) | SCOPING — captured the directive durably (decision record [[project_external_corpus_doctrine]] + this tree + TASK_TREE/INDEX registration) so the corpus work is task-tree-owned before any test-data lands. |
-| 1 | `EXTERNAL-CORPUS.2` | `pending` | The director's first concrete ask: a recognized JSON corpus + an honest characterization of the simplified `json.ebnf` against it. |
-| 2 | `EXTERNAL-CORPUS.3+` | `pending` | Generalize to VHDL / SV / rtl_* / annotation grammars. |
+| — | `EXTERNAL-CORPUS.2` | `done` (`PGEN-EXTERNAL-CORPUS-0002`) | JSONTestSuite vendored + the simplified `json.ebnf` characterized (y_ 81/95, n_ 158/188, 3 crashes); the data answer to Q1 (json.ebnf does NOT match the standard). `json_corpus_bundle/`. |
+| 1 | `EXTERNAL-CORPUS.2a` (json.ebnf → RFC 8259) | `pending` | Evidence-gated grammar upgrade: number exponent, `0|[1-9][0-9]*`, escaped-string production, exact whitespace, strict no-trailing. Re-run the characterization as the acceptance metric. Own slice (changes the parser's accepted language → corpus + shape-contract verification). |
+| 1 | `EXTERNAL-CORPUS.2b` (json recursion/stack guard) | `pending` | The 3 deep-nesting aborts — a json-parser robustness fix (cf. RGX-0085 dedicated worker stack / a depth bound). |
+| 2 | `EXTERNAL-CORPUS.3+` | `pending` | Generalize the external-corpus surface to VHDL / SV / rtl_* / annotation grammars. |
 
 ## Decisions
 

@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0002 (EXTERNAL-CORPUS.2): JSON external corpus + characterization of the simplified json.ebnf (TEST-DATA + DOCS).
+
+The director's first concrete external-corpus ask, and the data answer to "does json.ebnf match the
+official JSON standard?" → **No.** Vendored the recognized **JSONTestSuite** corpus (Nicolas Seriot,
+*"Parsing JSON is a Minefield"*, MIT, pinned commit `1ef36fa0`, 318 `y_`/`n_`/`i_` files) as an immutable
+snapshot under `json_corpus_bundle/` (mirroring `regex_corpus_bundle/`), with a reproducible runner and a
+dated, root-caused characterization.
+
+- `json_corpus_bundle/third_party/upstream/JSONTestSuite/` — immutable snapshot + LICENSE + PROVENANCE.
+- `json_corpus_bundle/scripts/run_json_corpus.sh` — deterministic runner (the corpus's own `y_/n_/i_`
+  prefixes are the fix-independent oracle; exit-code → accept/reject/timeout/crash).
+- `json_corpus_bundle/results/characterization.md` + `json_corpus_results.tsv` — the measurement.
+
+**MEASURED:** `y_` (MUST accept) **81/95**; `n_` (MUST reject) **158/188** (28 wrongly accepted + 2 crash);
+`i_` 13/21/1; **3 deep-nesting files ABORT (stack overflow)**. Every divergence root-causes to the
+SIMPLIFIED grammar — no number **exponent**, no string **escapes** (`"[^"]*"` is both too narrow and too
+wide), **leading zeros** allowed, loose **trailing/whitespace** — plus a missing recursion/stack guard.
+These are grammar-scope limits, not engine bugs; an external corpus surfaces them, the internal generator
+(by construction) cannot.
+
+This is a **characterization, not a conformance gate** (characterize-don't-game). NO grammar/parser change
+this slice. Spawns evidence-gated follow-ups `EXTERNAL-CORPUS.2a` (json.ebnf → RFC 8259) and `.2b`
+(json recursion/stack guard). Lockstep: README Key Project Paths, the book's Parser Families chapter (new
+honest JSON subsection), EXTERNAL-CORPUS tree, TASK_TREE.
+
 ## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0001 (EXTERNAL-CORPUS.1 SCOPING): every parser proven by generator + external corpus (DOCS, new tree).
 
 Captured a new standing director directive (2026-06-08, three messages): **every PGEN parser shall be

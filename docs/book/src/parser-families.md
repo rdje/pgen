@@ -95,6 +95,33 @@ Primary sources:
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
 - `docs/RETURN_ANNOTATIONS_REFERENCE.md`
 
+## JSON (built-in, deliberately simplified)
+
+`grammars/json.ebnf` is a small **built-in** grammar used for examples and cross-family stimuli work. It
+is a **deliberately simplified subset** of JSON, *not* a conforming RFC 8259 / ECMA-404 parser — and PGEN
+says so out loud, with evidence. Per the **external-corpus doctrine** (every parser is proven by BOTH the
+internal stimuli generator AND an officially-recognized external corpus), the json parser is characterized
+against **JSONTestSuite** (Nicolas Seriot's *"Parsing JSON is a Minefield"*, MIT) vendored under
+`json_corpus_bundle/`:
+
+- the EBNF-internal duality is clean — json is the first grammar to report `fully_certified=true` from the
+  certificate-coverage gate (see [Grammar Well-Formedness](./grammar-wellformedness.md)); but
+- the **external** corpus shows the simplified grammar diverges from the standard: of the recognized
+  test files it accepts **81/95** must-accept (`y_`) and rejects **158/188** must-reject (`n_`), and **3
+  deep-nesting files crash** the recursive-descent parser. The divergences root-cause to the grammar
+  lacking number **exponents** and string **escapes**, allowing **leading zeros**, and tolerating loose
+  **trailing/whitespace** — grammar-scope limits, not engine bugs — plus a missing recursion/stack guard.
+
+This is the whole point of pairing the two oracles: the generator can only manufacture what the grammar
+already describes, so only an independently-authored external corpus exposes the gap between the grammar
+and the real language. The full root-caused report and the RFC-8259 upgrade plan live in
+`json_corpus_bundle/results/characterization.md`.
+
+Primary sources:
+
+- `json_corpus_bundle/README.md` and `json_corpus_bundle/results/characterization.md`
+- `grammars/json.ebnf`
+
 ## Phase S Families
 
 Ongoing Phase S work currently centers around:

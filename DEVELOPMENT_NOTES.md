@@ -1,4 +1,38 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - EXTERNAL-CORPUS.2 — JSON external corpus + characterization (PGEN-EXTERNAL-CORPUS-0002)
+
+### The directive + the question
+Director directive 2026-06-08: every parser proven by BOTH the stimuli generator AND an officially-recognized
+external corpus ([[project_external_corpus_doctrine]]). Concrete first ask + a direct question: "does
+`json.ebnf` match the official JSON standard?"
+
+### Tools-first answer (not asserted — measured)
+Vendored **JSONTestSuite** (MIT, 318 `test_parsing` files, pinned commit `1ef36fa0`) under
+`json_corpus_bundle/` and ran the generated `json` parser over every file via
+`json_corpus_bundle/scripts/run_json_corpus.sh` (`parseability_probe --parse json <file>` under a
+per-file timeout; the corpus's `y_/n_/i_` filename prefix is the fix-independent oracle; exit code →
+accept(0)/reject(nonzero)/timeout(124)/crash(>128)).
+
+**Measured:** `y_` 81/95 accept; `n_` 158/188 reject (28 wrongly accept + 2 crash); `i_` 13/21/1; **3
+deep-nesting files abort (stack overflow)**. → `json.ebnf` does NOT match RFC 8259 / ECMA-404.
+
+### Root causes (all the simplified grammar, not the engine)
+1. `number := /\s*-?[0-9]+(\.[0-9]+)?\s*/` — no **exponent** → rejects 11 exponent `y_` + 2 extreme.
+2. `string := /\s*"[^"]*"\s*/` — no **escapes**; `[^"]*` is too narrow (rejects valid escaped strings) AND
+   too wide (accepts 20 invalid `n_string_*`: raw control chars, bad/incomplete escapes, bad `\u` surrogates).
+3. integer part `[0-9]+` not `0|[1-9][0-9]*` → accepts 3 leading-zero `n_number_*`.
+4. loose **trailing/whitespace** (regex `\s` includes form-feed; trailing handling) → accepts 6
+   `n_structure/object_*`.
+5. no recursion/stack guard → 3 deep-nesting files abort (the regex family solved this class with a
+   dedicated worker stack, RGX-0085).
+
+### Why this matters / the doctrine in action
+The internal stimuli generator can only manufacture strings the grammar already describes, so it can never
+surface gaps #1–#5 (gaps between the grammar and the *real* language). The external corpus is the oracle
+that does. NO grammar/parser change this slice — pure characterization (characterize-don't-game). Spawns
+`EXTERNAL-CORPUS.2a` (json.ebnf → RFC 8259) and `.2b` (json stack guard), each evidence-gated and
+task-tree-owned. The bundle + report are reproducible and tracked.
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.3 — Phase H: wire cert-coverage for `json` (PGEN-GRAMMAR-WELLFORMED-0037)
 
 ### The gap: cert-coverage ran only for SV + regex
