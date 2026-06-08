@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0047 (GRAMMAR-WELLFORMED.H.5.1.3): svpp residual-1 ROOT-CAUSED (investigation CHECKPOINT — no code landed; unsound cheap fix reverted) (DOCS).
+
+Tools-first root-cause of the last svpp cert-coverage `sample_parse_failures` (1/40 @ seed 0). No code
+shipped: an attempted cheap fix was proven UNSOUND and reverted; the sound fix is a generator-core change
+held for a director approach decision.
+
+- ROOT CAUSE (byte-exact `--stimuli-corpus-json` isolation + minimal repro): the generator injects a bare
+  `\n` after a `condition_text` token (`[^` + "`" + `(),?:!|&\r\n]+`, an open class that excludes `\n`, so
+  `regex_tail_greedy_blocker` returns `Some("\n")`) when another `condition_atom` follows. The `\n`
+  terminates the enclosing `condition_expr` line and strands the next token (e.g. a `` `" `` stringize) at a
+  `pp_item` boundary where it is not a valid `pp_item`, so the nested `pp_conditional` never reaches its
+  `pp_endif`. Same `\n`-injection class as H.5.1.1, but a STRUCTURAL content class (H.5.1.1 fixed only the
+  whitespace-only sub-case). Minimal repro: `` `ifndef X⏎`elsif a⏎`"⏎`endif `` FAILS; `` `ifndef X⏎`elsif `"⏎`endif `` PARSES.
+- REJECTED (unsound, reverted): a class-only "line-rest" heuristic (inject `\n` only for a class containing
+  all printable ASCII) breaks the correct invariant `[ \ta-z]+ → Some("\n")` (that class genuinely needs
+  `\n` — a following lowercase fuses, space can't separate). Empirically: the existing test
+  `whitespace_only_greedy_tail_gets_no_separator` failed (`left None, right Some("\n")`). Per
+  feedback_corpus_expected_from_spec_not_fix, a correct test is not changed to match a wrong fix.
+  `stimuli_generator.rs` reverted byte-identical to HEAD; the invariant test passes.
+- SOUND FIX (identified): successor-aware `\n` deferral (analogue of the LEXICAL-ANNOTATIONS.5 space
+  deferral) — record the open tail class, insert `\n` at the join only when the next token's first char is
+  absorbed by that class. A generator-CORE change (concat/join path, all grammars), so it warrants a
+  dedicated slice with full cross-grammar A/B. CHECKPOINT per feedback_always_signoff_decisions; awaiting the
+  director: (a) `H.5.1.3.1` deferral slice, or (b) route to Phase C. Rare residual (1/40); wired-cert-coverage
+  program unaffected.
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0046 (GRAMMAR-WELLFORMED.H.5.1.2): svpp `\b`-keyword↔word-char fusion fixed via the declarative `[>! /\w/]` lexical-annotation + a `collect_rule_body` frontend fix it surfaced (CODE: systemverilog_preprocessor.ebnf + ebnf_frontend).
 
 Drives the svpp residual-8 CLASS (a) — directive keywords fusing with the following word char

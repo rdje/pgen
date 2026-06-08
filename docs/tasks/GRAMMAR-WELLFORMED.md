@@ -563,6 +563,50 @@ subtle dead branch"), never a silent accept.
     slice = class (b)/(c): `condition_expr`/`directive_tail`/`macro_formals` (`` `define NAME(formals)``) +
     `time_literal` (`` `timescale N unit ``) over-production → its own follow-up leaf (`H.5.1.3`), folded into the
     `UNKNOWN`→0 drive.
+- `H.5.1.3` — **`in_progress`: drive the svpp residual-1 — a structural-content-class `\n`-injection
+  (the SAME mechanism class as H.5.1.1, for a content class instead of a whitespace one).**
+  - **ROOT CAUSE (PROVEN tools-first — byte-exact `--stimuli-corpus-json` isolation + minimal repro):** the
+    failing witness is a nested `pp_conditional` whose second `` `ifndef `` never reaches its `pp_endif` because a
+    stray `macro_stringize` (`` `" ``) lands at a `pp_item` boundary (and `` `" `` is not a valid standalone
+    `pp_item`). The stray token is created by the generator INJECTING a bare `\n` inside a `condition_expr`:
+    `condition_text := inline_trivia /[^` + "`" + `(),?:!|&\r\n]+/` is an open greedy class that excludes `\n`, so
+    `StimuliGenerator::regex_tail_greedy_blocker` returns `Some("\n")` (space IS in the class → not the `" "`
+    branch; `\n` is NOT → the `"\n"` branch). When a `condition_text` atom is followed by another `condition_atom`
+    (e.g. a `` `" `` stringize), that injected `\n` terminates the `condition_expr` line, stranding the stringize.
+    MINIMAL REPRO: `` `ifndef X⏎`elsif a⏎`"⏎`endif⏎ `` FAILS (stray `` `" `` after the injected/real `\n`), but
+    `` `ifndef X⏎`elsif `"⏎`endif⏎ `` (stringize INSIDE the condition, same line) PARSES. The `\n` guard is
+    UNNECESSARY (the next `condition_atom` always starts with a char EXCLUDED from `condition_text`'s class —
+    backtick/paren/punct — so it self-delimits, no fusion) AND HARMFUL (`\n` is structurally significant: it
+    terminates a directive/condition line).
+  - **REJECTED FIX (class-only heuristic — UNSOUND, empirically disproven, reverted):** I first tried refining
+    `regex_tail_greedy_blocker` to inject the `\n` only for a "line-rest" class (one containing all printable ASCII
+    `0x20..=0x7e`) and return `None` for a structural content class like `condition_text`. This is UNSOUND: a class
+    such as `[ \ta-z]+` (contains space + word chars, excludes `\n`) is NOT line-rest yet genuinely DOES need the
+    `\n` guard (a following lowercase token fuses, and a space cannot separate it — space is in the class). The
+    existing regression test `whitespace_only_greedy_tail_gets_no_separator` (`stimuli_generator.rs:10704`) asserts
+    exactly `[ \ta-z]+ -> Some("\n")` — a CORRECT invariant — and the heuristic broke it (`left: None, right:
+    Some("\n")`). Per [[feedback_corpus_expected_from_spec_not_fix]] I will NOT change a correct test to match a
+    wrong fix. ROOT REASON the heuristic can't work: `condition_text` *includes* word chars (so by its class alone
+    it COULD fuse with a word-char token) but its GRAMMATICAL successors are all excluded delimiters — a property
+    only successor-awareness can see, not class analysis. Reverted; `stimuli_generator.rs` is byte-identical to
+    HEAD again; the invariant test passes.
+  - **SOUND FIX (identified, scoped — a generator-core change):** the correct fix is the SUCCESSOR-AWARE `\n`
+    deferral — the exact analogue of the LEXICAL-ANNOTATIONS.5 space deferral, extended to the `\n`/class case:
+    do not eager-bake `Some("\n")`; instead record the open tail CLASS, and at the concat join insert `\n` only
+    when the NEXT emitted token's first char is ABSORBED by that class (would actually fuse). For `condition_text`
+    the next `condition_atom` starts with an excluded delimiter → no `\n` (FIX); for `[^\n]` line bodies a
+    following char fuses → `\n` (preserved); for `[ \ta-z]+` a following lowercase fuses → `\n` (preserved). This
+    is sound and parser-agnostic, but it touches the concat/join path (`append_generated_segment` /
+    `append_segment_tracked` + a new generator field holding the deferred `Class`) that affects EVERY grammar, so
+    its blast radius is wider than a surgical leaf and warrants the full decisive cross-grammar A/B.
+  - **CHECKPOINT (signoff decision — STOP, do not land):** root cause PROVEN tools-first; the cheap fix is unsound;
+    the sound fix is a generator-core enhancement. Per the standing "leave the engine alone unless a parser-agnostic
+    enhancement is explicitly justified" preference ([[feedback_prefer_grammar_leave_engine_alone]]) and
+    [[feedback_always_signoff_decisions]] (a result that can't be soundly verified → STOP + checkpoint), this leaf
+    stays `in_progress` pending the director's approach call: (a) implement the successor-aware `\n` deferral as its
+    own careful slice (`H.5.1.3.1`, full cross-grammar A/B), or (b) route it to Phase C (the constructive-generator
+    home — `B2`/`C` bounded-ordered backtracking / successor-aware construction). This is a RARE residual (1/40 ≈
+    2.5%, the last svpp `sample_parse_failures` at seed 0); the wired-cert-coverage program is unaffected.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
