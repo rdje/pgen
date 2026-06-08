@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `STORE-AWARE-GEN`
-- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done — the `fact_count_at_least`-aware MVP landed and closed `REGEX-PCRE2-FIDELITY.3.12`; frontier `.4` generalize to the other composable predicates, `.5` per-grammar verify)
+- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done [`fact_count_at_least`-aware MVP closed `REGEX-PCRE2-FIDELITY.3.12`]; `.4` SCOPING done [tools-first: the composable-predicate generalization is SystemVerilog-only — the most-tuned generation surface — and the regex tight-bound is moot/unreachable]. Frontier: `.4a`/`.4b` are MEASURED SV efforts, recommended to be evidence-gated by `GRAMMAR-WELLFORMED` Phase H first)
 - Family / slice-id prefix: `PGEN-STORE-AWARE-GEN-<NNNN>`
 - Roadmap lane: stimuli-generator quality / parser sign-off pillars **C** (fidelity) + **D** (coverage) —
   the generator must emit only samples that satisfy the SAME semantic predicates the parser enforces
@@ -144,6 +144,35 @@ introduced (the generator becomes a second consumer of the existing one).
 - `.4` — **GENERALIZE to the composable primitive set** (`has_fact`, `lacks_fact`,
   `fact_attribute_equals`, `resolve_path`): gate branch/value selection generally so any `@predicate`-
   gated rule generates only satisfiable samples. Tools-first, one primitive at a time, measured.
+  - **`.4` SCOPING (`PGEN-STORE-AWARE-GEN-0004`, 2026-06-08, tools-first).** Two decisive findings
+    re-frame `.4`:
+    - **Blast radius:** `resolve_path` is used by **no** grammar; `has_fact` / `lacks_fact` /
+      `fact_attribute_equals` are used **only by `systemverilog.ebnf`** (41 `@predicate` sites — regex's
+      one `has_fact` mention is a COMMENT; its only generative predicate is `fact_count_at_least`, done in
+      `.3`). So generalizing these predicates touches the **most heavily-tuned generation surface in the
+      repo** (the entire `SV-EXH-PROOF` campaign): reach plans, witness/diverse passes, weighting,
+      target replay. It is NOT a small or low-risk slice — it MUST be measured against the SV machinery
+      (`sv_stimuli_quality_gate`, the `SV-EXH-PROOF` gates, external corpus 14/14, `stimuli_cross_family_platform_gate`).
+    - **Two SV honoring tiers:** (i) the SOUND PRUNE generalizes the `.3` mechanism directly —
+      `has_fact(K, $ref)` is unsatisfiable when `count(K) == 0` (the same necessary condition), so a rule
+      requiring a declared type/class is pruned when none is declared; `lacks_fact(K, $ref)` is trivially
+      satisfiable when `count(K) == 0` (rarely prunes). The prune needs NO new mechanism. (ii) the
+      COMPLETE honoring needs **value selection** — generate a `$ref` that MATCHES an existing fact (e.g.
+      a reference to a declared type), a genuinely new generator mechanism (select from the store), not
+      just a satisfiability prune. Tier (i) is the measured first step; tier (ii) is the larger build.
+    - **The `.3` tight `$index ≤ count` bound is NOT applicable** (closed-as-moot, tools-backed): the
+      multi-digit `numeric_backreference` construct (value ≥ 10, needing ≥ 10 capture groups) is
+      effectively **never generated** in random regex — 0 of 2537 generated samples contained any
+      `\NN` (N ≥ 10), and the cert-cov re-parse is 0 across a wide seed sweep (11 seeds × count 300).
+      So the count-1-9-over-value case has NO reachable instance; per the no-speculative-fix discipline
+      ([[feedback_no_codebase_change_without_tool_backed_facts]]) the tight bound is NOT implemented.
+    - **Re-scope:** `.4a` = SV predicate-honoring **prune** (tier i) — a measured slice gated behind the
+      SV machinery (verify no-op-or-improvement on `sv_stimuli_quality_gate` + corpus 14/14 BEFORE
+      keeping). `.4b` = SV value-selection (tier ii) — the larger build. Both are deliberate, measured SV
+      efforts, not session-end rushes. **Recommendation:** run `GRAMMAR-WELLFORMED` Phase H FIRST to wire
+      cert-coverage for SV and SEE whether SV generation actually has `@predicate`-violating residuals —
+      that evidence decides whether `.4a`/`.4b` are needed and bounds their scope (don't change the tuned
+      SV generator speculatively).
 - `.5` — **VERIFY + per-grammar cert-coverage closure.** Re-run cert-coverage per grammar (ties into
   `GRAMMAR-WELLFORMED` Phase H): generated samples honour every `@predicate` → no semantic
   round-trip failures. Round-trip / golden tests; book + decision lockstep.
@@ -173,6 +202,7 @@ introduced (the generator becomes a second consumer of the existing one).
 | `2026-06-08` | `.1` | tool-backed root cause (generator has no fact/predicate machinery — grep of `stimuli_generator.rs`; `fact_count_at_least` parse-only in `semantic_runtime.rs`/linter); SOTA cited (ISLa, data-dependent grammars, Fuzzing Book) | SCOPING DONE (docs) |
 | `2026-06-08` | `.2` | tool-backed design — verified the parser's emit/predicate runtime (`SemanticFactSpec`/`SemanticPredicateSpec`/`evaluate_predicate`/`emit_fact`/`checkpoint`/`rollback_to_named`/`extract_delta_since`/`apply_delta` in `semantic_runtime.rs`; codegen emit/predicate/try_parse sites in `ast_based_generator.rs`); pinned the generator hooks, the 2 predicate strategies, the checkpoint/rollback discipline, the no-op gate, the MVP scope + verification matrix | DESIGN DONE (docs) — `.3`–`.5` turnkey |
 | `2026-06-08` | `.3` | regex DEFAULT cert-coverage seed sweep (seed 0/1/7/13 + count 500/seed 0,1) all `sample_parse_failures=0` (seed 1 was 1); determinism byte-identical; backrefs still generated; json/VHDL/SV byte-identical (`stimuli_cross_family_platform_gate` ✅); `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting OK; `cargo test --lib` 620/0 (+2 locks); strict source clippy clean | **IMPLEMENT DONE** — closes `REGEX-PCRE2-FIDELITY.3.12`; generator-only, surface-neutral (no regen/version bump); MVP prunes the `count(K)==0` category, tight `$index≤count` bound deferred to `.4` |
+| `2026-06-08` | `.4` SCOPING | predicate blast-radius grep (`has_fact`/`lacks_fact`/`fact_attribute_equals` = SV-only, 41 sites; `resolve_path` = none; regex `has_fact` = a comment); over-value reachability (0 of 2537 generated samples have a `\NN` N≥10; cert-cov 0 across 11 seeds × count 300) | SCOPING DONE (docs) — generalization is SV-only/high-risk (measured effort); regex tight-bound moot (unreachable); recommend Phase H first to gate `.4a`/`.4b` with evidence |
 
 ## Commit Log
 
@@ -181,3 +211,4 @@ introduced (the generator becomes a second consumer of the existing one).
 | `.1` | `PGEN-STORE-AWARE-GEN-0001` | tree created + scoping + decision record + registered; trigger = `REGEX-PCRE2-FIDELITY.3.12` |
 | `.2` | `PGEN-STORE-AWARE-GEN-0002` | tool-backed design ([`STORE-AWARE-GEN-design.md`](STORE-AWARE-GEN-design.md)) — generator hooks, 2 predicate strategies, checkpoint/rollback discipline, no-op gate, MVP scope, verification matrix; `.3`–`.5` turnkey |
 | `.3` | `PGEN-STORE-AWARE-GEN-0003` | `fact_count_at_least`-aware generation MVP (generator-only): `gen_semantic_state` + no-op gate + emit hook + `count(K)==0` necessary-condition prune + `generate_or`/`generate_quantified` checkpoint/rollback + per-sample reset; closes `REGEX-PCRE2-FIDELITY.3.12` (cert-cov seed sweep all 0); surface-neutral, no regen/version bump |
+| `.4` SCOPING | `PGEN-STORE-AWARE-GEN-0004` | tools-first re-frame: composable-predicate generalization is SV-only (41 sites, most-tuned surface → measured effort); regex tight-bound moot (multi-digit backref unreachable, 0/2537); re-scoped to `.4a` (SV prune, measured) / `.4b` (SV value-selection); recommend Phase H first as evidence gate; docs-only |

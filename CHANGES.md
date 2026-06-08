@@ -1,4 +1,29 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-STORE-AWARE-GEN-0004 (STORE-AWARE-GEN .4 SCOPING): tools-first re-frame of the predicate generalization (DOCS).
+
+The director chose `.4` (deepen the store-aware-generation capability). Tools-first investigation
+re-frames what `.4` actually is — no code (per the no-speculative-fix discipline):
+
+- **Blast radius:** `resolve_path` is used by no grammar; `has_fact` / `lacks_fact` /
+  `fact_attribute_equals` are used ONLY by `systemverilog.ebnf` (41 `@predicate` sites — regex's lone
+  `has_fact` mention is a comment; its only generative predicate is `fact_count_at_least`, already done
+  in `.3`). So generalizing these predicates touches the most heavily-tuned generation surface in the
+  repo (the `SV-EXH-PROOF` campaign) — a MEASURED effort needing the SV gates, not a quick slice.
+- **Two SV honoring tiers:** (i) the SOUND PRUNE generalizes the `.3` mechanism directly
+  (`has_fact(K,$ref)` unsatisfiable when `count(K)==0`) — no new mechanism; (ii) COMPLETE honoring needs
+  VALUE SELECTION (generate a `$ref` matching an existing fact) — a new generator mechanism.
+- **The `.3` tight `$index ≤ count` bound is moot** (tools-backed): the multi-digit
+  `numeric_backreference` (value ≥ 10, needing ≥ 10 capture groups) is effectively never generated — 0
+  of 2537 generated samples contained any `\NN` (N ≥ 10); cert-cov is 0 across 11 seeds × count 300. The
+  count-1-9-over-value case has no reachable instance, so the tight bound is NOT implemented.
+- **Re-scope:** `.4a` (SV predicate-honoring prune, measured) / `.4b` (SV value-selection). Recommend
+  running `GRAMMAR-WELLFORMED` Phase H FIRST to wire SV cert-coverage and see whether SV generation has
+  `@predicate`-violating residuals — the evidence to gate/bound `.4a`/`.4b` rather than change the tuned
+  SV generator speculatively.
+
+Recorded in `docs/tasks/STORE-AWARE-GEN.md` (`.4` leaf, verification + commit log); `MEMORY.md`
+re-pointed (next: Phase H, the evidence gate).
+
 ## 2026-06-08 - PGEN-STORE-AWARE-GEN-0003 (STORE-AWARE-GEN .3 / REGEX-PCRE2-FIDELITY .3.12): fact_count_at_least-aware generation — the generator emits only valid numeric backreferences (CODE; generator-only, surface-neutral).
 
 Implemented the `.2` design MVP: the stimuli generator is now **semantic-store-aware** for the
