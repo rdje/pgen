@@ -228,11 +228,13 @@ PGEN is a production-focused parser and stimuli generator platform.
   - contracts/reference docs remain the deep authoritative detail behind the book.
 
 ## Per-Parser Integration Reference Books
-- Alongside the platform mastery book (`docs/book/`), each shipped parser
-  family has its own live mdBook — the canonical AST-integration reference
-  for downstream consumers of that family. Both the `src/*.md` source and
-  the rendered `*-html/` are tracked in git so they are browsable directly
-  on GitHub without an mdbook install.
+- Alongside the platform mastery book (`docs/book/`), **every PGEN parser has
+  its own live mdBook** — the canonical AST-integration reference for that
+  parser. The standing directive (director 2026-06-08) is that every parser
+  shall have its own per-parser mdBook, referenced from the top-level book's
+  Parser Families chapter. Both the `src/*.md` source and the rendered
+  `*-html/` are tracked in git so they are browsable directly on GitHub
+  without an mdbook install.
 - Books and their repo-standard gates:
   - regex — `docs/regex_parser_book/` — `make -C rust SHELL=/bin/bash regex_parser_book_gate`
   - systemverilog — `docs/systemverilog_parser_book/` — `make -C rust SHELL=/bin/bash systemverilog_parser_book_gate`
@@ -240,10 +242,15 @@ PGEN is a production-focused parser and stimuli generator platform.
   - vhdl — `docs/vhdl_parser_book/` — `make -C rust SHELL=/bin/bash vhdl_parser_book_gate`
   - rtl_frontend — `docs/rtl_frontend_parser_book/` — `make -C rust SHELL=/bin/bash rtl_frontend_parser_book_gate`
   - rtl_const_expr — `docs/rtl_const_expr_parser_book/` — `make -C rust SHELL=/bin/bash rtl_const_expr_parser_book_gate`
-- Each per-parser book is paired with the matching downstream contract
-  under `docs/contracts/` (the deep authoritative integration surface)
-  and the family's AST shape-contract manifest under
-  `rust/test_data/ast_shape_contract/`.
+  - json (built-in, simplified) — `docs/json_parser_book/` — `make -C rust SHELL=/bin/bash json_parser_book_gate`
+- Each shipped-family per-parser book is paired with the matching downstream
+  contract under `docs/contracts/` (the deep authoritative integration
+  surface) and the family's AST shape-contract manifest under
+  `rust/test_data/ast_shape_contract/`. (The `json` book documents a built-in
+  simplified grammar and is paired instead with `json_corpus_bundle/`.)
+- Still to come (per the every-parser-book directive): per-parser books for
+  the `ebnf` meta-grammar and the `return_annotation` / `semantic_annotation`
+  grammars.
 
 ## Documentation Status
 - Current authoritative docs for the active Rust-first platform:

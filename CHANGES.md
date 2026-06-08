@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-BOOK-JSON-0001: json per-parser mdBook + the every-parser-book directive (DOCS).
+
+Director directive 2026-06-08: "every parser shall have its parser-specific mdBook which shall be
+referenced from the top-level mdBook." Captured the directive and created the first missing book (json).
+
+- New `docs/json_parser_book/` (book.toml + `src/`: welcome, build-recipe, grammar-and-scope, ast-envelope,
+  external-corpus-characterization, glossary) + rendered `docs/json_parser_book-html/` (both tracked).
+  The book is honest that `json` is a *simplified built-in* grammar (first grammar `fully_certified=true`
+  on the EBNF-internal gate, but 81/95 + 158/188 against JSONTestSuite); the AST-envelope chapter documents
+  the real shape (the `[head,[rest]]` cons-list from `[$1,$3*]`, quote-retaining strings, string-typed
+  numbers — dumped from the parser, not guessed).
+- `rust/scripts/json_parser_book_gate.sh` + `make -C rust json_parser_book_gate` (mirror the regex gate).
+- Top-level book Parser Families chapter: json added to the "Per-Parser Integration Reference Books" table
+  and the JSON subsection's primary sources; preamble generalized to "every PGEN parser has its own mdBook".
+- README per-parser-books section + the directive decision record
+  `docs/decisions/project_every_parser_per_parser_book.md` (+ INDEX). Still-missing books noted:
+  `ebnf`, `return_annotation`, `semantic_annotation`.
+
+Docs/infra only (book + gate script + Makefile target); no code/status/contract change.
+
 ## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0002 (EXTERNAL-CORPUS.2): JSON external corpus + characterization of the simplified json.ebnf (TEST-DATA + DOCS).
 
 The director's first concrete external-corpus ask, and the data answer to "does json.ebnf match the

@@ -4,11 +4,12 @@ PGEN applies one quality doctrine across all EBNF-based parser families. The liv
 
 ## Per-Parser Integration Reference Books
 
-Alongside this platform mastery book, **every shipped parser family has its own live mdBook** — the
-canonical AST-integration reference for downstream consumers of that family (envelope shape, worked
-examples per construct, build recipe, and a per-release changelog). Both the `src/*.md` source and the
-rendered `*-html/` are tracked in git, so each book is browsable directly on GitHub without an mdbook
-install. Start at each book's **Welcome** page:
+Alongside this platform mastery book, **every PGEN parser has its own live mdBook** — the canonical
+AST-integration reference for that parser (envelope shape, worked examples, build recipe, and — for the
+shipped families — a per-release changelog). Both the `src/*.md` source and the rendered `*-html/` are
+tracked in git, so each book is browsable directly on GitHub without an mdbook install. The `json` book is
+explicit that json is a *simplified built-in* grammar, not a conforming JSON parser. Start at each book's
+**Welcome** page:
 
 | Parser family | Per-parser book (source) | Rendered HTML | Repo-standard gate |
 | --- | --- | --- | --- |
@@ -18,6 +19,7 @@ install. Start at each book's **Welcome** page:
 | vhdl | [PGEN VHDL Parser — Integration Reference](../../vhdl_parser_book/src/welcome.md) | [`docs/vhdl_parser_book-html/`](../../vhdl_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash vhdl_parser_book_gate` |
 | rtl_frontend | [PGEN rtl_frontend Parser — Integration Reference](../../rtl_frontend_parser_book/src/welcome.md) | [`docs/rtl_frontend_parser_book-html/`](../../rtl_frontend_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash rtl_frontend_parser_book_gate` |
 | rtl_const_expr | [PGEN rtl_const_expr Parser — Integration Reference](../../rtl_const_expr_parser_book/src/welcome.md) | [`docs/rtl_const_expr_parser_book-html/`](../../rtl_const_expr_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash rtl_const_expr_parser_book_gate` |
+| json (built-in, simplified) | [PGEN JSON Parser — Integration Reference](../../json_parser_book/src/welcome.md) | [`docs/json_parser_book-html/`](../../json_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash json_parser_book_gate` |
 
 Each per-parser book is paired with the matching downstream **integration contract** under
 `docs/contracts/` (the deep authoritative surface) and the family's AST shape-contract manifest under
@@ -119,6 +121,7 @@ and the real language. The full root-caused report and the RFC-8259 upgrade plan
 
 Primary sources:
 
+- **Per-parser book:** [PGEN JSON Parser — Integration Reference](../../json_parser_book/src/welcome.md)
 - `json_corpus_bundle/README.md` and `json_corpus_bundle/results/characterization.md`
 - `grammars/json.ebnf`
 
