@@ -1,4 +1,25 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0001 (EXTERNAL-CORPUS.1 SCOPING): every parser proven by generator + external corpus (DOCS, new tree).
+
+Captured a new standing director directive (2026-06-08, three messages): **every PGEN parser shall be
+exercised by TWO independent confidence sources — (1) the internal stimuli generator (manufactured
+stimuli) AND (2) officially-recognized EXTERNAL test corpora (or curated external fragments where none
+exists), in sufficient number and quality to build confidence the parser is accurate, robust, and can
+handle any type of input.** The two are complementary, not redundant: the generator can only manufacture
+what the grammar already describes, so an independently-authored external corpus is the oracle that
+exposes the gap between the grammar and the real language.
+
+- Decision record `docs/decisions/project_external_corpus_doctrine.md` (+ INDEX) records the directive,
+  the `regex` + `regex_corpus_bundle/` (PCRE2) precedent it generalizes, and the binding
+  **characterize-don't-game** rule (some grammars — e.g. `grammars/json.ebnf` — are deliberately
+  simplified subsets, so an external conformance corpus surfaces grammar-scope limits, not parser bugs;
+  measure the gap honestly, never derive expecteds from the parser).
+- New task tree `docs/tasks/EXTERNAL-CORPUS.md` (+ TASK_TREE Active row): `.1` SCOPING (this slice),
+  `.2` JSON external corpus (JSONTestSuite "minefield" + json.org JSON_checker) acquisition +
+  characterization, `.3+` VHDL / SV / rtl_* / annotation grammars.
+
+DOCS-only (directive capture + tree); no code/test-data yet (that is `.2`). No status-row change.
+
 ## 2026-06-08 - PGEN-BOOK-XLINK-0001: top-level mdBook now links to the per-parser integration books (DOCS).
 
 The top-level platform book (`docs/book/`) had no references to the six per-parser integration mdBooks
