@@ -1,4 +1,20 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-BOOK-XLINK-0001: top-level mdBook now links to the per-parser integration books (DOCS).
+
+The top-level platform book (`docs/book/`) had no references to the six per-parser integration mdBooks
+(`docs/<family>_parser_book/`), even though the README and the per-parser-book gates already maintain
+them. Added them to the **Parser Families** chapter (`docs/book/src/parser-families.md`):
+
+- a new **"Per-Parser Integration Reference Books"** section — a table linking all six books (regex,
+  systemverilog, systemverilog_preprocessor, vhdl, rtl_frontend, rtl_const_expr) to their GitHub-browsable
+  `src/welcome.md`, plus the rendered `*-html/` location and each book's repo-standard gate;
+- a per-family **"Per-parser book"** link next to each family's primary sources (regex, vhdl, the two SV
+  books, and the two Phase S families).
+
+Links use repo-relative `../../<family>_parser_book/src/welcome.md` paths so they resolve when browsing
+the repository on GitHub (the user's documentation window). VERIFIED: all six `src/welcome.md` targets
+exist; `make -C rust mdbook_docs_gate` passes. Docs-only; no code/status/contract change.
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0037 (GRAMMAR-WELLFORMED.H.3): Phase H — wire cert-coverage for `json` (CODE, registry + Makefile only).
 
 Phase H of the certifying linter wires `parse_and_cover` for the next-simplest unwired grammar, `json`

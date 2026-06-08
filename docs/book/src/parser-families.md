@@ -2,6 +2,28 @@
 
 PGEN applies one quality doctrine across all EBNF-based parser families. The live tracker differs by landed proof depth, not by quality bar.
 
+## Per-Parser Integration Reference Books
+
+Alongside this platform mastery book, **every shipped parser family has its own live mdBook** — the
+canonical AST-integration reference for downstream consumers of that family (envelope shape, worked
+examples per construct, build recipe, and a per-release changelog). Both the `src/*.md` source and the
+rendered `*-html/` are tracked in git, so each book is browsable directly on GitHub without an mdbook
+install. Start at each book's **Welcome** page:
+
+| Parser family | Per-parser book (source) | Rendered HTML | Repo-standard gate |
+| --- | --- | --- | --- |
+| regex | [PGEN Regex Parser — Integration Reference](../../regex_parser_book/src/welcome.md) | [`docs/regex_parser_book-html/`](../../regex_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash regex_parser_book_gate` |
+| systemverilog | [PGEN SystemVerilog Parser — Integration Reference](../../systemverilog_parser_book/src/welcome.md) | [`docs/systemverilog_parser_book-html/`](../../systemverilog_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash systemverilog_parser_book_gate` |
+| systemverilog_preprocessor | [PGEN SystemVerilog Preprocessor Parser — Integration Reference](../../systemverilog_preprocessor_parser_book/src/welcome.md) | [`docs/systemverilog_preprocessor_parser_book-html/`](../../systemverilog_preprocessor_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash systemverilog_preprocessor_parser_book_gate` |
+| vhdl | [PGEN VHDL Parser — Integration Reference](../../vhdl_parser_book/src/welcome.md) | [`docs/vhdl_parser_book-html/`](../../vhdl_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash vhdl_parser_book_gate` |
+| rtl_frontend | [PGEN rtl_frontend Parser — Integration Reference](../../rtl_frontend_parser_book/src/welcome.md) | [`docs/rtl_frontend_parser_book-html/`](../../rtl_frontend_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash rtl_frontend_parser_book_gate` |
+| rtl_const_expr | [PGEN rtl_const_expr Parser — Integration Reference](../../rtl_const_expr_parser_book/src/welcome.md) | [`docs/rtl_const_expr_parser_book-html/`](../../rtl_const_expr_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash rtl_const_expr_parser_book_gate` |
+
+Each per-parser book is paired with the matching downstream **integration contract** under
+`docs/contracts/` (the deep authoritative surface) and the family's AST shape-contract manifest under
+`rust/test_data/ast_shape_contract/`. The per-family sections below link the relevant book again next to
+that family's primary sources.
+
 ## Mature Or Near-Mature Families
 
 ### Regex
@@ -22,6 +44,7 @@ PGEN applies one quality doctrine across all EBNF-based parser families. The liv
 
 Primary sources:
 
+- **Per-parser book:** [PGEN Regex Parser — Integration Reference](../../regex_parser_book/src/welcome.md)
 - `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`
 - `PGEN_USER_GUIDE.md`
@@ -33,8 +56,9 @@ Primary sources:
 - tracked as a closed parser family in the live status view
 - important regression sentinel for cross-family stimuli work
 
-Primary source:
+Primary sources:
 
+- **Per-parser book:** [PGEN VHDL Parser — Integration Reference](../../vhdl_parser_book/src/welcome.md)
 - `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`
 
 ### SystemVerilog
@@ -52,6 +76,7 @@ Primary source:
 
 Primary sources:
 
+- **Per-parser books:** [PGEN SystemVerilog Parser — Integration Reference](../../systemverilog_parser_book/src/welcome.md) · [PGEN SystemVerilog Preprocessor Parser — Integration Reference](../../systemverilog_preprocessor_parser_book/src/welcome.md)
 - `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/reference/SV_GRAMMAR_COVERAGE_MATRIX.md`
@@ -74,8 +99,8 @@ Primary sources:
 
 Ongoing Phase S work currently centers around:
 
-- `rtl_const_expr`
-- `rtl_frontend`
+- `rtl_const_expr` — per-parser book: [PGEN rtl_const_expr Parser — Integration Reference](../../rtl_const_expr_parser_book/src/welcome.md)
+- `rtl_frontend` — per-parser book: [PGEN rtl_frontend Parser — Integration Reference](../../rtl_frontend_parser_book/src/welcome.md)
 
 These matter because they push PGEN from parsing into more elaboration-oriented RTL front-end territory while staying inside the same proof-first doctrine.
 
