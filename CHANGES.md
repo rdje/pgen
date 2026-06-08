@@ -1,4 +1,28 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0003 (EXTERNAL-CORPUS.2a): upgrade json.ebnf to RFC 8259 (CODE/grammar).
+
+Upgraded `grammars/json.ebnf` from a simplified subset to track RFC 8259 / ECMA-404 for its
+lexical/syntactic core, using the JSONTestSuite corpus (`json_corpus_bundle/`) as the acceptance metric.
+Terminal-only change (the nine rules and all `-> …` return annotations are unchanged):
+
+- `number` → `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?` — adds the exponent, forbids leading zeros.
+- `string` → models the JSON escape set `\" \\ \/ \b \f \n \r \t \uXXXX` and forbids raw control chars
+  (`\x00-\x1f`) and lone backslashes (was `"[^"]*"`).
+- whitespace → exactly `[ \t\n\r]` everywhere (was `\s`, which let form-feed/vertical-tab slip through).
+
+**MEASURED (the acceptance metric, deterministic):** `y_` (MUST accept) **81 → 95/95** (every must-accept
+JSON document now parses); `n_` (MUST reject) **158 → 181/188**. cert-coverage still
+`fully_certified=true`; the closed-loop stimuli generator emits **40/40 valid samples at 100% rule+branch
+coverage**; AST envelope preserved (string/number still return text; escapes + exponents carry through);
+`parser_registry` lib tests 7/0; strict source clippy 0 errors. NO Rust-source change (grammar + local
+regen; `generated/` not committed). Honest residual: the cert-coverage RAW witness pass
+(`generate_many`, unfiltered) now reports `sample_parse_failures≈31/200` (was 0) — the known G.4.7/F2
+raw-witness-generation fidelity limit, exposed by the stricter terminals (not a parser or closed-loop
+generator defect). Remaining external residuals → follow-up leaves `EXTERNAL-CORPUS.2c` (5 trailing-content
+`n_`, strict end-of-input) + `.2b` (3 deep-nesting crashes, recursion/stack guard). Lockstep: the
+`json_corpus_bundle/` README + characterization + TSV, the json per-parser book, the platform book's
+Parser Families chapter, README Key Project Paths, EXTERNAL-CORPUS tree, TASK_TREE.
+
 ## 2026-06-08 - PGEN-BOOK-JSON-0001: json per-parser mdBook + the every-parser-book directive (DOCS).
 
 Director directive 2026-06-08: "every parser shall have its parser-specific mdBook which shall be

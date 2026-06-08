@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - EXTERNAL-CORPUS.2a — upgrade json.ebnf to RFC 8259 (PGEN-EXTERNAL-CORPUS-0003)
+
+### Goal + acceptance metric
+`.2`'s characterization proved the simplified `json.ebnf` diverged from RFC 8259 (y_ 81/95). `.2a` upgrades
+the grammar's terminals to track the standard, with the JSONTestSuite corpus run
+(`json_corpus_bundle/scripts/run_json_corpus.sh`) as the objective, fix-independent acceptance metric.
+
+### The change (terminal-only; rules + annotations unchanged)
+- `number`: `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?` (exponent + no leading zeros).
+- `string`: `"(\\(["\\\/bfnrt]|u[0-9a-fA-F]{4})|[^"\\\x00-\x1f])*"` (JSON escape set; rejects raw control
+  chars + lone backslash). Pre-flight tools-first check confirmed the EBNF `/.../` frontend stores an
+  escaped `\/` correctly (`/a\/b/` → Rust regex `a\/b` → matches `/`), so the escape set is expressible.
+- whitespace: `\s` → `[ \t\n\r]` everywhere (JSON whitespace excludes form-feed / vertical-tab).
+
+### Result (deterministic, two identical corpus runs)
+- `y_` 81 → **95/95** (every must-accept JSON document parses); `n_` 158 → **181/188**.
+- cert-coverage `fully_certified=true` (9/9 rules witnessed, UNKNOWN=0).
+- closed-loop generator (`--generate-stimuli --count 40`): **40/40 valid, 100% rule+branch coverage**.
+- AST envelope preserved (dumped `"a\tbé"` → `{type:"string",value:"\"a\\tb\\u00e9\""}`, `1.5e-3` →
+  `{type:"number",value:"1.5e-3"}`); parser_registry 7/0; strict clippy 0 errors.
+
+### BE-ALERT: root-causing the cert-coverage `sample_parse_failures` 0→31
+A grammar-driven generator emitting parser-rejected output is never "normal" — so I root-caused it rather
+than accept it. Tools-first split: the **closed-loop** path (`--generate-stimuli`) emits 40/40 valid
+samples; only the cert-coverage **raw witness pass** (`generate_many`, unfiltered, per the G.4.5 F2
+finding) produces the 31 unparseable samples. The stricter string/number regexes simply expose more of the
+**known F2 raw-witness-generation fidelity limit** (the raw sampler does not perfectly satisfy a complex
+regex terminal — alternation / negated class / `\uXXXX`). It is a generator-tooling residual, NOT a parser
+defect (external corpus proves the parser is more correct) and NOT a closed-loop-generator defect.
+
+### Remaining external residuals (each its own follow-up leaf)
+- `.2c` strict end-of-input: 5 `n_` are all trailing-content (`{"a":"b"}//`, `…#`, `/*comment*/`) — the
+  value parses and trailing bytes are left unconsumed without rejection. Fix at the `json` rule.
+- `.2b` recursion/stack guard: 3 deep-nesting files abort (stack overflow) instead of being rejected.
+
 ## 2026-06-08 - EXTERNAL-CORPUS.2 — JSON external corpus + characterization (PGEN-EXTERNAL-CORPUS-0002)
 
 ### The directive + the question

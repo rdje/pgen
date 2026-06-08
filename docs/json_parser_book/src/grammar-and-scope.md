@@ -1,8 +1,8 @@
-# Grammar and Scope (a simplified subset)
+# Grammar and Scope
 
-The full grammar is `grammars/json.ebnf` (nine rules). It models the **shape** of JSON — objects, arrays,
-strings, numbers, the three keywords — but uses coarse regex terminals for the lexical layer, so it is a
-**subset/superset** of standard JSON rather than a faithful implementation.
+The full grammar is `grammars/json.ebnf` (nine rules). As of the `EXTERNAL-CORPUS.2a` upgrade its lexical
+terminals track RFC 8259 / ECMA-404, validated against the recognized JSONTestSuite corpus (every
+must-accept file passes: **95/95**).
 
 ## What it accepts (the rules)
 
@@ -15,33 +15,30 @@ strings, numbers, the three keywords — but uses coarse regex terminals for the
 | `pair` | `string : value` | |
 | `array` | `[]`  or  `[ elements ]` | |
 | `elements` | `value ( , value )*` | comma-separated values |
-| `string` | `/\s*"[^"]*"\s*/` | **any run of non-`"` bytes** between quotes |
-| `number` | `/\s*-?[0-9]+(\.[0-9]+)?\s*/` | optional sign, integer, optional fraction |
+| `string` | `/[ \t\n\r]*"(\\(["\\\/bfnrt]\|u[0-9a-fA-F]{4})\|[^"\\\x00-\x1f])*"[ \t\n\r]*/` | the RFC escape set; forbids raw control chars / lone `\` |
+| `number` | `/[ \t\n\r]*-?(0\|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?[ \t\n\r]*/` | sign, `0\|[1-9]…`, fraction, exponent |
 
-`true` / `false` / `null` are matched as whitespace-padded keywords and lowered to
-`{type:"boolean", value:true/false}` / `{type:"null"}`.
+`true` / `false` / `null` are matched as whitespace-padded keywords (whitespace = the exact JSON set
+`[ \t\n\r]`) and lowered to `{type:"boolean", value:true/false}` / `{type:"null"}`.
 
-## What it does NOT do (the gaps vs RFC 8259 / ECMA-404)
+## RFC-8259 lexical conformance (closed by `EXTERNAL-CORPUS.2a`)
 
-These are **deliberate simplifications**, each confirmed by the external corpus
-([characterization](external-corpus-characterization.md)):
+The original simplified grammar diverged on number/string/whitespace lexing; the upgrade closed those:
 
-1. **No number exponent.** `1e10`, `0e1`, `2.5E-3` are **rejected** (the standard requires
-   `([eE][+-]?[0-9]+)?`).
-2. **No string escapes.** `string` is `"[^"]*"`, so:
-   - valid escaped strings like `"a\"b"` or `"\n"` are **rejected** (the `[^"]*` stops at, or cannot
-     express, the escape);
-   - invalid strings — raw control characters, bad `\`-escapes, malformed `\uXXXX` surrogates — are
-     **wrongly accepted** (any non-`"` byte passes). The standard allows only
-     `\" \\ \/ \b \f \n \r \t \uXXXX` and forbids raw control characters.
-3. **Leading zeros allowed.** The integer part is `[0-9]+`, so `01` / `-01` are **wrongly accepted**
-   (the standard requires `0 | [1-9][0-9]*`).
-4. **Loose trailing/whitespace.** The regex `\s` class includes form-feed (which JSON whitespace does
-   not), and trailing-content handling is looser than a strict full-input requirement, so a few
-   trailing-garbage / trailing-comment documents are **wrongly accepted**.
-5. **No recursion/stack guard.** Deeply nested input (hundreds–thousands of `[`) **crashes** the
-   recursive-descent parser instead of being rejected. (The regex family solved this class with a
-   dedicated worker stack; the json parser has no equivalent yet.)
+- **Number exponents** — `1e10`, `0e1`, `2.5E-3` now parse (`([eE][+-]?[0-9]+)?`).
+- **String escapes** — only `\" \\ \/ \b \f \n \r \t \uXXXX` are valid escapes; **raw control characters
+  (`\x00-\x1f`) and malformed/lone escapes are now rejected**.
+- **Leading zeros** — `01` / `-01` are rejected (`0 | [1-9][0-9]*`).
+- **Whitespace** — exactly `[ \t\n\r]` (form-feed / vertical-tab no longer slip through).
 
-The planned, evidence-gated **`EXTERNAL-CORPUS.2a`** upgrade closes #1–#4 (and **`.2b`** addresses #5),
-using the `json_corpus_bundle/` characterization as the acceptance metric.
+## Known residuals (each its own follow-up leaf)
+
+1. **Trailing content after a complete value is not yet rejected** (`EXTERNAL-CORPUS.2c`). `{"a":"b"}//`,
+   `{"a":"b"}#`, `{"a":/*comment*/"b"}` etc. are still accepted — the value parses and the trailing bytes
+   are left unconsumed without the parse failing. The fix is strict end-of-input enforcement at `json`.
+2. **No recursion/stack guard** (`EXTERNAL-CORPUS.2b`). Adversarially deep nesting (hundreds–thousands of
+   `[`) **crashes** the recursive-descent parser instead of being rejected. (The regex family solved this
+   class with a dedicated worker stack; the json parser needs an equivalent.)
+
+These two are the only remaining gaps versus a fully hardened standards parser; the
+[External-Corpus Characterization](external-corpus-characterization.md) measures them precisely.

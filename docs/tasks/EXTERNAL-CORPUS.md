@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `EXTERNAL-CORPUS`
-- Status: `active` (director-commissioned 2026-06-08; `.1` SCOPING + `.2` JSON corpus acquisition + characterization DONE [`json.ebnf` does NOT match RFC 8259 — measured y_ 81/95, n_ 158/188, 3 crashes — `json_corpus_bundle/`]; frontier `.2a` json.ebnf→RFC-8259 upgrade + `.2b` recursion/stack guard + `.3+` other grammars)
+- Status: `active` (director-commissioned 2026-06-08; `.1` SCOPING + `.2` JSON corpus + **`.2a` json.ebnf→RFC-8259 upgrade DONE** [y_ 81→95/95, n_ 158→181/188; `json_corpus_bundle/`]; frontier `.2c` strict end-of-input [5 trailing-content] + `.2b` recursion/stack guard [3 crashes] + `.3+` other grammars)
 - Family / slice-id prefix: `PGEN-EXTERNAL-CORPUS-<NNNN>`
 - Roadmap lane: cross-cutting parser sign-off — confidence requires TWO independent oracles
   (internal generator + external corpus) for every parser family
@@ -99,7 +99,8 @@ separate, tools-backed decision, never a silent reclassification.
 | --- | --- | --- | --- |
 | — | `EXTERNAL-CORPUS.1` | `done` (`PGEN-EXTERNAL-CORPUS-0001`) | SCOPING — captured the directive durably (decision record [[project_external_corpus_doctrine]] + this tree + TASK_TREE/INDEX registration) so the corpus work is task-tree-owned before any test-data lands. |
 | — | `EXTERNAL-CORPUS.2` | `done` (`PGEN-EXTERNAL-CORPUS-0002`) | JSONTestSuite vendored + the simplified `json.ebnf` characterized (y_ 81/95, n_ 158/188, 3 crashes); the data answer to Q1 (json.ebnf does NOT match the standard). `json_corpus_bundle/`. |
-| 1 | `EXTERNAL-CORPUS.2a` (json.ebnf → RFC 8259) | `pending` | Evidence-gated grammar upgrade: number exponent, `0|[1-9][0-9]*`, escaped-string production, exact whitespace, strict no-trailing. Re-run the characterization as the acceptance metric. Own slice (changes the parser's accepted language → corpus + shape-contract verification). |
+| — | `EXTERNAL-CORPUS.2a` (json.ebnf → RFC 8259) | `done` (`PGEN-EXTERNAL-CORPUS-0003`) | Upgraded the json terminals to RFC 8259 (number exponent + `0|[1-9][0-9]*`; escaped-`string` with control-char rejection; exact `[ \t\n\r]` whitespace). **MEASURED: y_ 81→95/95 (perfect), n_ 158→181/188.** cert-coverage still `fully_certified`; closed-loop generator 40/40 valid + 100% coverage; AST shape preserved; determinism ✓; parser_registry 7/0; strict clippy clean. NO Rust-source change (grammar + local regen). Residual: cert-coverage RAW-witness `sample_parse_failures` 0→31 = the known G.4.7/F2 raw-generation-fidelity limit (not a parser/closed-loop-gen defect). |
+| 1 | `EXTERNAL-CORPUS.2c` (json strict end-of-input) | `pending` | The 5 remaining `n_` wrongly-accepted are all *trailing content after a complete value* (`{"a":"b"}//`, `…#`, `…/**/`, inline `/*comment*/`). Enforce strict end-of-input at the `json` rule (reject unconsumed trailing). |
 | 1 | `EXTERNAL-CORPUS.2b` (json recursion/stack guard) | `pending` | The 3 deep-nesting aborts — a json-parser robustness fix (cf. RGX-0085 dedicated worker stack / a depth bound). |
 | 2 | `EXTERNAL-CORPUS.3+` | `pending` | Generalize the external-corpus surface to VHDL / SV / rtl_* / annotation grammars. |
 

@@ -100,23 +100,24 @@ Primary sources:
 ## JSON (built-in, deliberately simplified)
 
 `grammars/json.ebnf` is a small **built-in** grammar used for examples and cross-family stimuli work. It
-is a **deliberately simplified subset** of JSON, *not* a conforming RFC 8259 / ECMA-404 parser — and PGEN
-says so out loud, with evidence. Per the **external-corpus doctrine** (every parser is proven by BOTH the
-internal stimuli generator AND an officially-recognized external corpus), the json parser is characterized
-against **JSONTestSuite** (Nicolas Seriot's *"Parsing JSON is a Minefield"*, MIT) vendored under
+began as a simplified subset and was upgraded (`EXTERNAL-CORPUS.2a`) to track RFC 8259 / ECMA-404 for its
+lexical/syntactic core. Per the **external-corpus doctrine** (every parser is proven by BOTH the internal
+stimuli generator AND an officially-recognized external corpus), the json parser is characterized against
+**JSONTestSuite** (Nicolas Seriot's *"Parsing JSON is a Minefield"*, MIT) vendored under
 `json_corpus_bundle/`:
 
 - the EBNF-internal duality is clean — json is the first grammar to report `fully_certified=true` from the
-  certificate-coverage gate (see [Grammar Well-Formedness](./grammar-wellformedness.md)); but
-- the **external** corpus shows the simplified grammar diverges from the standard: of the recognized
-  test files it accepts **81/95** must-accept (`y_`) and rejects **158/188** must-reject (`n_`), and **3
-  deep-nesting files crash** the recursive-descent parser. The divergences root-cause to the grammar
-  lacking number **exponents** and string **escapes**, allowing **leading zeros**, and tolerating loose
-  **trailing/whitespace** — grammar-scope limits, not engine bugs — plus a missing recursion/stack guard.
+  certificate-coverage gate (see [Grammar Well-Formedness](./grammar-wellformedness.md)); and
+- the **external** corpus now shows strong conformance: it accepts **95/95** must-accept (`y_`) files and
+  rejects **181/188** must-reject (`n_`) files. The upgrade closed all the original lexical gaps (number
+  exponents, string escapes + control-char rejection, leading-zero rejection, exact whitespace). Two
+  residuals remain, each its own follow-up: **5 trailing-content/comment** files still accepted (strict
+  end-of-input, `EXTERNAL-CORPUS.2c`) and **3 deep-nesting files crash** (recursion/stack guard,
+  `EXTERNAL-CORPUS.2b`).
 
 This is the whole point of pairing the two oracles: the generator can only manufacture what the grammar
-already describes, so only an independently-authored external corpus exposes the gap between the grammar
-and the real language. The full root-caused report and the RFC-8259 upgrade plan live in
+already describes, so only an independently-authored external corpus could have exposed (and now verifies
+the closure of) the gap between the grammar and the real language. Full report:
 `json_corpus_bundle/results/characterization.md`.
 
 Primary sources:

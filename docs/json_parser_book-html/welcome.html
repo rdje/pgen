@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ebdebdc8.js";
+            window.path_to_searchindex_js = "searchindex-8bb30189.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e048ab27.js"></script>
@@ -186,23 +186,25 @@
 output, and it sits alongside the platform mastery book (<code>docs/book/</code>) and the other per-parser books
 (regex, SystemVerilog, VHDL, rtl_frontend, rtl_const_expr), all linked from the platform book’s
 <a href="../../book/src/parser-families.html">Parser Families</a> chapter.</p>
-<h2 id="-read-this-first-json-is-a-deliberately-simplified-grammar"><a class="header" href="#-read-this-first-json-is-a-deliberately-simplified-grammar">⚠️ Read this first: <code>json</code> is a deliberately <em>simplified</em> grammar</a></h2>
-<p>Unlike the shipped parser families (regex, SV, VHDL), the <code>json</code> grammar is a <strong>small built-in</strong> used for
-examples, onboarding, and cross-family stimuli work. <strong>It is a deliberately simplified subset of JSON — it
-is <em>not</em> a conforming RFC 8259 / ECMA-404 parser.</strong> PGEN states this openly and backs it with evidence:</p>
+<h2 id="read-this-first-json-is-a-built-in-grammar-now-rfc-8259-aligned"><a class="header" href="#read-this-first-json-is-a-built-in-grammar-now-rfc-8259-aligned">Read this first: <code>json</code> is a built-in grammar, now RFC-8259-aligned</a></h2>
+<p>The <code>json</code> grammar is a <strong>small built-in</strong> used for examples, onboarding, and cross-family stimuli work.
+It began as a deliberately <em>simplified subset</em> of JSON and was upgraded (<code>EXTERNAL-CORPUS.2a</code>) to track
+RFC 8259 / ECMA-404 for its lexical/syntactic core, using a recognized external corpus as the acceptance
+metric. PGEN backs the claim with evidence from <strong>two</strong> independent oracles:</p>
 <ul>
-<li><strong>EBNF-internal quality is clean.</strong> <code>json</code> is the first PGEN grammar to report <code>fully_certified=true</code>
+<li><strong>EBNF-internal quality is clean.</strong> <code>json</code> was the first PGEN grammar to report <code>fully_certified=true</code>
 from the certificate-coverage gate (every rule is witnessed-reachable, zero <code>UNKNOWN</code>). See the platform
 book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter.</li>
 <li><strong>Real-world conformance is characterized, not claimed.</strong> Measured against the recognized
 <a href="https://github.com/nst/JSONTestSuite">JSONTestSuite</a> corpus (vendored under <code>json_corpus_bundle/</code>), the
-simplified grammar accepts <strong>81/95</strong> must-accept files and rejects <strong>158/188</strong> must-reject files, and
-<strong>3 deep-nesting files crash</strong> the parser. The gaps (no number exponents, no string escapes, leading
-zeros allowed, loose trailing/whitespace, no recursion guard) are documented honestly in
-<a href="external-corpus-characterization.html">External-Corpus Characterization</a>.</li>
+upgraded grammar accepts <strong>95/95</strong> must-accept files and rejects <strong>181/188</strong> must-reject files. Two
+residuals remain, each its own follow-up: <strong>5 trailing-content/comment</strong> files are still accepted (strict
+end-of-input, <code>EXTERNAL-CORPUS.2c</code>) and <strong>3 deep-nesting files crash</strong> (recursion/stack guard,
+<code>EXTERNAL-CORPUS.2b</code>). Details: <a href="external-corpus-characterization.html">External-Corpus Characterization</a>.</li>
 </ul>
-<p>So: trust this parser for the <strong>common JSON core</strong> in examples and tooling; do <strong>not</strong> treat it as a
-standards-grade JSON reader until the planned <code>EXTERNAL-CORPUS.2a</code> upgrade toward RFC 8259 lands.</p>
+<p>So: the json parser handles the <strong>JSON lexical/syntactic standard</strong> (numbers with exponents, escaped
+strings with control-char rejection, leading-zero rejection, exact whitespace). It is not yet hardened
+against trailing-garbage or adversarially-deep nesting — see the two residual leaves above.</p>
 <h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
 <ul>
 <li><a href="build-recipe.html">Build Recipe</a> — how to generate and exercise the json parser.</li>
