@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1 — label the svpp witness-parseability residual (PGEN-GRAMMAR-WELLFORMED-0042)
+
+### Goal
+H.5 surfaced svpp's HIGH witness-parseability residual (24/40 `sample_parse_failures` @ seed 0) but routed
+the root-cause to a follow-up. The cert-coverage report's `SAMPLE-PARSE FAILURES` block already calls
+`parser_registry::parse_error(...)` to LABEL each failing witness — but for svpp it returned
+`"(no detail-capable parser registered)"` because the svpp registry entry had `parse_detail: None`. This
+slice wires svpp's `parse_detail` (the tools-first enabler) so the exact error is visible, then reads the
+labels and adjudicates the cause — WHY+WHERE before any fix.
+
+### Change (registry-only)
+`parse_error` (`parser_registry.rs:535`) reads `find_entry(grammar_name)?.parse_detail?` and calls it, so
+wiring the field is sufficient. Added a thin `parse_with_systemverilog_preprocessor_detail_profile(sample,
+_grammar_profile)` adapter matching `ParseDetailFn = fn(&str, Option<&str>) -> Result<(), String>` (svpp has
+no grammar profile, so the arg is ignored) that delegates to the already-existing
+`parse_with_systemverilog_preprocessor_detail`; set the svpp registry entry `parse_detail: None → Some(...)`.
+
+### Tools-backed root cause (the labels + the UNKNOWN set agree)
+With labeling on, the svpp cert-coverage report (`--count 40 --seed 0`) prints the real error:
+`Parser did not consume full input at position 0`, on a sample that LEADS with `` `define/***/ `` — a
+`` `define `` whose only following content is a comment, i.e. NO macro name — so the parser rejects on the
+very first `pp_item`. `--generate-stimuli --count 40 --seed 0` confirms the generator over-produces
+structurally-invalid `pp_item`s: bare identifiers (`_mO`, `qNR`), stray punctuation as a bare item
+(`,`, `=`, `)`, `s=`), comment-only lines, and directives with no payload. Corroborating: `pp_define`,
+`macro_formals`, `macro_body`, `macro_reference`, … are ALL in the `UNKNOWN` set — never witnessed valid — so
+the generator NEVER emits a well-formed `` `define NAME body ``; it always degrades to the name-less form.
+ADJUDICATION (attribution rule + EBNF-single-source-of-truth): GENERATOR-side deficiency (under-filled
+directive payload), not a parser bug. The fix belongs in the generator (or the grammar if `pp_define`'s name
+is grammar-optional) — routed to `H.5.1.1`.
+
+### Result
+Labeling-only: NO grammar/generator behaviour change; residual unchanged (`total=73 witness=19 UNKNOWN=54
+sample_parse_failures=24` @ seed 0). Verified: lib builds; `parser_registry` 20/0; strict source clippy ok;
+svpp cert-coverage now prints labeled errors; no tracked-artifact change (`generated/` untracked).
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.2 — wire cert-coverage for vhdl, the LAST shipped grammar (PGEN-GRAMMAR-WELLFORMED-0041)
 
 ### Goal

@@ -402,6 +402,35 @@ subtle dead branch"), never a silent accept.
   cfg off in a fresh clone) unaffected. Frontier: **vhdl (H.2)** is the last unwired shipped grammar — its
   fresh-json regen chain is de-risked by H.4 + this slice's checkout-illusion zero-drift proof — then the
   residual drives (svpp `H.5.1`, each grammar's `UNKNOWN`→0). NOT wired: ebnf, return/semantic_annotation.
+- `H.5.1` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0042`, 2026-06-08): LABEL the svpp witness-parseability
+  residual — wire svpp `parse_detail` so the cert-coverage report shows the EXACT per-sample parse error
+  (the tools-first enabler for the root-cause), then READ the labels + adjudicate (generator over-production
+  vs loose grammar).** H.5 surfaced svpp's HIGH residual (24/40 `sample_parse_failures` @ seed 0) but the
+  cert-coverage report could only print `"(no detail-capable parser registered)"` for each failure because
+  svpp's registry entry had `parse_detail: None` (unlike SV, whose `parse_detail` labels its failures since
+  G.4.7). This slice WIRES it: a thin `parse_with_systemverilog_preprocessor_detail_profile(sample, _profile)`
+  adapter (matching `ParseDetailFn = fn(&str, Option<&str>) -> Result<(), String>`; svpp has no profile so the
+  arg is ignored) delegates to the already-existing `parse_with_systemverilog_preprocessor_detail`, and the
+  svpp registry entry's `parse_detail` is set `None → Some(...)`. `parse_error` (`parser_registry.rs:535`)
+  reads the registry field directly, so the cert-coverage report's `SAMPLE-PARSE FAILURES` block now shows
+  the real svpp parse error + sample for each failing witness. TOOLS-BACKED EVIDENCE (`--generate-stimuli
+  --count 40 --seed 0` + the now-labeled cert-coverage run): the labeled error is **`Parser did not consume
+  full input at position 0`** on a sample that LEADS with `` `define/***/ `` — a `` `define `` whose only
+  following content is a comment, i.e. NO macro name — so the parser rejects on the very first `pp_item`.
+  The generator over-produces STRUCTURALLY-INVALID `pp_item`s — bare identifiers (`_mO`, `qNR`), stray
+  punctuation as a bare item (`,`, `=`, `)`, `s=`), comment-only lines, and directives with no valid payload
+  (`` `define `` / `` `include `` / `` `celldefine `` followed only by a comment). Corroborating: `pp_define`,
+  `macro_formals`, `macro_body`, `macro_reference`, … are ALL in the `UNKNOWN` set (never witnessed valid),
+  so the generator NEVER emits a well-formed `` `define NAME body `` — it always degrades to the
+  name-less/comment-only form. ADJUDICATION (per the attribution rule + EBNF-single-source-of-truth): this is
+  a GENERATOR-side deficiency (it under-fills the required macro name/payload of the directive productions),
+  not a parser bug — the fix belongs in the generator (or, if `pp_define`'s name is grammar-optional, in the
+  grammar). The actual fix is the follow-up `H.5.1.1`. NO grammar/
+  generator behaviour change in this slice (labeling only; the residual count is unchanged). VERIFIED: lib
+  `--features generated_parsers` builds; `parser_registry` lib tests pass; svpp cert-coverage now prints the
+  labeled errors; strict SOURCE clippy ok. NO tracked-artifact change (`generated/` untracked). Frontier:
+  `H.5.1.1` (adjudicate + fix the svpp residual from the now-visible labels) + drive each wired grammar's
+  `UNKNOWN`→0.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode

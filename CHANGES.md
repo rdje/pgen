@@ -1,4 +1,27 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0042 (GRAMMAR-WELLFORMED.H.5.1): LABEL the svpp witness-parseability residual — wire svpp `parse_detail` (CODE: parser_registry).
+
+svpp's HIGH witness-parseability residual (24/40 `sample_parse_failures`, surfaced by H.5) was opaque: the
+cert-coverage report could only print `"(no detail-capable parser registered)"` per failure because svpp's
+registry entry had `parse_detail: None`. This slice wires the labeling (the tools-first enabler for the
+root-cause), reads the now-visible errors, and adjudicates the cause.
+
+- `rust/src/parser_registry.rs`: new `parse_with_systemverilog_preprocessor_detail_profile(sample,
+  _grammar_profile)` adapter (matches `ParseDetailFn = fn(&str, Option<&str>) -> Result<(), String>`; svpp
+  has no profile so the arg is ignored) delegating to the existing `parse_with_systemverilog_preprocessor_detail`
+  + the svpp registry entry's `parse_detail: None → Some(...)`. `parse_error` reads the registry field
+  directly, so the cert-coverage `SAMPLE-PARSE FAILURES` block now shows the REAL error per failing witness.
+- ADJUDICATION (tools-backed): the labeled error is `Parser did not consume full input at position 0` on a
+  sample leading with `` `define/***/ `` (a `` `define `` with no macro name); `pp_define`/`macro_formals`/
+  `macro_body`/`macro_reference`/… are ALL `UNKNOWN` (never witnessed valid) ⇒ the GENERATOR never emits a
+  well-formed `` `define NAME body `` and always degrades to the name-less/comment-only form. This is a
+  GENERATOR-side deficiency (under-filled directive payload), not a parser bug.
+- Labeling-only: NO grammar/generator behaviour change; the residual count is unchanged (`total=73 witness=19
+  UNKNOWN=54 sample_parse_failures=24` @ seed 0). The actual fix is the follow-up `H.5.1.1`.
+- VERIFIED: lib `--features generated_parsers` builds; `parser_registry` lib tests 20/0; strict SOURCE clippy
+  ok (generated stage non-strict, pre-existing debt); svpp cert-coverage now prints the labeled errors. NO
+  tracked-artifact change (`generated/` untracked).
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0041 (GRAMMAR-WELLFORMED.H.2): wire `parse_and_cover` cert-coverage for `vhdl` — the LAST shipped grammar (CODE: Makefile + parser_registry).
 
 Phase H continues toward the locked program (all parsers cert-coverage WIRED): `vhdl` is the LAST unwired

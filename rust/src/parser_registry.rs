@@ -747,6 +747,18 @@ fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), Stri
         .map_err(|err| err.to_string())
 }
 
+/// GRAMMAR-WELLFORMED.H.5.1 — `ParseDetailFn`-shaped adapter (`fn(&str, Option<&str>) -> Result<(),
+/// String>`) so the certificate-coverage report can LABEL svpp's witness-parse failures with the real
+/// parse error instead of `"(no detail-capable parser registered)"`. svpp has no grammar profile, so the
+/// profile arg is ignored; the body delegates to `parse_with_systemverilog_preprocessor_detail`.
+#[cfg(has_generated_systemverilog_preprocessor_parser)]
+fn parse_with_systemverilog_preprocessor_detail_profile(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+) -> Result<(), String> {
+    parse_with_systemverilog_preprocessor_detail(sample)
+}
+
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
 fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonValue, String> {
     let mut parser = SystemverilogPreprocessorParser::new(
@@ -900,7 +912,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "systemverilog_preprocessor",
         parse_sample: parse_with_systemverilog_preprocessor,
         parse_and_cover: Some(parse_and_cover_systemverilog_preprocessor),
-        parse_detail: None,
+        parse_detail: Some(parse_with_systemverilog_preprocessor_detail_profile),
     },
     #[cfg(has_generated_vhdl_parser)]
     GeneratedParserRegistryEntry {
