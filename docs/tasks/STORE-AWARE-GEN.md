@@ -173,6 +173,17 @@ introduced (the generator becomes a second consumer of the existing one).
       cert-coverage for SV and SEE whether SV generation actually has `@predicate`-violating residuals —
       that evidence decides whether `.4a`/`.4b` are needed and bounds their scope (don't change the tuned
       SV generator speculatively).
+  - **⚠️ FRAMING CORRECTION (director 2026-06-08, `PGEN-STORE-AWARE-GEN-0004` follow-up).** The above
+    `.4` scoping's "SystemVerilog-only / high-risk" framing was WRONG per the standing doctrine
+    [[feedback_features_parser_agnostic_enable_all_parsers]]: the semantic-annotation predicates
+    (`has_fact`/`lacks_fact`/`fact_attribute_equals`/`fact_count_at_least`) are **parser-AGNOSTIC engine
+    features**; SV being their only current USER does NOT make them SV-specific, and the generation-side
+    honouring must likewise be **general and enabled for ALL parsers** (capability-gated on the predicate's
+    presence — exactly as `.3` already does — never grammar-name-gated). So `.4a`/`.4b` are the CORRECT
+    parser-agnostic direction (the right thing to do), NOT an "SV-specific risk"; the only real caveat is
+    normal regression verification (does ANY grammar regress?), with the SV gates used because SV is the
+    current user — not because SV is special. **Proven-for-SV ⇒ safe-for-all.** Phase H still runs first,
+    as the evidence gate (what residuals exist per grammar), not as a risk-avoidance excuse.
 - `.5` — **VERIFY + per-grammar cert-coverage closure.** Re-run cert-coverage per grammar (ties into
   `GRAMMAR-WELLFORMED` Phase H): generated samples honour every `@predicate` → no semantic
   round-trip failures. Round-trip / golden tests; book + decision lockstep.
