@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1.3.2 — svpp `condition_text -> $text` (declarative atomicity) closes the last svpp cert-coverage residual; schema 3→4 (PGEN-GRAMMAR-WELLFORMED-0049)
+
+### Problem
+The lone svpp `--report-certificate-coverage` `sample_parse_failures` (1/40 @ seed 0) — the residual the prior `H.5.1.3`/`.3.1` attempts root-caused but could not fix soundly (the class-only heuristic was unsound; the successor-aware `\n` deferral over-fired on comment-led successors and was reverted). Routed to "Phase C" / re-attacked here.
+
+### Root cause (re-confirmed tools-first — full-sample trace + byte-exact isolation)
+A `parseability_probe --trace-rules` run on the full failing witness pinned furthest_position **718** = a `` `" `` (`macro_stringize`) stranded at a `pp_item` boundary (rule_stack `systemverilog_preprocessor_file → pp_item → pp_conditional → pp_elsif_branch → pp_item`; the parser tries `` `" `` as `pp_endcelldefine`/`pp_if_branch`/`non_directive_text`/`pp_blank_line`/`pp_elsif`/`pp_else`/`pp_endif` and none match — `` `" `` is not a valid standalone `pp_item`). Byte-exact context (bytes 640–725): `` `elsif (/*…*/ %4⏎/*+*K****/ `" `` — the generator emits the `` `elsif `` condition as `[lparen, condition_text "%4", macro_stringize]` but injects a bare `\n` after `condition_text "%4"`, ending the `` `elsif `` line and orphaning the `` `" `` that was meant to be the next `condition_atom`. The `\n` comes from `regex_tail_greedy_blocker` returning `Some("\n")` for `condition_text`'s `\n`-excluding content class `[^`(),?:!|&\r\n]+`.
+
+### Fix (declarative — the prior session's proven truth, expressed soundly)
+`H.5.1.3.1` concluded "`condition_text` needs NO `\n` guard EVER" (fusion with a successor `condition_atom` is harmless — backtick/punct atoms self-delimit, a successor text run merges into one valid atom), but a context-free class/successor heuristic cannot express "this rule needs no guard." The DECLARATIVE LEXICAL-ANNOTATIONS.6 atomicity signal can: `condition_text … -> $text` makes `rule_is_lexically_atomic` true, so `apply_word_boundary_spacing` (`stimuli_generator.rs:7242`) returns the candidate UNCONDITIONALLY while `atomic_token_depth > 0` — suppressing the trailing guard entirely, regardless of successor. Fix-hierarchy Level 1 (existing annotation, no engine change), grammar-first.
+
+### Trade-off / consequence
+`$text` also changes the PARSER's output shape: a `condition_atom` `{kind:"text", body:$1}` atom's `body` was the raw `inline_trivia`+content envelope (`[[" "], "abc"]`), now the flat matched-text string (`" abc"`) — a consumer-visible AST-dump shape change. This realizes the svpp book's anticipated "annotate the literal-text runs" milestone for `condition_text` (a flexible same-line `condition_atom+` element); the line-oriented `directive_tail`/`non_directive_text` (which DO need a terminating `\n`) deliberately stay raw-envelope. Director-approved the resulting **schema 3→4 / release 1.0.4→1.0.5** bump before the lockstep (low real-world impact — svpp has no active named downstream consumer).
+
+### Verification
+svpp cert-coverage `sample_parse_failures` **1→0** seed 0 (witness 69, UNKNOWN 4) AND seed 7 (witness 70, UNKNOWN 3), deterministic (seed-0 re-run identical). svpp shape-contract test GREEN (manifest `condition_text` `return_scalar` entry inserted at the live-inventory index — count 66→67). `cargo test --features generated_parsers --lib` **686/0**. svpp book gate GREEN (19 HTML pages regenerated). cross-family stimuli gate (generator code byte-unchanged). `generated/` regen is local (untracked). Annotation count 66→67 (first `return_scalar`), distinct annotated rules 28→29; same accept set.
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1.2 — svpp `\b`-keyword↔word-char fusion via the `[>! /\w/]` lexical-annotation + a `collect_rule_body` frontend fix (PGEN-GRAMMAR-WELLFORMED-0046)
 
 ### Problem

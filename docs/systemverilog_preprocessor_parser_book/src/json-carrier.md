@@ -34,7 +34,7 @@ When a rule in `grammars/systemverilog_preprocessor.ebnf` carries a return annot
 
    `name` is `$2` of the `pp_define` sequence, bound to the **un-annotated** `macro_name` → `identifier` rule, so it carries that rule's recursive envelope `[ <trivia-prefix>, "<text>" ]` rather than a bare string. The text is at index `[1]`.
 
-There is **no** fourth form: the sv_preprocessor surface uses no `return_scalar` passthrough annotations and no `binop_chain`-style expression carrier (the grammar is directive/line-oriented, not expression-precedence-oriented). All 66 annotations are `annotation_type: "return_object"`.
+There is **no** `binop_chain`-style expression carrier (the grammar is directive/line-oriented, not expression-precedence-oriented). As of release `1.0.5` / schema `4` the 67-annotation surface is **65 `return_object` + 1 `return_array`** (`macro_formals`, since `1.0.3`) **+ 1 `return_scalar`** (`condition_text -> $text`, since `1.0.5`).
 
 ### Recursive-envelope shape (rules without annotations)
 
@@ -47,9 +47,9 @@ When a rule has no return annotation, the parser emits a JSON value derived mech
 - A **quantified rule** (`x*`, `x+`) produces a JSON array of the per-iteration shapes.
 - An **optional rule** (`x?`) produces the matched shape if matched, or `[]` if un-matched.
 
-In sv_preprocessor the recursive-envelope shape is what you reach when you descend below the typed surface: `identifier` / `macro_name` tokens, the `macro_body_text` / `condition_text` / `macro_default_text` runs, `unsigned_number`, `time_unit`, `macro_reference`, and the keyword/punctuation token rules. The `body` field of any `{kind, body}` dispatch object is whatever shape the matched sub-rule produces — typed if that sub-rule is itself annotated, envelope otherwise.
+In sv_preprocessor the recursive-envelope shape is what you reach when you descend below the typed surface: `identifier` / `macro_name` tokens, the `macro_body_text` / `macro_default_text` runs, `unsigned_number`, `time_unit`, `macro_reference`, and the keyword/punctuation token rules. (As of release `1.0.5` / schema `4`, `condition_text` is **no longer** raw envelope — it gained a `-> $text` annotation, so a `condition_atom` "text" atom's `body` is a flat matched-text string; see [No expression cascade](#no-expression-cascade) below.) The `body` field of any `{kind, body}` dispatch object is whatever shape the matched sub-rule produces — typed if that sub-rule is itself annotated, envelope otherwise.
 
-> **Rule of thumb — un-annotated leaves are envelopes, not bare strings.** A field bound to an un-annotated rule (most importantly every identifier-valued field: `name`, `macro`, and every `"text"` atom's `body`) surfaces as that rule's **recursive envelope**, not a bare JSON string. The text is nested inside the envelope, reached by walking to the terminal. Do not assume `obj["name"]` is a string — the worked example below shows the real captured shape, where `name` is `[ [ " " ], "FOO" ]` (the trivia prefix at `[0]`, the identifier text `"FOO"` at `[1]`), not the string `"FOO"`.
+> **Rule of thumb — un-annotated leaves are envelopes, not bare strings.** A field bound to an un-annotated rule (most importantly every identifier-valued field: `name`, `macro`, and the `macro_body_fragment` `"text"` atom's `body`, which is a `macro_body_text` envelope) surfaces as that rule's **recursive envelope**, not a bare JSON string. (The exception as of schema `4`: a `condition_atom` `"text"` atom's `body` is now a flat **string** because `condition_text` is `$text`-annotated — see [No expression cascade](#no-expression-cascade).) The text is nested inside the envelope, reached by walking to the terminal. Do not assume `obj["name"]` is a string — the worked example below shows the real captured shape, where `name` is `[ [ " " ], "FOO" ]` (the trivia prefix at `[0]`, the identifier text `"FOO"` at `[1]`), not the string `"FOO"`.
 
 ## Object / array / string / scalar mapping
 
@@ -121,6 +121,8 @@ The per-rule field names come straight from the live inventory's `normalized_tex
 
 A consumer coming from the VHDL or rtl_frontend books should note: there is **no `binop_chain` carrier** here. The `` `elsif`` condition (`condition_expr`) is a flat `{atoms: [...]}` list of `condition_atom` objects — the `||` / `&&` / `!` / `?` / `:` tokens are individual untyped `{kind: "logical_or"}` / `{kind: "logical_and"}` / `{kind: "bang"}` / `{kind: "question"}` / `{kind: "colon"}` atoms in source order, not a parsed precedence tree. Any boolean evaluation of a conditional is the consumer's responsibility. The same flat-list shape backs `macro_default_value.atoms` and `macro_body.fragments`.
 
+As of release `1.0.5` / schema `4`, a `condition_atom` **text** atom carries its run as a flat string: `{kind: "text", body: " abc"}` (the whole matched `condition_text` span, including any leading trivia), because `condition_text` is now `$text`-annotated. At schema `3` and earlier `body` was the raw `inline_trivia`+content envelope (e.g. `[[" "], "abc"]`) — a consumer that walked that envelope must now read `body` as a string. This applies only to the `condition_atom` text atom; the `macro_body_fragment` / `macro_default_atom` text atoms still carry the raw `macro_body_text` / `macro_default_text` envelope (those line-context rules are deliberately left un-annotated — see [Schema Versioning](schema-versioning.md#future-major-version)).
+
 ## Determinism
 
 The AST dump is **byte-deterministic** for a given input + parser-release version:
@@ -134,7 +136,7 @@ Re-running the parse on the same input produces an identical JSON value. This is
 
 ## Un-annotated-on-purpose rules
 
-Some rules remain un-annotated by design — terminal/regex leaves (`identifier`, `macro_name`, `bt_identifier`/`macro_reference`, `unsigned_number`, `quoted_string`, `angle_path`, `time_unit`, the keyword and punctuation tokens) and the literal-text runs (`macro_body_text`, `macro_default_text`, `condition_text`, `non_directive_text`, `directive_tail`, `directive_comment_tail`). Their text is reachable through the recursive-envelope walk from the nearest typed parent (e.g. `include_path.kind == "quoted"` → `text` is the matched quoted-string envelope; `macro_body_fragment.kind == "text"` → `body` is the matched `macro_body_text` envelope).
+Some rules remain un-annotated by design — terminal/regex leaves (`identifier`, `macro_name`, `bt_identifier`/`macro_reference`, `unsigned_number`, `quoted_string`, `angle_path`, `time_unit`, the keyword and punctuation tokens) and the line-oriented literal-text runs (`macro_body_text`, `macro_default_text`, `non_directive_text`, `directive_tail`, `directive_comment_tail`). Their text is reachable through the recursive-envelope walk from the nearest typed parent (e.g. `include_path.kind == "quoted"` → `text` is the matched quoted-string envelope; `macro_body_fragment.kind == "text"` → `body` is the matched `macro_body_text` envelope). (`condition_text` was in this list at schema `3`; as of schema `4` it is `$text`-annotated and so its `condition_atom` text-atom `body` is a flat string, not an envelope — see [No expression cascade](#no-expression-cascade).)
 
 ## How to read the annotation text
 

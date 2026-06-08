@@ -144,7 +144,8 @@ previously-inline `(kw_ifdef | kw_ifndef)` alternation lifted into a
 named 2-branch `kind`-tagged rule (the proven `rtl_const_expr`
 RTL-CE-Slice-2 / `systemverilog.ebnf` idiom) so `pp_if_branch`'s bare
 `keyword: $1` captures cleanly. Its 2 branches are the +2 entries that
-took the surface to 66 annotations / 28 distinct rules.
+took the surface to 66 annotations / 28 distinct rules at release `1.0.2`
+(now 67 / 29 at release `1.0.5` / schema `4`, after `condition_text -> $text`).
 
 | Rule | Shape | Notes |
 |---|---|---|

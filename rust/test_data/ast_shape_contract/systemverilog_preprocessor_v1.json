@@ -157,6 +157,12 @@
         "rule": "condition_expr"
       },
       {
+        "annotation_type": "return_scalar",
+        "branch_index": 0,
+        "normalized_text": "$text",
+        "rule": "condition_text"
+      },
+      {
         "annotation_type": "return_object",
         "branch_index": 0,
         "normalized_text": "{kind: \"quoted\", text: $1}",

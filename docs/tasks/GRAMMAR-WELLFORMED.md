@@ -640,6 +640,50 @@ subtle dead branch"), never a silent accept.
     fact store" — elevates the broader fix to **STORE-AWARE-GEN** (full semantic-store-aware, context-aware
     generation); see [[project_store_aware_generation]] AMENDMENT. (This specific residual is lexical-context, not
     a store fact, so it stays a Phase C item; the store work is the larger context-awareness program.)
+- `H.5.1.3.2` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0049`, 2026-06-08): declarative `$text`-atomicity fix for the
+  svpp `condition_text` `\n`-strand residual (a NEW approach the prior heuristic attempts did not try) — svpp
+  cert-coverage now CLEAN.** ROOT CAUSE re-confirmed tools-first
+  (full-sample trace, `-0048` baseline reproduced): svpp `sample_parse_failures=1` (seed 0), furthest_position
+  718 = a `` `" `` macro_stringize stranded at a `pp_item` boundary (rule_stack `…pp_conditional →
+  pp_elsif_branch → pp_item`); byte-exact context `` `elsif (/*…*/ %4⏎/*…*/ `" `` shows a bare `\n` injected
+  after `condition_text "%4"` ends the `` `elsif `` line, orphaning the following `` `" `` condition_atom. The
+  prior `H.5.1.3.1` PROVED "`condition_text` needs NO `\n` guard EVER" but could only try CLASS/SUCCESSOR
+  heuristics (which cannot express "this rule needs no guard"). **NEW APPROACH:** the DECLARATIVE
+  LEXICAL-ANNOTATIONS.6 atomicity signal — `condition_text … -> $text` — marks the rule one flat lexical
+  span, and `apply_word_boundary_spacing` (`stimuli_generator.rs:7242`) suppresses the trailing guard
+  UNCONDITIONALLY when `atomic_token_depth > 0`. This is the proven truth ("no `\n` guard ever for
+  condition_text") expressed declaratively (fix-hierarchy LEVEL 1, no engine change), per
+  [[feedback_full_startup_read_includes_mdbook]] ("is there already a declarative construct?"). TRADE-OFF
+  being measured: `.6` cross-rule cohesion also glues an atomic rule to a preceding word char, which would
+  MERGE a `macro_reference`+`condition_text` into one macro_reference — harmless (a valid merge, never a parse
+  failure) but a generation-shape shift; and `condition_atom`'s `body:$1` changes from a raw Sequence to a
+  flat string (a consumer-visible svpp AST-dump schema bump).
+  - **OUTCOME (`PGEN-GRAMMAR-WELLFORMED-0049`, LANDED — director-approved the schema bump 2026-06-08).** The
+    `$text` fix is DECISIVE + ROBUST: svpp `--report-certificate-coverage` `sample_parse_failures` **1 → 0** at
+    seed 0 (witness 69, UNKNOWN 4) AND seed 7 (witness 70, UNKNOWN 3), DETERMINISTIC (seed-0 re-run identical).
+    The proven-correct mechanism: `condition_text -> $text` marks the rule one atomic lexical span
+    (LEXICAL-ANNOTATIONS.6 `rule_is_lexically_atomic`), so `apply_word_boundary_spacing`
+    (`stimuli_generator.rs:7242`) returns the candidate UNCONDITIONALLY when `atomic_token_depth > 0` —
+    suppressing the spurious trailing `\n` the `\n`-excluding content class otherwise drove. This is the prior
+    `H.5.1.3.1` conclusion ("`condition_text` needs NO `\n` guard EVER") expressed DECLARATIVELY, which the
+    class/successor heuristics structurally could not. Grammar-first (Level 1, no engine change), per
+    [[feedback_prefer_grammar_leave_engine_alone]] + [[feedback_full_startup_read_includes_mdbook]].
+  - **CONSEQUENCE — svpp AST-dump schema bump `3 → 4`, release/contract `1.0.4 → 1.0.5`** (annotating a
+    deliberately-raw-envelope literal-text run is a consumer-visible change: a `condition_atom` "text" atom's
+    `body` becomes a flat `$text` string `" abc"`, was the raw envelope `[[" "], "abc"]`). Realizes the svpp
+    book's long-anticipated "annotate the literal-text runs" milestone for `condition_text` SPECIFICALLY —
+    it is a flexible same-line `condition_atom+` element (successors self-delimit or merge harmlessly), so it
+    needs no line terminator, whereas the line-oriented `directive_tail`/`non_directive_text` deliberately stay
+    raw. Low real-world impact (svpp has no active named downstream consumer; uses the generic profile API).
+    Director-approved the schema bump before the lockstep.
+  - **VERIFIED:** svpp cert-coverage clean (both seeds, deterministic); svpp shape-contract test GREEN (manifest
+    `condition_text` `return_scalar` entry added, inventory 66→67); `cargo test --features generated_parsers
+    --lib` **686/0**; svpp book gate GREEN (19 HTML pages regenerated); cross-family stimuli gate (generator
+    code byte-unchanged — svpp grammar-only change, svpp not in the cross-family set). LOCKSTEP: grammar
+    (`condition_text -> $text`); manifest (`systemverilog_preprocessor_v1.json`); svpp contract (schema-4 row +
+    identity 1.0.5/schema 4/67-annot); svpp book (schema-versioning / json-carrier / changelog-index /
+    rules-top-level / walking-the-ast + regenerated HTML); continuity docs. `generated/` regen is local
+    (untracked). Annotation count 66→67 (first `return_scalar`), distinct annotated rules 28→29.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
@@ -1088,7 +1132,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
-| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** ✓ **H.5.1.2 (`-0046`) drove svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword fusion — to 0 via the declarative `[>! /\w/]` lexical-annotation (the construct built for the generator) + a general `collect_rule_body` frontend fix it surfaced (consecutive `[>` directives now each bind; only the first bound before); svpp `sample_parse_failures` 8→1, `UNKNOWN` 7→4, `witness` 66→69 seed 0; json/regex cert-coverage unchanged; lib 621/621; cross-family gate PASS.** NEXT: `H.5.1.3` the svpp residual CLASS (b)/(c) (`condition_expr`/`directive_tail`/`macro_formals`/`time_literal` over-production) + drive each wired grammar's `UNKNOWN`→0. |
+| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** ✓ **H.5.1.2 (`-0046`) drove svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword fusion — to 0 via the declarative `[>! /\w/]` lexical-annotation (the construct built for the generator) + a general `collect_rule_body` frontend fix it surfaced (consecutive `[>` directives now each bind; only the first bound before); svpp `sample_parse_failures` 8→1, `UNKNOWN` 7→4, `witness` 66→69 seed 0; json/regex cert-coverage unchanged; lib 621/621; cross-family gate PASS.** ✓ **`H.5.1.3.2` (`-0049`) CLOSED the LAST svpp residual** — `condition_text -> $text` (declarative atomicity, LEXICAL-ANNOTATIONS.6) suppresses the stray trailing `\n` that stranded a `` `" `` stringize; svpp cert-coverage `sample_parse_failures` **1→0** (both seeds, deterministic) ⇒ **svpp is now cert-coverage CLEAN**. Consumer-visible: svpp schema **3→4**, release **1.0.4→1.0.5** (condition_atom "text" body raw-envelope→`$text` string; annot 66→67; director-approved). NEXT: drive each wired grammar's `UNKNOWN`→0 (reach/diversity — the tool-proven dominant lever; smallest first: rtl_const_expr 7). |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions

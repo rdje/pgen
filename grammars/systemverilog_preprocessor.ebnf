@@ -95,7 +95,7 @@ condition_atom := macro_token_paste -> {kind: "token_paste"}
                 | logical_and       -> {kind: "logical_and"}
                 | bang              -> {kind: "bang"}
 
-condition_text := inline_trivia /[^`(),?:!|&\r\n]+/
+condition_text := inline_trivia /[^`(),?:!|&\r\n]+/ -> $text
 
 # ---------------------------------------------------------------------------
 # Macro declaration support
