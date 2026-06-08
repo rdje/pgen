@@ -1,4 +1,21 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0004 (EXTERNAL-CORPUS.2F + .2d): full-JSON-standard proof goal + collect-more-corpora (DOCS).
+
+Captured two standing director directives (2026-06-08):
+
+- **`.2F` (umbrella goal):** `grammars/json.ebnf` shall, at some point, **FULLY match the official JSON
+  standard** (RFC 8259 / ECMA-404), as a **proof that PGEN can handle a complete standard "with no sweat"**
+  — JSON is the deliberate proof vehicle (small, complete, adversarially corpus'd). Acceptance = the
+  recognized JSON corpora fully green (`y_` 95/95 ✓ done in `.2a`, `n_` 188/188 via `.2c`+`.2b`, no crashes,
+  `i_` documented). Decision record `docs/decisions/project_json_full_standard_proof.md` (+ INDEX).
+- **`.2d` (collect more corpora):** broaden the external oracle beyond JSONTestSuite (json.org JSON_checker,
+  nativejson-benchmark, RFC examples) so the full-standard proof rests on multiple independent recognized
+  sources; vendor each as an immutable snapshot with provenance + license.
+
+Updated the EXTERNAL-CORPUS tree (umbrella `.2F` rolling up `.2a` done + `.2c` + `.2b` + `.2d`; frontier
+notes `.2c` as the director-directed NEXT) + TASK_TREE row. Also trimmed the bloated layer-A `next_action`
+pointer (6952 → ~1.2k chars; overwrite-don't-append hygiene). DOCS-only; no code/status change.
+
 ## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0003 (EXTERNAL-CORPUS.2a): upgrade json.ebnf to RFC 8259 (CODE/grammar).
 
 Upgraded `grammars/json.ebnf` from a simplified subset to track RFC 8259 / ECMA-404 for its

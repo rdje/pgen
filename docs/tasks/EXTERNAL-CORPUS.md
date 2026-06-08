@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `EXTERNAL-CORPUS`
-- Status: `active` (director-commissioned 2026-06-08; `.1` SCOPING + `.2` JSON corpus + **`.2a` json.ebnf→RFC-8259 upgrade DONE** [y_ 81→95/95, n_ 158→181/188; `json_corpus_bundle/`]; frontier `.2c` strict end-of-input [5 trailing-content] + `.2b` recursion/stack guard [3 crashes] + `.3+` other grammars)
+- Status: `active` (director-commissioned 2026-06-08; `.1` SCOPING + `.2` JSON corpus + **`.2a` json.ebnf→RFC-8259 upgrade DONE** [y_ 81→95/95, n_ 158→181/188]; umbrella **`.2F` FULL JSON-standard conformance** = the PGEN-handles-a-full-standard proof ([[project_json_full_standard_proof]]); frontier `.2c` strict end-of-input [5 trailing-content, **NEXT**] + `.2b` recursion/stack guard [3 crashes] + `.2d` collect more recognized JSON corpora + `.3+` other grammars)
 - Family / slice-id prefix: `PGEN-EXTERNAL-CORPUS-<NNNN>`
 - Roadmap lane: cross-cutting parser sign-off — confidence requires TWO independent oracles
   (internal generator + external corpus) for every parser family
@@ -86,6 +86,23 @@ separate, tools-backed decision, never a silent reclassification.
   - Expectation (honest, pre-measurement): `grammars/json.ebnf` is a SIMPLIFIED grammar → expect many
     `y_*` accepts to fail (escapes, `\uXXXX`, exponents, deep nesting, whitespace forms) and some `n_*`
     to be mis-accepted. The slice MEASURES this; it does not pre-judge it.
+- **`.2F` — UMBRELLA GOAL: `json.ebnf` shall FULLY match the official JSON standard** (RFC 8259 /
+  ECMA-404), as a **proof that PGEN can handle a complete standard "with no sweat"** (director 2026-06-08,
+  [[project_json_full_standard_proof]]). JSON is the deliberate proof vehicle — small, complete, and
+  adversarially corpus'd — so driving its recognized corpora fully green is objective evidence the platform
+  implements a full standard end-to-end. Acceptance = the corpora fully green: **`y_` 95/95 (DONE, `.2a`)**,
+  **`n_` 188/188** (needs `.2c` trailing-content + `.2b` deep-nesting crashes-→-rejects), **no crashes**,
+  `i_` outcomes documented; *(stretch)* cert-coverage raw-witness `sample_parse_failures` → 0. Rolls up
+  `.2a` (done) + `.2c` + `.2b` + `.2d`, then a closure re-run. Only when green: describe json as *fully*
+  standard-conformant in the live tracker / book.
+- **`.2d` — collect ADDITIONAL recognized JSON corpora** (director 2026-06-08: "we will need to look for and
+  collect [more] recognized JSON test corpus"). Broaden the external oracle beyond JSONTestSuite so the
+  full-standard proof rests on multiple independent recognized sources. Candidates: **json.org JSON_checker**
+  (Crockford `pass1-3.json` / `fail1-33.json`), **nativejson-benchmark** conformance set (Milo Yip; itself
+  aggregates JSON_checker + JSONTestSuite), the **RFC 8259 / ECMA-404** worked examples, and any other
+  recognized parser conformance suites (each vendored as an immutable snapshot with provenance + license
+  under `json_corpus_bundle/third_party/upstream/`, wired into the runner with its own label oracle). Verify
+  license compatibility before vendoring; prefer permissive (MIT/BSD/public-domain) sources.
 - `.3+` — **roll the pattern to the other families** where an external corpus/fragment set adds confidence
   beyond the generator: VHDL, SystemVerilog (+ preprocessor), rtl_* (real-world RTL fragments / LRM
   examples), and the annotation grammars (curated fragment sets). regex is already done (the precedent).
@@ -100,8 +117,10 @@ separate, tools-backed decision, never a silent reclassification.
 | — | `EXTERNAL-CORPUS.1` | `done` (`PGEN-EXTERNAL-CORPUS-0001`) | SCOPING — captured the directive durably (decision record [[project_external_corpus_doctrine]] + this tree + TASK_TREE/INDEX registration) so the corpus work is task-tree-owned before any test-data lands. |
 | — | `EXTERNAL-CORPUS.2` | `done` (`PGEN-EXTERNAL-CORPUS-0002`) | JSONTestSuite vendored + the simplified `json.ebnf` characterized (y_ 81/95, n_ 158/188, 3 crashes); the data answer to Q1 (json.ebnf does NOT match the standard). `json_corpus_bundle/`. |
 | — | `EXTERNAL-CORPUS.2a` (json.ebnf → RFC 8259) | `done` (`PGEN-EXTERNAL-CORPUS-0003`) | Upgraded the json terminals to RFC 8259 (number exponent + `0|[1-9][0-9]*`; escaped-`string` with control-char rejection; exact `[ \t\n\r]` whitespace). **MEASURED: y_ 81→95/95 (perfect), n_ 158→181/188.** cert-coverage still `fully_certified`; closed-loop generator 40/40 valid + 100% coverage; AST shape preserved; determinism ✓; parser_registry 7/0; strict clippy clean. NO Rust-source change (grammar + local regen). Residual: cert-coverage RAW-witness `sample_parse_failures` 0→31 = the known G.4.7/F2 raw-generation-fidelity limit (not a parser/closed-loop-gen defect). |
-| 1 | `EXTERNAL-CORPUS.2c` (json strict end-of-input) | `pending` | The 5 remaining `n_` wrongly-accepted are all *trailing content after a complete value* (`{"a":"b"}//`, `…#`, `…/**/`, inline `/*comment*/`). Enforce strict end-of-input at the `json` rule (reject unconsumed trailing). |
+| ★ | `EXTERNAL-CORPUS.2F` (umbrella: FULL JSON-standard conformance) | `in-progress` | **The proof that PGEN handles a complete standard "with no sweat"** ([[project_json_full_standard_proof]]). Rolls up `.2a` (done) + `.2c` + `.2b` + `.2d`; acceptance = recognized JSON corpora fully green (y_ 95/95 ✓, n_ 188/188, no crashes). |
+| 1 | `EXTERNAL-CORPUS.2c` (json strict end-of-input) | `pending` (**NEXT** — director-directed) | The 5 remaining `n_` wrongly-accepted are all *trailing content after a complete value* (`{"a":"b"}//`, `…#`, `…/**/`, inline `/*comment*/`). Enforce strict end-of-input at the `json` rule (reject unconsumed trailing). |
 | 1 | `EXTERNAL-CORPUS.2b` (json recursion/stack guard) | `pending` | The 3 deep-nesting aborts — a json-parser robustness fix (cf. RGX-0085 dedicated worker stack / a depth bound). |
+| 1 | `EXTERNAL-CORPUS.2d` (collect more recognized JSON corpora) | `pending` | Broaden the external oracle beyond JSONTestSuite (json.org JSON_checker, nativejson-benchmark, RFC examples) so the full-standard proof rests on multiple independent recognized sources. |
 | 2 | `EXTERNAL-CORPUS.3+` | `pending` | Generalize the external-corpus surface to VHDL / SV / rtl_* / annotation grammars. |
 
 ## Decisions
