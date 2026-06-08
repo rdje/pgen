@@ -1,4 +1,30 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0045 (GRAMMAR-WELLFORMED.H.5.1.1 FIX): surgical whitespace-only greedy-tail guard in the stimuli generator (CODE: stimuli_generator).
+
+Fixes the svpp witness-parseability residual root-caused in -0044: the faithful-spacing trailing guard was
+injecting a bare `\n` after `[ \t]+` inline-whitespace tokens, which corrupts line-oriented directives.
+
+- `rust/src/ast_pipeline/stimuli_generator.rs`: `regex_tail_greedy_blocker` now returns `None` when the
+  greedy unbounded tail class is WHITESPACE-ONLY (new helper `regex_class_is_whitespace_only`, checking range
+  bounds against the ASCII whitespace set 0x09–0x0d + 0x20 without per-codepoint iteration). A trailing
+  whitespace run needs no anti-fusion guard — whitespace self-separates — so the prior `Some("\n")` escalation
+  for `[ \t]+` (pointless, and harmful where `\n` is structurally significant) is removed. Content-bearing open
+  classes (`[^\n]*` line comments → `\n`), word/number tails (`\b`/`[0-9]+` → ` `), and whitespace classes that
+  already include `\n` (`[ \t\r\n]+`/`\s+`, already `None`) are all UNCHANGED. New test
+  `whitespace_only_greedy_tail_gets_no_separator` locks the behavior + boundary (`[ \ta-z]+` still escalates).
+- FIX-HIERARCHY: no grammar/annotation/store level applies — the grammar is already correct (`macro_name`
+  required; `inline_trivia` already excludes `\n`). The defect was purely the generator's grammar-derived
+  spacing heuristic, so the fix makes the generator MORE faithful to the EBNF (single source of truth).
+  Parser-agnostic + general (derived from the regex class; benefits any line-oriented grammar).
+- VERIFIED (decisive A/B + global metric): svpp cert-cov (count 40 seed 0) `sample_parse_failures` 24→8,
+  `witness` 19→66, `UNKNOWN` 54→7. Decisive stash-baseline A/B over json/regex/rtl_const_expr/vhdl/rtl_frontend
+  = byte-identical metrics (ZERO regression; only svpp changed — matches the static proof that svpp's `[ \t]+`
+  is the only `\n`-excluding greedy whitespace class across all grammars). no-features lib 621/621; clippy
+  source-strict clean; cross-family stimuli platform gate PASS (regex/vhdl/SV). No regen / no `generated/`
+  change (the fix is in the runtime generator, not codegen).
+- RESIDUAL 8 (follow-up, different pre-existing class): `\b`-keyword↔word-char macro-name spacing gap
+  (`` `ifndefR7Sh ``, `` `timescale63_ ``) + deeper structural (macro_formals, timescale time_literal).
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0044 (GRAMMAR-WELLFORMED.H.5.1.1 INVESTIGATION): PROVE the svpp witness-parseability root cause tools-first (DOCS — no code change).
 
 The H.5.1 adjudication ("the generator under-fills the required macro name/payload") was an INFERENCE.

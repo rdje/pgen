@@ -7316,6 +7316,19 @@ impl<'a> StimuliGenerator<'a> {
         if let HirKind::Repetition(rep) = tail.kind() {
             if rep.max.is_none() {
                 if let HirKind::Class(class) = rep.sub.kind() {
+                    // GRAMMAR-WELLFORMED.H.5.1.1: a greedy run of a WHITESPACE-ONLY class
+                    // (e.g. `[ \t]+` inline trivia) needs NO anti-fusion guard — whitespace
+                    // already self-separates the next token, so there is nothing to fuse. And
+                    // appending the separator such a class cannot absorb (a newline, for `[ \t]`)
+                    // is actively HARMFUL in a line-oriented grammar where `\n` is structurally
+                    // significant (it terminates directives and is excluded from the trivia rule):
+                    // the injected `\n` pushes the following token onto the next line, producing a
+                    // sample the parser the generator was derived from rejects. Whitespace classes
+                    // that already include `\n` (e.g. `[ \t\r\n]+`, `\s+`) reached the `None`
+                    // fall-through below before this guard, so their behavior is unchanged.
+                    if Self::regex_class_is_whitespace_only(class) {
+                        return None;
+                    }
                     if !Self::regex_class_contains(class, ' ') {
                         return Some(" ");
                     }
@@ -7326,6 +7339,33 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         None
+    }
+
+    /// Whether every member of a regex character class is an ASCII whitespace char
+    /// (`\t`=0x09 .. `\r`=0x0d, or space=0x20). Empty classes are not whitespace-only.
+    /// Checks range bounds directly (no per-codepoint iteration) so a huge content range
+    /// like `[^\n]` is rejected cheaply rather than walked.
+    fn regex_class_is_whitespace_only(class: &Class) -> bool {
+        // A contiguous range [s, e] is whitespace-only iff it is a sub-range of the
+        // contiguous control block 0x09..=0x0d, or it is exactly the space codepoint 0x20.
+        // (Anything spanning 0x0e..=0x1f or mixing the block with 0x20 includes a non-ws char.)
+        fn range_is_whitespace_only(s: u32, e: u32) -> bool {
+            ((0x09..=0x0d).contains(&s) && (0x09..=0x0d).contains(&e)) || (s == 0x20 && e == 0x20)
+        }
+        match class {
+            Class::Unicode(u) => {
+                !u.ranges().is_empty()
+                    && u.ranges()
+                        .iter()
+                        .all(|r| range_is_whitespace_only(r.start() as u32, r.end() as u32))
+            }
+            Class::Bytes(b) => {
+                !b.ranges().is_empty()
+                    && b.ranges()
+                        .iter()
+                        .all(|r| range_is_whitespace_only(r.start() as u32, r.end() as u32))
+            }
+        }
     }
 
     /// Whether a regex character class contains `ch`.
@@ -10616,6 +10656,30 @@ mod tests {
         assert_eq!(G::regex_terminal_trailing_separator(r#""[^"]*""#, "\"x\""), None);
         // empty candidate -> no guard
         assert_eq!(G::regex_terminal_trailing_separator(r"[0-9]+", ""), None);
+    }
+
+    /// GRAMMAR-WELLFORMED.H.5.1.1 — a greedy run of a WHITESPACE-ONLY class needs no
+    /// anti-fusion guard (whitespace self-separates; injecting the un-absorbable `"\n"`
+    /// is pointless and breaks line-oriented grammars like the SV preprocessor). This
+    /// must NOT change behavior for whitespace classes that already include `\n`, for
+    /// content-bearing open classes, or for mixed (whitespace+content) classes.
+    #[test]
+    fn whitespace_only_greedy_tail_gets_no_separator() {
+        use StimuliGenerator as G;
+        // The regression: `[ \t]+` (inline trivia, excludes \n) used to escalate to `"\n"`;
+        // now it correctly yields no guard.
+        assert_eq!(G::regex_terminal_trailing_separator(r"[ \t]+", "   "), None);
+        assert_eq!(G::regex_terminal_trailing_separator(r"[ ]+", " "), None);
+        assert_eq!(G::regex_terminal_trailing_separator(r"[\t]+", "\t"), None);
+        // Whitespace classes that already include `\n` were already `None` -> unchanged.
+        assert_eq!(G::regex_terminal_trailing_separator(r"[ \t\r\n]+", "  "), None);
+        assert_eq!(G::regex_terminal_trailing_separator(r"[ \t\r\n]*", " "), None);
+        // BOUNDARY: a class mixing whitespace with content chars is NOT whitespace-only, so
+        // the existing escalation still applies (here `[ \ta-z]+` absorbs space -> `"\n"`).
+        assert_eq!(G::regex_terminal_trailing_separator(r"[ \ta-z]+", "ab"), Some("\n"));
+        // Content-bearing open classes keep their guards (unchanged).
+        assert_eq!(G::regex_terminal_trailing_separator(r"[^\n]*", "abc"), Some("\n"));
+        assert_eq!(G::regex_terminal_trailing_separator(r"[0-9]+", "7"), Some(" "));
     }
 
     // LEXICAL-ANNOTATIONS.3c — the minimal-separator chooser for a FORBID list.

@@ -153,6 +153,16 @@ This is what makes the regex stimuli generator emit PCRE2-faithful constructs li
 parser would reject. It needs no notation — a rule that already declares `$text`/`$0`/`@transform`
 declares, by that very fact, that it is one token.
 
+### Whitespace runs need no separator
+
+A greedy run of a **whitespace-only** class (e.g. inline trivia `[ \t]+`) is never given a trailing
+anti-fusion separator: whitespace already separates whatever token follows, so there is nothing to fuse.
+This matters for **line-oriented grammars** — in the SystemVerilog preprocessor, `\n` terminates a
+`` `define NAME … `` directive and is excluded from the inline-trivia rule, so injecting a newline after a
+`[ \t]+` run would push the macro name onto the next line and break the directive (a sample the parser then
+rejects). Whitespace classes that already include `\n` (e.g. `[ \t\r\n]+`) and content-bearing open classes
+(e.g. a `[^\n]*` line-comment body, which still needs a real newline to self-terminate) are unaffected.
+
 Enforcement is part of the **lexical-faithfulness mode**, which is **on by default**. Negative-test
 generation — which deliberately produces malformed lexical surface — opts out, and then follow
 restrictions (and all other faithfulness guards) are not applied. The certificate-coverage gate

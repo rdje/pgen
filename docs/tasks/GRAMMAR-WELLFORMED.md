@@ -438,9 +438,33 @@ subtle dead branch"), never a silent accept.
   labeled errors; strict SOURCE clippy ok. NO tracked-artifact change (`generated/` untracked). Frontier:
   `H.5.1.1` (adjudicate + fix the svpp residual from the now-visible labels) + drive each wired grammar's
   `UNKNOWN`→0.
-- `H.5.1.1` — **IN PROGRESS (2026-06-08): root cause PROVEN tools-first; FIX is the remaining step.**
-  Goal: the svpp stimuli generator emits ONLY well-formed preprocessor inputs so svpp cert-coverage
-  `sample_parse_failures` 24→0 and `pp_define`/`macro_*` move out of `UNKNOWN`.
+- `H.5.1.1` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0045`, 2026-06-08): root cause PROVEN tools-first + SURGICAL
+  generator fix landed (whitespace-only greedy-tail guard), GLOBAL-measured, zero cross-grammar regression.**
+  Goal: the svpp stimuli generator emits well-formed preprocessor inputs so svpp cert-coverage
+  `sample_parse_failures` drops and `pp_define`/`macro_*` move out of `UNKNOWN`.
+  - **FIX (`-0045`):** in `StimuliGenerator::regex_tail_greedy_blocker`
+    (`rust/src/ast_pipeline/stimuli_generator.rs`) return `None` when the greedy unbounded tail class is
+    WHITESPACE-ONLY (new helper `regex_class_is_whitespace_only`, checking range bounds against the ASCII ws
+    set 0x09–0x0d + 0x20 without per-codepoint iteration). A trailing whitespace run needs NO anti-fusion guard
+    (whitespace self-separates), so the old `Some("\n")` escalation for `[ \t]+` was both pointless and harmful
+    in line-oriented grammars. Parser-agnostic + general (derived from the regex class, benefits any grammar);
+    makes the generator MORE faithful to the EBNF (the single source of truth) — strict fix hierarchy: no
+    grammar/annotation/store level applies because the grammar is already correct (`macro_name` is required,
+    `inline_trivia` already excludes `\n`); the defect was purely the generator's grammar-derived spacing.
+  - **VERIFIED (decisive A/B + global metric):** svpp cert-cov (count 40 seed 0) `sample_parse_failures`
+    **24→8**, `witness` **19→66**, `UNKNOWN` **54→7** (`pp_define`/`macro_formals`/`macro_body`/… now witnessed).
+    DECISIVE stash-baseline A/B (pre-fix vs post-fix, identical invocation) over json/regex/rtl_const_expr/vhdl/
+    rtl_frontend: **byte-identical metrics — ZERO regression** (only svpp changed; static proof confirmed: svpp's
+    `[ \t]+` is the ONLY `\n`-excluding greedy whitespace class across ALL grammars — every other uses
+    `[ \t\r\n]+`/`\s+` which already returned `None`). New unit test `whitespace_only_greedy_tail_gets_no_separator`
+    locks the behavior + its boundary (mixed class `[ \ta-z]+` still escalates; `[^\n]*` line comments untouched).
+    no-features lib **621/621**; clippy source-strict clean; **cross-family stimuli platform gate PASS**
+    (regex/vhdl/SV). No regen / no `generated/` change (the fix is in the runtime generator, not codegen).
+  - **RESIDUAL 8 (follow-up, NOT this fix's class):** the target class (`` `define ``+bare-newline-before-name) is
+    FULLY eliminated. The 8 remaining svpp failures are different, pre-existing mechanisms: (a) `\b`-keyword↔
+    word-char macro-name spacing gap (`` `ifndefR7Sh ``, `` `timescale63_ `` — the deferred space from the join
+    rule not landing for a `\b`-terminated keyword token); (b) deeper structural (`` `define NAME(formals)``
+    macro_formals, `` `timescale … ms`` time_literal). Route under the `UNKNOWN`→0 drive (own leaves).
   - **INVESTIGATION DONE (`PGEN-GRAMMAR-WELLFORMED-0044`, this slice) — PROVEN ROOT CAUSE (byte-exact
     isolation + parser trace + closed-loop A/B; corrects the H.5.1 adjudication).** The FIRST STEP (a focused
     parser trace of the labeled sample) is complete and decisive:
@@ -473,18 +497,7 @@ subtle dead branch"), never a silent accept.
       keyword-fusion failures NEWLY introduced BY disabling spacing (e.g. `` `ifndefR7Sh ``, `` `timescale63_ ``
       — a `\b` keyword immediately followed by a word char with no separator), which is the very thing faithful
       spacing exists to prevent. ⇒ disabling spacing is NOT the fix; the fix must be SURGICAL.
-  - **FIX DIRECTION (next step; the actual H.5.1.1 deliverable — strict fix-hierarchy + GLOBAL measurement).**
-    Tool-backed candidate (parser-agnostic, principled, surgical): in `regex_tail_greedy_blocker`, when the
-    greedy unbounded tail class is **whitespace-only** (every member is a whitespace char, e.g. `[ \t]`), return
-    `None` — a trailing run of whitespace needs no anti-fusion guard (whitespace already self-separates; the
-    `\n` is both pointless AND harmful in line-oriented grammars). This cleanly distinguishes `[ \t]+`
-    (whitespace-only → no guard) from `[^\n]*` (content class → keep the `\n` guard, correct for line comments).
-    ⚠️ RISK/SCOPE: `regex_tail_greedy_blocker` is SHARED across ALL grammars (LEXICAL-ANNOTATIONS class), so the
-    change must be a GENERAL primitive, one-thing-at-a-time, with the GLOBAL stimuli metric measured for EVERY
-    grammar (cross-family gate, each grammar's cert-coverage no-regression) before landing — per
-    [[feedback_no_codebase_change_without_tool_backed_facts]] + [[feedback_no_workarounds_fix_hierarchy]].
-    Acceptance: svpp cert-cov `sample_parse_failures` 24→ low/0, `pp_define`/`macro_*` leave `UNKNOWN`, and NO
-    other grammar's stimuli/cert-coverage regresses.
+  - (The fix that this investigation pointed to landed in `-0045` — see the `H.5.1.1` DONE record above.)
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
@@ -933,7 +946,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
-| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. NEXT: drive each wired grammar's `UNKNOWN`→0 + the `H.5.1` svpp witness-parseability residual. |
+| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** NEXT: drive each wired grammar's `UNKNOWN`→0 + the svpp residual-8 (a different, pre-existing class: `\b`-keyword↔macro-name spacing + macro_formals/time_literal structural). |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions

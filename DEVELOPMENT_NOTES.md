@@ -1,4 +1,45 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1.1 — FIX the svpp witness-parseability residual (PGEN-GRAMMAR-WELLFORMED-0045)
+
+### Change
+`StimuliGenerator::regex_tail_greedy_blocker` (`rust/src/ast_pipeline/stimuli_generator.rs`) gains an early
+`return None` when the greedy unbounded tail class is whitespace-only, via a new helper
+`regex_class_is_whitespace_only(class)`. The helper checks each class range's bounds against the ASCII
+whitespace set (0x09..=0x0d, 0x20) directly — no per-codepoint iteration — so a huge content range like `[^\n]`
+is rejected cheaply rather than walked.
+
+### Why this is the correct level (strict fix hierarchy)
+The faithful-spacing trailing guard exists to stop a generated token from re-lexing into the *next* token
+(anti-fusion). For an open-ended class it appends "the minimal separator the class cannot absorb": for `[ \t]+`
+that escalates past `" "` (absorbable) to `"\n"`. But a trailing run of *whitespace* cannot fuse with anything
+— whitespace is already a separator — so the guard should not fire at all, and `"\n"` is actively harmful in a
+line-oriented grammar (SV preprocessor) where `\n` terminates directives and is excluded from `inline_trivia`.
+No grammar/annotation/store lever applies: the grammar is already correct (`macro_name` is required;
+`inline_trivia := (space_or_tab|block_comment)*` already excludes `\n`). The defect was purely the generator's
+grammar-derived spacing heuristic, so the fix makes the generator MORE faithful to the EBNF (single source of
+truth). It is parser-agnostic and general (any grammar with a `[ \t]`-style inline-trivia benefits).
+
+### Scope proof (only svpp affected)
+Static: across ALL grammars, `space_or_tab := /[ \t]+/` (svpp) is the ONLY greedy whitespace-only class that
+EXCLUDES `\n`. Every other whitespace rule (`[ \t\r\n]+`, `\s+`) INCLUDES `\n`, so the prior code already
+returned `None` (the `regex_class_contains(class,'\n')` check was true) — my early return is a no-op for them.
+Self-hosting regex terminals are not `/regex/` patterns, so the HIR path never runs for them.
+
+### Verification
+- svpp cert-cov (count 40 seed 0): `sample_parse_failures` 24→8, `witness` 19→66, `UNKNOWN` 54→7
+  (`pp_define`/`macro_formals`/`macro_body`/`macro_reference`/… now witnessed).
+- DECISIVE stash-baseline A/B (pre-fix vs post-fix, identical invocation) over json/regex/rtl_const_expr/vhdl/
+  rtl_frontend: byte-identical metrics — ZERO regression; only svpp changed.
+- New unit test `whitespace_only_greedy_tail_gets_no_separator` (and the existing
+  `obligation_b_regex_derived_trailing_separator` unchanged); no-features lib 621/621; clippy source-strict
+  clean; cross-family stimuli platform gate PASS (regex/vhdl/SV). No regen / no `generated/` change.
+
+### Residual (follow-up, NOT this fix's class)
+The target class (`` `define ``+bare-newline-before-name) is fully eliminated. The 8 remaining svpp failures are
+different, pre-existing mechanisms: (a) `\b`-keyword↔word-char macro-name spacing — the deferred join-rule space
+not landing after a `\b`-terminated keyword token (`` `ifndefR7Sh ``, `` `timescale63_ ``); (b) deeper
+structural (`` `define NAME(formals)`` macro_formals, `` `timescale … ms`` time_literal). Route under UNKNOWN→0.
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1.1 — PROVE the svpp witness-parseability root cause (PGEN-GRAMMAR-WELLFORMED-0044)
 
 ### Goal
