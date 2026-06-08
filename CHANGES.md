@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0005 (EXTERNAL-CORPUS.2c): root-cause + design for the json trailing-content false-accepts (DOCS/investigation).
+
+Director directed "move to EXTERNAL-CORPUS.2c" (json strict end-of-input). Tools-first investigation
+**overturned the symptom framing**: the 5 remaining `n_` false-accepts (`{"a":"b"}//`, `…/**/`, `…#`,
+`…#{}`, inline `{"a":/*comment*/"b"}`) are NOT an end-of-input gap — `parse_full` already enforces
+end-of-input (`position == input.len()`). The defeater is that the generated json parser **skips `#` / `//`
+/ `/* */` comments as LAYOUT** in `consume_layout_for_terminal` (`ast_based_generator.rs:5234-5293`), which
+JSON forbids. 4 cases skip a trailing comment at the `<EOF>` layout (`allow_trailing_layout`, `:1090`); the
+inline case skips at the per-terminal layout (`allow_layout_skip_for_terminals`, `:3931`).
+
+The codegen ALREADY disables both for `regex` — but by **grammar name** (`grammar_name != "regex"`), which
+the parser-agnostic doctrine ([[feedback_features_parser_agnostic_enable_all_parsers]]) forbids extending
+to a second name. **Design (`.2c.1`):** a parser-agnostic "self-manages-layout / no-comment-layout"
+**capability** flag (precedent: the `uses_match_regex` Cell) true for BOTH regex and json — replacing the
+regex name-gates — so json behaves like regex (no comment layout) and the 5 `n_` reject. Implementation is
+deliberately a separate careful slice (cross-grammar byte-identical for SV/VHDL/regex; regex must stay
+self-hosting + conformant). NO code this slice (investigation/design, per understand-before-fix +
+codegen-is-careful). Updated the EXTERNAL-CORPUS tree (`.2c` done + `.2c.1` frontier) + TASK_TREE.
+
 ## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0004 (EXTERNAL-CORPUS.2F + .2d): full-JSON-standard proof goal + collect-more-corpora (DOCS).
 
 Captured two standing director directives (2026-06-08):
