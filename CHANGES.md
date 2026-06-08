@@ -1,4 +1,34 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0046 (GRAMMAR-WELLFORMED.H.5.1.2): svpp `\b`-keyword↔word-char fusion fixed via the declarative `[>! /\w/]` lexical-annotation + a `collect_rule_body` frontend fix it surfaced (CODE: systemverilog_preprocessor.ebnf + ebnf_frontend).
+
+Drives the svpp residual-8 CLASS (a) — directive keywords fusing with the following word char
+(`` `define_CV ``, `` `ifndefR7Sh ``, `` `timescale6 ``, `` `default_nettyped ``) — to 0, using the
+**lexical-annotations follow-restriction** construct (built specifically for the stimuli generator),
+not a generator-engine patch. Director-steered (2026-06-08).
+
+- `grammars/systemverilog_preprocessor.ebnf`: each directive keyword regex ends in `\b` (asserting a word
+  boundary must follow), so each `kw_*` rule now carries the column-0 before-rule directive `[>! /\w/]`
+  (LEXICAL-ANNOTATIONS Obligation C). FORBID self-terminates the keyword's generated surface with a space
+  (`apply_lexical_follow_restriction`), so it can never fuse with the following `macro_name`. `[>! …]` is a
+  documented parse-direction no-op → the generated svpp parser is unchanged.
+- `rust/src/ebnf_frontend.rs`: GENERAL frontend bug the grammar fix surfaced — `collect_rule_body` did not
+  terminate a rule body on a `[>` directive line, so a single-line rule absorbed the NEXT rule's `[>! …]`
+  directive into its own body and only the FIRST directive in a stacked run bound (raw AST carried 1 of 12
+  `forbid` tokens). FIX: add `[>` to the break set (consistent with `@`). Parser-agnostic; inert for every
+  grammar without `[>` lines. New regression test `consecutive_before_rule_lexical_annotations_each_bind_their_own_rule`.
+- FIX-HIERARCHY: LEVEL 1 (existing semantic annotation) — preferred over the level-5 generator-engine change
+  the investigation also identified (the `last_terminal_word_shaped` deferral mis-classifies a `\b`-keyword
+  with a non-word prefix like `` `define ``). Leaves the generator/engine untouched
+  (feedback_prefer_grammar_leave_engine_alone); aligns with the book direction (the derived
+  `enforce_word_boundary_spacing` heuristic "will be subsumed by" the declarative annotation).
+- VERIFIED (decisive, tools-backed): svpp cert-cov (count 40 seed 0) `sample_parse_failures` 8→1, `witness`
+  66→69, `UNKNOWN` 7→4, deterministic; seed 7 `sample_parse_failures=1`. The residual 1 is a different,
+  pre-existing class (stray-punctuation `condition_expr`/`directive_tail`), not class (a). NO cross-grammar
+  regression: json `fully_certified=true` + regex `sample_parse_failures=0` UNCHANGED. no-features lib 621/621;
+  source-strict clippy ok; **cross-family stimuli platform gate PASS**. PROVENANCE: surfaced
+  `feedback_full_startup_read_includes_mdbook` (I'd skipped `docs/book/` at startup and missed the construct);
+  new KM card `docs/knowledge/lexical-follow-restrictions.md`.
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0045 (GRAMMAR-WELLFORMED.H.5.1.1 FIX): surgical whitespace-only greedy-tail guard in the stimuli generator (CODE: stimuli_generator).
 
 Fixes the svpp witness-parseability residual root-caused in -0044: the faithful-spacing trailing guard was

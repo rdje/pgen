@@ -322,6 +322,15 @@ fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (S
             && (trimmed.is_empty()
                 || trimmed.starts_with('#')
                 || trimmed.starts_with('@')
+                // GRAMMAR-WELLFORMED.H.5.1.2: a column-0 before-rule lexical
+                // follow-restriction directive (`[> …]` / `[>! …]`) binds the
+                // NEXT rule, so it must terminate the PREVIOUS rule's body —
+                // exactly like a `@` directive. Without this, a single-line rule
+                // greedily absorbs the following rule's `[>` line into its own
+                // body, and that directive is silently lost (only the first one
+                // in a stacked run binds). Mirrors the `scan_top_level_rules`
+                // `[>` handler; keeps stacked per-rule restrictions working.
+                || trimmed.starts_with("[>")
                 || is_include_directive(trimmed)
                 || parse_rule_header(trimmed).is_some())
         {
@@ -1659,6 +1668,53 @@ entry = alpha
                     .and_then(serde_json::Value::as_str)
                     == Some("lexical_annotation")),
             "follow-restriction must bind only the immediately following rule"
+        );
+    }
+
+    // GRAMMAR-WELLFORMED.H.5.1.2 — CONSECUTIVE before-rule directives, each above a
+    // single-line rule, must EACH bind their own following rule. Regression: previously
+    // `collect_rule_body` did not terminate the preceding rule's body on a `[>` line, so a
+    // single-line rule (`kw_a`) absorbed the NEXT rule's `[>! …]` directive line into its
+    // own body, and only the FIRST directive in a stacked run bound (the svpp directive
+    // keywords `` `define ``/`` `undef ``/… all share this layout).
+    #[test]
+    fn consecutive_before_rule_lexical_annotations_each_bind_their_own_rule() {
+        let grammar = "[>! /\\w/]\nkw_a := /a\\b/\n[>! /\\w/]\nkw_b := /b\\b/\n";
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(grammar, "lex_stack_test", None)
+            .expect("envelope should parse");
+        let raw_ast = envelope["raw_ast"].as_array().expect("raw_ast array");
+
+        let rule_has_forbid = |name: &str| -> bool {
+            raw_ast
+                .iter()
+                .find(|rule| {
+                    rule.as_array()
+                        .and_then(|tokens| tokens.first())
+                        .and_then(|head| head.as_array())
+                        .and_then(|head| head.get(1))
+                        .and_then(serde_json::Value::as_str)
+                        == Some(name)
+                })
+                .and_then(|rule| rule.as_array())
+                .map(|tokens| {
+                    tokens.iter().any(|token| {
+                        token
+                            .as_array()
+                            .and_then(|parts| parts.first())
+                            .and_then(serde_json::Value::as_str)
+                            == Some("lexical_annotation")
+                    })
+                })
+                .unwrap_or(false)
+        };
+
+        assert!(
+            rule_has_forbid("kw_a"),
+            "the first stacked directive must bind kw_a"
+        );
+        assert!(
+            rule_has_forbid("kw_b"),
+            "the second stacked directive must bind kw_b (regression: it was absorbed into kw_a's body)"
         );
     }
 }

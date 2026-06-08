@@ -207,16 +207,35 @@ rparen := inline_trivia ")"
 # Directive keywords
 # ---------------------------------------------------------------------------
 
+# GRAMMAR-WELLFORMED.H.5.1.2 — each directive keyword regex ends in `\b`, asserting a word
+# boundary must follow (so `` `define `` is one token, never `` `define `` fused with a following
+# `macro_name`). The `[>! /\w/]` lexical-annotation (LEXICAL-ANNOTATIONS Obligation C — the
+# follow-restriction construct built for the stimuli generator) declares this for GENERATION:
+# the generator self-terminates the keyword's surface with a space so it can never fuse with the
+# next word char (`` `define_CV ``/`` `ifndefR7Sh `` would re-parse-fail the `\b`). `[>! …]` is a
+# documented parse-direction no-op, so the generated parser is unchanged.
+[>! /\w/]
 kw_define := inline_trivia /`define\b/
+[>! /\w/]
 kw_undef := inline_trivia /`undef\b/
+[>! /\w/]
 kw_include := inline_trivia /`include\b/
+[>! /\w/]
 kw_ifdef := inline_trivia /`ifdef\b/
+[>! /\w/]
 kw_ifndef := inline_trivia /`ifndef\b/
+[>! /\w/]
 kw_elsif := inline_trivia /`elsif\b/
+[>! /\w/]
 kw_else := inline_trivia /`else\b/
+[>! /\w/]
 kw_endif := inline_trivia /`endif\b/
+[>! /\w/]
 kw_timescale := inline_trivia /`timescale\b/
+[>! /\w/]
 kw_default_nettype := inline_trivia /`default_nettype\b/
+[>! /\w/]
 kw_celldefine := inline_trivia /`celldefine\b/
+[>! /\w/]
 kw_endcelldefine := inline_trivia /`endcelldefine\b/
 kw_none := inline_trivia /none\b/

@@ -498,6 +498,71 @@ subtle dead branch"), never a silent accept.
       — a `\b` keyword immediately followed by a word char with no separator), which is the very thing faithful
       spacing exists to prevent. ⇒ disabling spacing is NOT the fix; the fix must be SURGICAL.
   - (The fix that this investigation pointed to landed in `-0045` — see the `H.5.1.1` DONE record above.)
+- `H.5.1.2` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0046`, 2026-06-08): drove the svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword
+  fusion (`` `ifndefR7Sh ``, `` `define_CV ``, `` `ifdefyDY_1 ``, `` `elsifLgz ``, `` `default_nettyped ``,
+  `` `timescale6 ``) — using the DECLARATIVE `[>! /\w/]` lexical-annotation (LEXICAL-ANNOTATIONS Obligation C),
+  the construct introduced SPECIFICALLY for the stimuli generator (director directive 2026-06-08).** Fix-hierarchy
+  LEVEL 1 (existing semantic annotation) — preferred over the level-5 generator-engine patch the investigation
+  below also identified; leaves the generator/engine untouched per [[feedback_prefer_grammar_leave_engine_alone]],
+  and aligns with the book's stated direction (the derived `enforce_word_boundary_spacing` heuristic "will be
+  subsumed by" the declarative annotation, `docs/book/src/lexical-annotations.md`).
+  - **ROOT CAUSE (PROVEN tools-first, source-read + empirical):** every directive keyword is
+    `kw_X := inline_trivia /` + "`" + `X\b/` (`grammars/systemverilog_preprocessor.ebnf:210-221`); the trailing
+    `\b` asserts a word boundary must follow. The generator's DERIVED guard `apply_word_boundary_spacing`
+    (`stimuli_generator.rs:7232`) correctly computes `regex_terminal_trailing_separator = Some(" ")` for the
+    trailing `\b`, then takes the LEXICAL-ANNOTATIONS.5 successor-aware DEFERRAL arm (`:7266`, returns the
+    candidate so the join rule inserts the space iff the next token starts with a word char) — BUT then sets
+    `last_terminal_word_shaped = is_word_shaped_literal("` + "`" + `define")` = **false** (`:7421` requires the WHOLE
+    token be word-chars; the leading backtick fails it). The join rule `append_generated_segment` (`:7575`) gates
+    the deferred space on `prev_tail_word_shaped == true`, so it is silently DROPPED → `` `define ``+`_CV` fuses →
+    the parser's `/` + "`" + `define\b/` rejects (`\b` fails between `e` and `_`). Empirically confirmed:
+    `--generate-stimuli --count 40 --seed 0` emits `` `define_ ``, `` `ifndefR ``, `` `ifdefy ``, `` `elsifL ``,
+    `` `default_nettyped ``, `` `timescale6/7/1 `` (the exact cert-coverage `sample_parse_failures` samples).
+  - **FIX:** add the column-0 before-rule directive `[>! /\w/]` above each directive keyword rule in
+    `grammars/systemverilog_preprocessor.ebnf` (the exact canonical book example). FORBID self-terminates the
+    keyword's rendered output via `apply_lexical_follow_restriction` (`:7184`, EAGER bake) — bypassing the buggy
+    derived deferral entirely — so the keyword can never fuse with a following word char. Parser-agnostic, and
+    `[>! …]` is a documented parse-direction no-op so the generated svpp PARSER is unchanged (no regen/behaviour
+    change on the parse side).
+  - **FRONTEND ENABLER (a SECOND, GENERAL bug the grammar fix surfaced — PROVEN tools-first):** with the 12
+    `[>! /\w/]` directives added, ONLY `kw_define` (the FIRST) bound — `--generate-stimuli` still fused
+    `` `undef ``/`` `ifndef ``/`` `timescale ``/`` `default_nettype `` with the next word char, and the raw-AST
+    envelope carried just **1** `forbid` token (should be 12). ROOT CAUSE: `collect_rule_body`
+    (`ebnf_frontend.rs:313`) terminated a rule body on a top-level `#`/`@`/include/rule-header line but NOT on a
+    `[>` directive line, so a SINGLE-LINE rule greedily ABSORBED the *next* rule's `[>! …]` directive into its own
+    body, stealing it from the rule it was meant to bind — only the first directive in a stacked run survived.
+    Latent because no grammar had ever placed consecutive `[>` directives. FIX (one general line): add
+    `|| trimmed.starts_with("[>")` to `collect_rule_body`'s break set, making `[>` a body terminator exactly like
+    `@` (mirrors the `scan_top_level_rules` `[>` handler). Parser-agnostic, behaviour-inert for every grammar
+    without `[>` lines (all of them today except svpp — verified byte-identical). Regression-locked by new test
+    `consecutive_before_rule_lexical_annotations_each_bind_their_own_rule` (`ebnf_frontend.rs`).
+  - **WHY NOT the generator-code fix:** the alternative (set `last_terminal_word_shaped = true` in the deferral
+    arm) is a correct, more-general level-5 ENGINE change, but the strict fix hierarchy
+    ([[feedback_no_workarounds_fix_hierarchy]]) mandates using the existing level-1 annotation first when it
+    cleanly solves the grammar's problem — which it does. The underlying derived-guard quirk is recorded here as a
+    known generator finding (moot for svpp once declared); revisit only with a concrete case the annotation can't
+    cover.
+  - **DIRECTOR-FEEDBACK PROVENANCE:** this slice surfaced [[feedback_full_startup_read_includes_mdbook]] — I had
+    skipped `docs/book/` at startup (ramp-up item #2) and missed this construct; the director pointed it out. New
+    KM card `docs/knowledge/lexical-follow-restrictions.md`.
+  - **VERIFIED (decisive, tools-backed):** svpp cert-coverage (count 40 seed 0) `sample_parse_failures`
+    **8→1**, `witness` **66→69**, `UNKNOWN` **7→4**, DETERMINISTIC (re-run identical); seed 7 `sample_parse_failures=1`
+    (witness 70, UNKNOWN 3). Class (a) keyword-fusion is ELIMINATED (no `` `define ``/`undef`/`ifndef`/`timescale`/
+    `default_nettype`-fusion samples remain; `--generate-stimuli` keyword-fusion grep EMPTY; every `kw_*` keyword
+    self-terminates with a space in isolation). The remaining **1** failure is a DIFFERENT, pre-existing class
+    (a `` `elsif ?…?) , `` stray-punctuation `condition_expr`/`directive_tail` over-production — NOT class (a),
+    NOT introduced here), and the UNKNOWN set is now `macro_default_text`/`directive_tail`/`trivia`/`line_comment`
+    (none are keyword/macro_name rules — those are now witnessed). NO cross-grammar regression: json cert-coverage
+    `fully_certified=true` (total 9/witness 9/UNKNOWN 0) + regex cert-coverage `sample_parse_failures=0` UNCHANGED
+    (the frontend fix is inert for grammars without `[>` lines). no-features lib **621/621**; new + existing
+    binding tests pass; source-strict clippy `clippy_source_all_targets` ok (generated stage non-strict,
+    pre-existing codegen debt only — no parser regen); **cross-family stimuli platform gate PASS** (regex/vhdl/SV).
+    Tracked changes: `grammars/systemverilog_preprocessor.ebnf` (12 `[>! /\w/]` directives) + `rust/src/ebnf_frontend.rs`
+    (`collect_rule_body` break-on-`[>` + regression test) + docs/book lexical-annotations chapter. `generated/` is
+    untracked (regen is local; FORBID is parse-noop so the svpp parser is unchanged either way). RESIDUAL after this
+    slice = class (b)/(c): `condition_expr`/`directive_tail`/`macro_formals` (`` `define NAME(formals)``) +
+    `time_literal` (`` `timescale N unit ``) over-production → its own follow-up leaf (`H.5.1.3`), folded into the
+    `UNKNOWN`→0 drive.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
@@ -946,7 +1011,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
-| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** NEXT: drive each wired grammar's `UNKNOWN`→0 + the svpp residual-8 (a different, pre-existing class: `\b`-keyword↔macro-name spacing + macro_formals/time_literal structural). |
+| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** ✓ **H.5.1.2 (`-0046`) drove svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword fusion — to 0 via the declarative `[>! /\w/]` lexical-annotation (the construct built for the generator) + a general `collect_rule_body` frontend fix it surfaced (consecutive `[>` directives now each bind; only the first bound before); svpp `sample_parse_failures` 8→1, `UNKNOWN` 7→4, `witness` 66→69 seed 0; json/regex cert-coverage unchanged; lib 621/621; cross-family gate PASS.** NEXT: `H.5.1.3` the svpp residual CLASS (b)/(c) (`condition_expr`/`directive_tail`/`macro_formals`/`time_literal` over-production) + drive each wired grammar's `UNKNOWN`→0. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions

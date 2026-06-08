@@ -119,6 +119,22 @@ can consume it (per-rule and per-branch annotations are generator-visible; per-e
   #  doc := lt lt   →  "< <"  (faithful)   rather than   "<<"  (a different token)
   ```
 
+  A real consumer: every SystemVerilog-preprocessor directive keyword regex ends in `\b` (so the
+  keyword is one token), and each keyword rule carries `[>! /\w/]` to stop the generator fusing
+  the keyword with the following `macro_name` — the emitted directive keeps a separator and still
+  re-lexes as the directive it was meant to be:
+
+  ```ebnf
+  [>! /\w/]
+  kw_define := /`define\b/      # emit  `define FOO   — never  `defineFOO
+  [>! /\w/]
+  kw_ifndef := /`ifndef\b/
+  ```
+
+  Consecutive before-rule directives like these each bind their **own** following rule — a
+  directive line never folds into the previous rule's body — so adjacent rules can be annotated
+  independently.
+
 - **`[> LIST ]` (require)** is recorded for the **parsing** direction (follow restrictions also
   disambiguate scannerless parsing). Generation performs no insertion for it: faithfulness violations
   come from *fusion* (which `forbid` prevents), and the generator cannot force a *successor* token
