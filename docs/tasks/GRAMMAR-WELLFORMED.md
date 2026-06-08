@@ -431,6 +431,24 @@ subtle dead branch"), never a silent accept.
   labeled errors; strict SOURCE clippy ok. NO tracked-artifact change (`generated/` untracked). Frontier:
   `H.5.1.1` (adjudicate + fix the svpp residual from the now-visible labels) + drive each wired grammar's
   `UNKNOWN`→0.
+- `H.5.1.1` — **NOT STARTED (owned stub, 2026-06-08): FIX the now-labeled svpp witness-parseability residual
+  (generator-side).** Goal: the svpp stimuli generator emits ONLY well-formed preprocessor inputs so svpp
+  cert-coverage `sample_parse_failures` 24→0 and `pp_define`/`macro_*` move out of `UNKNOWN`. TOOLS-OBSERVED
+  STARTING POINT (from H.5.1's investigation — a LEAD to verify with a parser trace, NOT yet a proven
+  end-to-end mechanism): isolating `--entry-rule pp_define` shows the generator produces a MIX of valid
+  (`` `define ICVs3 ``, `` `definetad ``, `` `definebdK4( ``) and invalid (`` `define `` + whitespace-only)
+  forms. `pp_define := kw_define macro_name …` with `macro_name := identifier := inline_trivia
+  /[a-zA-Z_][a-zA-Z0-9_$]*/`, and isolating `--entry-rule inline_trivia` confirms `inline_trivia` GENERATES
+  NEWLINES (multi-line samples). Since `` `define `` directives are newline-terminated, a generated
+  identifier whose `inline_trivia` prefix injects a newline (or empty/degenerate trivia+token interplay)
+  plausibly breaks the directive-line. ⚠️ RISK/SCOPE: `inline_trivia` is SHARED across grammars, so any
+  generator change must be measured against the GLOBAL stimuli metric for EVERY grammar (no regression) —
+  this is the LEXICAL-ANNOTATIONS class (lexical-token cohesion / trivia generation), NOT a quick slice.
+  STRICT FIX HIERARCHY applies: prefer a grammar/annotation expression of the directive-line constraint over
+  an engine/generator change; if the generator must change, it must be a GENERAL parser-agnostic primitive,
+  one-thing-at-a-time, with the global metric measured (per [[feedback_no_codebase_change_without_tool_backed_facts]]
+  + [[feedback_no_workarounds_fix_hierarchy]]). FIRST STEP: a focused parser trace of one labeled failing
+  sample to PROVE the exact rejecting production before any code.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
