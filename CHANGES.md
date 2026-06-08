@@ -1,4 +1,11 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-SVPP-EXPANSION-0002 (SVPP-EXPANSION.1 scoping input): record the grammar-home design analysis (enhance svpp.ebnf vs separate expression-parser EBNF) per the director's design question (DOCS).
+
+Director design question 2026-06-08 — captured durably in the tree's Open Questions (build still deferred behind the locked program).
+
+- **Question:** does the expansion stage need to enhance `systemverilog_preprocessor.ebnf`, or create a separate "svpp expression parser" EBNF?
+- **RECORDED ANALYSIS + LEAN (confirm at `.1` SCOPING with SOTA):** expansion is ~90% transformation LOGIC over what svpp ALREADY parses (macro table, conditional structure, include paths need no grammar work; substitution/evaluation/inlining are engine logic). The ONE genuine grammar gap = recognizing macro-USAGE sites (`` `NAME `` / `` `NAME(args) ``) inside the opaque `non_directive_text` — a LEXICAL enhancement to `svpp.ebnf` (`(plain_text | macro_usage)*` + a `macro_actual_args` rule), NOT a full SV parse, NOT a separate grammar. **LEAN: enhance `svpp.ebnf`; a separate expression-parser EBNF is almost certainly unnecessary** — the macro/usage model is lexical (EBNF-single-source-of-truth), and standard SV `` `ifdef ``/`` `ifndef ``/`` `elsif `` take a single macro IDENTIFIER (IEEE 1800-2017 §22.6), not a C-`#if` boolean expression, so there is no expression language to parse. ⚠️ scoping check: svpp's current `condition_expr` (with `||`/`&&`/`!`/`?:`) is richer than the standard — confirm tool-extension vs over-modeling. The deeper fork (parse-tree vs token-stream transformation — slang/Verible/Verilator preprocess at the token level) is for `.1` SCOPING with the implementations read first. No code; no status-row change.
+
 ## 2026-06-08 - PGEN-SVPP-EXPANSION-0001 (SVPP-EXPANSION tree creation): track the SV preprocessing/EXPANSION stage as a NEXSIM release prerequisite — owned now, build-LATER, sequenced AFTER the locked program (DOCS).
 
 Director directive 2026-06-08 — captured + tracked; no code, no build (deferred behind the locked program).

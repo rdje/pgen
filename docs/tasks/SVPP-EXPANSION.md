@@ -97,8 +97,30 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 
 ## Open questions
 
+- **Grammar home: enhance `svpp.ebnf` vs. a separate "expression parser" EBNF? (director 2026-06-08).**
+  RECORDED ANALYSIS + LEAN (to confirm at `.1` with SOTA): expansion is ~90% TRANSFORMATION LOGIC over the
+  structure svpp ALREADY parses — macro table (`pp_define`/`macro_formals`/`macro_body` incl. stringize +
+  token-paste atoms), conditional STRUCTURE (`pp_conditional`), and `` `include `` paths need NO grammar
+  work; substitution semantics, conditional evaluation, and include inlining are engine logic, NOT grammar.
+  The ONE genuine grammar gap is recognizing **macro-usage sites** (`` `NAME `` / `` `NAME(args) ``) inside
+  the body/non-directive text — today buried in opaque `non_directive_text`. That is a LEXICAL-level
+  enhancement to `svpp.ebnf` (split `non_directive_text` into `(plain_text | macro_usage)*` + add a
+  `macro_actual_args` rule), NOT a full SV parse and NOT a separate grammar. **LEAN: enhance `svpp.ebnf`; a
+  separate "expression parser EBNF" is almost certainly unnecessary** because (1) the macro/usage model is
+  lexical and belongs in svpp's domain (EBNF-single-source-of-truth), and (2) standard SV preprocessor
+  conditionals (`` `ifdef ``/`` `ifndef ``/`` `elsif ``) take a single **macro identifier**, NOT a C-`#if`
+  boolean expression (IEEE 1800-2017 §22.6) — so there is no expression language to parse. ⚠️ SCOPING CHECK:
+  svpp's current `condition_expr` models a RICHER form (`||`/`&&`/`!`/`?:` atoms) than the standard —
+  confirm at `.1` whether that is a deliberate tool-extension or over-modeling.
+- **Transformation model (the deeper fork under the grammar question): parse-tree vs. token-stream.** A
+  parse-tree transformation walks the (enhanced) svpp AST — PGEN-native, EBNF-as-source-of-truth, reuses
+  svpp (the LEAN). A token-stream transformation is the industry SOTA (slang / Verible / Verilator
+  preprocess at the token level, because macros can expand across structural boundaries and preprocessing
+  is inherently lexical). `.1` SCOPING decides this with IEEE 1800 §22 + the slang/Verible/Verilator
+  implementations read FIRST (research-grounded discipline) — do not pick speculatively.
 - Output form: expanded source TEXT (re-fed to the sv parser) vs. an expanded token stream handed to the sv
-  parser directly — decide at `.1` with provenance/source-map requirements in mind.
+  parser directly — decide at `.1` with provenance/source-map requirements in mind (tied to the
+  transformation-model fork above).
 - Reuse boundary: how much of the substitution/resolution machinery can be parser-agnostic (a general
   directive-AST→expansion service) vs. SV-specific.
 
