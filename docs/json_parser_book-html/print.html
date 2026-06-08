@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8bb30189.js";
+            window.path_to_searchindex_js = "searchindex-ebdebdc8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e048ab27.js"></script>
@@ -184,29 +184,27 @@
 output, and it sits alongside the platform mastery book (<code>docs/book/</code>) and the other per-parser books
 (regex, SystemVerilog, VHDL, rtl_frontend, rtl_const_expr), all linked from the platform book’s
 <a href="../../book/src/parser-families.html">Parser Families</a> chapter.</p>
-<h2 id="read-this-first-json-is-a-built-in-grammar-now-rfc-8259-aligned"><a class="header" href="#read-this-first-json-is-a-built-in-grammar-now-rfc-8259-aligned">Read this first: <code>json</code> is a built-in grammar, now RFC-8259-aligned</a></h2>
-<p>The <code>json</code> grammar is a <strong>small built-in</strong> used for examples, onboarding, and cross-family stimuli work.
-It began as a deliberately <em>simplified subset</em> of JSON and was upgraded (<code>EXTERNAL-CORPUS.2a</code>) to track
-RFC 8259 / ECMA-404 for its lexical/syntactic core, using a recognized external corpus as the acceptance
-metric. PGEN backs the claim with evidence from <strong>two</strong> independent oracles:</p>
+<h2 id="-read-this-first-json-is-a-deliberately-simplified-grammar"><a class="header" href="#-read-this-first-json-is-a-deliberately-simplified-grammar">⚠️ Read this first: <code>json</code> is a deliberately <em>simplified</em> grammar</a></h2>
+<p>Unlike the shipped parser families (regex, SV, VHDL), the <code>json</code> grammar is a <strong>small built-in</strong> used for
+examples, onboarding, and cross-family stimuli work. <strong>It is a deliberately simplified subset of JSON — it
+is <em>not</em> a conforming RFC 8259 / ECMA-404 parser.</strong> PGEN states this openly and backs it with evidence:</p>
 <ul>
-<li><strong>EBNF-internal quality is clean.</strong> <code>json</code> was the first PGEN grammar to report <code>fully_certified=true</code>
+<li><strong>EBNF-internal quality is clean.</strong> <code>json</code> is the first PGEN grammar to report <code>fully_certified=true</code>
 from the certificate-coverage gate (every rule is witnessed-reachable, zero <code>UNKNOWN</code>). See the platform
 book’s <a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter.</li>
 <li><strong>Real-world conformance is characterized, not claimed.</strong> Measured against the recognized
 <a href="https://github.com/nst/JSONTestSuite">JSONTestSuite</a> corpus (vendored under <code>json_corpus_bundle/</code>), the
-upgraded grammar accepts <strong>95/95</strong> must-accept files and rejects <strong>181/188</strong> must-reject files. Two
-residuals remain, each its own follow-up: <strong>5 trailing-content/comment</strong> files are still accepted (strict
-end-of-input, <code>EXTERNAL-CORPUS.2c</code>) and <strong>3 deep-nesting files crash</strong> (recursion/stack guard,
-<code>EXTERNAL-CORPUS.2b</code>). Details: <a href="#external-corpus-characterization">External-Corpus Characterization</a>.</li>
+simplified grammar accepts <strong>81/95</strong> must-accept files and rejects <strong>158/188</strong> must-reject files, and
+<strong>3 deep-nesting files crash</strong> the parser. The gaps (no number exponents, no string escapes, leading
+zeros allowed, loose trailing/whitespace, no recursion guard) are documented honestly in
+<a href="#external-corpus-characterization">External-Corpus Characterization</a>.</li>
 </ul>
-<p>So: the json parser handles the <strong>JSON lexical/syntactic standard</strong> (numbers with exponents, escaped
-strings with control-char rejection, leading-zero rejection, exact whitespace). It is not yet hardened
-against trailing-garbage or adversarially-deep nesting — see the two residual leaves above.</p>
+<p>So: trust this parser for the <strong>common JSON core</strong> in examples and tooling; do <strong>not</strong> treat it as a
+standards-grade JSON reader until the planned <code>EXTERNAL-CORPUS.2a</code> upgrade toward RFC 8259 lands.</p>
 <h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
 <ul>
 <li><a href="#build-recipe">Build Recipe</a> — how to generate and exercise the json parser.</li>
-<li><a href="#grammar-and-scope">Grammar and Scope</a> — exactly what <code>json.ebnf</code> accepts and what it does not.</li>
+<li><a href="#grammar-and-scope-a-simplified-subset">Grammar and Scope</a> — exactly what <code>json.ebnf</code> accepts and what it does not.</li>
 <li><a href="#ast-envelope-structure">AST Envelope Structure</a> — the shape of the parse tree this parser returns.</li>
 <li><a href="#external-corpus-characterization">External-Corpus Characterization</a> — the measured gap vs the standard.</li>
 <li><a href="#glossary">Glossary</a>.</li>
@@ -258,10 +256,10 @@ build), then parse:</p>
 <pre><code class="language-bash">make -C rust SHELL=/bin/bash json_parser_book_gate
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="grammar-and-scope"><a class="header" href="#grammar-and-scope">Grammar and Scope</a></h1>
-<p>The full grammar is <code>grammars/json.ebnf</code> (nine rules). As of the <code>EXTERNAL-CORPUS.2a</code> upgrade its lexical
-terminals track RFC 8259 / ECMA-404, validated against the recognized JSONTestSuite corpus (every
-must-accept file passes: <strong>95/95</strong>).</p>
+<h1 id="grammar-and-scope-a-simplified-subset"><a class="header" href="#grammar-and-scope-a-simplified-subset">Grammar and Scope (a simplified subset)</a></h1>
+<p>The full grammar is <code>grammars/json.ebnf</code> (nine rules). It models the <strong>shape</strong> of JSON — objects, arrays,
+strings, numbers, the three keywords — but uses coarse regex terminals for the lexical layer, so it is a
+<strong>subset/superset</strong> of standard JSON rather than a faithful implementation.</p>
 <h2 id="what-it-accepts-the-rules"><a class="header" href="#what-it-accepts-the-rules">What it accepts (the rules)</a></h2>
 <div class="table-wrapper">
 <table>
@@ -276,33 +274,39 @@ must-accept file passes: <strong>95/95</strong>).</p>
 <tr><td><code>pair</code></td><td><code>string : value</code></td><td></td></tr>
 <tr><td><code>array</code></td><td><code>[]</code>  or  <code>[ elements ]</code></td><td></td></tr>
 <tr><td><code>elements</code></td><td><code>value ( , value )*</code></td><td>comma-separated values</td></tr>
-<tr><td><code>string</code></td><td><code>/[ \t\n\r]*"(\\(["\\\/bfnrt]|u[0-9a-fA-F]{4})|[^"\\\x00-\x1f])*"[ \t\n\r]*/</code></td><td>the RFC escape set; forbids raw control chars / lone <code>\</code></td></tr>
-<tr><td><code>number</code></td><td><code>/[ \t\n\r]*-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?[ \t\n\r]*/</code></td><td>sign, <code>0|[1-9]…</code>, fraction, exponent</td></tr>
+<tr><td><code>string</code></td><td><code>/\s*"[^"]*"\s*/</code></td><td><strong>any run of non-<code>"</code> bytes</strong> between quotes</td></tr>
+<tr><td><code>number</code></td><td><code>/\s*-?[0-9]+(\.[0-9]+)?\s*/</code></td><td>optional sign, integer, optional fraction</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>true</code> / <code>false</code> / <code>null</code> are matched as whitespace-padded keywords (whitespace = the exact JSON set
-<code>[ \t\n\r]</code>) and lowered to <code>{type:"boolean", value:true/false}</code> / <code>{type:"null"}</code>.</p>
-<h2 id="rfc-8259-lexical-conformance-closed-by-external-corpus2a"><a class="header" href="#rfc-8259-lexical-conformance-closed-by-external-corpus2a">RFC-8259 lexical conformance (closed by <code>EXTERNAL-CORPUS.2a</code>)</a></h2>
-<p>The original simplified grammar diverged on number/string/whitespace lexing; the upgrade closed those:</p>
-<ul>
-<li><strong>Number exponents</strong> — <code>1e10</code>, <code>0e1</code>, <code>2.5E-3</code> now parse (<code>([eE][+-]?[0-9]+)?</code>).</li>
-<li><strong>String escapes</strong> — only <code>\" \\ \/ \b \f \n \r \t \uXXXX</code> are valid escapes; <strong>raw control characters
-(<code>\x00-\x1f</code>) and malformed/lone escapes are now rejected</strong>.</li>
-<li><strong>Leading zeros</strong> — <code>01</code> / <code>-01</code> are rejected (<code>0 | [1-9][0-9]*</code>).</li>
-<li><strong>Whitespace</strong> — exactly <code>[ \t\n\r]</code> (form-feed / vertical-tab no longer slip through).</li>
-</ul>
-<h2 id="known-residuals-each-its-own-follow-up-leaf"><a class="header" href="#known-residuals-each-its-own-follow-up-leaf">Known residuals (each its own follow-up leaf)</a></h2>
+<p><code>true</code> / <code>false</code> / <code>null</code> are matched as whitespace-padded keywords and lowered to
+<code>{type:"boolean", value:true/false}</code> / <code>{type:"null"}</code>.</p>
+<h2 id="what-it-does-not-do-the-gaps-vs-rfc-8259--ecma-404"><a class="header" href="#what-it-does-not-do-the-gaps-vs-rfc-8259--ecma-404">What it does NOT do (the gaps vs RFC 8259 / ECMA-404)</a></h2>
+<p>These are <strong>deliberate simplifications</strong>, each confirmed by the external corpus
+(<a href="#external-corpus-characterization">characterization</a>):</p>
 <ol>
-<li><strong>Trailing content after a complete value is not yet rejected</strong> (<code>EXTERNAL-CORPUS.2c</code>). <code>{"a":"b"}//</code>,
-<code>{"a":"b"}#</code>, <code>{"a":/*comment*/"b"}</code> etc. are still accepted — the value parses and the trailing bytes
-are left unconsumed without the parse failing. The fix is strict end-of-input enforcement at <code>json</code>.</li>
-<li><strong>No recursion/stack guard</strong> (<code>EXTERNAL-CORPUS.2b</code>). Adversarially deep nesting (hundreds–thousands of
-<code>[</code>) <strong>crashes</strong> the recursive-descent parser instead of being rejected. (The regex family solved this
-class with a dedicated worker stack; the json parser needs an equivalent.)</li>
+<li><strong>No number exponent.</strong> <code>1e10</code>, <code>0e1</code>, <code>2.5E-3</code> are <strong>rejected</strong> (the standard requires
+<code>([eE][+-]?[0-9]+)?</code>).</li>
+<li><strong>No string escapes.</strong> <code>string</code> is <code>"[^"]*"</code>, so:
+<ul>
+<li>valid escaped strings like <code>"a\"b"</code> or <code>"\n"</code> are <strong>rejected</strong> (the <code>[^"]*</code> stops at, or cannot
+express, the escape);</li>
+<li>invalid strings — raw control characters, bad <code>\</code>-escapes, malformed <code>\uXXXX</code> surrogates — are
+<strong>wrongly accepted</strong> (any non-<code>"</code> byte passes). The standard allows only
+<code>\" \\ \/ \b \f \n \r \t \uXXXX</code> and forbids raw control characters.</li>
+</ul>
+</li>
+<li><strong>Leading zeros allowed.</strong> The integer part is <code>[0-9]+</code>, so <code>01</code> / <code>-01</code> are <strong>wrongly accepted</strong>
+(the standard requires <code>0 | [1-9][0-9]*</code>).</li>
+<li><strong>Loose trailing/whitespace.</strong> The regex <code>\s</code> class includes form-feed (which JSON whitespace does
+not), and trailing-content handling is looser than a strict full-input requirement, so a few
+trailing-garbage / trailing-comment documents are <strong>wrongly accepted</strong>.</li>
+<li><strong>No recursion/stack guard.</strong> Deeply nested input (hundreds–thousands of <code>[</code>) <strong>crashes</strong> the
+recursive-descent parser instead of being rejected. (The regex family solved this class with a
+dedicated worker stack; the json parser has no equivalent yet.)</li>
 </ol>
-<p>These two are the only remaining gaps versus a fully hardened standards parser; the
-<a href="#external-corpus-characterization">External-Corpus Characterization</a> measures them precisely.</p>
+<p>The planned, evidence-gated <strong><code>EXTERNAL-CORPUS.2a</code></strong> upgrade closes #1–#4 (and <strong><code>.2b</code></strong> addresses #5),
+using the <code>json_corpus_bundle/</code> characterization as the acceptance metric.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
 <p>The json parser returns PGEN’s standard typed parse node. The top node carries <code>rule_name</code>, a <code>span</code>, and
@@ -360,7 +364,7 @@ second element is the <em>tail list</em> of the rest. Walk it recursively (head,
 rather than assuming a flat list. A single-element list is <code>[ &lt;item&gt; ]</code>.</li>
 <li><strong>String values retain their surrounding quotes.</strong> <code>string</code> returns its whole matched text (<code>-&gt; $1</code>),
 so the value is <code>"\"x\""</code> (the quotes are part of the string), and <strong>no escape decoding is performed</strong>
-(see <a href="#grammar-and-scope">Grammar and Scope</a>). Consumers that need the decoded contents must strip the
+(see <a href="#grammar-and-scope-a-simplified-subset">Grammar and Scope</a>). Consumers that need the decoded contents must strip the
 quotes and decode themselves.</li>
 <li><strong>Numbers are strings.</strong> <code>number</code> returns the matched text as a string (<code>"1"</code>, <code>"-2.5"</code>); convert to a
 numeric type downstream. Booleans (<code>true</code>/<code>false</code>) and <code>null</code> are the only values lowered to native
@@ -379,35 +383,37 @@ Minefield”</em>, MIT), vendored under <code>json_corpus_bundle/</code>.</p>
 </code></pre>
 <p>The corpus’s filename prefix is the fix-independent oracle: <code>y_*</code> must be accepted, <code>n_*</code> must be
 rejected, <code>i_*</code> is implementation-defined.</p>
-<h2 id="measured-2026-06-08-pinned-upstream-commit-1ef36fa0-after-the-external-corpus2a-upgrade"><a class="header" href="#measured-2026-06-08-pinned-upstream-commit-1ef36fa0-after-the-external-corpus2a-upgrade">Measured (2026-06-08, pinned upstream commit <code>1ef36fa0</code>, after the <code>EXTERNAL-CORPUS.2a</code> upgrade)</a></h2>
+<h2 id="measured-2026-06-08-pinned-upstream-commit-1ef36fa0"><a class="header" href="#measured-2026-06-08-pinned-upstream-commit-1ef36fa0">Measured (2026-06-08, pinned upstream commit <code>1ef36fa0</code>)</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Class</th><th>Files</th><th>Parser result</th><th>Conformance</th><th>(was, simplified)</th></tr>
+<tr><th>Class</th><th>Files</th><th>Parser result</th><th>Conformance</th></tr>
 </thead>
 <tbody>
-<tr><td><code>y_</code> MUST accept</td><td>95</td><td>95 accept / 0 reject</td><td><strong>95 / 95</strong> ✅</td><td>81 / 95</td></tr>
-<tr><td><code>n_</code> MUST reject</td><td>188</td><td>181 reject / 5 accept / 2 crash</td><td><strong>181 / 188</strong></td><td>158 / 188</td></tr>
-<tr><td><code>i_</code> impl-defined</td><td>35</td><td>20 accept / 14 reject / 1 crash</td><td>n/a</td><td>13 / 21 / 1</td></tr>
-<tr><td>crashes (any class)</td><td>—</td><td><strong>3</strong> abort (stack overflow)</td><td>robustness defect</td><td>3</td></tr>
+<tr><td><code>y_</code> MUST accept</td><td>95</td><td>81 accept / 14 reject</td><td><strong>81 / 95</strong></td></tr>
+<tr><td><code>n_</code> MUST reject</td><td>188</td><td>158 reject / 28 accept / 2 crash</td><td><strong>158 / 188</strong></td></tr>
+<tr><td><code>i_</code> impl-defined</td><td>35</td><td>13 accept / 21 reject / 1 crash</td><td>n/a</td></tr>
+<tr><td>crashes (any class)</td><td>—</td><td><strong>3</strong> abort (stack overflow)</td><td>robustness defect</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Every must-accept JSON document is now accepted (95/95)</strong> and the must-reject rate rose 158→181. The
-upgrade closed all original lexical gaps (exponents, escapes + control-char rejection, leading-zero
-rejection, exact whitespace). Two residuals remain:</p>
+<p>So the simplified grammar is <strong>right on the common JSON core</strong> but diverges from the standard exactly where
+<a href="#grammar-and-scope-a-simplified-subset">Grammar and Scope</a> says it would:</p>
 <ul>
-<li><strong>5 <code>n_</code> wrongly accepted</strong> — all <em>trailing content after a complete value</em>: <code>{"a":"b"}//</code>,
-<code>{"a":"b"}/**/</code>, <code>{"a":"b"}#</code>, <code>{"a":"b"}#{}</code>, <code>{"a":/*comment*/"b"}</code>. Not lexical — the value parses and
-the trailing bytes are left unconsumed. Fixed by strict end-of-input enforcement (<code>EXTERNAL-CORPUS.2c</code>).</li>
-<li><strong>3 deep-nesting files abort</strong> instead of being rejected — a robustness defect (<code>EXTERNAL-CORPUS.2b</code>).</li>
+<li><strong>14 <code>y_</code> wrongly rejected</strong> — all number-exponent forms (<code>y_number_0e1</code>, <code>…_real_exponent</code>, …) plus two
+escaped-string cases (<code>y_string_allowed_escapes</code>, <code>y_string_backslash_doublequotes</code>).</li>
+<li><strong>28 <code>n_</code> wrongly accepted</strong> — 3 leading-zero numbers, 20 invalid strings (raw control chars / bad
+escapes / bad <code>\u</code> surrogates), and 6 trailing-garbage / comment / form-feed structures.</li>
+<li><strong>3 deep-nesting files abort</strong> instead of being rejected — a robustness defect, not a conformance one.</li>
 </ul>
-<p>Full per-file results: <code>json_corpus_bundle/results/json_corpus_results.tsv</code>; root-cause analysis:
-<code>json_corpus_bundle/results/characterization.md</code>.</p>
+<p>These are <strong>grammar-scope limits, not engine bugs</strong>: the PEG engine faithfully implements <code>json.ebnf</code>. The
+full per-file results live in <code>json_corpus_bundle/results/json_corpus_results.tsv</code> and the root-cause
+analysis in <code>json_corpus_bundle/results/characterization.md</code>.</p>
 <h2 id="roadmap"><a class="header" href="#roadmap">Roadmap</a></h2>
 <ul>
-<li><strong><code>EXTERNAL-CORPUS.2c</code></strong> — strict end-of-input at the <code>json</code> rule so trailing garbage/comments are
-rejected (closes the remaining 5 <code>n_</code>).</li>
+<li><strong><code>EXTERNAL-CORPUS.2a</code></strong> — upgrade <code>json.ebnf</code> toward RFC 8259 (number exponent, <code>0|[1-9][0-9]*</code>,
+escaped-string production, exact whitespace, strict no-trailing). Acceptance metric = re-running this
+characterization (target <code>y_</code> 95/95, non-crash <code>n_</code> 186/186).</li>
 <li><strong><code>EXTERNAL-CORPUS.2b</code></strong> — a recursion/stack guard so deep nesting is <em>rejected</em>, not <em>crashed</em>.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>

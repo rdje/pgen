@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8bb30189.js";
+            window.path_to_searchindex_js = "searchindex-ebdebdc8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e048ab27.js"></script>
@@ -180,10 +180,10 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="grammar-and-scope"><a class="header" href="#grammar-and-scope">Grammar and Scope</a></h1>
-<p>The full grammar is <code>grammars/json.ebnf</code> (nine rules). As of the <code>EXTERNAL-CORPUS.2a</code> upgrade its lexical
-terminals track RFC 8259 / ECMA-404, validated against the recognized JSONTestSuite corpus (every
-must-accept file passes: <strong>95/95</strong>).</p>
+                        <h1 id="grammar-and-scope-a-simplified-subset"><a class="header" href="#grammar-and-scope-a-simplified-subset">Grammar and Scope (a simplified subset)</a></h1>
+<p>The full grammar is <code>grammars/json.ebnf</code> (nine rules). It models the <strong>shape</strong> of JSON — objects, arrays,
+strings, numbers, the three keywords — but uses coarse regex terminals for the lexical layer, so it is a
+<strong>subset/superset</strong> of standard JSON rather than a faithful implementation.</p>
 <h2 id="what-it-accepts-the-rules"><a class="header" href="#what-it-accepts-the-rules">What it accepts (the rules)</a></h2>
 <div class="table-wrapper">
 <table>
@@ -198,33 +198,39 @@ must-accept file passes: <strong>95/95</strong>).</p>
 <tr><td><code>pair</code></td><td><code>string : value</code></td><td></td></tr>
 <tr><td><code>array</code></td><td><code>[]</code>  or  <code>[ elements ]</code></td><td></td></tr>
 <tr><td><code>elements</code></td><td><code>value ( , value )*</code></td><td>comma-separated values</td></tr>
-<tr><td><code>string</code></td><td><code>/[ \t\n\r]*"(\\(["\\\/bfnrt]|u[0-9a-fA-F]{4})|[^"\\\x00-\x1f])*"[ \t\n\r]*/</code></td><td>the RFC escape set; forbids raw control chars / lone <code>\</code></td></tr>
-<tr><td><code>number</code></td><td><code>/[ \t\n\r]*-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?[ \t\n\r]*/</code></td><td>sign, <code>0|[1-9]…</code>, fraction, exponent</td></tr>
+<tr><td><code>string</code></td><td><code>/\s*"[^"]*"\s*/</code></td><td><strong>any run of non-<code>"</code> bytes</strong> between quotes</td></tr>
+<tr><td><code>number</code></td><td><code>/\s*-?[0-9]+(\.[0-9]+)?\s*/</code></td><td>optional sign, integer, optional fraction</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>true</code> / <code>false</code> / <code>null</code> are matched as whitespace-padded keywords (whitespace = the exact JSON set
-<code>[ \t\n\r]</code>) and lowered to <code>{type:"boolean", value:true/false}</code> / <code>{type:"null"}</code>.</p>
-<h2 id="rfc-8259-lexical-conformance-closed-by-external-corpus2a"><a class="header" href="#rfc-8259-lexical-conformance-closed-by-external-corpus2a">RFC-8259 lexical conformance (closed by <code>EXTERNAL-CORPUS.2a</code>)</a></h2>
-<p>The original simplified grammar diverged on number/string/whitespace lexing; the upgrade closed those:</p>
-<ul>
-<li><strong>Number exponents</strong> — <code>1e10</code>, <code>0e1</code>, <code>2.5E-3</code> now parse (<code>([eE][+-]?[0-9]+)?</code>).</li>
-<li><strong>String escapes</strong> — only <code>\" \\ \/ \b \f \n \r \t \uXXXX</code> are valid escapes; <strong>raw control characters
-(<code>\x00-\x1f</code>) and malformed/lone escapes are now rejected</strong>.</li>
-<li><strong>Leading zeros</strong> — <code>01</code> / <code>-01</code> are rejected (<code>0 | [1-9][0-9]*</code>).</li>
-<li><strong>Whitespace</strong> — exactly <code>[ \t\n\r]</code> (form-feed / vertical-tab no longer slip through).</li>
-</ul>
-<h2 id="known-residuals-each-its-own-follow-up-leaf"><a class="header" href="#known-residuals-each-its-own-follow-up-leaf">Known residuals (each its own follow-up leaf)</a></h2>
+<p><code>true</code> / <code>false</code> / <code>null</code> are matched as whitespace-padded keywords and lowered to
+<code>{type:"boolean", value:true/false}</code> / <code>{type:"null"}</code>.</p>
+<h2 id="what-it-does-not-do-the-gaps-vs-rfc-8259--ecma-404"><a class="header" href="#what-it-does-not-do-the-gaps-vs-rfc-8259--ecma-404">What it does NOT do (the gaps vs RFC 8259 / ECMA-404)</a></h2>
+<p>These are <strong>deliberate simplifications</strong>, each confirmed by the external corpus
+(<a href="external-corpus-characterization.html">characterization</a>):</p>
 <ol>
-<li><strong>Trailing content after a complete value is not yet rejected</strong> (<code>EXTERNAL-CORPUS.2c</code>). <code>{"a":"b"}//</code>,
-<code>{"a":"b"}#</code>, <code>{"a":/*comment*/"b"}</code> etc. are still accepted — the value parses and the trailing bytes
-are left unconsumed without the parse failing. The fix is strict end-of-input enforcement at <code>json</code>.</li>
-<li><strong>No recursion/stack guard</strong> (<code>EXTERNAL-CORPUS.2b</code>). Adversarially deep nesting (hundreds–thousands of
-<code>[</code>) <strong>crashes</strong> the recursive-descent parser instead of being rejected. (The regex family solved this
-class with a dedicated worker stack; the json parser needs an equivalent.)</li>
+<li><strong>No number exponent.</strong> <code>1e10</code>, <code>0e1</code>, <code>2.5E-3</code> are <strong>rejected</strong> (the standard requires
+<code>([eE][+-]?[0-9]+)?</code>).</li>
+<li><strong>No string escapes.</strong> <code>string</code> is <code>"[^"]*"</code>, so:
+<ul>
+<li>valid escaped strings like <code>"a\"b"</code> or <code>"\n"</code> are <strong>rejected</strong> (the <code>[^"]*</code> stops at, or cannot
+express, the escape);</li>
+<li>invalid strings — raw control characters, bad <code>\</code>-escapes, malformed <code>\uXXXX</code> surrogates — are
+<strong>wrongly accepted</strong> (any non-<code>"</code> byte passes). The standard allows only
+<code>\" \\ \/ \b \f \n \r \t \uXXXX</code> and forbids raw control characters.</li>
+</ul>
+</li>
+<li><strong>Leading zeros allowed.</strong> The integer part is <code>[0-9]+</code>, so <code>01</code> / <code>-01</code> are <strong>wrongly accepted</strong>
+(the standard requires <code>0 | [1-9][0-9]*</code>).</li>
+<li><strong>Loose trailing/whitespace.</strong> The regex <code>\s</code> class includes form-feed (which JSON whitespace does
+not), and trailing-content handling is looser than a strict full-input requirement, so a few
+trailing-garbage / trailing-comment documents are <strong>wrongly accepted</strong>.</li>
+<li><strong>No recursion/stack guard.</strong> Deeply nested input (hundreds–thousands of <code>[</code>) <strong>crashes</strong> the
+recursive-descent parser instead of being rejected. (The regex family solved this class with a
+dedicated worker stack; the json parser has no equivalent yet.)</li>
 </ol>
-<p>These two are the only remaining gaps versus a fully hardened standards parser; the
-<a href="external-corpus-characterization.html">External-Corpus Characterization</a> measures them precisely.</p>
+<p>The planned, evidence-gated <strong><code>EXTERNAL-CORPUS.2a</code></strong> upgrade closes #1–#4 (and <strong><code>.2b</code></strong> addresses #5),
+using the <code>json_corpus_bundle/</code> characterization as the acceptance metric.</p>
 
                     </main>
 

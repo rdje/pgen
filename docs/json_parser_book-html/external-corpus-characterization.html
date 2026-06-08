@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8bb30189.js";
+            window.path_to_searchindex_js = "searchindex-ebdebdc8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e048ab27.js"></script>
@@ -192,35 +192,37 @@ Minefield”</em>, MIT), vendored under <code>json_corpus_bundle/</code>.</p>
 </code></pre>
 <p>The corpus’s filename prefix is the fix-independent oracle: <code>y_*</code> must be accepted, <code>n_*</code> must be
 rejected, <code>i_*</code> is implementation-defined.</p>
-<h2 id="measured-2026-06-08-pinned-upstream-commit-1ef36fa0-after-the-external-corpus2a-upgrade"><a class="header" href="#measured-2026-06-08-pinned-upstream-commit-1ef36fa0-after-the-external-corpus2a-upgrade">Measured (2026-06-08, pinned upstream commit <code>1ef36fa0</code>, after the <code>EXTERNAL-CORPUS.2a</code> upgrade)</a></h2>
+<h2 id="measured-2026-06-08-pinned-upstream-commit-1ef36fa0"><a class="header" href="#measured-2026-06-08-pinned-upstream-commit-1ef36fa0">Measured (2026-06-08, pinned upstream commit <code>1ef36fa0</code>)</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Class</th><th>Files</th><th>Parser result</th><th>Conformance</th><th>(was, simplified)</th></tr>
+<tr><th>Class</th><th>Files</th><th>Parser result</th><th>Conformance</th></tr>
 </thead>
 <tbody>
-<tr><td><code>y_</code> MUST accept</td><td>95</td><td>95 accept / 0 reject</td><td><strong>95 / 95</strong> ✅</td><td>81 / 95</td></tr>
-<tr><td><code>n_</code> MUST reject</td><td>188</td><td>181 reject / 5 accept / 2 crash</td><td><strong>181 / 188</strong></td><td>158 / 188</td></tr>
-<tr><td><code>i_</code> impl-defined</td><td>35</td><td>20 accept / 14 reject / 1 crash</td><td>n/a</td><td>13 / 21 / 1</td></tr>
-<tr><td>crashes (any class)</td><td>—</td><td><strong>3</strong> abort (stack overflow)</td><td>robustness defect</td><td>3</td></tr>
+<tr><td><code>y_</code> MUST accept</td><td>95</td><td>81 accept / 14 reject</td><td><strong>81 / 95</strong></td></tr>
+<tr><td><code>n_</code> MUST reject</td><td>188</td><td>158 reject / 28 accept / 2 crash</td><td><strong>158 / 188</strong></td></tr>
+<tr><td><code>i_</code> impl-defined</td><td>35</td><td>13 accept / 21 reject / 1 crash</td><td>n/a</td></tr>
+<tr><td>crashes (any class)</td><td>—</td><td><strong>3</strong> abort (stack overflow)</td><td>robustness defect</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Every must-accept JSON document is now accepted (95/95)</strong> and the must-reject rate rose 158→181. The
-upgrade closed all original lexical gaps (exponents, escapes + control-char rejection, leading-zero
-rejection, exact whitespace). Two residuals remain:</p>
+<p>So the simplified grammar is <strong>right on the common JSON core</strong> but diverges from the standard exactly where
+<a href="grammar-and-scope.html">Grammar and Scope</a> says it would:</p>
 <ul>
-<li><strong>5 <code>n_</code> wrongly accepted</strong> — all <em>trailing content after a complete value</em>: <code>{"a":"b"}//</code>,
-<code>{"a":"b"}/**/</code>, <code>{"a":"b"}#</code>, <code>{"a":"b"}#{}</code>, <code>{"a":/*comment*/"b"}</code>. Not lexical — the value parses and
-the trailing bytes are left unconsumed. Fixed by strict end-of-input enforcement (<code>EXTERNAL-CORPUS.2c</code>).</li>
-<li><strong>3 deep-nesting files abort</strong> instead of being rejected — a robustness defect (<code>EXTERNAL-CORPUS.2b</code>).</li>
+<li><strong>14 <code>y_</code> wrongly rejected</strong> — all number-exponent forms (<code>y_number_0e1</code>, <code>…_real_exponent</code>, …) plus two
+escaped-string cases (<code>y_string_allowed_escapes</code>, <code>y_string_backslash_doublequotes</code>).</li>
+<li><strong>28 <code>n_</code> wrongly accepted</strong> — 3 leading-zero numbers, 20 invalid strings (raw control chars / bad
+escapes / bad <code>\u</code> surrogates), and 6 trailing-garbage / comment / form-feed structures.</li>
+<li><strong>3 deep-nesting files abort</strong> instead of being rejected — a robustness defect, not a conformance one.</li>
 </ul>
-<p>Full per-file results: <code>json_corpus_bundle/results/json_corpus_results.tsv</code>; root-cause analysis:
-<code>json_corpus_bundle/results/characterization.md</code>.</p>
+<p>These are <strong>grammar-scope limits, not engine bugs</strong>: the PEG engine faithfully implements <code>json.ebnf</code>. The
+full per-file results live in <code>json_corpus_bundle/results/json_corpus_results.tsv</code> and the root-cause
+analysis in <code>json_corpus_bundle/results/characterization.md</code>.</p>
 <h2 id="roadmap"><a class="header" href="#roadmap">Roadmap</a></h2>
 <ul>
-<li><strong><code>EXTERNAL-CORPUS.2c</code></strong> — strict end-of-input at the <code>json</code> rule so trailing garbage/comments are
-rejected (closes the remaining 5 <code>n_</code>).</li>
+<li><strong><code>EXTERNAL-CORPUS.2a</code></strong> — upgrade <code>json.ebnf</code> toward RFC 8259 (number exponent, <code>0|[1-9][0-9]*</code>,
+escaped-string production, exact whitespace, strict no-trailing). Acceptance metric = re-running this
+characterization (target <code>y_</code> 95/95, non-crash <code>n_</code> 186/186).</li>
 <li><strong><code>EXTERNAL-CORPUS.2b</code></strong> — a recursion/stack guard so deep nesting is <em>rejected</em>, not <em>crashed</em>.</li>
 </ul>
 

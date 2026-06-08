@@ -1,4 +1,23 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0006 (EXTERNAL-CORPUS.2a HOLD): revert json.ebnf to the simplified grammar; defer the full JSON parser (CODE/grammar revert + DOCS).
+
+Director course-correction (incremental roadmap tuning, not a switch): the full JSON parser is to be
+**captured for later, not implemented now**, and the **current json parser must stay cert-coverage clean**.
+So the `.2a` RFC-8259 grammar upgrade is **reverted** and the full-JSON sub-tree is put **on hold**.
+
+- `grammars/json.ebnf` reverted to the simplified grammar (the `.2a` terminal upgrade is preserved in git
+  at commit `050b4cb2` for when the director un-holds it). Regenerated json parser → **cert-coverage CLEAN**
+  again: `total=9 proof=0 witness=9 UNKNOWN=0 fully_certified=true (sample_parse_failures=0)` (the `.2a`
+  upgrade had introduced 31 raw-witness fails).
+- Restored the stale `.2a` lockstep docs to "simplified subset": the json per-parser book (+ re-rendered
+  HTML), `json_corpus_bundle/` README + characterization + results TSV (back to y_ 81/95, n_ 158/188), the
+  platform book's Parser Families JSON subsection, and README Key Project Paths.
+- Marked the full-JSON sub-tree `EXTERNAL-CORPUS.2F` (umbrella) + `.2a`/`.2b`/`.2c.1`/`.2d` **ON HOLD /
+  deferred** in the tree + TASK_TREE; the goal [[project_json_full_standard_proof]] remains owned-for-later.
+
+The current locked program (director 2026-06-08) is **all existing parsers → `Done`**, including
+cert-coverage wired + UNKNOWN=0 for each. DOCS + grammar-revert only; no Rust-source change.
+
 ## 2026-06-08 - PGEN-EXTERNAL-CORPUS-0005 (EXTERNAL-CORPUS.2c): root-cause + design for the json trailing-content false-accepts (DOCS/investigation).
 
 Director directed "move to EXTERNAL-CORPUS.2c" (json strict end-of-input). Tools-first investigation

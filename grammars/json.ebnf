@@ -1,14 +1,5 @@
-# JSON grammar (RFC 8259 / ECMA-404 aligned).
-#
-# EXTERNAL-CORPUS.2a (PGEN-EXTERNAL-CORPUS-0003): upgraded from the original
-# simplified subset to track the JSON standard, using the JSONTestSuite corpus
-# (json_corpus_bundle/) as the acceptance metric. Lexical terminals are exact:
-#   - number  carries the optional exponent and forbids leading zeros (0|[1-9][0-9]*)
-#   - string  models the JSON escape set (\" \\ \/ \b \f \n \r \t \uXXXX) and
-#             forbids raw control characters (\x00-\x1f) and lone backslashes
-#   - whitespace is the exact JSON set [ \t\n\r] (no form-feed / vertical-tab)
-# Return-annotation shapes are unchanged from the simplified grammar (string and
-# number still return their matched text via -> $1).
+# Simplified JSON Grammar using regex syntax
+# Covers basic JSON structure with realistic string and number patterns
 
 json := value
 -> {type: "json", value: $1}
@@ -21,37 +12,37 @@ value := string
 -> {type: "string", value: $1}
 value := number
 -> {type: "number", value: $1}
-value := /[ \t\n\r]*true[ \t\n\r]*/
+value := /\s*true\s*/
 -> {type: "boolean", value: true}
-value := /[ \t\n\r]*false[ \t\n\r]*/
+value := /\s*false\s*/
 -> {type: "boolean", value: false}
-value := /[ \t\n\r]*null[ \t\n\r]*/
+value := /\s*null\s*/
 -> {type: "null"}
 
-object := /[ \t\n\r]*\{[ \t\n\r]*\}[ \t\n\r]*/
+object := /\s*\{\s*\}\s*/
 -> {type: "object", members: []}
-object := /[ \t\n\r]*\{[ \t\n\r]*/ members /[ \t\n\r]*\}[ \t\n\r]*/
+object := /\s*\{\s*/ members /\s*\}\s*/
 -> {type: "object", members: $2}
 
-members := pair /[ \t\n\r]*,[ \t\n\r]*/ members
+members := pair /\s*,\s*/ members
 -> [$1, $3*]
 members := pair
 -> [$1]
 
-pair := string /[ \t\n\r]*:[ \t\n\r]*/ value
+pair := string /\s*:\s*/ value
 -> {type: "pair", key: $1, value: $3}
 
-array := /[ \t\n\r]*\[[ \t\n\r]*\][ \t\n\r]*/
+array := /\s*\[\s*\]\s*/
 -> {type: "array", elements: []}
-array := /[ \t\n\r]*\[[ \t\n\r]*/ elements /[ \t\n\r]*\][ \t\n\r]*/
+array := /\s*\[\s*/ elements /\s*\]\s*/
 -> {type: "array", elements: $2}
 
-elements := value /[ \t\n\r]*,[ \t\n\r]*/ elements
+elements := value /\s*,\s*/ elements
 -> [$1, $3*]
 elements := value
 -> [$1]
 
-string := /[ \t\n\r]*"(\\(["\\\/bfnrt]|u[0-9a-fA-F]{4})|[^"\\\x00-\x1f])*"[ \t\n\r]*/
+string := /\s*"[^"]*"\s*/
 -> $1
-number := /[ \t\n\r]*-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?[ \t\n\r]*/
+number := /\s*-?[0-9]+(\.[0-9]+)?\s*/
 -> $1
