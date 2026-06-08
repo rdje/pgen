@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `STORE-AWARE-GEN`
-- Status: `active` (`.1` SCOPING done — this is the plan; implementation leaves are pending / "at some point" per the director)
+- Status: `active` (`.1` SCOPING + `.2` DESIGN done — the plan is complete and the `.3`–`.5` implementation is turnkey; implementation sequenced per the director)
 - Family / slice-id prefix: `PGEN-STORE-AWARE-GEN-<NNNN>`
 - Roadmap lane: stimuli-generator quality / parser sign-off pillars **C** (fidelity) + **D** (coverage) —
   the generator must emit only samples that satisfy the SAME semantic predicates the parser enforces
@@ -103,13 +103,20 @@ introduced (the generator becomes a second consumer of the existing one).
   is parse-only); cited the SOTA (ISLa input invariants + data-dependent grammars + Fuzzing Book);
   recorded the decision; registered the tree; pointed `REGEX-PCRE2-FIDELITY.3.12` at it. Establishes the
   cited ground per the research-grounded-SOTA discipline. NO code.
-- `.2` — **DESIGN (pure docs).** Pin the exact mechanism, tools-first: (a) where the generator would
-  instantiate a `SemanticRuntimeState` and EMIT facts as it generates (mirror the codegen `@emit_fact`
-  sites); (b) how a generated branch/value consults `evaluate_predicate` (reuse `semantic_runtime.rs`) to
-  gate selection — for `fact_count_at_least`, restrict the generated index to `≤` the live count of the
-  named fact kind; (c) the rollback/scoping discipline (generation backtracks too — the store must
-  checkpoint/rollback in lockstep, like the parser's transaction machinery); (d) the no-op guarantee for
-  predicate-free grammars. Output: a precise implementation plan + the verification matrix.
+- `.2` — **DESIGN (pure docs). DONE (`PGEN-STORE-AWARE-GEN-0002`, 2026-06-08) —
+  [`STORE-AWARE-GEN-design.md`](STORE-AWARE-GEN-design.md).** Pinned the exact mechanism, tool-backed (all
+  file:line refs verified): (a) a `gen_semantic_state: SemanticRuntimeState` on the generator + an EMIT
+  hook in `generate_rule` mirroring the codegen effect phase (`ast_based_generator.rs:1566`); (b) two
+  predicate strategies — (A) constraint-directed (preferred/invertible: for `fact_count_at_least(K,
+  $index)` constrain the generated index to ≤ `gen_semantic_state.count(K)` and PRUNE the branch when the
+  count is 0, mirroring branch-predicate pruning) and (B) generate-check-backtrack (general fallback,
+  mirrors the parser's post-predicate); (c) the checkpoint/rollback discipline reusing the parser's EXACT
+  API (`checkpoint`/`rollback_to_named`/`extract_delta_since`/`apply_delta`) at every speculative
+  generation site (`generate_or`, `generate_quantified`, the relational retry loop, target/witness
+  retries); (d) the no-op guarantee via a one-time `grammar_has_generative_predicates` gate (byte-identical
+  for predicate-free grammars). Reuses `parse_semantic_runtime_directives` + the resolve helpers — no new
+  runtime code. Includes the `.3` MVP scope, the verification matrix, risks/mitigations, and the
+  no-workarounds-hierarchy placement (Level-3+, justified). The `.3`–`.5` implementation is now turnkey.
 - `.3` — **IMPLEMENT `fact_count_at_least`-aware generation (the regex `.3.12` driver).** The minimal,
   highest-value first cut: emit `regex_capture_group` facts during generation + gate
   `numeric_backreference`'s index by the live count. VERIFY: `(?(R…)` / `\NN` samples reference only
@@ -145,9 +152,11 @@ introduced (the generator becomes a second consumer of the existing one).
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-08` | `.1` | tool-backed root cause (generator has no fact/predicate machinery — grep of `stimuli_generator.rs`; `fact_count_at_least` parse-only in `semantic_runtime.rs`/linter); SOTA cited (ISLa, data-dependent grammars, Fuzzing Book) | SCOPING DONE (docs) |
+| `2026-06-08` | `.2` | tool-backed design — verified the parser's emit/predicate runtime (`SemanticFactSpec`/`SemanticPredicateSpec`/`evaluate_predicate`/`emit_fact`/`checkpoint`/`rollback_to_named`/`extract_delta_since`/`apply_delta` in `semantic_runtime.rs`; codegen emit/predicate/try_parse sites in `ast_based_generator.rs`); pinned the generator hooks, the 2 predicate strategies, the checkpoint/rollback discipline, the no-op gate, the MVP scope + verification matrix | DESIGN DONE (docs) — `.3`–`.5` turnkey |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `.1` | `PGEN-STORE-AWARE-GEN-0001` | tree created + scoping + decision record + registered; trigger = `REGEX-PCRE2-FIDELITY.3.12` |
+| `.2` | `PGEN-STORE-AWARE-GEN-0002` | tool-backed design ([`STORE-AWARE-GEN-design.md`](STORE-AWARE-GEN-design.md)) — generator hooks, 2 predicate strategies, checkpoint/rollback discipline, no-op gate, MVP scope, verification matrix; `.3`–`.5` turnkey |

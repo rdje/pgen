@@ -1,4 +1,24 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-STORE-AWARE-GEN-0002 (STORE-AWARE-GEN .2 DESIGN): tool-backed turnkey design for semantic-store-aware generation (DOCS).
+
+Pinned the exact, implementable mechanism so the `.3`–`.5` implementation is turnkey (no code in this
+slice). `docs/tasks/STORE-AWARE-GEN-design.md` — all file:line references verified against the parser's
+emit/predicate runtime (mapped via an Explore pass).
+
+- The parser's runtime to mirror: `SemanticFactSpec`/`SemanticPredicateSpec`/`evaluate_predicate`/
+  `emit_fact`/`checkpoint`/`rollback_to_named`/`extract_delta_since`/`apply_delta` (`semantic_runtime.rs`);
+  the codegen emit/predicate/try_parse sites (`ast_based_generator.rs`).
+- Generator changes: a `gen_semantic_state: SemanticRuntimeState` + an EMIT hook in `generate_rule`
+  (mirror the codegen effect phase); TWO predicate strategies — (A) constraint-directed (preferred:
+  for `fact_count_at_least(K,$index)` constrain the generated index ≤ `gen_state.count(K)`, PRUNE the
+  branch when the count is 0) + (B) generate-check-backtrack (general fallback, mirrors the post-predicate);
+  checkpoint/rollback reusing the parser's EXACT API at every speculative generation site
+  (`generate_or`/`generate_quantified`/relational retry/witness); a one-time
+  `grammar_has_generative_predicates` no-op gate → byte-identical generation for predicate-free grammars.
+- Reuses `parse_semantic_runtime_directives` + the resolve helpers (no new runtime code). Includes the
+  `.3` MVP scope (the regex `.3.12` closer), the verification matrix, risks/mitigations, and the
+  no-workarounds-hierarchy placement (Level-3+, justified).
+
 ## 2026-06-08 - PGEN-STORE-AWARE-GEN-0001 (STORE-AWARE-GEN .1 SCOPING): plan + task-tree-track semantic-store-aware (context-valid) stimuli generation (DOCS; new tree).
 
 Director directive (2026-06-08): "plan this new generator capability (semantic-store-aware generation
