@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - GRAMMAR-WELLFORMED.H.4.1 — root-cause of rtl_const_expr's cert-coverage `UNKNOWN` residual (tools-first; pure docs, no code) (PGEN-GRAMMAR-WELLFORMED-0050)
+
+### Goal
+Own the FIRST per-grammar `UNKNOWN`→0 drive (smallest wired grammar, rtl_const_expr) and adjudicate the residual per the attribution rule BEFORE touching the generator — toward the locked program (all existing parsers cert-coverage clean + `UNKNOWN`=0).
+
+### Root cause (tool-backed, `--report-certificate-coverage` + `--generate-stimuli`, debug binary)
+- The residual is monotone in sample count and reduces to ONE structural pair. cert-coverage seed 0: `--count 8`→UNKNOWN 7 `[literal, based_integer, decimal_integer, bang, tilde, lparen, rparen]`; `--count 40`→3 `[based_integer, lparen, rparen]`; `--count 100`→**2 `[lparen, rparen]`**; `--count 40 --seed 7`→2 `[lparen, rparen]`. The non-paren rules are eventually witnessed by the coverage-guided ×24 uncovered-branch weighting (a sample-budget artifact). The STUBBORN pair is `lparen`/`rparen`.
+- `lparen`/`rparen` = the `primary_expr := lparen conditional_expr rparen` parenthesised-primary branch (3rd alternative). Clean diverse generation essentially NEVER selects it: `0/40` diverse samples @ `--max-depth 32 --seed 0` contain a `(` (`grep -c '(' = 0`), even though the generator's own branch self-report (`branches 24/25`) knows the alt is uncovered. The parser-testified certificate (sound — backtracked attempts truncated on `try_parse` rollback; complete — immune to `ParseContent::Json` annotation folding) is the trustworthy metric and confirms `lparen`/`rparen` stay UNKNOWN.
+- WHY (structural): the parenthesised branch re-enters the full ~15-deep precedence chain (`conditional_expr → logical_or → logical_and → bit_or → … → unary_expr → primary_expr`), so one `( … )` nesting needs ~30 derivation depth. At the DEFAULT `--max-depth 24` the diverse generator FATAL-errors `Stimuli generation depth exceeded max_depth=24 while expanding rule 'primary_expr'` (chain + one paren doesn't fit). At `--max-depth 32` it fits, but the diverse pass's depth-floor pruning (prune the highest-rule-ref branch near the floor) + recursion-pressure penalty systematically deprioritise the deeply-recursive branch, so the ×24 coverage boost cannot overcome the structural avoidance within 100 samples.
+
+### Adjudication (attribution rule — grammar-wellformedness duality)
+The branch is statically REACHABLE (`(1)` is a valid `rtl_const_expr`; linter structural reachability reports 0 unreachable for this grammar) ⇒ a **generator-reach DEFICIENCY (case 1)**, not a dead branch — the fix belongs in the generator, not the grammar. The witness/target-drive pass is NOT a valid shortcut for the gate: `rust/src/main.rs:1572-1576` records the explicit design decision that reach-plan-FORCED witnesses often don't re-parse, so certificate-coverage deliberately uses CLEAN diverse samples and keeps generation/certification separate. So `UNKNOWN`→0 must come from improving the diverse generator's reach.
+
+### Next (`H.4.2`, code — the constructive-reach lane, composes with `B2`/`C1`/`C2`)
+Improve the diverse generator so a deeply-recursive never-covered branch is reliably reached within budget (candidate levers, tool-confirmed one-at-a-time: do not depth-floor-prune a never-covered branch; bounded-ordered backtracking into a recursive branch with a min-derivation inner; recursion-pressure penalty exempt for uncovered branches). ⚠️ This is the generator HOT PATH shared by ALL grammars — measure the GLOBAL metric (json stays `fully_certified` byte-identical; regex/vhdl/SV/svpp/rtl_frontend cert-coverage no-regression; cross-family + self-host + oracle gates; lib tests). rtl_const_expr is the first proving ground per the locked program ("smallest first"). NO code / NO tracked-artifact / NO status-row change in this `H.4.1` slice.
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.5.1.3.2 — svpp `condition_text -> $text` (declarative atomicity) closes the last svpp cert-coverage residual; schema 3→4 (PGEN-GRAMMAR-WELLFORMED-0049)
 
 ### Problem
