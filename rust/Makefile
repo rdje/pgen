@@ -24,6 +24,7 @@ SYSTEMVERILOG_EBNF = $(GRAMMARS_DIR)/systemverilog.ebnf
 JSON_EBNF = $(GRAMMARS_DIR)/json.ebnf
 RTL_CONST_EXPR_EBNF = $(GRAMMARS_DIR)/rtl_const_expr.ebnf
 SVPP_EBNF = $(GRAMMARS_DIR)/systemverilog_preprocessor.ebnf
+RTL_FRONTEND_EBNF = $(GRAMMARS_DIR)/rtl_frontend.ebnf
 
 # Generated JSON files (intermediate)
 SEMANTIC_ANNOTATION_JSON = $(GENERATED_DIR)/semantic_annotation.json
@@ -33,6 +34,7 @@ SYSTEMVERILOG_JSON = $(GENERATED_DIR)/systemverilog.json
 JSON_JSON = $(GENERATED_DIR)/json.json
 RTL_CONST_EXPR_JSON = $(GENERATED_DIR)/rtl_const_expr.json
 SVPP_JSON = $(GENERATED_DIR)/systemverilog_preprocessor.json
+RTL_FRONTEND_JSON = $(GENERATED_DIR)/rtl_frontend.json
 
 # Generated Rust parser files (final output)
 SEMANTIC_ANNOTATION_PARSER = $(GENERATED_DIR)/semantic_annotation_parser.rs
@@ -42,6 +44,7 @@ SYSTEMVERILOG_PARSER = $(GENERATED_DIR)/systemverilog_parser.rs
 JSON_PARSER = $(GENERATED_DIR)/json_parser.rs
 RTL_CONST_EXPR_PARSER = $(GENERATED_DIR)/rtl_const_expr_parser.rs
 SVPP_PARSER = $(GENERATED_DIR)/systemverilog_preprocessor_parser.rs
+RTL_FRONTEND_PARSER = $(GENERATED_DIR)/rtl_frontend_parser.rs
 
 # Compiled Rust parser executables
 SEMANTIC_ANNOTATION_EXE = $(GENERATED_DIR)/semantic_annotation_parser
@@ -283,6 +286,41 @@ systemverilog_preprocessor_parser: $(SVPP_JSON) $(RUST_AST_PIPELINE)
 focus_systemverilog_preprocessor: $(SVPP_PARSER)
 	@echo ""
 	@echo "✅ systemverilog_preprocessor parser artifact ready: $(SVPP_PARSER)"
+	@echo ""
+	@echo "Default cargo test will pick this up automatically."
+	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"
+	@echo ""
+
+# Generate rtl_frontend raw-AST JSON from EBNF (GRAMMAR-WELLFORMED.H.6 — Phase H cert-coverage)
+$(RTL_FRONTEND_JSON): $(RTL_FRONTEND_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating rtl_frontend JSON with debug output (Rust frontend)..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_FRONTEND_TO_JSON) $(RTL_FRONTEND_EBNF) --emit-raw-ast-json $(RTL_FRONTEND_JSON)
+
+# Generate final rtl_frontend parser from JSON
+$(RTL_FRONTEND_PARSER): $(RTL_FRONTEND_JSON) $(RUST_AST_PIPELINE)
+	@echo "Generating final rtl_frontend parser from JSON..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(RTL_FRONTEND_JSON) -o $(RTL_FRONTEND_PARSER)
+
+# rtl_frontend parser complete flow
+.PHONY: rtl_frontend_parser
+rtl_frontend_parser: $(RTL_FRONTEND_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for rtl_frontend parser..."
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(RTL_FRONTEND_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(RTL_FRONTEND_JSON) -o $(RTL_FRONTEND_PARSER)
+	@echo "✅ Generated: $(RTL_FRONTEND_PARSER)"
+	@echo "✅ rtl_frontend parser generated successfully!"
+
+# `make focus_rtl_frontend` — regenerate the rtl_frontend artifact so subsequent
+# `cargo test --features generated_parsers` invocations exercise the rtl_frontend
+# family (build.rs sets has_generated_rtl_frontend_parser when the artifact exists).
+.PHONY: focus_rtl_frontend
+focus_rtl_frontend: $(RTL_FRONTEND_PARSER)
+	@echo ""
+	@echo "✅ rtl_frontend parser artifact ready: $(RTL_FRONTEND_PARSER)"
 	@echo ""
 	@echo "Default cargo test will pick this up automatically."
 	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"

@@ -1,4 +1,36 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0040 (GRAMMAR-WELLFORMED.H.6): wire `parse_and_cover` cert-coverage for `rtl_frontend` (CODE: Makefile + parser_registry).
+
+Phase H continues toward the locked program (all parsers cert-coverage WIRED): `rtl_frontend` (the
+~5.5 MB synthesizable-RTL frontend parser) is the next grammar after svpp (H.5). Same mechanical recipe
+the H.4/H.5 leaves made turnkey.
+
+- `rtl_frontend` entry `rtl_frontend_file := trivia design_item* trivia` is a FLAT `design_item*` list
+  (like svpp's `pp_item*`, NOT a deep precedence chain like rtl_const_expr), has NO `@profiles`, and its
+  regen is ZERO-drift (fresh json from ebnf byte-identical to the on-disk json except `generated_at` + the
+  embedded `source_file` invocation-path string — `diff` excluding both = empty), so it runs at the DEFAULT
+  depth 24 — NO `--max-depth` needed (confirmed empirically: no bail, no depth-exceeded fatal at 24).
+- `rust/Makefile`: `RTL_FRONTEND_{EBNF,JSON,PARSER}` vars + `$(RTL_FRONTEND_JSON)`/`$(RTL_FRONTEND_PARSER)`
+  rules + `rtl_frontend_parser` + `focus_rtl_frontend` (mirror svpp/rtl_const_expr).
+- `rust/src/parser_registry.rs`: `parse_and_cover_rtl_frontend` (cfg `has_generated_rtl_frontend_parser`;
+  mirrors `parse_and_cover_systemverilog_preprocessor` — no profile, no worker stack) + the registry entry
+  set to `Some(parse_and_cover_rtl_frontend)`.
+- NOTE (new vs H.4/H.5): `rtl_frontend.ebnf` parses only under `--features ebnf_dual_run`, so the
+  cert-coverage binary is built `--features "ebnf_dual_run generated_parsers"`.
+- Same one-time bootstrap-ordering step as H.4/H.5: a stale pre-coverage parser is present on disk →
+  `has_generated_rtl_frontend_parser` is already on → direct-regen the parser with the already-built
+  generator binary FIRST (else E0599 on the missing `enable_coverage`/`exercised_rule_names`).
+- VERIFIED (default depth, count 40, DETERMINISTIC seed 0 run#1==run#2==seed 7):
+  `total=170 proof=0 witness=37 UNKNOWN=133 fully_certified=false (sample_parse_failures=0,
+  proof_reverify_failures=0)`. `sample_parse_failures=0` ⇒ CLEAN witness-parseability (like json/
+  rtl_const_expr). `parser_registry` lib tests 20/0; lib `--features generated_parsers` builds clean;
+  strict SOURCE clippy ok (generated-stage debt pre-existing, non-strict); json (`fully_certified`) / regex
+  / rtl_const_expr (`48/41/7` @ `--max-depth 32`) / svpp (`73/19/54`) cert-coverage UNAFFECTED.
+- NO tracked-artifact change (`generated/` is gitignored; the regen is local); default build (rtl_frontend
+  cfg off in a fresh clone) unaffected. Books/TASK_TREE/MEMORY/LIVE synced same-commit.
+- Frontier: `vhdl` (H.2) is now the LAST unwired shipped grammar — its fresh-json regen chain is de-risked
+  by the H.4/H.6 checkout-illusion zero-drift proof — then the residual drives (svpp `H.5.1`, UNKNOWN→0).
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0039 (GRAMMAR-WELLFORMED.H.5): wire `parse_and_cover` cert-coverage for `systemverilog_preprocessor` (CODE: Makefile + parser_registry).
 
 Phase H continues toward the locked program (all parsers cert-coverage WIRED): `systemverilog_preprocessor`

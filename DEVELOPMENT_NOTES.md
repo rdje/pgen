@@ -1,4 +1,73 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.6 — wire cert-coverage for rtl_frontend (PGEN-GRAMMAR-WELLFORMED-0040)
+
+### Goal
+Phase H per-grammar cert-coverage: make `--report-certificate-coverage` RUN for `rtl_frontend` (the
+~5.5 MB synthesizable-RTL frontend parser), the next unwired grammar after svpp (H.5). Mechanical mirror of
+H.5 (the H.4/H.5 leaves documented the zero-drift regen recipe + the one-time bootstrap-ordering step).
+
+### Why rtl_frontend runs at the default depth (no `--max-depth`, no `main.rs` change)
+Unlike rtl_const_expr (H.4 — whose ~15-deep operator-precedence chain fatal-errors at depth 24 and needed
+the `--max-depth` threading), `rtl_frontend`'s entry `rtl_frontend_file := trivia design_item* trivia` is a
+FLAT `design_item*` list (same shape as svpp's `pp_item*`). At the default generation depth 24 the
+cert-coverage witness pass neither bails nor fatal-errors — confirmed empirically. So H.6 reuses the H.5
+recipe verbatim with no `main.rs`/`StimuliConfig` change.
+
+### Zero-drift de-risk (the H.2 staleness trap, addressed tools-first)
+On-disk `generated/rtl_frontend.json` (May 20) is OLDER than `grammars/rtl_frontend.ebnf` (May 22) — the
+same surface signature that BLOCKED vhdl H.2. But the skew is a GIT-CHECKOUT ILLUSION, not content drift:
+regenerating the json from the current ebnf via the `ebnf_frontend` binary yields a file byte-identical to
+the on-disk json EXCEPT `generated_at` and the embedded `source_file` invocation-path string (`../grammars/`
+vs `grammars/`). `diff <(grep -v generated_at A) <(grep -v generated_at B)` shows only the `source_file`
+line ⇒ ZERO grammar-content drift. So the parser regen is provably behaviour-preserving — it only ADDS the
+unconditional G.4.6 coverage instrumentation (`enable_coverage` / `exercised_rule_names` / `coverage_stack`;
+committed 5535529 → regen 5550014 bytes).
+
+### Bootstrap-ordering (the one-time E0599 snag, same as H.4/H.5)
+`generated/rtl_frontend_parser.rs` already existed (stale, pre-coverage) → `has_generated_rtl_frontend_parser`
+was already on → a naive `make focus_rtl_frontend` (which rebuilds `ast_pipeline --features
+generated_parsers`) would compile the NEW `parse_and_cover_rtl_frontend` against the still-stale parser's
+missing methods → E0599. RESOLUTION (one-time): regenerate the parser DIRECTLY first with the already-built
+generator binary (`target/debug/ast_pipeline --generate-parser --debug --trace --eliminate-left-recursion
+generated/rtl_frontend.json -o generated/rtl_frontend_parser.rs`, ~4 s) so the methods exist BEFORE any
+`generated_parsers` lib build. Not a focus-target defect (a fresh clone starts with the parser ABSENT → cfg
+off → identical to the json flow); only the in-place transition snag.
+
+### New wrinkle vs H.4/H.5: `ebnf_dual_run`
+`rtl_frontend.ebnf` uses constructs that the legacy/bootstrap EBNF frontend cannot parse — the binary errors
+`requires building with --features ebnf_dual_run`. json/svpp parsed without it. So the cert-coverage binary
+is built `--features "ebnf_dual_run generated_parsers"`.
+
+### Code changes (tracked)
+- `rust/Makefile`: `RTL_FRONTEND_{EBNF,JSON,PARSER}` vars + `$(RTL_FRONTEND_JSON)` / `$(RTL_FRONTEND_PARSER)`
+  build rules + `.PHONY rtl_frontend_parser` + `.PHONY focus_rtl_frontend` (verbatim mirror of the svpp/
+  rtl_const_expr block).
+- `rust/src/parser_registry.rs`: `parse_and_cover_rtl_frontend(sample, _grammar_profile)` (cfg
+  `has_generated_rtl_frontend_parser`) — `enable_coverage()`, `parse_full_rtl_frontend_file()`, return
+  `(true, exercised_rule_names())` on Ok else `(false, empty)`; mirrors
+  `parse_and_cover_systemverilog_preprocessor`. The `rtl_frontend` registry entry's `parse_and_cover` flips
+  `None` → `Some(parse_and_cover_rtl_frontend)`, which is what `supports_parse_and_cover("rtl_frontend")`
+  gates on (unblocking the cert-coverage report).
+
+### Verification
+- direct regen → `grep -cE 'fn enable_coverage|fn exercised_rule_names' generated/rtl_frontend_parser.rs` = 2.
+- `cargo build --features "ebnf_dual_run generated_parsers" --bin ast_pipeline` → clean (only a pre-existing
+  unrelated unused-import warning).
+- `ast_pipeline grammars/rtl_frontend.ebnf --report-certificate-coverage --entry-rule rtl_frontend_file
+  --count 40 --seed 0` → `total=170 proof=0 witness=37 UNKNOWN=133 fully_certified=false
+  (sample_parse_failures=0, proof_reverify_failures=0)`. Run #2 (seed 0) identical; seed 7 identical ⇒
+  DETERMINISTIC. `sample_parse_failures=0` ⇒ no witness-parseability round-trip residual.
+- siblings byte-identical: json `total=9 witness=9 UNKNOWN=0 fully_certified=true`; rtl_const_expr
+  `total=48 witness=41 UNKNOWN=7` @ `--max-depth 32`; svpp `total=73 witness=19 UNKNOWN=54
+  sample_parse_failures=24`.
+- `cargo test --features generated_parsers --lib parser_registry` → 20 passed / 0 failed / 1 ignored.
+- `make clippy_on_rust_change` → `clippy_source_all_targets` ok (strict source lint passes; the hand-written
+  `parse_and_cover_rtl_frontend` is clean); `clippy_generated_all_targets` fails in NON-STRICT mode on the
+  pre-existing generated-codegen debt (191 errs / 31822 warns across ALL generated parsers — unchanged by
+  this slice; the flow completes ✅).
+- NO tracked-artifact change (`generated/` is gitignored; the regen is local). Default build (rtl_frontend
+  cfg off) unaffected.
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.5 — wire cert-coverage for systemverilog_preprocessor (PGEN-GRAMMAR-WELLFORMED-0039)
 
 ### Goal

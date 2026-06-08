@@ -448,6 +448,25 @@ fn parse_with_rtl_frontend_ast_json(sample: &str) -> Result<JsonValue, String> {
     parse_node_to_json(&parsed)
 }
 
+/// GRAMMAR-WELLFORMED.H.6 — parse `sample` through the REAL rtl_frontend parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_systemverilog_preprocessor`: enable the transactional `coverage_stack`, parse, and
+/// return the PARSER's own record of the committed rules on a SUCCESSFUL parse. rtl_frontend has no
+/// grammar profile and its entry (`rtl_frontend_file := trivia design_item* trivia`) is a flat item list,
+/// so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
+#[cfg(has_generated_rtl_frontend_parser)]
+pub fn parse_and_cover_rtl_frontend(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+    parser.enable_coverage();
+    match parser.parse_full_rtl_frontend_file() {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
 #[cfg(has_generated_systemverilog_parser)]
 fn parse_with_systemverilog(sample: &str) -> bool {
     parse_with_systemverilog_profile(sample, None)
@@ -847,7 +866,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "rtl_frontend",
         parse_sample: parse_with_rtl_frontend,
-        parse_and_cover: None,
+        parse_and_cover: Some(parse_and_cover_rtl_frontend),
         parse_detail: None,
     },
     #[cfg(has_generated_systemverilog_parser)]
