@@ -290,11 +290,16 @@ faithfully it matches the full JSON standard, which is measured separately again
 
 **Rolling the gate out per grammar (Phase H).** The certificate-coverage gate is parser-agnostic, so it is
 being wired to run for every PGEN grammar in turn (each grammar needs a small `parse_and_cover_<grammar>`
-adapter so the witness side can replay samples through that grammar's real parser). So far it runs for
-`json` (fully certified), `regex`, `rtl_const_expr`, `systemverilog_preprocessor`, and `rtl_frontend`
+adapter so the witness side can replay samples through that grammar's real parser). It now runs for
+`json` (fully certified), `regex`, `rtl_const_expr`, `systemverilog_preprocessor`, `rtl_frontend`
 (the ~5.5 MB synthesizable-RTL frontend parser, which runs at the default depth — its entry is a flat
 `design_item*` list — and reports `total=170 witness=37 UNKNOWN=133 (sample_parse_failures=0)`, i.e. every
-witness re-parses cleanly with a loud `UNKNOWN` backlog still to drive to zero). `rtl_const_expr` is a good illustration of an
+witness re-parses cleanly with a loud `UNKNOWN` backlog still to drive to zero), `systemverilog`, and
+`vhdl` (the last shipped grammar to be wired — it runs at the default depth on its flat `design_unit*`
+entry and reports `total=217 witness=132 UNKNOWN=85 (sample_parse_failures=0)` at seed 0, every witness
+re-parsing cleanly). With `vhdl` wired, **every shipped parser grammar now runs under the
+certificate-coverage gate**; only the internal meta/annotation grammars (`ebnf`,
+`return_annotation`, `semantic_annotation`) remain unwired. `rtl_const_expr` is a good illustration of an
 *honest, not-yet-complete* result: at a sufficient generation depth the report runs deterministically and
 reports e.g. `total=48 witness=41 UNKNOWN=7 (sample_parse_failures=0)` — every witness it produced re-parses
 cleanly (no round-trip failures), and the seven `UNKNOWN` rules are not hidden: they are a *loud, specific*

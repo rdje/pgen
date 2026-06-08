@@ -1,4 +1,49 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-08 - GRAMMAR-WELLFORMED.H.2 — wire cert-coverage for vhdl, the LAST shipped grammar (PGEN-GRAMMAR-WELLFORMED-0041)
+
+### Goal
+Phase H per-grammar cert-coverage: make `--report-certificate-coverage` RUN for `vhdl`, the LAST unwired
+SHIPPED grammar (the original H.2 attempt `-0036` was BLOCKED on a feared stale-json regen chain). Mechanical
+mirror of H.6/H.5/H.4. With vhdl wired, every shipped parser grammar runs under the gate.
+
+### Discharging the H.2 staleness block (tools-first, the central de-risk)
+The original block: no `focus_vhdl` target, `generated/vhdl.json` apparently STALE (`vhdl.ebnf` mtime > json
+mtime), the committed parser built from a fresher source ⇒ a HEAVY vhdl conformance re-verify with no clean
+canonical regen path. H.4/H.6 had already shown this surface signature is a GIT-CHECKOUT ILLUSION, not
+content drift. Proven for vhdl: regenerating `vhdl.json` from the current `vhdl.ebnf` via the `ebnf_dual_run`
+frontend yields a file byte-identical to the on-disk json except `generated_at`/embedded path metadata (fresh
+110508 B vs on-disk 110511 B; `diff` excluding `generated_at`/`source_file`/`source_path`/`output_path` =
+EMPTY). ZERO grammar drift ⇒ the parser regen is provably behaviour-preserving ⇒ the zero-drift proof IS the
+no-regression proof; no heavy conformance corpus run is required.
+
+### The committed-parser diff: coverage + a benign 6a import-drop
+The direct parser regen (with the already-built generator binary) differs from the on-disk committed parser
+ONLY by: (a) the unconditional G.4.6 coverage instrumentation (`enable_coverage`/`exercised_rule_names`,
+grep=3), and (b) a benign REGEX-SELF-HOSTING.6a evolution — the post-`.6a` generator drops the now-dead
+`use regex::Regex;` import (the committed Jun-7 parser predates `.6a`) while keeping the 104 `match_regex`
+calls + the fully-qualified `regex::Regex::new` in the cached-compile helper. The lib compiles clean under
+`--features generated_parsers`, confirming the dropped import was dead. (The other diff lines are cosmetic
+embedded output-path strings from the invocation CWD.)
+
+### Why vhdl runs at the default depth (no `--max-depth`, no `main.rs` change)
+vhdl's entry `vhdl_file := design_unit*` is a FLAT list (same shape as svpp's `pp_item*` / rtl_frontend's
+`design_item*`), NOT a deep operator-precedence chain like rtl_const_expr. At the default generation depth 24
+the cert-coverage witness pass neither bails nor fatal-errors, so H.2 reuses the H.6 recipe with no
+`StimuliConfig`/`--max-depth` change.
+
+### ebnf_dual_run requirement
+`vhdl.ebnf` has 106 `/.../` regex literals, so it parses only under `--features ebnf_dual_run` (like
+rtl_frontend). The frontend bin is already built with that feature; the cert-coverage binary is built
+`--features "ebnf_dual_run generated_parsers"`.
+
+### Result
+MEASURED (count 40, DEFAULT depth 24, DETERMINISTIC seed 0 run#1==run#2): seed 0 → `total=217 proof=0
+witness=132 UNKNOWN=85 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)`; seed 7 →
+`witness=129 UNKNOWN=88 (sample_parse_failures=2)`. `sample_parse_failures=0` @ seed 0 ⇒ clean
+witness-parseability; UNKNOWN=85 is an honest drive-to-0 follow-up. Verified: lib builds clean;
+`parser_registry` 20/0; strict source clippy ok; json/regex/rtl_const_expr cert-coverage unaffected; no
+tracked-artifact change (`generated/` untracked).
+
 ## 2026-06-08 - GRAMMAR-WELLFORMED.H.6 — wire cert-coverage for rtl_frontend (PGEN-GRAMMAR-WELLFORMED-0040)
 
 ### Goal

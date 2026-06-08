@@ -805,6 +805,25 @@ fn parse_with_vhdl_ast_json(sample: &str) -> Result<JsonValue, String> {
     parse_node_to_json(&parsed)
 }
 
+/// GRAMMAR-WELLFORMED.H.2 — parse `sample` through the REAL vhdl parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_systemverilog_preprocessor`: enable the transactional `coverage_stack`, parse, and
+/// return the PARSER's own record of the committed rules on a SUCCESSFUL parse. vhdl has no grammar
+/// profile and its entry (`vhdl_file := design_unit*`) is a flat item list, so neither a profile
+/// (`_grammar_profile` is unused) nor a dedicated worker stack is needed.
+#[cfg(has_generated_vhdl_parser)]
+pub fn parse_and_cover_vhdl(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+    parser.enable_coverage();
+    match parser.parse_full_vhdl_file() {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
 fn parse_node_to_json(node: &ParseNode<'_>) -> Result<JsonValue, String> {
     serde_json::to_value(node).map_err(|err| format!("failed to serialize parse tree: {}", err))
 }
@@ -887,7 +906,7 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "vhdl",
         parse_sample: parse_with_vhdl,
-        parse_and_cover: None,
+        parse_and_cover: Some(parse_and_cover_vhdl),
         parse_detail: None,
     },
     // Add future grammars here once their generated parser artifacts compile cleanly.

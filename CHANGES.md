@@ -1,4 +1,40 @@
 # CHANGES.md
+## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0041 (GRAMMAR-WELLFORMED.H.2): wire `parse_and_cover` cert-coverage for `vhdl` — the LAST shipped grammar (CODE: Makefile + parser_registry).
+
+Phase H continues toward the locked program (all parsers cert-coverage WIRED): `vhdl` is the LAST unwired
+SHIPPED grammar. With it wired, **every shipped parser grammar now runs under the certificate-coverage
+gate** (json, regex, rtl_const_expr, svpp, rtl_frontend, systemverilog, vhdl); only the internal
+meta/annotation grammars (`ebnf`, `return_annotation`, `semantic_annotation`) remain unwired. Mechanical
+mirror of H.6/H.5/H.4, with the H.2-specific staleness fear (the original `-0036` block) discharged
+tools-first.
+
+- The original H.2 block feared a STALE `generated/vhdl.json` (ebnf mtime > json mtime) + a parser built
+  from a fresher source ⇒ a HEAVY vhdl conformance re-verify. **ZERO-DRIFT PROOF (checkout illusion, exactly
+  as H.4/H.6 predicted):** regenerating `vhdl.json` from the current `vhdl.ebnf` via the `ebnf_dual_run`
+  frontend is byte-identical to the on-disk json except `generated_at`/path metadata (fresh 110508 B vs
+  on-disk 110511 B; `diff` excluding metadata = EMPTY) ⇒ ZERO grammar drift ⇒ the parser regen is
+  behaviour-preserving ⇒ no heavy conformance run needed.
+- vhdl entry `vhdl_file := design_unit*` is a FLAT list (no deep precedence chain), has NO `@profiles`, so
+  it runs at the DEFAULT depth 24 — no `--max-depth`/`main.rs` change (like svpp/rtl_frontend). Like
+  rtl_frontend, `vhdl.ebnf` parses only under `--features ebnf_dual_run` (106 `/.../` literals), so the
+  cert-coverage binary is built `--features "ebnf_dual_run generated_parsers"`.
+- The parser regen vs the on-disk committed parser differs ONLY by the unconditional G.4.6 coverage
+  instrumentation (`enable_coverage`/`exercised_rule_names`) + a benign REGEX-SELF-HOSTING.6a evolution (the
+  post-`.6a` generator drops the now-dead `use regex::Regex;` import while keeping the 104 `match_regex`
+  calls + fully-qualified `regex::Regex::new`; the lib compiles clean, confirming the drop is dead-only).
+- `rust/Makefile`: `VHDL_{EBNF,JSON,PARSER}` vars + `$(VHDL_JSON)`/`$(VHDL_PARSER)` rules + `vhdl_parser` +
+  `focus_vhdl` (mirror rtl_frontend/svpp).
+- `rust/src/parser_registry.rs`: `parse_and_cover_vhdl` (cfg `has_generated_vhdl_parser`; mirrors
+  `parse_and_cover_systemverilog_preprocessor`) + the vhdl registry entry `parse_and_cover: None` →
+  `Some(parse_and_cover_vhdl)`.
+- MEASURED (count 40, DEFAULT depth 24, DETERMINISTIC seed 0 run#1==run#2): seed 0 → `total=217 proof=0
+  witness=132 UNKNOWN=85 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)`; seed 7
+  → `witness=129 UNKNOWN=88 (sample_parse_failures=2)`. `sample_parse_failures=0` @ seed 0 ⇒ clean
+  witness-parseability; UNKNOWN=85 is an honest drive-to-0 follow-up.
+- VERIFIED: lib `--features generated_parsers` builds clean; `parser_registry` lib tests 20/0; strict SOURCE
+  clippy ok (generated stage non-strict, pre-existing debt); json (`fully_certified`)/regex/rtl_const_expr
+  cert-coverage UNAFFECTED. NO tracked-artifact change (`generated/` untracked; regen is local).
+
 ## 2026-06-08 - PGEN-GRAMMAR-WELLFORMED-0040 (GRAMMAR-WELLFORMED.H.6): wire `parse_and_cover` cert-coverage for `rtl_frontend` (CODE: Makefile + parser_registry).
 
 Phase H continues toward the locked program (all parsers cert-coverage WIRED): `rtl_frontend` (the

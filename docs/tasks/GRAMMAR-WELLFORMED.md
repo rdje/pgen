@@ -213,22 +213,46 @@ subtle dead branch"), never a silent accept.
   regex worker stack, no profile/stdlib) + set `parse_and_cover: Some(parse_and_cover_regex)` on the regex
   entry. Phase H continues for vhdl / svpp / rtl_* / json (each: regen + a registry fn). Acceptance:
   `--report-certificate-coverage` runs for regex (no bail) + reports its sample_parse_failures.
-- `H.2` — **BLOCKED (2026-06-07, attempt under `PGEN-GRAMMAR-WELLFORMED-0036`): Phase H for non-focus
-  grammars (vhdl/svpp/rtl_*/json) needs a canonical parser-regen recipe FIRST.** Wiring `parse_and_cover`
-  for vhdl (mirror the regex H.1 pattern: `parse_and_cover_vhdl` is trivial — no profile/stdlib/dedicated
-  stack) requires the vhdl parser to carry the unconditional G.4.6 coverage methods, i.e. a regen. But
-  unlike regex/SV there is **no `focus_vhdl` make target**, and `generated/vhdl.json` is **STALE**
-  (`vhdl.ebnf` mtime > `vhdl.json` mtime), and the committed `generated/vhdl_parser.rs` was produced from
-  a fresher source than the on-disk `vhdl.json` (parser mtime > json mtime) — so there is no clean,
-  canonical "regenerate vhdl" path to reproduce the current parser + add coverage. A correct regen needs
-  the full chain (frontend `vhdl.ebnf → fresh vhdl.json` via the `ebnf_dual_run` binary, then generator
-  `vhdl.json → vhdl_parser.rs` with the standard `--generate-parser --debug --trace
-  --eliminate-left-recursion` flags), then the HEAVY vhdl conformance re-verify (vhdl corpus triage /
-  stimuli gate) to confirm no regression. UNBLOCK: add a `focus_vhdl` (and `focus_<grammar>`) make target
-  that runs that chain deterministically — a small infra slice — THEN the per-grammar `parse_and_cover`
-  wiring (H.2..) is mechanical. NO tracked code change was made (the local `generated/vhdl_parser.rs` was
-  regenerated from the stale `vhdl.json` during investigation — harmless: untracked + regenerated
-  downstream by any vhdl gate/build; a correct regen needs the fresh-json chain above).
+- `H.2` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0041`, 2026-06-08): Phase H continues — `parse_and_cover`
+  wired for `vhdl` (the LAST unwired SHIPPED grammar); `--report-certificate-coverage` now runs for vhdl.**
+  Same mechanical recipe as H.6/H.5/H.4, with the H.2-specific staleness fear FULLY DISCHARGED tools-first.
+  The original block (2026-06-07, `-0036`) was: no `focus_vhdl` target, `generated/vhdl.json` apparently
+  STALE (`vhdl.ebnf` mtime > json mtime) and a parser built from a fresher source — which threatened a
+  HEAVY vhdl conformance re-verify. **ZERO-DRIFT PROOF (the checkout illusion, exactly as H.4/H.6
+  predicted):** regenerating `vhdl.json` from the current `vhdl.ebnf` via the `ebnf_dual_run` frontend
+  yields a file BYTE-IDENTICAL to the on-disk json **except `generated_at`/embedded path metadata** (fresh
+  110508 B vs on-disk 110511 B; `diff` excluding `generated_at`/`source_file`/`source_path`/`output_path`
+  = EMPTY) ⇒ **ZERO grammar drift** ⇒ the parser regen is provably behaviour-preserving, so NO heavy
+  conformance corpus run is needed (the zero-drift proof IS the no-regression proof, the same de-risk H.4
+  established). The parser regen vs the on-disk committed parser differs ONLY by (a) the unconditional
+  G.4.6 coverage instrumentation (`enable_coverage`/`exercised_rule_names`, grep=3) and (b) a benign
+  REGEX-SELF-HOSTING.6a evolution — the current generator (post-`.6a`) drops the now-dead
+  `use regex::Regex;` import while keeping the 104 `match_regex` calls + fully-qualified `regex::Regex::new`
+  in the cached-compile helper (the committed parser predates `.6a`); the lib compiles clean, confirming
+  the drop is dead-import-only. Landed (mirror H.6): (1) `VHDL_EBNF/JSON/PARSER` vars + build rules +
+  `vhdl_parser` + `focus_vhdl` Makefile targets; (2) `parse_and_cover_vhdl` in `parser_registry.rs` (cfg
+  `has_generated_vhdl_parser`; mirrors `parse_and_cover_systemverilog_preprocessor` — vhdl entry
+  `vhdl_file := design_unit*` is a FLAT list, no profile, no worker stack) + the registry entry set to
+  `Some(parse_and_cover_vhdl)`. Same one-time bootstrap-ordering step as H.4/H.5/H.6 (stale pre-coverage
+  parser present → direct-regen the parser with the already-built generator binary first, else E0599). Like
+  rtl_frontend, `vhdl.ebnf` parses only under `--features ebnf_dual_run` (106 `/.../` literals), so the
+  cert-coverage binary is built `--features "ebnf_dual_run generated_parsers"`. **MEASURED (count 40,
+  DEFAULT depth 24 — no `--max-depth`, like svpp/rtl_frontend — DETERMINISTIC seed 0 run#1==run#2):** seed 0
+  → `total=217 proof=0 witness=132 UNKNOWN=85 fully_certified=false (sample_parse_failures=0,
+  proof_reverify_failures=0)`; seed 7 → `witness=129 UNKNOWN=88 (sample_parse_failures=2)`.
+  **`sample_parse_failures=0` @ seed 0** ⇒ NO witness-parseability round-trip residual at the canonical seed
+  (CLEAN, like json/rtl_const_expr/rtl_frontend; far cleaner than svpp's 24). UNKNOWN=85 is an honest
+  residual (drive-to-0 via more/targeted witnesses is a follow-up). VERIFIED: direct regen produces the
+  parser carrying the coverage methods; lib `--features generated_parsers` builds clean; `parser_registry`
+  lib tests 20/0 (incl. `registry_exposes_vhdl_when_generated_parser_present` + the vhdl adapters); strict
+  SOURCE clippy ok (`parse_and_cover_vhdl` clean; generated stage non-strict, pre-existing codegen debt
+  only); json (`fully_certified=true`) / regex / rtl_const_expr (`48/41/7` @ `--max-depth 32`) cert-coverage
+  UNAFFECTED. NO tracked-artifact change (`generated/` is untracked/gitignored; the regen is local). Default
+  build (vhdl cfg off in a fresh clone) unaffected. **MILESTONE: with vhdl wired, EVERY SHIPPED parser
+  grammar now runs under cert-coverage** (json, regex, rtl_const_expr, svpp, rtl_frontend, systemverilog,
+  vhdl); only the internal meta/annotation grammars (`ebnf`, `return_annotation`, `semantic_annotation`)
+  remain unwired. Frontier: drive each wired grammar's `UNKNOWN`→0 + the `H.5.1` svpp witness-parseability
+  residual (toward the locked program: all existing parsers `Done`).
 - `H.3` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0037`, 2026-06-08): Phase H continues — `parse_and_cover`
   wired for `json` (the simplest unwired grammar); `--report-certificate-coverage` now runs for json and
   reports `fully_certified=true`.** RESULT (deterministic across seed 0/1/7 + count 200/500):
@@ -826,7 +850,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
-| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✗ H.2 vhdl (`-0036`, BLOCKED on the fresh-json regen chain / no `focus_vhdl`), ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**. NEXT: rtl_frontend (a `focus_<grammar>` target + regen + a `parse_and_cover_<grammar>` registry fn — now mechanical); then vhdl, now de-risked by H.4's checkout-illusion proof. |
+| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. NEXT: drive each wired grammar's `UNKNOWN`→0 + the `H.5.1` svpp witness-parseability residual. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions

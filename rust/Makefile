@@ -25,6 +25,7 @@ JSON_EBNF = $(GRAMMARS_DIR)/json.ebnf
 RTL_CONST_EXPR_EBNF = $(GRAMMARS_DIR)/rtl_const_expr.ebnf
 SVPP_EBNF = $(GRAMMARS_DIR)/systemverilog_preprocessor.ebnf
 RTL_FRONTEND_EBNF = $(GRAMMARS_DIR)/rtl_frontend.ebnf
+VHDL_EBNF = $(GRAMMARS_DIR)/vhdl.ebnf
 
 # Generated JSON files (intermediate)
 SEMANTIC_ANNOTATION_JSON = $(GENERATED_DIR)/semantic_annotation.json
@@ -35,6 +36,7 @@ JSON_JSON = $(GENERATED_DIR)/json.json
 RTL_CONST_EXPR_JSON = $(GENERATED_DIR)/rtl_const_expr.json
 SVPP_JSON = $(GENERATED_DIR)/systemverilog_preprocessor.json
 RTL_FRONTEND_JSON = $(GENERATED_DIR)/rtl_frontend.json
+VHDL_JSON = $(GENERATED_DIR)/vhdl.json
 
 # Generated Rust parser files (final output)
 SEMANTIC_ANNOTATION_PARSER = $(GENERATED_DIR)/semantic_annotation_parser.rs
@@ -45,6 +47,7 @@ JSON_PARSER = $(GENERATED_DIR)/json_parser.rs
 RTL_CONST_EXPR_PARSER = $(GENERATED_DIR)/rtl_const_expr_parser.rs
 SVPP_PARSER = $(GENERATED_DIR)/systemverilog_preprocessor_parser.rs
 RTL_FRONTEND_PARSER = $(GENERATED_DIR)/rtl_frontend_parser.rs
+VHDL_PARSER = $(GENERATED_DIR)/vhdl_parser.rs
 
 # Compiled Rust parser executables
 SEMANTIC_ANNOTATION_EXE = $(GENERATED_DIR)/semantic_annotation_parser
@@ -321,6 +324,41 @@ rtl_frontend_parser: $(RTL_FRONTEND_JSON) $(RUST_AST_PIPELINE)
 focus_rtl_frontend: $(RTL_FRONTEND_PARSER)
 	@echo ""
 	@echo "✅ rtl_frontend parser artifact ready: $(RTL_FRONTEND_PARSER)"
+	@echo ""
+	@echo "Default cargo test will pick this up automatically."
+	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"
+	@echo ""
+
+# Generate vhdl raw-AST JSON from EBNF (GRAMMAR-WELLFORMED.H.2 — Phase H cert-coverage)
+$(VHDL_JSON): $(VHDL_EBNF) $(RUST_EBNF_FRONTEND_BIN)
+	@echo "Generating vhdl JSON with debug output (Rust frontend)..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_FRONTEND_TO_JSON) $(VHDL_EBNF) --emit-raw-ast-json $(VHDL_JSON)
+
+# Generate final vhdl parser from JSON
+$(VHDL_PARSER): $(VHDL_JSON) $(RUST_AST_PIPELINE)
+	@echo "Generating final vhdl parser from JSON..."
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(VHDL_JSON) -o $(VHDL_PARSER)
+
+# vhdl parser complete flow
+.PHONY: vhdl_parser
+vhdl_parser: $(VHDL_JSON) $(RUST_AST_PIPELINE)
+	@echo "🚀 Starting complete flow for vhdl parser..."
+	@echo "📄 Step 1: EBNF -> JSON via Rust frontend (already done: $(VHDL_JSON))"
+	@echo "🔧 Step 2: JSON -> PARSER.RS (high-performance mode)"
+	@mkdir -p $(GENERATED_DIR)
+	$(RUST_GENERATOR) $(VHDL_JSON) -o $(VHDL_PARSER)
+	@echo "✅ Generated: $(VHDL_PARSER)"
+	@echo "✅ vhdl parser generated successfully!"
+
+# `make focus_vhdl` — regenerate the vhdl artifact so subsequent
+# `cargo test --features generated_parsers` invocations exercise the vhdl
+# family (build.rs sets has_generated_vhdl_parser when the artifact exists).
+.PHONY: focus_vhdl
+focus_vhdl: $(VHDL_PARSER)
+	@echo ""
+	@echo "✅ vhdl parser artifact ready: $(VHDL_PARSER)"
 	@echo ""
 	@echo "Default cargo test will pick this up automatically."
 	@echo "  cd $(RUST_DIR) && cargo test --features generated_parsers"
