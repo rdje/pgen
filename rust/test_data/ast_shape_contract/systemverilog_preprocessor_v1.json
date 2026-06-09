@@ -71,6 +71,23 @@
       "current_content_kind": "json_object",
       "drift_status": "aligned",
       "drift_tracked_in": "PGEN-SV-EXH-PROOF-0008 / SV-EXH-PROOF.2.3.1: SVPP-0002 fixed (macro_body_text/macro_default_text made comment-aware); a backtick inside a block comment in a macro body/default is valid SystemVerilog and now parses to the standard {type,items} shape (was wrongly rejected at release 1.0.3). Release 1.0.3->1.0.4; AST-dump schema unchanged (3); annotation inventory unchanged (66/28)."
+    },
+    {
+      "name": "condition_comment_special_char",
+      "input": "`ifdef X\n`elsif a /* a || b */\n`endif\n",
+      "rule_under_test": "systemverilog_preprocessor_file",
+      "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "items"
+      ],
+      "expected_json_object_string_values": {
+        "type": "systemverilog_preprocessor_file"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "PGEN-GRAMMAR-WELLFORMED-0055 / GRAMMAR-WELLFORMED.H.5.5: condition_text made comment-aware (the sibling of the SVPP-0002 macro_body_text/macro_default_text fix it was missed by) AND its now-redundant leading inline_trivia dropped to keep generation round-trip self-consistent. A block comment containing an operator char (`(`,`)`,`?`,`:`,`!`,`|`,`&`) or backtick inside an `ifdef/`elsif condition is valid SV and now parses to the standard {type,items} shape (was wrongly rejected at release 1.0.5). Release 1.0.5->1.0.6; AST-dump schema unchanged (4); annotation inventory unchanged (67/29); condition_text still `-> $text` (the matched span is identical for every previously-parseable input)."
     }
   ],
   "declared_annotation_inventory": {

@@ -5,15 +5,15 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 ## Contract Identity
 - Contract version:
-  - `1.0.5`
+  - `1.0.6`
 - Parser release version:
-  - `1.0.5`
+  - `1.0.6`
 - systemverilog_preprocessor AST-dump schema version:
-  - `4` (release `1.0.5`; `condition_text` is now annotated `-> $text`, so a `condition_atom` `{kind:"text", body:$1}` atom's `body` is a flat matched-text string instead of the raw `inline_trivia`+content envelope — a consumer-visible shape change. See the schema-`4` row and the `GRAMMAR-WELLFORMED.H.5.1.3.2` slice.)
+  - `4` (first release `1.0.5`; **release `1.0.6` keeps schema `4`** — the `SVPP-0003` `condition_text` comment-awareness fix is strictly-more-permissive (widens the accept set: a block comment with an operator char inside an `` `ifdef``/`` `elsif`` condition now parses) and produces a byte-identical `{kind:"text", body:$1}` shape for every previously-parseable input. `condition_text` stays annotated `-> $text` (its `body` is the flat matched-text string, now possibly including an in-span comment). See the schema-`4` row's `1.0.6` addendum and the `GRAMMAR-WELLFORMED.H.5.5` slice.)
 - Annotation count:
-  - `67` (65 `return_object` + 1 `return_array` + 1 `return_scalar`; 29 distinct rules) — the new `return_scalar` is `condition_text -> $text` (was `66`/`28` at `1.0.4`)
+  - `67` (65 `return_object` + 1 `return_array` + 1 `return_scalar`; 29 distinct rules) — the `return_scalar` is `condition_text -> $text`. Unchanged by `1.0.6` (the `SVPP-0003` fix changed only `condition_text`'s content regex + dropped its now-redundant leading `inline_trivia`, not its annotation).
 - Last updated:
-  - `2026-06-08`
+  - `2026-06-09`
 - Current grammar family label:
   - `systemverilog_preprocessor`
 - Per-family mdBook:
@@ -27,12 +27,12 @@ Define the current downstream integration contract for PGEN's `systemverilog_pre
 
 The systemverilog_preprocessor parser carries two version axes:
 
-1. **Parser release version** (`1.0.5`). Tracks the parser library's release identity.
-2. **AST-dump schema version** (`4`). Tracks the AST output shape. Schema `4` (release `1.0.5`) annotates `condition_text -> $text` (a consumer-visible shape change in the `condition_atom` "text" atom — see the schema-`4` row). Schema `3` spanned releases `1.0.3`–`1.0.4`: the `1.0.4` `SVPP-0002` correctness fix changed no observable output shape (a strictly-more-permissive fix — see the schema-`3` row's `1.0.4` addendum and Release 1.0.4 Highlights).
+1. **Parser release version** (`1.0.6`). Tracks the parser library's release identity.
+2. **AST-dump schema version** (`4`). Tracks the AST output shape. Schema `4` (first release `1.0.5`) annotates `condition_text -> $text` (a consumer-visible shape change in the `condition_atom` "text" atom — see the schema-`4` row). **Release `1.0.6` keeps schema `4`**: the `SVPP-0003` `condition_text` comment-awareness fix is strictly-more-permissive and changed no observable output shape (only previously-erroring comment-bearing conditions now succeed, with the same `{kind:"text", body}` shape — see the schema-`4` row's `1.0.6` addendum). Schema `3` spanned releases `1.0.3`–`1.0.4`: the `1.0.4` `SVPP-0002` correctness fix likewise changed no observable output shape.
 
 | Schema version | First parser release | Notable changes |
 |---|---|---|
-| 4 | 1.0.5 | **`condition_text` annotated `-> $text` (consumer-visible, `GRAMMAR-WELLFORMED.H.5.1.3.2`).** `condition_text := inline_trivia /[^`(),?:!\|&\r\n]+/` previously had **no** return annotation, so it produced the raw `inline_trivia`+content envelope; a `condition_atom` text atom `{kind:"text", body:$1}` therefore surfaced `body` as that envelope (e.g. for `` `elsif abc`` → `body` was `[[" "], "abc"]`). It now declares `-> $text`, so `body` is the **flat matched-text string** (`" abc"`). This realizes the long-anticipated "annotate the literal-text runs" schema milestone for `condition_text` specifically — `condition_text` is a flexible **same-line** `condition_atom+` list element (its grammatical successors are excluded-delimiter atoms that self-delimit, or another text run that merges harmlessly), so it needs no line terminator; the line-oriented runs `directive_tail` / `non_directive_text` (which DO need a terminating newline) deliberately remain raw-envelope. **Why now:** the un-annotated rule made PGEN's stimuli generator inject a spurious trailing `\n` after a generated `condition_text` (its `\n`-excluding content class drove the word-boundary trailing guard to emit a newline), which prematurely ended a `` `elsif`` line and stranded a following `` `"`` stringize at a `pp_item` boundary — the lone svpp certificate-coverage `sample_parse_failures` residual. The `$text` annotation marks the rule one atomic lexical span (LEXICAL-ANNOTATIONS.6), which suppresses that trailing guard. Generator-faithfulness fix expressed declaratively at fix-hierarchy Level 1 (no engine change). **Result:** svpp `--report-certificate-coverage` `sample_parse_failures` `1 → 0` (deterministic, seeds 0 and 7); annotation count `66 → 67` (the new `return_scalar`); distinct annotated rules `28 → 29`. Same accept set (no grammar acceptance change — only `condition_text`'s emitted shape). Gate-locked by the `condition_text` `return_scalar` entry in `systemverilog_preprocessor_v1.json`. |
+| 4 | 1.0.5 (also spans 1.0.6) | **`1.0.6` addendum — `SVPP-0003` `condition_text` comment-awareness fix (schema-neutral, non-breaking, `GRAMMAR-WELLFORMED.H.5.5`).** `condition_text := inline_trivia /[^`(),?:!\|&\r\n]+/` was **not comment-aware**: its content regex ate a comment's `/*` (both `/` and `*` are in its class) then halted at an operator char (`(`,`)`,`?`,`:`,`!`,`\|`,`&`) or backtick *inside* the `block_comment`, so `condition_expr` could not span the comment and a valid `` `ifdef``/`` `elsif`` condition containing such a comment (e.g. `` `elsif x /* a \|\| b */``) was wrongly rejected at `1.0.5` — the outer `pp_conditional` then could not close. Fixed in `1.0.6` by making the rule comment-aware with the proven `macro_body_text`/`macro_default_text` idiom (`/(?:\/\*([^*]\|\*+[^*\/])*\*+\/\|[^`(),?:!\|&\r\n])+/` — the `/*…*/` alt tried FIRST so a `/*` opener is consumed atomically; the unchanged char-branch still excludes the operators/backtick so they still split as their own atoms) AND **dropping the rule's now-redundant leading `inline_trivia`** (the comment-alt + char-class already admit comments/whitespace; keeping it would re-consume, as trivia, a comment the generator emits as content, breaking round-trip on a comment-only condition). **No schema bump**: `condition_text` stays `-> $text`, the annotation inventory is unchanged (67/29), and every input that parsed at `1.0.5` yields a byte-identical AST at `1.0.6` (the `$text` matched-SPAN is identical whether `inline_trivia` or the regex consumes a leading space — empirically `` `elsif abc`` → `body:" abc"` unchanged) — only previously-*erroring* comment-bearing conditions now succeed with the standard `{kind:"text", body}` shape (strictly more permissive). Tracked `SVPP-0003` (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`); locked by the `condition_comment_special_char` sample in `systemverilog_preprocessor_v1.json`. **`1.0.5` (original schema-`4` change) — `condition_text` annotated `-> $text` (consumer-visible, `GRAMMAR-WELLFORMED.H.5.1.3.2`).** `condition_text := inline_trivia /[^`(),?:!\|&\r\n]+/` previously had **no** return annotation, so it produced the raw `inline_trivia`+content envelope; a `condition_atom` text atom `{kind:"text", body:$1}` therefore surfaced `body` as that envelope (e.g. for `` `elsif abc`` → `body` was `[[" "], "abc"]`). It now declares `-> $text`, so `body` is the **flat matched-text string** (`" abc"`). This realizes the long-anticipated "annotate the literal-text runs" schema milestone for `condition_text` specifically — `condition_text` is a flexible **same-line** `condition_atom+` list element (its grammatical successors are excluded-delimiter atoms that self-delimit, or another text run that merges harmlessly), so it needs no line terminator; the line-oriented runs `directive_tail` / `non_directive_text` (which DO need a terminating newline) deliberately remain raw-envelope. **Why now:** the un-annotated rule made PGEN's stimuli generator inject a spurious trailing `\n` after a generated `condition_text` (its `\n`-excluding content class drove the word-boundary trailing guard to emit a newline), which prematurely ended a `` `elsif`` line and stranded a following `` `"`` stringize at a `pp_item` boundary — the lone svpp certificate-coverage `sample_parse_failures` residual. The `$text` annotation marks the rule one atomic lexical span (LEXICAL-ANNOTATIONS.6), which suppresses that trailing guard. Generator-faithfulness fix expressed declaratively at fix-hierarchy Level 1 (no engine change). **Result:** svpp `--report-certificate-coverage` `sample_parse_failures` `1 → 0` (deterministic, seeds 0 and 7); annotation count `66 → 67` (the new `return_scalar`); distinct annotated rules `28 → 29`. Same accept set (no grammar acceptance change — only `condition_text`'s emitted shape). Gate-locked by the `condition_text` `return_scalar` entry in `systemverilog_preprocessor_v1.json`. |
 | 3 | 1.0.3 (also spans 1.0.4) | **`1.0.4` addendum — `SVPP-0002` macro-comment correctness fix (schema-neutral, non-breaking).** `macro_default_text` / `macro_body_text` were `:= inline_trivia /[^`(),?:\r\n]+/` — the content regex was **not comment-aware**, greedily eating a `/*` then halting at a backtick *inside* the `block_comment`, so valid SystemVerilog with a backtick inside a comment in a macro body / function-macro default (e.g. `` `define X a /*`*/ ``) was wrongly rejected at `1.0.3`. Fixed in `1.0.4` by making both rules comment-aware (`/(?:\/\*([^*]\|\*+[^*\/])*\*+\/\|[^`(),?:\r\n])+/` — the proven `systemverilog.ebnf` `timeunit_separator_trivia`/`block_comment` idiom): a `/* … */` comment is matched atomically (its internal backtick no longer splits the run); the unchanged `[^`(),?:\r\n]` branch still excludes a bare backtick. **No schema bump**: the rules are un-annotated, the annotation inventory is unchanged (66/28), and every input that parsed at `1.0.3` yields a byte-identical AST at `1.0.4` — only previously-*erroring* inputs now succeed with the standard `{kind:"text", body:$1}` shape (strictly more permissive). Tracked `SVPP-0002` (`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`); locked by the `macro_body_comment_backtick` sample in `systemverilog_preprocessor_v1.json`. **`1.0.3` (original schema-`3` change — `macro_formals` Category-A AST-shape correction, POST-SV-AUDIT, consumer-visible):** `macro_formals` no longer exposes the raw `{first, rest}` iteration envelope — the POST-SV-AUDIT.2.1 audit (`PGEN-POST-SV-AUDIT-0002`) found `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> {first: $2, rest: $3}` was a static-conclusive Category-A raw-envelope misuse: `rest` surfaced the raw `[[comma, macro_formal], …]` separator envelope, forcing every consumer to walk past the `comma` separator. Corrected to the canonical extraction-spread `macro_formals := lparen macro_formal (comma macro_formal)* rparen -> [$2, $3::2*]` (drop the semantically-irrelevant `comma`; emit a clean flat `macro_formal` list — the `object_properties` reference idiom). For input `` `define M(a, b, c) a+b+c `` `pp_define.formals` was the raw `{"first": {"default": [], "name": [[], "a"]}, "rest": [[[[], ","], {"default": [], "name": [[" "], "b"]}], [[[], ","], {"default": [], "name": [[" "], "c"]}]]}` envelope; it is now the clean list `[{"default": [], "name": [[], "a"]}, {"default": [], "name": [[" "], "b"]}, {"default": [], "name": [[" "], "c"]}]` of `macro_formal` `{name, default}` objects. No `<invalid_sequence_access>` (this is a clean Category-A shape improvement, **not** the inline-alternation-`$N` corruption class of `SVPP-0001`). Surface counts **unchanged** (66 annotations / 28 distinct rules): `macro_formals` is still one rule / one annotation — only its `annotation_type` changed `return_object` → `return_array` and `normalized_text` `{first: $2, rest: $3}` → `[$2, $3::2*]`, so the surface is now **65 `return_object` + 1 `return_array`** (was all 66 `return_object`). Same accept set (no grammar acceptance change — only the annotation form). Gate-locked. |
 | 2 | 1.0.2 | **SVPP-0001 correctness fix (breaking).** `pp_if_branch.keyword` no longer emits the malformed `"<invalid_sequence_access>"` object for `` `ifdef`` / `` `ifndef`` conditional input. The inline alternation `(kw_ifdef \| kw_ifndef)` that was the lead element of `pp_if_branch` (and corrupted the positional model so the bare `keyword: $1` mis-recursed) is lifted into a **named** rule `pp_if_keyword := kw_ifdef -> {kind: "ifdef"} \| kw_ifndef -> {kind: "ifndef"}`, mirroring the proven `systemverilog.ebnf` op-chain / `rtl_const_expr` RTL-CE-Slice-2 idiom. `pp_if_branch`'s annotation is **unchanged** (`{keyword: $1, macro: $2, tail: $3, items: $5}`); only `$1` now binds the clean named rule, so `if_branch.keyword` is now `{kind: "ifdef"}` (or `{kind: "ifndef"}`) — a real typed polarity discriminator. Annotation count `64 → 66` (the 2 new `pp_if_keyword` `return_object` branches); distinct rules `27 → 28` (the new `pp_if_keyword`). All annotations remain `return_object`. Same accept set (no grammar acceptance change — purely the alternation lift + its 2 branch annotations). Gate-locked. |
 | 1.0.0 | 1.0.1 | **SVPP-Slice-1** — initial 64-annotation baseline. pp_item dispatch (10 kinds), 7 directive shapes (define/undef/include/timescale/default_nettype/celldefine/endcelldefine), include_path/nettype_value/time_literal, conditional-compilation tree (5 nodes), condition_expr/condition_atom (12 kinds), macro_formals/formal/default_value/default_atom (8 kinds) / body/body_fragment (9 kinds), passthrough lines. **NOTE:** the `pp_if_branch.keyword` shape in this baseline was defective (`SVPP-0001`, the inline-alternation-`$N` `"<invalid_sequence_access>"` malformation) — see schema `2` for the correction. |
@@ -110,6 +110,62 @@ The systemverilog_preprocessor parser carries two version axes:
   locked by the `macro_body_comment_backtick` sample in
   `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`
   and `make -C rust SHELL=/opt/homebrew/bin/bash
+  systemverilog_preprocessor_parser_book_gate`.
+
+## Resolved Defects — `SVPP-0003` (fixed in release 1.0.6, schema unchanged 4)
+
+- **`SVPP-0003` — the `` `ifdef``/`` `elsif`` condition content rule
+  `condition_text` was not comment-aware; a valid SystemVerilog
+  condition containing a block comment with an operator char or
+  backtick inside it was wrongly rejected, and the enclosing
+  `pp_conditional` then could not close (`Released`, fixed in parser
+  release `1.0.6`, AST-dump schema **unchanged** `4`).** This is the
+  direct sibling of `SVPP-0002`: `condition_text` was simply missed by
+  the SV-EXH-PROOF.2.3.1 comment-awareness slice that fixed
+  `macro_body_text` / `macro_default_text`.
+  *Historical (releases `1.0.1`–`1.0.5`):* `condition_text` was
+  `:= inline_trivia /[^`(),?:!|&\r\n]+/`. That content regex admits
+  `/` and `*` but is **not comment-aware**, so it greedily consumed a
+  comment's opening `/*` then halted at an operator char
+  (`(`,`)`,`?`,`:`,`!`,`|`,`&`) or backtick *inside* the
+  `block_comment`. `condition_expr := condition_atom+` could not span
+  the comment (no atom matches a bare operator char mid-run), so the
+  `` `elsif`` failed and the outer `pp_conditional` never reached its
+  `` `endif`` closer. Repro (against `1.0.5`):
+  `printf '`ifdef A\n`elsif x /*|*/\n`endif\n' | parseability_probe
+  --parse systemverilog_preprocessor /dev/stdin` → "Parser did not
+  consume full input". The byte-identical input with a comment that has
+  **no** operator char (`/*z*/`) parsed. A comment is lexically
+  transparent, so this was **valid SV wrongly rejected**. Surfaced by
+  the `GRAMMAR-WELLFORMED.H.5.5` certificate-coverage multi-seed sweep
+  (the stimuli generator as a bug-finding oracle): `sample_parse_failures`
+  was `1` at seeds 3/6/10/12/14/15 of the 0–15 sweep, the canonical
+  seed 0 being clean (so the project gates passed).
+  *Fixed (`1.0.6`):* `condition_text` made comment-aware with the
+  proven `SVPP-0002` idiom —
+  `/(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:!|&\r\n])+/` (the `/*…*/` alt
+  tried FIRST so a `/*` opener is consumed atomically; the unchanged
+  `[^`(),?:!|&\r\n]` branch still excludes the operator/backtick chars
+  so they still split as their own `condition_atom`s) — **and dropping
+  the rule's now-redundant leading `inline_trivia`**. The drop is the
+  decisive second half: with the comment-aware regex alone, the
+  generator could emit a comment-only `condition_text`, but the rule's
+  own leading `inline_trivia` re-consumed it as trivia on reparse,
+  stranding a comment-only condition the parser could not re-derive
+  (`condition_expr` needs ≥1 atom). The comment-alt + char-class
+  already admit comments/whitespace, so dropping `inline_trivia` makes
+  generation round-trip self-consistent without changing the `$text`
+  matched-SPAN of any previously-parseable input (`` `elsif abc`` →
+  `body:" abc"`, leading space preserved). Accepts strictly more,
+  narrows nothing; `condition_text` stays `-> $text`, the annotation
+  inventory is unchanged (`67`/`29`), and every previously-parseable
+  input yields a byte-identical AST — hence **no schema bump** (schema
+  `4` spans `1.0.5`–`1.0.6`). Tracked (status `Released`) in
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SVPP-0003`);
+  locked by the `condition_comment_special_char` sample in
+  `rust/test_data/ast_shape_contract/systemverilog_preprocessor_v1.json`,
+  the svpp certificate-coverage `sample_parse_failures=0` across seeds
+  0–31, and `make -C rust SHELL=/opt/homebrew/bin/bash
   systemverilog_preprocessor_parser_book_gate`.
 
 ## AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT) — `macro_formals` Category-A raw-envelope → clean list; schema 2 → 3

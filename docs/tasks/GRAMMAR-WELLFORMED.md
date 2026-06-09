@@ -870,28 +870,50 @@ subtle dead branch"), never a silent accept.
   without killing macro-formal generation diversity. LOWER PRIORITY than `H.5.5` (this is a witness-budget
   micro-gap; H.5.5 is a genuine over-generation defect). Acceptance: svpp `fully_certified=true` deterministic
   across seeds 0/1/7/42 at count 40, zero cross-grammar regression. Verification: pending. Commit: pending.
-- `H.5.5` — **`pending`: fix the PRE-EXISTING svpp diverse-generation OVER-GENERATION (round-trip
-  self-consistency defect) — `sample_parse_failures>0` at ~6/16 seeds.** DISCOVERED by H.5.3's multi-seed
-  sweep (the stimuli generator as bug-finding oracle): on BOTH the committed and the pre-H.5.3 (original)
-  svpp grammar, cert-coverage `--count 40` reports `sample_parse_failures=1` at seeds 3, 6, 10, 12, 14, 15
-  (IDENTICAL on both grammars → PRE-EXISTING, NOT caused by H.5.3; H.5.3's directive_tail/line_comment
-  witnessing-sample change kept spf BYTE-IDENTICAL to baseline across the whole 0–15 sweep). The canonical
-  cert-coverage seed (0) is spf=0 (so the project's gates pass), which is why H.5.2 (seeds 0/7 only) never saw
-  it. **Root-cause DIRECTION (tools-first, NOT yet fixed):** the seed-3 failure is `Parser did not consume
-  full input at position 69` — the file-level `pp_item*` fails to consume a `` `ifdef`` that opens
-  `pp_conditional := pp_if_branch pp_elsif_branch* pp_else_branch? pp_endif` (a REQUIRED `` `endif`` closer).
-  The failing 1207-byte sample has a complex nested/mis-associated conditional skeleton (2× `` `ifdef``, 2×
-  `` `endif``, 4× `` `elsif``, 1× `` `else``) where the outer conditional cannot close — the closer-stealing /
-  unclosed-conditional round-trip hazard the SV-preprocessor round-trip work (`SV-EXH-PROOF.2.3.2`,
-  Mechanisms 1–4) addressed, evidently still firing at some seeds (a line-greedy construct absorbing a
-  `` `endif``, or an elsif/else mis-nesting the generator emits but the parser cannot re-associate). **This is
-  a generator OVER-GENERATION (constrain the generator; never loosen `parser_rejections==0`, never file a
-  parser bug for output the parser is right to reject) — per the book's "Round-Trip Stability" doctrine.**
-  Approach: trace the generator on the faithful reproduction (the book's discipline — verify the mechanism on
-  the failing artifact, the gate is the arbiter), find the construct that absorbs/mis-places the `` `endif``,
-  and extend the structural-closer guard / sequence constraint to cover it (parser/EBNF-agnostic). Acceptance:
-  svpp cert-coverage `sample_parse_failures=0` across the 0–15 seed sweep at count 40, zero cross-grammar
-  regression (git-stash A/B). Verification: pending. Commit: pending.
+- `H.5.5` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0055`, 2026-06-09, svpp release 1.0.5→1.0.6, schema stays 4):
+  the svpp diverse-generation `sample_parse_failures` are now 0 across seeds 0–31 (acceptance was 0–15;
+  verified to 31 for margin). EVIDENCE-DRIVEN RE-SCOPE: the defect was NOT a generator over-generation /
+  `pp_conditional` closer-steal (the leaf's initial hypothesis) — it was a `condition_text` GRAMMAR GAP, fixed
+  declaratively (fix-hierarchy LEVEL 1), exactly as `H.5.3` re-scoped its own mechanism.** TOOLS-FIRST ROOT
+  CAUSE (`parseability_probe --trace-rules pp_conditional` on the captured seed-3 artifact, then per-seed for
+  3/6/10/12/14/15): every outer `pp_conditional` failed to close because **an `` `elsif`` (or `` `ifdef``)
+  condition contained a block comment with an operator char inside it** (seed 6 `|`, seed 10 backtick+`|`,
+  seed 12 `&`, seed 15 `&`, seeds 3/14 same class). `condition_text := inline_trivia /[^`(),?:!|&\r\n]+/` is
+  **not comment-aware**: its content regex ate the comment's `/*` (both `/` and `*` are in its class) then
+  halted at the excluded char *inside* the comment → `condition_expr` (`condition_atom+`) couldn't span the
+  comment → the elsif failed → the conditional never closed → file-level `pp_item*` stopped at the opening
+  directive. Minimal repro: `` `ifdef A⏎`elsif x /*|*/⏎`endif`` REJECTED, `` …/*z*/… `` ACCEPTED. **A block
+  comment is valid SV lexical trivia anywhere (incl. a condition), and `condition_text`'s SIBLINGS
+  `macro_body_text`/`macro_default_text` were ALREADY made comment-aware for this exact reason
+  (SV-EXH-PROOF.2.3.1 / SVPP-0002) — `condition_text` was simply missed by that slice.** So the parser was
+  NOT "right to reject" (contra the leaf's initial framing); this is a grammar gap (EBNF-source-of-truth +
+  the well-formedness attribution rule → fix the grammar, LEVEL 1), NOT a generator constraint. **FIX
+  (grammar-only, `grammars/systemverilog_preprocessor.ebnf`):** `condition_text` made comment-aware with the
+  proven sibling idiom `/(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:!|&\r\n])+/` (the `/*…*/` alt tried FIRST so a
+  `/*` opener triggers atomic whole-comment consumption) AND its now-redundant leading `inline_trivia`
+  DROPPED. **The inline_trivia drop is the decisive second half (DECISIVE A/B):** the comment-aware regex
+  alone (keeping `inline_trivia`) flipped the 6 condition-comment PARSE failures into a NEW
+  comment-only-condition GENERATION hazard — the generator could now emit `condition_text` = a comment, but
+  the rule's own leading `inline_trivia` re-consumed it as trivia on reparse, stranding `` `elsif /* c */``
+  (condition_expr needs ≥1 atom) → spf shifted to seeds 3/9/10 (traced: all furthest-backtrack at
+  `condition_atom`, comment-only conditions). Dropping the now-redundant `inline_trivia` (the comment-alt +
+  char-class already admit comments/whitespace) makes generation self-consistent: a comment-only
+  `condition_text` round-trips (the punctuation atoms' `inline_trivia` backtracks cleanly, then `condition_text`
+  matches the comment). **`$text` matched-SPAN is byte-identical** for every previously-parseable input —
+  empirically: `` `elsif abc`` → `{kind:"text", body:" abc"}` (leading space preserved, exactly the contract's
+  schema-4 value); `` `elsif a /* p||q */`` → `{kind:"text", body:" a /* p||q */"}` (comment captured in-span,
+  parses). **VERIFIED:** svpp cert-coverage `sample_parse_failures=0` across seeds **0–31** (was 0 only at the
+  canonical seeds before); `fully_certified=true UNKNOWN=0 spf=0` at canonical seeds 0 AND 7 (`total=72
+  witness=72`); minimal repros (`/*|*/`, comment-only, original seed-3 1215-byte sample) all PARSE;
+  cross-grammar cert-coverage BYTE-IDENTICAL (json `fully_certified`, regex `UNKNOWN=98`, rtl_const_expr
+  `fully_certified` — svpp-only grammar edit); annotation inventory unchanged 67/29 (`condition_text` still
+  `-> $text`); new `condition_comment_special_char` shape-contract sample locks the fix (mirrors
+  `macro_body_comment_backtick`). Scattered `UNKNOWN=1` at a few non-canonical seeds (4/6/12/13/16/17/27) is
+  the SEPARATE `H.5.4` macro-default witness-budget micro-gap (NOT spf, NOT introduced here — count 100/200
+  closes it). NO engine/generator/codegen change (pure grammar + manifest sample). Release 1.0.5→1.0.6 (accept
+  set widened: comment-bearing conditions now parse), schema STAYS 4 (no output-shape change — SVPP-0002
+  pattern); ledger `SVPP-0003`. Verification: cert-coverage sweep 0–31, `sv_preprocessor_zero_plausible_gap_proof_gate`,
+  shape-contract, full lib `--features "generated_parsers ebnf_dual_run"`, clippy. Commit: `PGEN-GRAMMAR-WELLFORMED-0055`.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode

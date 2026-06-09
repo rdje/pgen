@@ -95,7 +95,27 @@ condition_atom := macro_token_paste -> {kind: "token_paste"}
                 | logical_and       -> {kind: "logical_and"}
                 | bang              -> {kind: "bang"}
 
-condition_text := inline_trivia /[^`(),?:!|&\r\n]+/ -> $text
+# Comment-aware (GRAMMAR-WELLFORMED.H.5.5): a run of allowed chars, but a
+# `/* ... */` block comment is matched ATOMICALLY (the alternative is tried
+# FIRST, so a `/*` opener triggers whole-comment consumption) — thus an operator
+# char (`(`,`)`,`?`,`:`,`!`,`|`,`&`) or backtick *inside* a comment no longer
+# splits the run. Without this the bare `[^`(),?:!|&\r\n]` char-class ate the
+# comment's `/*` then halted at the comment's internal special char, wrongly
+# rejecting valid SV like ``\`elsif x /* a || b */`` (the parse-side gap this
+# leaf fixes; the SAME fix already lives in `macro_body_text` /
+# `macro_default_text`, SV-EXH-PROOF.2.3.1 — `condition_text` was simply missed).
+#
+# NOTE the deliberate ABSENCE of a leading `inline_trivia` (which the siblings
+# above DO carry): once the content regex is comment-aware, a leading
+# `inline_trivia` is both redundant (the char-class already admits ` `/`\t`, and
+# the comment-alt admits comments) AND a round-trip HAZARD — it would re-consume,
+# as trivia, a comment that the generator emitted as condition_text content,
+# stranding a comment-only condition (`\`elsif /* c */`) the parser then cannot
+# re-derive (condition_expr needs >=1 atom). Dropping it makes generation
+# self-consistent. The `$text` matched-SPAN is unchanged for every
+# currently-parseable input: a leading ` `/comment is captured identically
+# whether `inline_trivia` or the regex consumes it (same start..end span).
+condition_text := /(?:\/\*([^*]|\*+[^*\/])*\*+\/|[^`(),?:!|&\r\n])+/ -> $text
 
 # ---------------------------------------------------------------------------
 # Macro declaration support
