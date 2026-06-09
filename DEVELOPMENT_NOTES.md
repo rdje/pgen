@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - GRAMMAR-WELLFORMED.H.5.3 — svpp `directive_tail`+`line_comment` witnessed → svpp fully_certified at seeds 0/7/42 (PGEN-GRAMMAR-WELLFORMED-0053)
+
+### Evidence-driven re-scope (the headline)
+H.5.2 deferred `directive_tail`/`line_comment` to H.5.3 "via generator constructive-reach" (assuming a reach-budget gap, by analogy to rtl_const_expr's H.4.2). Tools-first DISPROVED that assumption: both rules are statically reachable AND the real parser exercises them on trivial hand-written input (`parseability_probe --parse-dump-ast-pretty` on `` `ifdef A some tail\n`endif`` shows `directive_tail="some tail text"`; on `` `undef FOO // c`` shows `line_comment="// a comment"`). So the gap is 100% generator-side and NOT a reach problem — the constructive-reach pass (which only targets RECURSIVE `Or` branches that fail with depth-exhaustion) was the wrong tool. This is the [[feedback_be_alert_root_cause_fishy_immediately]] + [[feedback_full_startup_read_includes_mdbook]] discipline: root-cause tools-first, and prefer the declarative construct over a level-5 engine patch.
+
+### Root cause (the two stale `@sample: " "` hints)
+`grammars/systemverilog_preprocessor.ebnf` carried `@sample: " "` on `directive_tail` and on `directive_comment_tail` (git: `f3ce8a64` added `@sample: " tail"` on directive_tail "Steer SV preprocessor directive tails with sample hint"; `b333c6b5` tightened it to `" "`; `783c8c5c` added `@sample: " "` on directive_comment_tail "Reduce SV preprocessor line-tail rejection debt"). They were added to keep the line-greedy tails benign and cut parser-rejection debt — BEFORE the lexical-faithfulness machinery matured (LEXICAL-ANNOTATIONS + the H.5.1.1 whitespace-greedy-tail guard, 2026-06-07/08). Once svpp was wired into cert-coverage (H.5), the side effect surfaced:
+- `directive_tail := inline_trivia /[^\r\n]+/` — `@sample: " "` emits a bare space, but on re-parse the leading `inline_trivia` (a greedy `(space_or_tab|block_comment)*`) consumes the space, leaving nothing for the mandatory `/[^\r\n]+/` → `directive_tail` fails → the enclosing `directive_tail?` optional takes the EMPTY arm → `directive_tail` is generated-but-never-WITNESSED.
+- `directive_comment_tail := inline_trivia line_comment?` — `@sample: " "` short-circuits the WHOLE rule to a space (a rule-level `@sample` overrides the body), so the inner `line_comment?` is never even reached → `line_comment` is never constructed.
+
+### Fix (declarative, level 1)
+Replaced the un-witnessable `@sample: " "` with witnessing-and-faithful samples:
+- `directive_tail` → `@sample: " x"` — re-parses as `directive_tail` content `x` (the space is eaten by `inline_trivia`, then `/[^\r\n]+/` matches `x`).
+- `directive_comment_tail` → `@sample: " //"` — `line_comment := /\/\/[^\r\n]*/` accepts `//` with an empty body, so `inline_trivia line_comment?` re-parses ` //` (trivia ` `, line_comment `//`) → `line_comment` exercised.
+Both remain deterministic and benign (a fixed, faithful literal — no free `/[^\r\n]+/` / `//...` content the parser could reject). `@sample` is a STIMULI-GENERATION steering annotation; the generated svpp PARSER is byte-identical, so the AST shape, schema, release, and downstream contract are unchanged.
+
+### Why not pure removal, and why not fold in the macro-default residual
+- A pure REMOVAL of both hints ALSO reaches `fully_certified`, but at seed 7 it RE-EXPOSES a latent over-generation (`sample_parse_failures` 0→1): un-steered, the line-greedy `/[^\r\n]+/` directive_tail can emit a free run that the parser rejects on re-parse (the round-trip-faithfulness hazard the hints were originally added to suppress). So removal regresses the certification number; witnessing replacement does not.
+- Multi-seed measurement (count 40, seeds 0/1/7/42) — which H.5.2 never did (only 0/7) — surfaced a PRE-EXISTING seed-1-only residual: `macro_default_value`/`macro_default_atom`/`macro_default_text`/`assign`, reached only via the nested optional `macro_formal := macro_name (assign macro_default_value)?` (itself inside `macro_formals?` in `pp_define`). Witnessed at seeds 0/7/42, missed at seed 1. It is a DIFFERENT rule set and the SAME nested-optional-reach class; NOT folded into this slice (one slice, one concern; forcing a fixed macro-formal default would kill generation diversity). Ticketed `H.5.4` for seed-robust svpp `fully_certified`.
+
+### Verification
+- svpp cert-coverage `fully_certified=true (UNKNOWN=0, sample_parse_failures=0)` deterministic seeds 0/7/42 (seed-0 re-run identical); baseline (original grammar) was seeds 0/7/42 `UNKNOWN=2`, seed 1 `UNKNOWN=6`.
+- Cross-grammar cert-coverage BYTE-IDENTICAL pre/post (json `fully_certified`, regex `UNKNOWN=98`, rtl_const_expr `fully_certified`) — the change is grammar-only; the shared generator code is untouched, so no other grammar can be affected.
+- svpp parse smoke (`` `ifdef A some tail\n`endif xyz\n`undef FOO // c``) PASS — parser behaviour preserved.
+- Full lib `cargo test --features "generated_parsers ebnf_dual_run" --lib` **716/0** (21 ignored; includes the svpp shape-contract test — AST unchanged).
+- `sv_preprocessor_zero_plausible_gap_proof_gate` GREEN (the H.5.2 literal-zero unreachable surface is unaffected — this change touches no unreachable rule).
+- `clippy_on_rust_change` strict-SOURCE clean (no hand-written Rust touched; generated-stage lint debt pre-existing/non-strict).
+
+### Files
+`grammars/systemverilog_preprocessor.ebnf` (the only behaviour-affecting edit), `docs/tasks/GRAMMAR-WELLFORMED.md`, `docs/TASK_TREE.md`, `MEMORY.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`. No manifest/contract/book/schema/release change. Regenerated svpp parser is local/untracked (`generated/` gitignored).
+
 ## 2026-06-09 - GRAMMAR-WELLFORMED.H.5.2 — svpp `UNKNOWN 3→2`: remove the dead `trivia` rule + literal-zero unreachable proof surface (PGEN-GRAMMAR-WELLFORMED-0052)
 
 ### Objective-proof method (in response to a director challenge "can you objectively prove `trivia` is dead?")

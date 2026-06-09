@@ -162,9 +162,23 @@ pp_non_directive_line := non_directive_text newline?
 pp_blank_line := newline
               -> {kind: "blank"}
 non_directive_text := inline_trivia /[^`\r\n][^\r\n]*/
-@sample: " "
+# GRAMMAR-WELLFORMED.H.5.3 — WITNESSING sample steering. `directive_tail`'s content
+# `/[^\r\n]+/` is line-greedy, so an un-steered generation can emit a free run that
+# over-produces a sample the parser rejects (a round-trip-faithfulness hazard). The older
+# `@sample: " "` kept it benign but a bare space is consumed by the leading `inline_trivia`,
+# so the mandatory `/[^\r\n]+/` body matches nothing on re-parse → `directive_tail?` takes the
+# EMPTY arm → the rule was never WITNESSED (cert-coverage `UNKNOWN`). `@sample: " x"` keeps the
+# tail benign (deterministic, faithful) AND survives `inline_trivia` so the real parser
+# exercises `directive_tail` on re-parse → a genuine reachability witness.
+@sample: " x"
 directive_tail := inline_trivia /[^\r\n]+/
-@sample: " "
+# GRAMMAR-WELLFORMED.H.5.3 — WITNESSING sample steering. The older `@sample: " "` short-circuited
+# the whole rule to a space, so the inner `line_comment?` was never expanded and `line_comment`
+# was never WITNESSED. `@sample: " //"` emits a minimal valid line comment (`line_comment :=
+# /\/\/[^\r\n]*/` accepts `//` with an empty body), so on re-parse `inline_trivia line_comment?`
+# matches `//` → `line_comment` is genuinely exercised → a real reachability witness, while
+# staying benign (no free-content over-generation).
+@sample: " //"
 directive_comment_tail := inline_trivia line_comment?
 
 # ---------------------------------------------------------------------------
