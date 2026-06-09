@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - INLINE-ACTIONS.2 — wire branch-start inline ACTION directives (PGEN-INLINE-ACTIONS-0002)
+
+### What landed
+Branch-start inline `@emit_fact` / `@open_scope` / `@close_scope` on a MULTI-branch rule now fire for the WINNING branch, per the `.1` design. Three pieces:
+1. `CompiledSemanticRuntimeAnnotations::branch_effect_directives_for_rule_branch(rule, idx)` (`semantic_runtime.rs`) — `is_effect()`-filtered view; the action dual of `branch_predicates_for_rule_branch`.
+2. A conditionally-emitted `apply_branch_start_effect_directive` parser method (`ast_based_generator.rs`, in `generate_parse_method`, gated on `grammar_has_branch_start_effects`) that resolves a directive's `$ref`s against the selected branch's content and applies it directly to the live `semantic_runtime_state` via `SemanticRuntimeState::apply_directive` — NO transaction (the enclosing rule transaction / tournament checkpoint owns rollback).
+3. A per-rule-gated loop (`generate_or_logic`, gated on `rule_has_branch_start_effects`) in the winner-selected block: after `apply_delta(best_semantic_delta)` and before `result = content`, it clones the winning branch's effect directives and applies each against `&content`.
+
+### Why this design
+- **Rides the existing C3-B delta machinery, no new lifecycle.** Applying in the winner block (post-delta-replay) means the branch-start effects land in the committed state exactly when the branch is chosen, ahead of the rule-level effect/post-predicate phase — so a rule-level post-predicate can observe a branch-start emit. If the enclosing rule later backtracks, the rule's checkpoint rollback undoes them with everything else.
+- **Loser-branch non-leak is structural, not tested-for:** there is no code path that applies a losing branch's branch-start effect — the loop exists only inside `if let Some(content) = best_content`, keyed on `best_branch_index`. The speculative tournament rolls every branch back to the checkpoint *before* selection; my application happens *after*.
+- **Winner-only ⇒ propagate resolution errors** (`?`). A malformed `$ref` in the selected branch's emit fails the rule (consistent with the rule-level effect path); there is no speculative-loser-error hazard because losers never reach the apply call.
+- **Zero blast radius by construction + verified.** Both gates yield `quote!{}` (nothing) for every current grammar (none use branch-start actions), so all 10 parsers regenerate byte-identical (`helper=0 loop=0` grep). The helper method is itself gated (no dead method in non-feature grammars).
+
+### Scope boundary
+Branch-START actions on MULTI-branch rules only. Single-branch branch-start placement is equivalent to rule-level (documented: use rule-level). MID-SEQUENCE inline actions (the dropped `branch_mid_sequence_semantic_annotations` registry) remain `INLINE-ACTIONS.3` (deferred).
+
+### Verified
+3 unit tests (codegen wiring + gating + runtime accessor/emit); lib 624/0 (no-features) + 689/0/21ign (`--features generated_parsers`); strict source clippy clean; book `semantic-store.md` synced. End-to-end firing in a compiled parser is integration-proven by the first consumer, `SV-PARSE-STRICT.2`.
+
 ## 2026-06-09 - INLINE-ACTIONS.1 — branch-local inline semantic ACTION directives (scoping/design/proposal, PGEN-INLINE-ACTIONS-0001)
 
 ### Goal

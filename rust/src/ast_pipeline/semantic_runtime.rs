@@ -756,6 +756,25 @@ impl CompiledSemanticRuntimeAnnotations {
             .filter(|directive| directive.is_branch_predicate())
     }
 
+    /// INLINE-ACTIONS.2: the branch-local inline ACTION directives (the
+    /// `is_effect()` set — `@emit_fact` / `@open_scope` / `@close_scope`)
+    /// attached at the start of a specific branch. The generated parser
+    /// applies these for the WINNING branch (resolved against that branch's
+    /// content) so a fact can be emitted exactly where a declaration is
+    /// recognized — not only at rule level. This is the *action* dual of
+    /// `branch_predicates_for_rule_branch` (the branch-local *steering* view);
+    /// together they make every semantic annotation usable on a specific
+    /// branch, as the meta-grammar's `inline_semantic_annotation` intends.
+    pub fn branch_effect_directives_for_rule_branch<'a>(
+        &'a self,
+        rule_name: &'a str,
+        branch_index: usize,
+    ) -> impl Iterator<Item = &'a SemanticRuntimeDirective> + 'a {
+        self.branch_directives_for_rule_branch(rule_name, branch_index)
+            .iter()
+            .filter(|directive| directive.is_effect())
+    }
+
     pub fn has_post_predicates_for_rule(&self, rule_name: &str) -> bool {
         self.post_predicates_for_rule(rule_name).next().is_some()
     }
@@ -4508,6 +4527,101 @@ mod tests {
                 .branch_predicates_for_rule_branch("statement_or_decl", 2)
                 .count(),
             1
+        );
+    }
+
+    #[test]
+    fn branch_effect_directives_accessor_returns_only_effects_and_emit_fires() {
+        // INLINE-ACTIONS.2: the runtime data path the generated parser uses for a
+        // branch-start action. `branch_effect_directives_for_rule_branch` returns
+        // a branch's effect directives (and only those — predicates excluded), and
+        // applying one via `SemanticRuntimeState::apply_directive` emits the fact
+        // so a later consumer predicate observes it.
+        let mut annotations = Annotations::default();
+        annotations.branch_semantic_annotations.insert(
+            "import_item".to_string(),
+            vec![
+                // branch 0: a branch-local PREDICATE (steering), not an effect.
+                vec![structured_named(
+                    "predicate",
+                    "{ name: content_kind_is, args: [sequence], phase: branch, view: raw }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("content_kind_is".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "args".to_string(),
+                            value: UnifiedSemanticValue::Array(vec![
+                                UnifiedSemanticValue::Identifier("sequence".to_string()),
+                            ]),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "phase".to_string(),
+                            value: UnifiedSemanticValue::Identifier("branch".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "view".to_string(),
+                            value: UnifiedSemanticValue::Identifier("raw".to_string()),
+                        },
+                    ]),
+                )],
+                // branch 1: a branch-start @emit_fact (the ACTION).
+                vec![structured_named(
+                    "emit_fact",
+                    "{ kind: wildcard_open, name: pkg }",
+                    UnifiedSemanticValue::Object(vec![
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("wildcard_open".to_string()),
+                        },
+                        crate::ast_pipeline::UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::Identifier("pkg".to_string()),
+                        },
+                    ]),
+                )],
+            ],
+        );
+
+        let compiled = compile_semantic_runtime_annotations(&annotations)
+            .expect("compiled semantic runtime annotations should succeed");
+
+        // The accessor returns ONLY the effect directive, and only for the branch
+        // that carries it.
+        assert_eq!(
+            compiled
+                .branch_effect_directives_for_rule_branch("import_item", 0)
+                .count(),
+            0,
+            "branch 0 carries a predicate, not an effect",
+        );
+        let branch1_effects: Vec<&SemanticRuntimeDirective> = compiled
+            .branch_effect_directives_for_rule_branch("import_item", 1)
+            .collect();
+        assert_eq!(branch1_effects.len(), 1, "branch 1 carries one @emit_fact");
+        assert!(branch1_effects[0].is_effect());
+        // The predicate view must NOT surface the effect.
+        assert_eq!(
+            compiled
+                .branch_predicates_for_rule_branch("import_item", 1)
+                .count(),
+            0,
+            "an @emit_fact is not a branch predicate",
+        );
+
+        // Applying the branch-start effect to the live state emits the fact — the
+        // runtime half of what the generated winning-branch loop performs.
+        let mut state = SemanticRuntimeState::new();
+        assert_eq!(
+            state.evaluate_predicate(&count_at_least("wildcard_open", 1)),
+            Some(false),
+        );
+        assert!(state.apply_directive(branch1_effects[0]));
+        assert_eq!(
+            state.evaluate_predicate(&count_at_least("wildcard_open", 1)),
+            Some(true),
+            "the branch-start @emit_fact fired, so a consumer predicate now sees it",
         );
     }
 

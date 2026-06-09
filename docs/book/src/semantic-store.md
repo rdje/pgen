@@ -225,6 +225,36 @@ indexed access (`$items[0]`), and scalar literals. See
 [`docs/RETURN_ANNOTATIONS_REFERENCE.md`](../../RETURN_ANNOTATIONS_REFERENCE.md)
 for the full surface.
 
+### Rule-level vs branch-local placement
+
+`@emit_fact:` is most often attached at the **rule level** (on its own line above
+`name :=`), where it fires when the whole rule commits. But a binding is
+sometimes recognized in just **one branch** of an ordered choice — for example
+only `import pkg::*;` opens a wildcard import, not `import pkg::name;`. For those
+cases you can attach the action directive **inside the branch**, immediately
+before that branch's items, exactly where the meta-grammar allows any inline
+annotation:
+
+```ebnf
+package_import_item := package_identifier scope_resolution identifier
+                          -> { kind: "explicit", package: $1, name: $3 }
+                     | @emit_fact: { kind: wildcard_import_open, name: $package.body }
+                       package_identifier scope_resolution star
+                          -> { kind: "wildcard", package: $1 }
+```
+
+A branch-local action fires **only for the branch the parser selects**, resolved
+against that branch's captured content, and rides the same speculation-safe
+rollback as a rule-level emit: a branch that is tried and then loses the ordered
+choice never leaks its emission, and the whole emission is undone if the
+enclosing rule later backtracks (Stage 7). This is the **action** counterpart to
+a branch-local `@predicate … phase: branch` (which *steers* the choice): the same
+inline placement carries `@emit_fact`, `@open_scope`, and `@close_scope` too.
+
+Prefer rule-level placement for a single-branch rule (it is equivalent and
+clearer); reserve branch-local placement for emitting from one specific branch of
+several.
+
 ## 6. Stage 3 — QUERY: `@predicate`
 
 There are two ways to query: directly invoke a built-in primitive, or

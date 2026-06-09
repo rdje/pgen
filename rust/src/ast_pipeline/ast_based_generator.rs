@@ -199,6 +199,55 @@ impl AstBasedGenerator {
         direct_empty && branch_empty && mid_seq_empty
     }
 
+    /// INLINE-ACTIONS.2: does any branch of `rule_name` carry a branch-START
+    /// inline ACTION annotation (`@emit_fact` / `@open_scope` / `@close_scope`
+    /// — the `is_effect()` set)? Used to gate the per-rule winning-branch
+    /// effect-application loop so rules without branch-start actions keep
+    /// byte-identical parse logic (zero blast radius when the feature is
+    /// unused). The annotation-name set mirrors `is_effect()` in
+    /// `semantic_runtime.rs`.
+    fn rule_has_branch_start_effects(&self, rule_name: &str) -> bool {
+        let Some(annotations) = &self.annotations else {
+            return false;
+        };
+        annotations
+            .branch_semantic_annotations
+            .get(rule_name)
+            .is_some_and(|branches| {
+                branches.iter().any(|branch| {
+                    branch.iter().any(|annotation| {
+                        matches!(
+                            annotation.name(),
+                            Some("emit_fact") | Some("open_scope") | Some("close_scope")
+                        )
+                    })
+                })
+            })
+    }
+
+    /// INLINE-ACTIONS.2: does ANY rule in the grammar carry a branch-start
+    /// inline ACTION annotation? Used to gate emission of the
+    /// `apply_branch_start_effect_directive` helper method so grammars that do
+    /// not use the feature regenerate byte-identical (no dead helper).
+    fn grammar_has_branch_start_effects(&self) -> bool {
+        let Some(annotations) = &self.annotations else {
+            return false;
+        };
+        annotations
+            .branch_semantic_annotations
+            .values()
+            .any(|branches| {
+                branches.iter().any(|branch| {
+                    branch.iter().any(|annotation| {
+                        matches!(
+                            annotation.name(),
+                            Some("emit_fact") | Some("open_scope") | Some("close_scope")
+                        )
+                    })
+                })
+            })
+    }
+
     pub fn new(grammar_name: String) -> Self {
         Self {
             grammar_name,
@@ -1089,6 +1138,106 @@ impl AstBasedGenerator {
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
         let allow_trailing_layout = !self.grammar_name.eq_ignore_ascii_case("regex");
 
+        // INLINE-ACTIONS.2: emit the branch-start effect-application helper only
+        // when some rule actually uses a branch-start inline action directive, so
+        // grammars that do not use the feature regenerate byte-identical (no dead
+        // helper). The companion per-rule call loop in `generate_or_logic` is
+        // gated the same way, so the parse logic of non-feature rules is also
+        // byte-identical.
+        let branch_start_effect_helper: TokenStream = if self.grammar_has_branch_start_effects() {
+            quote! {
+                /// INLINE-ACTIONS.2: apply a single branch-start inline ACTION
+                /// directive (`@emit_fact` / `@open_scope` / `@close_scope`) for
+                /// the WINNING branch, resolving its `$ref`s against the selected
+                /// branch's content, DIRECTLY onto the live semantic state. There
+                /// is intentionally no transaction wrapper here: the enclosing
+                /// rule transaction (and, for multi-branch rules, the tournament
+                /// checkpoint) already own rollback, so a later rule failure
+                /// undoes these emissions exactly like the branch body's own
+                /// emissions. Mirrors the resolution in
+                /// `apply_semantic_runtime_effect_directive` but targets the
+                /// state rather than a transaction. Returns `Ok(false)` for
+                /// non-effect directives (predicate / library / declaration),
+                /// which are handled elsewhere.
+                fn apply_branch_start_effect_directive(
+                    &mut self,
+                    directive: &crate::ast_pipeline::SemanticRuntimeDirective,
+                    root_content: &ParseContent<'input>,
+                ) -> ParseResult<bool> {
+                    let resolved: Option<crate::ast_pipeline::SemanticRuntimeDirective> = match directive {
+                        crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(spec) => {
+                            let resolved_name = self
+                                .resolve_semantic_runtime_value_against_content(&spec.name, root_content)
+                                .ok_or_else(|| {
+                                    self.create_contextual_error(
+                                        "Branch-start @emit_fact could not resolve the fact name against the selected branch content",
+                                    )
+                                })?;
+                            let resolved_attributes = self
+                                .resolve_unified_semantic_properties_against_content(
+                                    &spec.attributes,
+                                    root_content,
+                                )?;
+                            Some(crate::ast_pipeline::SemanticRuntimeDirective::EmitFact(
+                                crate::ast_pipeline::SemanticFactSpec {
+                                    kind: spec.kind.clone(),
+                                    name: resolved_name,
+                                    attributes: resolved_attributes,
+                                },
+                            ))
+                        }
+                        crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(spec) => {
+                            let resolved_name = spec
+                                .name
+                                .as_ref()
+                                .map(|value| {
+                                    self.resolve_semantic_runtime_value_against_content(value, root_content)
+                                        .ok_or_else(|| {
+                                            self.create_contextual_error(
+                                                "Branch-start @open_scope could not resolve the scope name against the selected branch content",
+                                            )
+                                        })
+                                })
+                                .transpose()?;
+                            Some(crate::ast_pipeline::SemanticRuntimeDirective::OpenScope(
+                                crate::ast_pipeline::SemanticScopeSpec {
+                                    kind: spec.kind.clone(),
+                                    name: resolved_name,
+                                },
+                            ))
+                        }
+                        crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(spec) => {
+                            let resolved_name = spec
+                                .name
+                                .as_ref()
+                                .map(|value| {
+                                    self.resolve_semantic_runtime_value_against_content(value, root_content)
+                                        .ok_or_else(|| {
+                                            self.create_contextual_error(
+                                                "Branch-start @close_scope could not resolve the scope name against the selected branch content",
+                                            )
+                                        })
+                                })
+                                .transpose()?;
+                            Some(crate::ast_pipeline::SemanticRuntimeDirective::CloseScope(
+                                crate::ast_pipeline::SemanticCloseScopeSpec {
+                                    kind: spec.kind.clone(),
+                                    name: resolved_name,
+                                },
+                            ))
+                        }
+                        _ => None,
+                    };
+                    match resolved {
+                        Some(resolved) => Ok(self.semantic_runtime_state.apply_directive(&resolved)),
+                        None => Ok(false),
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         quote! {
             pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.recovery_events.clear();
@@ -1838,6 +1987,8 @@ impl AstBasedGenerator {
                     }
                 }
             }
+
+            #branch_start_effect_helper
 
             fn resolve_semantic_runtime_value_against_content(
                 &self,
@@ -3210,6 +3361,29 @@ impl AstBasedGenerator {
                 });
             }
 
+            // INLINE-ACTIONS.2: apply the WINNING branch's branch-start inline
+            // action directives (@emit_fact / @open_scope / @close_scope) for
+            // multi-branch rules. Gated per-rule so rules without branch-start
+            // actions keep byte-identical parse logic. The directives are cloned
+            // out of the registry first so the immutable borrow on `parser` is
+            // released before the `&mut self` apply call; `best_branch_index` is
+            // the 0-based winner index.
+            let branch_start_effect_application: TokenStream =
+                if self.rule_has_branch_start_effects(rule_name) {
+                    quote! {
+                        let branch_start_effects: Vec<crate::ast_pipeline::SemanticRuntimeDirective> = parser
+                            .semantic_runtime_annotations
+                            .branch_effect_directives_for_rule_branch(#rule_name, best_branch_index)
+                            .cloned()
+                            .collect();
+                        for branch_start_effect in &branch_start_effects {
+                            parser.apply_branch_start_effect_directive(branch_start_effect, &content)?;
+                        }
+                    }
+                } else {
+                    quote! {}
+                };
+
             Ok(quote! {
                 // Multi-branch parsing logic (branch-policy guided)
                 let parse_start = parser.position;
@@ -3289,6 +3463,12 @@ impl AstBasedGenerator {
                             parser.semantic_runtime_state.apply_delta(delta);
                         }
                     }
+                    // INLINE-ACTIONS.2: winning-branch branch-start inline action
+                    // directives fire here — after the winner's body delta is
+                    // replayed (so its own emissions are visible) and before the
+                    // rule-level effect / post-predicate phase. No-op token block
+                    // for rules without branch-start actions (byte-identical).
+                    #branch_start_effect_application
                     result = content;
                     semantic_raw_content = best_raw_content;
                 } else {
@@ -7277,6 +7457,122 @@ mod semantic_usage_tests {
                     .expect("parser generation should succeed")
             })
             .as_str()
+    }
+
+    // INLINE-ACTIONS.2: a generator whose 2-branch rule carries a branch-START
+    // inline `@emit_fact` on its SECOND branch (mirrors the SV
+    // `package_import_item` wildcard branch). Used to prove the codegen wires the
+    // winning-branch effect application, and that the gate fires for an *effect*
+    // (not a *predicate*) branch annotation.
+    fn branch_emit_generator() -> AstBasedGenerator {
+        let mut annotations = Annotations::default();
+        annotations.branch_semantic_annotations.insert(
+            "import_item".to_string(),
+            vec![
+                Vec::new(),
+                vec![structured_named_annotation(
+                    "emit_fact",
+                    "{ kind: wildcard_open, name: $1 }",
+                    UnifiedSemanticValue::Object(vec![
+                        UnifiedSemanticProperty {
+                            key: "kind".to_string(),
+                            value: UnifiedSemanticValue::Identifier("wildcard_open".to_string()),
+                        },
+                        UnifiedSemanticProperty {
+                            key: "name".to_string(),
+                            value: UnifiedSemanticValue::RuleReference("$1".to_string()),
+                        },
+                    ]),
+                )],
+            ],
+        );
+
+        AstBasedGenerator {
+            grammar_name: "branch_emit_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: Some(annotations),
+            branch_return_annotations: HashMap::new(),
+            emit_typed_entry_skeleton: false,
+            enable_debug: false,
+            parser_hook_registry: None,
+            ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
+        }
+    }
+
+    fn branch_emit_rendered_parser() -> &'static str {
+        static RENDERED: OnceLock<String> = OnceLock::new();
+        RENDERED
+            .get_or_init(|| {
+                let generator = branch_emit_generator();
+                let mut grammar_tree = HashMap::new();
+                grammar_tree.insert(
+                    "import_item".to_string(),
+                    ASTNode::Or {
+                        alternatives: vec![
+                            ASTNode::Sequence {
+                                elements: vec![
+                                    token("quoted_string", "import"),
+                                    token("quoted_string", "pkg"),
+                                ],
+                            },
+                            token("quoted_string", "*"),
+                        ],
+                    },
+                );
+                let rule_order = vec!["import_item".to_string()];
+                generator
+                    .generate_parser(
+                        &grammar_tree,
+                        &rule_order,
+                        "semantic_branch_emit_usage.rs",
+                    )
+                    .expect("parser generation should succeed")
+            })
+            .as_str()
+    }
+
+    #[test]
+    fn generated_parser_wires_branch_start_effect_application_for_winning_branch() {
+        // INLINE-ACTIONS.2: a branch-start `@emit_fact` must produce (a) the
+        // conditionally-emitted apply helper and (b) the winning-branch call loop
+        // that resolves + applies it against the selected branch's content.
+        let rendered = branch_emit_rendered_parser();
+        assert!(
+            rendered.contains("fn apply_branch_start_effect_directive"),
+            "a grammar with a branch-start @emit_fact should emit the apply helper, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("branch_effect_directives_for_rule_branch"),
+            "the winning-branch block should look up branch-start effect directives, got: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains("for branch_start_effect in &branch_start_effects"),
+            "the winning-branch block should iterate + apply each branch-start effect directive, got: {}",
+            rendered
+        );
+    }
+
+    #[test]
+    fn generated_parser_omits_branch_start_effect_wiring_without_branch_effects() {
+        // INLINE-ACTIONS.2 (gating / zero-blast-radius): a grammar whose branch
+        // annotation is a PREDICATE (steering), not an effect, must NOT get the
+        // branch-start effect helper or call loop — so non-feature grammars stay
+        // byte-identical.
+        let rendered = branch_predicate_rendered_parser();
+        assert!(
+            !rendered.contains("apply_branch_start_effect_directive"),
+            "a branch-predicate-only grammar must not emit branch-start effect wiring, got: {}",
+            rendered
+        );
+        assert!(
+            !rendered.contains("branch_effect_directives_for_rule_branch"),
+            "a branch-predicate-only grammar must not look up branch-start effects, got: {}",
+            rendered
+        );
     }
 
     fn profile_guard_generator() -> AstBasedGenerator {

@@ -147,11 +147,11 @@ or meta-grammar change is required (the surface already parses).
   Commit: `PGEN-INLINE-ACTIONS-0001`
 
 - ID: `INLINE-ACTIONS.2`
-  Status: `pending`
+  Status: `done`
   Goal: wire branch-start effect directives to fire for the winning branch (the design above), with regression tests + cross-grammar no-regression + book lockstep.
   Acceptance: the Acceptance Criteria above hold; all 10 parsers regenerate; unused-feature grammars byte-identical.
-  Verification: `pending`
-  Commit: `pending`
+  Verification: codegen wiring (probe `.ebnf` → `ast_pipeline --generate-parser`: helper+loop emitted; unit test `generated_parser_wires_branch_start_effect_application_for_winning_branch`); gating (unit test `generated_parser_omits_branch_start_effect_wiring_without_branch_effects`; all 10 grammars regenerate with `helper=0 loop=0`); runtime data path + emit (unit test `branch_effect_directives_accessor_returns_only_effects_and_emit_fires`); lib 624/0 (no-features) + 689/0 (`--features generated_parsers`); strict source clippy clean. Loser-branch non-leak is by construction (the application runs only in the winner-selected block keyed on `best_branch_index`). End-to-end firing in a compiled parser is integration-proven by the first consumer, `SV-PARSE-STRICT.2`.
+  Commit: `PGEN-INLINE-ACTIONS-0002`
 
 - ID: `INLINE-ACTIONS.3`
   Status: `deferred`
@@ -164,8 +164,12 @@ or meta-grammar change is required (the surface already parses).
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `INLINE-ACTIONS.2` | `pending` | The branch-start action wiring; unblocks `SV-PARSE-STRICT.2`'s clean inline `@emit_fact` and closes the documented-but-unwired capability for all grammars. |
-| 2 | `INLINE-ACTIONS.3` | `deferred` | Mid-sequence actions; larger (positional partial-content ref-resolution); sliced after `.2`. |
+| — | `INLINE-ACTIONS.2` | `done` | Branch-start action wiring landed (`PGEN-INLINE-ACTIONS-0002`); unblocks `SV-PARSE-STRICT.2`'s clean inline `@emit_fact`. |
+| 1 | `INLINE-ACTIONS.3` | `deferred` | Mid-sequence actions; larger (positional partial-content ref-resolution); activate on demand. Not blocking — `SV-PARSE-STRICT.2` needs only branch-start. |
+
+The tree's deliverable (branch-start inline action directives) is **landed**; the
+only open child (`.3`, mid-sequence) is `deferred`. The next active work is the
+consumer `SV-PARSE-STRICT.2`.
 
 ## Decisions
 
@@ -188,14 +192,16 @@ or meta-grammar change is required (the surface already parses).
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-09` | `INLINE-ACTIONS.1` | probe-grammar parser generation + generated-parser inspection (3 placements) + codegen read (tournament loop, `effect_directives_for_rule`, `is_effect`, `compile_semantic_runtime_annotations`) | gap proven; pure-docs |
+| `2026-06-09` | `INLINE-ACTIONS.2` | probe `.ebnf` regen (helper+loop wired); all 10 grammars regen `helper=0 loop=0` (zero blast radius); 3 unit tests (codegen wiring + gating + accessor/emit); lib 624/0 (no-features) + 689/0/21ign (`--features generated_parsers`); strict source clippy clean (generated-stage debt pre-existing, non-strict) | pass |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `INLINE-ACTIONS.1` | `PGEN-INLINE-ACTIONS-0001` | scoping/design/proposal (pure docs) |
-| `INLINE-ACTIONS.2` | `pending` | branch-start action wiring |
+| `INLINE-ACTIONS.2` | `PGEN-INLINE-ACTIONS-0002` | branch-start action wiring (engine/codegen + tests + book) |
 
 ## Changelog
 
 - `2026-06-09`: Created task tree from the director directive; `.1` scoping/design done (empirical 3-position gap proof + parser-agnostic rationale + delta-machinery design); `.2` (branch-start wiring) is the frontier; `.3` (mid-sequence) deferred. `SV-PARSE-STRICT.2` consumes `.2`.
+- `2026-06-09`: `.2` DONE (`PGEN-INLINE-ACTIONS-0002`) — branch-start inline action directives (`@emit_fact`/`@open_scope`/`@close_scope`) now fire for the winning branch. Engine: `branch_effect_directives_for_rule_branch` accessor (`semantic_runtime.rs`); conditionally-emitted `apply_branch_start_effect_directive` helper + per-rule-gated winner-branch application loop (`ast_based_generator.rs`); book `semantic-store.md` "Rule-level vs branch-local placement". Zero blast radius (all 10 grammars regen byte-identical). `.3` (mid-sequence) stays deferred. Frontier → `SV-PARSE-STRICT.2`.
