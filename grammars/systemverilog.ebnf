@@ -1621,6 +1621,14 @@ data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifeti
 @fact_kind: { name: type_name, attributes: [declaration_family], exportable: true, description: "A declared type name; declaration_family records class / interface_class / covergroup / typedef / type_parameter." }
 @fact_kind: { name: variable_binding, attributes: [type_kind, type_ref], description: "A declared variable or data object with its resolved type kind, emitted at data_declaration sites." }
 @fact_kind: { name: type_binding, attributes: [type_kind, type_ref], description: "A declared type (class or typedef) with its resolved type kind, emitted at class and typedef sites." }
+# SV-PARSE-STRICT.2: marker that an (unresolved) wildcard package import
+# `import pkg::*;` is in scope. Emitted on the wildcard `package_import_item`
+# branch (a branch-start `@emit_fact`, INLINE-ACTIONS.2). The `net_declaration`
+# `nt a;` alias branch consults it so the parser accepts an otherwise-undeclared
+# net-type identifier ONLY when it cannot prove it undeclared (an open wildcard
+# import could supply the nettype) — sound-not-complete parse-time gating;
+# cross-unit resolution is elaboration's job.
+@fact_kind: { name: wildcard_import_open, attributes: [package], description: "An unresolved wildcard package import (`pkg::*`) is in scope; gates sound parse-time acceptance of undeclared net-type identifiers." }
 data_declaration := data_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                   | data_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
@@ -3276,7 +3284,11 @@ net_decl_assignment := net_identifier unpacked_dimension* ( assign expression )?
 @profiles: ["sv_2017"]
 net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
                                 -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
-                         | @probe_sample: "nt a;" net_type_identifier ( delay_control )? list_of_net_decl_assignments semi
+                         # SV-PARSE-STRICT.2: a user net-type identifier must be a KNOWN declared type/nettype (sound store-gate via `checked_nettype_identifier`).
+                         | checked_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
+                                -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
+                         # SV-PARSE-STRICT.2: unresolved-wildcard-import escape — accept an otherwise-undeclared net-type id ONLY when a `pkg::*` is in scope (cannot prove undeclared; defer to elaboration). The gate lives on the `wildcard_escape_nettype_identifier` helper (a `phase: post` predicate, so it stays BRANCH-LOCAL — an inline `phase: branch` predicate is flattened rule-wide by `branch_predicates_for_rule` and would wrongly gate the `wire a;` branch).
+                         | wildcard_escape_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        net_type_id: $1, delay_control: $2, assignments: $3}
                          | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
                                 -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
@@ -3284,7 +3296,11 @@ net_declaration_sv_2017 := @probe_sample: "wire a;" net_type ( net_strength )? (
 @profiles: ["sv_2023"]
 net_declaration_sv_2023 := @probe_sample: "wire a;" net_type ( net_strength )? ( net_vector_scalar )? data_type_or_implicit ( delay )? list_of_net_decl_assignments semi
                                 -> {kind: "wire",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}
-                         | @probe_sample: "nt a;" nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
+                         # SV-PARSE-STRICT.2: known declared type/nettype (sound store-gate).
+                         | checked_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
+                                -> {kind: "alias",        nettype_id: $1, delay_control: $2, assignments: $3}
+                         # SV-PARSE-STRICT.2: unresolved-wildcard-import escape (branch-local `phase: post` gate via the helper — see the sv_2017 note).
+                         | wildcard_escape_nettype_identifier ( delay_control )? list_of_net_decl_assignments semi
                                 -> {kind: "alias",        nettype_id: $1, delay_control: $2, assignments: $3}
                          | @probe_sample: "interconnect logic a;" kw_interconnect_c8ec83f5 implicit_data_type ( hash delay_value )? net_identifier unpacked_dimension* ( comma net_identifier unpacked_dimension* )? semi
                                 -> {kind: "interconnect", data_type: $2, delay: $3, name: $4, dims: $5, second: $6}
@@ -3335,9 +3351,9 @@ net_type := kw_supply_076df715 -> {kind: "supply"}
 
 @profiles: ["sv_2017"]
 @sample: "nettype int nt;"
-net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type net_type_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
+net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
                              -> {data_type: $2, name: $3, with_clause: $4}
-                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier net_type_identifier semi
+                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier declared_nettype_identifier semi
 
 @profiles: ["sv_2017"]
 net_type_declaration := net_type_declaration_sv_2017
@@ -3349,10 +3365,35 @@ net_type_identifier_sv_2017 := declaration_identifier
 @profiles: ["sv_2017"]
 net_type_identifier := net_type_identifier_sv_2017
 
+# SV-PARSE-STRICT.2: a USE of a net-type identifier that MUST be a known declared
+# type/nettype — mirrors the proven `checked_type_identifier` store-gate. A bare
+# `declaration_identifier` routed through a `phase: post` `has_fact(type_name, …)`
+# gate so a provably-undeclared identifier is REJECTED at parse time. Profile-
+# agnostic (used by both the sv_2017 and sv_2023 `net_declaration` alias branches).
+@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+checked_nettype_identifier := declaration_identifier -> { body: $1.body }
+
+# SV-PARSE-STRICT.2: a DECLARATION of a user nettype name — emits the `type_name`
+# fact (declaration_family: nettype) so a later `checked_nettype_identifier` use
+# resolves (binding-before-use; mirrors the `declared_*_identifier` helpers for
+# class / typedef / covergroup). Profile-agnostic.
+@emit_fact: { kind: type_name, name: $body, declaration_family: nettype }
+declared_nettype_identifier := declaration_identifier -> { body: $1.body }
+
+# SV-PARSE-STRICT.2: the unresolved-wildcard-import ESCAPE used by the
+# `net_declaration` alias branch — accepts a (possibly undeclared) net-type
+# identifier ONLY when an `import pkg::*;` is in scope (`fact_count_at_least
+# (wildcard_import_open, 1)`). The gate is `phase: post` (NOT inline `phase:
+# branch`) so it stays BRANCH-LOCAL: an inline `phase: branch` predicate is
+# flattened rule-wide by `branch_predicates_for_rule` and would wrongly gate the
+# sibling `wire a;` branch. Profile-agnostic.
+@predicate: { name: fact_count_at_least, args: [wildcard_import_open, 1], phase: post }
+wildcard_escape_nettype_identifier := declaration_identifier -> { body: $1.body }
+
 @profiles: ["sv_2023"]
-nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
+nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
                                       -> {kind: "data_type",  data_type: $2, name: $3, with_clause: $4}
-                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? nettype_identifier nettype_identifier semi
+                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? nettype_identifier declared_nettype_identifier semi
                                       -> {kind: "nettype",    scope: $2, base: $3, name: $4}
 
 @profiles: ["sv_2023"]
@@ -3590,7 +3631,8 @@ package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma pac
 @import_from_library: { kind: package, name_from: $package.body }
 package_import_item := package_identifier scope_resolution identifier
                           -> {kind: "explicit", package: $1, name: $3}
-                     | package_identifier scope_resolution star
+                     | @emit_fact: { kind: wildcard_import_open, name: $package.body }
+                       package_identifier scope_resolution star
                           -> {kind: "wildcard", package: $1}
 
 package_item := package_or_generate_item_declaration -> {kind: "declaration",        body: $1}

@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - SV-PARSE-STRICT.2 — sound parse-time rejection of undeclared net-type identifiers (PGEN-SV-PARSE-STRICT-0002)
+
+### What landed (grammar-only, `grammars/systemverilog.ebnf`)
+The generator-found over-acceptance — `module a; endmodulemodule b; endmodule` parsed because the `net_declaration` `nt a;` alias branch took a bare `declaration_identifier` as a user nettype without consulting the store — is fixed:
+1. `@fact_kind wildcard_import_open` (scope-local, non-exportable, `attributes:[package]` — `@fact_kind` requires ≥1 attribute).
+2. A **branch-start `@emit_fact: { kind: wildcard_import_open, name: $package.body }`** on the wildcard `package_import_item` branch (`pkg::*`) — the first consumer of `INLINE-ACTIONS.2`.
+3. The `nt a;` alias branch (both profiles) split into two **branch-local-gated** branches: known-type via `checked_nettype_identifier` (`phase: post has_fact(type_name,$body)`, mirrors `checked_type_identifier`) + wildcard-escape via `wildcard_escape_nettype_identifier` (`phase: post fact_count_at_least(wildcard_import_open,1)`).
+4. `declared_nettype_identifier` (`@emit_fact type_name{nettype}`) routed into the declared-name positions of `net_type_declaration_sv_2017` + `nettype_declaration_sv_2023` (both branches) so a genuinely-declared nettype is a known type (binding-before-use).
+
+All three helpers are profile-agnostic `declaration_identifier -> {body:$1.body}`, so `net_type_id`/`name` stay `{body:...}` — AST shape unchanged, schema stays 3, behaviour-tightening release bump 1.0.137→1.0.138.
+
+### The key finding: an inline `phase: branch` predicate is RULE-WIDE, not branch-local
+The first attempt put the wildcard gate inline on the escape branch as `@predicate fact_count_at_least(wildcard_import_open,1) phase: branch`. That made `module m; wire a; endmodule` **REJECT**. `--trace-rules net_declaration_sv_2017` was decisive: `✅ Leaving branch 1/4 ... (success)` immediately followed by `🚫 Branch 1/4 ... rejected by branch predicate 'fact_count_at_least[wildcard_import_open, 1]'`.
+
+Root cause: `CompiledSemanticRuntimeAnnotations::branch_predicates_for_rule(rule)` (`semantic_runtime.rs:735`) chains `directives_for_rule(rule)` with `branch_directives_for_rule(rule).flat_map(...)` — i.e. **every** branch's branch-predicates flattened — and the codegen branch-attempt loop (`ast_based_generator.rs ~2979`) evaluates that whole set against **each** branch. A predicate with a `$ref` is often self-limiting (the ref fails to resolve on the wrong branch → that branch is blocked, which may or may not be intended), but a **content-free** predicate like `fact_count_at_least` always resolves+evaluates, so it gates every branch. Fix: move the gate to a `phase: post` predicate on a dedicated helper rule used by only that branch — a post-predicate is evaluated against its own rule, so it stays branch-local. This is the same idiom as `checked_*_identifier`. Captured durably as KM `docs/knowledge/branch-predicate-is-rule-wide.md`.
+
+### Verified
+A/B: 4/4 reject (undeclared/no-import), 9/9 accept (declared nettype, in-scope `pkg::*`, plain `wire`/`logic`, vector/tri-wand/multi-net). **SV external corpus 14/14** (uvm's `import uvm_pkg::*;` opens the escape, so no uvm regression — the wildcard escape is what keeps 14/14). lib `--features generated_parsers` **689/0** (shape-contract incl. the updated 4-fact-kind registry test). Clippy strict source clean. Grammar-only ([[feedback_prefer_grammar_leave_engine_alone]]).
+
 ## 2026-06-09 - INLINE-ACTIONS.2 — wire branch-start inline ACTION directives (PGEN-INLINE-ACTIONS-0002)
 
 ### What landed

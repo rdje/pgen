@@ -828,8 +828,9 @@ mod tests {
         let annotations = parser.semantic_runtime_annotations();
         assert_eq!(
             annotations.fact_kinds_len(),
-            3,
-            "expected the 3 @fact_kind: declarations (type_name, variable_binding, type_binding)",
+            4,
+            "expected the 4 @fact_kind: declarations (type_name, variable_binding, \
+             type_binding, wildcard_import_open)",
         );
         let type_name = annotations
             .fact_kind("type_name")
@@ -846,6 +847,16 @@ mod tests {
         assert!(
             annotations.fact_kind("type_binding").is_some(),
             "type_binding fact-kind must be declared",
+        );
+        // SV-PARSE-STRICT.2: the wildcard-import marker that gates sound net-type
+        // acceptance. Declared NON-exportable (a scope-local parse-phase marker),
+        // so the exportable-kind set below stays exactly {type_name}.
+        let wildcard_import_open = annotations
+            .fact_kind("wildcard_import_open")
+            .expect("wildcard_import_open fact-kind must be declared");
+        assert!(
+            !wildcard_import_open.exportable,
+            "wildcard_import_open is a scope-local marker; it must NOT be exportable",
         );
         // Veer no-regression proof: with a declared schema, exportable_fact_kinds()
         // must still resolve to exactly {type_name} — byte-identical to the

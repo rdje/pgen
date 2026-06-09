@@ -149,11 +149,11 @@ Concrete grammar changes (engine untouched — [[feedback_prefer_grammar_leave_e
   Commit: `PGEN-SV-PARSE-STRICT-0001`
 
 - ID: `SV-PARSE-STRICT.2`
-  Status: `pending`
+  Status: `done`
   Goal: implement the sound gate on the `net_declaration` `nt a;` branch — known-type/nettype OR wildcard-import-open — plus the `wildcard_import_open` fact emission and the `nettype_declaration` `type_name` emit.
-  Acceptance: the Acceptance Criteria above hold; SV external corpus 14/14; decisive git-stash A/B baseline; no cross-grammar regression.
-  Verification: `pending`
-  Commit: `pending`
+  Acceptance: the Acceptance Criteria above hold; SV external corpus 14/14; decisive A/B; no cross-grammar regression.
+  Verification: A/B (release `parseability_probe`): all 4 reject cases REJECT (`endmodulemodule b;`, `module a; zzqq yy;`, `foo_type b;` no-import, bare `nt a;`); all 6 accept cases PASS (declared nettype file/module scope, wildcard-import file/module scope, plain `wire`, plain `logic`) + 3 net-decl sanity (wire-vec, tri/wand, multi-net). SV external corpus **14/14** (`sv_external_corpus_triage_gate`: parse_pass_total=14, parse_fail_total=0). lib `--features generated_parsers` 689/0 (shape-contract incl. the updated fact-kind registry test → 4 kinds). Grammar-only (engine untouched). One mid-implementation regression found+fixed tools-first: an inline `phase: branch` predicate is flattened rule-wide (`branch_predicates_for_rule`) and wrongly gated the `wire a;` branch → moved the wildcard gate to a `phase: post` helper rule (`wildcard_escape_nettype_identifier`), branch-local. KM card `branch-predicate-is-rule-wide`.
+  Commit: `PGEN-SV-PARSE-STRICT-0002`
 
 - ID: `SV-PARSE-STRICT.3`
   Status: `deferred`
@@ -166,8 +166,11 @@ Concrete grammar changes (engine untouched — [[feedback_prefer_grammar_leave_e
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-PARSE-STRICT.2` | `pending` | The confirmed sound-gating fix for the generator-found `endmodulemodule b;` over-acceptance; highest priority per the director ("fix parser bugs ASAP"). |
-| 2 | `SV-PARSE-STRICT.3` | `deferred` | The broader ungated identifier-categorization class; sliced after `.2` proves the idiom + corpus-safety. |
+| — | `SV-PARSE-STRICT.2` | `done` | The sound-gating fix landed (`PGEN-SV-PARSE-STRICT-0002`); the generator-found `endmodulemodule b;` over-acceptance is REJECTED, corpus 14/14. |
+| 1 | `SV-PARSE-STRICT.3` | `deferred` | The broader ungated identifier-categorization class (port-header / net-type family, `GRAMMAR-WELLFORMED.A2.1` "(4b)"); `.2` proved the idiom + corpus-safety. Activate on demand. |
+
+The parser bug is FIXED (`.2` done). The only open child (`.3`, the sibling
+ungated-categorization rules) is `deferred`.
 
 ## Decisions
 
@@ -176,6 +179,7 @@ Concrete grammar changes (engine untouched — [[feedback_prefer_grammar_leave_e
 - `2026-06-09`: **Sound gate, not hard gate.** Because the ungated `nt a;` branch is today the de-facto escape for unresolved-import types, the fix must preserve acceptance under an in-scope wildcard import (`has_fact(type_name,$1) OR wildcard_import_open`). A naive hard `has_fact` gate would be unsound.
 - `2026-06-09`: **Grammar-only** (engine off-limits, [[feedback_prefer_grammar_leave_engine_alone]]); reuse the proven `@predicate has_fact(type_name, …)` / `@emit_fact type_name` idioms.
 - `2026-06-09`: **`.2` now depends on `INLINE-ACTIONS.2`** (director, AskUserQuestion: "Wire branch-start emit first, then fix"). Piece 1 — emit `wildcard_import_open` on the *wildcard* `package_import_item` branch — is a **branch-start** `@emit_fact`, a placement the runtime does not yet fire (tools-proven gap, owned by the new `INLINE-ACTIONS` tree). Rather than reshape the wildcard branch into a dedicated helper rule (the non-elegant workaround), the director directed wiring branch-start emit as a general parser-agnostic feature first; `.2` then expresses piece 1 as a clean inline annotation. (A helper-rule fallback remains available if ever needed.)
+- `2026-06-09` (`.2`, tools-first correction): the wildcard escape uses a **`phase: post` helper rule** (`wildcard_escape_nettype_identifier`), NOT an inline `phase: branch` predicate. An inline `phase: branch` predicate is **flattened rule-wide** by `branch_predicates_for_rule` (`semantic_runtime.rs:735`) and evaluated against EVERY branch, so the content-free `fact_count_at_least(wildcard_import_open, 1)` wrongly REJECTED the sibling `wire a;` branch (decisive `--trace-rules` proof). A `phase: post` predicate on a dedicated helper used by only that branch stays branch-local. Captured as KM `branch-predicate-is-rule-wide`.
 
 ## Open Questions
 
@@ -191,14 +195,16 @@ Concrete grammar changes (engine untouched — [[feedback_prefer_grammar_leave_e
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-09` | `SV-PARSE-STRICT.1` | A/B parse (t1–t10), AST dump, `--trace debug` on the fail + pass cases, grammar read of `net_declaration`/`net_type_identifier`/`nettype_declaration`/`package_import_item` | root cause proven; pure-docs |
+| `2026-06-09` | `SV-PARSE-STRICT.2` | A/B (4 reject + 6 accept + 3 net-decl sanity); `--trace-rules` root-cause of the `wire a;` regression; SV external corpus triage gate; lib `--features generated_parsers` (shape-contract incl. updated fact-kind test); grammar diff review | reject 4/4, accept 9/9; **corpus 14/14** (parse_pass 14, fail 0); lib **689/0**; pass |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `SV-PARSE-STRICT.1` | `PGEN-SV-PARSE-STRICT-0001` | scoping/design (pure docs) |
-| `SV-PARSE-STRICT.2` | `pending` | the sound-gating implementation |
+| `SV-PARSE-STRICT.2` | `PGEN-SV-PARSE-STRICT-0002` | the sound-gating implementation (grammar-only) |
 
 ## Changelog
 
 - `2026-06-09`: Created task tree from the director dialogue; `.1` scoping/design done (tools-first root cause + confirmed parser/elaborator boundary + sound-gating fix design); `.2` (implementation) is the frontier.
+- `2026-06-09`: `.2` DONE (`PGEN-SV-PARSE-STRICT-0002`) — the sound gate landed (grammar-only, consuming `INLINE-ACTIONS.2`'s branch-start `@emit_fact`). `endmodulemodule b;` / undeclared net-types REJECTED; declared nettype + in-scope `pkg::*` + plain `wire`/`logic` ACCEPTED; SV external corpus 14/14; lib 689/0. A mid-implementation `wire a;` regression was root-caused tools-first (an inline `phase: branch` predicate is flattened rule-wide by `branch_predicates_for_rule`) and fixed by moving the wildcard gate to a `phase: post` helper rule (branch-local). KM card `branch-predicate-is-rule-wide`. `.3` (sibling rules) stays deferred.
