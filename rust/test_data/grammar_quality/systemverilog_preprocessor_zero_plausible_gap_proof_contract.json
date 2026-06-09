@@ -1,20 +1,14 @@
 {
   "family": "systemverilog_preprocessor",
-  "version": 2,
-  "description": "Explicit zero-plausible-gap proof whitelist for the SystemVerilog preprocessor formal-closure surface. RE-BASELINED 2026-05-18 (PGEN-SV-EXH-PROOF-0011, leaf SV-EXH-PROOF.2.3.2): allowed_unreachable_rules tightened [line_comment,trivia] -> [trivia], version 1 -> 2. The SV-EXH-PROOF.2.3.2 parser/EBNF-agnostic closed-loop generator correctness fixes (Mode-B structural-closer scoping + grammar-declared-sigil hazard gate + literal/probe-hint guard + line-terminator completeness; closed-loop parser_rejections 5/3 -> 0, gate-verified) legitimately change the path of the single deterministic syntax-probe sample (stimuli_seed=24001, stimuli_count=1) so that `line_comment` is now REACHABLE from entry. The observed gap-report unreachable_rule_debt is therefore exactly [trivia] (reason=unreachable_from_entry); unreachable_branch_debt is exactly the 3 trivia branches (branch::trivia::root/q#0..2, reason=unreachable_from_entry). This is a STRICT IMPROVEMENT of the unreachable surface (one fewer benign-unreachable helper rule) — tightening the whitelist to [trivia] makes the no-regression invariant STRICTER (a future regression making line_comment unreachable again is now caught). NOT masking: the genuine static-unreachable surface shrank; the whitelist is updated to the new, better, deterministic reality. Re-baselined per [[feedback_grammar_edit_proof_gate_lockstep]] (a generator change owns ALL its downstream proof contracts in-slice).",
+  "version": 3,
+  "description": "Explicit zero-plausible-gap proof for the SystemVerilog preprocessor formal-closure surface. RE-BASELINED 2026-06-09 (PGEN-GRAMMAR-WELLFORMED-0052, leaf GRAMMAR-WELLFORMED.H.5.2): allowed_unreachable_rules tightened [trivia] -> [] and allowed_unreachable_branches tightened [branch::trivia::root/q#0..2] -> [], version 2 -> 3. The dead `trivia` rule (`(space_or_tab | line_comment | block_comment)*`) was the SOLE tolerated helper-pocket: it was referenced by NO rule (every rule uses the line-comment-free `inline_trivia` sibling) and was therefore OBJECTIVELY unreachable from the entry `systemverilog_preprocessor_file` — proven two independent ways: (A) static reference-graph closure (decidable Hopcroft-Ullman reduced-grammar reachability; PEG references are static literal names; nothing references `trivia`, no @include, entry != trivia), and (B) the independent `--gap-report-json` (`generate_gap_report`) oracle, which reported `trivia reachable=false reason=unreachable_from_entry` as the COMPLETE statically-unreachable-from-entry set while classifying the sibling never-witnessed rules `directive_tail`/`line_comment` as `reachable=true reason=never_hit`. Per the GRAMMAR-WELLFORMED literal-0 doctrine (a dead rule is an EBNF well-formedness defect to remove at source, not a residual to tolerate), `trivia` was removed from `grammars/systemverilog_preprocessor.ebnf`, so the observed unreachable surface is now EMPTY. Tightening the whitelist from [trivia] to [] makes the no-regression invariant STRICTLY STRONGER (any future regression that re-introduces an unreachable rule/branch is now caught). NOT masking: the genuine static-unreachable surface shrank to zero; the contract is updated to the new, better, literal-zero reality. The `directive_tail`/`line_comment` never_hit residuals are reachable (generator-reach) and are driven separately under GRAMMAR-WELLFORMED.H.5.3; they are NOT unreachable debt. Re-baselined per [[feedback_grammar_edit_proof_gate_lockstep]] (a grammar change owns ALL its downstream proof contracts in-slice).",
   "grammar_name": "systemverilog_preprocessor",
   "entry_rule": "systemverilog_preprocessor_file",
-  "done_rule": "Done requires a machine-checkable proof that all remaining syntax-unreachable debt is confined to the helper-only trivia pocket while the retained aggregate and reachability sidecars still show zero reachable parser/gap debt.",
-  "allowed_unreachable_rules": [
-    "trivia"
-  ],
-  "allowed_unreachable_branches": [
-    "branch::trivia::root/q#0",
-    "branch::trivia::root/q#1",
-    "branch::trivia::root/q#2"
-  ],
+  "done_rule": "Done requires a machine-checkable proof that the syntax-unreachable surface is EMPTY (zero unreachable rules and zero unreachable branches) while the retained aggregate and reachability sidecars still show zero reachable parser/gap debt.",
+  "allowed_unreachable_rules": [],
+  "allowed_unreachable_branches": [],
   "required_unreachable_rule_reason": "unreachable_from_entry",
-  "required_unreachable_branch_rule_name": "trivia",
+  "required_unreachable_branch_rule_name": "<none - zero unreachable surface>",
   "required_unreachable_branch_reason": "unreachable_from_entry",
-  "helper_only_whitelist_detail": "SystemVerilog preprocessor zero-plausible-gap proof requires the syntax-unreachable surface to stay confined to the helper-only trivia pocket (`trivia` and its three branches) while the aggregate and reachability sidecars remain green."
+  "helper_only_whitelist_detail": "SystemVerilog preprocessor zero-plausible-gap proof requires the syntax-unreachable surface to be EMPTY — the sole prior helper-pocket rule `trivia` (and its three branches) was removed at source as an unreachable-from-entry dead rule (GRAMMAR-WELLFORMED.H.5.2), so the observed unreachable rules and branches must both be the empty set while the aggregate and reachability sidecars remain green."
 }

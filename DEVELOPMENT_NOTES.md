@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - GRAMMAR-WELLFORMED.H.5.2 — svpp `UNKNOWN 3→2`: remove the dead `trivia` rule + literal-zero unreachable proof surface (PGEN-GRAMMAR-WELLFORMED-0052)
+
+### Objective-proof method (in response to a director challenge "can you objectively prove `trivia` is dead?")
+The claim is scoped to the `trivia` rule in `grammars/systemverilog_preprocessor.ebnf` ONLY — a same-named rule is ALIVE in `grammars/rtl_frontend.ebnf` (entry `rtl_frontend_file := trivia design_item* trivia`). Two mutually-independent oracles:
+1. **Static reference-graph closure** (decidable Hopcroft–Ullman reduced-grammar reachability; PEG references are static literal rule names → reachability = transitive closure of the reference graph). `grep -nE '(^|[^a-z_])trivia([^a-z_]|$)'` returns ONLY the definition (line 188) → zero referencers (every rule uses `inline_trivia`); no `@include`; entry ≠ `trivia` ⇒ `trivia` is in no closure from the entry.
+2. **Independent computational oracle** `--gap-report-json` (`generate_gap_report`, a separate code path that builds the actual reference graph and does NOT read the grep or the contract): `trivia → reachable:false, reason:"unreachable_from_entry"` as the COMPLETE statically-unreachable set; `directive_tail`/`line_comment` → `reachable:true, reason:"never_hit"` (distinguishes dead from merely-unwitnessed).
+
+CORRECTION captured: the zero-plausible-gap *contract*'s prior `allowed_unreachable_rules:[trivia]` label is SAME-LINEAGE corroboration of the gap-report classification, NOT an independent proof — calling it "independent confirmation" was overstated. The `--lint-grammar` `unreachable_rules=0` does NOT prove reachability: the linter is multi-entry-lenient (treats an unreferenced rule as a candidate entry). New KM card `docs/knowledge/prove-rule-dead-or-reachable.md`.
+
+### What landed
+Removed `trivia` from the svpp grammar (literal-0 doctrine: a dead rule is an EBNF well-formedness defect, removed at source — the book's worked-example pattern). In the same slice (lockstep), tightened `sv_preprocessor_zero_plausible_gap_proof_gate.sh` (relaxed the two `allowed_unreachable_* | length > 0` JSON-shape conjuncts; the gate's `observed==allowed` + `all(.unreachable_*_debt[]?; …)` assertions handle `[]` vacuously) and re-baselined the contract v2→3 to `allowed_unreachable_rules/branches: []` (kept the `helper_only_whitelist_detail` prefix that `ci_workflow_local_gate` asserts, so no ci-gate edit needed). The proof surface is now literal-ZERO unreachable (stronger than the prior `[trivia]` helper-pocket tolerance).
+
+### Verification
+gap-report unreachable set `[]`; cert-coverage `total 73→72 witness 70 UNKNOWN 2 (directive_tail,line_comment) sample_parse_failures 0` deterministic seeds 0/7; `sv_preprocessor_zero_plausible_gap_proof_gate` GREEN (exit 0, `zero_plausible_grammar_level_gap_proof_surface=true`, contract_version=3); AST shape-contract GREEN (no AST/schema/release change); full lib `--features "generated_parsers ebnf_dual_run"` 716/0; clippy strict-source clean. The 2 remaining svpp `UNKNOWN` are reachable optionals → generator-reach, owned by `H.5.3`.
+
 ## 2026-06-09 - SV-PARSE-STRICT.2 — sound parse-time rejection of undeclared net-type identifiers (PGEN-SV-PARSE-STRICT-0002)
 
 ### What landed (grammar-only, `grammars/systemverilog.ebnf`)
