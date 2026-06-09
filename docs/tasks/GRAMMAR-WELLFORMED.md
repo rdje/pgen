@@ -914,6 +914,76 @@ subtle dead branch"), never a silent accept.
   set widened: comment-bearing conditions now parse), schema STAYS 4 (no output-shape change — SVPP-0002
   pattern); ledger `SVPP-0003`. Verification: cert-coverage sweep 0–31, `sv_preprocessor_zero_plausible_gap_proof_gate`,
   shape-contract, full lib `--features "generated_parsers ebnf_dual_run"`, clippy. Commit: `PGEN-GRAMMAR-WELLFORMED-0055`.
+- `H.7` — **CONSTRUCTIVE-REACH GENERALIZATION (the common enabler for the per-grammar `UNKNOWN`→0 drive).**
+  Director-selected next direction (2026-06-09, after H.5.5). General, parser-agnostic stimuli-generator
+  enhancement → per the standing director directive it is **discuss → own → design carefully → implement**;
+  `.7.1` is the DESIGN (pure docs, no code), to be PRESENTED before any implementation.
+  - `H.7.1` — **DESIGN `done` (pure docs, `PGEN-GRAMMAR-WELLFORMED-0056`): the targeted reach plan for
+    never-witnessed NON-recursive reachable rules.**
+    **PROBLEM (tools-first, the H.5.4 exemplar generalized):** after the diverse certification pass, several
+    grammars retain `UNKNOWN` rules that are genuinely reachable + parseable but are simply never SELECTED
+    within the bounded `--count` budget because the path to them runs through **un-taken optionals and/or an
+    un-selected alternation branch** — NOT depth exhaustion, NOT recursion. Canonical exemplar: svpp
+    `macro_default_text`, reached only via `pp_define → macro_formals? → macro_formal →
+    (assign macro_default_value)? → macro_default_value → macro_default_atom`'s ONE text branch (two gating
+    `?` optionals + an 8-way alternation). At count 40 it is witnessed on most seeds but missed on ~7/32
+    (`H.5.4`). The same shape is the bulk of the residual `UNKNOWN` on vhdl (69), regex (98), rtl_frontend
+    (133), SV (1126) — most are reachable rules behind optional/alternation gates, not the deep-recursion
+    case `H.4.2` already solved.
+    **WHY THE EXISTING REACH PASS DOESN'T COVER IT (root cause in code):** `H.4.2`'s
+    `should_reach_retry_uncovered_recursive` (`stimuli_generator.rs:6891`) fires ONLY when ALL hold: the
+    failure is **depth-exhaustion** (`is_depth_exhaustion_error`) AND the branch is **RECURSIVE** (references
+    a rule already on the call stack). `macro_default_text` is neither — it never depth-exhausts (the path is
+    shallow) and never recurses; the diverse pass just doesn't happen to take the two optionals AND pick the
+    text branch within budget. So the existing retry is structurally inapplicable.
+    **REUSABLE MACHINERY (use what we have — `feedback_prefer_grammar_leave_engine_alone` /
+    `project_vision_and_discipline`):** the SV-EXH-PROOF.7.2 **reach-plan** system already does most of this:
+    `compute_reach_path(entry, target_rule, target_node_path, target_branch_index)` computes the chain of
+    OR-branch decisions to a target OR-branch; `set_reach_plan` / `ActiveReachPlan::from_directives` installs
+    forced OR-branches; `forced_branch_for(rule, path)` returns the forced branch during generation;
+    `reach_target_outcome` → `Reached` / `SelectedButFailed` / `NotReached`. The gap-report already classifies
+    each residual `reachable_by_plan` vs `no_reach_path` (`reach_classification`, `generate_gap_report`). And
+    `GrammarMutationSelection::Quantifier { forced_repeats }` + `StimuliDecisionTrace.quantifier_repeats`
+    already model **forcing a quantifier's repeat count** (built for grammar-mutation replay). Purdom
+    `witness_min_terminal_lengths` (`compute_min_terminal_lengths`) + `construct_mode`/`witness_mode` give the
+    minimal off-path derivation. The two-pass cert-coverage report (`main.rs:run_certificate_coverage_report`)
+    is the safe host: pass-1 diverse certification (byte-identical), pass-2 auxiliary reach that ONLY UNIONs
+    re-parsing witnesses.
+    **PROPOSED MECHANISM (MVP):** in the cert-coverage auxiliary reach pass, for each still-`UNKNOWN` rule R
+    the gap-report classifies `reachable_by_plan`, (a) compute the reach path to R's defining site (R is
+    itself an OR-branch, e.g. `macro_default_atom`'s text branch — or the rule that uniquely references R),
+    (b) install a reach plan that forces BOTH the OR-branches AND **the optionals/quantifiers on that path to
+    expand at least once** (the ONE genuinely-new capability — compose the existing OR-forcing reach plan with
+    the existing `Quantifier{forced_repeats}` forcing, applied to the `?`/`*` nodes the reach path traverses),
+    (c) generate in `construct_mode` so every OFF-path choice stays minimal, (d) union R's witness iff the
+    sample re-parses. Bounded by the existing `MAX_UNCOVERED_REACH_RETRIES` backstop.
+    **THE ONE NEW CAPABILITY** is "force optional expansion on the reach path": today the reach plan forces OR
+    branches only, and `construct_mode` MINIMIZES optionals to zero (skip) — the opposite of what an
+    optional-gated target needs. The design reuses `Quantifier{forced_repeats}` rather than inventing a new
+    primitive.
+    **SAFETY / NO-OP INVARIANTS (non-negotiable, the H.4.2 contract):** (1) opt-in to cert-coverage ONLY
+    (gated by `reach_uncovered_recursive_branches`, or a sibling flag — open question Q2) → every other
+    surface (`--generate-stimuli`, stimuli modules, cross-family + oracle gates) byte-identical; (2) the
+    diverse certification pass is UNTOUCHED → `sample_parse_failures` (the certification number) byte-identical
+    for every grammar — the reach pass can only make coverage BETTER, never certification WORSE; (3) the reach
+    pass only UNIONs witnesses from samples that RE-PARSE (its own probe non-parses are reported separately,
+    never folded into `sample_parse_failures`); (4) `UNKNOWN` can only DECREASE; (5) deterministic (seeded,
+    step-budgeted).
+    **VERIFICATION MATRIX (for `.7.2` implement):** svpp `UNKNOWN=0 fully_certified` across seeds 0–31 at
+    count 40 (closes `H.5.4`); DECISIVE git-stash A/B — `sample_parse_failures` byte-identical pre/post for
+    EVERY grammar (json/regex/vhdl/SV/rtl_const_expr/rtl_frontend), `UNKNOWN` only decreases (measure the
+    vhdl/regex/SV/rtl_frontend deltas); non-cert-coverage surfaces byte-identical (cross-family + oracle +
+    self-host gates green); determinism (seed re-run identical); lib `--lib` green; clippy strict-source clean.
+    **OPEN QUESTIONS FOR THE DIRECTOR (before `.7.2` implement):** Q1 MVP scope — start with the
+    optional+alternation reach class (the `macro_default_text` shape) only, or also the
+    `reachable_rule_not_generated` rule-level class? Q2 reuse the `reach_uncovered_recursive_branches` flag or
+    add a sibling `reach_uncovered_plannable_rules` (cleaner separation, two independent opt-ins)? Q3 the
+    per-rule reach budget / backstop sizing for the big-`UNKNOWN` grammars (1126 SV rules × a reach attempt
+    each is non-trivial — likely cap + report what was left, never silently truncate, per
+    `feedback_severity_never_gated_by_verbosity`). **Verification: N/A (pure-docs design).** Commit:
+    `PGEN-GRAMMAR-WELLFORMED-0056`.
+  - `H.7.2` — **`pending` (IMPLEMENT, engine): the targeted reach plan per `.7.1`, after the director
+    resolves Q1–Q3.** Acceptance = the `.7.1` verification matrix. Verification: pending. Commit: pending.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
