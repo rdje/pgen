@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-09 - PGEN-DOCS-0001: README.md no longer claims `generated/` is version-controlled (it is untracked, regenerated locally).
+
+Pure-docs accuracy fix (no code change). `generated/` was de-tracked by commit `0ed2b2ad` ("Slice 5: stop tracking generated/* in git") and is regenerated locally via the per-grammar `make` targets; recent CHANGES entries already describe it as "gitignored". README.md's Key-Project-Paths line still asserted "version-controlled canonical generated artifacts ... clean-checkout gates", which is stale drift.
+
+- **Fix (`README.md` line 103):** replaced the "version-controlled ... clean-checkout gates" description with an accurate one — pipeline-output artifacts consumed by compile-time includes, **not tracked in git**, regenerated locally with `make -C rust focus_<grammar>`.
+- **Scope:** README.md only (per the explicit request). The same stale claim also lives in `COMMIT.md` ("the full `generated/` tree is version controlled") and `.gitignore` ("`generated/` is intentionally version controlled by repository policy" + the `!generated/` un-ignore lines that no longer reflect reality) — flagged for the director, left untouched in this slice.
+- **Files:** `README.md`, `CHANGES.md`.
+
 ## 2026-06-09 - PGEN-SV-PARSE-STRICT-0002 (SV-PARSE-STRICT.2): the SV parser now REJECTS provably-undeclared net-type identifiers at parse time (sound, context-aware store-gating) — the generator-found `endmodulemodule b;` over-acceptance is fixed.
 
 Grammar-only fix (engine untouched), consuming `INLINE-ACTIONS.2`'s branch-start `@emit_fact`. BEHAVIOUR-TIGHTENING, AST shape preserved → release `1.0.137 → 1.0.138`, schema stays `3`.

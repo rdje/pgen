@@ -100,7 +100,7 @@ PGEN is a production-focused parser and stimuli generator platform.
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
 - `grammars/builtin_return_annotation.ebnf`, `grammars/builtin_semantic_annotation.ebnf`: bootstrap-safe annotation grammar contracts that break the annotation-parser chicken-and-egg cycle
-- `generated/`: version-controlled canonical generated artifacts used by compile-time includes and clean-checkout gates
+- `generated/`: pipeline-output artifacts (parser sources, AST JSON dumps, return-annotation inventories) consumed by compile-time includes; **not tracked in git** — regenerate locally with the per-grammar `make` targets (e.g. `make -C rust focus_<grammar>`)
 - `rust/target/generated_logs/`: scratch generation/debug logs kept out of `generated/`
 - `rust/src/`: Rust AST pipeline, generators, parser registry, embedding API
 - `rtl_const_expr/`: standalone constant-expression parser/evaluator bootstrap baseline crate for planned RTL frontend/elaboration work, including dotted and package-qualified (`pkg::NAME`) identifier lookup; it is now paired with tracked grammar `grammars/rtl_const_expr.ebnf` and generated parser `generated/rtl_const_expr_parser.rs` because RTLSyn needs deterministic parameter/width/generate evaluation before elaboration can be trusted
