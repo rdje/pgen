@@ -739,6 +739,7 @@ mod tests {
                 profile: Some("2017".to_string()),
                 trace: true,
                 trace_log_file: Some("trace.out".to_string()),
+                ..GlobalOptions::default()
             }
         );
     }
@@ -755,6 +756,7 @@ mod tests {
                 profile: None,
                 trace: false,
                 trace_log_file: Some("trace.log".to_string()),
+                ..GlobalOptions::default()
             }
         );
     }

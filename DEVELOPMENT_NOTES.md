@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - SV-EXH-PROOF.8 — parseability_probe bin-test `GlobalOptions` E0063 cleared (PGEN-SV-EXH-PROOF-0154)
+
+### What/why
+`cargo test --features generated_parsers` (full workspace, all targets) had been RED on HEAD since the `GlobalOptions` struct grew from 3 to 8 fields across `.3.3.4.a` (`library_in_dir`/`library_out_dir`), `.b.6.2.17` (`trace_rules`), and `.b.6.2.22` (`dump_rule_call_counts`/`_exclude`): the two `#[cfg(test)]` struct-literal constructors in the `strip_global_flags` tests (`rust/src/bin/parseability_probe.rs` ~:738/:754) still enumerated only the original 3 fields → `error[E0063]`. Repeatedly noted across `.5.2.4.1`/`.7.4.x`/H.5.5 as "needs its own cleanup leaf"; `--lib` was the canonical no-regression surface in the interim.
+
+### Fix (test-only, 2 lines)
+Struct-update syntax `..GlobalOptions::default()` in both constructors. This is deliberately NOT another exhaustive literal: (a) the 5 omitted fields are exactly the flags the tested argument lists do not set, so asserting them at their `derive(Default)` values IS the tests' intent; (b) the exhaustive-literal style is what broke here and what previously forced 40 `uses_match_regex` literal updates (see the 2026-06 `uses_match_regex` note below) — struct-update makes these two tests immune to future field additions.
+
+### Verification
+- E0063 reproduced first (`--bin parseability_probe --no-run` → exactly the 2 errors), then fixed.
+- `parseability_probe` bin tests 8/8 PASS; full workspace compiles on every target: lib 689/0 (21 ignored), main 44/0, every bin green.
+- Remaining full-workspace failures = exactly the 2 PRE-EXISTING `.3.3.5` auto-gates (`auto_gate_regex_inventory_wide_shape` + `auto_gate_rtl_const_expr_inventory_wide_shape` in `tests/auto_return_annotation_shape_gate_integration.rs`, 7 passed/2 failed). Decisive git-stash baseline THIS slice: identical 7/2 on HEAD without this edit → untouched, still owned by `.3.3.5`. (Observed failure detail there has evolved since the `.3.3.5` ticket text: now "declared discriminators not exercised by samples" — regex 7 discriminators, rtl_const_expr `ternary`/`unary` — useful input for the `.3.3.5` root-cause slice.)
+- `clippy_on_rust_change`: strict source lint PASS; generated-parser stage fails only in tolerated non-strict mode (190× `eq_op` inside generated parser code; 0 mentions of `parseability_probe`) — pre-existing debt, unchanged.
+
 ## 2026-06-09 - GRAMMAR-WELLFORMED.H.5.5 — svpp diverse-gen over-generation closed: `condition_text` comment-awareness (the missed SVPP-0002 sibling) + drop its redundant leading `inline_trivia` (PGEN-GRAMMAR-WELLFORMED-0055)
 
 ### Evidence-driven re-scope (the headline)
