@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - INLINE-ACTIONS.1 — branch-local inline semantic ACTION directives (scoping/design/proposal, PGEN-INLINE-ACTIONS-0001)
+
+### Goal
+Make inline semantic ACTION directives (`@emit_fact` / `@open_scope` / `@close_scope`) attached to a *branch* (before the targeted item) fire at parse time — a general, parser-agnostic step toward semantic-annotation feature-completeness. Found while designing `SV-PARSE-STRICT.2`; director directed wiring branch-start emit first, then the SV fix.
+
+### The gap (empirically proven, tools-first)
+The meta-grammar `grammars/ebnf.ebnf` supports inline annotations by design (`sequence_element := inline_semantic_annotation | quantified_element | primary_element`; comment lines 118-122 distinguish branch-start *steering* from later mid-sequence *actions*). A probe grammar with `@emit_fact` in three positions, run through `ast_pipeline … --generate-parser`, shows:
+- **Rule-level** (annotation above `name :=`): compiled into `directives_by_rule`, applied by `effect_directives_for_rule` after body parse (`ast_based_generator.rs:1566-1575`) → **fires** (the universal proven idiom).
+- **Branch-start inline** (after `:=`, before the first item): compiled into `branch_directives_by_rule`, but the tournament loop iterates only the predicate-filtered view and the `EmitFact`/`OpenScope`/`CloseScope` directives land in the `=> {}` no-op arm (`ast_based_generator.rs:3092-3099`) → **never fires**.
+- **Mid-sequence inline** (after ≥1 item): extracted into `branch_mid_sequence_semantic_annotations` but `compile_semantic_runtime_annotations` (`semantic_runtime.rs:2878-2939`) never compiles that registry → **silently dropped** (the probe's `marker_mid` fact appears nowhere in the generated parser).
+
+It is unfinished wiring, not a deliberate non-feature: the F1 well-formedness linter already walks rule-level + per-branch + mid-sequence emitter sites (`grammar_wellformedness.rs:824-866`), so the linter believes these emit while the runtime does not fire them.
+
+### Design (`.2`, branch-start wiring — parser-agnostic, surface-stable)
+Ride the existing C3-B tournament delta machinery rather than inventing a new lifecycle. In the per-branch attempt arm, after the branch body matches and its branch-local predicates pass (`branch_predicate_blocked == false`), apply that branch's effect directives (`is_effect()` = `OpenScope | CloseScope | EmitFact`, `semantic_runtime.rs:480-485`) — resolving `$refs` against the branch's matched content, the same way the rule-level effect path resolves against the rule content — onto the live `parser.semantic_runtime_state`, BEFORE the branch delta is captured (`extract_delta_since`, `:3162`). Those emissions then ride the unchanged loser-rollback (`rollback_to_named`, `:3174`) and winner-replay (`best_semantic_delta` → `apply_delta`, `:3287`) path: every branch's branch-start actions are applied speculatively and rolled back; only the winning branch's persist. No new winner/loser bookkeeping; no annotation-language or `ebnf.ebnf` change; grammars without branch-start actions regenerate byte-identical (zero blast radius). Add a `branch_effect_directives_for_rule_branch` accessor (the `is_effect()`-filtered analogue of `branch_predicates_for_rule_branch`). `.3` (mid-sequence: compile the dropped registry + apply at the element boundary against partial content) is deferred as a strictly larger change.
+
+### Verification plan (`.2`)
+Regression test: a multi-branch rule where two branches emit different facts → the selected branch's fact present, the other absent (winner-only + loser-rollback). Branch-local predicate behavior byte-for-byte unchanged. All 10 parsers regenerate; cross-parser no-regression (regex broader corpus / RGX conformance, `cargo test --lib` ± `--features generated_parsers`, SV shape-contract); clippy strict (source + generated); book lockstep on the inline-action surface.
+
 ## 2026-06-09 - GRAMMAR-WELLFORMED.H.4.2 — constructive-reach for deeply-recursive never-covered branches (PGEN-GRAMMAR-WELLFORMED-0051)
 
 ### Goal

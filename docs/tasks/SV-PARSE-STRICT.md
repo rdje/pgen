@@ -175,6 +175,7 @@ Concrete grammar changes (engine untouched — [[feedback_prefer_grammar_leave_e
 - `2026-06-09`: **Highest priority = fix parser bugs ASAP** (director, emphatic): "There is no point on cert-cover if a clearly identifiable parser bug shows up." Defect A (cert-coverage generator faithfulness) is deferred behind this parser fix.
 - `2026-06-09`: **Sound gate, not hard gate.** Because the ungated `nt a;` branch is today the de-facto escape for unresolved-import types, the fix must preserve acceptance under an in-scope wildcard import (`has_fact(type_name,$1) OR wildcard_import_open`). A naive hard `has_fact` gate would be unsound.
 - `2026-06-09`: **Grammar-only** (engine off-limits, [[feedback_prefer_grammar_leave_engine_alone]]); reuse the proven `@predicate has_fact(type_name, …)` / `@emit_fact type_name` idioms.
+- `2026-06-09`: **`.2` now depends on `INLINE-ACTIONS.2`** (director, AskUserQuestion: "Wire branch-start emit first, then fix"). Piece 1 — emit `wildcard_import_open` on the *wildcard* `package_import_item` branch — is a **branch-start** `@emit_fact`, a placement the runtime does not yet fire (tools-proven gap, owned by the new `INLINE-ACTIONS` tree). Rather than reshape the wildcard branch into a dedicated helper rule (the non-elegant workaround), the director directed wiring branch-start emit as a general parser-agnostic feature first; `.2` then expresses piece 1 as a clean inline annotation. (A helper-rule fallback remains available if ever needed.)
 
 ## Open Questions
 
