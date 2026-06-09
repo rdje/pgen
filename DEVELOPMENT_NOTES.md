@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - SV-EXH-PROOF.3.3.5 — auto-gate matcher collision fixed; full workspace green (PGEN-SV-EXH-PROOF-0155)
+
+### The diagnosis path (why the ticket's framing was incomplete)
+The `.3.3.5` ticket asked "trace which inventory entry declares `target`, why `subroutine_call/1`'s emitted shape doesn't have it, whether the inventory or the emission needs correction." The failing value was `{type:"atom", kind:"capturing_group", body:[…]}` — i.e. NOT a subroutine_call node at all. Inspecting `generated/regex_return_annotations.json` showed a perfectly healthy `capturing_group/0 = {type:"atom", kind:"capturing_group", body:$2}` entry alongside 31 other `type:"atom"` entries; ditto rtl_const_expr's 10 `type:"binop_chain"` levels. So the question's two options were both wrong: the GATE mis-attributed the node. `run_inventory_wide_auto_gate` built `HashMap<type-literal → ONE descriptor>`; same-`type` entries collided; alphabetical inventory order made `subroutine_call/1` and `shift_expr/0` the last-inserted winners — exactly the two rules named in the failures. (Confirming heuristic: `shift` is alphabetically last among the ten `level:` values; `subroutine_call` is the last atom-kinded rule with a branch index 1.)
+
+### The fix (test-oracle, parser-agnostic)
+Group same-`type` descriptors; match a runtime object on the FULL literal tuple (every declared string-literal key/value verbatim — `type` + `kind`/`level`/…); pass iff ANY tuple-matching candidate verifies (`subroutine_call/0`+`/1` share one tuple); tuple matching NOTHING is now an explicit drift failure. The drift-detection contract is sharpened: previously an unknown `kind` was silently checked against an unrelated entry; now it is named as inventory↔emission drift. Coverage strings (`discriminators_declared/seen/not_covered`) stay type-literal-keyed so the report surface is unchanged.
+
+### Milestone
+With `-0154` (E0063) + this fix, **`cargo test --features generated_parsers` is fully green across the whole workspace (759/0; `generated_parsers ebnf_dual_run` 788/0)** — the `--lib`-only no-regression workaround is no longer necessary. Remaining visible (deliberate) debt: the gate's coverage warnings — regex samples don't exercise 7 declared type-literals (`anchor`, `backreference`, `class_quoted_literal`, `class_quoted_range_atom`, `class_range`, `escape`, `posix_class`) and rtl_const_expr samples don't exercise `ternary`/`unary` — future one-line sample additions, kept out of this slice (each new sample can surface new latent drift and deserves its own verification).
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.8 — Defect A: literal-hint renders now record their tail word-shape (PGEN-GRAMMAR-WELLFORMED-0057)
 
 ### The mechanism (why a hint fuses)

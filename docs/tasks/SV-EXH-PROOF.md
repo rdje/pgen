@@ -422,11 +422,38 @@ literal over a failing surface.
   Commit: `pending`
 
 - ID: `SV-EXH-PROOF.3.3.5`
-  Status: `pending` (debug-required follow-up; PRE-EXISTING at .3.3.2, NOT caused by .3.3.3)
+  Status: `done` (2026-06-10)
   Goal: `Two inventory-wide auto-gates fail on the regex + rtl_const_expr parsers (auto_gate_regex_inventory_wide_shape, auto_gate_rtl_const_expr_inventory_wide_shape) with: 'rule subroutine_call/1: declared key target missing from parsed value: {body:[...],kind:capturing_group,type:atom}' on input '(a|b)*c'. Decisively verified PRE-EXISTING at .3.3.2 (75afb3c7) via git-stash baseline check — they fail at the committed state with no SV-EXH-PROOF.3.3.3 changes applied. The RGX broader corpus/conformance gate (44/0) and SV shape-contract are GREEN, so this is a baseline inventory-vs-emission drift (the auto-gate's discriminator matches a node whose emitted shape lost the declared 'target' key), NOT a parsing regression. Requires FULL root-cause + fix (not just acknowledged): trace which inventory entry declares 'target', why subroutine_call/1's emitted shape doesn't have it, whether the inventory or the emission needs correction, then leaf-owned grammar/inventory fix + same-commit lockstep.`
   Acceptance: `auto_gate_regex_inventory_wide_shape + auto_gate_rtl_const_expr_inventory_wide_shape both PASS; no other-test regression; root cause documented; leaf-owned + lockstep.`
-  Verification: `pending — pre-existing baseline confirmed; full debug is .3.3.5's work`
-  Commit: `pending`
+  Verification: `done — ROOT CAUSE (tools-first; answers the leaf's question with a third option): NEITHER the
+  inventory NOR the emission is wrong — the GATE'S MATCHER was. run_inventory_wide_auto_gate keyed its
+  discriminator map on the type: literal ALONE (HashMap<String, descriptor>), but many entries
+  legitimately share one type literal and are distinguished by a FURTHER literal: regex has 32
+  type:"atom" entries split by kind:, rtl_const_expr has 10 type:"binop_chain" entries split by level:.
+  HashMap::insert let the LAST-inserted same-type entry win — the inventory is alphabetical-by-rule
+  (feedback_manifest_alphabetical_order), so regex's winner was subroutine_call/1 (declares target) and
+  rtl_const_expr's was shift_expr/0 (declares level:"shift"): every type:"atom" node (e.g. the healthy
+  {type:atom, kind:capturing_group, body} from '(a|b)*c') was verified against subroutine_call's keys →
+  the false 'target missing' failure; every binop_chain node against level:"shift" → the false level
+  mismatches. The gate was written when regex had only 2 typed-Object entries with UNIQUE type literals
+  (per the test header comment); the typing campaigns broke the uniqueness assumption silently. FIX
+  (gate-oracle only, parser-agnostic, auto_return_annotation_shape_gate.rs): the map now groups ALL
+  same-type descriptors (HashMap<String, Vec<_>>) and the walker matches a runtime object against each
+  candidate's FULL string-literal tuple (descriptor_literals_match: every declared literal key/value
+  carried verbatim); pass iff ANY tuple-matching candidate verifies (distinct branches may declare the
+  same tuple, e.g. subroutine_call/0+/1); a node whose tuple matches NO same-type entry is now an
+  EXPLICIT drift failure (detection sharpened, not weakened); coverage reporting (discriminators
+  declared/seen/not-covered) intentionally unchanged (still type-literal-keyed). VERIFIED: both
+  auto-gates PASS; ALL 9 grammar integration auto-gates PASS (was 7/2); new module unit test
+  inventory_wide_gate_distinguishes_same_type_entries_by_full_literal_tuple locks the collision class
+  (healthy tuple-match passes / missing-key fails against the RIGHT entry / unmatched tuple = drift);
+  module tests 16/0; FULL WORKSPACE cargo test --features generated_parsers 759/0 (first fully-green
+  full-workspace run — composes with SV-EXH-PROOF.8's E0063 fix) + dual-feature
+  "generated_parsers ebnf_dual_run" 788/0; clippy strict-source clean. NO grammar/generated/inventory/
+  parser change (test-oracle fix only); the gate's eprintln coverage warnings (regex 7 type-literals +
+  rtl_const_expr ternary/unary not exercised by the curated samples) remain visible as future
+  sample-coverage improvements, deliberately NOT folded into this slice.`
+  Commit: `PGEN-SV-EXH-PROOF-0155`
 
 - ID: `SV-EXH-PROOF.3.3.6`
   Status: `closed-by-evidence` `2026-05-21` — `.3.3.4.b.3` (Layer 0) triage gate at 09:55 showed `friscv_rv32i_core ×{2017,2023}` PASS without any statement-level grammar fix. The original `.3.3.6` hypothesis (separate statement-level grammar defect) was WRONG. The actual blocker was the prior codegen's asymmetric `+`-first-iter-not-wrapped-in-`try_parse` defect, which Layer 0 fixed uniformly across all quantifier operators. `.3.3.6` carried forward as a placeholder for an under-specified residual; the corpus has now resolved it. No further work needed on `.3.3.6` specifically.
@@ -868,6 +895,7 @@ literal over a failing surface.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
+| — | `SV-EXH-PROOF.3.3.5` | `done` (`-0155`, 2026-06-10) | **The 2 pre-existing auto-gate failures FIXED — FULL WORKSPACE `cargo test --features generated_parsers` is GREEN (759/0; dual-feature 788/0).** Root cause = the GATE's matcher (neither inventory nor emission): `run_inventory_wide_auto_gate` keyed its discriminator map on the `type:` literal alone, so the 32 regex `type:"atom"` / 10 rtl_const_expr `type:"binop_chain"` entries collided and the last-alphabetical entry won (`subroutine_call/1` / `shift_expr/0`) → healthy nodes false-failed against the wrong entry's keys. Fix: group same-`type` descriptors + match on the FULL string-literal tuple; unmatched tuples now an explicit drift failure (detection sharpened). All 9 integration auto-gates PASS (was 7/2); +1 module unit test locking the collision class. Test-oracle fix only — no grammar/inventory/parser change. |
 | — | `SV-EXH-PROOF.8` | `done` (`-0154`, 2026-06-09) | **Bin-test debt cleared: full-workspace `cargo test --features generated_parsers` COMPILES again.** The two stale `#[cfg(test)]` `GlobalOptions` struct-literals in `rust/src/bin/parseability_probe.rs` (`strip_global_flags` tests; E0063 since 5 fields were added by `.3.3.4.a`/`.b.6.2.17`/`.b.6.2.22`) fixed via struct-update syntax (`..GlobalOptions::default()`) so future field additions cannot re-break them. parseability_probe bin tests 8/8; lib 689/0; all bins compile+pass. The only remaining full-workspace failures are the 2 already-ticketed PRE-EXISTING `.3.3.5` auto-gates (decisively re-confirmed pre-existing via git-stash baseline this slice). Test-only edit, zero behavior change. |
 | — | `SV-EXH-PROOF.3.3.4.b.6.2.36.5` | `done` (`-0086`, 2026-05-25) | **LATENT REGRESSION FIX (PGEN-RGX-0077).** Bootstrap parser at `unified_return_ast.rs::parse_value` now peeks `**` FIRST and produces `FlattenSpread(base)`; old code matched single `*` then looped to a second `*` producing `Spread(Spread(base))`, masked behind stale regex_parser.rs until `.36.4`'s full regen exposed the regression. One unit test asserting the bug's shape corrected. All 10 generated/*.rs regenerated. Lib (--features generated_parsers) **609/609** RESTORED; lib (no-features) 548/548 PASS; SV external corpus 10/14 stable; regex_parser.rs now emits 4× `flatten_spread_element` (was 0). |
 | — | `SV-EXH-PROOF.3.3.4.b.6.2.36.4` | `done` (`-0085`, 2026-05-25) | **ENGINE FIX LANDED.** Memoization-delta replay closes the gap pinned by `.36.3`. class_param_t.sv / uvm_bvu_minimal.sv NOW PASS (were FAIL). Corpus 10/14 stable; uvm_pkg furthest_position 162162 → 181413 (+19251 bytes). All 10 generated parsers regenerated. Lib 548/548 PASS. |

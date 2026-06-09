@@ -342,13 +342,21 @@ pub fn run_inventory_wide_auto_gate(
         ..Default::default()
     };
 
-    // Build the discriminator → descriptor map. Only Object annotations
+    // Build the discriminator → descriptors map. Only Object annotations
     // with a string-literal `type:` key are addressable post-parse —
     // they're how the gate ties a runtime JSON object back to the rule
-    // that emitted it.
-    let mut discriminator_to_descriptor: std::collections::HashMap<
+    // that emitted it. Several entries may legitimately share one `type:`
+    // literal and be distinguished by FURTHER string literals (regex has
+    // 32 `type:"atom"` entries split by `kind:`; rtl_const_expr has 10
+    // `type:"binop_chain"` entries split by `level:`), so the map groups
+    // ALL same-`type` descriptors and the walker matches a runtime object
+    // against each candidate's FULL literal tuple. (The previous
+    // single-descriptor map let the last-inserted same-`type` entry win,
+    // so every `type:"atom"` node was verified against `subroutine_call`'s
+    // keys — the SV-EXH-PROOF.3.3.5 false-failure class.)
+    let mut discriminator_to_descriptors: std::collections::HashMap<
         String,
-        AnnotationShapeDescriptor,
+        Vec<AnnotationShapeDescriptor>,
     > = std::collections::HashMap::new();
     for entry in &inventory.annotations {
         let descriptor = AnnotationShapeDescriptor::from_inventory_entry(entry);
@@ -364,7 +372,7 @@ pub fn run_inventory_wide_auto_gate(
                 match type_literal {
                     Some(t) => {
                         report.discriminators_declared.insert(t.clone());
-                        discriminator_to_descriptor.insert(t, descriptor);
+                        discriminator_to_descriptors.entry(t).or_default().push(descriptor);
                     }
                     None => {
                         // Object literal without a `type:` key — can't be
@@ -392,7 +400,7 @@ pub fn run_inventory_wide_auto_gate(
             Ok(value) => {
                 walk_and_verify_against_discriminator_map(
                     &value,
-                    &discriminator_to_descriptor,
+                    &discriminator_to_descriptors,
                     sample,
                     &mut report.failures,
                     &mut report.discriminators_seen,
@@ -411,7 +419,7 @@ pub fn run_inventory_wide_auto_gate(
 
 fn walk_and_verify_against_discriminator_map(
     value: &serde_json::Value,
-    discriminator_to_descriptor: &std::collections::HashMap<String, AnnotationShapeDescriptor>,
+    discriminator_to_descriptors: &std::collections::HashMap<String, Vec<AnnotationShapeDescriptor>>,
     sample_input: &str,
     failures: &mut Vec<String>,
     seen: &mut BTreeSet<String>,
@@ -419,17 +427,48 @@ fn walk_and_verify_against_discriminator_map(
     match value {
         serde_json::Value::Object(map) => {
             if let Some(t) = map.get("type").and_then(|v| v.as_str()) {
-                if let Some(descriptor) = discriminator_to_descriptor.get(t) {
+                if let Some(candidates) = discriminator_to_descriptors.get(t) {
                     seen.insert(t.to_string());
-                    if let Err(reason) = verify_typed_value(descriptor, value) {
-                        failures.push(format!("input {:?}: {}", sample_input, reason));
+                    // Narrow the same-`type` candidates to those whose FULL string-literal
+                    // tuple (`type` plus any further literals such as `kind:`/`level:`)
+                    // matches this object — that tuple is what identifies the one branch
+                    // that emitted the node. Distinct branches can declare the SAME tuple
+                    // (e.g. `subroutine_call/0` and `/1`); the node was produced by one of
+                    // them, so it passes if ANY tuple-matching candidate verifies.
+                    let tuple_matching: Vec<&AnnotationShapeDescriptor> = candidates
+                        .iter()
+                        .filter(|descriptor| descriptor_literals_match(descriptor, map))
+                        .collect();
+                    if tuple_matching.is_empty() {
+                        failures.push(format!(
+                            "input {:?}: no inventory entry with type \"{}\" matches the parsed \
+                             value's literal discriminators (drift between the inventory and the \
+                             emitted shape): {}",
+                            sample_input, t, value
+                        ));
+                    } else if !tuple_matching
+                        .iter()
+                        .any(|descriptor| verify_typed_value(descriptor, value).is_ok())
+                    {
+                        let reasons: Vec<String> = tuple_matching
+                            .iter()
+                            .map(|descriptor| match verify_typed_value(descriptor, value) {
+                                Err(reason) => reason,
+                                Ok(()) => unreachable!("any() above was false"),
+                            })
+                            .collect();
+                        failures.push(format!(
+                            "input {:?}: {}",
+                            sample_input,
+                            reasons.join("; ")
+                        ));
                     }
                 }
             }
             for nested in map.values() {
                 walk_and_verify_against_discriminator_map(
                     nested,
-                    discriminator_to_descriptor,
+                    discriminator_to_descriptors,
                     sample_input,
                     failures,
                     seen,
@@ -440,7 +479,7 @@ fn walk_and_verify_against_discriminator_map(
             for nested in items {
                 walk_and_verify_against_discriminator_map(
                     nested,
-                    discriminator_to_descriptor,
+                    discriminator_to_descriptors,
                     sample_input,
                     failures,
                     seen,
@@ -448,6 +487,24 @@ fn walk_and_verify_against_discriminator_map(
             }
         }
         _ => {}
+    }
+}
+
+/// True iff every string-literal key/value the descriptor declares (e.g. `type: "atom"`,
+/// `kind: "capturing_group"`) is carried verbatim by the runtime object — the full-tuple
+/// discriminator test that distinguishes same-`type` inventory entries.
+fn descriptor_literals_match(
+    descriptor: &AnnotationShapeDescriptor,
+    map: &serde_json::Map<String, serde_json::Value>,
+) -> bool {
+    match &descriptor.kind {
+        ShapeKind::Object {
+            required_string_values,
+            ..
+        } => required_string_values
+            .iter()
+            .all(|(key, expected)| map.get(key).and_then(|v| v.as_str()) == Some(expected)),
+        _ => false,
     }
 }
 
@@ -703,6 +760,73 @@ mod tests {
             report.failures
         );
         assert!(report.failures[0].contains("declared key 'value' missing"));
+    }
+
+    #[test]
+    fn inventory_wide_gate_distinguishes_same_type_entries_by_full_literal_tuple() {
+        // SV-EXH-PROOF.3.3.5: several inventory entries legitimately share one `type:`
+        // literal and are distinguished by a FURTHER literal (regex: 32 `type:"atom"`
+        // entries split by `kind:`). The matcher must verify a runtime object against
+        // the entry whose full literal tuple matches — never against whichever
+        // same-`type` entry happened to be inserted last.
+        let make = |rule: &str, raw: &str| EmittedReturnAnnotationEntry {
+            rule: rule.to_string(),
+            branch_index: 0,
+            annotation_type: "return_object".to_string(),
+            raw_text: raw.to_string(),
+            normalized_text: raw.to_string(),
+        };
+        let inv = EmittedReturnAnnotationInventory {
+            version: 1,
+            grammar: "demo".to_string(),
+            annotation_count: 2,
+            annotations: vec![
+                make(
+                    "capturing_group",
+                    r#"{type: "atom", kind: "capturing_group", body: $2}"#,
+                ),
+                make(
+                    "subroutine_call",
+                    r#"{type: "atom", kind: "subroutine_call", target: $2}"#,
+                ),
+            ],
+        };
+
+        // A healthy capturing_group node verifies against ITS entry (it has no
+        // `target`; under the old single-winner map the subroutine_call entry won
+        // and this exact shape false-failed).
+        let report = run_inventory_wide_auto_gate(&inv, &["sample".to_string()], |_| {
+            Ok(json!({"type": "atom", "kind": "capturing_group", "body": []}))
+        });
+        assert!(
+            report.failures.is_empty(),
+            "tuple-matched entry must verify cleanly; got {:?}",
+            report.failures
+        );
+
+        // A subroutine_call node missing its declared `target` still fails — against
+        // the RIGHT entry.
+        let report = run_inventory_wide_auto_gate(&inv, &["sample".to_string()], |_| {
+            Ok(json!({"type": "atom", "kind": "subroutine_call"}))
+        });
+        assert_eq!(report.failures.len(), 1, "got {:?}", report.failures);
+        assert!(
+            report.failures[0].contains("subroutine_call") &&
+            report.failures[0].contains("declared key 'target' missing"),
+            "failure must name the tuple-matched entry; got {:?}",
+            report.failures
+        );
+
+        // A node whose literal tuple matches NO entry is inventory↔emission drift.
+        let report = run_inventory_wide_auto_gate(&inv, &["sample".to_string()], |_| {
+            Ok(json!({"type": "atom", "kind": "not_declared_anywhere"}))
+        });
+        assert_eq!(report.failures.len(), 1, "got {:?}", report.failures);
+        assert!(
+            report.failures[0].contains("no inventory entry with type \"atom\""),
+            "unmatched tuple must be reported as drift; got {:?}",
+            report.failures
+        );
     }
 
     #[test]
