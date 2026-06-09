@@ -169,6 +169,29 @@ This is what makes the regex stimuli generator emit PCRE2-faithful constructs li
 parser would reject. It needs no notation — a rule that already declares `$text`/`$0`/`@transform`
 declares, by that very fact, that it is one token.
 
+### Literal steering hints participate in boundary tracking
+
+Literal steering hints (`@sample` / `@probe_sample`, both rule-level and branch-local) short-circuit
+ordinary generation and return their text directly — bypassing the terminal-render paths that track the
+emitted tail's word-shape. Until 2026-06-10 that left the boundary tracker consulting **stale** state
+after every hint render, so two adjacent hint-emitted items could fuse their boundary keywords even with
+faithfulness ON:
+
+```text
+# two `source_text_item`s, each emitted via a branch-local @sample:
+program p; endprogramprogram p; endprogram   # ✗ `endprogram`+`program` fused — the parser rejects it
+program p; endprogram program p; endprogram  # ✓ what faithfulness must produce
+```
+
+This is fixed: a hint render now records its **tail word-shape** like any other emitted terminal, so the
+join rule separates a fusable tail keyword from a following word character. Because a hint can span
+several tokens (`"program p; endprogram"`), the tail terminal is approximated as the trailing maximal
+word-character run: a hint ending in a non-word character (`"wire a;"`) is not fusable; a trailing word
+run that is the whole hint (`"endprogram"`) or is preceded by whitespace (`"… ; endprogram"`) is a free
+token that separates; a word run glued to a structural character (`"(?(R"`) is treated as a fragment of a
+structural literal and stays adjacent to its argument — the same convention the join rule already uses
+for quoted-string literals.
+
 ### Whitespace runs need no separator
 
 A greedy run of a **whitespace-only** class (e.g. inline trivia `[ \t]+`) is never given a trailing

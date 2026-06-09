@@ -5210,7 +5210,13 @@ impl<'a> StimuliGenerator<'a> {
                 // The override emits the whole rule as one literal token; mark it atomic for the
                 // caller's cross-rule cohesion (LEXICAL-ANNOTATIONS.6).
                 self.last_terminal_from_atomic_rule = is_atomic;
-                return Ok(self.apply_lexical_follow_restriction(rule_name, sample_hint));
+                let rendered = self.apply_lexical_follow_restriction(rule_name, sample_hint);
+                // GRAMMAR-WELLFORMED.H.8 (Defect A): a literal hint bypasses the terminal-render
+                // paths that maintain `last_terminal_word_shaped`; record the rendered hint's tail
+                // shape so the caller's join rule can separate a fusable tail keyword from a
+                // following word char instead of consulting stale state.
+                self.last_terminal_word_shaped = Self::literal_hint_tail_word_shaped(&rendered);
+                return Ok(rendered);
             }
         }
 
@@ -5766,6 +5772,10 @@ impl<'a> StimuliGenerator<'a> {
                         sample_hint.len()
                     ),
                 );
+                // GRAMMAR-WELLFORMED.H.8 (Defect A): same tail-state update as the rule-level hint
+                // override — without it the join rule consults stale state after the hint render
+                // and fuses the hint's tail keyword with the next item (`endprogram`+`module`).
+                self.last_terminal_word_shaped = Self::literal_hint_tail_word_shaped(&sample_hint);
                 return Ok(sample_hint);
             }
             let alt_path = format!("{}/o{}", node_path, selected_global);
@@ -7615,6 +7625,31 @@ impl<'a> StimuliGenerator<'a> {
     /// `(?(R`) is NOT word-shaped, so it must stay adjacent to a following word-char argument.
     fn is_word_shaped_literal(text: &str) -> bool {
         !text.is_empty() && text.chars().all(Self::is_lexical_word_char)
+    }
+
+    /// GRAMMAR-WELLFORMED.H.8 (Defect A): tail word-shape of a LITERAL-HINT render
+    /// (`@sample`/`@probe_sample`). A hint bypasses the terminal-render paths that maintain
+    /// `last_terminal_word_shaped`, and its text can span several tokens
+    /// (`"program p; endprogram"`), so the whole-text `is_word_shaped_literal` check is wrong for
+    /// it — the tail keyword would read as non-fusable and fuse with the next item
+    /// (`endprogram`+`module` → `endprogrammodule`). The tail terminal is approximated as the
+    /// trailing maximal word-char run: none → not fusable; the whole hint → one free word token;
+    /// preceded by whitespace → a free tail token; glued to a structural char (the `(?(R`
+    /// convention above) → a fragment of a structural literal, NOT fusable.
+    fn literal_hint_tail_word_shaped(text: &str) -> bool {
+        let run_start = text
+            .char_indices()
+            .rev()
+            .take_while(|(_, ch)| Self::is_lexical_word_char(*ch))
+            .map(|(idx, _)| idx)
+            .last();
+        match run_start {
+            None => false,
+            Some(start) => match text[..start].chars().next_back() {
+                None => true,
+                Some(prev) => prev.is_whitespace(),
+            },
+        }
     }
 
     /// STORE-AWARE-GEN.3: precompute, from the grammar's semantic annotations, (1) per-rule
@@ -15303,6 +15338,79 @@ mod tests {
             "branch literal hint should register branch success, got {:?}",
             group.success_counts
         );
+    }
+
+    #[test]
+    fn literal_hint_renders_keep_word_boundary_separation_between_items() {
+        // GRAMMAR-WELLFORMED.H.8 (Defect A): two consecutive items each rendered via a
+        // rule-level `@sample` literal override must not fuse their boundary keywords
+        // (`endprogram`+`program` → `endprogramprogram`); the hint render must record its
+        // tail word-shape so the concat join rule inserts the separating space.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("rule_reference", "item"),
+                    token("rule_reference", "item"),
+                ],
+            },
+        );
+        grammar_tree.insert("item".to_string(), token("quoted_string", "fallback"));
+        let rule_order = vec!["start".to_string(), "item".to_string()];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "item".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"program p; endprogram\"".to_string(),
+                    value: UnifiedSemanticValue::String("program p; endprogram".to_string()),
+                },
+            }],
+        );
+
+        // Faithfulness ON (the shipped default) — `annotated_generator` opts out of it, but the
+        // word-boundary join rule under test only runs with spacing enforced.
+        let mut generator = StimuliGenerator::new(
+            "test".to_string(),
+            &grammar_tree,
+            &rule_order,
+            Some(&annotations),
+            StimuliConfig {
+                seed: Some(4242),
+                max_depth: 8,
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let values = generator
+            .generate_many(1, Some("start"))
+            .expect("hint-driven generation should succeed");
+        assert_eq!(
+            values[0], "program p; endprogram program p; endprogram",
+            "adjacent literal-hint renders must keep a word-boundary separator (Defect A)"
+        );
+    }
+
+    #[test]
+    fn literal_hint_tail_word_shape_classification() {
+        // Free tail tokens (fusable — a following word char needs a separator):
+        assert!(StimuliGenerator::literal_hint_tail_word_shaped("endprogram"));
+        assert!(StimuliGenerator::literal_hint_tail_word_shaped(
+            "program p; endprogram"
+        ));
+        assert!(StimuliGenerator::literal_hint_tail_word_shaped(
+            "output o, input i"
+        ));
+        // Non-word tails (nothing to fuse):
+        assert!(!StimuliGenerator::literal_hint_tail_word_shaped("wire a;"));
+        assert!(!StimuliGenerator::literal_hint_tail_word_shaped(" //"));
+        assert!(!StimuliGenerator::literal_hint_tail_word_shaped(""));
+        // A word-run glued to a structural char is a literal fragment, not a free token
+        // (the `(?(R` convention — it must stay adjacent to its argument):
+        assert!(!StimuliGenerator::literal_hint_tail_word_shaped("(?(R"));
     }
 
     #[test]

@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.8 — Defect A: literal-hint renders now record their tail word-shape (PGEN-GRAMMAR-WELLFORMED-0057)
+
+### The mechanism (why a hint fuses)
+The faithfulness join (`append_generated_segment`) inserts a separating space only when the accumulated output's TAIL terminal is a fusable word token — tracked in `last_terminal_word_shaped`, which is set at every terminal-render path (quoted-string literals in `generate_atom`; regex terminals in `apply_word_boundary_spacing`). Literal steering hints (`@sample`/`@probe_sample`) short-circuit those paths: `generate_rule`'s whole-rule override returned `apply_lexical_follow_restriction(...)` directly (it set `last_terminal_from_atomic_rule` but not the tail shape), and `generate_or`'s branch-hint return updated neither. So after a hint render the join consulted STALE state (usually `false`) → no separator → `endprogram`+`module` → `endprogrammodule`. The SV cert-coverage diverse pass emits `source_text_item*` where consecutive items come from the branch-local declaration `@sample`s — hence all 6 seed-0 failures being exactly this boundary class.
+
+### Why the tail test is a new helper (not `is_word_shaped_literal`)
+`is_word_shaped_literal` requires the ENTIRE text to be word chars — right for single-token literals (`(?(R` → false keeps a structural literal glued to its argument), wrong for a multi-token hint (`"program p; endprogram"` → false although the tail keyword IS fusable). `literal_hint_tail_word_shaped` approximates the hint's tail TERMINAL: trailing maximal word-char run — none → false; whole-hint → true; whitespace-preceded → true (a free tail token); glued to a structural char → false (the same `(?(R` convention). Checked against every hint shipped in the grammars: `"program p; endprogram"`→true, `"output o, input i"`→true, `"wire a;"`→false, `" //"`→false, `" x"`→true, `"1"`→true — each the faithful answer.
+
+### Test-harness gotcha (worth remembering)
+The first version of the regression test used the `annotated_generator` helper and PASSED pre-fix-vacuously-FAILED post — because that helper sets `enforce_word_boundary_spacing: false` (most generator tests opt out of faithfulness). The kept test builds its `StimuliGenerator` directly with `enforce_word_boundary_spacing: true, ..StimuliConfig::default()` (the shipped default posture), and decisively fails without the fix (`endprogramprogram` fused) / passes with it.
+
+### Verification highlights
+SV spf 6→0 (seed 0; witness 208 / UNKNOWN 1134 byte-identical pre/post — the fix changes only boundary rendering of previously-failing samples); seeds 1–7 spf=0; decisive stash A/B with the other 6 grammars' cert-coverage headline lines byte-identical; svpp sweep 0–31 spf=0; lib 718/0; cross-family platform gate PASS; clippy strict-source clean. The H.4.2 ALERT ("SV spf=3 contradicts the resume pointer") is closed: Defect A was the cause, spf went 3→6 with SV-PARSE-STRICT.2's correct rejections, 6→0 here.
+
 ## 2026-06-09 - SV-EXH-PROOF.8 — parseability_probe bin-test `GlobalOptions` E0063 cleared (PGEN-SV-EXH-PROOF-0154)
 
 ### What/why

@@ -984,6 +984,60 @@ subtle dead branch"), never a silent accept.
     `PGEN-GRAMMAR-WELLFORMED-0056`.
   - `H.7.2` — **`pending` (IMPLEMENT, engine): the targeted reach plan per `.7.1`, after the director
     resolves Q1–Q3.** Acceptance = the `.7.1` verification matrix. Verification: pending. Commit: pending.
+- `H.8` — **`done` (generator-faithfulness FIX): Defect A — literal-hint renders bypass the
+  lexical tail-state update → adjacent-item keyword fusion → SV cert-coverage `sample_parse_failures`.**
+  The deferred ticket from `SV-PARSE-STRICT` ("The two distinct defects", Defect A; deferred behind the
+  `.2` parser fix per the director's "fix parser bugs ASAP"). TOOLS-FIRST RE-MEASURE (2026-06-10, post
+  SV-PARSE-STRICT.2, release `ast_pipeline --features "generated_parsers ebnf_dual_run"`, canonical
+  `--entry-rule systemverilog_file --grammar-profile sv_2017 --count 40 --seed 0`): SV
+  `total=1342 witness=208 UNKNOWN=1134 sample_parse_failures=6` — spf rose 3→6 exactly as anticipated
+  (SV-PARSE-STRICT.2's sound store-gating now correctly REJECTS the fused `endmodulemodule` forms the
+  old over-permissive parser accepted). ALL 6 failing samples are the SAME fusion class at
+  `source_text_item*` boundaries: `endprogram`+`module`, `endmodule`+`module`, `endmodule`+`config`,
+  `endmodule`+`extern`, `endprogram`+`program`×2, `endprogram`+`config`. ROOT CAUSE (code-pinned): BOTH
+  literal-hint return paths bypass the terminal-render paths that maintain
+  `last_terminal_word_shaped` (the LEXICAL-ANNOTATIONS.5.2 tail-shape state consumed by
+  `append_generated_segment`'s join rule): (a) `generate_rule`'s whole-rule override (~:5196–5214) sets
+  `last_terminal_from_atomic_rule` but NOT the tail shape; (b) `generate_or`'s branch-hint return
+  (~:5742–5770, the LIVE path for the `module_declaration`/`program_declaration` branch-local
+  `@sample`s) updates NEITHER. So after a hint render the tail state is STALE (usually false) → the
+  join rule sees a non-fusable tail → no separator → `endprogram`+`module` fuse. FIX (engine,
+  parser-agnostic, generator-only): new helper `literal_hint_tail_word_shaped(text)` — tail terminal
+  approximation for an unstructured literal hint: trailing maximal word-char run; false when empty
+  (ends non-word); true when the run is the whole hint (one free word token) or is preceded by
+  whitespace (a free tail token, the `"… endprogram"` case); false when glued to a structural char
+  (the `(?(R` convention of `is_word_shaped_literal` — never split a structural literal from its
+  arg). Apply at both hint returns (rule-level: computed on the post-`apply_lexical_follow_restriction`
+  rendered text; branch-level: on the hint). `last_terminal_from_atomic_rule` needs NO branch-path
+  change (`generate_rule` already sets it on every success exit at ~:5262, after the OR returns).
+  Acceptance: SV cert-coverage seed-0 `sample_parse_failures` 6→0 (or every residual honestly
+  attributed to a non-fusion class); multi-seed SV sweep improves/never worsens; DECISIVE git-stash
+  A/B — NO grammar's `sample_parse_failures` worsens (json/regex/vhdl/svpp/rtl_const_expr/
+  rtl_frontend; diverse-pass byte-identity is NOT promised — this is a faithfulness FIX that
+  legitimately changes hint-bearing grammars' samples); focused unit test (two hint-bearing rules
+  concatenated → separator inserted); lib green; clippy strict-source clean; cross-family + oracle
+  gates green.
+  Verification: `done — FIX as designed (3 edits in stimuli_generator.rs: literal_hint_tail_word_shaped
+  helper + the two hint-return updates; the rule-level one computed on the post-follow-restriction
+  rendered text; last_terminal_from_atomic_rule needed no branch-path change since generate_rule sets
+  it on every success exit). VERIFIED: (1) SV cert-coverage seed 0: sample_parse_failures 6→0, witness
+  208 + UNKNOWN 1134 IDENTICAL pre/post (the fix changes only boundary rendering); seeds 1–7 ALL spf=0.
+  (2) DECISIVE same-session git-stash A/B (release binary rebuilt at each state, identical commands):
+  pre-fix SV seed-0 spf=6 / post-fix spf=0; the other 6 grammars (json/regex/rtl_const_expr/svpp/
+  rtl_frontend/vhdl) headline lines BYTE-IDENTICAL pre/post (diff = empty). (3) svpp seed sweep 0–31:
+  spf=0 at every seed (H.5.5's invariant preserved). (4) NEW focused tests:
+  literal_hint_renders_keep_word_boundary_separation_between_items (reproduced the fusion DECISIVELY —
+  fused without the tail-state update, separated with it; built with faithfulness ON since the
+  annotated_generator test helper opts out of spacing) + literal_hint_tail_word_shape_classification
+  (free-tail/multi-token/non-word/structural-fragment cases incl. the (?(R convention). (5) lib
+  --features "generated_parsers ebnf_dual_run" 718/0 (716 + the 2 new tests). (6)
+  stimuli_cross_family_platform_gate PASS (regex + vhdl + SV bounded replay). (7) clippy strict-source
+  clean (generated stage = pre-existing tolerated non-strict debt). ALSO RESOLVES the H.4.2
+  tracker-note ALERT (the "SV spf=3 vs resume pointer" discrepancy — Defect A was the cause; spf rose
+  3→6 when SV-PARSE-STRICT.2's sound gating correctly began rejecting the fused endmodule forms, and is
+  now 0). Book lexical-annotations chapter updated ("Literal steering hints participate in boundary
+  tracking"). NO grammar/schema/release/contract change (generator-only; parsers untouched).`
+  Commit: `PGEN-GRAMMAR-WELLFORMED-0057`.
 - `G.4.9` — **DONE (`PGEN-GRAMMAR-WELLFORMED-0035`, 2026-06-07): classified the regex witness-parseability
   residuals (the 6 `sample_parse_failures` surfaced by `H.1`'s regex cert-coverage).** Tools-first
   (`parseability_probe`): the 6 failing witness samples cluster on rare regex constructs — `\u{…}` unicode
