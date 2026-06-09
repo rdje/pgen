@@ -63,6 +63,11 @@ const DEPTH_EXCEEDED_ERROR_PREFIX: &str = "Stimuli generation depth exceeded max
 // times in one derivation. The .3 taxonomy revealed it was also anonymous; classifying
 // it un-masks a second potential contributor to the SV residual.
 const RULE_VISIT_LIMIT_ERROR_PREFIX: &str = "Stimuli generation exceeded max_rule_visits=";
+// GRAMMAR-WELLFORMED.H.4.2: runaway backstop for the opt-in uncovered-recursive constructive-reach
+// retry (`reach_uncovered_recursive_branches`). The retry is already self-limiting — it only fires
+// while a branch is NEVER-covered, and stops the moment the first minimal witness records a success
+// — so a real run uses a handful; this cap only bounds a pathological grammar far above any real one.
+const MAX_UNCOVERED_REACH_RETRIES: usize = 4096;
 
 /// DIAG-SEVERITY.3.1 (PGEN-DIAG-SEVERITY-0004): the canonical, drift-proof enumeration of
 /// stimuli generation-failure reasons — the single source of truth for "classify errors
@@ -180,6 +185,16 @@ pub struct StimuliConfig {
     pub negative_profile: StimuliNegativeProfile,
     pub enforce_word_boundary_spacing: bool,
     pub trace_verbosity: TraceVerbosity,
+    /// GRAMMAR-WELLFORMED.H.4.2: opt-in constructive-reach for the cert-coverage WITNESS pass.
+    /// When a clean diverse pass tries a NEVER-covered branch that re-enters a rule already on the
+    /// call stack (e.g. `primary_expr := lparen conditional_expr rparen` re-entering a deep
+    /// precedence chain) and exhausts the depth budget reaching it, retry that one branch with a
+    /// fresh minimal-derivation budget (`construct_mode`: min-repeat quantifiers + shortest-
+    /// derivation OR) so it yields one minimal witness (e.g. `( 1 )`) that re-parses. OFF by default
+    /// → every non-cert-coverage surface (oracle, self-host, cross-family, stimuli modules, lib
+    /// tests) is byte-identical. A globally-raised `max_depth` is NOT an alternative: it makes the
+    /// `*`-quantifier / direct-recursion fan-out explode, while this stays bounded and local.
+    pub reach_uncovered_recursive_branches: bool,
 }
 
 impl Default for StimuliConfig {
@@ -201,6 +216,9 @@ impl Default for StimuliConfig {
             // out explicitly (sets this false). (Was false; flipped 2026-06-06.)
             enforce_word_boundary_spacing: true,
             trace_verbosity: global_trace_verbosity(),
+            // GRAMMAR-WELLFORMED.H.4.2: opt-in (cert-coverage witness pass only); default off keeps
+            // every other generation surface byte-identical.
+            reach_uncovered_recursive_branches: false,
         }
     }
 }
@@ -1237,6 +1255,11 @@ pub struct StimuliGenerator<'a> {
     /// witness is built as the minimal derivation tree in O(tree-size), no search/timeout.
     /// The caller (`generate_target_witnesses`) tries this first and falls back to search.
     construct_mode: bool,
+    /// GRAMMAR-WELLFORMED.H.4.2: count of opt-in uncovered-recursive constructive-reach retries
+    /// performed this generator's lifetime (see `should_reach_retry_uncovered_recursive`). Bounded
+    /// by `MAX_UNCOVERED_REACH_RETRIES`; observability + runaway backstop. Always 0 unless
+    /// `config.reach_uncovered_recursive_branches` is set (the cert-coverage witness pass).
+    reach_retry_count: usize,
     /// STIMULI-SIGNOFF.2.2 (PGEN-STIMULI-SIGNOFF-0003): k-path coverage NUMERATOR recorder.
     /// `None` = OFF (default → zero overhead, generation byte-identical → monotone). When
     /// `Some((k, set))`, every `generate_rule` entry records the last-k window of the live
@@ -1437,6 +1460,7 @@ impl<'a> StimuliGenerator<'a> {
             witness_mode: false,
             witness_min_terminal_lengths: None,
             construct_mode: false,
+            reach_retry_count: 0,
             k_path_recording: None,
             target_probe_history: HashMap::new(),
             target_drive_validation_active: false,
@@ -5335,8 +5359,19 @@ impl<'a> StimuliGenerator<'a> {
                 .min()
                 .unwrap_or(0);
 
+            // GRAMMAR-WELLFORMED.H.4.2: at the depth floor, ordinary pruning keeps only the
+            // fewest-rule-reference (closest-to-terminal) branches — which permanently removes a
+            // deep branch like `( conditional_expr )` BEFORE it can ever be tried, so the constructive
+            // -reach retry below never gets a chance at it. Under the opt-in cert-coverage witness
+            // pass, additionally RETAIN any still-never-covered branch at the floor: it is then
+            // attempted, fails on the depth budget, and the retry constructs its minimal witness. Once
+            // a branch records its first success it is pruned normally again (self-limiting), so this
+            // only re-admits genuinely-unwitnessed branches. Off by default → byte-identical pruning.
+            let reach_floor = self.config.reach_uncovered_recursive_branches;
+            let floor_group_key = format!("{}::{}", current_rule, node_path);
             candidate_indices.retain(|idx| {
                 self.count_rule_references(prepared[*idx].1.as_ref(), current_rule) == min_ref_count
+                    || (reach_floor && self.branch_success_hits(&floor_group_key, *idx) == 0)
             });
         }
 
@@ -5632,6 +5667,34 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
         };
+        // GRAMMAR-WELLFORMED.H.4.2: under the cert-coverage witness pass, try a still-never-covered
+        // branch that re-enters a rule already on the call stack (e.g. `( conditional_expr )`) FIRST.
+        // Otherwise such a branch is only ever reached on the DEEPEST descents — where the enclosing
+        // derivation is already doomed, so even a successful constructive-reach witness is discarded
+        // when the parent path fails. Trying it first reaches it at the SHALLOWEST point, where the
+        // parent still has budget to complete, so its minimal `( … )` witness survives into an emitted
+        // sample. Self-limiting: the constructive-reach retry records a success on the first witness,
+        // after which the branch is no longer never-covered and ordering reverts. Off by default →
+        // attempt order is byte-identical for every non-cert-coverage surface.
+        let attempt_order: Vec<usize> = if self.config.reach_uncovered_recursive_branches {
+            let mut reordered = attempt_order;
+            let front = reordered.iter().position(|&local| {
+                let global = candidate_indices[local];
+                self.branch_success_hits(&group_key, global) == 0 && {
+                    let mut refs = HashSet::new();
+                    self.collect_rule_references(prepared[global].1.as_ref(), &mut refs);
+                    refs.iter()
+                        .any(|rule_name| call_stack.iter().any(|active| active == rule_name))
+                }
+            });
+            if let Some(pos) = front {
+                let chosen = reordered.remove(pos);
+                reordered.insert(0, chosen);
+            }
+            reordered
+        } else {
+            attempt_order
+        };
         self.trace(
             TraceLevel::Debug,
             format_args!(
@@ -5793,6 +5856,97 @@ impl<'a> StimuliGenerator<'a> {
                                     TraceLevel::Debug,
                                     format_args!(
                                         "OR branch failed after depth-slack retry: rule='{}' path='{}' branch={} reason={}",
+                                        current_rule, node_path, selected_global, retry_err
+                                    ),
+                                );
+                                last_error = Some(retry_err);
+                                continue;
+                            }
+                        }
+                    }
+                    // GRAMMAR-WELLFORMED.H.4.2: opt-in constructive-reach for a NEVER-covered,
+                    // depth-exhausted RECURSIVE branch (e.g. `( conditional_expr )` re-entering a deep
+                    // precedence chain — the clean diverse budget is spent reaching `primary_expr`, so
+                    // there is none left for the nested chain and the branch ALWAYS DepthExceeds).
+                    // Retry that one branch with a fresh budget AND `construct_mode` (min-repeat
+                    // quantifiers + shortest-derivation OR via the witness min-terminal table), so it
+                    // yields exactly one MINIMAL witness (e.g. `( 1 )`) that re-parses — without the
+                    // global fan-out blow-up a raised `max_depth` causes. Off unless the cert-coverage
+                    // witness pass set `reach_uncovered_recursive_branches` → every other surface is
+                    // byte-identical. Self-limiting: stops once the first success is recorded.
+                    if self.should_reach_retry_uncovered_recursive(
+                        &group_key,
+                        selected_global,
+                        &err,
+                        &selected_node,
+                        call_stack,
+                    ) {
+                        self.reach_retry_count = self.reach_retry_count.saturating_add(1);
+                        let saved_max_depth = self.config.max_depth;
+                        let saved_witness_mode = self.witness_mode;
+                        let saved_construct_mode = self.construct_mode;
+                        // The shortest-derivation OR ordering needs the Purdom min-terminal-length
+                        // table; compute once and cache (only consulted while `witness_mode`, which we
+                        // restore to its prior value, so leaving it `Some` cannot perturb the diverse
+                        // pass).
+                        if self.witness_min_terminal_lengths.is_none() {
+                            self.witness_min_terminal_lengths =
+                                Some(self.compute_min_terminal_lengths());
+                        }
+                        // Fresh budget measured from the CURRENT depth so the nested chain fits from
+                        // here regardless of how much the descent to this point already consumed.
+                        self.config.max_depth = depth.saturating_add(saved_max_depth);
+                        self.witness_mode = true;
+                        self.construct_mode = true;
+                        self.trace(
+                            TraceLevel::Debug,
+                            format_args!(
+                                "Retrying uncovered recursive OR branch with constructive-reach: rule='{}' path='{}' branch={} reach_max_depth={}",
+                                current_rule, node_path, selected_global, self.config.max_depth
+                            ),
+                        );
+                        let retry_result = self.generate_node(
+                            &selected_node,
+                            current_rule,
+                            depth,
+                            call_stack,
+                            &alt_path,
+                        );
+                        self.construct_mode = saved_construct_mode;
+                        self.witness_mode = saved_witness_mode;
+                        self.config.max_depth = saved_max_depth;
+
+                        match retry_result {
+                            Ok(output) => {
+                                self.coverage.record_branch_success(
+                                    &group_key,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                    selected_global,
+                                );
+                                self.trace(
+                                    TraceLevel::High,
+                                    format_args!(
+                                        "Selected OR branch after constructive-reach retry: rule='{}' path='{}' branch={} output_len={}",
+                                        current_rule, node_path, selected_global, output.len()
+                                    ),
+                                );
+                                return Ok(output);
+                            }
+                            Err(retry_err) => {
+                                self.coverage.record_branch_failure(
+                                    &group_key,
+                                    current_rule,
+                                    node_path,
+                                    alternatives.len(),
+                                    selected_global,
+                                    &retry_err.to_string(),
+                                );
+                                self.trace(
+                                    TraceLevel::Debug,
+                                    format_args!(
+                                        "OR branch failed after constructive-reach retry: rule='{}' path='{}' branch={} reason={}",
                                         current_rule, node_path, selected_global, retry_err
                                     ),
                                 );
@@ -6720,6 +6874,47 @@ impl<'a> StimuliGenerator<'a> {
             return None;
         }
         Some(4)
+    }
+
+    /// GRAMMAR-WELLFORMED.H.4.2: should the clean diverse pass retry this just-failed branch with a
+    /// fresh minimal-derivation budget (constructive reach)? True only when ALL hold:
+    /// - `config.reach_uncovered_recursive_branches` is set (the cert-coverage witness pass; OFF
+    ///   everywhere else → byte-identical),
+    /// - we are not already inside a minimal construction (`!construct_mode` → no nesting),
+    /// - the runaway backstop is not hit,
+    /// - the failure was depth exhaustion (the symptom this addresses; a different error is a
+    ///   different problem and is left alone),
+    /// - the branch is NEVER-covered (once one witness exists, ordinary generation covers it),
+    /// - the branch is RECURSIVE — it references a rule already on the call stack, i.e. it re-enters
+    ///   the same construct that consumed the budget to reach here (`( conditional_expr )` re-entering
+    ///   the precedence chain). A non-recursive depth exhaustion is not this case.
+    fn should_reach_retry_uncovered_recursive(
+        &self,
+        group_key: &str,
+        branch_idx: usize,
+        err: &anyhow::Error,
+        branch_node: &ASTNode,
+        call_stack: &[String],
+    ) -> bool {
+        if !self.config.reach_uncovered_recursive_branches {
+            return false;
+        }
+        if self.construct_mode {
+            return false;
+        }
+        if self.reach_retry_count >= MAX_UNCOVERED_REACH_RETRIES {
+            return false;
+        }
+        if !Self::is_depth_exhaustion_error(err) {
+            return false;
+        }
+        if self.branch_success_hits(group_key, branch_idx) > 0 {
+            return false;
+        }
+        let mut refs = HashSet::new();
+        self.collect_rule_references(branch_node, &mut refs);
+        refs.iter()
+            .any(|rule_name| call_stack.iter().any(|active| active == rule_name))
     }
 
     fn target_priority_probe_bias(&self, group_key: &str, branch_idx: usize) -> bool {
@@ -10602,6 +10797,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         )
     }
@@ -10956,6 +11152,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         )
     }
@@ -10985,6 +11182,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         )
     }
@@ -11015,6 +11213,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         )
     }
@@ -11617,6 +11816,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         );
 
@@ -11813,6 +12013,77 @@ mod tests {
             "PRIMARY path emits a structurally-invalid dangling backtick \
              ({dangling_bt}/{total}) — fast in-process reproduction of the \
              gate's `shrunk_sample` defect; first example: {first_example:?}"
+        );
+    }
+
+    // GRAMMAR-WELLFORMED.H.4.2: the opt-in constructive-reach must let the clean diverse pass WITNESS
+    // a never-covered branch that re-enters a deep recursive construct, WITHOUT a globally-raised
+    // budget. On the real rtl_const_expr grammar, `primary_expr := lparen conditional_expr rparen`
+    // re-enters the ~14-level precedence chain, so at the default depth the diverse budget is spent
+    // reaching `primary_expr` and that branch always DepthExceeds — no clean sample contains `(`.
+    // With the flag, the branch is retried minimally and yields a `( … )` witness that re-parses.
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn reach_uncovered_recursive_branch_witnesses_parenthesised_primary() {
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path =
+            concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/rtl_const_expr.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse rtl_const_expr.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+
+        let entry = "rtl_const_expr";
+        let make = |reach: bool| {
+            StimuliGenerator::new(
+                "rtl_const_expr".to_string(),
+                &grammar_tree,
+                &rule_order,
+                None,
+                StimuliConfig {
+                    // Mirror the cert-coverage witness pass (run_certificate_coverage_report).
+                    seed: Some(0),
+                    max_depth: 32,
+                    enforce_word_boundary_spacing: true,
+                    reach_uncovered_recursive_branches: reach,
+                    ..StimuliConfig::default()
+                },
+            )
+        };
+
+        // OFF (default behaviour): the parenthesised branch is unreachable at this budget.
+        let mut off = make(false);
+        let off_samples = off.generate_many(40, Some(entry)).expect("OFF generation");
+        let off_parens = off_samples.iter().filter(|s| s.contains('(')).count();
+        assert_eq!(
+            off_parens, 0,
+            "without the flag the deep `( conditional_expr )` branch must stay unwitnessed at the \
+             default budget (this is the H.4.2 baseline the fix addresses)"
+        );
+
+        // ON: the constructive-reach retry must witness `( … )` within the same budget.
+        let mut on = make(true);
+        let on_samples = on.generate_many(40, Some(entry)).expect("ON generation");
+        let with_paren: Vec<&String> = on_samples.iter().filter(|s| s.contains('(')).collect();
+        assert!(
+            !with_paren.is_empty(),
+            "with reach_uncovered_recursive_branches the diverse pass must emit at least one `( … )` \
+             witness; got none in {} samples",
+            on_samples.len()
+        );
+        // The witness must be balanced (a real `( … )`), not a stray `(`.
+        assert!(
+            with_paren.iter().any(|s| s.contains('(') && s.contains(')')),
+            "the parenthesised witness must contain both `(` and `)`: {:?}",
+            with_paren.first()
         );
     }
 
@@ -12239,6 +12510,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         );
 
@@ -12296,6 +12568,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         );
 
@@ -12365,6 +12638,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: true,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         );
 
@@ -12982,6 +13256,7 @@ mod tests {
                 negative_profile: StimuliNegativeProfile::Baseline,
                 enforce_word_boundary_spacing: false,
                 trace_verbosity: TraceVerbosity::None,
+                reach_uncovered_recursive_branches: false,
             },
         );
 

@@ -296,18 +296,49 @@ adapter so the witness side can replay samples through that grammar's real parse
 `design_item*` list — and reports `total=170 witness=37 UNKNOWN=133 (sample_parse_failures=0)`, i.e. every
 witness re-parses cleanly with a loud `UNKNOWN` backlog still to drive to zero), `systemverilog`, and
 `vhdl` (the last shipped grammar to be wired — it runs at the default depth on its flat `design_unit*`
-entry and reports `total=217 witness=132 UNKNOWN=85 (sample_parse_failures=0)` at seed 0, every witness
+entry and reports `total=217 witness=148 UNKNOWN=69 (sample_parse_failures=0)` at seed 0, every witness
 re-parsing cleanly). With `vhdl` wired, **every shipped parser grammar now runs under the
 certificate-coverage gate**; only the internal meta/annotation grammars (`ebnf`,
-`return_annotation`, `semantic_annotation`) remain unwired. `rtl_const_expr` is a good illustration of an
-*honest, not-yet-complete* result: at a sufficient generation depth the report runs deterministically and
-reports e.g. `total=48 witness=41 UNKNOWN=7 (sample_parse_failures=0)` — every witness it produced re-parses
-cleanly (no round-trip failures), and the seven `UNKNOWN` rules are not hidden: they are a *loud, specific*
-backlog of fragments still awaiting a witness, to be driven to zero by generating more targeted samples.
-That non-zero `UNKNOWN`, openly reported, is exactly the point — the gate never pretends a grammar is fully
-certified until every fragment carries a checked certificate. (A deeply-recursive grammar like
-`rtl_const_expr`, whose operator-precedence chain is many rules deep, needs a larger `--max-depth` than the
-default so the witness generator can build valid samples; the report honors that flag.)
+`return_annotation`, `semantic_annotation`) remain unwired. The other grammars carry an *honest, openly
+reported* `UNKNOWN` backlog still being driven toward zero (e.g. `regex` `UNKNOWN=98`,
+`rtl_frontend` `UNKNOWN=133`) — a *loud, specific* list of fragments still awaiting a witness, never hidden,
+because the gate never pretends a grammar is fully certified until every fragment carries a checked
+certificate.
+
+### Reaching deep recursive branches: the constructive-reach witness pass
+
+`rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was
+closed is worth stating because it is a *general* capability now, not a one-off. Its operator-precedence
+chain is ~14 rules deep (`conditional_expr → … → primary_expr`), and one of `primary_expr`'s alternatives is
+the *parenthesised primary* `( conditional_expr )`, which **re-enters the whole chain**. So a single `( … )`
+needs roughly twice the chain's depth. Ordinary clean generation spends its entire depth budget just
+*reaching* `primary_expr`, leaving none for the nested expression — so the parenthesised branch is reached
+only on the deepest descents, where it cannot complete, and `lparen`/`rparen` are never witnessed
+(`total=48 witness=45 UNKNOWN=3`). The linter confirms the branch is genuinely reachable (`( 1 )` is valid),
+so by the attribution rule this is a *generator-reach deficiency*, not a dead branch — the fix belongs in the
+generator. Simply raising `--max-depth` is **not** a fix: with more depth the repetition (`*`) and ternary
+(`?:`) fan-out explodes super-linearly (eight samples time out), so a bigger budget makes generation
+intractable long before it makes the branch reachable.
+
+The certificate-coverage report instead runs a **second, auxiliary witness pass** when (and only when) the
+ordinary diverse pass leaves `UNKNOWN` rules. This *constructive-reach* pass tries each still-unwitnessed
+branch that re-enters an active construct at its **shallowest** reach and builds its **minimal** derivation
+with a fresh budget (minimum repetitions, shortest alternatives) — yielding a small, valid `( 1 )` that
+re-parses and witnesses `lparen`/`rparen`. With it, `rtl_const_expr` reaches
+`total=48 witness=48 UNKNOWN=0 fully_certified=true`, deterministically across seeds, with zero
+sample-parse failures.
+
+Two properties keep this honest and safe:
+
+- **The diverse certification pass is untouched.** The reach pass is *separate* and *additive*: it only ever
+  *unions* witnesses from samples that re-parse, so the reported `sample_parse_failures` (the certification
+  number) comes entirely from the diverse pass and is byte-identical for every grammar — wiring the reach
+  pass cannot make any grammar's certification *worse*, only its coverage better. The reach pass probes the
+  hardest-to-reach branches, so some of its own samples are *expected* not to re-parse; those are reported
+  separately as an auxiliary count, never folded into the certification failures.
+- **It is opt-in to certificate-coverage.** Ordinary stimuli generation (`--generate-stimuli`, the stimuli
+  modules, the cross-family and oracle gates) is unaffected and byte-identical — the reach behaviour is a
+  property of the witness pass alone.
 
 ## The decidability boundary (an honest limit)
 

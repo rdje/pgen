@@ -1132,6 +1132,9 @@ fn main() -> Result<()> {
                 args.no_word_boundary_spacing,
             ),
             trace_verbosity,
+            // GRAMMAR-WELLFORMED.H.4.2: opt-in to the cert-coverage witness pass only — default
+            // `--generate-stimuli` is unaffected.
+            reach_uncovered_recursive_branches: false,
         };
         let mut generator = StimuliGenerator::new(
             grammar.grammar_name.clone(),
@@ -1260,6 +1263,7 @@ fn main() -> Result<()> {
                         args.no_word_boundary_spacing,
                     ),
                     trace_verbosity,
+                    reach_uncovered_recursive_branches: false,
                 },
             );
             gap_generator.merge_coverage_metrics(&merged_coverage)?;
@@ -1315,6 +1319,9 @@ fn main() -> Result<()> {
                 args.no_word_boundary_spacing,
             ),
             trace_verbosity,
+            // GRAMMAR-WELLFORMED.H.4.2: opt-in to the cert-coverage witness pass only — default
+            // `--generate-stimuli-module` is unaffected.
+            reach_uncovered_recursive_branches: false,
         };
 
         let mut generator = StimuliGenerator::new(
@@ -2352,6 +2359,14 @@ fn run_certificate_coverage_report(
     // regex / SV cert-coverage is byte-identical, but deeply-recursive grammars (e.g. rtl_const_expr,
     // whose operator-precedence chain `conditional_expr → … → primary_expr → ( conditional_expr )` exceeds
     // 24 after one nesting level) can raise the witness-generation depth budget so the report runs.
+    let samples = samples.max(1);
+    let mut witness_covered: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+    // PASS 1 — the DIVERSE CERTIFICATION sample set (reach OFF). This is byte-identical to the
+    // historical behaviour for every grammar, so its `sample_parse_failures` (a generator
+    // over-production the real parser rejects) is the reported certification number and never
+    // regresses. GRAMMAR-WELLFORMED.H.4 honors `--max-depth`; the default stays 24 so json / regex /
+    // SV are byte-identical.
     let config = StimuliConfig {
         seed: Some(seed),
         enforce_word_boundary_spacing: true,
@@ -2365,9 +2380,7 @@ fn run_certificate_coverage_report(
         grammar.annotations.as_ref(),
         config,
     );
-    let samples = samples.max(1);
     let diverse = generator.generate_many(samples, Some(entry_rule.as_str()))?;
-    let mut witness_covered: std::collections::HashSet<String> = std::collections::HashSet::new();
     let mut sample_parse_failures = 0usize;
     // G.4.7: LABEL parse failures (error + sample), never silently count them — a parse failure is a
     // generator-produced sample the real parser rejects, and seeing WHY is how we tell a generator
@@ -2399,6 +2412,55 @@ fn run_certificate_coverage_report(
     let (proof_covered, proof_fails) =
         gather_verified_proof_covered_rules(&grammar.grammar_tree, &grammar.rule_order);
 
+    // PASS 2 — GRAMMAR-WELLFORMED.H.4.2: the CONSTRUCTIVE-REACH witness pass. Run only if the diverse
+    // pass left UNKNOWN rules. It is a deliberately SEPARATE, auxiliary witness-finder for branches the
+    // clean diverse pass cannot reach within budget — e.g. rtl_const_expr's
+    // `primary_expr := lparen conditional_expr rparen`, which re-enters the ~14-level precedence chain,
+    // so the diverse budget is exhausted reaching `primary_expr` and the branch always DepthExceeds
+    // (raising `max_depth` is not an alternative — the `*`/`?:` fan-out explodes). With
+    // `reach_uncovered_recursive_branches`, such a branch is tried at its shallowest reach and its
+    // minimal `( 1 )` witness is constructed with a fresh budget. Because this pass is SEPARATE, the
+    // pass-1 certification sample set above stays byte-identical for every grammar — a grammar that
+    // does not need the reach keeps its exact reported `sample_parse_failures`. The reach pass only
+    // UNIONS witnesses from samples that re-parse; its own unparseable probes are inherent to reaching
+    // the hardest branches and are reported separately, never folded into the certification number.
+    let mut reach_pass_parse_failures = 0usize;
+    {
+        let pre_report =
+            certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+        if !pre_report.unknown.is_empty() {
+            let reach_config = StimuliConfig {
+                seed: Some(seed),
+                enforce_word_boundary_spacing: true,
+                max_depth,
+                reach_uncovered_recursive_branches: true,
+                ..Default::default()
+            };
+            let mut reach_generator = StimuliGenerator::new(
+                grammar.grammar_name.clone(),
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                grammar.annotations.as_ref(),
+                reach_config,
+            );
+            if let Ok(reach_samples) =
+                reach_generator.generate_many(samples, Some(entry_rule.as_str()))
+            {
+                for sample in &reach_samples {
+                    if let Some((parsed, covered)) =
+                        pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile)
+                    {
+                        if parsed {
+                            witness_covered.extend(covered);
+                        } else {
+                            reach_pass_parse_failures += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     let report = certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
     println!(
         "CERTIFICATE-COVERAGE: grammar='{}' entry='{}' samples={} total={} proof={} witness={} UNKNOWN={} fully_certified={} (sample_parse_failures={}, proof_reverify_failures={})",
@@ -2413,6 +2475,15 @@ fn run_certificate_coverage_report(
         sample_parse_failures,
         proof_fails.len(),
     );
+    if reach_pass_parse_failures > 0 {
+        // GRAMMAR-WELLFORMED.H.4.2: transparency — the auxiliary constructive-reach pass probes the
+        // hardest-to-reach branches, so some of its samples are expected not to re-parse. They are
+        // reported here, NOT folded into the certification `sample_parse_failures` (the diverse pass).
+        println!(
+            "  (constructive-reach witness pass: {} auxiliary probe samples did not re-parse — not counted as certification failures)",
+            reach_pass_parse_failures
+        );
+    }
     if !report.unknown.is_empty() {
         let shown = report.unknown.len().min(25);
         println!(

@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-09 - GRAMMAR-WELLFORMED.H.4.2 — constructive-reach for deeply-recursive never-covered branches (PGEN-GRAMMAR-WELLFORMED-0051)
+
+### Goal
+Close the first per-grammar `UNKNOWN`→0 drive (H.4.1): make the cert-coverage witness side reach rtl_const_expr's parenthesised-primary branch (`primary_expr := lparen conditional_expr rparen`) so `lparen`/`rparen` are witnessed and the grammar is `fully_certified` — measured against the GLOBAL metric (the generator is the hot path shared by every grammar).
+
+### Why the obvious levers fail (tools-first A/B, before any code)
+The branch re-enters the ~14-level precedence chain, so a single `( … )` needs ~2× the chain's depth. Two false starts were *measured*, not assumed:
+- **Raise `--max-depth`:** at depth 48/64/96 even count 8 TIMES OUT — without the depth-floor pruning the `*` repetition and `?:` ternary recursion fan out super-linearly. A bigger budget makes generation intractable long before it makes the branch reachable.
+- **`--max-repeat 0 --max-depth 64`:** reaches `(` but regresses operator-rule coverage (27/48 — the binop-chain `(op X)*` branches never get a repetition) and emits monstrous ternary samples.
+A trace pinned the precise mechanism: the branch **is** tried, but always DepthExceeds, and at seed 0 only on depth-32 paths that are *already doomed* — so even a successfully-constructed `( 1 )` is discarded when the enclosing derivation fails. Hence the three coordinated behaviours below (a retry alone is seed-dependent; it must be reached on a *surviving* path).
+
+### Design (parser-agnostic, opt-in, gated)
+`StimuliConfig.reach_uncovered_recursive_branches` (default OFF). When ON, `generate_or` gains three behaviours, each gated on the flag (so default generation is byte-identical):
+1. **Depth-floor retain** — at the depth floor, keep a still-never-covered branch instead of pruning to the fewest-rule-reference alternatives, so it survives to be tried.
+2. **Try-recursive-first** — move a never-covered branch that re-enters an active-stack rule to the front of the attempt order, so it is reached at the *shallowest* `primary_expr` (where the parent still has budget to complete and the witness survives).
+3. **Minimal-construct depth-retry** — on the branch's depth exhaustion, retry it once with a fresh budget (`depth + max_depth`) and the existing witness `construct_mode` (min-repeat quantifiers + shortest-derivation OR via the Purdom min-terminal table), yielding a small `( 1 )` that re-parses. Backstop `MAX_UNCOVERED_REACH_RETRIES=4096` (self-limiting — stops at the first recorded success).
+
+### Why two-pass (the key no-regression decision)
+A single-flag prototype (reach ON for the one cert-coverage pass) drove rtl_const_expr to `fully_certified`, but the reordering *perturbed every grammar's diverse sample stream*, surfacing a latent vhdl over-production (+1 `sample_parse_failures`). Since the task bar is no-regression per grammar, `run_certificate_coverage_report` is split: **pass 1** is the diverse certification sample set with the flag OFF (byte-identical to history, so its reported `sample_parse_failures` cannot move), and **pass 2** is an auxiliary constructive-reach witness pass (flag ON) run only when pass 1 leaves `UNKNOWN`, which only *unions* witnesses from re-parsing samples. The reach pass probes the hardest branches, so its own unparseable probes are expected and reported separately — never folded into the certification number. This makes the change additive-only: `UNKNOWN` can only drop, `sample_parse_failures` is frozen at the pass-1 value.
+
+### Verification (decisive git-stash baseline)
+Stashed the change, rebuilt, ran the identical cert-coverage commands → recorded the true pre-change baseline; popped, rebuilt, compared. `sample_parse_failures` byte-identical pre/post for **every** grammar (rtl_const_expr 0=0, regex 0=0, vhdl 0=0, SV 3=3, json 0, svpp 0); `UNKNOWN` only decreased (rtl_const_expr 3→0 `fully_certified`, regex 101→98, vhdl 85→69, SV 1160→1126). Deterministic across seeds 0/1/7/42. lib `--features generated_parsers` 686/0; new `ebnf_dual_run` test; regex self-hosting + cross-family + PCRE2 oracle gates green. The pre-existing SV default-entry `sample_parse_failures=3` (contradicting an earlier "SV cert-coverage CLEAN" note) is flagged as a separate ticket.
+
 ## 2026-06-09 - GRAMMAR-WELLFORMED.H.4.1 — root-cause of rtl_const_expr's cert-coverage `UNKNOWN` residual (tools-first; pure docs, no code) (PGEN-GRAMMAR-WELLFORMED-0050)
 
 ### Goal
