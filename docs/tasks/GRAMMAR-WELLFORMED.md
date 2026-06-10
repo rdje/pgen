@@ -1102,10 +1102,17 @@ subtle dead branch"), never a silent accept.
     needs ≥N capture groups BEFORE the backref — the generation-side store honours the predicate
     (STORE-AWARE-GEN), so the reach pass needs a fact-emitting PRELUDE; owned by the B2/C1/C2
     constructive lane when activated).
-    - `H.10.2.1` — **`blocked` (on `BRANCH-BROADCAST-FIX.2`+`.3`; unblock = its `.5`). The
-      declarative fix attempt DISCOVERED a live engine defect pair and was cleanly REVERTED
+    - `H.10.2.1` — **`done` (re-applied + closed by `BRANCH-BROADCAST-FIX.5`,
+      `PGEN-BRANCH-BROADCAST-FIX-0005`, 2026-06-10): the documented declarative fix landed
+      exactly as designed once the engine defect pair was fixed (`.2` broadcast remap + `.3`
+      $text span). VERIFIED: regex cert-coverage `UNKNOWN 7→5` (`witness 191→193`, `spf=0`),
+      IDENTICAL at seeds 0/7/42; AST-dump A/B byte-identical on `\pL` + `(?^aD-aD)`;
+      `restrict:"D"` (the `.3` live-fire proof); fused `aS`/`aW` renders; manifest synced
+      167→186; `regex_pcre2_compile_oracle_gate` PASS ⇒ NO release/schema bump. The H.10.2 pool
+      is now the terminal-selection trio + the store-gated pair (5).** Original record (the
+      discovery): the fix attempt DISCOVERED a live engine defect pair and was cleanly REVERTED
       (baseline re-verified byte-identical: AST dumps identical, cert-coverage `UNKNOWN=7 spf=0`
-      at `-0060`).** ATTEMPT RECORD: applied the documented parens-group broadcast `-> $text` to
+      at `-0060`). ATTEMPT RECORD: applied the documented parens-group broadcast `-> $text` to
       both rules; the A/B verification caught (a) the broadcast binding branch 0 ONLY (the
       2026-05-14 inner→outer remap collapses whole-body-group inner branches — re-breaking task
       #38, incl. the SHIPPED `return_annotation` `string_literal` single-quoted shape), and (b)

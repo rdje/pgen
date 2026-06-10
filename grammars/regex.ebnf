@@ -725,10 +725,13 @@ property_escape= "p{" prop_name "}"           -> {type: "escape", kind: "propert
                | "P{" prop_name "}"           -> {type: "escape", kind: "property", name: $2, negated: true}
                | "p" short_prop_letter        -> {type: "escape", kind: "property", name: $2, negated: false}
                | "P" short_prop_letter        -> {type: "escape", kind: "property", name: $2, negated: true}
-# `short_prop_letter` rewritten as a regex literal — was an
-# Or-of-single-chars chain that codegen lowered to N try_parse
-# blocks; the regex form emits a clean string Terminal directly.
-short_prop_letter = 'C' | 'L' | 'M' | 'N' | 'P' | 'S' | 'Z' | 'c' | 'l' | 'm' | 'n' | 'p' | 's' | 'z'
+# GRAMMAR-WELLFORMED.H.10.2.1 (via BRANCH-BROADCAST-FIX.5): whole-body
+# parens group + trailing `-> $text` broadcasts MatchedText to EVERY
+# branch, which makes `rule_is_lexically_atomic` true — the letter fuses
+# with the preceding `p`/`P` in generation (`\pC`, never `p C`) per the
+# lexical-annotations atomic-token rule. Each branch is a single char,
+# so the parse shape is byte-identical to the bare passthrough.
+short_prop_letter = ( 'C' | 'L' | 'M' | 'N' | 'P' | 'S' | 'Z' | 'c' | 'l' | 'm' | 'n' | 'p' | 's' | 'z' ) -> $text
 
 @type: "property_name"
 @description: "Unicode property name"
@@ -993,7 +996,11 @@ modifier_item              = "a" ascii_restrict_modifier              -> {char: 
                            | "xx"                                      -> "xx"
                            | "x"                                       -> "x"
                            | modifier_char
-ascii_restrict_modifier    = "D" | "S" | "W" | "P" | "T"
+# GRAMMAR-WELLFORMED.H.10.2.1 (via BRANCH-BROADCAST-FIX.5): all-branch
+# `-> $text` (whole-body-group broadcast) ⇒ lexically atomic ⇒ fuses with
+# the preceding `a` in generation (`aD`, never `a D`); single-char
+# branches keep the parse shape byte-identical.
+ascii_restrict_modifier    = ( "D" | "S" | "W" | "P" | "T" ) -> $text
 modifier_char              = "i" | "m" | "s" | "U" | "J" | "n" | "r"
 
 # Conditionals: (?(cond)yes|no)

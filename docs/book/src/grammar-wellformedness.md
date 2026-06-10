@@ -300,10 +300,13 @@ entry and reports `total=217 witness=148 UNKNOWN=69 (sample_parse_failures=0)` a
 re-parsing cleanly). With `vhdl` wired, **every shipped parser grammar now runs under the
 certificate-coverage gate**; only the internal meta/annotation grammars (`ebnf`,
 `return_annotation`, `semantic_annotation`) remain unwired. The other grammars carry an *honest, openly
-reported* `UNKNOWN` backlog still being driven toward zero (e.g. `regex` `UNKNOWN=98`,
-`rtl_frontend` `UNKNOWN=133`) — a *loud, specific* list of fragments still awaiting a witness, never hidden,
-because the gate never pretends a grammar is fully certified until every fragment carries a checked
-certificate.
+reported* `UNKNOWN` backlog still being driven toward zero — a *loud, specific* list of fragments still
+awaiting a witness, never hidden, because the gate never pretends a grammar is fully certified until every
+fragment carries a checked certificate. The per-grammar drives keep shrinking it: `regex`, for example, has
+moved `98 → 19 → 7 → 5` (the `19→7` slice removed twelve rules proven dead by two independent oracles; the
+`7→5` slice was a declarative grammar fix — all-branch `-> $text` on two single-char alternation rules so
+the generator renders them fused to their prefix, `\pC`/`aD`, exactly the lexical-annotations atomic-token
+rule). For exact current per-grammar numbers, the gate's own report is the authority.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

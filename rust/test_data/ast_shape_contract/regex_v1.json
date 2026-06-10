@@ -145,6 +145,36 @@
         "normalized_text": "{type: \"anchor\", kind: \"keep_out\"}"
       },
       {
+        "rule": "ascii_restrict_modifier",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "ascii_restrict_modifier",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "ascii_restrict_modifier",
+        "branch_index": 2,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "ascii_restrict_modifier",
+        "branch_index": 3,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "ascii_restrict_modifier",
+        "branch_index": 4,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
         "rule": "atomic_group",
         "branch_index": 0,
         "annotation_type": "return_object",
@@ -989,6 +1019,90 @@
         "branch_index": 0,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"atom\", kind: \"script_run_group\", name: $2, body: $4}"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 1,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 2,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 3,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 4,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 5,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 6,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 7,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 8,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 9,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 10,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 11,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 12,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
+      },
+      {
+        "rule": "short_prop_letter",
+        "branch_index": 13,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "signed_digits",

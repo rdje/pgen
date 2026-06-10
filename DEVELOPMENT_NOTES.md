@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - BRANCH-BROADCAST-FIX.5 — the H.10.2.1 re-application closes the loop (PGEN-BRANCH-BROADCAST-FIX-0005)
+
+### The revert-and-re-apply arc, validated
+H.10.2.1's original attempt was reverted because its OWN A/B verification caught the engine mis-shaping the result (`restrict:""`). Five slices later the byte-identical re-application of the SAME grammar edits passes every acceptance criterion — including `restrict:"D"`, which only works with BOTH engine fixes in place. The discipline payoff: because the attempt was cleanly reverted and recorded (rather than patched around), the fix design survived unchanged and the re-application was mechanical. The A/B-byte-identical prediction ("single-char `$text` ≡ passthrough") held exactly.
+
+### One declarative line per rule
+The whole slice's grammar diff is two rules gaining `( … ) -> $text` and two comments. That is the 4th-pillar design working as documented: atomicity is declared by the return shape, the generator derives the fusion behavior, and the parser/consumer shape is untouched. No engine code, no per-case patches, `UNKNOWN 7→5` from two lines.
+
 ## 2026-06-10 - BRANCH-BROADCAST-FIX.4 — shipping the corrected annotation-parser shapes (PGEN-BRANCH-BROADCAST-FIX-0004)
 
 ### The schema question had a structural answer

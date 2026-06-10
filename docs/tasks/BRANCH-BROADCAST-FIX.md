@@ -1,12 +1,13 @@
 # BRANCH-BROADCAST-FIX — group-trailing annotation broadcast regression + branch-level `$text` tournament span defect
 
 - Tree ID: `BRANCH-BROADCAST-FIX`
-- Status: `active`
+- Status: `completed` (2026-06-10 — all 5 leaves done; both engine defects fixed, shipped,
+  ledgered, and live-fire-proven by the re-applied H.10.2.1 consumer)
 - Roadmap lane: cross-cutting engine quality / released-parser bug remediation (parser-agnostic
   annotation-extraction + codegen fidelity)
 - Created: 2026-06-10
-- Last updated: 2026-06-10 (`.2` done — remap fixed; blast radius measured: BOTH annotation
-  parsers carry newly-correct shapes; `.4` scope widened accordingly)
+- Last updated: 2026-06-10 (`.5` done — H.10.2.1 re-applied and closed: regex cert-coverage
+  `UNKNOWN 7→5`, `restrict:"D"` live-fire proof of `.3`, A/B byte-identical)
 
 ## Goal
 
@@ -132,9 +133,14 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   `semantic_annotation_v1.json` gains the FULL 151-row declared-annotation inventory (artifact +
   raw-IR crosscheck comparisons both active for that grammar for the first time).
   Commit: `PGEN-BRANCH-BROADCAST-FIX-0004`.
-- `BRANCH-BROADCAST-FIX.5` — **`pending` (verify consumers): unblock + re-apply
-  `GRAMMAR-WELLFORMED.H.10.2.1`** (the regex atomicity edits, re-verified end-to-end: AST A/B
-  byte-identical, fused rendering, cert-coverage `UNKNOWN 7→5`).
+- `BRANCH-BROADCAST-FIX.5` — **`done` (verify consumers): `GRAMMAR-WELLFORMED.H.10.2.1`
+  re-applied and CLOSED.** The exact documented declarative fix from the attempt record:
+  whole-body parens group + trailing `-> $text` on `short_prop_letter` (regex.ebnf) and
+  `ascii_restrict_modifier`; stale comments corrected to describe the atomicity mechanism.
+  This is also the LIVE-FIRE runtime proof of both engine fixes: the broadcast reaches every
+  branch (`.2`) and the branch-level `$text` returns the real span (`.3`) — `(?^aD-aD)` parses
+  with `restrict:"D"` (the `.1` investigation had proven `restrict:""` pre-fix).
+  Commit: `PGEN-BRANCH-BROADCAST-FIX-0005`.
 
 ## Current Frontier
 
@@ -144,7 +150,7 @@ prevents the atomicity mechanism from engaging on Or-root rules.
 | — | `.2` | `done` | The broadcast remap fix (`PGEN-BRANCH-BROADCAST-FIX-0002`). |
 | — | `.3` | `done` | The `$text` tournament-span fix (`PGEN-BRANCH-BROADCAST-FIX-0003`). |
 | — | `.4` | `done` | Ship surface for BOTH annotation parsers (`PGEN-BRANCH-BROADCAST-FIX-0004`). |
-| 1 | `.5` | `pending` | Re-apply the H.10.2.1 consumer (also the live-fire runtime proof for `.3`). |
+| — | `.5` | `done` | H.10.2.1 re-applied + closed (`PGEN-BRANCH-BROADCAST-FIX-0005`). TREE COMPLETE. |
 
 ## Decisions
 
@@ -232,3 +238,17 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   recorded in the leaf (date-versioned contracts; no numeric release machinery exists for the
   annotation families to bump).
   Commit: `PGEN-BRANCH-BROADCAST-FIX-0004`.
+- `.5` (2026-06-10): (1) AST-dump A/B BYTE-IDENTICAL on `\pL` and `(?^aD-aD)` (pre-edit vs
+  post-edit parser — shape-preserving exactly as designed; single-char `$text` ≡ passthrough).
+  (2) LIVE-FIRE proof of `.3`: `(?^aD-aD)` → `restrict:"D"` (the reverted attempt had proven
+  `restrict:""`); `\pL` → `name:"L"`. (3) fused rendering: `--entry-rule modifier_item` seed-0
+  probes emit `aS`/`aW` (was `a S`/`a W`). (4) regex cert-coverage `UNKNOWN 7→5`
+  (`total=198 witness=193 spf=0`), IDENTICAL at seeds 0/7/42 — the probe-cohesion pair is
+  witnessed; the H.10.2 pool drops to the terminal-selection trio + the store-gated pair.
+  (5) manifest `regex_v1.json` inventory synced 167→186 == the regenerated artifact (the 19
+  broadcast `$text` rows: 14 `short_prop_letter` + 5 `ascii_restrict_modifier`).
+  (6) `regex_pcre2_compile_oracle_gate` PASS (accepted language unchanged ⇒ NO release/schema
+  bump, as predicted); dual-feature workspace 768/0; clippy strict-source clean (generated-stage
+  debt class unchanged). Book lockstep: the grammar-wellformedness chapter's stale regex-UNKNOWN
+  example numbers replaced with the live drive arc (98→19→7→5) per the no-drift directive.
+  Commit: `PGEN-BRANCH-BROADCAST-FIX-0005`.
