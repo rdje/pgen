@@ -4189,7 +4189,7 @@ impl AstBasedGenerator {
                 )))?;
 
                 if skip_leading_whitespace && #allow_layout_skip_for_regexes {
-                    self.consume_layout_for_regex(can_match_empty);
+                    self.consume_layout_for_regex(can_match_empty, pattern);
                 }
 
                 let Some(haystack) = self.input.get(self.position..) else {
@@ -4235,6 +4235,111 @@ impl AstBasedGenerator {
                     "No match for regex pattern '{}'",
                     pattern
                 )))
+            }
+            // GRAMMAR-WELLFORMED.H.11.3: does the active token's own (anchored)
+            // pattern match at the current cursor? Used by the layout skipper's
+            // comment arms so a token that IS a comment introducer (e.g. the VHDL
+            // based-literal `#`) wins over the engine's comment convention —
+            // the regex-side mirror of the introducer guard
+            // `consume_layout_for_terminal` already applies to string terminals.
+            // Cold path: only reached when a comment introducer sits at the
+            // cursor, so it keeps a small sibling cache instead of widening the
+            // function-scoped cache inside `match_regex`.
+            fn regex_token_matches_at_cursor(&self, pattern: &str) -> bool {
+                use std::cell::RefCell;
+                use std::collections::HashMap;
+                thread_local! {
+                    static GUARD_REGEX_CACHE: RefCell<HashMap<String, regex::Regex>> =
+                        RefCell::new(HashMap::new());
+                }
+                GUARD_REGEX_CACHE.with(|cache| {
+                    let mut cache = cache.borrow_mut();
+                    if !cache.contains_key(pattern) {
+                        let Ok(compiled) = regex::Regex::new(&format!(r"\A(?:{})", pattern)) else {
+                            return false;
+                        };
+                        cache.insert(pattern.to_string(), compiled);
+                    }
+                    let re = cache.get(pattern).expect("just inserted");
+                    let Some(haystack) = self.input.get(self.position..) else {
+                        return false;
+                    };
+                    re.find(haystack).map(|m| m.start() == 0).unwrap_or(false)
+                })
+            }
+            fn consume_layout_for_regex(&mut self, can_match_empty: bool, pattern: &str) {
+                if can_match_empty {
+                    // Empty-matching regexes must not cross line boundaries implicitly.
+                    self.consume_horizontal_whitespace();
+                    return;
+                }
+
+                loop {
+                    let before = self.position;
+                    self.consume_optional_whitespace();
+
+                    if self.position >= self.input.len() {
+                        break;
+                    }
+
+                    let bytes = self.input.as_bytes();
+                    let len = bytes.len();
+
+                    if bytes[self.position] == b'#' {
+                        if self.regex_token_matches_at_cursor(pattern) {
+                            break;
+                        }
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
+                    if self.position + 1 < len
+                        && bytes[self.position] == b'/'
+                        && bytes[self.position + 1] == b'/'
+                    {
+                        if self.regex_token_matches_at_cursor(pattern) {
+                            break;
+                        }
+                        self.position += 2;
+                        while self.position < self.input.len() {
+                            let b = bytes[self.position];
+                            if b == b'\n' || b == b'\r' {
+                                break;
+                            }
+                            self.position += 1;
+                        }
+                        continue;
+                    }
+
+                    if self.position + 1 < len
+                        && bytes[self.position] == b'/'
+                        && bytes[self.position + 1] == b'*'
+                    {
+                        if self.regex_token_matches_at_cursor(pattern) {
+                            break;
+                        }
+                        self.position += 2;
+                        while self.position + 1 < len
+                            && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
+                        {
+                            self.position += 1;
+                        }
+                        if self.position + 1 < len {
+                            self.position += 2;
+                        }
+                        continue;
+                    }
+
+                    if self.position == before {
+                        break;
+                    }
+                }
             }
             }
         } else {
@@ -5435,71 +5540,6 @@ impl AstBasedGenerator {
                     self.consume_optional_whitespace();
 
                     if !allow_comment_skip || self.position >= self.input.len() {
-                        break;
-                    }
-
-                    let bytes = self.input.as_bytes();
-                    let len = bytes.len();
-
-                    if bytes[self.position] == b'#' {
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
-                    if self.position + 1 < len
-                        && bytes[self.position] == b'/'
-                        && bytes[self.position + 1] == b'/'
-                    {
-                        self.position += 2;
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
-                    if self.position + 1 < len
-                        && bytes[self.position] == b'/'
-                        && bytes[self.position + 1] == b'*'
-                    {
-                        self.position += 2;
-                        while self.position + 1 < len
-                            && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
-                        {
-                            self.position += 1;
-                        }
-                        if self.position + 1 < len {
-                            self.position += 2;
-                        }
-                        continue;
-                    }
-
-                    if self.position == before {
-                        break;
-                    }
-                }
-            }
-            fn consume_layout_for_regex(&mut self, can_match_empty: bool) {
-                if can_match_empty {
-                    // Empty-matching regexes must not cross line boundaries implicitly.
-                    self.consume_horizontal_whitespace();
-                    return;
-                }
-
-                loop {
-                    let before = self.position;
-                    self.consume_optional_whitespace();
-
-                    if self.position >= self.input.len() {
                         break;
                     }
 

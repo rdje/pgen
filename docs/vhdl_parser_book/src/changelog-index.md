@@ -15,11 +15,36 @@ When investigating "what changed and why," start with the contract document, dro
 
 ## Why this index is short by design
 
-The SystemVerilog parser's changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. **The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.** A follow-up correctness fix (`1.0.2`, schema `2`, `VHDL-0001`) added the third entry, and the `1.0.3` POST-SV-AUDIT Category-A list-shape batch (schema `3`) added the fourth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a [Schema Versioning](schema-versioning.md) row, and an entry below.
+The SystemVerilog parser's changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. **The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.** A follow-up correctness fix (`1.0.2`, schema `2`, `VHDL-0001`) added the third entry, the `1.0.3` POST-SV-AUDIT Category-A list-shape batch (schema `3`) added the fourth, and the `1.0.4` `VHDL-0002` based-literal acceptance fix (schema stays `3`) added the fifth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a [Schema Versioning](schema-versioning.md) row, and an entry below.
 
 ## Releases relevant to this book
 
-This book is **live** and tracks current main HEAD. The four entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
+This book is **live** and tracks current main HEAD. The entries below mirror the "Schema Versioning" table and the Resolved-Defects sections in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
+
+### 1.0.4 / Contract 1.0.4 — VHDL-0002 based-literal acceptance fix (schema stays 3)
+
+A targeted, bug-ledger-driven correctness fix landed 2026-06-10. The vhdl certificate-coverage
+drive (`GRAMMAR-WELLFORMED.H.11`) surfaced that the parser **rejected every VHDL based literal**
+— `2#1010#`, `16#FF#`, and all other `base#value#` forms — at every release since `1.0.0`, even
+though the grammar models them (`based_literal := unsigned_number hash based_value hash`).
+
+- **Root cause (engine, not grammar):** the generated parser's internal layout skipper hard-coded
+  `#`-to-end-of-line comment skipping (an EBNF meta-grammar convention; VHDL comments are `--`),
+  so the `hash := trivia /#/` token's own `#` was consumed as a "comment" before the regex could
+  match it. The string-terminal side of the skipper already guarded against swallowing
+  comment-introducer tokens; the regex side lacked the symmetric guard.
+- **Fix (parser-agnostic):** the skipper's comment arms now stand down when the active token's own
+  pattern matches at the comment introducer.
+- **Accept set:** **widened only** — every input that parsed at `1.0.3` yields a byte-identical
+  AST at `1.0.4`; previously-rejected based literals now parse, surfacing as
+  `{"kind": "based", "body": {"base": …, "value": …}}` inside `literal` — a shape declared since
+  schema `1`, reachable for the first time. Note the grammar accepts any `unsigned_number` as the
+  base (e.g. `3374#BFCd#` parses); base-range (2..16) checking is a consumer/semantic concern.
+- **AST-dump schema:** **unchanged at `3`** (no previously-observable output shape changed).
+- **Annotation count:** **256 / 112 rules** (UNCHANGED — engine fix only; no grammar edit).
+- **Bug ledger:** `VHDL-0002` in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
+- **Lock:** `vhdl_based_literal_hash_token_is_not_swallowed_as_comment`
+  (`rust/src/ast_shape_contract.rs`).
 
 ### 1.0.3 / Contract 1.0.3 — POST-SV-AUDIT Category-A list-shape batch (schema 2 → 3)
 

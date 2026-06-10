@@ -331,6 +331,21 @@ memo-replay engine fix also moved every other backlog in one step with zero gene
 `31→30`, rtl_frontend `75→73`, SystemVerilog `738→647`. For exact current per-grammar numbers, the gate's
 own report is the authority.
 
+The `vhdl` drive (`69 → 31 → 30 → 4 → 1`) then delivered the doctrine's sharpest payoff so far. After a
+generator-side lexical-faithfulness fix closed the keyword-fusion family (`30 → 4`), the residual
+(`based_literal`/`based_value`/`hash`/`white_space`) refused to witness for a reason no generator
+improvement could cure: **the released vhdl parser was rejecting every valid based literal** (`2#1010#`).
+The generated parsers' internal layout skipper hard-coded `#`-to-end-of-line comment skipping — an EBNF
+meta-grammar convention, while in VHDL `#` is the based-literal delimiter — so it ate the very `#` token
+the `hash := trivia /#/` rule was about to match, and `based_literal` failed on every input since the
+family's first release. The engine fix gives the skipper's comment arms the same "don't swallow the token
+you are matching" guard its string-terminal side always had; the three literal rules witness (`4 → 1`,
+identical at seeds 0/7/42), and the same step moved `rtl_frontend` `73 → 71` and SystemVerilog
+`647 → 645` (explicit comment-token rules becoming directly witnessable). This is the attribution rule
+and the bug-finding-oracle role working exactly as designed: an unwitnessable fragment was *neither*
+accepted as a residual *nor* chased with generator machinery — it was adjudicated, and the blame landed
+on a real, shipped parser defect (ledger row `VHDL-0002`, vhdl release `1.0.4`).
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

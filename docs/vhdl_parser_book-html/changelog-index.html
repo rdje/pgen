@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ae6ac680.js";
+            window.path_to_searchindex_js = "searchindex-ad0bbccd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -198,9 +198,33 @@
 </div>
 <p>When investigating “what changed and why,” start with the contract document, drop down to the bug ledger for specific accepted bugs, and fall back to git for diffs.</p>
 <h2 id="why-this-index-is-short-by-design"><a class="header" href="#why-this-index-is-short-by-design">Why this index is short by design</a></h2>
-<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry, and the <code>1.0.3</code> POST-SV-AUDIT Category-A list-shape batch (schema <code>3</code>) added the fourth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="schema-versioning.html">Schema Versioning</a> row, and an entry below.</p>
+<p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry, the <code>1.0.3</code> POST-SV-AUDIT Category-A list-shape batch (schema <code>3</code>) added the fourth, and the <code>1.0.4</code> <code>VHDL-0002</code> based-literal acceptance fix (schema stays <code>3</code>) added the fifth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="schema-versioning.html">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
-<p>This book is <strong>live</strong> and tracks current main HEAD. The four entries below mirror the “Schema Versioning” table in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<p>This book is <strong>live</strong> and tracks current main HEAD. The entries below mirror the “Schema Versioning” table and the Resolved-Defects sections in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="104--contract-104--vhdl-0002-based-literal-acceptance-fix-schema-stays-3"><a class="header" href="#104--contract-104--vhdl-0002-based-literal-acceptance-fix-schema-stays-3">1.0.4 / Contract 1.0.4 — VHDL-0002 based-literal acceptance fix (schema stays 3)</a></h3>
+<p>A targeted, bug-ledger-driven correctness fix landed 2026-06-10. The vhdl certificate-coverage
+drive (<code>GRAMMAR-WELLFORMED.H.11</code>) surfaced that the parser <strong>rejected every VHDL based literal</strong>
+— <code>2#1010#</code>, <code>16#FF#</code>, and all other <code>base#value#</code> forms — at every release since <code>1.0.0</code>, even
+though the grammar models them (<code>based_literal := unsigned_number hash based_value hash</code>).</p>
+<ul>
+<li><strong>Root cause (engine, not grammar):</strong> the generated parser’s internal layout skipper hard-coded
+<code>#</code>-to-end-of-line comment skipping (an EBNF meta-grammar convention; VHDL comments are <code>--</code>),
+so the <code>hash := trivia /#/</code> token’s own <code>#</code> was consumed as a “comment” before the regex could
+match it. The string-terminal side of the skipper already guarded against swallowing
+comment-introducer tokens; the regex side lacked the symmetric guard.</li>
+<li><strong>Fix (parser-agnostic):</strong> the skipper’s comment arms now stand down when the active token’s own
+pattern matches at the comment introducer.</li>
+<li><strong>Accept set:</strong> <strong>widened only</strong> — every input that parsed at <code>1.0.3</code> yields a byte-identical
+AST at <code>1.0.4</code>; previously-rejected based literals now parse, surfacing as
+<code>{"kind": "based", "body": {"base": …, "value": …}}</code> inside <code>literal</code> — a shape declared since
+schema <code>1</code>, reachable for the first time. Note the grammar accepts any <code>unsigned_number</code> as the
+base (e.g. <code>3374#BFCd#</code> parses); base-range (2..16) checking is a consumer/semantic concern.</li>
+<li><strong>AST-dump schema:</strong> <strong>unchanged at <code>3</code></strong> (no previously-observable output shape changed).</li>
+<li><strong>Annotation count:</strong> <strong>256 / 112 rules</strong> (UNCHANGED — engine fix only; no grammar edit).</li>
+<li><strong>Bug ledger:</strong> <code>VHDL-0002</code> in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code>.</li>
+<li><strong>Lock:</strong> <code>vhdl_based_literal_hash_token_is_not_swallowed_as_comment</code>
+(<code>rust/src/ast_shape_contract.rs</code>).</li>
+</ul>
 <h3 id="103--contract-103--post-sv-audit-category-a-list-shape-batch-schema-2--3"><a class="header" href="#103--contract-103--post-sv-audit-category-a-list-shape-batch-schema-2--3">1.0.3 / Contract 1.0.3 — POST-SV-AUDIT Category-A list-shape batch (schema 2 → 3)</a></h3>
 <p>The POST-SV-AUDIT.2.3 static classification pass (<code>docs/POST_SV_AUDIT_LEDGER.md</code>, tracked <code>PGEN-POST-SV-AUDIT-0004</code>) found <strong>17 static-conclusive Category-A raw-envelope list rules</strong> in <code>grammars/vhdl.ebnf</code>. Landed 2026-05-17. Follows POST-SV-AUDIT.2.1 (<code>systemverilog_preprocessor</code> <code>macro_formals</code>, <code>PGEN-POST-SV-AUDIT-0002</code>, sv_preprocessor 1.0.3 / schema 3) and POST-SV-AUDIT.2.2 (<code>rtl_frontend</code> 15 Category-A + <code>RTL-FE-0002</code>, <code>PGEN-POST-SV-AUDIT-0003</code>, rtl_frontend 1.0.3 / schema 3).</p>
 <ul>

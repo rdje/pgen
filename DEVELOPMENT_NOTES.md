@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.11.3 — the vhdl based-literal released-parser fix (PGEN-GRAMMAR-WELLFORMED-0067)
+
+### Read the emitted code before instrumenting it
+The -0066 investigation left two suspects (tournament-arm position restore, memo cached-end) and a plan to instrument. Reading the emitted `parse_white_space` → `match_regex` → `consume_layout_for_regex` chain settled it in minutes without new instrumentation: the "position jump" was an ordinary, *intended* code path (comment skipping) applying a comment convention from the wrong language. The trace evidence was never wrong — it was just one stack frame short of the answer. Order of tools: existing trace → read the emitted code → only then instrument.
+
+### Engine-emitted conventions are an EBNF-source-of-truth surface too
+The out-of-band-validator audit (EBNF-SOT) checked hand-written post-parse validators; this defect is the same disease in a different organ — the *emitted parser* carried a hard-coded notion of "what a comment is" that no grammar declared. A grammar that models its trivia explicitly got its comment ownership silently overridden. The fix direction was the same as `consume_layout_for_terminal`'s existing guard — the asymmetry between the two siblings was the whole bug. Longer-term, comment-form derivation from the grammar (instead of hard-coded `#`/`//`/`/* */`) is the principled end state; the guard is the targeted, evidence-backed step.
+
+### One fix, four adjudications — keep them separate
+The verification sweep moved five families' numbers, and each movement needed its own verdict: vhdl 4→1 (the fix), rtl_frontend 73→71 and SV 647→645 (comment rules becoming witnessable — same mechanism, improvement), SV spf 0→1 (generator fusion EXPOSED, not caused — the parser is now right to reject; PEG-greedy trivia is the spec), and two red gates that pre-dated the change entirely (proven via stash baselines + comment-free repros where the changed code paths are unreachable by construction). Bundling these into "the fix caused X" or "all good" would have been wrong in both directions; the discipline is one verdict per moved number, each with its own decisive evidence.
+
+### The stash baseline keeps paying
+Two of the four adjudications (`ebnf_frontend_dual_run_gate`, `rtl_frontend_generated_contract_gate`) would have read as regressions of this slice without the pre-fix A/B. Both failed identically on the pre-fix binary. The cost was two stash-rebuild-measure cycles; the alternative was either masking (skip the gates) or mis-blaming (revert a correct fix).
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.11.1 — the multi-token-terminal tail fix (PGEN-GRAMMAR-WELLFORMED-0065)
 
 ### A defect class is not closed until every render family is covered

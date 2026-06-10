@@ -6,15 +6,15 @@ This chapter explains how the PGEN VHDL parser's AST shape is versioned, what gu
 
 The VHDL parser carries **two** version numbers:
 
-1. **Parser release version** — currently `1.0.3`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
+1. **Parser release version** — currently `1.0.4`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
 2. **AST-dump schema version** — currently `3`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.
 
 These numbers are taken from the integration contract's "Contract Identity" section, which records:
 
-- Contract version: `1.0.3`
-- Parser release version: `1.0.3`
+- Contract version: `1.0.4`
+- Parser release version: `1.0.4`
 - VHDL AST-dump schema version: `3`
 - Annotation count: **256** (VHDL-Slice-1's 249-annotation baseline plus the `1.0.2` `VHDL-0001` correctness fix's 7 new operator-rule branches; the `1.0.3` POST-SV-AUDIT Category-A batch — 17 list-shape corrections — did **not** change this count: the 14 bare-list rules flip `return_object` → `return_array` and the `target`-aggregate + `aggregate` rules change `normalized_text` only. On 112 distinct rules)
 
@@ -35,7 +35,7 @@ These do **not** trigger a schema bump:
 - Internal codegen reorganization that doesn't reach the output.
 - Parser-side bug fixes that produce the same shape consumers were already relying on.
 
-The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. A follow-up correctness fix (parser release `1.0.2`, schema `2`, landed 2026-05-17) brought the inventory to **256 annotations / 112 rules** — see the schema-`2` row below and the contract's Release 1.0.2 Highlights. The POST-SV-AUDIT batch (parser release `1.0.3`, schema `3`, landed 2026-05-17) corrected 17 Category-A list shapes with the inventory **unchanged at 256 / 112** — see the schema-`3` row below and the contract's "AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT)". Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
+The VHDL grammar was typed in a single comprehensive batch (VHDL-Slice-1, 249 annotations / 110 rules) rather than the slice-by-slice cadence used by the SystemVerilog campaign, so the VHDL schema timeline is short. A follow-up correctness fix (parser release `1.0.2`, schema `2`, landed 2026-05-17) brought the inventory to **256 annotations / 112 rules** — see the schema-`2` row below and the contract's Release 1.0.2 Highlights. The POST-SV-AUDIT batch (parser release `1.0.3`, schema `3`, landed 2026-05-17) corrected 17 Category-A list shapes with the inventory **unchanged at 256 / 112** — see the schema-`3` row below and the contract's "AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT)". The `VHDL-0002` acceptance fix (parser release `1.0.4`, landed 2026-06-10) widened the accept set only (based literals now parse) and left the schema **unchanged at `3`** — no new schema row, by the bump-trigger policy. Subsequent shape-affecting slices each get their own contract-version row and a [Changelog Index](changelog-index.md) entry.
 
 The `1.0.2` correctness fix **did** bump the schema (`1` → `2`): although it fixed a bug, it changed a user-visible shape — the `additive` (`simple_expression`) and `multiplicative` (`term`) `binop_chain` `rest` (was `"<invalid_sequence_access>"` on multi-operand input, now a clean `[ <op-envelope>, <operand> ]` array with a typed `{kind}` op-envelope) — and added seven return annotations. It restructured a shape a consumer could have observed, so it is a breaking change under the policy below, not a transparent fix.
 

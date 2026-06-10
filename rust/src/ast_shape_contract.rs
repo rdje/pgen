@@ -1233,4 +1233,38 @@ mod tests {
         });
         assert_report("vhdl", &report);
     }
+
+    // GRAMMAR-WELLFORMED.H.11.3 regression lock: the generated layout skipper
+    // hard-codes `#`-to-end-of-line comment skipping (an EBNF meta-grammar
+    // convention), which used to swallow the VHDL based-literal `#` delimiter
+    // before the `hash := trivia /#/` regex could match it — so every based
+    // literal was rejected. The guard added to `consume_layout_for_regex`
+    // lets a token whose own pattern matches at a comment introducer win over
+    // the comment convention (mirroring the introducer guard
+    // `consume_layout_for_terminal` already applies to string terminals).
+    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
+    #[test]
+    fn vhdl_based_literal_hash_token_is_not_swallowed_as_comment() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::vhdl::VhdlParser;
+
+        let samples = [
+            "architecture a of e is signal i:t:=2#1010#;begin end;",
+            "architecture a of e is signal i:t:=16#F_f#;begin end;",
+            // The cert-coverage reach-probe shell that exposed the defect.
+            "ARChitECtuRe BDfsk oF ZJ iS SignAL I:y:=2#1010#;BeGIn eNd;",
+            // Control: a `#`-free declaration must keep parsing.
+            "architecture a of e is signal i:t:=3374;begin end;",
+        ];
+        for sample in samples {
+            let mut parser = VhdlParser::new(
+                sample,
+                runtime_logger_box("ast_shape_contract.vhdl_based_literal"),
+            );
+            assert!(
+                parser.parse_full_vhdl_file().is_ok(),
+                "vhdl parser rejected valid based-literal sample: {sample}"
+            );
+        }
+    }
 }

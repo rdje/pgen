@@ -7,15 +7,15 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 ## Contract Identity
 - Contract version:
-  - `1.0.3`
+  - `1.0.4`
 - Parser release version:
-  - `1.0.3`
+  - `1.0.4`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
 - VHDL AST-dump schema version:
-  - `3` (breaking shape correction — see AST-Shape Corrections — 1.0.3 (POST-SV-AUDIT))
+  - `3` (unchanged by release `1.0.4` — acceptance widening only; the last shape change is the `1.0.3` AST-Shape Corrections batch)
 - Last updated:
-  - `2026-05-17`
+  - `2026-06-10`
 - Current grammar family label:
   - `vhdl`
 - Per-family mdBook:
@@ -27,7 +27,7 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 The VHDL parser carries two version axes:
 
-1. **Parser release version** (`1.0.3`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
+1. **Parser release version** (`1.0.4`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
 2. **AST-dump schema version** (`3`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.
@@ -46,6 +46,33 @@ Bump-trigger guidance:
 - A grammar rule changes shape in a way that's user-visible → schema bump.
 - Pure performance optimizations producing the same AST → NO bump.
 - Internal codegen reorganization that doesn't reach the output → NO bump.
+
+## Resolved Defects — `VHDL-0002` (fixed in release 1.0.4, schema stays 3)
+
+- **`VHDL-0002` — based literals were rejected on every input
+  (`Released`, fixed in parser release `1.0.4` / schema `3` unchanged).**
+  *Historical (releases `1.0.0` through `1.0.3`):* the parser rejected **every**
+  VHDL based literal — `2#1010#`, `16#FF#`, and all other `base#value#` forms —
+  with `Parser did not consume full input`, even though `grammars/vhdl.ebnf`
+  models them (`based_literal := unsigned_number hash based_value hash`).
+  Root cause: the generated parser's internal layout skipper
+  (`consume_layout_for_regex`) hard-coded `#`-to-end-of-line comment skipping
+  (an EBNF meta-grammar convention that does not exist in VHDL), so the
+  `hash := trivia /#/` token's own `#` was consumed as a "comment" before the
+  regex could match it. The skipper's string-terminal counterpart already
+  guarded against swallowing comment-introducer tokens; the regex side lacked
+  the symmetric guard. Fixed engine-side (parser-agnostic): the skipper's
+  comment arms now stand down when the active token's own pattern matches at
+  the comment introducer. **Acceptance widening only** — every previously
+  accepted input parses byte-identically; based literals now additionally
+  parse, surfacing as `{"kind": "based", "body": {"base": …, "value": …}}`
+  inside `literal` (a shape declared since schema `1`, reachable for the first
+  time), so the schema stays `3`. Repro:
+  `printf 'architecture a of e is signal i:t:=2#1010#;begin end;' | parseability_probe --parse vhdl /dev/stdin`
+  (rejected at ≤ `1.0.3`, parses at `1.0.4`). Locked by
+  `vhdl_based_literal_hash_token_is_not_swallowed_as_comment`
+  (`rust/src/ast_shape_contract.rs`). Ledger row: `VHDL-0002` in
+  `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
 
 ## Resolved Defects — `VHDL-0001` (fixed in release 1.0.2, schema 2)
 

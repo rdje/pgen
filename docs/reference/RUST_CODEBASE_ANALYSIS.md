@@ -2,6 +2,33 @@
 
 Last updated: 2026-06-10
 
+## Recent Architecture Change Note (2026-06-10, later)
+
+**Layout-skipper comment-introducer guard for regex terminals (`GRAMMAR-WELLFORMED.H.11.3`,
+vhdl release `1.0.4`, ledger `VHDL-0002`).** The emitted layout skipper
+`consume_layout_for_regex` ([rust/src/ast_pipeline/ast_based_generator.rs](../../rust/src/ast_pipeline/ast_based_generator.rs))
+hard-codes `#`-to-end-of-line, `//`, and `/* */` comment skipping into every
+non-blocklisted generated parser. Its string-terminal sibling
+`consume_layout_for_terminal` has always guarded against swallowing
+comment-introducer tokens (`expected != "#"` …); the regex side had no such
+guard, so a regex terminal that IS a comment introducer — VHDL's
+`hash := trivia /#/` — had its own token consumed as a "comment" and
+`based_literal` failed on every input since the family's first release. The
+fix adds the symmetric guard: each comment arm now calls the new emitted
+helper `regex_token_matches_at_cursor(pattern)` (anchored match at the cursor,
+cold-path sibling regex cache) and stands down when the active token's own
+pattern matches at the introducer. `consume_layout_for_regex` also moved
+inside the `uses_match_regex` conditional (it is only called from
+`match_regex`), so fully-literal parsers (the regex grammar) no longer carry
+it as dead code. Knock-on behavior worth knowing: explicit comment-token
+rules (`line_comment`, `block_comment`) in grammars that model trivia
+explicitly (SV, rtl_frontend) can now match directly at a comment instead of
+being pre-empted by the skipper — comment ownership is grammar-faithful. That
+surfaced one pre-existing generator-side `/`↔comment fusion hazard in
+generated SV samples (ticketed `GRAMMAR-WELLFORMED.H.11.5`); acceptance for
+real-token inputs is unchanged (the guard only fires where the old behavior
+self-defeated the active token).
+
 ## Recent Architecture Change Note (2026-06-10)
 
 **Memo-hit coverage-delta replay (`GRAMMAR-WELLFORMED.H.10.2.2`).** The shared packrat
