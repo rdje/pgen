@@ -1901,6 +1901,39 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | 2 | `GRAMMAR-WELLFORMED.B2/C1` | `pending` | The remaining CONSTRUCTIVE-side lanes (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions
+- `2026-06-10`: **META-GRAMMAR COMPLETENESS AUDIT (director question after the `-0067` `**`-gap
+  discovery: "are there other EBNF-format enhancements not ported to `ebnf.ebnf`?") — answer: YES,
+  six gaps; the audit is the scoping evidence for the ticketed ebnf.ebnf leaf.** Method (tools-first,
+  executable): the GENERATED ebnf parser (`ebnf_dual_run_diff --input <g>.ebnf`, parse_full) run over
+  all 12 shipped grammars + ~30 single-construct minimal probes (each construct in isolation, so the
+  first-failure masking of whole-file runs cannot hide later gaps). WHOLE-FILE RESULT: 6/12 grammars
+  FULL-FAIL (regex@1307, semantic_annotation@7166, rtl_frontend@1132, systemverilog@9676, svpp@717,
+  vhdl@529); 6 pass (ebnf, json, return_annotation, builtin_×2, rtl_const_expr — note
+  return_annotation.ebnf contains `**`/`::N*` only as QUOTED TOKENS of the language it defines, so it
+  parses). CONSTRUCT VERDICTS — **GAPS (probe FAIL)**: (1) **per-branch return annotations**
+  (`A -> ann | B -> ann`, same-line AND continuation-line — `rule_definition` models ONE rule-level
+  `return_annotation?`; THE DOMINANT GAP, the first-failure of 5 of the 6 failing files; usage
+  ubiquitous — SV/vhdl/regex/rtl_frontend/svpp/semantic_annotation); (2) **`::N*` extraction-spread**
+  (152 live sites: SV 115, vhdl 17, rtl_frontend 17, return_annotation-as-tokens 5, svpp 2, builtin 1);
+  (3) **`**` flatten-spread** (the -0067 discovery; live in regex `[$1**]`); (4) **lexical
+  annotations `[> …]`/`[>! …]`** (FAIL@0; the 4th-pillar follow-restrictions, 12 live sites in svpp);
+  (5) **dotted `$refs` in return annotations** (`-> {x: $1.body}` / `$name.body`; 25 live SV sites +
+  2 regex); (6) **indexed `$refs` in return annotations** (`-> {x: $1[0]}`; zero live return-side
+  usage today — semantic payloads parse as balanced text and are unaffected). **PORTED/OK (probe
+  PASS)**: `$text`/`$0`, bounded quantifiers `{N}`/`{N,M}`, lookahead `&`/`!`, raw strings, regex
+  flags, plain multi-line alternation, parens-group broadcast `( A | B ) -> ann`, inline branch-local
+  `@sample`, spread-property `...$1`, and every semantic-directive payload form probed (`@sample`,
+  `@probe_sample`, `@transform`, `@predicate` colon-less + payload forms, `@emit_fact`, `@fact_kind`,
+  `@predicate_def`, `@profiles`, `@branch_policy`, `@open_scope`/trailing `@close_scope`,
+  `@export_to_library`, `@semantic_value`). CAVEAT recorded honestly: probes verify parse ACCEPTANCE;
+  a passing construct could still mis-shape (raw-AST parity is the dual-run gate's deeper layer) —
+  shape parity is part of the future leaf's acceptance. IMPACT framing: production compilation uses
+  the hand-written frontend, so nothing user-facing is broken TODAY; the gaps block the self-hosting
+  doctrine (generated EBNF parser taking over) and keep `ebnf_frontend_dual_run_gate` red. The future
+  leaf = port the 6 constructs into `grammars/ebnf.ebnf` (grammar-level work; per-branch annotations
+  + extraction/flatten spread markers + `[>`/`[>!` + dotted/indexed return refs), then the dual-run
+  gate goes strict-green and the `ebnf` family becomes Phase-H-wirable. Probe corpus retained at
+  `/tmp/h113_p_*.ebnf`; recorded `PGEN-GRAMMAR-WELLFORMED-0068` (pure docs).
 - `2026-06-10`: **H.7.1's Q1–Q3 resolved by the agent** under the director's standing "PNT yourself —
   do not involve me unless you can't decide" instruction + [[feedback_user_is_director_not_engineer]]
   (pure technical choices, no real-world side effects). Q1: MVP = optional+alternation class only
