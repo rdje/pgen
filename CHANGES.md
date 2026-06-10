@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-10 - PGEN-BRANCH-BROADCAST-FIX-0003 (BRANCH-BROADCAST-FIX.3): 🔧 ENGINE FIX — branch-level `$text` (MatchedText) returns the EXACT matched span inside multi-branch tournament rules (defect B): the branch transform is now evaluated BEFORE the arm's position rollback.
+
+The companion to `-0002`'s broadcast fix — the second half of the `.1` defect pair.
+
+- **Fix (`rust/src/ast_pipeline/ast_based_generator.rs`, the tournament branch-attempt arm):** `parser.position = parse_start;` moved AFTER the `let transformed = { … #transform }` binding, so at transform-evaluation time `parser.position == candidate_end` (the branch's true end) and `$text`'s `&parser.input[start_pos..parser.position]` slices the real matched span instead of `start..start` (the empty string the `.1` investigation runtime-proved as `restrict:""`/`name:""`).
+- **Audit (why this is the COMPLETE fix):** every other arm of `AstReturnTransformer::generate_transform` — positional refs, literals, object/array, spread/flatten-spread, property/array access, quantified extraction, passthrough — reads only the captured `content`; MatchedText is the single form reading `parser.position`. The reorder is observable to MatchedText alone.
+- **Tests:** new codegen unit test locks the per-arm ordering (`candidate_end` binding → transform binding → rollback, asserted whitespace-insensitively for BOTH arms of a 2-branch `$text` tournament) + the MatchedText slice emission.
+- **VERIFIED:** all 9 grammar targets regenerated; default workspace 683/0; dual-feature workspace 768/0 (no shipped grammar currently binds branch-level `$text` in a tournament — the H.10.2.1 edits stay reverted — so runtime corpora are unaffected, as expected); regex cert-coverage baseline IDENTICAL (`198/191/UNKNOWN=7/spf=0`, seeds 0/7/42); clippy strict-source clean (generated-stage non-strict debt class unchanged, same 191 pre-existing generated sites). The live-fire runtime proof lands with `.5` (the regex atomicity consumer re-applied).
+- **Files:** `rust/src/ast_pipeline/ast_based_generator.rs`, `docs/book/src/annotation-system.md`, `docs/tasks/BRANCH-BROADCAST-FIX.md`, `docs/TASK_TREE.md`, `LIVE_ACHIEVEMENT_STATUS.md`, `MEMORY.md`, `DEVELOPMENT_NOTES.md`, `CHANGES.md`.
+
 ## 2026-06-10 - PGEN-BRANCH-BROADCAST-FIX-0002 (BRANCH-BROADCAST-FIX.2): 🔧 ENGINE FIX — whole-body-group trailing-annotation BROADCAST restored (defect A): `RULE = (A|B) -> ann` broadcasts to EVERY runtime branch again; the 2026-05-14 remap's legitimate patterns (A)–(D) stay regression-locked green; runtime-proven `'x'` ≡ `"x"` typed on the shipped `string_literal`; measured blast radius = BOTH annotation grammars (semantic_annotation gains 43 newly-broadcast branch annotations).
 
 The `.1` root-cause turned into the targeted fix: the runtime branch structure differs by rule shape, so the extraction now tracks BOTH mappings during its one walk and selects per rule.

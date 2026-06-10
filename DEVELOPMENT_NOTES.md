@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - BRANCH-BROADCAST-FIX.3 — the $text tournament-span fix (PGEN-BRANCH-BROADCAST-FIX-0003)
+
+### Reorder, don't parameterize
+The tree's design sketch offered two directions: parameterize the MatchedText emission with an end-position expression (`candidate_end` in the tournament arm, `parser.position` elsewhere), or evaluate the transform before the rollback. The reorder won because it is strictly smaller: one statement moves in ONE emission site, the transform template stays uniform across all paths, and no signature threading through `generate_return_transform`. The enabling fact is the audit — MatchedText is the only `parser.position`-reading transform form, so the reorder's observable effect is exactly the fix and nothing else.
+
+### Why no runtime corpus moved
+After `.2`+`.3`, the dual-feature suite (768/0) and regex cert-coverage (198/191/7/spf=0 × 3 seeds) are unchanged because no SHIPPED grammar currently binds branch-level `$text` inside a multi-branch rule — the regex atomicity edits that would exercise it were the reverted H.10.2.1 attempt. The codegen-ordering unit test is the in-repo regression lock; `.5`'s re-application is the live-fire proof (`restrict:"D"` instead of `restrict:""`).
+
 ## 2026-06-10 - BRANCH-BROADCAST-FIX.2 — the whole-body-group remap fix (PGEN-BRANCH-BROADCAST-FIX-0002)
 
 ### The shape-dependent runtime-branch insight

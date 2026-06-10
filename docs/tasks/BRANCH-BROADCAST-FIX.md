@@ -107,10 +107,17 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   + selected remap, sharing the same discriminator fn) instead of the outer-only walk. Manifest:
   `return_annotation_v1.json` gains the `string_literal` branch-1 inventory row (19→20; the
   broadcast row the gate had been missing). Commit: `PGEN-BRANCH-BROADCAST-FIX-0002`.
-- `BRANCH-BROADCAST-FIX.3` — **`pending` (engine): fix branch-level MatchedText span in the
-  tournament arm.** The transform emission needs the branch-local end (`candidate_end`) instead of
-  `parser.position`. Audit the other transform forms for the same hazard (object/array/property
-  transforms read captured `content`, not `parser.position` — expected unaffected; verify).
+- `BRANCH-BROADCAST-FIX.3` — **`done` (engine): branch-level MatchedText span fixed in the
+  tournament arm.** Implementation (`rust/src/ast_pipeline/ast_based_generator.rs`, the
+  branch-attempt arm): the branch transform is now evaluated BEFORE the arm's
+  `parser.position = parse_start;` rollback (at which point `parser.position == candidate_end`,
+  the branch's true end), instead of after it. This is the complete fix because the transform-form
+  AUDIT confirmed `$text`/MatchedText is the ONLY form reading `parser.position` — every other
+  arm of `AstReturnTransformer::generate_transform` (positional/literals/object/array/spread/
+  property/array-access/quantified-extraction/passthrough) reads only the captured `content`, so
+  the reorder is observable to MatchedText alone. Regression-locked by a codegen unit test
+  asserting per-arm ordering (transform binding precedes the rollback in BOTH arms of a 2-branch
+  `$text` tournament) + the MatchedText slice emission. Commit: `PGEN-BRANCH-BROADCAST-FIX-0003`.
 - `BRANCH-BROADCAST-FIX.4` — **`pending` (release/ledger): ship the corrected shapes for BOTH
   annotation parsers.** Scope WIDENED by `.2`'s measured blast radius: regenerating with the
   fixed pipeline corrects (a) `return_annotation` `string_literal` branch 1 (single-quoted
@@ -130,9 +137,9 @@ prevents the atomicity mechanism from engaging on Or-root rules.
 | --- | --- | --- | --- |
 | — | `.1` | `done` | Root-cause + design. |
 | — | `.2` | `done` | The broadcast remap fix (`PGEN-BRANCH-BROADCAST-FIX-0002`). |
-| 1 | `.3` | `pending` | The `$text` span fix — independent, but verified together with `.2` consumers. |
-| 2 | `.4` | `pending` | Shipped-parser corrections (BOTH annotation parsers) + ledger/contract/book lockstep. |
-| 3 | `.5` | `pending` | Re-apply the H.10.2.1 consumer. |
+| — | `.3` | `done` | The `$text` tournament-span fix (`PGEN-BRANCH-BROADCAST-FIX-0003`). |
+| 1 | `.4` | `pending` | Shipped-parser corrections (BOTH annotation parsers) + ledger/contract/book lockstep. |
+| 2 | `.5` | `pending` | Re-apply the H.10.2.1 consumer (also the live-fire runtime proof for `.3`). |
 
 ## Decisions
 
@@ -194,3 +201,17 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   failures are the pre-existing generated-code debt class (all 191 sites inside
   `generated/systemverilog{,_preprocessor}_parser.rs`).
   Commit: `PGEN-BRANCH-BROADCAST-FIX-0002`.
+- `.3` (2026-06-10): (1) transform-form audit complete — `generate_transform`'s arms read only
+  captured `content` EXCEPT MatchedText (`&parser.input[start_pos..parser.position]`), so moving
+  the arm's position rollback after the transform binding is the complete fix. (2) new codegen
+  unit test green (per-arm whitespace-insensitive ordering assertion: `candidate_end` binding →
+  transform binding → rollback, for both arms of a 2-branch `$text` tournament; also asserts the
+  MatchedText slice emission). (3) all 9 grammar targets regenerated with the reordered arm;
+  default workspace 683/0; dual-feature workspace 768/0 (no shipped grammar currently binds
+  branch-level `$text` in a tournament — H.10.2.1 reverted — so runtime corpora are unaffected,
+  as expected). (4) regex cert-coverage baseline IDENTICAL again (`total=198 witness=191
+  UNKNOWN=7 spf=0`, seeds 0/7/42, `--count 40`). (5) clippy strict-source clean; generated-stage
+  non-strict debt class unchanged (same 191 pre-existing generated sites). The live-fire runtime
+  proof of the corrected span lands with `.5` (the regex atomicity consumer re-applied:
+  `restrict:"D"` instead of `restrict:""`, A/B byte-identical dumps).
+  Commit: `PGEN-BRANCH-BROADCAST-FIX-0003`.

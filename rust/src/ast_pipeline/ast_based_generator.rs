@@ -3117,14 +3117,23 @@ impl AstBasedGenerator {
                                 Ok(result)
                             }) {
                                 let candidate_end = parser.position;
-                                parser.position = parse_start;
                                 let candidate_priority: i64 = #branch_priority;
                                 let current_branch_index: usize = #branch_index;
                                 let raw_content = content;
+                                // BRANCH-BROADCAST-FIX.3 — evaluate the branch
+                                // transform BEFORE rolling the position back to
+                                // parse_start: `$text`/MatchedText slices
+                                // `parser.input[start_pos..parser.position]`, so
+                                // the rollback-first order made every branch-level
+                                // `$text` in a tournament return the EMPTY span.
+                                // All other transform forms read the captured
+                                // `content` only, so the order is observable to
+                                // MatchedText alone.
                                 let transformed = {
                                     let content = raw_content.clone();
                                     #transform
                                 };
+                                parser.position = parse_start;
                                 let mut branch_predicate_blocked = false;
                                 let mut blocked_branch_predicate: Option<String> = None;
                                 for directive in parser
@@ -7838,6 +7847,98 @@ mod semantic_usage_tests {
                 .take(30)
                 .collect::<Vec<_>>()
                 .join("\n")
+        );
+    }
+
+    /// BRANCH-BROADCAST-FIX.3 — pins the tournament branch-arm ORDER:
+    /// the branch transform must be evaluated BEFORE the arm rolls
+    /// `parser.position` back to `parse_start`. `$text`/MatchedText is the
+    /// one transform form that reads `parser.position`
+    /// (`&parser.input[start_pos..parser.position]`), so the rollback-first
+    /// order made every branch-level `$text` in a multi-branch tournament
+    /// slice the EMPTY span (runtime-proven: `restrict:""`/`name:""` for
+    /// matched single chars in the `.1` investigation). All other transform
+    /// forms read the captured `content` only, which is why this order is
+    /// the complete fix.
+    #[test]
+    fn tournament_branch_transform_evaluates_before_position_rollback() {
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "r".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "D"), token("quoted_string", "S")],
+            },
+        );
+        let rule_order = vec!["r".to_string()];
+
+        // Both branches carry `-> $text` (the post-BRANCH-BROADCAST-FIX.2
+        // broadcast shape for `r = ( "D" | "S" ) -> $text`).
+        let matched_text_ann = || {
+            Some(BranchAnnotation {
+                annotation_type: "return_scalar".to_string(),
+                annotation_content: "$text".to_string(),
+                parsed_ast: Some(crate::ast_pipeline::UnifiedReturnAST::MatchedText),
+            })
+        };
+        let mut annotations = Annotations::default();
+        annotations
+            .branch_return_annotations
+            .insert("r".to_string(), vec![matched_text_ann(), matched_text_ann()]);
+        let mut converted_branches: HashMap<String, Vec<Option<BranchAnnotation>>> =
+            HashMap::new();
+        for (rule, branches) in annotations.branch_return_annotations.iter() {
+            converted_branches.insert(rule.clone(), branches.clone());
+        }
+
+        let mut generator = AstBasedGenerator::new("tournament_text_span_test".to_string());
+        generator.enable_debug = false;
+        generator.annotations = Some(annotations);
+        generator.branch_return_annotations = converted_branches;
+
+        let rendered = generator
+            .generate_parser(&grammar_tree, &rule_order, "tournament_text_span_test.rs")
+            .expect("parser generation should succeed");
+
+        // Compare positions whitespace-insensitively (the rendered source may
+        // be token-stream spaced or pretty-printed).
+        let compact: String = rendered.chars().filter(|c| !c.is_whitespace()).collect();
+        let arm_anchor = "letcandidate_end=parser.position;";
+        let transform_anchor = "lettransformed=";
+        let rollback_anchor = "parser.position=parse_start;";
+
+        let mut arm_count = 0usize;
+        let mut search_from = 0usize;
+        while let Some(rel) = compact[search_from..].find(arm_anchor) {
+            arm_count += 1;
+            let arm_start = search_from + rel + arm_anchor.len();
+            let tail = &compact[arm_start..];
+            let transform_idx = tail.find(transform_anchor).unwrap_or_else(|| {
+                panic!("branch arm {} has no transform binding", arm_count)
+            });
+            let rollback_idx = tail.find(rollback_anchor).unwrap_or_else(|| {
+                panic!("branch arm {} has no position rollback", arm_count)
+            });
+            assert!(
+                transform_idx < rollback_idx,
+                "branch arm {}: the transform must be evaluated BEFORE the \
+                 position rollback (transform at {}, rollback at {}) — \
+                 rollback-first re-introduces the empty-span `$text` defect",
+                arm_count,
+                transform_idx,
+                rollback_idx
+            );
+            search_from = arm_start;
+        }
+        assert!(
+            arm_count >= 2,
+            "expected a 2-branch tournament (found {} candidate_end arms)",
+            arm_count
+        );
+
+        // And the MatchedText emission itself is present for the branches.
+        assert!(
+            compact.contains("&parser.input[start_pos..parser.position]"),
+            "MatchedText transform should slice the input span"
         );
     }
 
