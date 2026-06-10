@@ -192,8 +192,12 @@ anchor         = "^"   -> {type: "anchor", kind: "start_of_line"}
 #                       follow-up slice will type the name string).
 #   - "named_braced" → \k{name}. Same as `named` but braced syntax;
 #                       consumers may want to treat both the same.
-#   - "subroutine"   → \g<...> / \g'...' / \g{...} / \g+digit. `ref`
-#                       carries the raw `subroutine_ref` shape.
+#   - "subroutine_named"/"subroutine_numeric"/"named_braced"/
+#     "numeric_backreference" → \g<...> / \g'...' / \g{...} / \g+digit.
+#     Matched by the inline `"\\g" …` branches below; `ref` carries the
+#     typed inner payload (`name` string or `signed_digits` object)
+#     directly (GRAMMAR-WELLFORMED.H.10.1 removed the former dead
+#     `subroutine_ref` helper cluster).
 backreference  = numeric_backreference                                  -> $1
                | numeric_backreference_single                            -> $1
                | "\\k" name_ref                                          -> {type: "backreference", kind: "named",                  ref:   $2}
@@ -290,19 +294,11 @@ backreference_digits_single = nonzero_digit
 name_ref       = "<" name ">"  -> $2
                | "'" name "'"  -> $2
 braced_name_ref = "{" brace_ws? name brace_ws? "}" -> $3
-# Subroutine reference — surfaces the inner content (signed-digits or
-# name) directly, dropping the angle/quote/brace delimiters.
-# `signed_digits_or_name` and `signed_digits` themselves remain
-# un-annotated for now; consumers see either a clean string (when
-# `name` matches) or the raw `[<sign?>, <digit>]` 2-element shape
-# (when `signed_digits` matches). A follow-up slice will type
-# `signed_digits_or_name` for clean discrimination.
-subroutine_ref = braced_subroutine_ref          -> $1
-              | "<" signed_digits_or_name ">"   -> $2
-              | "'" signed_digits_or_name "'"   -> $2
-              | signed_digits                   -> $1
-braced_subroutine_ref = "{" brace_ws? signed_digits_or_name brace_ws? "}" -> $3
-signed_digits_or_name = signed_digits | name
+# GRAMMAR-WELLFORMED.H.10.1: the former `subroutine_ref` /
+# `braced_subroutine_ref` / `signed_digits_or_name` helper cluster was
+# removed as proven-dead (unreachable_from_entry — the `\g…` forms are
+# matched by the inline `backreference` branches above, and `(?&…)` /
+# `(?P>…)` by `subroutine_call`).
 # `signed_digits` produces a typed `{sign, value}` object so consumers
 # read both fields directly. `sign` is the matched Terminal `"+"` or
 # `"-"` when present, or the empty array `[]` when the optional sign
@@ -322,8 +318,9 @@ sign           = "+" | "-"
 # REGEX-SELF-HOSTING.5c: `name` = name_start name_continue* with `-> $text` (clean string).
 # name_start = letter|'_'|unicode_char; name_continue = letter|digit|'_'|unicode_char.
 name           = ( letter | '_' | unicode_char ) ( letter | digit | '_' | unicode_char )* -> $text
-name_start     = letter | '_' | unicode_char
-name_continue  = name_start | digit
+# GRAMMAR-WELLFORMED.H.10.1: the former `name_start` / `name_continue`
+# helpers (inlined into `name` above by REGEX-SELF-HOSTING.5c) were
+# removed as proven-dead (unreachable_from_entry).
 brace_ws       = (' ' | '\t')+
 
 # Character classes with actionable code generation
@@ -741,8 +738,9 @@ short_prop_letter = 'C' | 'L' | 'M' | 'N' | 'P' | 'S' | 'Z' | 'c' | 'l' | 'm' | 
 # structure a bare `+` would produce. Character set as before:
 # letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^'.
 prop_name      = ( letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^' )+ -> $text
-
-prop_name_chars = letter | digit | whitespace | '_' | ':' | '-' | '=' | '&' | '^'
+# GRAMMAR-WELLFORMED.H.10.1: the former `prop_name_chars` helper
+# (inlined into `prop_name` above) was removed as proven-dead
+# (unreachable_from_entry).
 
 # Groups. Each group sub-rule produces a typed
 # `{type:"atom", kind:<group_kind>, body:<pattern>}` object. `body` is
@@ -817,8 +815,9 @@ atomic_group         = "(?>" pattern? ")"             -> {type: "atom", kind: "a
 comment_group        = "(?#" comment_text ")"            -> {type: "atom", kind: "comment", text: $2}
 # REGEX-SELF-HOSTING.5c: any char except `)`, run to the comment close. `-> $text` = the body string.
 comment_text         = ( !")" builtin_any_char )* -> $text
-comment_char         = letter | digit | whitespace | comment_special | unicode_char
-comment_special      = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '-' | '+' | '=' | '[' | ']' | '{' | '}' | '|' | '\\' | ':' | ';' | '"' | '\'' | '<' | '>' | ',' | '.' | '?' | '/' | '`' | '~' | '_'
+# GRAMMAR-WELLFORMED.H.10.1: the former `comment_char` /
+# `comment_special` chain helpers (superseded by `comment_text` above,
+# slice 20) were removed as proven-dead (unreachable_from_entry).
 
 # Lookarounds. Each sub-rule produces a typed
 # `{type:"atom", kind:<lookaround_kind>, ..., body:<pattern>}`
@@ -1089,7 +1088,9 @@ directive_payload_suffix = ":" directive_payload_simple?              -> {separa
 # body (matches anything except the verb-closing `)`). Same pattern as
 # `comment_text` from slice 20.
 directive_payload_simple = ( !")" builtin_any_char )* -> $text
-directive_payload_char = !")" builtin_any_char -> $2
+# GRAMMAR-WELLFORMED.H.10.1: the former `directive_payload_char` helper
+# (superseded by `directive_payload_simple` above) was removed as
+# proven-dead (unreachable_from_entry).
 # `directive_name` rewritten from `directive_name_start
 # directive_name_continue*` chain (multi-element) to a regex literal
 # that emits a clean string Terminal of the matched verb name.
@@ -1115,9 +1116,10 @@ directive_name_strict = "FAIL" | "F" | "ACCEPT" | "COMMIT" | "PRUNE" | "SKIP" | 
                       | "BSR_ANYCRLF" | "BSR_UNICODE"
 @profiles: ["relaxed"]
 directive_name_relaxed = letter ( letter | digit | '_' | '-' )* -> $text
-directive_name_start = letter
-directive_name_continue = directive_name_start | digit | '_' | '-'
-directive_special = '!' | '@' | '#' | '$' | '%' | '^' | '&' | '*' | '(' | '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '[' | '\\' | ']' | '_' |'{' | '|' | '}' | '~'
+# GRAMMAR-WELLFORMED.H.10.1: the former `directive_name_start` /
+# `directive_name_continue` / `directive_special` chain helpers
+# (superseded by the inline `directive_name` forms above) were removed
+# as proven-dead (unreachable_from_entry).
 
 # PCRE2 extended character class syntax (?[ ... ]). `body` is the
 # raw `extended_class_content` shape (Quantified-* of

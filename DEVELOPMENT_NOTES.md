@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.10.1 — regex dead-rule removal (PGEN-GRAMMAR-WELLFORMED-0060)
+
+### Two oracles, one verdict
+The reach pass's no-path warning is a rule-reference-graph search; the `--gap-report-json` oracle is the independent static closure (`reachable:false / unreachable_from_entry`). Both flagged the SAME 12 rules — and the PROOF-DISCIPLINE caveat applied verbatim: `--lint-grammar` reported `unreachable_rules=0` because it is multi-entry-LENIENT, which is exactly why the gap-report oracle is the per-entry adjudicator of record.
+
+### Why 12 dead rules existed at all
+Every one is an archaeology artifact of a documented rewrite: `X_char*` chains and helper clusters whose REFERENCING rule was rewritten to an inline/`$text` form (REGEX-SELF-HOSTING.5c `name`, slice-20 `comment_text`, the `directive_*` strict/relaxed split, the inline `\g…` `backreference` branches), leaving the helpers defined-but-orphaned. The 1.1.59-era contract note even said `name_start`/`name_continue` were "retained for compatibility" — superseded by the literal-0 doctrine: an unreachable rule is a grammar DEFECT to remove, not a keepsake (svpp `trivia` H.5.2 precedent).
+
+### What kept the slice honest
+The grammar's live `backreference` comment still claimed the `\g…` `ref` "carries the raw `subroutine_ref` shape" — stale since the inline rewrite; corrected in-slice. The `#[ignore]`d trace-of-parse-path test naming `subroutine_ref` (embedding_api.rs) is quarantined with a pre-existing reason and its premise (rule names in dumped JSON) was already invalid — left untouched, recorded in the leaf. Manifest sync was verified by COUNT EQUALITY: manifest 173→167 == the regenerated `regex_return_annotations.json` 167.
+
+### Result and the surviving 7
+`UNKNOWN 19→7` deterministic (seeds 0/7/42), `spf=0` preserved, `total 210→198`, gap-report unreachable 0. The survivors partition into the `H.10.2` pool: probe-cohesion (`short_prop_letter` probe `\p C`, `ascii_restrict_modifier` probe `(?^a D-a D)` — a separator rendered INSIDE one token; root-cause the reach-probe rendering before any fix), terminal-selection (`letter_no_upper_e`/`unicode_char`/`quoted_class_literal_escaped_char` parse-but-route-elsewhere), and the store-gated prelude pair (`numeric_backreference`/`backreference_digits` — witnessing needs ≥N capture groups first; B2/C1/C2 lane).
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.9 — svpp macro-default balanced-paren fix (PGEN-GRAMMAR-WELLFORMED-0059)
 
 ### Why the bug hid
