@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - BRANCH-BROADCAST-FIX.1 — the engine defect pair behind the H.10.2.1 revert (PGEN-BRANCH-BROADCAST-FIX-0001)
+
+### How the A/B caught it
+H.10.2.1's design predicted byte-identical AST dumps (single-char `$text` == passthrough). The post-edit dump showed `restrict:""` — a matched `"D"` returning the empty string. Per [[feedback_be_alert_root_cause_fishy_immediately]] that's never "noise": the generated tournament arm reads `let candidate_end = parser.position; parser.position = parse_start;` and only THEN evaluates the transform, so MatchedText's `start_pos..parser.position` slice is `start..start`. The right span sits unused in `candidate_end`.
+
+### Why \pL looked fine while \pC broke
+The trailing `-> $text` never reached branch 1+: `extract_rule_annotations` broadcasts to the inner range correctly, but the 2026-05-14 `branch_to_outer` remap collapses a WHOLE-BODY group's inner branches to outer 0. `L` (branch 1) therefore kept the implicit passthrough (correct by accident); `C`/`D` (branch 0) carried the span-bugged transform. Two independent defects composing into one confusing symptom — the reason each got its own leaf.
+
+### The remap is not the villain
+Patterns (A)–(D) ([[feedback_codegen_outer_branch_remap]]) are real codegen-drop fixes for groups INSIDE sequences/quantifiers, where inner branches do not survive as rule-level branches. The whole-body group is the one case where `step2_group_by_or` promotes the group's alternatives to runtime branches — `.2` adds that discriminator instead of reverting anything.
+
+### Shipped-impact discipline
+Before claiming the shipped regression, it was runtime-proven on the released surface: `parseability_probe --parse-dump-ast return_annotation` on `"x"` (typed Json) vs `'x'` (raw Sequence), plus the generated `parse_string_literal` containing ONE object-transform site for two branches. "Fix parser bugs ASAP" makes `.2` the next slice.
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.10.1 — regex dead-rule removal (PGEN-GRAMMAR-WELLFORMED-0060)
 
 ### Two oracles, one verdict

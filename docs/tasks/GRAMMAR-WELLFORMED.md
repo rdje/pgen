@@ -1094,16 +1094,47 @@ subtle dead branch"), never a silent accept.
     Contract-doc `subroutine_ref` mentions verified to live ONLY in append-only per-release history
     sections; the quarantined `#[ignore]` trace-of-parse-path test left untouched as recorded.`
     Commit: `PGEN-GRAMMAR-WELLFORMED-0060`.
-  - `H.10.2` — **`pending` (pool; sub-leaf with evidence when worked):** the remaining 7 — (i) the
-    probe-cohesion pair `short_prop_letter`/`ascii_restrict_modifier` (the reach probe renders a
-    separator inside what must be one cohesive token — suspected literal/terminal join-rule gap in
-    the reach pass's minimal rendering; root-cause tools-first before any fix); (ii) the
-    terminal-selection trio `letter_no_upper_e`/`unicode_char`/`quoted_class_literal_escaped_char`
-    (probes parse but route elsewhere — the plan forces the path but the minimal terminal choice
-    inside the final expansion misses the target alternative); (iii) the semantic-prelude pair
-    `numeric_backreference`/`backreference_digits` (witnessing needs ≥N capture groups BEFORE the
-    backref — the generation-side store honours the predicate (STORE-AWARE-GEN), so the reach pass
-    needs a fact-emitting PRELUDE; owned by the B2/C1/C2 constructive lane when activated).
+  - `H.10.2` — **`active` (pool):** the remaining 7 — (i) the probe-cohesion pair (→ `H.10.2.1`);
+    (ii) the terminal-selection trio `letter_no_upper_e`/`unicode_char`/
+    `quoted_class_literal_escaped_char` (probes parse but route elsewhere — the plan forces the
+    path but the minimal terminal choice inside the final expansion misses the target alternative);
+    (iii) the semantic-prelude pair `numeric_backreference`/`backreference_digits` (witnessing
+    needs ≥N capture groups BEFORE the backref — the generation-side store honours the predicate
+    (STORE-AWARE-GEN), so the reach pass needs a fact-emitting PRELUDE; owned by the B2/C1/C2
+    constructive lane when activated).
+    - `H.10.2.1` — **`blocked` (on `BRANCH-BROADCAST-FIX.2`+`.3`; unblock = its `.5`). The
+      declarative fix attempt DISCOVERED a live engine defect pair and was cleanly REVERTED
+      (baseline re-verified byte-identical: AST dumps identical, cert-coverage `UNKNOWN=7 spf=0`
+      at `-0060`).** ATTEMPT RECORD: applied the documented parens-group broadcast `-> $text` to
+      both rules; the A/B verification caught (a) the broadcast binding branch 0 ONLY (the
+      2026-05-14 inner→outer remap collapses whole-body-group inner branches — re-breaking task
+      #38, incl. the SHIPPED `return_annotation` `string_literal` single-quoted shape), and (b)
+      branch-level `$text` slicing an EMPTY span inside the tournament (`(?^aD-aD)` →
+      `restrict:""`, `\pC` → `name:""` — the rollback `parser.position = parse_start` precedes the
+      transform). Both owned by the new **`BRANCH-BROADCAST-FIX`** tree (full evidence + design
+      there). The fix design itself stands (atomicity via all-branch MatchedText) and is
+      re-applied as `BRANCH-BROADCAST-FIX.5` once `.2`+`.3` land. The pre-attempt root-cause
+      below remains valid. ROOT CAUSE (tools-first, WHY+WHERE pinned): NOT
+      reach-probe-specific — direct ordinary-generation probes emit the same broken renders
+      (`--entry-rule modifier_item` → `a S`/`a W`; `--entry-rule escape_unit` → `p c`/`P M`/`p L`,
+      while braced `p{…}` renders fine). WHY: `short_prop_letter` (`regex.ebnf:731`) and
+      `ascii_restrict_modifier` (`:996`) are non-atomic Or-of-single-word-char rules immediately
+      following a word-shaped literal in their parents (`escape_unit:726-727` `"p"/"P"
+      short_prop_letter`; `modifier_item:991` `"a" ascii_restrict_modifier`); the
+      LEXICAL-ANNOTATIONS.5.2 join rule correctly separates adjacent FREE word tokens, and nothing
+      declares these rules as token-continuations. WHERE: `append_generated_segment` separates
+      because `rule_is_lexically_atomic` (`stimuli_generator.rs:7978`) returns false — it requires
+      `$text` on EVERY branch or a `@transform`. The grammar's stale `:728` comment even claims the
+      rule "emits a clean string Terminal" (true pre-self-hosting, lost in the `/…/`-free rewrite).
+      FIX (grammar-only, the DOCUMENTED 4th-pillar mechanism — the book's
+      `recursion_condition = "R" digits?` atomic-fusion pattern): parens-group broadcast `-> $text`
+      on both rules ⇒ every branch MatchedText ⇒ `rule_is_lexically_atomic` true ⇒ the token fuses
+      with the preceding `p`/`P`/`a` (`\pC`, `aD`), and internal joins are suppressed. Expected
+      consumer shape: byte-identical (each branch is a single char; `$text` of one char == the
+      passthrough Terminal) — verified by AST-dump A/B on `\pL` + `(?^aD-aD)`. Acceptance: regex
+      cert-coverage `UNKNOWN 7→5` + `spf=0` (seeds 0/7/42, deterministic); AST-dump A/B
+      byte-identical; manifest synced to the regenerated inventory; oracle gate + dual-feature lib
+      green; cross-grammar untouched; NO release/schema bump expected (shape-preserving).
 - `H.9` — **`done` (`PGEN-GRAMMAR-WELLFORMED-0059`, svpp PARSER BUG, found by H.7.2's plannable-rule reach pass): a default
   argument on the LAST macro formal mis-parses — `` `define M(a=x) y`` yields formals=[] with
   "(a=x) y" as macro BODY text (legal per IEEE 1800 §22.5.1; the LRM's own examples put defaults on
