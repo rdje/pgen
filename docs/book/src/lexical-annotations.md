@@ -192,6 +192,25 @@ token that separates; a word run glued to a structural character (`"(?(R"`) is t
 structural literal and stays adjacent to its argument — the same convention the join rule already uses
 for quoted-string literals.
 
+### Multi-token regex terminals participate the same way
+
+Hints are not the only renders that span several lexical tokens: a grammar can model a whole multi-token
+construct as **one regex terminal**. The canonical case is the VHDL physical literal,
+`/[0-9][0-9_]*…[ \t\r\n]+(?:fs|ps|ns|us|ms|sec|min|hr)\b/`, which renders text like `8 min` — a number,
+whitespace, and a unit name in a single terminal. Until 2026-06-10 the tail word-shape of such a render
+was recorded with a whole-string check, which read `8 min` (it contains a space) as non-fusable — so the
+join rule never fired and a following keyword fused with the unit:
+
+```text
+signal x : t range 8 minto 5;    # ✗ `min`+`to` fused — the parser rejects it
+signal x : t range 8 min to 5;   # ✓ what faithfulness must produce
+```
+
+This is fixed with the same trailing-word-run approximation used for hints: a multi-token terminal render
+whose trailing word run is preceded by whitespace has a **free, fusable tail token**, and the join rule
+separates it from a following word character. The whole VHDL keyword family that follows physical
+literals (`to`, `downto`, `then`, `and`, `or`, …) became generator-reachable in one step from this fix.
+
 ### Whitespace runs need no separator
 
 A greedy run of a **whitespace-only** class (e.g. inline trivia `[ \t]+`) is never given a trailing

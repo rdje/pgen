@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.11.1 — the multi-token-terminal tail fix (PGEN-GRAMMAR-WELLFORMED-0065)
+
+### A defect class is not closed until every render family is covered
+H.8 fixed the tail word-shape for literal-hint renders, and its own comment named the general truth ("text can span several tokens, so the whole-text check is wrong"). The fix stopped at hints because that was the failing evidence then. The vhdl drive surfaced the second family — single regex terminals that model multi-token constructs (`physical_literal` = number + whitespace + unit) — failing the same way. Pattern worth keeping: when a fix's justification names a property of the *data* ("text can span several tokens"), audit every producer of that data shape, not just the one that failed. The remaining producer (fixed-string token literals containing spaces) is noted but deliberately untouched — no failing evidence, targeted-fix discipline.
+
+### The probe samples were the whole investigation
+Thirty UNKNOWN rules looked like a grab-bag (keywords, ranges, operators, literals, white_space) until four probe lines (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1`) showed `mintO`/`msThEn`/`nsaNd` fusions — one defect, ~26 downstream rule symptoms. The fix moved vhdl `30→4` in one step and even made the residual seed-stable (the pre-fix 30/31 wobble was fusion-probabilistic). Corollary (same as H.10.2.2's): drive residuals from the *probe evidence*, never from the rule-name list.
+
+### The stash baseline earned its cost
+The post-fix seed-7 run showed `spf=2` where the recorded (seed-0) baseline said 0 — indistinguishable, without evidence, from "the new separator broke a grammar". One stash-rebuild-measure cycle proved the pre-fix binary produces the identical seed-7 `spf=2`: pre-existing over-generation, now ticketed (`H.11.2`) instead of either masked or mis-blamed. Sixteen minutes well spent; claiming "no spf regression" without it would have been a guess.
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.C2.2 — the semantic-prelude reach lands (PGEN-GRAMMAR-WELLFORMED-0064)
 
 ### The design survived contact almost intact — the one divergence is instructive

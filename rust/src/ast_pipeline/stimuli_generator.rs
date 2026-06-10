@@ -5661,7 +5661,7 @@ impl<'a> StimuliGenerator<'a> {
                 // paths that maintain `last_terminal_word_shaped`; record the rendered hint's tail
                 // shape so the caller's join rule can separate a fusable tail keyword from a
                 // following word char instead of consulting stale state.
-                self.last_terminal_word_shaped = Self::literal_hint_tail_word_shaped(&rendered);
+                self.last_terminal_word_shaped = Self::tail_word_shaped(&rendered);
                 return Ok(rendered);
             }
         }
@@ -5683,7 +5683,7 @@ impl<'a> StimuliGenerator<'a> {
             self.coverage.record_rule_success(rule_name);
             self.last_terminal_from_atomic_rule = is_atomic;
             let rendered = self.apply_lexical_follow_restriction(rule_name, captured_text);
-            self.last_terminal_word_shaped = Self::literal_hint_tail_word_shaped(&rendered);
+            self.last_terminal_word_shaped = Self::tail_word_shaped(&rendered);
             return Ok(rendered);
         }
 
@@ -6254,7 +6254,7 @@ impl<'a> StimuliGenerator<'a> {
                 // GRAMMAR-WELLFORMED.H.8 (Defect A): same tail-state update as the rule-level hint
                 // override — without it the join rule consults stale state after the hint render
                 // and fuses the hint's tail keyword with the next item (`endprogram`+`module`).
-                self.last_terminal_word_shaped = Self::literal_hint_tail_word_shaped(&sample_hint);
+                self.last_terminal_word_shaped = Self::tail_word_shaped(&sample_hint);
                 return Ok(sample_hint);
             }
             let alt_path = format!("{}/o{}", node_path, selected_global);
@@ -7986,15 +7986,17 @@ impl<'a> StimuliGenerator<'a> {
     fn apply_word_boundary_spacing(&mut self, pattern: &str, candidate: String) -> String {
         if !self.config.enforce_word_boundary_spacing {
             // LEXICAL-ANNOTATIONS.5.2: still record the tail word-shape (spacing is off, but the
-            // flag must not go stale for the concat tracker).
-            self.last_terminal_word_shaped = Self::is_word_shaped_literal(&candidate);
+            // flag must not go stale for the concat tracker). H.11.1: TAIL-aware — a regex
+            // terminal can render multi-token text (vhdl `physical_literal` → `8 min`), where the
+            // whole-string check mis-reads a fusable word tail as non-fusable.
+            self.last_terminal_word_shaped = Self::tail_word_shaped(&candidate);
             return candidate;
         }
         // LEXICAL-ANNOTATIONS.6: inside an atomic-token rule's body the whole rule is ONE lexical
         // token, so a terminal must NOT bake an internal separator either (mirrors the join
         // suppression in `append_generated_segment`); still record the tail word-shape.
         if self.atomic_token_depth > 0 {
-            self.last_terminal_word_shaped = Self::is_word_shaped_literal(&candidate);
+            self.last_terminal_word_shaped = Self::tail_word_shaped(&candidate);
             return candidate;
         }
         // LEXICAL-ANNOTATIONS.3 — Obligation B (intra-terminal trailing guard, regex-derived).
@@ -8026,8 +8028,11 @@ impl<'a> StimuliGenerator<'a> {
             None => candidate,
         };
         // LEXICAL-ANNOTATIONS.5.2: record the word-shape of the RETURNED text (so a baked `"\n"`,
-        // e.g. from `[^\n]*`, correctly yields a non-fusable tail).
-        self.last_terminal_word_shaped = Self::is_word_shaped_literal(&result);
+        // e.g. from `[^\n]*`, correctly yields a non-fusable tail). H.11.1: TAIL-aware — the
+        // deferral above hands a multi-token render's fusable word tail (`8 min`) to the join
+        // rule, so the recorded state must say the tail IS fusable (the whole-string check read
+        // it as non-fusable and the join never fired — the vhdl `8 min`+`to` → `8 minto` class).
+        self.last_terminal_word_shaped = Self::tail_word_shaped(&result);
         result
     }
 
@@ -8176,16 +8181,18 @@ impl<'a> StimuliGenerator<'a> {
         !text.is_empty() && text.chars().all(Self::is_lexical_word_char)
     }
 
-    /// GRAMMAR-WELLFORMED.H.8 (Defect A): tail word-shape of a LITERAL-HINT render
-    /// (`@sample`/`@probe_sample`). A hint bypasses the terminal-render paths that maintain
-    /// `last_terminal_word_shaped`, and its text can span several tokens
-    /// (`"program p; endprogram"`), so the whole-text `is_word_shaped_literal` check is wrong for
-    /// it — the tail keyword would read as non-fusable and fuse with the next item
-    /// (`endprogram`+`module` → `endprogrammodule`). The tail terminal is approximated as the
-    /// trailing maximal word-char run: none → not fusable; the whole hint → one free word token;
-    /// preceded by whitespace → a free tail token; glued to a structural char (the `(?(R`
-    /// convention above) → a fragment of a structural literal, NOT fusable.
-    fn literal_hint_tail_word_shaped(text: &str) -> bool {
+    /// GRAMMAR-WELLFORMED.H.8 (Defect A) + H.11.1: tail word-shape of a render whose text can
+    /// span SEVERAL lexical tokens. Two such render families exist: literal-hint renders
+    /// (`@sample`/`@probe_sample`, e.g. `"program p; endprogram"` — the H.8 instance) and
+    /// multi-token REGEX-terminal renders (a single grammar regex modeling number + whitespace +
+    /// unit, e.g. vhdl `physical_literal` → `"8 min"` — the H.11.1 instance). For both, the
+    /// whole-text `is_word_shaped_literal` check is wrong — the tail keyword/unit would read as
+    /// non-fusable and fuse with the next token (`endprogram`+`module` → `endprogrammodule`;
+    /// `8 min`+`to` → `8 minto`). The tail terminal is approximated as the trailing maximal
+    /// word-char run: none → not fusable; the whole text → one free word token; preceded by
+    /// whitespace → a free tail token; glued to a structural char (the `(?(R` convention above)
+    /// → a fragment of a structural literal, NOT fusable.
+    fn tail_word_shaped(text: &str) -> bool {
         let run_start = text
             .char_indices()
             .rev()
@@ -13471,6 +13478,48 @@ mod tests {
     }
 
     #[test]
+    fn multi_token_regex_terminal_tail_separates_from_following_keyword() {
+        // GRAMMAR-WELLFORMED.H.11.1: a single regex terminal can render MULTI-TOKEN text whose
+        // tail is a free word token (the vhdl `physical_literal` shape: number + whitespace +
+        // unit, `8 min`). The recorded tail word-shape must be TAIL-aware so the join rule
+        // separates that tail from a following word-shaped token — the whole-string check read
+        // `"8 min"` as non-fusable and produced the parser-rejected fusion `8 minto`.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "s".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("lit"), rule_ref("kw")],
+            },
+        );
+        grammar_tree.insert(
+            "lit".to_string(),
+            token("regex", "[0-9]+[ \\t]+(?:ms|ns)\\b"),
+        );
+        grammar_tree.insert("kw".to_string(), token("regex", "(?i:to)\\b"));
+        let rule_order: Vec<String> = ["s", "lit", "kw"].iter().map(|s| s.to_string()).collect();
+        let mut generator = StimuliGenerator::new(
+            "g".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(3),
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        let out = generator
+            .generate_from_entry("s")
+            .expect("multi-token-terminal sequence generation should succeed");
+        let re = Regex::new(r"^[0-9]+[ \t]+(?:ms|ns)\s+(?i:to)\s*$").expect("valid expectation");
+        assert!(
+            re.is_match(&out),
+            "the multi-token terminal's word tail must be separated from the following keyword \
+             (never `msto`/`minto`-style fusion): {out:?}"
+        );
+    }
+
+    #[test]
     fn semantic_prelude_witnesses_count_gated_rule() {
         // GRAMMAR-WELLFORMED.C2.2: the end-to-end two-phase semantic-prelude flow on a
         // synthetic count-gated grammar (the regex store-gated pair's exact shape, no
@@ -16074,20 +16123,20 @@ mod tests {
     #[test]
     fn literal_hint_tail_word_shape_classification() {
         // Free tail tokens (fusable — a following word char needs a separator):
-        assert!(StimuliGenerator::literal_hint_tail_word_shaped("endprogram"));
-        assert!(StimuliGenerator::literal_hint_tail_word_shaped(
+        assert!(StimuliGenerator::tail_word_shaped("endprogram"));
+        assert!(StimuliGenerator::tail_word_shaped(
             "program p; endprogram"
         ));
-        assert!(StimuliGenerator::literal_hint_tail_word_shaped(
+        assert!(StimuliGenerator::tail_word_shaped(
             "output o, input i"
         ));
         // Non-word tails (nothing to fuse):
-        assert!(!StimuliGenerator::literal_hint_tail_word_shaped("wire a;"));
-        assert!(!StimuliGenerator::literal_hint_tail_word_shaped(" //"));
-        assert!(!StimuliGenerator::literal_hint_tail_word_shaped(""));
+        assert!(!StimuliGenerator::tail_word_shaped("wire a;"));
+        assert!(!StimuliGenerator::tail_word_shaped(" //"));
+        assert!(!StimuliGenerator::tail_word_shaped(""));
         // A word-run glued to a structural char is a literal fragment, not a free token
         // (the `(?(R` convention — it must stay adjacent to its argument):
-        assert!(!StimuliGenerator::literal_hint_tail_word_shaped("(?(R"));
+        assert!(!StimuliGenerator::tail_word_shaped("(?(R"));
     }
 
     #[test]
