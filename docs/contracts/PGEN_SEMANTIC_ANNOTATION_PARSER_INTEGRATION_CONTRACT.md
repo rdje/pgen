@@ -55,6 +55,12 @@ Define the current downstream integration contract for PGEN's `semantic_annotati
 
 ## Recent Additions
 
+### 2026-06-10 — whole-body-group branch shapes RESTORED (regression window 2026-05-14 → 2026-06-10; ledger `SEMANN-0001`)
+
+A 2026-05-14 engine refinement (the inner→outer branch-index remap) collapsed whole-body parens-group branch annotations onto branch 0, so **43** of this grammar's declared branch annotations (inventory 108→151 once corrected) silently stopped applying to branches 1+ — e.g. `annotation_name` branch 1, `annotation_value` branches 1–3, and `boolean_literal`'s second alternative produced raw passthrough instead of their declared typed shapes in parsers regenerated inside the window.
+
+Fixed by `BRANCH-BROADCAST-FIX.2` (`PGEN-BRANCH-BROADCAST-FIX-0002`): trailing annotations on whole-body groups broadcast to every runtime branch again. Branch-0 inputs are byte-identical; only the previously-buggy branch-1+ shapes change (raw passthrough → declared typed shape). Regression locks: the AST shape-contract manifest now embeds the full 151-row declared-annotation inventory with both the pipeline-artifact and raw-IR crosscheck comparisons active, plus the engine's focused broadcast unit tests.
+
 ### 2026-05-20 — `SV-EXH-PROOF.3.3.4.a.1` / `.a.2` (`PGEN-SV-EXH-PROOF-0026` / `0027`): rule-reference syntax — dotted + indexed, depth-unbounded
 
 The `$<ref>` reference shape accepted in semantic-annotation directive payloads is extended (strictly additive — every prior `$name` / `$1` reference parses byte-identically):

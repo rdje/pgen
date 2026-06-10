@@ -118,15 +118,20 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   the reorder is observable to MatchedText alone. Regression-locked by a codegen unit test
   asserting per-arm ordering (transform binding precedes the rollback in BOTH arms of a 2-branch
   `$text` tournament) + the MatchedText slice emission. Commit: `PGEN-BRANCH-BROADCAST-FIX-0003`.
-- `BRANCH-BROADCAST-FIX.4` — **`pending` (release/ledger): ship the corrected shapes for BOTH
-  annotation parsers.** Scope WIDENED by `.2`'s measured blast radius: regenerating with the
-  fixed pipeline corrects (a) `return_annotation` `string_literal` branch 1 (single-quoted
-  raw-Sequence → typed object; inventory 19→20) AND (b) `semantic_annotation` — **43**
-  newly-broadcast branch annotations (inventory 108→151; e.g. `annotation_name`,
-  `annotation_value`, `boolean_literal` whole-body-group branches 1+ now typed instead of raw
-  passthrough — the same #38 defect class across that grammar). Assess AST-dump schema impact for
-  BOTH (mis-shape-correction category, SVPP-0004 precedent); ledger rows + contract + per-parser
-  book lockstep for both families; release-version decisions per the release policy.
+- `BRANCH-BROADCAST-FIX.4` — **`done` (release/ledger): the corrected shapes shipped for BOTH
+  annotation parsers.** Versioning decision: the annotation families carry NO numeric
+  release/AST-dump-schema machinery (their contracts are date-versioned "Notable Recent Shape
+  Changes"/"Recent Additions" surfaces — unlike regex/svpp), so the SVPP-0004-style schema bump
+  maps to: dated contract entries documenting the regression window (2026-05-14 → 2026-06-10) +
+  ledger rows + manifest regression locks. Shipped: (a) ledger rows `RETANN-0001` + `SEMANN-0001`
+  (one per family, same engine root cause, cross-referenced); (b) contract entries in both
+  family contracts (consumer guidance: drop any single-quoted-`Sequence` workaround adopted
+  inside the window; branch-0 inputs byte-identical); (c) `return_annotation_v1.json` gains the
+  DISCRIMINATING runtime sample `single_quoted_string_literal_typed` (`'x'` → `json_object`
+  `{type:"string", value:"x"}` — pre-fix this input produced `sequence`); (d)
+  `semantic_annotation_v1.json` gains the FULL 151-row declared-annotation inventory (artifact +
+  raw-IR crosscheck comparisons both active for that grammar for the first time).
+  Commit: `PGEN-BRANCH-BROADCAST-FIX-0004`.
 - `BRANCH-BROADCAST-FIX.5` — **`pending` (verify consumers): unblock + re-apply
   `GRAMMAR-WELLFORMED.H.10.2.1`** (the regex atomicity edits, re-verified end-to-end: AST A/B
   byte-identical, fused rendering, cert-coverage `UNKNOWN 7→5`).
@@ -138,8 +143,8 @@ prevents the atomicity mechanism from engaging on Or-root rules.
 | — | `.1` | `done` | Root-cause + design. |
 | — | `.2` | `done` | The broadcast remap fix (`PGEN-BRANCH-BROADCAST-FIX-0002`). |
 | — | `.3` | `done` | The `$text` tournament-span fix (`PGEN-BRANCH-BROADCAST-FIX-0003`). |
-| 1 | `.4` | `pending` | Shipped-parser corrections (BOTH annotation parsers) + ledger/contract/book lockstep. |
-| 2 | `.5` | `pending` | Re-apply the H.10.2.1 consumer (also the live-fire runtime proof for `.3`). |
+| — | `.4` | `done` | Ship surface for BOTH annotation parsers (`PGEN-BRANCH-BROADCAST-FIX-0004`). |
+| 1 | `.5` | `pending` | Re-apply the H.10.2.1 consumer (also the live-fire runtime proof for `.3`). |
 
 ## Decisions
 
@@ -161,8 +166,10 @@ prevents the atomicity mechanism from engaging on Or-root rules.
 
 ## Open questions
 
-- (`.4`) Schema bump decisions for `return_annotation` AND `semantic_annotation` (mis-shape
-  correction category) — assess against the release policy with both corrected shapes in hand.
+- none. (`.4`'s schema question RESOLVED: the annotation families are date-versioned contract
+  surfaces with no numeric release/schema constants — the correction ships as dated contract
+  entries + ledger rows + manifest locks, the family-appropriate equivalent of the SVPP-0004
+  schema bump.)
 
 ## Blockers
 
@@ -215,3 +222,13 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   proof of the corrected span lands with `.5` (the regex atomicity consumer re-applied:
   `restrict:"D"` instead of `restrict:""`, A/B byte-identical dumps).
   Commit: `PGEN-BRANCH-BROADCAST-FIX-0003`.
+- `.4` (2026-06-10): (1) the new `single_quoted_string_literal_typed` manifest sample passes
+  against the corrected compiled-in parser (with full structural assertions: keys + string
+  values), and the `semantic_annotation` 151-row inventory passes BOTH comparisons (pipeline
+  artifact + raw-IR crosscheck) — all 14 shape-contract gates green. (2) the aggregate
+  annotation spine `annotation_contract_gate` exits 0 with the corrected parsers (validator
+  coverage, built-in/shared suites, SC semantic slices, aggregate semantic/return gates,
+  robustness/stimuli verification). (3) dual-feature workspace 768/0. (4) versioning decision
+  recorded in the leaf (date-versioned contracts; no numeric release machinery exists for the
+  annotation families to bump).
+  Commit: `PGEN-BRANCH-BROADCAST-FIX-0004`.

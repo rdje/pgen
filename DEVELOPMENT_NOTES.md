@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - BRANCH-BROADCAST-FIX.4 — shipping the corrected annotation-parser shapes (PGEN-BRANCH-BROADCAST-FIX-0004)
+
+### The schema question had a structural answer
+The leaf carried an open question: "schema bump decisions per the release policy (SVPP-0004 precedent)." Reading both family contracts resolved it structurally — unlike regex (`1.1.81`/schema 1) and svpp (`1.0.7`/schema 5), the annotation families have NO numeric release or AST-dump-schema constants anywhere (contracts, embedding_api, manifests). Their shape history is the date-versioned contract section. So the family-appropriate equivalent of a schema bump is: a dated contract entry that names the regression window, ledger rows, and machine-checkable manifest locks. Inventing a version scheme mid-remediation would have been scope creep, not rigor.
+
+### Discriminating locks vs smoothing transforms
+A lesson worth keeping: the semantic_annotation ENTRY-level samples cannot discriminate the corrected branch shapes (`@flag: true` and `@flag: false` produce identical top-level objects — the entry transform smooths the branch difference away). The discriminating surfaces are (a) the return_annotation `'x'` sample, because that grammar's entry passes branch content through, and (b) the declared-annotation INVENTORY, which sees the per-branch annotation table directly. That's why `.4` embedded the full 151-row inventory for semantic_annotation — it is the only lock that would have caught this regression class for that grammar.
+
 ## 2026-06-10 - BRANCH-BROADCAST-FIX.3 — the $text tournament-span fix (PGEN-BRANCH-BROADCAST-FIX-0003)
 
 ### Reorder, don't parameterize

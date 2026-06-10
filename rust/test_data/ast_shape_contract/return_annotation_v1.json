@@ -33,6 +33,24 @@
       "current_content_kind": "terminal",
       "drift_status": "aligned",
       "drift_tracked_in": "n/a"
+    },
+    {
+      "name": "single_quoted_string_literal_typed",
+      "input": "'x'",
+      "rule_under_test": "string_literal",
+      "declared_annotation": "-> {type: \"string\", value: $2}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "value"
+      ],
+      "expected_json_object_string_values": {
+        "type": "string",
+        "value": "x"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "n/a (BRANCH-BROADCAST-FIX.4 lock: pre-fix this input produced a raw `sequence` — the 2026-05-14 whole-body-group broadcast regression; the fix is PGEN-BRANCH-BROADCAST-FIX-0002)"
     }
   ],
   "declared_annotation_inventory": {
