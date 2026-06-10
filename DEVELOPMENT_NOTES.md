@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.9 — svpp macro-default balanced-paren fix (PGEN-GRAMMAR-WELLFORMED-0059)
+
+### Why the bug hid
+`` `define M(a=x,b) y`` parses fine: the default's atom run stops at the `,` (excluded from the text class and not an atom), so only LAST-formal defaults hit the swallowed-closer path — and the mis-parse is ACCEPTING (formals=[] + the parenthesized text as body), so no error ever surfaced. It took the H.7.2 reach pass's `parsed-but-routed-elsewhere` verdict (a probe targeting `macro_default_text` that parsed without entering the rule) to expose it.
+
+### The fix models BOTH halves of the LRM sentence
+IEEE 1800 §22.5.1: default text may contain "a comma or right parenthesis" only "inside a balanced pair of parentheses". Half 1: bare `)` must NOT be a default atom (it terminates the default) → the bare `rparen` alternative removed. Half 2: inside a balanced pair, commas and parens ARE legal → `macro_default_paren_group := lparen macro_default_group_atom* rparen` with `macro_default_group_atom := macro_default_atom | comma` (recursion gives nested balance; `comma` is legal ONLY inside the group since the outer atom list still has no comma alternative).
+
+### Schema discipline
+Two previously-parseable input classes change shape (default-on-last-formal: buggy empty-formals/body-text → structured formals; paren-bearing defaults: flat `lparen`/`rparen` atoms → one `paren_group` atom) → schema 4→5 per the release policy (same category as SVPP-0001's breaking correction, NOT the SVPP-0002/0003 "strictly-more-permissive, no bump" category). Inventory 67→68 (`paren_group` + 2 `group_atom` branches added; 2 bare-paren branch annotations removed); manifest synced programmatically from the regenerated artifact + a new `macro_default_on_last_formal` sample locks the corrected shape.
+
+### Result
+svpp cert-coverage sweep 25/32 → **32/32 seeds `fully_certified` + `spf=0`** — svpp is seed-robustly `UNKNOWN=0`, closing `H.5.4` entirely. The H.7.2→H.9 chain is the full doctrine in one arc: reach pass (constructive proof) → unwitnessable rule → probe verdict → parser bug → grammar fix at source → sweep closes.
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.7.2 — the plannable-rule reach pass (PGEN-GRAMMAR-WELLFORMED-0058)
 
 ### The one new capability, precisely

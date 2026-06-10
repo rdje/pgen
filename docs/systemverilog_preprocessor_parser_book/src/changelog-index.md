@@ -21,6 +21,17 @@ The main SystemVerilog parser's changelog index is long because its return-annot
 
 This book is **live** and tracks current main HEAD. The schema entries below mirror the "Schema Versioning" table in `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state. The newest release (`1.0.6`, `SVPP-0003`) is schema-neutral — it shares schema `4` with `1.0.5` (no new schema row), recorded as the `1.0.6` addendum to the schema-`4` entry; `1.0.5` was the release that bumped the AST-dump schema to `4`.
 
+### Release 1.0.7 — `SVPP-0004` macro-default balanced-parentheses correction (AST-dump schema `4` → `5`; 68 annotations / 31 rules)
+
+The `SVPP-0004` correctness fix (landed 2026-06-10, `PGEN-GRAMMAR-WELLFORMED-0059`, `GRAMMAR-WELLFORMED.H.9`; found by the `H.7.2` plannable-rule reach pass — the stimuli generator as a bug-finding oracle).
+
+- **Release:** parser release `1.0.7`, contract `1.0.7`. **AST-dump schema: `5`** (was `4`).
+- **What was wrong:** a macro default argument on the **last** formal mis-parsed — `` `define M(a=x) y`` (legal IEEE 1800 §22.5.1; the LRM's own examples place defaults on the last formal) produced `formals: []` with the whole `(a=x) y` routed into the macro *body*. `macro_default_atom` carried bare `lparen`/`rparen` alternatives, and the possessive `macro_default_atom+` swallowed the formals' closing `)`, so `macro_formals?` backtracked to empty.
+- **Fixed:** the LRM-faithful balanced group `macro_default_paren_group := lparen macro_default_group_atom* rparen -> {kind: "paren_group", atoms: $2}` (commas legal inside the group via `{kind: "comma"}` atoms — and only there) replaces the bare paren alternatives. An unbalanced `)` now correctly terminates the default.
+- **Breaking (the schema bump):** (1) default-on-last-formal inputs now produce structured `formals` instead of the buggy empty-formals/body-text shape; (2) paren-bearing defaults now surface one `{kind: "paren_group", atoms: [...]}` atom instead of flat `lparen`/`rparen` atoms. Every other input is byte-identical. Annotation inventory `67 → 68` (29 → 31 rules).
+- **Verified:** the decisive repro pair; `` `define M(a=(x,y)) z`` → `paren_group{text, comma, text}`; svpp certificate-coverage sweep `fully_certified=true` + `sample_parse_failures=0` at ALL 32 seeds 0–31; zero-plausible-gap gate GREEN; shape-contract GREEN (+ the `macro_default_on_last_formal` sample).
+- **Tracked:** `GRAMMAR-WELLFORMED.H.9`; ledger `SVPP-0004` (status `Released`, fixed `1.0.7`); contract § "Resolved Defects — SVPP-0004" + the schema-`5` row.
+
 ### Release 1.0.6 — `SVPP-0003` condition-comment correctness fix (AST-dump schema unchanged `4`; 67 annotations / 29 rules)
 
 The `SVPP-0003` correctness fix (landed 2026-06-09, `PGEN-GRAMMAR-WELLFORMED-0055`, `GRAMMAR-WELLFORMED.H.5.5`).

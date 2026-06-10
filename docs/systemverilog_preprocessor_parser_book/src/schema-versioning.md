@@ -6,17 +6,17 @@ This chapter explains how the PGEN sv_preprocessor parser's AST shape is version
 
 The sv_preprocessor parser carries **two** version numbers:
 
-1. **Parser release version** — currently `1.0.6`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
-2. **AST-dump schema version** — currently `4`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to. (Schema `4` lands at release `1.0.5`: `condition_text` gained a `-> $text` annotation, so a `condition_atom` "text" atom's `body` is now a flat matched-text string instead of the raw envelope — see the timeline's schema-`4` row. **Release `1.0.6` keeps schema `4`**: the `SVPP-0003` `condition_text` comment-awareness fix accepted strictly more input — a block comment with an operator char inside an `` `ifdef``/`` `elsif`` condition now parses — without changing any observable output shape, so it did **not** bump the schema. Schema `3` spanned releases `1.0.3`–`1.0.4`: the `1.0.4` `SVPP-0002` macro-comment correctness fix was the same shape-neutral kind.)
+1. **Parser release version** — currently `1.0.7`. Tracks the parser library's release identity. Bumped on every functional change to the parser, including bug fixes, perf work, and grammar changes.
+2. **AST-dump schema version** — currently `5`. Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to. (Schema `4` lands at release `1.0.5`: `condition_text` gained a `-> $text` annotation, so a `condition_atom` "text" atom's `body` is now a flat matched-text string instead of the raw envelope — see the timeline's schema-`4` row. **Release `1.0.6` keeps schema `4`**: the `SVPP-0003` `condition_text` comment-awareness fix accepted strictly more input — a block comment with an operator char inside an `` `ifdef``/`` `elsif`` condition now parses — without changing any observable output shape, so it did **not** bump the schema. Schema `3` spanned releases `1.0.3`–`1.0.4`: the `1.0.4` `SVPP-0002` macro-comment correctness fix was the same shape-neutral kind.)
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two numbers move independently.
 
 These numbers are taken from the integration contract's "Contract Identity" section, which records:
 
-- Contract version: `1.0.6`
-- Parser release version: `1.0.6`
-- systemverilog_preprocessor AST-dump schema version: `4` (first release `1.0.5`; release `1.0.6` keeps schema `4` — the `SVPP-0003` `condition_text` comment-awareness fix is strictly-more-permissive and shape-neutral)
-- Annotation count: **67** (across 29 distinct rules — 65 `return_object` + 1 `return_array` + 1 `return_scalar` [`condition_text -> $text`]. Unchanged by `1.0.6`.)
+- Contract version: `1.0.7`
+- Parser release version: `1.0.7`
+- systemverilog_preprocessor AST-dump schema version: `5` (first release `1.0.7` — the `SVPP-0004` macro-default balanced-parentheses correction; see the contract's schema-`5` row)
+- Annotation count: **68** (across 31 distinct rules — 65 `return_object` + 1 `return_array` + 2 `return_scalar` [`condition_text -> $text` and `macro_default_group_atom -> $1`])
 
 The contract document `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md` is the authoritative source for all of these per release.
 

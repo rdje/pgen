@@ -138,10 +138,23 @@ macro_default_atom := macro_token_paste -> {kind: "token_paste"}
                     | macro_stringize   -> {kind: "stringize"}
                     | macro_reference   -> {kind: "macro_reference", body: $1}
                     | macro_default_text -> {kind: "text",  body: $1}
-                    | lparen            -> {kind: "lparen"}
-                    | rparen            -> {kind: "rparen"}
+                    | macro_default_paren_group
                     | question          -> {kind: "question"}
                     | colon             -> {kind: "colon"}
+
+# GRAMMAR-WELLFORMED.H.9 (SVPP-0004): IEEE 1800 §22.5.1 — a macro default may contain a
+# comma or right parenthesis only INSIDE "a balanced pair of parentheses". The former
+# bare `lparen`/`rparen` alternatives above let the possessive `macro_default_atom+`
+# swallow the FORMALS' closing `)` (so a default on the LAST formal — legal, used by
+# the LRM's own examples — re-routed the whole `(...)` into the macro body with
+# `formals: []`). A balanced group consumes only its own parentheses, so an unbalanced
+# `)` correctly terminates the default; commas are legal inside the group (and only
+# there), per the same LRM sentence. Found by the H.7.2 plannable-rule reach pass
+# (the parsed-but-routed-elsewhere verdict on `macro_default_text`).
+macro_default_paren_group := lparen macro_default_group_atom* rparen
+                          -> {kind: "paren_group", atoms: $2}
+macro_default_group_atom := macro_default_atom -> $1
+                         | comma -> {kind: "comma"}
 
 # Comment-aware (SV-EXH-PROOF.2.3.1, PGEN-SV-EXH-PROOF-0008): a run of
 # allowed chars, but a `/* ... */` block comment is matched ATOMICALLY

@@ -88,12 +88,29 @@
       "current_content_kind": "json_object",
       "drift_status": "aligned",
       "drift_tracked_in": "PGEN-GRAMMAR-WELLFORMED-0055 / GRAMMAR-WELLFORMED.H.5.5: condition_text made comment-aware (the sibling of the SVPP-0002 macro_body_text/macro_default_text fix it was missed by) AND its now-redundant leading inline_trivia dropped to keep generation round-trip self-consistent. A block comment containing an operator char (`(`,`)`,`?`,`:`,`!`,`|`,`&`) or backtick inside an `ifdef/`elsif condition is valid SV and now parses to the standard {type,items} shape (was wrongly rejected at release 1.0.5). Release 1.0.5->1.0.6; AST-dump schema unchanged (4); annotation inventory unchanged (67/29); condition_text still `-> $text` (the matched span is identical for every previously-parseable input)."
+    },
+    {
+      "name": "macro_default_on_last_formal",
+      "input": "`define M(a=(x,y)) z\n",
+      "rule_under_test": "systemverilog_preprocessor_file",
+      "declared_annotation": "{type: \"systemverilog_preprocessor_file\", items: $1}",
+      "expected_content_kind": "json_object",
+      "expected_json_object_keys_present": [
+        "type",
+        "items"
+      ],
+      "expected_json_object_string_values": {
+        "type": "systemverilog_preprocessor_file"
+      },
+      "current_content_kind": "json_object",
+      "drift_status": "aligned",
+      "drift_tracked_in": "PGEN-GRAMMAR-WELLFORMED-0059 / GRAMMAR-WELLFORMED.H.9 (ledger SVPP-0004): a macro default argument on the LAST formal — legal IEEE 1800 §22.5.1, used by the LRM's own examples — previously MIS-PARSED to formals=[] with the whole '(...)' routed into the macro body, because macro_default_atom's bare lparen/rparen alternatives let the possessive macro_default_atom+ swallow the formals' closing ')'. Fixed by the LRM-faithful balanced group macro_default_paren_group := lparen macro_default_group_atom* rparen -> {kind: 'paren_group', atoms: $2} (commas legal inside the group and only there). Found by the H.7.2 plannable-rule reach pass. Release 1.0.6->1.0.7; AST-dump schema 4->5 (paren-bearing defaults: flat lparen/rparen kinds -> one paren_group atom; default-bearing last formals: body-text -> structured formals); annotation inventory 67->68."
     }
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/systemverilog_preprocessor_return_annotations.json",
     "optional_grammar_json_crosscheck": "generated/systemverilog_preprocessor.json",
-    "extracted_at": "2026-05-17",
+    "extracted_at": "2026-06-10",
     "annotations": [
       {
         "annotation_type": "return_object",
@@ -277,27 +294,33 @@
       },
       {
         "annotation_type": "return_object",
-        "branch_index": 4,
-        "normalized_text": "{kind: \"lparen\"}",
-        "rule": "macro_default_atom"
-      },
-      {
-        "annotation_type": "return_object",
         "branch_index": 5,
-        "normalized_text": "{kind: \"rparen\"}",
-        "rule": "macro_default_atom"
-      },
-      {
-        "annotation_type": "return_object",
-        "branch_index": 6,
         "normalized_text": "{kind: \"question\"}",
         "rule": "macro_default_atom"
       },
       {
         "annotation_type": "return_object",
-        "branch_index": 7,
+        "branch_index": 6,
         "normalized_text": "{kind: \"colon\"}",
         "rule": "macro_default_atom"
+      },
+      {
+        "annotation_type": "return_scalar",
+        "branch_index": 0,
+        "normalized_text": "$1",
+        "rule": "macro_default_group_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 1,
+        "normalized_text": "{kind: \"comma\"}",
+        "rule": "macro_default_group_atom"
+      },
+      {
+        "annotation_type": "return_object",
+        "branch_index": 0,
+        "normalized_text": "{kind: \"paren_group\", atoms: $2}",
+        "rule": "macro_default_paren_group"
       },
       {
         "annotation_type": "return_object",

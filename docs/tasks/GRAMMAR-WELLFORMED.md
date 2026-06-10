@@ -1036,7 +1036,7 @@ subtle dead branch"), never a silent accept.
     NEW leaf `H.9` (svpp grammar fix + release/ledger/contract/book lockstep; fixing it should take
     the svpp sweep to 32/32 fully_certified).`
     Commit: `PGEN-GRAMMAR-WELLFORMED-0058`.
-- `H.9` — **`pending` (svpp PARSER BUG, found by H.7.2's plannable-rule reach pass): a default
+- `H.9` — **`done` (`PGEN-GRAMMAR-WELLFORMED-0059`, svpp PARSER BUG, found by H.7.2's plannable-rule reach pass): a default
   argument on the LAST macro formal mis-parses — `` `define M(a=x) y`` yields formals=[] with
   "(a=x) y" as macro BODY text (legal per IEEE 1800 §22.5.1; the LRM's own examples put defaults on
   the last formal).** Decisive minimal repro pair: `` `define M(a=x) y`` WRONG (formals=[]) vs
@@ -1052,7 +1052,25 @@ subtle dead branch"), never a silent accept.
   be assessed (the atoms' kinds change for paren-bearing defaults). Acceptance: repro pair correct;
   svpp cert-coverage sweep 0–31 fully_certified 32/32 (closes the H.7.2 residual + H.5.4
   completely); svpp zero-plausible-gap + shape-contract + cross-grammar byte-identical; lib green;
-  full lockstep. Verification: pending. Commit: pending.
+  full lockstep.
+  Verification: `done — GRAMMAR-ONLY FIX exactly as designed: macro_default_paren_group :=
+  lparen macro_default_group_atom* rparen -> {kind:"paren_group", atoms:$2} with
+  macro_default_group_atom := macro_default_atom -> $1 | comma -> {kind:"comma"} replacing the bare
+  lparen/rparen alternatives (commas legal inside the group AND ONLY there — both halves of the LRM
+  22.5.1 "balanced pair" sentence modeled exactly). VERIFIED: repro pair — the last-formal default
+  now parses formals=[{a, default text "x"}] body "y" (was formals=[] + body-text); the non-last
+  default unchanged-correct; a paren/comma default yields paren_group{text "x", comma, text "y"}.
+  **svpp cert-coverage sweep: fully_certified=true + sample_parse_failures=0 at ALL 32 seeds 0–31**
+  (was 25/32 — closes the H.7.2 residual AND H.5.4 COMPLETELY; svpp is now seed-robustly
+  UNKNOWN=0). sv_preprocessor_zero_plausible_gap_proof_gate GREEN; svpp AST shape-contract GREEN
+  (manifest inventory synced 67→68 + new macro_default_on_last_formal sample); dual-feature lib
+  721/0; full workspace 761/0; svpp book gate GREEN (HTML regenerated); clippy strict-source clean.
+  LOCKSTEP: svpp release 1.0.6→1.0.7, AST-dump schema 4→5 (breaking for the two buggy shapes only:
+  default-on-last-formal empty-formals/body-text → structured formals; paren-bearing defaults flat
+  lparen/rparen atoms → one paren_group atom), annotation inventory 67→68 (29→31 rules); contract
+  identity + schema-5 row + "Resolved Defects — SVPP-0004" section; ledger SVPP-0004 row; svpp book
+  changelog-index (Release 1.0.7 entry) + schema-versioning identity + tracked HTML.`
+  Commit: `PGEN-GRAMMAR-WELLFORMED-0059`.
 - `H.8` — **`done` (generator-faithfulness FIX): Defect A — literal-hint renders bypass the
   lexical tail-state update → adjacent-item keyword fusion → SV cert-coverage `sample_parse_failures`.**
   The deferred ticket from `SV-PARSE-STRICT` ("The two distinct defects", Defect A; deferred behind the
