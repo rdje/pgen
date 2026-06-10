@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.4 — the parked removal and the non-transactional flags (PGEN-GRAMMAR-WELLFORMED-0069)
+
+### A canonical-seed triple is not a metric when the defect class is pervasive
+The whole H.11 lane had been reading vhdl spf as "(0,2,0) — seed-7 quirk, ticketed". One 16-seed sweep showed the truth: 15 failures across 16 seeds on the UNCHANGED grammar — a ~1/seed class where any sample perturbation reshuffles which canonical seeds light up. Two consequences: (1) per-seed triple deltas across a generation-side change are sample noise, not signal — only class rates (sweeps) are comparable; (2) "spf=0 at seed 0" was luck, not cleanliness. The locked program's spf criterion needs the sweep lens from now on.
+
+### Reaching the goal metric is not the same as earning it
+The white_space removal genuinely reached vhdl `fully_certified` at all three canonical seeds — and was still the wrong thing to land, because the same measurement showed it doubling a known defect-class's exposure. The UNKNOWN=0 milestone stays parked behind the class fix. Keeping a goal-metric win that degrades an adjacent honest metric is exactly the masking the doctrine forbids.
+
+### The third transactional-record instance — now at the render layer
+Semantic facts (.36.4), coverage records (H.10.2.2), and now the generator's word-shape flags: every per-rule record that survives speculative work must be captured and replayed/restored at the discard boundary. The flags case is subtler than the previous two because Or-selection keeps a LOSER's flags when the winner rendered earlier — so the fix shape is "capture per candidate, restore the chosen one's pair", not just save/restore. The failed segment-derived-tail candidate taught why: changing the DERIVATION semantics globally (instead of fixing the staleness) moved SV by −43 witnesses and rtl_frontend by +9 spf/seed. Fix the lifecycle, not the meaning.
+
+### An hour lost to a macro shadow — write it down
+`mod.rs` shadows `eprintln!` into the debug-level trace sink, so every probe added inside the lib was silently verbosity-gated while bin-side probes printed — which read exactly like "this function never executes". Three rebuilds, one clean rebuild, and an incremental-cache purge later, the answer was one `macro_rules!` line. The general lesson survives beyond this repo: when prints contradict control flow, suspect the printing mechanism before the control flow — and in THIS repo, use `::std::eprintln!` or the trace macros deliberately.
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.11.3 — the vhdl based-literal released-parser fix (PGEN-GRAMMAR-WELLFORMED-0067)
 
 ### Read the emitted code before instrumenting it
