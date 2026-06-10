@@ -106,6 +106,7 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
 ## Decisions
 
 - `2026-05-31`: Created as a thin owning skeleton by `TASKTREE-GOV.2` to own the user's stimuli-generator-signoff vision. `SV-EXH-PROOF.7` (close `focused_replay_target_debt_zero`) feeds this tree: its generator limitations are audit data points, but `.7` itself stays owned by SV-EXH-PROOF (SV closure) — STIMULI-SIGNOFF owns the GENERAL capability-gap closure.
+- `2026-06-10` (audit data point from `GRAMMAR-WELLFORMED.H.10.2.3`, tool-proven): **the generator cannot materialize parser-side BUILTIN primitives, and negative-lookahead guards are generation-blind.** `builtin_any_char`/`builtin_ascii_char` are codegen-native matchers with no grammar definition and no generator special-case — `generate_rule("builtin_any_char")` errors `Missing rule`, so every rule body referencing them is ungeneratable (regex `unicode_char`; also why `comment_text`, the callout/directive payloads only ever generate EMPTY via their `*`-quantifiers). Additionally `ASTNode::Lookahead → Ok("")` (`stimuli_generator.rs`) means a `!X Y` idiom's guard is never honoured when materializing `Y`. The signoff-grade capability would be: (a) generator-side materializers for the builtin primitives, (b) lookahead-guard-aware terminal choice (materialize `Y` such that `X` does not match). Worked around declaratively in `H.10.2.3` via a rule-level `@sample` witnessing literal — adequate for cert-coverage, but the general capability belongs here when prioritized.
 
 ## Open Questions
 

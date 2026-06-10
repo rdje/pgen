@@ -315,14 +315,16 @@ certificate-coverage gate**; only the internal meta/annotation grammars (`ebnf`,
 reported* `UNKNOWN` backlog still being driven toward zero — a *loud, specific* list of fragments still
 awaiting a witness, never hidden, because the gate never pretends a grammar is fully certified until every
 fragment carries a checked certificate. The per-grammar drives keep shrinking it: `regex`, for example, has
-moved `98 → 19 → 7 → 5 → 3` (the `19→7` slice removed twelve rules proven dead by two independent oracles;
-the `7→5` slice was a declarative grammar fix — all-branch `-> $text` on two single-char alternation rules
-so the generator renders them fused to their prefix, `\pC`/`aD`, exactly the lexical-annotations
-atomic-token rule; the `5→3` slice was the memo-hit coverage-delta replay described above — the two rules
-were *already witnessed by the accepted parses*, the record just failed to say so on memo hits). That same
-engine fix moved every other backlog in one step with zero generation change: vhdl `31→30`, rtl_frontend
-`75→73`, SystemVerilog `738→647`. For exact current per-grammar numbers, the gate's own report is the
-authority.
+moved `98 → 19 → 7 → 5 → 3 → 2` (the `19→7` slice removed twelve rules proven dead by two independent
+oracles; the `7→5` slice was a declarative grammar fix — all-branch `-> $text` on two single-char
+alternation rules so the generator renders them fused to their prefix, `\pC`/`aD`, exactly the
+lexical-annotations atomic-token rule; the `5→3` slice was the memo-hit coverage-delta replay described
+above — the two rules were *already witnessed by the accepted parses*, the record just failed to say so on
+memo hits; the `3→2` slice was a declarative `@sample` witnessing literal on a rule the generator
+structurally could not materialize — its body references a parser-side builtin primitive with no grammar
+definition). That memo-replay engine fix also moved every other backlog in one step with zero generation
+change: vhdl `31→30`, rtl_frontend `75→73`, SystemVerilog `738→647`. For exact current per-grammar
+numbers, the gate's own report is the authority.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

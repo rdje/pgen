@@ -1204,6 +1204,13 @@ whitespace     = ' ' | '\t' | '\n' | '\r' | '\f' | '\v'
 # (the `builtin_ascii_char` lookahead rejects ASCII; `builtin_any_char` then consumes the one
 # non-ASCII char). `$2` returns the matched char (the lookahead is positional element $1). Native —
 # no Rust regex.
+# GRAMMAR-WELLFORMED.H.10.2.3: `builtin_any_char` is a parser-side native primitive with no grammar
+# definition, so the stimuli generator cannot materialize this rule's body (`Missing rule` — and the
+# `!builtin_ascii_char` guard is generation-blind anyway): every expansion chain referencing
+# unicode_char used to backtrack, leaving the rule un-witnessable. The rule-level `@sample` literal
+# (one representative non-ASCII char, U+00E9 é) is the declarative witnessing fix — zero generation
+# diversity is lost (there was none, only errors), and the parser-side accept-set is untouched.
+@sample: "é"
 unicode_char   = !builtin_ascii_char builtin_any_char -> $2
 
 # REGEX-SELF-HOSTING.5b: the `any_char` RULE (the escape/code catch-all; NOT the `builtin_any_char`

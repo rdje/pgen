@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.10.2.3 — the unicode_char witnessing literal (PGEN-GRAMMAR-WELLFORMED-0062)
+
+### Declarative-first held, with the engine lane honestly ticketed
+The "is there already a declarative construct?" question (the standing startup-read lesson) had a clean answer here: `@sample` exists, is rule-level-supported on this rule shape, and the H.5.3 precedent (svpp witnessing samples) is exactly this situation. The justification bar for a sample hint — parser-backed evidence, not spraying — was met by the decisive probe: generation of `unicode_char` doesn't merely under-cover, it **errors** (`Missing rule 'builtin_any_char'`), so a witnessing literal loses nothing. The general engine capability (builtin materializers + guard-aware terminal choice under `!X Y`) is real but is a designed effort, not a one-line fix — it went to STIMULI-SIGNOFF as an audit data point with the evidence attached, rather than being half-built here.
+
+### One char is enough — and which char matters a little
+`é` (U+00E9, 2 UTF-8 bytes) was chosen as the canonical witnessing literal: small, stable, in the repo's existing test vocabulary (`café` in the registry tests), and unambiguously non-ASCII so it can only parse through `unicode_char`. The cert-coverage seeds' `spf=0` is the parser-side proof that the hint participates correctly in boundary tracking (H.8's tail-shape recording applies to hint renders).
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.10.2.2 — the memo-hit coverage-delta replay (PGEN-GRAMMAR-WELLFORMED-0061)
 
 ### The label was wrong; the probes told the truth
