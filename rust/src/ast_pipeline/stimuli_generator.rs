@@ -1095,7 +1095,51 @@ struct ActiveReachPlan {
     /// (`from_directives` never fills it), so existing reach-plan replay is
     /// byte-identical by construction.
     forced_quantifier_min: HashMap<(String, String), usize>,
+    /// GRAMMAR-WELLFORMED.C2.2: optional semantic-prelude spec for a count-gated
+    /// target (a rule on the plan path carrying a `fact_count_at_least(K, $ref)`
+    /// post-predicate). `None` for every constructor (`from_directives` never fills
+    /// it) and for every path with no count-gated rule, so all pre-C2 reach-plan
+    /// behavior is byte-identical by construction.
+    prelude: Option<ReachPrelude>,
 }
+
+/// GRAMMAR-WELLFORMED.C2.2 (semantic-prelude reach, count-gated MVP): the plan-scoped
+/// state for witnessing a rule gated by `fact_count_at_least(K, $ref)`. Such a rule is
+/// only parser-accepted when ≥ `$ref` facts of kind `K` were emitted EARLIER in the
+/// sample (regex: `\NN` needs ≥ NN capture groups before it), so the witness needs a
+/// fact-emitting PRELUDE the minimal reach derivation cannot otherwise contain.
+/// Two-phase flow (driven by `generate_plannable_rule_witnesses`):
+///   * PHASE 1 (disarmed, `iterations == 0`): the STORE-AWARE-GEN.3 count-prune is
+///     bypassed for `gated_rule` (scoped to it), and on that rule's successful
+///     generation the render + its numeric value `v` are captured into `captured`.
+///   * PHASE 2 (armed, `iterations == v`): `generate_quantified` injects `iterations`
+///     extra body iterations at `site` BEFORE the on-path iteration — each generated
+///     under `sub_plan` (body → fact-producer steering) so it emits one `K` fact —
+///     and `generate_rule` replays the captured render for `gated_rule`, so the
+///     replayed `$ref` value equals the prelude size by construction.
+/// The certifying gate's parser re-check stays the only witness judge: a
+/// mis-extracted value can only fail loudly (bounded attempts), never false-witness.
+#[derive(Debug, Clone)]
+struct ReachPrelude {
+    /// The on-path quantifier site `(rule_name, quantified-node-path)` hosting the
+    /// prelude iterations (same keying as `forced_quantifier_min`).
+    site: (String, String),
+    /// The count-gated rule on the plan path (the prune-bypass + capture + replay key).
+    gated_rule: String,
+    /// Precomputed quantified-body → fact-producer steering, installed for each
+    /// prelude iteration (carries NO prelude itself, so the logic cannot recurse).
+    sub_plan: Box<ActiveReachPlan>,
+    /// Armed prelude size (phase 2); `0` = disarmed (phase 1).
+    iterations: usize,
+    /// Phase-1 capture: the gated rule's render + its parsed numeric `$ref` value.
+    captured: Option<(String, usize)>,
+}
+
+/// GRAMMAR-WELLFORMED.C2.2: hard cap on the armed prelude size. The captured value is
+/// grammar-rendered (regex backreference digits are effectively two digits), so this is
+/// a runaway backstop, not a tuning knob; an over-cap value is simply not captured and
+/// the rule stays loudly unwitnessed.
+const REACH_PRELUDE_MAX_ITERATIONS: usize = 4096;
 
 /// SV-EXH-PROOF.7.2.3 (PGEN-SV-EXH-PROOF-0117): honest result of attempting a
 /// target-reach plan during one generation, derived from the existing coverage
@@ -1181,6 +1225,7 @@ impl ActiveReachPlan {
             baseline_selected_hits: 0,
             baseline_success_hits: 0,
             forced_quantifier_min: HashMap::new(),
+            prelude: None,
         }
     }
 
@@ -2628,11 +2673,192 @@ impl<'a> StimuliGenerator<'a> {
             self.branch_selected_hits(&plan.target_group_key, plan.target_branch_index);
         plan.baseline_success_hits =
             self.branch_success_hits(&plan.target_group_key, plan.target_branch_index);
-        for site in quantifier_sites {
-            plan.forced_quantifier_min.insert(site, 1);
+        for site in &quantifier_sites {
+            plan.forced_quantifier_min.insert(site.clone(), 1);
         }
+        // GRAMMAR-WELLFORMED.C2.2: when the path crosses a count-gated rule, attach the
+        // semantic-prelude spec (disarmed). `None` whenever no count-gated rule is on
+        // the path — every grammar without `fact_count_at_least` predicates short-
+        // circuits on the empty `gen_count_kinds` map, so this is a no-op there.
+        plan.prelude =
+            self.compute_reach_prelude(&hops, target_rule, &quantifier_sites, bypass_fuel);
         self.reach_plan = Some(plan);
         true
+    }
+
+    /// GRAMMAR-WELLFORMED.C2.2: build the semantic-prelude spec for a plannable-rule
+    /// reach plan, when (and only when) the hop path crosses a rule gated by
+    /// `fact_count_at_least(K, $ref)`:
+    ///   * `gated_rule` = the FIRST count-gated rule along the path (hop rules in
+    ///     entry→target order, then the target itself);
+    ///   * the producer = the first (sorted) rule whose `@emit_fact` specs emit `K`;
+    ///   * the prelude site = the INNERMOST on-path quantifier site whose quantified
+    ///     element is a direct rule reference from which the producer is
+    ///     graph-reachable (`reach_hops`), so prelude iterations are grammar-valid
+    ///     repetitions that each emit one `K` fact before the on-path iteration.
+    /// Returns `None` when any ingredient is missing — the plan then behaves exactly
+    /// pre-C2. Deterministic: sorted producers, path-ordered site scan.
+    fn compute_reach_prelude(
+        &self,
+        hops: &[(String, String)],
+        target_rule: &str,
+        quantifier_sites: &[(String, String)],
+        bypass_fuel: u32,
+    ) -> Option<ReachPrelude> {
+        if self.gen_count_kinds.is_empty() {
+            return None;
+        }
+        let gated_rule = hops
+            .iter()
+            .map(|(rule, _)| rule.as_str())
+            .chain(std::iter::once(target_rule))
+            .find(|rule| self.gen_count_kinds.contains_key(*rule))?;
+        let kind = self.gen_count_kinds.get(gated_rule)?.first()?;
+        let mut producers: Vec<&str> = self
+            .gen_emit_facts
+            .iter()
+            .filter(|(_, specs)| specs.iter().any(|spec| &spec.kind == kind))
+            .map(|(rule, _)| rule.as_str())
+            .collect();
+        producers.sort_unstable();
+        for (site_rule, site_path) in quantifier_sites.iter().rev() {
+            let Some(body_rule) = self.quantified_body_rule_name(site_rule, site_path) else {
+                continue;
+            };
+            for producer in &producers {
+                let Some(sub_hops) = self.reach_hops(&body_rule, producer) else {
+                    continue;
+                };
+                let mut sub_chain: Vec<ReachDirective> = Vec::new();
+                let mut sub_quantifier_sites: Vec<(String, String)> = Vec::new();
+                for (hop_rule, hop_site_path) in &sub_hops {
+                    sub_chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
+                    sub_quantifier_sites
+                        .extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
+                }
+                let mut sub_plan = ActiveReachPlan::from_directives(&sub_chain, bypass_fuel);
+                for site in sub_quantifier_sites {
+                    sub_plan.forced_quantifier_min.insert(site, 1);
+                }
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "C2 semantic-prelude spec: gated_rule='{}' kind='{}' producer='{}' site=('{}','{}') body='{}'",
+                        gated_rule, kind, producer, site_rule, site_path, body_rule
+                    ),
+                );
+                return Some(ReachPrelude {
+                    site: (site_rule.clone(), site_path.clone()),
+                    gated_rule: gated_rule.to_string(),
+                    sub_plan: Box::new(sub_plan),
+                    iterations: 0,
+                    captured: None,
+                });
+            }
+        }
+        None
+    }
+
+    /// GRAMMAR-WELLFORMED.C2.2: resolve the quantified node at `(rule, node_path)` to
+    /// the rule name of its DIRECT rule-reference body (unwrapping `Atom::Node`
+    /// grouping shells). `None` for inline-group bodies — the MVP only hosts preludes
+    /// on `rule+`-shaped sites, where one iteration == one body-rule expansion.
+    fn quantified_body_rule_name(&self, rule: &str, node_path: &str) -> Option<String> {
+        let rule_node = self.grammar_tree.get(rule)?;
+        let ASTNode::Quantified { element, .. } = self.node_at_path(rule_node, node_path)? else {
+            return None;
+        };
+        let mut current: &ASTNode = element.as_ref();
+        loop {
+            match current {
+                ASTNode::Atom { value } => match value {
+                    ASTValue::Node(inner) => current = inner.as_ref(),
+                    ASTValue::Token(parts) => {
+                        let (token_type, token_value) = Self::extract_token_pair(parts)?;
+                        return (token_type == "rule_reference"
+                            && self.grammar_tree.contains_key(token_value))
+                        .then(|| token_value.to_string());
+                    }
+                },
+                _ => return None,
+            }
+        }
+    }
+
+    /// GRAMMAR-WELLFORMED.C2.2: phase-1 scoped prune bypass — while a plannable plan
+    /// carries a prelude spec for `rule_name`, the STORE-AWARE-GEN.3 `count(K)==0`
+    /// prune must not fire for it (the prelude will satisfy the count in phase 2).
+    fn reach_prelude_bypasses_count_prune(&self, rule_name: &str) -> bool {
+        self.reach_plan
+            .as_ref()
+            .and_then(|plan| plan.prelude.as_ref())
+            .is_some_and(|prelude| prelude.gated_rule == rule_name)
+    }
+
+    /// GRAMMAR-WELLFORMED.C2.2: phase-2 replay — the captured render for an ARMED
+    /// prelude's gated rule (so the replayed `$ref` value equals the prelude size).
+    fn reach_prelude_replay_text(&self, rule_name: &str) -> Option<String> {
+        let prelude = self.reach_plan.as_ref()?.prelude.as_ref()?;
+        if prelude.iterations == 0 || prelude.gated_rule != rule_name {
+            return None;
+        }
+        prelude
+            .captured
+            .as_ref()
+            .map(|(text, _value)| text.clone())
+    }
+
+    /// GRAMMAR-WELLFORMED.C2.2: the ARMED prelude for a quantifier site, if any —
+    /// `(iterations, body→producer sub-plan)` consumed by `generate_quantified`.
+    fn reach_prelude_for_site(
+        &self,
+        rule: &str,
+        node_path: &str,
+    ) -> Option<(usize, Box<ActiveReachPlan>)> {
+        let prelude = self.reach_plan.as_ref()?.prelude.as_ref()?;
+        if prelude.iterations == 0 || prelude.site.0 != rule || prelude.site.1 != node_path {
+            return None;
+        }
+        Some((prelude.iterations, prelude.sub_plan.clone()))
+    }
+
+    /// GRAMMAR-WELLFORMED.C2.2: phase-1 capture — record the gated rule's render plus
+    /// its numeric `$ref` value (first maximal decimal run; `fact_count_at_least`
+    /// compares numerically, and the gated rule's render contains that scalar). A
+    /// mis-extraction can only fail loudly at the parser re-check, never
+    /// false-witness. First capture wins; over-cap / zero values are not captured.
+    fn reach_prelude_capture(&mut self, rule_name: &str, sample: &str) {
+        let Some(prelude) = self
+            .reach_plan
+            .as_mut()
+            .and_then(|plan| plan.prelude.as_mut())
+        else {
+            return;
+        };
+        if prelude.gated_rule != rule_name || prelude.captured.is_some() {
+            return;
+        }
+        let digits: String = sample
+            .chars()
+            .skip_while(|c| !c.is_ascii_digit())
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
+        let Ok(value) = digits.parse::<usize>() else {
+            return;
+        };
+        if value == 0 || value > REACH_PRELUDE_MAX_ITERATIONS {
+            return;
+        }
+        prelude.captured = Some((sample.to_string(), value));
+        self.trace(
+            TraceLevel::Debug,
+            format_args!(
+                "C2 semantic-prelude capture: rule='{}' value={} render_len={}",
+                rule_name,
+                value,
+                sample.len()
+            ),
+        );
     }
 
     /// GRAMMAR-WELLFORMED.H.7.2: the plannable-rule witness driver — for each target rule
@@ -2709,6 +2935,22 @@ impl<'a> StimuliGenerator<'a> {
                     Err(_) => {
                         last_parsed_not_witnessed = false;
                         report.generation_failures += 1;
+                    }
+                }
+                // GRAMMAR-WELLFORMED.C2.2: once phase 1 has captured the count-gated
+                // rule's `$ref` value, ARM the semantic prelude for the remaining
+                // attempts (the phase-1 probe itself is expected not to re-parse —
+                // it lacks the source facts — and lands in the auxiliary
+                // `probe_parse_failures`, never in the certification number).
+                if let Some(prelude) = self
+                    .reach_plan
+                    .as_mut()
+                    .and_then(|plan| plan.prelude.as_mut())
+                {
+                    if prelude.iterations == 0 {
+                        if let Some((_, value)) = &prelude.captured {
+                            prelude.iterations = *value;
+                        }
                     }
                 }
             }
@@ -5424,13 +5666,40 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
+        // GRAMMAR-WELLFORMED.C2.2 (phase 2): an ARMED semantic prelude replays the
+        // phase-1-captured render for the count-gated rule, so the replayed `$ref`
+        // value equals the prelude size by construction. Same bookkeeping as the
+        // literal-hint route above (success recording, follow restriction, tail
+        // word-shape, atomicity flag). Plan-scoped: `None` everywhere outside an
+        // armed plannable-rule reach plan.
+        if let Some(captured_text) = self.reach_prelude_replay_text(rule_name) {
+            self.trace(
+                TraceLevel::Debug,
+                format_args!(
+                    "C2 semantic-prelude replay: rule='{}' depth={} render='{}'",
+                    rule_name, depth, captured_text
+                ),
+            );
+            self.coverage.record_rule_success(rule_name);
+            self.last_terminal_from_atomic_rule = is_atomic;
+            let rendered = self.apply_lexical_follow_restriction(rule_name, captured_text);
+            self.last_terminal_word_shaped = Self::literal_hint_tail_word_shaped(&rendered);
+            return Ok(rendered);
+        }
+
         // STORE-AWARE-GEN.3: a rule gated by `fact_count_at_least(K, $ref)` is UNSATISFIABLE when no
         // `K` fact has been emitted yet (no positive reference can match an empty fact set) — fail
         // BEFORE generating so the caller's `generate_or` (which retries the next branch) backtracks to
         // a satisfiable alternative (e.g. a single-digit `\1`, or generating a capture group first).
         // This is the generation-side dual of the parser's post-predicate `Backtrack`. Gated on
         // `store_aware_gen` (regex-only) → byte-identical for predicate-free grammars.
-        if self.store_aware_gen && !self.gen_count_predicate_satisfiable(rule_name) {
+        // GRAMMAR-WELLFORMED.C2.2 (phase 1): bypassed — scoped to the plan's own
+        // count-gated rule — while a plannable reach plan carries a prelude spec, so
+        // the gated rule can be generated once and its `$ref` value captured.
+        if self.store_aware_gen
+            && !self.reach_prelude_bypasses_count_prune(rule_name)
+            && !self.gen_count_predicate_satisfiable(rule_name)
+        {
             self.trace(
                 TraceLevel::Debug,
                 format_args!(
@@ -5475,6 +5744,12 @@ impl<'a> StimuliGenerator<'a> {
             // `regex_capture_group` fact so a later backreference can be validated against the count.
             if self.store_aware_gen {
                 self.gen_emit_facts_for_rule(rule_name);
+            }
+            // GRAMMAR-WELLFORMED.C2.2 (phase 1): capture the count-gated rule's render
+            // + numeric `$ref` value for the prelude arming. Plan-scoped no-op
+            // everywhere else (first guard inside is the prelude spec's existence).
+            if let Ok(sample) = &result {
+                self.reach_prelude_capture(rule_name, sample);
             }
         }
         match &result {
@@ -6738,6 +7013,58 @@ impl<'a> StimuliGenerator<'a> {
             let mut output = String::new();
             let mut failed = false;
             let mut prev_tail_ws = false;
+            // GRAMMAR-WELLFORMED.C2.2 (phase 2): an ARMED semantic prelude injects
+            // `iterations` extra body expansions at this site BEFORE the on-path
+            // iteration(s) — each generated under the body→producer sub-plan (the
+            // main plan saved/restored around each), so every prelude iteration
+            // emits one source fact and the later count-gated render is
+            // parser-satisfiable. Plan-scoped: `None` outside an armed plan, so all
+            // other quantified generation is untouched.
+            if let Some((prelude_iterations, sub_plan)) =
+                self.reach_prelude_for_site(current_rule, node_path)
+            {
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "C2 semantic-prelude injection: rule='{}' path='{}' iterations={}",
+                        current_rule, node_path, prelude_iterations
+                    ),
+                );
+                for _ in 0..prelude_iterations {
+                    self.enforce_generation_deadline(current_rule, &quantified_path)?;
+                    let saved_plan = self.reach_plan.take();
+                    self.reach_plan = Some((*sub_plan).clone());
+                    let prelude_result = self.generate_node(
+                        element,
+                        current_rule,
+                        depth + 1,
+                        call_stack,
+                        &quantified_path,
+                    );
+                    self.reach_plan = saved_plan;
+                    match prelude_result {
+                        Ok(generated) => {
+                            if self.should_insert_quantified_separator(
+                                current_rule,
+                                element,
+                                output.as_str(),
+                                &generated,
+                            ) {
+                                output.push('\n');
+                            }
+                            self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws)
+                        }
+                        Err(err) => {
+                            failed = true;
+                            last_error = Some(err);
+                            break;
+                        }
+                    }
+                }
+                if failed {
+                    continue;
+                }
+            }
             for _ in 0..repeats {
                 self.enforce_generation_deadline(current_rule, &quantified_path)?;
                 match self.generate_node(
@@ -13141,6 +13468,134 @@ mod tests {
         );
         assert!(generator.gen_count_kinds.is_empty());
         assert!(generator.gen_emit_facts.is_empty());
+    }
+
+    #[test]
+    fn semantic_prelude_witnesses_count_gated_rule() {
+        // GRAMMAR-WELLFORMED.C2.2: the end-to-end two-phase semantic-prelude flow on a
+        // synthetic count-gated grammar (the regex store-gated pair's exact shape, no
+        // grammar names): `gated := "#" two_digits` needs ≥ NN `producer` facts BEFORE
+        // it, `two_digits` is two+ digits, so phase 1 captures the rendered value and
+        // phase 2 injects exactly that many producer iterations at the on-path
+        // quantifier site before replaying the captured render.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("item")),
+                quantifier: "+".to_string(),
+            },
+        );
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("producer"), rule_ref("gated")],
+            },
+        );
+        grammar_tree.insert(
+            "producer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "("), token("string", ")")],
+            },
+        );
+        grammar_tree.insert(
+            "gated".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "#"), rule_ref("two_digits")],
+            },
+        );
+        grammar_tree.insert("two_digits".to_string(), token("regex", "[1-9][0-9]"));
+        let rule_order: Vec<String> = ["start", "item", "producer", "gated", "two_digits"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        generator.store_aware_gen = true;
+        generator
+            .gen_count_kinds
+            .insert("gated".to_string(), vec!["grp".to_string()]);
+        generator.gen_emit_facts.insert(
+            "producer".to_string(),
+            vec![SemanticFactSpec {
+                kind: "grp".to_string(),
+                name: crate::ast_pipeline::SemanticRuntimeValue::Identifier("g".to_string()),
+                attributes: vec![],
+            }],
+        );
+
+        let mut samples: Vec<String> = Vec::new();
+        let report = generator.generate_plannable_rule_witnesses(
+            "start",
+            &["gated".to_string()],
+            0,
+            4,
+            |_rule, sample| {
+                samples.push(sample.to_string());
+                // The stand-in "parser": the sample witnesses `gated` iff its `#NN`
+                // reference is covered by ≥ NN preceding `()` producer units (the
+                // same satisfaction shape as `fact_count_at_least`).
+                let Some(hash) = sample.find('#') else {
+                    return PlannableProbeVerdict::NotParsed;
+                };
+                let producers = sample[..hash].matches("()").count();
+                let digits: String = sample[hash + 1..]
+                    .chars()
+                    .take_while(|c| c.is_ascii_digit())
+                    .collect();
+                match digits.parse::<usize>() {
+                    Ok(value) if producers >= value => PlannableProbeVerdict::Witnessed,
+                    _ => PlannableProbeVerdict::NotParsed,
+                }
+            },
+        );
+
+        assert_eq!(
+            report.witnessed, 1,
+            "the count-gated rule must be witnessed via the armed prelude; samples={samples:?}"
+        );
+        assert!(
+            samples.len() >= 2,
+            "phase 1 (capture) + phase 2 (armed) probes expected: {samples:?}"
+        );
+        let witnessing = samples.last().expect("at least one probe sample");
+        let hash = witnessing
+            .find('#')
+            .expect("witnessing sample carries the gated render");
+        let producers = witnessing[..hash].matches("()").count();
+        let digits: String = witnessing[hash + 1..]
+            .chars()
+            .take_while(|c| c.is_ascii_digit())
+            .collect();
+        let value: usize = digits.parse().expect("two-digit reference");
+        assert!(
+            value >= 10,
+            "the gated render is two digits by construction: {witnessing:?}"
+        );
+        assert_eq!(
+            producers, value,
+            "phase 2 must inject exactly `value` producer iterations before the gated render: {witnessing:?}"
+        );
+    }
+
+    #[test]
+    fn reach_plan_for_rule_without_count_gated_path_has_no_prelude() {
+        // GRAMMAR-WELLFORMED.C2.2 no-op lock: a path with no count-gated rule (the
+        // universal case for every grammar without a generative `fact_count_at_least`
+        // predicate) must not attach a prelude spec — all pre-C2 reach-plan behavior
+        // is preserved by construction.
+        let grammar_tree = synthetic_reach_grammar();
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+        assert!(generator.set_reach_plan_for_rule("start", "deep", 8));
+        assert!(
+            generator
+                .reach_plan
+                .as_ref()
+                .expect("plan installed")
+                .prelude
+                .is_none(),
+            "a path with no count-gated rule must not attach a prelude spec"
+        );
     }
 
     #[test]

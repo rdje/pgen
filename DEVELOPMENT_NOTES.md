@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.C2.2 — the semantic-prelude reach lands (PGEN-GRAMMAR-WELLFORMED-0064)
+
+### The design survived contact almost intact — the one divergence is instructive
+The only live behavior the `C2.1` design mispredicted: the phase-1 probe was expected to be parser-REJECTED (`NotParsed`), but it actually PARSES — a group-less `\37` degrades to an octal escape under the RGX-0084 PCRE2-faithful re-split, so the probe routes through `octal_escape` and reports `ParsedNotWitnessed`. The flow was immune because arming was deliberately made outcome-independent (any non-witnessed attempt with a capture arms phase 2). Lesson worth keeping: when a grammar carries graceful-degrade alternatives (exactly what RGX-0084 added), "the predicate fails" does not imply "the sample rejects" — it implies "the bytes re-route". Designs over store-gated constructs should treat `ParsedNotWitnessed` as the *common* phase-1 verdict, not the corner case.
+
+### Why the reach pass reports zero probe failures on regex now
+After this slice every regex reach-pass measurement reads `0 probe samples did not re-parse, 0 generation failures`. That is not the prelude being lucky — it is the degrade-alternative absorbing phase-1 probes as parseable octal renders, plus the prelude making phase 2 deterministic. The auxiliary failure counters remain load-bearing for grammars without degrade paths (the synthetic unit test exercises the genuine `NotParsed` phase 1).
+
+### What stayed deliberately out
+No value-selection (constrain generated digits ≤ count) — the inversion (fit the count to the captured value) made it unnecessary for the count-gated family, and STORE-AWARE-GEN `.4` already established tools-first that no reachable residual needs it. No inline-group prelude sites (only direct `RuleReference` bodies qualify in the MVP) — regex's `piece+` is direct, and a future grammar that needs the inline-group case will surface it as a loud unwitnessed residual, never a silent gap.
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.C2.1 — designing the semantic-prelude reach (PGEN-GRAMMAR-WELLFORMED-0063)
 
 ### Why "generate the prelude first" is the wrong order — and inverting it dissolves the hard constraint

@@ -303,7 +303,8 @@ faithfully it matches the full JSON standard, which is measured separately again
 **Rolling the gate out per grammar (Phase H).** The certificate-coverage gate is parser-agnostic, so it is
 being wired to run for every PGEN grammar in turn (each grammar needs a small `parse_and_cover_<grammar>`
 adapter so the witness side can replay samples through that grammar's real parser). It now runs for
-`json` (fully certified), `regex`, `rtl_const_expr`, `systemverilog_preprocessor`, `rtl_frontend`
+`json` (fully certified), `regex` (now fully certified — see the drive arc below),
+`rtl_const_expr` (fully certified), `systemverilog_preprocessor` (fully certified), `rtl_frontend`
 (the ~5.5 MB synthesizable-RTL frontend parser, which runs at the default depth — its entry is a flat
 `design_item*` list — and reports `total=170 witness=37 UNKNOWN=133 (sample_parse_failures=0)`, i.e. every
 witness re-parses cleanly with a loud `UNKNOWN` backlog still to drive to zero), `systemverilog`, and
@@ -314,17 +315,21 @@ certificate-coverage gate**; only the internal meta/annotation grammars (`ebnf`,
 `return_annotation`, `semantic_annotation`) remain unwired. The other grammars carry an *honest, openly
 reported* `UNKNOWN` backlog still being driven toward zero — a *loud, specific* list of fragments still
 awaiting a witness, never hidden, because the gate never pretends a grammar is fully certified until every
-fragment carries a checked certificate. The per-grammar drives keep shrinking it: `regex`, for example, has
-moved `98 → 19 → 7 → 5 → 3 → 2` (the `19→7` slice removed twelve rules proven dead by two independent
-oracles; the `7→5` slice was a declarative grammar fix — all-branch `-> $text` on two single-char
-alternation rules so the generator renders them fused to their prefix, `\pC`/`aD`, exactly the
+fragment carries a checked certificate. The per-grammar drives keep shrinking it: `regex` has now been
+driven all the way — `98 → 19 → 7 → 5 → 3 → 2 → 0`, making **`regex` the fourth fully-certified grammar**
+(after `json`, `rtl_const_expr`, and `systemverilog_preprocessor`), deterministic across seeds with zero
+sample-parse failures. The arc's slices, in order: the `19→7` slice removed twelve rules proven dead by two
+independent oracles; the `7→5` slice was a declarative grammar fix — all-branch `-> $text` on two
+single-char alternation rules so the generator renders them fused to their prefix, `\pC`/`aD`, exactly the
 lexical-annotations atomic-token rule; the `5→3` slice was the memo-hit coverage-delta replay described
 above — the two rules were *already witnessed by the accepted parses*, the record just failed to say so on
 memo hits; the `3→2` slice was a declarative `@sample` witnessing literal on a rule the generator
 structurally could not materialize — its body references a parser-side builtin primitive with no grammar
-definition). That memo-replay engine fix also moved every other backlog in one step with zero generation
-change: vhdl `31→30`, rtl_frontend `75→73`, SystemVerilog `738→647`. For exact current per-grammar
-numbers, the gate's own report is the authority.
+definition; and the final `2→0` slice was the **semantic-prelude reach** described in the next section —
+the last two rules were gated by a semantic-store predicate no minimal derivation could satisfy. The
+memo-replay engine fix also moved every other backlog in one step with zero generation change: vhdl
+`31→30`, rtl_frontend `75→73`, SystemVerilog `738→647`. For exact current per-grammar numbers, the gate's
+own report is the authority.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
@@ -391,6 +396,37 @@ the macro body — the grammar's default-text atoms can swallow the formals' clo
 LRM requires a *balanced-parentheses* rule). The pass could not witness a shape the parser mis-parses —
 exactly the attribution rule doing its job, with the defect routed to the grammar, not papered over in
 the generator.
+
+### Reaching store-gated rules: the semantic-prelude reach
+
+One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule
+gated by a **semantic-store predicate** that no minimal derivation can satisfy. The regex grammar's
+multi-digit numeric backreference is the canonical case: `\NN` (two or more digits, so `NN ≥ 10`) is
+parser-accepted only when **at least `NN` capture groups appear earlier in the same pattern**
+(`@predicate fact_count_at_least(regex_capture_group, $index)`). The generator's store-aware mode
+correctly refuses to emit the backreference when zero groups exist — that is the round-trip-validity
+guarantee — but it means the plannable-rule pass alone can never witness the rule: the witness needs a
+**fact-emitting prelude** the minimal path does not contain.
+
+The plannable-rule pass therefore carries a plan-scoped, two-phase extension for count-gated targets:
+
+1. **Capture (phase 1).** With the count-prune bypassed *for the planned target only*, one probe
+   generates the gated rule and records its rendered text plus the numeric reference value `v` it
+   happened to produce (say `\37`). That probe is expected not to witness — it lacks the source facts —
+   and lands in the pass's auxiliary probe-failure count, never in the certification number.
+2. **Prelude + replay (phase 2).** The next probe injects exactly `v` extra iterations at the on-path
+   quantifier site, each steered (by a nested reach plan) to a rule that **emits** the consulted fact —
+   for regex, `v` capture groups, each rendering `()` — and then replays the captured text for the gated
+   rule. The result, `()()…()\37`, is a grammar-valid sample whose post-predicate holds, so the real
+   parser accepts it and the accepted parse enters the gated rules: witnessed.
+
+Fitting the count to the captured value — rather than constraining the generated value to a pre-chosen
+count — is what makes this work without any value-selection machinery: the prelude size is *derived from*
+whatever the grammar rendered. The mechanism is keyed entirely on grammar structure (the predicate's
+fact-kind, the `@emit_fact` producers, the rule-reference graph, the on-path quantifier sites), never on
+grammar names; grammars with no count-gated rules attach no prelude and behave byte-identically. And as
+everywhere in this gate, the parser stays the judge: a mis-fitted prelude can only fail loudly, never
+manufacture a false witness.
 
 ## The decidability boundary (an honest limit)
 
