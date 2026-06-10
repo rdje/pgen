@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.7.2 — the plannable-rule reach pass (PGEN-GRAMMAR-WELLFORMED-0058)
+
+### The one new capability, precisely
+`directives_along_path` realizes a reach hop by forcing the `o{i}` (ordered-choice) segments of the hop's reference-site path and DELIBERATELY ignores `q` segments — so a path crossing a `?`/`*` was only reachable if diverse generation happened to expand it. The H.7.2 plan additionally records, per crossed `q` segment, the Quantified node's own path (the prefix before the segment — exactly the `node_path` `generate_quantified` receives) in `ActiveReachPlan.forced_quantifier_min`, and `generate_quantified` consults that map FIRST (before construct-mode's `vec![min_repeat]` minimization). Gating subtleties: the lookup allocates only when a plan with a NON-empty map is installed (existing branch-target plans carry empty maps → byte-identical replay, allocation-free); the forced value clamps to `[max(min,1), bounded_max]`.
+
+### Why the OR side needed nothing new
+`generate_or`'s attempt-order chain already puts reach-plan forcing FIRST (before the witness-mode Purdom sort + construct-mode truncate arm), so a forced branch survives construct-mode's commit-to-shortest — the H.4.2 composition holds for rule-target plans unchanged.
+
+### The witness-check callback (parser stays the judge, generator stays agnostic)
+`generate_plannable_rule_witnesses` takes `witness_check: impl FnMut(&str,&str) -> PlannableProbeVerdict`; main.rs supplies parse_and_cover and unions covered rules from EVERY parsing probe (a probe that misses its target still legitimately witnesses other rules — vhdl's 37-witnessed run also flipped many non-target rules). `ParsedNotWitnessed` drives the bounded retry: the construct skeleton is deterministic but regex-terminal expansions vary per attempt (the RNG stream advances), so unlucky shapes (comment-only text re-absorbed by leading trivia on re-parse) usually converge by attempt ≤4.
+
+### The discovered svpp parser bug (seed-12-class probes that NEVER converged)
+Four probes at seed 12 all parsed-but-routed-elsewhere, including ones with real content after the comment (`/*****Z****/R`). Direct AST repro pinned it: `` `define M(a=x) y`` → `formals: []`, the whole `(a=x) y` as macro-body fragments; `` `define M(a=x,b) y`` correct. Mechanism: `macro_default_value := macro_default_atom+` is possessive and `macro_default_atom` has bare `lparen`/`rparen` alternatives (meant for nested parens) — the atom run eats the formals' CLOSING `)`, `macro_formals` can't close, the `macro_formals?` optional backtracks to empty, the directive re-parses with the parenthesized text as body. Per LRM 22.5.1 default text may contain a `)` only "inside a balanced pair" → the fix is a balanced-group atom (`macro_default_paren_group := lparen macro_default_atom* rparen`) replacing the bare paren atoms — owned by `H.9` with svpp release/ledger lockstep. NOTE the diagnosis chain: the new pass's per-rule verdict (`parsed-but-routed-elsewhere`, surfaced loudly) + the opt-in `PGEN_CERT_COVERAGE_DEBUG_PROBES` probe dump + one `--parse-dump-ast-pretty` repro — three steps from "seed 12 won't certify" to a pinned parser bug.
+
+### Refactor note
+`reach_hops` extracted from `compute_reach_path`'s BFS with directives derived at assembly time instead of discovery time — identical directive sequence (per-hop forward order, entry→target), verified by the existing reach tests + the cross-grammar matrix.
+
 ## 2026-06-10 - SV-EXH-PROOF.3.3.5 — auto-gate matcher collision fixed; full workspace green (PGEN-SV-EXH-PROOF-0155)
 
 ### The diagnosis path (why the ticket's framing was incomplete)

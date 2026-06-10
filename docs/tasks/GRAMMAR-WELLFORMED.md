@@ -982,8 +982,77 @@ subtle dead branch"), never a silent accept.
     each is non-trivial — likely cap + report what was left, never silently truncate, per
     `feedback_severity_never_gated_by_verbosity`). **Verification: N/A (pure-docs design).** Commit:
     `PGEN-GRAMMAR-WELLFORMED-0056`.
-  - `H.7.2` — **`pending` (IMPLEMENT, engine): the targeted reach plan per `.7.1`, after the director
-    resolves Q1–Q3.** Acceptance = the `.7.1` verification matrix. Verification: pending. Commit: pending.
+  - `H.7.2` — **`done` (IMPLEMENT, engine, `PGEN-GRAMMAR-WELLFORMED-0058`): the targeted reach plan per `.7.1`.** The Q1–Q3
+    design questions are RESOLVED BY THE AGENT per the director's standing "PNT yourself — do not
+    involve me unless you can't decide" instruction + [[feedback_user_is_director_not_engineer]]
+    (technical decisions with no real-world side effects are the agent's to make): **Q1** MVP scope =
+    the optional+alternation reach class ONLY (the `macro_default_text` shape; one change at a time —
+    the rule-level `reachable_rule_not_generated` class stays a follow-up leaf). **Q2** RESOLVED
+    STRONGER THAN EITHER OPTION: no new config flag at all — the forced-quantifier state is CARRIED BY
+    THE PLAN (`ActiveReachPlan.forced_quantifier_min`, empty for every existing caller), and the new
+    pass is invoked explicitly by the cert-coverage report; the no-op invariant holds STRUCTURALLY
+    (no plan installed → zero behavior change; existing plans carry empty maps → byte-identical
+    replay), which is cleaner than flag-gating and trivially A/B-isolatable. **Q3** per-rule budget =
+    ONE construct-mode attempt + ONE plan-forced search fallback (the proven witness-pass shape),
+    bounded by the witness timeout; a deterministic global attempt cap with a LOUD
+    "left unattempted" report (never silent truncation). Acceptance = the `.7.1` verification
+    matrix.
+    Verification: `done — IMPLEMENTATION (engine, parser-agnostic, all per the .7.1 design + reuse
+    story): (1) reach_hops — the compute_reach_path BFS extracted UNCHANGED so both consumers share
+    it (compute_reach_path re-verified byte-equivalent: directives derived per-hop at assembly
+    instead of discovery, identical sequence); (2) quantifier_sites_along_path — one site per "q"
+    segment, at the Quantified node's own path (the path generate_quantified receives); (3)
+    ActiveReachPlan.forced_quantifier_min — plan-carried state, EMPTY for every pre-H.7.2 caller
+    (from_directives never fills it) → existing replay byte-identical BY CONSTRUCTION; (4)
+    set_reach_plan_for_rule — rule-target plan = hop OR-directives + hop quantifier sites forced to
+    ≥1; (5) generate_quantified consults the plan FIRST (before construct-mode minimization),
+    allocation-free when no plan/empty map; (6) generate_plannable_rule_witnesses — the driver:
+    witness-mode env (Purdom ordering + depth/visit slack, all restored), per rule ≤4
+    witness-checked attempts (construct first, plan-forced search fallback on generation failure;
+    bounded 250ms each), verdicts via a CALLER callback (Witnessed/ParsedNotWitnessed/NotParsed) so
+    the generator stays parser-agnostic; (7) main.rs PASS 3 in run_certificate_coverage_report —
+    only-if-UNKNOWN-remain, unions covered rules from EVERY parsing probe, loud report line
+    (targeted/witnessed/routed-elsewhere/probe-failures/generation-failures) + loud no-path
+    dead-rule-candidate WARNING + loud global-cap leftover WARNING + opt-in
+    PGEN_CERT_COVERAGE_DEBUG_PROBES per-probe print. RESULTS (count 40, canonical seeds):
+    **regex UNKNOWN 98→19** (79 witnessed; 12 no-path = regex-literal-internal helper rules flagged
+    for linter adjudication), **vhdl 69→31**, **rtl_frontend 133→75**, **SV 1134→738** (24s
+    wall; 68 no-path = the multi-entry/number-literal family, A2.1 territory), **svpp
+    fully_certified at 25/32 seeds** (closes the H.5.4 seed-1 gap; the 7 residual seeds are ALL
+    UNKNOWN=1 macro_default_text). INVARIANTS: sample_parse_failures=0 preserved on EVERY grammar
+    (the diverse pass untouched — pass-3 probe failures reported separately); json+rtl_const_expr
+    stay fully_certified; determinism (seed re-run byte-identical); lib 629/0 no-features + 721/0
+    dual-feature (+3 new tests: quantifier_sites_along_path extraction, the optional-gated
+    end-to-end miniature incl. no_path reporting, retry-loop verdicts); full workspace 761/0;
+    stimuli_cross_family_platform_gate PASS; clippy strict-source clean.
+    **🐛 DISCOVERED PARSER BUG (the pass acting as the bug-finding oracle — the seed-12-class
+    probes' parsed-but-routed-elsewhere verdict pointed straight at it):** legal IEEE 1800
+    §22.5.1 `` `define M(a=x) y`` (default argument on the LAST formal) MIS-PARSES — decisive AST
+    repro shows formals=[] and "(a=x) y" routed into the macro BODY, while `` `define M(a=x,b) y``
+    parses correctly. Mechanism: macro_default_atom's bare rparen alternative + possessive PEG `+`
+    lets macro_default_atom+ swallow the formals' closing ")" → macro_formals? backtracks to empty
+    → body fallback. LRM 22.5.1: default text excludes a right parenthesis "not inside a balanced
+    pair" — the grammar needs a BALANCED paren group atom, not bare lparen/rparen atoms. Owned by
+    NEW leaf `H.9` (svpp grammar fix + release/ledger/contract/book lockstep; fixing it should take
+    the svpp sweep to 32/32 fully_certified).`
+    Commit: `PGEN-GRAMMAR-WELLFORMED-0058`.
+- `H.9` — **`pending` (svpp PARSER BUG, found by H.7.2's plannable-rule reach pass): a default
+  argument on the LAST macro formal mis-parses — `` `define M(a=x) y`` yields formals=[] with
+  "(a=x) y" as macro BODY text (legal per IEEE 1800 §22.5.1; the LRM's own examples put defaults on
+  the last formal).** Decisive minimal repro pair: `` `define M(a=x) y`` WRONG (formals=[]) vs
+  `` `define M(a=x,b) y`` correct (formals=[{a,default x},{b}]). ROOT CAUSE (pinned):
+  `macro_default_value := macro_default_atom+` is possessive (PEG), and `macro_default_atom`
+  includes bare `lparen`/`rparen` alternatives (meant for nested parens in default text) — the atom
+  run swallows the formals' CLOSING ")" so `macro_formals := lparen … rparen` can't close and the
+  whole `macro_formals?` optional backtracks to empty. FIX DIRECTION (grammar-only, LRM-faithful):
+  replace the bare `lparen`/`rparen` atoms with a BALANCED paren group
+  (`macro_default_paren_group := lparen macro_default_atom* rparen`) per LRM 22.5.1's "balanced
+  pair" rule — an unbalanced ")" then correctly terminates the default. Consumer-visible accept-set
+  correction → svpp release bump + ledger SVPP-0004 + contract/book lockstep; AST shape impact to
+  be assessed (the atoms' kinds change for paren-bearing defaults). Acceptance: repro pair correct;
+  svpp cert-coverage sweep 0–31 fully_certified 32/32 (closes the H.7.2 residual + H.5.4
+  completely); svpp zero-plausible-gap + shape-contract + cross-grammar byte-identical; lib green;
+  full lockstep. Verification: pending. Commit: pending.
 - `H.8` — **`done` (generator-faithfulness FIX): Defect A — literal-hint renders bypass the
   lexical tail-state update → adjacent-item keyword fusion → SV cert-coverage `sample_parse_failures`.**
   The deferred ticket from `SV-PARSE-STRICT` ("The two distinct defects", Defect A; deferred behind the
@@ -1490,6 +1559,15 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions
+- `2026-06-10`: **H.7.1's Q1–Q3 resolved by the agent** under the director's standing "PNT yourself —
+  do not involve me unless you can't decide" instruction + [[feedback_user_is_director_not_engineer]]
+  (pure technical choices, no real-world side effects). Q1: MVP = optional+alternation class only
+  (rule-level `reachable_rule_not_generated` = follow-up). Q2: superseded BOTH proposed options — no
+  config flag at all; the forced-quantifier state is carried BY the plan
+  (`ActiveReachPlan.forced_quantifier_min`, empty for every existing caller) and the pass is invoked
+  explicitly by the report, so the no-op invariant holds structurally. Q3: per-rule ≤4 witness-checked
+  attempts à ≤250ms + a 4096-rule global cap with a loud left-unattempted WARNING (never silent).
+  Recorded in the `H.7.2` leaf; the implementation commit is `PGEN-GRAMMAR-WELLFORMED-0058`.
 - `2026-06-06`: **Extended director brainstorm on linter TRUSTWORTHINESS** → Phase G (the certifying
   linter) + [[feedback_unreachable_target_attribution_rule]] + [[feedback_certifying_linter_trustworthiness]].
   Crystallized: the linter is the fulcrum (prover + adjudicator + theorem-maker) → must be never-doubted

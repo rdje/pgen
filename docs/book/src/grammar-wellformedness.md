@@ -340,6 +340,37 @@ Two properties keep this honest and safe:
   modules, the cross-family and oracle gates) is unaffected and byte-identical — the reach behaviour is a
   property of the witness pass alone.
 
+### Reaching optional-gated rules: the plannable-rule reach pass
+
+The recursive-depth case above is not the common shape of the residual `UNKNOWN`. Most never-witnessed
+rules are *non*-recursive and perfectly shallow — they are simply gated by **un-taken optionals and
+un-selected alternation branches** (the SystemVerilog-preprocessor `macro_default_text` is the canonical
+example: two gating `?` optionals plus an 8-way choice). A bounded diverse pass can miss such a rule at
+some seeds, and the recursive-reach pass above is structurally inapplicable (nothing depth-exhausts,
+nothing recurses).
+
+The certificate-coverage report therefore runs a **third pass** when `UNKNOWN` rules remain: for each
+still-unwitnessed rule it computes the rule-reference path from the entry, installs a reach plan that
+forces every ordered-choice decision **and every quantifier that path crosses to expand at least once**
+(minimal generation alone would expand `?`/`*` to zero — the exact opposite of what an optional-gated
+target needs), and generates a minimal candidate witness. The parser remains the judge: a probe only
+counts when the sample **re-parses and the accepted parse actually entered the target rule**. A probe can
+parse yet have its bytes routed through *other* rules — the report calls this `parsed-but-routed-elsewhere`
+and retries a bounded number of times (terminal expansions vary per attempt while the structural skeleton
+stays deterministic). Rules with **no path** in the rule-reference graph are flagged loudly as dead-rule
+candidates for linter adjudication, and any rules beyond the pass's global attempt cap are reported as
+left unattempted — never silently dropped.
+
+The first run of this pass moved the per-grammar `UNKNOWN` backlog substantially in one step — regex
+98→19, VHDL 69→31, rtl_frontend 133→75, SystemVerilog 1134→738 — with every grammar's
+`sample_parse_failures` untouched. It also demonstrated the duality working as designed in a second way:
+on a handful of preprocessor seeds the probe *kept* parsing-but-routing-elsewhere, and chasing that
+verdict exposed a genuine **parser bug** (a macro default argument on the *last* formal mis-parses into
+the macro body — the grammar's default-text atoms can swallow the formals' closing parenthesis, where the
+LRM requires a *balanced-parentheses* rule). The pass could not witness a shape the parser mis-parses —
+exactly the attribution rule doing its job, with the defect routed to the grammar, not papered over in
+the generator.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

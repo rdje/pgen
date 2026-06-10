@@ -5,9 +5,9 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use pgen::ast_pipeline::stimuli_generator::{
-    RecoveryStimuliMode, StimuliConfig, StimuliConstraintProfile, StimuliCoverageGapReport,
-    StimuliCoverageMetrics, StimuliGenerator, StimuliMutationMode, StimuliNegativeProfile,
-    TargetDriveFilterContext, TargetDriveValidationSummary,
+    PlannableProbeVerdict, RecoveryStimuliMode, StimuliConfig, StimuliConstraintProfile,
+    StimuliCoverageGapReport, StimuliCoverageMetrics, StimuliGenerator, StimuliMutationMode,
+    StimuliNegativeProfile, TargetDriveFilterContext, TargetDriveValidationSummary,
 };
 use pgen::ast_pipeline::{
     ASTNode, Annotations, PipelineConfig, RustASTPipeline, TraceVerbosity, TransformedASTJson,
@@ -2461,6 +2461,103 @@ fn run_certificate_coverage_report(
         }
     }
 
+    // PASS 3 — GRAMMAR-WELLFORMED.H.7.2: the PLANNABLE-RULE reach pass. Run only if passes 1+2 still
+    // left UNKNOWN rules. The bulk of the per-grammar residual UNKNOWN (svpp `macro_default_text`,
+    // most of vhdl/regex/SV/rtl_frontend) is never-witnessed NON-recursive reachable rules behind
+    // un-taken optionals and/or un-selected alternation branches — NEITHER depth-exhaustion NOR
+    // recursion, so the pass-2 retry is structurally inapplicable to them. For each still-UNKNOWN
+    // rule, a rule-target reach plan forces every OR decision AND every quantifier on the
+    // rule-reference path (the one new H.7.2 capability — construct_mode alone would minimize the
+    // gating `?`/`*` to zero), then ONE minimal construct-mode generation + ONE plan-forced search
+    // fallback produce a candidate witness. Like pass 2, this pass only UNIONS witnesses from
+    // samples that RE-PARSE; its own probe failures are reported separately, never folded into the
+    // pass-1 certification number (`sample_parse_failures` stays byte-identical per grammar).
+    let mut plannable_pass_parse_failures = 0usize;
+    let mut plannable_no_path: Vec<String> = Vec::new();
+    let mut plannable_generation_failures = 0usize;
+    let mut plannable_left_unattempted = 0usize;
+    let mut plannable_attempted = 0usize;
+    let mut plannable_witnessed = 0usize;
+    let mut plannable_parsed_not_witnessed = 0usize;
+    {
+        let pre_report =
+            certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+        if !pre_report.unknown.is_empty() {
+            // GRAMMAR-WELLFORMED.H.7.2 Q3: a deterministic global attempt cap — big-UNKNOWN
+            // grammars (SV ~1100 rules) stay bounded; anything beyond the cap is reported
+            // LOUDLY below, never silently truncated.
+            const MAX_PLANNABLE_REACH_ATTEMPTS: usize = 4096;
+            const PLANNABLE_REACH_ATTEMPT_TIMEOUT_MS: u64 = 250;
+            // GRAMMAR-WELLFORMED.H.7.2 Q3: bounded per-rule retry — a probe can parse yet
+            // route through other rules when a random terminal expansion is unluckily
+            // shaped; the construct skeleton is deterministic, the expansions vary, so a
+            // few retries converge. Deterministic for a fixed seed.
+            const PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE: usize = 4;
+            let mut targets: Vec<String> = pre_report.unknown.clone();
+            if targets.len() > MAX_PLANNABLE_REACH_ATTEMPTS {
+                plannable_left_unattempted = targets.len() - MAX_PLANNABLE_REACH_ATTEMPTS;
+                targets.truncate(MAX_PLANNABLE_REACH_ATTEMPTS);
+            }
+            plannable_attempted = targets.len();
+            let plannable_config = StimuliConfig {
+                seed: Some(seed),
+                enforce_word_boundary_spacing: true,
+                max_depth,
+                ..Default::default()
+            };
+            let mut plannable_generator = StimuliGenerator::new(
+                grammar.grammar_name.clone(),
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                grammar.annotations.as_ref(),
+                plannable_config,
+            );
+            // GRAMMAR-WELLFORMED.H.7.2: the witness check — replay each probe through the
+            // REAL parser; union covered rules from every sample that parses (a probe that
+            // misses its own target can still legitimately witness other rules); tell the
+            // driver whether the accepted parse actually entered the target rule so it can
+            // retry within its bounded per-rule budget. `PGEN_CERT_COVERAGE_DEBUG_PROBES=1`
+            // prints each probe for diagnosis (informational only — gated, never default).
+            let debug_probes = std::env::var_os("PGEN_CERT_COVERAGE_DEBUG_PROBES").is_some();
+            let grammar_name = grammar.grammar_name.clone();
+            let pass_report = plannable_generator.generate_plannable_rule_witnesses(
+                entry_rule.as_str(),
+                &targets,
+                PLANNABLE_REACH_ATTEMPT_TIMEOUT_MS,
+                PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
+                |rule, sample| {
+                    let Some((parsed, covered)) =
+                        pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                    else {
+                        return PlannableProbeVerdict::NotParsed;
+                    };
+                    let witnessed = parsed && covered.contains(rule);
+                    if debug_probes {
+                        println!(
+                            "  [plannable-probe] rule='{}' parsed={} witnessed_target={} sample={:?}",
+                            rule, parsed, witnessed, sample
+                        );
+                    }
+                    if parsed {
+                        witness_covered.extend(covered);
+                        if witnessed {
+                            PlannableProbeVerdict::Witnessed
+                        } else {
+                            PlannableProbeVerdict::ParsedNotWitnessed
+                        }
+                    } else {
+                        PlannableProbeVerdict::NotParsed
+                    }
+                },
+            );
+            plannable_no_path = pass_report.no_path.clone();
+            plannable_pass_parse_failures = pass_report.probe_parse_failures;
+            plannable_generation_failures = pass_report.generation_failures;
+            plannable_witnessed = pass_report.witnessed;
+            plannable_parsed_not_witnessed = pass_report.parsed_not_witnessed;
+        }
+    }
+
     let report = certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
     println!(
         "CERTIFICATE-COVERAGE: grammar='{}' entry='{}' samples={} total={} proof={} witness={} UNKNOWN={} fully_certified={} (sample_parse_failures={}, proof_reverify_failures={})",
@@ -2482,6 +2579,35 @@ fn run_certificate_coverage_report(
         println!(
             "  (constructive-reach witness pass: {} auxiliary probe samples did not re-parse — not counted as certification failures)",
             reach_pass_parse_failures
+        );
+    }
+    if plannable_attempted > 0 {
+        // GRAMMAR-WELLFORMED.H.7.2: transparency for the plannable-rule reach pass — same contract
+        // as pass 2 (probe non-parses reported separately, never folded into certification).
+        println!(
+            "  (plannable-rule reach pass: {} UNKNOWN rules targeted; {} witnessed, {} parsed-but-routed-elsewhere, {} probe samples did not re-parse, {} generation failures — probe failures are not certification failures)",
+            plannable_attempted,
+            plannable_witnessed,
+            plannable_parsed_not_witnessed,
+            plannable_pass_parse_failures,
+            plannable_generation_failures
+        );
+    }
+    if !plannable_no_path.is_empty() {
+        // GRAMMAR-WELLFORMED.H.7.2: by the attribution rule, an UNKNOWN rule with NO path in the
+        // rule-reference graph is grammar/linter territory (a dead rule candidate) — flag it loudly.
+        let shown = plannable_no_path.len().min(10);
+        println!(
+            "  WARNING plannable-rule reach pass: {} UNKNOWN rules have NO reach path from the entry (dead-rule candidates — adjudicate via the linter): {:?}",
+            plannable_no_path.len(),
+            &plannable_no_path[..shown]
+        );
+    }
+    if plannable_left_unattempted > 0 {
+        // GRAMMAR-WELLFORMED.H.7.2 Q3: the global cap is reported, never silent.
+        println!(
+            "  WARNING plannable-rule reach pass: {} UNKNOWN rules were LEFT UNATTEMPTED by the global attempt cap — rerun or raise the cap to cover them",
+            plannable_left_unattempted
         );
     }
     if !report.unknown.is_empty() {

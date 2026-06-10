@@ -1086,6 +1086,15 @@ struct ActiveReachPlan {
     /// coverage. Filled by `set_reach_plan` after `from_directives`.
     baseline_selected_hits: u64,
     baseline_success_hits: u64,
+    /// GRAMMAR-WELLFORMED.H.7.2: (rule_name, quantified-node-path) -> minimum forced
+    /// repeats, for every `?`/`*` quantifier the reach path crosses. The path to an
+    /// optional-gated target runs THROUGH such quantifiers, and minimal generation
+    /// (`construct_mode`) expands them to ZERO — the opposite of what the target
+    /// needs — so `generate_quantified` expands a listed site at least this many
+    /// times while this plan is installed. EMPTY for every pre-H.7.2 caller
+    /// (`from_directives` never fills it), so existing reach-plan replay is
+    /// byte-identical by construction.
+    forced_quantifier_min: HashMap<(String, String), usize>,
 }
 
 /// SV-EXH-PROOF.7.2.3 (PGEN-SV-EXH-PROOF-0117): honest result of attempting a
@@ -1107,6 +1116,39 @@ pub enum ReachOutcome {
     Reached,
     SelectedButFailed,
     NotReached,
+}
+
+/// GRAMMAR-WELLFORMED.H.7.2: the caller's verdict on one plannable-rule probe sample. The
+/// generator never self-certifies — the CALLER replays the sample through the real parser
+/// (`parse_and_cover`) and reports back whether the accepted parse actually entered the
+/// target rule. `ParsedNotWitnessed` is the subtle case that motivates the bounded retry:
+/// the sample is valid but its bytes re-parsed through OTHER rules (e.g. a comment-only
+/// `macro_default_text` expansion re-absorbed by the leading trivia on re-parse), and a
+/// different random terminal expansion in the next attempt may witness.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlannableProbeVerdict {
+    Witnessed,
+    ParsedNotWitnessed,
+    NotParsed,
+}
+
+/// GRAMMAR-WELLFORMED.H.7.2: aggregate outcome of the plannable-rule reach pass.
+#[derive(Debug, Clone, Default)]
+pub struct PlannableReachReport {
+    /// Rules attempted (a reach plan was installed and ≥1 probe generated/tried).
+    pub attempted: usize,
+    /// Rules whose probe was verdict `Witnessed` within the per-rule attempt budget.
+    pub witnessed: usize,
+    /// Rules never witnessed whose LAST probe parsed but routed elsewhere.
+    pub parsed_not_witnessed: usize,
+    /// Probe samples (across all attempts) the real parser rejected — inherent to
+    /// probing the hardest rules; never folded into the certification number.
+    pub probe_parse_failures: usize,
+    /// Probe generation failures (construct + plan-forced search both failed).
+    pub generation_failures: usize,
+    /// Rules with NO path in the rule-reference graph — by the attribution rule this
+    /// is linter territory (dead-rule candidates), reported loudly by the caller.
+    pub no_path: Vec<String>,
 }
 
 impl ActiveReachPlan {
@@ -1138,6 +1180,7 @@ impl ActiveReachPlan {
             target_branch_index,
             baseline_selected_hits: 0,
             baseline_success_hits: 0,
+            forced_quantifier_min: HashMap::new(),
         }
     }
 
@@ -2555,6 +2598,133 @@ impl<'a> StimuliGenerator<'a> {
     #[allow(dead_code)]
     pub fn clear_reach_plan(&mut self) {
         self.reach_plan = None;
+    }
+
+    /// GRAMMAR-WELLFORMED.H.7.2: install a reach plan whose target is a RULE (witness an
+    /// `UNKNOWN` rule), not an OR branch. The plan forces (a) every OR decision along the
+    /// rule-reference path from `entry_rule` to `target_rule` (the existing `.7.2`
+    /// directive machinery) and (b) — the one new capability — every quantifier that path
+    /// crosses to expand at least once, so minimal (`construct_mode`) generation actually
+    /// descends into an optional-gated reference instead of skipping it (the svpp
+    /// `macro_default_text` shape: two gating `?` optionals + an alternation). Returns
+    /// `false` when `target_rule` is not graph-reachable from `entry_rule`.
+    pub fn set_reach_plan_for_rule(
+        &mut self,
+        entry_rule: &str,
+        target_rule: &str,
+        bypass_fuel: u32,
+    ) -> bool {
+        let Some(hops) = self.reach_hops(entry_rule, target_rule) else {
+            return false;
+        };
+        let mut chain: Vec<ReachDirective> = Vec::new();
+        let mut quantifier_sites: Vec<(String, String)> = Vec::new();
+        for (hop_rule, hop_site_path) in &hops {
+            chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
+            quantifier_sites.extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
+        }
+        let mut plan = ActiveReachPlan::from_directives(&chain, bypass_fuel);
+        plan.baseline_selected_hits =
+            self.branch_selected_hits(&plan.target_group_key, plan.target_branch_index);
+        plan.baseline_success_hits =
+            self.branch_success_hits(&plan.target_group_key, plan.target_branch_index);
+        for site in quantifier_sites {
+            plan.forced_quantifier_min.insert(site, 1);
+        }
+        self.reach_plan = Some(plan);
+        true
+    }
+
+    /// GRAMMAR-WELLFORMED.H.7.2: the plannable-rule witness driver — for each target rule
+    /// (a still-`UNKNOWN` rule from the certificate-coverage report), install the
+    /// rule-target reach plan and probe up to `max_attempts_per_rule` times: each attempt
+    /// is ONE construct-mode (minimal-derivation) generation with a plan-forced search
+    /// fallback when construction dead-ends — the proven witness-pass shape — bounded by
+    /// `per_attempt_timeout_ms` (0 = unbounded). After each generated sample the CALLER's
+    /// `witness_check` replays it through the real parser and reports the verdict; the
+    /// retry exists because a probe can parse yet route its bytes through other rules
+    /// (`ParsedNotWitnessed`) when a random terminal expansion is unluckily shaped (e.g. a
+    /// comment-only text run re-absorbed by leading trivia) — the construct skeleton is
+    /// deterministic but terminal expansions vary per attempt, so a bounded retry
+    /// converges. Runs with the Purdom shortest-derivation ordering and the witness
+    /// pass's temporary depth/visit slack, all restored on exit. Deterministic for a
+    /// fixed seed (the RNG stream advances identically). The generator stays
+    /// parser-agnostic: all parsing lives in the caller's `witness_check`.
+    pub fn generate_plannable_rule_witnesses(
+        &mut self,
+        entry_rule: &str,
+        target_rules: &[String],
+        per_attempt_timeout_ms: u64,
+        max_attempts_per_rule: usize,
+        mut witness_check: impl FnMut(&str, &str) -> PlannableProbeVerdict,
+    ) -> PlannableReachReport {
+        let original_max_depth = self.config.max_depth;
+        let original_max_rule_visits = self.config.max_rule_visits;
+        self.config.max_depth = original_max_depth.saturating_mul(2);
+        self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
+        let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
+        let previous_witness_mode = self.witness_mode;
+        self.witness_mode = true;
+        let previous_table = self.witness_min_terminal_lengths.take();
+        self.witness_min_terminal_lengths = Some(self.compute_min_terminal_lengths());
+        let timeout =
+            Self::timeout_budget_from_ms(per_attempt_timeout_ms, TARGET_TIMEOUT_ERROR_PREFIX);
+
+        let mut report = PlannableReachReport::default();
+        for rule in target_rules {
+            if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                report.no_path.push(rule.clone());
+                continue;
+            }
+            report.attempted += 1;
+            let mut rule_witnessed = false;
+            let mut last_parsed_not_witnessed = false;
+            for _ in 0..max_attempts_per_rule.max(1) {
+                self.construct_mode = true;
+                let construct_result =
+                    self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                self.construct_mode = false;
+                let result = match construct_result {
+                    Ok(sample) => Ok(sample),
+                    // Construction dead-ended (e.g. the committed shortest off-path
+                    // choice can't complete) → plan-forced SEARCH, same bounded budget.
+                    Err(_) => {
+                        self.generate_from_entry_with_optional_timeout(entry_rule, timeout)
+                    }
+                };
+                match result {
+                    Ok(sample) => match witness_check(rule, &sample) {
+                        PlannableProbeVerdict::Witnessed => {
+                            rule_witnessed = true;
+                            break;
+                        }
+                        PlannableProbeVerdict::ParsedNotWitnessed => {
+                            last_parsed_not_witnessed = true;
+                        }
+                        PlannableProbeVerdict::NotParsed => {
+                            last_parsed_not_witnessed = false;
+                            report.probe_parse_failures += 1;
+                        }
+                    },
+                    Err(_) => {
+                        last_parsed_not_witnessed = false;
+                        report.generation_failures += 1;
+                    }
+                }
+            }
+            self.clear_reach_plan();
+            if rule_witnessed {
+                report.witnessed += 1;
+            } else if last_parsed_not_witnessed {
+                report.parsed_not_witnessed += 1;
+            }
+        }
+
+        self.witness_min_terminal_lengths = previous_table;
+        self.witness_mode = previous_witness_mode;
+        self.config.max_depth = original_max_depth;
+        self.config.max_rule_visits = original_max_rule_visits;
+        report
     }
 
     /// SV-EXH-PROOF.7.2.4: how many times the driver's reach-plan steering hook
@@ -4383,32 +4553,25 @@ impl<'a> StimuliGenerator<'a> {
     /// `dead_code`-allowed: analysis-only in `.7.2.1`; the production caller that
     /// drives generation lands in `.7.2.2`. Exercised now by unit tests.
     #[allow(dead_code)]
-    fn compute_reach_path(
-        &self,
-        entry_rule: &str,
-        target_rule: &str,
-        target_node_path: &str,
-        target_branch_index: usize,
-    ) -> Option<Vec<ReachDirective>> {
-        // Validate the target OR node + branch index up front.
-        let alternatives = self.or_alternatives_for_group_path(target_rule, target_node_path)?;
-        if target_branch_index >= alternatives.len() {
-            return None;
-        }
-
-        // BFS over the rule-reference graph; record each rule's predecessor +
-        // the directives that realise the discovering hop.
+    /// GRAMMAR-WELLFORMED.H.7.2 (extracted UNCHANGED from `compute_reach_path`'s BFS so the
+    /// rule-target plan can reuse it): BFS over the rule-reference graph from `entry_rule`
+    /// to `target_rule`. Returns the hop chain in entry→target order as
+    /// `(referencing_rule, reference-site node_path)` pairs — each pair is the site inside
+    /// `referencing_rule` whose `rule_reference` discovered the next rule on the path
+    /// (the last pair's site references `target_rule` itself). `Some(empty)` when
+    /// `entry_rule == target_rule`; `None` when the target is not graph-reachable.
+    fn reach_hops(&self, entry_rule: &str, target_rule: &str) -> Option<Vec<(String, String)>> {
         use std::collections::VecDeque;
         struct Discovery {
             predecessor: Option<String>,
-            hop_directives: Vec<ReachDirective>,
+            hop_site_path: String,
         }
         let mut discovered: HashMap<String, Discovery> = HashMap::new();
         discovered.insert(
             entry_rule.to_string(),
             Discovery {
                 predecessor: None,
-                hop_directives: Vec::new(),
+                hop_site_path: String::new(),
             },
         );
         let mut queue: VecDeque<String> = VecDeque::new();
@@ -4430,41 +4593,60 @@ impl<'a> StimuliGenerator<'a> {
                 if discovered.contains_key(site.referenced_rule.as_str()) {
                     continue;
                 }
-                let hop_directives =
-                    Self::directives_along_path(&rule_name, &site.node_path);
                 discovered.insert(
                     site.referenced_rule.clone(),
                     Discovery {
                         predecessor: Some(rule_name.clone()),
-                        hop_directives,
+                        hop_site_path: site.node_path.clone(),
                     },
                 );
                 queue.push_back(site.referenced_rule);
             }
         }
 
-        // Target rule must have been reached.
         if !discovered.contains_key(target_rule) {
             return None;
         }
 
-        // Walk predecessors target→entry, collecting each hop's directives, then
-        // reverse to entry→target order.
-        let mut chain: Vec<ReachDirective> = Vec::new();
+        // Walk predecessors target→entry, then reverse to entry→target order.
+        let mut hops: Vec<(String, String)> = Vec::new();
         let mut cursor = target_rule.to_string();
         loop {
             let Some(discovery) = discovered.get(&cursor) else {
                 break;
             };
-            for directive in discovery.hop_directives.iter().rev() {
-                chain.push(directive.clone());
-            }
             match &discovery.predecessor {
-                Some(pred) => cursor = pred.clone(),
+                Some(pred) => {
+                    hops.push((pred.clone(), discovery.hop_site_path.clone()));
+                    cursor = pred.clone();
+                }
                 None => break,
             }
         }
-        chain.reverse();
+        hops.reverse();
+        Some(hops)
+    }
+
+    fn compute_reach_path(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        target_node_path: &str,
+        target_branch_index: usize,
+    ) -> Option<Vec<ReachDirective>> {
+        // Validate the target OR node + branch index up front.
+        let alternatives = self.or_alternatives_for_group_path(target_rule, target_node_path)?;
+        if target_branch_index >= alternatives.len() {
+            return None;
+        }
+
+        // Cross-rule hops (BFS), each realised by forcing the OR decisions along
+        // the hop's reference-site path.
+        let hops = self.reach_hops(entry_rule, target_rule)?;
+        let mut chain: Vec<ReachDirective> = Vec::new();
+        for (hop_rule, hop_site_path) in &hops {
+            chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
+        }
 
         // Navigate WITHIN the target rule: if the target OR node is nested under
         // other OR nodes in the target rule's body, those outer choices must be
@@ -4631,6 +4813,28 @@ impl<'a> StimuliGenerator<'a> {
             prefix.push_str(segment);
         }
         directives
+    }
+
+    /// GRAMMAR-WELLFORMED.H.7.2: the quantifier sites a path crosses. One entry per `q`
+    /// segment in `node_path` — the `Quantified` node itself sits at the prefix BEFORE
+    /// that segment (the same path `generate_quantified` receives as its `node_path`),
+    /// so a reach plan can force the site to expand. Mirrors `directives_along_path`,
+    /// which emits one OR directive per `o{i}` segment and (deliberately) ignores `q`
+    /// segments — un-taken optionals were exactly the reach gap H.7.1 pinned.
+    fn quantifier_sites_along_path(rule_name: &str, node_path: &str) -> Vec<(String, String)> {
+        let mut sites = Vec::new();
+        let mut prefix = String::from("root");
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if segment == "q" {
+                sites.push((rule_name.to_string(), prefix.clone()));
+            }
+            prefix.push('/');
+            prefix.push_str(segment);
+        }
+        sites
     }
 
     fn node_at_path<'b>(&self, node: &'b ASTNode, node_path: &str) -> Option<&'b ASTNode> {
@@ -6441,7 +6645,25 @@ impl<'a> StimuliGenerator<'a> {
         let (min_repeat, max_repeat) = self.parse_quantifier_bounds(quantifier)?;
         let bounded_max = max_repeat.min(self.config.max_repeat.max(min_repeat));
         let mutation_site_key = self.next_mutation_site_key(current_rule, node_path, "quantifier");
-        let repeat_candidates: Vec<usize> = if self.construct_mode {
+        // GRAMMAR-WELLFORMED.H.7.2: a reach plan that crosses this quantifier forces it to
+        // expand (construct_mode would otherwise minimize a `?`/`*` to ZERO and the path to
+        // the optional-gated target would be skipped). Gated on a non-empty map so every
+        // pre-H.7.2 plan (branch targets — `from_directives` leaves the map empty) and all
+        // plan-free generation stay byte-identical, allocation-free.
+        let reach_forced_min: Option<usize> = match self.reach_plan.as_ref() {
+            Some(plan) if !plan.forced_quantifier_min.is_empty() => plan
+                .forced_quantifier_min
+                .get(&(current_rule.to_string(), node_path.to_string()))
+                .copied(),
+            _ => None,
+        };
+        let repeat_candidates: Vec<usize> = if let Some(forced_min) = reach_forced_min {
+            // Exactly the forced expansion (still minimal): at least once, never below the
+            // quantifier's own minimum, never above its bounded maximum.
+            vec![forced_min
+                .max(min_repeat)
+                .min(bounded_max.max(min_repeat))]
+        } else if self.construct_mode {
             // SV-EXH-PROOF.7.4.6.3: minimal derivation → emit exactly the minimum repetitions.
             vec![min_repeat]
         } else if let Some((preferred_repeats, baseline_repeats)) =
@@ -15411,6 +15633,113 @@ mod tests {
         // A word-run glued to a structural char is a literal fragment, not a free token
         // (the `(?(R` convention — it must stay adjacent to its argument):
         assert!(!StimuliGenerator::literal_hint_tail_word_shaped("(?(R"));
+    }
+
+    #[test]
+    fn quantifier_sites_along_path_extracts_each_q_crossing() {
+        // GRAMMAR-WELLFORMED.H.7.2: one site per `q` segment, at the prefix BEFORE it
+        // (the Quantified node's own path — what `generate_quantified` receives).
+        assert_eq!(
+            StimuliGenerator::quantifier_sites_along_path("r", "root/s1/q/s0/a"),
+            vec![("r".to_string(), "root/s1".to_string())]
+        );
+        assert_eq!(
+            StimuliGenerator::quantifier_sites_along_path("r", "root/s1/q/s2/q/a"),
+            vec![
+                ("r".to_string(), "root/s1".to_string()),
+                ("r".to_string(), "root/s1/q/s2".to_string()),
+            ]
+        );
+        assert!(StimuliGenerator::quantifier_sites_along_path("r", "root/s0/o1/a").is_empty());
+    }
+
+    #[test]
+    fn plannable_rule_witness_reaches_optional_gated_rule() {
+        // GRAMMAR-WELLFORMED.H.7.2 end-to-end: the svpp `macro_default_text` shape in
+        // miniature — the target rule sits behind TWO un-taken optionals. Minimal
+        // (construct-mode) generation expands `?` to zero, so only the plan's forced
+        // quantifier expansion can descend to the target.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "a"),
+                    ASTNode::Quantified {
+                        element: Box::new(token("rule_reference", "tail")),
+                        quantifier: "?".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "tail".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "t"),
+                    ASTNode::Quantified {
+                        element: Box::new(token("rule_reference", "inner")),
+                        quantifier: "?".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "inner".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("quoted_string", "i"), token("quoted_string", "j")],
+            },
+        );
+        let rule_order = vec!["start".to_string(), "tail".to_string(), "inner".to_string()];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+
+        // The "parser" here is a textual stand-in: a sample witnesses `inner` iff the
+        // optional-gated chain was actually descended ("a" then "t" then "i"|"j").
+        let mut probe_samples: Vec<String> = Vec::new();
+        let report = generator.generate_plannable_rule_witnesses(
+            "start",
+            &["inner".to_string()],
+            0,
+            4,
+            |_rule, sample| {
+                probe_samples.push(sample.to_string());
+                if sample.contains('t') && (sample.contains('i') || sample.contains('j')) {
+                    PlannableProbeVerdict::Witnessed
+                } else {
+                    PlannableProbeVerdict::ParsedNotWitnessed
+                }
+            },
+        );
+        assert_eq!(report.attempted, 1);
+        assert!(report.no_path.is_empty(), "inner IS graph-reachable: {:?}", report);
+        assert_eq!(
+            report.witnessed, 1,
+            "plan-forced construct generation must witness the optional-gated chain; probes={:?}",
+            probe_samples
+        );
+
+        // And a rule that exists but is referenced nowhere has NO path — reported, not guessed.
+        grammar_tree.insert("orphan".to_string(), token("quoted_string", "x"));
+        let rule_order = vec![
+            "start".to_string(),
+            "tail".to_string(),
+            "inner".to_string(),
+            "orphan".to_string(),
+        ];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        let report = generator.generate_plannable_rule_witnesses(
+            "start",
+            &["orphan".to_string()],
+            0,
+            4,
+            |_rule, _sample| PlannableProbeVerdict::Witnessed,
+        );
+        assert_eq!(
+            report.no_path,
+            vec!["orphan".to_string()],
+            "orphan must report no_path"
+        );
+        assert_eq!(report.attempted, 0);
     }
 
     #[test]
