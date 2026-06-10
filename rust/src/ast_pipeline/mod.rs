@@ -2366,6 +2366,20 @@ impl RustASTPipeline {
         let mut outer_branch_idx = 0usize;
         let mut branch_to_outer: Vec<usize> = vec![0];
 
+        // BRANCH-BROADCAST-FIX.2 — second mapping for the WHOLE-BODY-GROUP
+        // case. When the rule body is exactly one top-level parens group
+        // (`RULE = ( A | B ) -> ann`), step2_group_by_or sees no top-level
+        // `|`, the group's Or node is unwrapped to the rule root, and the
+        // group's alternatives ARE the runtime branches. The runtime branch
+        // index is then created by `|` at group_depth == 1 (inside the body
+        // group), not at depth 0 — collapsing such rules to `branch_to_outer`
+        // (which is constant 0 for them) is the regression that re-broke
+        // task #38's parens-group trailing-annotation broadcast. Track the
+        // depth<=1 mapping alongside and select per rule after the walk via
+        // `syntax_is_single_whole_body_group`.
+        let mut body_branch_idx = 0usize;
+        let mut branch_to_body: Vec<usize> = vec![0];
+
         for item in content {
             let Some(arr) = item.as_array() else {
                 syntax_elements.push(item.clone());
@@ -2406,8 +2420,14 @@ impl RustASTPipeline {
                         if group_depth == 0 {
                             outer_branch_idx = outer_branch_idx.saturating_add(1);
                         }
+                        if group_depth <= 1 {
+                            body_branch_idx = body_branch_idx.saturating_add(1);
+                        }
                         if branch_to_outer.len() <= branch_idx {
                             branch_to_outer.push(outer_branch_idx);
+                        }
+                        if branch_to_body.len() <= branch_idx {
+                            branch_to_body.push(body_branch_idx);
                         }
                         if branch_return_annotations.len() <= branch_idx {
                             branch_return_annotations.push(None);
@@ -2559,44 +2579,56 @@ impl RustASTPipeline {
             }
         }
 
-        // Remap inner-indexed annotations to outer-indexed (top-level)
-        // branches. parse_rule_content truncates these vectors to the
-        // AST's top-level branch count; without this remap, inner-counted
-        // entries get lopped off. The last annotation per outer branch wins
-        // (matches existing "multiple return annotations in branch — keeping
-        // last" warning semantics).
-        let outer_count = outer_branch_idx + 1;
+        // Remap inner-indexed annotations to runtime branch indices.
+        // parse_rule_content truncates these vectors to the AST's top-level
+        // branch count; without this remap, inner-counted entries get lopped
+        // off. The last annotation per mapped branch wins (matches existing
+        // "multiple return annotations in branch — keeping last" warning
+        // semantics).
+        //
+        // BRANCH-BROADCAST-FIX.2 — the runtime branch structure differs by
+        // rule shape: for a whole-body group the runtime branches are the
+        // group's alternatives (`|` at depth 1 — `branch_to_body`); for every
+        // other shape they are the top-level alternatives (`|` at depth 0 —
+        // `branch_to_outer`, the 2026-05-14 codegen-drop fix for patterns
+        // (A)–(D) above).
+        let whole_body_group = syntax_is_single_whole_body_group(&syntax_elements);
+        let (branch_map, mapped_count) = if whole_body_group {
+            (&branch_to_body, body_branch_idx + 1)
+        } else {
+            (&branch_to_outer, outer_branch_idx + 1)
+        };
         let remap_returns = |inner: Vec<Option<BranchAnnotation>>| -> Vec<Option<BranchAnnotation>> {
-            let mut out: Vec<Option<BranchAnnotation>> = vec![None; outer_count];
+            let mut out: Vec<Option<BranchAnnotation>> = vec![None; mapped_count];
             for (i, slot) in inner.into_iter().enumerate() {
                 if let Some(ann) = slot {
-                    let outer_idx = branch_to_outer.get(i).copied().unwrap_or(0);
-                    if outer_idx < out.len() {
-                        out[outer_idx] = Some(ann);
+                    let mapped_idx = branch_map.get(i).copied().unwrap_or(0);
+                    if mapped_idx < out.len() {
+                        out[mapped_idx] = Some(ann);
                     }
                 }
             }
             out
         };
         let remap_vec_vec = |inner: Vec<Vec<SemanticAnnotation>>| -> Vec<Vec<SemanticAnnotation>> {
-            let mut out: Vec<Vec<SemanticAnnotation>> = vec![Vec::new(); outer_count];
+            let mut out: Vec<Vec<SemanticAnnotation>> = vec![Vec::new(); mapped_count];
             for (i, vec_anns) in inner.into_iter().enumerate() {
                 if !vec_anns.is_empty() {
-                    let outer_idx = branch_to_outer.get(i).copied().unwrap_or(0);
-                    if outer_idx < out.len() {
-                        out[outer_idx].extend(vec_anns);
+                    let mapped_idx = branch_map.get(i).copied().unwrap_or(0);
+                    if mapped_idx < out.len() {
+                        out[mapped_idx].extend(vec_anns);
                     }
                 }
             }
             out
         };
         let remap_mid_seq = |inner: Vec<Vec<MidSequenceSemanticAnnotation>>| -> Vec<Vec<MidSequenceSemanticAnnotation>> {
-            let mut out: Vec<Vec<MidSequenceSemanticAnnotation>> = vec![Vec::new(); outer_count];
+            let mut out: Vec<Vec<MidSequenceSemanticAnnotation>> = vec![Vec::new(); mapped_count];
             for (i, vec_anns) in inner.into_iter().enumerate() {
                 if !vec_anns.is_empty() {
-                    let outer_idx = branch_to_outer.get(i).copied().unwrap_or(0);
-                    if outer_idx < out.len() {
-                        out[outer_idx].extend(vec_anns);
+                    let mapped_idx = branch_map.get(i).copied().unwrap_or(0);
+                    if mapped_idx < out.len() {
+                        out[mapped_idx].extend(vec_anns);
                     }
                 }
             }
@@ -3621,6 +3653,54 @@ impl RustASTPipeline {
     }
 }
 
+/// BRANCH-BROADCAST-FIX.2 — true when a rule's syntax elements form exactly
+/// one top-level parens group: the first syntax element is a `group_open`
+/// whose matching `group_close` is the last syntax element. In that shape
+/// `step2_group_by_or` sees no top-level `|`, the group's `Or` node is
+/// unwrapped to the rule root, and the group's alternatives become the rule's
+/// own runtime branches — so annotation branch indices must stay group-local
+/// (`|` at depth 1) instead of collapsing to the single outer branch.
+///
+/// The input is the annotation-free `syntax_elements` token list (raw-IR
+/// items like `["group_open"]`, `["operator", "|"]`, `["rule_reference", …]`)
+/// that `extract_rule_annotations` accumulates; `ast_shape_contract`'s
+/// cross-extractor builds the same list to share this discriminator.
+pub(crate) fn syntax_is_single_whole_body_group(syntax_elements: &[serde_json::Value]) -> bool {
+    fn kind_of(v: &serde_json::Value) -> Option<&str> {
+        v.as_array()?.first()?.as_str()
+    }
+    if syntax_elements.len() < 2 {
+        return false;
+    }
+    if kind_of(&syntax_elements[0]) != Some("group_open") {
+        return false;
+    }
+    let mut depth = 0usize;
+    for (idx, elem) in syntax_elements.iter().enumerate() {
+        match kind_of(elem) {
+            Some("group_open") => depth = depth.saturating_add(1),
+            Some("group_close") => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    // This close matches the leading `group_open`; the body
+                    // is a single whole group iff nothing follows it.
+                    return idx == syntax_elements.len() - 1;
+                }
+            }
+            _ => {
+                // Any syntax at depth 0 outside the leading group (a
+                // quantifier on the group, a token before/after it, a
+                // top-level `|`) disqualifies the whole-body shape.
+                if depth == 0 {
+                    return false;
+                }
+            }
+        }
+    }
+    // Unbalanced groups: stay conservative (outer mapping, the status quo).
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3926,6 +4006,367 @@ mod tests {
                 other
             ),
         }
+    }
+
+    // BRANCH-BROADCAST-FIX.2 — whole-body parens group with a trailing
+    // annotation: `item = ( "D" | "S" ) -> $text`. step2_group_by_or unwraps
+    // the group's alternatives into the rule's own runtime branches, so the
+    // broadcast annotation must land on EVERY runtime branch (the 2026-05-14
+    // outer remap collapsed it to branch 0 only — the regression that re-broke
+    // task #38's `string_literal` exemplar).
+    #[test]
+    fn whole_body_group_trailing_annotation_broadcasts_to_every_runtime_branch() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![
+            json!([
+                ["rule", "item"],
+                ["group_open", "("],
+                ["quoted_string", "D"],
+                ["operator", "|"],
+                ["quoted_string", "S"],
+                ["group_close", ")"],
+                ["return_scalar", "$text"]
+            ]),
+            // The defect is shape-level, not `$text`-specific: lock the
+            // object form too.
+            json!([
+                ["rule", "other"],
+                ["group_open", "("],
+                ["quoted_string", "X"],
+                ["operator", "|"],
+                ["quoted_string", "Y"],
+                ["group_close", ")"],
+                ["return_object", "{kind: $1}"]
+            ]),
+        ];
+
+        let (grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        for (rule, expected_type, expected_content) in [
+            ("item", "return_scalar", "$text"),
+            ("other", "return_object", "{kind: $1}"),
+        ] {
+            // The runtime branch structure: the group's Or is the rule root.
+            let node = grammar_tree.get(rule).expect("rule should exist");
+            match node {
+                ASTNode::Or { alternatives } => assert_eq!(
+                    alternatives.len(),
+                    2,
+                    "{} should unwrap to a 2-branch Or root",
+                    rule
+                ),
+                other => panic!("{} root should be Or, got {:?}", rule, other),
+            }
+            let branches = annotations
+                .branch_return_annotations
+                .get(rule)
+                .unwrap_or_else(|| panic!("{} return annotations should exist", rule));
+            assert_eq!(
+                branches.len(),
+                2,
+                "{} should carry one annotation slot per runtime branch",
+                rule
+            );
+            for (idx, slot) in branches.iter().enumerate() {
+                let ann = slot.as_ref().unwrap_or_else(|| {
+                    panic!("{} branch {} should carry the broadcast annotation", rule, idx)
+                });
+                assert_eq!(ann.annotation_type, expected_type);
+                assert_eq!(ann.annotation_content, expected_content);
+            }
+        }
+    }
+
+    // BRANCH-BROADCAST-FIX.2 — whole-body group with PER-BRANCH annotations
+    // keeps each annotation on its own runtime branch (previously both
+    // collapsed into branch 0, last one winning).
+    #[test]
+    fn whole_body_group_per_branch_annotations_keep_their_branches() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![json!([
+            ["rule", "lit"],
+            ["group_open", "("],
+            ["quoted_string", "a"],
+            ["return_scalar", "$1"],
+            ["operator", "|"],
+            ["quoted_string", "b"],
+            ["return_scalar", "$2"],
+            ["group_close", ")"]
+        ])];
+
+        let (_grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        let branches = annotations
+            .branch_return_annotations
+            .get("lit")
+            .expect("lit return annotations should exist");
+        assert_eq!(branches.len(), 2);
+        assert_eq!(
+            branches[0].as_ref().map(|a| a.annotation_content.as_str()),
+            Some("$1")
+        );
+        assert_eq!(
+            branches[1].as_ref().map(|a| a.annotation_content.as_str()),
+            Some("$2")
+        );
+    }
+
+    // BRANCH-BROADCAST-FIX.2 — the documented disambiguations stay intact:
+    // `(A|B) | C -> ann` binds ann to C only (the annotation does not follow
+    // a group_close), and `A | (B|C) -> ann` binds ann to the outer branch
+    // holding the group (broadcast within that branch's nested Or).
+    #[test]
+    fn mixed_and_trailing_group_annotation_disambiguation_is_unchanged() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![
+            // mixed = ( a | b ) | c -> ann
+            json!([
+                ["rule", "mixed"],
+                ["group_open", "("],
+                ["rule_reference", "a"],
+                ["operator", "|"],
+                ["rule_reference", "b"],
+                ["group_close", ")"],
+                ["operator", "|"],
+                ["rule_reference", "c"],
+                ["return_scalar", "$1"]
+            ]),
+            // trailing = a | ( b | c ) -> ann
+            json!([
+                ["rule", "trailing"],
+                ["rule_reference", "a"],
+                ["operator", "|"],
+                ["group_open", "("],
+                ["rule_reference", "b"],
+                ["operator", "|"],
+                ["rule_reference", "c"],
+                ["group_close", ")"],
+                ["return_scalar", "$1"]
+            ]),
+        ];
+
+        let (_grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        for rule in ["mixed", "trailing"] {
+            let branches = annotations
+                .branch_return_annotations
+                .get(rule)
+                .unwrap_or_else(|| panic!("{} return annotations should exist", rule));
+            assert_eq!(branches.len(), 2, "{} has 2 top-level branches", rule);
+            assert!(
+                branches[0].is_none(),
+                "{} branch 0 must not carry the annotation",
+                rule
+            );
+            assert_eq!(
+                branches[1].as_ref().map(|a| a.annotation_content.as_str()),
+                Some("$1"),
+                "{} branch 1 must carry the annotation",
+                rule
+            );
+        }
+    }
+
+    // BRANCH-BROADCAST-FIX.2 — the 2026-05-14 codegen-drop patterns (A)–(D)
+    // stay green: groups that are SUB-PARTS of a sequence (not the whole
+    // body) keep the outer remap so inner-indexed annotations are not lopped
+    // off by the runtime-branch truncation.
+    #[test]
+    fn inner_group_remap_patterns_a_through_d_stay_green() {
+        let pipeline = RustASTPipeline::new(PipelineConfig::default());
+        let raw_ast_data = vec![
+            // (A) id ( a | b )* -> ann   — single-branch rule, trailing group
+            //     quantifier; annotation is rule-level (outer branch 0).
+            json!([
+                ["rule", "pat_a"],
+                ["rule_reference", "id"],
+                ["group_open", "("],
+                ["rule_reference", "a"],
+                ["operator", "|"],
+                ["rule_reference", "b"],
+                ["group_close", ")"],
+                ["operator", "*"],
+                ["return_object", "{kind: $1}"]
+            ]),
+            // (B) ( a | b | c )? id -> ann — leading optional group.
+            json!([
+                ["rule", "pat_b"],
+                ["group_open", "("],
+                ["rule_reference", "a"],
+                ["operator", "|"],
+                ["rule_reference", "b"],
+                ["operator", "|"],
+                ["rule_reference", "c"],
+                ["group_close", ")"],
+                ["operator", "?"],
+                ["rule_reference", "id"],
+                ["return_object", "{kind: $2}"]
+            ]),
+            // (C) x | y | ( a )? id -> ann — annotation on the LAST top-level
+            //     branch, which contains an inner optional group.
+            json!([
+                ["rule", "pat_c"],
+                ["rule_reference", "x"],
+                ["operator", "|"],
+                ["rule_reference", "y"],
+                ["operator", "|"],
+                ["group_open", "("],
+                ["rule_reference", "a"],
+                ["group_close", ")"],
+                ["operator", "?"],
+                ["rule_reference", "id"],
+                ["return_object", "{kind: $2}"]
+            ]),
+            // (D) ( a | b )? id -> ann0 | z -> ann1 — per-branch annotations
+            //     in a multi-branch rule whose first branch holds a group.
+            json!([
+                ["rule", "pat_d"],
+                ["group_open", "("],
+                ["rule_reference", "a"],
+                ["operator", "|"],
+                ["rule_reference", "b"],
+                ["group_close", ")"],
+                ["operator", "?"],
+                ["rule_reference", "id"],
+                ["return_object", "{kind: $2}"],
+                ["operator", "|"],
+                ["rule_reference", "z"],
+                ["return_object", "{kind: $1}"]
+            ]),
+        ];
+
+        let (_grammar_tree, _rule_order, annotations) = pipeline
+            .transform_from_raw_ast(&raw_ast_data)
+            .expect("raw_ast transformation should succeed");
+        let annotations = annotations.expect("annotations should be preserved");
+
+        // (A): one runtime branch, annotation present at branch 0.
+        let pat_a = annotations
+            .branch_return_annotations
+            .get("pat_a")
+            .expect("pat_a annotations");
+        assert_eq!(pat_a.len(), 1);
+        assert_eq!(
+            pat_a[0].as_ref().map(|a| a.annotation_content.as_str()),
+            Some("{kind: $1}")
+        );
+
+        // (B): one runtime branch, annotation present at branch 0.
+        let pat_b = annotations
+            .branch_return_annotations
+            .get("pat_b")
+            .expect("pat_b annotations");
+        assert_eq!(pat_b.len(), 1);
+        assert_eq!(
+            pat_b[0].as_ref().map(|a| a.annotation_content.as_str()),
+            Some("{kind: $2}")
+        );
+
+        // (C): three top-level branches, annotation on the last only.
+        let pat_c = annotations
+            .branch_return_annotations
+            .get("pat_c")
+            .expect("pat_c annotations");
+        assert_eq!(pat_c.len(), 3);
+        assert!(pat_c[0].is_none());
+        assert!(pat_c[1].is_none());
+        assert_eq!(
+            pat_c[2].as_ref().map(|a| a.annotation_content.as_str()),
+            Some("{kind: $2}")
+        );
+
+        // (D): two top-level branches, each keeping its own annotation.
+        let pat_d = annotations
+            .branch_return_annotations
+            .get("pat_d")
+            .expect("pat_d annotations");
+        assert_eq!(pat_d.len(), 2);
+        assert_eq!(
+            pat_d[0].as_ref().map(|a| a.annotation_content.as_str()),
+            Some("{kind: $2}")
+        );
+        assert_eq!(
+            pat_d[1].as_ref().map(|a| a.annotation_content.as_str()),
+            Some("{kind: $1}")
+        );
+    }
+
+    // BRANCH-BROADCAST-FIX.2 — the whole-body-group discriminator itself.
+    #[test]
+    fn whole_body_group_discriminator_classifies_token_shapes() {
+        let tok = |kind: &str| json!([kind]);
+        let tok1 = |kind: &str, val: &str| json!([kind, val]);
+
+        // ( A | B )  → whole body.
+        assert!(syntax_is_single_whole_body_group(&[
+            tok("group_open"),
+            tok1("rule_reference", "a"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "b"),
+            tok("group_close"),
+        ]));
+        // ( A | B ) ? → quantified group, NOT whole body.
+        assert!(!syntax_is_single_whole_body_group(&[
+            tok("group_open"),
+            tok1("rule_reference", "a"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "b"),
+            tok("group_close"),
+            tok1("operator", "?"),
+        ]));
+        // ( A | B ) | C → top-level alternation, NOT whole body.
+        assert!(!syntax_is_single_whole_body_group(&[
+            tok("group_open"),
+            tok1("rule_reference", "a"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "b"),
+            tok("group_close"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "c"),
+        ]));
+        // id ( A | B ) → leading token, NOT whole body.
+        assert!(!syntax_is_single_whole_body_group(&[
+            tok1("rule_reference", "id"),
+            tok("group_open"),
+            tok1("rule_reference", "a"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "b"),
+            tok("group_close"),
+        ]));
+        // ( ( A | B ) | C ) → nested groups, whole body (outermost spans all).
+        assert!(syntax_is_single_whole_body_group(&[
+            tok("group_open"),
+            tok("group_open"),
+            tok1("rule_reference", "a"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "b"),
+            tok("group_close"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "c"),
+            tok("group_close"),
+        ]));
+        // ( A | B )( C | D ) → two adjacent groups, NOT whole body.
+        assert!(!syntax_is_single_whole_body_group(&[
+            tok("group_open"),
+            tok1("rule_reference", "a"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "b"),
+            tok("group_close"),
+            tok("group_open"),
+            tok1("rule_reference", "c"),
+            tok1("operator", "|"),
+            tok1("rule_reference", "d"),
+            tok("group_close"),
+        ]));
     }
 
     #[test]

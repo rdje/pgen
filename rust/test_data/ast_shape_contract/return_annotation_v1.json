@@ -37,7 +37,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/return_annotation_return_annotations.json",
-    "extracted_at": "2026-04-27",
+    "extracted_at": "2026-06-10",
     "optional_grammar_json_crosscheck": "generated/return_annotation.json",
     "annotations": [
       {
@@ -151,6 +151,12 @@
       {
         "rule": "string_literal",
         "branch_index": 0,
+        "annotation_type": "return_object",
+        "normalized_text": "{type: \"string\", value: $2}"
+      },
+      {
+        "rule": "string_literal",
+        "branch_index": 1,
         "annotation_type": "return_object",
         "normalized_text": "{type: \"string\", value: $2}"
       }

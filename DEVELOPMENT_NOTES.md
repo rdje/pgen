@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - BRANCH-BROADCAST-FIX.2 — the whole-body-group remap fix (PGEN-BRANCH-BROADCAST-FIX-0002)
+
+### The shape-dependent runtime-branch insight
+The 2026-05-14 remap assumed runtime branches are always created by `|` at depth 0. That holds for every shape EXCEPT one: when the rule body is exactly one top-level parens group, `step2_group_by_or` finds no top-level `|`, the single branch's only element is the group's `Or` node, `step3` unwraps the single element, and the group's Or becomes the rule ROOT — its alternatives are the runtime branches, indexed by `|` at depth 1. The fix therefore tracks both mappings in the one existing walk and selects per rule by a purely structural discriminator over the annotation-free syntax tokens (first token `group_open`, matching close is last). No revert: patterns (A)–(D) (groups inside sequences/quantifiers) keep the outer collapse.
+
+### One discriminator, two consumers
+`extract_declared_annotations_from_json` (the inventory cross-extractor) had hand-mirrored the outer-only counting, so fixing only the pipeline would make the two extractors disagree (the gate's "investigate" failure). The cross-extractor now replicates the pipeline's bookkeeping exactly AND calls the same `pub(crate)` discriminator fn — one implementation, no drift surface.
+
+### The fixture arity trap (worth remembering)
+First test run failed confusingly: `mixed = (a|b) | c` produced a FLAT 3-alternative Or. Root cause: the synthetic fixtures used 1-element `["group_open"]` tokens; `parse_raw_element` rejects arrays with `len < 2`, so the AST lane silently DROPPED the group markers (while the annotation extractor, which matches on the first element only, saw them) — the test grammar wasn't the grammar I thought. Real frontends emit `["group_open", "("]`. Synthetic raw-IR fixtures must use the real 2-element token shapes.
+
+### Measuring the blast radius decisively
+Hash-diffing regenerated artifacts against the on-disk tree was misleading twice over: the frontend `*.json` envelopes carry a `generated_at` timestamp (always differ), and the on-disk parsers predated several pipeline slices. The decisive method was the baseline STASH: stash the fix, regen all 9 grammar targets with the pre-fix pipeline, hash; pop, regen, hash. Result: semantic delta confined to the two annotation grammars; the regex/SV `.rs` diffs were proven SET-EQUAL `directives_by_rule` entries (5/5, 43/43) plus serialized-template key-order churn — HashMap iteration order across DIFFERENT binaries (same-binary double-regen is byte-identical). That order-instability across binaries is a pre-existing reproducibility wart, not introduced here; a future leaf could canonicalize the emission order.
+
+### The semantic_annotation surprise
+The fix was aimed at `string_literal` (1 row) but the measurement surfaced 43 newly-broadcast rows in `semantic_annotation` — that grammar is heavy with whole-body-group rules (`annotation_name`, `annotation_value`, `boolean_literal`, …) whose branches 1+ had been silently raw since 2026-05-14. `.4`'s ship scope widened to both annotation parsers before any push.
+
 ## 2026-06-10 - BRANCH-BROADCAST-FIX.1 — the engine defect pair behind the H.10.2.1 revert (PGEN-BRANCH-BROADCAST-FIX-0001)
 
 ### How the A/B caught it

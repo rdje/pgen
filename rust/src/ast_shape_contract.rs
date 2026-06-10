@@ -285,39 +285,90 @@ pub fn extract_declared_annotations_from_json<P: AsRef<Path>>(
             _ => continue,
         };
 
-        // Mirror the outer-only branch counting used by
-        // `crate::ast_pipeline::extract_rule_annotations` after the
-        // 2026-05-14 remap fix: only `|` at group_depth == 0 creates a
-        // new top-level branch (which is what the AST after
-        // step2_group_by_or carries). Inner-group `|`s are accumulated
-        // into the surrounding outer branch via the `last_closed_group_range`
-        // broadcast — but since we now collapse to outer indices, the
-        // broadcast resolves to a single outer slot.
+        // Mirror the branch bookkeeping of
+        // `crate::ast_pipeline::extract_rule_annotations` exactly (the
+        // 2026-05-14 outer remap + the BRANCH-BROADCAST-FIX.2 whole-body-group
+        // refinement): inner branches are counted for EVERY `|` so a trailing
+        // annotation after a `group_close` can broadcast across the just-closed
+        // group's branch range; the inner indices are then remapped to runtime
+        // branch indices — `|` at depth 0 (`branch_to_outer`) for ordinary
+        // rules, `|` at depth <= 1 (`branch_to_body`) when the rule body is
+        // exactly one whole top-level group (step2_group_by_or unwraps that
+        // group's alternatives into the rule's own runtime branches). The last
+        // annotation per mapped slot wins, matching the pipeline's "multiple
+        // return annotations in branch — keeping last" semantics.
         let mut group_depth: usize = 0;
-        let mut outer_branch_index: usize = 0;
+        let mut branch_idx: usize = 0;
+        let mut outer_branch_idx: usize = 0;
+        let mut body_branch_idx: usize = 0;
+        let mut branch_to_outer: Vec<usize> = vec![0];
+        let mut branch_to_body: Vec<usize> = vec![0];
+        let mut group_open_branch_stack: Vec<usize> = Vec::new();
+        let mut last_closed_group_range: Option<(usize, usize)> = None;
+        // Inner-indexed annotation slots: (annotation_type, raw_text).
+        let mut slots: Vec<Option<(String, String)>> = vec![None];
+        // The annotation-free syntax token list, mirrored so the shared
+        // whole-body-group discriminator sees what the pipeline sees.
+        let mut syntax_tokens: Vec<serde_json::Value> = Vec::new();
 
         for item in &arr[1..] {
             let item_arr = match item.as_array() {
                 Some(a) if !a.is_empty() => a,
-                _ => continue,
+                _ => {
+                    // Pipeline pushes non-array items into syntax_elements
+                    // and clears the pending broadcast range.
+                    syntax_tokens.push(item.clone());
+                    last_closed_group_range = None;
+                    continue;
+                }
             };
             let tag = match item_arr.first().and_then(|v| v.as_str()) {
                 Some(t) => t,
-                None => continue,
+                None => {
+                    syntax_tokens.push(item.clone());
+                    last_closed_group_range = None;
+                    continue;
+                }
             };
 
             match tag {
                 "group_open" => {
+                    group_open_branch_stack.push(branch_idx);
                     group_depth = group_depth.saturating_add(1);
+                    syntax_tokens.push(item.clone());
+                    last_closed_group_range = None;
                 }
                 "group_close" => {
                     group_depth = group_depth.saturating_sub(1);
+                    last_closed_group_range = group_open_branch_stack
+                        .pop()
+                        .map(|open_branch_idx| (open_branch_idx, branch_idx));
+                    syntax_tokens.push(item.clone());
                 }
                 "operator" => {
-                    if item_arr.get(1).and_then(|v| v.as_str()) == Some("|")
-                        && group_depth == 0
-                    {
-                        outer_branch_index = outer_branch_index.saturating_add(1);
+                    let is_pipe = item_arr.get(1).and_then(|v| v.as_str()) == Some("|");
+                    if is_pipe {
+                        branch_idx = branch_idx.saturating_add(1);
+                        if group_depth == 0 {
+                            outer_branch_idx = outer_branch_idx.saturating_add(1);
+                        }
+                        if group_depth <= 1 {
+                            body_branch_idx = body_branch_idx.saturating_add(1);
+                        }
+                        if branch_to_outer.len() <= branch_idx {
+                            branch_to_outer.push(outer_branch_idx);
+                        }
+                        if branch_to_body.len() <= branch_idx {
+                            branch_to_body.push(body_branch_idx);
+                        }
+                        if slots.len() <= branch_idx {
+                            slots.push(None);
+                        }
+                        last_closed_group_range = None;
+                    }
+                    syntax_tokens.push(item.clone());
+                    if !is_pipe {
+                        last_closed_group_range = None;
                     }
                 }
                 "return_scalar" | "return_array" | "return_object" => {
@@ -325,14 +376,56 @@ pub fn extract_declared_annotations_from_json<P: AsRef<Path>>(
                         .get(1)
                         .and_then(|v| v.as_str())
                         .unwrap_or_default();
-                    annotations.push(DeclaredAnnotation {
-                        rule: rule_name.clone(),
-                        branch_index: outer_branch_index,
-                        annotation_type: tag.to_string(),
-                        normalized_text: normalize_annotation_text(text),
-                    });
+                    let (range_start, range_end) = match last_closed_group_range {
+                        Some((s, e)) => (s, e),
+                        None => (branch_idx, branch_idx),
+                    };
+                    if slots.len() <= range_end {
+                        slots.resize(range_end + 1, None);
+                    }
+                    for slot in slots.iter_mut().take(range_end + 1).skip(range_start) {
+                        *slot = Some((tag.to_string(), text.to_string()));
+                    }
+                    last_closed_group_range = None;
                 }
-                _ => {}
+                // Annotation tokens are not syntax: they neither enter the
+                // discriminator's token list nor clear the pending broadcast
+                // range (mirrors the pipeline's arms exactly).
+                "semantic_annotation"
+                | "semantic_annotation_inline"
+                | "semantic_annotation_mid_sequence"
+                | "lexical_annotation" => {}
+                _ => {
+                    syntax_tokens.push(item.clone());
+                    last_closed_group_range = None;
+                }
+            }
+        }
+
+        let whole_body_group =
+            crate::ast_pipeline::syntax_is_single_whole_body_group(&syntax_tokens);
+        let (branch_map, mapped_count) = if whole_body_group {
+            (&branch_to_body, body_branch_idx + 1)
+        } else {
+            (&branch_to_outer, outer_branch_idx + 1)
+        };
+        let mut mapped_slots: Vec<Option<(String, String)>> = vec![None; mapped_count];
+        for (i, slot) in slots.into_iter().enumerate() {
+            if let Some(entry) = slot {
+                let mapped_idx = branch_map.get(i).copied().unwrap_or(0);
+                if mapped_idx < mapped_slots.len() {
+                    mapped_slots[mapped_idx] = Some(entry);
+                }
+            }
+        }
+        for (branch_index, slot) in mapped_slots.into_iter().enumerate() {
+            if let Some((annotation_type, text)) = slot {
+                annotations.push(DeclaredAnnotation {
+                    rule: rule_name.clone(),
+                    branch_index,
+                    annotation_type,
+                    normalized_text: normalize_annotation_text(&text),
+                });
             }
         }
     }
@@ -622,6 +715,87 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // BRANCH-BROADCAST-FIX.2 — the cross-extractor mirrors the pipeline's
+    // whole-body-group broadcast: a trailing annotation on `( A | B )` yields
+    // one inventory row PER runtime branch, while the documented
+    // disambiguations (`(A|B) | C -> ann` → last branch only; quantified
+    // groups → rule-level slot 0) keep their pre-fix rows.
+    #[test]
+    fn declared_annotation_crosscheck_broadcasts_whole_body_group_rows() {
+        let json = serde_json::json!({
+            "raw_ast": [
+                [
+                    ["rule", "string_literal"],
+                    ["group_open", "("],
+                    ["quoted_string", "\""],
+                    ["rule_reference", "dq_body"],
+                    ["quoted_string", "\""],
+                    ["operator", "|"],
+                    ["quoted_string", "'"],
+                    ["rule_reference", "sq_body"],
+                    ["quoted_string", "'"],
+                    ["group_close", ")"],
+                    ["return_object", "{type: \"string\", value: $2}"]
+                ],
+                [
+                    ["rule", "mixed"],
+                    ["group_open", "("],
+                    ["rule_reference", "a"],
+                    ["operator", "|"],
+                    ["rule_reference", "b"],
+                    ["group_close", ")"],
+                    ["operator", "|"],
+                    ["rule_reference", "c"],
+                    ["return_scalar", "$1"]
+                ],
+                [
+                    ["rule", "quantified"],
+                    ["group_open", "("],
+                    ["rule_reference", "a"],
+                    ["operator", "|"],
+                    ["rule_reference", "b"],
+                    ["group_close", ")"],
+                    ["operator", "*"],
+                    ["return_scalar", "$1"]
+                ]
+            ]
+        });
+        let dir = tempfile::tempdir().expect("tempdir");
+        let path = dir.path().join("crosscheck_probe.json");
+        std::fs::write(&path, serde_json::to_string_pretty(&json).unwrap()).expect("write probe");
+
+        let rows = extract_declared_annotations_from_json(&path).expect("extraction");
+
+        let by_rule = |rule: &str| -> Vec<(usize, String)> {
+            rows.iter()
+                .filter(|r| r.rule == rule)
+                .map(|r| (r.branch_index, r.annotation_type.clone()))
+                .collect()
+        };
+
+        // Whole-body group: one row per runtime branch (the broadcast).
+        assert_eq!(
+            by_rule("string_literal"),
+            vec![
+                (0usize, "return_object".to_string()),
+                (1usize, "return_object".to_string())
+            ],
+            "whole-body group trailing annotation must broadcast to both branches"
+        );
+        // `(A|B) | C -> ann`: ann on the LAST top-level branch only.
+        assert_eq!(
+            by_rule("mixed"),
+            vec![(1usize, "return_scalar".to_string())],
+            "mixed-shape annotation binds the last top-level branch only"
+        );
+        // `( A | B )* -> ann`: quantified group is a sub-part — rule-level slot 0.
+        assert_eq!(
+            by_rule("quantified"),
+            vec![(0usize, "return_scalar".to_string())],
+            "quantified-group rule keeps the single rule-level row"
+        );
+    }
 
     fn assert_report(family: &str, report: &ContractReport) {
         eprintln!(

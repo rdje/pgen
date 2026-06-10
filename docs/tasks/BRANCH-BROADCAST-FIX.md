@@ -5,7 +5,8 @@
 - Roadmap lane: cross-cutting engine quality / released-parser bug remediation (parser-agnostic
   annotation-extraction + codegen fidelity)
 - Created: 2026-06-10
-- Last updated: 2026-06-10
+- Last updated: 2026-06-10 (`.2` done — remap fixed; blast radius measured: BOTH annotation
+  parsers carry newly-correct shapes; `.4` scope widened accordingly)
 
 ## Goal
 
@@ -91,22 +92,34 @@ prevents the atomicity mechanism from engaging on Or-root rules.
 - `BRANCH-BROADCAST-FIX.1` — **`done` (this slice, pure docs): root-cause + evidence + design
   direction** (everything in Evidence above; minimal probe grammar reproduces both defects in
   isolation; shipped impact pinned at runtime on `string_literal`).
-- `BRANCH-BROADCAST-FIX.2` — **`pending` (engine): fix the inner→outer remap for whole-body
-  groups.** Design constraint: keep patterns (A)–(D) green (the remap exists for groups inside
-  sequences/quantifiers); the whole-body-group case (the rule body is exactly one top-level group,
-  so `step2_group_by_or` promotes its alternatives to rule-level branches) must keep inner
-  indices. Decide the discriminator from the same token stream the bookkeeping already walks
-  (e.g. no syntax elements outside the just-closed group at depth 0). Add focused unit tests for:
-  whole-body group (`(A|B) -> ann`), mixed (`(A|B) | C -> ann` → ann on C), trailing-group
-  (`A | (B|C) -> ann` → ann on B,C — the book's documented disambiguation), and patterns (A)–(D).
+- `BRANCH-BROADCAST-FIX.2` — **`done` (engine): the inner→outer remap fixed for whole-body
+  groups.** Implementation: `extract_rule_annotations` (`rust/src/ast_pipeline/mod.rs`) now tracks
+  a SECOND mapping `branch_to_body` (`|` at `group_depth <= 1`) alongside the 2026-05-14
+  `branch_to_outer` (`|` at depth 0), and selects per rule via the new module-level discriminator
+  `syntax_is_single_whole_body_group(&syntax_elements)`: true iff the first syntax element is a
+  `group_open` whose MATCHING `group_close` is the last syntax element (any depth-0 token —
+  quantifier on the group, leading/trailing atoms, top-level `|` — disqualifies). For whole-body
+  groups the group's alternatives ARE the runtime branches (step2_group_by_or sees no top-level
+  `|` and the group's Or is unwrapped to the rule root), so group-local indices are the correct
+  runtime indices; every other shape keeps the outer remap (patterns (A)–(D) intact). The
+  cross-extractor `extract_declared_annotations_from_json` (`rust/src/ast_shape_contract.rs`) now
+  mirrors the pipeline's bookkeeping EXACTLY (inner branch counting + group-close broadcast range
+  + selected remap, sharing the same discriminator fn) instead of the outer-only walk. Manifest:
+  `return_annotation_v1.json` gains the `string_literal` branch-1 inventory row (19→20; the
+  broadcast row the gate had been missing). Commit: `PGEN-BRANCH-BROADCAST-FIX-0002`.
 - `BRANCH-BROADCAST-FIX.3` — **`pending` (engine): fix branch-level MatchedText span in the
   tournament arm.** The transform emission needs the branch-local end (`candidate_end`) instead of
   `parser.position`. Audit the other transform forms for the same hazard (object/array/property
   transforms read captured `content`, not `parser.position` — expected unaffected; verify).
-- `BRANCH-BROADCAST-FIX.4` — **`pending` (release/ledger): ship the corrected `string_literal`
-  shape.** Regenerate the annotation parsers; assess AST-dump schema impact (the single-quoted
-  branch changes raw-Sequence → typed object = a correction of a mis-shape, SVPP-0004 category);
-  ledger row + contract + book lockstep.
+- `BRANCH-BROADCAST-FIX.4` — **`pending` (release/ledger): ship the corrected shapes for BOTH
+  annotation parsers.** Scope WIDENED by `.2`'s measured blast radius: regenerating with the
+  fixed pipeline corrects (a) `return_annotation` `string_literal` branch 1 (single-quoted
+  raw-Sequence → typed object; inventory 19→20) AND (b) `semantic_annotation` — **43**
+  newly-broadcast branch annotations (inventory 108→151; e.g. `annotation_name`,
+  `annotation_value`, `boolean_literal` whole-body-group branches 1+ now typed instead of raw
+  passthrough — the same #38 defect class across that grammar). Assess AST-dump schema impact for
+  BOTH (mis-shape-correction category, SVPP-0004 precedent); ledger rows + contract + per-parser
+  book lockstep for both families; release-version decisions per the release policy.
 - `BRANCH-BROADCAST-FIX.5` — **`pending` (verify consumers): unblock + re-apply
   `GRAMMAR-WELLFORMED.H.10.2.1`** (the regex atomicity edits, re-verified end-to-end: AST A/B
   byte-identical, fused rendering, cert-coverage `UNKNOWN 7→5`).
@@ -115,11 +128,11 @@ prevents the atomicity mechanism from engaging on Or-root rules.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| — | `.1` | `done` | Root-cause + design (this slice). |
-| 1 | `.2` | `pending` | The broadcast remap fix — prerequisite for `.3` verification breadth + `.4`/`.5`. |
-| 2 | `.3` | `pending` | The `$text` span fix — independent, but verified together with `.2` consumers. |
-| 3 | `.4` | `pending` | Shipped-parser correction + ledger/contract/book lockstep. |
-| 4 | `.5` | `pending` | Re-apply the H.10.2.1 consumer. |
+| — | `.1` | `done` | Root-cause + design. |
+| — | `.2` | `done` | The broadcast remap fix (`PGEN-BRANCH-BROADCAST-FIX-0002`). |
+| 1 | `.3` | `pending` | The `$text` span fix — independent, but verified together with `.2` consumers. |
+| 2 | `.4` | `pending` | Shipped-parser corrections (BOTH annotation parsers) + ledger/contract/book lockstep. |
+| 3 | `.5` | `pending` | Re-apply the H.10.2.1 consumer. |
 
 ## Decisions
 
@@ -127,13 +140,22 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   verification surface (branch-level annotations in tournament rules), and `.5`'s consumer needs
   both. The 2026-05-14 remap is NOT reverted — it fixed real codegen drops; `.2` refines its
   applicability condition instead.
+- 2026-06-10 (`.2`): discriminator DECIDED — derived from the same annotation-free
+  `syntax_elements` token list the extraction already accumulates (`first element is `group_open`
+  AND its matching `group_close` is the last element`), exposed as a `pub(crate)` module fn so
+  the `ast_shape_contract` cross-extractor shares the SINGLE implementation instead of mirroring
+  it by hand. Both mappings are tracked during the one existing walk (`branch_to_outer` depth==0,
+  `branch_to_body` depth<=1) and selected after it — no second pass, conservative on unbalanced
+  groups (falls back to the outer/status-quo mapping).
+- 2026-06-10 (`.2`): the manifest inventory row moves WITH the engine fix (not deferred to `.4`)
+  because `generated/` is untracked — any fresh-clone regen uses the fixed pipeline, so a stale
+  manifest would fail the inventory gates immediately. The SHIP surface (ledger/contract/book/
+  release versioning for the corrected runtime shapes) remains `.4`.
 
 ## Open questions
 
-- (`.2`) Exact discriminator for "group's branches survive as runtime branches" — derive from the
-  token stream vs consult `step2_group_by_or`'s actual grouping; decide in-leaf with tests.
-- (`.4`) Schema bump decision for `return_annotation` (mis-shape correction category) — assess
-  against the release policy when the corrected shape is in hand.
+- (`.4`) Schema bump decisions for `return_annotation` AND `semantic_annotation` (mis-shape
+  correction category) — assess against the release policy with both corrected shapes in hand.
 
 ## Blockers
 
@@ -148,3 +170,27 @@ prevents the atomicity mechanism from engaging on Or-root rules.
   re-verified after the probe edits were reverted (AST dumps byte-identical; regex cert-coverage
   `UNKNOWN=7, spf=0` at the `-0060` state).
   Commit: `PGEN-BRANCH-BROADCAST-FIX-0001`.
+- `.2` (2026-06-10): (1) 6 focused unit tests green — whole-body trailing broadcast (`$text` AND
+  object form, asserting the rule root IS the 2-branch Or), whole-body PER-branch annotations,
+  the documented disambiguations (`(A|B) | C -> ann` → ann on C only; `A | (B|C) -> ann` → ann on
+  the outer group arm), patterns (A)–(D) regression locks, and the discriminator's 6 token
+  shapes (incl. nested `((A|B)|C)` and adjacent-groups `(A|B)(C|D)`); plus the cross-extractor
+  broadcast test on a temp frontend JSON. NOTE: synthetic IR fixtures must use the REAL 2-element
+  group tokens (`["group_open","("]`) — bare 1-element tokens are silently dropped by
+  `parse_raw_element` (arity < 2) and distort the AST lane. (2) full suites green: default 682/0,
+  `--features generated_parsers` workspace 767/0. (3) DECISIVE stash-baseline cross-grammar regen
+  byte-comparison (pre-fix pipeline regen vs post-fix regen, all 9 grammar targets): semantic
+  delta confined to `return_annotation_parser.rs` (+ its inventory artifact 19→20) and
+  `semantic_annotation_parser.rs` (+ inventory 108→151, the 43 broadcast rows); `regex_parser.rs`
+  and `systemverilog_parser.rs` diffs proven SET-EQUAL `directives_by_rule` entries (5/5 and
+  43/43) + map-order churn in two serialized LR-chain templates — zero semantic delta (HashMap
+  iteration-order across binaries; same-binary double-regen is byte-identical); json /
+  rtl_const_expr / svpp / rtl_frontend / vhdl parsers byte-identical. The frontend `*.json`
+  envelope diffs are `generated_at` timestamp noise only. (4) runtime A/B on the shipped defect:
+  `'x'` → `{Json:{type:"string",value:"x"}}` ≡ `"x"`; generated `parse_string_literal` carries
+  the object transform in BOTH branch arms (was 1). (5) regex cert-coverage baseline preserved
+  IDENTICALLY: `total=198 witness=191 UNKNOWN=7 sample_parse_failures=0` at seeds 0/7/42
+  (`--count 40`, the `-0060` numbers). (6) clippy strict-source clean; generated-stage non-strict
+  failures are the pre-existing generated-code debt class (all 191 sites inside
+  `generated/systemverilog{,_preprocessor}_parser.rs`).
+  Commit: `PGEN-BRANCH-BROADCAST-FIX-0002`.
