@@ -787,6 +787,24 @@ pub struct MemoEntry<'input> {
     /// the parse succeeded — even if the delta is empty (no side effects),
     /// the field is `Some(empty_delta)` to keep the type uniform.
     pub semantic_delta: Option<SemanticRuntimeDelta>,
+    /// GRAMMAR-WELLFORMED.H.10.2.2 — the transactional parse-COVERAGE entries
+    /// the rule's body pushed (relative to the coverage-stack length captured
+    /// at memoization-call entry). The same memoization × transactional-record
+    /// composition gap `semantic_delta` closes for the semantic store exists
+    /// for the coverage record: a memo HIT reuses the cached parse result
+    /// without re-entering the rule body, so the per-rule-entry coverage push
+    /// never fires — a subtree first parsed inside a rolled-back speculation
+    /// (coverage truncated) and then memo-hit on the committed path ends up
+    /// absent from `exercised_rule_names()`, breaking the witness record's
+    /// completeness. On a cache hit this delta is replayed (extended onto the
+    /// live coverage stack, inside the current speculation, so a later
+    /// rollback still truncates it — transactionality preserved).
+    ///
+    /// `None` when coverage recording was disabled at memoization time (the
+    /// ordinary-parsing default — no allocation, zero cost) or the parse
+    /// failed; `Some(entries)` when coverage was enabled and the body
+    /// succeeded.
+    pub coverage_delta: Option<Vec<u32>>,
 }
 
 /// Rule ID type for memoization

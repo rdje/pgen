@@ -236,9 +236,21 @@ The correct source is to make the **parser itself testify** to what it parsed. P
 parsers carry an opt-in, **transactional coverage record**: each rule, on entry, pushes its id onto a
 coverage stack; the universal speculation wrapper (`try_parse`, which backs every `|`, `?`, `*`, `+`,
 and lookahead) snapshots the stack's length and, on backtrack, truncates back to it — exactly as it
-already rolls back the input position and the semantic state. After a *successful* parse, every
-failed attempt necessarily occurred inside some rolled-back speculation, so the entries that survive
-are **exactly the rules of the accepted parse**:
+already rolls back the input position and the semantic state. One more piece is required for that
+guarantee to actually hold: **packrat memoization composes with this record exactly the way it
+composes with the semantic store.** A memo *hit* reuses a cached parse result without re-entering the
+rule body — so the entry-push never fires for the cached subtree. A subtree first parsed inside a
+speculation that later fails (its coverage entries truncated by the rollback) and then memo-hit on the
+committed path would silently vanish from the record, even though the accepted parse genuinely
+exercised it. The memo entry therefore stores the **coverage delta** its body pushed, and every cache
+hit replays that delta onto the live stack — mirroring how the cached *semantic* delta is replayed on
+hits. (This was found live, not hypothetically: on the regex grammar, `\Q\A\E*` parses its `\A`
+through an inner speculation that fails a lookahead and is then memo-hit by the committed alternative
+— pre-fix, the witness record permanently lacked the escape-tail rules, which sat in the
+cert-coverage `UNKNOWN` bucket for exactly that reason.) The replay happens *inside* the current
+speculation, so a later rollback still truncates it — transactionality is preserved. After a
+*successful* parse, every failed attempt necessarily occurred inside some rolled-back speculation, so
+the entries that survive are **exactly the rules of the accepted parse**:
 
 - **sound** — no backtracked, thrown-away attempts (the call-counter failure mode), and
 - **complete** — annotation folding cannot hide a rule, because we record the *entry*, not the
@@ -303,10 +315,14 @@ certificate-coverage gate**; only the internal meta/annotation grammars (`ebnf`,
 reported* `UNKNOWN` backlog still being driven toward zero — a *loud, specific* list of fragments still
 awaiting a witness, never hidden, because the gate never pretends a grammar is fully certified until every
 fragment carries a checked certificate. The per-grammar drives keep shrinking it: `regex`, for example, has
-moved `98 → 19 → 7 → 5` (the `19→7` slice removed twelve rules proven dead by two independent oracles; the
-`7→5` slice was a declarative grammar fix — all-branch `-> $text` on two single-char alternation rules so
-the generator renders them fused to their prefix, `\pC`/`aD`, exactly the lexical-annotations atomic-token
-rule). For exact current per-grammar numbers, the gate's own report is the authority.
+moved `98 → 19 → 7 → 5 → 3` (the `19→7` slice removed twelve rules proven dead by two independent oracles;
+the `7→5` slice was a declarative grammar fix — all-branch `-> $text` on two single-char alternation rules
+so the generator renders them fused to their prefix, `\pC`/`aD`, exactly the lexical-annotations
+atomic-token rule; the `5→3` slice was the memo-hit coverage-delta replay described above — the two rules
+were *already witnessed by the accepted parses*, the record just failed to say so on memo hits). That same
+engine fix moved every other backlog in one step with zero generation change: vhdl `31→30`, rtl_frontend
+`75→73`, SystemVerilog `738→647`. For exact current per-grammar numbers, the gate's own report is the
+authority.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

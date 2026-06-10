@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.H.10.2.2 — the memo-hit coverage-delta replay (PGEN-GRAMMAR-WELLFORMED-0061)
+
+### The label was wrong; the probes told the truth
+The H.10.2 pool record had filed `letter_no_upper_e`/`quoted_class_literal_escaped_char`/`unicode_char` together as a "terminal-selection trio" (generation steering misses). The live probe capture (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1`) immediately falsified that framing for two of the three: their probes were **byte-identical across all 4 retry attempts** (so the "terminal expansions vary per attempt" retry premise was moot), and the probe `\Q\A\E*` *visibly contains* the `\A` escaped-char production in its AST dump (`atom ["\\","A"]`). A probe that parses, demonstrably routes through the target production, and still reports `witnessed_target=false` is not a generation problem — it is a **witness-record problem**. From there the code read pinned it in one step: `memoized_call` replays the cached *semantic* delta on hits (`.36.4`) but not the *coverage* entries, and both probes have the exact shape that triggers it (a sub-rule first parsed inside a failing speculation — the `!"\E"` inner-piece lookahead, the dash-less `class_range` attempt — then memo-hit by the committed alternative at the same position).
+
+### One defect class, two instances — and a rule for the third time
+This is the second instance of the memoization × transactional-record composition gap (`.36.3/.36.4` was the semantic store). The durable engineering rule is now recorded as a KM card (`memo-hit-transactional-replay`): a transactional per-rule record needs THREE legs — push on body entry, truncate in `try_parse`, **and delta-capture + replay in `memoized_call`**. The first two legs alone look complete and test green on non-memo-hit paths, which is exactly why both instances survived so long. Any future record (timing, provenance, whatever) must budget the third leg from day one.
+
+### Cheap fix, outsized cross-grammar payoff
+The fix is ~20 emitted lines and one struct field, costs nothing when coverage is off, and moved every per-grammar UNKNOWN backlog in one step with zero generation change: regex 5→3, vhdl 31→30, rtl_frontend 75→73, **SV 738→647 (−91)**. The SV number is the telling one — 91 rules' witnesses already existed in the accepted parses; the record was just losing them on memo hits. Corollary for the remaining drives: the surviving UNKNOWNs are now much more likely to be genuine generation-reach gaps (or dead rules), because the measurement itself stopped under-counting.
+
+### Binary staleness can mimic a regression
+The session opened on a baseline mismatch (`UNKNOWN=7` vs the recorded `5`): the release binary predated the same-morning `-0002/-0003` engine fixes. The grammar is runtime-loaded, but the broadcast/atomicity machinery lives in the binary — so cert-coverage numbers are only meaningful for a binary built at (or after) the engine state of the record being compared against. Worth remembering before declaring any cert-coverage regression: check `git log -1 --format=%ci` against the binary mtime first.
+
 ## 2026-06-10 - BRANCH-BROADCAST-FIX.5 — the H.10.2.1 re-application closes the loop (PGEN-BRANCH-BROADCAST-FIX-0005)
 
 ### The revert-and-re-apply arc, validated

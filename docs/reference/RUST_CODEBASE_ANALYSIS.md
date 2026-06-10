@@ -1,6 +1,26 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
-Last updated: 2026-04-26
+Last updated: 2026-06-10
+
+## Recent Architecture Change Note (2026-06-10)
+
+**Memo-hit coverage-delta replay (`GRAMMAR-WELLFORMED.H.10.2.2`).** The shared packrat
+`MemoEntry` ([rust/src/ast_pipeline/mod.rs](../../rust/src/ast_pipeline/mod.rs)) gains a
+`coverage_delta: Option<Vec<u32>>` field, and the emitted `memoized_call`
+([rust/src/ast_pipeline/ast_based_generator.rs](../../rust/src/ast_pipeline/ast_based_generator.rs))
+now (a) snapshots the transactional coverage stack's length before executing a rule body,
+(b) stores the body's pushed coverage entries in the `MemoEntry` on success (`None` — no
+allocation — when coverage recording is disabled, the ordinary-parsing default), and (c)
+replays that delta onto the live coverage stack on every memo hit. This closes the
+memoization × transactional-record composition gap for the certifying-linter witness record —
+the same defect class `.b.6.2.36.4` closed for the semantic store (`semantic_delta` replay):
+a memo hit bypasses the rule body, so without the replay a subtree first parsed inside a
+rolled-back speculation and then memo-hit on the committed path was silently absent from
+`exercised_rule_names()`. Engine-wide rule for future work: **any new transactional per-rule
+record added to generated parsers must also be delta-captured in `MemoEntry` and replayed on
+hits** (see the `memo-hit-transactional-replay` knowledge card). All generated parsers were
+regenerated with the new shape; parse outcomes are byte-identical (the change affects only
+the opt-in diagnostic coverage record).
 
 ## Recent Architecture Change Note (2026-04-26)
 

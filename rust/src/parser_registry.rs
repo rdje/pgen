@@ -1572,6 +1572,48 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         assert_eq!(parse_sample("regex", &deep_nested), Some(true));
     }
 
+    /// GRAMMAR-WELLFORMED.H.10.2.2 — the memoization × coverage-record
+    /// composition gap: a rule subtree first parsed inside a rolled-back
+    /// speculation and then memo-HIT on the committed path must still appear
+    /// in the witness record. `\Q\A\E*` routes through
+    /// `piece_quoted_run_quantified`, whose `quoted_run_inner_piece*`
+    /// speculation parses `quoted_literal_char` at the `\A` position and
+    /// fails on the `!"\E"` lookahead (the rollback truncates the coverage
+    /// stack while the memo keeps the success); the trailing
+    /// `quoted_literal_char` slot then memo-hits at the same position.
+    /// Pre-fix, the accepted parse's record lacked the whole subtree
+    /// (`letter_no_upper_e` stayed UNKNOWN in regex cert-coverage); post-fix
+    /// the cached coverage delta is replayed on the hit.
+    #[cfg(has_generated_regex_parser)]
+    #[test]
+    fn regex_parse_and_cover_replays_coverage_on_memo_hits() {
+        let (parsed, covered) = super::parse_and_cover_regex("\\Q\\A\\E*", None);
+        assert!(parsed, "\\Q\\A\\E* must parse");
+        for rule in [
+            "quoted_literal_char",
+            "quoted_literal_escaped_char",
+            "quoted_literal_escape_tail",
+            "letter_no_upper_e",
+        ] {
+            assert!(
+                covered.contains(rule),
+                "accepted parse of \\Q\\A\\E* must witness '{}' (memo-hit coverage replay)",
+                rule
+            );
+        }
+
+        // The class-context analogue: `class_item`'s first-tried `class_range`
+        // parses `quoted_class_range_atom → quoted_class_literal_char` at the
+        // `\A` position, fails on the missing `-`, and rolls back; the
+        // `quoted_class_literal` alternative then memo-hits at that position.
+        let (parsed, covered) = super::parse_and_cover_regex("[]\\Q\\A\\E]", None);
+        assert!(parsed, "[]\\Q\\A\\E] must parse");
+        assert!(
+            covered.contains("quoted_class_literal_escaped_char"),
+            "accepted parse of []\\Q\\A\\E] must witness 'quoted_class_literal_escaped_char' (memo-hit coverage replay)"
+        );
+    }
+
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_ast_json_adapter_handles_unicode_literals_and_deep_nested_groups() {

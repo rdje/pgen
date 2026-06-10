@@ -1094,14 +1094,17 @@ subtle dead branch"), never a silent accept.
     Contract-doc `subroutine_ref` mentions verified to live ONLY in append-only per-release history
     sections; the quarantined `#[ignore]` trace-of-parse-path test left untouched as recorded.`
     Commit: `PGEN-GRAMMAR-WELLFORMED-0060`.
-  - `H.10.2` — **`active` (pool):** the remaining 7 — (i) the probe-cohesion pair (→ `H.10.2.1`);
-    (ii) the terminal-selection trio `letter_no_upper_e`/`unicode_char`/
-    `quoted_class_literal_escaped_char` (probes parse but route elsewhere — the plan forces the
-    path but the minimal terminal choice inside the final expansion misses the target alternative);
-    (iii) the semantic-prelude pair `numeric_backreference`/`backreference_digits` (witnessing
-    needs ≥N capture groups BEFORE the backref — the generation-side store honours the predicate
-    (STORE-AWARE-GEN), so the reach pass needs a fact-emitting PRELUDE; owned by the B2/C1/C2
-    constructive lane when activated).
+  - `H.10.2` — **`active` (pool, now 3):** originally the remaining 7 — (i) the probe-cohesion
+    pair (→ `H.10.2.1`, done); (ii) what was labeled the "terminal-selection trio"
+    `letter_no_upper_e`/`unicode_char`/`quoted_class_literal_escaped_char` — RE-ADJUDICATED
+    tools-first 2026-06-10: TWO of the three (`letter_no_upper_e`,
+    `quoted_class_literal_escaped_char`) were a witness-instrumentation ENGINE defect (memo-hit
+    coverage loss → `H.10.2.2`, done), and `unicode_char` is a generation-side
+    builtin-primitive gap (→ `H.10.2.3`); (iii) the semantic-prelude pair
+    `numeric_backreference`/`backreference_digits` (witnessing needs ≥N capture groups BEFORE
+    the backref — the generation-side store honours the predicate (STORE-AWARE-GEN), so the
+    reach pass needs a fact-emitting PRELUDE; owned by the B2/C1/C2 constructive lane when
+    activated). Pool after `H.10.2.2`: `unicode_char` + the store-gated pair.
     - `H.10.2.1` — **`done` (re-applied + closed by `BRANCH-BROADCAST-FIX.5`,
       `PGEN-BRANCH-BROADCAST-FIX-0005`, 2026-06-10): the documented declarative fix landed
       exactly as designed once the engine defect pair was fixed (`.2` broadcast remap + `.3`
@@ -1142,6 +1145,103 @@ subtle dead branch"), never a silent accept.
       cert-coverage `UNKNOWN 7→5` + `spf=0` (seeds 0/7/42, deterministic); AST-dump A/B
       byte-identical; manifest synced to the regenerated inventory; oracle gate + dual-feature lib
       green; cross-grammar untouched; NO release/schema bump expected (shape-preserving).
+    - `H.10.2.2` — **`done` (`PGEN-GRAMMAR-WELLFORMED-0061`, ENGINE FIX: memoization ×
+      coverage-record composition gap — memo-hit coverage-delta replay).**
+      Verification: `done — exactly as designed. ENGINE: MemoEntry gains
+      coverage_delta: Option<Vec<u32>> (mod.rs); memoized_call snapshots coverage_stack.len()
+      before f(self), stores the body's pushed slice on success (None/no-alloc when coverage
+      disabled), and replays it on every hit inside the current speculation (try_parse still
+      truncates → transactional soundness preserved). All 10 active generated parsers
+      regenerated (ebnf.rs via the documented seed flow — Step A builds without the stale
+      artifact — then the 7 grammar parsers + the 2 bootstrap annotation parsers; each carries
+      capture+store+replay). VERIFIED: (1) codegen lock-test extended
+      (transactional_parse_coverage_wiring_is_emitted_at_codegen asserts snapshot + store +
+      replay tokens) — green; (2) NEW live-fire regression test
+      parser_registry::tests::regex_parse_and_cover_replays_coverage_on_memo_hits — green
+      (\Q\A\E* witnesses quoted_literal_char/quoted_literal_escaped_char/
+      quoted_literal_escape_tail/letter_no_upper_e; []\Q\A\E] witnesses
+      quoted_class_literal_escaped_char); (3) regex cert-coverage **UNKNOWN 5→3**
+      (witness 193→195, spf=0), IDENTICAL seeds 0/7/42 — the pool is now unicode_char +
+      the store-gated pair; (4) CROSS-GRAMMAR (UNKNOWN only DECREASES, spf byte-identical 0
+      everywhere): **vhdl 31→30, rtl_frontend 75→73, SV 738→647 (−91)** — 91 SV rules sat in
+      UNKNOWN purely from this witness-record gap; SV's 68 no-path/multi-entry family
+      unchanged; json + rtl_const_expr + svpp (seeds 0/7/42) stay fully_certified; (5)
+      regex_pcre2_compile_oracle_gate PASS (parse outcomes byte-identical — the fix touches
+      ONLY the opt-in diagnostic coverage record); (6) suites: default 683/0,
+      generated_parsers 757/0, generated_parsers+ebnf_dual_run 798/0 (count deltas vs older
+      records = the freshly regenerated ebnf.rs's embedded tests, 0 failures everywhere); (7)
+      clippy strict-source clean (generated stage = the pre-existing tolerated 191-site
+      non-strict debt class). NO release/schema bump (memo-internal + opt-in diagnostic
+      surface; no consumer-visible AST/accept-set change). Lockstep: book
+      grammar-wellformedness chapter (memo-hit replay added to the witness-record mechanism +
+      the 98→19→7→5→3 arc + cross-grammar numbers), KM card memo-hit-transactional-replay
+      (the engine-wide rule: EVERY transactional per-rule record must be delta-captured in
+      MemoEntry and replayed on hits), RUST_CODEBASE_ANALYSIS architecture note. OPERATIONAL
+      NOTE (session): the pre-fix baseline initially mis-read as UNKNOWN=7 because the release
+      binary predated the -0002/-0003 engine fixes — cert-coverage numbers depend on the
+      BINARY embedding the engine state (the grammar is runtime-loaded but the
+      atomicity/broadcast machinery is compiled); rebuilt and re-verified 5/5/5 before any
+      work.` Original design record: ROOT CAUSE (tools-first, WHY+WHERE pinned, 2026-06-10):
+      the "terminal-selection trio" label was WRONG for 2 of the 3 — `letter_no_upper_e` and
+      `quoted_class_literal_escaped_char` are NOT a generation steering miss; they are a
+      **witness-instrumentation engine defect**. Live probe evidence
+      (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1`, seed 0): probe `\Q\A\E*` for `letter_no_upper_e` is
+      `parsed=true witnessed_target=false`, yet its AST-dump shows atom `["\\","A"]` — i.e. the
+      ACCEPTED parse structurally DOES route through `quoted_literal_escaped_char →
+      quoted_literal_escape_tail → letter_no_upper_e`. WHY the record misses it:
+      `piece_quoted_run_quantified`'s `quoted_run_inner_piece*` speculation enters
+      `quoted_literal_char`(pos 2)→…→`letter_no_upper_e` (coverage pushed AND memoized as
+      successes), the `!"\E"` lookahead fails the inner piece → `try_parse` truncates the
+      coverage stack — then the trailing `quoted_literal_char` slot re-calls at the SAME
+      `(rule,position)` key → **memo HIT returns the cached node WITHOUT re-entering the body →
+      the coverage push (`ast_based_generator.rs:2701`) never fires** → the accepted parse's
+      record permanently lacks the subtree. `memoized_call` (`ast_based_generator.rs:5856`)
+      replays the cached **semantic delta** on hit (the `.b.6.2.36.4` fix) but NOT the coverage
+      entries — the SAME memoization × transactional-record composition-gap class as
+      `.36.3/.36.4`, now on the coverage stack. The class probe `[]\Q\A\E]` is the same
+      mechanism via `class_item`'s ordered choice: `class_range` (tried first) →
+      `quoted_class_range_atom` → `quoted_class_literal_char`(pos of `\A`) succeeds+memoizes,
+      range fails on the missing `-`, rolls back → the `quoted_class_literal` alternative
+      memo-hits → `quoted_class_literal_escaped_char` never recorded. Also explains the
+      4-identical-retry waste (the retry premise "terminal expansions vary" is moot when the
+      record, not the sample, is wrong). NOTE: this violates the book's
+      grammar-wellformedness claim that the record is "sound AND complete" — complete fails on
+      memo hits; book lockstep required. FIX (parser-agnostic, engine codegen — the `.36.4`
+      pattern exactly): extend `MemoEntry` (`ast_pipeline/mod.rs:774`) with
+      `coverage_delta: Option<Vec<u32>>`; in `memoized_call` capture
+      `coverage_stack.len()` before `f(self)` and store the pushed slice on success (gated
+      `coverage_enabled` → `None`/no allocation in ordinary parsing); on memo hit, when
+      `coverage_enabled`, `extend_from_slice` the delta onto the live stack (inside the current
+      speculation → a later rollback still truncates it → transactional soundness preserved).
+      Regenerate ALL generated parsers (each embeds `memoized_call` + the `MemoEntry` shape).
+      Acceptance: focused regression test `parse_and_cover_regex("\Q\A\E*")` contains
+      `letter_no_upper_e` (+ the class-probe analogue); regex cert-coverage `UNKNOWN 5→3`
+      (`witness 193→195`, `spf=0`, seeds 0/7/42 deterministic); cross-grammar `UNKNOWN` may only
+      DECREASE vs the locked-program baseline (vhdl 31 / rtl_frontend 75 / SV 738 — measure and
+      record the post-fix numbers) with `sample_parse_failures` byte-identical everywhere;
+      json + rtl_const_expr + svpp stay fully_certified; `regex_pcre2_compile_oracle_gate` PASS
+      (parse outcomes untouched — the fix changes ONLY the opt-in diagnostic coverage record);
+      dual-feature lib green; clippy strict-source clean; NO release/schema bump (memo-internal +
+      opt-in diagnostic surface only; no consumer-visible AST/accept-set change).
+    - `H.10.2.3` — **`queued` (unicode_char: declarative witnessing sample).** ROOT CAUSE
+      (tools-first, verified live 2026-06-10): `unicode_char = !builtin_ascii_char
+      builtin_any_char -> $2` is **structurally unmaterializable by the generator** —
+      `builtin_any_char` is a parser-side codegen-native primitive (`ast_based_generator.rs:894`)
+      with NO grammar definition and NO generator special-case, so
+      `generate_rule("builtin_any_char")` errors `Missing rule` (decisive direct probe:
+      `--generate-stimuli --entry-rule unicode_char` → `Error: Missing rule 'builtin_any_char'
+      in grammar 'regex'`); additionally `ASTNode::Lookahead → Ok("")`
+      (`stimuli_generator.rs:5529`) means the `!builtin_ascii_char` guard is generation-blind.
+      Every alternative chain referencing `unicode_char` backtracks today (zero diversity lost by
+      a hint — there is none, only errors). FIX (grammar-only, level-1 declarative, the proven
+      `H.5.3` witnessing-sample pattern): rule-level `@sample` with a single non-ASCII literal on
+      `unicode_char` so generation can emit it and the reach pass witnesses it. The deeper
+      parser-agnostic engine capability (generator-side materialization of `builtin_*` primitives
+      + negative-lookahead-guard-aware terminal choice — would also un-empty `comment_text`,
+      callout/directive payloads) is TICKETED as a STIMULI-SIGNOFF capability-gap audit data
+      point, not blocking UNKNOWN→0. Acceptance: regex cert-coverage `UNKNOWN −1` with `spf=0`
+      preserved (seeds 0/7/42); AST shape for the hint-emitted char identical to a parsed
+      non-ASCII char (A/B); oracle gate PASS; no release/schema bump expected.
 - `H.9` — **`done` (`PGEN-GRAMMAR-WELLFORMED-0059`, svpp PARSER BUG, found by H.7.2's plannable-rule reach pass): a default
   argument on the LAST macro formal mis-parses — `` `define M(a=x) y`` yields formals=[] with
   "(a=x) y" as macro BODY text (legal per IEEE 1800 §22.5.1; the LRM's own examples put defaults on
@@ -1679,7 +1779,7 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | — | `GRAMMAR-WELLFORMED.F1` | `done` (`-0008`, HARD GATE) | Binding-before-use (Jim 2010) — consulted-but-never-emitted fact-KIND. 0 across all grammars (sound, zero FP). **⇒ the well-DEFINEDNESS layer (E1/E2/F1) is COMPLETE; the linter now proves all 7 contract axes' decidable cores.** |
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
-| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** ✓ **H.5.1.2 (`-0046`) drove svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword fusion — to 0 via the declarative `[>! /\w/]` lexical-annotation (the construct built for the generator) + a general `collect_rule_body` frontend fix it surfaced (consecutive `[>` directives now each bind; only the first bound before); svpp `sample_parse_failures` 8→1, `UNKNOWN` 7→4, `witness` 66→69 seed 0; json/regex cert-coverage unchanged; lib 621/621; cross-family gate PASS.** ✓ **`H.5.1.3.2` (`-0049`) CLOSED the LAST svpp residual** — `condition_text -> $text` (declarative atomicity, LEXICAL-ANNOTATIONS.6) suppresses the stray trailing `\n` that stranded a `` `" `` stringize; svpp cert-coverage `sample_parse_failures` **1→0** (both seeds, deterministic) ⇒ **svpp is now cert-coverage CLEAN**. Consumer-visible: svpp schema **3→4**, release **1.0.4→1.0.5** (condition_atom "text" body raw-envelope→`$text` string; annot 66→67; director-approved). ✓ **`H.4.1` (`-0050`) ROOT-CAUSED rtl_const_expr's `UNKNOWN` residual** (the FIRST per-grammar `UNKNOWN`→0 drive, tools-first, pure-docs): the residual reduces to the stubborn pair `lparen`/`rparen` = the `primary_expr := lparen conditional_expr rparen` parenthesised-primary branch, which clean diverse generation essentially NEVER selects (`0/40` samples contain `(` @ depth 32; the branch re-enters the ~15-deep precedence chain → depth-floor pruning + recursion-pressure penalty avoid it; fatal-aborts at the default depth 24). ADJUDICATED a **generator-reach deficiency** (statically reachable; `(1)` is valid) — fix belongs in the generator. The witness-pass shortcut is off the table per the explicit `main.rs:1572` design decision. ✓ **`H.4.2` (`-0051`) DONE — CONSTRUCTIVE-REACH: rtl_const_expr is now `fully_certified=true` (UNKNOWN 3→0, deterministic across seeds), with ZERO certification regression on any grammar** (decisive git-stash baseline: `sample_parse_failures` byte-identical pre/post for json/regex/vhdl/SV; UNKNOWN only decreases — regex 101→98, vhdl 85→69, SV 1160→1126). Opt-in `StimuliConfig.reach_uncovered_recursive_branches` (default OFF → all non-cert-coverage surfaces byte-identical) drives three gated `generate_or` behaviours (floor-retain + try-recursive-first + minimal-`construct_mode` depth-retry); `run_certificate_coverage_report` is two-pass (diverse certification pass byte-identical + auxiliary reach pass that only UNIONS re-parsing witnesses). lib 686/0; new test PASS; self-host + cross-family + oracle green. ✓ **`H.5.2` (`-0052`) drove svpp `UNKNOWN 3→2`** — removed the OBJECTIVELY-PROVEN-DEAD `trivia` rule (referenced by nothing; gap-report oracle `reachable:false unreachable_from_entry`; the only statically-unreachable rule) at source per the literal-0 doctrine, and tightened the `sv_preprocessor_zero_plausible_gap_proof_gate` from a `[trivia]` helper-pocket to a **literal-ZERO unreachable surface** (contract v2→3, observed==allowed==[]; gate GREEN). cert-coverage `total 72 witness 70 UNKNOWN 2 sample_parse_failures 0` (seeds 0/7); shape-contract GREEN (no AST/schema/release change); lib 716/0. svpp's remaining 2 `UNKNOWN` (`directive_tail`/`line_comment`) are reachable optionals = generator-reach → **`H.5.3`** (svpp fully_certified after it). ✓ **`H.5.3` (`-0053`) DONE — svpp `fully_certified=true` at seeds 0/7/42** via DECLARATIVE witnessing-sample steering (evidence-driven re-scope from the assumed constructive-reach engine pass): the 2 residuals were 100% generator-side, caused by stale `@sample: " "` hints (un-witnessable bare space / `line_comment?`-short-circuit), replaced with witnessing-and-faithful `@sample: " x"` / `@sample: " //"`; `sample_parse_failures=0`, deterministic, zero cross-grammar regression (grammar-only). Multi-seed measurement surfaced TWO pre-existing svpp residuals (the stimuli generator as bug-finding oracle): (1) a seed-1/12-only macro-default nested-optional UNKNOWN — but a SAMPLE-BUDGET artifact (count 100/200 → `UNKNOWN=0`) → ticketed **`H.5.4`** (low priority); (2) a genuine OVER-GENERATION (`sample_parse_failures=1` at seeds 3/6/10/12/14/15 of 0–15, IDENTICAL on the pre-H.5.3 grammar → pre-existing, an unclosed/closer-stolen `pp_conditional` round-trip hazard) → ticketed **`H.5.5`** (the real round-trip defect). ✓ `H.5.5` + `H.5.4` closed (svpp seed-robustly clean via `H.5.5`/`H.7.2`/`H.9`). ✓ **`H.10.1` (`-0060`) — the regex `UNKNOWN`→0 drive's dead-rule removal: the 12 no-path rules (both oracles: `unreachable_from_entry`) removed at source; regex `UNKNOWN 19→7`, `total 210→198`, spf=0, deterministic seeds 0/7/42; gap-report unreachable 12→0; oracle gate + lib 721/0 green; no release/schema bump.** NEXT = `H.10.2` (the 7 regex survivors: probe-cohesion pair / terminal-selection trio / store-gated prelude pair) + the vhdl (31) / rtl_frontend (75) / SV (738) drives. |
+| 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** ✓ **H.5.1.2 (`-0046`) drove svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword fusion — to 0 via the declarative `[>! /\w/]` lexical-annotation (the construct built for the generator) + a general `collect_rule_body` frontend fix it surfaced (consecutive `[>` directives now each bind; only the first bound before); svpp `sample_parse_failures` 8→1, `UNKNOWN` 7→4, `witness` 66→69 seed 0; json/regex cert-coverage unchanged; lib 621/621; cross-family gate PASS.** ✓ **`H.5.1.3.2` (`-0049`) CLOSED the LAST svpp residual** — `condition_text -> $text` (declarative atomicity, LEXICAL-ANNOTATIONS.6) suppresses the stray trailing `\n` that stranded a `` `" `` stringize; svpp cert-coverage `sample_parse_failures` **1→0** (both seeds, deterministic) ⇒ **svpp is now cert-coverage CLEAN**. Consumer-visible: svpp schema **3→4**, release **1.0.4→1.0.5** (condition_atom "text" body raw-envelope→`$text` string; annot 66→67; director-approved). ✓ **`H.4.1` (`-0050`) ROOT-CAUSED rtl_const_expr's `UNKNOWN` residual** (the FIRST per-grammar `UNKNOWN`→0 drive, tools-first, pure-docs): the residual reduces to the stubborn pair `lparen`/`rparen` = the `primary_expr := lparen conditional_expr rparen` parenthesised-primary branch, which clean diverse generation essentially NEVER selects (`0/40` samples contain `(` @ depth 32; the branch re-enters the ~15-deep precedence chain → depth-floor pruning + recursion-pressure penalty avoid it; fatal-aborts at the default depth 24). ADJUDICATED a **generator-reach deficiency** (statically reachable; `(1)` is valid) — fix belongs in the generator. The witness-pass shortcut is off the table per the explicit `main.rs:1572` design decision. ✓ **`H.4.2` (`-0051`) DONE — CONSTRUCTIVE-REACH: rtl_const_expr is now `fully_certified=true` (UNKNOWN 3→0, deterministic across seeds), with ZERO certification regression on any grammar** (decisive git-stash baseline: `sample_parse_failures` byte-identical pre/post for json/regex/vhdl/SV; UNKNOWN only decreases — regex 101→98, vhdl 85→69, SV 1160→1126). Opt-in `StimuliConfig.reach_uncovered_recursive_branches` (default OFF → all non-cert-coverage surfaces byte-identical) drives three gated `generate_or` behaviours (floor-retain + try-recursive-first + minimal-`construct_mode` depth-retry); `run_certificate_coverage_report` is two-pass (diverse certification pass byte-identical + auxiliary reach pass that only UNIONS re-parsing witnesses). lib 686/0; new test PASS; self-host + cross-family + oracle green. ✓ **`H.5.2` (`-0052`) drove svpp `UNKNOWN 3→2`** — removed the OBJECTIVELY-PROVEN-DEAD `trivia` rule (referenced by nothing; gap-report oracle `reachable:false unreachable_from_entry`; the only statically-unreachable rule) at source per the literal-0 doctrine, and tightened the `sv_preprocessor_zero_plausible_gap_proof_gate` from a `[trivia]` helper-pocket to a **literal-ZERO unreachable surface** (contract v2→3, observed==allowed==[]; gate GREEN). cert-coverage `total 72 witness 70 UNKNOWN 2 sample_parse_failures 0` (seeds 0/7); shape-contract GREEN (no AST/schema/release change); lib 716/0. svpp's remaining 2 `UNKNOWN` (`directive_tail`/`line_comment`) are reachable optionals = generator-reach → **`H.5.3`** (svpp fully_certified after it). ✓ **`H.5.3` (`-0053`) DONE — svpp `fully_certified=true` at seeds 0/7/42** via DECLARATIVE witnessing-sample steering (evidence-driven re-scope from the assumed constructive-reach engine pass): the 2 residuals were 100% generator-side, caused by stale `@sample: " "` hints (un-witnessable bare space / `line_comment?`-short-circuit), replaced with witnessing-and-faithful `@sample: " x"` / `@sample: " //"`; `sample_parse_failures=0`, deterministic, zero cross-grammar regression (grammar-only). Multi-seed measurement surfaced TWO pre-existing svpp residuals (the stimuli generator as bug-finding oracle): (1) a seed-1/12-only macro-default nested-optional UNKNOWN — but a SAMPLE-BUDGET artifact (count 100/200 → `UNKNOWN=0`) → ticketed **`H.5.4`** (low priority); (2) a genuine OVER-GENERATION (`sample_parse_failures=1` at seeds 3/6/10/12/14/15 of 0–15, IDENTICAL on the pre-H.5.3 grammar → pre-existing, an unclosed/closer-stolen `pp_conditional` round-trip hazard) → ticketed **`H.5.5`** (the real round-trip defect). ✓ `H.5.5` + `H.5.4` closed (svpp seed-robustly clean via `H.5.5`/`H.7.2`/`H.9`). ✓ **`H.10.1` (`-0060`) — the regex `UNKNOWN`→0 drive's dead-rule removal: the 12 no-path rules (both oracles: `unreachable_from_entry`) removed at source; regex `UNKNOWN 19→7`, `total 210→198`, spf=0, deterministic seeds 0/7/42; gap-report unreachable 12→0; oracle gate + lib 721/0 green; no release/schema bump.** ✓ **`H.10.2.1` (closed via `BRANCH-BROADCAST-FIX.5`, regex `UNKNOWN 7→5`).** ✓ **`H.10.2.2` (`-0061`) ENGINE FIX — memo-hit coverage-delta replay (the memoization × coverage-record composition gap, the `.36.4` class on the witness record): regex `UNKNOWN 5→3` + CROSS-GRAMMAR vhdl `31→30`, rtl_frontend `75→73`, SV `738→647` (−91), spf byte-identical 0 everywhere, oracle gate PASS, NO bump.** NEXT = `H.10.2.3` (unicode_char declarative witnessing sample) + the store-gated pair (B2/C1/C2 lane) + the vhdl (30) / rtl_frontend (73) / SV (647) drives. |
 | 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions

@@ -5898,6 +5898,23 @@ impl AstBasedGenerator {
                             }
                         }
 
+                        // GRAMMAR-WELLFORMED.H.10.2.2 — replay the cached
+                        // coverage delta. The per-rule-entry coverage push only
+                        // fires when a rule BODY executes; a memo hit bypasses
+                        // the body, so without this replay a subtree first
+                        // parsed inside a rolled-back speculation (coverage
+                        // truncated by try_parse) and then memo-hit on the
+                        // committed path stays absent from the witness record.
+                        // The replay happens inside the CURRENT speculation, so
+                        // a later rollback still truncates it — the record
+                        // stays transactional (sound) while regaining
+                        // completeness on cache hits.
+                        if self.coverage_enabled {
+                            if let Some(coverage) = &entry.coverage_delta {
+                                self.coverage_stack.extend_from_slice(coverage);
+                            }
+                        }
+
                         return Ok((node.clone(), entry.raw_semantic_content.clone()));
                     }
                 }
@@ -5909,12 +5926,23 @@ impl AstBasedGenerator {
                 // SV-EXH-PROOF.3.3.4.b.6.2.36.4 — capture entry checkpoint
                 // BEFORE f(self) so we can extract the body's delta after.
                 let memo_entry_checkpoint = self.semantic_runtime_state.checkpoint();
+                // GRAMMAR-WELLFORMED.H.10.2.2 — snapshot the coverage-stack
+                // length so the body's pushed entries can be stored alongside
+                // the result and replayed on every future cache hit.
+                let memo_coverage_checkpoint = self.coverage_stack.len();
                 let result = f(self);
 
                 if let Ok((node, raw_semantic_content)) = &result {
                     let semantic_delta = self
                         .semantic_runtime_state
                         .extract_delta_since(&memo_entry_checkpoint);
+                    // GRAMMAR-WELLFORMED.H.10.2.2 — `None` (no allocation) when
+                    // coverage recording is off: ordinary parsing pays nothing.
+                    let coverage_delta = if self.coverage_enabled {
+                        Some(self.coverage_stack[memo_coverage_checkpoint..].to_vec())
+                    } else {
+                        None
+                    };
                     self.memo.insert(
                         key,
                         MemoEntry {
@@ -5922,6 +5950,7 @@ impl AstBasedGenerator {
                             raw_semantic_content: raw_semantic_content.clone(),
                             end_pos: node.span.end,
                             semantic_delta: Some(semantic_delta),
+                            coverage_delta,
                         },
                     );
                     if self.trace_enabled() {
@@ -7987,6 +8016,25 @@ mod semantic_usage_tests {
         assert!(
             nospace.contains("coverage_stack.truncate(saved_coverage_len)"),
             "try_parse must truncate the coverage stack back to its pre-speculation length on failure"
+        );
+        // GRAMMAR-WELLFORMED.H.10.2.2 — the memo path must (a) capture the
+        // body's coverage delta into the MemoEntry on success and (b) replay
+        // it on every cache hit; without the replay, a subtree first parsed
+        // inside a rolled-back speculation and then memo-hit on the committed
+        // path is silently absent from the witness record (the completeness
+        // half of the coverage-record guarantee).
+        assert!(
+            nospace.contains("letmemo_coverage_checkpoint=self.coverage_stack.len()"),
+            "memoized_call must snapshot the coverage-stack length before executing the rule body"
+        );
+        assert!(
+            nospace
+                .contains("self.coverage_stack[memo_coverage_checkpoint..].to_vec()"),
+            "memoized_call must store the body's coverage delta in the MemoEntry on success"
+        );
+        assert!(
+            nospace.contains("self.coverage_stack.extend_from_slice(coverage)"),
+            "a memo hit must replay the cached coverage delta onto the live coverage stack"
         );
     }
 
