@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-10 - GRAMMAR-WELLFORMED.C2.1 — designing the semantic-prelude reach (PGEN-GRAMMAR-WELLFORMED-0063)
+
+### Why "generate the prelude first" is the wrong order — and inverting it dissolves the hard constraint
+The naive reading of C2 ("emit the `@emit_fact` prelude first, then the target") hits a value-constraint wall: the prelude size must be ≥ the index the target will *later* generate, but `backreference_digits` renders a random two-plus-digit number, so a pre-chosen prelude of N groups almost never satisfies a later `\NN` (and constraining the digits to render "≤ N" is a value-selection mechanism PGEN deliberately does not have yet — STORE-AWARE-GEN `.4b`). The design inverts the order: **generate the target FIRST (phase 1, prune bypassed, capture its render + numeric value v), then make the prelude size equal v (phase 2) and replay the captured text.** The count is fitted to the value instead of the value to the count — no value-selection machinery needed, fully deterministic for a fixed seed.
+
+### The prelude unit is a quantified-body iteration, not the producer's own render
+The fact producers are open MARKERS (`capture_open` renders just `(`) — their lone render is not grammar-valid prelude text. The grammar's own repetition is the only sound insertion seam: the on-path quantifier site the plan already forces (`concatenation`'s `piece+` for regex) hosts the prelude as extra body iterations, each steered to the producer by a nested sub-plan (regex: `piece→atom→group→capturing_group` minimal ⇒ `()`). That keeps the mechanism parser-agnostic — it is grammar-structure-keyed (sites, hops, kinds), never grammar-name-keyed — and text order (prelude before target) falls out of iteration order.
+
+### Soundness posture
+The numeric-value extraction from the captured render (first maximal decimal run) is a heuristic, but it cannot create a false witness: the certifying gate's parser re-check remains the only thing that counts a witness, so a mis-extraction merely burns one bounded attempt and reports loudly. Phase-1 probes are *expected* not to re-parse and land in the pass's existing auxiliary `probe_parse_failures` — never in the certification `sample_parse_failures`.
+
 ## 2026-06-10 - GRAMMAR-WELLFORMED.H.10.2.3 — the unicode_char witnessing literal (PGEN-GRAMMAR-WELLFORMED-0062)
 
 ### Declarative-first held, with the engine lane honestly ticketed

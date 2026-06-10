@@ -1105,7 +1105,8 @@ subtle dead branch"), never a silent accept.
     the backref — the generation-side store honours the predicate (STORE-AWARE-GEN), so the
     reach pass needs a fact-emitting PRELUDE; owned by the B2/C1/C2 constructive lane when
     activated). Pool after `H.10.2.2`: `unicode_char` + the store-gated pair. Pool after
-    `H.10.2.3`: EXACTLY the store-gated pair (regex UNKNOWN=2).
+    `H.10.2.3`: EXACTLY the store-gated pair (regex UNKNOWN=2) — **the B2/C1/C2 lane is now
+    ACTIVATED as `C2` (design `C2.1` done 2026-06-10, `-0063`; implementation = `C2.2`).**
     - `H.10.2.1` — **`done` (re-applied + closed by `BRANCH-BROADCAST-FIX.5`,
       `PGEN-BRANCH-BROADCAST-FIX-0005`, 2026-06-10): the documented declarative fix landed
       exactly as designed once the engine defect pair was fixed (`.2` broadcast remap + `.3`
@@ -1507,9 +1508,78 @@ subtle dead branch"), never a silent accept.
 ### Phase C — complete the constructor (witness every reachable branch)
 - `C1` — **defeat-earlier-branch crafting**: when forcing branch i, choose content diverging from
   earlier branches' FIRST-sets so the parser SELECTS i on replay. *Effort: med-high. Reuses A2.*
-- `C2` — **semantic-prelude reach** (the deepest gap): model the store during construction; for a
-  `@predicate`-gated target, emit the `@emit_fact` prelude first (e.g. a `typedef` before the
-  type-position use), sequencing prelude→target. *Effort: high; generator currently semantics-blind.*
+- `C2` — **semantic-prelude reach** — **`active` (activated 2026-06-10 for the regex store-gated
+  pair `numeric_backreference`/`backreference_digits`, the LAST regex cert-coverage `UNKNOWN`
+  residual).** Original framing: model the store during construction; for a `@predicate`-gated
+  target, emit the `@emit_fact` prelude first, sequencing prelude→target. The "generator currently
+  semantics-blind" clause is STALE since `STORE-AWARE-GEN.3` landed the generation-time store
+  (`gen_semantic_state` + emit hook + `count(K)==0` prune); what is missing is exactly the PRELUDE
+  SEQUENCING in the plannable-rule reach pass. Children: `C2.1` (design, docs) + `C2.2` (implement).
+  - `C2.1` — **`done` (this slice, `PGEN-GRAMMAR-WELLFORMED-0063`, pure docs) — DESIGN: the
+    fact-emitting-prelude reach capability (count-gated MVP).** Tool-backed root cause of the
+    residual pair: `numeric_backreference = "\\" backreference_digits` (`grammars/regex.ebnf:253`)
+    is gated `@predicate fact_count_at_least(regex_capture_group, $index)` with
+    `backreference_digits = nonzero_digit digit+` (TWO+ digits ⇒ index ≥ 10), so a witness needs
+    ≥ 10 capture groups BEFORE the backref. The reach pass cannot construct that today: phase-blind
+    minimal construction either (a) fails fast at the STORE-AWARE-GEN.3 prune
+    (`stimuli_generator.rs:5433`, `count(regex_capture_group)==0` at the target) → generation
+    failure, or (b) with no prune would emit `\NN` with zero groups → the parser correctly rejects
+    → never witnessed. Declarative options are structurally out: an entry-level `@sample` collapses
+    ordinary generation; `@probe_sample` on the entry fires for ordinary top-level generation too;
+    a target-level `@sample: "\\10"` renders a backref with no preceding groups (sample rejects).
+    DESIGN (parser-agnostic, plan-scoped, two-phase; all refs verified live):
+    (1) `ActiveReachPlan` gains `prelude: Option<ReachPrelude>` (default `None` in
+    `from_directives` ⇒ every existing caller byte-identical by construction). `ReachPrelude` =
+    { the chosen on-path quantifier `site: (rule, node_path)`, the site's quantified-body rule,
+    the producer rule, the precomputed body→producer sub-plan directives + quantifier mins,
+    `iterations: usize` (0 = disarmed), `captured: Option<(rule, text, value)>` }.
+    (2) INSTALL (in `set_reach_plan_for_rule`, plannable mode only): find the FIRST count-gated
+    rule along the hop path (rule ∈ `gen_count_kinds` — for target `backreference_digits` that is
+    `numeric_backreference` ON the path; for target `numeric_backreference` it is the target
+    itself); its counted kind K; producers = rules whose `gen_emit_facts` specs emit K (regex:
+    `capture_open` + the 3 named-group open markers), sorted for determinism; prelude site = the
+    LAST (innermost) on-path quantifier site (`quantifier_sites_along_path` order) whose quantified
+    element resolves to a direct `RuleReference` body rule b with `reach_hops(b, producer)` ≠ None
+    (regex: `concatenation`'s `piece+`, body `piece`, producer `capture_open`). No qualifying
+    site / no count-gated rule on path ⇒ `prelude = None` (pure pre-existing behavior — vhdl/
+    rtl_frontend/SV paths have no count-gated rules ⇒ no-op cross-grammar by construction).
+    (3) PHASE 1 (capture): while a plannable plan with a prelude spec is installed, the
+    STORE-AWARE-GEN.3 prune is BYPASSED for the count-gated rule on the plan path (scoped — other
+    rules still prune), and on that rule's successful generation the plan captures (rendered text,
+    numeric value v = first maximal decimal run in the render, parsed `usize`, sanity-capped).
+    The phase-1 sample (e.g. `\37` with no groups) is expected NOT to re-parse — counted in the
+    pass's existing auxiliary `probe_parse_failures`, never in certification spf.
+    (4) ARM (driver, `generate_plannable_rule_witnesses` attempt loop): after a failed attempt,
+    if the plan captured (text, v) and `iterations == 0` → arm `iterations = v` for the remaining
+    attempts (fits the H.7.1 ≤ 4-attempt budget: attempt 1 captures, attempt 2 witnesses).
+    (5) PHASE 2 (prelude + replay): in `generate_quantified`, when the active plan's prelude site
+    matches and `iterations > 0`, generate `v` PRELUDE iterations of the quantified body FIRST
+    (each under the precomputed body→producer sub-plan, main plan saved/restored around each;
+    minimal expansion ⇒ regex renders `()` per iteration via `capturing_group = capture_open
+    pattern? ")"`), then the normal forced on-path iteration(s); in `generate_rule`, the count-gated
+    rule with a captured text short-circuits to that text (hint-route bookkeeping:
+    `record_rule_success` + follow-restriction + tail word-shape + atomicity flags) so the replayed
+    value EQUALS v by construction. Resulting sample `()()…()\v` (v groups then `\v`): the parser's
+    post-predicate `fact_count_at_least(regex_capture_group, v)` holds at the backref ⇒ the
+    accepted parse enters BOTH pool rules ⇒ witnessed (the parser stays the judge — a
+    mis-extraction can only fail loudly, never false-witness).
+    (6) Store interplay: prelude iterations emit K facts via the existing
+    `gen_emit_facts_for_rule` success hook; the existing `generate_quantified` checkpoint/rollback
+    discipline already isolates failed candidates; `generate_from_entry` already resets the store
+    per attempt. Sub-plans carry no prelude ⇒ no recursion of the prelude logic.
+    Acceptance for `C2.2`: regex cert-coverage `UNKNOWN 2→0` ⇒ `fully_certified=true` (the 4th
+    fully-certified grammar after json/rtl_const_expr/svpp), `witness 196→198`, `spf=0`, IDENTICAL
+    seeds 0/7/42; cross-grammar byte-identical certification (json/rtl_const_expr/svpp stay
+    `fully_certified`; vhdl/rtl_frontend/SV spf byte-identical, `UNKNOWN` unchanged-or-better);
+    `regex_pcre2_compile_oracle_gate` PASS (generator-only — NO parser/grammar change, NO regen,
+    NO release/schema bump, the STORE-AWARE-GEN.3 surface-neutral precedent); unit locks (synthetic
+    count-gated grammar witness + no-prelude no-op); lib suites green both feature sets; clippy
+    strict-source clean; book (grammar-wellformedness chapter: the third pass's prelude extension +
+    the `98→…→2→0` arc) + tracker + continuity docs in lockstep.
+  - `C2.2` — **`pending` — IMPLEMENT the count-gated prelude MVP per the `C2.1` design** (engine,
+    `stimuli_generator.rs` only) + the full verification matrix above. The general non-count
+    predicate prelude (`has_fact` value-selection — STORE-AWARE-GEN `.4b` territory) stays OUT of
+    scope until evidence demands it (no such residual exists today).
 
 ### Phase D — well-DEFINEDNESS (the semantic layer the literature exposed; NEW)
 - `E1` — **attribute non-circularity** (Knuth 1968) — **DONE / SATISFIED BY CONSTRUCTION
@@ -1800,7 +1870,8 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 | 1 | `GRAMMAR-WELLFORMED.A2.1` | `in-progress` (always_matches **52→8**; clean families done) | Clean the SV `always_matches` defects LRM-grounded → promote EarlierAlwaysMatches to the hard gate when 0. ✓ boolean-abbrev (`-0010`), ✓ covergroup-range + rs-prod (`-0013`), ✓ formal-type/port-reorder + list-of-arguments + module-path + bins_or_empty + class_declaration (`-0014`). **SYSTEMATIC ROOT CAUSE: dropped-delimiter + lost-ordering extraction artifacts** (`[ ]`/`{ }` lost → nullable wrappers; LRM CFG order needs PEG specific-before-general reorder). **RESIDUAL 8 (deep, DEFERRED):** (4b) port-header/net-type family (6) needs nettype/interface STORE-GATING (identifier ambiguity, [[feedback_grammar_rules_must_consult_store]]); `sv_multi_entry_root` (2) needs the entry-declaration (A1b.1) / linter-exempt. A2 stays warning-staged until these 8 resolve. |
 | 1 | `GRAMMAR-WELLFORMED.G` | `in-progress` (G.1 done `-0012`) | **The CERTIFYING LINTER** — make every verdict carry a checkable certificate (witness/proof), build the independent checker, drive `UNKNOWN`→0 on SV. "Verified, not trusted." ✓ G.1 certificate model + independent re-checker for unreachability proofs (round-trip + tamper-rejection tested). NEXT: G.2 standalone checker + extend certs to all `dead` checks; G.3 generator witnesses; G.4 coverage gate. |
 | 1 | `GRAMMAR-WELLFORMED.H` (Phase H per-grammar cert-coverage) | `in-progress` (all SHIPPED grammars wired) | Wire `parse_and_cover` for every grammar so `--report-certificate-coverage` runs per-grammar. ✓ H.1 regex (`-0034`, UNKNOWN residuals + 6→3 witness-parseability), ✓ **H.2 vhdl (`-0041`, cert-coverage runs at default depth; zero-drift checkout-illusion proof discharged the staleness fear — `total=217 witness=132 UNKNOWN=85 sample_parse_failures=0` @ seed 0)**, ✓ **H.3 json (`-0037`, `fully_certified=true` — the FIRST grammar fully certified via Phase H)**, ✓ **H.4 rtl_const_expr (`-0038`, cert-coverage runs; zero-drift regen proof retires the H.2 mtime-staleness fear)**, ✓ **H.5 svpp (`-0039`, cert-coverage runs at default depth)**, ✓ **H.6 rtl_frontend (`-0040`, cert-coverage runs at default depth)**. **MILESTONE: every SHIPPED parser grammar now runs under cert-coverage** (json/regex/rtl_const_expr/svpp/rtl_frontend/systemverilog/vhdl); only meta/annotation grammars (`ebnf`/`return_annotation`/`semantic_annotation`) remain unwired. ✓ **H.5.1 (`-0042`) LABELED the svpp residual + H.5.1.1 (`-0044` investigation / `-0045` fix) ROOT-CAUSED + FIXED it: surgical whitespace-only greedy-tail guard in `regex_tail_greedy_blocker` → svpp `sample_parse_failures` 24→8, `UNKNOWN` 54→7, `witness` 19→66; zero cross-grammar regression (cross-family gate PASS).** ✓ **H.5.1.2 (`-0046`) drove svpp residual-8 CLASS (a) — the `\b`-keyword↔word-char directive-keyword fusion — to 0 via the declarative `[>! /\w/]` lexical-annotation (the construct built for the generator) + a general `collect_rule_body` frontend fix it surfaced (consecutive `[>` directives now each bind; only the first bound before); svpp `sample_parse_failures` 8→1, `UNKNOWN` 7→4, `witness` 66→69 seed 0; json/regex cert-coverage unchanged; lib 621/621; cross-family gate PASS.** ✓ **`H.5.1.3.2` (`-0049`) CLOSED the LAST svpp residual** — `condition_text -> $text` (declarative atomicity, LEXICAL-ANNOTATIONS.6) suppresses the stray trailing `\n` that stranded a `` `" `` stringize; svpp cert-coverage `sample_parse_failures` **1→0** (both seeds, deterministic) ⇒ **svpp is now cert-coverage CLEAN**. Consumer-visible: svpp schema **3→4**, release **1.0.4→1.0.5** (condition_atom "text" body raw-envelope→`$text` string; annot 66→67; director-approved). ✓ **`H.4.1` (`-0050`) ROOT-CAUSED rtl_const_expr's `UNKNOWN` residual** (the FIRST per-grammar `UNKNOWN`→0 drive, tools-first, pure-docs): the residual reduces to the stubborn pair `lparen`/`rparen` = the `primary_expr := lparen conditional_expr rparen` parenthesised-primary branch, which clean diverse generation essentially NEVER selects (`0/40` samples contain `(` @ depth 32; the branch re-enters the ~15-deep precedence chain → depth-floor pruning + recursion-pressure penalty avoid it; fatal-aborts at the default depth 24). ADJUDICATED a **generator-reach deficiency** (statically reachable; `(1)` is valid) — fix belongs in the generator. The witness-pass shortcut is off the table per the explicit `main.rs:1572` design decision. ✓ **`H.4.2` (`-0051`) DONE — CONSTRUCTIVE-REACH: rtl_const_expr is now `fully_certified=true` (UNKNOWN 3→0, deterministic across seeds), with ZERO certification regression on any grammar** (decisive git-stash baseline: `sample_parse_failures` byte-identical pre/post for json/regex/vhdl/SV; UNKNOWN only decreases — regex 101→98, vhdl 85→69, SV 1160→1126). Opt-in `StimuliConfig.reach_uncovered_recursive_branches` (default OFF → all non-cert-coverage surfaces byte-identical) drives three gated `generate_or` behaviours (floor-retain + try-recursive-first + minimal-`construct_mode` depth-retry); `run_certificate_coverage_report` is two-pass (diverse certification pass byte-identical + auxiliary reach pass that only UNIONS re-parsing witnesses). lib 686/0; new test PASS; self-host + cross-family + oracle green. ✓ **`H.5.2` (`-0052`) drove svpp `UNKNOWN 3→2`** — removed the OBJECTIVELY-PROVEN-DEAD `trivia` rule (referenced by nothing; gap-report oracle `reachable:false unreachable_from_entry`; the only statically-unreachable rule) at source per the literal-0 doctrine, and tightened the `sv_preprocessor_zero_plausible_gap_proof_gate` from a `[trivia]` helper-pocket to a **literal-ZERO unreachable surface** (contract v2→3, observed==allowed==[]; gate GREEN). cert-coverage `total 72 witness 70 UNKNOWN 2 sample_parse_failures 0` (seeds 0/7); shape-contract GREEN (no AST/schema/release change); lib 716/0. svpp's remaining 2 `UNKNOWN` (`directive_tail`/`line_comment`) are reachable optionals = generator-reach → **`H.5.3`** (svpp fully_certified after it). ✓ **`H.5.3` (`-0053`) DONE — svpp `fully_certified=true` at seeds 0/7/42** via DECLARATIVE witnessing-sample steering (evidence-driven re-scope from the assumed constructive-reach engine pass): the 2 residuals were 100% generator-side, caused by stale `@sample: " "` hints (un-witnessable bare space / `line_comment?`-short-circuit), replaced with witnessing-and-faithful `@sample: " x"` / `@sample: " //"`; `sample_parse_failures=0`, deterministic, zero cross-grammar regression (grammar-only). Multi-seed measurement surfaced TWO pre-existing svpp residuals (the stimuli generator as bug-finding oracle): (1) a seed-1/12-only macro-default nested-optional UNKNOWN — but a SAMPLE-BUDGET artifact (count 100/200 → `UNKNOWN=0`) → ticketed **`H.5.4`** (low priority); (2) a genuine OVER-GENERATION (`sample_parse_failures=1` at seeds 3/6/10/12/14/15 of 0–15, IDENTICAL on the pre-H.5.3 grammar → pre-existing, an unclosed/closer-stolen `pp_conditional` round-trip hazard) → ticketed **`H.5.5`** (the real round-trip defect). ✓ `H.5.5` + `H.5.4` closed (svpp seed-robustly clean via `H.5.5`/`H.7.2`/`H.9`). ✓ **`H.10.1` (`-0060`) — the regex `UNKNOWN`→0 drive's dead-rule removal: the 12 no-path rules (both oracles: `unreachable_from_entry`) removed at source; regex `UNKNOWN 19→7`, `total 210→198`, spf=0, deterministic seeds 0/7/42; gap-report unreachable 12→0; oracle gate + lib 721/0 green; no release/schema bump.** ✓ **`H.10.2.1` (closed via `BRANCH-BROADCAST-FIX.5`, regex `UNKNOWN 7→5`).** ✓ **`H.10.2.2` (`-0061`) ENGINE FIX — memo-hit coverage-delta replay (the memoization × coverage-record composition gap, the `.36.4` class on the witness record): regex `UNKNOWN 5→3` + CROSS-GRAMMAR vhdl `31→30`, rtl_frontend `75→73`, SV `738→647` (−91), spf byte-identical 0 everywhere, oracle gate PASS, NO bump.** ✓ **`H.10.2.3` (`-0062`) unicode_char witnessed via the declarative `@sample: "é"` (the rule was ungeneratable — `builtin_any_char` has no grammar def + no generator special-case; the engine capability ticketed in STIMULI-SIGNOFF): regex `UNKNOWN 3→2`, spf=0, seeds 0/7/42, oracle PASS, NO bump.** NEXT = the regex store-gated pair `numeric_backreference`/`backreference_digits` (B2/C1/C2 fact-emitting-prelude lane) + the vhdl (30) / rtl_frontend (73) / SV (647) drives. |
-| 2 | `GRAMMAR-WELLFORMED.B2/C1/C2` | `pending` | The CONSTRUCTIVE side (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting, semantic-prelude reach. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
+| 1 | `GRAMMAR-WELLFORMED.C2.2` | `pending` (design `C2.1` done `-0063`) | **Semantic-prelude reach (count-gated MVP)** — the fact-emitting-prelude capability for the regex store-gated pair (the LAST regex `UNKNOWN` residual → regex `fully_certified`). Engine, plan-scoped, no-op for every other surface by construction. |
+| 2 | `GRAMMAR-WELLFORMED.B2/C1` | `pending` | The remaining CONSTRUCTIVE-side lanes (stimuli generator): bounded-ordered backtracking, defeat-earlier-branch crafting. Riskier (touch generator runtime; measure the global metric). Feeds G.3 (the witness producer). |
 
 ## Decisions
 - `2026-06-10`: **H.7.1's Q1–Q3 resolved by the agent** under the director's standing "PNT yourself —
