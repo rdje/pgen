@@ -717,7 +717,7 @@ impl AstBasedGenerator {
         );
 
         // Generate helper methods
-        let helpers = self.generate_helper_methods(filename);
+        let helpers = self.generate_helper_methods(filename, grammar_tree);
 
         Ok(quote! {
             impl<'input> #parser_name<'input> {
@@ -4110,7 +4110,318 @@ impl AstBasedGenerator {
     //     format!("{:?}", node.content)
     // }
 
-    fn generate_helper_methods(&self, filename: &str) -> TokenStream {
+    /// GRAMMAR-WELLFORMED.H.11.5: does any terminal token of `grammar_tree`
+    /// assign `introducer` a NON-COMMENT meaning?
+    ///
+    /// This is the static emit-time input for per-introducer comment-arm
+    /// suppression in the generated layout skippers. The engine's hard-coded
+    /// comment convention (`#`-to-EOL, `//`-to-EOL, `/* */`) is an EBNF
+    /// meta-grammar convenience; when a grammar defines a real token that can
+    /// begin with one of those introducers (SV `#` delays/param lists, VHDL
+    /// `#` based-literal delimiters), the corresponding arm can steal that
+    /// token while the parser is speculatively attempting a DIFFERENT token —
+    /// the dynamic `regex_token_matches_at_cursor` guard (H.11.3) only
+    /// protects the active token, not the dual case — and the stolen span can
+    /// be memoized as bogus trivia, poisoning the whole parse (released SV
+    /// parser bug, `PGEN-GRAMMAR-WELLFORMED-0074`). Such an arm is wrong for
+    /// that grammar on EVERY input, so it is not emitted at all.
+    ///
+    /// The discriminator is non-comment MEANING, not mere prefix overlap: a
+    /// claiming terminal that is itself COMMENT-DEFINING — a regex whose
+    /// every match starts with the introducer and runs an unbounded content
+    /// tail (SV `line_comment`/`block_comment`), or an introducer literal
+    /// followed by an unbounded content terminal (the ebnf meta-grammar's
+    /// `("#" | "//") comment_content`) — agrees with the arm about what those
+    /// bytes mean, so the arm stays (shipped status quo; measured by the
+    /// decisive stash A/B, suppressing the ebnf grammar's arms regressed the
+    /// generated ebnf parser on real grammar files whose mid-rule comments
+    /// the meta-grammar does not yet structurally own).
+    fn grammar_claims_introducer_as_non_comment(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+        introducer: &str,
+    ) -> bool {
+        grammar_tree.iter().any(|(rule_name, node)| {
+            self.node_has_non_comment_claim(rule_name, node, introducer, grammar_tree, None)
+        })
+    }
+
+    /// Walk `node` looking for a terminal that can START a match with
+    /// `introducer` but is not comment-defining. `follower` is the element
+    /// that comes immediately after `node` in its enclosing sequence (used to
+    /// recognize the two-token comment shape `INTRODUCER content_tail`).
+    fn node_has_non_comment_claim(
+        &self,
+        rule_name: &str,
+        node: &ASTNode,
+        introducer: &str,
+        grammar_tree: &HashMap<String, ASTNode>,
+        follower: Option<&ASTNode>,
+    ) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => alternatives.iter().any(|alt| {
+                self.node_has_non_comment_claim(rule_name, alt, introducer, grammar_tree, follower)
+            }),
+            ASTNode::Sequence { elements } => elements.iter().enumerate().any(|(i, el)| {
+                let next = elements.get(i + 1).or(follower);
+                self.node_has_non_comment_claim(rule_name, el, introducer, grammar_tree, next)
+            }),
+            ASTNode::Quantified { element, .. } => self.node_has_non_comment_claim(
+                rule_name,
+                element,
+                introducer,
+                grammar_tree,
+                follower,
+            ),
+            // A lookahead consumes nothing — the claim must come from the
+            // consuming terminal, which appears elsewhere in the tree.
+            ASTNode::Lookahead { .. } => false,
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => self.node_has_non_comment_claim(
+                    rule_name,
+                    inner,
+                    introducer,
+                    grammar_tree,
+                    follower,
+                ),
+                ASTValue::Token(parts) if parts.len() >= 2 => {
+                    let TokenValue::String(token_type) = &parts[0];
+                    let TokenValue::String(token_value) = &parts[1];
+                    match token_type.as_str() {
+                        "regex" => {
+                            // The parser matches the steered/effective
+                            // pattern, so the analysis must look at the same.
+                            // A regex CLAIMS the introducer only when every
+                            // match MANDATORILY starts with it (a content
+                            // class like `[^\r\n]*` merely CAN start with it
+                            // and is no claim); the claim is non-comment when
+                            // the pattern has no unbounded comment tail.
+                            let pattern = self.effective_regex_pattern(rule_name, token_value);
+                            Self::regex_pattern_mandatorily_starts_with(&pattern, introducer)
+                                && !Self::regex_pattern_is_comment_defining(&pattern, introducer)
+                        }
+                        "rule_reference" => false,
+                        // quoted_string + the literal matcher token types all
+                        // match their value verbatim. An introducer-prefixed
+                        // literal is comment-defining only when an unbounded
+                        // content terminal immediately follows it.
+                        _ => {
+                            token_value.starts_with(introducer)
+                                && !follower.is_some_and(|next| {
+                                    Self::node_is_unbounded_content(next, grammar_tree, 4)
+                                })
+                        }
+                    }
+                }
+                ASTValue::Token(_) => false,
+            },
+        }
+    }
+
+    /// A regex terminal is comment-defining for `introducer` when EVERY match
+    /// starts with the introducer (its mandatory leading bytes equal the
+    /// introducer) and the pattern carries an unbounded content tail. SV's
+    /// `line_comment` / `block_comment` qualify; VHDL's `/#/` based-literal
+    /// delimiter does not (no unbounded tail), and neither does any pattern
+    /// that only OPTIONALLY starts with the introducer.
+    fn regex_pattern_is_comment_defining(pattern: &str, introducer: &str) -> bool {
+        let Ok(hir) = regex_syntax::parse(pattern.trim()) else {
+            return false;
+        };
+        let mut mandatory: Vec<u8> = Vec::new();
+        Self::hir_mandatory_prefix(&hir, introducer.len(), &mut mandatory);
+        mandatory.starts_with(introducer.as_bytes()) && Self::hir_has_unbounded_repetition(&hir)
+    }
+
+    /// Accumulate into `out` the bytes that EVERY match of `hir` must start
+    /// with, stopping at the first point of divergence or once `k` bytes are
+    /// known. Returns `true` while the walk is still on a fixed prefix (a
+    /// concat caller may continue with its next part).
+    fn hir_mandatory_prefix(hir: &regex_syntax::hir::Hir, k: usize, out: &mut Vec<u8>) -> bool {
+        use regex_syntax::hir::{Class, HirKind};
+        if out.len() >= k {
+            return false;
+        }
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => true,
+            HirKind::Literal(lit) => {
+                let bytes: &[u8] = &lit.0;
+                let take = bytes.len().min(k - out.len());
+                out.extend_from_slice(&bytes[..take]);
+                // A literal is wholly fixed; the caller may continue.
+                true
+            }
+            HirKind::Class(class) => {
+                // Only a single-codepoint class contributes a fixed byte.
+                let single = match class {
+                    Class::Unicode(c) => {
+                        let mut iter = c.iter();
+                        match (iter.next(), iter.next()) {
+                            (Some(r), None)
+                                if r.start() == r.end() && (r.start() as u32) < 128 =>
+                            {
+                                Some(r.start() as u8)
+                            }
+                            _ => None,
+                        }
+                    }
+                    Class::Bytes(c) => {
+                        let mut iter = c.iter();
+                        match (iter.next(), iter.next()) {
+                            (Some(r), None) if r.start() == r.end() => Some(r.start()),
+                            _ => None,
+                        }
+                    }
+                };
+                match single {
+                    Some(b) => {
+                        out.push(b);
+                        true
+                    }
+                    None => false,
+                }
+            }
+            HirKind::Capture(cap) => Self::hir_mandatory_prefix(&cap.sub, k, out),
+            HirKind::Concat(parts) => {
+                for part in parts {
+                    if out.len() >= k {
+                        break;
+                    }
+                    if !Self::hir_mandatory_prefix(part, k, out) {
+                        return false;
+                    }
+                }
+                true
+            }
+            HirKind::Alternation(alts) => {
+                // The mandatory contribution is the longest common fixed
+                // prefix of every branch; branches diverge after it.
+                let mut common: Option<Vec<u8>> = None;
+                for alt in alts {
+                    let mut branch = Vec::new();
+                    Self::hir_mandatory_prefix(alt, k - out.len(), &mut branch);
+                    common = Some(match common {
+                        None => branch,
+                        Some(prev) => {
+                            let shared = prev
+                                .iter()
+                                .zip(branch.iter())
+                                .take_while(|(a, b)| a == b)
+                                .count();
+                            prev[..shared].to_vec()
+                        }
+                    });
+                }
+                if let Some(common) = common {
+                    out.extend_from_slice(&common);
+                }
+                false
+            }
+            HirKind::Repetition(rep) => {
+                if rep.min == 0 {
+                    // Nullable repetition: nothing past here is mandatory.
+                    return false;
+                }
+                // The first `min` iterations are mandatory; iteration counts
+                // diverge beyond that unless the repetition is exact.
+                for _ in 0..rep.min {
+                    if out.len() >= k {
+                        return false;
+                    }
+                    if !Self::hir_mandatory_prefix(&rep.sub, k, out) {
+                        return false;
+                    }
+                }
+                rep.max == Some(rep.min)
+            }
+        }
+    }
+
+    fn hir_has_unbounded_repetition(hir: &regex_syntax::hir::Hir) -> bool {
+        use regex_syntax::hir::HirKind;
+        match hir.kind() {
+            HirKind::Repetition(rep) => {
+                rep.max.is_none() || Self::hir_has_unbounded_repetition(&rep.sub)
+            }
+            HirKind::Concat(parts) | HirKind::Alternation(parts) => {
+                parts.iter().any(Self::hir_has_unbounded_repetition)
+            }
+            HirKind::Capture(cap) => Self::hir_has_unbounded_repetition(&cap.sub),
+            _ => false,
+        }
+    }
+
+    /// Is `node` an unbounded content terminal — a regex with an unbounded
+    /// repetition — possibly behind a quantifier, group, sequence head, or a
+    /// rule reference (`depth` bounds the deref hops)? This recognizes the
+    /// content tail of the two-token comment shape, e.g. the ebnf
+    /// meta-grammar's `comment_content := /([^\r\n]*)/`.
+    fn node_is_unbounded_content(
+        node: &ASTNode,
+        grammar_tree: &HashMap<String, ASTNode>,
+        depth: usize,
+    ) -> bool {
+        if depth == 0 {
+            return false;
+        }
+        match node {
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .any(|alt| Self::node_is_unbounded_content(alt, grammar_tree, depth - 1)),
+            ASTNode::Sequence { elements } => elements
+                .first()
+                .is_some_and(|el| Self::node_is_unbounded_content(el, grammar_tree, depth - 1)),
+            ASTNode::Quantified { element, .. } => {
+                Self::node_is_unbounded_content(element, grammar_tree, depth - 1)
+            }
+            ASTNode::Lookahead { .. } => false,
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => {
+                    Self::node_is_unbounded_content(inner, grammar_tree, depth - 1)
+                }
+                ASTValue::Token(parts) if parts.len() >= 2 => {
+                    let TokenValue::String(token_type) = &parts[0];
+                    let TokenValue::String(token_value) = &parts[1];
+                    match token_type.as_str() {
+                        "regex" => regex_syntax::parse(token_value.trim())
+                            .map(|hir| Self::hir_has_unbounded_repetition(&hir))
+                            .unwrap_or(false),
+                        "rule_reference" => grammar_tree.get(token_value).is_some_and(|body| {
+                            Self::node_is_unbounded_content(body, grammar_tree, depth - 1)
+                        }),
+                        _ => false,
+                    }
+                }
+                ASTValue::Token(_) => false,
+            },
+        }
+    }
+
+    /// Does EVERY match of `pattern` start with `prefix`? (The introducer is
+    /// the token's mandatory head — SV's `"#"`, vhdl's `/#/`, SV's
+    /// `line_comment` — as opposed to a content class like `[^\r\n]*` that
+    /// merely CAN start with it.) A token whose introducer prefix is only
+    /// optional is deliberately not treated as a claim: the dynamic
+    /// active-token guard still protects it when it is the active token, and
+    /// treating possible-prefix as a claim would mis-flag every open content
+    /// class (measured: it suppressed the ebnf meta-grammar's arms via
+    /// `comment_content := /([^\r\n]*)/` and regressed the generated ebnf
+    /// parser flow of the dual-run gate).
+    fn regex_pattern_mandatorily_starts_with(pattern: &str, prefix: &str) -> bool {
+        let Ok(hir) = regex_syntax::parse(pattern.trim()) else {
+            return false;
+        };
+        let mut mandatory: Vec<u8> = Vec::new();
+        Self::hir_mandatory_prefix(&hir, prefix.len(), &mut mandatory);
+        mandatory.starts_with(prefix.as_bytes())
+    }
+
+
+    fn generate_helper_methods(
+        &self,
+        filename: &str,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> TokenStream {
         let normalized_grammar_name = self
             .grammar_name
             .chars()
@@ -4122,6 +4433,268 @@ impl AstBasedGenerator {
             normalized_grammar_name.as_str(),
             "regex" | "systemverilogpreprocessor"
         );
+        // GRAMMAR-WELLFORMED.H.11.5: per-introducer static comment-arm
+        // suppression — see `grammar_claims_introducer_as_non_comment`. An
+        // introducer the grammar assigns a non-comment meaning loses its arm
+        // in BOTH layout skippers (`consume_layout_for_regex` /
+        // `consume_layout_for_terminal`).
+        let claims_hash = self.grammar_claims_introducer_as_non_comment(grammar_tree, "#");
+        let claims_line_comment =
+            self.grammar_claims_introducer_as_non_comment(grammar_tree, "//");
+        let claims_block_comment =
+            self.grammar_claims_introducer_as_non_comment(grammar_tree, "/*");
+        let any_comment_arm = !(claims_hash && claims_line_comment && claims_block_comment);
+        // GRAMMAR-WELLFORMED.H.11.5: the regex-side layout skipper's comment
+        // arms, each emitted ONLY when the grammar does not claim the arm's
+        // introducer. Each remaining arm keeps the dynamic H.11.3 guard
+        // (active token wins over the comment convention) as defense in
+        // depth.
+        let regex_hash_arm = if claims_hash {
+            quote! {}
+        } else {
+            quote! {
+                if bytes[self.position] == b'#' {
+                    if self.regex_token_matches_at_cursor(pattern) {
+                        break;
+                    }
+                    while self.position < self.input.len() {
+                        let b = bytes[self.position];
+                        if b == b'\n' || b == b'\r' {
+                            break;
+                        }
+                        self.position += 1;
+                    }
+                    continue;
+                }
+            }
+        };
+        let regex_line_comment_arm = if claims_line_comment {
+            quote! {}
+        } else {
+            quote! {
+                if self.position + 1 < bytes.len()
+                    && bytes[self.position] == b'/'
+                    && bytes[self.position + 1] == b'/'
+                {
+                    if self.regex_token_matches_at_cursor(pattern) {
+                        break;
+                    }
+                    self.position += 2;
+                    while self.position < self.input.len() {
+                        let b = bytes[self.position];
+                        if b == b'\n' || b == b'\r' {
+                            break;
+                        }
+                        self.position += 1;
+                    }
+                    continue;
+                }
+            }
+        };
+        let regex_block_comment_arm = if claims_block_comment {
+            quote! {}
+        } else {
+            quote! {
+                if self.position + 1 < bytes.len()
+                    && bytes[self.position] == b'/'
+                    && bytes[self.position + 1] == b'*'
+                {
+                    if self.regex_token_matches_at_cursor(pattern) {
+                        break;
+                    }
+                    self.position += 2;
+                    while self.position + 1 < bytes.len()
+                        && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
+                    {
+                        self.position += 1;
+                    }
+                    if self.position + 1 < bytes.len() {
+                        self.position += 2;
+                    }
+                    continue;
+                }
+            }
+        };
+        let layout_skip_regex_fns = if any_comment_arm {
+            quote! {
+            // GRAMMAR-WELLFORMED.H.11.3: does the active token's own (anchored)
+            // pattern match at the current cursor? Used by the layout skipper's
+            // comment arms so a token that IS a comment introducer (e.g. the VHDL
+            // based-literal `#`) wins over the engine's comment convention —
+            // the regex-side mirror of the introducer guard
+            // `consume_layout_for_terminal` already applies to string terminals.
+            // Cold path: only reached when a comment introducer sits at the
+            // cursor, so it keeps a small sibling cache instead of widening the
+            // function-scoped cache inside `match_regex`.
+            fn regex_token_matches_at_cursor(&self, pattern: &str) -> bool {
+                use std::cell::RefCell;
+                use std::collections::HashMap;
+                thread_local! {
+                    static GUARD_REGEX_CACHE: RefCell<HashMap<String, regex::Regex>> =
+                        RefCell::new(HashMap::new());
+                }
+                GUARD_REGEX_CACHE.with(|cache| {
+                    let mut cache = cache.borrow_mut();
+                    if !cache.contains_key(pattern) {
+                        let Ok(compiled) = regex::Regex::new(&format!(r"\A(?:{})", pattern)) else {
+                            return false;
+                        };
+                        cache.insert(pattern.to_string(), compiled);
+                    }
+                    let re = cache.get(pattern).expect("just inserted");
+                    let Some(haystack) = self.input.get(self.position..) else {
+                        return false;
+                    };
+                    re.find(haystack).map(|m| m.start() == 0).unwrap_or(false)
+                })
+            }
+            fn consume_layout_for_regex(&mut self, can_match_empty: bool, pattern: &str) {
+                if can_match_empty {
+                    // Empty-matching regexes must not cross line boundaries implicitly.
+                    self.consume_horizontal_whitespace();
+                    return;
+                }
+
+                loop {
+                    let before = self.position;
+                    self.consume_optional_whitespace();
+
+                    if self.position >= self.input.len() {
+                        break;
+                    }
+
+                    let bytes = self.input.as_bytes();
+
+                    #regex_hash_arm
+                    #regex_line_comment_arm
+                    #regex_block_comment_arm
+
+                    if self.position == before {
+                        break;
+                    }
+                }
+            }
+            }
+        } else {
+            // GRAMMAR-WELLFORMED.H.11.5: every comment introducer is claimed
+            // by a grammar token, so NO engine comment arm is emitted — the
+            // grammar owns its comment/`#` surface explicitly, and the
+            // skipper reduces to whitespace skipping. The dynamic-guard
+            // helper would be dead code here, so it is elided too.
+            quote! {
+            fn consume_layout_for_regex(&mut self, can_match_empty: bool, _pattern: &str) {
+                if can_match_empty {
+                    // Empty-matching regexes must not cross line boundaries implicitly.
+                    self.consume_horizontal_whitespace();
+                    return;
+                }
+                self.consume_optional_whitespace();
+            }
+            }
+        };
+        // GRAMMAR-WELLFORMED.H.11.5: the string-terminal-side layout skipper,
+        // with the same per-introducer static arm suppression as the
+        // regex side. Remaining arms keep the original expected-token guard
+        // (`allow_comment_skip`) — the terminal-side dynamic defense.
+        let terminal_hash_arm = if claims_hash {
+            quote! {}
+        } else {
+            quote! {
+                if bytes[self.position] == b'#' {
+                    while self.position < self.input.len() {
+                        let b = bytes[self.position];
+                        if b == b'\n' || b == b'\r' {
+                            break;
+                        }
+                        self.position += 1;
+                    }
+                    continue;
+                }
+            }
+        };
+        let terminal_line_comment_arm = if claims_line_comment {
+            quote! {}
+        } else {
+            quote! {
+                if self.position + 1 < bytes.len()
+                    && bytes[self.position] == b'/'
+                    && bytes[self.position + 1] == b'/'
+                {
+                    self.position += 2;
+                    while self.position < self.input.len() {
+                        let b = bytes[self.position];
+                        if b == b'\n' || b == b'\r' {
+                            break;
+                        }
+                        self.position += 1;
+                    }
+                    continue;
+                }
+            }
+        };
+        let terminal_block_comment_arm = if claims_block_comment {
+            quote! {}
+        } else {
+            quote! {
+                if self.position + 1 < bytes.len()
+                    && bytes[self.position] == b'/'
+                    && bytes[self.position + 1] == b'*'
+                {
+                    self.position += 2;
+                    while self.position + 1 < bytes.len()
+                        && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
+                    {
+                        self.position += 1;
+                    }
+                    if self.position + 1 < bytes.len() {
+                        self.position += 2;
+                    }
+                    continue;
+                }
+            }
+        };
+        let consume_layout_for_terminal_fn = if any_comment_arm {
+            quote! {
+            fn consume_layout_for_terminal(&mut self, expected: &str) {
+                // Skip comments as layout for structural terminals, but avoid swallowing
+                // comment-introducer tokens themselves.
+                let allow_comment_skip = expected != "#"
+                    && expected != "//"
+                    && expected != "/*"
+                    && expected != "/**"
+                    && expected != "///"
+                    && expected != "/";
+
+                loop {
+                    let before = self.position;
+                    self.consume_optional_whitespace();
+
+                    if !allow_comment_skip || self.position >= self.input.len() {
+                        break;
+                    }
+
+                    let bytes = self.input.as_bytes();
+
+                    #terminal_hash_arm
+                    #terminal_line_comment_arm
+                    #terminal_block_comment_arm
+
+                    if self.position == before {
+                        break;
+                    }
+                }
+            }
+            }
+        } else {
+            // GRAMMAR-WELLFORMED.H.11.5: every comment introducer is claimed
+            // by a grammar token — no engine comment arm; layout is
+            // whitespace only.
+            quote! {
+            fn consume_layout_for_terminal(&mut self, _expected: &str) {
+                self.consume_optional_whitespace();
+            }
+            }
+        };
         // REGEX-SELF-HOSTING.6a: emit the `match_regex` helper (Rust `regex` engine) ONLY when the grammar
         // uses a `/.../` regex literal. A fully-literal grammar (regex) gets an empty fragment, so the
         // generated parser neither defines nor links the regex engine. `uses_match_regex` is computed
@@ -4236,111 +4809,7 @@ impl AstBasedGenerator {
                     pattern
                 )))
             }
-            // GRAMMAR-WELLFORMED.H.11.3: does the active token's own (anchored)
-            // pattern match at the current cursor? Used by the layout skipper's
-            // comment arms so a token that IS a comment introducer (e.g. the VHDL
-            // based-literal `#`) wins over the engine's comment convention —
-            // the regex-side mirror of the introducer guard
-            // `consume_layout_for_terminal` already applies to string terminals.
-            // Cold path: only reached when a comment introducer sits at the
-            // cursor, so it keeps a small sibling cache instead of widening the
-            // function-scoped cache inside `match_regex`.
-            fn regex_token_matches_at_cursor(&self, pattern: &str) -> bool {
-                use std::cell::RefCell;
-                use std::collections::HashMap;
-                thread_local! {
-                    static GUARD_REGEX_CACHE: RefCell<HashMap<String, regex::Regex>> =
-                        RefCell::new(HashMap::new());
-                }
-                GUARD_REGEX_CACHE.with(|cache| {
-                    let mut cache = cache.borrow_mut();
-                    if !cache.contains_key(pattern) {
-                        let Ok(compiled) = regex::Regex::new(&format!(r"\A(?:{})", pattern)) else {
-                            return false;
-                        };
-                        cache.insert(pattern.to_string(), compiled);
-                    }
-                    let re = cache.get(pattern).expect("just inserted");
-                    let Some(haystack) = self.input.get(self.position..) else {
-                        return false;
-                    };
-                    re.find(haystack).map(|m| m.start() == 0).unwrap_or(false)
-                })
-            }
-            fn consume_layout_for_regex(&mut self, can_match_empty: bool, pattern: &str) {
-                if can_match_empty {
-                    // Empty-matching regexes must not cross line boundaries implicitly.
-                    self.consume_horizontal_whitespace();
-                    return;
-                }
-
-                loop {
-                    let before = self.position;
-                    self.consume_optional_whitespace();
-
-                    if self.position >= self.input.len() {
-                        break;
-                    }
-
-                    let bytes = self.input.as_bytes();
-                    let len = bytes.len();
-
-                    if bytes[self.position] == b'#' {
-                        if self.regex_token_matches_at_cursor(pattern) {
-                            break;
-                        }
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
-                    if self.position + 1 < len
-                        && bytes[self.position] == b'/'
-                        && bytes[self.position + 1] == b'/'
-                    {
-                        if self.regex_token_matches_at_cursor(pattern) {
-                            break;
-                        }
-                        self.position += 2;
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
-                    if self.position + 1 < len
-                        && bytes[self.position] == b'/'
-                        && bytes[self.position + 1] == b'*'
-                    {
-                        if self.regex_token_matches_at_cursor(pattern) {
-                            break;
-                        }
-                        self.position += 2;
-                        while self.position + 1 < len
-                            && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
-                        {
-                            self.position += 1;
-                        }
-                        if self.position + 1 < len {
-                            self.position += 2;
-                        }
-                        continue;
-                    }
-
-                    if self.position == before {
-                        break;
-                    }
-                }
-            }
+            #layout_skip_regex_fns
             }
         } else {
             quote! {}
@@ -5525,74 +5994,7 @@ impl AstBasedGenerator {
                     }
                 }
             }
-            fn consume_layout_for_terminal(&mut self, expected: &str) {
-                // Skip comments as layout for structural terminals, but avoid swallowing
-                // comment-introducer tokens themselves.
-                let allow_comment_skip = expected != "#"
-                    && expected != "//"
-                    && expected != "/*"
-                    && expected != "/**"
-                    && expected != "///"
-                    && expected != "/";
-
-                loop {
-                    let before = self.position;
-                    self.consume_optional_whitespace();
-
-                    if !allow_comment_skip || self.position >= self.input.len() {
-                        break;
-                    }
-
-                    let bytes = self.input.as_bytes();
-                    let len = bytes.len();
-
-                    if bytes[self.position] == b'#' {
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
-                    if self.position + 1 < len
-                        && bytes[self.position] == b'/'
-                        && bytes[self.position + 1] == b'/'
-                    {
-                        self.position += 2;
-                        while self.position < self.input.len() {
-                            let b = bytes[self.position];
-                            if b == b'\n' || b == b'\r' {
-                                break;
-                            }
-                            self.position += 1;
-                        }
-                        continue;
-                    }
-
-                    if self.position + 1 < len
-                        && bytes[self.position] == b'/'
-                        && bytes[self.position + 1] == b'*'
-                    {
-                        self.position += 2;
-                        while self.position + 1 < len
-                            && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
-                        {
-                            self.position += 1;
-                        }
-                        if self.position + 1 < len {
-                            self.position += 2;
-                        }
-                        continue;
-                    }
-
-                    if self.position == before {
-                        break;
-                    }
-                }
-            }
+            #consume_layout_for_terminal_fn
             fn looks_like_rule_definition_boundary(&self) -> bool {
                 let bytes = self.input.as_bytes();
                 let len = bytes.len();
@@ -9029,6 +9431,224 @@ mod semantic_usage_tests {
         );
     }
 
+    // GRAMMAR-WELLFORMED.H.11.5: the static introducer-claim analysis that
+    // drives per-introducer comment-arm suppression in the layout skippers.
+    fn h115_atom(token_type: &str, value: &str) -> ASTNode {
+        ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String(token_type.to_string()),
+                TokenValue::String(value.to_string()),
+            ]),
+        }
+    }
+
+    fn h115_generator() -> AstBasedGenerator {
+        AstBasedGenerator {
+            grammar_name: "claims_test".to_string(),
+            entry_rule: None,
+            logger: None,
+            annotations: None,
+            branch_return_annotations: HashMap::new(),
+            emit_typed_entry_skeleton: false,
+            enable_debug: false,
+            parser_hook_registry: None,
+            ebnf_grammar_name: None,
+            uses_match_regex: std::cell::Cell::new(false),
+        }
+    }
+
+    #[test]
+    fn regex_mandatory_prefix_analysis_is_sound_on_the_shipped_shapes() {
+        // Tokens whose every match starts with the introducer — claims.
+        // vhdl `hash := trivia /#/`
+        assert!(AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            "#", "#"
+        ));
+        // SV `line_comment` / `block_comment` (mandatory introducer head —
+        // they are then filtered out by the comment-defining classifier).
+        assert!(AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            r"\/\/[^\n]*(\n|$)",
+            "//"
+        ));
+        assert!(AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            r"\/\*([^*]|\*+[^*\/])*\*+\/",
+            "/*"
+        ));
+        assert!(AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            "#abc", "#"
+        ));
+        // Repetition head: `/{2}` mandatorily starts with `//`.
+        assert!(AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            "/{2}", "//"
+        ));
+        // NON-claims: a shorter token, an optional introducer, an open
+        // content class, alternation divergence.
+        assert!(!AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            "/", "//"
+        ));
+        assert!(!AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            "a?#b", "#"
+        ));
+        assert!(!AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            r"([^\r\n]*)",
+            "#"
+        ));
+        assert!(!AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            "(?:x|#)y", "#"
+        ));
+        assert!(!AstBasedGenerator::regex_pattern_mandatorily_starts_with(
+            "[a-zA-Z_][a-zA-Z0-9_]*",
+            "#"
+        ));
+    }
+
+    #[test]
+    fn non_comment_claim_analysis_matches_the_shipped_grammar_shapes() {
+        let generator = h115_generator();
+        // SV-shaped inventory: a standalone `#` string terminal (delays /
+        // param lists — a NON-comment meaning) + comment-DEFINING tokens.
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert("hash".to_string(), h115_atom("quoted_string", "#"));
+        tree.insert(
+            "line_comment".to_string(),
+            h115_atom("regex", r"\/\/[^\n]*(\n|$)"),
+        );
+        tree.insert(
+            "block_comment".to_string(),
+            h115_atom("regex", r"\/\*([^*]|\*+[^*\/])*\*+\/"),
+        );
+        tree.insert(
+            "ident".to_string(),
+            h115_atom("regex", "[a-zA-Z_][a-zA-Z0-9_]*"),
+        );
+        assert!(generator.grammar_claims_introducer_as_non_comment(&tree, "#"));
+        // line/block comment tokens AGREE with the engine's comment arms —
+        // they must not suppress them.
+        assert!(!generator.grammar_claims_introducer_as_non_comment(&tree, "//"));
+        assert!(!generator.grammar_claims_introducer_as_non_comment(&tree, "/*"));
+
+        // vhdl-shaped: `hash := /#/` (based-literal delimiter, no unbounded
+        // tail) is a non-comment claim.
+        let mut vhdl_tree: HashMap<String, ASTNode> = HashMap::new();
+        vhdl_tree.insert("hash".to_string(), h115_atom("regex", "#"));
+        assert!(generator.grammar_claims_introducer_as_non_comment(&vhdl_tree, "#"));
+
+        // ebnf-meta-grammar-shaped: the two-token comment shape
+        // `("#" | "//") comment_content` is comment-DEFINING, so the arms
+        // stay (the decisive stash A/B showed suppressing them regresses the
+        // generated ebnf parser on real grammar files).
+        let mut ebnf_tree: HashMap<String, ASTNode> = HashMap::new();
+        ebnf_tree.insert(
+            "line_comment".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Or {
+                        alternatives: vec![
+                            h115_atom("quoted_string", "#"),
+                            h115_atom("quoted_string", "//"),
+                        ],
+                    },
+                    h115_atom("rule_reference", "comment_content"),
+                ],
+            },
+        );
+        ebnf_tree.insert(
+            "comment_content".to_string(),
+            h115_atom("regex", r"([^\r\n]*)"),
+        );
+        assert!(!generator.grammar_claims_introducer_as_non_comment(&ebnf_tree, "#"));
+        assert!(!generator.grammar_claims_introducer_as_non_comment(&ebnf_tree, "//"));
+
+        // The same literal WITHOUT a content tail is a real token — claim.
+        let mut bare_tree: HashMap<String, ASTNode> = HashMap::new();
+        bare_tree.insert("hash".to_string(), h115_atom("quoted_string", "#"));
+        assert!(generator.grammar_claims_introducer_as_non_comment(&bare_tree, "#"));
+
+        // A lookahead-only occurrence must not claim (nothing is consumed).
+        let mut la_tree: HashMap<String, ASTNode> = HashMap::new();
+        la_tree.insert(
+            "guard".to_string(),
+            ASTNode::Lookahead {
+                element: Box::new(h115_atom("quoted_string", "#")),
+                positive: true,
+            },
+        );
+        assert!(!generator.grammar_claims_introducer_as_non_comment(&la_tree, "#"));
+    }
+
+    #[test]
+    fn regex_comment_defining_classifier_is_sound_on_the_shipped_shapes() {
+        // SV comment tokens: every match starts with the introducer and runs
+        // an unbounded tail — comment-defining.
+        assert!(AstBasedGenerator::regex_pattern_is_comment_defining(
+            r"\/\/[^\n]*(\n|$)",
+            "//"
+        ));
+        assert!(AstBasedGenerator::regex_pattern_is_comment_defining(
+            r"\/\*([^*]|\*+[^*\/])*\*+\/",
+            "/*"
+        ));
+        // vhdl `/#/`: no unbounded tail — NOT comment-defining.
+        assert!(!AstBasedGenerator::regex_pattern_is_comment_defining(
+            "#", "#"
+        ));
+        // Only optionally introducer-prefixed — NOT comment-defining.
+        assert!(!AstBasedGenerator::regex_pattern_is_comment_defining(
+            r"(?:#|x)[^\n]*",
+            "#"
+        ));
+    }
+
+    #[test]
+    fn claimed_introducers_suppress_their_comment_arms_in_both_skippers() {
+        let generator = h115_generator();
+        generator.uses_match_regex.set(true);
+
+        // No claims: both skippers carry all three comment arms.
+        let rendered_all = generator
+            .generate_helper_methods("claims_test.rs", &HashMap::new())
+            .to_string();
+        // (`== b'#'` is the comparison form only the skipper arms use —
+        // `looks_like_rule_definition_boundary` pattern-matches `b'#' =>`.)
+        assert!(rendered_all.contains("== b'#'"));
+        assert!(rendered_all.contains("regex_token_matches_at_cursor"));
+        assert!(rendered_all.contains("allow_comment_skip"));
+
+        // Three standalone (non-comment) claims: NO comment arm and no dead
+        // dynamic-guard helper; both skippers reduce to whitespace skipping.
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert("hash".to_string(), h115_atom("quoted_string", "#"));
+        tree.insert("dslash".to_string(), h115_atom("quoted_string", "//"));
+        tree.insert("copen".to_string(), h115_atom("quoted_string", "/*"));
+        let rendered_none = generator
+            .generate_helper_methods("claims_test.rs", &tree)
+            .to_string();
+        assert!(!rendered_none.contains("== b'#'"));
+        assert!(!rendered_none.contains("regex_token_matches_at_cursor"));
+        assert!(!rendered_none.contains("allow_comment_skip"));
+        assert!(rendered_none.contains("fn consume_layout_for_regex"));
+        assert!(rendered_none.contains("fn consume_layout_for_terminal"));
+
+        // SV-shaped claims: only the `#` arm disappears — the grammar's
+        // line/block comment tokens agree with the `//` / `/*` arms.
+        let mut sv_tree: HashMap<String, ASTNode> = HashMap::new();
+        sv_tree.insert("hash".to_string(), h115_atom("quoted_string", "#"));
+        sv_tree.insert(
+            "line_comment".to_string(),
+            h115_atom("regex", r"\/\/[^\n]*(\n|$)"),
+        );
+        sv_tree.insert(
+            "block_comment".to_string(),
+            h115_atom("regex", r"\/\*([^*]|\*+[^*\/])*\*+\/"),
+        );
+        let rendered_sv = generator
+            .generate_helper_methods("claims_test.rs", &sv_tree)
+            .to_string();
+        assert!(!rendered_sv.contains("== b'#'"));
+        assert!(rendered_sv.contains("== b'*'"));
+        assert!(rendered_sv.contains("regex_token_matches_at_cursor"));
+    }
+
     #[test]
     fn semantic_usage_codegen_records_recovery_events_in_helper_methods() {
         let generator = AstBasedGenerator {
@@ -9045,7 +9665,7 @@ mod semantic_usage_tests {
         };
 
         let rendered = generator
-            .generate_helper_methods("semantic_usage.rs")
+            .generate_helper_methods("semantic_usage.rs", &HashMap::new())
             .to_string();
         assert!(
             rendered.contains("self . recovery_events . push"),
@@ -9228,7 +9848,7 @@ mod semantic_usage_tests {
         };
 
         let rendered = generator
-            .generate_helper_methods("semantic_usage.rs")
+            .generate_helper_methods("semantic_usage.rs", &HashMap::new())
             .to_string();
         assert!(
             rendered.contains("fn record_coverage_target_event"),
@@ -9402,7 +10022,7 @@ mod semantic_usage_tests {
         };
 
         let rendered = generator
-            .generate_helper_methods("semantic_usage.rs")
+            .generate_helper_methods("semantic_usage.rs", &HashMap::new())
             .to_string();
         assert!(
             rendered.contains("fn record_negative_case_failure"),
@@ -9584,7 +10204,7 @@ mod semantic_usage_tests {
         };
 
         let rendered = generator
-            .generate_helper_methods("semantic_usage.rs")
+            .generate_helper_methods("semantic_usage.rs", &HashMap::new())
             .to_string();
         assert!(
             rendered.contains("fn record_deterministic_partition_event"),
@@ -9689,7 +10309,7 @@ mod semantic_usage_tests {
         };
 
         let rendered = generator
-            .generate_helper_methods("semantic_usage.rs")
+            .generate_helper_methods("semantic_usage.rs", &HashMap::new())
             .to_string();
         assert!(
             rendered.contains("match & best"),
@@ -10114,7 +10734,7 @@ mod semantic_usage_tests {
         };
 
         let rendered = generator
-            .generate_helper_methods("semantic_usage.rs")
+            .generate_helper_methods("semantic_usage.rs", &HashMap::new())
             .to_string();
         assert!(
             rendered.contains("fn evaluate_relational_expression"),
@@ -10149,7 +10769,7 @@ mod semantic_usage_tests {
         };
 
         let rendered = generator
-            .generate_helper_methods("semantic_usage.rs")
+            .generate_helper_methods("semantic_usage.rs", &HashMap::new())
             .to_string();
 
         assert!(

@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.5-FIX — suppress at emit time what a guard cannot referee at parse time (PGEN-GRAMMAR-WELLFORMED-0075)
+
+### A dynamic guard referees the active token; only static analysis covers the dual case
+The `-0067` guard asks "does the ACTIVE token match at the introducer?" — by construction it cannot see that some OTHER token owns those bytes. The complete fix is static: at parser-emit time the generator walks the grammar's token inventory and simply does not emit an arm whose introducer any token claims as a non-comment meaning. A defect class that lives in a *convention* (engine comment skipping) is closed by deriving the convention's validity from the grammar, not by adding referees at runtime.
+
+### "Claims" must mean MANDATORY prefix, not possible prefix
+The first cut treated "some match can start with `#`" as a claim. That mis-flags every open content class — the ebnf meta-grammar's `comment_content := /([^\r\n]*)/` "claims" all three introducers — and the decisive stash A/B caught the regression (generated-ebnf dual-run flow 100%→15.32%). The sound discriminator is the token's mandatory head (`hir_mandatory_prefix`: every match starts with the introducer), with comment-DEFINING tokens (mandatory introducer + unbounded tail, or the two-token introducer+content shape) exempted because they AGREE with the arm. Lesson: when an analysis drives suppression of long-standing behavior, run the A/B against the surface most dependent on that behavior before trusting green unit tests.
+
+### The pre-existing red set is part of the baseline
+Two gates were already red (`ebnf_frontend_dual_run_gate` regex flow, `rtl_frontend_generated_contract_gate`). Verification for this slice required not "the gates pass" but "the failing SET and SIGNATURES are byte-identical to the stash baseline" — which is what caught the ebnf regression that exit codes alone would have hidden inside an already-red gate.
+
 ## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.5 — "parser right to reject" is itself a falsifiable claim (PGEN-GRAMMAR-WELLFORMED-0074)
 
 ### Re-test adjudications when the toolchain under them moves

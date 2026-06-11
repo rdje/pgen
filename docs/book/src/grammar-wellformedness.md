@@ -361,6 +361,32 @@ grammar** (`total=216 witness=216 UNKNOWN=0 fully_certified=true`, zero sample-p
 deterministic at seeds 0/7/42, with the 16-seed sweep staying all-zero and the external corpus still
 parsing 8/8).
 
+The skipper-comment-arm defect had a second instance — and a sharper ending. The lone SystemVerilog
+cert-coverage sample-parse failure left behind by the `VHDL-0002` fix had been adjudicated as generator
+over-generation ("the parser is right to reject those bytes"). A tools-first re-investigation refuted
+that: bisecting the failing sample down to
+`interface i #  (  ) ;timeunit 09 ns//>Mg` ⏎ `//QF.` ⏎ `/633 s;endinterface` and reading the full trace
+showed the parser rejecting **grammar-valid SV** — the *dual case* the `VHDL-0002` guard cannot cover.
+That guard stands a comment arm down when the *active* token's own pattern matches at the introducer;
+here the parser was speculatively attempting `line_comment` (`//…`) when the skipper's `#` arm fired at
+the `#` of a real ANSI `#( )` header, swallowed the rest of the line as a "comment", matched the second
+comment, and **memoized** the bogus trivia span — so the true header path later died on the poisoned
+memo. The fix closes the class at the root: comment arms are now suppressed **statically at parser-emit
+time**, per introducer, whenever the grammar assigns that introducer a *non-comment meaning* (a terminal
+whose every match mandatorily starts with it and that is not itself comment-defining — a regex-HIR
+analysis over the grammar's token inventory). SV defines `#` as a real token, so its `#` arm is simply
+never emitted; SV's `line_comment`/`block_comment` tokens *agree* with the `//`/`/*` arms, so those stay.
+The criterion itself was sharpened by a decisive stash A/B: a first cut that suppressed arms on mere
+prefix *overlap* silently regressed the generated **ebnf** parser (whose `("#" | "//") comment_content`
+tokens are comment-*defining*, and whose real grammar files carry mid-rule comments the meta-grammar does
+not yet structurally own) — the refined non-comment-meaning criterion leaves every such surface
+byte-identical. The released SV parser bug is ledger row `SV-0001` (SV release `1.0.139`); SV
+cert-coverage now reports `sample_parse_failures=0` at the canonical seeds with the witness landscape
+unchanged, and vhdl/rtl_frontend lose the same theft window with every measured surface identical. This
+is the attribution rule compounding: the same oracle that exposed `VHDL-0002` exposed its dual, and the
+"never silently accept a residual" discipline turned a shrugged-off generator ticket into a real,
+shipped-parser fix.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

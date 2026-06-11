@@ -1234,6 +1234,48 @@ mod tests {
         assert_report("vhdl", &report);
     }
 
+    // GRAMMAR-WELLFORMED.H.11.5 regression lock (PGEN-GRAMMAR-WELLFORMED-0075):
+    // the layout skipper's hard-coded comment arms are now suppressed at EMIT
+    // time for any introducer a grammar token can start with. In SV, `#` is a
+    // real token (delays, parameter lists) and `//`//`/*` comments are
+    // grammar-owned by `trivia`; pre-fix, while the parser speculatively
+    // attempted `line_comment` after `interface i`, the skipper's `#` arm
+    // (whose H.11.3 dynamic guard only protects the ACTIVE token) swallowed
+    // `#  (  ) ;timeunit 09 ns//>Mg` to end-of-line as a "comment", the bogus
+    // trivia span was memoized, and the real ANSI-header `#` died on the
+    // poisoned memo — rejecting grammar-valid input on every shipped SV
+    // release.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_hash_token_is_not_stolen_by_comment_arms_during_speculation() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        let samples = [
+            // The minimal repro family (bisected from the canonical seed-0
+            // cert-coverage failing sample): an ANSI `#( )` header plus a
+            // line comment followed by another comment before the
+            // timeunit-ratio `/`.
+            "interface i #  (  ) ;timeunit 09 ns//>Mg\n//QF.\n/633 s;endinterface",
+            // Controls: single-comment / no-`#()` / comment-free variants
+            // must keep parsing.
+            "interface i #  (  ) ;timeunit 09 ns//>Mg\n/633 s;endinterface",
+            "interface i ;timeunit 09 ns//>Mg\n//QF.\n/633 s;endinterface",
+            "interface i #  (  ) ;timeunit 09 ns/633 s;endinterface",
+        ];
+        for sample in samples {
+            let mut parser = SystemverilogParser::new(
+                sample,
+                runtime_logger_box("ast_shape_contract.sv_hash_not_stolen"),
+            );
+            parser.set_grammar_profile(Some("sv_2017"));
+            assert!(
+                parser.parse_full_systemverilog_file().is_ok(),
+                "SV parser rejected grammar-valid `#`/comment sample: {sample}"
+            );
+        }
+    }
+
     // GRAMMAR-WELLFORMED.H.11.3 regression lock: the generated layout skipper
     // hard-codes `#`-to-end-of-line comment skipping (an EBNF meta-grammar
     // convention), which used to swallow the VHDL based-literal `#` delimiter
@@ -1242,6 +1284,9 @@ mod tests {
     // lets a token whose own pattern matches at a comment introducer win over
     // the comment convention (mirroring the introducer guard
     // `consume_layout_for_terminal` already applies to string terminals).
+    // H.11.5 then made the suppression STATIC for claimed introducers — the
+    // vhdl parser no longer emits a `#` arm at all; these samples still lock
+    // the user-visible property (based literals parse).
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     #[test]
     fn vhdl_based_literal_hash_token_is_not_swallowed_as_comment() {
