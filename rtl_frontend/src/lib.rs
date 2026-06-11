@@ -4628,7 +4628,7 @@ mod tests {
     #[test]
     fn generated_contract_manifest_matches_handwritten_parse_surface() {
         let manifest = load_generated_contract_manifest();
-        assert_eq!(manifest.contract_version, "0.1.0");
+        assert_eq!(manifest.contract_version, "0.2.0");
         assert_eq!(manifest.grammar_name, "rtl_frontend");
         assert!(
             !manifest.samples.is_empty(),
@@ -4681,7 +4681,7 @@ mod tests {
     #[test]
     fn generated_contract_manifest_matches_handwritten_elaboration_surface() {
         let manifest = load_generated_contract_manifest();
-        assert_eq!(manifest.contract_version, "0.1.0");
+        assert_eq!(manifest.contract_version, "0.2.0");
         assert_eq!(manifest.grammar_name, "rtl_frontend");
 
         let mut checked = 0usize;

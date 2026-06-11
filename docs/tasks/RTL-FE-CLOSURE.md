@@ -55,19 +55,19 @@ the LIVE row says is still open.
   Commit: `PGEN-RTL-FE-CLOSURE-0001`
 
 - ID: `RTL-FE-CLOSURE.3`
-  Status: `pending`
-  Goal: `FIX (code leaf): migrate rtl_frontend_generated_contract_gate's stage-1 proof surface to the typed-AST era so the gate is GREEN and DISCRIMINATING again. Design (from .2): keep expected_parse_ok over all 125 samples (proven healthy) + stage-2 handwritten/elaboration replay (proven green) unchanged; replace the raw-envelope checks (required_rule_names / required_rule_texts / expected_rule_texts / forbidden_rule_names) with typed-carrier assertions against the released schema-3 JSON shape (e.g. required JSON paths/discriminators per sample: items[].kind=="module", body.name=="top", typed scalar texts where the old span-texts carried the evidence — signal_reference values etc.); bump contract_version 0.1.0→0.2.0; expected values derived from the SPEC side (the rtl_frontend book's documented schema-3 carrier + ast_shape_contract manifest), spot-verified independently — NOT blind-locked from current output (feedback_corpus_expected_from_spec_not_fix); README lines ~107–126 + the top-level book cli-and-workflows gate description re-synced to what the gate then actually proves.`
+  Status: `done`
+  Goal: `FIX (code leaf): migrate rtl_frontend_generated_contract_gate's stage-1 proof surface to the typed-AST era so the gate is GREEN and DISCRIMINATING again. Design (from .2): keep expected_parse_ok over all 125 samples (proven healthy) + stage-2 handwritten/elaboration replay (proven green) unchanged; replace the raw-envelope checks with typed-era assertions; bump contract_version 0.1.0→0.2.0; expected values from the SPEC side (feedback_corpus_expected_from_spec_not_fix); README + book gate descriptions re-synced to what the gate actually proves.`
   Acceptance: `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate exits 0; the typed checks FAIL on a deliberately mutated shape (discriminating-power probe); stage-2 ratchets preserved (59 expected_elaboration samples incl. the 46/13 accept/reject split); README + book gate descriptions truthful; no parser/grammar change (proof-surface-only — schema/release untouched).`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-06-11 — ALL ACCEPTANCE MET. DESIGN REFINEMENT during implementation: required_rule_names/forbidden_rule_names migrated to the parser's TRANSACTIONAL COVERAGE RECORD (parse_and_cover_rtl_frontend — entry testimony, sound under backtracking, complete under annotation folding; the engine facility built exactly for "did rule X participate in the accepted parse") ⇒ those manifest fields survive UNCHANGED (93 required + 82 forbidden lists, semantics preserved 1:1, green first-try); required_rule_texts/expected_rule_texts retired and re-expressed as required_typed_string_values — the curated (human-authored, spec-side) texts that survive as EXACT string values of the released schema-3 typed carrier: 214 locks across 69/93 samples (1050 multi-token span texts adjudicated superseded by coverage testimony + handwritten parity + elaboration replay; recorded in the manifest provenance). MEASURED: gate exits 0 end-to-end (probe + handwritten replay stages both pass); DISCRIMINATION A/B 3/3 — bogus required rule, forbidden=module_declaration, bogus typed value each FAIL loudly with exact messages, restored manifest green; probe unit tests 4/4 (new collect_string_values multiplicity lock); handwritten crate suite 91/91 (contract_version asserts 0.1.0→0.2.0); clippy strict-source clean (generated stage = pre-existing tolerated debt); mdbook_docs_gate PASS. Blast radius: NO parser/grammar/engine change (probe bin + manifest + 2 handwritten-test asserts + README + 2 book chapters); schema stays 3, release stays 1.0.3, no ledger row (not a shipped-parser defect).`
+  Commit: `PGEN-RTL-FE-CLOSURE-0002`
 
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `RTL-FE-CLOSURE.3` | `pending` | The ticketed red gate is adjudicated (`.2`): stale proof surface — migrate it to the typed era so the family's contract gate is green + discriminating before the UNKNOWN→0 drive leans on it. |
-| 2 | `RTL-FE-CLOSURE.1` | `pending` | Broader closure scoping (exhaustiveness/elaboration bar to Done) after the gate surface is healthy. |
+| 1 | `RTL-FE-CLOSURE.1` | `pending` | Broader closure scoping (exhaustiveness/elaboration bar to Done; the UNKNOWN 71→0 drive + the seed-42 spf generator residual) now that the gate surface is healthy. |
 | — | `RTL-FE-CLOSURE.2` | `done` (`PGEN-RTL-FE-CLOSURE-0001`) | The -0067/-0075 red-gate ticket: adjudicated NOT-a-parser-bug (stale April-era manifest vs the released typed schema-3 carrier); fix design recorded in `.3`. |
+| — | `RTL-FE-CLOSURE.3` | `done` (`PGEN-RTL-FE-CLOSURE-0002`) | The typed-era migration landed: gate GREEN end-to-end + discrimination A/B 3/3; coverage-testimony preserves required/forbidden semantics 1:1; 214 typed-value locks; README + book truthful. |
 
 ## Decisions
 
@@ -88,6 +88,7 @@ the LIVE row says is still open.
 | --- | --- | --- | --- |
 | `2026-05-31` | `RTL-FE-CLOSURE.1` | `pending` | `pending` |
 | `2026-06-11` | `RTL-FE-CLOSURE.2` | `gate repro (probe fail signature exact); AST dump walk (1 rule_name total, 14/14 required absent); grammar git -S (module_declaration annotation = f70b8976 Slice-5 2026-05-14; manifest last touch 486db2bf 2026-04-20); campaign commit bodies (ad822637/84624543 validate via typed surfaces only); hosted workflow manual-only; parse-acceptance replay 125/125 = 0 mismatches; stage-2 handwritten+elaboration cargo test 2/2 PASS` | `VERDICT: stale proof surface, NOT a parser bug; fix design → .3` |
+| `2026-06-11` | `RTL-FE-CLOSURE.3` | `gate end-to-end exit 0 (probe + handwritten stages); discrimination A/B 3/3 (bogus required rule / forbidden module_declaration / bogus typed value each FAIL loudly, restored green); typed-value survival measurement (214 locks / 69 samples; 1050 span texts adjudicated); probe unit tests 4/4; rtl_frontend crate suite 91/91; clippy strict-source clean; mdbook_docs_gate PASS` | `Gate GREEN + discriminating; contract 0.2.0; no parser/grammar change` |
 
 ## Commit Log
 
@@ -95,8 +96,10 @@ the LIVE row says is still open.
 | --- | --- | --- |
 | `RTL-FE-CLOSURE.1` | `pending` | `pending` |
 | `RTL-FE-CLOSURE.2` | `PGEN-RTL-FE-CLOSURE-0001` | Pure-docs investigation; corrects the -0067 "earlier engine wave" framing. |
+| `RTL-FE-CLOSURE.3` | `PGEN-RTL-FE-CLOSURE-0002` | Typed-era gate migration: coverage testimony + typed-value locks; README/book re-sync. |
 
 ## Changelog
 
 - `2026-05-31`: Created thin skeleton (TASKTREE-GOV.2 roadmap-coverage).
 - `2026-06-11`: Activated; `.2` (red-gate root-cause investigation) done — stale April-era manifest vs released typed schema-3 carrier; `.3` (typed-era proof-surface migration) ticketed as frontier.
+- `2026-06-11`: `.3` done — `rtl_frontend_generated_contract_gate` GREEN end-to-end at contract `0.2.0` (coverage-record rule testimony + 214 typed-value locks + unchanged handwritten/elaboration stages); README + cli-and-workflows + parser-families re-synced. Frontier → `.1` (closure scoping).

@@ -1,8 +1,8 @@
 {
-  "contract_version": "0.1.0",
+  "contract_version": "0.2.0",
   "grammar_name": "rtl_frontend",
-  "purpose": "Curated generated rtl_frontend syntax contract for the tracked generated parser surface.",
-  "provenance": "Curated from local handwritten rtl_frontend::parse_design replay during the 2026-04-08 parity-debugging wave; the sibling handwritten crate is not a tracked pgen build dependency.",
+  "purpose": "Curated generated rtl_frontend syntax contract for the tracked generated parser surface. 0.2.0 (typed-AST era): rule participation is proven by the parser's transactional coverage record (required_rule_names / forbidden_rule_names — entry testimony of the accepted parse), and retained-text evidence by required_typed_string_values (curated texts that survive as exact string values in the released schema-3 typed JSON carrier); the 0.1.0 raw-envelope rule_name/span checks were structurally unsatisfiable once return annotations folded structural rules into typed Json.",
+  "provenance": "Curated from local handwritten rtl_frontend::parse_design replay during the 2026-04-08 parity-debugging wave; the sibling handwritten crate is not a tracked pgen build dependency. 0.2.0 migration (2026-06-11, RTL-FE-CLOSURE.3): required_rule_texts/expected_rule_texts span locks (authored against the zero-annotation grammar) retired; their curated texts were re-expressed as required_typed_string_values where they survive as exact typed string values (214 locks across 69 samples); multi-token span texts are superseded by coverage testimony + the handwritten parity and elaboration replay layers on the same samples.",
   "samples": [
     {
       "label": "always_ff_well_formed",
@@ -24,44 +24,19 @@
         "always_ff_assignment_operator",
         "signal_reference"
       ],
-      "required_rule_texts": {
-        "port_list": [
-          "input logic clk,\n    input logic rst_n,\n    input logic d,\n    output logic q"
-        ],
-        "signal_reference": [
-          "clk",
-          "rst_n",
-          "q",
-          "d"
-        ]
-      },
-      "expected_rule_texts": {
-        "kw_always_ff": [
-          "always_ff"
-        ],
-        "event_control_list": [
-          "@(posedge clk or negedge rst_n)"
-        ],
-        "event_control_item": [
-          "posedge clk",
-          "negedge rst_n"
-        ],
-        "event_edge": [
-          "posedge",
-          "negedge"
-        ],
-        "procedural_block": [
-          "always_ff @(posedge clk or negedge rst_n) begin\n    if (!rst_n)\n        q <= 0;\n    else\n        q <= d;\nend"
-        ],
-        "assignment_target": [
-          "q",
-          "q"
-        ],
-        "always_ff_assignment_operator": [
-          "<=",
-          "<="
-        ]
-      },
+      "required_typed_string_values": [
+        "<=",
+        "<=",
+        "always_ff",
+        "clk",
+        "d",
+        "negedge",
+        "posedge",
+        "q",
+        "q",
+        "q",
+        "rst_n"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -96,64 +71,12 @@
         "concatenation_expr",
         "ranged_signal_reference"
       ],
-      "expected_rule_texts": {
-        "kw_always_ff": [
-          "always_ff"
-        ],
-        "event_control_list": [
-          "@(posedge clk)"
-        ],
-        "event_control_item": [
-          "posedge clk"
-        ],
-        "event_edge": [
-          "posedge"
-        ],
-        "always_ff_assignment_operator": [
-          "<=",
-          "<="
-        ],
-        "assignment_target": [
-          "cfgs[IDX].data[HI:LO]",
-          "{cfgs[IDX].valid, cfgs[0].valid}",
-          "cfgs[IDX].valid",
-          "cfgs[0].valid"
-        ],
-        "concatenation_expr": [
-          "{d[0], cfgs[IDX].data[BIT]}"
-        ],
-        "procedural_block": [
-          "always_ff @(posedge clk) begin\n    cfgs[IDX].data[HI:LO] <= SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\n    {cfgs[IDX].valid, cfgs[0].valid} <= {d[0], cfgs[IDX].data[BIT]};\nend"
-        ],
-        "ranged_signal_reference": [
-          "cfgs[IDX].data[HI:LO]",
-          "cfgs[0].data[HI:LO]"
-        ]
-      },
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic clk,\n    input logic [7:0] d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
+      "required_typed_string_values": [
+        "<=",
+        "<=",
+        "always_ff",
+        "posedge"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -193,53 +116,11 @@
         "concatenation_expr",
         "ranged_signal_reference"
       ],
-      "expected_rule_texts": {
-        "always_ff_assignment_operator": [
-          "<="
-        ],
-        "assignment_target": [
-          "cfgs[IDX].data[BIT]"
-        ],
-        "event_control_list": [
-          "@(posedge clk)"
-        ],
-        "event_control_item": [
-          "posedge clk"
-        ],
-        "event_edge": [
-          "posedge"
-        ],
-        "kw_always_ff": [
-          "always_ff"
-        ],
-        "procedural_block": [
-          "always_ff @(posedge clk) begin\n    cfgs[IDX].data[BIT] <= d;\nend"
-        ]
-      },
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter BIT = 2"
-        ],
-        "port_list": [
-          "input logic clk,\n    input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
+      "required_typed_string_values": [
+        "<=",
+        "always_ff",
+        "posedge"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -279,56 +160,11 @@
         "module_instantiation",
         "ranged_signal_reference"
       ],
-      "expected_rule_texts": {
-        "always_ff_assignment_operator": [
-          "<="
-        ],
-        "assignment_target": [
-          "cfgs[IDX].valid"
-        ],
-        "concatenation_expr": [
-          "{cfgs[IDX].data[BIT], d}"
-        ],
-        "event_control_list": [
-          "@(posedge clk)"
-        ],
-        "event_control_item": [
-          "posedge clk"
-        ],
-        "event_edge": [
-          "posedge"
-        ],
-        "kw_always_ff": [
-          "always_ff"
-        ],
-        "procedural_block": [
-          "always_ff @(posedge clk) begin\n    cfgs[IDX].valid <= {cfgs[IDX].data[BIT], d};\nend"
-        ]
-      },
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter BIT = 2"
-        ],
-        "port_list": [
-          "input logic clk,\n    input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
+      "required_typed_string_values": [
+        "<=",
+        "always_ff",
+        "posedge"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -366,46 +202,10 @@
         "concatenation_expr",
         "ranged_signal_reference"
       ],
-      "expected_rule_texts": {
-        "assignment_operator": [
-          "="
-        ],
-        "assignment_target": [
-          "{cfgs[IDX].data[BIT], cfgs[IDX].valid}",
-          "cfgs[IDX].data[BIT]",
-          "cfgs[IDX].valid"
-        ],
-        "kw_always_comb": [
-          "always_comb"
-        ],
-        "procedural_block": [
-          "always_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = d;\nend"
-        ]
-      },
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter BIT = 2"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "always_comb"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -447,37 +247,13 @@
         "struct_type",
         "unpacked_dimension"
       ],
-      "expected_rule_texts": {
-        "always_ff_assignment_operator": [
-          "<="
-        ],
-        "assignment_target": [
-          "q"
-        ],
-        "event_control_list": [
-          "@(posedge clk_missing)"
-        ],
-        "event_control_item": [
-          "posedge clk_missing"
-        ],
-        "event_edge": [
-          "posedge"
-        ],
-        "kw_always_ff": [
-          "always_ff"
-        ],
-        "procedural_block": [
-          "always_ff @(posedge clk_missing) begin\n    q <= 1;\nend"
-        ]
-      },
-      "required_rule_texts": {
-        "port_list": [
-          "output logic q"
-        ],
-        "signal_reference": [
-          "clk_missing"
-        ]
-      },
+      "required_typed_string_values": [
+        "<=",
+        "always_ff",
+        "clk_missing",
+        "posedge",
+        "q"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -515,58 +291,12 @@
         "continuous_assign",
         "concatenation_expr"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter BIT = 2,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic a,\n    input logic [7:0] d,\n    output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
-      "expected_rule_texts": {
-        "always_star_event": [
-          "@(*)"
-        ],
-        "kw_always": [
-          "always"
-        ],
-        "assignment_operator": [
-          "=",
-          "="
-        ],
-        "assignment_target": [
-          "{cfgs[IDX].valid, cfgs[0].valid}",
-          "cfgs[IDX].valid",
-          "cfgs[0].valid",
-          "cfgs[IDX].valid",
-          "y"
-        ],
-        "continuous_assign": [
-          "assign y = cfgs[IDX].valid;"
-        ],
-        "concatenation_expr": [
-          "{cfgs[IDX].data[BIT], d[0]}"
-        ],
-        "procedural_block": [
-          "always @(*) begin\n    if (SEL)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\n    else\n        cfgs[IDX].valid = a;\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "=",
+        "always",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -599,34 +329,13 @@
         "generate_region",
         "module_instantiation"
       ],
-      "required_rule_texts": {
-        "port_list": [
-          "input logic a,\n    output logic y"
-        ],
-        "signal_reference": [
-          "a",
-          "y"
-        ]
-      },
-      "expected_rule_texts": {
-        "always_star_event": [
-          "@(*)"
-        ],
-        "kw_always": [
-          "always"
-        ],
-        "assignment_operator": [
-          "=",
-          "="
-        ],
-        "assignment_target": [
-          "y",
-          "y"
-        ],
-        "procedural_block": [
-          "always @(*) begin\n    if (a)\n        y = 1;\n    else\n        y = 0;\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "a",
+        "always",
+        "y",
+        "y",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "star",
         "ok": true,
@@ -657,53 +366,11 @@
         "continuous_assign",
         "concatenation_expr"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter BIT = 2"
-        ],
-        "port_list": [
-          "input logic en,\n    input logic [7:0] d,\n    output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
-      "expected_rule_texts": {
-        "kw_always_latch": [
-          "always_latch"
-        ],
-        "assignment_operator": [
-          "="
-        ],
-        "assignment_target": [
-          "{cfgs[IDX].valid, cfgs[0].valid}",
-          "cfgs[IDX].valid",
-          "cfgs[0].valid",
-          "y"
-        ],
-        "continuous_assign": [
-          "assign y = cfgs[0].valid;"
-        ],
-        "concatenation_expr": [
-          "{cfgs[IDX].data[BIT], d[0]}"
-        ],
-        "procedural_block": [
-          "always_latch begin\n    if (en)\n        {cfgs[IDX].valid, cfgs[0].valid} = {cfgs[IDX].data[BIT], d[0]};\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "always_latch",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -734,30 +401,13 @@
         "generate_region",
         "module_instantiation"
       ],
-      "required_rule_texts": {
-        "port_list": [
-          "input logic en,\n    input logic d,\n    output logic q"
-        ],
-        "signal_reference": [
-          "en",
-          "q",
-          "d"
-        ]
-      },
-      "expected_rule_texts": {
-        "kw_always_latch": [
-          "always_latch"
-        ],
-        "assignment_operator": [
-          "<="
-        ],
-        "assignment_target": [
-          "q"
-        ],
-        "procedural_block": [
-          "always_latch begin\n    if (en)\n        q <= d;\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "always_latch",
+        "d",
+        "en",
+        "q",
+        "q"
+      ],
       "expected_elaboration": {
         "top": "latchy",
         "ok": true,
@@ -788,30 +438,13 @@
         "generate_region",
         "module_instantiation"
       ],
-      "required_rule_texts": {
-        "port_list": [
-          "input logic en,\n    output logic q"
-        ]
-      },
-      "expected_rule_texts": {
-        "assignment_operator": [
-          "<="
-        ],
-        "assignment_target": [
-          "q"
-        ],
-        "kw_always_latch": [
-          "always_latch"
-        ],
-        "procedural_block": [
-          "always_latch begin\n    if (en)\n        q <= missing;\nend"
-        ],
-        "signal_reference": [
-          "en",
-          "q",
-          "missing"
-        ]
-      },
+      "required_typed_string_values": [
+        "always_latch",
+        "en",
+        "missing",
+        "q",
+        "q"
+      ],
       "expected_elaboration": {
         "top": "latchy",
         "ok": false,
@@ -893,64 +526,12 @@
         "additive_expr",
         "signal_reference"
       ],
-      "expected_rule_texts": {
-        "net_declaration": [
-          "logic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];"
-        ],
-        "net_item": [
-          "bank0 [0:DEPTH-1]",
-          "bank1 [1:DEPTH]"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[0:DEPTH-1]",
-          "[7:0]",
-          "[1:DEPTH]",
-          "[7:0]",
-          "[0:DEPTH-1]",
-          "[1:DEPTH]"
-        ],
-        "parameter_declaration_group": [
-          "parameter DEPTH = 4"
-        ],
-        "parameter_declaration_head": [
-          "parameter DEPTH = 4"
-        ],
-        "parameter_declaration_sequence": [
-          "parameter DEPTH = 4"
-        ],
-        "port_group": [
-          "input logic [7:0] a [0:DEPTH-1]",
-          "input logic [7:0] b [1:DEPTH]",
-          "output logic y"
-        ],
-        "port_list": [
-          "input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y"
-        ],
-        "unpacked_dimension": [
-          "[0:DEPTH-1]",
-          "[1:DEPTH]",
-          "[0:DEPTH-1]",
-          "[1:DEPTH]"
-        ]
-      },
-      "required_rule_texts": {
-        "additive_expr": [
-          "DEPTH-1"
-        ],
-        "conditional_expr": [
-          "DEPTH-1"
-        ],
-        "relational_expr": [
-          "DEPTH-1"
-        ],
-        "signal_reference": [
-          "DEPTH",
-          "DEPTH",
-          "DEPTH",
-          "DEPTH"
-        ]
-      },
+      "required_typed_string_values": [
+        "DEPTH",
+        "DEPTH",
+        "DEPTH",
+        "DEPTH"
+      ],
       "sample": "module top #(\n    parameter DEPTH = 4\n) (\n    input logic [7:0] a [0:DEPTH-1],\n    input logic [7:0] b [1:DEPTH],\n    output logic y\n);\nlogic [7:0] bank0 [0:DEPTH-1], bank1 [1:DEPTH];\nendmodule\n"
     },
     {
@@ -979,57 +560,12 @@
         "procedural_block",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter WIDTH = 8,\n    parameter DEPTH = WIDTH + 4",
-          "parameter EXTRA = DEPTH + 1",
-          "localparam TOTAL = WIDTH * 2"
-        ],
-        "parameter_declaration_statement": [
-          "parameter EXTRA = DEPTH + 1;",
-          "localparam TOTAL = WIDTH * 2;"
-        ],
-        "parameter_declaration_head": [
-          "parameter WIDTH = 8",
-          "parameter EXTRA = DEPTH + 1",
-          "localparam TOTAL = WIDTH * 2"
-        ],
-        "parameter_declaration_tail": [
-          "parameter DEPTH = WIDTH + 4"
-        ],
-        "kw_parameter": [
-          "parameter",
-          "parameter",
-          "parameter"
-        ],
-        "kw_localparam": [
-          "localparam"
-        ],
-        "port_list": [
-          "output logic [DEPTH-1:0] y"
-        ],
-        "net_declaration": [
-          "logic [TOTAL-1:0] data;"
-        ],
-        "continuous_assign": [
-          "assign y = EXTRA > TOTAL ? EXTRA : TOTAL;"
-        ]
-      },
-      "required_rule_texts": {
-        "conditional_expr": [
-          "WIDTH + 4",
-          "DEPTH + 1",
-          "WIDTH * 2",
-          "EXTRA > TOTAL ? EXTRA : TOTAL"
-        ],
-        "additive_expr": [
-          "WIDTH + 4",
-          "DEPTH + 1"
-        ],
-        "multiplicative_expr": [
-          "WIDTH * 2"
-        ]
-      },
+      "required_typed_string_values": [
+        "localparam",
+        "parameter",
+        "parameter",
+        "parameter"
+      ],
       "expected_elaboration": {
         "top": "arithmetic",
         "ok": true,
@@ -1076,78 +612,15 @@
         "additive_expr",
         "multiplicative_expr"
       ],
-      "expected_rule_texts": {
-        "assignment_operator": [
-          "=",
-          "=",
-          "="
-        ],
-        "assignment_target": [
-          "y",
-          "data",
-          "scratch",
-          "scratch"
-        ],
-        "continuous_assign": [
-          "assign y = DEPTH > WIDTH ? DEPTH : WIDTH;"
-        ],
-        "generate_body": [
-          "begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end",
-          "begin : no_extra\n        logic dummy;\n    end",
-          "begin : lanes\n        logic tap;\n    end"
-        ],
-        "generate_for": [
-          "for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end"
-        ],
-        "generate_if": [
-          "if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end"
-        ],
-        "generate_region": [
-          "generate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate"
-        ],
-        "net_declaration": [
-          "logic [WIDTH-1:0] data, scratch;",
-          "logic [TOTAL-1:0] extra;",
-          "logic dummy;",
-          "logic tap;"
-        ],
-        "parameter_declaration_head": [
-          "parameter WIDTH = 8",
-          "parameter EXTRA = DEPTH + 1",
-          "localparam TOTAL = WIDTH * 2"
-        ],
-        "parameter_declaration_statement": [
-          "parameter EXTRA = DEPTH + 1;",
-          "localparam TOTAL = WIDTH * 2;"
-        ],
-        "parameter_declaration_tail": [
-          "parameter DEPTH = WIDTH + 4"
-        ],
-        "port_group": [
-          "input logic [WIDTH-1:0] a",
-          "input logic [WIDTH-1:0] b",
-          "output logic [DEPTH-1:0] y"
-        ],
-        "procedural_block": [
-          "always_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend"
-        ]
-      },
-      "required_rule_texts": {
-        "conditional_expr": [
-          "DEPTH > WIDTH ? DEPTH : WIDTH",
-          "WIDTH + TOTAL",
-          "EXTRA > 0",
-          "WIDTH > 4",
-          "i < 3",
-          "i + 1"
-        ],
-        "relational_expr": [
-          "DEPTH > WIDTH",
-          "EXTRA > 0",
-          "WIDTH > 4",
-          "i < 3"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "=",
+        "=",
+        "data",
+        "scratch",
+        "scratch",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "arithmetic",
         "ok": true,
@@ -1198,88 +671,11 @@
         "always_ff_assignment_operator",
         "assignment_operator"
       ],
-      "expected_rule_texts": {
-        "generate_body": [
-          "begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end",
-          "begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end"
-        ],
-        "generate_for": [
-          "for (genvar i = 0; i < 2; i = i + 1) begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end"
-        ],
-        "generate_if": [
-          "if (USE_LEAF) begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end"
-        ],
-        "generate_region": [
-          "generate\n    if (USE_LEAF) begin : gated_scope\n        leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));\n    end\n    for (genvar i = 0; i < 2; i = i + 1) begin : lanes\n        leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));\n    end\nendgenerate"
-        ],
-        "instance_item": [
-          "direct (.a(a), .y(y))",
-          "gated (.a(a), .y(y))",
-          "lane (.a(a), .y(y))"
-        ],
-        "module_instantiation": [
-          "leaf #(.WIDTH(TOP_W)) direct (.a(a), .y(y));",
-          "leaf #(.WIDTH(TOP_W - 1)) gated (.a(a), .y(y));",
-          "leaf #(.WIDTH(i + 1)) lane (.a(a), .y(y));"
-        ],
-        "packed_range": [
-          "[WIDTH-1:0]",
-          "[OFFSET-1:0]",
-          "[TOP_W-1:0]",
-          "[TOP_W:0]"
-        ],
-        "parameter_declaration_head": [
-          "parameter WIDTH = 1",
-          "parameter TOP_W = 8"
-        ],
-        "parameter_declaration_tail": [
-          "parameter OFFSET = WIDTH + 1",
-          "parameter USE_LEAF = 1"
-        ],
-        "parameter_override": [
-          ".WIDTH(TOP_W)",
-          ".WIDTH(TOP_W - 1)",
-          ".WIDTH(i + 1)"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)",
-          ".a(a)",
-          ".y(y)",
-          ".a(a)",
-          ".y(y)"
-        ],
-        "port_group": [
-          "input logic [WIDTH-1:0] a",
-          "output logic [OFFSET-1:0] y",
-          "input logic [TOP_W-1:0] a",
-          "output logic [TOP_W:0] y"
-        ],
-        "port_list": [
-          "input logic [WIDTH-1:0] a,\n    output logic [OFFSET-1:0] y",
-          "input logic [TOP_W-1:0] a,\n    output logic [TOP_W:0] y"
-        ]
-      },
-      "required_rule_texts": {
-        "additive_expr": [
-          "WIDTH + 1",
-          "TOP_W - 1",
-          "i + 1"
-        ],
-        "conditional_expr": [
-          "TOP_W",
-          "USE_LEAF",
-          "TOP_W - 1",
-          "i < 2",
-          "i + 1"
-        ],
-        "relational_expr": [
-          "USE_LEAF",
-          "TOP_W - 1",
-          "i < 2",
-          "i + 1"
-        ]
-      },
+      "required_typed_string_values": [
+        "TOP_W",
+        "USE_LEAF",
+        "USE_LEAF"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -1414,24 +810,12 @@
         "procedural_block",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "kw_module": [
-          "module",
-          "module"
-        ],
-        "identifier": [
-          "first",
-          "second"
-        ],
-        "kw_endmodule": [
-          "endmodule",
-          "endmodule"
-        ],
-        "module_declaration": [
-          "module first;\nendmodule",
-          "module second;\nendmodule"
-        ]
-      },
+      "required_typed_string_values": [
+        "first",
+        "module",
+        "module",
+        "second"
+      ],
       "sample": "module first;\nendmodule\n\nmodule second;\nendmodule\n"
     },
     {
@@ -1455,34 +839,12 @@
         "named_data_type",
         "typedef_declaration"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "byte",
-          "shortint",
-          "longint"
-        ],
-        "kw_byte": [
-          "byte"
-        ],
-        "kw_longint": [
-          "longint"
-        ],
-        "kw_shortint": [
-          "shortint"
-        ],
-        "net_declaration": [
-          "byte lane;",
-          "shortint offset;",
-          "longint cycles;"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ]
-      },
+      "required_typed_string_values": [
+        "byte",
+        "logic",
+        "longint",
+        "shortint"
+      ],
       "sample": "module top (\n    output logic y\n);\nbyte lane;\nshortint offset;\nlongint cycles;\nendmodule\n"
     },
     {
@@ -1505,35 +867,11 @@
         "typedef_declaration",
         "named_data_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nendmodule"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "module top (\n    output logic y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nendmodule\n"
     },
     {
@@ -1557,34 +895,10 @@
         "typedef_declaration",
         "named_data_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic"
-        ],
-        "enum_base_type": [
-          "logic"
-        ],
-        "enum_item": [
-          "IDLE = 0",
-          "BUSY = 1"
-        ],
-        "enum_type": [
-          "enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n}"
-        ],
-        "net_declaration": [
-          "enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state;"
-        ],
-        "packed_range": [
-          "[1:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic"
+      ],
       "sample": "module top (\n    output logic y\n);\nenum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state;\nendmodule\n"
     },
     {
@@ -1608,34 +922,10 @@
         "typedef_declaration",
         "named_data_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "byte"
-        ],
-        "enum_base_type": [
-          "byte"
-        ],
-        "enum_item": [
-          "IDLE = 0",
-          "BUSY = 1"
-        ],
-        "enum_type": [
-          "enum byte {\n    IDLE = 0,\n    BUSY = 1\n}"
-        ],
-        "kw_byte": [
-          "byte"
-        ],
-        "net_declaration": [
-          "enum byte {\n    IDLE = 0,\n    BUSY = 1\n} state;"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ]
-      },
+      "required_typed_string_values": [
+        "byte",
+        "logic"
+      ],
       "sample": "module top (\n    output logic y\n);\nenum byte {\n    IDLE = 0,\n    BUSY = 1\n} state;\nendmodule\n"
     },
     {
@@ -1657,38 +947,11 @@
       "forbidden_rule_names": [
         "struct_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic"
-        ],
-        "enum_type": [
-          "enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    }"
-        ],
-        "import_declaration": [
-          "import state_pkg::state_t;"
-        ],
-        "enum_item": [
-          "IDLE = 0",
-          "BUSY = 1"
-        ],
-        "named_data_type": [
-          "state_t"
-        ],
-        "packed_range": [
-          "[1:0]"
-        ],
-        "port_group": [
-          "input state_t state",
-          "output logic y"
-        ],
-        "port_list": [
-          "input state_t state,\n    output logic y"
-        ],
-        "typedef_declaration": [
-          "typedef enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    } state_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "state_t"
+      ],
       "sample": "package state_pkg;\n    typedef enum logic [1:0] {\n        IDLE = 0,\n        BUSY = 1\n    } state_t;\nendpackage\n\nmodule top import state_pkg::state_t; (\n    input state_t state,\n    output logic y\n);\nendmodule\n"
     },
     {
@@ -1712,40 +975,12 @@
         "enum_type",
         "struct_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "import_declaration": [
-          "import payload_pkg::payload_t;"
-        ],
-        "named_data_type": [
-          "payload_t"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[7:0]"
-        ],
-        "port_group": [
-          "input payload_t payload",
-          "output logic y"
-        ],
-        "port_list": [
-          "input payload_t payload,\n    output logic y"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic [7:0] byte;"
-        ],
-        "typedef_declaration": [
-          "typedef union packed {\n        logic [7:0] data;\n        logic [7:0] byte;\n    } payload_t;"
-        ],
-        "union_type": [
-          "union packed {\n        logic [7:0] data;\n        logic [7:0] byte;\n    }"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "logic",
+        "payload_t"
+      ],
       "sample": "package payload_pkg;\n    typedef union packed {\n        logic [7:0] data;\n        logic [7:0] byte;\n    } payload_t;\nendpackage\n\nmodule top import payload_pkg::payload_t; (\n    input payload_t payload,\n    output logic y\n);\nendmodule\n"
     },
     {
@@ -1771,39 +1006,12 @@
         "package_qualified_type",
         "net_declaration"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "import_declaration": [
-          "import cfg_pkg::cfg_t;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "input cfg_t cfg",
-          "output logic y"
-        ],
-        "port_list": [
-          "input cfg_t cfg,\n    output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top import cfg_pkg::cfg_t; (\n    input cfg_t cfg,\n    output logic y\n);\nendmodule\n"
     },
     {
@@ -1825,36 +1033,11 @@
         "enum_type",
         "struct_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;\nendmodule"
-        ],
-        "net_declaration": [
-          "union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[7:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic [7:0] byte;"
-        ],
-        "union_type": [
-          "union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n}"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "module top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;\nendmodule\n"
     },
     {
@@ -1880,36 +1063,11 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\nunion packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload;\nendmodule"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic [15:0] word;"
-        ],
-        "net_declaration": [
-          "union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload;"
-        ],
-        "union_type": [
-          "union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n}"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "logic"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -1942,38 +1100,11 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "byte",
-          "shortint"
-        ],
-        "kw_byte": [
-          "byte"
-        ],
-        "kw_shortint": [
-          "shortint"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\nunion packed {\n    byte data;\n    shortint word;\n} payload;\nendmodule"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_union_field": [
-          "byte data;",
-          "shortint word;"
-        ],
-        "net_declaration": [
-          "union packed {\n    byte data;\n    shortint word;\n} payload;"
-        ],
-        "union_type": [
-          "union packed {\n    byte data;\n    shortint word;\n}"
-        ]
-      },
+      "required_typed_string_values": [
+        "byte",
+        "logic",
+        "shortint"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -2001,42 +1132,12 @@
         "enum_type",
         "struct_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\ntypedef union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload_t;\npayload_t payload;\nendmodule"
-        ],
-        "named_data_type": [
-          "payload_t"
-        ],
-        "net_declaration": [
-          "payload_t payload;"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[7:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic [7:0] byte;"
-        ],
-        "typedef_declaration": [
-          "typedef union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload_t;"
-        ],
-        "union_type": [
-          "union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n}"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "logic",
+        "payload_t"
+      ],
       "sample": "module top (\n    output logic y\n);\ntypedef union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload_t;\npayload_t payload;\nendmodule\n"
     },
     {
@@ -2060,28 +1161,9 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "named_data_type": [
-          "payload_t"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic [15:0] word;"
-        ],
-        "net_declaration": [
-          "payload_t payload;"
-        ],
-        "typedef_declaration": [
-          "typedef union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n} payload_t;"
-        ],
-        "union_type": [
-          "union packed {\n    logic [7:0] data;\n    logic [15:0] word;\n}"
-        ]
-      },
+      "required_typed_string_values": [
+        "payload_t"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -2109,41 +1191,12 @@
         "enum_type",
         "union_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\ntypedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\ncfg_t cfg;\nendmodule"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "module top (\n    output logic y\n);\ntypedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\ncfg_t cfg;\nendmodule\n"
     },
     {
@@ -2167,43 +1220,11 @@
         "struct_type",
         "union_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic"
-        ],
-        "enum_base_type": [
-          "logic"
-        ],
-        "enum_item": [
-          "IDLE = 0",
-          "BUSY = 1"
-        ],
-        "enum_type": [
-          "enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n}"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\ntypedef enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state_t;\nstate_t state;\nendmodule"
-        ],
-        "named_data_type": [
-          "state_t"
-        ],
-        "net_declaration": [
-          "state_t state;"
-        ],
-        "packed_range": [
-          "[1:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "typedef_declaration": [
-          "typedef enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "state_t"
+      ],
       "sample": "module top (\n    output logic y\n);\ntypedef enum logic [1:0] {\n    IDLE = 0,\n    BUSY = 1\n} state_t;\nstate_t state;\nendmodule\n"
     },
     {
@@ -2227,41 +1248,12 @@
         "union_type",
         "import_declaration"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "module_declaration": [
-          "module top (\n    output logic y\n);\ncfg_t cfg;\nendmodule"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\n\nmodule top (\n    output logic y\n);\ncfg_t cfg;\nendmodule\n"
     },
     {
@@ -2286,36 +1278,11 @@
         "import_declaration",
         "net_declaration"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "package_qualified_type": [
-          "cfg_pkg::cfg_t"
-        ],
-        "port_group": [
-          "input cfg_pkg::cfg_t cfg",
-          "output logic y"
-        ],
-        "port_list": [
-          "input cfg_pkg::cfg_t cfg,\n    output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    input cfg_pkg::cfg_t cfg,\n    output logic y\n);\nendmodule\n"
     },
     {
@@ -2341,41 +1308,12 @@
         "union_type",
         "package_qualified_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "import_declaration": [
-          "import cfg_pkg::*;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nendmodule\n"
     },
     {
@@ -2401,41 +1339,12 @@
         "union_type",
         "package_qualified_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "import_declaration": [
-          "import cfg_pkg::cfg_t;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "output logic y"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::cfg_t;\ncfg_t cfg;\nendmodule\n"
     },
     {
@@ -2461,47 +1370,14 @@
         "import_declaration",
         "package_qualified_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "module_declaration": [
-          "module child (\n    input cfg_t cfg,\n    output logic y\n);\nendmodule",
-          "module top (\n    output logic y\n);\ncfg_t cfg;\nendmodule"
-        ],
-        "named_data_type": [
-          "cfg_t",
-          "cfg_t"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "input cfg_t cfg",
-          "output logic y",
-          "output logic y"
-        ],
-        "port_list": [
-          "input cfg_t cfg,\n    output logic y",
-          "output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "cfg_t",
+        "logic",
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;\n\nmodule child (\n    input cfg_t cfg,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\ncfg_t cfg;\nendmodule\n"
     },
     {
@@ -2527,52 +1403,13 @@
         "enum_type",
         "union_type"
       ],
-      "expected_rule_texts": {
-        "builtin_data_type": [
-          "logic",
-          "logic",
-          "logic",
-          "logic"
-        ],
-        "import_declaration": [
-          "import cfg_pkg::*;"
-        ],
-        "module_declaration": [
-          "module child (\n    input cfg_pkg::cfg_t cfg,\n    output logic y\n);\nendmodule",
-          "module top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nendmodule"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "package_qualified_type": [
-          "cfg_pkg::cfg_t"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "port_group": [
-          "input cfg_pkg::cfg_t cfg",
-          "output logic y",
-          "output logic y"
-        ],
-        "port_list": [
-          "input cfg_pkg::cfg_t cfg,\n    output logic y",
-          "output logic y"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "logic",
+        "logic",
+        "logic",
+        "logic"
+      ],
       "sample": "package cfg_pkg;\n    typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;\nendpackage\n\nmodule child (\n    input cfg_pkg::cfg_t cfg,\n    output logic y\n);\nendmodule\n\nmodule top (\n    output logic y\n);\nimport cfg_pkg::*;\ncfg_t cfg;\nendmodule\n"
     },
     {
@@ -2603,33 +1440,6 @@
         "union_type",
         "import_declaration"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(.W(TOTAL)) u_child (.a(data[cfg_pkg::DEPTH-1:0]), .y(y));"
-        ],
-        "parameter_declaration_statement": [
-          "localparam WIDTH = 8;",
-          "parameter DEPTH = WIDTH + 2;",
-          "localparam TOTAL = cfg_pkg::DEPTH + LANES;"
-        ],
-        "parameter_declaration_head": [
-          "localparam WIDTH = 8",
-          "parameter DEPTH = WIDTH + 2",
-          "parameter W = 1",
-          "parameter LANES = cfg_pkg::WIDTH / 4",
-          "localparam TOTAL = cfg_pkg::DEPTH + LANES"
-        ],
-        "parameter_override": [
-          ".W(TOTAL)"
-        ],
-        "port_connection": [
-          ".a(data[cfg_pkg::DEPTH-1:0])",
-          ".y(y)"
-        ],
-        "ranged_signal_reference": [
-          "data[cfg_pkg::DEPTH-1:0]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -2700,36 +1510,6 @@
         "union_type",
         "package_qualified_type"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(.W(TOTAL)) u_child (.a(data[WIDTH-1:0]), .y(y));"
-        ],
-        "import_declaration": [
-          "import cfg_pkg::*;"
-        ],
-        "parameter_declaration_statement": [
-          "localparam WIDTH = 8;",
-          "localparam DEPTH = WIDTH + 1;",
-          "localparam TOTAL = DEPTH + LANES;"
-        ],
-        "parameter_declaration_head": [
-          "localparam WIDTH = 8",
-          "localparam DEPTH = WIDTH + 1",
-          "parameter W = 1",
-          "parameter LANES = WIDTH / 4",
-          "localparam TOTAL = DEPTH + LANES"
-        ],
-        "parameter_override": [
-          ".W(TOTAL)"
-        ],
-        "port_connection": [
-          ".a(data[WIDTH-1:0])",
-          ".y(y)"
-        ],
-        "ranged_signal_reference": [
-          "data[WIDTH-1:0]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -2799,33 +1579,6 @@
         "union_type",
         "package_qualified_type"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(.W(TOTAL)) u_child (.a(data[WIDTH:0]), .y(y));"
-        ],
-        "import_declaration": [
-          "import cfg_pkg::WIDTH;"
-        ],
-        "parameter_declaration_statement": [
-          "localparam WIDTH = 8;",
-          "localparam TOTAL = WIDTH + 1;"
-        ],
-        "parameter_declaration_head": [
-          "localparam WIDTH = 8",
-          "parameter W = 1",
-          "localparam TOTAL = WIDTH + 1"
-        ],
-        "parameter_override": [
-          ".W(TOTAL)"
-        ],
-        "port_connection": [
-          ".a(data[WIDTH:0])",
-          ".y(y)"
-        ],
-        "ranged_signal_reference": [
-          "data[WIDTH:0]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -2884,36 +1637,6 @@
       "forbidden_rule_names": [
         "typedef_declaration"
       ],
-      "required_rule_texts": {
-        "signal_reference": [
-          "cfgs[IDX].data"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfgs[IDX].data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfgs[IDX].data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfgs[IDX].data)",
-          ".y(y)"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -2965,38 +1688,6 @@
         "continuous_assign",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "logic [7:0] banks [0:DEPTH-1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "signal_reference": [
-          "banks[IDX]"
-        ]
-      },
-      "expected_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter DEPTH = 2,\n    parameter IDX = 1"
-        ],
-        "parameter_declaration_group": [
-          "parameter DEPTH = 2,\n    parameter IDX = 1"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(banks[IDX]), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(banks[IDX]), .y(y))"
-        ],
-        "port_connection": [
-          ".a(banks[IDX])",
-          ".y(y)"
-        ],
-        "unpacked_dimension": [
-          "[0:DEPTH-1]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3051,33 +1742,6 @@
         "continuous_assign",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "signal_reference": [
-          "cfgs[IDX].data[BIT]"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfgs[IDX].data[BIT]), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfgs[IDX].data[BIT]), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfgs[IDX].data[BIT])",
-          ".y(y)"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3127,33 +1791,6 @@
         "continuous_assign",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "signal_reference": [
-          "cfgs.data"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfgs.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfgs.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfgs.data)",
-          ".y(y)"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -3185,34 +1822,9 @@
         "continuous_assign",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.missing), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.missing), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.missing)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "cfg.missing",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -3245,38 +1857,10 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "cfg.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3328,38 +1912,10 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "cfg.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3413,41 +1969,10 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "import_declaration": [
-          "import cfg_pkg::*;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "cfg.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3501,41 +2026,10 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "import_declaration": [
-          "import cfg_pkg::cfg_t;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "cfg.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3589,41 +2083,10 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "import_declaration": [
-          "import cfg_pkg::cfg_t;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "struct_type": [
-          "struct packed {\n        logic [7:0] data;\n        logic valid;\n    }"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n        logic [7:0] data;\n        logic valid;\n    } cfg_t;"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "cfg.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3656,35 +2119,10 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg_t;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.missing), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.missing), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.missing)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "cfg.missing",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -3716,32 +2154,9 @@
         "generate_region",
         "continuous_assign"
       ],
-      "expected_rule_texts": {
-        "union_type": [
-          "union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic [7:0] byte;"
-        ],
-        "net_declaration": [
-          "union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(payload.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(payload.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(payload.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "payload.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3791,32 +2206,9 @@
         "generate_region",
         "continuous_assign"
       ],
-      "expected_rule_texts": {
-        "union_type": [
-          "union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic [7:0] byte;"
-        ],
-        "net_declaration": [
-          "union packed {\n    logic [7:0] data;\n    logic [7:0] byte;\n} payload;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(payload.missing), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(payload.missing), .y(y))"
-        ],
-        "port_connection": [
-          ".a(payload.missing)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "payload.missing",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -3844,45 +2236,6 @@
       "forbidden_rule_names": [
         "procedural_block"
       ],
-      "expected_rule_texts": {
-        "generate_region": [
-          "generate\n    if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end\nendgenerate"
-        ],
-        "generate_if": [
-          "if (SEL) begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end"
-        ],
-        "generate_body": [
-          "begin : gen_true\n        leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));\n    end"
-        ],
-        "module_instantiation": [
-          "leaf #(.WIDTH(8)) u_leaf (.a(mid), .y(y));"
-        ],
-        "instance_item": [
-          "u_leaf (.a(mid), .y(y))"
-        ],
-        "continuous_assign": [
-          "assign mid = en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]};"
-        ],
-        "net_declaration": [
-          "logic [7:0] mid;"
-        ],
-        "parameter_override": [
-          ".WIDTH(8)"
-        ],
-        "port_connection": [
-          ".a(mid)",
-          ".y(y)"
-        ],
-        "concatenation_expr": [
-          "{a[3:0], b[3:0]}",
-          "{a[3:0], a[3:0]}"
-        ]
-      },
-      "required_rule_texts": {
-        "conditional_expr": [
-          "en ? {a[3:0], b[3:0]} : {a[3:0], a[3:0]}"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3938,29 +2291,9 @@
         "module_instantiation",
         "procedural_block"
       ],
-      "expected_rule_texts": {
-        "kw_else": [
-          "else"
-        ],
-        "generate_region": [
-          "generate\n    if (SEL) begin : gen_true\n        assign mid = a;\n    end else begin : gen_false\n        assign mid = 0;\n    end\nendgenerate"
-        ],
-        "generate_if": [
-          "if (SEL) begin : gen_true\n        assign mid = a;\n    end else begin : gen_false\n        assign mid = 0;\n    end"
-        ],
-        "generate_body": [
-          "begin : gen_true\n        assign mid = a;\n    end",
-          "begin : gen_false\n        assign mid = 0;\n    end"
-        ],
-        "net_declaration": [
-          "logic mid;"
-        ],
-        "continuous_assign": [
-          "assign mid = a;",
-          "assign mid = 0;",
-          "assign y = mid;"
-        ]
-      },
+      "required_typed_string_values": [
+        "else"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -3992,34 +2325,9 @@
         "continuous_assign",
         "generate_for"
       ],
-      "expected_rule_texts": {
-        "kw_else": [
-          "else"
-        ],
-        "generate_region": [
-          "generate\n    if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end\nendgenerate"
-        ],
-        "generate_if": [
-          "if (WIDTH > 4) begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end else begin : no_extra\n        logic dummy;\n    end"
-        ],
-        "generate_body": [
-          "begin : has_extra\n        logic [TOTAL-1:0] extra;\n    end",
-          "begin : no_extra\n        logic dummy;\n    end"
-        ],
-        "packed_range": [
-          "[TOTAL-1:0]"
-        ],
-        "parameter_declaration_sequence": [
-          "parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "net_declaration": [
-          "logic [TOTAL-1:0] extra;",
-          "logic dummy;"
-        ]
-      },
+      "required_typed_string_values": [
+        "else"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -4057,38 +2365,11 @@
         "package_declaration",
         "import_declaration"
       ],
-      "expected_rule_texts": {
-        "generate_if": [
-          "if (SEL) begin : gen_typed\n        typedef struct packed {\n            logic [7:0] data;\n            logic valid;\n        } cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
-        ],
-        "generate_body": [
-          "begin : gen_typed\n        typedef struct packed {\n            logic [7:0] data;\n            logic valid;\n        } cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
-        ],
-        "typedef_declaration": [
-          "typedef struct packed {\n            logic [7:0] data;\n            logic valid;\n        } cfg_t;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "SEL",
-          "cfg.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "SEL",
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -4147,38 +2428,11 @@
         "procedural_block",
         "package_qualified_type"
       ],
-      "expected_rule_texts": {
-        "generate_if": [
-          "if (SEL) begin : gen_typed\n        import cfg_pkg::cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
-        ],
-        "generate_body": [
-          "begin : gen_typed\n        import cfg_pkg::cfg_t;\n        cfg_t cfg;\n        child u_child (.a(cfg.data), .y(y));\n    end"
-        ],
-        "import_declaration": [
-          "import cfg_pkg::cfg_t;"
-        ],
-        "named_data_type": [
-          "cfg_t"
-        ],
-        "net_declaration": [
-          "cfg_t cfg;"
-        ],
-        "module_instantiation": [
-          "child u_child (.a(cfg.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(cfg.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "SEL",
-          "cfg.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "SEL",
+        "cfg_t",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -4232,20 +2486,6 @@
         "procedural_block",
         "continuous_assign"
       ],
-      "expected_rule_texts": {
-        "generate_region": [
-          "generate\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate"
-        ],
-        "generate_for": [
-          "for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end"
-        ],
-        "generate_body": [
-          "begin : lanes\n        logic tap;\n    end"
-        ],
-        "net_declaration": [
-          "logic tap;"
-        ]
-      },
       "sample": "module top;\ngenerate\n    for (genvar i = 0; i < 3; i = i + 1) begin : lanes\n        logic tap;\n    end\nendgenerate\nendmodule\n"
     },
     {
@@ -4275,54 +2515,10 @@
         "procedural_block",
         "continuous_assign"
       ],
-      "expected_rule_texts": {
-        "generate_region": [
-          "generate\n    for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2\n        logic tap;\n    end\nendgenerate"
-        ],
-        "generate_for": [
-          "for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2\n        logic tap;\n    end"
-        ],
-        "generate_body": [
-          "begin : step2\n        logic tap;\n    end"
-        ],
-        "net_declaration": [
-          "logic tap;"
-        ],
-        "net_item": [
-          "tap"
-        ],
-        "parameter_declaration_head": [
-          "parameter LIMIT = 5"
-        ],
-        "parameter_declaration_group": [
-          "parameter LIMIT = 5"
-        ],
-        "parameter_declaration_sequence": [
-          "parameter LIMIT = 5"
-        ],
-        "kw_generate": [
-          "generate"
-        ],
-        "kw_for": [
-          "for"
-        ],
-        "kw_genvar": [
-          "genvar"
-        ]
-      },
-      "required_rule_texts": {
-        "conditional_expr": [
-          "i < LIMIT",
-          "i + 2"
-        ],
-        "relational_expr": [
-          "i < LIMIT",
-          "i + 2"
-        ],
-        "additive_expr": [
-          "i + 2"
-        ]
-      },
+      "required_typed_string_values": [
+        "genvar",
+        "tap"
+      ],
       "sample": "module top #(\n    parameter LIMIT = 5\n);\ngenerate\n    for (genvar i = 0; i < LIMIT; i = i + 2) begin : step2\n        logic tap;\n    end\nendgenerate\nendmodule\n"
     },
     {
@@ -4342,34 +2538,6 @@
       "forbidden_rule_names": [
         "procedural_block"
       ],
-      "expected_rule_texts": {
-        "genvar_declaration": [
-          "genvar i;"
-        ],
-        "generate_region": [
-          "generate\n    for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end\nendgenerate"
-        ],
-        "generate_for": [
-          "for (genvar i = 0; i < 2; i = i + 1) begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end"
-        ],
-        "generate_body": [
-          "begin : gen_loop\n        leaf u_leaf (.a(a), .y(ys[i]));\n    end"
-        ],
-        "module_instantiation": [
-          "leaf u_leaf (.a(a), .y(ys[i]));"
-        ],
-        "instance_item": [
-          "u_leaf (.a(a), .y(ys[i]))"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(ys[i])"
-        ],
-        "continuous_assign": [
-          "assign y0 = ys[0];",
-          "assign y1 = ys[1];"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -4438,54 +2606,10 @@
         "continuous_assign",
         "concatenation_expr"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter BIT = 2"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
-      "expected_rule_texts": {
-        "kw_always_comb": [
-          "always_comb"
-        ],
-        "assignment_operator": [
-          "="
-        ],
-        "continuous_assign": [
-          "assign cfgs[0].valid = {cfgs[IDX].data[BIT], d};"
-        ],
-        "concatenation_expr": [
-          "{cfgs[0].data[0], d}",
-          "{cfgs[IDX].data[BIT], d}"
-        ],
-        "assignment_target": [
-          "{cfgs[IDX].data[BIT], cfgs[IDX].valid}",
-          "cfgs[IDX].data[BIT]",
-          "cfgs[IDX].valid",
-          "cfgs[0].valid"
-        ],
-        "procedural_block": [
-          "always_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = {cfgs[0].data[0], d};\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "always_comb"
+      ],
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter BIT = 2\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].data[BIT], cfgs[IDX].valid} = {cfgs[0].data[0], d};\nend\nassign cfgs[0].valid = {cfgs[IDX].data[BIT], d};\nendmodule\n"
     },
     {
@@ -4509,43 +2633,16 @@
         "generate_region",
         "module_instantiation"
       ],
-      "expected_rule_texts": {
-        "kw_always_comb": [
-          "always_comb"
-        ],
-        "kw_begin": [
-          "begin"
-        ],
-        "kw_if": [
-          "if"
-        ],
-        "kw_else": [
-          "else"
-        ],
-        "parameter_declaration_sequence": [
-          "parameter SEL = 1"
-        ],
-        "net_declaration": [
-          "logic data, scratch;"
-        ],
-        "assignment_operator": [
-          "=",
-          "=",
-          "="
-        ],
-        "procedural_block": [
-          "always_comb begin : comb_blk\n    data = a;\n    if (SEL)\n        scratch = data;\n    else\n        scratch = 0;\nend"
-        ],
-        "assignment_target": [
-          "data",
-          "scratch",
-          "scratch",
-          "y"
-        ],
-        "continuous_assign": [
-          "assign y = scratch;"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "always_comb",
+        "data",
+        "else",
+        "if",
+        "scratch",
+        "scratch",
+        "y"
+      ],
       "sample": "module top #(\n    parameter SEL = 1\n) (\n    input logic a,\n    output logic y\n);\nlogic data, scratch;\nalways_comb begin : comb_blk\n    data = a;\n    if (SEL)\n        scratch = data;\n    else\n        scratch = 0;\nend\nassign y = scratch;\nendmodule\n"
     },
     {
@@ -4574,58 +2671,19 @@
         "module_instantiation",
         "continuous_assign"
       ],
-      "expected_rule_texts": {
-        "kw_always_comb": [
-          "always_comb"
-        ],
-        "kw_begin": [
-          "begin"
-        ],
-        "kw_if": [
-          "if"
-        ],
-        "kw_else": [
-          "else"
-        ],
-        "parameter_declaration_sequence": [
-          "parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2,\n    parameter EXTRA = TOTAL + 1"
-        ],
-        "port_list": [
-          "output logic y"
-        ],
-        "net_declaration": [
-          "logic [WIDTH-1:0] data, scratch;"
-        ],
-        "packed_range": [
-          "[WIDTH-1:0]"
-        ],
-        "net_item": [
-          "data",
-          "scratch"
-        ],
-        "assignment_target": [
-          "data",
-          "scratch",
-          "scratch"
-        ],
-        "assignment_operator": [
-          "=",
-          "=",
-          "="
-        ],
-        "procedural_block": [
-          "always_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend"
-        ]
-      },
-      "required_rule_texts": {
-        "additive_expr": [
-          "WIDTH + TOTAL",
-          "TOTAL + 1"
-        ],
-        "relational_expr": [
-          "EXTRA > 0"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "=",
+        "=",
+        "always_comb",
+        "data",
+        "data",
+        "else",
+        "if",
+        "scratch",
+        "scratch",
+        "scratch"
+      ],
       "sample": "module top #(\n    parameter WIDTH = 8,\n    parameter TOTAL = WIDTH * 2,\n    parameter EXTRA = TOTAL + 1\n) (\n    output logic y\n);\nlogic [WIDTH-1:0] data, scratch;\nalways_comb begin : comb_blk\n    data = WIDTH + TOTAL;\n    if (EXTRA > 0)\n        scratch = TOTAL;\n    else\n        scratch = 0;\nend\nendmodule\n"
     },
     {
@@ -4649,57 +2707,12 @@
         "shift_expr",
         "ranged_signal_reference"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [15:0] y"
-        ],
-        "net_declaration": [
-          "logic [15:0] tmp;"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ],
-        "kw_begin": [
-          "begin"
-        ],
-        "conditional_expr": [
-          "SEL ? (a[HI:LO] + d) : (d << 1)",
-          "(a[HI:LO] + d) * 2"
-        ],
-        "additive_expr": [
-          "a[HI:LO] + d",
-          "(a[HI:LO] + d) * 2"
-        ],
-        "shift_expr": [
-          "d << 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "kw_always_comb": [
-          "always_comb"
-        ],
-        "assignment_operator": [
-          "="
-        ],
-        "continuous_assign": [
-          "assign y = (a[HI:LO] + d) * 2;"
-        ],
-        "ranged_signal_reference": [
-          "a[HI:LO]",
-          "a[HI:LO]"
-        ],
-        "assignment_target": [
-          "tmp",
-          "y"
-        ],
-        "procedural_block": [
-          "always_comb begin\n    tmp = SEL ? (a[HI:LO] + d) : (d << 1);\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "always_comb",
+        "tmp",
+        "y"
+      ],
       "sample": "module top #(\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter SEL = 1\n) (\n    input logic [7:0] a,\n    input logic [7:0] d,\n    output logic [15:0] y\n);\nlogic [15:0] tmp;\nalways_comb begin\n    tmp = SEL ? (a[HI:LO] + d) : (d << 1);\nend\nassign y = (a[HI:LO] + d) * 2;\nendmodule\n"
     },
     {
@@ -4727,71 +2740,10 @@
         "concatenation_expr",
         "ranged_signal_reference"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic [7:0] d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ],
-        "kw_begin": [
-          "begin"
-        ],
-        "conditional_expr": [
-          "SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1)",
-          "SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid}"
-        ],
-        "additive_expr": [
-          "cfgs[0].data[HI:LO] + d"
-        ],
-        "shift_expr": [
-          "d << 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "kw_always_comb": [
-          "always_comb"
-        ],
-        "assignment_operator": [
-          "="
-        ],
-        "continuous_assign": [
-          "assign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};"
-        ],
-        "concatenation_expr": [
-          "{cfgs[IDX].data[BIT], d[0]}",
-          "{d[0], cfgs[0].valid}"
-        ],
-        "ranged_signal_reference": [
-          "cfgs[IDX].data[HI:LO]",
-          "cfgs[0].data[HI:LO]"
-        ],
-        "assignment_target": [
-          "cfgs[IDX].data[HI:LO]",
-          "{cfgs[IDX].valid, cfgs[0].valid}",
-          "cfgs[IDX].valid",
-          "cfgs[0].valid"
-        ],
-        "procedural_block": [
-          "always_comb begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "always_comb"
+      ],
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nend\nassign {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nendmodule\n"
     },
     {
@@ -4816,59 +2768,10 @@
         "conditional_expr",
         "concatenation_expr"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic [7:0] d,\n    output logic [1:0] y"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[1:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ],
-        "kw_begin": [
-          "begin"
-        ],
-        "conditional_expr": [
-          "SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid}"
-        ]
-      },
-      "expected_rule_texts": {
-        "assignment_target": [
-          "{cfgs[IDX].valid, cfgs[0].valid}",
-          "cfgs[IDX].valid",
-          "cfgs[0].valid",
-          "y"
-        ],
-        "assignment_operator": [
-          "="
-        ],
-        "concatenation_expr": [
-          "{cfgs[IDX].data[BIT], d[0]}",
-          "{d[0], cfgs[0].valid}",
-          "{cfgs[IDX].valid, cfgs[0].valid}"
-        ],
-        "continuous_assign": [
-          "assign y = {cfgs[IDX].valid, cfgs[0].valid};"
-        ],
-        "procedural_block": [
-          "always_comb begin\n    {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nend"
-        ]
-      },
+      "required_typed_string_values": [
+        "=",
+        "y"
+      ],
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d,\n    output logic [1:0] y\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    {cfgs[IDX].valid, cfgs[0].valid} = SEL ? {cfgs[IDX].data[BIT], d[0]} : {d[0], cfgs[0].valid};\nend\nassign y = {cfgs[IDX].valid, cfgs[0].valid};\nendmodule\n"
     },
     {
@@ -4907,61 +2810,9 @@
         "shift_expr",
         "ranged_signal_reference"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic [7:0] d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ],
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ],
-        "kw_begin": [
-          "begin"
-        ],
-        "conditional_expr": [
-          "SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1)"
-        ],
-        "additive_expr": [
-          "cfgs[0].data[HI:LO] + d"
-        ],
-        "shift_expr": [
-          "d << 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "assignment_operator": [
-          "="
-        ],
-        "assignment_target": [
-          "cfgs[IDX].valid",
-          "cfgs[IDX].data[HI:LO]"
-        ],
-        "continuous_assign": [
-          "assign cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);"
-        ],
-        "procedural_block": [
-          "always_comb begin\n    cfgs[IDX].valid = d[0];\nend"
-        ],
-        "ranged_signal_reference": [
-          "cfgs[IDX].data[HI:LO]",
-          "cfgs[0].data[HI:LO]"
-        ]
-      },
+      "required_typed_string_values": [
+        "="
+      ],
       "sample": "module top #(\n    parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0,\n    parameter BIT = 2,\n    parameter SEL = 1\n) (\n    input logic [7:0] d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfgs [0:1];\nalways_comb begin\n    cfgs[IDX].valid = d[0];\nend\nassign cfgs[IDX].data[HI:LO] = SEL ? (cfgs[0].data[HI:LO] + d) : (d << 1);\nendmodule\n"
     },
     {
@@ -4989,37 +2840,10 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "parameter_declaration_head": [
-          "parameter BIT = 1"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "assignment_target": [
-          "cfg.data[BIT]"
-        ],
-        "continuous_assign": [
-          "assign cfg.data[BIT] = d;"
-        ],
-        "signal_reference": [
-          "cfg.data[BIT]",
-          "BIT",
-          "d"
-        ]
-      },
+      "required_typed_string_values": [
+        "BIT",
+        "d"
+      ],
       "sample": "module top #(\n    parameter BIT = 1\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.data[BIT] = d;\nendmodule\n"
     },
     {
@@ -5045,33 +2869,9 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "assignment_target": [
-          "cfg.missing"
-        ],
-        "continuous_assign": [
-          "assign cfg.missing = d;"
-        ],
-        "signal_reference": [
-          "cfg.missing",
-          "d"
-        ]
-      },
+      "required_typed_string_values": [
+        "d"
+      ],
       "sample": "module top (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.missing = d;\nendmodule\n"
     },
     {
@@ -5097,37 +2897,6 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "assignment_target": [
-          "cfg.valid"
-        ],
-        "concatenation_expr": [
-          "{cfg.data, cfg.missing}"
-        ],
-        "continuous_assign": [
-          "assign cfg.valid = {cfg.data, cfg.missing};"
-        ],
-        "signal_reference": [
-          "cfg.valid",
-          "cfg.data",
-          "cfg.missing"
-        ]
-      },
       "sample": "module top (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.valid = {cfg.data, cfg.missing};\nendmodule\n"
     },
     {
@@ -5152,36 +2921,9 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "assignment_target": [
-          "{cfg.data, cfg.missing}",
-          "cfg.data",
-          "cfg.missing"
-        ],
-        "continuous_assign": [
-          "assign {cfg.data, cfg.missing} = d;"
-        ],
-        "signal_reference": [
-          "cfg.data",
-          "cfg.missing",
-          "d"
-        ]
-      },
+      "required_typed_string_values": [
+        "d"
+      ],
       "sample": "module top (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign {cfg.data, cfg.missing} = d;\nendmodule\n"
     },
     {
@@ -5208,40 +2950,10 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "parameter_declaration_head": [
-          "parameter BIT = 1"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "assignment_target": [
-          "{cfg.data[BIT], cfg.valid}",
-          "cfg.data[BIT]",
-          "cfg.valid"
-        ],
-        "continuous_assign": [
-          "assign {cfg.data[BIT], cfg.valid} = d;"
-        ],
-        "signal_reference": [
-          "cfg.data[BIT]",
-          "BIT",
-          "cfg.valid",
-          "d"
-        ]
-      },
+      "required_typed_string_values": [
+        "BIT",
+        "d"
+      ],
       "sample": "module top #(\n    parameter BIT = 1\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign {cfg.data[BIT], cfg.valid} = d;\nendmodule\n"
     },
     {
@@ -5269,41 +2981,9 @@
         "ranged_signal_reference",
         "unpacked_dimension"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;"
-        ],
-        "parameter_declaration_head": [
-          "parameter BIT = 1"
-        ],
-        "port_list": [
-          "input logic d"
-        ],
-        "struct_type": [
-          "struct packed {\n    logic [7:0] data;\n    logic valid;\n}"
-        ]
-      },
-      "expected_rule_texts": {
-        "struct_union_field": [
-          "logic [7:0] data;",
-          "logic valid;"
-        ],
-        "assignment_target": [
-          "cfg.valid"
-        ],
-        "concatenation_expr": [
-          "{cfg.data[BIT], cfg.data[0]}"
-        ],
-        "continuous_assign": [
-          "assign cfg.valid = {cfg.data[BIT], cfg.data[0]};"
-        ],
-        "signal_reference": [
-          "cfg.valid",
-          "cfg.data[BIT]",
-          "BIT",
-          "cfg.data[0]"
-        ]
-      },
+      "required_typed_string_values": [
+        "BIT"
+      ],
       "sample": "module top #(\n    parameter BIT = 1\n) (\n    input logic d\n);\nstruct packed {\n    logic [7:0] data;\n    logic valid;\n} cfg;\nassign cfg.valid = {cfg.data[BIT], cfg.data[0]};\nendmodule\n"
     },
     {
@@ -5374,35 +3054,6 @@
         "generate_region",
         "continuous_assign"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(.WIDTH(TOP_W)) u_child (.a(a), .y(y));"
-        ],
-        "parameter_declaration_sequence": [
-          "parameter WIDTH = 4",
-          "parameter TOP_W = 8"
-        ],
-        "parameter_declaration_head": [
-          "parameter WIDTH = 4",
-          "parameter TOP_W = 8"
-        ],
-        "parameter_override": [
-          ".WIDTH(TOP_W)"
-        ],
-        "instance_item": [
-          "u_child (.a(a), .y(y))"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ],
-        "packed_range": [
-          "[WIDTH-1:0]",
-          "[WIDTH-1:0]",
-          "[TOP_W-1:0]",
-          "[TOP_W-1:0]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -5458,17 +3109,6 @@
         "generate_region",
         "continuous_assign"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (.*);"
-        ],
-        "instance_item": [
-          "u_child (.*)"
-        ],
-        "port_connection": [
-          ".*"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -5520,20 +3160,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child lanes[1:0] (.*);"
-        ],
-        "instance_item": [
-          "lanes[1:0] (.*)"
-        ],
-        "unpacked_dimension": [
-          "[1:0]"
-        ],
-        "port_connection": [
-          ".*"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -5611,21 +3237,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child lanes[1:0] (.a(a), .y(y));"
-        ],
-        "instance_item": [
-          "lanes[1:0] (.a(a), .y(y))"
-        ],
-        "unpacked_dimension": [
-          "[1:0]"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -5696,61 +3307,10 @@
         "procedural_block",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(.WIDTH(LANES)) lane[0:LANES-1] (.a(a), .y(y));"
-        ],
-        "parameter_declaration_sequence": [
-          "parameter WIDTH = 1",
-          "parameter LANES = 2"
-        ],
-        "parameter_declaration_group": [
-          "parameter WIDTH = 1",
-          "parameter LANES = 2"
-        ],
-        "parameter_override": [
-          ".WIDTH(LANES)"
-        ],
-        "parameter_declaration_head": [
-          "parameter WIDTH = 1",
-          "parameter LANES = 2"
-        ],
-        "port_group": [
-          "input logic a",
-          "output logic y",
-          "input logic a",
-          "output logic y"
-        ],
-        "port_list": [
-          "input logic a,\n    output logic y",
-          "input logic a,\n    output logic y"
-        ],
-        "instance_item": [
-          "lane[0:LANES-1] (.a(a), .y(y))"
-        ],
-        "unpacked_dimension": [
-          "[0:LANES-1]"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ]
-      },
-      "required_rule_texts": {
-        "conditional_expr": [
-          "LANES-1"
-        ],
-        "relational_expr": [
-          "LANES-1"
-        ],
-        "additive_expr": [
-          "LANES-1"
-        ],
-        "signal_reference": [
-          "LANES",
-          "LANES"
-        ]
-      },
+      "required_typed_string_values": [
+        "LANES",
+        "LANES"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -5830,42 +3390,10 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter WIDTH = 1,\n    parameter LANES = 2"
-        ],
-        "port_list": [
-          "input logic [WIDTH-1:0] a,\n    output logic [15:0] y",
-          "input logic [7:0] a,\n    output logic [15:0] y"
-        ],
-        "net_declaration": [
-          "logic [7:0] bus;"
-        ],
-        "packed_range": [
-          "[WIDTH-1:0]",
-          "[15:0]",
-          "[7:0]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(8, 2) u_child (bus[3], {2{a}});"
-        ],
-        "instance_item": [
-          "u_child (bus[3], {2{a}})"
-        ],
-        "parameter_override": [
-          "8",
-          "2"
-        ],
-        "port_connection": [
-          "bus[3]",
-          "{2{a}}"
-        ],
-        "repetition_expr": [
-          "{2{a}}"
-        ]
-      },
+      "required_typed_string_values": [
+        "2",
+        "8"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -5934,35 +3462,9 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter MASK = 0,\n    parameter LANES = 1",
-          "parameter MASK_BITS = 165,\n    parameter HI = 7,\n    parameter LO = 4"
-        ],
-        "port_list": [
-          "input logic [7:0] a,\n    output logic [15:0] y"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ],
-        "ranged_signal_reference": [
-          "MASK_BITS[HI:LO]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(\n    MASK_BITS[HI:LO],\n    2\n) u_child (\n    .a(a),\n    .y(y)\n);"
-        ],
-        "parameter_override": [
-          "MASK_BITS[HI:LO]",
-          "2"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ]
-      },
+      "required_typed_string_values": [
+        "2"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6029,46 +3531,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter MASK = 0,\n    parameter LANES = 1",
-          "parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic [7:0] a,\n    output logic [15:0] y"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ],
-        "conditional_expr": [
-          "SEL ? (a[HI:LO] + LANES) : (LANES << 1)",
-          "(LANES + 1) * 2"
-        ],
-        "additive_expr": [
-          "a[HI:LO] + LANES",
-          "(LANES + 1) * 2"
-        ],
-        "shift_expr": [
-          "LANES << 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(\n    SEL ? (a[HI:LO] + LANES) : (LANES << 1),\n    (LANES + 1) * 2\n) u_child (\n    .a(a),\n    .y(y)\n);"
-        ],
-        "parameter_override": [
-          "SEL ? (a[HI:LO] + LANES) : (LANES << 1)",
-          "(LANES + 1) * 2"
-        ],
-        "ranged_signal_reference": [
-          "a[HI:LO]"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -6097,50 +3559,9 @@
         "parameter_override",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0"
-        ],
-        "port_list": [
-          "input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y",
-          "input logic [7:0] d,\n    output logic [31:0] y"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];"
-        ],
-        "struct_union_field": [
-          "logic [15:0] data;",
-          "logic [7:0] tag;"
-        ],
-        "packed_range": [
-          "[15:0]",
-          "[7:0]",
-          "[31:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (\n    {2{cfgs[IDX].data[HI:LO], d}},\n    cfgs[0].tag[HI:LO],\n    y\n);"
-        ],
-        "instance_item": [
-          "u_child (\n    {2{cfgs[IDX].data[HI:LO], d}},\n    cfgs[0].tag[HI:LO],\n    y\n)"
-        ],
-        "port_connection": [
-          "{2{cfgs[IDX].data[HI:LO], d}}",
-          "cfgs[0].tag[HI:LO]",
-          "y"
-        ],
-        "ranged_signal_reference": [
-          "cfgs[IDX].data[HI:LO]",
-          "cfgs[0].tag[HI:LO]"
-        ],
-        "repetition_expr": [
-          "{2{cfgs[IDX].data[HI:LO], d}}"
-        ]
-      },
+      "required_typed_string_values": [
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6217,36 +3638,9 @@
         "parameter_override",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "conditional_expr": [
-          "SEL ? (a[HI:LO] + d) : (d << 1)",
-          "(a[HI:LO] + d) * 2"
-        ],
-        "additive_expr": [
-          "a[HI:LO] + d",
-          "(a[HI:LO] + d) * 2"
-        ],
-        "shift_expr": [
-          "d << 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (\n    SEL ? (a[HI:LO] + d) : (d << 1),\n    (a[HI:LO] + d) * 2,\n    y\n);"
-        ],
-        "instance_item": [
-          "u_child (\n    SEL ? (a[HI:LO] + d) : (d << 1),\n    (a[HI:LO] + d) * 2,\n    y\n)"
-        ],
-        "port_connection": [
-          "SEL ? (a[HI:LO] + d) : (d << 1)",
-          "(a[HI:LO] + d) * 2",
-          "y"
-        ],
-        "ranged_signal_reference": [
-          "a[HI:LO]",
-          "a[HI:LO]"
-        ]
-      },
+      "required_typed_string_values": [
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6313,38 +3707,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter MASK = 0,\n    parameter BIT = 0",
-          "parameter MASK_BITS = 165,\n    parameter IDX = 2"
-        ],
-        "port_list": [
-          "input logic [7:0] a,\n    output logic [15:0] y"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ],
-        "signal_reference": [
-          "MASK_BITS[IDX]"
-        ],
-        "ranged_signal_reference": [
-          "MASK_BITS[7:4]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(\n    .MASK(MASK_BITS[7:4]),\n    .BIT(MASK_BITS[IDX])\n) u_child (\n    .a(a),\n    .y(y)\n);"
-        ],
-        "parameter_override": [
-          ".MASK(MASK_BITS[7:4])",
-          ".BIT(MASK_BITS[IDX])"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6413,41 +3775,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_statement": [
-          "localparam MASK_BITS = 165;"
-        ],
-        "parameter_declaration_head": [
-          "localparam MASK_BITS = 165",
-          "parameter MASK = 0"
-        ],
-        "port_list": [
-          "input logic [3:0] a,\n    output logic y",
-          "output logic y"
-        ],
-        "packed_range": [
-          "[3:0]"
-        ],
-        "signal_reference": [
-          "cfg_pkg::MASK_BITS[2]"
-        ],
-        "ranged_signal_reference": [
-          "cfg_pkg::MASK_BITS[7:4]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(\n    .MASK(cfg_pkg::MASK_BITS[7:4]),\n    .BIT(cfg_pkg::MASK_BITS[2])\n) u_child (\n    .a(cfg_pkg::MASK_BITS[7:4]),\n    .y(y)\n);"
-        ],
-        "parameter_override": [
-          ".MASK(cfg_pkg::MASK_BITS[7:4])",
-          ".BIT(cfg_pkg::MASK_BITS[2])"
-        ],
-        "port_connection": [
-          ".a(cfg_pkg::MASK_BITS[7:4])",
-          ".y(y)"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6509,41 +3836,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter MASK = 0,\n    parameter LANES = 1",
-          "parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2"
-        ],
-        "port_list": [
-          "input logic [7:0] a,\n    output logic [15:0] y"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(\n    .MASK({2{a[HI:LO], LANES}}),\n    .LANES(LANES)\n) u_child (\n    .a(a),\n    .y(y)\n);"
-        ],
-        "parameter_override": [
-          ".MASK({2{a[HI:LO], LANES}})",
-          ".LANES(LANES)"
-        ],
-        "repetition_expr": [
-          "{2{a[HI:LO], LANES}}"
-        ],
-        "ranged_signal_reference": [
-          "a[HI:LO]"
-        ],
-        "instance_item": [
-          "u_child (\n    .a(a),\n    .y(y)\n)"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -6572,46 +3864,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter MASK = 0,\n    parameter LANES = 1",
-          "parameter HI = 7,\n    parameter LO = 0,\n    parameter LANES = 2,\n    parameter SEL = 1"
-        ],
-        "port_list": [
-          "input logic [7:0] a,\n    output logic [15:0] y"
-        ],
-        "packed_range": [
-          "[7:0]",
-          "[15:0]"
-        ],
-        "conditional_expr": [
-          "SEL ? (a[HI:LO] + LANES) : (LANES << 1)",
-          "(LANES + 1) * 2"
-        ],
-        "additive_expr": [
-          "a[HI:LO] + LANES",
-          "(LANES + 1) * 2"
-        ],
-        "shift_expr": [
-          "LANES << 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child #(\n    .MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1)),\n    .LANES((LANES + 1) * 2)\n) u_child (\n    .a(a),\n    .y(y)\n);"
-        ],
-        "parameter_override": [
-          ".MASK(SEL ? (a[HI:LO] + LANES) : (LANES << 1))",
-          ".LANES((LANES + 1) * 2)"
-        ],
-        "ranged_signal_reference": [
-          "a[HI:LO]"
-        ],
-        "port_connection": [
-          ".a(a)",
-          ".y(y)"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": false,
@@ -6659,35 +3911,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "logic [7:0] bus;"
-        ],
-        "packed_range": [
-          "[7:0]"
-        ],
-        "parameter_declaration_head": [
-          "parameter IDX = 3"
-        ],
-        "signal_reference": [
-          "bus[IDX]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (.a(bus[IDX]), .y({a, b}));"
-        ],
-        "instance_item": [
-          "u_child (.a(bus[IDX]), .y({a, b}))"
-        ],
-        "port_connection": [
-          ".a(bus[IDX])",
-          ".y({a, b})"
-        ],
-        "concatenation_expr": [
-          "{a, b}"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6740,32 +3963,6 @@
         "procedural_block",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "net_declaration": [
-          "logic cfg;"
-        ],
-        "parameter_declaration_head": [
-          "parameter IDX = 1"
-        ],
-        "signal_reference": [
-          "cfg.data[IDX]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (.a(cfg.data[IDX]), .y({LANES{a}}));"
-        ],
-        "instance_item": [
-          "u_child (.a(cfg.data[IDX]), .y({LANES{a}}))"
-        ],
-        "port_connection": [
-          ".a(cfg.data[IDX])",
-          ".y({LANES{a}})"
-        ],
-        "repetition_expr": [
-          "{LANES{a}}"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6822,50 +4019,6 @@
         "parameter_override",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "parameter_declaration_sequence": [
-          "parameter IDX = 1,\n    parameter HI = 7,\n    parameter LO = 0"
-        ],
-        "port_list": [
-          "input logic [15:0] a,\n    input logic [7:0] b,\n    output logic [31:0] y",
-          "input logic [7:0] d,\n    output logic [31:0] y"
-        ],
-        "net_declaration": [
-          "struct packed {\n    logic [15:0] data;\n    logic [7:0] tag;\n} cfgs [0:1];"
-        ],
-        "struct_union_field": [
-          "logic [15:0] data;",
-          "logic [7:0] tag;"
-        ],
-        "packed_range": [
-          "[15:0]",
-          "[7:0]",
-          "[31:0]"
-        ],
-        "unpacked_dimension": [
-          "[0:1]"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d}}),\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n);"
-        ],
-        "instance_item": [
-          "u_child (\n    .a({2{cfgs[IDX].data[HI:LO], d}}),\n    .b(cfgs[0].tag[HI:LO]),\n    .y(y)\n)"
-        ],
-        "port_connection": [
-          ".a({2{cfgs[IDX].data[HI:LO], d}})",
-          ".b(cfgs[0].tag[HI:LO])",
-          ".y(y)"
-        ],
-        "repetition_expr": [
-          "{2{cfgs[IDX].data[HI:LO], d}}"
-        ],
-        "ranged_signal_reference": [
-          "cfgs[IDX].data[HI:LO]",
-          "cfgs[0].tag[HI:LO]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -6942,36 +4095,6 @@
         "parameter_override",
         "generate_region"
       ],
-      "required_rule_texts": {
-        "conditional_expr": [
-          "SEL ? (a[HI:LO] + d) : (d << 1)",
-          "(a[HI:LO] + d) * 2"
-        ],
-        "additive_expr": [
-          "a[HI:LO] + d",
-          "(a[HI:LO] + d) * 2"
-        ],
-        "shift_expr": [
-          "d << 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n);"
-        ],
-        "instance_item": [
-          "u_child (\n    .a(SEL ? (a[HI:LO] + d) : (d << 1)),\n    .b((a[HI:LO] + d) * 2),\n    .y(y)\n)"
-        ],
-        "port_connection": [
-          ".a(SEL ? (a[HI:LO] + d) : (d << 1))",
-          ".b((a[HI:LO] + d) * 2)",
-          ".y(y)"
-        ],
-        "ranged_signal_reference": [
-          "a[HI:LO]",
-          "a[HI:LO]"
-        ]
-      },
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -7026,35 +4149,10 @@
         "generate_region",
         "procedural_block"
       ],
-      "required_rule_texts": {
-        "conditional_expr": [
-          "SEL ? cfg.data : backup.data"
-        ],
-        "net_declaration": [
-          "logic cfg, backup;"
-        ],
-        "parameter_declaration_head": [
-          "parameter SEL = 1"
-        ]
-      },
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (.a(SEL ? cfg.data : backup.data), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(SEL ? cfg.data : backup.data), .y(y))"
-        ],
-        "port_connection": [
-          ".a(SEL ? cfg.data : backup.data)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "SEL",
-          "cfg.data",
-          "backup.data",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "SEL",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": true,
@@ -7102,22 +4200,10 @@
         "continuous_assign",
         "generate_region"
       ],
-      "expected_rule_texts": {
-        "module_instantiation": [
-          "child u_child (.a(missing_signal), .y(y));"
-        ],
-        "instance_item": [
-          "u_child (.a(missing_signal), .y(y))"
-        ],
-        "port_connection": [
-          ".a(missing_signal)",
-          ".y(y)"
-        ],
-        "signal_reference": [
-          "missing_signal",
-          "y"
-        ]
-      },
+      "required_typed_string_values": [
+        "missing_signal",
+        "y"
+      ],
       "expected_elaboration": {
         "top": "top",
         "ok": false,

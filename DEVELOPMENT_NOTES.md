@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - RTL-FE-CLOSURE.3 — when migrating a proof surface, look for the engine facility that already proves the same property (PGEN-RTL-FE-CLOSURE-0002)
+
+### Coverage testimony preserved the old checks without re-authoring them
+The `.2` design assumed the rule-name checks would be re-expressed as typed JSON-path assertions — re-authoring 93 samples. Implementation found a strictly better mapping: the certifying-linter witness side already built the exact primitive ("did rule X participate in the ACCEPTED parse") as the transactional coverage record, exposed per-grammar as `parse_and_cover_<grammar>`. Pointing the probe at it preserved the manifest's `required_rule_names`/`forbidden_rule_names` byte-unchanged with semantics 1:1 — sound where the old AST walk over-claimed nothing (backtracked attempts truncated) and complete where it broke (annotation folding cannot hide a rule ENTRY). All 175 lists passed first-try, which is itself evidence the migration changed the proof's *representation*, not its meaning. Lesson: before re-authoring expectations to fit a new representation, check whether an existing engine facility already testifies to the original property.
+
+### Spec-side values, behavior-side selection — and say so
+The typed-value locks keep only curated texts that survive as exact typed-carrier strings (214 of 1264). The VALUES stay human-authored (April-era curated evidence — spec side per the expected-from-spec-not-fix discipline); only the SELECTION consulted current output, and the dropped set plus its superseding proof layers are recorded in the manifest provenance. A silent filter would have read as "all the old evidence still holds"; the recorded adjudication is what keeps the reduction honest.
+
 ## 2026-06-11 - RTL-FE-CLOSURE.2 — a red gate can be the PROOF SURFACE lagging the released contract, not the parser regressing (PGEN-RTL-FE-CLOSURE-0001)
 
 ### Adjudicate the layer before escalating the gate

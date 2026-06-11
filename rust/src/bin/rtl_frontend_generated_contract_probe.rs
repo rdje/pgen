@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -6,7 +7,6 @@ use anyhow::{Context, Result, bail};
 use pgen::parser_registry::{parse_sample, parse_sample_ast_json};
 use serde::Deserialize;
 use serde_json::Value;
-use std::collections::BTreeMap;
 
 #[derive(Debug, Deserialize)]
 struct RtlFrontendGeneratedContract {
@@ -27,80 +27,47 @@ struct RtlFrontendGeneratedSample {
     #[serde(default)]
     forbidden_rule_names: Vec<String>,
     #[serde(default)]
-    required_rule_texts: BTreeMap<String, Vec<String>>,
-    #[serde(default)]
-    expected_rule_texts: BTreeMap<String, Vec<String>>,
+    required_typed_string_values: Vec<String>,
     sample: String,
 }
 
-fn collect_rule_names(node: &Value, names: &mut Vec<String>) {
+/// Rule-participation testimony from the REAL parser's transactional coverage record
+/// (`enable_coverage` + `exercised_rule_names`). This is the typed-era replacement for
+/// walking the dumped AST for `rule_name` keys: return annotations fold annotated rules
+/// into typed `ParseContent::Json` (no `rule_name` children survive), while the coverage
+/// record keeps exactly the rules of the ACCEPTED parse — sound (backtracked attempts
+/// are truncated) and complete (annotation folding cannot hide a rule entry).
+#[cfg(has_generated_rtl_frontend_parser)]
+fn cover_sample(sample: &str) -> Option<(bool, HashSet<String>)> {
+    Some(pgen::parser_registry::parse_and_cover_rtl_frontend(
+        sample, None,
+    ))
+}
+
+#[cfg(not(has_generated_rtl_frontend_parser))]
+fn cover_sample(_sample: &str) -> Option<(bool, HashSet<String>)> {
+    None
+}
+
+/// Collect every string scalar in the typed AST JSON (the schema-3 carrier), with
+/// multiplicity. The curated `required_typed_string_values` locks assert against this
+/// multiset: identifier-level evidence (signal names, kind discriminators, operator
+/// kinds) survives in the typed carrier as exact string values.
+fn collect_string_values(node: &Value, values: &mut Vec<String>) {
     match node {
-        Value::Array(values) => {
-            for value in values {
-                collect_rule_names(value, names);
+        Value::Array(items) => {
+            for item in items {
+                collect_string_values(item, values);
             }
         }
         Value::Object(map) => {
-            if let Some(Value::String(rule_name)) = map.get("rule_name") {
-                names.push(rule_name.clone());
-            }
             for value in map.values() {
-                collect_rule_names(value, names);
+                collect_string_values(value, values);
             }
         }
+        Value::String(text) => values.push(text.clone()),
         _ => {}
     }
-}
-
-fn ast_contains_rule(ast_json: &Value, rule_name: &str) -> bool {
-    let mut names = Vec::new();
-    collect_rule_names(ast_json, &mut names);
-    names.iter().any(|candidate| candidate == rule_name)
-}
-
-fn collect_rule_spans(node: &Value, rule_name: &str, spans: &mut Vec<(usize, usize)>) {
-    match node {
-        Value::Array(values) => {
-            for value in values {
-                collect_rule_spans(value, rule_name, spans);
-            }
-        }
-        Value::Object(map) => {
-            if let Some(Value::String(candidate)) = map.get("rule_name") {
-                if candidate == rule_name {
-                    if let Some(Value::Object(span)) = map.get("span") {
-                        if let (Some(Value::Number(start)), Some(Value::Number(end))) =
-                            (span.get("start"), span.get("end"))
-                        {
-                            if let (Some(start), Some(end)) = (start.as_u64(), end.as_u64()) {
-                                spans.push((start as usize, end as usize));
-                            }
-                        }
-                    }
-                }
-            }
-            for value in map.values() {
-                collect_rule_spans(value, rule_name, spans);
-            }
-        }
-        _ => {}
-    }
-}
-
-fn ast_rule_texts(sample: &str, ast_json: &Value, rule_name: &str) -> Result<Vec<String>> {
-    let mut spans = Vec::new();
-    collect_rule_spans(ast_json, rule_name, &mut spans);
-    spans
-        .into_iter()
-        .map(|(start, end)| {
-            sample
-                .get(start..end)
-                .map(|text| text.trim().to_string())
-                .ok_or_else(|| {
-                    anyhow::anyhow!("invalid span {}..{} for rule '{}'", start, end, rule_name)
-                })
-        })
-        .collect()
 }
 
 fn missing_required_texts(actual_texts: &[String], required_texts: &[String]) -> Vec<String> {
@@ -128,7 +95,7 @@ fn load_contract() -> Result<RtlFrontendGeneratedContract> {
 
 fn run() -> Result<()> {
     let contract = load_contract()?;
-    if contract.contract_version != "0.1.0" {
+    if contract.contract_version != "0.2.0" {
         bail!("unexpected contract version: {}", contract.contract_version);
     }
     if contract.grammar_name != "rtl_frontend" {
@@ -166,6 +133,39 @@ fn run() -> Result<()> {
             );
         }
 
+        if !sample.required_rule_names.is_empty() || !sample.forbidden_rule_names.is_empty() {
+            let (covered_ok, covered) = cover_sample(&sample.sample).with_context(|| {
+                format!(
+                    "generated rtl_frontend coverage adapter missing for '{}'",
+                    sample.label
+                )
+            })?;
+            if !covered_ok {
+                bail!(
+                    "generated rtl_frontend coverage parse rejected curated sample '{}'",
+                    sample.label
+                );
+            }
+            for rule_name in &sample.required_rule_names {
+                if !covered.contains(rule_name) {
+                    bail!(
+                        "generated rtl_frontend accepted parse for sample '{}' did not exercise required rule '{}'",
+                        sample.label,
+                        rule_name
+                    );
+                }
+            }
+            for rule_name in &sample.forbidden_rule_names {
+                if covered.contains(rule_name) {
+                    bail!(
+                        "generated rtl_frontend accepted parse for sample '{}' unexpectedly exercised forbidden rule '{}'",
+                        sample.label,
+                        rule_name
+                    );
+                }
+            }
+        }
+
         if sample.require_ast_json {
             let ast_json =
                 parse_sample_ast_json("rtl_frontend", &sample.sample).with_context(|| {
@@ -180,46 +180,16 @@ fn run() -> Result<()> {
                     sample.label
                 )
             })?;
-            for rule_name in &sample.required_rule_names {
-                if !ast_contains_rule(&ast_json, rule_name) {
+            if !sample.required_typed_string_values.is_empty() {
+                let mut actual_values = Vec::new();
+                collect_string_values(&ast_json, &mut actual_values);
+                let missing =
+                    missing_required_texts(&actual_values, &sample.required_typed_string_values);
+                if !missing.is_empty() {
                     bail!(
-                        "generated rtl_frontend AST JSON for sample '{}' is missing required rule '{}'",
+                        "generated rtl_frontend typed AST JSON for sample '{}' is missing required typed string values: missing {:?}",
                         sample.label,
-                        rule_name
-                    );
-                }
-            }
-            for rule_name in &sample.forbidden_rule_names {
-                if ast_contains_rule(&ast_json, rule_name) {
-                    bail!(
-                        "generated rtl_frontend AST JSON for sample '{}' unexpectedly contains forbidden rule '{}'",
-                        sample.label,
-                        rule_name
-                    );
-                }
-            }
-            for (rule_name, expected_texts) in &sample.expected_rule_texts {
-                let actual_texts = ast_rule_texts(&sample.sample, &ast_json, rule_name)?;
-                if &actual_texts != expected_texts {
-                    bail!(
-                        "generated rtl_frontend AST JSON for sample '{}' preserved unexpected texts for rule '{}': expected {:?}, got {:?}",
-                        sample.label,
-                        rule_name,
-                        expected_texts,
-                        actual_texts
-                    );
-                }
-            }
-            for (rule_name, required_texts) in &sample.required_rule_texts {
-                let actual_texts = ast_rule_texts(&sample.sample, &ast_json, rule_name)?;
-                let missing_texts = missing_required_texts(&actual_texts, required_texts);
-                if !missing_texts.is_empty() {
-                    bail!(
-                        "generated rtl_frontend AST JSON for sample '{}' is missing required retained texts for rule '{}': missing {:?}, got {:?}",
-                        sample.label,
-                        rule_name,
-                        missing_texts,
-                        actual_texts
+                        missing
                     );
                 }
             }
@@ -236,7 +206,8 @@ fn run() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::missing_required_texts;
+    use super::{collect_string_values, missing_required_texts};
+    use serde_json::json;
 
     fn strings(values: &[&str]) -> Vec<String> {
         values.iter().map(|value| (*value).to_string()).collect()
@@ -267,6 +238,29 @@ mod tests {
         let required = strings(&["a", "a", "a"]);
 
         assert_eq!(missing_required_texts(&actual, &required), strings(&["a"]));
+    }
+
+    #[test]
+    fn string_values_collect_with_multiplicity_across_nesting() {
+        let ast = json!({
+            "content": {
+                "Json": {
+                    "items": [
+                        {"kind": "module", "body": {"name": "top", "ports": ["clk", "clk"]}},
+                        {"kind": "semi"}
+                    ]
+                }
+            },
+            "rule_name": "rtl_frontend_file"
+        });
+        let mut values = Vec::new();
+        collect_string_values(&ast, &mut values);
+        assert_eq!(
+            values.iter().filter(|value| value.as_str() == "clk").count(),
+            2
+        );
+        assert!(values.iter().any(|value| value == "module"));
+        assert!(values.iter().any(|value| value == "top"));
     }
 }
 
