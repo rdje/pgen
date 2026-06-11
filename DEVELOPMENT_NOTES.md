@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - RTL-FE-CLOSURE.2 — a red gate can be the PROOF SURFACE lagging the released contract, not the parser regressing (PGEN-RTL-FE-CLOSURE-0001)
+
+### Adjudicate the layer before escalating the gate
+The `-0067` ticket framed the red `rtl_frontend_generated_contract_gate` as "broken by some earlier engine wave" — an implied parser/engine regression, which under fix-parser-bugs-ASAP would outrank everything. Decomposing the gate by LAYER overturned that: parse-acceptance is healthy on all 125 curated samples (0 mismatches, replayed per-sample), the handwritten + elaboration replay stage is green (2/2), and ONLY the AST-retention layer fails — and fails *structurally*, because the manifest (April 2026, zero-annotation grammar era) asserts `rule_name`/`span` raw-envelope retention that the deliberately released typed-AST campaign (Slices 1–7, schema 1→3) made impossible (`design_item`/`module_declaration` now fold into typed `Json`; the dump carries exactly one `rule_name`, the entry rule). Verdict: stale proof surface — a docs-and-manifest migration leaf, not a release event. Lesson: "red gate on a released family" has TWO root-cause families — parser drift and proof-surface staleness — and the layer decomposition (which checks fail, which still discriminate) is the cheap decisive experiment that tells them apart before any escalation.
+
+### Proof surfaces must be migrated in the same wave as the shape they prove
+The typing campaign validated through the proof surfaces built FOR the typed era (`ast_shape_contract`, the auto return-annotation gate) and never re-ran the older curated parity gate; hosted CI being manual-only removed the backstop. An assertion layer expressed in terms the new shape cannot satisfy (`required_rule_names` over folded nodes) should have been migrated or retired in the campaign wave itself. This is the proof-surface twin of the books-lockstep rule: a gate left asserting the PREVIOUS era's representation is drift with an exit code.
+
 ## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.5-FIX — suppress at emit time what a guard cannot referee at parse time (PGEN-GRAMMAR-WELLFORMED-0075)
 
 ### A dynamic guard referees the active token; only static analysis covers the dual case
