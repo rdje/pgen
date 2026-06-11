@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.2-CLASS — one mechanism, fourteen masks (PGEN-GRAMMAR-WELLFORMED-0071)
+
+### A pervasive class can still be a single defect
+The 16-seed sweep made the class look heterogeneous — architecture units, package bodies, generic clauses, generate statements, comment soup, comment-free one-liners. Bisection collapsed all of it to one engine bug wearing fourteen masks: the stale word-shape flag skipping the join separator before `is`/`generate`. The lesson cuts both ways: a pervasive failure rate does not imply multiple mechanisms, and a single mechanism does not imply localized symptoms. Only per-sample minimal bisection settles it.
+
+### The PEG surface position can sit AFTER the defect
+Two samples (the `Gg|is` and `CTx|Is` fusions) rejected at byte 297/59 while the actual fusion sat tens of bytes EARLIER: the fused `is` turned a nested subprogram body into a bare declaration, the body's begin/end re-associated upward, the enclosing unit closed early, and the parser stranded on the leftover tail — reporting a position past the defect. The standing furthest-position rule covers "the defect is deeper than the surface"; this is the mirror case, "the defect is shallower than the surface". Triage must search the whole failing unit, never a window anchored at the reported position (the first automated classifier pass missed exactly these two for that reason).
+
+### Multi-defect units hide single-fix progress
+With several fusions inside ONE design unit (s9_f0 had two), fixing one does not move the surface position — the unit still rejects at its start, so a "did the error move?" progress heuristic reads as no-progress and discards correct partial fixes. Per-construct probe-shell isolation (the H.11.3 method) is the reliable instrument; greedy error-position chasing is not.
+
+### Recovery fact worth keeping: plain generate == cert-coverage diverse pass
+The three over-preview-cap samples were recovered byte-exactly by needle-matching their 2000-byte prefixes into plain `--generate-stimuli --count 40 --seed N` output. That byte-identity (same config, same seed → same sample stream) makes full failing-sample recovery a one-liner and means the preview cap needs no code change for forensics.
+
 ## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.4 — the parked removal and the non-transactional flags (PGEN-GRAMMAR-WELLFORMED-0069)
 
 ### A canonical-seed triple is not a metric when the defect class is pervasive
