@@ -6204,10 +6204,21 @@ impl<'a> StimuliGenerator<'a> {
         } else {
             None
         };
+        // GRAMMAR-WELLFORMED.H.11.2-FIX: the word-shape flag pair is a TRANSACTIONAL per-render
+        // record — a DISCARDED branch attempt's renders must not leave stale flags behind (the
+        // third transactional-record instance after the semantic delta and the coverage delta).
+        // A loser's partial render (e.g. a lone `.` from `(dot identifier)*`) would otherwise
+        // mis-describe the kept tail when the eventual winner renders EMPTY text (flags untouched),
+        // making the join rule skip the separator before a following keyword: `X`+`is` → `Xis`.
+        // Same boundaries as the store checkpoint above, but UNGATED (every grammar needs it).
+        let or_entry_word_shape =
+            (self.last_terminal_word_shaped, self.last_terminal_from_atomic_rule);
         for local_idx in attempt_order {
             if let Some(checkpoint) = &or_store_checkpoint {
                 self.gen_semantic_state.rollback_to(checkpoint.clone());
             }
+            self.last_terminal_word_shaped = or_entry_word_shape.0;
+            self.last_terminal_from_atomic_rule = or_entry_word_shape.1;
             let selected_global = candidate_indices[local_idx];
             let selected_node = prepared[selected_global].1.as_ref().clone();
             self.coverage.record_branch_selected(
@@ -6285,6 +6296,11 @@ impl<'a> StimuliGenerator<'a> {
                     return Ok(output);
                 }
                 Err(err) => {
+                    // H.11.2-FIX: the failed attempt's partial renders left stale flags — restore
+                    // the entry pair so the in-arm retries (depth-slack / constructive-reach)
+                    // start from the same state every fresh attempt does.
+                    self.last_terminal_word_shaped = or_entry_word_shape.0;
+                    self.last_terminal_from_atomic_rule = or_entry_word_shape.1;
                     if let Some(depth_retry_slack) =
                         self.target_branch_depth_retry_slack(&group_key, selected_global, &err)
                     {
@@ -6474,9 +6490,18 @@ impl<'a> StimuliGenerator<'a> {
                     recovery_sample.len()
                 ),
             );
+            // H.11.2-FIX: a directly-returned fallback string bypasses the terminal render paths
+            // — record its tail like the literal-hint route does (H.8 idiom) instead of leaving
+            // the last failed attempt's stale flags.
+            self.last_terminal_from_atomic_rule = false;
+            self.last_terminal_word_shaped = Self::tail_word_shaped(&recovery_sample);
             return Ok(recovery_sample);
         }
 
+        // H.11.2-FIX: total failure — every attempt was discarded, so the flags must describe
+        // the tail as it was when this OR was entered (the caller keeps nothing from us).
+        self.last_terminal_word_shaped = or_entry_word_shape.0;
+        self.last_terminal_from_atomic_rule = or_entry_word_shape.1;
         Err(last_error.unwrap_or_else(|| {
             anyhow!(
                 "Failed to generate any OR alternative for rule '{}'",
@@ -6642,8 +6667,15 @@ impl<'a> StimuliGenerator<'a> {
         let mut relational_failures = 0usize;
         let mut generation_failures = 0usize;
 
+        // GRAMMAR-WELLFORMED.H.11.2-FIX: transactional word-shape flags across discarded
+        // relational attempts — a failed/violating attempt's renders must not leak stale tail
+        // state into the next attempt (or to the caller on budget exhaustion).
+        let relational_entry_word_shape =
+            (self.last_terminal_word_shaped, self.last_terminal_from_atomic_rule);
         for _ in 0..attempt_budget {
             self.enforce_generation_deadline(current_rule, node_path)?;
+            self.last_terminal_word_shaped = relational_entry_word_shape.0;
+            self.last_terminal_from_atomic_rule = relational_entry_word_shape.1;
             let mut output = String::new();
             let mut captures = Vec::with_capacity(elements.len());
             let mut named_captures = HashMap::new();
@@ -6730,6 +6762,11 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
         }
+
+        // H.11.2-FIX: budget exhausted — every relational attempt was discarded; restore the
+        // entry pair before any of the failure exits below.
+        self.last_terminal_word_shaped = relational_entry_word_shape.0;
+        self.last_terminal_from_atomic_rule = relational_entry_word_shape.1;
 
         if !violation_counts.is_empty() {
             let mut ranked_violations: Vec<(String, usize)> =
@@ -7005,10 +7042,20 @@ impl<'a> StimuliGenerator<'a> {
         } else {
             None
         };
+        // GRAMMAR-WELLFORMED.H.11.2-FIX: transactional word-shape flags across discarded
+        // repeat-count candidates. This is THE dominant H.11.2-CLASS shape: a candidate's
+        // iteration renders a partial (`.` from `(dot identifier)*`), fails deeper, and the
+        // eventually-kept `repeats=0` candidate renders EMPTY — leaving the discarded partial's
+        // flags to mis-describe the kept tail, so the join rule fused `<identifier>`+`is`
+        // 13 times across the 16-seed vhdl sweep. Same boundary as the store checkpoint, ungated.
+        let quantified_entry_word_shape =
+            (self.last_terminal_word_shaped, self.last_terminal_from_atomic_rule);
         for repeats in repeat_candidates {
             if let Some(checkpoint) = &quantified_store_checkpoint {
                 self.gen_semantic_state.rollback_to(checkpoint.clone());
             }
+            self.last_terminal_word_shaped = quantified_entry_word_shape.0;
+            self.last_terminal_from_atomic_rule = quantified_entry_word_shape.1;
             self.enforce_generation_deadline(current_rule, node_path)?;
             let mut output = String::new();
             let mut failed = false;
@@ -7113,6 +7160,10 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
+        // H.11.2-FIX: total failure — every repeat-count candidate was discarded; restore the
+        // entry pair (the caller keeps nothing from this quantifier).
+        self.last_terminal_word_shaped = quantified_entry_word_shape.0;
+        self.last_terminal_from_atomic_rule = quantified_entry_word_shape.1;
         Err(last_error.unwrap_or_else(|| {
             anyhow!(
                 "Failed to generate quantified element for rule '{}' with quantifier '{}'",
@@ -13517,6 +13568,159 @@ mod tests {
             "the multi-token terminal's word tail must be separated from the following keyword \
              (never `msto`/`minto`-style fusion): {out:?}"
         );
+    }
+
+    #[test]
+    fn discarded_or_attempt_restores_word_shape_flags() {
+        // GRAMMAR-WELLFORMED.H.11.2-FIX: the word-shape flag pair is TRANSACTIONAL across
+        // discarded OR attempts. A failing branch renders a non-word partial (`.`) before it
+        // fails; when the whole OR fails, the caller keeps none of its text, so the flags must
+        // describe the tail as it was at OR entry — never the discarded partial's.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "alt".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("bad")],
+            },
+        );
+        grammar_tree.insert(
+            "bad".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "."), rule_ref("bad")],
+            },
+        );
+        let rule_order: Vec<String> = ["alt", "bad"].iter().map(|s| s.to_string()).collect();
+        let mut generator = StimuliGenerator::new(
+            "g".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(1),
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        generator.last_terminal_word_shaped = true;
+        generator.last_terminal_from_atomic_rule = true;
+        let result = generator.generate_from_entry("alt");
+        assert!(result.is_err(), "the self-recursive branch must fail");
+        assert!(
+            generator.last_terminal_word_shaped && generator.last_terminal_from_atomic_rule,
+            "a fully-discarded OR must restore the entry word-shape flag pair (stale loser flags \
+             are the H.11.2-CLASS fusion bug)"
+        );
+    }
+
+    #[test]
+    fn discarded_quantified_candidate_restores_word_shape_flags() {
+        // GRAMMAR-WELLFORMED.H.11.2-FIX: same transactional rule at the quantifier boundary —
+        // a `+` whose body always fails discards every repeat-count candidate (each having
+        // rendered a non-word `.` partial first) and must restore the entry pair on failure.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "q".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("bad")),
+                quantifier: "+".to_string(),
+            },
+        );
+        grammar_tree.insert(
+            "bad".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "."), rule_ref("bad")],
+            },
+        );
+        let rule_order: Vec<String> = ["q", "bad"].iter().map(|s| s.to_string()).collect();
+        let mut generator = StimuliGenerator::new(
+            "g".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(1),
+                enforce_word_boundary_spacing: true,
+                ..StimuliConfig::default()
+            },
+        );
+        generator.last_terminal_word_shaped = true;
+        generator.last_terminal_from_atomic_rule = true;
+        let result = generator.generate_from_entry("q");
+        assert!(result.is_err(), "a `+` over an always-failing body must fail");
+        assert!(
+            generator.last_terminal_word_shaped && generator.last_terminal_from_atomic_rule,
+            "a fully-discarded quantifier must restore the entry word-shape flag pair"
+        );
+    }
+
+    #[test]
+    fn discarded_quantifier_iteration_does_not_fuse_following_keyword() {
+        // GRAMMAR-WELLFORMED.H.11.2-FIX end-to-end lock — THE dominant H.11.2-CLASS shape
+        // (13 of 15 vhdl-sweep fusion sites): `name := word_id (dot bad)*` tries a repeat
+        // count > 0, renders the non-word `.`, fails deeper, and keeps the EMPTY repeats=0
+        // candidate — pre-fix the discarded `.`'s stale flags made the join rule skip the
+        // separator before the following keyword (`xy`+`is` → `xyis`, parser-rejected).
+        // Seed-swept so the lock holds regardless of which repeat count is preferred first.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "s".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("name"), rule_ref("kw")],
+            },
+        );
+        grammar_tree.insert(
+            "name".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("word_id"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("tail")),
+                        quantifier: "*".to_string(),
+                    },
+                ],
+            },
+        );
+        grammar_tree.insert(
+            "tail".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "."), rule_ref("bad")],
+            },
+        );
+        grammar_tree.insert(
+            "bad".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "."), rule_ref("bad")],
+            },
+        );
+        grammar_tree.insert("word_id".to_string(), token("regex", "[a-z]{2}"));
+        grammar_tree.insert("kw".to_string(), token("regex", "(?i:is)\\b"));
+        let rule_order: Vec<String> = ["s", "name", "tail", "bad", "word_id", "kw"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let expectation =
+            Regex::new(r"^[a-z]{2}\s+(?i:is)\s*$").expect("valid expectation regex");
+        for seed in 0..16u64 {
+            let mut generator = StimuliGenerator::new(
+                "g".to_string(),
+                &grammar_tree,
+                &rule_order,
+                None,
+                StimuliConfig {
+                    seed: Some(seed),
+                    enforce_word_boundary_spacing: true,
+                    ..StimuliConfig::default()
+                },
+            );
+            let out = generator
+                .generate_from_entry("s")
+                .expect("the repeats=0 candidate must let the sequence succeed");
+            assert!(
+                expectation.is_match(&out),
+                "seed {seed}: the identifier tail must stay separated from the following \
+                 keyword after a discarded quantifier iteration (never `xyis` fusion): {out:?}"
+            );
+        }
     }
 
     #[test]

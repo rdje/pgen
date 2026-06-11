@@ -211,6 +211,31 @@ whose trailing word run is preceded by whitespace has a **free, fusable tail tok
 separates it from a following word character. The whole VHDL keyword family that follows physical
 literals (`to`, `downto`, `then`, `and`, `or`, …) became generator-reachable in one step from this fix.
 
+### Discarded render attempts are transactional
+
+The boundary tracker's state (the emitted tail's word-shape) is a per-render record — and like every
+per-render record in PGEN, it must be **transactional across speculative work**. The generator tries
+alternatives: an ordered-choice branch that fails deeper, a repeat count whose iteration fails, a
+relational attempt that violates its constraint. Each discarded attempt may have rendered partial text
+before failing, and until 2026-06-11 that partial's tail state **leaked** into the kept derivation. The
+visible failure shape was a skipped separator before a keyword that follows an identifier — the
+discarded partial (say, a lone `.` from an abandoned `(dot identifier)*` iteration) said "non-fusable
+tail" while the *kept* tail was a fusable identifier, so the join rule stayed silent:
+
+```text
+function f return pkg.typis    # ✗ `typ`+`is` fused — the kept tail was `typ`, but a discarded
+                               #    iteration's `.` had overwritten the tracker state
+function f return pkg.typ is   # ✓ what faithfulness must produce
+```
+
+A 16-seed VHDL certificate-coverage sweep measured this class at 14 failing samples / 16 seeds — 13 of
+the 15 fusion sites being exactly `<identifier>`+`is`, the other two `<identifier>`+`generate` — and a
+single inserted space flipped every sample to PASS. The fix mirrors the engine's standing
+transactional-record rule (semantic facts, coverage records, now the boundary tracker): the tracker
+state is captured when a choice point is entered and restored whenever an attempt is discarded, so the
+kept derivation's tail is always what the tracker describes. Winning attempts keep their own state;
+grammars without discarded attempts are byte-identical.
+
 ### Whitespace runs need no separator
 
 A greedy run of a **whitespace-only** class (e.g. inline trivia `[ \t]+`) is never given a trailing

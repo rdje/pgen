@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.2-FIX — the fourth transactional record (PGEN-GRAMMAR-WELLFORMED-0072)
+
+### The discard boundaries were already drawn — by the store checkpoint
+The fix needed no new analysis of "where do discarded attempts happen": the STORE-AWARE-GEN checkpoint/rollback had already marked every one of them (the OR attempt loop, the repeat-count candidate loop, the relational attempt loop). The flag restore simply rides the same boundaries, ungated where the store rollback is gated. When an engine keeps inventing per-render records, the speculative-discard boundary set becomes load-bearing shared infrastructure — worth keeping explicit and in one place.
+
+### The design sketch was more complicated than the code needed
+The `-0069` next-slice design said "capture the flag pair per Or-candidate and restore the CHOSEN candidate's pair on commit". Reading the real loops showed winners RETURN immediately — the chosen candidate's flags are naturally live at return, so commit-restore logic would have been dead code. Only entry-pair restores at discard boundaries were needed. Lesson: a fix design recorded mid-investigation is a hypothesis about the code, not a spec; re-derive it from the actual control flow before implementing.
+
+### A regression suspect must survive the stash test before it blocks a slice
+The cross-grammar sweep showed rtl_frontend seed-42 spf=1 where the leaf's baselines said spf=0 — looking exactly like a fix-caused regression. The decisive stash A/B (pre-fix binary, same seed) produced the byte-identical line: pre-existing, never measured at that seed before. Without the A/B this slice would have been blocked (or worse, "fixed") over a number that was never ours.
+
 ## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.2-CLASS — one mechanism, fourteen masks (PGEN-GRAMMAR-WELLFORMED-0071)
 
 ### A pervasive class can still be a single defect
