@@ -304,7 +304,8 @@ faithfully it matches the full JSON standard, which is measured separately again
 being wired to run for every PGEN grammar in turn (each grammar needs a small `parse_and_cover_<grammar>`
 adapter so the witness side can replay samples through that grammar's real parser). It now runs for
 `json` (fully certified), `regex` (now fully certified — see the drive arc below),
-`rtl_const_expr` (fully certified), `systemverilog_preprocessor` (fully certified), `rtl_frontend`
+`rtl_const_expr` (fully certified), `systemverilog_preprocessor` (fully certified), `vhdl` (now fully
+certified — see the drive arc below), `rtl_frontend`
 (the ~5.5 MB synthesizable-RTL frontend parser, which runs at the default depth — its entry is a flat
 `design_item*` list — and reports `total=170 witness=37 UNKNOWN=133 (sample_parse_failures=0)`, i.e. every
 witness re-parses cleanly with a loud `UNKNOWN` backlog still to drive to zero), `systemverilog`, and
@@ -345,6 +346,20 @@ identical at seeds 0/7/42), and the same step moved `rtl_frontend` `73 → 71` a
 and the bug-finding-oracle role working exactly as designed: an unwitnessable fragment was *neither*
 accepted as a residual *nor* chased with generator machinery — it was adjudicated, and the blame landed
 on a real, shipped parser defect (ledger row `VHDL-0002`, vhdl release `1.0.4`).
+
+The drive's final two steps (`1 → 0`) closed the same way — by adjudication, never by reclassification.
+The last `UNKNOWN`, `white_space`, was proven **engine-shadowed-dead**: the generated parsers' layout
+skipper consumes whitespace before any non-empty-matchable regex executes, so a pure-whitespace-class
+rule can never match its own bytes on any input — reach probes parse but never witness it. The
+accept-identical removal of that dead branch was deliberately **parked** when a 16-seed sweep showed it
+would double the exposure of a then-open over-generation class: organic samples were failing to re-parse
+at 14 of 16 seeds. Per-sample bisection proved all fourteen failures were ONE generator engine bug — the
+boundary tracker's word-shape state was not transactional across discarded render attempts (see the
+lexical-annotations chapter), fusing `<identifier>`+`is` thirteen times across the sweep. With that
+fixed at the root (sweep `14 → 0`), the parked removal landed: **`vhdl` is the fifth fully-certified
+grammar** (`total=216 witness=216 UNKNOWN=0 fully_certified=true`, zero sample-parse failures,
+deterministic at seeds 0/7/42, with the 16-seed sweep staying all-zero and the external corpus still
+parsing 8/8).
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

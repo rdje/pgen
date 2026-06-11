@@ -437,10 +437,12 @@ unsigned_number := trivia /[0-9]+/
 string_literal := trivia /"(?:[^"\\]|\\.)*"/
 character_literal := trivia /'(?:[^'\\]|\\.)'/
 
-@branch_policy: priority_first
-@priority: [32, 1]
-trivia := (white_space | line_comment)*
-white_space := /[ \t\r\n]+/
+# GRAMMAR-WELLFORMED.H.11.4: `white_space` was ENGINE-SHADOWED-DEAD — the generated layout
+# skipper consumes whitespace before any non-empty-matchable regex executes, so a
+# pure-whitespace-class rule can never match its own bytes on any input (adjudicated -0069,
+# 4 reach probes parsed=true/witnessed=false). The branch is removed accept-identically
+# (it never matched) and the orphaned rule removed at source per the literal-0 doctrine.
+trivia := (line_comment)*
 line_comment := /--[^\n]*(\n|$)/
 
 semi := trivia /;/

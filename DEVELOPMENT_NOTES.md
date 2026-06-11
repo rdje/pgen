@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.4-UNPARK — parking discipline pays out (PGEN-GRAMMAR-WELLFORMED-0073)
+
+### A parked win lands twice as strong
+The removal reached `fully_certified` two days ago and was deliberately not landed because the same measurement showed it doubling a known defect class's exposure. Landing it NOW — after the class closed at the root — means the milestone arrives with the 16-seed sweep all-zero instead of at 29 failures/16 seeds, and with the amplification question answered by measurement rather than carried as a caveat. Parking a goal-metric win behind an adjacent honest metric is not lost time; it converts "reached" into "earned" (the H.11.4 note's distinction) with zero rework — the parked edit was one line, kept verbatim in the leaf.
+
+### Removing a dead branch means removing its whole footprint
+The one-line `trivia` edit was really three: the branch, the orphaned rule (the structural-unreachability hard gate would otherwise fire — the linter enforcing its own doctrine against the fix's author), and the now-dead two-branch `@priority` annotation pair. A dead-construct removal is complete when the grammar carries no vestige that only made sense while the construct lived.
+
 ## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.2-FIX — the fourth transactional record (PGEN-GRAMMAR-WELLFORMED-0072)
 
 ### The discard boundaries were already drawn — by the store checkpoint
