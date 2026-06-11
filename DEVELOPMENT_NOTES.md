@@ -1,4 +1,15 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.5 — "parser right to reject" is itself a falsifiable claim (PGEN-GRAMMAR-WELLFORMED-0074)
+
+### Re-test adjudications when the toolchain under them moves
+The `-0067` sweep adjudicated this failure as generator over-generation ("PEG-greedy trivia is the spec; parser right to reject") — a plausible verdict at the time, reached while a bigger fix was being verified. Bisection + one full trace now show the parser was rejecting GRAMMAR-VALID input all along: the skipper's `#` arm, not the grammar, owned the rejection. The general rule: "the parser is right to reject" is a claim about the grammar's accept set and deserves the same minimal-repro bisection rigor as any bug claim — especially when the rejection was first observed as collateral during another fix's verification.
+
+### A guard scoped to the active token leaves the other-token hole
+The `-0067` fix asked "does the ACTIVE token's pattern match at the introducer?" — correct for the token being matched (vhdl's `/#/`), but the skipper runs for EVERY regex-token attempt, and any OTHER token attempted at a `#` position still triggers the theft. The introducer's realness is a property of the GRAMMAR (does any terminal start with it?), not of whichever token happens to be probing — which is why the recorded fix design moves the decision to emit time, per grammar, per introducer.
+
+### Memo poisoning turns a harmless speculative theft into a parse-wide kill
+A bogus skip inside a FAILING attempt is invisible — backtracking discards it. It became fatal here only because the theft landed on a matchable `//`, the attempt "succeeded", and `trivia@11→47` entered the memo, which the CORRECT path then consumed. Packrat memoization faithfully propagates whatever the first computation says — one more reason terminal-layer correctness has outsized blast radius.
+
 ## 2026-06-11 - GRAMMAR-WELLFORMED.H.11.4-UNPARK — parking discipline pays out (PGEN-GRAMMAR-WELLFORMED-0073)
 
 ### A parked win lands twice as strong
