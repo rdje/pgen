@@ -8,7 +8,7 @@ This book is the **canonical AST reference** for downstream consumers of PGEN's 
 - **What the AST envelope looks like.** See [AST Envelope Structure](ast-envelope.md) and [Walking the AST](walking-the-ast.md).
 - **The shape every grammar rule produces in the AST dump.** See [Per-Rule Shape Reference](rules-top-level.md). The current grammar (`grammars/vhdl.ebnf`) has **256 typed annotations** covering design units, declarations, types, statements, expressions, and literals.
 - **Worked examples by VHDL feature** — what does the AST look like for a minimal entity, a basic architecture, a package? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.
-- **Schema versioning policy.** See [Schema Versioning](schema-versioning.md). The schema is currently at version `1`.
+- **Schema versioning policy.** See [Schema Versioning](schema-versioning.md). The schema is currently at version `3`.
 - **A release-by-release index of what changed and why.** See [Changelog Index](changelog-index.md).
 
 ## What this book is NOT

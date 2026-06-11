@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ad0bbccd.js";
+            window.path_to_searchindex_js = "searchindex-39c90b88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
-<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/vhdl_return_annotations.json</code>, 249 annotations, schema version <code>1</code>).</p>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/vhdl_return_annotations.json</code>, 256 annotations across 112 rules, AST-dump schema version <code>3</code>).</p>
 <h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
 <p>Because the AST tree mixes typed objects (the VHDL-Slice-1 surface) and recursive-envelope arrays (terminal/regex leaves and a few un-annotated rules), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

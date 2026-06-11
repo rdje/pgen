@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-81fe2bf9.js";
+            window.path_to_searchindex_js = "searchindex-a24c051d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e95c8fbb.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
-<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/systemverilog_preprocessor_return_annotations.json</code>, 67 annotations across 29 rules, AST-dump schema version <code>4</code>).</p>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/systemverilog_preprocessor_return_annotations.json</code>, 68 annotations across 31 rules, AST-dump schema version <code>5</code>).</p>
 <h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
 <p>Because the AST tree mixes typed objects (the SVPP-Slice-1 surface) and recursive-envelope arrays (terminal/regex leaves and the literal-text runs), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

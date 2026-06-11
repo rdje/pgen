@@ -34,7 +34,11 @@ though the grammar models them (`based_literal := unsigned_number hash based_val
   match it. The string-terminal side of the skipper already guarded against swallowing
   comment-introducer tokens; the regex side lacked the symmetric guard.
 - **Fix (parser-agnostic):** the skipper's comment arms now stand down when the active token's own
-  pattern matches at the comment introducer.
+  pattern matches at the comment introducer. (Mechanism note, 2026-06-11: a follow-up engine wave —
+  the `SV-0001` fix in the bug ledger — superseded this dynamic guard with a stronger *static*
+  rule: a comment arm is no longer emitted at all for any introducer the grammar assigns a
+  non-comment meaning, so the regenerated vhdl parser simply carries no `#` arm. The vhdl accept
+  set and AST output are unchanged by that supersession; release stays `1.0.4`.)
 - **Accept set:** **widened only** — every input that parsed at `1.0.3` yields a byte-identical
   AST at `1.0.4`; previously-rejected based literals now parse, surfacing as
   `{"kind": "based", "body": {"base": …, "value": …}}` inside `literal` — a shape declared since

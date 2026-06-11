@@ -1,4 +1,9 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-11 - PGEN-BOOK-DRIFT-0001 — version identity lives in MANY chapters; release ceremonies update one
+
+### The drift signature: satellite chapters lag the schema-versioning chapter
+A books sweep found the vhdl book stating schema `1` (welcome) / release `1.0.3` (glossary) against its own schema-versioning chapter's `3`/`1.0.4`, and the svpp book stating `1.0.3`/schema `3` (quickstart, glossary, rules-top-level, json-carrier) against `1.0.7`/schema `5`. Root cause is structural: each release ceremony updates the schema-versioning chapter + changelog index reliably, but the SAME identity facts are also restated in welcome/quickstart/glossary/walking-the-ast/rules-top-level/json-carrier prose ("currently X", "as of contract Y the surface is N/M") — and those satellites only get touched when their own content changes. Remediation rule applied here and worth repeating at every release: after bumping a family's identity, grep the family book for the OLD release string, the old schema integer ("currently"), and the old annotation/rule counts — historical per-release rows stay, every "currently/as-of" claim moves.
+
 ## 2026-06-11 - RTL-FE-CLOSURE.3 — when migrating a proof surface, look for the engine facility that already proves the same property (PGEN-RTL-FE-CLOSURE-0002)
 
 ### Coverage testimony preserved the old checks without re-authoring them

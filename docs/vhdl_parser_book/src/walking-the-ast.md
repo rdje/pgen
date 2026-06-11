@@ -1,6 +1,6 @@
 # Walking the AST
 
-This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and `kind` names from the live return-annotation inventory (`generated/vhdl_return_annotations.json`, 249 annotations, schema version `1`).
+This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and `kind` names from the live return-annotation inventory (`generated/vhdl_return_annotations.json`, 256 annotations across 112 rules, AST-dump schema version `3`).
 
 ## The dual-shape walker
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ad0bbccd.js";
+            window.path_to_searchindex_js = "searchindex-39c90b88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -213,7 +213,11 @@ so the <code>hash := trivia /#/</code> token’s own <code>#</code> was consumed
 match it. The string-terminal side of the skipper already guarded against swallowing
 comment-introducer tokens; the regex side lacked the symmetric guard.</li>
 <li><strong>Fix (parser-agnostic):</strong> the skipper’s comment arms now stand down when the active token’s own
-pattern matches at the comment introducer.</li>
+pattern matches at the comment introducer. (Mechanism note, 2026-06-11: a follow-up engine wave —
+the <code>SV-0001</code> fix in the bug ledger — superseded this dynamic guard with a stronger <em>static</em>
+rule: a comment arm is no longer emitted at all for any introducer the grammar assigns a
+non-comment meaning, so the regenerated vhdl parser simply carries no <code>#</code> arm. The vhdl accept
+set and AST output are unchanged by that supersession; release stays <code>1.0.4</code>.)</li>
 <li><strong>Accept set:</strong> <strong>widened only</strong> — every input that parsed at <code>1.0.3</code> yields a byte-identical
 AST at <code>1.0.4</code>; previously-rejected based literals now parse, surfacing as
 <code>{"kind": "based", "body": {"base": …, "value": …}}</code> inside <code>literal</code> — a shape declared since

@@ -32,7 +32,7 @@ The CLI wrapper around `pgen::embedding_api` used for terminal-side verification
 
 ## Parser release version
 
-The parser library's release identity, currently `1.0.3`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).
+The parser library's release identity, currently `1.0.4`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed) — the `1.0.4` `VHDL-0002` based-literal acceptance fix keeps schema `3`. Recorded in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).
 
 ## Profile
 

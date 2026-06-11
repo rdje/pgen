@@ -1,6 +1,6 @@
 # Walking the AST
 
-This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and `kind` names from the live return-annotation inventory (`generated/systemverilog_preprocessor_return_annotations.json`, 67 annotations across 29 rules, AST-dump schema version `4`).
+This chapter is a recommended walker pattern for downstream consumers traversing the PGEN sv_preprocessor AST-dump JSON. It uses real sv_preprocessor rule and `kind` names from the live return-annotation inventory (`generated/systemverilog_preprocessor_return_annotations.json`, 68 annotations across 31 rules, AST-dump schema version `5`).
 
 ## The dual-shape walker
 

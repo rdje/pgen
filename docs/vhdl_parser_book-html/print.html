@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ad0bbccd.js";
+            window.path_to_searchindex_js = "searchindex-39c90b88.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -186,7 +186,7 @@
 <li><strong>What the AST envelope looks like.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a> and <a href="#walking-the-ast">Walking the AST</a>.</li>
 <li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/vhdl.ebnf</code>) has <strong>256 typed annotations</strong> covering design units, declarations, types, statements, expressions, and literals.</li>
 <li><strong>Worked examples by VHDL feature</strong> — what does the AST look like for a minimal entity, a basic architecture, a package? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.</li>
-<li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>. The schema is currently at version <code>1</code>.</li>
+<li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>. The schema is currently at version <code>3</code>.</li>
 <li><strong>A release-by-release index of what changed and why.</strong> See <a href="#changelog-index">Changelog Index</a>.</li>
 </ul>
 <h2 id="what-this-book-is-not"><a class="header" href="#what-this-book-is-not">What this book is NOT</a></h2>
@@ -725,7 +725,7 @@ optional trailing label is omitted, <code>end_label</code> is <code>[]</code>.</
 <p>The full annotation-language grammar is <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>. The per-rule shapes those annotations produce are tabulated in <a href="#top-level-rules">Top-Level Rules</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="walking-the-ast"><a class="header" href="#walking-the-ast">Walking the AST</a></h1>
-<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/vhdl_return_annotations.json</code>, 249 annotations, schema version <code>1</code>).</p>
+<p>This chapter is a recommended walker pattern for downstream consumers traversing the PGEN VHDL AST-dump JSON. It uses real VHDL rule and <code>kind</code> names from the live return-annotation inventory (<code>generated/vhdl_return_annotations.json</code>, 256 annotations across 112 rules, AST-dump schema version <code>3</code>).</p>
 <h2 id="the-dual-shape-walker"><a class="header" href="#the-dual-shape-walker">The dual-shape walker</a></h2>
 <p>Because the AST tree mixes typed objects (the VHDL-Slice-1 surface) and recursive-envelope arrays (terminal/regex leaves and a few un-annotated rules), the walker dispatches on JSON value kind, then on the <code>type</code> / <code>kind</code> discriminator:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1820,7 +1820,7 @@ walk_schema_v3(&amp;root);
 <h2 id="parseability_probe"><a class="header" href="#parseability_probe">parseability_probe</a></h2>
 <p>The CLI wrapper around <code>pgen::embedding_api</code> used for terminal-side verification, AST inspection, and bug-report reproducers. Sub-commands include <code>--parse</code>, <code>--parse-dump-ast</code>, and <code>--parse-dump-ast-pretty</code>. For VHDL the parser is on-demand-only, so the probe must be built with the generated backend before use (see <a href="#build-recipe">Build Recipe</a>). The full flag set, exit codes, and registered grammars are in the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a>.</p>
 <h2 id="parser-release-version"><a class="header" href="#parser-release-version">Parser release version</a></h2>
-<p>The parser library’s release identity, currently <code>1.0.3</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). Recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
+<p>The parser library’s release identity, currently <code>1.0.4</code>. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed) — the <code>1.0.4</code> <code>VHDL-0002</code> based-literal acceptance fix keeps schema <code>3</code>. Recorded in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code> § “Contract Identity”. See <a href="#schema-versioning">Schema Versioning</a>.</p>
 <h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
 <p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. VHDL has exactly <strong>one</strong> stable profile: <code>vhdl_1076_2019</code> (IEEE 1076-2019), whose entry rule is <code>vhdl_file</code>. The host entry points for it are <code>parse_vhdl_1076_2019</code> and <code>parse_vhdl_1076_2019_ast_dump</code>. Recognized profile-name aliases: <code>"vhdl_1076_2019"</code>, <code>"1076-2019"</code>, <code>"ieee1076-2019"</code>, <code>"ieee_1076_2019"</code>. See <a href="#public-api-surface">Public API Surface</a>.</p>
 <h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
@@ -1867,7 +1867,11 @@ so the <code>hash := trivia /#/</code> token’s own <code>#</code> was consumed
 match it. The string-terminal side of the skipper already guarded against swallowing
 comment-introducer tokens; the regex side lacked the symmetric guard.</li>
 <li><strong>Fix (parser-agnostic):</strong> the skipper’s comment arms now stand down when the active token’s own
-pattern matches at the comment introducer.</li>
+pattern matches at the comment introducer. (Mechanism note, 2026-06-11: a follow-up engine wave —
+the <code>SV-0001</code> fix in the bug ledger — superseded this dynamic guard with a stronger <em>static</em>
+rule: a comment arm is no longer emitted at all for any introducer the grammar assigns a
+non-comment meaning, so the regenerated vhdl parser simply carries no <code>#</code> arm. The vhdl accept
+set and AST output are unchanged by that supersession; release stays <code>1.0.4</code>.)</li>
 <li><strong>Accept set:</strong> <strong>widened only</strong> — every input that parsed at <code>1.0.3</code> yields a byte-identical
 AST at <code>1.0.4</code>; previously-rejected based literals now parse, surfacing as
 <code>{"kind": "based", "body": {"base": …, "value": …}}</code> inside <code>literal</code> — a shape declared since
