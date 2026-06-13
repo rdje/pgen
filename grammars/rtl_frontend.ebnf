@@ -99,8 +99,23 @@ parameter_flavor := kw_parameter   -> {kind: "parameter"}
 port_list := port_group ( comma port_group )*
           -> [$1, $2::2*]
 
-port_group := port_direction data_type? packed_range? port_item ( comma !port_direction_token port_item )*
-           -> {direction: $1, data_type: $2, packed_range: $3, ports: [$4, $5::3*]}
+# RTL-FE-CLOSURE.9: bare ANSI ports (`input R` / `output R` / `inout R` — direction
+# + name, no data_type, no packed_range) were REJECTED because the greedy PEG
+# `data_type?` — whose `named_data_type := identifier` alternative (below) matches
+# ANY bare identifier — absorbed the port NAME, leaving nothing for `port_item`
+# ("did not consume full input at position 0"). The handwritten baseline (intent
+# oracle, rtl_frontend/src/lib.rs:3192/3992) ACCEPTS bare ports, so this was a
+# gen⟷parse duality violation. Fix mirrors the established `parameter_declaration_head`
+# idiom (above): only take a leading `data_type` when a positive lookahead confirms a
+# port name (`port_item`) still follows it (allowing an optional `packed_range`
+# between the type and the name); otherwise the leading token is the bare port name.
+# Typed/ranged ports (`input logic R`, `input [1:0] R`, `input logic [1:0] R`,
+# `input my_t R`) keep byte-identical AST via branch 1; bare ports take branch 2.
+@branch_policy: priority_first
+port_group := port_direction &( data_type packed_range? port_item ) data_type packed_range? port_item ( comma !port_direction_token port_item )*
+                 -> {direction: $1, data_type: $3, packed_range: $4, ports: [$5, $6::3*]}
+            | port_direction packed_range? port_item ( comma !port_direction_token port_item )*
+                 -> {direction: $1, data_type: [], packed_range: $2, ports: [$3, $4::3*]}
 
 port_item := identifier unpacked_dimension*
           -> {name: $1, dims: $2}

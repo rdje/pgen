@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-edc6d362.js";
+            window.path_to_searchindex_js = "searchindex-08fa8b8b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b4e659eb.js"></script>
@@ -185,7 +185,7 @@
 the <strong>non-empty <code>rest</code></strong> (operator) shape of the ten-level
 <code>binop_chain</code> cascade and the consumer left-fold. Every JSON value here
 is the <strong>real captured output</strong> of <code>generated/rtl_frontend_parser.rs</code>
-(parser release <code>1.0.3</code>, AST-dump schema version <code>3</code>) for the
+(parser release <code>1.0.4</code>, AST-dump schema version <code>3</code>) for the
 regression-locked <code>assignment_expr</code> sample in
 <code>rust/test_data/ast_shape_contract/rtl_frontend_v1.json</code>. The
 <code>binop_chain</code> shape shown here is <strong>unchanged</strong> between schema <code>2</code>
@@ -368,7 +368,8 @@ operand, left-fold) is proven on the simplest possible operator
 expression.</li>
 <li>It is the regression-locked <code>assignment_expr</code> sample
 (<code>rule_under_test: "rtl_frontend_file"</code>). Combined with the
-unchanged-156-entry <code>declared_annotation_inventory</code>, any reversion to
+157-entry <code>declared_annotation_inventory</code> (the <code>binop_chain</code> cascade is
+untouched by the <code>1.0.4</code> <code>port_group</code> addition), any reversion to
 the pre-<code>1.0.2</code> <code>&lt;invalid_sequence_access&gt;</code> shape fails
 <code>rtl_frontend_ast_shape_contract</code> immediately.</li>
 <li><strong>It honestly transitions a real released-parser defect</strong> — the

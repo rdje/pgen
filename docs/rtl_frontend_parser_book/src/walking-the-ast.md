@@ -1,6 +1,6 @@
 # Walking the AST
 
-This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and `kind` names from the live return-annotation inventory (`generated/rtl_frontend_return_annotations.json`, 156 annotations on 74 rules, schema version `3`).
+This chapter is a recommended walker pattern for downstream consumers traversing the PGEN rtl_frontend AST-dump JSON. It uses real rtl_frontend rule and `kind` names from the live return-annotation inventory (`generated/rtl_frontend_return_annotations.json`, 157 annotations on 74 rules, schema version `3`).
 
 ## The dual-shape walker
 

@@ -4,7 +4,7 @@ The companion to [Empty Module](examples-empty-module.md): this one shows
 the **non-empty `rest`** (operator) shape of the ten-level
 `binop_chain` cascade and the consumer left-fold. Every JSON value here
 is the **real captured output** of `generated/rtl_frontend_parser.rs`
-(parser release `1.0.3`, AST-dump schema version `3`) for the
+(parser release `1.0.4`, AST-dump schema version `3`) for the
 regression-locked `assignment_expr` sample in
 `rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. The
 `binop_chain` shape shown here is **unchanged** between schema `2`
@@ -207,7 +207,8 @@ if let ParseStatus::Success = outcome.status {
   expression.
 - It is the regression-locked `assignment_expr` sample
   (`rule_under_test: "rtl_frontend_file"`). Combined with the
-  unchanged-156-entry `declared_annotation_inventory`, any reversion to
+  157-entry `declared_annotation_inventory` (the `binop_chain` cascade is
+  untouched by the `1.0.4` `port_group` addition), any reversion to
   the pre-`1.0.2` `<invalid_sequence_access>` shape fails
   `rtl_frontend_ast_shape_contract` immediately.
 - **It honestly transitions a real released-parser defect** — the

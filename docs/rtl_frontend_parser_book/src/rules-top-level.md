@@ -2,11 +2,11 @@
 
 This chapter is the per-rule shape reference for the PGEN rtl_frontend parser. It documents the `rtl_frontend_file` root, the `design_item` dispatch, and then enumerates the typed rule shapes grouped by rule family.
 
-> **Status:** RTL-FE-Slice-1..7 typed the full `grammars/rtl_frontend.ebnf` surface across seven slices — **156 return annotations on 74 distinct rules**. The current parser release is `1.0.3` / AST-dump schema version `3` (the `1.0.2` `RTL-FE-0001` correctness fix to `binop_chain.rest`, then the `1.0.3` POST-SV-AUDIT batch: 15 Category-A list-shape corrections + the `RTL-FE-0002` `event_control_list` inline-alternation fix — see [Schema Versioning](schema-versioning.md); the annotation inventory is **unchanged at 156 / 74**, since the `*_op` / `event_separator` rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count). Every shape in this chapter is drawn from the live inventory at `generated/rtl_frontend_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — identical content, 156 entries). That artifact, not this prose, is the machine-checkable source of truth.
+> **Status:** RTL-FE-Slice-1..7 typed the full `grammars/rtl_frontend.ebnf` surface across seven slices — **156 return annotations on 74 distinct rules**; the `1.0.4` `RTL-FE-CLOSURE.9` bare-ANSI-port acceptance fix took the inventory to **157 return annotations on the same 74 distinct rules** (the new `port_group` no-type branch). The current parser release is `1.0.4` / AST-dump schema version `3` (the `1.0.2` `RTL-FE-0001` correctness fix to `binop_chain.rest`, the `1.0.3` POST-SV-AUDIT batch: 15 Category-A list-shape corrections + the `RTL-FE-0002` `event_control_list` inline-alternation fix, then the `1.0.4` additive bare-ANSI-port acceptance fix that kept schema `3` — see [Schema Versioning](schema-versioning.md); through `1.0.3` the inventory was **156 / 74**, since the `*_op` / `event_separator` rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count). Every shape in this chapter is drawn from the live inventory at `generated/rtl_frontend_return_annotations.json` (cross-checked against the embedded inventory in `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — identical content, 157 entries). That artifact, not this prose, is the machine-checkable source of truth.
 
 ## How to read this chapter
 
-This is a **curated, grouped** reference — not a raw 156-line dump and not a copy of any SystemVerilog LRM. For each family it gives the `kind` discriminators and field lists that the parser actually emits, transcribed from each rule's normalized return-annotation text. Where a rule has per-branch typing, the `kind` value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.
+This is a **curated, grouped** reference — not a raw 157-line dump and not a copy of any SystemVerilog LRM. For each family it gives the `kind` discriminators and field lists that the parser actually emits, transcribed from each rule's normalized return-annotation text. Where a rule has per-branch typing, the `kind` value names the matched branch; where a rule has a single sequence shape, the named fields are listed directly.
 
 Three conventions appear throughout:
 
@@ -112,10 +112,12 @@ The `default` field on every parameter shape is `[]` when no `= <expr>` initiali
 | Rule | Shape |
 |---|---|
 | `port_list` | `[port_group, …]` — clean flat array of the comma-separated `port_group` list (`1.0.3` / schema `3`; was `{first, rest}` at ≤ `1.0.2`). |
-| `port_group` | `{direction, data_type, packed_range, ports}` — `direction` is the typed `port_direction`; `data_type` / `packed_range` are `[]` when omitted; `ports` is the clean flat `port_item[]` declarator list (`1.0.3` / schema `3`; was `{direction, data_type, packed_range, first, rest}` at ≤ `1.0.2`). |
+| `port_group` (2 branches) | `{direction, data_type, packed_range, ports}` — `direction` is the typed `port_direction`; `data_type` / `packed_range` are `[]` when omitted; `ports` is the clean flat `port_item[]` declarator list. Both branches emit this same object shape (`1.0.3` / schema `3` for the field set; was `{direction, data_type, packed_range, first, rest}` at ≤ `1.0.2`). The **typed branch** (`port_direction &( data_type packed_range? port_item ) data_type packed_range? port_item …`) carries `data_type: $3`; the **no-type branch** (`port_direction packed_range? port_item …`) carries the literal `data_type: []` — added at `1.0.4` (`RTL-FE-CLOSURE.9`) so bare ANSI ports (`input R`) are accepted (see below). |
 | `port_item` | `{name, dims}` — `dims` is `[]` when the port is unpacked-scalar. |
 | `port_direction` (3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — bare `{kind}` keyword leaf. |
 | `port_direction_token` (3 kinds) | `{kind: "input"}` / `{kind: "output"}` / `{kind: "inout"}` — the negative-lookahead guard token used in the port-continuation iteration; same `kind` set as `port_direction`. |
+
+> **Bare ANSI ports (`1.0.4`, `RTL-FE-CLOSURE.9`).** A port declared with only a direction and a name — `input R` / `output R` / `inout R`, no data type and no packed range — is now accepted and shapes to `{direction, data_type: [], packed_range: [], ports: [{name, dims: []}]}`, exactly the empty-`data_type` form a ranged-only port (`input [1:0] R`) already produced. At `≤ 1.0.3` these were wrongly **rejected**: `port_group`'s single greedy `data_type?` (whose `named_data_type := identifier` alternative matches any bare identifier) consumed the port *name* as a type. The `1.0.4` fix split `port_group` into the two branches above (the typed branch guards `data_type` behind a `&( data_type packed_range? port_item )` lookahead — the same idiom `parameter_declaration_head` uses — so the type is taken only when a port name still follows). Typed (`input logic R`), ranged (`input [1:0] R`), typed-and-ranged (`input logic [1:0] R`), and named-type (`input my_t R`) ports are unchanged and produce **byte-identical** AST. This is an **additive** accept-set expansion; AST-dump schema stays `3`. See [Schema Versioning](schema-versioning.md) and [Changelog Index](changelog-index.md).
 
 ## Family: net / signal / instance declarations
 
@@ -162,7 +164,7 @@ conditional_expr    := logical_or_expr ? conditional_expr : conditional_expr
                      | logical_or_expr  -> $1                       -- passthrough
 
 # Named operator rules — un-annotated alternations (the RTL-FE-0001 fix,
-# schema 2; NOT in the 156-annotation inventory):
+# schema 2; NOT in the 157-annotation inventory):
 equality_op         := eqeq | ne
 relational_op       := less_equal | lt | ge | gt
 shift_op            := shl | shr
@@ -271,10 +273,10 @@ Because `conditional_expr` and `unary_expr` are passthrough when their distingui
 
 ## Total surface and the machine-checkable source
 
-The full typed surface as of contract `1.0.3` is **156 return annotations across 74 distinct rules** (independently re-counted from the inventory below; neither the `1.0.2` `RTL-FE-0001` fix nor the `1.0.3` POST-SV-AUDIT batch — the 15 Category-A list-shape corrections + the `RTL-FE-0002` `event_control_list` fix — changed this count: the `*_op` / `event_separator` rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count). This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
+The full typed surface as of contract `1.0.4` is **157 return annotations across 74 distinct rules** (independently re-counted from the inventory below). Through contract `1.0.3` it was **156 / 74** — neither the `1.0.2` `RTL-FE-0001` fix nor the `1.0.3` POST-SV-AUDIT batch (the 15 Category-A list-shape corrections + the `RTL-FE-0002` `event_control_list` fix) changed that count: the `*_op` / `event_separator` rules are un-annotated alternations and the 15 Category-A rules changed annotation form not count. The `1.0.4` `RTL-FE-CLOSURE.9` bare-ANSI-port acceptance fix added the **157th** annotation — the new `port_group` no-type branch — on the same 74 rules. This chapter is a curated grouping; the authoritative, machine-checkable enumeration of every `(rule, branch_index, annotation_type, normalized_text)` tuple is:
 
-- `generated/rtl_frontend_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 156`).
-- `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — the embedded inventory used by the AST shape-contract regression lock (identical content; 156 entries in `declared_annotation_inventory.annotations`).
+- `generated/rtl_frontend_return_annotations.json` — the live return-annotation inventory (`version: 1`, `grammar: "rtl_frontend"`, `annotation_count: 157`).
+- `rust/test_data/ast_shape_contract/rtl_frontend_v1.json` — the embedded inventory used by the AST shape-contract regression lock (identical content; 157 entries in `declared_annotation_inventory.annotations`).
 
 If this chapter and either artifact disagree, the artifact wins — and the integration contract `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` wins over both.
 

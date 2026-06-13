@@ -4240,6 +4240,70 @@
       "expected_parse_ok": false,
       "require_ast_json": false,
       "sample": "module top ("
+    },
+    {
+      "label": "bare_ansi_input_port",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "port_item",
+        "port_direction",
+        "kw_input"
+      ],
+      "required_typed_string_values": [
+        "clk",
+        "input"
+      ],
+      "sample": "module bare_in_port (input clk);\nendmodule\n"
+    },
+    {
+      "label": "bare_ansi_output_inout_ports",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "port_item",
+        "port_direction",
+        "kw_output",
+        "kw_inout"
+      ],
+      "required_typed_string_values": [
+        "inout",
+        "io",
+        "output",
+        "q"
+      ],
+      "sample": "module bare_multi_dir (output q, inout io);\nendmodule\n"
+    },
+    {
+      "label": "bare_and_typed_mixed_port_list",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "port_item",
+        "port_direction",
+        "kw_input",
+        "kw_output"
+      ],
+      "required_typed_string_values": [
+        "a",
+        "b",
+        "input",
+        "logic",
+        "output"
+      ],
+      "sample": "module bare_mixed_typed (input logic a, output b);\nendmodule\n"
     }
   ]
 }

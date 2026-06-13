@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-edc6d362.js";
+            window.path_to_searchindex_js = "searchindex-08fa8b8b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b4e659eb.js"></script>
@@ -186,7 +186,7 @@
 <ul>
 <li><strong>Build and integration.</strong> See <a href="build-recipe.html">Build Recipe</a>, <a href="public-api.html">Public API Surface</a>.</li>
 <li><strong>AST envelope and walking conventions.</strong> See <a href="ast-envelope.html">AST Envelope Structure</a>, <a href="walking-the-ast.html">Walking the AST</a>.</li>
-<li><strong>Per-rule typed shapes.</strong> See <a href="rules-top-level.html">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/rtl_frontend.ebnf</code>) carries <strong>156 typed annotations</strong> covering design items, declarations, types, ports, statements, expressions (including the <code>binop_chain</code> shape for the 10 binary-operator chain rules), and literals.</li>
+<li><strong>Per-rule typed shapes.</strong> See <a href="rules-top-level.html">Per-Rule Shape Reference</a>. The current grammar (<code>grammars/rtl_frontend.ebnf</code>) carries <strong>157 typed annotations</strong> (156 through <code>1.0.3</code>; the <code>1.0.4</code> <code>RTL-FE-CLOSURE.9</code> bare-ANSI-port fix added the <code>port_group</code> no-type branch) covering design items, declarations, types, ports, statements, expressions (including the <code>binop_chain</code> shape for the 10 binary-operator chain rules), and literals.</li>
 <li><strong>Worked examples</strong> — what does the AST look like for an empty module, a single continuous assign, a generate-for? See <a href="examples-empty-module.html">Empty Module</a>.</li>
 <li><strong>Schema versioning policy.</strong> See <a href="schema-versioning.html">Schema Versioning</a>.</li>
 <li><strong>Release-by-release shape changes.</strong> See <a href="changelog-index.html">Changelog Index</a>.</li>
@@ -198,7 +198,7 @@
 </ul>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>The PGEN rtl_frontend parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers file-scope typedefs/packages/modules, module headers + imports + parameters + ANSI ports, parameter/localparam declarations, typedefs, imports, genvars, net declarations, continuous assigns, the <code>always*</code> family, generate regions (if/for), module instantiations with named/ordered overrides and named/ordered/wildcard port connections, enum/struct/union types, builtin and package-qualified types, and the unary/binary/ternary expression core shared with <code>rtl_const_expr</code>.</p>
-<p>The rtl_frontend return-annotation campaign landed <code>RTL-FE-Slice-1..7</code> on 2026-05-14 across seven slices, growing from 1 → 156 annotations. Subsequent shape-affecting slices get their own changelog entries here.</p>
+<p>The rtl_frontend return-annotation campaign landed <code>RTL-FE-Slice-1..7</code> on 2026-05-14 across seven slices, growing from 1 → 156 annotations; the <code>1.0.4</code> <code>RTL-FE-CLOSURE.9</code> bare-ANSI-port acceptance fix later added the 157th (the <code>port_group</code> no-type branch). Subsequent shape-affecting slices get their own changelog entries here.</p>
 
                     </main>
 
