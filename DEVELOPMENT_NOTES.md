@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-13 - RTL-FE-CLOSURE.4 — a clean linter does NOT prove "no grammar defect"; per-rule probing finds one (PGEN-RTL-FE-CLOSURE-0004)
+
+### The load-bearing lesson: an attribution INFERENCE is not an attribution PROOF
+`.1` concluded "the whole `UNKNOWN=71` is generator-reach, NOT a grammar defect" from two clean read-only oracles (the reach pass: `0 no-path / 0 unattempted`; the linter: every decidable axis `0`). That conclusion is *sound for what those oracles decide* — but the linter is deliberately a **sound, incomplete** decision procedure: it does not decide PEG greedy-optional ambiguity (longest-match / FIRST-set domination is unsound for PEG, so it is intentionally omitted) nor "is this rule reachable only in lookahead?". So a clean linter is silent — not negative — on exactly the two defect classes `.4` then found. The discipline: when the Done bar is `UNKNOWN=0`, every UNKNOWN rule must be *probed*, not bucketed by a coarse inference.
+
+### The decisive tool chain (read-only)
+- `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` turns the Pass-3 plannable-rule reach pass into a per-rule transcript (`[plannable-probe] rule=… parsed=… witnessed_target=… sample=…`). Parsing those 354 lines reconstructs each target's final verdict — 50 self-witnessed, 67 routed-elsewhere, 9 never-reparsed, +5 pure generation-failures (no probe line) = 81 non-self-witnessed candidates behind the final 71.
+- `parseability_probe --parse rtl_frontend <file>` adjudicates a candidate sample against the **real** parser. A bisect ladder turned "the reach probe didn't reparse" into the exact accept/reject boundary.
+- The **handwritten baseline is the intent oracle.** `rtl_frontend/src/lib.rs:3192` (`parse_port_list`) keeps `data_type` optional (no `.ok_or_else`, unlike net/typedef); `3992` (`parse_optional_data_type`) consumes a bare identifier as a type **only** when it is a registered type alias, else returns `None`. That is the store-aware disambiguation the generated PEG grammar lacks.
+
+### WHY + WHERE for the genuine grammar defect (Cluster A → `.9`)
+`port_group := port_direction data_type? packed_range? port_item …` (`grammars/rtl_frontend.ebnf:102`). `data_type` includes `named_data_type := identifier` (line 285) — an **ungated** bare-identifier alternative. For `input R`: `port_direction` takes `input`; greedy `data_type?` then matches `R` as a `named_data_type`; `port_item` has nothing left ⇒ `port_group` fails ⇒ the module is rejected at position 0. With an explicit type or packed range, `data_type?`/`packed_range?` consume *that* and the real name survives — exactly what the bisect shows. The generator (treating `data_type?` as freely skippable) emits the bare form the parser rejects: a gen⟷parse duality violation. The fix is grammar-level and parser-agnostic — gate `named_data_type` on the semantic store (`feedback_grammar_rules_must_consult_store`) or add a lookahead so `data_type` is only taken when another identifier follows — and must add bare-port ACCEPT samples to the manifest (currently `0/121`), which is why the defect stayed invisible.
+
+### The other four clusters
+- **B (lookahead-only):** `port_direction_token` is referenced only under `!` (a grammar sweep proves it unique) → unwitnessable by the positive coverage primitive; resolve by proof-classifying lookahead-only rules or sharing `port_direction`.
+- **C (force-entry gap, dominant ~60):** the reach plan reaches an ancestor but construct-mode minimization emits an unrelated minimal `design_item`; strengthen the plan to force the specific OR-branch + occurrences down to the leaf.
+- **D (expression over-generation):** construct-mode emits malformed deep `bit[…]` ranges; constrain it to well-formed minimal expressions.
+- **E (seed-42 spf):** the generator emits a keyword-spelled identifier (`if`) where `non_keyword_identifier` excludes the keyword set; the generator must model the `!kw_*` exclusion when synthesizing the identifier terminal.
+
 ## 2026-06-13 - RTL-FE-CLOSURE.1 — scope a closure drive by MEASURING + ATTRIBUTING before planning fixes (PGEN-RTL-FE-CLOSURE-0003)
 
 ### The two oracles together decide where the work lives — before a single fix is designed
