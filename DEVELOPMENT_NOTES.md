@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-13 - RTL-FE-CLOSURE.1 — scope a closure drive by MEASURING + ATTRIBUTING before planning fixes (PGEN-RTL-FE-CLOSURE-0003)
+
+### The two oracles together decide where the work lives — before a single fix is designed
+The temptation when a grammar reports `UNKNOWN=71` is to start writing generator reach machinery. The scoping discipline is to first answer the attribution-rule question — *generator gap or grammar defect?* — with two independent read-only oracles, because the answer dictates which subsystem the `.5`/`.6` fixes touch:
+
+- the **reach pass** reported `0 no-reach-path` and `0 left-unattempted` → every one of the 71 has a path from the entry and every one was actually attempted (so it is not a rule-reference-graph dead end, and not a cap artifact);
+- the **linter** (`--lint-grammar`) reported every decidable well-formedness axis at 0 (no unreachable rule, no ordered-choice/always-matches shadowing, no non-termination, no unbound fact-kind).
+
+Either oracle alone is suggestive; together they are decisive: the grammar is provably clean, so the 71 cannot be dead branches — the whole backlog is a **generator-reach (constructor) deficiency**. That is the exact class `rtl_const_expr` (constructive-reach pass), `svpp` (declarative witnessing samples + a real parser bug), `regex`, and `vhdl` each closed, so the precedent is strong and the fix lane is the generator/reach pass (parser-agnostic), not `rtl_frontend.ebnf`.
+
+### Determinism + the spf split is what makes the residual a signal, not a guess
+Measuring at seeds 0/7/42 (not one seed) was deliberate: witness/UNKNOWN came back **byte-identical** across all three, so `71` is a stable target to drive to zero rather than a noisy number. The one `sample_parse_failures=1` appears **only at seed 42** — which cleanly separates the over-generation residual (its own bounded `.6` leaf, already stash-proven pre-existing at `-0072`) from the UNKNOWN-coverage work (the `.5` umbrella). Splitting them in the plan prevents conflating "the generator emitted a sample the parser rejects" (round-trip faithfulness) with "the generator never reached a rule" (coverage) — two different mechanisms with two different fixes.
+
+### The reach pass is also a bug-finding oracle — so `.4` is investigation, not a fix
+The dominant bucket is "parsed-but-routed-elsewhere" (67): the reach probe parses but the bytes route through other rules instead of the target. That is *usually* a reach-plan force-entry gap, but the H.7.2/H.9 precedent (the same pass surfaced a real svpp parser bug) is why `.4` is a pure-docs/tools-first investigation that adjudicates per cluster before any code: if a probe's parse genuinely mis-routes because the parser mis-parses a valid shape, that is a parser bug and jumps to highest priority (fix-parser-bugs-ASAP), not a generator tweak. Plan the categorization first; design the fixes from the evidence.
+
 ## 2026-06-11 - PGEN-BOOK-DRIFT-0001 — version identity lives in MANY chapters; release ceremonies update one
 
 ### The drift signature: satellite chapters lag the schema-versioning chapter
