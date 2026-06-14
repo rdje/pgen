@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - RTL-FE-CLOSURE.5.1.2 — rtl_frontend fully certified: remove the engine-shadowed-dead white_space (PGEN-RTL-FE-CLOSURE-0017)
+
+### The residual (a rule the engine's layout skipper makes un-matchable)
+After `.5.1.1`, rtl_frontend's last certificate-coverage `UNKNOWN` was `white_space := /[ \t\r\n]+/`, referenced only inside `trivia := ( white_space | line_comment | block_comment )*`. Unlike `port_direction_token` (positively-unreachable but LIVE in a lookahead → a proof), `white_space` is genuinely **dead**: the generated parsers' layout skipper consumes leading whitespace before any non-`string_content` regex executes (`ast_based_generator.rs`, `skip_leading_whitespace=true`), so a pure-whitespace-class rule can never positively match its own bytes on any input. This is the EXACT rule and mechanism VHDL removed to reach full certification.
+
+### The decision: remove at the source (the VHDL precedent, not proof-classify)
+The attribution rule's resolution for a *truly dead* fragment is "removed at the source", and the VHDL fully-certification did exactly this for the identical `white_space`. Identical-rule consistency across grammars demands the identical treatment, so `white_space` is removed (a proof-classify would have left a never-matching branch in the grammar — dead weight — and treated the identical rule differently from VHDL). This is distinct from `.5.1.1`'s `port_direction_token`, which is NOT dead (its lookahead does real parse work) and so earned a proof instead.
+
+### Decisive evidence (tools-first, before any edit)
+`PGEN_CERT_COVERAGE_DEBUG_PROBES=1 ast_pipeline generated/rtl_frontend.json --report-certificate-coverage ...` printed the reach pass's `white_space` probes — all PURE WHITESPACE (`"  "`, `"      "`) — at `parsed=true witnessed_target=false`. The probe parses (whitespace is valid trivia) but `white_space` is never positively entered, because the layout skip eats it. That is the engine-shadowed-dead signature.
+
+### The change + regen
+`grammars/rtl_frontend.ebnf:352-353`: `trivia := ( line_comment | block_comment )*` and the `white_space` rule deleted. `make focus_rtl_frontend` regenerates the parser + json + return_annotations. Whitespace handling is entirely engine-level and unchanged; `trivia` keeps only the comment arms.
+
+### Why accept-identical (and the versioning consequence)
+Whitespace is skipped by the engine, not by `trivia`'s `white_space` arm — so removing the arm changes nothing the parser accepts or the AST it emits. Proven three ways: (1) the generated-contract gate replays all 130 curated samples through the regenerated parser AND the handwritten baseline with zero acceptance change; (2) a 10-seed cert sweep stays `fully_certified spf=0` (organic samples re-parse — no over-generation exposure, the VHDL caution); (3) `white_space` carried no return annotation, so the inventory stays 157 and the shape-contract manifest is untouched. Because nothing functional changed (the contract's own rule: "release bumped on every functional change"), the released parser identity is unchanged: **release 1.0.5 / schema 3 / inventory 157 / contract 0.2.0 all stay** — the VHDL accept-identical-removal precedent. `white_space` is in no consumer-facing surface, so there is no contract/README/parser-book lockstep; the only book change is the top-level `grammar-wellformedness` rollout paragraph (rtl_frontend is now the 6th fully-certified grammar).
+
+### Validation
+rtl_frontend cert total 170→169, UNKNOWN 1→0, fully_certified=true, proof=1, witness=168, spf 0, deterministic seeds 0/7/42 + sweep 1/2/3/5/13/99/100 all-clean. Contract gate PASS; shape-contract PASS; lib 752/752; crate 91/91; json fully_certified; cross-family PASS; clippy source clean; mdbook PASS. 🎯 rtl_frontend cert-coverage CLOSED; remaining tree work = `.7` (elaboration-closure confirm) → `.8` (CLOSURE → LIVE Done).
+
 ## 2026-06-15 - RTL-FE-CLOSURE.5.1.1 — a positively-unreachable (lookahead-only) rule is a SOUND proof, not an UNKNOWN (PGEN-RTL-FE-CLOSURE-0016)
 
 ### The residual (a rule the witness primitive can never record)

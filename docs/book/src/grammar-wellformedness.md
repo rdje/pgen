@@ -320,9 +320,11 @@ adapter so the witness side can replay samples through that grammar's real parse
 `json` (fully certified), `regex` (now fully certified — see the drive arc below),
 `rtl_const_expr` (fully certified), `systemverilog_preprocessor` (fully certified), `vhdl` (now fully
 certified — see the drive arc below), `rtl_frontend`
-(the ~5.5 MB synthesizable-RTL frontend parser, which runs at the default depth — its entry is a flat
-`design_item*` list — and reports `total=170 witness=37 UNKNOWN=133 (sample_parse_failures=0)`, i.e. every
-witness re-parses cleanly with a loud `UNKNOWN` backlog still to drive to zero), `systemverilog`, and
+(the ~5.5 MB synthesizable-RTL frontend parser, **now fully certified** — its initial wiring reported
+`total=170 witness=37 UNKNOWN=133`, driven across the `.5.*` arc to `total=169 proof=1 witness=168
+UNKNOWN=0` (deterministic at seeds 0/7/42, zero sample-parse failures): the last two fragments closed by
+*adjudication, not reclassification* — `port_direction_token` (lookahead-only) earned a `proof` and the
+engine-shadowed-dead `white_space` was removed at the source, exactly as `vhdl`'s was), `systemverilog`, and
 `vhdl` (the last shipped grammar to be wired — it runs at the default depth on its flat `design_unit*`
 entry and reports `total=217 witness=148 UNKNOWN=69 (sample_parse_failures=0)` at seed 0, every witness
 re-parsing cleanly). With `vhdl` wired, **every shipped parser grammar now runs under the

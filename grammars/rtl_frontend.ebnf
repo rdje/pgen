@@ -349,8 +349,13 @@ non_keyword_identifier := !kw_always !kw_always_comb !kw_always_ff !kw_always_la
 
 simple_identifier := trivia /[A-Za-z_][A-Za-z0-9_$]*/
 
-trivia := ( white_space | line_comment | block_comment )*
-white_space := /[ \t\r\n]+/
+# RTL-FE-CLOSURE.5.1.2: `white_space` was removed (engine-shadowed-DEAD, the VHDL precedent).
+# The generated parsers' layout skipper consumes whitespace before any non-`string_content`
+# regex executes, so a `/[ \t\r\n]+/` rule can never positively match its own bytes on any
+# input — the certificate-coverage reach pass parses pure-whitespace probes (`"  "`) but never
+# witnesses it. Whitespace handling is engine-level and unchanged; `trivia` keeps only the
+# comment arms (accept-identical + AST-identical removal).
+trivia := ( line_comment | block_comment )*
 line_comment := /\/\/[^\r\n]*/
 block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
 
