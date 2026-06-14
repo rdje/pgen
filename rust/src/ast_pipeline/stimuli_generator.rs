@@ -13526,6 +13526,42 @@ mod tests {
 
     #[cfg(feature = "ebnf_dual_run")]
     #[test]
+    fn lookahead_only_port_direction_token_is_proof_covered_real_rtl_frontend() {
+        // RTL-FE-CLOSURE.5.1.1: the PROOF-side complement to
+        // `reach_hops_skips_lookahead_only_references_real_rtl_frontend` (the reach-search side).
+        // `port_direction_token` is the unique rtl_frontend rule referenced ONLY inside the negative
+        // lookahead `( comma !port_direction_token port_item )*` — structurally reachable but
+        // positively-unreachable, so it can never be positively entered and the transactional
+        // witness primitive can never record it. `gather_verified_proof_covered_rules` must classify
+        // it `covered_by_proof` (and the certificate must re-verify), which is what moves it out of
+        // the certificate-coverage UNKNOWN bucket. Guards against a regression that would re-strand
+        // it in UNKNOWN.
+        use crate::ast_pipeline::grammar_wellformedness::gather_verified_proof_covered_rules;
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/rtl_frontend.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse rtl_frontend.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+
+        let (proof, fails) = gather_verified_proof_covered_rules(&grammar_tree, &rule_order);
+        assert!(fails.is_empty(), "no rtl_frontend whole-rule proof should fail re-verify: {fails:?}");
+        assert!(
+            proof.contains("port_direction_token"),
+            "port_direction_token is lookahead-only and must be classified covered_by_proof"
+        );
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
     fn reach_hops_prefers_non_self_recursive_conditional_expr_branch_real_rtl_frontend() {
         // RTL-FE-CLOSURE.5.3 (PGEN-RTL-FE-CLOSURE-0015): RETAINED regression guard for the
         // non-self-recursive-branch preference, locked on the REAL `rtl_frontend` grammar.

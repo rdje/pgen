@@ -209,13 +209,27 @@ internals.
 | Verdict | Certificate | How you check it |
 |---|---|---|
 | **reachable** | a **witness** — a concrete derivation *and* an input string that exercises the fragment | replay the input through the real parser; watch it hit the fragment |
-| **unreachable** | a **proof** — the exact decidable argument (which sound rule fired, and the chain) | a small checker re-validates the argument |
+| **unreachable** *(or positively-unreachable)* | a **proof** — the exact decidable argument (which sound rule fired, and the chain) | a small checker re-validates the argument |
 | **`UNKNOWN`** | *(none — by design)* | it is an honest "I cannot prove this either way," never a guess |
 
 The witness producer for the "reachable" case is the **stimuli generator** — this is the duality made
 operational: the linter claims reachability, the generator *demonstrates* it. And the binding
 discipline is: **no definite verdict without a certificate.** It is precisely because the linter
 refuses to speak without a proof that you never have to doubt it when it does.
+
+The **proof** verdict covers two *sound, decidable* whole-rule forms, both re-checked by a tiny
+independent validator. The first is **structural unreachability** — a rule not reachable from any
+root at all (a dead "useless symbol"). The second is **positive-unreachability** — a rule that *is*
+structurally reachable but only ever through a `!`/`&` **lookahead** edge, never positively. This
+second form matters because the witness side records *positive rule entry* (see the next section), and
+a lookahead is a parser assertion that consumes no input and emits nothing — so a rule reached only
+inside a lookahead can *never* be positively entered, and *can never be witnessed by construction*.
+That non-witnessing is therefore **correct, not a coverage gap**, and it earns a `proof` (re-derived as
+"the rule is reachable but not *positively* reachable") rather than languishing in `UNKNOWN`. The
+canonical case is a guard token used only in a negative lookahead — the synthesizable-RTL grammar's
+`port_direction_token`, referenced solely inside `( comma !port_direction_token port_item )*` to stop
+the inner port-iteration at a direction keyword. It does real parse work, so it is *not* dead (removing
+it would be wrong); it is simply un-witnessable, and the proof says so soundly.
 
 ### "Watch it hit the fragment" — how a witness is checked, rigorously
 
@@ -494,6 +508,17 @@ by the search instead of chased through a path that could never witness it. The 
 parser-agnostic (keyed purely on the lookahead node shape): it only ever sharpens *which* path is taken,
 never loosens the witness check. On `rtl_frontend` it moved the residual `UNKNOWN` 16 → 9 (deterministic
 across seeds), with SystemVerilog byte-identical (the same rules, now correctly reported as no-reach-path).
+
+That "dead-rule candidate — adjudicate via the linter" flag is no longer a *manual* TODO: the linter now
+**adjudicates it automatically** at the proof layer. A rule that is structurally reachable but **not
+positively reachable** — reachable only through `!`/`&` lookahead edges, the exact `!`/`&`-only class the
+reach search now surfaces — is classified `covered_by_proof` via a sound `LookaheadOnlyRule` certificate
+(re-derived independently as `reachable ∖ positively_reachable`, where `positively_reachable` repeats the
+structural reachability walk but does *not* descend into lookahead nodes). So such a rule leaves the
+`UNKNOWN` bucket with a *checkable proof that it is correctly un-witnessable*, exactly as the certifying
+model intends — never silently, and never by removing a rule that does real parse work. On `rtl_frontend`
+this closed `port_direction_token` (the sole lookahead-only rule, `UNKNOWN` → `proof`); on SystemVerilog it
+was *additive* (one genuinely lookahead-only rule moved `UNKNOWN` → `proof`, every witness preserved).
 
 A further refinement budgets for a target's **mandatory off-path siblings**, not just its own subtree. The
 per-target budget above sizes depth as the reach-prefix allowance *plus the target's own minimal subtree* —

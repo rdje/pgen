@@ -323,6 +323,123 @@ pub fn reachable_rules(
     reachable
 }
 
+/// Like `collect_node_rule_refs` but counts a reference as POSITIVE only — it does NOT descend into
+/// `!`/`&` lookahead sub-expressions. A lookahead is a parser ASSERTION that consumes no input and
+/// emits nothing, so a rule referenced ONLY inside a lookahead is never POSITIVELY entered during a
+/// parse. The transactional witness primitive records positive rule ENTRY (not assertion), so such a
+/// rule can never be witnessed — this collector is the building block for that distinction at the
+/// proof layer (the same reach-honesty principle the stimuli reach search uses, lifted here to the
+/// linter's reachability analysis). Used by `positively_reachable_rules` / `detect_lookahead_only_rules`.
+fn collect_node_positive_rule_refs(node: &ASTNode, out: &mut HashSet<String>) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            for a in alternatives {
+                collect_node_positive_rule_refs(a, out);
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for e in elements {
+                collect_node_positive_rule_refs(e, out);
+            }
+        }
+        ASTNode::Quantified { element, .. } => collect_node_positive_rule_refs(element, out),
+        // The crux: a lookahead emits nothing positively — do NOT follow references inside it.
+        ASTNode::Lookahead { .. } => {}
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => collect_node_positive_rule_refs(inner, out),
+            ASTValue::Token(parts) => {
+                if let Some(r) = referenced_rule(parts) {
+                    out.insert(r.to_string());
+                }
+            }
+        },
+    }
+}
+
+/// GRAMMAR-WELLFORMED (lookahead-honesty at the proof layer): the set of rules POSITIVELY reachable
+/// from the roots — reachable by a chain of POSITIVELY-EMITTED references, never descending into
+/// `!`/`&` lookahead sub-expressions. Mirrors `reachable_rules` EXACTLY except the transitive
+/// closure follows only positive edges (`collect_node_positive_rule_refs`); the ROOT set is computed
+/// from references-ANYWHERE (`collect_node_rule_refs`) so a rule referenced only inside a lookahead
+/// is NOT mistaken for an unreferenced top-level entry (which would make it a spurious positive
+/// root). A rule that is in `reachable_rules` but NOT here is POSITIVELY-UNREACHABLE: structurally
+/// referenced, but reachable only through a lookahead edge, so the parser never positively enters it
+/// and the transactional witness primitive (which records positive entry) correctly never witnesses
+/// it. Deterministic; references to undefined (external/include) rules are ignored.
+pub fn positively_reachable_rules(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> HashSet<String> {
+    let mut pos_refs_of: HashMap<&str, HashSet<String>> = HashMap::new();
+    let mut referenced: HashSet<String> = HashSet::new();
+    for (rule, body) in grammar {
+        // ROOTS use references-ANYWHERE so a lookahead-only rule is NOT a spurious top-level entry.
+        let mut all_refs = HashSet::new();
+        collect_node_rule_refs(body, &mut all_refs);
+        for r in &all_refs {
+            if grammar.contains_key(r) {
+                referenced.insert(r.clone());
+            }
+        }
+        // The CLOSURE follows only POSITIVELY-emitted edges.
+        let mut pos_refs = HashSet::new();
+        collect_node_positive_rule_refs(body, &mut pos_refs);
+        pos_refs.retain(|r| grammar.contains_key(r));
+        pos_refs_of.insert(rule.as_str(), pos_refs);
+    }
+    let mut reachable: HashSet<String> = HashSet::new();
+    let mut stack: Vec<String> = Vec::new();
+    if let Some(entry) = rule_order.first() {
+        if grammar.contains_key(entry) && reachable.insert(entry.clone()) {
+            stack.push(entry.clone());
+        }
+    }
+    for rule in rule_order {
+        if grammar.contains_key(rule)
+            && !referenced.contains(rule)
+            && reachable.insert(rule.clone())
+        {
+            stack.push(rule.clone());
+        }
+    }
+    while let Some(rule) = stack.pop() {
+        if let Some(refs) = pos_refs_of.get(rule.as_str()) {
+            for r in refs {
+                if reachable.insert(r.clone()) {
+                    stack.push(r.clone());
+                }
+            }
+        }
+    }
+    reachable
+}
+
+/// GRAMMAR-WELLFORMED (the lookahead-only PROOF detector): rules that are structurally REACHABLE
+/// (`reachable_rules`) but POSITIVELY-UNREACHABLE (`positively_reachable_rules`) — i.e. reachable
+/// only through `!`/`&` lookahead edges. Such a rule can NEVER be positively entered, so the
+/// transactional coverage primitive can never witness it — and that non-witnessing is SOUND, a
+/// verified PROOF (the certifying dual of the constructive WITNESS), NOT an attribution-rule UNKNOWN
+/// ticket. The canonical case is a guard token used only in a negative lookahead (rtl_frontend's
+/// `port_direction_token`, referenced only inside `( comma !port_direction_token port_item )*`).
+/// Returns the rule names in `rule_order` order (deterministic). Parser-agnostic (keyed purely on
+/// the `Lookahead` node shape, never a rule name).
+pub fn detect_lookahead_only_rules(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<String> {
+    let reachable = reachable_rules(grammar, rule_order);
+    let positively = positively_reachable_rules(grammar, rule_order);
+    rule_order
+        .iter()
+        .filter(|r| {
+            grammar.contains_key(r.as_str())
+                && reachable.contains(r.as_str())
+                && !positively.contains(r.as_str())
+        })
+        .cloned()
+        .collect()
+}
+
 /// Can `node` match the empty string (succeed without consuming input)? Uses the current
 /// per-rule `nullable` estimates (fixpoint). Conservative: a terminal token is treated as
 /// never-nullable (consumes input), so we never over-report nullability.
@@ -1365,6 +1482,11 @@ pub enum WellformednessCertificate {
     UnboundFactKind { rule: String, kind: String },
     /// `rule` is present under `profile` but not satisfiable there (a @profiles orphan).
     ProfileOrphan { rule: String, profile: String },
+    /// `rule` is structurally reachable but POSITIVELY-UNREACHABLE — reachable only through `!`/`&`
+    /// lookahead edges, so the parser never positively enters it and the transactional witness
+    /// primitive (which records positive entry) correctly never records it. The non-witnessing is a
+    /// SOUND, decidable PROOF (re-derived as `reachable ∖ positively_reachable`), not a coverage gap.
+    LookaheadOnlyRule { rule: String },
 }
 
 /// THE CHECKER (G.2): independently re-validate ANY wellformedness certificate against the grammar.
@@ -1440,6 +1562,22 @@ pub fn verify_wellformedness_certificate(
             } else {
                 Err(format!(
                     "certificate claims '{rule}' is a @profiles orphan under '{profile}', but present={present} sat_here={sat_here} sat_elsewhere={sat_elsewhere} (not a profile orphan)"
+                ))
+            }
+        }
+        WellformednessCertificate::LookaheadOnlyRule { rule } => {
+            if !grammar.contains_key(rule) {
+                return Err(format!("certificate cites unknown rule '{rule}'"));
+            }
+            // Re-derive BOTH reachability sets independently; the claim holds iff the rule is
+            // structurally reachable but NOT positively reachable (reachable only via a `!`/`&` edge).
+            let reachable = reachable_rules(grammar, rule_order).contains(rule);
+            let positively = positively_reachable_rules(grammar, rule_order).contains(rule);
+            if reachable && !positively {
+                Ok(())
+            } else {
+                Err(format!(
+                    "certificate claims rule '{rule}' is LOOKAHEAD-ONLY (positively-unreachable), but reachable={reachable} positively_reachable={positively} (not a lookahead-only rule)"
                 ))
             }
         }
@@ -1569,12 +1707,19 @@ pub fn certificate_coverage(
     }
 }
 
-/// GRAMMAR-WELLFORMED.G.4.2 (proof gathering): the set of rules covered by a VERIFIED unreachability
-/// proof — i.e. rules `detect_unreachable_rules` flags AND `verify_wellformedness_certificate`
-/// independently re-confirms. (Rule-level: shadowing/orphan/unbound proofs concern branches/predicates
-/// WITHIN a reachable rule, not whole-rule deadness, so they do not make a RULE proof-covered.) A
-/// detector finding whose certificate fails to re-verify is a LINTER BUG — returned in `failures`,
-/// never silently counted as covered.
+/// GRAMMAR-WELLFORMED.G.4.2 (proof gathering): the set of rules covered by a VERIFIED whole-rule
+/// PROOF — each flagged by a detector AND independently re-confirmed by
+/// `verify_wellformedness_certificate`. Two sound, disjoint whole-rule proof classes:
+///   1. **Structurally unreachable** (`detect_unreachable_rules`) — not reachable from any root at
+///      all (a genuinely dead rule, Hopcroft–Ullman "useless symbol").
+///   2. **Lookahead-only / positively-unreachable** (`detect_lookahead_only_rules`) — structurally
+///      reachable but reachable only through `!`/`&` lookahead edges, so it is never positively
+///      entered and the transactional witness primitive can never record it. The non-witnessing is
+///      SOUND (a proof), not an attribution-rule UNKNOWN ticket; the reach pass independently flags
+///      such rules "dead-rule candidate — adjudicate via the linter", and this IS that adjudication.
+/// (Rule-level: shadowing/orphan/unbound proofs concern branches/predicates WITHIN a reachable rule,
+/// not whole-rule deadness, so they do not make a RULE proof-covered.) A detector finding whose
+/// certificate fails to re-verify is a LINTER BUG — returned in `failures`, never silently covered.
 pub fn gather_verified_proof_covered_rules(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
@@ -1589,6 +1734,19 @@ pub fn gather_verified_proof_covered_rules(
                     covered.insert(rule);
                 }
                 Err(e) => failures.push(format!("unreachable-rule proof for '{rule}' failed re-verify: {e}")),
+            }
+        }
+    }
+    // Lookahead-only / positively-unreachable rules (disjoint from the structurally-unreachable set
+    // above — those are not reachable at all; these are reachable, only via a lookahead edge).
+    for rule in detect_lookahead_only_rules(grammar, rule_order) {
+        let cert = WellformednessCertificate::LookaheadOnlyRule { rule: rule.clone() };
+        match verify_wellformedness_certificate(grammar, rule_order, None, &cert) {
+            Ok(()) => {
+                covered.insert(rule);
+            }
+            Err(e) => {
+                failures.push(format!("lookahead-only proof for '{rule}' failed re-verify: {e}"))
             }
         }
     }
@@ -1715,6 +1873,89 @@ mod tests {
         assert!(
             verify_wellformedness_certificate(&g, &order, Some(&ann), &bogus).is_err(),
             "claiming an orphan under a profile where the rule IS satisfiable must be rejected"
+        );
+    }
+
+    #[test]
+    fn lookahead_only_rule_is_proof_covered_and_checker_rejects_bogus() {
+        // RTL-FE-CLOSURE.5.1.1: a rule referenced ONLY inside a negative lookahead is structurally
+        // reachable but POSITIVELY-UNREACHABLE — it can never be positively entered, so the witness
+        // primitive can never record it; its non-witnessing is a SOUND proof (covered_by_proof),
+        // mirroring rtl_frontend's `port_direction_token`. Shape:
+        //   list := item ( sep !stop item )*    (stop appears ONLY under `!`)
+        let mut g = HashMap::new();
+        g.insert(
+            "list".into(),
+            seq(vec![
+                rule_ref("item"),
+                quant(
+                    seq(vec![rule_ref("sep"), look(rule_ref("stop"), false), rule_ref("item")]),
+                    "*",
+                ),
+            ]),
+        );
+        g.insert("item".into(), token("string", "id"));
+        g.insert("sep".into(), token("string", ","));
+        g.insert("stop".into(), token("string", "X"));
+        let order: Vec<String> =
+            vec!["list".into(), "item".into(), "sep".into(), "stop".into()];
+
+        // `stop` is structurally reachable (via the lookahead edge) but NOT positively reachable.
+        assert!(reachable_rules(&g, &order).contains("stop"));
+        assert!(!positively_reachable_rules(&g, &order).contains("stop"));
+        // ...while every positively-used rule IS positively reachable.
+        for r in ["list", "item", "sep"] {
+            assert!(
+                positively_reachable_rules(&g, &order).contains(r),
+                "{r} is used positively and must be positively reachable"
+            );
+        }
+
+        // The detector surfaces exactly `stop`; the proof-gather puts it (and only it) in the proof set.
+        assert_eq!(detect_lookahead_only_rules(&g, &order), vec!["stop".to_string()]);
+        let (proof, fails) = gather_verified_proof_covered_rules(&g, &order);
+        assert!(fails.is_empty(), "no proof should fail re-verify: {fails:?}");
+        assert!(proof.contains("stop"), "lookahead-only `stop` must be proof-covered");
+        assert!(!proof.contains("item"), "a positively-used rule is NOT proof-covered");
+
+        // The checker re-verifies a valid certificate and REJECTS a bogus one (a positively-reachable
+        // rule claimed lookahead-only) — soundness: the proof bucket can never be gamed.
+        let cert = WellformednessCertificate::LookaheadOnlyRule { rule: "stop".into() };
+        assert!(verify_wellformedness_certificate(&g, &order, None, &cert).is_ok());
+        let bogus = WellformednessCertificate::LookaheadOnlyRule { rule: "item".into() };
+        assert!(
+            verify_wellformedness_certificate(&g, &order, None, &bogus).is_err(),
+            "claiming a positively-reachable rule is lookahead-only must be rejected"
+        );
+    }
+
+    #[test]
+    fn rule_used_both_positively_and_in_lookahead_is_not_lookahead_only() {
+        // SOUNDNESS guard: a rule used BOTH positively AND inside a lookahead is positively
+        // reachable, so it must NOT be proof-classified (it can and must still be witnessed). This
+        // is what stops the proof bucket from ever masking a real witness. Shape:
+        //   r := dir ( sep !dir item )*   (`dir` is the first positive element AND the guard)
+        let mut g = HashMap::new();
+        g.insert(
+            "r".into(),
+            seq(vec![
+                rule_ref("dir"),
+                quant(
+                    seq(vec![rule_ref("sep"), look(rule_ref("dir"), false), rule_ref("item")]),
+                    "*",
+                ),
+            ]),
+        );
+        g.insert("dir".into(), token("string", "in"));
+        g.insert("sep".into(), token("string", ","));
+        g.insert("item".into(), token("string", "id"));
+        let order: Vec<String> = vec!["r".into(), "dir".into(), "sep".into(), "item".into()];
+        assert!(positively_reachable_rules(&g, &order).contains("dir"));
+        assert!(detect_lookahead_only_rules(&g, &order).is_empty());
+        let (proof, _) = gather_verified_proof_covered_rules(&g, &order);
+        assert!(
+            !proof.contains("dir"),
+            "a rule used both positively and in a lookahead must NOT be proof-covered"
         );
     }
 

@@ -1,4 +1,40 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - RTL-FE-CLOSURE.5.1.1 — a positively-unreachable (lookahead-only) rule is a SOUND proof, not an UNKNOWN (PGEN-RTL-FE-CLOSURE-0016)
+
+### The residual (a rule the witness primitive can never record)
+After `.5.3`, rtl_frontend's certificate-coverage residual was `UNKNOWN=2 = {port_direction_token, white_space}`. `port_direction_token` is the unique rule referenced ONLY inside a negative lookahead:
+
+```
+port_group := port_direction &( data_type packed_range? port_item ) data_type packed_range? port_item ( comma !port_direction_token port_item )*
+            | port_direction packed_range? port_item ( comma !port_direction_token port_item )*
+...
+port_direction       := kw_input -> {kind:"input"} | kw_output -> {kind:"output"} | kw_inout -> {kind:"inout"}
+port_direction_token := kw_input -> {kind:"input"} | kw_output -> {kind:"output"} | kw_inout -> {kind:"inout"}   # byte-identical to port_direction
+```
+
+The reach pass (`.5.4`, which stopped descending into lookaheads) already reported it as "NO reach path (dead-rule candidate — adjudicate via the linter)". The witness side records POSITIVE rule entry; a lookahead is a parser assertion that consumes no input and emits nothing, so the rule is never positively entered and can never be witnessed. That is not a generator deficiency and not a dead branch — it is a **positively-unreachable** rule whose non-witnessing is correct.
+
+### The decision: proof-classify, not remove
+The leaf offered two resolutions: proof-classify, or refactor (point `!port_direction_token` at the identical `port_direction` and drop the duplicate). Proof-classify was chosen because:
+- the `!port_direction_token` lookahead does **real parse work** (it stops the inner `( comma port_item )*` at a direction keyword so the outer `( comma port_group )*` starts a new group), so the rule is **not dead** — removing it would be the wrong attribution;
+- the certifying model's `proof` bucket is the intended home for a provably-unreachable rule with a checkable certificate (the reach pass already flags it for "linter adjudication" — this IS the adjudication);
+- it is a GENERAL parser-agnostic capability (any lookahead-only rule, in any grammar) — it was additive for SystemVerilog too (one genuinely lookahead-only SV rule);
+- it is analysis-only (no grammar/parser/release change) and it preserves the deliberately-RETAINED `.5.4` real-grammar reach guard (whose subject is `port_direction_token`).
+
+### The mechanism (the linter's proof side, `rust/src/ast_pipeline/grammar_wellformedness.rs`)
+The structural insight: a rule is **positively-unreachable** iff it is in `reachable_rules` (the existing walk, which follows references everywhere including lookaheads) but NOT in a new `positively_reachable_rules` (the same walk, but its transitive closure does **not** descend into `ASTNode::Lookahead` — the `.5.4` reach-honesty principle, lifted from the stimuli reach search to the linter). The root set for the positive walk still uses references-ANYWHERE, so a lookahead-only rule is never mistaken for an unreferenced top-level entry.
+- `collect_node_positive_rule_refs` — like `collect_node_rule_refs` but the `Lookahead` arm does not recurse.
+- `positively_reachable_rules` — `reachable_rules` with positive-only closure edges.
+- `detect_lookahead_only_rules` = `reachable ∖ positively_reachable` (deterministic over `rule_order`).
+- `WellformednessCertificate::LookaheadOnlyRule { rule }` + a checker arm in `verify_wellformedness_certificate` that re-derives both sets independently (holds iff reachable && !positively).
+- `gather_verified_proof_covered_rules` runs the detector, re-verifies each certificate, adds the verified rules to `proof_covered` (disjoint from the structural `UnreachableRule` proof — those are not reachable at all). A failed re-verify is a LINTER BUG surfaced in `failures`, never silently counted.
+
+### Soundness (why the proof bucket can never mask a witness)
+A rule referenced BOTH positively and in a lookahead IS positively reachable, so it is never flagged — the dedicated test `rule_used_both_positively_and_in_lookahead_is_not_lookahead_only` guards this. A witnessed rule was positively entered → positively reachable → never flagged. And `verify_wellformedness_certificate` independently re-derives the sets, so a bogus claim is rejected (`proof_reverify_failures` was 0 on every grammar). Empirically: rtl_frontend and SV both kept witness byte-identical (168→168, 726→726) across the git-stash A/B; the only deltas were UNKNOWN→proof.
+
+### Validation
+rtl_frontend cert UNKNOWN 2→1 (deterministic seeds 0/7/42, spf 0); SV additive (UNKNOWN 616→615, witness preserved); json/vhdl/svpp/regex fully_certified inert (proof=0). lib 752/752 (+3 guards); clippy source clean; `rtl_frontend_generated_contract_gate` + `stimuli_cross_family_platform_gate` + `mdbook_docs_gate` PASS. ANALYSIS-ONLY ⇒ no release/schema/inventory/manifest/parser/grammar change. Frontier → `.5.1.2` (remove the engine-shadowed-dead `white_space` → fully_certified).
+
 ## 2026-06-14 - RTL-FE-CLOSURE.5.3 — a reach path must travel a non-self-recursive branch when one exists (PGEN-RTL-FE-CLOSURE-0015)
 
 ### The defect (a reach directive forced through a self-recursive branch, firing on every entry)
