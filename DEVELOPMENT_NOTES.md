@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-14 - CERT-GEN-BUDGET.1 — the certificate-coverage diverse pass never arms the B1 step-budget, so generation is time-unbounded on deeply-recursive grammars (PGEN-CERT-GEN-BUDGET-0001)
+
+### The misbehavior (director-flagged, must not be ignored)
+While capturing a cross-grammar cert baseline I observed an `ast_pipeline --report-certificate-coverage` run "stuck" ~6.5 min on `rtl_const_expr`. Per the be-alert / root-cause-fishy-immediately discipline (and the director's explicit instruction to task-tree track + investigate every misbehavior), this was root-caused tools-first rather than worked around.
+
+### Tools-first characterization (clean pre-change debug binary)
+- count 5, depths 4/8/12/16: all error instantly (`Stimuli generation depth exceeded max_depth=N`). The operator-precedence chain `conditional_expr → … → primary_expr := lparen conditional_expr rparen` is ~14 levels, so any depth below ~28 cannot reach a terminal. (This also exposed a misleading harness label: my earlier `(timeout/none)` baseline rows at depth 12 were INSTANT errors, not 150s hangs.)
+- count 1 depth sweep, seed 0 — generation time is **non-monotonic in `--max-depth`**: depth 24 instant `DepthExceeded` on `identifier`; depth 28 a SINGLE sample > 200s (`rc=124 real=200.01s`; the child was 100% CPU then reaped, RSS ~21 MB — CPU-bound generation, not a memory leak, not a deadlock); depth 32 succeeds in 18.15s/sample (`fully_certified` 48/48); depth 40 again > 40s / non-terminating within budget.
+- So the canonical `rtl_const_expr` cert (`--max-depth 32 --count 40`) ≈ 40 × ~10s ≈ the observed 6.5 min — slow but finite at depth 32; depths 28/40 are effectively non-terminating.
+
+### Root cause (WHERE)
+The cert-coverage PASS-1 *diverse* config (`rust/src/main.rs:2370`) is built `StimuliConfig { seed, enforce_word_boundary_spacing: true, max_depth, ..Default::default() }`. The `..Default::default()` leaves `target_generation_timeout_ms = 0` (`stimuli_generator.rs:208`). `timeout_budget_from_ms(0)` returns `None` (`:1682-1696`), so `generate_many` → `generate_from_entry` never sets `active_generation_deadline`, and `generation_deadline_exceeded()` always returns `false` (`:1697-1707`). The deterministic step-budget added by `GRAMMAR-WELLFORMED.B1` (`PGEN-GRAMMAR-WELLFORMED-0005`) — built to bound generation deterministically — is therefore **never armed for the diverse pass**. It is unbounded by omission: deliberate, to keep the diverse pass byte-identical to historical behavior (the `main.rs:2370` comment), but with an unanticipated non-terminating consequence on a deeply-recursive grammar.
+
+### Severity + the SV contrast
+Generator / proof-tooling robustness, NOT shipped-parser correctness (no parser/AST/release impact; cert numbers stay correct and deterministic when the pass completes). But a core proof surface can effectively hang on a recursive grammar, which is exactly what alarmed the director. Separately: the SV `--count 40` >150s cost is the BOUNDED plannable-rule reach pass over 645 `UNKNOWN` rules (each ≤4 probes × `PLANNABLE_REACH_ATTEMPT_TIMEOUT_MS=250ms`, `main.rs:2490/2526`) — bounded-per-probe but many probes; SV's diverse pass at default depth 24 terminates fast. That is a separate, lesser concern, not this defect.
+
+### Fix direction (ticketed `CERT-GEN-BUDGET.2`, not implemented here)
+Arm a generous DEFAULT deterministic step-budget for the diverse pass (via the existing B1 machinery) large enough to leave json/regex/systemverilog/vhdl/systemverilog_preprocessor/rtl_frontend byte-identical AND let rtl_const_expr still complete at depth 32 (~18s/sample), but that deterministically cuts off the depth-28/40 pathology (bounded `DepthExceeded`/step-budget discard instead of a >200s spin). Must be proven byte-identical for the 6 well-behaved grammars via a decisive git-stash A/B.
+
 ## 2026-06-14 - RTL-FE-CLOSURE.10 — keyword word boundaries belong INSIDE the keyword regex (`\b`), because a separate boundary terminal is defeated by layout-skip (PGEN-RTL-FE-CLOSURE-0006)
 
 ### The defect: prefix-matching keywords used as a negation set
