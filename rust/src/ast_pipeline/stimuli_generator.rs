@@ -2916,9 +2916,28 @@ impl<'a> StimuliGenerator<'a> {
     ) -> PlannableReachReport {
         let original_max_depth = self.config.max_depth;
         let original_max_rule_visits = self.config.max_rule_visits;
-        self.config.max_depth = original_max_depth.saturating_mul(2);
         self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
-        let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
+        // RTL-FE-CLOSURE.5.2 (PGEN-RTL-FE-CLOSURE-0009): budget the witness-pass depth
+        // PER TARGET, not by a single global multiple of the diverse default. ROOT CAUSE
+        // (decisive trace): a reach plan steers correctly to a deeply-nested target, but the
+        // target's MANDATORY minimal sub-derivation — e.g. an expression that must descend a
+        // ~15-level precedence chain to a terminal — plus the depth already spent reaching the
+        // nested target can exceed the fixed `original * 2` budget; the forced branch then
+        // aborts with depth-exceeded and falls back to a shallow sibling, leaving the target
+        // unwitnessed (the dominant rtl_frontend Cluster-C reach gap). A single GLOBAL deeper
+        // budget fixes correctness but lets *unwitnessable* targets (e.g. construct-mode
+        // over-generation) explore deeply up to the per-attempt timeout instead of failing
+        // fast — pathologically slow. So each target gets `reach_prefix_budget` (`original * 2`,
+        // a generous allowance for the BFS-shortest path down to even a deeply-nested target)
+        // PLUS its OWN minimal SUBTREE depth `min_derivation_depths[target]` (so the target's
+        // mandatory minimal sub-derivation always fits). Deep targets get exactly the depth their
+        // minimal witness needs; shallow/unwitnessable targets keep a tight budget and fail fast.
+        // Additive (only ever DEEPENS vs the old `original * 2` → witnesses MORE, never fewer);
+        // fully-certified grammars never run this pass (UNKNOWN==0 guard) so it is inert for them;
+        // stack-safe (scales with derivation depth, not rule count); the per-attempt timeout + the
+        // doubled `max_rule_visits` remain the recursion backstops. GENERAL/parser-agnostic.
+        let min_derivation_depths = self.compute_min_full_derivation_depths();
+        let reach_prefix_budget = original_max_depth.saturating_mul(2);
         let previous_witness_mode = self.witness_mode;
         self.witness_mode = true;
         let previous_table = self.witness_min_terminal_lengths.take();
@@ -2928,6 +2947,9 @@ impl<'a> StimuliGenerator<'a> {
 
         let mut report = PlannableReachReport::default();
         for rule in target_rules {
+            let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
+            self.config.max_depth = reach_prefix_budget.saturating_add(target_subtree_depth);
+            let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
             if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
                 report.no_path.push(rule.clone());
                 continue;
@@ -2944,6 +2966,13 @@ impl<'a> StimuliGenerator<'a> {
                     Ok(sample) => Ok(sample),
                     // Construction dead-ended (e.g. the committed shortest off-path
                     // choice can't complete) → plan-forced SEARCH, same bounded budget.
+                    // RTL-FE-CLOSURE.5.2: but a construct that already exhausted the full
+                    // per-attempt TIMEOUT will only time out again under the identical budget,
+                    // so re-running search just doubles the wall-clock for the same failure —
+                    // surface the timeout directly instead (the deeper per-target budgets this
+                    // slice introduced make construct timeouts more common on unwitnessable
+                    // targets, and the redundant fallback was the dominant reach-pass cost).
+                    Err(e) if Self::is_target_timeout_error(&e) => Err(e),
                     Err(_) => {
                         self.generate_from_entry_with_optional_timeout(entry_rule, timeout)
                     }
@@ -2962,9 +2991,20 @@ impl<'a> StimuliGenerator<'a> {
                             report.probe_parse_failures += 1;
                         }
                     },
-                    Err(_) => {
+                    Err(e) => {
                         last_parsed_not_witnessed = false;
                         report.generation_failures += 1;
+                        // RTL-FE-CLOSURE.5.2: a per-attempt TIMEOUT means the construct is
+                        // structurally too deep to complete within this rule's budget; the
+                        // retries exist to re-roll terminal expansions for a `ParsedNotWitnessed`
+                        // probe, not to outlast a timeout that the identical budget will only
+                        // reproduce. Stop retrying this rule on a timeout (it can only repeat),
+                        // which keeps the reach pass fast on the genuinely-unwitnessable deep
+                        // targets the per-target budgets now construct further into. A dead-end
+                        // or parse miss still uses the full retry budget.
+                        if Self::is_target_timeout_error(&e) {
+                            break;
+                        }
                     }
                 }
                 // GRAMMAR-WELLFORMED.C2.2: once phase 1 has captured the count-gated
@@ -4798,6 +4838,116 @@ impl<'a> StimuliGenerator<'a> {
                 },
             },
         }
+    }
+
+    /// RTL-FE-CLOSURE.5.2 (PGEN-RTL-FE-CLOSURE-0009): the minimum GENERATION DEPTH a
+    /// node's shortest complete derivation consumes, given the current per-rule estimates
+    /// `depths`. This is the DEPTH analogue of `min_terminal_length_of_node` (which
+    /// measures terminal-atom COUNT): it answers "how many `generate_rule` / `generate_node`
+    /// recursion levels does the shallowest full expansion need," so the plannable-rule
+    /// witness pass can size its `max_depth` budget to the grammar's actual deepest minimal
+    /// witness instead of a fixed multiple of the diverse default. (Root cause it fixes: a
+    /// reach plan can steer correctly to a deeply-nested target, yet the target's MANDATORY
+    /// minimal sub-derivation — e.g. an expression that must descend a ~15-level precedence
+    /// chain to a terminal — then overflows a fixed `original * 2` budget and the forced
+    /// branch aborts with depth-exceeded, falling back to a shallow sibling.)
+    ///
+    /// Depth accounting mirrors the generator's recursion (`generate_rule` descends one
+    /// level into a rule body; `generate_node` descends one level per nesting node), so it
+    /// is an over-estimate-safe structural proxy for the real runtime depth. `Or` takes the
+    /// SHALLOWEST resolvable alternative (Purdom SHORT — the witness pass orders by
+    /// min-length and commits to it); `Sequence` takes the DEEPEST element (all must be
+    /// derived; the tallest sets the depth); a `?`/`*` quantifier (min repeat 0) contributes
+    /// no depth like the length fixpoint — its minimal expansion is empty — while `+`/`{n,}`
+    /// descend the body once (the on-path quantifiers a reach plan forces to expand are
+    /// covered by the `deepest * 2` budget headroom, not by inflating every grammar tail);
+    /// a lookahead consumes no generation depth. `None` whenever a needed estimate is not yet available,
+    /// exactly like the length fixpoint — so `compute_min_full_derivation_depths` retries on
+    /// the next pass and a non-terminating rule (no resolvable derivation) never enters the
+    /// map. PURE analysis; never on the hot generation path. GENERAL/parser-agnostic.
+    fn min_full_derivation_depth_of_node(
+        node: &ASTNode,
+        depths: &HashMap<String, usize>,
+    ) -> Option<usize> {
+        match node {
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .filter_map(|alt| Self::min_full_derivation_depth_of_node(alt, depths))
+                .min()
+                .map(|d| d.saturating_add(1)),
+            ASTNode::Sequence { elements } => {
+                let mut deepest: usize = 0;
+                for element in elements {
+                    deepest =
+                        deepest.max(Self::min_full_derivation_depth_of_node(element, depths)?);
+                }
+                Some(deepest.saturating_add(1))
+            }
+            ASTNode::Quantified { element, quantifier } => {
+                // Mirror `min_terminal_length_of_node`: a `?`/`*` (min repeat 0) minimally
+                // matches empty → contributes no derivation depth; `+`/`{n,}` descend the
+                // body once. The on-path quantifiers a reach plan forces to expand >=1 are
+                // covered by the `deepest * 2` budget headroom, NOT by inflating every
+                // grammar `*` tail here (which would over-deepen the ceiling and make the
+                // witness pass pathologically slow on expression-heavy grammars whose every
+                // precedence level carries a `(op next)*` tail).
+                let (min_count, _) =
+                    super::parse_quantifier_bounds(quantifier).unwrap_or((0, None));
+                if min_count == 0 {
+                    Some(0)
+                } else {
+                    Self::min_full_derivation_depth_of_node(element, depths)
+                        .map(|d| d.saturating_add(1))
+                }
+            }
+            ASTNode::Lookahead { .. } => Some(0),
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => {
+                    Self::min_full_derivation_depth_of_node(inner, depths).map(|d| d.saturating_add(1))
+                }
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    // A rule reference descends one `generate_rule` level into the rule.
+                    Some(("rule_reference", referenced_rule)) => {
+                        depths.get(referenced_rule).map(|d| d.saturating_add(1))
+                    }
+                    // Any terminal lexeme bottoms out at this level.
+                    Some(_) => Some(1),
+                    None => Some(1),
+                },
+            },
+        }
+    }
+
+    /// RTL-FE-CLOSURE.5.2: per-rule minimum full-derivation depth via the same monotone
+    /// fixpoint shape as `compute_min_terminal_lengths` (a rule's depth is `1 +` its body's
+    /// node depth — the rule's own `generate_rule` level; non-terminating rules never
+    /// resolve and stay absent). Used only to size the plannable witness pass's depth
+    /// budget; never on the hot generation path.
+    fn compute_min_full_derivation_depths(&self) -> HashMap<String, usize> {
+        let mut depths: HashMap<String, usize> = HashMap::new();
+        loop {
+            let mut changed = false;
+            for rule_name in self.rule_order.iter() {
+                let Some(node) = self.grammar_tree.get(rule_name.as_str()) else {
+                    continue;
+                };
+                let Some(body_depth) = Self::min_full_derivation_depth_of_node(node, &depths) else {
+                    continue;
+                };
+                let candidate = body_depth.saturating_add(1);
+                match depths.get(rule_name.as_str()) {
+                    Some(&existing) if existing <= candidate => {}
+                    _ => {
+                        depths.insert(rule_name.clone(), candidate);
+                        changed = true;
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        depths
     }
 
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis): compute the
@@ -16680,6 +16830,123 @@ mod tests {
             "orphan must report no_path"
         );
         assert_eq!(report.attempted, 0);
+    }
+
+    #[test]
+    fn min_full_derivation_depth_increases_along_a_rule_chain() {
+        // RTL-FE-CLOSURE.5.2: the depth fixpoint that sizes the per-target witness budget
+        // must grow with derivation depth — a longer mandatory rule chain yields a strictly
+        // larger minimal-derivation depth — and an `Or` takes the SHALLOWEST resolvable
+        // alternative (so a choice between a shallow and a deep branch is governed by the
+        // shallow one).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("leaf".to_string(), token("quoted_string", "x"));
+        grammar_tree.insert("mid".to_string(), token("rule_reference", "leaf"));
+        grammar_tree.insert("top".to_string(), token("rule_reference", "mid"));
+        grammar_tree.insert(
+            "choice".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "leaf"),
+                    token("rule_reference", "top"),
+                ],
+            },
+        );
+        let rule_order = vec![
+            "leaf".to_string(),
+            "mid".to_string(),
+            "top".to_string(),
+            "choice".to_string(),
+        ];
+        let generator = simple_generator(&grammar_tree, &rule_order, 1);
+        let depths = generator.compute_min_full_derivation_depths();
+        assert!(
+            depths["leaf"] < depths["mid"] && depths["mid"] < depths["top"],
+            "minimal-derivation depth must grow along the chain: {:?}",
+            depths
+        );
+        // The `Or` resolves through its shallowest branch (`leaf`), so it never exceeds the
+        // deep branch (`top`) — the witness budget is governed by the shallowest derivation.
+        assert!(
+            depths["choice"] <= depths["top"],
+            "Or picks the shallowest branch: choice={} top={}",
+            depths["choice"],
+            depths["top"]
+        );
+    }
+
+    #[test]
+    fn plannable_witness_reaches_target_behind_deep_mandatory_chain() {
+        // RTL-FE-CLOSURE.5.2 end-to-end (the generate_if/rtl_expr shape in miniature): a
+        // target sits behind an OR branch (force-entry) whose subtree is a deep MANDATORY
+        // rule chain. Under the OLD fixed `original_max_depth * 2` witness budget the chain
+        // overflows the depth limit, the forced branch aborts with depth-exceeded, and
+        // generation falls back to the shallow sibling — so the target is NEVER witnessed.
+        // The per-target budget (`original * 2 + min-derivation-depth[target]`) gives the
+        // mandatory chain room, so the target witnesses. With `simple_generator`'s
+        // `max_depth = 8` the doubled budget is 16; a 14-rule chain needs ~30 depth, so this
+        // test fails if the budget regresses to the fixed `* 2`.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("rule_reference", "item"));
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    token("rule_reference", "cheap"),
+                    token("rule_reference", "deep_target"),
+                ],
+            },
+        );
+        grammar_tree.insert("cheap".to_string(), token("quoted_string", "c"));
+        grammar_tree.insert(
+            "deep_target".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("quoted_string", "t"), token("rule_reference", "c0")],
+            },
+        );
+        let chain_len = 14;
+        let mut rule_order = vec![
+            "start".to_string(),
+            "item".to_string(),
+            "cheap".to_string(),
+            "deep_target".to_string(),
+        ];
+        for i in 0..chain_len {
+            let name = format!("c{}", i);
+            let body = if i + 1 < chain_len {
+                token("rule_reference", &format!("c{}", i + 1))
+            } else {
+                token("quoted_string", "x")
+            };
+            grammar_tree.insert(name.clone(), body);
+            rule_order.push(name);
+        }
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        let mut probes: Vec<String> = Vec::new();
+        let report = generator.generate_plannable_rule_witnesses(
+            "start",
+            &["deep_target".to_string()],
+            0,
+            4,
+            |_rule, sample| {
+                probes.push(sample.to_string());
+                if sample.contains('t') {
+                    PlannableProbeVerdict::Witnessed
+                } else {
+                    PlannableProbeVerdict::ParsedNotWitnessed
+                }
+            },
+        );
+        assert_eq!(
+            report.attempted, 1,
+            "deep_target is graph-reachable: {:?}",
+            report
+        );
+        assert_eq!(
+            report.witnessed, 1,
+            "per-target depth budget must reach the target behind the deep mandatory chain; probes={:?}",
+            probes
+        );
     }
 
     #[test]

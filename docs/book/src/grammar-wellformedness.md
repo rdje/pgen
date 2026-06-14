@@ -453,6 +453,25 @@ LRM requires a *balanced-parentheses* rule). The pass could not witness a shape 
 exactly the attribution rule doing its job, with the defect routed to the grammar, not papered over in
 the generator.
 
+A later refinement made this pass **budget its generation depth per target** rather than by a fixed
+multiple of the diverse default. Forcing a path to a correctly-reached target is only half the job: the
+target's *own* minimal sub-derivation still has to complete, and for a grammar that nests a deep construct
+inside a deep one — e.g. a synthesizable-RTL `generate if (…)` whose condition must descend a ~15-level
+expression-precedence chain to a terminal — the combined depth (the path down to the nested target *plus*
+its mandatory subtree) can exceed a one-size budget. When it does, the forced branch aborts with
+"depth exceeded" and generation falls back to a shallow sibling, so the target re-parses-but-routes
+elsewhere and never witnesses. The pass therefore sizes each target's budget as a reach-prefix allowance
+**plus that target's own minimal-derivation depth**, computed by a small structural fixpoint (the depth
+analogue of the shortest-terminal-length table — `Or` takes its shallowest alternative, `Sequence` its
+deepest element, a `?`/`*` quantifier contributes nothing at its minimum). Deep targets get exactly the
+room their minimal witness needs; shallow or genuinely-unwitnessable targets keep a tight budget and fail
+*fast* (a construct that exhausts the per-attempt timeout is not retried — the same budget only reproduces
+the timeout — and the redundant search fallback after a timeout is skipped). The effect is additive: a
+deeper budget only ever witnesses *more*, never fewer, and grammars already certified clean never run this
+pass at all. On the `rtl_frontend` subset this closed the dominant residual cluster (certificate-coverage
+`UNKNOWN` 66 → 16, deterministic across seeds), and on SystemVerilog it both witnessed more rules and made
+the pass markedly faster (the timeout guards turned slow run-to-timeout failures into fast ones).
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule
