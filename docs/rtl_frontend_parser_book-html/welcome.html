@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2cdc718e.js";
+            window.path_to_searchindex_js = "searchindex-f8e1b4cd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b4e659eb.js"></script>
@@ -199,6 +199,7 @@
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>The PGEN rtl_frontend parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers file-scope typedefs/packages/modules, module headers + imports + parameters + ANSI ports, parameter/localparam declarations, typedefs, imports, genvars, net declarations, continuous assigns, the <code>always*</code> family, generate regions (if/for), module instantiations with named/ordered overrides and named/ordered/wildcard port connections, enum/struct/union types, builtin and package-qualified types, and the unary/binary/ternary expression core shared with <code>rtl_const_expr</code>.</p>
 <p>The rtl_frontend return-annotation campaign landed <code>RTL-FE-Slice-1..7</code> on 2026-05-14 across seven slices, growing from 1 → 156 annotations; the <code>1.0.4</code> <code>RTL-FE-CLOSURE.9</code> bare-ANSI-port acceptance fix later added the 157th (the <code>port_group</code> no-type branch); the <code>1.0.5</code> <code>RTL-FE-CLOSURE.10</code> keyword word-boundary fix later accepted keyword-prefixed identifiers (<code>input_data</code>, <code>reg_file</code>) with no inventory change. Subsequent shape-affecting slices get their own changelog entries here.</p>
+<p>As of <code>RTL-FE-CLOSURE.8</code> (2026-06-15) the rtl_frontend family’s live-tracker row is <strong><code>Done</code></strong>: its PGEN per-family closure bar is met — certificate-coverage <code>fully_certified=true</code> (<code>total=169 proof=1 witness=168 UNKNOWN=0</code>, deterministic at seeds 0/7/42, zero sample-parse failures) plus the green <code>rtl_frontend_generated_contract_gate</code> (generated-parser probe + handwritten <code>parse_design</code> parity + the ratcheted 59-sample 46/13 <code>expected_elaboration</code> replay). This is a closure-proof / live-status milestone, not a shape change: the parser release stays <code>1.0.5</code> and the AST-dump schema stays <code>3</code>. rtl_frontend is the sixth fully-certified PGEN grammar (after json, regex, rtl_const_expr, systemverilog_preprocessor, and vhdl).</p>
 
                     </main>
 

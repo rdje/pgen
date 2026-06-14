@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - RTL-FE-CLOSURE.8 — rtl_frontend LIVE row promoted to Done; RTL-FE-CLOSURE tree complete (PGEN-RTL-FE-CLOSURE-0019)
+
+### The closure leaf
+`.8` is the final `RTL-FE-CLOSURE` leaf: with the cert leg closed (`.5.1.2`) and the elaboration leg confirmed (`.7`), it promotes the LIVE `rtl_frontend` synthesizable-subset baseline row `In Progress → Done` and lock-steps every status surface. The Done bar (from `.1`, sanctioned by the director's 2026-06-08 locked-program) = cert `fully_certified` + elaboration-facing closure + the LIVE promotion.
+
+### Re-verifying the evidence at HEAD (and a binary gotcha worth remembering)
+Rather than cite the `.5.1.2`/`.7` commits, I re-ran all three legs at HEAD. The cert re-run first used the WRONG binary — `rust/target/ebnf_frontend_build/debug/ast_pipeline` (built 2026-06-14, before the `.5.1.2` regen, and without the `generated_parsers` detail parser or the `.5.1.1` proof code) — which misreported `fully_certified=false` / `proof=0` / `UNKNOWN=43` with a sample-parse error `"(no detail-capable parser registered)"`. Per `feedback_be_alert_root_cause_fishy_immediately` I stopped and root-caused it to binary staleness/feature mismatch, then re-ran with the current `rust/target/debug/ast_pipeline` (built 00:36, post-regen): `total=169 proof=1 witness=168 UNKNOWN=0 fully_certified=true`, byte-identical at seeds 0/7/42. **Operational lesson:** two debug `ast_pipeline` binaries can coexist with different features/freshness; `rust/target/debug/ast_pipeline` (the default `cargo build` target) is the authoritative one for cert-coverage, and its compiled-in generated parser must post-date any `generated/` regen.
+
+### The `Done` decision (orthogonal to "released parser")
+The flip is a closure-proof maturity statement in the LIVE tracker, not a "now it's released" event: rtl_frontend was already a released parser (release `1.0.5`, with ledger rows `RTL-FE-0001`/`0002`). So the promotion does not change the bug-ledger convention, and I deliberately left the historical `1.0.4`/`1.0.5` "not a ledger row (In Progress)" highlights intact (they were accurate when written). Only the forward-looking status statements were updated.
+
+### Lockstep surfaces (8)
+LIVE `rtl_frontend` row (status + cited evidence); the Phase S overall row (corrected its stale "still lacks parity/proof closure" clause, kept `In Progress` for the unstarted Liberty/SDC); a new tracker note; `README.md` rtl_frontend key-path; top-level book `parser-families.md`; the integration contract (the "In Progress family" line + `Last updated`); the per-parser book `welcome.md` Status + `changelog-index.md`. Gates: `mdbook_docs_gate` + `rtl_frontend_parser_book_gate` both PASS (the per-parser gate regenerated the tracked HTML, including the mdbook search-index hash rename, which is staged).
+
+### Validation / versioning
+cert `fully_certified` (re-run seeds 0/7/42), generated-contract gate PASS, shape-contract inventory 157, both book gates PASS. NO functional change ⇒ release `1.0.5` / schema `3` / inventory `157` / contract `0.2.0` all unchanged; no ledger event. rtl_frontend is the 6th fully-certified grammar; SystemVerilog is now the only non-fully-certified shipped grammar. The `RTL-FE-CLOSURE` tree is complete.
+
 ## 2026-06-15 - RTL-FE-CLOSURE.7 — elaboration-facing closure confirmed met; no ratchet required (PGEN-RTL-FE-CLOSURE-0018)
 
 ### The leaf and what it had to decide

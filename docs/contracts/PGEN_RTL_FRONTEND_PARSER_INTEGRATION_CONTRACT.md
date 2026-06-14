@@ -17,7 +17,7 @@ This is the document downstream projects (primarily RTLSyn) embedding the PGEN r
 - Annotation inventory:
   - `157` return annotations on `74` distinct rules (156 / 74 through `1.0.3`; the `1.0.4` `RTL-FE-CLOSURE.9` fix added the `port_group` no-type branch annotation; the `1.0.5` `RTL-FE-CLOSURE.10` keyword word-boundary fix kept the count at `157` / `74` — keyword rules carry no return annotation)
 - Last updated:
-  - `2026-06-14`
+  - `2026-06-15`
 - Current grammar family label:
   - `rtl_frontend`
 - Per-family mdBook:
@@ -1163,5 +1163,5 @@ schema `3` / **156 annotations across 74 distinct rules**.
 
 ## Scope / Non-Goals
 - The stable downstream contract is the host-oriented embedding API, not internal generated parser modules or internal AST types.
-- `rtl_frontend` is an `In Progress` family in the live tracker. The current grammar covers the synthesizable RTL subset; the full IEEE 1800 SystemVerilog surface is **out of scope** — see the `systemverilog` family for that.
+- `rtl_frontend`'s LIVE row is `Done` (leaf `RTL-FE-CLOSURE.8`, 2026-06-15): its per-family PGEN closure bar — certificate-coverage `fully_certified=true` (`UNKNOWN=0`, deterministic at seeds 0/7/42) plus the green `rtl_frontend_generated_contract_gate` (probe + handwritten parity + the 59-sample 46/13 elaboration replay) — is met. The current grammar covers the synthesizable RTL subset; the full IEEE 1800 SystemVerilog surface is **out of scope** — see the `systemverilog` family for that.
 - When reporting downstream bugs, follow `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`; accepted released-parser bugs should then be logged in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.
