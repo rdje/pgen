@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - RTL-FE-CLOSURE.7 — elaboration-facing closure confirmed met; no ratchet required (PGEN-RTL-FE-CLOSURE-0018)
+
+### The leaf and what it had to decide
+With the cert-coverage leg closed by `.5.1.2` (rtl_frontend `fully_certified`, `UNKNOWN=0`), the RTL-FE-CLOSURE Done bar had one remaining leg to confirm before promotion (`.8`): the *elaboration*-facing closure. `.7` owns that confirmation and resolves the tree's last open question — whether the elaboration Done bar requires a ratchet beyond the current 59-sample (46/13) `expected_elaboration` replay, or whether cert `UNKNOWN=0`/`spf=0` is the gating criterion with elaboration already satisfied.
+
+### Why this is a confirmation, not a ratchet (the Done-bar definition)
+The `.1` SCOPING decision pinned the Done bar as cert-coverage `fully_certified` + **elaboration-facing closure = the `rtl_frontend_generated_contract_gate` green at contract `0.2.0`** + the LIVE-row promotion. The gate has been green at `0.2.0` since `.3`. So elaboration-facing closure is established by running the gate, not by adding evidence — unless the acceptance genuinely demands more, which it does not.
+
+### Decisive evidence (tools-first)
+- Ran `make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate` → **PASS (exit 0)**: stage-1 `rtl_frontend_generated_contract_probe` pass + stage-2 `rtl_frontend_handwritten_contract_replay` pass. The elaboration replay is the stage-2 handwritten layer, so its green is the elaboration Done-bar proof.
+- Measured the manifest (`rust/test_data/grammar_quality/rtl_frontend_generated_parity_contract_v0.json`, 130 samples): `expected_elaboration` present on **59** samples; splitting by the elaboration `ok` field gives **46 accepts (`ok:true`) / 13 rejects (`ok:false`)** — exactly the documented 46/13 (note: the 46/13 is the *elaboration* outcome, not the parse outcome — all 59 also parse).
+- Read the enforced minimums (`rtl_frontend/src/lib.rs:4610-4616`) and compared them to the manifest's achieved counts: every child-level ratchet is already pinned **exactly at actual** — child-path `20=20`, top-param `37=37`, child-param `21=21`, child-port-binding `85=85` — i.e. zero slack. There is no way to ratchet higher without adding curated samples, which is corpus expansion and out of the closure scope.
+
+### Resolution
+The gating criterion is cert `fully_certified` (`UNKNOWN=0`/`spf=0`) + the gate-green 59-sample (46/13) elaboration replay with its four enforced child-level minimums. Elaboration is already satisfied; no ratchet is demanded. The leaf's conditional "ratchet IF the acceptance demands more elaboration evidence" branch is therefore not taken — `.7` is a pure-docs confirmation.
+
+### Docs and validation
+README (line 107) and the top-level book (`parser-families.md:145`, `cli-and-workflows.md:44`) describe the elaboration layer truthfully (59 / 46 accepts / 13 rejects + the four ratcheted-minimum checks); no drift to fix. PURE-DOCS ⇒ no code/grammar/manifest/release/schema/ledger change; clippy not invoked. All three rtl_frontend closure legs are now green (cert `UNKNOWN=0` + generated-contract gate + elaboration replay); next leaf `.8` promotes the LIVE row to `Done` with the final lockstep.
+
 ## 2026-06-15 - RTL-FE-CLOSURE.5.1.2 — rtl_frontend fully certified: remove the engine-shadowed-dead white_space (PGEN-RTL-FE-CLOSURE-0017)
 
 ### The residual (a rule the engine's layout skipper makes un-matchable)
