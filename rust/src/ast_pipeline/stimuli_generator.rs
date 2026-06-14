@@ -2948,87 +2948,134 @@ impl<'a> StimuliGenerator<'a> {
         let mut report = PlannableReachReport::default();
         for rule in target_rules {
             let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
-            self.config.max_depth = reach_prefix_budget.saturating_add(target_subtree_depth);
-            let bypass_fuel = self.config.max_depth.saturating_add(1) as u32;
-            if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
-                report.no_path.push(rule.clone());
-                continue;
-            }
-            report.attempted += 1;
+            let baseline_budget = reach_prefix_budget.saturating_add(target_subtree_depth);
+
             let mut rule_witnessed = false;
             let mut last_parsed_not_witnessed = false;
-            for _ in 0..max_attempts_per_rule.max(1) {
-                self.construct_mode = true;
-                let construct_result =
-                    self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
-                self.construct_mode = false;
-                let result = match construct_result {
-                    Ok(sample) => Ok(sample),
-                    // Construction dead-ended (e.g. the committed shortest off-path
-                    // choice can't complete) → plan-forced SEARCH, same bounded budget.
-                    // RTL-FE-CLOSURE.5.2: but a construct that already exhausted the full
-                    // per-attempt TIMEOUT will only time out again under the identical budget,
-                    // so re-running search just doubles the wall-clock for the same failure —
-                    // surface the timeout directly instead (the deeper per-target budgets this
-                    // slice introduced make construct timeouts more common on unwitnessable
-                    // targets, and the redundant fallback was the dominant reach-pass cost).
-                    Err(e) if Self::is_target_timeout_error(&e) => Err(e),
-                    Err(_) => {
-                        self.generate_from_entry_with_optional_timeout(entry_rule, timeout)
-                    }
-                };
-                match result {
-                    Ok(sample) => match witness_check(rule, &sample) {
-                        PlannableProbeVerdict::Witnessed => {
-                            rule_witnessed = true;
-                            break;
+            let mut rule_attempted = false;
+            // RTL-FE-CLOSURE.5.5 (PGEN-RTL-FE-CLOSURE-0012): TWO-TIER per-target depth budget.
+            // TIER 1 is the `.5.2` baseline (`reach_prefix + min_subtree[target]`) and is
+            // BYTE-IDENTICAL to the prior behaviour — every target that witnesses at baseline is
+            // unaffected. TIER 2 (deeper) is tried ONLY when tier 1 did NOT witness AND a deep
+            // MANDATORY OFF-PATH SIBLING makes the minimal construct deeper than baseline. This
+            // surgically targets the residual Cluster-C THIRD sub-mechanism: a SHALLOW target
+            // whose forced construct must ALSO complete a deep mandatory sibling NOT in its own
+            // subtree — e.g. `kw_negedge` (subtree 4) must complete
+            // `event_control_item := event_edge? rtl_expr`, whose `rtl_expr` sibling descends the
+            // ~15-level precedence chain; the construct overflowed `reach_prefix + 4` and fell
+            // back. The fallback witnesses UBIQUITOUS rules (`literal`, `additive_op`: any
+            // expression sample contains one) at the baseline budget — so they stay on tier 1 and
+            // never pay the deep budget that would make them build (and time out on) a deep
+            // construct — but it cannot witness a RARE construct like `always_ff @(negedge …)`,
+            // which is exactly why those targets need tier 2. Strictly ADDITIVE: tier 2 never
+            // changes a baseline-witnessed target, so no cross-grammar regression is possible by
+            // construction (the deeper budget is the rejected `.5.2` global behaviour applied
+            // ONLY to targets the baseline already fails). `offpath` is computed LAZILY (only on
+            // baseline failure) so the common path keeps the `.5.2` cost.
+            let mut budget = baseline_budget;
+            let mut deep_tier_used = false;
+            loop {
+                self.config.max_depth = budget;
+                let bypass_fuel = budget.saturating_add(1) as u32;
+                if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                    // No reach path — budget-independent, so this is terminal for the rule.
+                    break;
+                }
+                rule_attempted = true;
+                for _ in 0..max_attempts_per_rule.max(1) {
+                    self.construct_mode = true;
+                    let construct_result =
+                        self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                    self.construct_mode = false;
+                    let result = match construct_result {
+                        Ok(sample) => Ok(sample),
+                        // Construction dead-ended (e.g. the committed shortest off-path
+                        // choice can't complete) → plan-forced SEARCH, same bounded budget.
+                        // RTL-FE-CLOSURE.5.2: but a construct that already exhausted the full
+                        // per-attempt TIMEOUT will only time out again under the identical budget,
+                        // so re-running search just doubles the wall-clock for the same failure —
+                        // surface the timeout directly instead (the deeper per-target budgets this
+                        // slice introduced make construct timeouts more common on unwitnessable
+                        // targets, and the redundant fallback was the dominant reach-pass cost).
+                        Err(e) if Self::is_target_timeout_error(&e) => Err(e),
+                        Err(_) => {
+                            self.generate_from_entry_with_optional_timeout(entry_rule, timeout)
                         }
-                        PlannableProbeVerdict::ParsedNotWitnessed => {
-                            last_parsed_not_witnessed = true;
-                        }
-                        PlannableProbeVerdict::NotParsed => {
+                    };
+                    match result {
+                        Ok(sample) => match witness_check(rule, &sample) {
+                            PlannableProbeVerdict::Witnessed => {
+                                rule_witnessed = true;
+                                break;
+                            }
+                            PlannableProbeVerdict::ParsedNotWitnessed => {
+                                last_parsed_not_witnessed = true;
+                            }
+                            PlannableProbeVerdict::NotParsed => {
+                                last_parsed_not_witnessed = false;
+                                report.probe_parse_failures += 1;
+                            }
+                        },
+                        Err(e) => {
                             last_parsed_not_witnessed = false;
-                            report.probe_parse_failures += 1;
+                            report.generation_failures += 1;
+                            // RTL-FE-CLOSURE.5.2: a per-attempt TIMEOUT means the construct is
+                            // structurally too deep to complete within this rule's budget; the
+                            // retries exist to re-roll terminal expansions for a
+                            // `ParsedNotWitnessed` probe, not to outlast a timeout that the
+                            // identical budget will only reproduce. Stop retrying this rule on a
+                            // timeout (it can only repeat), which keeps the reach pass fast on the
+                            // genuinely-unwitnessable deep targets the per-target budgets now
+                            // construct further into. A dead-end or parse miss still uses the full
+                            // retry budget.
+                            if Self::is_target_timeout_error(&e) {
+                                break;
+                            }
                         }
-                    },
-                    Err(e) => {
-                        last_parsed_not_witnessed = false;
-                        report.generation_failures += 1;
-                        // RTL-FE-CLOSURE.5.2: a per-attempt TIMEOUT means the construct is
-                        // structurally too deep to complete within this rule's budget; the
-                        // retries exist to re-roll terminal expansions for a `ParsedNotWitnessed`
-                        // probe, not to outlast a timeout that the identical budget will only
-                        // reproduce. Stop retrying this rule on a timeout (it can only repeat),
-                        // which keeps the reach pass fast on the genuinely-unwitnessable deep
-                        // targets the per-target budgets now construct further into. A dead-end
-                        // or parse miss still uses the full retry budget.
-                        if Self::is_target_timeout_error(&e) {
-                            break;
+                    }
+                    // GRAMMAR-WELLFORMED.C2.2: once phase 1 has captured the count-gated
+                    // rule's `$ref` value, ARM the semantic prelude for the remaining
+                    // attempts (the phase-1 probe itself is expected not to re-parse —
+                    // it lacks the source facts — and lands in the auxiliary
+                    // `probe_parse_failures`, never in the certification number).
+                    if let Some(prelude) = self
+                        .reach_plan
+                        .as_mut()
+                        .and_then(|plan| plan.prelude.as_mut())
+                    {
+                        if prelude.iterations == 0 {
+                            if let Some((_, value)) = &prelude.captured {
+                                prelude.iterations = *value;
+                            }
                         }
                     }
                 }
-                // GRAMMAR-WELLFORMED.C2.2: once phase 1 has captured the count-gated
-                // rule's `$ref` value, ARM the semantic prelude for the remaining
-                // attempts (the phase-1 probe itself is expected not to re-parse —
-                // it lacks the source facts — and lands in the auxiliary
-                // `probe_parse_failures`, never in the certification number).
-                if let Some(prelude) = self
-                    .reach_plan
-                    .as_mut()
-                    .and_then(|plan| plan.prelude.as_mut())
-                {
-                    if prelude.iterations == 0 {
-                        if let Some((_, value)) = &prelude.captured {
-                            prelude.iterations = *value;
-                        }
-                    }
+                self.clear_reach_plan();
+                if rule_witnessed || deep_tier_used {
+                    break;
                 }
+                // RTL-FE-CLOSURE.5.5: baseline did not witness — escalate ONCE to the deeper tier
+                // if a deep off-path mandatory sibling makes the minimal forced construct deeper
+                // than the baseline budget allowed (otherwise there is nothing deeper to try).
+                let offpath_sibling_depth =
+                    self.max_offpath_mandatory_sibling_depth(entry_rule, rule, &min_derivation_depths);
+                let deep_budget =
+                    reach_prefix_budget.saturating_add(target_subtree_depth.max(offpath_sibling_depth));
+                if deep_budget <= budget {
+                    break;
+                }
+                budget = deep_budget;
+                deep_tier_used = true;
             }
-            self.clear_reach_plan();
-            if rule_witnessed {
-                report.witnessed += 1;
-            } else if last_parsed_not_witnessed {
-                report.parsed_not_witnessed += 1;
+            if rule_attempted {
+                report.attempted += 1;
+                if rule_witnessed {
+                    report.witnessed += 1;
+                } else if last_parsed_not_witnessed {
+                    report.parsed_not_witnessed += 1;
+                }
+            } else {
+                report.no_path.push(rule.clone());
             }
         }
 
@@ -4966,6 +5013,142 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         depths
+    }
+
+    /// RTL-FE-CLOSURE.5.5 (PGEN-RTL-FE-CLOSURE-0012): the deepest minimal-derivation depth of
+    /// any MANDATORY OFF-PATH SIBLING the forced minimal witness construct must ALSO derive on
+    /// its way from `entry_rule` to `target_rule`.
+    ///
+    /// `.5.2` sized the witness-pass budget as `reach_prefix + min_derivation_depth[target]` —
+    /// the reach-prefix allowance for the path down to the target plus the target's OWN minimal
+    /// subtree. That under-budgets a target whose forced construct also carries a deep MANDATORY
+    /// sibling NOT in the target's own subtree: to witness `kw_negedge` the construct must
+    /// complete `event_control_item := event_edge? rtl_expr`, whose mandatory `rtl_expr` sibling
+    /// descends the ~15-level precedence chain — so the minimal witness needs
+    /// `reach_prefix + depth(rtl_expr)`, not `reach_prefix + depth(kw_negedge)=4`; otherwise the
+    /// forced branch aborts depth-exceeded and falls back to a shallow sibling.
+    ///
+    /// This walks the reach plan (the same `reach_hops` BFS `set_reach_plan_for_rule` uses) and,
+    /// at every Sequence the path crosses, takes the deepest minimal-derivation depth of the
+    /// elements the path does NOT enter. Optional elements (`?`/`*`, min repeat 0) and
+    /// lookaheads contribute 0 via `min_full_derivation_depth_of_node`, so they fall out of the
+    /// max naturally; an `Or` derives exactly one alternative, so its un-taken alternatives are
+    /// not siblings. The caller MAXes the result with the target's own subtree depth to size the
+    /// deeper budget tier.
+    ///
+    /// IMPORTANT — why this is safe despite being an OVER-estimate: the reach path is the
+    /// source-first BFS path, so it can cross an AVOIDABLE deep sibling (e.g. a target reached
+    /// past the `conditional_expr` ternary `logical_or_expr ? conditional_expr : conditional_expr`
+    /// gets a deep term even though a shallower branch reaches the same place). The caller does
+    /// NOT apply this budget unconditionally — it is the SECOND tier of a two-tier escalation,
+    /// reached only when the baseline `.5.2` budget already FAILED to witness the target. A
+    /// ubiquitous rule (`literal`, `additive_op`) is witnessed by the baseline fallback (any
+    /// expression sample contains one) and never escalates, so its deep off-path term here is
+    /// never spent; only a RARE construct the fallback cannot witness (`always_ff @(negedge …)`)
+    /// escalates, and for those an over-estimate is harmless (it only needs to be large ENOUGH).
+    /// PURE analysis; never on the hot generation path. GENERAL/parser-agnostic (keyed only on
+    /// ASTNode structure + the `node_path` encoding).
+    fn max_offpath_mandatory_sibling_depth(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        depths: &HashMap<String, usize>,
+    ) -> usize {
+        let Some(hops) = self.reach_hops(entry_rule, target_rule) else {
+            return 0;
+        };
+        let mut deepest = 0usize;
+        for (hop_rule, hop_site_path) in &hops {
+            let Some(rule_node) = self.grammar_tree.get(hop_rule.as_str()) else {
+                continue;
+            };
+            deepest = deepest.max(Self::offpath_sibling_depth_along_path(
+                rule_node,
+                hop_site_path,
+                depths,
+            ));
+        }
+        deepest
+    }
+
+    /// RTL-FE-CLOSURE.5.5: walk one hop's reference-site `node_path` (the
+    /// `collect_rule_reference_sites` / `collect_branch_groups` encoding — `s{i}` Sequence
+    /// element, `o{i}` Or alternative, `q` Quantified body, `a` Atom→Node) from `rule_node`,
+    /// returning the deepest minimal-derivation depth of any element the path does NOT enter at
+    /// each Sequence it crosses (its mandatory off-path siblings). Bails — returning the depth
+    /// found so far — on any path/grammar shape mismatch, so it is over-estimate-safe and never
+    /// panics. Companion to `max_offpath_mandatory_sibling_depth`.
+    fn offpath_sibling_depth_along_path(
+        rule_node: &ASTNode,
+        node_path: &str,
+        depths: &HashMap<String, usize>,
+    ) -> usize {
+        let mut current = rule_node;
+        let mut deepest = 0usize;
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if segment == "q" {
+                let ASTNode::Quantified { element, .. } = current else {
+                    return deepest;
+                };
+                current = element.as_ref();
+                continue;
+            }
+            if segment == "a" {
+                let ASTNode::Atom {
+                    value: ASTValue::Node(node),
+                } = current
+                else {
+                    return deepest;
+                };
+                current = node.as_ref();
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('s') {
+                let Ok(index) = index_str.parse::<usize>() else {
+                    return deepest;
+                };
+                let ASTNode::Sequence { elements } = current else {
+                    return deepest;
+                };
+                // The elements the path does NOT enter are mandatory siblings the forced
+                // construct must still derive in full. `min_full_derivation_depth_of_node`
+                // returns 0 for an optional (`?`/`*`) element and for a lookahead, so a plain
+                // max over the off-path elements is exactly the deepest mandatory sibling.
+                for (i, element) in elements.iter().enumerate() {
+                    if i == index {
+                        continue;
+                    }
+                    if let Some(d) = Self::min_full_derivation_depth_of_node(element, depths) {
+                        deepest = deepest.max(d);
+                    }
+                }
+                let Some(next) = elements.get(index) else {
+                    return deepest;
+                };
+                current = next;
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('o') {
+                let Ok(index) = index_str.parse::<usize>() else {
+                    return deepest;
+                };
+                let ASTNode::Or { alternatives } = current else {
+                    return deepest;
+                };
+                // An `Or` derives exactly ONE alternative — the un-taken alternatives are not
+                // mandatory siblings, so they contribute nothing.
+                let Some(next) = alternatives.get(index) else {
+                    return deepest;
+                };
+                current = next;
+                continue;
+            }
+            return deepest;
+        }
+        deepest
     }
 
     /// SV-EXH-PROOF.7.2.1 (PGEN-SV-EXH-PROOF-0115, pure analysis): compute the
@@ -13222,6 +13405,76 @@ mod tests {
 
     #[cfg(feature = "ebnf_dual_run")]
     #[test]
+    fn offpath_mandatory_sibling_budget_is_deep_for_shallow_keyword_targets_real_rtl_frontend() {
+        // RTL-FE-CLOSURE.5.5 (PGEN-RTL-FE-CLOSURE-0012): regression guard for the
+        // mandatory-on-path-sibling depth-budget fix, locked on the REAL `rtl_frontend` grammar.
+        // The witness-pass budget is `reach_prefix + max(min_subtree[target],
+        // max_offpath_mandatory_sibling_depth(target))`. The crux of `.5.5`: a SHALLOW target
+        // whose forced minimal construct carries a DEEP mandatory sibling NOT in its own subtree
+        // must inherit that deep sibling's depth — otherwise the construct overflows and falls
+        // back (the residual UNKNOWN `kw_negedge`/`kw_or`/`bang`/`tilde`):
+        //   * `kw_negedge`/`kw_or` reach via `event_control_item := event_edge? rtl_expr` — the
+        //     mandatory `rtl_expr` sibling descends the ~15-level precedence chain.
+        //   * `bang`/`tilde` reach via `unary_expr := bang unary_expr | …` — the mandatory
+        //     recursive `unary_expr` operand is the deep sibling.
+        // (The expression LEAVES `literal`/`decimal_integer`/`real_number` are NOT asserted here:
+        // their reach path ALSO crosses a deep mandatory sibling — the `conditional_expr` ternary
+        // `logical_or_expr ? conditional_expr : conditional_expr` — so their off-path term is
+        // deep too. That is harmless and NOT a regression, because they are witnessed by the
+        // diverse PASS 1 and never become PASS 3 reach targets; the no-regression property for
+        // them is proven by the cert-coverage A/B, not by this analysis-level test.)
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/rtl_frontend.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse rtl_frontend.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+        let generator = StimuliGenerator::new(
+            "rtl_frontend".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(0),
+                ..StimuliConfig::default()
+            },
+        );
+
+        let entry = "rtl_frontend_file";
+        let depths = generator.compute_min_full_derivation_depths();
+        let offpath = |target: &str| -> usize {
+            generator.max_offpath_mandatory_sibling_depth(entry, target, &depths)
+        };
+
+        // The shallow keyword/operator targets must each inherit a DEEP off-path budget — far
+        // deeper than their own shallow subtree. A loose-but-decisive floor of 30 separates "got
+        // the deep sibling budget" from "got only the ~4-deep target subtree" (the `.5.5` gap).
+        for kw in ["kw_negedge", "kw_or", "bang", "tilde"] {
+            let target_subtree = depths.get(kw).copied().unwrap_or(0);
+            let off = offpath(kw);
+            assert!(
+                off >= 30,
+                "{kw}: off-path mandatory sibling must be deep (>=30), got {off} \
+                 (its own subtree is only {target_subtree})"
+            );
+            assert!(
+                off > target_subtree,
+                "{kw}: the off-path sibling ({off}) must dominate the target's own subtree \
+                 ({target_subtree}) — that is precisely the .5.5 gap the budget must cover"
+            );
+        }
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
     fn real_sv_preprocessor_grammar_closer_split_fires_for_pp_conditional() {
         // SV-EXH-PROOF.2.3.2 — DECISIVE H1 check (verify, do not
         // assume): load the REAL systemverilog_preprocessor.ebnf and
@@ -17054,6 +17307,79 @@ mod tests {
         assert_eq!(
             report.witnessed, 1,
             "per-target depth budget must reach the target behind the deep mandatory chain; probes={:?}",
+            probes
+        );
+    }
+
+    #[test]
+    fn plannable_witness_reaches_target_with_deep_off_path_mandatory_sibling() {
+        // RTL-FE-CLOSURE.5.5 end-to-end (the `event_control_item := event_edge? rtl_expr` shape
+        // in miniature): a SHALLOW target sits behind an OPTIONAL element whose Sequence SIBLING
+        // is a deep MANDATORY rule chain. `.5.2`'s budget (`reach_prefix + min_subtree[target]`)
+        // does not see that sibling — the target's own subtree is tiny — so the mandatory chain
+        // overflows the depth limit, the forced construct fails, and the target is NEVER
+        // witnessed. `.5.5`'s budget (`reach_prefix + max(min_subtree[target],
+        // max_offpath_mandatory_sibling_depth(target))`) fits the sibling, so it witnesses.
+        // Distinct from `plannable_witness_reaches_target_behind_deep_mandatory_chain` (where the
+        // deep chain is the target's OWN subtree, which `.5.2` already budgets).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("rule_reference", "host"));
+        // host := edge? deep_sibling — `edge?` is the optional element on the path to the target;
+        // the mandatory `deep_sibling` is the OFF-PATH sibling the construct must also derive.
+        grammar_tree.insert(
+            "host".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(token("rule_reference", "edge")),
+                        quantifier: "?".to_string(),
+                    },
+                    token("rule_reference", "deep_sibling"),
+                ],
+            },
+        );
+        grammar_tree.insert("edge".to_string(), token("quoted_string", "t"));
+        grammar_tree.insert("deep_sibling".to_string(), token("rule_reference", "c0"));
+        let chain_len = 20;
+        let mut rule_order = vec![
+            "start".to_string(),
+            "host".to_string(),
+            "edge".to_string(),
+            "deep_sibling".to_string(),
+        ];
+        for i in 0..chain_len {
+            let name = format!("c{}", i);
+            let body = if i + 1 < chain_len {
+                token("rule_reference", &format!("c{}", i + 1))
+            } else {
+                token("quoted_string", "x")
+            };
+            grammar_tree.insert(name.clone(), body);
+            rule_order.push(name);
+        }
+        // simple_generator's max_depth doubles to a budget that comfortably covers the deep chain
+        // ONLY through the off-path sibling term — `min_subtree[edge]` alone is ~2.
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        let mut probes: Vec<String> = Vec::new();
+        let report = generator.generate_plannable_rule_witnesses(
+            "start",
+            &["edge".to_string()],
+            0,
+            4,
+            |_rule, sample| {
+                probes.push(sample.to_string());
+                if sample.contains('t') {
+                    PlannableProbeVerdict::Witnessed
+                } else {
+                    PlannableProbeVerdict::ParsedNotWitnessed
+                }
+            },
+        );
+        assert_eq!(report.attempted, 1, "edge is graph-reachable: {:?}", report);
+        assert_eq!(
+            report.witnessed, 1,
+            "off-path mandatory-sibling depth budget must reach the shallow target whose Sequence \
+             sibling is a deep mandatory chain; probes={:?}",
             probes
         );
     }

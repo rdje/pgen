@@ -495,6 +495,27 @@ parser-agnostic (keyed purely on the lookahead node shape): it only ever sharpen
 never loosens the witness check. On `rtl_frontend` it moved the residual `UNKNOWN` 16 → 9 (deterministic
 across seeds), with SystemVerilog byte-identical (the same rules, now correctly reported as no-reach-path).
 
+A further refinement budgets for a target's **mandatory off-path siblings**, not just its own subtree. The
+per-target budget above sizes depth as the reach-prefix allowance *plus the target's own minimal subtree* —
+which under-budgets a **shallow** target whose forced construct must *also* complete a **deep mandatory
+sibling that is not in the target's own subtree**. The synthesizable-RTL edge-control keyword is the
+canonical case: to witness `negedge` the construct must build `always_ff @(negedge <expr>)`, and the
+grammar's `event_control_item := event_edge? rtl_expr` makes the `rtl_expr` (a full ~15-level
+expression) a *mandatory sibling* of the shallow `event_edge` that carries the keyword. The keyword's own
+subtree is tiny, so the prior budget aborted the construct on depth and fell back to a shallower procedural
+block. The fix is a **two-tier per-target budget**: tier 1 is the existing baseline (so every target that
+already witnessed is **byte-identical**); tier 2 — a deeper budget that also covers the *deepest mandatory
+off-path sibling along the reach path* — is tried **only when tier 1 did not witness**. This is the
+careful part, because an unconditional deeper budget *regresses* coverage: ubiquitous rules like a numeric
+literal or a binary operator are reach targets that get witnessed by a *shallow fallback sample* (any
+expression contains one), and a deeper budget makes the forced construct attempt the full deep expression
+(through, e.g., the conditional-expression ternary on its path) and time out instead of falling back. The
+two-tier gating keeps those fallback-witnessed rules on tier 1 and pays the deep budget only for a genuinely
+**rare** construct the fallback can never reach — so the change is *strictly additive* (no already-witnessed
+rule can regress) and parser-agnostic. On `rtl_frontend` it moved the residual `UNKNOWN` 9 → 7 (the
+edge-control keywords, deterministic across seeds), with SystemVerilog additive (it witnessed eight more
+rules, none lost).
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule
