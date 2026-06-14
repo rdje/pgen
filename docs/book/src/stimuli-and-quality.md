@@ -609,12 +609,40 @@ masking.
 > generated artifact has to re-parse to the structure the generator
 > intended. The hazards are general and recur across grammars — a free
 > terminal spelling a structural closer; a line-greedy content terminal
-> not newline-terminated before following structure. Detect them from
-> grammar/HIR shape, constrain generation contextually (never a blanket
-> ban, never loosen `== 0`), and when a correctness fix legitimately
-> shifts a downstream burn-down metric, re-baseline that contract
-> honestly in the same slice after proving the genuine reachable
-> surface is intact.
+> not newline-terminated before following structure; a free *identifier*
+> terminal spelling a reserved keyword that a sibling negative lookahead
+> excludes. Detect them from grammar/HIR shape, constrain generation
+> contextually (never a blanket ban, never loosen `== 0`), and when a
+> correctness fix legitimately shifts a downstream burn-down metric,
+> re-baseline that contract honestly in the same slice after proving the
+> genuine reachable surface is intact.
+
+### Mechanism 5 — keyword-as-identifier (negative-lookahead) round-trip guard
+
+A fifth instance landed for `rtl_frontend` (`RTL-FE-CLOSURE.6`). Its
+`non_keyword_identifier := !kw_always … !kw_wire simple_identifier` rule
+excludes every reserved keyword from an identifier position, but the closed
+loop could still synthesise an identifier terminal spelling one — e.g. an
+enum item `if` — which the parser's `!kw_if` guard then rejects (a
+`sample_parse_failure`), or, subtler, re-parses as the *keyword* inside a
+different construct (it happens to parse, but to a structure the generator
+did not intend). The generator now detects the `!kw … TERM` shape from
+grammar/HIR alone — a leading run of negative lookaheads over fixed
+keyword-literal rules followed by a terminal — and, on a collision, repairs
+the identifier with a **deterministic, RNG-neutral `_` prefix**. `_` is a
+valid identifier start and no keyword begins with `_`, so `_`+keyword can
+neither *equal* nor `\b`-prefix-match any excluded keyword — covering both
+the exact spelling and the `keyword$…` edge that a `\b` word boundary leaves
+open. The `_` prefix is chosen over *re-rolling* the terminal precisely
+because it consumes no RNG: every other sample in the seed's stream stays
+byte-identical, so the certificate-coverage landscape is not perturbed
+(re-rolling advances the RNG and silently shifts unrelated samples'
+witnesses). Only `rtl_frontend` and `systemverilog` carry the `!kw` shape at
+all; the change is provably inert for every other grammar (no push fires) and
+measured byte-identical for SystemVerilog. Result: `rtl_frontend`
+certificate-coverage `sample_parse_failures` `1 → 0` at the affected seed,
+with the witness landscape byte-identical at every seed — generator-only, no
+parser/grammar change, no schema or release bump.
 
 ## Semantic Round-Trip: Context-Valid Generation
 

@@ -1453,6 +1453,26 @@ pub struct StimuliGenerator<'a> {
     // -agnostic.
     closer_scopes_entered: usize,
     free_terminal_closer_discards: usize,
+    // RTL-FE-CLOSURE.6: round-trip self-consistency for the
+    // `!kw_A … !kw_Z TERM` identifier shape (e.g. rtl_frontend's
+    // `non_keyword_identifier := !kw_always … !kw_wire simple_identifier`).
+    // A scoped stack of reserved-keyword spellings excluded by the
+    // sibling negative lookaheads of the rule currently rendering an
+    // identifier terminal. While a `!kw … TERM` sequence is being
+    // generated, the excluded whole-word spellings are pushed here so
+    // the free identifier terminal does not emit a string the parser's
+    // `!kw_X` guards would reject (the closed loop must not out-generate
+    // its own parser). EMPTY for every sequence that is not that shape ⇒
+    // a structural no-op for all other grammars/rules. Derived purely
+    // from the grammar's own negative lookaheads + the referenced
+    // keyword rules' fixed literals ⇒ parser/EBNF-agnostic.
+    keyword_identifier_exclusions: Vec<Vec<String>>,
+    // RTL-FE-CLOSURE.6: always-on observability counterpart to
+    // `free_terminal_closer_discards` — how many identifier-terminal
+    // candidates collided with an excluded keyword spelling and were
+    // repaired (the `!kw … TERM` round-trip guard fired, normally a
+    // deterministic `_` prefix).
+    keyword_identifier_collisions: usize,
 }
 
 impl<'a> StimuliGenerator<'a> {
@@ -1572,6 +1592,8 @@ impl<'a> StimuliGenerator<'a> {
             structural_closer_forbidden: Vec::new(),
             closer_scopes_entered: 0,
             free_terminal_closer_discards: 0,
+            keyword_identifier_exclusions: Vec::new(),
+            keyword_identifier_collisions: 0,
         }
     }
 
@@ -1588,6 +1610,14 @@ impl<'a> StimuliGenerator<'a> {
     /// discarded for colliding with an active closer lexeme.
     pub fn free_terminal_closer_discards(&self) -> usize {
         self.free_terminal_closer_discards
+    }
+
+    /// RTL-FE-CLOSURE.6 observability: identifier-terminal candidates that
+    /// collided with a reserved-keyword spelling excluded by a sibling
+    /// negative lookahead and were repaired (the `!kw … TERM` round-trip
+    /// guard fired — normally a deterministic, rng-neutral `_` prefix).
+    pub fn keyword_identifier_collisions(&self) -> usize {
+        self.keyword_identifier_collisions
     }
 
     /// SV-EXH-PROOF.2.3.2 (Mode B, hint route): a literal/probe hint
@@ -6555,6 +6585,35 @@ impl<'a> StimuliGenerator<'a> {
         call_stack: &mut Vec<String>,
         node_path: &str,
     ) -> Result<String> {
+        // RTL-FE-CLOSURE.6: if this sequence is the `!kw_A … !kw_Z TERM`
+        // identifier shape (a leading run of negative lookaheads over
+        // keyword-literal rules followed by ≥1 terminal-bearing element),
+        // push the excluded whole-word spellings for the duration of the
+        // body so the free identifier terminal cannot emit a string the
+        // parser's `!kw_X` guards would reject. The scope is pushed/popped
+        // around the WHOLE body so the stack stays balanced across every
+        // return and `?` early-exit path. EMPTY (no push) for every other
+        // sequence ⇒ a structural no-op everywhere else.
+        let kw_exclusions = self.collect_identifier_keyword_exclusions(elements);
+        if kw_exclusions.is_empty() {
+            return self
+                .generate_sequence_body(elements, current_rule, depth, call_stack, node_path);
+        }
+        self.keyword_identifier_exclusions.push(kw_exclusions);
+        let result =
+            self.generate_sequence_body(elements, current_rule, depth, call_stack, node_path);
+        self.keyword_identifier_exclusions.pop();
+        result
+    }
+
+    fn generate_sequence_body(
+        &mut self,
+        elements: &[ASTNode],
+        current_rule: &str,
+        depth: usize,
+        call_stack: &mut Vec<String>,
+        node_path: &str,
+    ) -> Result<String> {
         let relational_policy = if node_path == "root" {
             self.rule_relational_constraints(current_rule)
         } else {
@@ -6808,6 +6867,126 @@ impl<'a> StimuliGenerator<'a> {
         ))
     }
 
+    /// RTL-FE-CLOSURE.6: detect the `!kw_A … !kw_Z TERM` identifier shape
+    /// and collect the excluded keywords' whole-word spellings.
+    ///
+    /// Scans the LEADING run of NEGATIVE lookaheads; for each whose target is
+    /// a fixed keyword-literal rule (`kw_if := trivia /if\b/`, or the pre-`\b`
+    /// `kw_if := trivia "if"`), collects that literal. Returns the collected
+    /// spellings only when (a) at least one was collected AND (b) at least one
+    /// further (terminal-bearing) element follows the lookahead run — i.e. the
+    /// sequence really is `!kw … TERM`. Returns an empty vec for every other
+    /// sequence, so pushing it is a no-op. A negative lookahead whose target
+    /// is NOT a fixed keyword literal is simply not collected (the pre-existing
+    /// behavior is preserved for it). Pure grammar-tree analysis (no RNG, no
+    /// output) ⇒ inert unless an identifier candidate actually collides.
+    fn collect_identifier_keyword_exclusions(&self, elements: &[ASTNode]) -> Vec<String> {
+        let mut keywords: Vec<String> = Vec::new();
+        let mut idx = 0;
+        while idx < elements.len() {
+            match &elements[idx] {
+                ASTNode::Lookahead {
+                    element,
+                    positive: false,
+                } => {
+                    if let Some(literal) = self.lookahead_keyword_literal(element) {
+                        keywords.push(literal);
+                    }
+                    idx += 1;
+                }
+                _ => break,
+            }
+        }
+        // Require ≥1 collected keyword AND ≥1 trailing (terminal-bearing) element.
+        if keywords.is_empty() || idx >= elements.len() {
+            return Vec::new();
+        }
+        keywords
+    }
+
+    /// RTL-FE-CLOSURE.6: if `element` is a rule reference to a fixed
+    /// keyword-literal rule, return that keyword's whole-word spelling.
+    fn lookahead_keyword_literal(&self, element: &ASTNode) -> Option<String> {
+        let ASTNode::Atom {
+            value: ASTValue::Token(parts),
+        } = element
+        else {
+            return None;
+        };
+        let (token_type, token_value) = Self::extract_token_pair(parts)?;
+        if token_type != "rule_reference" {
+            return None;
+        }
+        let body = self.grammar_tree.get(token_value)?;
+        Self::rule_fixed_keyword_literal(body)
+    }
+
+    /// RTL-FE-CLOSURE.6: extract the fixed whole-word literal a keyword rule
+    /// matches, from a `trivia? <literal>` body where `<literal>` is a quoted
+    /// string (`"if"`) or a fixed regex (`/if\b/` — `regex_fixed_literal`
+    /// already treats the `\b` look-around as empty, so it yields `"if"`).
+    /// `None` for any non-fixed shape (conservative — that keyword is simply
+    /// not modeled, never a false exclusion).
+    fn rule_fixed_keyword_literal(body: &ASTNode) -> Option<String> {
+        match body {
+            ASTNode::Sequence { elements } => {
+                elements.iter().rev().find_map(Self::token_fixed_keyword_literal)
+            }
+            other => Self::token_fixed_keyword_literal(other),
+        }
+    }
+
+    fn token_fixed_keyword_literal(node: &ASTNode) -> Option<String> {
+        let ASTNode::Atom {
+            value: ASTValue::Token(parts),
+        } = node
+        else {
+            return None;
+        };
+        let (token_type, token_value) = Self::extract_token_pair(parts)?;
+        let literal = match token_type {
+            "quoted_string" => token_value.to_string(),
+            "regex" => Self::regex_fixed_literal(token_value)?,
+            _ => return None,
+        };
+        if literal.is_empty() {
+            None
+        } else {
+            Some(literal)
+        }
+    }
+
+    /// RTL-FE-CLOSURE.6: does the generated identifier `sample` collide with
+    /// any excluded keyword on the active scope stack? Mirrors the parser's
+    /// `!kw_X /WORD\b/` guard precisely: the guard rejects an identifier iff
+    /// it starts with WORD and the char immediately after WORD is a `\b`
+    /// boundary. In `simple_identifier`'s id-continue alphabet `[A-Za-z0-9_$]`
+    /// the only char that is NOT a `\w` char (and so forms a boundary right
+    /// after a word char) is `$`; otherwise the boundary is the token end. So
+    /// a collision is: token == WORD, OR token starts with WORD immediately
+    /// followed by `$`. (`input_data` / `iffy` do NOT collide — exactly the
+    /// `.10` parser fix, mirrored on the generation side.) `sample` is trimmed
+    /// first because `apply_word_boundary_spacing` may prepend layout, which
+    /// the parser consumes via `trivia` before testing the identifier token.
+    fn sample_collides_excluded_keyword(&self, sample: &str) -> bool {
+        if self.keyword_identifier_exclusions.is_empty() {
+            return false;
+        }
+        let token = sample.trim();
+        if token.is_empty() {
+            return false;
+        }
+        let token_bytes = token.as_bytes();
+        self.keyword_identifier_exclusions.iter().any(|keywords| {
+            keywords.iter().any(|kw| {
+                let kw_bytes = kw.as_bytes();
+                token_bytes.starts_with(kw_bytes)
+                    && (token_bytes.len() == kw_bytes.len()
+                        || token_bytes.get(kw_bytes.len()) == Some(&b'$'))
+            })
+        })
+    }
+
     fn generate_atom(
         &mut self,
         value: &ASTValue,
@@ -6912,6 +7091,59 @@ impl<'a> StimuliGenerator<'a> {
                                     current_rule,
                                 );
                                 tries += 1;
+                            }
+                        }
+                        // RTL-FE-CLOSURE.6: round-trip self-consistency for the
+                        // `!kw … TERM` identifier shape. While such a sequence
+                        // is being generated (its excluded keyword spellings are
+                        // on `keyword_identifier_exclusions`), a FREE identifier
+                        // terminal must not emit a string the parser's `!kw_X`
+                        // guards would reject — exactly an excluded keyword, or
+                        // that keyword immediately followed by `$` (the one
+                        // id-continue char that still forms a `\b` boundary).
+                        //
+                        // On collision, prefer a DETERMINISTIC, RNG-NEUTRAL fix:
+                        // prepend `_`. `_` is a valid `simple_identifier` start
+                        // and no keyword begins with `_`, so `_`+keyword neither
+                        // EQUALS nor `\b`-prefix-matches any excluded keyword —
+                        // it breaks BOTH the exact-equal and the `kw$…` collision
+                        // in one step. Crucially it consumes NO rng, so every
+                        // OTHER sample in the seed's stream stays byte-identical
+                        // and the cert-coverage stream is NOT perturbed — only
+                        // the colliding identifier is minimally repaired, and the
+                        // sample now re-parses to its INTENDED identifier
+                        // structure (re-rolling instead would advance the rng and
+                        // shift the witness landscape of unrelated samples). Fall
+                        // back to a bounded re-roll only if the terminal's own
+                        // pattern forbids a leading `_` (no current grammar —
+                        // every keyword-excluded terminal is an identifier, which
+                        // admits `_`). Fixed-literal terminals are exempt; empty
+                        // stack ⇒ inert ⇒ coverage-preserving. Derived from the
+                        // grammar's own negative lookaheads ⇒ parser/EBNF-agnostic.
+                        if !self.keyword_identifier_exclusions.is_empty()
+                            && Self::regex_fixed_literal(token_value).is_none()
+                            && self.sample_collides_excluded_keyword(&sample)
+                        {
+                            self.keyword_identifier_collisions += 1;
+                            let mut prefixed = sample.clone();
+                            prefixed.insert(0, '_');
+                            if Self::regex_matches_entire(&effective_pattern, prefixed.trim()) {
+                                sample = prefixed;
+                            } else {
+                                let mut tries = 0;
+                                while self.sample_collides_excluded_keyword(&sample) {
+                                    if tries >= 64 {
+                                        return Err(anyhow!(
+                                            "RTL-FE-CLOSURE.6: identifier terminal in rule '{}' (path '{}') would emit a reserved-keyword spelling excluded by a sibling negative lookahead and admits no '_' prefix; discarding attempt (round-trip stability)",
+                                            current_rule,
+                                            node_path
+                                        ));
+                                    }
+                                    self.enforce_generation_deadline(current_rule, node_path)?;
+                                    sample = self
+                                        .generate_regex_sample(&effective_pattern, current_rule);
+                                    tries += 1;
+                                }
                             }
                         }
                         // SV-EXH-PROOF.2.3.2: a generation deadline that
