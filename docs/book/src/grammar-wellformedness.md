@@ -538,6 +538,30 @@ already certified clean never run the pass. On `rtl_frontend` it moved the resid
 witnessed `bang`/`tilde`, and — because the operator's reach path renders a full `bit[ … ]` range expression
 — also `repetition_expr` and `concatenation_expr`, with SystemVerilog byte-identical.
 
+A last refinement in this family is about *which branch a reach path travels through* when a rule offers
+several routes to the same successor. The reach path is a breadth-first search over the rule-reference
+graph, and when more than one reference site in a rule reaches the same next rule, the search originally
+took whichever the structural walk enumerated first. For a self-recursive rule whose *earlier* alternative
+is the recursive one, that first site lives inside the recursive branch. The synthesizable-RTL conditional
+expression is the canonical case — `conditional_expr := logical_or_expr ? conditional_expr : conditional_expr
+| logical_or_expr` — where the ternary (branch 0) precedes the plain pass-through (branch 1), so
+`logical_or_expr` was discovered through the ternary and the installed directive forced `conditional_expr`
+to its ternary branch. Because that directive is keyed on the rule and its ordered-choice position, it then
+fired on *every* entry to `conditional_expr`, including the low and high bounds of an unrelated
+`bit[ … : … ]` packed range. So a reach probe that only needed to witness a numeric literal deep under
+`logical_or_expr` instead rendered a packed range full of nested `?:` ternaries — which the parser rejects,
+compounded by the based-integer token class itself including `?`, so maximal munch fused the ternary marker
+into the literal. The fix is reach-path *honesty*: when several sites reach the same target, prefer the one
+whose enclosing top-level alternative does **not** reference the rule itself — the non-self-recursive branch
+— so the directive forces the *plain* branch (`conditional_expr → logical_or_expr`) and every entry derives
+a minimal expression (`bit[ 8'b1 : 8'b1 ]` witnesses the literal). The preference is a stable reordering
+keyed purely on the rule's own top-level ordered-choice structure and a structural self-reference test, so a
+rule with no top-level choice mixing self-recursive and non-self-recursive alternatives is byte-identical,
+and grammars already certified clean never run the pass. On `rtl_frontend` it moved the residual `UNKNOWN`
+3 → 2 (it witnessed `based_integer`, the last expression over-generation target), and on SystemVerilog it
+was *additive* — its own self-recursive expression rules now reach plainer branches, witnessing three more
+rules (`UNKNOWN` 619 → 616) with none lost.
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule

@@ -5209,6 +5209,12 @@ impl<'a> StimuliGenerator<'a> {
             };
             let mut sites: Vec<RuleReferenceSite> = Vec::new();
             Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            // RTL-FE-CLOSURE.5.3 (PGEN-RTL-FE-CLOSURE-0015): when several reference
+            // sites in this rule reach the same target, prefer one in a
+            // NON-self-recursive top-level alternative so a self-recursive rule's
+            // plain pass-through branch (not its recursive branch) is the one whose
+            // directive gets installed. See `prefer_non_self_recursive_reference_sites`.
+            self.prefer_non_self_recursive_reference_sites(rule_node, rule_name.as_str(), &mut sites);
             for site in sites {
                 if !self.grammar_tree.contains_key(site.referenced_rule.as_str()) {
                     continue;
@@ -5248,6 +5254,78 @@ impl<'a> StimuliGenerator<'a> {
         }
         hops.reverse();
         Some(hops)
+    }
+
+    /// RTL-FE-CLOSURE.5.3 (PGEN-RTL-FE-CLOSURE-0015): reach-path honesty for
+    /// self-recursive rules. `reach_hops`' BFS discovers each target through
+    /// whichever reference site `collect_rule_reference_sites` enumerated first
+    /// (first-site-wins, tree order). For a self-recursive rule whose earlier
+    /// alternative recurses, that first site lives in the recursive branch — the
+    /// canonical case is
+    /// `conditional_expr := logical_or_expr question conditional_expr colon conditional_expr
+    ///                    | logical_or_expr`,
+    /// where branch 0 (the ternary) precedes branch 1 (the plain pass-through), so
+    /// `logical_or_expr` is discovered via branch 0 and the installed directive forces
+    /// `conditional_expr@root -> 0`. Because that directive is keyed rule-relative
+    /// `(conditional_expr, root)`, it then fires on EVERY entry to `conditional_expr` —
+    /// including off-path siblings like a `packed_range` LSB (a fresh, non-recursive
+    /// entry the `.5.6` recursion-suppression cannot catch) — so a reach probe that
+    /// merely needs to witness a leaf under `logical_or_expr` (e.g. `based_integer`)
+    /// renders a `bit[<ternary> : <ternary>]` soup the parser rejects.
+    ///
+    /// The fix: when several sites reach the same target, prefer the one whose
+    /// enclosing TOP-LEVEL alternative does NOT reference the rule itself (a
+    /// non-self-recursive branch), so the forced branch is the plain one
+    /// (`conditional_expr@root -> 1` = `logical_or_expr`) and every `conditional_expr`
+    /// entry derives a minimal expression. Same reach-honesty family as the
+    /// lookahead-skip (`.5.4`) and the self-recursive forced-branch suppression
+    /// (`.5.6`) — GENERAL and parser-agnostic, keyed purely on the rule's own
+    /// top-level ordered-choice structure and a structural self-reference test.
+    ///
+    /// Mechanism: a STABLE sort of the collected sites by a 0/1 key — `0` for a site
+    /// in a non-self-recursive top-level alternative (or a body with no top-level
+    /// choice), `1` for a site in a self-recursive top-level alternative. Stability
+    /// preserves tree order within each class, so the result is deterministic and is
+    /// BYTE-IDENTICAL for every rule that has no top-level ordered choice mixing
+    /// self-recursive and non-self-recursive alternatives (the overwhelming majority).
+    /// The dead-code analysis sibling `compute_rule_reach_target`
+    /// (SV-EXH-PROOF.7.2.19, not in any production reach plan) is deliberately left
+    /// unchanged.
+    fn prefer_non_self_recursive_reference_sites(
+        &self,
+        rule_node: &ASTNode,
+        rule_name: &str,
+        sites: &mut [RuleReferenceSite],
+    ) {
+        let ASTNode::Or { alternatives } = rule_node else {
+            return; // no top-level ordered choice -> no branch to prefer
+        };
+        // Which top-level alternatives structurally reference `rule_name` (i.e. are
+        // self-recursive)? Computed once; indexed by the site's top-level branch.
+        let branch_is_self_recursive: Vec<bool> = alternatives
+            .iter()
+            .map(|alt| {
+                let mut refs: HashSet<String> = HashSet::new();
+                self.collect_rule_references(alt, &mut refs);
+                refs.contains(rule_name)
+            })
+            .collect();
+        sites.sort_by_key(|site| {
+            match Self::top_level_alternative_index(&site.node_path) {
+                Some(idx) => u8::from(*branch_is_self_recursive.get(idx).unwrap_or(&false)),
+                None => 0, // no top-level alternative on this path -> neutral (preferred)
+            }
+        });
+    }
+
+    /// RTL-FE-CLOSURE.5.3: the index of the rule's TOP-LEVEL ordered-choice
+    /// alternative a reference-site `node_path` lives in — the `o{i}` segment
+    /// immediately after `root` (`root/o2/s0` -> `Some(2)`, `root/o1` -> `Some(1)`).
+    /// `None` when the body's root is not an ordered choice (`root/s0` for a sequence
+    /// body), i.e. there is no top-level branch to prefer.
+    fn top_level_alternative_index(node_path: &str) -> Option<usize> {
+        let first = node_path.strip_prefix("root/")?.split('/').next()?;
+        first.strip_prefix('o')?.parse::<usize>().ok()
     }
 
     fn compute_reach_path(
@@ -13443,6 +13521,80 @@ mod tests {
         assert!(
             generator.reach_hops(entry, "port_direction_token").is_none(),
             "port_direction_token is lookahead-only and must have no positive reach path"
+        );
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn reach_hops_prefers_non_self_recursive_conditional_expr_branch_real_rtl_frontend() {
+        // RTL-FE-CLOSURE.5.3 (PGEN-RTL-FE-CLOSURE-0015): RETAINED regression guard for the
+        // non-self-recursive-branch preference, locked on the REAL `rtl_frontend` grammar.
+        //
+        // `based_integer` is reached via the operator-precedence chain
+        // `… -> packed_range -> rtl_expr -> conditional_expr -> logical_or_expr -> … -> literal
+        //  -> based_integer`. The crux rule (grammars/rtl_frontend.ebnf:220) is
+        // `conditional_expr := logical_or_expr question conditional_expr colon conditional_expr  (branch 0: ternary, SELF-RECURSIVE)
+        //                    | logical_or_expr                                                    (branch 1: plain)`.
+        // BEFORE the fix `reach_hops` discovered `logical_or_expr` through branch 0's site
+        // (`root/o0/s0`, first in tree order), so the directive forced `conditional_expr@root -> 0`;
+        // that rule-relative directive then fired on EVERY `conditional_expr` entry (including the
+        // off-path `packed_range` LSB) and rendered a `bit[<ternary> : <ternary>]` soup the parser
+        // rejects — leaving `based_integer` UNKNOWN. AFTER the fix the BFS prefers branch 1 (the
+        // non-self-recursive pass-through), so the directive forces `conditional_expr@root -> 1`
+        // and a minimal `bit[<int> : <int>]` witnesses `based_integer`. This test FAILS without the
+        // fix (the forced branch would be 0).
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/rtl_frontend.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse rtl_frontend.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+        let generator = StimuliGenerator::new(
+            "rtl_frontend".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(0),
+                ..StimuliConfig::default()
+            },
+        );
+
+        let entry = "rtl_frontend_file";
+        let hops = generator
+            .reach_hops(entry, "based_integer")
+            .expect("based_integer must be graph-reachable from the entry");
+
+        let mut crosses_conditional_expr = false;
+        let mut conditional_expr_root_branch: Option<usize> = None;
+        for (hop_rule, hop_site_path) in &hops {
+            if hop_rule == "conditional_expr" {
+                crosses_conditional_expr = true;
+            }
+            for directive in StimuliGenerator::directives_along_path(hop_rule, hop_site_path) {
+                if directive.rule_name == "conditional_expr" && directive.node_path == "root" {
+                    conditional_expr_root_branch = Some(directive.branch_index);
+                }
+            }
+        }
+
+        assert!(
+            crosses_conditional_expr,
+            "based_integer's reach path must cross conditional_expr (the expression-precedence chain)"
+        );
+        assert_eq!(
+            conditional_expr_root_branch,
+            Some(1),
+            "reach plan must force conditional_expr@root -> branch 1 (plain logical_or_expr), \
+             not branch 0 (the self-recursive ternary) — RTL-FE-CLOSURE.5.3"
         );
     }
 

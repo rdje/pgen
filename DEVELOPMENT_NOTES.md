@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-14 - RTL-FE-CLOSURE.5.3 — a reach path must travel a non-self-recursive branch when one exists (PGEN-RTL-FE-CLOSURE-0015)
+
+### The defect (a reach directive forced through a self-recursive branch, firing on every entry)
+`based_integer` was the last Cluster-D over-generation residual (`.5.6` had already witnessed `concatenation_expr`/`repetition_expr`). It is reached via the operator-precedence chain `… → packed_range → rtl_expr → conditional_expr → logical_or_expr → … → literal → based_integer`. The crux rule (`grammars/rtl_frontend.ebnf:220`) is
+
+```
+conditional_expr := logical_or_expr question conditional_expr colon conditional_expr  (branch 0: ternary, SELF-RECURSIVE)
+                  | logical_or_expr                                                    (branch 1: plain)
+```
+
+`reach_hops` (`rust/src/ast_pipeline/stimuli_generator.rs`) is a BFS over the rule-reference graph; for each rule it collects reference sites with `collect_rule_reference_sites` (DFS, tree order) and the FIRST site to discover a given successor wins (later sites hit `discovered.contains_key`). The ternary branch is listed first, so `logical_or_expr` was discovered through `root/o0/s0` (inside the self-recursive branch). `directives_along_path` then installed `conditional_expr@root→0`. Because the directive is keyed rule-relative `(conditional_expr, root)`, it fired on **every** entry to `conditional_expr` — including the off-path low/high bounds of an unrelated `bit[ … : … ]` packed range (a fresh, non-recursive `count=1` entry that `.5.6`'s `suppress_recursive_forced_branch` cannot catch — it only suppresses recursive RE-entries with `current_rule` ≥2× on the call stack). The result was `typedef bit[<ternary> : <ternary>] …` soup the parser rejects, compounded by `based_integer`'s value class including `?` (`/…[bBoOdDhH][0-9a-fA-FxXzZ?_]+/`), so maximal munch fused `<based_integer>?<digits>` into a single token. Decisive controls: `typedef bit[8'b1:0] x;` PARSES and witnesses `based_integer`; `typedef bit[8'b1 ? 2'b0 : 3'b1] x;` is REJECTED even with spaces (the ternary's `:` collides with `packed_range`'s `:`). Attribution: `based_integer` is genuinely reachable ⇒ a GENERATOR-REACH deficiency (not a grammar defect, not a parser bug).
+
+### The fix (prefer a non-self-recursive reference site)
+A new `reach_hops` helper `prefer_non_self_recursive_reference_sites(rule_node, rule_name, &mut sites)` STABLE-sorts the collected sites by a 0/1 key, applied immediately after `collect_rule_reference_sites`:
+
+- key `1` = the site's enclosing TOP-LEVEL alternative references `rule_name` (self-recursive); key `0` = it does not (or the body has no top-level ordered choice).
+- the top-level alternative index is read from the site's `node_path` by a new helper `top_level_alternative_index` (the `o{i}` immediately after `root`; `None` for a sequence-rooted body).
+- self-reference is a structural membership test via the existing `collect_rule_references` (not `count_rule_references`).
+
+Because the sort is **stable**, tree order is preserved within each class, so a rule with no top-level OR that mixes self-recursive and non-self-recursive alternatives is byte-identical. For `conditional_expr`, branch 1 (`logical_or_expr`, key 0) now sorts before branch 0's `logical_or_expr` (key 1), so the BFS discovers `logical_or_expr` via `root/o1` and installs `conditional_expr@root→1` (the same `(conditional_expr, root)` key, branch 1). Every `conditional_expr` entry then takes the plain branch → a minimal `bit[8'b1:8'b1]`-style witness → parses and witnesses `based_integer`; the ternary `?`-fusion disappears with the ternary. The dead-code analysis sibling `compute_rule_reach_target` (SV-EXH-PROOF.7.2.19, `#[allow(dead_code)]`, not in any production reach plan) shares the same BFS shape but was deliberately left unchanged (one defect, one measurable fix).
+
+### Verification (decisive baseline-first A/B)
+A debug `ast_pipeline --features "ebnf_dual_run generated_parsers"` built BEFORE the change captured the A side; the change was applied; the binary was rebuilt for the B side.
+- rtl_frontend: cert UNKNOWN **3→2** (`based_integer` witnessed; residual 2 = `port_direction_token`+`white_space`, both →`.5.1`/closure), witness 167→168, spf 0, deterministic byte-identical seeds 0/7/42.
+- SystemVerilog (the shared-path A/B): cert UNKNOWN **619→616**, witness **723→726** (+3 — additive; SV's own self-recursive expression rules now reach plainer branches), spf 0 → strict improvement, ZERO regression.
+- json fully_certified (inert re-confirmed); rtl_const_expr/svpp/regex/vhdl fully_certified ⇒ reach pass never runs (UNKNOWN==0 guard) ⇒ provably inert.
+- Gates: `clippy_on_rust_change` source CLEAN (generated stage tolerated, `MAKE_EXIT=0`); lib **678/678** (+1 RETAINED real-grammar guard `reach_hops_prefers_non_self_recursive_conditional_expr_branch_real_rtl_frontend`, asserting the forced `conditional_expr@root` branch is 1 — it FAILS without the fix, where it would be 0); `rtl_frontend_generated_contract_gate` PASS + `stimuli_cross_family_platform_gate` PASS (run, not assumed inert — `reach_hops` is shared with the closed-loop driver).
+- Versioning: GENERATOR-ONLY ⇒ NO release/AST-schema/inventory/manifest/parser-regen/ledger change (the `-0072`/`.5.2`/`.5.4`/`.5.5`/`.5.6` precedent). No new EBNF construct ⇒ no `ebnf.ebnf` lockstep. Book `grammar-wellformedness` reach-pass section gains the non-self-recursive-branch-preference paragraph. `.5.3` closes the Cluster-D lane; frontier → `.5.1` (the LAST `.5` child).
+
 ## 2026-06-14 - RTL-FE-CLOSURE.5.6 — a forced reach directive on a SELF-RECURSIVE rule must fire once, then let the operand terminate (PGEN-RTL-FE-CLOSURE-0013)
 
 ### The defect (a self-recursive forced branch whose directive re-fires on the operand)
