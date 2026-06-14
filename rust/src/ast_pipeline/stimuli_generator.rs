@@ -6278,14 +6278,51 @@ impl<'a> StimuliGenerator<'a> {
         // Does an active reach plan force a branch here that pruning removed, and
         // is there bypass fuel left to re-admit it? Resolve to a single Option so
         // the apply step is one flat block (no nested-if pyramid).
-        let reach_bypass_branch: Option<usize> = self.reach_plan.as_ref().and_then(|plan| {
-            plan.forced_branch_for(current_rule, node_path)
-                .filter(|forced_branch| {
-                    plan.bypass_fuel > 0
-                        && *forced_branch < prepared.len()
-                        && !candidate_indices.contains(forced_branch)
-                })
-        });
+        // RTL-FE-CLOSURE.5.6 (PGEN-RTL-FE-CLOSURE-0013): suppress a SELF-RECURSIVE forced
+        // directive on a recursive RE-ENTRY of the same rule. The plannable-rule reach pass keys
+        // its forced-branch directives on `(rule, node_path)`. When the forced branch is itself
+        // self-recursive — e.g. `unary_expr := … | bang unary_expr` forced to the `bang`-operator
+        // alternative to witness `bang` — selecting it descends into the operand, which re-enters
+        // `unary_expr` at the SAME `(rule, node_path)` site; the directive then re-fires, forcing
+        // `bang` again and again (`!!!!…`) until depth/visit exhaustion, so the probe never
+        // witnesses `bang`/`tilde` (debug-probe ground truth: ZERO probe samples; `.5.5`'s deeper
+        // budget cannot help — it only allows MORE recursion before the same failure). The reach
+        // path is a simple BFS path (each rule appears once), so any RE-ENTRY of `current_rule`
+        // (≥2 live occurrences on the call stack) is recursion BELOW the directive's single
+        // intended firing: the operator was already selected on the shallow entry, so the operand
+        // should take its MINIMAL terminating alternative (the witness/construct min-terminal
+        // ordering below selects the shortest non-recursive branch) instead of re-forcing. Scoped
+        // to SELF-RECURSIVE forced branches only (the forced alternative references `current_rule`),
+        // so every non-recursive directive is byte-identical. GENERAL/parser-agnostic: keyed on the
+        // structural self-reference plus the live recursion count, never on rule names. Off the
+        // reach pass (`reach_plan == None`) this short-circuits to `false` at zero cost.
+        let suppress_recursive_forced_branch: bool = {
+            let forced_here: Option<usize> = self
+                .reach_plan
+                .as_ref()
+                .and_then(|plan| plan.forced_branch_for(current_rule, node_path));
+            forced_here.is_some_and(|forced_global| {
+                if forced_global >= prepared.len() {
+                    return false;
+                }
+                let mut refs = HashSet::new();
+                self.collect_rule_references(prepared[forced_global].1.as_ref(), &mut refs);
+                refs.contains(current_rule)
+                    && call_stack.iter().filter(|r| r.as_str() == current_rule).count() >= 2
+            })
+        };
+        let reach_bypass_branch: Option<usize> = if suppress_recursive_forced_branch {
+            None
+        } else {
+            self.reach_plan.as_ref().and_then(|plan| {
+                plan.forced_branch_for(current_rule, node_path)
+                    .filter(|forced_branch| {
+                        plan.bypass_fuel > 0
+                            && *forced_branch < prepared.len()
+                            && !candidate_indices.contains(forced_branch)
+                    })
+            })
+        };
         if let Some(forced_branch) = reach_bypass_branch {
             if let Some(plan) = self.reach_plan.as_mut() {
                 plan.bypass_fuel = plan.bypass_fuel.saturating_sub(1);
@@ -6335,15 +6372,21 @@ impl<'a> StimuliGenerator<'a> {
         // natural order as fallbacks (so generation still terminates if the
         // forced branch fails downstream). When no reach plan is active this
         // whole arm is skipped and behavior is identical to before.
-        let reach_forced_local: Option<usize> = self
-            .reach_plan
-            .as_ref()
-            .and_then(|plan| plan.forced_branch_for(current_rule, node_path))
-            .and_then(|forced_global| {
-                candidate_indices
-                    .iter()
-                    .position(|global_idx| *global_idx == forced_global)
-            });
+        let reach_forced_local: Option<usize> = if suppress_recursive_forced_branch {
+            // RTL-FE-CLOSURE.5.6: the self-recursive forced directive already fired on the shallow
+            // entry; on this re-entry let the operand fall through to the minimal-derivation
+            // ordering below so it terminates instead of forcing the operator again.
+            None
+        } else {
+            self.reach_plan
+                .as_ref()
+                .and_then(|plan| plan.forced_branch_for(current_rule, node_path))
+                .and_then(|forced_global| {
+                    candidate_indices
+                        .iter()
+                        .position(|global_idx| *global_idx == forced_global)
+                })
+        };
         let attempt_order: Vec<usize> = if let Some(forced_local) = reach_forced_local {
             let mut ordered = Vec::with_capacity(candidate_indices.len());
             ordered.push(forced_local);
@@ -17380,6 +17423,149 @@ mod tests {
             report.witnessed, 1,
             "off-path mandatory-sibling depth budget must reach the shallow target whose Sequence \
              sibling is a deep mandatory chain; probes={:?}",
+            probes
+        );
+    }
+
+    #[test]
+    fn plannable_witness_reaches_self_recursive_forced_operator() {
+        // RTL-FE-CLOSURE.5.6 (PGEN-RTL-FE-CLOSURE-0013) end-to-end (the
+        // `unary_expr := bang unary_expr | … | primary_expr` shape in miniature): the reach plan
+        // forces `unary := op unary | leaf` to its SELF-RECURSIVE operator branch (o0) to witness
+        // `op`. Selecting it descends into the operand, which RE-ENTERS `unary` at the SAME
+        // `(rule, node_path)` site. WITHOUT the .5.6 suppression the directive re-fires, forcing
+        // `op` again and again — the operand never terminates minimally, so the only sample the
+        // construct can yield is a runaway `!!!!!!x` (the recovery only finds `leaf` once the visit
+        // budget is exhausted at the bottom), which witnesses NOTHING clean. WITH the suppression
+        // the directive fires ONCE on the shallow entry and the re-entered operand falls to its
+        // minimal terminating alternative (`leaf`), so the construct yields the bounded witness
+        // `!x`. The witness check models the real cert-coverage judge: a clean operator render
+        // (`op` present, no runaway `!!`) witnesses; a runaway does not. This test fails if the
+        // suppression regresses (the recursion re-appears and only `!!…` is produced).
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("rule_reference", "unary"));
+        grammar_tree.insert(
+            "unary".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    // o0: SELF-RECURSIVE operator branch (the `bang unary_expr` shape) — the operand
+                    // re-references `unary`, so the directive keyed on `(unary, root)` would re-fire.
+                    ASTNode::Sequence {
+                        elements: vec![
+                            token("rule_reference", "op"),
+                            token("rule_reference", "unary"),
+                        ],
+                    },
+                    // o1: the only non-recursive terminating alternative (the minimal operand).
+                    token("rule_reference", "leaf"),
+                ],
+            },
+        );
+        grammar_tree.insert("op".to_string(), token("quoted_string", "!"));
+        grammar_tree.insert("leaf".to_string(), token("quoted_string", "x"));
+        let rule_order = vec![
+            "start".to_string(),
+            "unary".to_string(),
+            "op".to_string(),
+            "leaf".to_string(),
+        ];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        let mut probes: Vec<String> = Vec::new();
+        let report = generator.generate_plannable_rule_witnesses(
+            "start",
+            &["op".to_string()],
+            0,
+            4,
+            |_rule, sample| {
+                probes.push(sample.to_string());
+                if sample.contains('!') && !sample.contains("!!") {
+                    PlannableProbeVerdict::Witnessed
+                } else {
+                    PlannableProbeVerdict::ParsedNotWitnessed
+                }
+            },
+        );
+        assert_eq!(report.attempted, 1, "op is graph-reachable: {:?}", report);
+        assert_eq!(
+            report.witnessed, 1,
+            "the self-recursive forced operator branch must fire ONCE then let the re-entered \
+             operand terminate minimally (`!x`), instead of re-forcing into a runaway `!!…`; \
+             probes={:?}",
+            probes
+        );
+        assert!(
+            probes.iter().any(|p| p.matches('!').count() == 1),
+            "the witnessing probe must carry exactly one operator (the bounded `!x`), proving the \
+             directive fired once rather than recursively; probes={:?}",
+            probes
+        );
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn plannable_witness_reaches_self_recursive_unary_operators_real_rtl_frontend() {
+        // RTL-FE-CLOSURE.5.6: regression guard for the self-recursive forced-branch suppression,
+        // locked on the REAL `rtl_frontend` grammar. `unary_expr := plus unary_expr | … |
+        // bang unary_expr | tilde unary_expr | primary_expr` — the `bang`/`tilde` reach plans force
+        // the self-recursive operator alternatives, whose operand re-enters `unary_expr`. WITHOUT
+        // the .5.6 suppression the directive re-fires and the construct never yields a clean
+        // operator render (the live cert-coverage failure: `bang`/`tilde` produced ZERO probe
+        // samples and stayed UNKNOWN). WITH it the operand terminates minimally and the operator
+        // renders exactly once. The witness check models the cert-coverage judge with a string
+        // proxy (a single operator char, no runaway) so the test needs no generated parser.
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/rtl_frontend.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse rtl_frontend.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+        let mut generator = StimuliGenerator::new(
+            "rtl_frontend".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(0),
+                ..StimuliConfig::default()
+            },
+        );
+
+        let mut probes: Vec<(String, String)> = Vec::new();
+        let report = generator.generate_plannable_rule_witnesses(
+            "rtl_frontend_file",
+            &["bang".to_string(), "tilde".to_string()],
+            250,
+            4,
+            |rule, sample| {
+                probes.push((rule.to_string(), sample.to_string()));
+                let op = if rule == "bang" { '!' } else { '~' };
+                // String proxy for the cert-coverage judge (which checks the parser ENTERED the
+                // rule): an operator-bearing valid sample witnesses. The discriminator is whether a
+                // sample is produced AT ALL — on the real grammar the un-fixed self-recursion never
+                // terminates the operand, so `bang`/`tilde` produce ZERO probe samples (the live
+                // cert-coverage failure); the fix lets the operand terminate, so the reach path
+                // renders a real `… bit[ !a ? … ] …` expression carrying the operator. (Samples are
+                // rich ternary range expressions, so they carry several operators — entry, not a
+                // single occurrence, is what the real judge certifies.)
+                if sample.contains(op) {
+                    PlannableProbeVerdict::Witnessed
+                } else {
+                    PlannableProbeVerdict::ParsedNotWitnessed
+                }
+            },
+        );
+        assert_eq!(
+            report.witnessed, 2,
+            "both `bang` and `tilde` must witness via a single-operator render once the \
+             self-recursive forced branch fires once and the operand terminates; probes={:?}",
             probes
         );
     }

@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-14 - RTL-FE-CLOSURE.5.6 — a forced reach directive on a SELF-RECURSIVE rule must fire once, then let the operand terminate (PGEN-RTL-FE-CLOSURE-0013)
+
+### The defect (a self-recursive forced branch whose directive re-fires on the operand)
+`.5.5` split off the last Cluster-C reach sub-mechanism: `bang`/`tilde` produced **zero** probe samples and stayed `UNKNOWN`. The grammar (`grammars/rtl_frontend.ebnf:258`) is
+
+```
+unary_expr := plus unary_expr | minus unary_expr | bang unary_expr | tilde unary_expr | primary_expr
+```
+
+To witness `bang`, the plannable-rule reach pass installs a directive forcing `unary_expr`'s ordered choice to the `bang unary_expr` alternative. The directive is keyed on `(rule_name, node_path)` = `("unary_expr", "root")`. Selecting that branch emits `bang` (`!`) and then generates the **operand**, which is a rule reference to `unary_expr` — so `generate_rule("unary_expr")` re-enters and calls `generate_or("unary_expr", "root")` again. `forced_branch_for("unary_expr", "root")` returns the same branch, so the directive **re-fires**: it forces `bang` again, and again, building `!!!!…` until `max_rule_visits`/`max_depth` exhausts and the construct fails. The only terminating alternative (`primary_expr`) is never reached. The `.5.5` two-tier deep budget cannot help — a deeper budget only buys *more* recursion before the same failure (which is why `bang`/`tilde` were split out as a distinct mechanism, not a depth one).
+
+### The fix (suppress a self-recursive forced directive on a recursive re-entry)
+In `generate_or` (`rust/src/ast_pipeline/stimuli_generator.rs`), a new flag `suppress_recursive_forced_branch` gates **both** reach-plan consult sites (`reach_bypass_branch` and `reach_forced_local` → `None`) when all three hold:
+
+1. a forced directive exists at this OR site (`forced_branch_for(current_rule, node_path)` is `Some`);
+2. the forced branch **references `current_rule`** — a *self-recursive* branch. This membership test uses `collect_rule_references` (which collects the *set* of referenced rule names), **not** `count_rule_references` (a min/sum metric that returns `>0` for *any* rule reference and would falsely flag every directive);
+3. `current_rule` appears **≥2 times** on the live `call_stack`. `generate_rule` pushes `current_rule` onto the stack *before* generating the body, so the count of `current_rule` in `call_stack` is exactly its live recursion depth: `1` on the shallow entry (fire the directive), `≥2` on a recursive re-entry (suppress it).
+
+A reach path is a simple BFS walk (each rule appears on it once), so any re-entry of `current_rule` is recursion *below* the directive's single intended firing. When suppressed, `reach_forced_local` is `None`, and because the reach pass runs in `witness_mode` + `construct_mode`, the operand falls to the min-terminal-length ordering and commits to the shortest non-recursive alternative (`primary_expr`) — so the construct terminates as `!a`/`~a`. The directive still fires on the shallow entry, so the operator is selected and witnessed. The check is purely structural (self-reference + live recursion count, never a rule name), so every non-self-recursive directive is byte-identical and grammars already `fully_certified` never run the pass.
+
+### Why it over-delivered (UNKNOWN 7→3, not the planned 7→5)
+`bang`/`tilde` were the named targets, but the suppression also witnessed `repetition_expr` and `concatenation_expr` (two of `.5.3`'s three Cluster-D targets). The reason is visible in the real probe samples: the `bang`/`tilde` reach path renders a full `typedef bit[ <ternary range expr> ] …` packed-range expression (e.g. `typedef bit[!l?!L:!y:!Wvp?!_s3z:!Lf3bm]i;`), and that range expression exercises the repetition/concatenation range forms. So `.5.3` now shrinks to just `based_integer`.
+
+### Blast radius and why the closed-loop gates were RUN, not reasoned-inert
+The prior reach leaves (`.5.2`/`.5.4`/`.5.5`) lived entirely inside `generate_plannable_rule_witnesses`, so they were provably inert for every non-cert-coverage surface. This change is in `generate_or`, which is shared by **every** reach plan — including the closed-loop **driver**'s (`try_install_reach_plan_for_status`). So inertness for the closed-loop replay path could not be assumed; the gates were executed: `stimuli_cross_family_platform_gate` PASS (regex + vhdl + SV bounded closed-loop replay) and `rtl_frontend_generated_contract_gate` PASS (parser unchanged). The decisive SystemVerilog cert A/B is byte-identical (`UNKNOWN` 619→619, witness 723→723, reach `generation_failures` 43→29 — cleaner), so the change is strictly additive there too.
+
+### Tests (retained regression guards)
+- `plannable_witness_reaches_self_recursive_forced_operator` — a synthetic `unary := op unary | leaf` grammar; the witness check accepts a clean `!x` but rejects a runaway `!!…`. Without the fix the construct only recovers a runaway `!!!!!!x` (the OR finds `leaf` only at the bottom after the visit budget exhausts), which carries `!!` ⇒ `witnessed == 0`; with the fix it yields the bounded `!x` ⇒ `witnessed == 1`.
+- `plannable_witness_reaches_self_recursive_unary_operators_real_rtl_frontend` (gated `ebnf_dual_run`) — loads the real grammar and asserts `bang` and `tilde` both witness via the plannable pass.
+
 ## 2026-06-14 - RTL-FE-CLOSURE.5.5 — the witness-pass depth budget must cover a target's deep MANDATORY OFF-PATH sibling, but ONLY as a second tier (PGEN-RTL-FE-CLOSURE-0012)
 
 ### The defect (a shallow target whose forced construct carries a deep mandatory sibling)

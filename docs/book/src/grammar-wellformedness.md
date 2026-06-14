@@ -516,6 +516,28 @@ rule can regress) and parser-agnostic. On `rtl_frontend` it moved the residual `
 edge-control keywords, deterministic across seeds), with SystemVerilog additive (it witnessed eight more
 rules, none lost).
 
+A last shape in this family is a forced branch that is itself **self-recursive**. The synthesizable-RTL
+unary-operator rule is the canonical case —
+`unary_expr := … | bang unary_expr | tilde unary_expr | primary_expr` — where the `bang`/`tilde`
+alternatives carry the operator *and* a recursive operand. To witness `bang` the reach plan forces
+`unary_expr`'s ordered choice to the `bang unary_expr` alternative; but the directive is keyed on the rule
+and its OR-node position (`(unary_expr, root)`), and the operand re-enters `unary_expr` at exactly that
+site, so the directive **re-fires** — it forces `bang` again, and again, building `!!!!…` until the depth/
+visit budget exhausts and the construct fails. The deeper budget above cannot help here: it only buys more
+recursion before the same failure, so `bang`/`tilde` produce no witness at all. The fix is to make a
+self-recursive forced branch fire **once**. A reach path is a simple walk (each rule appears on it once), so
+any *re-entry* of a rule already live on the generation stack is recursion *below* the directive's single
+intended firing — the operator was already selected on the shallow entry, and the operand now only needs to
+*terminate*. So when the forced branch references the very rule its directive is keyed on (a structural
+self-reference) **and** that rule is already on the call stack, the directive is suppressed for the
+re-entry: the operand falls through to the minimal-derivation ordering and takes its shortest terminating
+alternative (`primary_expr`), yielding `!a`. The directive still fires on the shallow entry, so the operator
+is selected and witnessed. The check is purely structural — the forced branch's self-reference plus the live
+recursion count, never a rule name — so every non-self-recursive directive is byte-identical, and grammars
+already certified clean never run the pass. On `rtl_frontend` it moved the residual `UNKNOWN` 7 → 3: it
+witnessed `bang`/`tilde`, and — because the operator's reach path renders a full `bit[ … ]` range expression
+— also `repetition_expr` and `concatenation_expr`, with SystemVerilog byte-identical.
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule
