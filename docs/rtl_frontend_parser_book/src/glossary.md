@@ -32,7 +32,7 @@ The CLI wrapper around `pgen::embedding_api` used for terminal-side verification
 
 ## Parser release version
 
-The parser library's release identity, currently `1.0.4`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). The `1.0.4` `RTL-FE-CLOSURE.9` bare-ANSI-port acceptance fix is exactly such a case — release bumped `1.0.3` → `1.0.4`, AST-dump schema stayed `3` (additive). Recorded in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).
+The parser library's release identity, currently `1.0.5`. Bumped on every functional change to the parser, including bug fixes, performance work, and grammar changes. It moves independently of the schema version: a release can carry the same schema version as the previous one (no shape change) or a bumped one (shape changed). The `1.0.4` `RTL-FE-CLOSURE.9` bare-ANSI-port acceptance fix is exactly such a case — release bumped `1.0.3` → `1.0.4`, AST-dump schema stayed `3` (additive); the `1.0.5` `RTL-FE-CLOSURE.10` keyword word-boundary fix is another such case — release `1.0.4` → `1.0.5`, schema stayed `3` (additive). Recorded in `docs/contracts/PGEN_RTL_FRONTEND_PARSER_INTEGRATION_CONTRACT.md` § "Contract Identity". See [Schema Versioning](schema-versioning.md).
 
 ## Profile
 

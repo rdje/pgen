@@ -354,46 +354,71 @@ white_space := /[ \t\r\n]+/
 line_comment := /\/\/[^\r\n]*/
 block_comment := /\/\*([^*]|\*+[^*\/])*\*+\//
 
-kw_module := trivia "module"
-kw_endmodule := trivia "endmodule"
-kw_package := trivia "package"
-kw_endpackage := trivia "endpackage"
-kw_import := trivia "import"
-kw_typedef := trivia "typedef"
-kw_parameter := trivia "parameter"
-kw_localparam := trivia "localparam"
-kw_genvar := trivia "genvar"
-kw_assign := trivia "assign"
-kw_generate := trivia "generate"
-kw_endgenerate := trivia "endgenerate"
-kw_if := trivia "if"
-kw_else := trivia "else"
-kw_for := trivia "for"
-kw_begin := trivia "begin"
-kw_end := trivia "end"
-kw_always := trivia "always"
-kw_always_comb := trivia "always_comb"
-kw_always_ff := trivia "always_ff"
-kw_always_latch := trivia "always_latch"
-kw_posedge := trivia "posedge"
-kw_negedge := trivia "negedge"
-kw_or := trivia "or"
-kw_input := trivia "input"
-kw_output := trivia "output"
-kw_inout := trivia "inout"
-kw_struct := trivia "struct"
-kw_union := trivia "union"
-kw_enum := trivia "enum"
-kw_packed := trivia "packed"
-kw_bit := trivia "bit"
-kw_byte := trivia "byte"
-kw_shortint := trivia "shortint"
-kw_int := trivia "int"
-kw_integer := trivia "integer"
-kw_longint := trivia "longint"
-kw_logic := trivia "logic"
-kw_reg := trivia "reg"
-kw_wire := trivia "wire"
+# RTL-FE-CLOSURE.10: every reserved keyword is a WHOLE-WORD token. Without a
+# trailing word boundary, `kw_X := trivia "literal"` PREFIX-matches, so
+# `non_keyword_identifier := !kw_always … !kw_wire simple_identifier` (above)
+# over-rejected any identifier that merely starts with a keyword spelling
+# (`input_data`, `reg_file`, `format`, `orange`, `iffy`) because `!kw_input`
+# fails on the `input` prefix of `input_data`. The handwritten baseline (intent
+# oracle, rtl_frontend/src/lib.rs:2912 lex_identifier + 4332 peek_keyword) lexes
+# a whole identifier token then compares it to a keyword by WHOLE-TOKEN equality,
+# so it accepts those as identifiers — a gen⟷parse duality violation. Fix: embed
+# a `\b` word boundary in each keyword regex (the proven svpp idiom in
+# systemverilog_preprocessor.ebnf — e.g. `kw_define := … /`define\b/`). The
+# boundary lives INSIDE the keyword terminal, so it is checked at the keyword's
+# own match position with no intervening layout skip. A separate
+# `!/[A-Za-z0-9_$]/` lookahead rule cannot work here: generated regex terminals
+# always consume leading layout first (ast_based_generator.rs match_regex
+# `skip_leading_whitespace`), so the boundary would see PAST the space after a
+# keyword and reject every `keyword identifier`. `\b` also makes longer-vs-
+# shorter keyword matching order-independent (`always` no longer prefix-steals
+# `always_comb`; `int` no longer steals `integer`). Known residual: regex `\b`
+# uses `\w = [A-Za-z0-9_]`, which excludes `$`, but `simple_identifier` allows
+# `$`, so the rare `keyword$…` identifier (e.g. `if$x`) stays rejected. Closing
+# that needs a precise no-layout lexical boundary assertion (a parse-enforced
+# `[>!]` follow-restriction, or a no-layout regex) — a future parser-agnostic
+# capability, out of scope here; .6 keeps the closed loop round-trip-safe by
+# mirroring this exact `\b` keyword-exclusion when generating identifiers.
+kw_module := trivia /module\b/
+kw_endmodule := trivia /endmodule\b/
+kw_package := trivia /package\b/
+kw_endpackage := trivia /endpackage\b/
+kw_import := trivia /import\b/
+kw_typedef := trivia /typedef\b/
+kw_parameter := trivia /parameter\b/
+kw_localparam := trivia /localparam\b/
+kw_genvar := trivia /genvar\b/
+kw_assign := trivia /assign\b/
+kw_generate := trivia /generate\b/
+kw_endgenerate := trivia /endgenerate\b/
+kw_if := trivia /if\b/
+kw_else := trivia /else\b/
+kw_for := trivia /for\b/
+kw_begin := trivia /begin\b/
+kw_end := trivia /end\b/
+kw_always := trivia /always\b/
+kw_always_comb := trivia /always_comb\b/
+kw_always_ff := trivia /always_ff\b/
+kw_always_latch := trivia /always_latch\b/
+kw_posedge := trivia /posedge\b/
+kw_negedge := trivia /negedge\b/
+kw_or := trivia /or\b/
+kw_input := trivia /input\b/
+kw_output := trivia /output\b/
+kw_inout := trivia /inout\b/
+kw_struct := trivia /struct\b/
+kw_union := trivia /union\b/
+kw_enum := trivia /enum\b/
+kw_packed := trivia /packed\b/
+kw_bit := trivia /bit\b/
+kw_byte := trivia /byte\b/
+kw_shortint := trivia /shortint\b/
+kw_int := trivia /int\b/
+kw_integer := trivia /integer\b/
+kw_longint := trivia /longint\b/
+kw_logic := trivia /logic\b/
+kw_reg := trivia /reg\b/
+kw_wire := trivia /wire\b/
 
 scope_resolution := trivia "::"
 dot := trivia "."

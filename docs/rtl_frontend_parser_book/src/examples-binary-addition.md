@@ -4,7 +4,7 @@ The companion to [Empty Module](examples-empty-module.md): this one shows
 the **non-empty `rest`** (operator) shape of the ten-level
 `binop_chain` cascade and the consumer left-fold. Every JSON value here
 is the **real captured output** of `generated/rtl_frontend_parser.rs`
-(parser release `1.0.4`, AST-dump schema version `3`) for the
+(parser release `1.0.5`, AST-dump schema version `3`) for the
 regression-locked `assignment_expr` sample in
 `rust/test_data/ast_shape_contract/rtl_frontend_v1.json`. The
 `binop_chain` shape shown here is **unchanged** between schema `2`

@@ -117,7 +117,7 @@ When a grammar rule carries a `-> {...}` return annotation, the rule produces a 
 }
 ```
 
-The 157-annotation surface (as of contract 1.0.4; 156 through 1.0.3, +1 for the `1.0.4` `port_group` no-type branch) covers all the load-bearing rules including the 10-level binop_chain expression hierarchy.
+The 157-annotation surface (as of contract 1.0.5; 156 through 1.0.3, +1 for the `1.0.4` `port_group` no-type branch) covers all the load-bearing rules including the 10-level binop_chain expression hierarchy.
 
 ### Recursive envelope shape (rules without annotations)
 

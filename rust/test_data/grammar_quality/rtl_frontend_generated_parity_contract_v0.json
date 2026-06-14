@@ -4304,6 +4304,43 @@
         "output"
       ],
       "sample": "module bare_mixed_typed (input logic a, output b);\nendmodule\n"
+    },
+    {
+      "label": "keyword_prefixed_identifiers_accept_as_net_names",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "net_declaration",
+        "net_item"
+      ],
+      "required_typed_string_values": [
+        "format",
+        "input_data",
+        "orange",
+        "reg_file"
+      ],
+      "sample": "module m;\n  logic input_data, reg_file;\n  logic format;\n  logic orange;\nendmodule\n"
+    },
+    {
+      "label": "keyword_prefixed_identifiers_accept_as_module_and_port_names",
+      "expected_parse_ok": true,
+      "require_ast_json": true,
+      "required_rule_names": [
+        "rtl_frontend_file",
+        "module_declaration",
+        "port_list",
+        "port_group",
+        "continuous_assign",
+        "signal_reference"
+      ],
+      "required_typed_string_values": [
+        "forge",
+        "genvar_out",
+        "input_buffer"
+      ],
+      "sample": "module input_buffer (input logic forge, output logic genvar_out);\n  assign genvar_out = forge;\nendmodule\n"
     }
   ]
 }

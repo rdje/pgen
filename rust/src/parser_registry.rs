@@ -1732,7 +1732,10 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
     #[test]
     fn rtl_frontend_generated_contract_metadata_is_stable() {
         let contract = rtl_frontend_generated_contract();
-        assert_eq!(contract.contract_version, "0.1.0");
+        // Contract migrated to the typed-AST era in RTL-FE-CLOSURE.3 (0.1.0 -> 0.2.0);
+        // this stale lib-side assertion (the gate's probe binary already asserts 0.2.0)
+        // is realigned to reality here, in the RTL-FE-CLOSURE.10 contract-surface wave.
+        assert_eq!(contract.contract_version, "0.2.0");
         assert_eq!(contract.grammar_name, "rtl_frontend");
         assert!(
             contract
