@@ -4702,10 +4702,28 @@ impl<'a> StimuliGenerator<'a> {
                 let quantified_path = format!("{}/q", base_path);
                 Self::collect_rule_reference_sites(element, &quantified_path, out);
             }
-            ASTNode::Lookahead { element, .. } => {
-                let lookahead_path = format!("{}/l", base_path);
-                Self::collect_rule_reference_sites(element, &lookahead_path, out);
-            }
+            // RTL-FE-CLOSURE.5.4 (PGEN-RTL-FE-CLOSURE-0010): do NOT descend into a
+            // lookahead. `generate_node` emits `Ok(String::new())` for any lookahead
+            // (positive `&` or negative `!`) — a lookahead is a parser assertion that
+            // consumes no input, so the generator materialises NOTHING for it. A rule
+            // referenced inside a lookahead is therefore never positively emitted on a
+            // path that crosses it, and the parser can never enter it via that site
+            // (the witness primitive records *entry*, not assertion). Treating such a
+            // reference as a reach edge poisons the BFS: e.g. every keyword in
+            // `non_keyword_identifier := !kw_always … !kw_wire simple_identifier` becomes
+            // "reachable" through the typedef-name identifier, so the plannable reach
+            // pass for a module-body keyword (`kw_always_latch`, `kw_localparam`,
+            // `kw_output`, …) computes the bogus shortest path
+            // `design_item(typedef) → identifier → non_keyword_identifier → !kw_X`,
+            // forces `design_item → branch 0 (typedef)`, and the construct can never
+            // witness the keyword — it falls back to the shortest `design_item`
+            // ("typedef bit X;") and routes elsewhere. Skipping lookaheads here makes
+            // `reach_hops` / `compute_rule_reach_target` follow only positively-emitted
+            // rule references, so the keyword's real positive path (e.g. via
+            // `procedural_block`) is the one found, and a rule referenced ONLY inside a
+            // lookahead (e.g. `port_direction_token`) correctly has no reach path at all.
+            // GENERAL/parser-agnostic — keyed purely on the `Lookahead` node shape.
+            ASTNode::Lookahead { .. } => {}
             ASTNode::Atom { value } => match value {
                 ASTValue::Node(node) => {
                     let atom_path = format!("{}/a", base_path);
@@ -13108,6 +13126,97 @@ mod tests {
             with_paren.iter().any(|s| s.contains('(') && s.contains(')')),
             "the parenthesised witness must contain both `(` and `)`: {:?}",
             with_paren.first()
+        );
+    }
+
+    #[cfg(feature = "ebnf_dual_run")]
+    #[test]
+    fn reach_hops_skips_lookahead_only_references_real_rtl_frontend() {
+        // RTL-FE-CLOSURE.5.4 (PGEN-RTL-FE-CLOSURE-0010): regression guard for the
+        // negative-lookahead reach-poisoning fix. On the real `rtl_frontend` grammar,
+        // every module-body keyword also appears in
+        // `non_keyword_identifier := !kw_always … !kw_wire simple_identifier`. Before
+        // the fix, `reach_hops` descended into those negative lookaheads, so the
+        // shortest path to e.g. `kw_always_latch` was the BOGUS
+        // `design_item(typedef) → identifier → non_keyword_identifier → !kw_always_latch`
+        // (forcing `design_item → 0` = typedef, which can never witness the keyword).
+        // After the fix, reach-path computation follows only positively-emitted rule
+        // references, so the keyword's real positive path is found.
+        use crate::ast_pipeline::{PipelineConfig, RustASTPipeline};
+        use crate::ebnf_frontend::parse_ebnf_file_to_raw_ast_envelope;
+
+        let grammar_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../grammars/rtl_frontend.ebnf");
+        let envelope =
+            parse_ebnf_file_to_raw_ast_envelope(grammar_path).expect("parse rtl_frontend.ebnf");
+        let raw_ast: Vec<JsonValue> = envelope
+            .get("raw_ast")
+            .and_then(|v| v.as_array())
+            .expect("envelope.raw_ast array")
+            .clone();
+        let (grammar_tree, rule_order, _ann) = RustASTPipeline::new(PipelineConfig::default())
+            .transform_from_raw_ast(&raw_ast)
+            .expect("transform_from_raw_ast");
+        let generator = StimuliGenerator::new(
+            "rtl_frontend".to_string(),
+            &grammar_tree,
+            &rule_order,
+            None,
+            StimuliConfig {
+                seed: Some(0),
+                ..StimuliConfig::default()
+            },
+        );
+
+        let entry = "rtl_frontend_file";
+        // For a target, return the branch the reach plan forces at `design_item::root`,
+        // plus whether any hop rule on the path is `non_keyword_identifier` (the
+        // lookahead host that must no longer appear on a reach path).
+        let design_item_branch_and_lookahead_host = |target: &str| -> (Option<usize>, bool) {
+            let hops = generator.reach_hops(entry, target).expect("reach path exists");
+            let mut design_item_branch = None;
+            let mut crosses_lookahead_host = false;
+            for (hop_rule, hop_site_path) in &hops {
+                if hop_rule == "non_keyword_identifier" {
+                    crosses_lookahead_host = true;
+                }
+                for directive in StimuliGenerator::directives_along_path(hop_rule, hop_site_path) {
+                    if directive.rule_name == "design_item" && directive.node_path == "root" {
+                        design_item_branch = Some(directive.branch_index);
+                    }
+                }
+            }
+            (design_item_branch, crosses_lookahead_host)
+        };
+
+        // Module-body keywords must now reach via their real positive path
+        // (design_item -> branch 2 = module_declaration), never via the typedef-name
+        // negative lookahead, and the path must NOT cross `non_keyword_identifier`.
+        for kw in ["kw_always_latch", "kw_localparam", "kw_output", "kw_inout"] {
+            let (branch, via_lookahead_host) = design_item_branch_and_lookahead_host(kw);
+            assert_eq!(
+                branch,
+                Some(2),
+                "{kw}: reach plan must force design_item->2 (module), not the typedef lookahead path"
+            );
+            assert!(
+                !via_lookahead_host,
+                "{kw}: reach path must not cross non_keyword_identifier (a negative-lookahead host)"
+            );
+        }
+
+        // A data-type keyword keeps its legitimate POSITIVE typedef path
+        // (design_item -> branch 0 = typedef -> data_type -> builtin_data_type), which
+        // is unaffected because it never went through a lookahead.
+        let (reg_branch, reg_via_lookahead) = design_item_branch_and_lookahead_host("kw_reg");
+        assert_eq!(reg_branch, Some(0), "kw_reg keeps its positive typedef->data_type path");
+        assert!(!reg_via_lookahead, "kw_reg's positive path does not cross a lookahead host");
+
+        // `port_direction_token` is referenced ONLY inside the negative lookahead
+        // `( comma !port_direction_token port_item )*`, so after the fix it has no
+        // positive reach path at all (the Cluster-B / .5.1 lookahead-only class).
+        assert!(
+            generator.reach_hops(entry, "port_direction_token").is_none(),
+            "port_direction_token is lookahead-only and must have no positive reach path"
         );
     }
 

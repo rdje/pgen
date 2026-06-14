@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-14 - RTL-FE-CLOSURE.5.4 — the plannable reach-path search must IGNORE lookaheads; a rule referenced only inside `!X`/`&X` is not positively reachable (PGEN-RTL-FE-CLOSURE-0010)
+
+### The defect (a reach plan that steers into a construct that can never witness the target)
+`.5.4` was authored (by `.5.2`) as a "force-entry ROUTING" residual: 11 keyword/operator leaves whose certificate-coverage probe falls back to the shortest `design_item` ("typedef bit X;"). The hypothesis was a forcing/construct gap, *not* depth (the `.5.2` deeper-budget A/B had regressed). Tools-first this is **refined**: the real mechanism is a **negative-lookahead reach-poisoning** of the plannable reach-path BFS.
+
+The decisive tool was a focused unit test (`reach_hops_skips_lookahead_only_references_real_rtl_frontend`, retained as the regression guard) that loads the REAL `grammars/rtl_frontend.ebnf`, builds the generator, and prints `reach_hops(entry, target)` + the per-hop `directives_along_path`. Ground truth for `kw_always_latch`:
+
+```
+hop rule='design_item'           site='root/o0' -> [design_item :: root #0]   <-- branch 0 = typedef!
+hop rule='typedef_declaration'   site='root/s3' -> []
+hop rule='identifier'            site='root'    -> []
+hop rule='non_keyword_identifier' site='root/s3/l' -> []                       <-- '/l' = INSIDE a lookahead
+```
+
+The reach path runs `design_item(typedef) → typedef_declaration → identifier → non_keyword_identifier → !kw_always_latch`. `non_keyword_identifier := !kw_always … !kw_wire simple_identifier` (grammars/rtl_frontend.ebnf:348) negative-lookahead-excludes every keyword, and `collect_rule_reference_sites` (the reach-path site collector) was **descending into the `Lookahead` node** (`/l` segment), so `kw_always_latch` looked reachable through a *typedef name's* identifier — a bogus shortest path. The reach plan then forces `design_item → 0 (typedef)`, but `generate_node` returns `Ok(String::new())` for any lookahead (it materialises nothing — a parser assertion consumes no input), so the construct can never positively emit/witness the keyword. It falls back to the shortest declaration ("typedef bit X;") and the witness side reports `parsed-but-routed-elsewhere`.
+
+Cross-checks that pinned it as GENERAL, not a rarer-construct subset: (1) `kw_module` reaches via `design_item→2` (module) because its POSITIVE reference in `module_declaration` is a shorter BFS path than its lookahead reference — so the bug hits only deeper-nested keywords whose positive path is equal-or-longer than the lookahead path; (2) at `--count 2` (so the diverse pass covers little), EVERY keyword that is witnessed-by-the-diverse-pass at count 40 — `kw_parameter`, `kw_assign`, `kw_generate`, `kw_if`, `kw_always_comb`, … — routes-to-typedef in the reach pass, confirming the reach pass was broken for the whole class.
+
+### The fix (reach follows only positively-emitted references; parser-agnostic)
+`collect_rule_reference_sites`'s `ASTNode::Lookahead` arm no longer recurses. It is the shared reach-path helper used ONLY by `reach_hops` and the dead-code `compute_rule_reach_target`, so the change is correctly scoped to reach-path computation. After it, a rule's reach path follows only references the generator actually emits, so `kw_always_latch` reaches via its real positive path (`procedural_block`), and a rule referenced ONLY inside a lookahead (`port_direction_token`) correctly has NO reach path — a dead-rule candidate the report flags loudly for linter adjudication (the `.5.1`/Cluster-B lookahead-only class, now surfaced honestly). This matches the book + `.4` framing that `!`/`&`-only rules are "never positively coverable."
+
+### Result + scope split
+rtl_frontend cert `UNKNOWN` **16→9** (witness 154→161, `spf` 0, deterministic seeds 0/7/42). 7 of `.5.4`'s leaves resolved (`kw_localparam`/`kw_else`/`kw_begin`/`kw_end`/`kw_always_latch`/`kw_output`/`kw_inout`). The remaining `kw_negedge`/`kw_or`/`bang`/`tilde` turned out to be a DISTINCT (THIRD) sub-mechanism — they no longer route to typedef but fail the forced `always_ff`/`unary_expr` construct on DEPTH (`depth exceeded max_depth=52` at the base of the mandatory `rtl_expr` precedence chain, an ON-PATH SIBLING not in the target's own min-subtree) — split out as the new leaf `.5.5` rather than chased here (one commit, one defect). Decisive git-stash A/B: SV `UNKNOWN` 627→627 BYTE-IDENTICAL (69 SV rules reclassified no-reach-path, none lost). Generator-only ⇒ no release/schema/inventory/manifest/parser/ledger change (the `-0072` precedent).
+
 ## 2026-06-14 - RTL-FE-CLOSURE.5.2 — the certificate-coverage plannable witness pass needs a PER-TARGET depth budget, not a fixed `original*2` (PGEN-RTL-FE-CLOSURE-0009)
 
 ### The defect (a correctly-reached target the witness pass cannot complete)

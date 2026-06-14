@@ -472,6 +472,29 @@ pass at all. On the `rtl_frontend` subset this closed the dominant residual clus
 `UNKNOWN` 66 → 16, deterministic across seeds), and on SystemVerilog it both witnessed more rules and made
 the pass markedly faster (the timeout guards turned slow run-to-timeout failures into fast ones).
 
+A later, sharper refinement made the reach-path search itself **honest about lookaheads**. The path is
+found by a breadth-first search over the grammar's rule-reference graph, and the original search descended
+into *lookahead* sub-expressions (`&X` / `!X`) when collecting reference sites. But a lookahead is a parser
+assertion that consumes no input — the generator materialises **nothing** for it (generation of a lookahead
+node yields the empty string) — so a rule referenced *only* inside a lookahead is never positively emitted on
+a path that crosses it, and the parser can never *enter* it there (and the witness primitive records rule
+*entry*, not assertion). Treating such a reference as a reach edge **poisons** the search. On the
+synthesizable-RTL subset every reserved keyword also appears in the identifier rule's negative-lookahead
+exclusion list (`non_keyword_identifier := !kw_always … !kw_wire simple_identifier`), so a module-body
+keyword like `always_latch` or `localparam` looked "reachable" through a *typedef name's* identifier — a
+shorter, bogus path than its real one. The reach plan then forced the file's first choice to *typedef*, and
+the construct could never witness the keyword: it fell back to the shortest declaration and routed elsewhere.
+(A keyword such as `module`, whose *positive* reference sits on a shorter path than its lookahead reference,
+escaped the trap — which is exactly why the symptom hit only the deeper-nested keywords.) The fix is to
+follow only **positively-emitted** rule references — the reach search no longer descends into lookaheads — so
+each keyword's real positive path (e.g. via the procedural block) is the one found. A rule referenced *only*
+inside a lookahead then correctly has **no** reach path at all and is flagged as a dead-rule candidate for
+linter adjudication — the same `!`/`&`-only class the attribution rule already names, now surfaced honestly
+by the search instead of chased through a path that could never witness it. The change is additive and
+parser-agnostic (keyed purely on the lookahead node shape): it only ever sharpens *which* path is taken,
+never loosens the witness check. On `rtl_frontend` it moved the residual `UNKNOWN` 16 → 9 (deterministic
+across seeds), with SystemVerilog byte-identical (the same rules, now correctly reported as no-reach-path).
+
 ### Reaching store-gated rules: the semantic-prelude reach
 
 One last shape of unwitnessable rule remains after the recursive-depth and optional-gating passes: a rule
