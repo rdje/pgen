@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.2.2 DISCRIMINATION — the "force the port quantifier" M1a fix is REFUTED; branch o2 abandoned before its expression quantifier (PGEN-GRAMMAR-WELLFORMED-0086)
+
+### The slice
+A tools-first discrimination step on the M1a fix, before any fix is written. `H.12.5.5.2.1` left two hypotheses ((a) forcing gap, (b) forced-then-backtrack). This slice measured which — and refuted BOTH. A throwaway trace was used and reverted, so the commit is docs-only (the keepable `PGEN_REACH_PATH_DUMP` reach-path dump from `-0085` stays).
+
+### The discrimination tool (throwaway, reverted)
+A `[q-force]` trace inserted in `generate_quantified` right after `reach_forced_min` is computed, gated on `PGEN_REACH_PATH_DUMP`, printing for every `current_rule==ansi_port_declaration` entry: the `node_path`, `reach_forced_min`, and all `ansi_port_declaration` keys present in the active plan's `forced_quantifier_min` (`apd_keys`).
+
+### The measurement
+`PGEN_REACH_PATH_DUMP=1 ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0`, grep `[q-force]`:
+```
+[q-force] ansi_port_declaration path='root/o0/s0' forced=None apd_keys=[]
+[q-force] ansi_port_declaration path='root/o1/s0' forced=None apd_keys=[]
+[q-force] ansi_port_declaration path='root/o2/s0' forced=None apd_keys=[]
+```
+Only **3** entries in the whole run; all at branch-START quantifiers (`s0` of each top-level branch); all `forced=None`; `apd_keys` EMPTY everywhere. The forced port site `(ansi_port_declaration, root/o2/s4)` (from the `-0085` reach path) is never reached, and no active plan that generates an `ansi_port_declaration` quantifier holds a forced `ansi_port_declaration` quantifier.
+
+### Conclusion (both prior hypotheses refuted)
+- NOT (a) a quantifier-forcing/keying gap at `s4`: `s4` is never reached, so the `(current_rule,node_path)` key match is moot.
+- NOT (b) the forced quantifier expands then the deep expression backtracks: the quantifier is never entered.
+- The real shape: branch `o2` (the expression-bearing branch of the transformed `ansi_port_declaration`) is abandoned for a simpler port branch BEFORE its `s4` expression quantifier — yielding `input logic a` and never entering the target's OR-node.
+
+### Why the model has to move to the transformed tree
+The reach path / plan operate on `self.grammar_tree` (post-transform), where `ansi_port_declaration` is an `Or` with `expression` at `o2/s4`. The EBNF source (`grammars/systemverilog.ebnf:512`) is `( net_port_header | interface_port_header )? port_identifier unpacked_dimension* ( assign constant_expression )?` — a Sequence, no top-level `Or`, and references `constant_expression`/`constant_range`/`net_port_type`, none `expression` directly. So source-based reasoning is unreliable here; the next step must read the transformed structure.
+
+### Next (recorded for the M1a fix `H.12.5.5.2.2`)
+1. Dump the TRANSFORMED `ansi_port_declaration` (`ast_pipeline … --dump-gen-ast`, or a targeted one-rule transformed-AST dump) to see branch `o2`'s real shape and where it can fail before `s4`.
+2. Re-trace with the active plan's `target_group_key` printed AND `forced_branch_for(ansi_port_declaration, "root")` at generation, to distinguish: branch `o2` is forced-then-fails, vs the port is generated under an INLINED rule context (so `current_rule ≠ ansi_port_declaration` and the directive can't key — which would also explain `apd_keys=[]`).
+3. THEN design the fix — most likely reach-path SELECTION to prefer the module-BODY carrier the M1b targets witness through (`program p(...);assign …=<expr>`) over the shorter-hop ANSI-port carrier (the `RTL-FE-CLOSURE.5.3`/`.5.4` reach-path-honesty family). Change ONE thing, rebuild the DEBUG `ast_pipeline` (generator-only, no parser regen), measure GLOBAL cert `UNKNOWN`/`spf` at seeds 0/7/42 + cross-family gates.
+
+### Discipline note
+The discrimination deliberately preceded any fix and REFUTED the natural first guess — exactly the tools-first / no-guessing posture ([[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_why_and_where_before_solution]]). A fix written on the refuted model would have been wrong and risked the 884 already-witnessed plannable rules + cross-family grammars.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.2.1 — PGEN_REACH_PATH_DUMP reach-path tool; M1a carrier pinpointed to the ANSI port (PGEN-GRAMMAR-WELLFORMED-0085)
 
 ### The slice
