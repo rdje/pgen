@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.5.4 — classify the SV UNKNOWN=121 residual into three generator mechanisms (PGEN-GRAMMAR-WELLFORMED-0083)
+
+### The slice
+Pure-docs investigation: the prerequisite WHY+WHERE map before any reach/generation fix of the post-`H.12.5.3` SystemVerilog `UNKNOWN=121` (the `H.12.5.1` classify-before-fix precedent, applied to the residual). No code change.
+
+### Method (tools-first)
+- DEBUG `ast_pipeline --features generated_parsers,ebnf_dual_run`, count 40 seed 0.
+- `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` captures the plannable-reach probe outcome (`parsed=<bool> witnessed_target=<bool> sample=<...>`) for each rule the reach pass targets; `PGEN_CERT_COVERAGE_DUMP_ALL=1` (the `H.12.4` tool) enumerates the full 120-rule `UNKNOWN` list.
+- Cross-referenced the two: for each `UNKNOWN` rule, its best probe outcome → the mechanism partition.
+
+### The partition (refines `H.12.5.1`'s B1/B2/B3 surface buckets into root-cause mechanisms)
+- **M1 reach-shell-fallback — 46 rules** (`parsed=true witnessed_target=false`). Representative probe: `rule='cast' … sample="module m(input logic a);endmodule"` (same for `concatenation`, `conditional_expression`, …). The reach plan forces a path toward the deep expression target but emits a canonical empty module shell — it never descends into an expression position. This is the `H.12.3` short-circuit class extended below the forced branch: `H.12.3`'s branch-`@sample` stand-down (in `generate_or`, `stimuli_generator.rs:6822`) only stands the override down for the EXACTLY-forced branch; when the forced *target* is an expression rule many levels below `module_declaration`, the module shell still fires along the way.
+- **M2 over-generation / store-unfaithful — 40 rules** (only `parsed=false`; the generated witness is REJECTED by the parser). M2a constraint/sequence/property bodies — `rule='constraint_expression' … sample="constraint\foo ::\foo {4080.1;}"` and `rule='kw_intersect…' … sample="sequence\foo ;8_233.29_intersect 9.00261E0endsequence"` are rejected because a bare number is not a valid `constraint_expression` / `sequence_expr`. M2b B1 store-gated identifiers (`checked_nettype_identifier`, `known_unscoped_*`, `declared_class_alias_identifier`, …) — the sample never establishes the store fact the `phase: post` predicate requires. **M2 needs a per-rule over-gen-vs-parser-bug adjudication FIRST** — a `parsed=false` witness could be generator over-generation OR a released SV parser bug (parser wrongly rejecting valid SV), which per the director's fix-parser-bugs-ASAP / bug-finding-oracle principle jumps priority.
+- **M3 no-plannable-probe — 34 rules** (the reach pass synthesizes no candidate): the 20 already-adjudicated `no_path`/blessed NON-defects (A1 alternate-entry + A2 sv_2023 interface-class + 4 blessed, `H.12.5.1`/`.2`) + ~14 property/sequence temporal operators (`kw_accept_on`/`eventually`/`nexttime`/`reject_on`/`s_always`/`s_eventually`/`s_nexttime`/`s_until*`/`sync_accept_on`/`sync_reject_on`/`until*`, `property_case_item`) the plannable pass cannot reach into the property/sequence-expression grammar to construct.
+
+### Honest limit
+This slice pins the MECHANISM and representative evidence per bucket; the precise generator-function WHERE for each fix is owned by its fix child (`H.12.5.5` M1, `H.12.5.6` M2, `H.12.5.7` M3), which must pin it before any code change. None of the three is a quick win — each is an engine/generator reach-or-faithfulness slice (M2 may surface a released parser bug). Pure-docs ⇒ no code/grammar/generated/release/schema/ledger change; clippy not invoked; parser-family rows unchanged.
+
 ## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.5.3 — B4 literal-0: `white_space` + `comment_only_source_region` engine-shadowed-dead removal, SV cert UNKNOWN 123→121 (PGEN-GRAMMAR-WELLFORMED-0082)
 
 ### The slice
