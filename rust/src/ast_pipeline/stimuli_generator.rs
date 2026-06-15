@@ -6737,9 +6737,33 @@ impl<'a> StimuliGenerator<'a> {
                     current_rule, node_path, mutation_site_key, local_idx, selected_global
                 ),
             );
-            if let Some(sample_hint) = self
-                .literalish_hint_for_branch(current_rule, selected_global)
-                .or_else(|| self.probe_literalish_hint_for_branch(current_rule, selected_global))
+            // GRAMMAR-WELLFORMED.H.12.3: when the active reach plan FORCES this exact
+            // branch (it is steering into this branch's body to witness a deeper
+            // target), the branch-level `@sample`/`@probe_sample` literal override must
+            // stand down — otherwise it emits the branch's canonical sample and the
+            // forced body is never generated. This is the dominant SV `kw_*` reach gap:
+            // `module_declaration`'s branch-0 `@sample:"module m; endmodule"` (and
+            // `program_declaration`'s `"program p; endprogram"`) short-circuited the
+            // body where the deep `kw_*` constructs live, so 112/130 unwitnessed `kw_*`
+            // fell back to those shells. Suppress ONLY when the plan forces THIS branch
+            // at THIS site, so a non-forced branch (or any off-reach generation) keeps
+            // the literal hint exactly as before — byte-identical. The reach pass runs
+            // only for not-yet-fully-certified grammars (inert for the certified
+            // roster). GENERAL/parser-agnostic: keyed on the plan's forced-branch
+            // directive, never a rule name.
+            let reach_forces_this_branch = self
+                .reach_plan
+                .as_ref()
+                .and_then(|plan| plan.forced_branch_for(current_rule, node_path))
+                == Some(selected_global);
+            if let Some(sample_hint) = (!reach_forces_this_branch)
+                .then(|| {
+                    self.literalish_hint_for_branch(current_rule, selected_global)
+                        .or_else(|| {
+                            self.probe_literalish_hint_for_branch(current_rule, selected_global)
+                        })
+                })
+                .flatten()
                 .filter(|hint| !self.hint_collides_with_active_closer(hint))
             {
                 self.record_or_mutation_choice(
@@ -17941,6 +17965,81 @@ mod tests {
         assert_eq!(
             helper_values[0], "seeded-helper",
             "probe samples should override OR-root rules when they are the active generation entry"
+        );
+    }
+
+    #[test]
+    fn reach_plan_forced_branch_suppresses_branch_sample_override() {
+        // GRAMMAR-WELLFORMED.H.12.3: a branch-level `@sample` literal override on a
+        // branch the reach plan is FORCING must stand down so the plan descends into
+        // the branch body and witnesses a deeper target. This is the dominant SV
+        // `kw_*` reach-honesty gap in miniature: `module_declaration`'s branch-0
+        // `@sample:"module m; endmodule"` short-circuited the body where the deep
+        // `kw_*` constructs live, so 112/130 unwitnessed `kw_*` fell back to that
+        // shell. Off-reach (no plan, or a non-forced branch) the override is
+        // byte-identical — asserted by the control below.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "wrapper")],
+            },
+        );
+        // `wrapper` is an OR whose only branch carries a branch-level @sample shell
+        // and references the deeper `deep_token` in its body.
+        grammar_tree.insert(
+            "wrapper".to_string(),
+            ASTNode::Or {
+                alternatives: vec![ASTNode::Sequence {
+                    elements: vec![token("rule_reference", "deep_token")],
+                }],
+            },
+        );
+        grammar_tree.insert("deep_token".to_string(), token("quoted_string", "DEEP"));
+        let rule_order = vec![
+            "start".to_string(),
+            "wrapper".to_string(),
+            "deep_token".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.branch_semantic_annotations.insert(
+            "wrapper".to_string(),
+            vec![vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"SHELL\"".to_string(),
+                    value: UnifiedSemanticValue::String("SHELL".to_string()),
+                },
+            }]],
+        );
+
+        // CONTROL — off-reach (no plan): the branch @sample short-circuit is honored,
+        // exactly as before the fix (byte-identical for all non-reach generation).
+        let mut control = annotated_generator(&grammar_tree, &rule_order, &annotations, 7);
+        let control_out = control
+            .generate_many(1, Some("start"))
+            .expect("control generation should succeed");
+        assert!(
+            control_out[0].contains("SHELL") && !control_out[0].contains("DEEP"),
+            "off-reach: the branch @sample must still short-circuit the body: {:?}",
+            control_out
+        );
+
+        // FIX — a reach plan that FORCES `wrapper`'s branch 0 toward `deep_token`
+        // suppresses the @sample, so generation descends and the deep token appears.
+        let mut reached = annotated_generator(&grammar_tree, &rule_order, &annotations, 7);
+        assert!(
+            reached.set_reach_plan_for_rule("start", "deep_token", 16),
+            "a reach plan to `deep_token` must install (the path crosses wrapper@root->0)"
+        );
+        let reached_out = reached
+            .generate_many(1, Some("start"))
+            .expect("reach generation should succeed");
+        assert!(
+            reached_out[0].contains("DEEP") && !reached_out[0].contains("SHELL"),
+            "on the forced reach branch the @sample must stand down and the body must descend: {:?}",
+            reached_out
         );
     }
 

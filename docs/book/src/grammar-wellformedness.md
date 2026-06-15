@@ -419,8 +419,30 @@ SystemVerilog's `UNKNOWN` backlog by 48 with the witness count **byte-identical*
 reached, so no accepted parse changed), the external corpus still parsing 14/14, and no release or schema
 bump — the Hopcroft–Ullman *reduced-grammar* requirement turning into an honest block of dead code
 removed, exactly as `regex` (`19→7`), `systemverilog_preprocessor` (`trivia`), and `vhdl` (`white_space`)
-had each done. SystemVerilog remains the one shipped grammar not yet fully certified, its remaining
-backlog openly reported and still being driven toward zero.
+had each done.
+
+The next SystemVerilog step was a **reach-honesty** fix that paid off out of all proportion to its
+size — the largest single `UNKNOWN` drop the gate has seen. The certificate-coverage report's reach
+pass kept reporting a huge `parsed-but-routed-elsewhere` residual: hundreds of reachable rules whose
+reach probe *parsed* but routed through other rules. Capturing the probes showed the dominant shape
+was a fallback to a **canonical empty shell** — `module m; endmodule` or `program p; endprogram` —
+for 112 of the 130 unwitnessed keyword-token rules. The cause was a collision between two mechanisms
+that had never been made to compose: a rule's `@sample` *literal-override* hint (which lets the
+generator emit a rule as one canonical literal instead of expanding its body) and the reach plan's
+*forced descent* (which steers generation through a rule's body to witness a deeper target). When the
+reach plan forced `module_declaration`'s branch — whose `@sample` is `"module m; endmodule"` — the
+literal override fired *first* and emitted the shell, so the body where every gate-instantiation,
+specify-block, statement and assertion keyword lives was never generated. The fix makes the two
+compose: a branch-level `@sample` override stands down for exactly the branch the active reach plan is
+forcing (and only then — off-reach generation is byte-identical, and a grammar with no `@sample` on a
+forced branch is unaffected). That one change descended into the module/program bodies and witnessed
+not just the 130 keywords but every construct and intermediate rule along those paths —
+SystemVerilog `UNKNOWN` `567 → 123` in a single step (witness `726 → 1170`), deterministic with the
+diverse certification pass and every other grammar byte-identical (the fully-certified roster never
+runs the reach pass, and `rtl_const_expr`/`rtl_frontend`/`vhdl`/`json` carry no `@sample` at all).
+SystemVerilog remains the one shipped grammar not yet fully certified, its remaining backlog (the
+profile/alternate-entry `no_path` rules and a smaller constraint/sequence keyword cluster) openly
+reported and still being driven toward zero.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

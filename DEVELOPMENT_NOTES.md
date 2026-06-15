@@ -1,4 +1,30 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.3 — SV cert UNKNOWN 567→123 via the branch-`@sample` reach-honesty fix (PGEN-GRAMMAR-WELLFORMED-0078)
+
+### The slice
+Third leaf of the SystemVerilog `UNKNOWN`→0 drive (`GRAMMAR-WELLFORMED.H.12`). A generator engine fix confined to the **witness / reach pass** — the parser, the AST shape, and the diverse certification pass (which produces the reported `sample_parse_failures`) are all untouched. No release/schema/wire change.
+
+### Tools-first WHY+WHERE (no guessing)
+Reproduced the `H.12.2` baseline (`total=1294 proof=1 witness=726 UNKNOWN=567 spf=0`, deterministic), then:
+1. **Probe capture** (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1 … --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0`): 237 `kw_*` rules probed, 107 witness, **130 do not** — matching the `H.12.2` "kw_* 130". Bucketing the failing samples: **112/130 fall back to a canonical empty shell** (`module m; endmodule` ×57, `program p; endprogram` ×55); the other 18 are constraint/sequence keywords with non-shell samples.
+2. **Reach-path dump** (a temporary env-gated `PGEN_CERT_COVERAGE_DEBUG_REACH` diagnostic added to `generate_plannable_rule_witnesses`, since removed): printed the hops + forced OR directives + forced quantifier sites per target, on the real profile-filtered tree. It proved the mechanism exactly — e.g. `kw_cmos_aabe63a7` chain `…→description→module_declaration→module_declaration_sv_2017→non_port_module_item→…→cmos_switchtype→kw_cmos`, forcing `module_declaration@root->0` + `module_declaration_sv_2017@root->0` + the body quantifier `module_declaration_sv_2017@root/o0/s2`. Across all failing targets, **57 reach paths force `module_declaration@…`, 55 force `program_declaration`** — the exact 57+55 shell split.
+
+### Root cause
+`module_declaration` (line 3054) and `program_declaration_sv_2017` (line 3963+) carry **branch-level** `@sample` hints (`"module m; endmodule"` / `"program p; endprogram"`). The branch-level literal-override in `generate_or` (`stimuli_generator.rs:6822`, via `literalish_hint_for_branch`) fires when its branch is selected and RETURNS the literal — short-circuiting the branch body. It never consulted the reach plan, so the plannable reach pass forced `module_declaration`'s branch but the override emitted the shell and the forced body (where the deep `kw_*` constructs live) was never generated → the probe parsed but routed elsewhere.
+
+A first attempt gated the **rule-level** override (`generate_rule:6132`) on an `on_path_rules` set; re-measuring showed it had no effect (the SV `@sample`s are branch-level, applied in `generate_or`, not rule-level in `generate_rule`). That attempt + its `ActiveReachPlan.on_path_rules` infrastructure were **reverted** — the proven mechanism is branch-level, and a targeted fix carries no speculative code.
+
+### Fix
+In `generate_or`, compute `reach_forces_this_branch = reach_plan.forced_branch_for(current_rule, node_path) == Some(selected_global)` and skip the branch literal-override when true (the plan is steering into this branch's body to witness a deeper target). Parser-agnostic (keyed on the plan's forced-branch directive, no rule names); additive (off-reach / non-forced branches keep the literal exactly as before — `reach_forces_this_branch` is only non-false inside an active reach plan); inert for the fully-certified roster (the plannable reach pass only runs when `UNKNOWN>0`).
+
+### Result + verification
+- SV cert `UNKNOWN 567 → 123`, witness `726 → 1170` (+444), `spf=0`, seeds 0/7/42 = `123/122/123` (±1 from the reach pass's wall-clock per-attempt timeout). The single fix cascaded well beyond the 130 `kw_*` (plannable `witnessed 442→896`, `routed-elsewhere 540→83`) — descending into the bodies witnessed every deep construct + the intermediate rules along the paths.
+- Inertness proof: `@sample` counts per grammar — rtl_const_expr/rtl_frontend/vhdl/json = **0**, regex = 1, svpp = 6, systemverilog = 90; the 6 fully-certified grammars stay `fully_certified` (json 9/9, regex 198/198, svpp 74/74 measured; the 0-`@sample` three provably inert).
+- default lib `653/0` (+1 lock); clippy strict-source clean (generated = pre-existing 191-site tolerated debt); `regex_pcre2_compile_oracle_gate` + `stimuli_cross_family_platform_gate` PASS.
+
+### Next
+`H.12.5` — the residual `123` (20 `no_path` A1/A2 needing the `H.12.4` observability; the 18 `OTHER` constraint/sequence `kw_*`, a different non-`@sample` mechanism; deeper routed-elsewhere/gen-failure residual).
+
 ## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.2 — classify SV cert UNKNOWN=567; next fix = the kw_* parsed-but-routed cluster (PGEN-GRAMMAR-WELLFORMED-0077)
 
 ### The slice
