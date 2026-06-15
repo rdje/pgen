@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.4 — cert no_path/UNKNOWN full-dump observability (PGEN-GRAMMAR-WELLFORMED-0079)
+
+### The slice
+Fourth leaf of the SystemVerilog `UNKNOWN`→0 drive (`GRAMMAR-WELLFORMED.H.12`). OBSERVABILITY-ONLY: the only code touched is the cert-coverage report's PRINT path in `rust/src/main.rs::run_certificate_coverage_report`. No grammar, parser, generated artifact, engine, or computation change.
+
+### WHY (tools-first)
+Reconfirmed the `H.12.3` baseline deterministically (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1 … --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0`): `total=1294 proof=1 witness=1170 UNKNOWN=123 spf=0`. The report's two residual-listing prints are capped — `no_path` at `.min(10)` and `UNKNOWN` at `.min(25)` (`UNKNOWN rules (25 of 123 shown)`). So the full 20-no_path enumeration + the full 123 UNKNOWN list — the data the `H.12.5` drive needs to adjudicate A1-vs-A2 and classify the reachable-but-unwitnessed bulk — were not readable from stdout. Per `feedback_tools_first_no_guessing` ("if the tools can't show it, build the tool first"), the disciplined first slice is the observability tool, not a speculative residual fix.
+
+### WHERE / FIX
+`rust/src/main.rs`, two print sites in `run_certificate_coverage_report` (the `no_path` WARNING and the `UNKNOWN rules (… of … shown)` line):
+- added `let dump_all = std::env::var_os("PGEN_CERT_COVERAGE_DUMP_ALL").is_some();` (presence-gated, matching the existing `PGEN_CERT_COVERAGE_DEBUG_PROBES` idiom in the same function);
+- changed each `let shown = list.len().min(N);` to `let shown = if dump_all { list.len() } else { list.len().min(N) };`.
+Determinism: `certificate_coverage` builds `unknown` by iterating `all_fragments` (the `rule_order` vector) in order, and `no_path` is likewise rule-order-derived, so the full dump prints in a stable, reproducible sequence — no sorting needed (and sorting would diverge from the natural rule-order grouping, which is more useful for clustering).
+
+### Verification
+Rebuilt the DEBUG `ast_pipeline` (`--features "ebnf_dual_run generated_parsers"`). count 40, seed 0:
+- DEFAULT (env unset): `no_path` shows 10, `UNKNOWN rules (25 of 123 shown)` — caps intact, byte-identical to prior behavior.
+- `PGEN_CERT_COVERAGE_DUMP_ALL=1`: `no_path` shows all 20, `UNKNOWN rules (123 of 123 shown)` lists all 123.
+- Cert summary identical in both runs: `total=1294 proof=1 witness=1170 UNKNOWN=123 spf=0` (the dump changes the print, not the computation).
+- `make clippy_on_rust_change` ✅ exit 0; source stage clean; generated stage = the pre-existing 191-site tolerated debt (non-strict), unchanged.
+
+### Data unblocked for H.12.5
+Full 20 `no_path`: `sv_multi_entry_root`, `systemverilog_parseable_file`, `parseable_source_item`, `class_constructor_super_args`, `declared_interface_class_identifier`, `include_statement`, `interface_class_declaration`, `interface_class_item`, `interface_class_method`, `library_declaration`, `library_description`, `library_text`, `module_path_conditional_expression`, `union_modifier`, `kw_file_path_spec_…`, `kw_incdir_…`, `kw_include_…`, `kw_library_…`, `kw_n_29_…`, `kw_n_48_…`. Partition: A1 library/alternate-entry roots (witnessed by per-entry cert runs, not removal); A2 sv_2023 interface-class (audit for a profile-orphan defect — interface classes are SV-2012, valid in 2017); plus the blessed LRM mutual-recursion `module_path_conditional_expression`, `union_modifier`, and the two `kw_n_*` number helpers. The reachable-but-unwitnessed bulk (123 − 20) is dominated by constraint/sequence/property `kw_*` and class-scoped-call / expression rules (full list now dumpable).
+
+### Versioning
+OBSERVABILITY-ONLY ⇒ no release/schema/inventory/ledger change; no book/README change (internal cert-coverage debug env var, sibling to the undocumented `PGEN_CERT_COVERAGE_DEBUG_PROBES`). All parser-family rows unchanged.
+
 ## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.3 — SV cert UNKNOWN 567→123 via the branch-`@sample` reach-honesty fix (PGEN-GRAMMAR-WELLFORMED-0078)
 
 ### The slice

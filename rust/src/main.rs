@@ -2593,10 +2593,16 @@ fn run_certificate_coverage_report(
             plannable_generation_failures
         );
     }
+    // GRAMMAR-WELLFORMED.H.12.4: env-gated full-dump observability. When PGEN_CERT_COVERAGE_DUMP_ALL
+    // is set, the no_path and UNKNOWN lists below print IN FULL (the @10 / @25 print caps are lifted)
+    // so the residual can be enumerated and adjudicated (e.g. A1 alternate-entry vs A2 profile-orphan)
+    // deterministically. Unset (the default) is byte-identical to the prior capped output. The lists
+    // are emitted in the report's existing deterministic (rule-order) sequence, so the dump is stable.
+    let dump_all = std::env::var_os("PGEN_CERT_COVERAGE_DUMP_ALL").is_some();
     if !plannable_no_path.is_empty() {
         // GRAMMAR-WELLFORMED.H.7.2: by the attribution rule, an UNKNOWN rule with NO path in the
         // rule-reference graph is grammar/linter territory (a dead rule candidate) — flag it loudly.
-        let shown = plannable_no_path.len().min(10);
+        let shown = if dump_all { plannable_no_path.len() } else { plannable_no_path.len().min(10) };
         println!(
             "  WARNING plannable-rule reach pass: {} UNKNOWN rules have NO reach path from the entry (dead-rule candidates — adjudicate via the linter): {:?}",
             plannable_no_path.len(),
@@ -2611,7 +2617,7 @@ fn run_certificate_coverage_report(
         );
     }
     if !report.unknown.is_empty() {
-        let shown = report.unknown.len().min(25);
+        let shown = if dump_all { report.unknown.len() } else { report.unknown.len().min(25) };
         println!(
             "  UNKNOWN rules ({} of {} shown): {:?}",
             shown,
