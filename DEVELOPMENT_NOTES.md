@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.2 — classify SV cert UNKNOWN=567; next fix = the kw_* parsed-but-routed cluster (PGEN-GRAMMAR-WELLFORMED-0077)
+
+### The slice
+Second leaf of the SystemVerilog `UNKNOWN`→0 drive (`GRAMMAR-WELLFORMED.H.12`). A pure-docs, tools-first INVESTIGATION that partitions the 567 `UNKNOWN` into actionable classes and picks the next fix target — the disciplined prerequisite to any H.12.3 generator/grammar work (WHY+WHERE before solution; no guessing).
+
+### Method (tools-first, no guessing)
+Ran the cert-coverage report on the post-`H.12.1` debug `ast_pipeline` with probe capture:
+`PGEN_CERT_COVERAGE_DEBUG_PROBES=1 rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0` → `/tmp/h122_sv_probes_seed0.log` (4542 lines). The gated `[plannable-probe]` lines enumerate every has-path reach target with its `parsed`/`witnessed_target` verdict + the generated sample; no_path rules (skipped from probing, `generate_plannable_rule_witnesses` line ~3078) never appear, so the has-path set and the no_path set are separable.
+
+### Baseline reconfirmed (= H.12.1)
+`total=1294 proof=1 witness=726 UNKNOWN=567 spf=0`. Plannable reach pass: `1076 UNKNOWN targeted; 442 witnessed, 540 parsed-but-routed-elsewhere, 456 probe non-reparses (per-attempt), 29 generation failures; no_path=20`.
+
+### Partition of the 567 — (A) no_path 20, NOT dead
+The reach pass flags 20 rules as `no_path` (no positive reach path from `systemverilog_file` under sv_2017). Unlike the `H.12.1` orphans (genuinely dead → removed), these are *entry/profile-relative* unreachable — the attribution rule's second special case — and must NOT be removed. Two statically-confirmed mechanisms:
+- **(A1) alternate-entry-only roots:** `sv_multi_entry_root`, `systemverilog_parseable_file`, `parseable_source_item`, the `library_text` subtree (`library_text`/`library_description`/`library_declaration`/`library_identifier`/`kw_library`), `include_statement`/`kw_include`. These are reachable only from the OTHER two real entries (`library_text` = the SV library-map file, LRM 33; `systemverilog_parseable_file`/`sv_multi_entry_root` = the parseable-fragment + synthetic multi-entry root), never from `systemverilog_file`. Correct by design.
+- **(A2) sv_2023-profile-relative:** `interface_class_declaration`, `interface_class_item`, `interface_class_method`, `declared_interface_class_identifier`, `class_constructor_super_args`. Static reference trace: `interface_class_declaration` is referenced ONLY at `systemverilog.ebnf:490` (`anonymous_program_item_sv_2023`), `:971` (`class_item_sv_2023`), `:3577` (`package_or_generate_item_declaration_sv_2023`); `class_constructor_super_args` ONLY at `:915` (`class_constructor_declaration_sv_2023`). All references are from `*_sv_2023` rules, filtered out by `--grammar-profile sv_2017` → no path under sv_2017.
+
+CORRECTION (don't trust a loose family-grep): a first pass flagged `config_declaration`/`config_identifier`/`config_rule_statement` as no_path because they were absent from the probe lines — but `description:1801` references `config_declaration` directly and `description` IS reachable from `systemverilog_file` (`systemverilog_file → source_text → source_text_item → description`), so those are pass-1/2-witnessed (absent from probe lines because witnessed BEFORE the pass-3 plannable pass), NOT no_path. The exact-20 family count was coincidental; the precise A1/A2 mechanism is the sound finding.
+
+ADJUDICATION: A1/A2 are witnessed by per-entry cert runs (`--entry-rule library_text` / `systemverilog_parseable_file`), the multi-entry root (`--entry-rule sv_multi_entry_root`), or the `sv_2023` profile run — never by removal. ⚠️ A2 flag for follow-up: interface classes are SV-2012 (valid in 2017), so the sv_2017 reach gap may be a *profile-orphan defect* (a missing sv_2017 reference) rather than a genuine sv_2023-only construct — a profile-reachability audit is warranted before any A2 conclusion.
+
+### Partition of the 567 — (B) reachable-but-unwitnessed ≈547, the BULK
+The remaining ≈547 have a reach path but the plannable pass cannot witness them. Per-rule verdict rollup over the probe log (599 probed-but-unwitnessed has-path rules; ≈52 of these leave final-UNKNOWN via incidental cross-probe witnessing):
+- **540 parsed-but-routed-elsewhere (DOMINANT):** the reach plan generates a sample that PARSES but routes the bytes through OTHER rules, not the target. Canonical evidence: the `inside_expression` probe produced `"module m; endmodule"` — the plan fell back to a trivial source-text item that routes elsewhere. This is the GENERATOR-REACH-HONESTY class, the SV analogue of the `RTL-FE-CLOSURE.5.x` reach fixes (lookahead-poisoning `.5.4`, self-recursive-branch preference `.5.3`/`.5.6`, two-tier depth `.5.5`, mandatory-sibling depth) on SV's far larger/deeper grammar.
+- **59 never-reparsed + ~15 generation-failure-only.**
+
+FAMILY breakdown of the 599 (find the most tractable sub-cluster): **`kw_*` 130 (largest single coherent class)**, `*_identifier` 49, `*_expr(ession)` 37, `*_sv_2017` 39, `*_statement` 24, `*_declaration` 20, `*_item` 20, `*_type` 13, `*_lvalue` 5, `*_call` 5, `other` 256.
+
+### Decision — next fix target (H.12.3)
+The `parsed-but-routed-elsewhere` bulk is the actionable mass; the `kw_*` keyword-token cluster (130) is the largest coherent sub-family and the proven-tractable shape (the rtl_frontend reach fixes were keyword-driven). `H.12.3` will pick ONE coherent keyword cluster, root-cause WHY the plannable reach pass routes its construct elsewhere (probe samples + `--trace-rules`), and apply the generator-reach-honesty fix — expected additive/general and cross-grammar inert for the 6 `fully_certified` grammars (decisive git-stash A/B per the `RTL-FE-CLOSURE.5.x` precedent).
+
+### New ticket (H.12.4) — cert observability
+The report caps the `no_path` warning at 10 (`main.rs:2599`) and the `UNKNOWN` list at 25 (`main.rs:2614`), so the exact full-20 no_path enumeration + per-rule A1-vs-A2 adjudication can't be read from stdout. `H.12.4` adds an env-gated full-dump (e.g. `PGEN_CERT_COVERAGE_DUMP_ALL=1`) or a per-entry/multi-entry cert lane. (Code change → its own leaf, not folded into this pure-docs slice.)
+
+### Determinism + scope
+The `no_path`/structural facts are seed-independent by construction; the verdict counts are a seed-0 snapshot (the FAMILIES, not the exact counts, are the durable finding). PURE-DOCS ⇒ no code/grammar/generated/release/schema/ledger change; clippy not invoked; all parser-family rows unchanged (SV stays the only non-fully-certified shipped grammar).
+
 ## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.1 — SV cert UNKNOWN 615→567: the 48 dead LRM-decomposed-number orphans removed (PGEN-GRAMMAR-WELLFORMED-0076)
 
 ### The slice
