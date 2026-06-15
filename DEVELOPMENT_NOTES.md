@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.5.2 — A2 interface-class sv_2017 no_path adjudicated NOT a defect (PGEN-GRAMMAR-WELLFORMED-0081)
+
+### The slice
+A2 adjudication leaf of the SystemVerilog `UNKNOWN`→0 drive (`GRAMMAR-WELLFORMED.H.12`). PURE-DOCS — no code/grammar/generated/engine/contract change. `H.12.5.1` flagged the 5 sv_2023-only interface-class rules (`interface_class_declaration`, `interface_class_item`, `interface_class_method`, `declared_interface_class_identifier`, `class_constructor_super_args`) as a *candidate* profile-orphan defect. This slice grounds the hypothesis against the IEEE LRMs and refutes it.
+
+### WHY (tools-first, LRM-grounded) — the candidate defect is REFUTED
+The discipline is `feedback_no_codebase_change_without_tool_backed_facts` + `project_ebnf_is_single_source_of_truth`: do not change the grammar on a hypothesis; confirm against the LRM (the source of truth for what SV accepts).
+- **1800-2017 LRM:** `interface_class_declaration` is defined (§8.26.1 / A.1.2) but NOT referenced as an alternative in `class_item` (`docs/systemverilog/2017/md/section-8-classes.md:95` — `class_declaration` only), `package_or_generate_item_declaration` (`section-26-packages.md:60`), or `anonymous_program_item`. A whole-workspace grep finds `interface_class_declaration` only on the LHS of its own definition — the 2017 LRM orphans it in the source-text item hierarchy (a known 1800-2017 grammar omission; §8.26 prose + examples describe interface classes, but Annex A never wires the declaration into the item hierarchy).
+- **1800-2023 LRM:** fixed — `class_item` (`2023/md/section-8-classes.md:102`), `package_or_generate_item_declaration` (`section-26-packages.md:71`), and program items (`section-24-programs.md:133`) each add `| interface_class_declaration`; 2023 Annex A confirms at `:519`/`:681`/`:696`.
+- **PGEN mirrors both:** the active grammar references `interface_class_declaration` only from the `*_sv_2023` variants (`grammars/systemverilog.ebnf:490` anonymous_program_item_sv_2023, `:971` class_item_sv_2023, `:3577` package_or_generate_item_declaration_sv_2023; `class_constructor_super_args` at `:915`). Under `--grammar-profile sv_2017` the dispatchers select the sv_2017 variant ⇒ the interface-class subtree is correctly unreachable. Wiring it into sv_2017 would make PGEN's sv_2017 profile diverge from the 1800-2017 LRM — the candidate fix would itself be the defect.
+
+### Witnessing evidence
+The analogue of the A1 `library_text` proof: a cert run with `--grammar-profile sv_2023 --entry-rule systemverilog_file --count 40 --seed 0` (`PGEN_CERT_COVERAGE_DUMP_ALL=1`, log `/tmp/h1252_sv2023_cert.log`) witnesses all 5 A2 rules — none appears in that run's UNKNOWN/no_path lists. sv_2023 cert summary: `total=1314 witness=1202 UNKNOWN=111 spf=0`.
+
+### Verdict + endgame implication
+The 5 A2 rules are correct profile-relative `no_path` under sv_2017, certifiable under the sv_2023 profile — not removal, not sv_2017-wiring. With this, the 20 SV `no_path` are fully adjudicated as NON-defects: 11 A1 alternate-entry-relative (witnessed under `--entry-rule library_text`, `H.12.5.1`) + 5 A2 profile-relative (witnessed under `--grammar-profile sv_2023`, here) + 4 blessed (`module_path_conditional_expression`, `union_modifier`, `kw_n_29`, `kw_n_48`). The SV `fully_certified` endgame therefore needs a multi-profile/multi-entry accounting for these 20, not an sv_2017 reach fix (open decision, recorded in the task file). The real `UNKNOWN`→0 work is the 103 reachable-but-unwitnessed (B1 store-gated / B2 kw_* / B3 constructs / B4 white_space); the next fix child is `H.12.5.3` (B4 `white_space` literal-0). Parser-family rows unchanged — SV stays the only non-fully-certified shipped grammar.
+
 ## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.5.1 — classify + adjudicate the SystemVerilog cert-coverage UNKNOWN=123 (PGEN-GRAMMAR-WELLFORMED-0080)
 
 ### The slice
