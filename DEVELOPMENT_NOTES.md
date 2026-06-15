@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.1 — tools-first WHY+WHERE on the SV UNKNOWN=121 M1 bucket: M1a vs M1b, WHERE = reach_hops' BFS shortest-hop path selection (PGEN-GRAMMAR-WELLFORMED-0084)
+
+### The slice
+Pure-docs WHY+WHERE investigation opening `H.12.5.5` (the M1 fix). The `-0083` classification lumped 46 rules as "M1 reach-shell-fallback"; this slice ran the per-target reach probes and found the bucket is TWO mechanisms, and pinned the generator WHERE. No code change (the leaf's own acceptance mandates tools-first WHY+WHERE BEFORE any fix — [[feedback_why_and_where_before_solution]], [[feedback_no_codebase_change_without_tool_backed_facts]]).
+
+### Method (tools-first)
+- DEBUG `ast_pipeline --features ebnf_dual_run,generated_parsers` (prebuilt binary, post-`-0083` regen — no rebuild needed).
+- `PGEN_CERT_COVERAGE_DUMP_ALL=1` (the `H.12.4` tool) → reproduced the deterministic baseline `total=1292 proof=1 witness=1170 UNKNOWN=121 spf=0` at seed 0 — BYTE-identical to the `H.12.5.3` result ⇒ the metric is SIGNAL.
+- `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` → one `[plannable-probe] rule='…' parsed=… witnessed_target=… sample=…` line per reach attempt; grouped the M1 (`parsed=true witnessed_target=false`) rules by their generated `sample`.
+
+### The two mechanisms (refines `-0083`'s single M1 bucket)
+- **M1a — reach DEAD-ENDS at the module/program header.** Sample = a minimal `module m(input logic a);endmodule`. The body `module_item*` expands to ZERO, so the deep expression target's OR-node is never positively entered. Rules: `cast`, `concatenation`, `conditional_expression`, `cond_pattern`, `cond_predicate`, `assignment_pattern_entry`, `inside_expression`/`inside_expression_sv_2017`, `associative_dimension`, `empty_unpacked_array_concatenation`, `expression_or_cond_pattern`, `instance_or_class_scope`.
+- **M1b — reach DESCENDS into a construct context but routes through a SIBLING rule.** The reach produces a NON-trivial sample that exercises the context but not the target's own sub-branch: `array_range_expression`/`bit_select_expression`/`direct_index_method_call` → `program p(...);assign \foo.\foo[\foo].\foo=<num>;endprogram`; `goto_repetition`/`class_scoped_tf_call` → `sequence\foo ;…endsequence`; `context_member_method_call`/`constant_let_expression`/`class_scoped_call_prefix`/`class_scoped_tf_call_with_args`/`known_unscoped_class_scoped_call_*` → `(*\foo =+…*)`; `inout_declaration`/`input_declaration` → `module m(a,b);inout\foo ;endmodule`; `callable_identifier` → `nettype int nt;`; `checker_instantiation`/`known_unscoped_checker_identifier` → `bind\foo \foo \foo ();;`; `known_unscoped_base_class_type_parameter_identifier` → `class\foo extends\foo ;endclass`.
+
+### WHERE (pinned, read in source)
+- `reach_hops(entry, target)` (`rust/src/ast_pipeline/stimuli_generator.rs:5186`): BFS over the rule-reference graph from `systemverilog_file`, returning the **shortest-HOP** path as `(referencing_rule, reference-site node_path)` pairs. It minimizes hop COUNT (with the `.5.3` non-self-recursive-branch preference + `.5.4` lookahead-skip already applied to *which* site is chosen per rule).
+- `set_reach_plan_for_rule(entry, target, fuel)` (`:2686`): for each hop, `directives_along_path` forces the OR-branches from the hop rule's root down to the reference site, and `quantifier_sites_along_path` forces those quantifiers to ≥1. So the reach plan only forces branches/quantifiers that lie ON the BFS hop path.
+- **Consequence for M1a:** the shortest-hop path to a deep expression rule can land at a header/declaration position whose minimal forced completion is a valid `module …;endmodule` that never enters the target. The fix belongs in reach-path SELECTION (prefer a path into a generatable expression position), not in forcing more along the existing path — the same lineage as `RTL-FE-CLOSURE.5.3`/`.5.4`.
+
+### NOTE
+`casting_type`/`constant_cast` show `parsed=false` (sample `(*\foo =+bit'(+bit'(…))*)` rejected) ⇒ they are M2 over-generation (`H.12.5.6`), miscounted if folded into M1.
+
+### Next
+Split `H.12.5.5` → `.1` (this investigation, done) + `.2` M1a header-reach-honesty fix (frontier) + `.3` M1b in-expression sibling-routing fix. `.2` starts with a reach-path observability tool-build (dump the exact `cast` BFS path) BEFORE any `reach_hops` change; then change ONE thing and measure the GLOBAL cert metric + `spf` at seeds 0/7/42 plus the cross-family gates.
+
 ## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.5.4 — classify the SV UNKNOWN=121 residual into three generator mechanisms (PGEN-GRAMMAR-WELLFORMED-0083)
 
 ### The slice
