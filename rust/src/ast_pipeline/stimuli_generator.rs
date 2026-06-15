@@ -2692,6 +2692,20 @@ impl<'a> StimuliGenerator<'a> {
         let Some(hops) = self.reach_hops(entry_rule, target_rule) else {
             return false;
         };
+        // GRAMMAR-WELLFORMED.H.12.5.5.2.1 (OBSERVABILITY-ONLY): env-gated reach-path dump —
+        // `PGEN_REACH_PATH_DUMP=1` prints the BFS hop chain `reach_hops` installs for each
+        // plannable-witness target, so a `parsed-but-routed-elsewhere` residual can be read
+        // directly as "which reach carrier the plan chose" (the sibling of the cert-coverage
+        // `PGEN_CERT_COVERAGE_DEBUG_PROBES` / `PGEN_CERT_COVERAGE_DUMP_ALL` diagnostics). Off
+        // by default ⇒ byte-identical generation (presence-gated print only, never a
+        // computation change). The crate shadows `eprintln!` -> trace, so force stderr with
+        // `::std::eprintln!`. GENERAL/parser-agnostic — the hop chain is rule-name/site pairs.
+        if std::env::var_os("PGEN_REACH_PATH_DUMP").is_some() {
+            ::std::eprintln!(
+                "  [reach-path] target='{}' hops={:?}",
+                target_rule, hops
+            );
+        }
         let mut chain: Vec<ReachDirective> = Vec::new();
         let mut quantifier_sites: Vec<(String, String)> = Vec::new();
         for (hop_rule, hop_site_path) in &hops {

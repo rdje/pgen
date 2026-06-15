@@ -1,4 +1,41 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.2.1 — PGEN_REACH_PATH_DUMP reach-path tool; M1a carrier pinpointed to the ANSI port (PGEN-GRAMMAR-WELLFORMED-0085)
+
+### The slice
+Observability tool-build that unblocks the M1a fix (`H.12.5.5.2.2`). Generator-only, env-gated, byte-identical when off. The `H.12.5.5.1` investigation pinned the WHERE to `reach_hops`' BFS shortest-hop path selection; this slice built the dump that reads the *exact* path per target and used it to pinpoint the carrier.
+
+### The tool
+`rust/src/ast_pipeline/stimuli_generator.rs::set_reach_plan_for_rule`, right after `reach_hops` returns the hop chain:
+```rust
+if std::env::var_os("PGEN_REACH_PATH_DUMP").is_some() {
+    ::std::eprintln!("  [reach-path] target='{}' hops={:?}", target_rule, hops);
+}
+```
+- `::std::eprintln!` (not `eprintln!`) because `ast_pipeline/mod.rs` shadows `eprintln!` → `pgen_trace_debug!` crate-wide; the dump must print regardless of trace verbosity.
+- Presence-gated (`is_some()`), the same idiom as `PGEN_CERT_COVERAGE_DEBUG_PROBES` / `PGEN_CERT_COVERAGE_DUMP_ALL`. Off by default ⇒ byte-identical generation (a print, never a computation change).
+
+### What it found — the M1a carrier is the ANSI port
+Run: `PGEN_REACH_PATH_DUMP=1 ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0`. EVERY M1a expression target shares the BFS shortest-HOP prefix:
+```
+systemverilog_file → source_text → source_text_item → description → module_declaration
+  → module_declaration_sv_2017 (root/o0/s0) → module_ansi_header (root/s6/q)
+  → list_of_port_declarations (root/s1/q/s1) → ansi_port_declaration (root/o2/s4/q) → expression → …
+```
+The grammar context (`grammars/systemverilog.ebnf`):
+- `module_declaration_sv_2017 := @sample:"module m; endmodule" module_ansi_header (timeunits_declaration)? non_port_module_item* kw_endmodule (colon module_identifier)?` — the module BODY is `non_port_module_item*`.
+- The reach path does NOT go through `non_port_module_item*` (the body) — it goes through `module_ansi_header → list_of_port_declarations → ansi_port_declaration → expression` (the PORT). The BFS minimizes hop COUNT and the port path is shorter than the body path.
+- Generated sample: `module m(input logic a);endmodule` — the body `non_port_module_item*` is empty AND the port renders minimally as `input logic a` (the on-path port-expression quantifier `ansi_port_declaration root/o2/s4` does not materialize), so the expression target is never positively entered (`parsed=true witnessed_target=false`).
+- Contrast: the M1b targets that witnessed (`array_range_expression`/`bit_select_expression`/`direct_index_method_call`) reach via the module/program BODY (`program p(...);assign \foo.\foo[\foo].\foo=<num>;endprogram`) — a generatable expression position.
+
+### The open question the `.2.2` fix must answer FIRST
+The `forced_quantifier_min` lookup in `generate_quantified` (`:7702-7708`) keys on `(current_rule.to_string(), node_path.to_string())`, and `quantifier_sites_along_path` (`:5534`) inserts keys `(rule_name, prefix-before-q)`. For the port path's `root/o2/s4/q` the inserted key is `(ansi_port_declaration, "root/o2/s4")` and `generate_quantified` would look up `(ansi_port_declaration, "root/o2/s4")` — they MATCH, so the forcing SHOULD fire. So the `input logic a` (empty quantifier) is NOT a key typo. The fix must discriminate, tools-first (`PGEN_REACH_PATH_DUMP` + `--trace-rules ansi_port_declaration`):
+- (a) the forced quantifier is genuinely not expanding (branch o2 not taken, or the quantifier-forcing path not reached) → fix the forcing; or
+- (b) it expands but the deep expression backtracks (the port default is a `constant_expression` context / the unpacked-dimension expects a constant range, or a depth-budget issue) → fix reach-path SELECTION to prefer a module-body carrier over the shorter-hop port path (the `RTL-FE-CLOSURE.5.3`/`.5.4` reach-path-honesty family).
+Then change ONE thing, rebuild the DEBUG `ast_pipeline` (generator-only — NO SV parser regen), and measure the GLOBAL cert `UNKNOWN`/`spf` at seeds 0/7/42 plus the cross-family gates (the reach pass touches the closed-loop driver, so cross-family gates RUN, not assumed inert).
+
+### Verification
+cert-coverage `total=1292 proof=1 witness=1170 UNKNOWN=121 spf=0` with the dump ON — byte-identical to the `H.12.5.3`/`-0084` baseline (the dump changes only stderr). `clippy_on_rust_change` gate exit 0 (strict-source clean; the generated-parser stage's ~189 errors are the pre-existing tolerated debt, non-strict). Generator-only ⇒ no parser regen, no grammar/release/schema/inventory/ledger change.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.1 — tools-first WHY+WHERE on the SV UNKNOWN=121 M1 bucket: M1a vs M1b, WHERE = reach_hops' BFS shortest-hop path selection (PGEN-GRAMMAR-WELLFORMED-0084)
 
 ### The slice
