@@ -403,6 +403,25 @@ is the attribution rule compounding: the same oracle that exposed `VHDL-0002` ex
 "never silently accept a residual" discipline turned a shrugged-off generator ticket into a real,
 shipped-parser fix.
 
+SystemVerilog's own `UNKNOWN`→0 drive then opened with the largest *structural* reduction available — a
+textbook application of the attribution rule's second branch (the grammar is at fault, so fix the
+grammar). The certificate-coverage report flagged a whole family of number-literal fragments —
+`binary_number`, `octal_number`, `decimal_number`, `hex_number`, `size`, `fixed_point_number`, and their
+decomposed `*_base`/`*_digit`/`*_value` helpers plus the private single-character `kw_*` tokens those
+helpers consumed — as having *no reach path at all* from the real entry. Reading the grammar explained
+why: an earlier cleanup (`PGEN-SV-EXH-PROOF-0021`) had consolidated `integral_number` / `real_number` /
+`unsigned_number` into single clean regexes, which **severed the reference chain** that used to reach the
+decomposed sub-tree, leaving the whole subgraph as orphans that did no parse work. An independent
+reference-graph dead-closure from the three real entries reproduced *exactly* the 48 rules the
+syntax-closure contract had already *blessed* as intentional orphans — and that contract's own drift
+policy spells out the right resolution: **delete the orphan**. Removing all 48 at the source dropped
+SystemVerilog's `UNKNOWN` backlog by 48 with the witness count **byte-identical** (the rules were never
+reached, so no accepted parse changed), the external corpus still parsing 14/14, and no release or schema
+bump — the Hopcroft–Ullman *reduced-grammar* requirement turning into an honest block of dead code
+removed, exactly as `regex` (`19→7`), `systemverilog_preprocessor` (`trivia`), and `vhdl` (`white_space`)
+had each done. SystemVerilog remains the one shipped grammar not yet fully certified, its remaining
+backlog openly reported and still being driven toward zero.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

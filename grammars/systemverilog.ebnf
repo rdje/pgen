@@ -22,15 +22,20 @@
 # RECONNECTIONS APPLIED
 # ---------------------
 # (1) Numeric chain
-#     - integral_number, real_number, unsigned_number, binary_number,
-#       octal_number, decimal_number, hex_number, fixed_point_number,
-#       size, non_zero_unsigned_number now carry LRM-faithful
-#       structural definitions instead of manual-regex / alias bodies.
-#     - Helper rules (binary_base, binary_value, binary_digit,
-#       decimal_base, decimal_digit, hex_base, hex_value, hex_digit,
-#       octal_base, octal_value, octal_digit, x_digit, z_digit, exp,
-#       sign, non_zero_decimal_digit, plus helper kw tokens) are now
-#       part of the reach-set via the chain.
+#     - integral_number, real_number, unsigned_number carry clean
+#       single-regex LRM-faithful definitions (PGEN-SV-EXH-PROOF-0021,
+#       .3.2 Strategy 1); `number` dispatches real_number / integral_number.
+#     - HISTORICAL: the earlier decomposed-number subgraph (the binary/
+#       octal/decimal/hex base/digit/value/tail rules, the *_number
+#       aliases, size, exp, sign, fixed_point_number, non_zero_* and
+#       their private single-character kw_* digit/base tokens) was
+#       SEVERED by Strategy 1's regex consolidation and left as harmless
+#       orphans. Those 48 dead useless symbols were REMOVED at source by
+#       GRAMMAR-WELLFORMED.H.12.1 (the SV cert-coverage UNKNOWN->0 drive;
+#       Hopcroft-Ullman reduced-grammar requirement; the
+#       systemverilog_syntax_closure_contract.json drift-policy "delete
+#       the orphan" path) - the regex H.10.1 / svpp trivia / vhdl
+#       white_space dead-rule-removal precedent.
 #
 # (2) sv_multi_entry_root — synthetic multi-entry root
 #     - Union of systemverilog_file, library_text, and
@@ -156,9 +161,6 @@
 #   unreachable_branches:      20  (metric — internal sub-quantifier
 #                                   accounting; not actionable debt)
 # ===================================================================
-
-
-
 
 # systemverilog.ebnf
 #
@@ -413,26 +415,6 @@ string_literal := trivia /"([^"\\]|\\.)*"/        -> {kind: "double_quoted", bod
 
 unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
 
-# PGEN-SV-EXH-PROOF-0021 (.3.2 Strategy 1): the based-number kinds
-# are now fully covered by `integral_number`'s clean sized/based
-# regex; these stay as named passthroughs (referenced only via the
-# former decomposed `integral_number`, now orphaned-but-harmless —
-# RGX-0081 orphan-rule precedent). `size` is the LRM non-zero
-# decimal literal (`[1-9][0-9_]*`); `fixed_point_number` the LRM
-# `unsigned_number . unsigned_number`. Clean Terminals, no `\b`/
-# sentinel mangling.
-binary_number := integral_number
-
-octal_number := integral_number
-
-decimal_number := integral_number
-
-hex_number := integral_number
-
-size := /[1-9][0-9_]*/
-
-fixed_point_number := /[0-9][0-9_]*\.[0-9][0-9_]*/
-
 time_literal := number time_unit
              -> {value: $1, unit: $2}
 
@@ -596,14 +578,6 @@ attribute_instance := attr_open attr_spec ( comma attr_spec )* attr_close
 
 bin_identifier := identifier
 
-binary_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_b_e9d71f5e  -> {kind: "b"}
-            | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_B_ae4f281d   -> {kind: "B"}
-
-binary_digit := x_digit                 -> {kind: "x"}
-             | z_digit                  -> {kind: "z"}
-             | kw_n_0_b6589fc6          -> {kind: "0"}
-             | kw_n_1_356a192b          -> {kind: "1"}
-
 binary_module_path_operator := equal                -> {kind: "equal"}
                             | not_equal           -> {kind: "not_equal"}
                             | logical_and         -> {kind: "logical_and"}
@@ -613,9 +587,6 @@ binary_module_path_operator := equal                -> {kind: "equal"}
                             | bitwise_xor         -> {kind: "bitwise_xor"}
                             | reduction_xnor_alt  -> {kind: "reduction_xnor_alt"}
                             | reduction_xnor      -> {kind: "reduction_xnor"}
-
-binary_value_tail := kw_sv_rule_c82a06f6 | binary_digit
-binary_value := binary_digit ( binary_value_tail )* -> {first: $1, rest: $2}
 
 bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instance_list )? bind_instantiation semi
                     -> {kind: "scoped", target_scope: $2, instances: $3, instantiation: $4}
@@ -1753,20 +1724,6 @@ data_type_or_incomplete_class_scoped_type := data_type_or_incomplete_class_scope
 data_type_or_void := data_type        -> {kind: "data_type", body: $1}
                    | kw_void_e9cede9b -> {kind: "void"}
 
-decimal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_d_3c363836 -> {kind: "d"}
-             | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_D_50c9e8d5  -> {kind: "D"}
-
-decimal_digit := kw_n_0_b6589fc6 -> {kind: "0"}
-              | kw_n_1_356a192b -> {kind: "1"}
-              | kw_n_2_da4b9237 -> {kind: "2"}
-              | kw_n_3_77de68da -> {kind: "3"}
-              | kw_n_4_1b645389 -> {kind: "4"}
-              | kw_n_5_ac3478d6 -> {kind: "5"}
-              | kw_n_6_c1dfd96e -> {kind: "6"}
-              | kw_n_7_902ba3cd -> {kind: "7"}
-              | kw_n_8_fe5dbbce -> {kind: "8"}
-              | kw_n_9_0ade7c2c -> {kind: "9"}
-
 default_clause := kw_default_7505d64a
                -> {kind: "default"}
 
@@ -2050,9 +2007,6 @@ event_trigger_sv_2023 := implies hierarchical_event_identifier nonrange_select s
 event_trigger := event_trigger_sv_2017 -> {kind: "sv_2017", body: $1}
                | event_trigger_sv_2023 -> {kind: "sv_2023", body: $1}
 
-exp := kw_e_58e6b3a4 -> {kind: "e"}
-     | kw_E_e0184ade -> {kind: "E"}
-
 expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen action_block
                           -> {spec: $3, action: $5}
 
@@ -2273,37 +2227,6 @@ genvar_iteration := genvar_identifier assignment_operator genvar_expression
 
 goto_repetition := ( implies const_or_range_expression )
                 -> {range: $1}
-
-hex_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_h_27d5482e -> {kind: "h"}
-         | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_H_7cf184f4  -> {kind: "H"}
-
-hex_digit := x_digit          -> {kind: "x"}
-          | z_digit            -> {kind: "z"}
-          | kw_n_0_b6589fc6    -> {kind: "0"}
-          | kw_n_1_356a192b    -> {kind: "1"}
-          | kw_n_2_da4b9237    -> {kind: "2"}
-          | kw_n_3_77de68da    -> {kind: "3"}
-          | kw_n_4_1b645389    -> {kind: "4"}
-          | kw_n_5_ac3478d6    -> {kind: "5"}
-          | kw_n_6_c1dfd96e    -> {kind: "6"}
-          | kw_n_7_902ba3cd    -> {kind: "7"}
-          | kw_n_8_fe5dbbce    -> {kind: "8"}
-          | kw_n_9_0ade7c2c    -> {kind: "9"}
-          | kw_a_86f7e437      -> {kind: "a"}
-          | kw_b_e9d71f5e      -> {kind: "b"}
-          | kw_c_84a51684      -> {kind: "c"}
-          | kw_d_3c363836      -> {kind: "d"}
-          | kw_e_58e6b3a4      -> {kind: "e"}
-          | kw_f_4a0a1921      -> {kind: "f"}
-          | kw_A_6dcd4ce2      -> {kind: "A"}
-          | kw_B_ae4f281d      -> {kind: "B"}
-          | kw_C_32096c2e      -> {kind: "C"}
-          | kw_D_50c9e8d5      -> {kind: "D"}
-          | kw_E_e0184ade      -> {kind: "E"}
-          | kw_F_e69f20e9      -> {kind: "F"}
-
-hex_value_tail := kw_sv_rule_c82a06f6 | hex_digit
-hex_value := hex_digit ( hex_value_tail )* -> {first: $1, rest: $2}
 
 hierarchical_array_identifier := hierarchical_identifier
 
@@ -3466,22 +3389,6 @@ non_port_program_item := attribute_instance* continuous_assign
                        | program_generate_item
                              -> {kind: "program_generate_item",            body: $1}
 
-non_zero_decimal_digit := kw_n_1_356a192b -> {kind: "1"}
-                        | kw_n_2_da4b9237 -> {kind: "2"}
-                        | kw_n_3_77de68da -> {kind: "3"}
-                        | kw_n_4_1b645389 -> {kind: "4"}
-                        | kw_n_5_ac3478d6 -> {kind: "5"}
-                        | kw_n_6_c1dfd96e -> {kind: "6"}
-                        | kw_n_7_902ba3cd -> {kind: "7"}
-                        | kw_n_8_fe5dbbce -> {kind: "8"}
-                        | kw_n_9_0ade7c2c -> {kind: "9"}
-
-// @profiles: ["sv_2017"]
-// non_zero_unsigned_number_sv_2017 := non_zero_decimal_digit ( kw_sv_rule_c82a06f6 | decimal_digit )*
-
-non_zero_unsigned_number_tail := kw_sv_rule_c82a06f6 | decimal_digit
-non_zero_unsigned_number := non_zero_decimal_digit ( non_zero_unsigned_number_tail )* -> {first: $1, rest: $2}
-
 nonblocking_assignment := variable_lvalue less_equal ( delay_or_event_control )? expression
                        -> {lvalue: $1, control: $3, value: $4}
 
@@ -3501,23 +3408,6 @@ nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope | class_
 
 notifier := variable_identifier
          -> {body: $1}
-
-octal_base := tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_o_7a81af3e -> {kind: "o"}
-           | tick ( kw_s_a0f1490a | kw_S_02aa629c )? kw_O_08a914cd  -> {kind: "O"}
-
-octal_digit := x_digit              -> {kind: "x"}
-            | z_digit                -> {kind: "z"}
-            | kw_n_0_b6589fc6        -> {kind: "0"}
-            | kw_n_1_356a192b        -> {kind: "1"}
-            | kw_n_2_da4b9237        -> {kind: "2"}
-            | kw_n_3_77de68da        -> {kind: "3"}
-            | kw_n_4_1b645389        -> {kind: "4"}
-            | kw_n_5_ac3478d6        -> {kind: "5"}
-            | kw_n_6_c1dfd96e        -> {kind: "6"}
-            | kw_n_7_902ba3cd        -> {kind: "7"}
-
-octal_value_tail := kw_sv_rule_c82a06f6 | octal_digit
-octal_value := octal_digit ( octal_value_tail )* -> {first: $1, rest: $2}
 
 // one_line_comment := slash slash comment_text kw_n_ef7e6794
 
@@ -4744,9 +4634,6 @@ showcancelled_declaration := kw_showcancelled_ac9a7408 list_of_path_outputs semi
                            | kw_noshowcancelled_1d50d807 list_of_path_outputs semi
                                    -> {kind: "noshowcancelled", outputs: $2}
 
-sign := plus  -> {kind: "plus"}
-      | minus -> {kind: "minus"}
-
 signal_identifier := identifier
 
 signing := kw_signed_07235a80   -> {kind: "signed"}
@@ -5553,13 +5440,6 @@ weight_specification := weight_specification_sv_2017
 with_covergroup_expression := covergroup_expression
                            -> {body: $1}
 
-x_digit := kw_x_11f6ad8e -> {kind: "x"}
-        | kw_X_c032adc1  -> {kind: "X"}
-
-z_digit := kw_z_395df8f7 -> {kind: "z"}
-        | kw_Z_909f99a7  -> {kind: "Z"}
-        | question        -> {kind: "?"}
-
 z_or_x := kw_x_11f6ad8e -> {kind: "x"}
        | kw_X_c032adc1  -> {kind: "X"}
        | kw_z_395df8f7  -> {kind: "z"}
@@ -5596,23 +5476,11 @@ greater_than := trivia ">"                   -> {kind: "greater_than"}
 hash := trivia "#"                           -> {kind: "hash"}
 iff_arrow := trivia "<->"                      -> {kind: "iff_arrow"}
 implies := trivia "->"                        -> {kind: "implies"}
-kw_A_6dcd4ce2 := trivia /A\b/
-
 kw_B_ae4f281d := trivia /B\b/
-
-kw_C_32096c2e := trivia /C\b/
-
-kw_D_50c9e8d5 := trivia /D\b/
-
-kw_E_e0184ade := trivia /E\b/
 
 kw_F_e69f20e9 := trivia /F\b/
 
-kw_H_7cf184f4 := trivia /H\b/
-
 kw_N_b51a6073 := trivia /N\b/
-
-kw_O_08a914cd := trivia /O\b/
 
 kw_PATHPULSE_dollar_e0f78dc5 := trivia /PATHPULSE_dollar\b/
 
@@ -5622,13 +5490,9 @@ kw_P_511993d3 := trivia /P\b/
 
 kw_R_06576556 := trivia /R\b/
 
-kw_S_02aa629c := trivia /S\b/
-
 kw_X_c032adc1 := trivia /X\b/
 
 kw_Z_909f99a7 := trivia /Z\b/
-
-kw_a_86f7e437 := trivia /a\b/
 
 kw_accept_on_2aee6cd4 := trivia /accept_on\b/
 
@@ -5676,8 +5540,6 @@ kw_bufif_8c9c7ee6 := trivia /bufif\b/
 
 kw_byte_8cf1783f := trivia /byte\b/
 
-kw_c_84a51684 := trivia /c\b/
-
 kw_case_6406510c := trivia /case\b/
 
 kw_casex_b31a7350 := trivia /casex\b/
@@ -5718,8 +5580,6 @@ kw_coverpoint_fc1cae9d := trivia /coverpoint\b/
 
 kw_cross_ac4280ba := trivia /cross\b/
 
-kw_d_3c363836 := trivia /d\b/
-
 kw_deassign_1af170b4 := trivia /deassign\b/
 
 kw_assign_9009b730 := trivia /assign\b/
@@ -5737,8 +5597,6 @@ kw_dist_02450072 := trivia /dist\b/
 kw_do_eadcd9bd := trivia /do\b/
 
 kw_dollar := trivia /\$/
-
-kw_e_58e6b3a4 := trivia /e\b/
 
 kw_edge_a0f2c69a := trivia /edge\b/
 
@@ -5829,8 +5687,6 @@ kw_generate_9e59d425 := trivia /generate\b/
 kw_genvar_9cb2eb8a := trivia /genvar\b/
 
 kw_global_9027cc5a := trivia /global\b/
-
-kw_h_27d5482e := trivia /h\b/
 
 kw_highz_ed790878 := trivia /highz\b/
 
@@ -5934,23 +5790,9 @@ kw_n_29_7719a1c7 := trivia /29\b/
 
 kw_n_2_da4b9237 := trivia /2\b/
 
-kw_n_3_77de68da := trivia /3\b/
-
 kw_n_43_0286dd55 := trivia /43\b/
 
 kw_n_48_64e095fe := trivia /48\b/
-
-kw_n_4_1b645389 := trivia /4\b/
-
-kw_n_5_ac3478d6 := trivia /5\b/
-
-kw_n_6_c1dfd96e := trivia /6\b/
-
-kw_n_7_902ba3cd := trivia /7\b/
-
-kw_n_8_fe5dbbce := trivia /8\b/
-
-kw_n_9_0ade7c2c := trivia /9\b/
 
 kw_n_d1854cae := trivia /n\b/
 
@@ -5981,8 +5823,6 @@ kw_notif_8743f903 := trivia /notif\b/
 kw_ns_7320d5b7 := trivia /ns\b/
 
 kw_null_2be88ca4 := trivia /null\b/
-
-kw_o_7a81af3e := trivia /o\b/
 
 // kw_one_to_three_digit_octal_number_29d40f0b := trivia /\\one_to_three_digit_octal_number\b/
 
@@ -6157,8 +5997,6 @@ kw_sv_dollar_unit_1d99223f := trivia /sv_dollar_unit\b/
 kw_sv_dollar_warning_22a41474 := trivia /sv_dollar_warning\b/
 
 kw_sv_dollar_width_72b04d27 := trivia /sv_dollar_width\b/
-
-kw_sv_rule_c82a06f6 := trivia /sv_rule\b/
 
 kw_sync_accept_on_b65eda53 := trivia /sync_accept_on\b/
 

@@ -1,4 +1,25 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.1 — SV cert UNKNOWN 615→567: the 48 dead LRM-decomposed-number orphans removed (PGEN-GRAMMAR-WELLFORMED-0076)
+
+### The slice
+First leaf of the SystemVerilog `UNKNOWN`→0 drive (`GRAMMAR-WELLFORMED.H.12`). SV is the only non-fully-certified shipped grammar. A parse-neutral dead-rule removal (the regex `H.10.1` / svpp `trivia` / vhdl `white_space` literal-0 precedent).
+
+### Root cause (tools-first, WHY+WHERE — no guessing)
+The certificate-coverage report's `--report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40` (seed 0 baseline `total=1342 proof=1 witness=726 UNKNOWN=615 spf=0`) flagged a number-literal family (`binary_number`, `octal_number`, `decimal_number`, `hex_number`, `size`, `fixed_point_number`, `binary_base`, …) among 68 `NO reach path` dead-rule candidates. Reading the grammar: `PGEN-SV-EXH-PROOF-0021` (.3.2 Strategy 1) had consolidated `integral_number`/`real_number`/`unsigned_number` into clean single regexes, severing the decomposed-number reference chain → the whole decomposed subgraph (aliases + `*_base`/`*_digit`/`*_value`/`*_tail` + `exp`/`sign`/`non_zero_*` + private single-char `kw_*` digit/base tokens) was orphaned. The grammar's own header note ("Numeric chain … part of the reach-set via the chain") was stale; the inline note already said "orphaned-but-harmless"; and `systemverilog_syntax_closure_contract.json` already *blessed* these in two lists (`lrm_decomposed_number_orphans` 27 + `lrm_decomposed_number_kw_helpers` 21 = 48).
+
+### Independent confirmation (don't trust one oracle)
+A standalone reference-graph dead-closure (built from the grammar text with annotation/regex/string stripping, following lookahead edges too so a lookahead-used rule is never marked dead) computed the set of rules unreachable from the three real entries (`systemverilog_file`/`library_text`/`systemverilog_parseable_file`). Result: exactly the same 48 rules as the contract's blessed lists — and `sv_multi_entry_root` correctly preserved (intentional synthetic root). The cert "no-path" verdict, the linter's orphan tolerance (`unreachable_rules=0`, RGX-0081 precedent), the grammar comments, the contract blessed lists, and the independent dead-closure all agree.
+
+### The change (grammar-only)
+Removed all 48 dead rule definitions from `grammars/systemverilog.ebnf` (a Python block-deletion: each rule's def + continuation lines + one trailing blank, plus the dedicated stale comment blocks). Shared `kw_*` tokens used by LIVE rules (`kw_n_0/1/2`, `kw_b/f`, `kw_B/F`, `kw_s`) were preserved — the dead-closure distinguishes them. The header "Numeric chain" reconnection note was rewritten to record the removal.
+
+### Verification (parse-neutral, deterministic)
+- `--lint-grammar`: `unreachable_rules=0`, `non_terminating=0`, `unbound_fact_kinds=0`, `profile_orphans=0`, `unresolved_rule_reference_count=0`; 1342→1294 profiled rules.
+- cert-coverage seeds 0/7/42 byte-identical: `total=1294 proof=1 witness=726 (UNCHANGED) UNKNOWN=567 spf=0`. Witness count unchanged = no accepted parse changed. No-path dead-rule candidates 68→20 (the remaining 20 are legitimate library/interface-class/multi-entry rules reachable only from other real entries — `H.12.2` territory, a different mechanism, NOT dead).
+- `systemverilog_syntax_closure_contract.json` v3→v4: `min_total_rules` 1453→1405 (`defined_rule_count` 1456→1408), `max_unreachable_rules` 49→1 (only `module_path_conditional_expression`), `max_unreachable_branches` 109→11, both number blessed lists `[]`. `sv_syntax_closure_gate` PASS.
+- `ast_shape_contract_gate` 16/16; SV external corpus 14/14; dual-feature lib 752/0; `stimuli_cross_family_platform_gate` PASS.
+- No release/schema/inventory bump (wire-shape identical — orphans never parsed). Return-annotation inventory naturally drops the dead rules' annotations (→ 2220).
+
 ## 2026-06-15 - RTL-FE-CLOSURE.8 — rtl_frontend LIVE row promoted to Done; RTL-FE-CLOSURE tree complete (PGEN-RTL-FE-CLOSURE-0019)
 
 ### The closure leaf
