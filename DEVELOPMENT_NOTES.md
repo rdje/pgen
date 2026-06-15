@@ -1,4 +1,35 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.5.3 — B4 literal-0: `white_space` + `comment_only_source_region` engine-shadowed-dead removal, SV cert UNKNOWN 123→121 (PGEN-GRAMMAR-WELLFORMED-0082)
+
+### The slice
+The B4 leaf of the SystemVerilog cert-coverage `UNKNOWN`→0 drive (`GRAMMAR-WELLFORMED.H.12`). `H.12.5.1` had bucketed two of the residual 123 — `white_space` and `comment_only_source_region` — as "B4 misc", with `white_space` adjudicated engine-shadowed-dead (the whitespace skipper) and `comment_only_source_region` flagged a "removal candidate, edit larger." This slice proved both dead and removed them at source, accept-identically.
+
+### Root cause / WHY+WHERE (tools-first)
+- **Probe (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1`, DEBUG `ast_pipeline --features generated_parsers,ebnf_dual_run`, count 40 seed 0):** `[plannable-probe] rule='white_space' parsed=true witnessed_target=false sample="     "` and `[plannable-probe] rule='comment_only_source_region' parsed=true witnessed_target=false sample="//x\n"`. The probe generates a valid sample for each rule, parses it through `systemverilog_file`, and the rule is *never* witnessed — the engine-shadowed-dead signature (the vhdl `H.11.4` adjudication shape).
+- **Direct AST proof:** `parseability_probe --parse-dump-ast-pretty systemverilog` on six inputs (`//x\n`, `/* block */`, `// lead\nmodule m; endmodule`, `module m; endmodule\n// trail`, a no-newline-EOF comment, whitespace+two comments) — all parse `parse_full` OK, **zero** `comment_only_source_region` nodes in any AST; a comment-only file yields `{"source_text": [], "type": "systemverilog_file"}`. The generated layout skipper consumes whitespace AND comments as leading trivia before any non-empty-matchable regex / `source_text_item` branch is tried, so `white_space` never matches its own bytes and `comment_only_source_region`'s `source_text_item` branch never fires.
+- This **falsifies** the leaf's path-(a) (`@sample`-cover `comment_only_source_region`): the probe already fed it `//x\n` and got `witnessed=false`. The correct resolution is the same literal-0 **delete the orphan** path as `white_space`.
+
+### The edit (`grammars/systemverilog.ebnf`)
+1. `trivia := (white_space | line_comment | block_comment)*` → `trivia := (line_comment | block_comment)*`; the `priority_first` rationale comment rewritten for the two remaining mutually-exclusive arms (`//` vs `/*`), with an `H.12.5.3` adjudication note for the removed `white_space` arm.
+2. `white_space := /[ \t\r\n]+/` removed at source (the now-orphaned rule).
+3. The `comment_only_source_region` rule removed; an in-grammar adjudication comment records the engine-shadowed-dead reasoning.
+4. The `comment_only_source_region` branch removed from `source_text_item`; `@priority` `[24, 16, 16, 12, 10, 8, 6, 4]` → `[24, 16, 16, 12, 10, 8, 4]` (drop the branch's `6`, all other branch weights preserved exactly).
+
+### Closure-contract re-baseline (`systemverilog_syntax_closure_contract.json` v4 → v5, leaf-owned per the drift policy)
+- `min_total_rules` 1405 → 1403 (measured `defined_rule_count` 1408 → 1406, margin-3 preserved).
+- `min_reachable_rules` 1406 → 1404 (measured `reachable_rules` 1409 → 1407).
+- `max_unreachable_branches` 11 → 2 (tightened to the new measured value — removing `comment_only_source_region`'s quantifier/alternation sub-branch accounting reduced it by 9).
+- `max_unreachable_rules` stays 1 (`module_path_conditional_expression`, the LRM mutual-recursion case).
+- The gate passed *before* the re-baseline too (counts stayed above the old floors) — the re-baseline is honest closure-debt management to keep the contract tight, matching the v3/v4 precedent.
+
+### Verification (all green, tools-first)
+- Cert-coverage seeds 0/7/42: `total=1294→1292 proof=1 witness=1170 (BYTE-IDENTICAL at seed 0) UNKNOWN=123→121 spf=0`. Set-diff of the seed-0 UNKNOWN list before/after = exactly `{white_space, comment_only_source_region}` removed, **nothing** added (no collateral de-witnessing).
+- `--lint-grammar` (sv_2017): `unreachable_rules=0`, `non_terminating=0`, `ordered_choice_shadowing=0`, `unbound_fact_kinds=0`, `profile_orphans=0` (1292 rules; `always_matches_shadowing=6` is the pre-existing A2-backlog warning, unchanged).
+- `sv_syntax_closure_gate` PASS (measured `defined=1406 reachable=1407 unreachable_rules=1 unreachable_branches=2`); `ast_shape_contract_gate` 16/16; SV external corpus 14/14 (`parse_fail_total=0`, uvm/uvm_compat × `sv_2017`/`sv_2023`); `stimuli_cross_family_platform_gate` PASS (regex/vhdl/SV); dual-feature lib PASS (0 failed); `clippy_on_rust_change` strict-source clean; `mdbook_docs_gate` + `systemverilog_parser_book_gate` PASS.
+
+### Why no release/schema/ledger bump
+Neither rule ever appeared in any accepted parse (wire-shape identical). The declared `source_text_item` typed union narrows from eight kinds to the seven that can actually occur — a never-emitted-variant correction, not a behavior change. Lockstep doc corrections only: SV book `json-carrier.md`, top-level book `grammar-wellformedness.md`, SV integration-contract Current-Trust-Statement accept-set note. Matches the vhdl `H.11.4-UNPARK` and SV `H.12.1` dead-rule-removal precedents (no bump).
+
 ## 2026-06-15 - GRAMMAR-WELLFORMED.H.12.5.2 — A2 interface-class sv_2017 no_path adjudicated NOT a defect (PGEN-GRAMMAR-WELLFORMED-0081)
 
 ### The slice

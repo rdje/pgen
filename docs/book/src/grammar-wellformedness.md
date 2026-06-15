@@ -444,6 +444,21 @@ SystemVerilog remains the one shipped grammar not yet fully certified, its remai
 profile/alternate-entry `no_path` rules and a smaller constraint/sequence keyword cluster) openly
 reported and still being driven toward zero.
 
+The next SystemVerilog step drained two more with the **engine-shadowed-dead** removal first proven on
+`vhdl`. `white_space` (`/[ \t\r\n]+/`) and `comment_only_source_region` were both *reachable* — the
+former via `trivia`, the latter via a `source_text_item` branch — yet could never witness, because the
+generated layout skipper consumes whitespace *and* comments as leading trivia before any non-empty
+regex or `source_text_item` branch is tried. The reach probe confirmed it directly (both `parsed=true` /
+`witnessed=false`; a comment-only file parses to an empty `source_text` with no
+`comment_only_source_region` node in *any* AST), so by the attribution rule they are genuinely dead and
+the resolution is the literal-0 **delete the orphan** path — exactly `vhdl`'s `white_space` again, one
+level up for `comment_only_source_region`. Removing both, with their dead references (the `trivia`
+whitespace arm and the `source_text_item` branch), dropped SystemVerilog `UNKNOWN` `123 → 121` with the
+witness count **byte-identical** (`1170`, no collateral), `spf=0` at seeds 0/7/42, the external corpus
+still 14/14, and no release or schema bump — neither rule ever appeared in an accepted parse, so the
+wire shape is unchanged and the declared `source_text_item` union simply narrows to the seven kinds that
+can actually occur.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was
