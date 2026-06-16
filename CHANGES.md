@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-16 - PGEN-GRAMMAR-WELLFORMED-0095 (GRAMMAR-WELLFORMED.H.12.5.5.3.3.5, PURE-DOCS FIX DESIGN): the stream delimiter-drop grammar fix is SHAPE-changing — exact edits, re-annotation, and full lockstep recorded
+
+Recorded the precise design for the `H.12.5.5.3.3.5` grammar fix (opened by `-0094`), so the language-changing edit executes cleanly. PURE-DOCS (task-tree decision-log + continuity only; no code touched).
+
+- **Edits** (`grammars/systemverilog.ebnf`): `stream_concatenation := lbrace stream_expression ( comma stream_expression )* rbrace` and `stream_expression := expression ( kw_with_8fcd25a3 lbrack array_range_expression rbrack )?` (per LRM `systemverilog_2017_lrm_extracted.ebnf:1041/1044`).
+- **Re-annotation (the non-obvious part).** Restoring the leading `lbrace` shifts `stream_concatenation`'s positional captures, so `-> {body: $1}` (the whole repetition) must become `-> {body: [$2, $3::2*]}` — the proven Cat-A `X (sep X)*` extraction-spread idiom (`$2` = first `stream_expression`, `$3::2*` = each subsequent `stream_expression`). `stream_expression`'s `-> {expr: $1, with_clause: $2}` stays position-stable (only the inner `with_clause` shape changes).
+- **Full lockstep consequences.** SHAPE change ⇒ schema bump + `rust/test_data/ast_shape_contract/systemverilog*.json` manifest update; LANGUAGE change (rejects old bare `{>> a with b}`, accepts LRM `{>>4{a with [b]}}`, fixes a real parse bug) ⇒ SV release bump + released-parser bug-ledger row + SV integration-contract + SV parser-book changelog + the grammar-wellformedness book chapter's SV-drive narrative. Proof matrix: regen → cert seeds 0/7/42 (close array_range_expression + GLOBAL no-regress) → external corpus 14/14 → `stimuli_cross_family_platform_gate` → `--lint-grammar` → clippy.
+
 ## 2026-06-16 - PGEN-GRAMMAR-WELLFORMED-0094 (GRAMMAR-WELLFORMED.H.12.5.5.3.3.2, PURE-DOCS INVESTIGATION / RE-ADJUDICATION): `array_range_expression` is a C-i GRAMMAR delimiter-drop defect, not a C-iv generator gap — C-iv leaf closes generator-neutral
 
 Tools-first WHY+WHERE for the C-iv carrier `array_range_expression` REFUTED the `-0091` "force the parent optional" generator framing and re-adjudicated it to the grammar (C-i delimiter-drop). The leaf's other carrier `sequence_method_call` was already closed by `-0093`, so leaf `H.12.5.5.3.3.2` closes with **NO code change**. PURE-DOCS (task-tree + continuity only; no grammar/Rust/generated/manifest touched).
