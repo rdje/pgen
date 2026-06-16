@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.2 — the M1b FIX: parser-agnostic target-own-structure reach pass (PGEN-GRAMMAR-WELLFORMED-0090)
+
+### The slice
+Implemented the M1b fix (designed in `-0089`): SystemVerilog certificate-coverage `UNKNOWN 93→90` (witness `1198→1201`, `spf=0`, deterministic at seeds 0/7/42). GENERATOR-ONLY — no grammar/EBNF/parser-regen/release/schema/inventory/ledger change.
+
+### Root cause (from `-0088`/`-0089`)
+The plannable-rule reach pass steers the reach path to a target rule `R`'s REFERENCE SITE but never forces `R`'s OWN internal structure, so under `construct_mode` `R` renders minimally (root `Or`→`o0`, `?`/`*`→0) — a sibling-ambiguous form the PEG re-attributes to an earlier sibling (`ParsedNotWitnessed`). Two sub-shapes: B-i a degenerate first alternative (`array_range_expression` `o0=expression`); B-ii a distinguishing token behind a minimal optional (`context_member_method_call`'s `.method(args)`).
+
+### Implementation
+- `target_own_reach_sites(rule) -> (Option<(or_path, alt_count)>, Vec<inner ?|* q-paths>)` + `collect_optional_quantifier_paths` (`stimuli_generator.rs`): a purely structural walker over the transformed `grammar_tree`. Descends the body spine through `Atom::Node` shells to the top-level `Or` (`"root"` or `"root/a…"`); collects every min-0 (`?`/`*`/`{0,…}`) `Quantified` node-path in the `o{i}`/`s{i}`/`q`/`a` encoding the generator threads. Keyed purely on ASTNode structure — no grammar/rule name.
+- `generate_target_own_structure_witnesses(entry, residual_rules, timeout_ms, max_attempts, witness_check)`: for each residual rule, forces `directives[(R, or_path)]=j` over the non-degenerate branches (`o1..` first, `o0` last) + `forced_quantifier_min[(R, q)]=1` for every inner optional, on top of `set_reach_plan_for_rule(entry, R)`. Parser-judged (the caller replays each probe through the real parser); bounded by a shared per-rule probe budget. The read-sides needed NO change — confirmed by source read that `generate_or` already orders `forced_branch_for(R,path)` first and `generate_quantified` already honors `forced_quantifier_min[(R,path)]`. Adding a directive keyed on `R` also makes `needs_rule_body_descent(R)` true, so any rule-level `@sample` on `R` correctly stands down (the `-0087` H.12.5.5.2.2 interaction).
+- Wired as cert-driver **PASS 3c** (`main.rs`) over ONLY the rules still UNKNOWN after passes 1+2+3.
+
+### Architecture decision — residual-only driver pass, NOT inline (the cross-grammar cost fix)
+The first implementation put the escalation INLINE in `generate_plannable_rule_witnesses`, firing for every plannable target not witnessed by its OWN probe. Because the mechanism is parser-agnostic it then ran for every grammar's witness pass. On `rtl_const_expr` (a deep-recursive grammar whose cert is already ~minutes at baseline) it fired for rules already globally witnessed-via-collateral (which M1b cannot help), adding tens of seconds of pure waste — A/B'd decisively with a temporary `PGEN_M1B_OFF` kill-switch (count-8 baseline 338s vs M1b-on >400s timeout). The parser-agnostic doctrine forbids carving M1b down to "SV-only", so the fix is grammar-neutral and structural: move M1b to a driver-orchestrated PASS 3c that runs over ONLY the post-pass-3 residual. A grammar the existing passes already certify has an empty residual ⇒ PASS 3c never generates a probe ⇒ truly inert (`rtl_const_expr`/`json` re-measured byte-identical `UNKNOWN=0`, no pass line). The inline cut + kill-switch were reverted; the final code carries no env flag (the residual-gating IS the inertness).
+
+### Outcome + residual
+Closed 2 named carriers (`bit_select_expression`, `constant_let_expression`) + 1 collateral. The other 6 carriers (`array_range_expression`, `direct_index_method_call`, `goto_repetition`, `context_member_method_call`, `class_scoped_tf_call`, `sequence_method_call`) stay UNKNOWN: forcing `R`'s own body is insufficient because the form `R` renders is STILL accepted by an EARLIER sibling at the PARENT ordered-choice on re-parse — a parent-commit problem, split out as leaf `H.12.5.5.3.3`. STRICTLY ADDITIVE: PASS 3c only ever unions witnesses from re-parsing samples, so the 1198 baseline witnesses are byte-safe (the `888→1717` regression guard).
+
+### Validation
+cert seeds 0/7/42 identical (`total=1292 proof=1 witness=1201 UNKNOWN=90 fully_certified=false spf=0`); `rtl_const_expr` (count 8) + `json` byte-identical `UNKNOWN=0`, PASS 3c absent; `stimuli_cross_family_platform_gate` PASS (regex_family_stimuli_quality + vhdl_stimuli_quality_bounded + sv_stimuli_quality_bounded all pass); `clippy_on_rust_change` `clippy_source_all_targets` ok (generated stage = pre-existing tolerated non-strict debt); `cargo test --lib target_own_reach_sites_finds_root_or_and_inner_optionals` ok.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.2 — M1b fix SETUP: edit-surface map + implementation design (PGEN-GRAMMAR-WELLFORMED-0089)
 
 ### The slice

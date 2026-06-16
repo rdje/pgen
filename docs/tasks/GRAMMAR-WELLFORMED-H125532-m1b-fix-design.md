@@ -144,3 +144,41 @@ names as primary.
   parser-judged subsets. Start minimal (root-`Or` only), add inner-quantifier forcing only if
   B-ii carriers (`context_member_method_call`, `goto_repetition`) stay unwitnessed.
 - Per-target attempt budget sizing vs the existing `max_attempts_per_rule` / two-tier escalation.
+
+## Implemented (`PGEN-GRAMMAR-WELLFORMED-0090`, GENERATOR-ONLY)
+
+Landed the designed mechanism, with one architecture change forced by a cross-grammar cost
+discovery. Outcome: **SV cert `UNKNOWN 93→90`** (witness `1198→1201`, `spf=0`, deterministic at
+seeds 0/7/42). Closed 2 named carriers (`bit_select_expression`, `constant_let_expression`) + 1
+collateral; the other 6 carriers stay `UNKNOWN` (parent-commit problem → leaf `.3.3`).
+
+**Code.**
+- `target_own_reach_sites(rule) -> (Option<(String /*or_path*/, usize)>, Vec<String> /*inner ?|*
+  q-paths*/)` + `collect_optional_quantifier_paths` — the structural walker. Descends the body
+  spine through `Atom::Node` shells to the top-level `Or` (`"root"` or `"root/a…"`), and collects
+  every min-0 (`?`/`*`/`{0,…}`) `Quantified` node-path in the body, in the `o{i}`/`s{i}`/`q`/`a`
+  encoding `generate_or`/`generate_quantified` receive. Keyed purely on ASTNode structure.
+- `generate_target_own_structure_witnesses(entry, residual_rules, timeout_ms, max_attempts,
+  witness_check)` — the M1b pass. For each residual rule it forces `(R, or_path)=j` over the
+  non-degenerate branches (`o1..` first, `o0` last) + `forced_quantifier_min[(R, q)]=1` for every
+  inner optional, on top of `set_reach_plan_for_rule(entry, R)`; parser-judged, bounded by a shared
+  per-rule probe budget. The read-sides needed **no** change (confirmed: `generate_or` orders
+  `forced_branch_for(R,path)` first; `generate_quantified` honors `forced_quantifier_min[(R,path)]`).
+
+**Architecture decision — residual-only driver pass, NOT inline.** The first cut put the escalation
+*inline* in `generate_plannable_rule_witnesses` (firing for every plannable target not witnessed by
+its own probe). Because the mechanism is parser-agnostic it then ran for **every** grammar's witness
+pass — and on `rtl_const_expr` (a deep-recursive grammar whose cert is already ~minutes at baseline)
+it fired for rules already globally witnessed-via-collateral (which M1b cannot help), adding tens of
+seconds of pure waste (A/B with a `PGEN_M1B_OFF` kill-switch isolated it: count-8 baseline 338s vs
+M1b-on >400s). The parser-agnostic doctrine forbids carving M1b down to "SV-only", so the fix is a
+grammar-neutral structural one: move M1b to a **driver-orchestrated PASS 3c** that runs over ONLY the
+rules still `UNKNOWN` after passes 1+2+3 (`main.rs`). A grammar those passes already fully certify has
+an EMPTY residual ⇒ PASS 3c never generates a probe ⇒ **truly inert** (`rtl_const_expr`/`json`
+re-measured byte-identical `UNKNOWN=0`, no pass line). The inline cut + kill-switch were reverted.
+
+**Verification (all green).** cert seeds 0/7/42 identical (`witness=1201 UNKNOWN=90 spf=0`);
+`stimuli_cross_family_platform_gate` PASS (regex+vhdl+SV closed-loop); `clippy_on_rust_change`
+strict-source clean; new unit test `target_own_reach_sites_finds_root_or_and_inner_optionals` PASS;
+fully-certified roster inert. GENERATOR-ONLY ⇒ no grammar/EBNF/parser-regen/release/schema/inventory/
+ledger change; off-residual output byte-identical by construction.

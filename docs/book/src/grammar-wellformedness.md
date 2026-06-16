@@ -486,6 +486,29 @@ that reaches its context but routes through a *sibling* rule, the constraint/seq
 store-gated identifier classes, and the property/sequence temporal operators — each openly reported and
 still being driven toward zero.
 
+The next SystemVerilog step closed part of that *"reaches its context but routes through a sibling"*
+cluster. Those rules (`bit_select_expression`, `array_range_expression`, `context_member_method_call`,
+…) reach the right parse context, but the witness pass steered the reach path only to the target rule
+`R`'s **reference site** — never `R`'s *own* internal structure — so under minimal generation `R`
+rendered its shallowest form (root `Or`→first alternative, `?`/`*`→zero), which is *sibling-ambiguous*:
+a degenerate first alternative that is a bare pass-through an earlier sibling also accepts, or a
+distinguishing token sitting behind a not-taken optional. The PEG then re-attributes `R`'s bytes to that
+earlier sibling, and `R` never witnesses. The fix is a **target-own-structure reach pass**: for each
+still-`UNKNOWN` rule it *also* forces `R`'s own top-level ordered choice to a non-degenerate alternative
+(trying the distinguishing arms before the degenerate one) and every optional inside `R`'s body to expand
+once — on top of the base reach plan — so `R` renders a *distinguishing* form the parser attributes to
+`R` itself. Two properties keep it honest and grammar-neutral. It is keyed purely on the rule's `ASTNode`
+structure (`(rule, node-path)`), never a rule or grammar name. And it runs as a final pass over **only**
+the rules still `UNKNOWN` after the diverse / recursive-reach / plannable passes — so a grammar those
+passes already fully certify has an empty residual and this pass never generates a probe at all (it is
+*truly inert* for the certified roster, not merely cheap; this matters because the pass is parser-agnostic
+and would otherwise add cost to a deep-recursive grammar like `rtl_const_expr` that gains nothing from
+it). It moved SystemVerilog `UNKNOWN` `93 → 90` (witness `1198 → 1201`), deterministic across seeds 0/7/42
+with every other grammar byte-identical. The residual cluster it could *not* close is the honest next
+ticket: a handful of carriers whose distinguishing form is still absorbed by an earlier sibling at the
+**parent** ordered choice, regardless of `R`'s own shape — a *parent-commit* problem the reach plan must
+solve one level up.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

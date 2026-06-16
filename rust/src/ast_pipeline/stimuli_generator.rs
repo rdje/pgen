@@ -3124,6 +3124,136 @@ impl<'a> StimuliGenerator<'a> {
         report
     }
 
+    /// GRAMMAR-WELLFORMED.H.12.5.5.3.2 (M1b, PGEN-GRAMMAR-WELLFORMED-0090): the target-own-structure
+    /// reach pass. The plannable-rule pass (`generate_plannable_rule_witnesses`) steers the reach path
+    /// to a target rule `R`'s REFERENCE SITE but never forces `R`'s OWN internal structure, so `R`
+    /// generates minimally (root `Or`→`o0`, `?`/`*`→0) — a sibling-ambiguous form the PEG re-attributes
+    /// to an earlier sibling (the `ParsedNotWitnessed` M1b residual: B-i a degenerate first alternative
+    /// such as `array_range_expression`'s `o0=expression`; B-ii a distinguishing token behind a minimal
+    /// optional such as `context_member_method_call`'s `.method(args)`). For each residual rule this
+    /// pass ALSO forces `R`'s own body — each non-degenerate root-`Or` branch (`o1..` first; the
+    /// degenerate `o0` is the pass-through that already failed), with every `?`/`*` quantifier inside
+    /// `R` forced to expand once — on top of the base reach plan to `R`'s reference site (adding a
+    /// directive keyed on `R` also makes `needs_rule_body_descent(R)` true, so any rule-level `@sample`
+    /// on `R` correctly stands down — the H.12.5.5.2.2 interaction).
+    ///
+    /// The CALLER (the cert-coverage driver) invokes this ONLY for rules still `UNKNOWN` after the
+    /// diverse / recursive-reach / plannable passes, so a grammar those passes already fully certify
+    /// has an EMPTY residual and this pass never runs — it is **truly inert** for the certified roster
+    /// (not merely cheap). Returns the number of residual rules this pass witnessed. STRICTLY ADDITIVE:
+    /// it only ever UNIONS witnesses from samples that re-parse (the caller's `witness_check` replays
+    /// each probe through the real parser), so it can never remove a witness — the existing witness
+    /// landscape is byte-safe by construction (the `888→1717` regression guard). Bounded by a shared
+    /// per-rule probe budget. GENERAL/parser-agnostic — keyed purely on `(R, node_path)` ASTNode
+    /// structure, never on a rule or grammar name (per [[feedback_ast_pipeline_parser_agnostic]]).
+    pub fn generate_target_own_structure_witnesses(
+        &mut self,
+        entry_rule: &str,
+        residual_rules: &[String],
+        per_attempt_timeout_ms: u64,
+        max_attempts_per_rule: usize,
+        mut witness_check: impl FnMut(&str, &str) -> PlannableProbeVerdict,
+    ) -> usize {
+        if residual_rules.is_empty() {
+            return 0;
+        }
+        let original_max_depth = self.config.max_depth;
+        let original_max_rule_visits = self.config.max_rule_visits;
+        self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
+        let min_derivation_depths = self.compute_min_full_derivation_depths();
+        let reach_prefix_budget = original_max_depth.saturating_mul(2);
+        let previous_witness_mode = self.witness_mode;
+        self.witness_mode = true;
+        let previous_table = self.witness_min_terminal_lengths.take();
+        self.witness_min_terminal_lengths = Some(self.compute_min_terminal_lengths());
+        let timeout =
+            Self::timeout_budget_from_ms(per_attempt_timeout_ms, TARGET_TIMEOUT_ERROR_PREFIX);
+
+        let mut witnessed_count = 0usize;
+        for rule in residual_rules {
+            let (root_or, inner_quantifier_paths) = self.target_own_reach_sites(rule);
+            // Nothing to force (no top-level choice AND no optional inside the body) ⇒ skip.
+            if root_or.is_none() && inner_quantifier_paths.is_empty() {
+                continue;
+            }
+            let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
+            let budget = reach_prefix_budget.saturating_add(target_subtree_depth);
+            self.config.max_depth = budget;
+            let bypass_fuel = budget.saturating_add(1) as u32;
+            let branch_candidates: Vec<Option<usize>> = match &root_or {
+                // B-i: non-degenerate alternatives first, then the degenerate `o0`.
+                Some((_, alt_count)) => {
+                    let mut candidates: Vec<Option<usize>> = (1..*alt_count).map(Some).collect();
+                    candidates.push(Some(0));
+                    candidates
+                }
+                // B-ii: no top-level choice — one pass forcing the inner quantifiers.
+                None => vec![None],
+            };
+            // Shared probe budget across branches — same order of cost as one depth tier.
+            let mut probe_budget = max_attempts_per_rule.max(1);
+            let mut witnessed = false;
+            'branches: for branch in branch_candidates {
+                if probe_budget == 0 {
+                    break;
+                }
+                if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                    break;
+                }
+                if let Some(plan) = self.reach_plan.as_mut() {
+                    if let (Some((or_path, _)), Some(branch_index)) = (&root_or, branch) {
+                        plan.directives
+                            .insert((rule.clone(), or_path.clone()), branch_index);
+                    }
+                    for q_path in &inner_quantifier_paths {
+                        plan.forced_quantifier_min
+                            .insert((rule.clone(), q_path.clone()), 1);
+                    }
+                }
+                // A couple of terminal re-rolls per branch (the construct-mode skeleton is
+                // deterministic; only terminals vary), bounded by the shared budget.
+                let per_branch = 2usize.min(probe_budget);
+                for _ in 0..per_branch {
+                    probe_budget -= 1;
+                    self.construct_mode = true;
+                    let probe =
+                        self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                    self.construct_mode = false;
+                    match probe {
+                        Ok(sample) => {
+                            if matches!(
+                                witness_check(rule, &sample),
+                                PlannableProbeVerdict::Witnessed
+                            ) {
+                                witnessed = true;
+                                self.clear_reach_plan();
+                                break 'branches;
+                            }
+                        }
+                        Err(e) => {
+                            // A per-attempt timeout reproduces under the identical budget — stop
+                            // this rule (same rule as the plannable pass's depth tiers).
+                            if Self::is_target_timeout_error(&e) {
+                                self.clear_reach_plan();
+                                break 'branches;
+                            }
+                        }
+                    }
+                }
+                self.clear_reach_plan();
+            }
+            if witnessed {
+                witnessed_count += 1;
+            }
+        }
+
+        self.witness_min_terminal_lengths = previous_table;
+        self.witness_mode = previous_witness_mode;
+        self.config.max_depth = original_max_depth;
+        self.config.max_rule_visits = original_max_rule_visits;
+        witnessed_count
+    }
+
     /// SV-EXH-PROOF.7.2.4: how many times the driver's reach-plan steering hook
     /// fired during the last target-driven run (observability + test discriminant).
     #[allow(dead_code)]
@@ -5018,6 +5148,92 @@ impl<'a> StimuliGenerator<'a> {
                     None => Some(1),
                 },
             },
+        }
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.5.3.2 (M1b): the reach sites INSIDE rule `R`'s own body that the
+    /// plannable-rule pass must force so `R` generates a DISTINGUISHING form instead of its minimal,
+    /// sibling-ambiguous one. The depth tiers force the path entry→`R`'s reference site but stop AT
+    /// `R`, so `R`'s root `Or` minimizes to `o0` and its `?`/`*` quantifiers to zero — exactly the
+    /// shape a PEG re-attributes to an earlier sibling (the `ParsedNotWitnessed` M1b residual: e.g.
+    /// `array_range_expression` whose `o0=expression` is a bare pass-through, or
+    /// `context_member_method_call`'s distinguishing `.method(args)` behind a minimal optional).
+    /// Returns:
+    ///   * `root_or` = `Some((node_path, alt_count))` for `R`'s TOP-LEVEL ordered choice — the spine
+    ///     `Or` reached from `"root"` through only `Atom::Node` grouping shells (`"root"` for a direct
+    ///     `Or` body, `"root/a…"` past a shell) — or `None` when the body root is a `Sequence` (the
+    ///     B-ii shape, where the distinguishing token sits behind an optional, not behind a choice);
+    ///   * `inner_quantifier_paths` = the node-paths of every min-0 (`?`/`*`/`{0,…}`) `Quantified`
+    ///     node ANYWHERE in `R`'s body, in the SAME `node_path` encoding `generate_quantified`
+    ///     receives — so forcing `forced_quantifier_min[(R, path)] = 1` makes a distinguishing
+    ///     optional present. Forcing a path not on the selected branch is inert (the quantifier is
+    ///     only read when generation actually reaches it).
+    /// Keyed purely on `(R, node_path)` structure (parser-agnostic). Pure analysis; never on the hot
+    /// generation path; the fully-certified roster never runs the pass that consumes it.
+    fn target_own_reach_sites(&self, rule: &str) -> (Option<(String, usize)>, Vec<String>) {
+        let Some(root) = self.grammar_tree.get(rule) else {
+            return (None, Vec::new());
+        };
+        let mut root_or: Option<(String, usize)> = None;
+        let mut node = root;
+        let mut spine = String::from("root");
+        loop {
+            match node {
+                ASTNode::Or { alternatives } => {
+                    root_or = Some((spine.clone(), alternatives.len()));
+                    break;
+                }
+                ASTNode::Atom {
+                    value: ASTValue::Node(inner),
+                } => {
+                    spine.push_str("/a");
+                    node = inner.as_ref();
+                }
+                _ => break,
+            }
+        }
+        let mut inner_quantifier_paths = Vec::new();
+        Self::collect_optional_quantifier_paths(root, "root", &mut inner_quantifier_paths);
+        (root_or, inner_quantifier_paths)
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.5.3.2: collect the node-paths of every min-0 (`?`/`*`/`{0,…}`)
+    /// `Quantified` node reachable in `node`'s subtree, in the `o{i}`/`s{i}`/`q`/`a` encoding the
+    /// generator threads (so each path matches what `generate_quantified` receives). Lookaheads are
+    /// skipped — generation materialises nothing for them, so forcing a quantifier inside one would
+    /// be a no-op anyway.
+    fn collect_optional_quantifier_paths(node: &ASTNode, path: &str, out: &mut Vec<String>) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for (i, alt) in alternatives.iter().enumerate() {
+                    Self::collect_optional_quantifier_paths(alt, &format!("{}/o{}", path, i), out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for (i, element) in elements.iter().enumerate() {
+                    Self::collect_optional_quantifier_paths(
+                        element,
+                        &format!("{}/s{}", path, i),
+                        out,
+                    );
+                }
+            }
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                if super::parse_quantifier_bounds(quantifier).is_some_and(|(min, _)| min == 0) {
+                    out.push(path.to_string());
+                }
+                Self::collect_optional_quantifier_paths(element, &format!("{}/q", path), out);
+            }
+            ASTNode::Atom {
+                value: ASTValue::Node(inner),
+            } => {
+                Self::collect_optional_quantifier_paths(inner, &format!("{}/a", path), out);
+            }
+            ASTNode::Atom { .. } => {}
+            ASTNode::Lookahead { .. } => {}
         }
     }
 
@@ -17418,6 +17634,86 @@ mod tests {
             ]
         );
         assert!(StimuliGenerator::quantifier_sites_along_path("r", "root/s0/o1/a").is_empty());
+    }
+
+    #[test]
+    fn target_own_reach_sites_finds_root_or_and_inner_optionals() {
+        // GRAMMAR-WELLFORMED.H.12.5.5.3.2 (M1b): the target-own walker — purely structural, NO parser
+        // dependency. It reports a rule's TOP-LEVEL choice (the spine `Or`, descending through
+        // `Atom::Node` grouping shells only) and every min-0 (`?`/`*`) quantifier node-path inside the
+        // body, in the SAME `o{i}`/`s{i}`/`q`/`a` encoding `generate_or`/`generate_quantified` receive.
+        let mut grammar_tree: HashMap<String, ASTNode> = HashMap::new();
+        // B-i: a direct root `Or` of 3 alternatives, no optionals.
+        grammar_tree.insert(
+            "bi_target".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    rule_ref("pass_through"),
+                    ASTNode::Sequence {
+                        elements: vec![token("quoted_string", "kw"), rule_ref("distinct")],
+                    },
+                    token("quoted_string", "lit"),
+                ],
+            },
+        );
+        // Atom::Node(Or) grouping shell: the spine descends one `/a` before reaching the `Or`.
+        grammar_tree.insert(
+            "shelled_target".to_string(),
+            ASTNode::Atom {
+                value: ASTValue::Node(Box::new(ASTNode::Or {
+                    alternatives: vec![token("quoted_string", "x"), token("quoted_string", "y")],
+                })),
+            },
+        );
+        // B-ii: a Sequence (NO top-level choice) whose distinguishing token sits behind a `?`, plus a
+        // nested `*` inside an alternation, to exercise the path encoding through `s`/`o` segments.
+        grammar_tree.insert(
+            "bii_target".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("quoted_string", "lead"),
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("opt_a")),
+                        quantifier: "?".to_string(),
+                    },
+                    ASTNode::Or {
+                        alternatives: vec![
+                            ASTNode::Quantified {
+                                element: Box::new(rule_ref("opt_b")),
+                                quantifier: "*".to_string(),
+                            },
+                            token("quoted_string", "z"),
+                        ],
+                    },
+                ],
+            },
+        );
+        let rule_order = vec![
+            "bi_target".to_string(),
+            "shelled_target".to_string(),
+            "bii_target".to_string(),
+        ];
+        let generator = simple_generator(&grammar_tree, &rule_order, 0);
+
+        // B-i: root `Or` at "root" with 3 alternatives; no optionals to force.
+        let (root_or, inner) = generator.target_own_reach_sites("bi_target");
+        assert_eq!(root_or, Some(("root".to_string(), 3)));
+        assert!(inner.is_empty(), "no `?`/`*` in bi_target, got {:?}", inner);
+
+        // Atom::Node(Or) shell: the spine `Or` is at "root/a".
+        let (root_or, inner) = generator.target_own_reach_sites("shelled_target");
+        assert_eq!(root_or, Some(("root/a".to_string(), 2)));
+        assert!(inner.is_empty());
+
+        // B-ii: NO top-level choice; the `?` is at "root/s1" and the nested `*` at "root/s2/o0".
+        let (root_or, inner) = generator.target_own_reach_sites("bii_target");
+        assert_eq!(root_or, None);
+        assert_eq!(inner, vec!["root/s1".to_string(), "root/s2/o0".to_string()]);
+
+        // A rule absent from the tree yields nothing (defensive).
+        let (root_or, inner) = generator.target_own_reach_sites("missing");
+        assert_eq!(root_or, None);
+        assert!(inner.is_empty());
     }
 
     #[test]

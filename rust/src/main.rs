@@ -2479,6 +2479,8 @@ fn run_certificate_coverage_report(
     let mut plannable_attempted = 0usize;
     let mut plannable_witnessed = 0usize;
     let mut plannable_parsed_not_witnessed = 0usize;
+    let mut target_own_attempted = 0usize;
+    let mut target_own_witnessed = 0usize;
     {
         let pre_report =
             certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
@@ -2555,6 +2557,52 @@ fn run_certificate_coverage_report(
             plannable_generation_failures = pass_report.generation_failures;
             plannable_witnessed = pass_report.witnessed;
             plannable_parsed_not_witnessed = pass_report.parsed_not_witnessed;
+
+            // PASS 3c — GRAMMAR-WELLFORMED.H.12.5.5.3.2 (M1b): the target-own-structure reach pass.
+            // Run ONLY over the rules STILL UNKNOWN after passes 1+2+3, so a grammar those passes
+            // already fully certify has an empty residual and this pass is truly inert (it never
+            // generates a probe — the fully-certified roster is unaffected). For each genuine residual
+            // rule it forces the target rule's OWN root-`Or` branch + inner optionals (on top of the
+            // base reach plan to its reference site), closing the M1b residual where "the reach forces
+            // the path to the target but not the target's own distinguishing structure". Like passes
+            // 2+3 it only UNIONS witnesses from probes that re-parse, so the certification
+            // `sample_parse_failures` (the diverse pass) stays byte-identical. Parser-agnostic.
+            let post_plannable =
+                certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+            if !post_plannable.unknown.is_empty() {
+                target_own_attempted = post_plannable.unknown.len();
+                target_own_witnessed = plannable_generator
+                    .generate_target_own_structure_witnesses(
+                        entry_rule.as_str(),
+                        &post_plannable.unknown,
+                        PLANNABLE_REACH_ATTEMPT_TIMEOUT_MS,
+                        PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
+                        |rule, sample| {
+                            let Some((parsed, covered)) =
+                                pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                            else {
+                                return PlannableProbeVerdict::NotParsed;
+                            };
+                            let witnessed = parsed && covered.contains(rule);
+                            if debug_probes {
+                                println!(
+                                    "  [target-own-probe] rule='{}' parsed={} witnessed_target={} sample={:?}",
+                                    rule, parsed, witnessed, sample
+                                );
+                            }
+                            if parsed {
+                                witness_covered.extend(covered);
+                                if witnessed {
+                                    PlannableProbeVerdict::Witnessed
+                                } else {
+                                    PlannableProbeVerdict::ParsedNotWitnessed
+                                }
+                            } else {
+                                PlannableProbeVerdict::NotParsed
+                            }
+                        },
+                    );
+            }
         }
     }
 
@@ -2591,6 +2639,15 @@ fn run_certificate_coverage_report(
             plannable_parsed_not_witnessed,
             plannable_pass_parse_failures,
             plannable_generation_failures
+        );
+    }
+    if target_own_attempted > 0 {
+        // GRAMMAR-WELLFORMED.H.12.5.5.3.2: transparency for the target-own-structure (M1b) reach pass.
+        // Only runs over the residual still UNKNOWN after pass 3, so a fully-certified grammar reports
+        // nothing here (zero residual ⇒ pass not run).
+        println!(
+            "  (target-own-structure reach pass: {} residual UNKNOWN rules targeted; {} witnessed by forcing the target rule's own root-Or branch + inner optionals)",
+            target_own_attempted, target_own_witnessed
         );
     }
     // GRAMMAR-WELLFORMED.H.12.4: env-gated full-dump observability. When PGEN_CERT_COVERAGE_DUMP_ALL
