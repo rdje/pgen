@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 — C-ii mandatory-inner-structure forcing: design (PGEN-GRAMMAR-WELLFORMED-0092)
+
+### The slice
+Tool-backed design setup for the C-ii fix (carriers `direct_index_method_call`, `context_member_method_call`), so the delicate certificate-coverage-machinery change lands surgically — the `-0089`→`-0090` rhythm applied to C-ii. PURE-DOCS; no code change.
+
+### Why `-0090` cannot close these two
+`generate_target_own_structure_witnesses` (`stimuli_generator.rs:3149`) forces only directives keyed on R's OWN node-paths (`target_own_reach_sites` :5173 — root `Or` + min-0 quantifiers within R's body). The `--dump-gen-ast` transform represents a rule reference as a leaf token `Atom(Token(["rule_reference", name]))` (confirmed by dumping `target/generated_logs/sv_gen_ast.json` and reading the two carriers' trees), NOT an inlined subtree, so the walker (Or/Sequence/Quantified/`Atom::Node` only) never reaches a referenced rule. Both carriers have a `Sequence` body root (`root_or=None`):
+- `direct_index_method_call` = `Seq( Or[…] dot method_call_body )` — distinguishing tail is the referenced `method_call_body` (`:2793`, `built_in | method_identifier (args) | method_identifier`); construct-mode renders the bare 3rd alt → `.\foo` → the `!lparen`-guarded `select`/`bit_select` chain (`:4508`) absorbs.
+- `context_member_method_call` = `Seq( identifier (dot identifier constant_bit_select &dot)+ dot callable_method_call_body (dot method_call_body)* )` — the mandatory `+` group references `constant_bit_select` (`:1262` `:= ( lbrack constant_expression rbrack )*`, min-0 `*` → empty) → the group emits `.identifier` with no `[idx]` → a plain scoped name absorbs.
+
+### Key finding — no read-side change
+`generate_or` (`~:6441`) / `generate_quantified` (`~:7753`) read `forced_branch_for(current_rule, node_path)` / `forced_quantifier_min[(current_rule, node_path)]`, where `current_rule` tracks the rule being generated. So a directive keyed `(method_call_body, …)` / `(constant_bit_select, …)` fires when the generator descends that child — exactly how `set_reach_plan_for_rule` forces rules along the entry→R hop path. The fix needs only the WALKER to enumerate the mandatory child rules and force their distinguishing sites.
+
+### Design
+New bounded MANDATORY-reference walker: walk R's body collecting `rule_reference` child names reached through mandatory positions only — Sequence elements; min-1 (`+`/`{N≥1,…}`) Quantified elements; `Atom::Node` groups — and SKIP min-0 quantifiers, un-forced `Or` branches, and lookaheads. For each mandatory child `C`, compute `target_own_reach_sites(C)` and install `directives[(C, c_or_path)]=j` (non-degenerate, o1.. first then o0) + `forced_quantifier_min[(C, c_q)]=1` alongside R's directives in `generate_target_own_structure_witnesses`. Bounded to depth-1 direct children (sufficient: `method_call_body`/`constant_bit_select` are each one hop from R). Parser-judged probes (only `Witnessed` counts), residual-only PASS 3c, strictly additive (the `888→1717` guard), keyed purely on `(rule, node_path)` structure (parser-agnostic). Open at impl: child-branch selection (try o1.. then o0) + escalation bounding. Edit surface + verification protocol in `docs/tasks/GRAMMAR-WELLFORMED-H125331-cii-mandatory-inner-design.md`.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3 — M1b residual parent-commit WHY+WHERE (PGEN-GRAMMAR-WELLFORMED-0091)
 
 ### The slice
