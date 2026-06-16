@@ -3303,11 +3303,20 @@ net_type_identifier_sv_2017 := declaration_identifier
 net_type_identifier := net_type_identifier_sv_2017
 
 # SV-PARSE-STRICT.2: a USE of a net-type identifier that MUST be a known declared
-# type/nettype — mirrors the proven `checked_type_identifier` store-gate. A bare
-# `declaration_identifier` routed through a `phase: post` `has_fact(type_name, …)`
-# gate so a provably-undeclared identifier is REJECTED at parse time. Profile-
-# agnostic (used by both the sv_2017 and sv_2023 `net_declaration` alias branches).
-@predicate: { name: has_fact, args: [type_name, $body], phase: post }
+# NETTYPE — mirrors the proven `checked_type_identifier` store-gate. A bare
+# `declaration_identifier` routed through a `phase: post`
+# `fact_attribute_equals(type_name, …, declaration_family, nettype)` gate so it
+# resolves ONLY to a declared nettype (`declared_nettype_identifier` emits
+# `type_name` with `declaration_family: nettype`), and a provably-undeclared OR
+# wrong-family identifier is REJECTED at parse time. Profile-agnostic (used by both
+# the sv_2017 and sv_2023 `net_declaration` alias branches).
+# GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.2.1: the gate was `has_fact(type_name, $body)`
+# — under-specified, since a CLASS is also a `type_name`, so `C a;` (C a declared
+# class) was wrongly consumed as a net declaration (no `variable_binding` emitted),
+# blocking class-handle member-method chains. Tightening to require
+# `declaration_family: nettype` routes `C a;` to `data_declaration` (a class variable)
+# instead — the LRM-correct categorisation (a class is not a nettype).
+@predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, nettype], phase: post }
 checked_nettype_identifier := declaration_identifier -> { body: $1.body }
 
 # SV-PARSE-STRICT.2: a DECLARATION of a user nettype name — emits the `type_name`

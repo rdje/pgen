@@ -549,6 +549,30 @@ seeds 0/7/42, `spf=0`, every other grammar byte-identical), with the SV external
 14/14. Because the restructure also changed `stream_concatenation`'s `body` from a raw quantified node to a
 clean array, it is the family's first shape-changing release in a while (AST-dump schema `3 → 4`).
 
+The SystemVerilog drive's next payoff was a *cert-neutral* one — and it shows the bug-finding-oracle
+role does not depend on the `UNKNOWN` number moving at all. Two adjudication slices on the residual
+carrier `context_member_method_call` (the store-gated `head.member[idx].method()` rule) first **refuted a
+mis-diagnosis**: an earlier note had called the rule a "real parser bug — `a.b[0].c()` is rejected", but a
+tools-first re-check showed the rule's `@predicate has_fact(variable_binding, $head)` is live and the form
+*parses and witnesses* with a declared head (`int a; … a.b[0].c()`) — the rule's cert `UNKNOWN` is a
+store-gated **witness-reach gap** (the generator can't yet synthesise the name-coupled binding prelude the
+gate needs), not a parser defect. But *chasing why a class-handle head would not witness* then surfaced a
+genuine, separate released-parser bug: a module-scope class-handle declaration `C a;` (with `C` a declared
+class) was mis-parsed as a **`net_declaration`**, because the `net_declaration` user-nettype branch's
+`checked_nettype_identifier` was gated by the under-specified `has_fact(type_name, $body)` — and a class is
+*also* a `type_name`, so a class name satisfied the nettype gate. The mis-route emitted no `variable_binding`
+fact, so class-handle member-method chains were rejected. This is the store-consultation discipline applied
+to a gate that *was* consulting the store but with too weak a predicate: the fix tightens it to
+`fact_attribute_equals(type_name, $body, declaration_family, nettype)` (the proven
+`known_unscoped_block_class_type` pattern), so a class no longer passes for a nettype and `C a;` routes to
+`data_declaration` (the LRM-correct categorisation — a class is not a net type). It moved SystemVerilog's
+cert `UNKNOWN` not at all (`88`, byte-identical at seeds 0/7/42, witness set unchanged) — the fix is a
+correctness re-route, and closing `context_member_method_call`'s witness is the separate generator pass — but
+it fixed a real bug shipped in every prior release (ledger `SV-0003`, SV release `1.0.141`), with the SV
+external corpus still `14/14` and a new shape-contract lock pinning that `C a;` binds as a variable. The
+attribution rule compounding once more: the same drive that drained the structural residual also turns a
+*non-witness* into a real, shipped-parser fix — even when the coverage number itself does not move.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

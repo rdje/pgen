@@ -1276,6 +1276,71 @@ mod tests {
         }
     }
 
+    /// GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.2.1 regression lock (ledger `SV-0003`,
+    /// release 1.0.141): a module-scope class-handle declaration `C a;` (C a
+    /// declared class) must parse as a `data_declaration` (emitting a
+    /// `variable_binding` fact for `a`), NOT as a `net_declaration`. Before the
+    /// fix, `checked_nettype_identifier`'s gate was the under-specified
+    /// `has_fact(type_name, $body)` — a class is also a `type_name`, so `C a;`
+    /// was consumed by the `net_declaration` user-nettype branch, emitting no
+    /// `variable_binding` and so blocking class-handle member-method chains
+    /// (the store-gated `context_member_method_call` needs the head bound). The
+    /// gate is now `fact_attribute_equals(type_name, $body, declaration_family,
+    /// nettype)`, so only a declared nettype matches and `C a;` routes to
+    /// `data_declaration`. This pins: (1) `C a;` binds `a`; (2) the module-scope
+    /// class-handle indexed member-method chain parses; (3) a real user nettype
+    /// `nettype logic NT; NT a;` still parses (the gate was not over-tightened).
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_class_handle_decl_is_data_declaration_not_net() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        // (1) `C a;` at module scope must parse AND emit a `variable_binding`
+        // fact for `a` — the signature of the `data_declaration`/`variable_decl`
+        // path. A `net_declaration` (the pre-fix mis-route) emits no such fact.
+        let mut parser = SystemverilogParser::new(
+            "class C; endclass module m; C a; endmodule",
+            runtime_logger_box("ast_shape_contract.sv_class_handle_decl"),
+        );
+        parser.set_grammar_profile(Some("sv_2017"));
+        parser
+            .parse_full_systemverilog_file()
+            .expect("a module-scope class-handle declaration `C a;` must parse");
+        let bound_a = parser
+            .semantic_runtime_state()
+            .facts()
+            .iter()
+            .filter(|fact| fact.kind == "variable_binding")
+            .filter_map(|fact| fact.name.as_text().map(|t| t.to_string()))
+            .any(|n| n == "a");
+        assert!(
+            bound_a,
+            "`C a;` (C a declared class) must bind `a` as a variable (data_declaration), \
+             not be consumed as a net_declaration",
+        );
+
+        // (2) the module-scope class-handle indexed member-method chain must
+        // parse (it was REJECTED pre-fix because `a` was never bound).
+        // (3) a real declared user nettype must still parse (gate not over-tightened).
+        let must_parse = [
+            "class C; endclass module m; C a; int x; initial x = a.b[0].c(); endmodule",
+            "nettype logic NT;\nmodule m; NT a; endmodule",
+            "module m; wire a; endmodule",
+        ];
+        for sample in must_parse {
+            let mut parser = SystemverilogParser::new(
+                sample,
+                runtime_logger_box("ast_shape_contract.sv_class_handle_decl"),
+            );
+            parser.set_grammar_profile(Some("sv_2017"));
+            assert!(
+                parser.parse_full_systemverilog_file().is_ok(),
+                "SV parser rejected grammar-valid sample: {sample}",
+            );
+        }
+    }
+
     // GRAMMAR-WELLFORMED.H.11.3 regression lock: the generated layout skipper
     // hard-codes `#`-to-end-of-line comment skipping (an EBNF meta-grammar
     // convention), which used to swallow the VHDL based-literal `#` delimiter

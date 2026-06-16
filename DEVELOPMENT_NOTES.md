@@ -1,4 +1,33 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.2.1 — checked_nettype_identifier store-gate FIX; module-scope class-handle `C a;` now `data_declaration` not `net_declaration` (PGEN-GRAMMAR-WELLFORMED-0100, release 1.0.141, ledger SV-0003)
+
+### The slice
+Implemented the `-0099` fix direction for the real released-parser bug: a module-scope class-handle declaration `C a;` (C a declared class) was mis-parsed as a `net_declaration`, blocking class-handle member-method chains. ONE-line grammar change; the parser-agnostic engine untouched.
+
+### Tools-first preconditions (verified before editing — no code change without facts)
+- The nettype producer `declared_nettype_identifier` (`grammars/systemverilog.ebnf:3318`) emits `@emit_fact { kind: type_name, name: $body, declaration_family: nettype }` — so the tightened predicate's `declaration_family, nettype` matches the producer exactly.
+- The `fact_attribute_equals` form is established 6× in this grammar (`:1021`/`:1024`/`:1027`/`:1068`/`:1084`/`:1652`): `args: [type_name, $body, declaration_family, <FAMILY>]`.
+- `embedding_api.rs` carries NO SystemVerilog release-version constant (unlike regex), so no const to bump.
+- The SV shape-contract manifest's 5 `net_declaration` mentions are all `calibration_history` prose (not test samples); zero `checked_nettype_identifier`/class-handle-as-net samples → no manifest entry flips, schema stays 4.
+
+### The edit
+`grammars/systemverilog.ebnf:3310` — `@predicate: { name: has_fact, args: [type_name, $body], phase: post }` → `@predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, nettype], phase: post }` (comment block updated in sync). Regenerated the SV parser (`make focus_systemverilog`) and confirmed the generated parser now carries `Predicate(fact_attribute_equals, [type_name, body, declaration_family, nettype])` for the rule. Rebuilt the debug binaries with `--features generated_parsers,ebnf_dual_run` (the cert path needs `ebnf_dual_run` to read the `.ebnf`; an interim build that dropped it errored "requires building with --features ebnf_dual_run" — a build-feature gotcha, not a fix problem).
+
+### Why it is the LRM-correct, minimal-blast fix
+A `net_declaration` requires a `net_type` — built-in (`wire`/`tri`/…) or a user-declared nettype (`nettype data_type T;`). A class is not a nettype. The defect was the [[feedback_grammar_rules_must_consult_store]] class: the rule consulted the store but with too weak a predicate (`has_fact(type_name)` instead of `fact_attribute_equals(... declaration_family, nettype)`). Tightening routes `C a;` to `data_declaration` (a class variable), which binds `a` and lets the store-gated `context_member_method_call` fire.
+
+### Verification (change ONE thing; measure GLOBAL)
+- Fix probes: `C a;` → `data_declaration`/`variable_decl` (binds `a`); `C a; … a.b[0].c()` REJECT→PASS, AST node `context_member_method`; `wire a;` still `net_declaration`; `nettype logic NT; NT a;` parses; undeclared `a.b[0].c()` still rejects.
+- Cert seeds 0/7/42: `total=1292 witness=1203 UNKNOWN=88 spf=0`, byte-identical to pre-fix incl. the UNKNOWN **set** (diff empty both ways) — correctness re-route, not a cert closure.
+- `--lint-grammar`: `non_terminating=0 ordered_choice_shadowing=0 unreachable_rules=0 unbound_fact_kinds=0 profile_orphans=0`, `always_matches=6` (pre-existing A2 backlog).
+- SV external corpus triage gate: cases_executed 14, parse_pass_total 14, parse_fail_total 0.
+- `stimuli_cross_family_platform_gate`: regex/vhdl/sv all pass.
+- SV shape-contract: 14/14 incl. the new `systemverilog_class_handle_decl_is_data_declaration_not_net` lock and both `context_gated_method_chain` locks (the function-scope uvm shape is unaffected — net_declaration is not a `class_item` there, so it always bound).
+- Clippy: source-strict 0 errors (generated-parser stage non-strict, as established).
+
+### Scope note (re: a mid-slice question about parser-specific code)
+The only Rust file touched is `rust/src/ast_shape_contract.rs` — the per-parser-family AST-shape **verification** runner (its module header says so), which already hosts the SV-0001/VHDL-0002 regression locks. The parser-agnostic pipeline `rust/src/ast_pipeline/` is untouched; the SV-specific logic is entirely in the `.ebnf` grammar. This is the "fix in the grammar, leave the engine alone" discipline.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.2 — class-handle head WHY+WHERE; a real store-gating parser bug found (`checked_nettype_identifier` over-accepts a class as a nettype) (PGEN-GRAMMAR-WELLFORMED-0099)
 
 ### The slice
