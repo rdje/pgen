@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.1 — context_member semantic-prelude WHY+WHERE + DESIGN (PGEN-GRAMMAR-WELLFORMED-0101, PURE-DOCS)
+
+### The slice
+Tools-first WHY+WHERE + implementation design for witnessing the `has_fact`-gated rule `context_member_method_call` in cert-coverage — the DESIGN half of split leaf `H.12.5.5.3.3.4.2.1` (opened by `-0098` as a generator constructor gap, the `has_fact` analogue of the regex `\NN` `fact_count_at_least` semantic-prelude class). PURE-DOCS — no code/grammar/generated/release/schema/ledger change; clippy not invoked.
+
+### Tools-first findings (no design without facts)
+- **Reach path = attribute_instance.** `PGEN_REACH_PATH_DUMP=1` shows the BFS shortest-hop reach routes `context_member_method_call` through `source_text (root/q) → source_text_item → description (root/o5/s0/q) → attribute_instance → attr_spec → constant_expression → … → constant_function_call → call_primary → context_member_method_call (root/s3)`. The minimal probe `(*\foo =+\foo .\foo .\foo *)` is a bare hierarchical reference (no `()`), so it cannot structurally be this rule, and has no declared head — `parsed=true witnessed_target=false`.
+- **Witness matrix (parser the judge).** `parseability_probe --parse-dump-ast-pretty systemverilog <s> --profile sv_2017`, `context_member_method` node = witness: (a) bare probe → no; (b) module + decl + indexed method call → YES; (c) top-level decl but bare ref → no; **(c2) `int \foo ; (*\foo =+\foo .\foo [0].\foo ()*)` → YES**; (d) module, undeclared head → REJECT; (e) module, declared, no index → YES.
+- **Operative facts:** the head declaration is necessary (the `has_fact(variable_binding,$head)` gate); the chain must be a real method call (`.callable_method_call_body`); **(★) a top-level/`$unit`-scope `variable_binding` fact is visible to `has_fact` at the later attribute_instance** (Test c2) — so the existing reach path is salvageable via a top-level binding-producer prelude, no reach-path re-selection needed; identifiers render canonically `\foo` in construct mode ⇒ name-coupling is free.
+- **WHERE (code):** `compute_reach_prelude` (`rust/src/ast_pipeline/stimuli_generator.rs:2769`) returns `None` for SV (`gen_count_kinds.is_empty()`, `:2776`); it is `fact_count_at_least`-only with no `has_fact` analogue.
+
+### The design handed to the FIX (`.4.2.1.2`)
+New `gen_has_fact_gates: rule → (kind, name_ref_capture)` precompute; a `has_fact` branch in `compute_reach_prelude` (producer = `variable_decl_assignment` (emits `variable_binding`), prelude site = `source_text := source_text_item*`, `iterations=1`, NO numeric capture / NO count-prune bypass — the gate is a PARSE-time post-predicate and SV is not `store_aware_gen`, so only the prelude TEXT is needed; the real parser emits the fact). Name-coupling is structural on the canonical `\foo` render (verify, don't assume; the parser stays the judge). **Open composition question (the FIX's first job):** the binding prelude is attached in the plannable pass (which renders minimally — no `.method()`), while the gated rule's distinguishing method-call structure is forced by the separate target-own pass (PASS 3c, no prelude). A witnessing sample needs BOTH in one generation, so the FIX must compose them — attach the prelude to the structure-forcing pass, or force the gated rule's mandatory `callable_method_call_body` child on the prelude path (the `.3.3.1` mandatory-child lineage).
+
+### Acceptance for the FIX
+SV cert `UNKNOWN 88→87` (`context_member_method_call` witnessed) deterministic at seeds 0/7/42, `spf` unchanged; strictly additive; fully-certified roster byte-identical; `stimuli_cross_family_platform_gate` PASS; clippy source-clean; GENERATOR-ONLY ⇒ no grammar/regen/release/schema/ledger change.
+
+### Why split
+This tree's established cadence is WHY+WHERE/DESIGN → FIX (cf. `.3.1`→`.3.2`, `.3.3.1` DESIGN→IMPL). The reach-path dump revealed the design is more constrained than the leaf row assumed (attribute-spec host, not a statement list) and carries a real composition question that deserves its own reviewable slice before the generator change. New KM card `docs/knowledge/sv-store-fact-scope-and-canonical-name-coupling.md`. Detail: `docs/tasks/GRAMMAR-WELLFORMED-H125533421-context-member-prelude-whywhere-design.md`.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.2.1 — checked_nettype_identifier store-gate FIX; module-scope class-handle `C a;` now `data_declaration` not `net_declaration` (PGEN-GRAMMAR-WELLFORMED-0100, release 1.0.141, ledger SV-0003)
 
 ### The slice
