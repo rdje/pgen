@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2 — context_member `has_fact` prelude FIX ATTEMPT → REFUTED (PGEN-GRAMMAR-WELLFORMED-0102, landed PURE-DOCS)
+
+### The slice
+Implemented the `-0101` design for witnessing the `has_fact`-gated rule `context_member_method_call` in cert-coverage, then ran the verification the design itself mandated ("dump the armed sample; confirm decl + `.method()`"). That verification **refuted** the prelude-alone approach — it produces a **false witness** — so the code was **reverted**. Landed PURE-DOCS (no code/grammar/generated/release/schema/ledger change); clippy not invoked (no source change in the landed state).
+
+### What was implemented (then reverted) — all in `rust/src/ast_pipeline/stimuli_generator.rs`
+- `gen_has_fact_gates: HashMap<String, Vec<(String,String)>>` (rule → `(kind, name-ref)`), computed by a new `compute_gen_has_fact_gates` from each `has_fact(K, $rule_ref)` POST-predicate (the `has_fact` analogue of `gen_count_kinds`; does NOT activate `store_aware_gen` — SV is not store-aware).
+- A `PreludeKind` discriminator on `ReachPrelude`: `Count` (the existing two-phase capture/replay) vs `Presence` (armed at `iterations=1`, no capture, no replay), with `Count`-only guards added to `reach_prelude_capture`, `reach_prelude_replay_text`, and `reach_prelude_bypasses_count_prune`.
+- A `has_fact` branch in `compute_reach_prelude`, factored with the count branch into a shared `build_semantic_prelude(gated_rule, kind, quantifier_sites, bypass_fuel, iterations, prelude_kind)` (producer = first sorted `@emit_fact`-of-K rule; site = innermost on-path quantifier whose body graph-reaches the producer).
+
+It compiled clean and the seed-0 metric moved exactly as the design predicted: `total=1292 proof=1 witness=1203→1204 UNKNOWN=88→87 spf=0`. **By the headline number alone the leaf looked done.**
+
+### Why it is a FALSE witness (tools-first — the design's own mandated check)
+- The cert-coverage witnessed `context_member_method_call` from the **plannable** pass (not the target-own pass the design expected), on the seed-0 armed sample `(*\foo =+type(struct{struct{struct{struct{bit\foo ;}\foo ;}\foo ;}\foo ;})*)(*\foo =+\foo .\foo .\foo *);`. The chain `\foo .\foo .\foo` is a bare hierarchical reference with **no `()`** — `context_member_method_call := … dot callable_method_call_body …` requires a real method call.
+- `parseability_probe --parse-dump-ast-pretty systemverilog <armed> --profile sv_2017` → **0** `context_member_method` nodes (`call_primary` sets that `kind` explicitly, so a committed match would show it). The design's genuinely-witnessing **Test c2** `int \foo ; (*\foo =+\foo .\foo [0].\foo ()*)` (a real `.\foo()`) → **1** node.
+- `--trace-rules context_member_method_call` on the armed sample → every event is a `Speculative parse failed / backtracked` (positions 13/20/95/101) or a failed inner `built_in_method_call` keyword; **no positive success-exit**. `parse_full` passes via OTHER rules, and `call_primary` never yields a `context_member_method` result, so the rule is **not in the accepted parse**.
+
+### WHERE the false witness comes from (the soundness gap — `.4.2.1.2.1`)
+`RULE_CONTEXT_MEMBER_METHOD_CALL = 547` (`generated/systemverilog_parser.rs:634`). The generated `parse_context_member_method_call` pushes its coverage id at rule ENTRY (`coverage_stack.push(...)` @ `:449256`), then runs the body inside `with_semantic_runtime_rule_transaction → memoized_call`. The trace shows `Memoized successful result for rule 547 at position 101` together with `has_fact(variable_binding, "\foo") → true`, even though the rule structurally fails and is absent from the committed AST. Mechanism: WITHOUT the prelude the gate `has_fact(variable_binding,$head)` fails (no binding) → the rule rejects at the post-predicate → correctly NOT witnessed; WITH the prelude the binding exists → the post-predicate PASSES on the degenerate no-`.method()` render → the rule then fails structurally, but its coverage contribution survives into the witness record (the memoization × transactional-coverage composition class of `H.10.2.2`/`.b.6.2.36.4`, here on the post-predicate-passes-then-structurally-fails path the existing truncation/replay does not cover). Latent in the shipped grammar — no `has_fact` prelude exists today, so no degenerate predicate-passing render is generated.
+
+### Decision and re-scope
+A false witness violates the cert-coverage soundness contract the sign-off model rests on (the book's "trusting the linter: certificates, not faith" — surviving coverage entries = rules of the accepted parse). Per `feedback_always_signoff_decisions` it must not land ⇒ **REVERTED** (`git checkout -- rust/src/ast_pipeline/stimuli_generator.rs`), rebuild-verified baseline `total=1292 witness=1203 UNKNOWN=88 spf=0`. Re-scoped `.4.2.1.2`:
+- `.4.2.1.2.1` (ENGINE, foundational, next): fix the cert-coverage witness-soundness gap — a non-committing, predicate-passing rule must never be witnessed. WHY+WHERE first; protects EVERY witness number.
+- `.4.2.1.2.2` (GENERATOR, after): re-introduce the prelude composed with mandatory `callable_method_call_body`-child forcing so the witnessing sample is Test-c2-shaped (a GENUINE witness, AST node present). The genuineness oracle is the AST node, NOT the `UNKNOWN` count.
+
+New KM card `docs/knowledge/sv-cert-coverage-predicate-gated-false-witness.md`. Detail task file `docs/tasks/GRAMMAR-WELLFORMED-H1255334212-context-member-prelude-fix-attempt-refuted.md`.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.1 — context_member semantic-prelude WHY+WHERE + DESIGN (PGEN-GRAMMAR-WELLFORMED-0101, PURE-DOCS)
 
 ### The slice
