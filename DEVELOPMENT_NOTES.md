@@ -1,4 +1,34 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3 — M1b residual parent-commit WHY+WHERE (PGEN-GRAMMAR-WELLFORMED-0091)
+
+### The slice
+Tools-first WHY+WHERE for the 6 M1b carriers the `-0090` target-own-structure pass could not close. PURE-DOCS investigation — no code change; the `.3.3` leaf already owns the surface. Reproduced the deterministic baseline (`total=1292 proof=1 witness=1201 UNKNOWN=90 spf=0`, byte-identical to post-`-0090`).
+
+### Method (the decisive discriminator)
+The `-0088`/`-0090` work hypothesised "parent-commit": even with `R`'s own distinguishing structure forced, the rendered form is re-attributed to an earlier sibling at the parent ordered-choice. To prove it per carrier, I took a representative generated witness (from `PGEN_CERT_COVERAGE_DEBUG_PROBES=1`) and re-parsed it standalone:
+```
+printf '%s' '<sample>' > s.sv
+parseability_probe --parse-dump-ast-pretty systemverilog s.sv out.json --profile sv_2017
+grep -c '"<carrier>"' out.json   # → 0 for all 6
+```
+All 6 parses pass (full consume) and the carrier rule name is ABSENT from the dumped AST (0 nodes). That is direct proof the carrier rule is not exercised — a sibling absorbs the bytes. Critically this rules out the `H.10.2.2` memo-hit coverage-record class (where the rule IS present in the AST and only the transactional coverage record was lost on a memo hit) — here the rule genuinely never matches.
+
+### Per-carrier WHERE (grammar-grounded)
+- `goto_repetition` (`grammars/systemverilog.ebnf:2242` `:= ( implies const_or_range_expression )`, `implies := trivia "->"`): the `017.22->4096` sample parses as an `operand_chain`/`base` expression with `rest:[implies, primary]` — the expression-level `->` operator. Host `boolean_abbrev` is `( boolean_abbrev )?` at `:4565` on `expression_or_dist`; never entered. The grammar form is bare `-> expr`; IEEE 1800 brackets it (`[ -> const_or_range_expression ]`). Sibling `consecutive_repetition := ( star const_or_range_expression )` is bare too.
+- `array_range_expression` (`:533` `:= expression`, host `:4781` `stream_expression := expression ( kw_with ( array_range_expression )? )?`): degenerate alias; the streaming-concat sample parses without entering the `( array_range_expression )?` optional. `-0090` deep-forced the alias `expression` body into a `:`-bearing form ⇒ `parsed=false` (wrong level).
+- `direct_index_method_call` (`:655` `:= (… hierarchical_identifier | implicit_class_handle) dot method_call_body`): `method_call_body` (`:2793`) distinguishing alts need a method CALL (`method_identifier (args)` / built-in). Rendered tail is bare `.\foo` ⇒ the `!lparen`-guarded `select`/`bit_select` chain (`:4508`) wins.
+- `context_member_method_call` (`:2906` `:= identifier ( dot identifier constant_bit_select &dot )+ dot callable_method_call_body …`): the `+` group REQUIRES a `constant_bit_select` (`[idx]`); rendered `\foo.\foo.\foo` has none ⇒ plain `ps_parameter`/`generate_scoped` scoped name absorbs. `-0090` added a 4th `.\foo` (still no `[idx]`).
+- `class_scoped_tf_call` (`:6208` → `:6204` `class_scoped_tf_call_with_args := class_scoped_call_prefix …`): `class_scoped_call_prefix` (`:6202`) is gated on `known_unscoped_class_scoped_call_class_identifier` etc.; `\foo` is not a known class ⇒ `package_scope tf_call` absorbs `\foo::\foo`. STORE-faithfulness, not pure parent-commit.
+- `sequence_method_call` (`:4613` `:= sequence_instance dot method_identifier`, refs `:2847/2864/3855/3909`): reach routed the witness into a `module(.port(expr))` host (named port connection), wrong context.
+
+### Outcome — 4 fix mechanisms + 1 reclassification
+- C-i operator-shadow (1): `goto_repetition` → `H.12.5.5.3.3.3` (LRM-ground brackets first).
+- C-ii mandatory-inner-structure-not-forced (2): `direct_index_method_call`, `context_member_method_call` → `H.12.5.5.3.3.1` (extend the `-0090` walker to force mandatory sub-rule content).
+- C-iii store-gated (1): `class_scoped_tf_call` → RECLASSIFIED to `H.12.5.6` (M2/store), removed from M1b.
+- C-iv reach-path-selection (2): `sequence_method_call`, `array_range_expression` → `H.12.5.5.3.3.2` (reach-honesty).
+
+Detail: `docs/tasks/GRAMMAR-WELLFORMED-H12533-m1b-residual-parent-commit-whywhere.md`. No code/grammar/generated/release/schema/ledger change; clippy not invoked.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.2 — the M1b FIX: parser-agnostic target-own-structure reach pass (PGEN-GRAMMAR-WELLFORMED-0090)
 
 ### The slice
