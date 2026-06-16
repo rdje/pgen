@@ -4775,16 +4775,16 @@ statement_item := statement_item_sv_2017 -> {kind: "sv_2017", body: $1}
 statement_or_null := statement                                -> {kind: "statement", body: $1}
                    | @probe_sample: ";" attribute_instance* semi -> {kind: "null",      attributes: $1}
 
-stream_concatenation := ( stream_expression ( comma stream_expression )* )*
-                     -> {body: $1}
+stream_concatenation := lbrace stream_expression ( comma stream_expression )* rbrace
+                     -> {body: [$2, $3::2*]}
 
-stream_expression := expression ( kw_with_8fcd25a3 ( array_range_expression )? )?
+stream_expression := expression ( kw_with_8fcd25a3 lbrack array_range_expression rbrack )?
                   -> {expr: $1, with_clause: $2}
 
 stream_operator := shift_right -> {kind: "shift_right"}
                  | shift_left  -> {kind: "shift_left"}
 
-streaming_concatenation := lbrace stream_operator ( slice_size )? stream_concatenation rbrace
+streaming_concatenation := lbrace stream_operator ( slice_size &lbrace )? stream_concatenation rbrace
                         -> {op: $2, slice_size: $3, body: $4}
 
 strength := kw_supply_076df715 -> {kind: "supply"}

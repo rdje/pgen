@@ -509,6 +509,46 @@ ticket: a handful of carriers whose distinguishing form is still absorbed by an 
 **parent** ordered choice, regardless of `R`'s own shape — a *parent-commit* problem the reach plan must
 solve one level up.
 
+The next SystemVerilog step extended the target-own-structure pass *one level deeper* — forcing not just a
+rule `R`'s own ordered choice and optionals, but the **distinguishing structure of a mandatory child
+rule** `R` references. Some carriers render a non-degenerate top-level form yet still fail to witness
+because the bytes that distinguish them live in a *separate* mandatory sub-rule the original walker never
+descended into (the generation-input AST stores a rule reference as a leaf token, so the child's body is
+not inlined). A bounded mandatory-reference walker (sequence elements, min-1 `+`-group elements, `Atom::Node`
+groups, and `rule_reference` tokens — skipping min-0 quantifiers, un-forced `Or` branches, and lookaheads)
+now installs the child's own forcing on top of `R`'s plan, keyed purely on `(child, node-path)`, and runs
+only over the rules still `UNKNOWN` after the earlier passes (so it is inert for the certified roster). It
+moved SystemVerilog `UNKNOWN` `90 → 89` (witness `1201 → 1202`, deterministic at seeds 0/7/42) — closing
+`sequence_method_call`, whose distinguishing call form needed its mandatory child forced. The residual it
+could *not* close sharpened the next ticket: a few carriers whose forced distinguishing form is *still*
+re-attributed to a sibling at the parent ordered choice — the parent-commit-hard class named above.
+
+The next SystemVerilog step was the second branch of the attribution rule again — **the grammar is at
+fault, so fix the grammar** — and it is a textbook instance of the *delimiter-drop* class the
+SystemVerilog grammar's LRM extraction keeps producing. The streaming-concatenation family
+(`{ >> {a, b} }`, `{ << 4 {a with [3:0]} }`) had two delimiters dropped: `stream_concatenation` lost the
+literal `{ }` that wrap its stream-expression list, and `stream_expression` lost the literal `[ ]` around
+its `with`-clause range — so `array_range_expression` (which lives only inside that bracketed range) was
+**unreachable**, and the cert-coverage gate could never witness it (a reach probe entered it `0` times
+versus `110` for the witnessing two-expression form). Restoring the delimiters per IEEE 1800 §A.8.1
+(`stream_concatenation := lbrace stream_expression ( comma stream_expression )* rbrace`,
+`stream_expression := expression ( kw_with lbrack array_range_expression rbrack )?`) makes the fragment
+reachable — and, exactly as the delimiter-drop class so often does, *also closes a real parse gap*: the
+LRM with-bracket form `{<< 4 {a with [3:0]}}` was rejected on every prior release (released-parser bug
+`SV-0002`, SV release `1.0.140`). Restoring the mandatory inner brace then surfaced a second, subtler
+defect — a PEG greediness in `streaming_concatenation`'s optional `( slice_size )?`, whose
+`constant_expression` branch would consume the very brace-concatenation that *is* the mandatory
+stream-concatenation and then fail without backtracking (which would have regressed the canonical
+`{>> {data}}` forms real UVM uses). The fix is the idiomatic PEG guard: `( slice_size &lbrace )?`, encoding
+the LRM structural fact that a slice-size is always followed by the stream-concatenation's `{`. This is the
+duality and the bug-finding-oracle role compounding once more: a single unwitnessable fragment was neither
+accepted as a residual nor chased in the generator — it was adjudicated to the grammar, the fix restored
+LRM fidelity, and the restoration exposed (and the tools then caught, before it shipped) a downstream
+greediness regression. It moved SystemVerilog `UNKNOWN` `89 → 88` (witness `1202 → 1203`, deterministic at
+seeds 0/7/42, `spf=0`, every other grammar byte-identical), with the SV external corpus still parsing
+14/14. Because the restructure also changed `stream_concatenation`'s `body` from a raw quantified node to a
+clean array, it is the family's first shape-changing release in a while (AST-dump schema `3 → 4`).
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was
