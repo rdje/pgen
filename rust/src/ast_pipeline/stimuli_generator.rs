@@ -3172,8 +3172,23 @@ impl<'a> StimuliGenerator<'a> {
         let mut witnessed_count = 0usize;
         for rule in residual_rules {
             let (root_or, inner_quantifier_paths) = self.target_own_reach_sites(rule);
-            // Nothing to force (no top-level choice AND no optional inside the body) ⇒ skip.
-            if root_or.is_none() && inner_quantifier_paths.is_empty() {
+            // GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 (C-ii): mandatory child rules whose OWN
+            // distinguishing structure we can force (root `Or` branch and/or inner quantifiers).
+            // The carrier's distinguishing form lives in a mandatory CHILD rule the R-own walker
+            // cannot reach (a `rule_reference` is a leaf token, never inlined).
+            let child_forcings: Vec<(String, Option<(String, usize)>, Vec<String>)> = self
+                .mandatory_child_rules(rule)
+                .into_iter()
+                .map(|child| {
+                    let (child_root_or, child_inner_qs) = self.target_own_reach_sites(&child);
+                    (child, child_root_or, child_inner_qs)
+                })
+                .filter(|(_, child_root_or, child_inner_qs)| {
+                    child_root_or.is_some() || !child_inner_qs.is_empty()
+                })
+                .collect();
+            // Nothing to force anywhere (no R-own choice/optional AND no forceable child) ⇒ skip.
+            if root_or.is_none() && inner_quantifier_paths.is_empty() && child_forcings.is_empty() {
                 continue;
             }
             let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
@@ -3241,6 +3256,95 @@ impl<'a> StimuliGenerator<'a> {
                     }
                 }
                 self.clear_reach_plan();
+            }
+            // GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 (C-ii): if R's own structure forcing did not
+            // witness, try forcing each MANDATORY child rule's OWN distinguishing structure on top
+            // of R's minimal body. Purely additive (runs only when R-own failed); R-own behaviour
+            // above is byte-identical to `-0090`. Keyed on the CHILD rule — the generator keys
+            // forcing on the rule it is currently generating, so a `(child, path)` directive fires
+            // when R descends into it (the same mechanism `set_reach_plan_for_rule` uses).
+            if !witnessed && !child_forcings.is_empty() {
+                // Per-child budget (NOT shared): each forceable mandatory child gets its own
+                // attempts so a distinguishing child (e.g. `constant_bit_select`) is reached even
+                // when an earlier child (e.g. `identifier`) is also forceable. Total per-rule child
+                // probes are still bounded (the `-0090` cross-grammar-cost discipline).
+                let per_child_cap = max_attempts_per_rule.max(1);
+                let mut total_child_budget = per_child_cap.saturating_mul(4);
+                'children: for (child, child_root_or, child_inner_qs) in &child_forcings {
+                    if total_child_budget == 0 {
+                        break 'children;
+                    }
+                    let mut child_budget = per_child_cap.min(total_child_budget);
+                    // Child root-`Or` candidates: non-degenerate `o1..` first, degenerate `o0` last;
+                    // or a single quantifier-only pass when the child has no top-level choice.
+                    let child_branches: Vec<Option<usize>> = match child_root_or {
+                        Some((_, alt_count)) => (1..*alt_count)
+                            .map(Some)
+                            .chain(std::iter::once(Some(0)))
+                            .collect(),
+                        None => vec![None],
+                    };
+                    for child_branch in child_branches {
+                        if child_budget == 0 {
+                            // This child is exhausted — move to the next child.
+                            break;
+                        }
+                        if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                            break 'children;
+                        }
+                        if let Some(plan) = self.reach_plan.as_mut() {
+                            // Render R's own body fully: force R's min-0 quantifiers ≥1 and (if R
+                            // has a top-level choice) its first non-degenerate branch.
+                            for q_path in &inner_quantifier_paths {
+                                plan.forced_quantifier_min
+                                    .insert((rule.clone(), q_path.clone()), 1);
+                            }
+                            if let Some((or_path, alt_count)) = &root_or {
+                                let j = if *alt_count > 1 { 1 } else { 0 };
+                                plan.directives.insert((rule.clone(), or_path.clone()), j);
+                            }
+                            // Force the child's OWN distinguishing structure.
+                            if let (Some((child_or_path, _)), Some(branch_index)) =
+                                (child_root_or, child_branch)
+                            {
+                                plan.directives
+                                    .insert((child.clone(), child_or_path.clone()), branch_index);
+                            }
+                            for child_q in child_inner_qs {
+                                plan.forced_quantifier_min
+                                    .insert((child.clone(), child_q.clone()), 1);
+                            }
+                        }
+                        let per_branch = 2usize.min(child_budget);
+                        for _ in 0..per_branch {
+                            child_budget -= 1;
+                            total_child_budget -= 1;
+                            self.construct_mode = true;
+                            let probe = self
+                                .generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                            self.construct_mode = false;
+                            match probe {
+                                Ok(sample) => {
+                                    if matches!(
+                                        witness_check(rule, &sample),
+                                        PlannableProbeVerdict::Witnessed
+                                    ) {
+                                        witnessed = true;
+                                        self.clear_reach_plan();
+                                        break 'children;
+                                    }
+                                }
+                                Err(e) => {
+                                    if Self::is_target_timeout_error(&e) {
+                                        self.clear_reach_plan();
+                                        break 'children;
+                                    }
+                                }
+                            }
+                        }
+                        self.clear_reach_plan();
+                    }
+                }
             }
             if witnessed {
                 witnessed_count += 1;
@@ -5234,6 +5338,68 @@ impl<'a> StimuliGenerator<'a> {
             }
             ASTNode::Atom { .. } => {}
             ASTNode::Lookahead { .. } => {}
+        }
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 (C-ii): the MANDATORY referenced rules in `rule`'s body —
+    /// every `rule_reference` reached WITHOUT crossing a min-0 quantifier, an un-forced `Or`
+    /// alternative, or a lookahead (i.e. the references that are unconditionally generated whenever
+    /// the rule's body renders). Depth-1: the references that appear directly in `rule`'s own body,
+    /// NOT recursing into the referenced rules' bodies. This is what the `-0090` target-own walker
+    /// (`target_own_reach_sites`) cannot see: a rule reference is stored as a LEAF token
+    /// `Atom(Token(["rule_reference", name]))`, so a carrier whose distinguishing structure lives in
+    /// a mandatory CHILD rule (`direct_index_method_call` → `method_call_body`'s call form;
+    /// `context_member_method_call` → `constant_bit_select`'s `[idx]`) renders the child minimally
+    /// and is re-attributed to a sibling. Forcing the child's OWN structure (keyed on the child rule
+    /// — the generator keys forcing on the rule it is currently generating) distinguishes it.
+    /// `rule` itself is excluded (self-recursion is already plan-handled). Order-preserving + deduped.
+    fn mandatory_child_rules(&self, rule: &str) -> Vec<String> {
+        let Some(root) = self.grammar_tree.get(rule) else {
+            return Vec::new();
+        };
+        let mut out: Vec<String> = Vec::new();
+        let mut seen: HashSet<String> = HashSet::new();
+        Self::collect_mandatory_child_rules(root, rule, &mut out, &mut seen);
+        out
+    }
+
+    fn collect_mandatory_child_rules(
+        node: &ASTNode,
+        self_rule: &str,
+        out: &mut Vec<String>,
+        seen: &mut HashSet<String>,
+    ) {
+        match node {
+            ASTNode::Sequence { elements } => {
+                for element in elements {
+                    Self::collect_mandatory_child_rules(element, self_rule, out, seen);
+                }
+            }
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                // Mandatory only when the quantifier renders at least once (min >= 1: `+`, `{N,…}`
+                // with N>=1). A min-0 `?`/`*`/`{0,…}` is NOT unconditionally generated — skip.
+                if super::parse_quantifier_bounds(quantifier).is_some_and(|(min, _)| min >= 1) {
+                    Self::collect_mandatory_child_rules(element, self_rule, out, seen);
+                }
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => {
+                    Self::collect_mandatory_child_rules(inner, self_rule, out, seen);
+                }
+                ASTValue::Token(parts) => {
+                    if let Some(("rule_reference", name)) = Self::extract_token_pair(parts) {
+                        if name != self_rule && seen.insert(name.to_string()) {
+                            out.push(name.to_string());
+                        }
+                    }
+                }
+            },
+            // `Or`: no single alternative is unconditionally generated (the choice is un-forced
+            // here) — skip. `Lookahead`: materialises nothing — skip.
+            ASTNode::Or { .. } | ASTNode::Lookahead { .. } => {}
         }
     }
 
@@ -17714,6 +17880,64 @@ mod tests {
         let (root_or, inner) = generator.target_own_reach_sites("missing");
         assert_eq!(root_or, None);
         assert!(inner.is_empty());
+    }
+
+    #[test]
+    fn mandatory_child_rules_follows_mandatory_refs_only() {
+        // GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 (C-ii): the mandatory-child walker collects rule
+        // references reached through MANDATORY positions only — Sequence elements, min-1
+        // (`+`/`{N,…}`) quantifier groups, and `Atom::Node` grouping shells — and SKIPS min-0
+        // quantifiers (`?`/`*`), un-forced `Or` alternatives, lookaheads, and self-recursion.
+        // Order-preserving + deduped.
+        let mut grammar_tree: HashMap<String, ASTNode> = HashMap::new();
+        grammar_tree.insert(
+            "carrier".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("mand_a"), // mandatory (Sequence element)
+                    ASTNode::Quantified {
+                        // min-0 ⇒ skip
+                        element: Box::new(rule_ref("opt_skip")),
+                        quantifier: "?".to_string(),
+                    },
+                    ASTNode::Quantified {
+                        // min-1 ⇒ mandatory; its body's refs are collected
+                        element: Box::new(ASTNode::Sequence {
+                            elements: vec![rule_ref("mand_b"), rule_ref("mand_a")], // mand_a dup
+                        }),
+                        quantifier: "+".to_string(),
+                    },
+                    ASTNode::Or {
+                        // un-forced choice ⇒ skip both arms
+                        alternatives: vec![rule_ref("or_skip_1"), rule_ref("or_skip_2")],
+                    },
+                    ASTNode::Lookahead {
+                        // materialises nothing ⇒ skip
+                        element: Box::new(rule_ref("la_skip")),
+                        positive: true,
+                    },
+                    ASTNode::Atom {
+                        // grouping shell ⇒ descend
+                        value: ASTValue::Node(Box::new(rule_ref("mand_c"))),
+                    },
+                    rule_ref("carrier"), // self-recursion ⇒ skip
+                ],
+            },
+        );
+        let rule_order = vec!["carrier".to_string()];
+        let generator = simple_generator(&grammar_tree, &rule_order, 0);
+
+        // Body order, deduped; optionals / Or arms / lookahead / self all skipped.
+        assert_eq!(
+            generator.mandatory_child_rules("carrier"),
+            vec![
+                "mand_a".to_string(),
+                "mand_b".to_string(),
+                "mand_c".to_string(),
+            ]
+        );
+        // A rule absent from the tree yields nothing (defensive).
+        assert!(generator.mandatory_child_rules("missing").is_empty());
     }
 
     #[test]

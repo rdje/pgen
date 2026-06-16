@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 — C-ii mandatory-inner-structure forcing: implementation (PGEN-GRAMMAR-WELLFORMED-0093)
+
+### The slice
+Implemented the C-ii design (`-0092`): SV certificate-coverage `UNKNOWN 90→89` (witness `1201→1202`, `spf=0`, deterministic seeds 0/7/42). GENERATOR-ONLY.
+
+### Implementation (`rust/src/ast_pipeline/stimuli_generator.rs`)
+- `mandatory_child_rules(rule) -> Vec<String>` + `collect_mandatory_child_rules`: a structural walker that collects the `rule_reference` child names reached through MANDATORY positions of `rule`'s body — Sequence elements, min-1 (`+`/`{N≥1,…}`) Quantified groups, and `Atom::Node` grouping shells — and SKIPS min-0 quantifiers, un-forced `Or` alternatives, lookaheads, and self-recursion. Depth-1 (direct references in R's own body). This reaches what the `-0090` `target_own_reach_sites` walker cannot: a rule reference is a leaf token `Atom(Token(["rule_reference", name]))`, never inlined.
+- Child-forcing loop appended to `generate_target_own_structure_witnesses` (after the unchanged `-0090` R-own branch loop): runs ONLY when R-own forcing did not witness; per-child budget (`per_child_cap = max_attempts_per_rule`, total capped at `*4`) so a distinguishing child is reached even when an earlier child (e.g. `identifier`) is also forceable; for each mandatory child `C` it forces `target_own_reach_sites(C)` keyed `(C, …)` on top of R's minimal body (R's inner quantifiers ≥1 + R's first non-degenerate root branch). The read-sides needed NO change — `generate_or`/`generate_quantified` key on the rule currently being generated, so `(C, path)` fires when R descends into C (confirmed empirically: forcing rendered `method_call_body` call forms and `constant_bit_select [idx]`).
+- New unit test `mandatory_child_rules_follows_mandatory_refs_only`.
+
+### Honest outcome (tools-first, not inferred)
+The mechanism is general + correct + strictly additive + inert for the fully-certified roster, but it witnessed `sequence_method_call` (a `-0091` C-iv carrier), NOT the 2 hypothesized C-ii carriers. Re-parsing the forced witnesses shows `direct_index_method_call` and `context_member_method_call` stay UNKNOWN because their forced distinguishing structure is STILL re-attributed to a sibling at the parent ordered choice (`direct_index` → `split_direct_callable_method`/`method_call` in `bit_select_expression`; `context_member` → `call_primary`/attribute-spec). They are the parent-commit-HARD class → reclassified to `H.12.5.5.3.3.4`. The `-0091` C-ii/C-iv boundary is fuzzy: "distinguishing structure in a mandatory child" is necessary but not sufficient when the parent re-attributes even the distinguishing form.
+
+### Verification
+cert seeds 0/7/42 identical (`witness=1202 UNKNOWN=89 spf=0`); rtl_const_expr (count 8, `--max-depth 32`) `UNKNOWN=0` in 204s (vs `-0090` baseline 338s — no slowdown), json `UNKNOWN=0`; both unit tests PASS; `stimuli_cross_family_platform_gate` PASS; clippy source-clean (generated stage = tolerated debt). GENERATOR-ONLY ⇒ no parser-regen/grammar/release/schema/ledger change.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 — C-ii mandatory-inner-structure forcing: design (PGEN-GRAMMAR-WELLFORMED-0092)
 
 ### The slice

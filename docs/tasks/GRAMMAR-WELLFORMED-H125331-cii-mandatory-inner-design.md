@@ -127,3 +127,34 @@ over-constraint and any cost blow-up), compute `target_own_reach_sites(C)` and a
 - Interaction with `needs_rule_body_descent`: adding `(C, …)` directives makes
   `needs_rule_body_descent(C)` true, so any rule-level `@sample` on C stands down (the `-0087`
   behavior) — desired (we want C's body, not its canonical literal). Confirm at implementation.
+
+## Implemented (`PGEN-GRAMMAR-WELLFORMED-0093`, GENERATOR-ONLY)
+
+Landed the designed mechanism: `mandatory_child_rules` (the bounded mandatory-reference walker)
++ a purely-additive child-forcing loop in `generate_target_own_structure_witnesses` (runs only
+when R-own forcing did not witness; per-child budget so a distinguishing child is reached even
+when an earlier child is also forceable). **SV cert `UNKNOWN 90 → 89`** (witness `1201 → 1202`,
+`spf=0`, deterministic seeds 0/7/42). Inert for the fully-certified roster (rtl_const_expr/json
+re-measured `UNKNOWN=0`, no slowdown). Cross-family gate PASS; clippy source-clean.
+
+**Outcome vs the two hypothesized C-ii carriers (the honest finding).** The mechanism is correct
+and general, but it did NOT close `direct_index_method_call` or `context_member_method_call` — it
+closed **`sequence_method_call`** instead (a `-0091` C-iv carrier whose mandatory child needed
+structure forced). Re-parsing the forced witnesses (`parseability_probe --parse-dump-ast-pretty`)
+shows WHY the two named carriers stay UNKNOWN even with their distinguishing structure rendered:
+
+- `direct_index_method_call`: forcing `method_call_body` to a call form DOES render the call
+  (`…[class_qualifier\foo.\foo(*\foo*)()]…`), but the bytes are credited to
+  `split_direct_callable_method` (a `method_call` sibling in `bit_select_expression`'s ordered
+  choice) — direct_index is tried first but its match fails partway, so the sibling wins.
+- `context_member_method_call`: forcing `constant_bit_select` ≥1 DOES render the `[idx]`
+  (`\foo.\foo[+…].\foo.\foo`), but the form is still re-attributed at the `call_primary` /
+  attribute-spec parent ordered choice.
+
+So both named C-ii carriers are ALSO sibling-absorbed at the PARENT regardless of their own (or
+their child's) forced structure — the parent-commit class, not closable by structure forcing
+alone. They are reclassified to a follow-up (`H.12.5.5.3.3.4`): parent-commit forcing (force the
+parent ordered choice to R's branch on the generation side) and/or an ordered-choice-shadowing
+adjudication (whether `direct_index_method_call` is effectively shadowed by `method_call` in
+`bit_select_expression`). The mandatory-child-forcing capability stays — it is general, strictly
+additive, and closed a real reachable-unwitnessed rule.
