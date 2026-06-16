@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.2 — C-iv `array_range_expression` re-adjudicated to a C-i GRAMMAR delimiter-drop (PGEN-GRAMMAR-WELLFORMED-0094, PURE-DOCS)
+
+### The slice
+Tools-first WHY+WHERE for the last open C-iv carrier, `array_range_expression`. The `-0091` scope said "force the parent `stream_expression`'s `( array_range_expression )?` optional rather than deep-forcing the alias body." This slice REFUTES that generator framing with live tooling and re-adjudicates the carrier to the grammar. The C-iv leaf's only other carrier, `sequence_method_call`, was already closed as collateral by `-0093`, so leaf `H.12.5.5.3.3.2` closes generator-neutral. No code touched (grammar/Rust/generated/manifest all unchanged).
+
+### WHY + WHERE (tool-backed, not inferred)
+Build: `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline` (and `parseability_probe`). Baseline canonical SV cert (seed 0): `total=1292 proof=1 witness=1202 UNKNOWN=89 spf=0` — matches the resume pointer.
+
+1. **The reach IS forced, the witness still fails.** `PGEN_CERT_COVERAGE_DEBUG_PROBES=1 PGEN_REACH_PATH_DUMP=1 … --report-certificate-coverage --grammar-profile sv_2017 --count 40 --seed 0`. The reach hop chain ends `…streaming_concatenation(root/s3) → stream_concatenation(root/q/s0) → stream_expression(root/s1/q/s1/q)`, and the plannable + target-own passes both fire. Plannable probes: `parsed=true witnessed_target=false` rendering e.g. `{>>2621.24057with 430.400}`. Target-own probes: `parsed=false` (the `-0090` deep-force injects `:`-bearing array-range forms the parser rejects — "over-constrained, wrong level," as `-0091` noted).
+2. **WHERE the bytes go.** `parseability_probe --parse-dump-ast-pretty systemverilog <probe> --profile sv_2017`: the committed AST shows `slice_size = 2621.24057` and `stream_concatenation = [ stream_expression(expr = "with" as hierarchical identifier, with_clause = []), stream_expression(expr = 430.400, with_clause = []) ]`. So the host `streaming_concatenation := lbrace stream_operator ( slice_size )? stream_concatenation rbrace`'s OFF-reach-path `( slice_size )?` sibling steals the stream_expression's leading expression; `with` then occupies expression position and parses as a bare identifier; `kw_with` never fires.
+3. **Spacing hypothesis REFUTED.** A space before `with` (`{>>2621.24057 with 430.400}`) commits to the identical structure (`with_clause: []`) — not a word-fusion bug.
+4. **The witnessing shape.** `{>> e1 e2 with e3}` (two expressions: `e1`→slice_size, `e2`→stream_expression's expression, then `with`, then `e3`→array_range_expression) — `--trace-rules array_range_expression` shows **110** entries with rule-stack `…streaming_concatenation→stream_concatenation→stream_expression→array_range_expression`, vs **0** for the single-expression form. The non-empty `with_clause` holds `[[[], "with"], { … }]` (the `kw_with` + the folded array-range).
+
+### Adjudication (attribution rule — grammar FIRST)
+LRM `grammars/systemverilog_2017_lrm_extracted.ebnf:1041/1044`:
+- `stream_concatenation ::= { stream_expression { , stream_expression } }` — literal `{ }` braces; the shipped `grammars/systemverilog.ebnf:4778` is `( stream_expression ( comma stream_expression )* )*` — **braces dropped, spurious outer `*` added**.
+- `stream_expression ::= expression [ with [ array_range_expression ] ]` — literal `[ ]`; the shipped `:4781` is `expression ( kw_with ( array_range_expression )? )?` — **brackets dropped**.
+
+This is the documented LRM-extraction dropped-delimiter class (book: *Grammar Well-Formedness*). The dropped inner braces are exactly what lets `slice_size` collide with the stream_expression's leading expression. It ALSO causes a real PARSE GAP: `{>>{aa with bb}}` and the full LRM form `{>>4{aa with [bb]}}` are both **rejected** by the current grammar (verified). A generator-side force-`slice_size` workaround is rejected per the fix hierarchy (`feedback_no_workarounds_fix_hierarchy`, `feedback_prefer_grammar_leave_engine_alone`).
+
+### Outcome
+`array_range_expression` RE-ROUTED to new leaf `H.12.5.5.3.3.5` (C-i: restore the dropped `{ }` on `stream_concatenation` + `[ ]` on `stream_expression`). That is a language-changing grammar fix requiring its own full proof (regen SV parser → cert seeds 0/7/42 closing array_range + GLOBAL no-regress → external corpus 14/14 → `stimuli_cross_family_platform_gate` → `--lint-grammar`; then SV release bump + ledger row + contract/parser-book sync + schema check). Cert stays `UNKNOWN=89` this slice (no code changed).
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.1 — C-ii mandatory-inner-structure forcing: implementation (PGEN-GRAMMAR-WELLFORMED-0093)
 
 ### The slice
