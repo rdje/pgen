@@ -459,6 +459,33 @@ still 14/14, and no release or schema bump — neither rule ever appeared in an 
 wire shape is unchanged and the declared `source_text_item` union simply narrows to the seven kinds that
 can actually occur.
 
+The next SystemVerilog step was the **rule-level twin** of the reach-honesty `@sample` stand-down that
+delivered `567 → 123`. After that branch-level fix descended into the module/program *bodies*, a cluster
+of expression-context rules — `cast`, `concatenation`, `conditional_expression`, `cond_pattern`,
+`assignment_pattern_entry`, the `inside_expression` family, and the intermediate rules beneath them —
+*still* would not witness. The reach pass routes a deep expression target through the module's **ANSI
+port list** (`module_ansi_header → list_of_port_declarations → ansi_port_declaration`, whose named-port
+form `.p(expression)` is the shallowest place an `expression` is reachable), and the generated witness was
+always the fixed shell `module m(input logic a);endmodule`. That string is the tell: it is exactly the
+*rule-level* `@sample` literal on `module_ansi_header`. The earlier fix taught a **branch-level** `@sample`
+override (the one attached to a specific ordered-choice arm) to stand down for the arm a reach plan is
+forcing — but `module_ansi_header`'s hint is attached to the **whole rule**, and a rule-level override
+fires at rule *entry*, before any of the body (and its forced descent into the port list) is generated. So
+the plan steered correctly all the way to `module_ansi_header` and was then short-circuited one level
+above the port. The fix is the rule-level analogue: a rule-level `@sample`/`@probe_sample` override now
+stands down whenever the active reach plan forces *any* decision **inside that rule's body** (an
+ordered-choice branch or a quantifier the path crosses) — i.e. when the plan must descend *through* the
+rule to reach its target. Off-reach generation, and any rule the plan does not steer into, keep the
+literal exactly as before (byte-identical), and grammars with no such hint — the entire fully-certified
+roster — are untouched. The criterion is keyed purely on the plan's own forced-decision set, never a rule
+name, so it is parser-agnostic. With it, the whole M1a expression cluster descends through a real port and
+witnesses: SystemVerilog `UNKNOWN` `121 → 93` in one step (witness `1170 → 1198`), deterministic across
+seeds 0/7/42 with zero sample-parse failures, every other grammar byte-identical. The residual is the
+honest remainder — the adjudicated alternate-entry/profile `no_path` rules, a second expression cluster
+that reaches its context but routes through a *sibling* rule, the constraint/sequence over-generation and
+store-gated identifier classes, and the property/sequence temporal operators — each openly reported and
+still being driven toward zero.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

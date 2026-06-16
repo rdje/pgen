@@ -1234,6 +1234,30 @@ impl ActiveReachPlan {
             .get(&(rule_name.to_string(), node_path.to_string()))
             .copied()
     }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.5.2.2: does the active reach plan need to descend
+    /// THROUGH this rule's body? True when the plan forces at least one OR-branch
+    /// directive or quantifier site keyed on `rule_name` — i.e. the BFS reach path
+    /// crosses this rule and steers a sub-decision inside it. A rule-level
+    /// `@sample`/`@probe_sample` literal override on such a rule must STAND DOWN —
+    /// the rule-level analogue of the `forced_branch_for`-keyed H.12.3 branch-level
+    /// stand-down — because emitting the rule's canonical literal short-circuits the
+    /// body BEFORE the forced descent runs, so the deeper target is never generated.
+    /// The dominant SV M1a reach gap (PGEN-GRAMMAR-WELLFORMED-0087): the reach path
+    /// for every expression target routes through `module_ansi_header`, whose
+    /// rule-level `@sample:"module m(input logic a);"` short-circuited the body where
+    /// `list_of_port_declarations -> ansi_port_declaration -> expression -> <target>`
+    /// lives — so the target fell back to that `module m(input logic a);endmodule`
+    /// shell. Keyed purely on the plan's own forced-directive/quantifier keys, never a
+    /// rule name, so it is byte-identical off-reach and for any rule the plan does not
+    /// steer into.
+    fn needs_rule_body_descent(&self, rule_name: &str) -> bool {
+        self.directives.keys().any(|(r, _)| r == rule_name)
+            || self
+                .forced_quantifier_min
+                .keys()
+                .any(|(r, _)| r == rule_name)
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -6113,9 +6137,31 @@ impl<'a> StimuliGenerator<'a> {
         let is_atomic = self.rule_is_lexically_atomic(rule_name);
 
         if Self::node_supports_rule_literal_override(rule_node) {
-            if let Some(sample_hint) = self
-                .literalish_hint_for_rule(rule_name)
-                .or_else(|| self.probe_literalish_hint_for_rule(rule_name))
+            // GRAMMAR-WELLFORMED.H.12.5.5.2.2: when the active reach plan must descend
+            // THROUGH this rule's body (it forces an OR-branch or quantifier inside it to
+            // witness a deeper target), the rule-level `@sample`/`@probe_sample` literal
+            // override must stand down — otherwise it emits the rule's canonical sample and
+            // the forced body is never generated. This is the rule-level analogue of the
+            // H.12.3 branch-level stand-down (`reach_forces_this_branch` in `generate_or`):
+            // the SV M1a reach gap was `module_ansi_header`'s rule-level
+            // `@sample:"module m(input logic a);"` short-circuiting the body where
+            // `list_of_port_declarations -> ansi_port_declaration -> expression -> <target>`
+            // lives, so every M1a expression target fell back to that header shell. Suppress
+            // ONLY when the plan steers inside THIS rule, so off-reach generation (no plan)
+            // and a rule the plan does not descend into keep the literal hint exactly as
+            // before — byte-identical. The reach pass runs only for not-yet-fully-certified
+            // grammars (inert for the certified roster). GENERAL/parser-agnostic: keyed on
+            // the plan's forced keys, never a rule name.
+            let reach_needs_body = self
+                .reach_plan
+                .as_ref()
+                .is_some_and(|plan| plan.needs_rule_body_descent(rule_name));
+            if let Some(sample_hint) = (!reach_needs_body)
+                .then(|| {
+                    self.literalish_hint_for_rule(rule_name)
+                        .or_else(|| self.probe_literalish_hint_for_rule(rule_name))
+                })
+                .flatten()
                 .filter(|hint| !self.hint_collides_with_active_closer(hint))
             {
                 self.trace(
@@ -18053,6 +18099,87 @@ mod tests {
         assert!(
             reached_out[0].contains("DEEP") && !reached_out[0].contains("SHELL"),
             "on the forced reach branch the @sample must stand down and the body must descend: {:?}",
+            reached_out
+        );
+    }
+
+    #[test]
+    fn reach_plan_through_rule_body_suppresses_rule_sample_override() {
+        // GRAMMAR-WELLFORMED.H.12.5.5.2.2: a RULE-level `@sample` literal override on a
+        // rule the reach plan must descend THROUGH must stand down so the plan reaches a
+        // deeper target inside the rule's body. This is the rule-level analogue of the
+        // H.12.3 branch-level stand-down, and the dominant SV M1a reach gap in miniature:
+        // `module_ansi_header`'s rule-level `@sample:"module m(input logic a);"`
+        // short-circuited the body where `list_of_port_declarations ->
+        // ansi_port_declaration -> expression -> <target>` lives, so every M1a expression
+        // target fell back to that header shell. Off-reach (no plan, or a rule the plan
+        // never steers into) the override is byte-identical — asserted by the control.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "wrapper")],
+            },
+        );
+        // `wrapper` is a Sequence carrying a rule-level @sample shell whose body gates the
+        // deeper `deep_token` behind an optional quantifier — exactly the
+        // `module_ansi_header := ... ( list_of_port_declarations )? ...` shape: the reach
+        // path to `deep_token` crosses wrapper's `root/s0` quantifier, so the plan forces
+        // it and `needs_rule_body_descent("wrapper")` is true.
+        grammar_tree.insert(
+            "wrapper".to_string(),
+            ASTNode::Sequence {
+                elements: vec![ASTNode::Quantified {
+                    element: Box::new(token("rule_reference", "deep_token")),
+                    quantifier: "?".to_string(),
+                }],
+            },
+        );
+        grammar_tree.insert("deep_token".to_string(), token("quoted_string", "DEEP"));
+        let rule_order = vec![
+            "start".to_string(),
+            "wrapper".to_string(),
+            "deep_token".to_string(),
+        ];
+
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "wrapper".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"SHELL\"".to_string(),
+                    value: UnifiedSemanticValue::String("SHELL".to_string()),
+                },
+            }],
+        );
+
+        // CONTROL — off-reach (no plan): the rule-level @sample short-circuit is honored,
+        // exactly as before the fix (byte-identical for all non-reach generation).
+        let mut control = annotated_generator(&grammar_tree, &rule_order, &annotations, 7);
+        let control_out = control
+            .generate_many(1, Some("start"))
+            .expect("control generation should succeed");
+        assert!(
+            control_out[0].contains("SHELL") && !control_out[0].contains("DEEP"),
+            "off-reach: the rule-level @sample must still short-circuit the body: {:?}",
+            control_out
+        );
+
+        // FIX — a reach plan to `deep_token` crosses wrapper's body (forcing its `root/s0`
+        // quantifier), so the rule-level @sample stands down and generation descends.
+        let mut reached = annotated_generator(&grammar_tree, &rule_order, &annotations, 7);
+        assert!(
+            reached.set_reach_plan_for_rule("start", "deep_token", 16),
+            "a reach plan to `deep_token` must install (the path crosses wrapper's body)"
+        );
+        let reached_out = reached
+            .generate_many(1, Some("start"))
+            .expect("reach generation should succeed");
+        assert!(
+            reached_out[0].contains("DEEP") && !reached_out[0].contains("SHELL"),
+            "the reach plan descends through wrapper's body: the rule-level @sample must \
+             stand down and the deep token must appear: {:?}",
             reached_out
         );
     }
