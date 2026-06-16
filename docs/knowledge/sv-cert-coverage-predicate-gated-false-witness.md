@@ -58,6 +58,22 @@ the rule's distinguishing structure (here, a real `.method()`), which is why the
 *composed with* mandatory child-structure forcing — and why the underlying coverage-record soundness
 gap (a non-committing, predicate-passing rule must never be witnessed) deserves its own fix.
 
+**Update (`PGEN-GRAMMAR-WELLFORMED-0103`, `H.12.5.5.3.3.4.2.1.2.1` WHY+WHERE).** The soundness gap is
+reproducible WITHOUT the prelude — a real declaration emits the same fact:
+`int \foo ; (*\foo =+\foo .\foo .\foo *);` false-witnesses `context_member_method_call` through
+`parse_and_cover_systemverilog` (∈ `exercised_rule_names`) while its AST shows 0
+`context_member_method` nodes. The leak is PINNED: the rule's body memoizes a structurally-degenerate
+SUCCESS, the post-predicate passes, the committed parse routes the bytes through a sibling (rule absent
+from the AST), and the rule's coverage push — **removed only by `try_parse` truncation, which the
+discard never passes through** — is frozen into the `coverage_delta` of an ancestor memo entry
+(`attribute_instance`) that is memo-hit on the committed path and replayed. The `H.10.2.2`
+replay-transactionality fix cannot help: the captured delta was already wrong at capture (result node
+omits the rule, `coverage_delta` includes it). Root: a success-then-reject (post-predicate-reject at
+`with_semantic_runtime_rule_transaction` `:1835`/`:1874`, or a committed-then-abandoned ordered-choice
+branch) leaves the coverage push because that reject path rolls back facts + rule-context but NOT
+`coverage_stack`. Fix is its own slice. See
+[GRAMMAR-WELLFORMED-H1255334212-1-cert-coverage-witness-soundness-whywhere.md](../tasks/GRAMMAR-WELLFORMED-H1255334212-1-cert-coverage-witness-soundness-whywhere.md).
+
 Related: [[cert-coverage-measures-structural-not-validator]], [[memo-hit-transactional-replay]],
 [[grammar-linter-trustworthiness]], [[sv-store-fact-scope-and-canonical-name-coupling]],
 [[prove-rule-dead-or-reachable]].

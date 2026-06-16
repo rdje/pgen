@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2.1 — cert-coverage witness-SOUNDNESS gap WHY+WHERE: the leak PINNED tools-first (PGEN-GRAMMAR-WELLFORMED-0103, landed PURE-DOCS)
+
+### The slice
+Tools-first WHY+WHERE for the foundational cert-coverage soundness gap the `-0102` refutation exposed: **a non-committing, predicate-passing rule can be credited as `witnessed`.** Reproduced the gap on a PLAIN SV input (no reverted prelude) and pinned the exact leak leg. PURE-DOCS — no code/grammar/generated/release/schema/ledger change; clippy not invoked. Baseline reproduced byte-identical (`total=1292 proof=1 witness=1203 UNKNOWN=88 spf=0`, seed 0).
+
+### Reproduction (doctrine-clean) — false witness without the prelude
+A real `int \foo ;` declaration emits the `variable_binding` fact, so `context_member_method_call`'s `@predicate has_fact($head)` post-gate passes naturally. Two crafted inputs through the witness oracle `parse_and_cover_systemverilog` (a throwaway SOURCE test in `parser_registry.rs`, since reverted — it belongs with the FIX slice as the regression lock) + the AST genuineness oracle:
+- bare-ref `int \foo ; (*\foo =+\foo .\foo .\foo *);` → parses; `context_member_method_call` ∈ `exercised_rule_names` (FALSE witness); **0** `context_member_method` AST nodes.
+- method-call `int \foo ; (*\foo =+\foo .\foo [0].\foo ()*);` → parses; in `exercised_rule_names` (genuine); **1** AST node.
+
+### Mechanism (`--trace-rules context_member_method_call`, pre-built binary)
+At the `\foo .\foo .\foo` position: (1) the `( … &dot )+ dot callable_method_call_body` tail fails (`dot` cached-failure → speculative backtrack); (2) the body nonetheless memoizes a **structurally-degenerate success** (`💾 Memoized successful result for rule 547`); (3) the `has_fact(variable_binding,\foo)→true` post-predicate PASSES; (4) the parse moves on to **sibling** alternatives (`call_with_postfix_chain → direct_callable_method_call → …`), so the committed parse omits the rule. The trace `has_fact` caller chain is the reach path through `attribute_instance → attr_spec → constant_expression → … → call_primary → context_member_method_call`.
+
+This is the **memoization × transactional-coverage composition class** (`H.10.2.2` / `SV-EXH-PROOF.3.3.4.b.6.2.36.4`) in a NEW trigger: `context_member_method_call`'s coverage push is frozen into the `coverage_delta` of an ancestor (`attribute_instance`) memo entry while it is still on the live stack; that ancestor is memo-hit on the committed path and replays the stale id. The `H.10.2.2` replay-transactionality fix cannot help — the captured delta was already wrong AT CAPTURE (the ancestor's result node omits the rule, but its `coverage_delta` includes it).
+
+### WHERE (engine source, read not guessed — `rust/src/ast_pipeline/ast_based_generator.rs`)
+Three coverage legs (emitted verbatim into every generated parser): entry push `:2701-2702`; `try_parse` truncate `:6128`/`:6209` (the ONLY removal leg); `memoized_call` capture `:6374`/`:6383-6384` + replay `:6354-6356`. `with_semantic_runtime_rule_transaction` (`:1538-1885`) manages only `semantic_runtime_state`: its post-predicate-reject path (`:1835` `Err(Backtrack)`) and error restore (`:1874-1878` `rollback_to_named`, `:1883` `pop_rule_context`) roll back facts + rule-context but NEVER touch `coverage_stack`. **Root:** a coverage push is removed only by `try_parse`; a success-then-reject (post-predicate-reject, or a committed-then-abandoned ordered-choice branch) that does not pass a truncating `try_parse` before an enclosing rule memoizes leaks the push into that rule's frozen `coverage_delta`.
+
+### FIX direction (next slice — `.4.2.1.2.1` FIX; NOT done here)
+(a) truncate `coverage_stack` to the rule's entry length on the `with_semantic_runtime_rule_transaction` reject/error path symmetric with `try_parse`; and/or (b) at memo capture (`:6383`) exclude coverage ids not in the memo's output node. The bare-ref discard happens in an ANCESTOR while the rule's OWN post-predicate passes, so verify (a) actually closes it; (b) is the deeper structural fix. Re-derive the exact discard via CODEGEN instrumentation + `make focus_systemverilog`, never editing `generated/*.rs`; add the bare-ref source-test regression lock (red→green); measure GLOBAL cert + spf seeds 0/7/42 for every wired grammar, fully-certified roster byte-identical.
+
+### Method correction (director-flagged)
+During the probe I hand-edited `generated/systemverilog_parser.rs` (two env-gated `eprintln!` lines at the memo capture/replay sites, reverted immediately) to confirm which ancestor memo replays the leaked id. That was the WRONG vehicle — generated artifacts are derived (source of truth = `ast_based_generator.rs` codegen + `grammars/*.ebnf`). The pinning conclusion is reachable doctrine-cleanly via the trace caller-chain + source reading, so the permanent record does not depend on that probe. New standing memory `feedback_never_edit_generated_artifacts`. Detail: `docs/tasks/GRAMMAR-WELLFORMED-H1255334212-1-cert-coverage-witness-soundness-whywhere.md`.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2 — context_member `has_fact` prelude FIX ATTEMPT → REFUTED (PGEN-GRAMMAR-WELLFORMED-0102, landed PURE-DOCS)
 
 ### The slice
