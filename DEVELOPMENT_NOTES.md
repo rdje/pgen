@@ -1,4 +1,37 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4 — C-ii residual parent-commit ADJUDICATION; both carriers grammar-class (generator forcing REFUTED); a real latent SV parse bug surfaced (PGEN-GRAMMAR-WELLFORMED-0097)
+
+### The slice
+Adjudicated the frontier leaf `H.12.5.5.3.3.4`, the parent-commit C-ii residual that `-0093` left after the mandatory-inner-structure forcing closed `sequence_method_call` (a different carrier) instead. The leaf asked, per carrier: **(a)** is it an ordered-choice shadowing / well-formedness defect (fix the grammar), or **(b)** a parent-commit GENERATOR-forcing gap (force the parent `Or` to commit to R's branch)? Tools-first answer: **both `direct_index_method_call` and `context_member_method_call` are grammar-class — branch (b) is refuted for both — but they need different grammar fixes.** PURE-DOCS (no code change). Detail note: `docs/tasks/GRAMMAR-WELLFORMED-H125534-cii-residual-parent-commit-adjudication.md`.
+
+### Tools and baseline
+DEBUG `ast_pipeline` cert (`PGEN_CERT_COVERAGE_DUMP_ALL=1` / `PGEN_CERT_COVERAGE_DEBUG_PROBES=1`, count 40 seed 0): `total=1292 proof=1 witness=1203 UNKNOWN=88 spf=0` — byte-identical to the post-`-0096` layer-A pointer, so the metric is signal. Both carriers confirmed in the 88-rule UNKNOWN set. `--lint-grammar`: `ordered_choice_shadowing=0`, `always_matches_shadowing=6` (all on UNRELATED rules). Routing/boundary matrices via `parseability_probe --parse-dump-ast-pretty` and `--trace-rules` under `PGEN_TRACE_VERBOSITY=high`.
+
+### Why the linter does not (and should not) flag these
+The sound, decidable shadowing checks (exact-duplicate, fixed-terminal-prefix, always-succeeds) find nothing on either carrier. That is correct: the relationship is **FIRST-set subsumption**, which the book documents as deliberately omitted because it is unsound for PEG (an earlier arm may match-then-fail and backtrack). So this is precisely the manual-adjudication remainder the certifying model names — resolved here with tools, not guessing.
+
+### `direct_index_method_call` — effectively DEAD, subsumed by `method_call` (adjudication a)
+`bit_select_expression := direct_index_method_call | method_call | kw_dollar | expression` (`:670`, `priority_first`). `direct_index_method_call` is **branch 1** (tried first ⇒ wins if it ever matches a full bracket content). It never does:
+
+| `x[body]` | accepted | `direct_index_method` in AST | wins via |
+|---|---|---|---|
+| `b.c()` / `this.foo()` / `this.foo` / `super.bar()` / `b.c` / `a.b.c()` | yes | **0** (all) | `method_call` (branch 2) |
+
+Trace mechanism: branch 1 IS attempted first, but its `method_call_body` settles on the **bare** method name (the `method_bare` arm — e.g. `this.foo`), leaving the `()` args; the rule consumes `recv.method`, the parent `bit_select` then fails its `]` (next char is `(`), and PEG falls to branch 2 `method_call`, which consumes the full `recv.method()`. Structural reason: `method_call := method_call_initial ( dot method_call_body )*` with `method_call_initial` including `direct_method_call := method_call_root dot method_call_body` and `split_direct_callable_method_call` — so `method_call`'s language is a strict **superset**, and the default `longest_match` on `direct_index_method_call`'s receiver `Or` makes the greedy `hierarchical_identifier` eat the dotted path so the mandatory `dot method_call_body` tail can't complete distinctively. LRM §11.5.1 `bit_select ::= { [ expression ] }` ⇒ `direct_index_method_call` is a redundant synthesis artifact (branches 2/3/4 cover the LRM). **Fix = remove** (decisive A/B parse-neutral; referenced ONLY at `:670`; closes `88→87`; expected NO release/schema bump) → child `.4.1`.
+
+### `context_member_method_call` — a real latent PARSE GAP (adjudication a′, bug-finding-oracle hit)
+Refuted the store-gate hypothesis (C-iii): the generated parser has NO `@predicate` on this rule (the `:2915` "gated by `has_fact(variable_binding, $head)`" comment is stale dead text), and it is rejected even with a declared head (`class C; function void f; a.b[0].c(); ...`, `module m; C a; ...`). The decisive finding is that the rule's OWN designed form is rejected parser-wide. Sharp gap boundary:
+
+| body | accepted |
+|---|---|
+| `a.c()` / `a[0].c()` / `a[0].c` / `a.b[0].c` / `a.b.c()` | yes |
+| **`a.b[0].c()`** | **NO** (rejected in assign-RHS, `initial` stmt, `begin/end`, class-fn, `$display(...)` arg) |
+
+`a.b[0].c()` is `head.member[idx].method()` — valid SV (`bus.packets[0].crc()`, `q[i].randomize()`) and the exact uvm `urme_container.elements[i].clone()` shape `context_member_method_call` was authored for (its `:2895` comment). The choke trace shows `context_member_method_call` IS entered (matches `a.b[0]`, attempts `.c()` via `callable_method_call_body`) but backtracks, and no `call_primary` sibling recovers → full-input rejection (furthest_position at end). The cert `UNKNOWN` is the SYMPTOM of the rule being broken. The external corpus never caught it because `uvm-core-2020.3.1/src/uvm_pkg.sv` has **0** instances of the `X[i].method()` shape (`grep -cE '\[[^]]*\]\.[A-Za-z_][A-Za-z_0-9]*\('` → 0), so 14/14 holds. **Fix = root-cause the `a.b[0].c()` rejection + repair the grammar** so the form parses (witnesses the rule); a real released-parser bug ⇒ highest priority + full grammar-edit lockstep (regen, release bump, ledger row, contract/parser-book/book sync) → child `.4.2`.
+
+### Outcome
+Leaf `H.12.5.5.3.3.4` → `done`. Spawned fix children: `H.12.5.5.3.3.4.2` (context_member parse-gap repair, **highest priority** — a real parser bug) and `H.12.5.5.3.3.4.1` (direct_index dead-branch removal). Branch (b) — generator parent-commit forcing — is the wrong fix for both. PURE-DOCS ⇒ no code/grammar/generated/release/schema/ledger/book change; SV stays the only non-fully-certified shipped grammar (`UNKNOWN=88`). Disciplines: [[feedback_be_alert_root_cause_fishy_immediately]], [[feedback_why_and_where_before_solution]], [[feedback_tools_first_no_guessing]], [[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_fix_parser_bugs_asap_highest_priority]].
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.5 — stream LRM delimiter-drop GRAMMAR FIX; SV cert 89→88; the delimiter restoration exposed (and the probe matrix caught) a PEG greedy-optional regression (PGEN-GRAMMAR-WELLFORMED-0096)
 
 ### The slice
