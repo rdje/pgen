@@ -1,4 +1,27 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2 — context_member RE-ADJUDICATION; the `-0097` parser-bug premise REFUTED; cert UNKNOWN is a store-gated witness-reach gap, not a parser bug (PGEN-GRAMMAR-WELLFORMED-0098)
+
+### The slice
+Re-adjudicated leaf `H.12.5.5.3.3.4.2`, which `-0097` opened as *"a real latent released-parser bug — repair the grammar so `a.b[0].c()` parses (highest priority)."* Tools-first re-derivation **refutes that premise**: `context_member_method_call` is a store-gated rule that parses and witnesses fine with a declared head; the cert `UNKNOWN` is a generator witness-reach gap. PURE-DOCS, no code change. This is the "be alert / root-cause fishy foundational results yourself" discipline applied to the *immediately-preceding* commit's adjudication ([[feedback_be_alert_root_cause_fishy_immediately]]).
+
+### Why I re-checked at all
+Before implementing the `.4.2` "grammar repair," I verified the adjudication's two pivotal, tool-checkable claims (no code change without tool-backed facts, [[feedback_no_codebase_change_without_tool_backed_facts]]). The first grep I ran reproduced `-0097`'s "no predicate" result — and that itself was the tell: a rule whose grammar carries an explicit `@predicate` directly above it showing *no* directive in the generated parser is fishy. Reading the generated parser directly (not a one-line grep) showed the predicate present.
+
+### Tools and findings
+- **Baseline:** `PGEN_CERT_COVERAGE_DUMP_ALL=1 ast_pipeline … --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0` → `total=1292 proof=1 witness=1203 UNKNOWN=88 spf=0`, byte-identical to the layer-A pointer (deterministic ⇒ signal). Both carriers in the 88-rule UNKNOWN dump.
+- **Predicate live:** `generated/systemverilog_parser.rs:3041-3055` — `directives_by_rule.insert("context_member_method_call", [Predicate(has_fact, [variable_binding, head], phase: Post)])`. The `-0097` "no `@predicate`" grep failed because rustfmt wraps `.insert(` and the rule-name string onto separate lines, so a one-line `grep 'context_member_method_call.*\(predicate\|insert\)'` returns nothing. The grammar directive (`systemverilog.ebnf:2892`) binds to the rule (`:2906`) across the intervening comment per `ebnf.ebnf:70` ([[reference_annotation_binds_following_rule]]).
+- **Parses with a declared head:** `parseability_probe --parse systemverilog <file> --profile sv_2017` with `module m; int a; int x; initial x = a.b[0].c(); endmodule` → exit 0 (PARSE OK); `--parse-dump-ast-pretty` shows a `context_member_method` node ⇒ the rule matched and committed on the accepted path (so it WOULD witness if generated). `logic [3:0] a;` / `bit a;` heads likewise. The undeclared `module m; int x; initial x = a.b[0].c();` rejects at furthest=43 — the `post`-predicate firewall working as designed.
+- **`-0097`'s failing tests never bound the head:** `class C; function void f; int x; x = a.b[0].c(); endfunction endclass` rejects (a undeclared, predicate fails); `module m; C a; int x; initial x = a.b[0].c(); endmodule` rejects at furthest=13 — the `C a;` declaration itself, because `C` is an undeclared type.
+
+### Root cause and re-route
+`context_member_method_call` is `UNKNOWN` because the cert witness passes can't *construct* a sample that satisfies `has_fact(variable_binding, $head)` — it needs a name-coupled binding-producer prelude (a `variable_decl_assignment` declaring a variable whose name equals the rule's `$head` render). This is the `has_fact` analogue of the regex `\NN` semantic-prelude reach (book: Grammar Well-Formedness, "Reaching store-gated rules"). The existing C2.2 pass (`stimuli_generator.rs:2769 compute_reach_prelude`) is keyed on `gen_count_kinds` (`fact_count_at_least`) only and emits N anonymous copies — no `has_fact` support, no name-coupling. Generator constructor gap → fix child `.4.2.1`. **No grammar fix, no release, no ledger row.**
+
+### Secondary finding (separate ticket `.4.2.2`)
+With a declared class handle (`C a;`, C a declared class) the indexed 3-level chain `a.b[0].c()` rejects (furthest at the `[`), while integral-typed heads witness it; the non-indexed `a.b.c()` on a class head parses via `ident_postfix_chain`/`split_hierarchical` (binding-free). So `context_member_method_call` does not fire for class-handle heads + indexed members — the realistic uvm shape. Whether class-typed object declarations emit `variable_binding` (and whether the form should parse) is a tools-first WHY+WHERE owned by `.4.2.2`; potential bug-finding-oracle hit, prioritized next per "fix parser bugs ASAP."
+
+### Verification
+PURE-DOCS: `scripts/check_memory_architecture.sh` PASS; MEMORY.md within cap; no code/grammar/generated change; clippy not invoked; SV cert `UNKNOWN=88` unchanged; live-status tracker unchanged. Scratch artifacts under `rust/target/generated_logs/h1255334_2/` (untracked).
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4 — C-ii residual parent-commit ADJUDICATION; both carriers grammar-class (generator forcing REFUTED); a real latent SV parse bug surfaced (PGEN-GRAMMAR-WELLFORMED-0097)
 
 ### The slice

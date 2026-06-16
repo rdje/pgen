@@ -99,6 +99,17 @@ Parse-neutral ⇒ expected NO release/schema bump.
 
 ## Carrier 2 — `context_member_method_call`: a real latent PARSE GAP (bug-finding-oracle hit)
 
+> ⛔ **SUPERSEDED by `PGEN-GRAMMAR-WELLFORMED-0098` (`.4.2` RE-ADJUDICATION,
+> [[GRAMMAR-WELLFORMED-H1255334-42-context-member-readjudication]]).** This Carrier-2 verdict (a′)
+> is **WRONG on both checkable claims**: (1) the `@predicate has_fact(variable_binding, $head)` IS
+> live in the generated parser (`generated/systemverilog_parser.rs:3041-3055` — the no-predicate
+> grep hit a one-line-grep trap); and (2) `a.b[0].c()` PARSES and witnesses `context_member_method_call`
+> with a *declared* head (`int a; … a.b[0].c()`) — the `-0097` failing tests never bound the head
+> (`C` was an undeclared type). There is **no released-parser bug**; the cert `UNKNOWN` is a
+> store-gated **witness-reach gap** (the `has_fact` analogue of the regex `\NN` semantic-prelude
+> class), re-routed to generator child `.4.2.1`. Read the re-adjudication file as authoritative for
+> Carrier 2. (Carrier 1 below stands but its premise must be independently re-verified given this error.)
+
 Grammar (`:2906`/`:2959`, `call_primary` branch_policy=`priority_first`, branch 1):
 
 ```
