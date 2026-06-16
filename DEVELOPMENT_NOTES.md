@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.2 — M1b fix SETUP: edit-surface map + implementation design (PGEN-GRAMMAR-WELLFORMED-0089)
+
+### The slice
+Session-start ramp-up + the tool-backed setup for the M1b fix (`H.12.5.5.3.2`): re-reproduced the baseline and mapped the exact generator edit surface so the delicate certification-machinery change lands surgically. PURE-DOCS; no code change. The map is persisted in `docs/tasks/GRAMMAR-WELLFORMED-H125532-m1b-fix-design.md`.
+
+### Baseline (deterministic ⇒ signal)
+`total=1292 proof=1 witness=1198 UNKNOWN=93 spf=0` (count 40 seed 0, sv_2017, systemverilog_file) — byte-identical to post-`-0087`. Prebuilt DEBUG `ast_pipeline` has `generated_parsers,ebnf_dual_run`.
+
+### Edit surface (file `rust/src/ast_pipeline/stimuli_generator.rs`; lines as-of `-0089`, confirm at impl)
+- `ActiveReachPlan` (`~:1068`): `directives:(rule,node_path)→branch` (read by `forced_branch_for` `~:1232`) + `forced_quantifier_min:(rule,q-path)→min`. `needs_rule_body_descent` (`~:1254`) — forcing `(R,"root")` trips it ⇒ R's rule-level `@sample` stands down (the `-0087` behavior; DESIRED for M1b, we want R's body, not its literal).
+- `set_reach_plan_for_rule` (`~:2710`): builds plan from `reach_hops(entry,R)`, forces along-path OR-branches (`directives_along_path` `~:5535`) + quantifiers (`quantifier_sites_along_path` `~:5563`) — but **nothing inside R's body** (the M1b gap).
+- Read-sides already key on `(rule,node_path)`: `generate_or` (`~:6441`, forced-first order `~:6513`, bypass `~:6452`), `generate_quantified` (`~:7753`). R's body root `Or` is node_path `"root"`; nested sites `"root/…"`. ⇒ populating the plan with R's own keys suffices; **no read-side change**.
+- `generate_plannable_rule_witnesses` (`~:2947`, per-rule loop `~:3015`): installs plan, ≤`max_attempts_per_rule` attempts in `construct_mode`, `witness_check`→`PlannableProbeVerdict` (`Witnessed`/`ParsedNotWitnessed`/`NotParsed`), `clear_reach_plan`, two-tier budget escalation. The M1b escalation belongs here on `ParsedNotWitnessed`.
+
+### Implementation plan
+1. New transformed-tree walker → R's `root_or_branch_count` + `inner_quantifier_paths` (read the node enum + `generate_node` dispatch FIRST — not yet read).
+2. On `ParsedNotWitnessed` for R: for non-degenerate root-`Or` branches `j` (try `o1..` first), install base plan + `directives[(R,"root")]=j` + `forced_quantifier_min[(R,p)]=1` ∀ inner q-path `p`; generate; `witness_check`; stop on `Witnessed`; bounded by branch count.
+3. Off-reach byte-identical / fully-certified roster inert (plan keyed purely on `(R,path)`; populated only in the plannable pass for UNKNOWN targets).
+
+### Verification protocol (signoff)
+Rebuild DEBUG `ast_pipeline` (`--features generated_parsers,ebnf_dual_run`, NO parser regen) → cert seed 0 (M1b ~8 leave UNKNOWN, witness up, spf=0, **1198 must not regress** — the `888→1717` cautionary class) → seeds 7/42 determinism → `stimuli_cross_family_platform_gate` (reach pass touches the closed-loop driver) → `clippy_on_rust_change`. Change ONE thing.
+
+### Open implementation questions
+Node model + `generate_node` dispatch (walker foundation) read first; "non-degenerate" branch selection (all non-`o0` vs all-with-quantifier-forcing); whether forcing ALL inner quantifiers over-constrains (start root-`Or` only, add inner forcing for B-ii carriers `context_member_method_call`/`goto_repetition` if still unwitnessed); attempt-budget sizing.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.1 — M1b WHY+WHERE: the reach forces the path to the target but NOT the target's own distinguishing structure (PGEN-GRAMMAR-WELLFORMED-0088)
 
 ### The slice
