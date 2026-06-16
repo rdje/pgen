@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.1 — M1b WHY+WHERE: the reach forces the path to the target but NOT the target's own distinguishing structure (PGEN-GRAMMAR-WELLFORMED-0088)
+
+### The slice
+Tools-first WHY+WHERE on the SV M1b residual, opened after `-0087` (M1a fix) left M1b untouched. Pure-docs investigation; splits `H.12.5.5.3` into `.3.1` (this) + `.3.2` (fix). No code change.
+
+### Method + baseline
+`PGEN_REACH_PATH_DUMP=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 PGEN_CERT_COVERAGE_DUMP_ALL=1 ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0`. Post-`-0087` baseline reproduced: `total=1292 proof=1 witness=1198 UNKNOWN=93 spf=0`. Cross-checked each carrier's `[reach-path]` + `[plannable-probe]` against the TRANSFORMED `grammar_tree` (`--dump-gen-ast`).
+
+### Evidence (representative carriers, the reach descends into the right context but routes through a sibling)
+- `context_member_method_call`: reach `… constant_primary_sv_2017 → constant_function_call → call_primary(root/o0)`; transformed `call_primary` = `Or[10]` with `context_member_method_call` at `o0` (forced); the target is a `Seq` whose `s3 = callable_method_call_body` is the distinguishing call, and `callable_method_call_body` = `Or[2]` (`o0=built_in_method_call`); probe `(*\foo =+\foo .\foo .\foo *)` — a bare member chain, no method call → parser routes to a sibling.
+- `array_range_expression`: reach `… variable_lvalue → streaming_concatenation → stream_concatenation → stream_expression`; transformed `array_range_expression` = `Or[4]` with `o0 = expression` (the plain pass-through) and the distinguishing `[a:b]`/`[a+:b]`/`[a-:b]` range forms at `o1`/`o2`/`o3`; probe `assign{>>…with 8208.5e76}=9.98` — a plain expression in the `with` clause, not a range.
+- `class_scoped_tf_call`: reach `… sequence_expr → sequence_match_item → subroutine_call`; transformed = `Or[2]` (`o0=class_scoped_tf_call_with_args`); probe `sequence\foo ;(…,\foo ::\foo )endsequence` — `\foo::\foo` scoped ref, no call args.
+- `goto_repetition`: reach `… sequence_expr → boolean_abbrev → boolean_abbrev_sv_2017(root/o2)`; transformed = `Seq[2]` = `implies const_or_range_expression` (`->expr`); probe `sequence\foo ;0.20->02.2_49endsequence` — the `->` routed through a sibling repetition/operator.
+- Also `bit_select_expression`, `direct_index_method_call`, `constant_let_expression`, `sequence_method_call` (the last now reaching via the M1a port path after `-0087`, then routing through a sibling of `primary_sv_2017`).
+
+### Mechanism + WHERE
+The reach plan forces the path to the target's PARENT and selects the parent branch referencing the target, but does NOT steer the target rule's OWN internal structure. The target generates MINIMALLY (construct mode: root `Or`→`o0`, `?`/`*`→min), and for M1b the minimal form is sibling-ambiguous, so the PEG ordered choice attributes the bytes to an earlier sibling. Two sub-classes: **B-i** degenerate first alternative (`array_range_expression` `o0=expression`, etc.); **B-ii** distinguishing token behind a minimal-expanded optional (`context_member_method_call`'s call body). WHERE: `directives_along_path` (`stimuli_generator.rs:5511`) + `set_reach_plan_for_rule` (`:2686`) force decisions ALONG the path (entry → the target's reference site) but stop AT the target — the target's own root `Or` + internal quantifiers are not in the plan.
+
+### Fix direction (for `.3.2`)
+Steer the TARGET rule's own distinguishing structure: when a reach target is reached-but-not-witnessed, force its root `Or` toward a non-degenerate (non-pass-through) branch and/or its distinguishing internal quantifiers ≥1, retrying across the target's own alternatives until the parser witnesses it. Parser stays the judge (bounded retries); off-reach byte-identical; lineage `RTL-FE-CLOSURE.5.3` extended to the target's own body. This is a generator change touching the closed-loop driver across ~8 rules, so it gets its own slice with GLOBAL cert + spf + cross-family measurement.
+
+### Status
+PURE-DOCS ⇒ no code/grammar/generated/release/schema/ledger change; clippy not invoked. SystemVerilog stays the only non-fully-certified shipped grammar (`UNKNOWN=93`). Frontier → `H.12.5.5.3.2`.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.2.2 — the M1a FIX: rule-level `@sample` stand-down on a reach-descended rule; SV cert UNKNOWN 121→93 (PGEN-GRAMMAR-WELLFORMED-0087)
 
 ### The slice
