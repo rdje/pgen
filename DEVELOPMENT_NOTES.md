@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.2 — class-handle head WHY+WHERE; a real store-gating parser bug found (`checked_nettype_identifier` over-accepts a class as a nettype) (PGEN-GRAMMAR-WELLFORMED-0099)
+
+### The slice
+Chased the `-0098` secondary finding (a declared class-handle head does not witness the indexed member-method chain) to its root cause: a real released-parser bug in the M2 store-gating family. `C a;` (C a declared class) at module scope is mis-parsed as a `net_declaration` because `checked_nettype_identifier`'s store gate is under-specified. PURE-DOCS WHY+WHERE; fix routed to child `.4.2.2.1`. The cert-coverage gate as bug-finding oracle again ([[feedback_be_alert_root_cause_fishy_immediately]]).
+
+### Tools and findings
+- **AST dump** (`parseability_probe --parse-dump-ast-pretty`): `class C; endclass module m; C a; endmodule` → `a`'s declaration is `net_declaration`; `module m; int a; endmodule` → `data_declaration` / `variable_decl`. The net path runs no `variable_decl_assignment`, so no `variable_binding(a)` fact.
+- **Trace** (`--trace-rules net_declaration_sv_2017,net_type,checked_nettype_identifier,…`): `checked_nettype_identifier` matches `C` (consumes ` C` at 27-29), `net_declaration_sv_2017` branch 2/4 succeeds. So `C` is consumed as a user nettype.
+- **Gate** (`systemverilog.ebnf:3310-3311`): `@predicate { name: has_fact, args: [type_name, $body], phase: post }` on `checked_nettype_identifier := declaration_identifier`. The comment (`:3224`, `:3313-3315`) states the intent — a user net-type identifier must be a KNOWN declared nettype, and a `nettype` declaration emits `type_name` with `declaration_family: nettype`. But the predicate checks only `has_fact(type_name, …)`, not `declaration_family`. A `class C` emits `type_name` `declaration_family: class`, which satisfies `has_fact(type_name, C)` ⇒ a class is accepted as a nettype.
+
+### Why this is a real bug, not by-design
+Per IEEE 1800 a `net_declaration` needs a `net_type` (built-in `wire`/`tri`/… or a user nettype declared via `nettype data_type T;`). A class is not a nettype, so `C a;` (C a class) is a `data_declaration` (a class-handle variable). The store HAS the disambiguating fact (`declaration_family`), and the rule fails to use it — the [[feedback_grammar_rules_must_consult_store]] class (consults the store, predicate too weak). It also means a module-scope class-handle variable is mis-bound as a net, which can mis-steer downstream store-gated rules for that object — a broader correctness concern, not just the member-method chain.
+
+### Fix direction (→ `.4.2.2.1`) and preconditions verified
+Tighten to `fact_attribute_equals(type_name, $body, declaration_family, nettype)` (mirrors `known_unscoped_block_class_type`/`checked_type_identifier`). Verified non-regressing in principle: **P1** `nettype logic NT; module m; NT a; endmodule` parses today and the tightened gate keeps it (NT carries `declaration_family: nettype`); **P2** `class C; endclass class D; C a; … a.b[0].c() …` (class property — `net_declaration` is not a `class_item`, only `data_declaration` matches) PARSES and the AST shows `context_member_method`, i.e. the chain already works once `a` binds as a variable — the exact module-scope outcome the fix reproduces. Language-changing (`C a;`: net→data) ⇒ full grammar-edit lockstep in `.4.2.2.1`.
+
+### Verification
+PURE-DOCS: `scripts/check_memory_architecture.sh` PASS; MEMORY.md within cap; no code/grammar/generated change; clippy not invoked; SV cert `UNKNOWN=88` unchanged; live-status tracker unchanged. Scratch artifacts under `rust/target/generated_logs/h1255334_2/` (untracked).
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2 — context_member RE-ADJUDICATION; the `-0097` parser-bug premise REFUTED; cert UNKNOWN is a store-gated witness-reach gap, not a parser bug (PGEN-GRAMMAR-WELLFORMED-0098)
 
 ### The slice
