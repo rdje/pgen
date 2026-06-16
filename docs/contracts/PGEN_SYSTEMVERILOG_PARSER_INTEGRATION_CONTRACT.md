@@ -783,7 +783,7 @@ Annotation count: **1825** (was 1797, +28). Same accept set.
 ```ebnf
 sv_multi_entry_root              -> 3 kinds (systemverilog_file / library_text / systemverilog_parseable_file)
 parseable_source_item            -> {kind: "semi"}
-bit_select_expression            -> 3 kinds (direct_index_method / method / expression)
+bit_select_expression            -> 3 kinds (method / dollar / expression)
 case_expression / case_item_expression / clocking_event etc. -> typed wrappers
 clocking_event                   -> 2 kinds (sv_2017 / sv_2023)
 clockvar_expression              -> {clockvar, select}
@@ -828,7 +828,6 @@ associative_dimension                -> 2 kinds (data_type / wildcard)
 block_event_expression               -> 3 kinds (or / begin / end)
 built_in_method_call                 -> 2 kinds (array_manipulation / randomize)
 class_item                           -> 2 kinds (sv_2017 / sv_2023)
-direct_index_method_call             -> {receiver, body}
 ```
 
 Annotation count: **1764** (was 1724, +40). Same accept set.

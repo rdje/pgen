@@ -652,9 +652,6 @@ bins_selection := bins_keyword bin_identifier assign select_expression ( kw_iff_
 bins_selection_or_option := attribute_instance* coverage_option -> {kind: "option",    attributes: $1, body: $2}
                           | attribute_instance* bins_selection  -> {kind: "selection", attributes: $1, body: $2}
 
-direct_index_method_call := ( ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier | implicit_class_handle ) dot method_call_body
-                         -> {receiver: $1, body: $3}
-
 @branch_policy: priority_first
 # SV-EXH-PROOF.3.3.4.b.6.2.13 — `q[$]` queue-back operator. SV LRM
 # allows `$` as a bit-select expression meaning "last element of a queue
@@ -667,10 +664,9 @@ direct_index_method_call := ( ( kw_class_qualifier_fa08937d | non_typedef_packag
 # matches the LRM rule `bit_select := { [ expression ] }` which in
 # IEEE 1800 §11.4.13 explicitly includes `$` for queues. Strictly
 # additive — no existing matches change. Parser-AGNOSTIC level 0.
-bit_select_expression := direct_index_method_call -> {kind: "direct_index_method", body: $1}
-                       | method_call               -> {kind: "method",              body: $1}
-                       | kw_dollar                 -> {kind: "dollar"}
-                       | expression                -> {kind: "expression",          body: $1}
+bit_select_expression := method_call -> {kind: "method",     body: $1}
+                       | kw_dollar   -> {kind: "dollar"}
+                       | expression  -> {kind: "expression", body: $1}
 
 bit_select := ( lbrack bit_select_expression rbrack )*
            -> {body: $1}

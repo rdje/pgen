@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.1 — direct_index dead-branch removal (PGEN-GRAMMAR-WELLFORMED-0104, GRAMMAR FIX, parse-neutral)
+
+### The slice
+Removed the effectively-dead, subsumed `direct_index_method_call` rule from `grammars/systemverilog.ebnf` and its first `bit_select_expression` alternative — the attribution rule's "the rule is unwitnessable AND subsumed ⇒ delete the dead branch at the source" path. SV cert `UNKNOWN 88→87`, parse-neutral, no release/schema/ledger bump.
+
+### Re-verified the "dead" premise tools-first (mandatory — the `.4` re-adjudication flagged the `-0097` adjudication unreliable)
+- `bit_select_expression` (the `[ … ]` select content) is a 4-branch `@branch_policy: priority_first` tournament: `direct_index_method_call` (branch 0) | `method_call` | `kw_dollar` | `expression`.
+- `direct_index_method_call := ( ( kw_class_qualifier | non_typedef_package_scope )? hierarchical_identifier | implicit_class_handle ) dot method_call_body` — a single `head.method()` form inside a bit-select.
+- 6 inputs shaped exactly for it (`b[c.d()]`, `b[this.d()]`, `b[pkg::c.d()]`, `b[super.d()]`, `b[c.d.e()]`, `b[c::d.e()]`) all parse but route to the `method` kind — **0** `direct_index_method` nodes (`parseability_probe --parse-dump-ast-pretty`). Likely mechanism: its greedy `hierarchical_identifier` head over-consumes (`c.d`), then needs `.method()` but sees `()`, so it fails and `method_call` wins.
+- Structural subsumption: `method_call := method_call_initial ( dot method_call_body )*` chains ≥ as far as the single `dot method_call_body`.
+- Never-witnessed: in the cert UNKNOWN-88 set (the diverse/plannable/target-own passes never commit it). No live fixture / expected-AST / corpus node anywhere. No orphan cascade (`kw_class_qualifier`/`non_typedef_package_scope`/`implicit_class_handle`/`method_call_body` used 10–36× elsewhere).
+
+### The change
+Deleted the `direct_index_method_call` rule + its `bit_select_expression` branch 1 (`-> {kind: "direct_index_method", body: $1}`). `bit_select_expression` now 3 alts (method / dollar / expression). The `@branch_policy: priority_first` directive (binds to `bit_select_expression`) is untouched.
+
+### Verification (decisive A/B)
+- cert (seeds 0/7/42): `total 1292→1291`, **witness 1203 UNCHANGED**, `UNKNOWN 88→87`, spf=0 — removing a never-winning rule is parse-neutral; only `direct_index_method_call` leaves the set.
+- SV external corpus triage: 14/14, `parse_fail_total=0` — no acceptance regression.
+- SV AST shape-contract test GREEN against the regenerated parser (3/3 samples aligned, drift=0).
+- clippy: source lint clean; generated stage non-strict (pre-existing debt; removing code can't add lints).
+
+### Parse-neutral ⇒ no release ceremony
+Wire-shape identical for every accepted input (witness set unchanged, AST unchanged, corpus unchanged) ⇒ NO release/schema/ledger bump (precedent: 25 shadow branches `.7.4.6.7`, 48 number orphans `H.12.1`, `white_space`). SV release stays 1.0.141, AST-dump schema stays 4.
+
+### Separate this session (NO code committed): the `.4.2.1.2.1` soundness engine fix was reverted
+Root-caused the cert-coverage witness-soundness leak to the multi-branch LongestMatch tournament (`generate_or_logic`) not rolling back the `coverage_stack` for losing-but-successful branches (try_parse only truncates on `Err`); the C3-B fix already rolls back semantic state per branch but never coverage. Built the symmetric fix (snapshot len at tournament start, capture+truncate per successful branch, replay only the winner) and tool-verified it correct: deterministic seeds 0/7/42, two-way SV regression test passes (bare-ref no longer false-witnesses `context_member_method_call`; genuine method-call still does), 5/6 fully-certified grammars byte-identical. But it exposed that the leak INFLATES witness counts (svpp `Done`→`UNKNOWN=1` `kw_none`, SV `88→146`), so committing it regresses the tracker; because it is one shared codegen change, ≥58 genuine witnesses would be required before it could commit without regression = the whole SV cert endgame. Director ruling: a wide-blast soundness fix is the wrong, non-targeted tool for one demonstrated false witness; REVERTED, baseline restored + verified (SV witness=1203 UNKNOWN=88, svpp UNKNOWN=0 fully_certified). Deferred as a documented known limitation; finding in durable memory `project_cert_coverage_tournament_loser_leak`; the positive-lookahead `&X` is a second latent instance of the same root.
+
 ## 2026-06-16 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2.1 — cert-coverage witness-SOUNDNESS gap WHY+WHERE: the leak PINNED tools-first (PGEN-GRAMMAR-WELLFORMED-0103, landed PURE-DOCS)
 
 ### The slice

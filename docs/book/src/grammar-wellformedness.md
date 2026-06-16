@@ -573,6 +573,22 @@ external corpus still `14/14` and a new shape-contract lock pinning that `C a;` 
 attribution rule compounding once more: the same drive that drained the structural residual also turns a
 *non-witness* into a real, shipped-parser fix — even when the coverage number itself does not move.
 
+The next SystemVerilog step is the attribution rule's *third* outcome — neither a generator-reach fix nor
+a grammar parse-gap repair, but the clean removal of a genuinely **dead branch at its source**.
+`bit_select_expression` (the `[ … ]` select content) carried four alternatives, the first being
+`direct_index_method_call` — a `head.method()` form inside a bit-select. But that branch never wins: its
+sibling `method_call` (whose `( dot method_call_body )*` chains at least as far) subsumes every input it
+could match, and a tools-first sweep confirmed it — the rule sat in the never-witnessed `UNKNOWN` set,
+produced **zero** committed AST nodes on six inputs shaped exactly for it (`b[c.d()]`, `b[this.d()]`,
+`b[pkg::c.d()]`, …, all routing to `method`), and no test fixture or corpus parse ever committed it. By the
+attribution rule, a rule that is neither linter-provably-unreachable nor generator-witnessable *and* is
+structurally subsumed is a **dead branch the grammar should not carry**, so the fix is to delete it at the
+source (along with its now-orphan rule). The decisive proof is the A/B: regenerating the parser without it
+left the witness set **byte-identical** (`witness 1203` unchanged, `spf=0`, the SV external corpus still
+parsing `14/14`, deterministic at seeds 0/7/42) while the rule itself left the set — `UNKNOWN 88 → 87`.
+Because no accepted input's parse or AST changes, the wire behaviour is identical and the release/schema do
+not move: a pure, verified subtraction of dead weight.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was
