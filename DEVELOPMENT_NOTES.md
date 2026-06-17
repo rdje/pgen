@@ -1,4 +1,23 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.6.2.1 — M2a constraint reach-honesty WHY+WHERE + fix DESIGN (PGEN-GRAMMAR-WELLFORMED-0113, PURE-DOCS DESIGN)
+
+The `.6.1` adjudication said the M2a constraint cluster is a reach-path-selection into a store-gated context, fixable without the parked store-prelude. This slice reads the reach path to pin the exact loci and finalize the fix design (the leaf's mandated "read before changing").
+
+### WHY (tool-confirmed, grammar + source read)
+- The rejected witness `constraint \foo ::\foo {…}` is **`extern_constraint_declaration_sv_2017`** (`grammars/systemverilog.ebnf:2055`): `( kw_static )? kw_constraint class_scope constraint_identifier constraint_block` — the OUT-OF-CLASS constraint definition. `class_scope` (`:1068` = `class_scope_type scope_resolution`) is store-gated: `class_scope_type` (`:1065`) requires `known_unscoped_class_scope_class_identifier` (`:1025`)/`…interface_class…`/`…type_parameter…`, all a *declared class*. The minimal `\foo` is undeclared ⇒ gate fails ⇒ `constraint_block` never entered ⇒ no body rule (`constraint_block_item`/`constraint_expression`/`solve_before_list`/`uniqueness_constraint`/…) witnesses.
+- The **non-gated in-class** `constraint_declaration_sv_2017` (`:1395` = `( kw_static )? kw_constraint constraint_identifier constraint_block`, no `class_scope`) reaches the SAME `constraint_block → constraint_block_item → constraint_expression` subtree and needs no store fact (`.6.1`-proven: `class C; rand int x; constraint c { x < 5; } endclass` PASSES, with `unique {x,y};`/`solve x before y;`). So a witness EXISTS ⇒ attribution-rule generator-reach deficiency, NOT a parser bug.
+
+### WHERE (engine)
+`reach_hops` (`rust/src/ast_pipeline/stimuli_generator.rs:5606`) is a SHORTEST-path BFS over the rule-reference graph (first-discovery-wins). Routes to the constraint body:
+- out-of-class (gated, SHORTER): `… → description → … → package_or_generate_item_declaration(_sv_2017)` refs `extern_constraint_declaration` (`:3584`/`:3601`) `→ … → constraint_block`.
+- in-class (non-gated, LONGER): `… → class_declaration → class_item(_sv_2017)` refs `class_constraint` (`:976`/`:986`) `→ constraint_declaration → … → constraint_block`.
+The in-class route must descend `class_declaration → class_item` first (strictly more hops than the top-level package-item route), so the BFS discovers the body through the gated `extern_constraint_declaration` and forces the rejected form. Bias-hook precedent to mirror: `prefer_non_self_recursive_reference_sites` (`:5637` call / `:5714` def, RTL-FE-CLOSURE.5.3) — a stable site sort applied inside `reach_hops`.
+
+### Fix DESIGN (→ `.2.2`)
+Deprioritize reach edges crossing a store-gated rule whose consulted fact-kind no on-path `@emit_fact` producer establishes (re-use the linter `F1` binding-before-use emitter/consumer machinery, not a second walker). Candidate mechanisms: (1) two-pass BFS — exclude gated edges, fall back to all-edges (simplest, exactly inert when no non-gated path exists); (2) weighted BFS (defer unless pass-1 insufficient). GENERAL/parser-agnostic (annotations + producer graph, never rule names — [[feedback_ast_pipeline_parser_agnostic]]). GENERATOR-only ⇒ no release/schema bump. Proof: SV cert seeds 0/7/42 (`UNKNOWN 84 → ~66`, ≈18 M2a rules witnessed, `spf=0`, no newly-UNKNOWN); 6 fully-certified grammars byte-identical (stash A/B); `--generate-stimuli`/cross-family/oracle byte-identical. Open Qs handed to `.2.2`: directive-force-vs-re-discovery (verify with `PGEN_REACH_PATH_DUMP=1`); per-rule check for `constant_cast`/`property_qualifier`; `loop_variables`/`index_variable_identifier` ride-along once the enclosing constraint is non-gated. Full detail: `docs/tasks/GRAMMAR-WELLFORMED-H125621-m2a-constraint-reach-honesty-whywhere.md`.
+
+PURE-DOCS ⇒ NO code/grammar/generated/release/schema/ledger change; clippy not invoked; SV stays `UNKNOWN=84`.
+
 ## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.6.1 — M2 re-enumeration + over-gen-vs-parser-bug adjudication at UNKNOWN=84 (PGEN-GRAMMAR-WELLFORMED-0112, PURE-DOCS INVESTIGATION)
 
 ### Why re-enumerate
