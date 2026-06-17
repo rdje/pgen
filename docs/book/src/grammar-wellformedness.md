@@ -136,10 +136,22 @@ under the `library_text` start symbol (proven by re-running cert-coverage from t
 umbrella entry, which collapses `no_path` from 20 to 9), 6 are genuine 1800-2023 features (proven by
 re-running under the `sv_2023` profile, where they witness), and 3 are LRM-decomposition artifacts.
 **Exactly one** — `module_path_conditional_expression` (an LRM rule, Annex A.8.3) — was a genuine
-producer-wiring flaw: it is stranded by an un-eliminated *conditional* left-recursion in its producer
-`module_path_expression`. The resolution is to **fix the producer** (the standard non-left-recursive
-conditional-suffix transformation, same accepted language), never to delete the rule. **Zero rules were
-deletion candidates.**
+producer-wiring flaw: it was stranded by an un-eliminated *conditional* left-recursion in its producer
+`module_path_expression` (mpce's condition referenced `module_path_expression`, whose first branch was
+mpce). The left-recursion eliminator rewrote the producer into `…_lr_base`/`…_lr_suffix` and left
+`module_path_conditional_expression` as an *unreferenced* rewritten seed — its generated parse function
+*defined but never called* — so the named rule could never positively witness, and the suffix
+reconstruction even leaked raw internal `wrapper_specs` metadata into the ternary module-path AST. The
+resolution was to **fix the producer** (the standard non-left-recursive conditional-suffix
+transformation — mpce's condition is now the operand chain, same accepted language per A.8.3), never to
+delete the rule. That fix has since **landed** (`PGEN-GRAMMAR-WELLFORMED-0111`, release `1.0.143`, ledger
+`SV-0005`): `module_path_expression` is now natively non-left-recursive (the LR-elimination synthetic
+rules vanish), `module_path_conditional_expression` is positively **witnessed**, the `wrapper_specs` leak
+is gone, and the syntax-closure contract's `max_unreachable_rules` budget drops to **0** — so the
+linter's headline *"no unreachable rules"* is now literally true for SystemVerilog. SystemVerilog
+`UNKNOWN` `86 → 84` (mpce plus the now-eliminated `…_lr_suffix` both leave; witness `1204`, deterministic
+at seeds 0/7/42, `spf=0`), `no_path` `20 → 19`, external corpus still `14/14`. **Zero rules were deletion
+candidates.**
 
 So when the sections below describe "delete the orphan" as a resolution, read it strictly: it applies
 *only* to rules the LRM proves absent — number-infrastructure decomposition artifacts and

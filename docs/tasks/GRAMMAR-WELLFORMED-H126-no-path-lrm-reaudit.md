@@ -90,7 +90,7 @@ possible; the tracked, citable ground truth remains the MD workspaces + extracte
 - **1 genuine producer-wiring suspect** — `module_path_conditional_expression` — **FIX, never delete**.
 - **0 deletion candidates.** None clears the LRM-proven-absent bar.
 
-## The 1 action item — `module_path_conditional_expression` (→ `H.12.6.1`, PENDING)
+## The 1 action item — `module_path_conditional_expression` (→ `H.12.6.1`, **DONE `PGEN-GRAMMAR-WELLFORMED-0111`** — fixed; SV cert `UNKNOWN 86→84`, `no_path 20→19`, `unreachable_rules=0`, ledger `SV-0005`, release 1.0.143; detail in `GRAMMAR-WELLFORMED-H1261-module-path-conditional-fix.md`)
 
 LRM ground truth (Annex A.8.3, `…_2017_lrm_extracted.ebnf:681`):
 `module_path_conditional_expression ::= module_path_expression ? { attribute_instance } module_path_expression : module_path_expression`,

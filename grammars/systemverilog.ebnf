@@ -79,19 +79,26 @@
 #       rules. Same accepted language, no reference to a non-existent
 #       epsilon rule. Removes 2 unreachable-branch-debt entries.
 #
-# RULES INTENTIONALLY KEPT EVEN THOUGH STATIC ANALYZER FLAGS THEM
+# FORMERLY-KEPT UNREACHABLE BUDGET CASE — RETIRED (H.12.6.1, PGEN-GRAMMAR-WELLFORMED-0111)
 # ----------------------------------------------------------------
-# - module_path_expression / module_path_conditional_expression:
-#   LRM-faithful (mutual recursion preserved). The active grammar
-#   eliminates the binary-op left-recursion via the
-#   module_path_expression_operand pattern, but the mpe <-> mpe_cond
-#   mutual reference is intentionally kept exactly as the LRM
-#   specifies. The closure-gate static analyzer cannot trace through
-#   that mutual reference and reports module_path_conditional_expression
-#   unreachable. The rule IS reachable in language terms — PGEN's
-#   runtime RecursionGuard handles indirect/mutual recursion — and
-#   the gate contract reserves max_unreachable_rules <= 1 for this
-#   budget case.
+# - module_path_conditional_expression was previously stranded: its
+#   condition referenced module_path_expression, whose first branch
+#   was module_path_conditional_expression — an indirect LEFT-RECURSION.
+#   The left-recursion eliminator rewrote module_path_expression into
+#   module_path_expression_lr_base/_lr_suffix and left
+#   module_path_conditional_expression as an UNREFERENCED rewritten
+#   seed (no_path; its generated parse fn was defined-but-never-called),
+#   and the _lr_suffix reconstruction leaked raw wrapper_specs metadata
+#   into the ternary module-path AST. The earlier "RecursionGuard
+#   handles it / max_unreachable_rules <= 1 budget case" rationalization
+#   was DISPROVEN tools-first. H.12.6.1 makes mpce's condition the
+#   non-left-recursive module_path_expression_operand chain (same
+#   accepted language per IEEE 1800 A.8.3 — the right-associative
+#   ternary reading), so module_path_expression is natively non-left-
+#   recursive, module_path_conditional_expression is positively
+#   reachable + witnessed, the wrapper_specs leak is gone, and the
+#   syntax-closure contract's max_unreachable_rules budget is now 0.
+#   No rule is intentionally kept unreachable.
 #
 # RETIRED LRM RULES (REMOVED FROM THIS GRAMMAR)
 # ----------------------------------------------
@@ -3106,8 +3113,8 @@ module_or_generate_item_declaration := package_or_generate_item_declaration
 module_path_concatenation := lbrace ( module_path_expression ( comma module_path_expression )* ) rbrace
                            -> {body: $2}
 
-module_path_conditional_expression := module_path_expression question attribute_instance* module_path_expression colon module_path_expression
-                                   -> {condition: $1, attributes: $3, then_expr: $4, else_expr: $6}
+module_path_conditional_expression := module_path_expression_operand ( binary_module_path_operator attribute_instance* module_path_expression_operand )* question attribute_instance* module_path_expression colon module_path_expression
+                                   -> {condition: {kind: "chain", first: $1, rest: $2}, attributes: $4, then_expr: $5, else_expr: $7}
 
 module_path_expression_operand := unary_module_path_operator attribute_instance* module_path_primary
                                           -> {kind: "unary",   op: $1, attributes: $2, primary: $3}

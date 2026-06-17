@@ -1,4 +1,39 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.6.1 — module_path_conditional_expression producer left-recursion fix (PGEN-GRAMMAR-WELLFORMED-0111, GRAMMAR FIX, release 1.0.143 / schema 4 / ledger SV-0005)
+
+### The defect (tools-first WHY+WHERE)
+`module_path_conditional_expression` was the ONE genuine `no_path` producer-wiring suspect from the `H.12.6` LRM re-audit. The grammar had:
+```
+module_path_conditional_expression := module_path_expression question attribute_instance* module_path_expression colon module_path_expression
+module_path_expression := module_path_conditional_expression -> {kind:"conditional", body:$1}
+                       | module_path_expression_operand ( binary_module_path_operator attribute_instance* module_path_expression_operand )* -> {kind:"chain", first:$1, rest:$2}
+```
+mpce's FIRST token is `module_path_expression`, whose FIRST branch is mpce → **indirect left-recursion**. Evidence chain (all tools, no guessing):
+1. **Baseline cert** (`--report-certificate-coverage --grammar-profile sv_2017 --count 40 --seed 0`): `total=1291 witness=1204 UNKNOWN=86`; mpce in both the 20-`no_path` set and the 86-`UNKNOWN` set.
+2. **`--dump-gen-ast`** showed the LR-eliminator transformed `module_path_expression` into `module_path_expression_lr_base module_path_expression_lr_suffix*`, where `_lr_suffix = question attrs module_path_expression colon module_path_expression`, and **rewrote `module_path_conditional_expression` into an unreferenced seed**. A reference-graph walk over the gen-AST confirmed **0 rules reference mpce** (orphan).
+3. **Generated parser grep:** `parse_module_path_conditional_expression` is DEFINED (~line 484668) but has **no external caller** (defined-but-never-called).
+4. **Genuineness oracle** (`parseability_probe --parse-dump-ast-pretty` on `module m; specify if (a ? b : c) (x => y) = 1; endspecify endmodule`): the ternary parses (via `_lr_suffix`) but emits **0 `conditional` nodes** and leaks **3 `wrapper_specs`** (raw internal LR-elimination annotation-template metadata) into the AST.
+
+So the grammar's "RecursionGuard handles the mutual recursion / `max_unreachable_rules<=1` budget case" comment was **disproven**: the rule isn't reached via recursion-guarding; it's orphaned by elimination, and the output is malformed.
+
+### The fix (surgical, grammar-only, LRM A.8.3-faithful)
+Changed ONLY `module_path_conditional_expression` — its condition is now the non-left-recursive operand chain (the exact body the chain branch already uses + witnesses):
+```
+module_path_conditional_expression := module_path_expression_operand ( binary_module_path_operator attribute_instance* module_path_expression_operand )* question attribute_instance* module_path_expression colon module_path_expression
+                                   -> {condition: {kind: "chain", first: $1, rest: $2}, attributes: $4, then_expr: $5, else_expr: $7}
+```
+`module_path_expression` is unchanged in source (`mpce | chain`) but is now **natively non-left-recursive** (both branches start with the operand chain), so the eliminator no longer fires → `module_path_expression_lr_base`/`_lr_suffix` disappear, mpce is positively referenced by mpe branch 1, and the `wrapper_specs` leak is gone. The accepted language is identical (a ternary's condition is the lower-precedence binary chain; `then`/`else` stay full `module_path_expression` → right-associative ternary, exactly A.8.3). The `then`/`else` positions don't cause LR (they're after `question`). The stale "budget case" comment block was rewritten to a "RETIRED" note same-edit.
+
+### A/B (decisive, deterministic, parser is the judge)
+- Cert `UNKNOWN 86 → 84` at seeds 0/7/42 (mpce now WITNESSED + `module_path_expression_lr_suffix` removed; witness `1204`; `total 1291 → 1289`; `spf=0 proof_reverify_failures=0`).
+- `no_path 20 → 19` — verbatim diff confirms the post-fix set is exactly the baseline minus mpce; the 19 LRM-legitimate rules (`library_text` family, SV-2023 interface-class family, decomposition artifacts) are untouched.
+- Genuineness oracle post-fix: **1 clean `conditional` node, 0 `wrapper_specs`**; `parse_module_path_conditional_expression` now called externally (gen ~line 486411).
+- Targeted forms (`if (a)`, `if (a & b)`, `if (a ? b : c)`, `if (!a ? b & c : d)`, bare path) all parse.
+- SV external corpus **14/14** (`parse_fail_total=0`); `stimuli_cross_family_platform_gate` PASS; clippy source-clean.
+
+### Lockstep
+Release `1.0.143` (schema stays `4` — the prior leaking conditional form was never a realized clean shape; common chain byte-identical), ledger `SV-0005`, integration contract Highlights, SV book changelog/schema-versioning pages, top-level book `grammar-wellformedness.md`. Syntax-closure contract re-baselined **v5 → v6**: `max_unreachable_rules 1 → 0`, `blessed_unreachable_rules.lrm_mutual_recursion_cases` emptied; gate re-run confirms `unreachable_rules=0 reachable_rules=1405 defined_rule_count=1405`. The no-regression floors (`min_total_rules 1403`, `min_reachable_rules 1404`, `max_unreachable_branches 2`) stay — actuals remain above them with buffer. The literal-0 doctrine in action: a `no_path` budget case RETIRED by fixing the producer, never by deletion ([[feedback_no_rule_deletion_without_lrm_proof]]).
+
 ## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2.2.2 — context_member GENUINE-witness IMPLEMENT ATTEMPT → two `-0107` assumptions REFUTED (PGEN-GRAMMAR-WELLFORMED-0110, PURE-DOCS, reverted)
 
 ### What was attempted
