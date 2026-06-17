@@ -22,3 +22,30 @@
 [submodule "stimuli/sv/subs/friscv"]
 	path = stimuli/sv/subs/friscv
 	url = https://github.com/dpretet/friscv
+[submodule "stimuli/sv/subs/sv-tests"]
+	path = stimuli/sv/subs/sv-tests
+	url = https://github.com/chipsalliance/sv-tests
+[submodule "stimuli/sv/subs/verible"]
+	path = stimuli/sv/subs/verible
+	url = https://github.com/chipsalliance/verible
+[submodule "stimuli/sv/subs/slang"]
+	path = stimuli/sv/subs/slang
+	url = https://github.com/MikePopoloski/slang
+[submodule "stimuli/sv/subs/verilator"]
+	path = stimuli/sv/subs/verilator
+	url = https://github.com/verilator/verilator
+[submodule "stimuli/vhdl/subs/ghdl"]
+	path = stimuli/vhdl/subs/ghdl
+	url = https://github.com/ghdl/ghdl
+[submodule "stimuli/vhdl/subs/nvc"]
+	path = stimuli/vhdl/subs/nvc
+	url = https://github.com/nickg/nvc
+[submodule "stimuli/vhdl/subs/vunit"]
+	path = stimuli/vhdl/subs/vunit
+	url = https://github.com/VUnit/vunit
+[submodule "stimuli/vhdl/subs/OsvvmLibraries"]
+	path = stimuli/vhdl/subs/OsvvmLibraries
+	url = https://github.com/OSVVM/OsvvmLibraries
+[submodule "stimuli/vhdl/subs/UVVM"]
+	path = stimuli/vhdl/subs/UVVM
+	url = https://github.com/UVVM/UVVM

@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - EXTERNAL-CORPUS.3.1/.3.2 — big external SV+VHDL test corpora (PGEN-EXTERNAL-CORPUS-0007)
+
+### Director directive
+"maximum number of SV and VHDL stress test possible ... submodule the SV/VHDL test corpora only, not the code ... submoduled if github repo available, otherwise download under `.cache/local-reference/{sv,vhdl}/<vendor>` (not git-tracked)." GPL-OK confirmed.
+
+### Design decisions
+- **Reuse the existing `stimuli/{sv,vhdl}/subs/` convention** (not a new `third_party/`) — the repo already vendors corpus submodules there (scr1/friscv/VeeR; PoC/Compliance-Tests/…), and the curated external-corpus gates already look there. Verified before acting (almost created a duplicate `third_party/`).
+- **"Test corpora, not the code" via shallow + sparse-checkout.** `git submodule add --depth 1` then `git -C <path> sparse-checkout init --cone && sparse-checkout set <testdir>` — materializes only the test directory of tool repos (GHDL `testsuite/`, NVC `test/`, Verilator `test_regress/`, …), leaving the compiler/source out of the working tree. Pinned commits for reproducibility.
+- **GPL/copyleft mechanics (why no PGEN impact):** a submodule is a *pointer* (URL + pinned SHA); the upstream code is not copied into PGEN and does not relicense it; the files are used only as parser *inputs* (read→parse→characterize), not compiled/linked/redistributed — so no copyleft obligation attaches. Flagged ⚠️ per-repo in `PROVENANCE.md` regardless.
+- **UVVM:** research reported ~694 MB, but that included history; `--depth 1` HEAD is 110 M — kept (302 files).
+- **Bulk runner `stimuli/run_external_corpus.sh`** (parallel, per-file `timeout`, per-sub-corpus tally → `characterization.md`). `results.tsv` is gitignored (regenerable). The per-sub-corpus split is by submodule name; a finer split (VESTS compliant vs non_compliant, GHDL gna) is a follow-up.
+
+### Honest characterization (characterize-don't-game)
+SV 5128 → 58.0% pass; VHDL 13,720 → 29.4% pass. The low rates are expected and informative: full-design SV corpora are parsed file-by-file without the preprocessor/include/lib chaining (the curated `sv_external_corpus_triage_gate` that *does* chain stays 14/14); GHDL `gna`/VESTS `non_compliant/` are intentionally invalid (parse-fail is the correct outcome); and the verification libraries (OSVVM 8.5%, UVVM 16.6%) + nvc (25.7%) exercise VHDL-2008/2019 our grammar under-covers. The genuine fails are a large PARSE-COMPLETENESS backlog — the gap an external corpus is meant to expose (a bug-finding oracle), not a closure regression.
+
 ## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.3 — boolean_abbrev sequence-repetition LRM `[ ]` delimiter restore (PGEN-GRAMMAR-WELLFORMED-0105, GRAMMAR FIX, release 1.0.142, schema stays 4, ledger SV-0004)
 
 ### The slice

@@ -65,9 +65,15 @@ acquisition policy.)
 
 ## Status
 
-NOT yet acquired (no `third_party/sv/` submodules added; no `.gitmodules` change). Acquisition is a real-world
-action (cloning 6 large repos — disk/network) and a future EXTERNAL-CORPUS / PARSE-COMPLETENESS slice when
-prioritized, with the director's go-ahead. This record exists so the repo list + recipe are durable now.
+**CORPORA ACQUIRED 2026-06-17** (`PGEN-EXTERNAL-CORPUS-0007`, EXTERNAL-CORPUS.3.1/.3.2) — director directive:
+"maximum number of SV and VHDL stress test possible ... test corpora only, not the code." The **test CORPORA**
+(not the oracle tools) were submoduled under the existing `stimuli/{sv,vhdl}/subs/` convention (NOT `third_party/`
+— the repo already vendors corpus submodules there), shallow `--depth 1` + sparse-checkout to test dirs, pinned,
+with per-family `stimuli/{sv,vhdl}/subs/PROVENANCE.md` (license flags). SV: sv-tests/verible/slang/verilator
+(~5128 files). VHDL: ghdl/nvc/OsvvmLibraries/vunit/UVVM (+ pre-existing PoC/Compliance-Tests/… ⇒ 13,720 files).
+Director confirmed **GPL-OK** (submodule = reference, not copied code; parser-test-input use ⇒ no copyleft impact
+on PGEN). The **ORACLE tools** (slang/verible/verilator/Surelog as differential oracles, UHDM) were NOT
+acquired/built — that stays the separate PARSE-COMPLETENESS lane. Characterization: `stimuli/{sv,vhdl}/characterization/`.
 
 ## Disciplines
 

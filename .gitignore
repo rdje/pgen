@@ -403,3 +403,6 @@ universal_test_runner_*.log
 # Repository policy: keep the full generated tree in git.
 !generated/
 !generated/**
+
+# External-corpus bulk characterization raw dumps (regenerable; track characterization.md only)
+stimuli/*/characterization/results.tsv
