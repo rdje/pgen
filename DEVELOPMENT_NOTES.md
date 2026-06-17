@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.6.1 — M2 re-enumeration + over-gen-vs-parser-bug adjudication at UNKNOWN=84 (PGEN-GRAMMAR-WELLFORMED-0112, PURE-DOCS INVESTIGATION)
+
+### Why re-enumerate
+The M2 classification in `-0083` was made at `UNKNOWN=121`. Nine slices later the residual is **84**, so the M2 set is stale — re-enumerated tools-first before opening any fix child ([[feedback_no_codebase_change_without_tool_backed_facts]]).
+
+### Method (tools-first, deterministic)
+`./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0` with `PGEN_CERT_COVERAGE_DUMP_ALL=1` (full 84-name + `no_path` list) and `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` (per-rule `[plannable-probe] rule=… parsed=… witnessed_target=… sample="…"`). The 84 partition is computed by cross-referencing the probe outcomes against the 84-name list (logs in `/tmp/h1256/`).
+
+### The 84 partition (sums exactly: 19+36+14+15)
+- **19 `no_path`** — the cert's own "NO reach path" warning line (A1 alternate-entry: `sv_multi_entry_root`/`systemverilog_parseable_file`/`parseable_source_item`/`library_*`/`include_statement`/`kw_incdir|include|library|file_path_spec`; A2 sv_2023: `interface_class_*`/`declared_interface_class_identifier`/`class_constructor_super_args`; decomposition: `union_modifier`/`kw_n_29`/`kw_n_48`). Adjudicated NON-defects in `H.12.6` — STAY.
+- **36 M2** — `parsed=false` on every probe attempt. This leaf.
+- **14 M1-residual** — `parsed=true` but routed-elsewhere → belongs to the M1 lane (`H.12.5.5`), incl. the PARKED `context_member_method_call`, the `class_scoped_call` family, `named_checker_port_connection*`, `property_actual_arg`, `repeat_range`, `with_covergroup_expression`, `known_unscoped_{*_parameter,let,*_type_parameter}_identifier`.
+- **15 M3** — no plannable reach probe at all → `H.12.5.7` (SVA temporal `kw_*`: `accept_on`/`eventually`/`nexttime`/`reject_on`/`s_always`/`s_eventually`/`s_nexttime`/`s_until`/`s_until_with`/`sync_accept_on`/`sync_reject_on`/`until`/`until_with`/`constant` + `property_case_item`).
+
+### M2 (36) adjudication — three mechanisms
+**M2a constraint cluster (≈18, → `.6.2`).** All M2a witness samples share the out-of-class `constraint \foo ::\foo { … }` context and reject at `furthest_position=22` (consume `constraint \foo ::\foo`, choke on `{`). Discriminating A/B via `parseability_probe --parse systemverilog … --profile sv_2017`: `constraint C::c { x < 5; }` REJECTS when `C` is undeclared (furthest 15) but PASSES after `class C; endclass`; the in-class `class C; rand int x; constraint c { x < 5; } endclass` PASSES, as do `unique {x,y};` and `solve x before y;` forms. `--trace-rules` shows the generator sample mis-routed through `data_declaration → … → class_scope → scope_resolution` because the out-of-class `constraint_declaration` is store-gated on a declared class and `\foo` is not one. **Verdict: parser CORRECT** ([[feedback_grammar_rules_must_consult_store]]); it is a reach-path-selection into a store-gated context. By the attribution rule a witness EXISTS (the in-class form), so it is a generator-reach deficiency — fix = a reach-BFS preference for the non-gated in-class path (`RTL-FE-CLOSURE.5.x`/`H.12.5.5.2-.3` lineage), NOT the parked `STORE-AWARE-GEN.4b` prelude.
+
+**M2 sequence-operators (3 → `H.12.5.8`).** 🚨 A real released-parser bug, surfaced by the bug-finding oracle. `module m; sequence s; a; endsequence endmodule` PASSES; `a and b`/`a or b`/`a intersect b`/`a within b`/`a ##1 b` and `property p; a or b` ALL reject at the operator (furthest 23–25). WHERE: `sequence_declaration → sequence_expr → expression_or_dist` matches the bare operand, then `sequence_declaration` expects `endsequence`; `sequence_expr`'s binary-operator branches never fire. `grammars/systemverilog.ebnf:4573` `sequence_expr` carries FIVE left-recursive branches (`delay_binary`/`and`/`intersect`/`or`/`within`) — the LR-elimination-defect signature of the `-0111` `module_path_conditional_expression` fix. Broadens lane-2 `H.12.5.8` (was `##`-only) to the whole SVA `sequence_expr`/`property_expr` binary-operator layer; the full WHY+WHERE + targeted fix + release/ledger/book lockstep is owned there. Pre-existing (nothing changed this session).
+
+**M2b store-gated identifiers (≈15, → `.6.3`).** `localparam \foo \foo ;` (`<type> <name> ;`, type must be known) / `typedef \foo \foo ;` (alias of a declared class) — the minimal witness never establishes the consulted fact. Same family as the PARKED `context_member_method_call`; blocked on `STORE-AWARE-GEN.4b` gen-time name/value-coupled prelude synthesis (director STANDING: no fragile name-coupling hack). `checked_nettype_identifier`'s gate was already tightened by `SV-0003`; its residual here is the witness-reach gap, not the gate.
+
+### Outcome
+Split `H.12.5.6` → `.6.1` (done), `.6.2` (M2a reach-honesty fix — next frontier LEAD), `.6.3` (M2b parked-adjacent). PURE-DOCS ⇒ NO code/grammar/generated/release/schema/ledger change; clippy not invoked; parser-family rows UNCHANGED (SV `UNKNOWN=84`, the only non-fully-certified shipped grammar). Detail: `docs/tasks/GRAMMAR-WELLFORMED-H12561-m2-reenumeration-adjudication.md`.
+
 ## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.6.1 — module_path_conditional_expression producer left-recursion fix (PGEN-GRAMMAR-WELLFORMED-0111, GRAMMAR FIX, release 1.0.143 / schema 4 / ledger SV-0005)
 
 ### The defect (tools-first WHY+WHERE)
