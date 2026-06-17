@@ -1,4 +1,19 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.6 — `no_path` LRM-grounded re-audit + STANDING no-deletion policy (PGEN-GRAMMAR-WELLFORMED-0108, PURE-DOCS)
+
+### Director directive (standing policy)
+Every grammar rule shall be reachable. A `no_path` rule is first read as a **flaw in the producer that should lead to it**, not a removable rule. **No rule — `no_path` or otherwise — is deleted unless the language LRM objectively proves it has no business in the grammar; deletion is the last-last-last resort.** Persisted as `docs/decisions/feedback_no_rule_deletion_without_lrm_proof.md` (binds all future grammar work; raises the bar on past dead/subsumed removals). Sharpens the attribution rule (grammar-first; reach-failure = generator deficiency OR ill-formed EBNF).
+
+### Tools-first re-audit of the 20 SV `no_path` rules (parser/cert as judge)
+- **Entry/profile-relativity proven** (the `no_path` set is not dead): `--entry-rule sv_multi_entry_root` collapses `no_path` 20→9 — 11 rules (`library_text`, `library_declaration`, `library_description`, `include_statement`, the `kw_library`/`kw_include`/`kw_incdir` leaves, `systemverilog_parseable_file`, `parseable_source_item`) become reachable from the LRM's **separate `library_text` start symbol** (IEEE 1800-2017 §33 / Annex A.1.1, verified at `docs/systemverilog/2017/md/section-33-configuring-the-contents-of-a-design.md:131`). `--grammar-profile sv_2023` drops the interface-class family + `class_constructor_super_args` + `union_modifier` (genuine 1800-2023 features, witness under `sv_2023`).
+- **Verdict:** 19/20 LRM-legitimate (STAY) = 10 `library_text`-rooted + 6 profile-relative SV-2023 + 3 LRM-decomposition artifacts (`sv_multi_entry_root`, `kw_n_29`, `kw_n_48`); **1 genuine producer-wiring suspect**; **0 deletions.**
+- **The 1 suspect — `module_path_conditional_expression`** (LRM Annex A.8.3, verified `grammars/systemverilog_2017_lrm_extracted.ebnf:681`): its producer `module_path_expression` (`systemverilog.ebnf:3117`) eliminated the *binary-op* left-recursion (via `module_path_expression_operand`) but kept the **conditional** alternative as a left-recursive first branch a PEG cannot enter → the child is stranded. The grammar's own comment (lines 82-94) rationalizes this as a "blessed mutual-recursion budget case … RecursionGuard handles it."
+- **Genuineness-oracle caveat (NOT over-claimed):** a `specify` `if (a ? b : c)` state-dependent-path probe (`/tmp/mpce/cond.sv`) **parses** (`parse_full passed`), BUT the AST dump shows **no `"kind":"conditional"` `module_path` node** (only `chain`/`primary`) ⇒ the `module_path_conditional_expression` branch **did not match** (bytes absorbed elsewhere). Consistent with `no_path` and the left-recursion hypothesis, but NOT proof of all-context unreachability. The "budget case" rationalization is therefore **rejected pending a `--trace-rules` proof** (leaf `H.12.6.1`): trace whether the branch is ever entered, then LRM-ground the fix as the non-left-recursive conditional-suffix idiom (same A.8.3 language) — fix, never delete; retire the comment.
+
+### Notes
+- No LRM **PDF** in-repo; ground truth = MD workspace `docs/systemverilog/{2017,2023}/md/` + extracted EBNF.
+- PURE-DOCS ⇒ NO code/grammar/generated/release/schema/ledger change; SV cert stays `total=1291 witness=1204 UNKNOWN=86 spf=0`. Tracker: `docs/tasks/GRAMMAR-WELLFORMED-H126-no-path-lrm-reaudit.md`.
+
 ## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2.2.1 — context_member GENUINE-witness composition WHY+WHERE + SAFE DESIGN (PGEN-GRAMMAR-WELLFORMED-0107, PURE-DOCS)
 
 ### Problem

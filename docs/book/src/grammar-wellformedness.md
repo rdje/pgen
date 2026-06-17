@@ -109,6 +109,43 @@ exactly when, for every target, the two proofs agree — every reachable target 
 unreachable target removed at the source. And it makes every uncovered target a *ticket* assigned to
 either the grammar or the generator, rather than a shrug.
 
+### `no_path` is a producer-flaw signal — deletion is the last resort (LRM-proven-absent only)
+
+There is one more inversion of instinct, and it is a **standing rule**: when the linter reports a
+rule as `no_path` (no reach path from the chosen entry), the *first* reading is **not** "this rule is
+dead, delete it" — it is **"the rule that is supposed to *lead* to it is flawed."** A genuine grammar
+rule is stranded far more often by a mis-wired *producer* (a missing reference, an un-eliminated PEG
+left-recursion, a mis-encoded delimiter, a wrongly-gated branch) than by being truly useless. So:
+
+> **No rule — `no_path` or otherwise — is ever deleted unless the language LRM *objectively proves*
+> it has no business in the grammar. A `no_path` verdict is first read as a producer-wiring flaw to
+> FIX (make the rule reachable), never as a removal license. Deletion is the last-last-last resort,
+> LRM-proven-absent only.**
+
+Concretely, a `no_path` rule resolves to one of: **(1)** rooted under a *different LRM start symbol*
+(e.g. SystemVerilog's `library_text` is a separate start symbol per IEEE 1800-2017 Annex A.1.1 — the
+library/config/include subtree is reachable from it, not from `source_text`); **(2)** *profile-relative*
+(a later-edition feature, e.g. SV-2023 interface-classes, correctly inert under an earlier profile);
+**(3)** an LRM-extraction *decomposition artifact* (a synthetic helper or keyword leaf, not a real
+production); or **(4)** a *producer-wiring flaw* — **fix the producer.** Only when none of these hold
+*and* the LRM has no production for the rule does the "delete the orphan" path below apply.
+
+A worked re-audit makes this concrete. The SystemVerilog `UNKNOWN` set carried **20 `no_path` rules**.
+Cross-checked against the IEEE 1800 LRM, **19 of 20 were legitimate and stay untouched**: 10 are rooted
+under the `library_text` start symbol (proven by re-running cert-coverage from the `sv_multi_entry_root`
+umbrella entry, which collapses `no_path` from 20 to 9), 6 are genuine 1800-2023 features (proven by
+re-running under the `sv_2023` profile, where they witness), and 3 are LRM-decomposition artifacts.
+**Exactly one** — `module_path_conditional_expression` (an LRM rule, Annex A.8.3) — was a genuine
+producer-wiring flaw: it is stranded by an un-eliminated *conditional* left-recursion in its producer
+`module_path_expression`. The resolution is to **fix the producer** (the standard non-left-recursive
+conditional-suffix transformation, same accepted language), never to delete the rule. **Zero rules were
+deletion candidates.**
+
+So when the sections below describe "delete the orphan" as a resolution, read it strictly: it applies
+*only* to rules the LRM proves absent — number-infrastructure decomposition artifacts and
+engine-shadowed-dead lexical rules with no LRM production and no functional value — never to a genuine
+LRM rule that a producer fix can make reachable.
+
 ## Worked example: a real bug the linter caught
 
 This is not hypothetical. The always-succeeds shadowing check found a genuine defect in the
