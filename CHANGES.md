@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-06-17 - PGEN-GRAMMAR-WELLFORMED-0107 (GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2.2.1, PURE-DOCS WHY+WHERE + SAFE DESIGN): context_member GENUINE-witness composition RESOLVED; `.4.2.1.2.2` split
+
+The SV `UNKNOWN`→0 drive's frontier leaf `.4.2.1.2.2` (witness `context_member_method_call`) was scoped from the `-0101` design, which explicitly left the prelude↔method-call **composition** as an open question, and `-0102` got it wrong (false witness, reverted). This slice resolves it tools-first, with the parser as the only judge, and splits the leaf into a done DESIGN + a known-safe IMPLEMENT — no code change.
+
+- **Baseline reproduced byte-identical** (seed 0): `total=1291 proof=1 witness=1204 UNKNOWN=86 spf=0`.
+- **Minimal genuine-witness recipe pinned** (`parseability_probe --parse-dump-ast-pretty`, counting `context_member_method` AST nodes): a top-level decl of the chain head (satisfies the `has_fact(variable_binding,$head)` post-gate) + `callable_method_call_body` rendered as a CALL. **The `[idx]` is NOT required** — `int \foo ; (*\foo =+\foo .\foo .\foo ()*)` → **1** node; identical WITHOUT the decl → **0**; bare-ref → **0**. This refines the `-0101`/`-0102` `.foo[0].foo()` framing.
+- **Two gaps pinned on the shipped generator** (`PGEN_CERT_COVERAGE_DEBUG_PROBES=1`): (A) SV emits no prelude (`gen_count_kinds` empty ⇒ `compute_reach_prelude`→`None`); (B) the `.3.3.1` mandatory-child forcing renders `[idx]` and `()` in SEPARATE probes, never together, never with a declared head. The binding+bare-ref probe is exactly the `.4.2.1.2.1` FALSE-witness shape (the deferred soundness gap credits a rule with 0 AST nodes), so the `UNKNOWN` count is necessary-but-NOT-sufficient.
+- **Safe composition designed:** a `Presence` (`has_fact`) prelude with `captured=None` — the plannable driver arms only when `captured.is_some()`, so a Presence prelude is structurally inert in the plannable pass (no `-0102` trap, no driver change) — armed ONLY in the target-own pass, ONLY on the all-mandatory-children (call-forced) probe ⇒ a c2-shaped GENUINE witness; the genuineness oracle is the AST node, never the count.
+- **Split:** `.4.2.1.2.2` → `.2.2.1` (DESIGN, done here) + `.2.2.2` (GENERATOR IMPLEMENT, new frontier). Detail: `docs/tasks/GRAMMAR-WELLFORMED-H1255334212-2-context-member-genuine-witness-design.md`.
+- PURE-DOCS ⇒ NO code/grammar/generated/release/schema/ledger change; clippy not invoked. SV stays the only non-fully-certified shipped grammar (`UNKNOWN=86`, unchanged).
+
 ## 2026-06-17 - PGEN-EXTERNAL-CORPUS-0007 (EXTERNAL-CORPUS.3.1 + .3.2, director directive): big external SV + VHDL test corpora acquired (submodules) + characterized
 
 Director directive (2026-06-17): acquire the maximum number of SV + VHDL external **stress-test corpora** and run them against the parsers — test corpora only (not the tool code), submodules for GitHub repos (else untracked `.cache/local-reference/`), GPL-OK (submodule = reference, not copied code, parser-test-input use only ⇒ no copyleft impact on PGEN).

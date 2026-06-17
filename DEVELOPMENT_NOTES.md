@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2.2.1 — context_member GENUINE-witness composition WHY+WHERE + SAFE DESIGN (PGEN-GRAMMAR-WELLFORMED-0107, PURE-DOCS)
+
+### Problem
+`context_member_method_call` is the named frontier of the SV `UNKNOWN`→0 drive. `-0101` designed a `has_fact` semantic prelude but explicitly handed the FIX an open **composition** question (the binding prelude and the mandatory `.method()` structure must co-occur in ONE sample); `-0102` implemented the prelude alone and it FALSE-witnessed (reverted); `-0103` pinned the engine soundness gap that credits such a degenerate render, and that engine fix is DEFERRED (correct but wide-blast regresses — [[project_cert_coverage_tournament_loser_leak]]). So the generator-only path must produce a GENUINELY-committing sample, verified by the AST-node oracle, not the cert count.
+
+### Tools-first findings (parser is the judge)
+- **Minimal genuine witness** (`parseability_probe --parse-dump-ast-pretty systemverilog … --profile sv_2017`, counting `context_member_method` AST nodes): top-level decl of the head + `callable_method_call_body` as a CALL. The `[idx]` (`constant_bit_select`) is NOT required: `int \foo ; (*\foo =+\foo .\foo .\foo ()*)` → **1**; same WITHOUT the decl → **0**; bare-ref `…\foo.\foo.\foo` → **0**. (Test b procedural and Test c2 attribute-with-index also → 1.)
+- **Gap A:** SV has no prelude at all — `compute_reach_prelude` (`stimuli_generator.rs:2776`) returns `None` because `gen_count_kinds` is empty (it is `fact_count_at_least`-only; there is no `has_fact` analogue).
+- **Gap B:** the `.3.3.1` mandatory-child forcing in `generate_target_own_structure_witnesses` DOES render `[idx]` (forcing `constant_bit_select` ≥1) in one probe and a `()` call (forcing `callable_method_call_body`'s `o1`) in a different probe, but never both, and never alongside a declared head. The 16 emitted probes are all bare hierarchical refs (or single-child-forced) without a binding.
+- **False-witness landmine:** a probe that has the binding but renders a bare ref is the `.4.2.1.2.1` reproducer — the `has_fact` post-gate passes, the rule structurally fails (0 AST nodes), and the deferred tournament/coverage gap credits it via `parse_and_cover`. The cert driver's `witness_check` IS `parse_and_cover`, so the count cannot distinguish genuine from false for this rule.
+
+### Safe composition design (the `.2.2.2` IMPLEMENT)
+A `Presence` `has_fact` prelude (new `PreludeKind`) with `captured = None`. The plannable driver arms the prelude only when `captured.is_some()` (`stimuli_generator.rs:3079-3089`), so a Presence prelude is structurally inert in the plannable pass — the `-0102` trap cannot recur, with no change to that driver. The prelude is armed (`iterations = 1`) ONLY in the target-own pass, and ONLY on a probe that also forces all mandatory children (so `callable_method_call_body` renders its `o1` CALL) ⇒ a c2-shaped sample `int \foo ; (*\foo =+\foo .\foo[..].\foo()*)` that genuinely commits. The prelude is never armed on a bare-ref/R-own probe, so a binding can never co-occur with a degenerate render. Edit surface: `ReachPrelude`+`PreludeKind`; `gen_has_fact_gates` via `compute_store_aware_gen_directives:9437`; a `has_fact` branch in `compute_reach_prelude` (producer `variable_decl_assignment`, site `source_text := source_text_item*`, returned DISARMED); arm+compose in `generate_target_own_structure_witnesses`. Acceptance: genuineness oracle (AST node) FIRST, then SV `UNKNOWN 86→85` deterministic seeds 0/7/42, spf=0, roster byte-identical, cross-family gate PASS, clippy clean; GENERATOR-only.
+
+### Outcome
+PURE-DOCS design slice; `.4.2.1.2.2` split into `.2.2.1` (this, done) + `.2.2.2` (implement, frontier). No code/grammar/generated/release/schema/ledger change. SV stays `UNKNOWN=86`. Detail: `docs/tasks/GRAMMAR-WELLFORMED-H1255334212-2-context-member-genuine-witness-design.md`.
+
 ## 2026-06-17 - EXTERNAL-CORPUS.3.1/.3.2 — big external SV+VHDL test corpora (PGEN-EXTERNAL-CORPUS-0007)
 
 ### Director directive
