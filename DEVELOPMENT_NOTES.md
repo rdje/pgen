@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.2.1.2.2.2 — context_member GENUINE-witness IMPLEMENT ATTEMPT → two `-0107` assumptions REFUTED (PGEN-GRAMMAR-WELLFORMED-0110, PURE-DOCS, reverted)
+
+### What was attempted
+Execute the `-0107` safe `Presence`-prelude design to genuinely witness `context_member_method_call` (SV cert `UNKNOWN 86→85`). GENERATOR-only edit surface, exactly as the design mapped: a `PreludeKind {Count,Presence}` discriminator on `ReachPrelude`; `gen_has_fact_gates: HashMap<String, Vec<(kind,name_ref)>>` + `compute_gen_has_fact_gates` (sibling of `compute_store_aware_gen_directives`, keyed on `has_fact(K,$ref) phase: post`); a `Presence` branch in `compute_reach_prelude`, refactored with the `Count` branch into a shared `build_semantic_prelude(gated_rule, kind, sites, fuel, kind)` returned DISARMED; the count-specific consumers (`reach_prelude_capture` / `reach_prelude_replay_text` / `reach_prelude_bypasses_count_prune` + the plannable-pass arming at the phase-1→2 transition) all guarded on `kind == Count` so a Presence prelude is provably inert in the plannable pass; and a composed probe in `generate_target_own_structure_witnesses` that, for a `has_fact`-gated residual, arms the Presence prelude (`iterations=1`) AND forces every mandatory child's non-degenerate structure together in ONE probe (armed nowhere else).
+
+### Tool-backed measurement (parser is the judge)
+The detection chain worked (env-gated `PGEN_PRESENCE_DEBUG` diagnostic, removed before commit):
+```
+[presence] rule='context_member_method_call' witnessed=false child_forcings=3 gate=Some([("variable_binding","head")])
+[presence] rule='context_member_method_call' set_ok=true prelude=Some((Presence, 0, ("description","root/o5/s0")))
+[presence] rule='context_member_method_call' armed=true
+```
+But the genuineness oracle (`parseability_probe --parse-dump-ast-pretty systemverilog <file> --profile sv_2017`, counting `context_member_method` AST nodes) REFUTED the design:
+
+| input | parses | `context_member_method` nodes |
+|---|---|---|
+| `int \foo ; (*\foo =+\foo .\foo .\foo ()*);` (decl name == head name) | yes | 1 (genuine) |
+| `int \bar ; (*\foo =+\foo .\foo .\foo ()*);` (decl name != head name) | yes | 0 |
+| the actual composed probe `(*\foo =+type(struct{…bit\foo ;…})*)(*cBN=+…().uVw*);` | NO | n/a |
+
+### Two refuted assumptions
+- **(A) "site = `source_text := source_text_item*`".** The innermost-first (`quantifier_sites.iter().rev()`) site scan instead resolved to an inner `(description,root/o5/s0)` quantifier whose body graph-reaches the producer `variable_decl_assignment` **via a struct member** (`struct{ bit \foo ; }`) ⇒ a struct-scoped binding, not the file-scope `int \foo ;` the top-level chain's gate can see. The producer is reachable from MANY sites; only the file-scope one is correct for a top-level chain, and innermost-first is the wrong selector for `Presence`.
+- **(B) "name-coupling is free" — the real blocker.** The mismatch row PROVES the `has_fact(variable_binding,$head)` gate is NAME-sensitive (decl `\bar` + head `\foo` ⇒ 0 nodes). In the actual composed generation the injected declaration rendered `\foo` while the on-path chain head rendered `cBN`/`Q` (the prelude injection advances the seeded RNG past the deterministic first-identifier `\foo` the binding-less R-own probes all got). Different names ⇒ gate fails ⇒ no witness; the composed sample is not even valid SV.
+
+### Safety + decision
+The implementation could not manufacture a false witness (the composed sample → `NotParsed` → never unioned; cert stayed `UNKNOWN=86` byte-identical; the `-0102` failure mode did NOT recur). Per "commit only improvements" the generator code was REVERTED; rebuild-confirmed baseline `total=1291 proof=1 witness=1204 UNKNOWN=86 spf=0`. The genuine witness is BLOCKED on generation-time name/value-selection — the generator must emit a `variable_binding` fact carrying the rendered name AND make the chain head consult it to render the SAME name (the generation-side dual of the parser gate = `STORE-AWARE-GEN.4b`, a known measured SV effort) + a `Presence` file-scope site selector → re-scoped to new leaf `.4.2.1.2.2.3`. SV `UNKNOWN`→0 continues on the independently-actionable `H.12.6.1` (producer left-recursion fix) / M2 / M3 frontier. Detail: `docs/tasks/GRAMMAR-WELLFORMED-H1255334212-2-2-context-member-implement-refuted.md`.
+
 ## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.6 — `no_path` LRM-grounded re-audit + STANDING no-deletion policy (PGEN-GRAMMAR-WELLFORMED-0108, PURE-DOCS)
 
 ### Director directive (standing policy)
