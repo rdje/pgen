@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-06-17 - PGEN-GRAMMAR-WELLFORMED-0109 (GRAMMAR-WELLFORMED.H.12.6 follow-up, infra): vendor IEEE LRM PDFs git-ignored
+
+The director supplied the authoritative IEEE LRM PDFs. Copied into their MD-workspace dirs and **git-ignored** (large binaries + licensing) so the LRM-grounded `no_path` re-audit / `H.12.6.1` can cite at page level, without tracking the PDFs:
+- `docs/systemverilog/2017/SystemVerilog-LRM-IEEE-1800-2017.pdf` (11M)
+- `docs/systemverilog/2023/SystemVerilog-LRM-IEEE-1800-2023.pdf` (8.8M)
+- `docs/vhdl/2019/VHDL-LRM-IEEE-1076-2019.pdf` (8.5M)
+- `docs/verilog/2005/Verilog-LRM-IEEE-1364-2005.pdf` (6.2M)
+
+`.gitignore` updated with explicit entries; `git check-ignore` confirms all 4 ignored; `git status` shows only `.gitignore`. The tracked, citable ground truth remains the extracted EBNF (`grammars/systemverilog_2017_lrm_extracted.ebnf`, …) + the MD workspaces. Tracker `docs/tasks/GRAMMAR-WELLFORMED-H126-no-path-lrm-reaudit.md` updated to note PDF availability. No code/grammar/generated/release/schema/ledger change.
+
 ## 2026-06-17 - PGEN-GRAMMAR-WELLFORMED-0108 (GRAMMAR-WELLFORMED.H.12.6, PURE-DOCS): `no_path` LRM-grounded re-audit + STANDING no-deletion policy
 
 Director directive (2026-06-17, emphatic + repeated): **every grammar rule shall be reachable; a `no_path` rule is first read as a flaw in the rules that should LEAD to it, not a removable rule; deletion is the last-last-last resort and ONLY when the language LRM objectively proves the rule has no business in the grammar.** This slice records the standing policy and the LRM-grounded re-adjudication of the SystemVerilog `no_path` set — no code/grammar change.

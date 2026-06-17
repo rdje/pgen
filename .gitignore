@@ -406,3 +406,11 @@ universal_test_runner_*.log
 
 # External-corpus bulk characterization raw dumps (regenerable; track characterization.md only)
 stimuli/*/characterization/results.tsv
+
+# IEEE LRM reference PDFs — vendored locally next to their MD workspaces for LRM
+# cross-checks (page-level citations); NOT tracked (large binaries + licensing). The
+# extracted EBNF + MD workspaces remain the tracked, citable ground truth.
+docs/systemverilog/2017/SystemVerilog-LRM-IEEE-1800-2017.pdf
+docs/systemverilog/2023/SystemVerilog-LRM-IEEE-1800-2023.pdf
+docs/vhdl/2019/VHDL-LRM-IEEE-1076-2019.pdf
+docs/verilog/2005/Verilog-LRM-IEEE-1364-2005.pdf

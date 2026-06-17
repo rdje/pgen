@@ -52,8 +52,13 @@ PGEN_CERT_COVERAGE_DUMP_ALL=1 ./target/debug/ast_pipeline ../grammars/systemveri
 
 Citations verified against `grammars/systemverilog_2017_lrm_extracted.ebnf`,
 `docs/systemverilog/2017/grammar_clean.ebnf`, and the MD workspace
-`docs/systemverilog/{2017,2023}/md/`. (No LRM **PDF** is in the repo; MD + extracted EBNF
-are the in-repo ground truth. Add the IEEE 1800 PDF for page-level citations if desired.)
+`docs/systemverilog/{2017,2023}/md/`. The IEEE LRM **PDFs** are now vendored locally
+(git-ignored, `-0109`) next to their MD workspaces —
+`docs/systemverilog/2017/SystemVerilog-LRM-IEEE-1800-2017.pdf`,
+`docs/systemverilog/2023/SystemVerilog-LRM-IEEE-1800-2023.pdf`,
+`docs/vhdl/2019/VHDL-LRM-IEEE-1076-2019.pdf`,
+`docs/verilog/2005/Verilog-LRM-IEEE-1364-2005.pdf` — so page-level PDF citations are now
+possible; the tracked, citable ground truth remains the MD workspaces + extracted EBNF.
 
 | # | rule | LRM status | LRM ref | producer / root start-symbol | verdict | action |
 |---|---|---|---|---|---|---|
