@@ -1243,9 +1243,9 @@ config_rule_statement := default_clause liblist_clause semi
                        | cell_clause use_clause semi
                                 -> {kind: "cell_use",        clause: $1, body: $2}
 
-consecutive_repetition := ( star const_or_range_expression )  -> {kind: "star_range", range: $1}
-                        | ( star )                              -> {kind: "star"}
-                        | ( plus )                              -> {kind: "plus"}
+consecutive_repetition := lbrack star const_or_range_expression rbrack  -> {kind: "star_range", range: $3}
+                        | lbrack star rbrack                             -> {kind: "star"}
+                        | lbrack plus rbrack                             -> {kind: "plus"}
 
 const_identifier := identifier
 
@@ -2235,8 +2235,8 @@ genvar_iteration := genvar_identifier assignment_operator genvar_expression
                   | genvar_identifier inc_or_dec_operator
                          -> {kind: "postfix_inc_dec", name: $1, op: $2}
 
-goto_repetition := ( implies const_or_range_expression )
-                -> {range: $1}
+goto_repetition := lbrack implies const_or_range_expression rbrack
+                -> {range: $3}
 
 hierarchical_array_identifier := hierarchical_identifier
 
@@ -3352,8 +3352,8 @@ next_state := output_symbol -> {kind: "symbol", body: $1}
             | minus         -> {kind: "minus"}
 
 @profiles: ["sv_2017"]
-non_consecutive_repetition_sv_2017 := ( assign const_or_range_expression )
-                                   -> {range: $1}
+non_consecutive_repetition_sv_2017 := lbrack assign const_or_range_expression rbrack
+                                   -> {range: $3}
 
 @profiles: ["sv_2017"]
 non_consecutive_repetition := non_consecutive_repetition_sv_2017
@@ -3412,8 +3412,8 @@ nonblocking_assignment := variable_lvalue less_equal ( delay_or_event_control )?
                        -> {lvalue: $1, control: $3, value: $4}
 
 @profiles: ["sv_2023"]
-nonconsecutive_repetition_sv_2023 := ( assign const_or_range_expression )
-                                  -> {range: $1}
+nonconsecutive_repetition_sv_2023 := lbrack assign const_or_range_expression rbrack
+                                  -> {range: $3}
 
 @profiles: ["sv_2023"]
 nonconsecutive_repetition := nonconsecutive_repetition_sv_2023

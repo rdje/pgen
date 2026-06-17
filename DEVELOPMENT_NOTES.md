@@ -1,4 +1,21 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.3 — boolean_abbrev sequence-repetition LRM `[ ]` delimiter restore (PGEN-GRAMMAR-WELLFORMED-0105, GRAMMAR FIX, release 1.0.142, schema stays 4, ledger SV-0004)
+
+### The slice
+Closed SV cert `UNKNOWN 87→86` (`goto_repetition`) AND fixed a real released-parser bug by restoring the IEEE 1800 §A.8.1 literal `[ ]` brackets the LRM extraction had dropped on the entire `boolean_abbrev` sequence-repetition family.
+
+### Why a family fix (not one rule)
+The leaf named `goto_repetition` (the one carrier in the cert `UNKNOWN` set), but tools-first showed the defect is the same delimiter-drop across all three children — `consecutive_repetition` (`[*N]`/`[*]`/`[+]`), `goto_repetition` (`[->N]`), `non_consecutive_repetition` (`[=N]`, both profiles). Fixing only `goto_repetition` would leave the siblings with the identical bug and make `boolean_abbrev` internally inconsistent (some forms bracketed, others not). Each site was verified with the tool (every bracketed form rejected pre-fix; every LRM production carries `[ ]`), so the family restore is one coherent, targeted defect — exactly like `SV-0002` restored both dropped stream delimiters in one slice. The director's fix-parser-bugs-ASAP principle reinforces fixing the whole bug.
+
+### The dual symptom of a dropped delimiter
+A dropped delimiter on a construct whose first token is also an operator produces two faults at once: (1) over-rejection — the bracketed LRM form can't parse (the `[` is unmatched); (2) operator-shadow — the bracket-less spelling collides with the operator (`*` multiply, `->` implication, `=` assign) so the rule's bytes are re-attributed to an expression and the rule never positively witnesses (cert `UNKNOWN`). Restoring the `[ ]` fixes both.
+
+### Why no schema bump
+The return annotation folds the brackets away — `goto_repetition := lbrack implies const_or_range_expression rbrack -> {range: $3}` emits only `{range: <const_or_range_expression>}`, the same shape as before. The `$1`→`$3` position shift just tracks the inserted `lbrack`/operator tokens; the emitted JSON is byte-identical, so AST-dump schema stays 4 (contrast `SV-0002`, where `stream_concatenation.body` went raw→array → schema 3→4). The post-fix `--parse-dump-ast-pretty` confirmed `range` binds the `const_or_range_expression`, not the bracket/operator.
+
+### Separate finding (flagged, not fixed here)
+While probing realistic forms, `a ##1 b` (a cycle-delay `##` sequence) is rejected — at the same furthest position with or without a trailing `[*N]`, so it is a distinct pre-existing defect in the `##`/cycle-delay lane, independent of this fix and not a regression. Recorded as a future-leaf candidate; not pulled into this targeted slice.
+
 ## 2026-06-17 - GRAMMAR-WELLFORMED.H.12.5.5.3.3.4.1 — direct_index dead-branch removal (PGEN-GRAMMAR-WELLFORMED-0104, GRAMMAR FIX, parse-neutral)
 
 ### The slice

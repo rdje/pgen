@@ -1341,6 +1341,48 @@ mod tests {
         }
     }
 
+    /// GRAMMAR-WELLFORMED.H.12.5.5.3.3.3 regression lock (ledger `SV-0004`,
+    /// release 1.0.142): the `boolean_abbrev` sequence-repetition family carries
+    /// its IEEE 1800 §A.8.1 literal `[ ]` brackets — `consecutive_repetition`
+    /// (`[* N]` / `[*]` / `[+]`), `goto_repetition` (`[-> N]`), and
+    /// `non_consecutive_repetition` (`[= N]`). Extraction had dropped the `[ ]`,
+    /// so the bracket-less forms collided with the `*`/`->`/`=` operators: the
+    /// bracketed LRM forms were REJECTED and `goto_repetition` was
+    /// operator-shadowed (never witnessed → cert `UNKNOWN`). This pins: (1) every
+    /// bracketed sequence-repetition form parses; (2) a bare `a *3` still parses
+    /// (as a multiplication expression — the fix drops the bare sequence-repetition
+    /// spelling, not multiply, so nothing valid regresses).
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn systemverilog_sequence_repetition_requires_lrm_brackets() {
+        use crate::ast_pipeline::runtime_logger_box;
+        use crate::generated_parsers::systemverilog::SystemverilogParser;
+
+        let must_parse = [
+            // (1) the LRM-bracketed sequence-repetition forms (§A.8.1) — REJECTED
+            // at all releases <= 1.0.141 because the `[ ]` had been dropped.
+            "module m; sequence s; a [*3]; endsequence endmodule", // consecutive_repetition [* N]
+            "module m; sequence s; a [*]; endsequence endmodule",  // consecutive_repetition [*]
+            "module m; sequence s; a [+]; endsequence endmodule",  // consecutive_repetition [+]
+            "module m; sequence s; a [->2]; endsequence endmodule", // goto_repetition [-> N]
+            "module m; sequence s; a [=2]; endsequence endmodule", // non_consecutive_repetition [= N]
+            // (2) no-regression: a bare `a *3` is a multiplication expression and
+            // must still parse (the fix removes only the bare repetition spelling).
+            "module m; sequence s; a *3; endsequence endmodule",
+        ];
+        for sample in must_parse {
+            let mut parser = SystemverilogParser::new(
+                sample,
+                runtime_logger_box("ast_shape_contract.sv_sequence_repetition_brackets"),
+            );
+            parser.set_grammar_profile(Some("sv_2017"));
+            assert!(
+                parser.parse_full_systemverilog_file().is_ok(),
+                "SV parser rejected grammar-valid sequence-repetition sample: {sample}",
+            );
+        }
+    }
+
     // GRAMMAR-WELLFORMED.H.11.3 regression lock: the generated layout skipper
     // hard-codes `#`-to-end-of-line comment skipping (an EBNF meta-grammar
     // convention), which used to swallow the VHDL based-literal `#` delimiter

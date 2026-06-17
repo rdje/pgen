@@ -589,6 +589,33 @@ parsing `14/14`, deterministic at seeds 0/7/42) while the rule itself left the s
 Because no accepted input's parse or AST changes, the wire behaviour is identical and the release/schema do
 not move: a pure, verified subtraction of dead weight.
 
+The next SystemVerilog step was the attribution rule's *second* branch once more — **the grammar is at fault,
+fix the grammar** — and a textbook instance of the *delimiter-drop* class the SV LRM extraction keeps
+producing (the same family as the `SV-0002` streaming fix). The certificate-coverage report flagged
+`goto_repetition` as a reachable-but-unwitnessed `UNKNOWN`. Its rule was `goto_repetition := ( implies
+const_or_range_expression )` — a bare `-> const_or_range_expression`; but `->` is *also* the implication
+operator, so the generator's bare `-> N` was always re-attributed to an expression and `goto_repetition`
+never positively witnessed. Reading the grammar showed the defect was *family-wide*: the entire
+`boolean_abbrev` sequence-repetition family had dropped the literal `[ ]` brackets the LRM mandates —
+`consecutive_repetition` (`[* N]` / `[*]` / `[+]`), `goto_repetition` (`[-> N]`), and
+`non_consecutive_repetition` (`[= N]`, both profiles) — and the call site `expression_or_dist ( boolean_abbrev
+)?` added none. Tools-first confirmed the dual symptom this delimiter-drop always carries: every LRM-valid
+bracketed form (`a[*3]`, `a[*]`, `a[+]`, `a[->2]`, `a[=2]`) was **rejected** — the grammar refused valid
+IEEE 1800 §A.8.1 SystemVerilog — while the bracket-less spellings `a*3` / `a=2` were wrongly *accepted*. The
+LRM ground truth (the extracted `goto_repetition ::= [-> const_or_range_expression ]`,
+`non_consecutive_repetition ::= [= const_or_range_expression ]`, and §A.8.1's bracketed
+`consecutive_repetition`) is unambiguous, so the fix restores the `[ ]` across the family using the proven
+in-grammar bracket idiom (`lbrack op const_or_range_expression rbrack`, the `range` captured at `$3`). The
+emitted `{kind, range}` / `{range}` shape is byte-identical — the brackets are parsed then folded away by the
+return annotation — so the release does **not** change the AST-dump schema. Post-fix the bracketed forms parse,
+the bare spellings are correctly rejected (a bare `a*3` still parses as a *multiplication expression*, so
+nothing valid regresses), and `goto_repetition` becomes distinguishable and witnesses: SystemVerilog `UNKNOWN
+88 → 87 → 86` (witness `1203 → 1204`, deterministic at seeds 0/7/42, `spf=0`, zero newly-unknown), with the SV
+external corpus still parsing `14/14` and the shape-contract green. This is the delimiter-drop class and the
+bug-finding-oracle role compounding yet again: an unwitnessable fragment was neither accepted as a residual
+nor chased in the generator — it was adjudicated grammar-first, the fix restored LRM fidelity, and the
+restoration closed a real, shipped parse bug (ledger row `SV-0004`, SV release `1.0.142`).
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was
