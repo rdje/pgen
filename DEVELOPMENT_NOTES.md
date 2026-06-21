@@ -1,4 +1,28 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.8.1 — SVA infix property/sequence binary-operator parse bug: WHY+WHERE (PGEN-GRAMMAR-WELLFORMED-0118, PURE-DOCS INVESTIGATION)
+
+### What & why
+Tools-first WHY+WHERE for the lane-2 `H.12.5.8` leaf — the infix property/sequence binary-operator forms the SV parser rejects (`a ##1 b`, `a and b`, `a or b`, `a intersect b`, `a within b`, `a until b`, `a s_until b`). No code/grammar/generated change; the slice splits `H.12.5.8` into `.8.1` (done) + `.8.2` (fix design).
+
+### Reproduction (parser-deterministic)
+`parseability_probe --parse systemverilog <f>.sv --profile 2017` on `module m; logic a, b; assert property (<op>); endmodule`: bare `a` PASS; all infix operators FAIL at the operator (`a ##1 b` furthest 42; `and`/`or`/`intersect`/`within`/`until`/`s_until` furthest 40).
+
+### WHERE / WHY (root cause)
+- The generated `systemverilog_parser.rs` contains ZERO `_lr_base`/`_lr_suffix` — `sequence_expr` (direct self-binary `A := A op A`) and `property_expr_sv_2017`/`property_expr` (indirect via the `property_expr := property_expr_sv_2017 | property_expr_sv_2023` union) are emitted with their left-recursive branches intact.
+- `--trace-rules sequence_expr` on `a and b`: branch 2/12 (the direct-LR `sequence_expr cycle_delay_range …`) hits `💥 Infinite recursion detected in rule 'sequence_expr'` (runtime cycle-breaker, `mutual_recursion_handler.rs:119` `CycleType::LeftRecursive => false`); branch 3/12 (`expression_or_dist (boolean_abbrev)?`) consumes only `a`; every operator branch is left-recursive and similarly cut → position never advances past `a` → `and b` unparsed (`furthest_position` parks at the operator).
+- Root site: `eliminate_left_recursive_patterns` (`rust/src/ast_pipeline/mod.rs:1627`, default-on via `eliminate_left_recursion:true`) → `detect_left_recursive_chain_plan` (`:1692`) collects suffixes only via `extract_rule_reference_name` (`:2127`, a BARE rule reference only) + `extract_wrapper_suffix` (`:2170`, the referenced wrapper must be entirely `base suffix`; an `Or` requires ALL alternatives base-prefixed). SV's inline multi-element infix Sequences (`sequence_expr kw_and sequence_expr`) and the union-mediated indirect form (`property_expr_sv_2017`'s first alternative is `sequence_expr`, not `property_expr`-prefixed) match neither ⇒ both rules skipped (`None`).
+- DECISIVE: a minimal `expr := expr plus term -> {…} | term -> {…}` grammar through `ast_pipeline --generate-parser` reports `Completed left-recursion elimination pass (0 transformations)` (at `PGEN_TRACE_VERBOSITY=debug`), emits no `_lr_base`, and the generated parser fails its post-gen self-verification — so **PGEN's LR-eliminator does not handle direct inline left recursion at all**, only the indirect bare-reference wrapper-chain (the `-0111` `module_path_expression` case).
+
+### Book accuracy
+`docs/book/src/developer-architecture.md` claims direct-left-recursive EBNF (`expr := expr "+" term | term`) is auto-eliminated "handling direct and indirect/chained cases" — refuted by the experiment above. Reconcile with the `.8.2` fix decision (narrow the claim if grammar-restructured; make it true if direct-LR elimination is implemented). Not edited in this pure-docs slice.
+
+### Fix directions (decide in .8.2 — NOT this slice)
+- (A) grammar restructure of `sequence_expr`/`property_expr` to the non-left-recursive `next (OP next)*` iterative idiom already used across the SV grammar; encode IEEE 1800 §16 operator precedence/associativity; likely AST-shape/schema change.
+- (B) engine fix: implement direct left-recursion elimination (`A := Aα|β ⇒ A := β α*`) in `detect_left_recursive_chain_plan`; general/parser-agnostic; must be strictly additive/byte-identical for shipped grammars; self-binary `A := A op A` (operand on both ends) + precedence/associativity need care.
+
+### Verification (this slice)
+Tools-only; no code/grammar/generated change ⇒ no clippy, no regen, no gate run. SV cert `UNKNOWN=56` unchanged; `LIVE_ACHIEVEMENT_STATUS.md` unchanged. Detail: `docs/tasks/GRAMMAR-WELLFORMED-H12581-infix-binop-lr-whywhere.md`.
+
 ## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.7.2 — M3 prefix property/sequence temporal-operator plannable-reach extension (PGEN-GRAMMAR-WELLFORMED-0117, GENERATOR-ONLY ENGINE FIX)
 
 ### What & why
