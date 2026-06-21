@@ -1,4 +1,22 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.8.2 — SVA infix binary-operator parse bug: FIX DESIGN + DECISION (PGEN-GRAMMAR-WELLFORMED-0119, PURE-DOCS DESIGN)
+
+### Decision: direction A (grammar restructure to a §16 precedence cascade)
+Two directions were characterized in `.8.1`: (A) rewrite `sequence_expr`/`property_expr` to the non-left-recursive `next (OP next)*` idiom; (B) implement direct left-recursion elimination in the engine (`detect_left_recursive_chain_plan`, `mod.rs:1692`). **Decision = A.** Deciding fact: the current grammar is a flat, precedence-free list of binary-operator alternatives, but SVA operators have a real precedence/associativity (IEEE 1800-2017 Table 16-3). To parse SVA correctly the grammar MUST become a precedence cascade regardless of A or B — a naive direct-LR `β (op β)*` flattens all operators to one precedence and left-assoc (wrong). Given the cascade is required either way, A needs no engine change while B needs the same grammar restructure PLUS a new high-blast-radius engine feature for identical correctness ⇒ B is dominated.
+
+### IEEE 1800-2017 Table 16-3 (§16.12) — tightest → loosest, with associativity
+`[*]`/`[=]`/`[->]` (repetition, unary) > `##` (left) > `throughout` (right) > `within` (left) > `intersect` (left) > `not`/`nexttime`/`s_nexttime` (unary) > `and` (left) > `or` (left) > `iff` (right) > `until`/`s_until`/`until_with`/`s_until_with`/`implies` (right) > `|->`,`|=>`,`#-#`,`#=#` (right) > `always`/`s_always`/`eventually`/`s_eventually` (unary) > `if`-`else`/`case`/`accept_on`/`reject_on`/`sync_accept_on`/`sync_reject_on` (unary). Notes: `strong`/`weak` require parentheses (no precedence); ordinary expression operators (Table 11-2) bind tighter than all SVA operators; `and`/`or` are bifunctional (same precedence at sequence + property level); sequences bind tighter than property-only operators.
+
+### Cascade blueprint
+- Sequence: `sequence_expr := seq_or_expr`; `seq_or := seq_and (or seq_and)*`; `seq_and := seq_intersect (and seq_intersect)*`; `seq_intersect := seq_within (intersect seq_within)*`; `seq_within := seq_throughout (within seq_throughout)*`; `seq_throughout := expression_or_dist throughout seq_throughout | seq_delay`; `seq_delay := (cycle_delay_range)? seq_unary (cycle_delay_range seq_unary)*`; `seq_unary := expression_or_dist (boolean_abbrev)? | sequence_instance (sequence_abbrev)? | (paren) | first_match(...) | clocking_event sequence_expr`.
+- Property: `property_expr_sv_2017 := prop_guard`; `prop_guard := accept_on/reject_on/sync_*/if-else/case … | prop_temporal`; `prop_temporal := always/s_always/eventually/s_eventually … | prop_impl`; `prop_impl := prop_until ((|->/|=>/#-#/#=#) prop_impl)?` (LHS seq forms per A.2.10) `| …`; `prop_until := prop_iff ((until-family|implies) prop_until)?`; `prop_iff := prop_or (iff prop_iff)?`; `prop_or := prop_and (or prop_and)*`; `prop_and := prop_not (and prop_not)*`; `prop_not := not/nexttime/s_nexttime prop_not | prop_primary`; `prop_primary := sequence_expr | strong/weak(seq) | (property_expr) | property_instance | clocking_event property_expr`.
+
+### .8.3 implementation sub-questions
+AST-shape preservation (binary `{kind,lhs,rhs}` fold to keep schema stable, vs schema bump + lockstep + ledger row); Annex A.2.10 operand-type re-confirmation per level (`throughout` LHS=`expression_or_dist`; implication LHS=`sequence_expr`/RHS=`property_expr`); both profiles; keep the `-0105` `boolean_abbrev` `[ ]` fix; `ebnf.ebnf` lockstep verification; `block_event_expression@:681` sibling decision; book reconciliation of the direct-LR overclaim.
+
+### Verification (this slice)
+Design/decision only; no code/grammar/generated change ⇒ no clippy, no regen, no gate run. Precedence authority = the LRM (Table 16-3, tools-extracted from `docs/systemverilog/2017/`); `.8.3` re-confirms operand types vs Annex A.2.10. SV cert `UNKNOWN=56` unchanged; `LIVE_ACHIEVEMENT_STATUS.md` unchanged. Detail: `docs/tasks/GRAMMAR-WELLFORMED-H12582-infix-binop-lr-fix-design.md`.
+
 ## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.8.1 — SVA infix property/sequence binary-operator parse bug: WHY+WHERE (PGEN-GRAMMAR-WELLFORMED-0118, PURE-DOCS INVESTIGATION)
 
 ### What & why
