@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.7.1 — M3 property/sequence temporal-operator WHY+WHERE + parse/reject adjudication (PGEN-GRAMMAR-WELLFORMED-0116, PURE-DOCS INVESTIGATION)
+
+### What & why
+The `H.12.5.7` leaf (M3 — the property/sequence temporal-operator rules still `UNKNOWN` in the SV `UNKNOWN=67` residual) mandated *"Tools-first WHY+WHERE in the plannable-witness pass FIRST."* This slice is that investigation; it produces no code change and re-scopes the leaf via the attribution rule (a generator reach-failure is EITHER a generator gap OR a grammar/parser defect — check the parser BEFORE adding generator machinery).
+
+### Tools used (all read-only / scratch)
+- DEBUG `ast_pipeline --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0` with `PGEN_CERT_COVERAGE_DUMP_ALL=1` (enumerate the 67) and `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` (per-rule probe verdicts).
+- `parseability_probe --parse systemverilog <minimal-sample> --profile 2017` per operator.
+
+### Adjudication (the key finding)
+- **Prefix operators PARSE** → genuine generator-reach gap: `s_eventually a`, `nexttime a`, `s_nexttime a`, `always a`, no-range `eventually a`/`s_always a`, `accept_on (a) b`, `reject_on (a) b`, `sync_accept_on (a) b`, `sync_reject_on (a) b`, `case (x) 1: a; endcase` all accepted. Rules: `kw_accept_on`/`kw_eventually`/`kw_nexttime`/`kw_reject_on`/`kw_s_always`/`kw_s_eventually`/`kw_s_nexttime`/`kw_sync_accept_on`/`kw_sync_reject_on`/`kw_constant`/`property_case_item`.
+- **Infix operators REJECT** → grammar/parser defect (LR-elim), NOT reach gaps: `a until b` / `a s_until b` / `a until_with b` / `a s_until_with b` all fail at `furthest=47` — the identical locus as the already-known `a or b` / `a and b` / `a ##1 b`. Sequence `a intersect b` / `a within b` likewise. (The bounded `eventually [1:2] a` / `s_always [1:2] a` forms also fail, but their no-range forms parse, so the *keyword* is witnessable; the bracket-range form is a separate narrower question deferred with the fix.)
+
+### WHERE (plannable-witness pass)
+DEBUG_PROBES shows **no** `[plannable-probe]` line for the prefix ops or the property `until`-family, and they are **not** among the 19 `no_path`. By `run_plannable_witness_pass` accounting (`rust/src/ast_pipeline/stimuli_generator.rs:3196-3205`): `set_reach_plan`-false ⇒ `no_path`; reach-found-but-all-generations-`Err` ⇒ `generation_failures` with no `witness_check` print. So these rules are exactly the dump's **"29 generation failures"** — a reach path exists, but `generate_from_entry_with_optional_timeout` (`:3113`) dead-ends/times out building the minimal forced construct. Contrast: sequence `intersect`/`within` DO generate but probe `parsed=false` (the parse defect).
+
+### WHY (root mechanism)
+`property_expr` is **indirectly left-recursive** (`property_expr → property_expr_sv_2017 → property_expr` via the infix branches), so the transform pipeline LR-eliminates it into a large `_lr_base`/`_lr_suffix` choice. The reach path to a property temporal keyword forces descent `assertion_item → concurrent_assertion_statement → assert_property_statement → property_spec → property_expr → property_expr_sv_2017 → <branch>`; the minimal forced construct through that deep indirectly-recursive chain exceeds the plannable pass's per-target budget → generation `Err`. This is the deep-operator-chain class the `rtl_const_expr` constructive-reach + RTL-FE-CLOSURE.5.x precedents address — but `property_expr` is deeper and indirectly recursive, so they need extension. Fix direction = a lane-1 generator extension (`.7.2`), not a grammar change.
+
+### Outcome / lockstep
+`H.12.5.7` SPLIT → `.7.1` (done) + `.7.2` (the new lane-1 frontier). The infix `until`-family folded into `H.12.5.8` (broadened to own the whole infix property/sequence LR-elim class). Updated: master tree `docs/tasks/GRAMMAR-WELLFORMED.md` + new task file `docs/tasks/GRAMMAR-WELLFORMED-H12571-m3-temporal-whywhere.md`; `MEMORY.md`, `CHANGES.md`, this file. No book/README/contract/ledger change (no behaviour change; the book's well-formedness narrative gets the step when the `.7.2` fix moves the number). `LIVE_ACHIEVEMENT_STATUS.md` UNCHANGED (SV `Mostly Done`, `UNKNOWN=67`).
+
 ## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.6.2.2.2 — M2a reach-honesty ENGINE IMPLEMENT (store-free reach pass) (PGEN-GRAMMAR-WELLFORMED-0115, GENERATOR-ONLY)
 
 ### Root cause (confirmed `-0114`)
