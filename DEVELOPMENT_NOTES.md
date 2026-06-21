@@ -1,4 +1,26 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-22 - GRAMMAR-WELLFORMED.H.12.5.8.3.1 — SVA SEQUENCE precedence-cascade implemented + parse-verified; coverage-regression root-caused (PGEN-GRAMMAR-WELLFORMED-0120, PURE-DOCS CHECKPOINT)
+
+Implementation checkpoint for the `.8.3` precedence-cascade (direction A, decided in `.8.2`). The §16 SEQUENCE cascade was implemented and parse-verified; a coverage regression was root-caused tools-first; the design fork was decided by the director (keep cascade + fix coverage). PURE-DOCS — the cascade lives uncommitted in the working tree; no committed code change.
+
+### What was done
+- Replaced the flat, directly-left-recursive `sequence_expr` (12 branches incl. 5 LR: `delay_binary`/`and`/`intersect`/`or`/`within`) with the §16 Table 16-3 precedence cascade: `sequence_expr := seq_or_expr -> $1`, then `seq_or → seq_and → seq_intersect → seq_within → seq_throughout → seq_delay(##) → seq_unary`. Idioms (all proven in certified grammars): left-assoc levels `head tail tail*` with named tail rules (e.g. `seq_or_tail := kw_or_… seq_and_expr -> $2`) returning `{kind, lhs:$1, rest:[$2,$3*]}`; bare-operand passthrough `| next -> $1`; `throughout` right-assoc with `expression_or_dist` LHS (Annex A.2.10); delay level keeps the original `delay_head`/`delay_binary` raw shapes with `seq_unary` operands; `seq_unary` holds the unary bases (expression+`boolean_abbrev`, instance+`sequence_abbrev`, paren, `first_match`, clocking). Exact text in the `.8.3.1` task file.
+- Regenerated the SV parser (`make focus_systemverilog`) and rebuilt `ast_pipeline` (debug, features `generated_parsers ebnf_dual_run`) + `parseability_probe` (release).
+
+### Verification
+- **Parse — PASS.** All previously-broken infix forms now parse (`a or b`, `a and b`, `a intersect b`, `a within b`, `a ##1 b`, `a ##1 b ##2 c`, `a or b and c`, `a and b or c`, `a ##1 b or c`, `a intersect b within c`); all previously-working forms preserved (`a`, `a [*2]`, `first_match(a)`, `x throughout a`, `##1 a`, `(a)`).
+- **Cert — REGRESSION (open).** seed 0: `total=1289→1300`, `witness=1232→1234`, `UNKNOWN=56→65`. The cascade witnesses `kw_intersect`/`kw_within` (the parse fix) and `spf=0`, but de-witnesses 9 `seq_unary` operand sub-rules: `boolean_abbrev`, `boolean_abbrev_sv_2017`, `consecutive_repetition`, `non_consecutive_repetition`, `non_consecutive_repetition_sv_2017`, `goto_repetition`, `const_or_range_expression`, `sequence_abbrev`, `kw_first_match_2ddb8d09` (+ `direct_method_call`/`known_unscoped_sequence_identifier` via `sequence_instance`).
+
+### Root cause of the coverage regression (tools-first, decisive)
+- **NOT depth.** `--max-depth` 24/32/40 all report `UNKNOWN=65` unchanged. The witness-pass per-target budget (`max_depth*2 + target_subtree`, `RTL-FE-CLOSURE.5.2/.5.5`; certifies `rtl_const_expr`'s ~14-deep cascade) is adequate.
+- **Forcing bug.** With `PGEN_CERT_COVERAGE_DEBUG_PROBES=1`, the plannable witness pass emits malformed deep samples, e.g. `consecutive_repetition`: `sequence\foo ;## \foo [*] within ## \foo [*] intersect ## \foo [*] … endsequence`. Reaching `seq_unary`'s operands routes through `seq_delay_expr`'s `delay_head` branch (`cycle_delay_range seq_unary`); `cycle_delay_range` (`## \foo`) greedily consumes the operand identifier, the following `seq_unary` `expression_or_dist` comes out empty, and the forced `boolean_abbrev` lands as a bare `[*]` with no host → invalid SVA → no re-parse → no witness; repeated at every cascade operand position (`504` probe samples did not re-parse vs `456` baseline; `0` generation failures).
+- **WHERE:** the plannable forced-descent/reach-path construction in `rust/src/ast_pipeline/stimuli_generator.rs` (per-target witness passes `:3053+`/`:3258+`), interacting with the cascade's `seq_delay_expr` `delay_head` branch.
+
+### Decision + next
+- Fork surfaced (flat-chain vs cascade+coverage-fix). **Director chose: keep the cascade + fix coverage.** Fix directions (next session, tools-first): (1) engine — reach-planner prefer the clean passthrough to `seq_unary` over `delay_head` (most general; serves `.8.3.2` too); (2) grammar — reach `seq_unary` without routing through the `##` delay branches; (3) declarative `@probe_sample` seeds for the deep operands. Land a fix so the cascade NETS `UNKNOWN`<56, then commit `.8.3.1`; then `.8.3.2` property layer.
+- **Resume state:** committed baseline = flat grammar, `UNKNOWN=56`; working tree = the self-consistent cascade WIP (grammar + matching regenerated parser), so a cert run NOW reads `65`. Exact cascade text is preserved in the `.8.3.1` task file for recovery.
+- **Commit: `PGEN-GRAMMAR-WELLFORMED-0120`.**
+
 ## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.8.2 — SVA infix binary-operator parse bug: FIX DESIGN + DECISION (PGEN-GRAMMAR-WELLFORMED-0119, PURE-DOCS DESIGN)
 
 ### Decision: direction A (grammar restructure to a §16 precedence cascade)
