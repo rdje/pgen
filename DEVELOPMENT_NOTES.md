@@ -1,4 +1,24 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.6.2.2.2 — M2a reach-honesty ENGINE IMPLEMENT (store-free reach pass) (PGEN-GRAMMAR-WELLFORMED-0115, GENERATOR-ONLY)
+
+### Root cause (confirmed `-0114`)
+`reach_hops` (cert-coverage reach BFS) is fewest-hops + first-discovery-wins. The SV `constraint_block` subtree is reachable BOTH via the store-gated out-of-class `extern_constraint_declaration` (SHORTER, mandatorily renders `class_scope` — a DECLARED class a minimal witness lacks) and the non-gated in-class `constraint_declaration` (LONGER, parses store-free). First-discovery picked the gated shorter route ⇒ the subtree never witnessed.
+
+### Why iteration A (two-pass `reach_hops`) was rejected
+First cut: pass-1 excludes store-gated edges, pass-2 all-edges fallback. A/B gave SV `84→67 spf=0` but de-witnessed ONE rule — `known_unscoped_checker_identifier` (store-gated `has_fact(checker_name,$body)`). Tools-first: it had no own-probe witness (store-gated → its own probe can't satisfy the gate); it was an incidental BYSTANDER of a *different* target's all-edges probe, and rerouting all targets changed that probe's sample. Deterministic at seeds 0/7/42. A single newly-UNKNOWN violates the no-regression doctrine (the tournament-loser-leak precedent reverted a net-positive de-witnessing fix), so iteration A was discarded.
+
+### Iteration B (landed) — strictly additive, RNG-safe
+Key realization: extra probes advance the shared RNG and perturb later targets' samples (the "re-rolling shifts unrelated witnesses" hazard). So the store-free behaviour must run AFTER all existing passes complete, leaving their RNG streams untouched.
+- `reach_hops` reverted to the original all-edges BFS (`reach_hops_pass(.., false)`); existing passes byte-identical → all bystander coverage preserved → no newly-UNKNOWN by construction.
+- New `reach_hops_pass(entry, target, exclude_store_gated_edges)` with `Discovery.emitted_available` (ancestors' `@emit_fact` kinds, so a gate consulting a path-emitted kind is NOT excluded).
+- Store-gate detector: `compute_reach_gate_kinds` (precomputed per-rule consulted kinds for the 5 kind-first primitives `has_fact`/`lacks_fact`/`fact_attribute_equals`/`lacks_fact_attribute_equals`/`fact_count_at_least` — F1's `consulted_kinds_in_predicate` was NOT reused because its `FACT_QUERY_PRIMITIVES` omits `lacks_fact_attribute_equals`, which the scoped class-scope head alternative uses); `edge_is_store_gated`→`mandatory_reach_gate`→`mandatory_node_gated` (Or gated iff ALL alts gated, Sequence gated iff ANY element, min-0 quantifier non-propagating, lookahead-skip, cycle-guarded, transitive, profile-pruned-ref treated as gated).
+- `set_reach_plan_for_rule_mode(.., store_free)` selects the BFS variant (store-free falls back to all-edges when no store-free path reaches the target); pub `set_reach_plan_for_rule` delegates with `false`.
+- `run_plannable_witness_pass(.., store_free, witness_check: &mut dyn FnMut)` is the shared body; `generate_plannable_rule_witnesses` (all existing/test callers unchanged) + new `generate_plannable_store_free_witnesses` are thin wrappers. Guarded truly inert: `store_free && reach_gate_kinds.is_empty()` returns an empty report (a store-free probe can differ from all-edges only when a fact-query predicate exists), so predicate-free grammars pay ZERO extra cost.
+- `main.rs` cert driver: PASS 3d runs the store-free pass after target-own (PASS 3c), over the post-target-own residual UNKNOWN, only when non-empty.
+
+### Verification
+SV cert (count 40): `witness 1204→1221 UNKNOWN 84→67 spf=0`, **deterministic + newly-UNKNOWN=∅ at seeds 0/7/42** (both pre-guard and the shipped guarded binary). 17 closed = `constraint_block` subtree + adjacents; `extern_constraint_declaration`/`known_unscoped_class_scope_*`/`constraint_set` remain UNKNOWN (STORE-AWARE-GEN/residual). 6 fully-certified grammars all `fully_certified=true` unchanged (json/regex/rtl_const_expr/svpp/vhdl/rtl_frontend). `clippy_on_rust_change` ✅ (strict source clean). R3 (alt-selection lever to witness `extern_constraint_declaration` itself) analyzed + deferred — distinct mechanism, change-one-thing, not needed for the subtree subset. No release/schema/ledger bump.
+
 ## 2026-06-18 - GRAMMAR-WELLFORMED.H.12.5.6.2.2.1 — M2a reach-honesty empirical confirmation + refined design (PGEN-GRAMMAR-WELLFORMED-0114, PURE-DOCS)
 
 The `.2.1` (`-0113`) design pinned the M2a fix DIRECTION. This slice — the first sub-step of the engine fix `.2.2.2`'s parent `.2.2` — rebuilds-from-source the DEBUG `ast_pipeline`, reproduces the decisive baseline, and EMPIRICALLY CONFIRMS the WHY via `PGEN_REACH_PATH_DUMP=1` (the leaf mandate "read the reach path before changing it"). The tools-first read REFINED/CORRECTED the design, so the engine implement is split out as `.2.2.2`.

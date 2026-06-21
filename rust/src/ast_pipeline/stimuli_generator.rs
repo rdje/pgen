@@ -1443,6 +1443,13 @@ pub struct StimuliGenerator<'a> {
     // The generation-time necessary condition `count(K) >= 1` is checked before the rule generates; on
     // failure the rule is unsatisfiable (no positive `$ref` can match an empty fact set) → backtrack.
     gen_count_kinds: HashMap<String, Vec<String>>,
+    // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2 (M2a reach-honesty): rule → the fact-KINDS it consults via a
+    // kind-first fact-query `@predicate` (`has_fact`/`lacks_fact`/`fact_attribute_equals`/
+    // `lacks_fact_attribute_equals`/`fact_count_at_least`). A rule with entries is "store-gated" on
+    // those kinds; the two-pass `reach_hops` BFS uses this to deprioritize reach edges that are
+    // mandatorily forced through such a gate when the consulted kind is not emitted on the reach path.
+    // Empty for every grammar with no fact-query predicates ⇒ the deprioritization is inert there.
+    reach_gate_kinds: HashMap<String, Vec<String>>,
     // SV-EXH-PROOF.2.3.2: grammar-scoped structural-sigil set `G`
     // (union of every permissive leading-negated content class's
     // printable complement across the whole grammar). Derived once
@@ -1570,6 +1577,10 @@ impl<'a> StimuliGenerator<'a> {
         let (gen_emit_facts, gen_count_kinds) =
             Self::compute_store_aware_gen_directives(annotations);
         let store_aware_gen = !gen_count_kinds.is_empty();
+        // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: precompute per-rule fact-query-predicate consulted kinds
+        // once (the SAME annotation parse the codegen/store-aware path use), for the two-pass
+        // `reach_hops` store-gated-edge deprioritization. Empty ⇒ inert (no behavior change).
+        let reach_gate_kinds = Self::compute_reach_gate_kinds(annotations);
 
         let coverage = StimuliCoverageMetrics::new(
             grammar_name.clone(),
@@ -1612,6 +1623,7 @@ impl<'a> StimuliGenerator<'a> {
             store_aware_gen,
             gen_emit_facts,
             gen_count_kinds,
+            reach_gate_kinds,
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
             closer_scopes_entered: 0,
@@ -2713,7 +2725,28 @@ impl<'a> StimuliGenerator<'a> {
         target_rule: &str,
         bypass_fuel: u32,
     ) -> bool {
-        let Some(hops) = self.reach_hops(entry_rule, target_rule) else {
+        self.set_reach_plan_for_rule_mode(entry_rule, target_rule, bypass_fuel, false)
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: as `set_reach_plan_for_rule`, but `store_free` selects the
+    /// reach BFS variant — `false` = the original all-edges path; `true` = the store-gated-edge
+    /// deprioritized path (pass 1, falling back to all-edges only if the store-free path does not
+    /// reach the target). The store-free mode is driven by `generate_plannable_store_free_witnesses`
+    /// as a strictly-additive final pass over residual UNKNOWN rules.
+    fn set_reach_plan_for_rule_mode(
+        &mut self,
+        entry_rule: &str,
+        target_rule: &str,
+        bypass_fuel: u32,
+        store_free: bool,
+    ) -> bool {
+        let hops = if store_free {
+            self.reach_hops_pass(entry_rule, target_rule, true)
+                .or_else(|| self.reach_hops_pass(entry_rule, target_rule, false))
+        } else {
+            self.reach_hops_pass(entry_rule, target_rule, false)
+        };
+        let Some(hops) = hops else {
             return false;
         };
         // GRAMMAR-WELLFORMED.H.12.5.5.2.1 (OBSERVABILITY-ONLY): env-gated reach-path dump —
@@ -2952,6 +2985,61 @@ impl<'a> StimuliGenerator<'a> {
         max_attempts_per_rule: usize,
         mut witness_check: impl FnMut(&str, &str) -> PlannableProbeVerdict,
     ) -> PlannableReachReport {
+        self.run_plannable_witness_pass(
+            entry_rule,
+            target_rules,
+            per_attempt_timeout_ms,
+            max_attempts_per_rule,
+            false,
+            &mut witness_check,
+        )
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2 (M2a reach-honesty): the strictly-additive store-free reach
+    /// pass. Same machinery as `generate_plannable_rule_witnesses`, but each target is routed via the
+    /// store-gated-edge-deprioritized path (`store_free`). The cert driver runs this LAST, over only
+    /// the rules still UNKNOWN after the diverse / plannable / target-own passes — so every prior pass
+    /// keeps its exact RNG stream and witness landscape (no newly-UNKNOWN by construction) and this
+    /// pass can only UNION new witnesses. Its motivating win: the SystemVerilog constraint-body cluster
+    /// (`constraint_block` + subtree) re-routed through the non-gated in-class `constraint_declaration`
+    /// instead of the store-gated out-of-class `extern_constraint_declaration` (whose mandatory
+    /// `class_scope` needs a DECLARED class no minimal witness can provide). Truly inert for a grammar
+    /// with no fact-query predicate and for an empty residual (the fully-certified roster never runs it).
+    pub fn generate_plannable_store_free_witnesses(
+        &mut self,
+        entry_rule: &str,
+        residual_rules: &[String],
+        per_attempt_timeout_ms: u64,
+        max_attempts_per_rule: usize,
+        mut witness_check: impl FnMut(&str, &str) -> PlannableProbeVerdict,
+    ) -> PlannableReachReport {
+        self.run_plannable_witness_pass(
+            entry_rule,
+            residual_rules,
+            per_attempt_timeout_ms,
+            max_attempts_per_rule,
+            true,
+            &mut witness_check,
+        )
+    }
+
+    fn run_plannable_witness_pass(
+        &mut self,
+        entry_rule: &str,
+        target_rules: &[String],
+        per_attempt_timeout_ms: u64,
+        max_attempts_per_rule: usize,
+        store_free: bool,
+        witness_check: &mut dyn FnMut(&str, &str) -> PlannableProbeVerdict,
+    ) -> PlannableReachReport {
+        // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: the store-free variant only ever DIFFERS from the
+        // all-edges path when some reach edge is store-gated, which requires at least one fact-query
+        // `@predicate`. With none (`reach_gate_kinds` empty), every store-free probe is byte-identical
+        // to one the all-edges plannable pass already ran, so it can witness nothing new — skip the
+        // whole pass so it is TRULY inert (zero extra cost) for predicate-free grammars.
+        if store_free && self.reach_gate_kinds.is_empty() {
+            return PlannableReachReport::default();
+        }
         let original_max_depth = self.config.max_depth;
         let original_max_rule_visits = self.config.max_rule_visits;
         self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
@@ -3015,7 +3103,7 @@ impl<'a> StimuliGenerator<'a> {
             loop {
                 self.config.max_depth = budget;
                 let bypass_fuel = budget.saturating_add(1) as u32;
-                if !self.set_reach_plan_for_rule(entry_rule, rule, bypass_fuel) {
+                if !self.set_reach_plan_for_rule_mode(entry_rule, rule, bypass_fuel, store_free) {
                     // No reach path — budget-independent, so this is terminal for the rule.
                     break;
                 }
@@ -5604,10 +5692,39 @@ impl<'a> StimuliGenerator<'a> {
     /// (the last pair's site references `target_rule` itself). `Some(empty)` when
     /// `entry_rule == target_rule`; `None` when the target is not graph-reachable.
     fn reach_hops(&self, entry_rule: &str, target_rule: &str) -> Option<Vec<(String, String)>> {
+        // The default reach path is the ORIGINAL all-edges BFS (byte-identical to pre-H.12.5.6.2.2.2
+        // behaviour). The store-gated-edge-deprioritized variant is a SEPARATE, strictly-additive pass
+        // (`set_reach_plan_for_rule_mode(.., store_free = true)`, driven by
+        // `generate_plannable_store_free_witnesses`) run LAST over only the rules still UNKNOWN — so
+        // every existing pass keeps its exact RNG stream and bystander coverage (no newly-UNKNOWN by
+        // construction), and the store-free pass only ever UNIONS new witnesses. See `reach_hops_pass`.
+        self.reach_hops_pass(entry_rule, target_rule, false)
+    }
+
+    /// GRAMMAR-WELLFORMED.H.7.2 (extracted from `compute_reach_path`'s BFS so the rule-target plan can
+    /// reuse it; extended by H.12.5.6.2.2.2 with the `exclude_store_gated_edges` pass flag + emitted-
+    /// on-path tracking): BFS over the rule-reference graph from `entry_rule` to `target_rule`. Returns
+    /// the hop chain in entry→target order as `(referencing_rule, reference-site node_path)` pairs —
+    /// each pair is the site inside `referencing_rule` whose `rule_reference` discovered the next rule
+    /// on the path (the last pair's site references `target_rule` itself). `Some(empty)` when
+    /// `entry_rule == target_rule`; `None` when the target is not graph-reachable under this pass.
+    /// When `exclude_store_gated_edges`, an edge to a rule that is mandatorily forced through a store-
+    /// gate consulting a fact-kind not yet emitted on the path is skipped (see `reach_hops`).
+    fn reach_hops_pass(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        exclude_store_gated_edges: bool,
+    ) -> Option<Vec<(String, String)>> {
         use std::collections::VecDeque;
         struct Discovery {
             predecessor: Option<String>,
             hop_site_path: String,
+            // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: fact-kinds emitted by STRICT ancestors on the discovery
+            // path (predecessor's set ∪ the predecessor rule's own `@emit_fact` kinds). A store-gate
+            // consulting a kind already in this set is satisfiable on the path, so the edge is NOT
+            // deprioritized. Empty everywhere for grammars without `@emit_fact`.
+            emitted_available: HashSet<String>,
         }
         let mut discovered: HashMap<String, Discovery> = HashMap::new();
         discovered.insert(
@@ -5615,6 +5732,7 @@ impl<'a> StimuliGenerator<'a> {
             Discovery {
                 predecessor: None,
                 hop_site_path: String::new(),
+                emitted_available: HashSet::new(),
             },
         );
         let mut queue: VecDeque<String> = VecDeque::new();
@@ -5627,6 +5745,17 @@ impl<'a> StimuliGenerator<'a> {
             let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
                 continue;
             };
+            // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: facts available to any child rendered inside this
+            // rule's body = ancestors' emits ∪ this rule's own `@emit_fact` kinds.
+            let mut child_available = discovered
+                .get(rule_name.as_str())
+                .map(|d| d.emitted_available.clone())
+                .unwrap_or_default();
+            if let Some(specs) = self.gen_emit_facts.get(rule_name.as_str()) {
+                for spec in specs {
+                    child_available.insert(spec.kind.clone());
+                }
+            }
             let mut sites: Vec<RuleReferenceSite> = Vec::new();
             Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
             // RTL-FE-CLOSURE.5.3 (PGEN-RTL-FE-CLOSURE-0015): when several reference
@@ -5642,11 +5771,19 @@ impl<'a> StimuliGenerator<'a> {
                 if discovered.contains_key(site.referenced_rule.as_str()) {
                     continue;
                 }
+                // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: pass 1 skips an edge whose target is mandatorily
+                // forced through a store-gate consulting a kind not available on this path.
+                if exclude_store_gated_edges
+                    && self.edge_is_store_gated(site.referenced_rule.as_str(), &child_available)
+                {
+                    continue;
+                }
                 discovered.insert(
                     site.referenced_rule.clone(),
                     Discovery {
                         predecessor: Some(rule_name.clone()),
                         hop_site_path: site.node_path.clone(),
+                        emitted_available: child_available.clone(),
                     },
                 );
                 queue.push_back(site.referenced_rule);
@@ -5674,6 +5811,154 @@ impl<'a> StimuliGenerator<'a> {
         }
         hops.reverse();
         Some(hops)
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: precompute, per rule, the fact-KINDS it consults via a
+    /// kind-first fact-query `@predicate`. Mirrors `compute_store_aware_gen_directives`' per-rule
+    /// flatten and the SAME `parse_semantic_runtime_directives` parse, so the generator reasons about
+    /// the identical annotation vocabulary the parser does. Only the kind-first store primitives are
+    /// recognized (`resolve_path` is a path resolver, not a kind query; named/composed predicates have
+    /// no statically-extractable kind) — keeping the gate set tight so the pass-1 edge deprioritization
+    /// never over-excludes. Parser-agnostic; keyed only on annotations.
+    fn compute_reach_gate_kinds(annotations: Option<&Annotations>) -> HashMap<String, Vec<String>> {
+        const REACH_FACT_QUERY_PRIMITIVES: [&str; 5] = [
+            "has_fact",
+            "lacks_fact",
+            "fact_attribute_equals",
+            "lacks_fact_attribute_equals",
+            "fact_count_at_least",
+        ];
+        let mut gate_kinds: HashMap<String, Vec<String>> = HashMap::new();
+        let Some(annotations) = annotations else {
+            return gate_kinds;
+        };
+        let mut per_rule: HashMap<String, Vec<&SemanticAnnotation>> = HashMap::new();
+        for (rule, anns) in &annotations.semantic_annotations {
+            per_rule.entry(rule.clone()).or_default().extend(anns.iter());
+        }
+        for (rule, branches) in &annotations.branch_semantic_annotations {
+            for branch in branches {
+                per_rule
+                    .entry(rule.clone())
+                    .or_default()
+                    .extend(branch.iter());
+            }
+        }
+        for (rule, anns) in per_rule {
+            let Ok(directives) = parse_semantic_runtime_directives(anns.into_iter()) else {
+                continue;
+            };
+            for directive in directives {
+                if let SemanticRuntimeDirective::Predicate(spec) = directive {
+                    if REACH_FACT_QUERY_PRIMITIVES.contains(&spec.name.trim()) {
+                        if let Some(
+                            UnifiedSemanticValue::Identifier(kind)
+                            | UnifiedSemanticValue::String(kind),
+                        ) = spec.args.first()
+                        {
+                            gate_kinds.entry(rule.clone()).or_default().push(kind.clone());
+                        }
+                    }
+                }
+            }
+        }
+        gate_kinds
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: does rendering `referenced_rule` from a MANDATORY position
+    /// force evaluating a store-gate that consults a fact-kind NOT in `available`? See `reach_hops`.
+    fn edge_is_store_gated(&self, referenced_rule: &str, available: &HashSet<String>) -> bool {
+        let mut visited: HashSet<String> = HashSet::new();
+        self.mandatory_reach_gate(referenced_rule, available, &mut visited)
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: `true` iff `rule` is mandatorily store-gated on a kind not in
+    /// `available` — its own gate is unsatisfiable on the path, OR its mandatory subtree forces such a
+    /// gate. Cycle-guarded, transitive, profile-aware (operates on the active grammar_tree). The
+    /// structural recursion lives in `mandatory_node_gated`. General/parser-agnostic.
+    fn mandatory_reach_gate(
+        &self,
+        rule: &str,
+        available: &HashSet<String>,
+        visited: &mut HashSet<String>,
+    ) -> bool {
+        if !visited.insert(rule.to_string()) {
+            return false; // cycle: no NEW unsatisfiable gate is introduced below an in-progress rule
+        }
+        let own_gated = self
+            .reach_gate_kinds
+            .get(rule)
+            .is_some_and(|kinds| kinds.iter().any(|k| !available.contains(k)));
+        let result = if own_gated {
+            true
+        } else {
+            match self.grammar_tree.get(rule) {
+                Some(node) => self.mandatory_node_gated(node, available, visited),
+                None => false,
+            }
+        };
+        visited.remove(rule);
+        result
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: structural half of `mandatory_reach_gate` — walks a rule
+    /// body's AST deciding whether a MANDATORY descent forces an unsatisfiable store-gate. Or-aware
+    /// (gated iff EVERY alternative is gated — any non-gated alternative is a clean escape),
+    /// Sequence-aware (gated iff ANY element is, since all sequence elements are mandatory), `?`/`*`
+    /// non-propagating (a min-0 quantifier is skippable), lookahead-skipping (assertions render
+    /// nothing). A reference to a rule MISSING from the active (profile-pruned) tree is treated as
+    /// gated — it cannot be rendered, so it is no escape (mirrors `reach_hops_pass` skipping that edge).
+    fn mandatory_node_gated(
+        &self,
+        node: &ASTNode,
+        available: &HashSet<String>,
+        visited: &mut HashSet<String>,
+    ) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => {
+                if alternatives.is_empty() {
+                    return false;
+                }
+                for alt in alternatives {
+                    if !self.mandatory_node_gated(alt, available, visited) {
+                        return false;
+                    }
+                }
+                true
+            }
+            ASTNode::Sequence { elements } => {
+                for element in elements {
+                    if self.mandatory_node_gated(element, available, visited) {
+                        return true;
+                    }
+                }
+                false
+            }
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                if super::parse_quantifier_bounds(quantifier).is_some_and(|(min, _)| min >= 1) {
+                    self.mandatory_node_gated(element, available, visited)
+                } else {
+                    false
+                }
+            }
+            ASTNode::Lookahead { .. } => false,
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => self.mandatory_node_gated(inner, available, visited),
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("rule_reference", name)) => {
+                        if self.grammar_tree.contains_key(name) {
+                            self.mandatory_reach_gate(name, available, visited)
+                        } else {
+                            true
+                        }
+                    }
+                    _ => false,
+                },
+            },
+        }
     }
 
     /// RTL-FE-CLOSURE.5.3 (PGEN-RTL-FE-CLOSURE-0015): reach-path honesty for

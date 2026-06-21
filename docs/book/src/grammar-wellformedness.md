@@ -882,6 +882,51 @@ grammar names; grammars with no count-gated rules attach no prelude and behave b
 everywhere in this gate, the parser stays the judge: a mis-fitted prelude can only fail loudly, never
 manufacture a false witness.
 
+### Reaching constraint bodies: store-free reach-honesty
+
+A last shape of unwitnessable rule is a target reachable through **two carriers** — one store-gated,
+one not — where the reach search picks the gated one. The canonical case is the SystemVerilog
+constraint body. The `constraint_block` subtree (`constraint_block_item`, `constraint_expression`,
+`constraint_primary`, `solve_before_list`, `uniqueness_constraint`, `loop_variables`, the
+`solve`/`before`/`soft`/`foreach` keywords, …) is reachable BOTH through the in-class
+`constraint_declaration` (`constraint c { … }`, which parses with no semantic state) AND through the
+out-of-class `extern_constraint_declaration` (`constraint C::c { … }`, whose mandatory `class_scope`
+is store-gated — it must name a *declared class*, which a minimal witness has not declared). The reach
+search is a fewest-hops breadth-first walk with first-discovery-wins, and the out-of-class carrier is
+the **shorter** path (a top-level item, versus descending `class_declaration → class_item` to reach
+the in-class one). So the whole subtree was discovered through the gated carrier, the reach plan forced
+that branch, the parser correctly rejected the undeclared-class form, and none of the body rules ever
+witnessed — even though a perfectly good store-free witness exists through the other carrier.
+
+The fix is a **store-free reach pass**. The general principle is the same attribution rule applied to
+*path selection*: when a target is reachable without crossing a store-gate the path cannot satisfy,
+prefer that route. The pass detects a "store-gated edge" structurally — descending into the edge's
+target rule from a mandatory position is forced through a rule carrying a fact-query `@predicate`
+(`has_fact` / `lacks_fact` / `fact_attribute_equals` / its dual / `fact_count_at_least`) whose
+consulted fact-kind is not emitted anywhere earlier on the path (an ordered choice counts as gated only
+when *every* alternative is gated; an optional/`*` quantifier never forces its body; a lookahead
+renders nothing; the walk is cycle-guarded, transitive, and profile-aware). It then routes residual
+targets through the store-free carrier when one exists.
+
+Two properties keep it honest, and the second is the interesting one. First, the parser stays the
+judge — a re-routed probe can only fail to witness, never manufacture a false witness. Second, the
+pass is **strictly additive by construction**, and getting there took a discarded first design worth
+recording. The natural implementation — make the reach search itself prefer store-free edges for
+*every* target — did drop the SystemVerilog backlog (`UNKNOWN 84 → 67`) but also **de-witnessed one
+unrelated rule**: a store-gated identifier that had only ever been witnessed *incidentally*, as a
+bystander of some other target's probe whose path the re-routing changed. A coverage gate must never
+trade one rule's witness for another's, so that design was rejected. The landed design instead leaves
+the original reach search completely untouched (so every existing probe — and all its incidental
+bystander coverage — is byte-identical) and runs the store-free routing as a **separate, final pass
+over only the rules still unknown**, which can therefore only *union* new witnesses. The result is the
+same headline number with no regression: SystemVerilog `UNKNOWN 84 → 67` (witness `1204 → 1221`),
+deterministic across seeds, with zero newly-unknown rules and every other grammar — including the
+fully-certified roster — byte-identical (the pass is structurally inert for any grammar with no
+fact-query predicate). The constraint-body cluster now witnesses through the in-class carrier; the
+genuinely store-gated remainder (`extern_constraint_declaration` itself, the declared-class-name
+identifiers) correctly stays unknown, awaiting the semantic-store-aware generation that can synthesise
+the declarations they require.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

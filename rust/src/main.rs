@@ -2603,6 +2603,58 @@ fn run_certificate_coverage_report(
                         },
                     );
             }
+
+            // PASS 3d — GRAMMAR-WELLFORMED.H.12.5.6.2.2.2 (M2a reach-honesty): the store-free reach
+            // pass. Run LAST, over ONLY the rules still UNKNOWN after the diverse / plannable /
+            // target-own passes, so every prior pass keeps its exact RNG stream and witness landscape
+            // (no newly-UNKNOWN by construction) and this pass can only UNION new witnesses. It routes
+            // each residual target via the store-gated-edge-deprioritized BFS, so a cluster reachable
+            // BOTH via a non-gated carrier and a (shorter) store-gated carrier — e.g. the SV constraint
+            // body via in-class `constraint_declaration` vs out-of-class `extern_constraint_declaration`
+            // (whose mandatory `class_scope` needs a DECLARED class no minimal witness can provide) — is
+            // re-routed through the non-gated carrier and witnesses. Truly inert when no fact-query
+            // predicate exists or the residual is empty (the fully-certified roster). Like passes 2/3/3c
+            // it only UNIONS witnesses from probes that re-parse, so the certification
+            // `sample_parse_failures` (the diverse pass) stays byte-identical.
+            let post_target_own =
+                certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+            if !post_target_own.unknown.is_empty() {
+                let store_free_report = plannable_generator.generate_plannable_store_free_witnesses(
+                    entry_rule.as_str(),
+                    &post_target_own.unknown,
+                    PLANNABLE_REACH_ATTEMPT_TIMEOUT_MS,
+                    PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
+                    |rule, sample| {
+                        let Some((parsed, covered)) =
+                            pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                        else {
+                            return PlannableProbeVerdict::NotParsed;
+                        };
+                        let witnessed = parsed && covered.contains(rule);
+                        if debug_probes {
+                            println!(
+                                "  [store-free-probe] rule='{}' parsed={} witnessed_target={} sample={:?}",
+                                rule, parsed, witnessed, sample
+                            );
+                        }
+                        if parsed {
+                            witness_covered.extend(covered);
+                            if witnessed {
+                                PlannableProbeVerdict::Witnessed
+                            } else {
+                                PlannableProbeVerdict::ParsedNotWitnessed
+                            }
+                        } else {
+                            PlannableProbeVerdict::NotParsed
+                        }
+                    },
+                );
+                println!(
+                    "  (store-free reach pass: {} residual UNKNOWN rules targeted; {} witnessed by re-routing through a non-gated carrier)",
+                    post_target_own.unknown.len(),
+                    store_free_report.witnessed
+                );
+            }
         }
     }
 
