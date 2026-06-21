@@ -308,6 +308,33 @@ These exports matter for:
 - corpus and fixture management,
 - and transparent contract-driven integration.
 
+### UHDM export — long-term backlog (director brainstorm 2026-06-21)
+
+A standing idea worth recording (so it is not lost): once PGEN's HDL front-end owns real
+**elaboration** depth, an **UHDM** (Universal Hardware Data Model — CHIPS Alliance, Apache-2.0; the
+IEEE 1800 VPI object model, the open-source interchange Surelog emits and Yosys/others consume)
+**export** would let a PGEN-based SystemVerilog/VHDL front-end plug straight into the entire
+UHDM-consuming ecosystem (synthesis, linters, …) — directly serving the north-star "go-to platform"
+goal and the semantic-bundle-export direction above. It is the elaborated-design analogue of the
+`--emit-*-json` sidecars.
+
+Scope and sequencing (deliberately conservative):
+
+- **Elaboration-layer feature, NOT a parser-lane item.** UHDM is most valuable *elaborated*; PGEN's
+  parser output is a shaped AST + semantic facts, and the director-confirmed boundary puts cross-unit
+  binding/type/width/parameter/generate in elaboration. So meaningful UHDM export is gated on the
+  elaboration program (today only `rtl_frontend`'s synthesizable subset has started it). It is
+  irrelevant to the parser families' own closure (e.g. the SV `UNKNOWN`→0 lane).
+- **First probe (bounded PoC), when pursued:** emit UHDM from `rtl_frontend`'s already-elaborated
+  synthesizable subset and differential-check it against Surelog's UHDM for the same input — validates
+  the idea without committing to full SV elaboration.
+- **Cost note:** UHDM is a large C++/Cap'n'Proto object model, so Rust integration means a binding or a
+  Rust schema port; the VPI model is broad.
+- **Status:** backlog only — not scheduled; the locked-program priority remains the SV `UNKNOWN`→0
+  endgame and the parser-family closure work. (Companion: `slang`/`Verible`/`Surelog` are already
+  vendored as differential ORACLES under `stimuli/sv/subs/` for the PARSE-COMPLETENESS lane; UHDM is
+  the elaborated-design *data model*, a distinct, later concern.)
+
 ## Validation And Proof Expectations
 
 This lane should be held to the same proof-first doctrine as the rest of PGEN.
