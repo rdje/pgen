@@ -51,6 +51,14 @@ thread_local! {
         std::cell::RefCell::new(HashMap::new());
     static NULLABLE_CACHE_GRAMMAR: std::cell::RefCell<Option<String>> =
         std::cell::RefCell::new(None);
+    // GRAMMAR-WELLFORMED.H.12.5.7.2: grammar-scoped memo of transitive rule-reachability over
+    // the rule-reference graph — `from` -> the full set of rules reachable from `from` (built
+    // once per distinct `from`, on demand). Keyed by rule name (grammar-specific), so it is
+    // cleared alongside NULLABLE_CACHE when the active grammar changes (see `new`). Used only by
+    // `rule_can_reach` to generalise the `.5.6` self-recursion-suppression from DIRECT to
+    // INDIRECT recursion; SOUND/static (the rule-reference graph does not change during a run).
+    static RULE_REACH_CACHE: std::cell::RefCell<HashMap<String, HashSet<String>>> =
+        std::cell::RefCell::new(HashMap::new());
 }
 // DIAG-SEVERITY.3 (PGEN-DIAG-SEVERITY-0003): the depth-limit error raised at
 // `generate_rule` (this file, ~4379). Classifying generation failures by this reason —
@@ -1538,6 +1546,8 @@ impl<'a> StimuliGenerator<'a> {
             let mut g = g.borrow_mut();
             if g.as_deref() != Some(grammar_name.as_str()) {
                 NULLABLE_CACHE.with(|c| c.borrow_mut().clear());
+                // GRAMMAR-WELLFORMED.H.12.5.7.2: same rule-name keying ⇒ same invalidation.
+                RULE_REACH_CACHE.with(|c| c.borrow_mut().clear());
                 *g = Some(grammar_name.clone());
             }
         });
@@ -4944,6 +4954,46 @@ impl<'a> StimuliGenerator<'a> {
         reachable
     }
 
+    /// GRAMMAR-WELLFORMED.H.12.5.7.2: transitive reachability over the rule-reference graph —
+    /// can `from` reach `to` by following direct rule references (`collect_rule_references`)
+    /// through the grammar tree? Generalises the `.5.6` self-recursion-suppression from DIRECT
+    /// to INDIRECT recursion: a forced reach-plan branch whose body re-enters `current_rule` via
+    /// one or more wrapper rules (e.g. `property_expr_sv_2017`'s `kw_eventually (range)?
+    /// property_expr` branch re-descending the one-hop wrapper `property_expr :=
+    /// property_expr_sv_2017`) would otherwise re-fire the directive without bound. A rule
+    /// trivially reaches itself. GENERAL/parser-agnostic (keyed on grammar structure only) and
+    /// SOUND/static (the rule-reference graph is fixed for the run). Memoised per `from` in the
+    /// grammar-scoped `RULE_REACH_CACHE` (cleared with `NULLABLE_CACHE` on grammar change), and
+    /// the caller gates this query behind a cheap live-recursion-count check so it runs only on a
+    /// genuine re-entry during the reach pass.
+    fn rule_can_reach(&self, from: &str, to: &str) -> bool {
+        if from == to {
+            return true;
+        }
+        if let Some(hit) = RULE_REACH_CACHE.with(|c| c.borrow().get(from).map(|s| s.contains(to))) {
+            return hit;
+        }
+        // BFS the rule-reference graph from `from`, collecting its full reachable set once.
+        let mut reachable: HashSet<String> = HashSet::new();
+        let mut frontier: Vec<String> = vec![from.to_string()];
+        while let Some(rule) = frontier.pop() {
+            if let Some(node) = self.grammar_tree.get(&rule) {
+                let mut refs = HashSet::new();
+                self.collect_rule_references(node, &mut refs);
+                for r in refs {
+                    if reachable.insert(r.clone()) {
+                        frontier.push(r);
+                    }
+                }
+            }
+        }
+        let hit = reachable.contains(to);
+        RULE_REACH_CACHE.with(|c| {
+            c.borrow_mut().insert(from.to_string(), reachable);
+        });
+        hit
+    }
+
     fn collect_rule_references(&self, node: &ASTNode, out: &mut HashSet<String>) {
         match node {
             ASTNode::Or { alternatives } => {
@@ -7110,10 +7160,28 @@ impl<'a> StimuliGenerator<'a> {
                 if forced_global >= prepared.len() {
                     return false;
                 }
+                // Cheap gate FIRST: suppression only matters on a genuine RE-ENTRY of
+                // `current_rule` (the directive already fired on the shallow entry). Off-recursion
+                // and off-reach (no directive) this is `false` at zero cost, so behaviour is
+                // byte-identical and the (memoised) reachability query never runs there.
+                if call_stack
+                    .iter()
+                    .filter(|r| r.as_str() == current_rule)
+                    .count()
+                    < 2
+                {
+                    return false;
+                }
+                // RTL-FE-CLOSURE.5.6 generalised (GRAMMAR-WELLFORMED.H.12.5.7.2): suppress the
+                // re-fire when the forced branch can recurse back into `current_rule` either
+                // DIRECTLY (its body references `current_rule` — the original `.5.6` case) or
+                // INDIRECTLY (its body references a rule that transitively reaches `current_rule`,
+                // e.g. the `kw_eventually … property_expr` branch re-descending the one-hop wrapper
+                // `property_expr := property_expr_sv_2017`). The direct disjunct is unchanged.
                 let mut refs = HashSet::new();
                 self.collect_rule_references(prepared[forced_global].1.as_ref(), &mut refs);
                 refs.contains(current_rule)
-                    && call_stack.iter().filter(|r| r.as_str() == current_rule).count() >= 2
+                    || refs.iter().any(|r| self.rule_can_reach(r, current_rule))
             })
         };
         let reach_bypass_branch: Option<usize> = if suppress_recursive_forced_branch {

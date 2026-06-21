@@ -1,4 +1,29 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.7.2 — M3 prefix property/sequence temporal-operator plannable-reach extension (PGEN-GRAMMAR-WELLFORMED-0117, GENERATOR-ONLY ENGINE FIX)
+
+### What & why
+The `H.12.5.7.1` adjudication proved the SV **prefix** property/sequence temporal operators PARSE but are never witnessed by the certificate-coverage plannable pass (the "29 generation failures"). This slice fixes that generator-reach gap, taking SV cert `UNKNOWN 67→56`. GENERATOR-ONLY: it changes only how the witness pass steers generation, never the grammar, parser, or accepted language.
+
+### WHY+WHERE (confirmed tools-first — corrects `.7.1`'s "LR-eliminated" half)
+- `PGEN_REACH_PATH_DUMP=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1 PGEN_CERT_COVERAGE_DUMP_ALL=1` (count 40 seed 0) showed: the reach plan IS found and targets the correct branch (e.g. `kw_eventually → property_expr_sv_2017 root/o21/s0`, `kw_nexttime → o13`, `kw_accept_on → o29`); the branch indices are the original `o0..o33`, so `property_expr_sv_2017` is **NOT** LR-eliminated for these prefix branches; and there is NO `[plannable-probe]` line for any prefix operator (⇒ generation `Err`, not `no_path`).
+- ROOT CAUSE (`stimuli_generator.rs:7104-7118`, `suppress_recursive_forced_branch`): the `RTL-FE-CLOSURE.5.6` guard suppressed a re-fired forced directive only for **direct** self-recursion — `collect_rule_references(forced_branch)` then `refs.contains(current_rule)`. The prefix branch `kw_eventually (constant_range)? property_expr` has direct refs `{kw_eventually, constant_range, property_expr}` — NOT `property_expr_sv_2017`. So on the mandatory `property_expr` body's re-descent through the one-hop wrapper `property_expr := property_expr_sv_2017`, the directive keyed on `(property_expr_sv_2017,"root")` re-fired, forcing `eventually` again and again until depth/`max_rule_visits` exhaustion → `generate_from_entry_with_optional_timeout` `Err`. The `.5.6` comment block documents this exact infinite-re-fire failure — for the direct case (`unary_expr := bang unary_expr` → `!!!!`); the prefix operators are the structurally identical INDIRECT case.
+
+### Fix (4 edits, GENERAL/parser-agnostic)
+1. `RULE_REACH_CACHE` thread-local (next to `NULLABLE_CACHE`): grammar-scoped memo of per-`from` transitive reachability.
+2. Cleared with `NULLABLE_CACHE` on grammar change in `new` (same rule-name keying).
+3. `rule_can_reach(from,to)`: BFS the rule-reference graph (reusing `collect_rule_references` + `self.grammar_tree`), memoised; `from==to` ⇒ true.
+4. `suppress_recursive_forced_branch`: cheap re-entry gate FIRST (`call_stack.count(current_rule) >= 2`), then `refs.contains(current_rule) || refs.iter().any(|r| self.rule_can_reach(r, current_rule))` — direct OR indirect recursion back into `current_rule`. On a suppressed re-entry the operand falls through to the existing minimal-derivation ordering (shortest terminating base), producing a minimal witness `assert property (eventually <base>)`.
+
+### Safety / why it cannot false-witness or regress silently
+- The reach plan is installed ONLY by the plannable-witness pass ⇒ `--generate-stimuli` (no reach plan) is byte-identical by construction; the reachability query runs only on a genuine re-entry during the reach pass; off-reach the whole block short-circuits to `false`.
+- The parser remains the sole witness judge (the witness-check closure re-parses each probe), so a generated-but-rejected candidate (e.g. an infix `until`) can only fail loudly as `parsed=false`, never false-witness.
+
+### Verification (decisive A/B, `--manifest-path` rebuilds, git-stash of only the engine change)
+- SV cert `UNKNOWN 67→56`, `witness 1221→1232`, `generation_failures 29→0`, `total=1289`, `spf=0` — deterministic seeds 0/7/42; zero newly-UNKNOWN (the 56 is a strict subset of the 67, diffed from `DUMP_ALL`); pre-fix re-confirmed `UNKNOWN=67` (proves the stash reverted the binary).
+- 11 resolved = the prefix cluster + `constant_cast`; the infix `until`-family/`intersect`/`within` now generate-but-parser-rejects (stay UNKNOWN → `H.12.5.8`); `kw_constant` stays UNKNOWN (optional sub-branch, deferred).
+- 6 fully-certified grammars verdict-identical to baseline (json 9/9, regex 198/198, svpp 74/74, vhdl 216/216, rtlfe 169, rtlce 48/48); SV `--generate-stimuli` md5 `7eb4374bf6e9897889d34029f4ff645f` pre==post; `clippy_on_rust_change` strict source clean (generated-stage debt pre-existing/tolerated).
+- Note (CERT-GEN-BUDGET.2): rtl_const_expr cert at the canonical `--max-depth 32` is pathologically slow (depth-28/40 expansion; ~10 min even at count 6) — its no-regression was confirmed by reproducing the documented `48/48 fully_certified` baseline rather than a full depth-32 A/B.
+
 ## 2026-06-21 - GRAMMAR-WELLFORMED.H.12.5.7.1 — M3 property/sequence temporal-operator WHY+WHERE + parse/reject adjudication (PGEN-GRAMMAR-WELLFORMED-0116, PURE-DOCS INVESTIGATION)
 
 ### What & why
