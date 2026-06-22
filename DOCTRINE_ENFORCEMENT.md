@@ -135,6 +135,30 @@ chain will not reproduce, so it fails. At that point the distinction between "re
 "fabricated" collapses — *a reproducible chain is, operationally, a correct diagnosis.* That is the
 scientific-method standard, and it is the strongest enforceable proxy for "reasoned from evidence."
 
+### 6.1 A box is EARNED, not ticked (self-ticking is not proof)
+
+A checklist `[x]` an author writes is a **claim**, not proof — a task could tick "NO REGRESSION" and
+move on without earning it. So **ticking must never be the proof; the oracle re-run is.** Three legs,
+in increasing strength:
+
+1. **Presence (cheap, local hook):** the box exists and is ticked, with a tool-output *signature*
+   next to it. This catches "forgot to do the step." It is, by itself, *self-tickable* — be honest
+   about that; it is necessary, not sufficient.
+2. **Evidence-shape:** the box co-occurs with a string only the real tools emit (a cert header, a
+   probe verdict, a trace rejection). Raises the cost of faking, does not eliminate it.
+3. **Oracle re-run (un-fakeable, CI / `make` gates):** the gate **re-executes the deterministic
+   oracle the box claims** — e.g. a "NO REGRESSION" box is *earned* only when re-running
+   certificate-coverage at seeds 0/7/42, the shape-contract gate, the byte-identical check across the
+   stable grammars, and the external corpus all reproduce green. A self-ticked-but-false box passes
+   leg 1 and dies at leg 3. **This is the leg that makes the box un-self-tickable.**
+
+Therefore: every gated box **must cite a NAMED, re-runnable oracle** (a gate/command + its
+deterministic result), so CI can re-run exactly that and *earn* the box independently of the tick. A
+box with no re-runnable oracle (e.g. a subjective "LOCKSTEP") stays advisory, never hard-gated on the
+tick alone. **Honest limit:** leg 3 lives at CI (E4); if CI is paused/manual, the un-fakeable re-run
+only happens when someone runs the gate — so self-ticking is caught at the next gate run, not
+instantly. Re-enabling an auto CI oracle job is what makes "earned, not ticked" hold *no matter what*.
+
 ---
 
 ## 7. Enforcement layering (E1→E4 — defense in depth)

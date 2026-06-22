@@ -1,111 +1,114 @@
 #!/usr/bin/env bash
 # scripts/check_diagnosis_evidence.sh
-# DIAG-TOOLBOX-ENFORCE (PGEN-DIAG-TOOLBOX-0002): make "use the debug toolbox" ENFORCEABLE,
-# not prose. Per the director directive (2026-06-22) + MEMORY_ARCHITECTURE.md §9 (defense in
-# depth: discovery → self-check → git hook → CI), a code change may not land unless the staged
-# owning task-tree leaf carries REAL, re-checkable tool-output evidence of the WHY+WHERE
-# diagnosis (the debug toolbox, TOOLBOX.md). Exits NONZERO on a breach.
+# DIAG-TOOLBOX-ENFORCE (PGEN-DIAG-TOOLBOX-0002/0003): make a fix PROVABLY follow the
+# task-acceptance procedure from start to finish — not "trust me". Per the director directive
+# (2026-06-22): "every task tree shall check some boxes, [go] through certain steps to analyse
+# an issue, and made sure the issue it wanted to address was clearly addressed with no
+# regression." This gate enforces a REQUIRED ACCEPTANCE CHECKLIST in the owning task leaf for any
+# code change: each required box must be TICKED ([x]) and backed by real tool-output evidence; an
+# unticked or missing required box BLOCKS the commit. Exits NONZERO on any breach.
 #
-# What it enforces: a commit that touches CODE (grammars/*.ebnf, rust/src/**, generated/**,
-# the ast_shape_contract manifests) MUST stage at least one docs/tasks/*.md whose content
-# carries >=1 recognized tool-output / tool-invocation signature. Pure-docs commits are exempt.
+# The required checklist (label keywords are flexible; the [x] and the keyword are what matter):
+#   - [x] ROOT CAUSE (WHY + WHERE) ........ backed by a DIAGNOSIS tool signature
+#   - [x] ADDRESSED (verified)  ........... the issue is resolved (before->after on the symptom)
+#   - [x] NO REGRESSION ................... backed by a global-gate signature (seeds 0/7/42, etc.)
+# (REPRODUCE/FIX/LOCKSTEP boxes are recommended by the template but not hard-required here, to
+# avoid false-blocking; the three above are the director's named steps and ARE required.)
 #
-# Why this is "not trust-me-bro": the signatures below are strings the real tools emit (cert
-# report header, plannable-probe lines, the predicate-rejection trace, furthest_position), and
-# the project's DETERMINISTIC gates (certificate-coverage, ast_shape_contract, syntax-closure)
-# re-RUN those tools at fixed seeds in CI — so a fabricated FINAL STATE is caught independently
-# of this hook. This gate enforces "show your work in the tracked leaf"; the deterministic gates
-# enforce "the work is real". Honest limit: a hook cannot prove the agent reasoned from the
-# evidence — but it makes landing a code change with NO pasted, reproducible tool output
-# impossible locally and un-mergeable in CI.
+# Why "not trust-me-bro": (1) a ticked box must co-occur with the real tool-output signature that
+# only the debug tools / deterministic gates emit; (2) the project's DETERMINISTIC gates
+# (cert-coverage at seeds 0/7/42, ast_shape_contract, syntax-closure, external-corpus) re-RUN the
+# real tools in the make gates / CI, so a fabricated "NO REGRESSION" claim does not reproduce and
+# fails there. Honest limit: a hook cannot prove the author reasoned — only that the boxes are
+# ticked, the evidence is present, and (via the oracle gates) the numbers reproduce.
 #
-# Called by .githooks/pre-commit (E3) and intended for CI (E4). Override for a genuine
-# exception (rare; recorded, not silent): PGEN_DIAG_EVIDENCE_WAIVER="<reason>" — it prints the
-# waived reason loudly so the exception is visible in the commit run, never a quiet bypass.
+# Called by scripts/check_doctrines.sh (the general enforcer) via .githooks/pre-commit (E3) + CI
+# (E4). Recorded exception (loud, never silent): PGEN_DIAG_EVIDENCE_WAIVER="<reason>".
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
 
-# Files staged for THIS commit (added/copied/modified/renamed). Fall back to a diff vs HEAD
-# when run outside a commit (CI on a range can set PGEN_DIAG_EVIDENCE_RANGE).
 if [ -n "${PGEN_DIAG_EVIDENCE_RANGE:-}" ]; then
   mapfile -t staged < <(git diff --name-only --diff-filter=ACMR "$PGEN_DIAG_EVIDENCE_RANGE")
 else
   mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
 fi
 
-# Is this a CODE change? (the doctrine's definition of "code": grammars, rust sources, generated
-# parsers, and the AST shape-contract manifests). Pure docs/tooling commits are exempt.
+# Is this a CODE change? (grammars, rust sources, generated parsers, AST shape-contract manifests)
 code_changed=0
 for f in "${staged[@]:-}"; do
   case "$f" in
-    grammars/*.ebnf|rust/src/*|generated/*|rust/test_data/ast_shape_contract/*.json)
-      code_changed=1 ;;
+    grammars/*.ebnf|rust/src/*|generated/*|rust/test_data/ast_shape_contract/*.json) code_changed=1 ;;
   esac
 done
 
 if [ "$code_changed" -eq 0 ]; then
-  echo "diag-evidence: OK (no code change staged; toolbox-evidence not required)"
+  echo "diag-evidence: OK (no code change staged; task-acceptance checklist not required)"
   exit 0
 fi
 
-# Genuine, recorded exception (loud, never silent).
 if [ -n "${PGEN_DIAG_EVIDENCE_WAIVER:-}" ]; then
   printf 'diag-evidence: ⚠️ WAIVED by PGEN_DIAG_EVIDENCE_WAIVER="%s" — exception recorded; CI still re-checks.\n' \
     "$PGEN_DIAG_EVIDENCE_WAIVER" >&2
   exit 0
 fi
 
-# A code change must be owned by a staged task-tree leaf (COMMIT.md / Code-Change Doctrine).
+# A code change must be owned by a staged task-tree leaf carrying the acceptance checklist.
 mapfile -t staged_tasks < <(printf '%s\n' "${staged[@]:-}" | grep -E '^docs/tasks/.*\.md$' || true)
 if [ "${#staged_tasks[@]}" -eq 0 ]; then
   cat >&2 <<'MSG'
 diag-evidence: ✗ a CODE change is staged but NO owning task-tree leaf (docs/tasks/*.md) is staged.
-  The Code-Change Doctrine requires the change be owned by a task leaf, and that leaf must carry
-  the tool-backed WHY+WHERE diagnosis. Stage the owning docs/tasks/<TREE>.md with a tool-evidence
-  block. See TOOLBOX.md (the debug toolbox + the 3-step UNKNOWN protocol).
+  Stage the owning docs/tasks/<TREE>.md carrying the ACCEPTANCE CHECKLIST (TOOLBOX.md template).
 MSG
   exit 1
 fi
 
-# Enforce the ROOT-CAUSE PROCEDURE, not merely "some evidence". The leaf must show BOTH:
-#   (1) DIAGNOSIS — the WHY+WHERE was established with a debug tool (the tool that located and
-#       explained the cause: cert report / forced-probe verdict / predicate-rejection trace /
-#       furthest_position / an explicit toolbox invocation); AND
-#   (2) VERIFICATION — the fix's effect was MEASURED before->after, deterministically (a metric
-#       delta, REJECT->PASS, seeds 0/7/42, byte-identical, spf=0).
-# Together these are the mechanizable proxy for "followed a procedure + reasoned from the
-# evidence": a tool-located cause AND a measured, reproducible effect. The DETERMINISTIC gates
-# (cert-coverage / ast_shape_contract / syntax-closure), re-run by the make gates and CI, then
-# independently RE-EXECUTE the cited oracle at fixed seeds — so a cause->fix->effect chain that
-# does not reproduce FAILS. (A reproducible chain is, operationally, a correct diagnosis.)
-DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|sample_parse_failures=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast'
-VERIFY_SIG='[0-9]+ *(->|→) *[0-9]+|REJECT[^a-z]*(->|→|to)[^a-z]*PASS|seeds? *0/7/42|byte-identical|spf=0|sample_parse_failures=0|UNKNOWN=[0-9]'
+# Concatenate the staged leaves once for scanning.
+leaf_text="$(cat "${staged_tasks[@]}" 2>/dev/null || true)"
 
-diag_found=0; verify_found=0
-for t in "${staged_tasks[@]}"; do
-  [ -f "$t" ] || continue
-  grep -Eq "$DIAGNOSIS_SIG" "$t" && diag_found=1
-  grep -Eq "$VERIFY_SIG"    "$t" && verify_found=1
-done
+# A checked / unchecked checklist box mentioning a category keyword.
+checked()   { printf '%s\n' "$leaf_text" | grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*($1)"; }
+unchecked() { printf '%s\n' "$leaf_text" | grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]].*($1)"; }
 
-if [ "$diag_found" -eq 0 ] || [ "$verify_found" -eq 0 ]; then
+# Evidence signatures that must BACK the ticked boxes.
+DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast'
+NOREGRESS_SIG='seeds? *0/7/42|byte-identical|external corpus *1[0-9]/1[0-9]|corpus *1[0-9]/1[0-9]|shape.?contract|spf=0|sample_parse_failures=0|fully_certified|clippy'
+
+fails=()
+
+# Required box 1 — ROOT CAUSE (WHY + WHERE) ticked + a diagnosis tool signature present.
+if   unchecked 'root cause|why ?\+ ?where|\bwhy\b'; then fails+=("ROOT CAUSE box is present but UNTICKED ([ ]) — the cause is not yet established.")
+elif ! checked 'root cause|why ?\+ ?where|\bwhy\b'; then fails+=("ROOT CAUSE (WHY+WHERE) box is MISSING/unticked from the acceptance checklist.")
+elif ! printf '%s\n' "$leaf_text" | grep -Eq "$DIAGNOSIS_SIG"; then
+  fails+=("ROOT CAUSE box is ticked but NOT backed by a debug-tool signature (cert/probe/trace/furthest_position).")
+fi
+
+# Required box 2 — ADDRESSED (verified) ticked.
+if   unchecked 'addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass'; then fails+=("ADDRESSED/VERIFIED box is present but UNTICKED — the fix is not yet confirmed to resolve the issue.")
+elif ! checked 'addressed|verified|resolved|before.{0,5}after|reject.{0,6}pass'; then fails+=("ADDRESSED (verified the issue is resolved) box is MISSING/unticked.")
+fi
+
+# Required box 3 — NO REGRESSION ticked + a global-gate signature present.
+if   unchecked 'no.?regress|regression'; then fails+=("NO REGRESSION box is present but UNTICKED — regressions are not yet cleared.")
+elif ! checked 'no.?regress|regression'; then fails+=("NO REGRESSION box is MISSING/unticked from the acceptance checklist.")
+elif ! printf '%s\n' "$leaf_text" | grep -Eiq "$NOREGRESS_SIG"; then
+  fails+=("NO REGRESSION box is ticked but NOT backed by a global-gate signature (seeds 0/7/42, byte-identical, external corpus, shape-contract, spf=0).")
+fi
+
+if [ "${#fails[@]}" -gt 0 ]; then
   cat >&2 <<'MSG'
-diag-evidence: ✗ code change staged, but the staged task leaf does not show the tool-backed
-  ROOT-CAUSE PROCEDURE. A fix must be provably diagnosed, not "trust me". The owning
-  docs/tasks/<TREE>.md must contain BOTH:
-    (1) DIAGNOSIS (WHY+WHERE) — pasted output from a debug tool that located + explained the
-        cause: a CERTIFICATE-COVERAGE: line, a [plannable-probe] verdict, a "rejected by post
-        predicate" trace, a furthest_position= error, or the exact toolbox command run; AND
-    (2) VERIFICATION — the measured before->after effect: a metric delta (e.g. "UNKNOWN 56->55"),
-        REJECT->PASS, determinism at seeds 0/7/42, byte-identical, or spf=0.
-  Procedure (TOOLBOX.md): run the toolbox FIRST (DUMP_ALL -> DEBUG_PROBES -> scoped trace) to get
-  (1); apply the minimal fix; re-run the deterministic oracle for (2); paste both into the leaf;
-  then commit. CI re-runs the deterministic gates, so the numbers you cite are re-verified.
+diag-evidence: ✗ the staged task leaf does NOT pass the required ACCEPTANCE CHECKLIST for a code
+  change. A fix must be PROVABLY taken through the procedure (analyse -> root cause -> fix ->
+  addressed -> no regression), not "trust me". Add/complete the checklist (template in TOOLBOX.md):
+    - [x] ROOT CAUSE (WHY + WHERE)  — backed by a debug-tool signature (cert / [plannable-probe] / predicate-rejection trace / furthest_position=)
+    - [x] ADDRESSED (verified)      — the issue is resolved (before->after on the symptom)
+    - [x] NO REGRESSION             — global metrics (cert seeds 0/7/42 spf=0, 6 grammars byte-identical, external corpus 14/14, ast_shape_contract GREEN, clippy)
+  An UNTICKED required box means the task is not done — finish the step, do not bypass. The
+  deterministic gates re-run the oracles in CI, so the NO-REGRESSION numbers you cite are re-verified.
+  Breaches:
 MSG
-  [ "$diag_found"   -eq 0 ] && printf '  -> missing: DIAGNOSIS signature (the WHY+WHERE tool output).\n' >&2
-  [ "$verify_found" -eq 0 ] && printf '  -> missing: VERIFICATION signature (the measured before->after effect).\n' >&2
+  for m in "${fails[@]}"; do printf '  - %s\n' "$m" >&2; done
   exit 1
 fi
 
-echo "diag-evidence: OK (code change shows tool-backed DIAGNOSIS + measured VERIFICATION)"
+echo "diag-evidence: OK (task leaf passes the acceptance checklist: ROOT CAUSE + ADDRESSED + NO REGRESSION, evidence-backed)"
 exit 0

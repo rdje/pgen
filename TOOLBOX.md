@@ -39,6 +39,38 @@ Using the toolbox is **mechanically enforced**, so it cannot be silently skipped
 - Reminders fire at **session start** and **before every code edit** (`.claude/settings.json`
   `SessionStart` + `PreToolUse` hooks), so the toolbox-first rule is in context the moment it matters.
 
+### The task-acceptance checklist (required for any code-change commit)
+
+Every code-landing task leaf (`docs/tasks/<TREE>.md`) MUST carry this checklist, each box **ticked
+`[x]`** and backed by the cited tool output. An **unticked or missing required box BLOCKS the
+commit** (`scripts/check_diagnosis_evidence.sh`, run by the doctrine enforcer). Copy this into the leaf:
+
+```markdown
+## Acceptance Checklist (enforced)
+- [ ] **REPRODUCE / ISSUE** — <tool command + symptom output proving the issue (parse REJECT, UNKNOWN=N, …)>
+- [ ] **ROOT CAUSE (WHY + WHERE)** — <debug-tool output naming the mechanism + location: predicate rejection / [plannable-probe] verdict / furthest_position= + file:line or rule>
+- [ ] **FIX** — <the minimal change + fix-hierarchy tier: declarative > grammar > engine>
+- [ ] **ADDRESSED (verified)** — <before→after on the symptom: REJECT→PASS, UNKNOWN N→M>
+- [ ] **NO REGRESSION** — <cert seeds 0/7/42 spf=0; the 6 fully-certified grammars byte-identical; external corpus 14/14; ast_shape_contract GREEN; clippy clean>
+- [ ] **LOCKSTEP** — <book / contract / ledger / schema updated, or N/A + reason>
+```
+
+**Hard-gated (required, must be ticked + evidence-backed): ROOT CAUSE, ADDRESSED, NO REGRESSION** —
+these are the director's named steps (analyse → root cause → addressed → no regression). REPRODUCE /
+FIX / LOCKSTEP are part of the template and good practice, but not hard-blocked, to avoid
+false-positives. The whole task-tree's "start→finish" is then the sequence of its leaves, each
+passing this checklist, plus the tree's own Acceptance Criteria.
+
+**A box is EARNED, not ticked.** A `[x]` you write is a *claim*; the proof is the **oracle re-run**.
+The ADDRESSED and NO-REGRESSION boxes must cite a **named, re-runnable oracle** (the exact gate /
+command + its deterministic result — e.g. cert-coverage at seeds 0/7/42, `ast_shape_contract_gate`,
+the byte-identical check across the fully-certified grammars, the external corpus 14/14), so CI
+re-executes exactly that and earns the box independently of your tick. A self-ticked-but-false box
+passes the local presence check and **fails when the oracle is re-run** (locally via the `make`
+gates, un-bypassably in CI). The local pre-commit hook is leg 1 (presence) — necessary, not
+sufficient; the oracle re-run (`DOCTRINE_ENFORCEMENT.md` §6.1, leg 3) is what makes the box
+un-self-tickable. Honest gap: that re-run is at CI, currently manual-only.
+
 ## The two binaries
 
 | Binary | Build | Path | Used for |

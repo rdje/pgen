@@ -44,7 +44,7 @@ DOCTRINES=(
   "EBNF-SOURCE-OF-TRUTH|no new out-of-band acceptance validator wired outside the EBNF|scripts/check_ebnf_source_of_truth.sh"
   "REGEX-SELF-HOSTING|the regex grammar self-hosts (gen<->parse duality holds)|scripts/check_regex_self_hosting.sh"
   "KNOWLEDGE-MAP|the derived Knowledge Map is in sync with its fact sources|knowledge-map/scripts/check_knowledge_map.sh"
-  "DIAG-TOOLBOX-EVIDENCE|a code change carries re-checkable debug-toolbox evidence in its task leaf|scripts/check_diagnosis_evidence.sh"
+  "TASK-ACCEPTANCE|a code change's task leaf passes the acceptance checklist (root-cause + addressed + no-regression boxes ticked + evidence-backed)|scripts/check_diagnosis_evidence.sh"
 )
 
 fail=0

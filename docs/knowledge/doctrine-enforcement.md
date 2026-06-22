@@ -41,15 +41,17 @@ nothing (idempotent derive-and-stage ok); scope-aware (look at `git diff --cache
 non-governed changes); resolve root from `BASH_SOURCE`; fast or CI-deferred. Register = add one
 `id|proves|path` line to the driver's `DOCTRINES` array.
 
-## The toolbox / "reasoned-from-evidence" enforcer
+## The toolbox / task-acceptance enforcer
 `scripts/check_diagnosis_evidence.sh` (evidence archetype): a CODE change (grammars/*.ebnf,
 rust/src/**, generated/**, ast_shape_contract manifests) is BLOCKED unless its staged owning
-`docs/tasks/*.md` leaf carries BOTH a DIAGNOSIS signature (CERTIFICATE-COVERAGE:/[plannable-probe]/
-rejected by post predicate/furthest_position=/a toolbox command) AND a VERIFICATION signature
-(`N→M`/REJECT→PASS/seeds 0/7/42/byte-identical/spf=0). Pure-docs commits are exempt. "Reasoned from
-evidence" is mechanized as: a documented cause→fix→effect chain that REPRODUCES under the
-deterministic gates' re-execution (a reproducible chain is operationally a correct diagnosis). See
-[[cert-coverage-unknown-diagnostics]] for the diagnosis tools and TOOLBOX.md for the catalog.
+`docs/tasks/*.md` leaf passes the ACCEPTANCE CHECKLIST — the required boxes **ROOT CAUSE** (why+where),
+**ADDRESSED** (verified), and **NO REGRESSION** must each be TICKED `[x]` and backed by a tool
+signature; an unticked or missing required box blocks the commit (the task is not done). Pure-docs
+commits are exempt. **A box is EARNED, not ticked:** the `[x]` is a claim — the proof is the
+deterministic-gate ORACLE RE-RUN (cert at seeds 0/7/42, ast_shape_contract, byte-identical across the
+fully-certified grammars, external corpus) in CI; a self-ticked-but-false box fails when the oracle
+re-runs (DOCTRINE_ENFORCEMENT.md §6.1). Checklist template in TOOLBOX.md. See
+[[cert-coverage-unknown-diagnostics]] for the diagnosis tools.
 
 ## Honest limits
 Local hooks are bypassable (`--no-verify`); CI is the backstop. Evidence-presence is fakeable unless
