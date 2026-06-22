@@ -151,15 +151,22 @@ audit_markdown_repo_relative_paths() {
 
 audit_root_markdown_surface() {
   local -a expected_root_md=(
+    "AGENTS.md"
     "CHANGES.md"
+    "CLAUDE.md"
     "COMMIT.md"
     "DEVELOPMENT_NOTES.md"
+    "DOCTRINE_ENFORCEMENT.md"
+    "GEMINI.md"
+    "KNOWLEDGE_MAP.md"
     "LIVE_ACHIEVEMENT_STATUS.md"
+    "MEMORY_ARCHITECTURE.md"
     "MEMORY.md"
     "PGEN_USER_GUIDE.md"
     "QUICKSTART_AI_ONBOARDING.md"
     "README.md"
     "SESSION_BOOTSTRAP.md"
+    "TOOLBOX.md"
   )
   local -a actual_root_md=()
   local expected_snapshot

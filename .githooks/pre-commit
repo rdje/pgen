@@ -7,12 +7,15 @@
 #     accepted language — flag any NEW out-of-band acceptance validator wired into the parse registry.
 #   - KNOWLEDGE-MAP (PGEN-KNOWLEDGE-MAP-0001): regen+stage the derived Knowledge Map, then
 #     validate facts + sync (regenerate-and-stage makes map drift structurally impossible).
+#   - DIAG-TOOLBOX-ENFORCE (PGEN-DIAG-TOOLBOX-0002): the GENERAL DOCTRINE ENFORCER —
+#     scripts/check_doctrines.sh runs every mechanizable doctrine check as one registry, incl.
+#     the diagnosis-evidence gate that blocks a code change whose task leaf lacks tool-backed
+#     WHY+WHERE diagnosis + measured verification. See docs/decisions/DOCTRINE_ENFORCEMENT.md.
 set -e
 ROOT="$(git rev-parse --show-toplevel)"
-"$ROOT/scripts/check_memory_architecture.sh"
-"$ROOT/scripts/check_diagnostics_and_docpaths.sh"
-"$ROOT/scripts/check_ebnf_source_of_truth.sh"
-"$ROOT/scripts/check_regex_self_hosting.sh"
+# KNOWLEDGE-MAP is DERIVED — regenerate + stage so map drift is structurally impossible, BEFORE
+# the driver's check_knowledge_map verifies it.
 "$ROOT/knowledge-map/scripts/gen_knowledge_map.sh" >/dev/null
 git add "$("$ROOT/knowledge-map/scripts/gen_knowledge_map.sh" --print-map-path)" 2>/dev/null || true
-"$ROOT/knowledge-map/scripts/check_knowledge_map.sh"
+# The single general doctrine enforcer (registry + driver) — runs ALL check_*.sh and reports.
+"$ROOT/scripts/check_doctrines.sh"

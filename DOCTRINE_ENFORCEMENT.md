@@ -1,0 +1,245 @@
+# Doctrine Enforcement Architecture
+
+A portable, **project-agnostic** standard for turning written rules ("doctrines") into
+**mechanically enforced** ones — so compliance is *provable and re-checkable*, never a
+"trust me" claim. Drop the kit (§8) into any repository and a non-compliant change cannot
+land: a local git hook blocks it, and CI makes it un-mergeable.
+
+> One-line thesis: **a doctrine that is not mechanically checked is not enforced — it is a
+> suggestion.** The fix is to pair every doctrine with a deterministic check, run all checks
+> from one registry/driver, and gate commits + CI on it.
+
+This file is the **sibling of `MEMORY_ARCHITECTURE.md`**: that standard mechanizes the *memory*
+doctrine; this one generalizes the *same E1→E4 defense-in-depth* to **every** doctrine.
+
+---
+
+## 0. How to use this file
+
+1. Read it once. Adopt the **check-script contract** (§4) and the **driver+registry** (§5).
+2. Copy the agnostic kit (§8): the driver, one example check, the hook, the CI step.
+3. For each doctrine you want enforced, write a `check_<doctrine>.sh` and register it.
+4. Run the three setup commands (§8). From then on, non-compliance fails fast (hook) and cannot
+   merge (CI).
+
+If you remember one rule: **route every doctrine to a check, register it, gate on the driver.**
+
+---
+
+## 1. The problem
+
+Most doctrines live as prose (a README section, a decision record, a code comment). Prose is
+**discoverable but not enforceable** — an agent or human can read it and still ignore it, and
+nothing catches the violation until much later (or never). The two failure modes:
+
+- **"Trust me" compliance** — a change claims it followed the rule; no artifact proves it.
+- **Silent drift** — a rule erodes one exception at a time because nothing re-checks it.
+
+The cure is not more prose. It is to make the **compliant path the gated path**: every doctrine
+gets a check that *re-derives the truth from the repository*, and the gates run that check.
+
+---
+
+## 2. The core idea
+
+> **doctrine = a rule + a deterministic check that exits nonzero on any breach.**
+
+Once a doctrine has such a check, enforcement is mechanical:
+
+- one **driver** runs every registered check and reports per-doctrine PASS/FAIL (§5);
+- the **git hook** runs the driver (fast local gate, E3);
+- **CI** runs the *same* driver (un-bypassable backstop, E4).
+
+The check is the single source of truth for the rule; the prose doc explains *why*, the check
+decides *whether*.
+
+---
+
+## 3. The three check archetypes (pick one per doctrine)
+
+Every mechanizable doctrine fits one of three shapes. Pick by what makes the proof real.
+
+| Archetype | The check… | Proof strength | Cost / where to run | Example |
+|---|---|---|---|---|
+| **Structural** | re-derives an invariant from the tree (allowlist match, file presence, lockstep/derived-artifact sync) | a fact about the files — cannot be faked | cheap → pre-commit | "the root-markdown set equals the tracked allowlist"; "the derived map is regenerated + staged" |
+| **Oracle (re-run)** | re-EXECUTES a deterministic tool at fixed inputs (fixed seeds / golden inputs) and asserts the result | strongest — a fabricated claim does not reproduce | may be heavy → defer to CI | "certificate-coverage `UNKNOWN=0` at seeds 0/7/42"; "the shape-contract gate is green" |
+| **Evidence (artifact)** | requires a re-checkable artifact for an action that cannot be re-derived (e.g. *how* a bug was diagnosed) — pasted tool output in a tracked location, ideally with the cited command re-run | medium → strong (strong when the cited command is re-run) | cheap (presence) / heavy (re-run) | "a code change's task leaf carries a tool-output WHY+WHERE + a measured before→after" |
+
+Rule of thumb: prefer **structural** (cannot be faked) → then **oracle** (re-run beats trust) →
+use **evidence** only where the thing being enforced is an *action/process* that leaves no other
+re-derivable trace. For evidence checks, make them as oracle-like as possible (re-run the cited
+command) so they are not bypassable by pasting fake output.
+
+---
+
+## 4. The check-script contract (precise — this is what makes it portable)
+
+A doctrine check is **any executable** that obeys this contract. Get this right and any project,
+any language, can add doctrines that "just work" with the driver.
+
+1. **Exit code is the verdict.** `exit 0` ⟺ the doctrine holds; **any nonzero** ⟺ a breach.
+2. **Explain on breach.** On nonzero, print a human-actionable message to **stderr** (what broke,
+   where, how to fix). On pass, stay quiet or print one OK line.
+3. **Deterministic.** Same repository state → same verdict. No clocks, no network, no randomness
+   (or pin the seed). This is what lets the gate be trusted and CI re-run it.
+4. **Reads the repository (+ `git`), mutates nothing** (a *derive-and-stage* step — like
+   regenerating a derived artifact — is allowed but must be idempotent and explicit).
+5. **Scope-aware where relevant.** A check about a *change* should look at the staged set
+   (`git diff --cached --name-only`) or an explicit range, and **exempt** changes it does not
+   govern (e.g. a code-only doctrine exempts pure-docs commits) — so it never blocks unrelated work.
+6. **Self-contained + path-agnostic.** Resolve the repo root from the script's own location
+   (`ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"`); reference repo-relative paths only.
+7. **Fast, or deferred.** If a check is too slow for pre-commit, keep it in the registry but mark
+   it CI-only (run the cheap structural proxy locally, the full oracle in CI).
+
+A check that obeys (1)–(7) is portable: the driver does not care what it checks or how.
+
+---
+
+## 5. The registry + driver (the general enforcer)
+
+One driver owns the list of doctrines and runs them all. The **registry is the source of truth**
+for "which doctrines are enforced by what"; a human-readable manifest mirrors it.
+
+- **Registry**: a list of `id | what-it-proves | path/to/check.sh`.
+- **Driver**: runs every check (collecting *all* results, not stopping at the first failure),
+  prints a per-doctrine report, and exits nonzero iff any failed. It also **meta-checks** that
+  every registered check exists and is executable — so a registry entry can never be a dangling
+  promise.
+- **Adding a doctrine** = write a `check_*.sh` obeying §4 + add one registry line. Nothing else.
+
+This repo ships the reference driver at [`scripts/check_doctrines.sh`](scripts/check_doctrines.sh)
+and an evidence-archetype check at
+[`scripts/check_diagnosis_evidence.sh`](scripts/check_diagnosis_evidence.sh).
+
+---
+
+## 6. The "reasoned-from-evidence" pattern (process made checkable)
+
+The hardest doctrine to enforce is a *process* ("you followed a root-cause procedure and reasoned
+from the evidence"). You cannot read an author's mind — so reframe it into something mechanical:
+
+> **A correct diagnosis is one whose documented cause→fix→effect chain REPRODUCES under
+> independent re-execution.**
+
+Mechanize it as a **two-signal evidence check** (the procedure made checkable):
+
+1. **DIAGNOSIS signal (WHY+WHERE)** — the leaf pastes output from the tool that *located and
+   explained* the cause (e.g. a profiler line, an error with a precise locus, a rejection trace).
+2. **VERIFICATION signal (effect)** — the leaf pastes the *measured before→after* of the fix
+   (a metric delta, a REJECT→PASS, determinism across fixed seeds).
+
+The gate requires **both** (you must have located the cause *and* measured the effect). The
+**oracle leg** then re-runs the cited deterministic commands in CI: a fabricated cause→fix→effect
+chain will not reproduce, so it fails. At that point the distinction between "reasoned" and
+"fabricated" collapses — *a reproducible chain is, operationally, a correct diagnosis.* That is the
+scientific-method standard, and it is the strongest enforceable proxy for "reasoned from evidence."
+
+---
+
+## 7. Enforcement layering (E1→E4 — defense in depth)
+
+Same model as `MEMORY_ARCHITECTURE.md` §9. Each layer catches what the last misses.
+
+- **E1 — Discovery.** The doctrine is unmissable: named in the entrypoint docs (`README`,
+  `TOOLBOX.md`, `docs/decisions/`), and (for an agent harness) re-injected at session start / on
+  the relevant tool use via hooks. Discovery alone is *not* enforcement.
+- **E2 — Self-check.** Each `check_*.sh` (the single source of truth for one doctrine) + the driver.
+- **E3 — Git hook.** `.githooks/pre-commit` runs the driver; a non-compliant tree cannot commit
+  locally. *Honest limit:* a local hook can be `--no-verify`'d or skipped if `core.hooksPath` is
+  not set — it catches the common case cheaply; it is **not** the backstop.
+- **E4 — CI.** The **same** driver runs server-side; `--no-verify` cannot reach it, so a
+  non-compliant branch **cannot merge**. This is the un-bypassable layer — *only as strong as CI
+  actually running.* If hosted CI is paused/manual, that is a real gap: re-enable an auto
+  doctrine-gate job, or the "no matter what" guarantee degrades to "no matter what, until the next
+  manual run."
+
+To land non-compliant work, an author would have to defeat all four — and E4 cannot be defeated
+from a clone.
+
+---
+
+## 8. The agnostic adoption kit ("it just works")
+
+Path-agnostic and copy-pasteable, exactly like `MEMORY_ARCHITECTURE.md` §9.1.
+
+**Copy these verbatim** (they make no project-specific assumptions):
+- `scripts/check_doctrines.sh` — the registry+driver (edit the `DOCTRINES=(…)` array for your repo).
+- one example check (`scripts/check_diagnosis_evidence.sh`) as a template for the evidence archetype.
+- `.githooks/pre-commit` (or add one line to your existing hook): run the driver.
+
+**Write your checks** — one `scripts/check_<doctrine>.sh` per doctrine, each obeying the §4
+contract; register each as one line in the driver's array.
+
+**Run these three commands once:**
+```bash
+chmod +x scripts/check_*.sh
+git config core.hooksPath .githooks          # activate the local gate (E3)
+# add ONE line to your CI pipeline (E4):  bash scripts/check_doctrines.sh
+```
+
+**The only knobs to adapt per project** (everything else is identical):
+- the `DOCTRINES=(…)` registry array (your doctrines → your check scripts);
+- per evidence check: the "what counts as a code change" path set and the signature regexes;
+- which heavy checks are CI-only vs pre-commit.
+
+Because the driver and the contract are project-neutral, copying the kit reproduces the *same*
+four-layer gate everywhere. A different project, in any harness, lands non-compliant work only by
+defeating all four layers — and E4 cannot be defeated from a clone.
+
+---
+
+## 9. Honest limits (state them; do not over-claim)
+
+- **Local hooks are bypassable** (`--no-verify`, unset `hooksPath`). CI is the real backstop; if CI
+  is paused, enforcement is only as strong as the next CI/manual run. *Re-enabling auto CI is the
+  true "no matter what."*
+- **Evidence-presence can be gamed** by pasting fake tool output — *unless* the check re-runs the
+  cited command (the oracle leg). Prefer structural and oracle checks; make evidence checks
+  re-execute where possible.
+- **A check cannot prove intent / understanding** — only that the *artifacts and oracles reproduce*.
+  That reproducibility is the point: a reproducible cause→fix→effect chain is the operational
+  definition of a correct fix, regardless of how it was produced.
+- **Goal is expensive-and-visible non-compliance, not literal impossibility** — defense in depth,
+  not a single unbreakable wall.
+
+---
+
+## 10. The live PGEN instance (this repo's registry)
+
+The reference deployment. Enforced by [`scripts/check_doctrines.sh`](scripts/check_doctrines.sh)
+via [`.githooks/pre-commit`](.githooks/pre-commit) (E3) + CI (E4).
+
+| Doctrine | Archetype | Check | Proves |
+|---|---|---|---|
+| `MEMORY-ARCH` | structural | `scripts/check_memory_architecture.sh` | the durable 4-layer memory architecture invariants (`MEMORY_ARCHITECTURE.md` §9) |
+| `DIAG-SEVERITY+DOCPATH` | structural | `scripts/check_diagnostics_and_docpaths.sh` | severity never masked by verbosity + repo-root-relative live-doc paths |
+| `EBNF-SOURCE-OF-TRUTH` | structural | `scripts/check_ebnf_source_of_truth.sh` | no new out-of-band acceptance validator wired outside the EBNF |
+| `REGEX-SELF-HOSTING` | oracle | `scripts/check_regex_self_hosting.sh` | the regex grammar self-hosts (gen↔parse duality) |
+| `KNOWLEDGE-MAP` | structural | `knowledge-map/scripts/check_knowledge_map.sh` | the derived Knowledge Map is in sync with its fact sources |
+| `DIAG-TOOLBOX-EVIDENCE` | evidence | `scripts/check_diagnosis_evidence.sh` | a code change carries tool-backed WHY+WHERE diagnosis + measured verification in its task leaf (see `TOOLBOX.md`) |
+
+Deterministic-oracle doctrines that run via the broader `make` gates / CI (cert-coverage at seeds
+0/7/42, `ast_shape_contract`, syntax-closure, the external-corpus triage) are the strongest leg —
+they re-execute the real tools, so cited numbers are independently re-verified.
+
+To add a doctrine here: write `scripts/check_<id>.sh` (§4 contract), add one line to the driver's
+`DOCTRINES` array, and add a row above. The driver's meta-check fails if the script is missing.
+
+---
+
+## 11. Anti-patterns
+
+- ❌ A doctrine that lives only as prose, with no check.
+- ❌ "Trust me, I followed the procedure" with no re-checkable artifact.
+- ❌ An evidence check that greps for a signature but never re-runs the oracle (fakeable).
+- ❌ A registry entry pointing at a check that does not exist (a dangling promise — the meta-check catches this).
+- ❌ A check with side effects / nondeterminism (then the gate cannot be trusted).
+- ❌ Relying on the local hook as the backstop (it is bypassable — CI is the backstop).
+- ❌ Over-claiming "impossible to violate" — the honest claim is "expensive, visible, and blocked at every active gate."
+
+---
+
+*This document is itself an instance of the architecture it describes: a portable, in-repo,
+git-tracked standard backed by a runnable driver and mechanical gates — adoptable by any project
+by following §8.*

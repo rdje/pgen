@@ -78,24 +78,27 @@ PGEN is a production-focused parser and stimuli generator platform.
   - This is the repository-wide closure doctrine for any PGEN EBNF-based parser, not an SV-only or annotation-only rule.
 
 ## Fast Ramp-Up (Read In This Order)
+> ⛔ **Before debugging ANY issue** (an `UNKNOWN`, a rejected parse, a hang, a reach gap, a "why isn't this witnessed"), read **`TOOLBOX.md`** and run the debug tools FIRST — never eyeball a grammar or guess a root cause. This is a standing director directive **and it is mechanically ENFORCED**: a code change cannot land without tool-backed WHY+WHERE diagnosis + measured before→after verification in its owning task leaf (`scripts/check_doctrines.sh` via `.githooks/pre-commit`; see `DOCTRINE_ENFORCEMENT.md`).
 1. `README.md` (this file)
 2. `docs/book/` (`mdBook` live mastery surface)
-3. `QUICKSTART_AI_ONBOARDING.md`
-4. `PGEN_USER_GUIDE.md`
-5. `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
-6. `LIVE_ACHIEVEMENT_STATUS.md`
-7. `docs/reference/RUST_CODEBASE_ANALYSIS.md`
-8. `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
-9. `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
-10. `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
-11. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
-12. `docs/TASK_TREE.md` (active task trees + PNT selection rules)
-13. `docs/TASK_TREE_README.md` (reusable workflow installation guide)
-14. `MEMORY_ARCHITECTURE.md` (how durable, harness-agnostic agent memory + continuity work here — the 4 layers + enforcement)
-15. `MEMORY.md` (layer A — the bounded resume pointer; read first on resume)
-16. `CHANGES.md`
-17. `DEVELOPMENT_NOTES.md`
-18. `COMMIT.md`
+3. `TOOLBOX.md` (the diagnostic & debug toolbox — when/how for every debug tool; READ BEFORE debugging)
+4. `QUICKSTART_AI_ONBOARDING.md`
+5. `PGEN_USER_GUIDE.md`
+6. `docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md`
+7. `LIVE_ACHIEVEMENT_STATUS.md`
+8. `docs/reference/RUST_CODEBASE_ANALYSIS.md`
+9. `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
+10. `docs/reference/PGEN_LINTER_ENABLEMENT_ROADMAP.md`
+11. `docs/reference/PGEN_COMPILER_ELABORATOR_ENABLEMENT_ROADMAP.md`
+12. `docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md`
+13. `docs/TASK_TREE.md` (active task trees + PNT selection rules)
+14. `docs/TASK_TREE_README.md` (reusable workflow installation guide)
+15. `MEMORY_ARCHITECTURE.md` (how durable, harness-agnostic agent memory + continuity work here — the 4 layers + enforcement)
+16. `DOCTRINE_ENFORCEMENT.md` (how EVERY mechanizable doctrine is enforced — the portable enforcer kit)
+17. `MEMORY.md` (layer A — the bounded resume pointer; read first on resume)
+18. `CHANGES.md`
+19. `DEVELOPMENT_NOTES.md`
+20. `COMMIT.md`
 
 ## Key Project Paths
 - `grammars/`: EBNF sources (`*.ebnf`)
@@ -130,7 +133,18 @@ PGEN is a production-focused parser and stimuli generator platform.
 - `docs/systemverilog/profiled_generation_report.json`: structured report for staged dual-LRM profile synthesis
 - `tests/`: test how-to and test guides
 
+## Diagnostic & Debug Toolbox (use FIRST, every time)
+- `TOOLBOX.md` is the authoritative, meticulous catalog of every debug surface — WHAT each tool is, WHEN to reach for it, and HOW to run it. It is **ramp-up item #3** and the first thing to open for any `UNKNOWN`, rejected parse, hang, reach gap, or "why isn't this witnessed" question. Do **not** eyeball a grammar or guess a root cause.
+- The systematic **3-step certificate-coverage `UNKNOWN` protocol**:
+  - `PGEN_CERT_COVERAGE_DUMP_ALL=1 … --report-certificate-coverage …` → the full residual list (+ dead-rule candidates);
+  - `PGEN_CERT_COVERAGE_DEBUG_PROBES=1 …` → per-rule `[plannable-probe]` `parsed`/`witnessed_target` verdicts (the WHY);
+  - scoped `PGEN_TRACE_VERBOSITY=debug … --trace-rules <rule>` → the exact `🚫 rejected by post predicate …` line.
+- Mirrored surfaces (kept in lockstep): book chapters `docs/book/src/diagnosing-unknowns.md` + `docs/book/src/parseability-probe-debug.md`; KM cards `docs/knowledge/cert-coverage-unknown-diagnostics.md` + `ast-pipeline-cli-reference`; decision `docs/decisions/feedback_systematically_use_debug_toolbox.md`.
+- **Enforcement (not optional).** Using the toolbox is mechanically enforced, not a "trust me" claim: a code change cannot commit unless its owning task leaf carries tool-backed WHY+WHERE diagnosis **and** a measured before→after verification — checked by `scripts/check_diagnosis_evidence.sh`, run by the general doctrine enforcer `scripts/check_doctrines.sh` via `.githooks/pre-commit` (E3) and CI (E4). The portable enforcer model is `DOCTRINE_ENFORCEMENT.md`.
+
 ## Standard Commands
+- General doctrine enforcer (runs every mechanizable doctrine check):
+  - `bash scripts/check_doctrines.sh`
 - Aggregate policy gate:
   - `make -C rust SHELL=/bin/bash sota_exit_gate`
 - Branch-protection contract gate:
@@ -290,6 +304,8 @@ The list below is the current high-signal markdown surface for active work. A 20
 - `DEVELOPMENT_NOTES.md`
 - `LIVE_ACHIEVEMENT_STATUS.md`
 - `MEMORY_ARCHITECTURE.md` (durable harness-agnostic agent-memory standard — the memory/continuity system of record)
+- `DOCTRINE_ENFORCEMENT.md` (portable doctrine-enforcement standard + kit — the general "rule enforcer" framework)
+- `TOOLBOX.md` (the diagnostic & debug toolbox — when/how for every debug tool; read before debugging)
 - `MEMORY.md` (layer A resume pointer)
 - `PGEN_USER_GUIDE.md`
 - `QUICKSTART_AI_ONBOARDING.md`

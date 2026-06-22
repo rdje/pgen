@@ -232,3 +232,45 @@ introduced (the generator becomes a second consumer of the existing one).
 | `.2` | `PGEN-STORE-AWARE-GEN-0002` | tool-backed design ([`STORE-AWARE-GEN-design.md`](STORE-AWARE-GEN-design.md)) — generator hooks, 2 predicate strategies, checkpoint/rollback discipline, no-op gate, MVP scope, verification matrix; `.3`–`.5` turnkey |
 | `.3` | `PGEN-STORE-AWARE-GEN-0003` | `fact_count_at_least`-aware generation MVP (generator-only): `gen_semantic_state` + no-op gate + emit hook + `count(K)==0` necessary-condition prune + `generate_or`/`generate_quantified` checkpoint/rollback + per-sample reset; closes `REGEX-PCRE2-FIDELITY.3.12` (cert-cov seed sweep all 0); surface-neutral, no regen/version bump |
 | `.4` SCOPING | `PGEN-STORE-AWARE-GEN-0004` | tools-first re-frame: composable-predicate generalization is SV-only (41 sites, most-tuned surface → measured effort); regex tight-bound moot (multi-digit backref unreachable, 0/2537); re-scoped to `.4a` (SV prune, measured) / `.4b` (SV value-selection); recommend Phase H first as evidence gate; docs-only |
+| `.4b.1` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN — frontier. Phase-H evidence gate now SATISFIED (see leaf below).** |
+
+## `.4b.1` — IMPLEMENT store-aware (name-coordinated) witness generation — the cert-coverage `UNKNOWN`-tail fix
+
+- **Status:** `IN PROGRESS` (frontier). Owns the engine code change; nothing committed yet.
+- **Phase-H evidence gate — SATISFIED (tools-first, 2026-06-22).** The `.4` scoping recommended running
+  `GRAMMAR-WELLFORMED` Phase H first to SEE whether SV generation has real `@predicate`-violating
+  residuals before building tier (ii). It does, and the debug toolbox proves it decisively:
+  - `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` shows the plannable-witness pass forces store-gated rules with
+    samples like `localparam \foo \foo ;` — using `\foo` as a type WITHOUT a declaration that emits the
+    required fact (**640 of the forced samples `parsed=false`**, the dominant failure mode).
+  - The scoped semantic trace names the exact rejection:
+    `🚫 Rule 'known_unscoped_covergroup_type_identifier' rejected by post predicate
+    'fact_attribute_equals [type_name, "\foo", declaration_family, covergroup]' ↪ NEGATIVE: ... none
+    matched name "\foo"`. Same for `checked_type_identifier` (`has_fact(type_name,…)`) and the whole
+    `known_unscoped_*` / `class_scoped_*` / `constraint`/`extern` store-gated family (~26 of the SV
+    residual 55). So the SV `UNKNOWN` tail is dominated by tier-(ii) value-selection, exactly `.4b`.
+- **Root cause (WHY+WHERE, proven):** the plannable witness pass (`stimuli_generator.rs`) forces a
+  store-gated rule's USE-SITE but never generates the fact-emitting DECLARATION its `@predicate` requires,
+  so `has_fact`/`fact_attribute_equals` is false → the gated branch rejects → the forced sample does not
+  re-parse → no witness. The existing **C2.2 semantic-prelude** (`compute_reach_prelude`, ~`:2812`) already
+  solves the analogous problem for `fact_count_at_least` (regex) by hosting a fact PRODUCER in a quantifier
+  site; it does NOT handle the NAME-matching gates (`has_fact`/`fact_attribute_equals`), where the prelude
+  must declare the *same name* the use-site emits.
+- **The fix (ONE clean, SOTA, parser-agnostic mechanism — NOT a per-rule `@sample` hack):** extend the
+  C2.2 prelude from count-gates to **name-matching gates**: when a witness target is gated by
+  `has_fact(K,$ref)` / `fact_attribute_equals(K,$ref,attr,val)`, find a producer rule whose `@emit_fact`
+  emits kind `K` (matching `attr=val`), synthesize a declaration prelude, and **coordinate the name** so
+  the use-site `$ref` equals the producer's emitted name (declare-then-use). Reuses the existing
+  `gen_emit_facts` / `reach_gate_kinds` / `ReachPrelude` machinery and the `semantic_runtime` evaluator
+  (one evaluator, two drivers); capability-gated on the predicate's presence (no-op / byte-identical for
+  grammars without these gates), per [[feedback_features_parser_agnostic_enable_all_parsers]]. Director
+  pre-authorized general semantic-annotation additions if the minimal vehicle needs one
+  ([[feedback_pinpoint_real_blocker_not_menu]]); first cut targets the engine prelude with no new
+  annotation. ⚠️ Avoid the fragile name-coupling hack the earlier `.4.2.1.2.2.3` note warned against —
+  the coordination must be robust (captured producer name reused at the use-site, verified by the
+  parser re-check that already guards every witness).
+- **Acceptance:** SV cert `UNKNOWN` drops by the store-gated cohort, deterministic seeds 0/7/42, `spf=0`;
+  the 6 fully-certified grammars byte-identical (`stimuli_cross_family_platform_gate` + each stimuli gate
+  green); SV external corpus 14/14; clippy source-clean. Decisive A/B + GLOBAL cert before any commit.
+- **Diagnose/verify with the toolbox** (`docs/book/src/diagnosing-unknowns.md`): `DUMP_ALL` →
+  `DEBUG_PROBES` → scoped semantic trace, per [[feedback_systematically_use_debug_toolbox]].

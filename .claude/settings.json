@@ -1,6 +1,19 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' '{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"TOOLBOX-FIRST (standing director directive, non-negotiable). For ANY UNKNOWN / rejected parse / hang / reach gap / why-not-witnessed question, run PGEN debug tools FIRST (TOOLBOX.md) — do NOT eyeball the grammar, guess a root cause, or offer a strategy menu. The 3-step UNKNOWN protocol: PGEN_CERT_COVERAGE_DUMP_ALL (full list) -> PGEN_CERT_COVERAGE_DEBUG_PROBES ([plannable-probe] parsed/witnessed verdicts) -> scoped PGEN_TRACE_VERBOSITY=debug --trace-rules (names the predicate rejection). ANTI-SPIN TRIPWIRE: if you have analyzed for ~2 turns WITHOUT producing NEW tool output that pinpoints WHY+WHERE, STOP — run the toolbox, or build a tool, or escalate; never loop on analysis. A code change cannot commit without tool-backed WHY+WHERE + measured before->after verification in its task leaf (scripts/check_doctrines.sh enforces it via .githooks/pre-commit). See DOCTRINE_ENFORCEMENT.md.\"}}'",
+            "timeout": 10,
+            "statusMessage": "Toolbox-first + anti-spin reminder"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
@@ -10,6 +23,12 @@
             "command": "f=$(jq -r \".tool_input.file_path // .tool_input.path // empty\" 2>/dev/null); case \"$f\" in *.ebnf) printf \"%s\\n\" \"PGEN EBNF GUARDRAIL — before changing any return annotation in a .ebnf grammar, RE-READ: the target *.ebnf grammar itself, grammars/return_annotation.ebnf (\\$N | \\$N::M[*] | single-star \\$N* | flat-spread \\$N**), docs/RETURN_ANNOTATIONS_REFERENCE.md, docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md, and memory feedback_quantified_group_extraction + feedback_ebnf_consult_annotation_docs. Copy the proven systemverilog.ebnf idiom; after regen ALWAYS verify with parseability_probe --parse-dump-ast-pretty before trusting the shape.\" >&2 ;; esac; exit 0",
             "timeout": 10,
             "statusMessage": "EBNF annotation guardrail"
+          },
+          {
+            "type": "command",
+            "command": "f=$(jq -r \".tool_input.file_path // .tool_input.path // empty\" 2>/dev/null); case \"$f\" in *rust/src/*|*grammars/*.ebnf|*generated/*) printf \"%s\\n\" \"PGEN TOOLBOX-FIRST GUARDRAIL — you are about to change CODE. This change cannot commit unless its owning docs/tasks/<TREE>.md leaf carries (1) tool-backed WHY+WHERE diagnosis AND (2) a measured before->after verification (enforced by scripts/check_diagnosis_evidence.sh via scripts/check_doctrines.sh in .githooks/pre-commit). If you have NOT yet pinpointed the root cause with the debug toolbox (TOOLBOX.md: DUMP_ALL -> DEBUG_PROBES -> scoped trace), STOP and do that FIRST. Do not guess; do not spin on analysis.\" >&2 ;; esac; exit 0",
+            "timeout": 10,
+            "statusMessage": "Toolbox-first code-change guardrail"
           }
         ]
       }
@@ -20,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s' '{\"hookSpecificOutput\": {\"hookEventName\": \"PostCompact\", \"additionalContext\": \"POST-COMPACTION RESUME PROTOCOL — context was just summarized. Re-read: (1) README.md, SESSION_BOOTSTRAP.md, COMMIT.md; (2) live-docs — LIVE_ACHIEVEMENT_STATUS.md, CHANGES.md, DEVELOPMENT_NOTES.md, and the auto-memory MEMORY.md index (authoritative durable feedback — honor it); (3) live-books (MDBOOKs) — docs/book/ (top-level) and the per-parser book for the in-flight lane; (4) docs/TASK_TREE.md Active Task Trees + the owning docs/tasks/<TREE>.md for the current frontier. git log + working tree are the true state (committed per-leaf). Resume the in-flight lane where it stopped — do not restart it.\"}}'",
+            "command": "printf '%s' '{\"hookSpecificOutput\": {\"hookEventName\": \"PostCompact\", \"additionalContext\": \"POST-COMPACTION RESUME PROTOCOL — context was just summarized. Re-read: (1) README.md, SESSION_BOOTSTRAP.md, TOOLBOX.md, COMMIT.md; (2) live-docs — LIVE_ACHIEVEMENT_STATUS.md, CHANGES.md, DEVELOPMENT_NOTES.md, and the auto-memory MEMORY.md index (authoritative durable feedback — honor it); (3) live-books (MDBOOKs) — docs/book/ (top-level) and the per-parser book for the in-flight lane; (4) docs/TASK_TREE.md Active Task Trees + the owning docs/tasks/<TREE>.md for the current frontier. TOOLBOX-FIRST: diagnose any issue with the debug tools BEFORE acting (TOOLBOX.md). git log + working tree are the true state (committed per-leaf). Resume the in-flight lane where it stopped — do not restart it.\"}}'",
             "timeout": 10,
             "statusMessage": "Re-inject continuity after compaction"
           }
