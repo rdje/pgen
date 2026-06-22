@@ -1,4 +1,13 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-22 - PGEN-STORE-AWARE-GEN-0005 — STORE-AWARE-GEN.4b.1 DESIGN: name-coordinated declare-then-use witness prelude (PURE-DOCS)
+
+Design slice. No code change. The canonical, file:line-grounded design + the enforced acceptance checklist live in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.1` DESIGN / `.4b.2` IMPLEMENT) — this is a continuity pointer, not a duplicate.
+
+- **Re-verified baseline:** regen-lockstep DEBUG `ast_pipeline` reproduces SV `total=1289 proof=1 witness=1232 UNKNOWN=56 spf=0` byte-identical at seeds 0/7/42 (the `.4b.2` "before").
+- **WHY+WHERE (fresh `DUMP_ALL`+`DEBUG_PROBES`):** the store-gate cohort's forced witness samples (`localparam\foo \foo ;`, `class\foo …`, `constraint\foo ::\foo {}`, `typedef\foo \foo ;`) `parsed=false` because the plannable-witness pass forces a store-gated USE-SITE but never generates the fact-emitting DECLARATION its `@predicate has_fact`/`fact_attribute_equals` requires → gate false → no re-parse → no witness.
+- **Scope discipline:** the 56 residual split — 19 `no_path` (non-defects) + ~7 SVA infix-operator PARSE bug (`kw_within`/`intersect`/`s_until`/`until`/`until_with`/`s_until_with`, parked `H.12.5.8` — a parser bug, NOT generator-fixable) + ~25 store-gate declare-then-use (the cohort) + misc. `.4b` targets ONLY the store-gate cohort.
+- **Mechanism pinned:** extend the C2.2 prelude (`compute_reach_prelude`, `stimuli_generator.rs:2812`) from `fact_count_at_least` count-gates to name-matching gates — declare a matching `@emit_fact` producer upstream (iterations=1), then on the gated use-site select the just-emitted store name and FORCE the `$ref`-path identifier to render it (`$body`/`$1.body` whole-render via the `reach_prelude_replay_text` `:2911` pattern; `$head.body` head-only). Generator-only, parser-agnostic, capability-gated (no-op/byte-identical for predicate-free grammars); the certifying parser re-check stays the witness judge.
+
 ## 2026-06-22 - PGEN-GRAMMAR-WELLFORMED-0121 — SV cert-baseline reconciliation (objective UNKNOWN=56) + SVA cascade discarded (fresh-session handoff, PURE-DOCS)
 
 Handoff slice. No code change. Records a measurement-integrity lesson and discards the parked cascade WIP.
