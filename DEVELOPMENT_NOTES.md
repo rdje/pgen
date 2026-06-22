@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0010 — STORE-AWARE-GEN.4b.5 DESIGN: sub-cohort 3B root-cause (non-bootstrapping producer), PURE-DOCS
+
+Tools-first DESIGN for sub-cohort 3B; PURE-DOCS. The canonical detail lives in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.5`) — this is a continuity pointer, not a duplicate.
+
+- **OPEN QUESTION answered (tool-proven):** the `.4b.2`/`.4b.4` prelude DOES fire for the directly-gated `known_unscoped_class_scope_class_identifier`, but `compute_name_prelude` (`stimuli_generator.rs:2991-3003`) selects producers via `producers.sort_unstable()` + first-reachable, so the alphabetically-first family=class producer `declared_class_alias_identifier` (`systemverilog.ebnf:5112-5115`, a typedef-ALIAS whose mandatory LHS source type is itself `has_fact`-gated) is committed — its render `typedef \foo \foo ;` fails to parse @`furthest_position=11` (scoped trace: `checked_type_identifier` `has_fact[type_name,"\foo"]` NEGATIVE), so no class fact is established. The self-bootstrapping `declared_class_identifier` (`class \foo;…endclass`) / `declared_forward_class_identifier` (`typedef class \foo;`) both PASS but are never tried.
+- **Ruled out:** depth (TOOLBOX 4.5 `--max-depth 32` → 3B set unchanged, +spf noise) and producer-unreachability (the `name-prelude spec` trace shows a prelude is built).
+- **3B → three targeted leaves:** 3B-ii producer-selection robustness (`.4b.6`, cleanest), 3B-i gate-not-mandatory-first (`.4b.7`, `extern_constraint_declaration*`/`constraint_set`), 3B-iii target-own incompleteness (`.4b.8`, `property_qualifier`); 3C → `.4b.9`. Frontier → `.4b.6`.
+
 ## 2026-06-22 - PGEN-STORE-AWARE-GEN-0008 — STORE-AWARE-GEN.4b.4 IMPLEMENT: mandatory-first gated-rule descent (block-scoped carriers, GENERATOR-ONLY)
 
 Implemented the `.4b.3` design's sub-cohort 3A. GENERATOR-ONLY (`rust/src/ast_pipeline/stimuli_generator.rs`); the canonical detail + the earned acceptance checklist live in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.4`) — this is a continuity pointer, not a duplicate.

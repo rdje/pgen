@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `STORE-AWARE-GEN`
-- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done [`fact_count_at_least`-aware MVP closed `REGEX-PCRE2-FIDELITY.3.12`]; `.4` SCOPING done [tools-first: the composable-predicate generalization is parser-agnostic, capability-gated, current sole user SystemVerilog]; **`.4b.1` DESIGN done** [`PGEN-STORE-AWARE-GEN-0005`, 2026-06-22 — verified baseline `UNKNOWN=56`, classified the 56, pinned the name-coordinated declare-then-use prelude mechanism]; **`.4b.2` IMPLEMENT done** [`PGEN-STORE-AWARE-GEN-0006`, 2026-06-22 — landed the generator-only name-coordinated prelude; SV cert `UNKNOWN 56 → 46`, +10 store-gate cohort rules witnessed, zero newly-UNKNOWN, deterministic seeds 0/7/42]; **`.4b.3` DESIGN done** [`PGEN-STORE-AWARE-GEN-0007`, 2026-06-22 — verified the `UNKNOWN=46` baseline, classified all 46, A/B-proved the `block_type`/`data_type` asymmetry root cause (the name-prelude's gated-rule search inspects only hops+target, never the target's mandatory sub-rules, so a non-gated carrier of the inner-gated `checked_type_identifier` never gets a prelude), decomposed the deeper residual into 3 implement sub-cohorts]; **`.4b.4` IMPLEMENT done** [`PGEN-STORE-AWARE-GEN-0008`, 2026-06-22 — landed the generator-only mandatory-first gated-rule descent; SV cert `UNKNOWN 46 → 43`, +3 block-scoped carriers witnessed (`known_unscoped_block_type_identifier`, `known_unscoped_block_covergroup_identifier`, + bonus `provisional_unscoped_block_class_type`), zero newly-UNKNOWN, deterministic seeds 0/7/42]. **Frontier: `.4b.5`** — IMPLEMENT sub-cohort 3B [class-member/class-scope: a class declared as a class + a `::`-scoped use render])
+- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done [`fact_count_at_least`-aware MVP closed `REGEX-PCRE2-FIDELITY.3.12`]; `.4` SCOPING done [tools-first: the composable-predicate generalization is parser-agnostic, capability-gated, current sole user SystemVerilog]; **`.4b.1` DESIGN done** [`PGEN-STORE-AWARE-GEN-0005`, 2026-06-22 — verified baseline `UNKNOWN=56`, classified the 56, pinned the name-coordinated declare-then-use prelude mechanism]; **`.4b.2` IMPLEMENT done** [`PGEN-STORE-AWARE-GEN-0006`, 2026-06-22 — landed the generator-only name-coordinated prelude; SV cert `UNKNOWN 56 → 46`, +10 store-gate cohort rules witnessed, zero newly-UNKNOWN, deterministic seeds 0/7/42]; **`.4b.3` DESIGN done** [`PGEN-STORE-AWARE-GEN-0007`, 2026-06-22 — verified the `UNKNOWN=46` baseline, classified all 46, A/B-proved the `block_type`/`data_type` asymmetry root cause (the name-prelude's gated-rule search inspects only hops+target, never the target's mandatory sub-rules, so a non-gated carrier of the inner-gated `checked_type_identifier` never gets a prelude), decomposed the deeper residual into 3 implement sub-cohorts]; **`.4b.4` IMPLEMENT done** [`PGEN-STORE-AWARE-GEN-0008`, 2026-06-22 — landed the generator-only mandatory-first gated-rule descent; SV cert `UNKNOWN 46 → 43`, +3 block-scoped carriers witnessed (`known_unscoped_block_type_identifier`, `known_unscoped_block_covergroup_identifier`, + bonus `provisional_unscoped_block_class_type`), zero newly-UNKNOWN, deterministic seeds 0/7/42]; **`.4b.5` DESIGN done** [`PGEN-STORE-AWARE-GEN-0010`, 2026-06-23 — re-verified `UNKNOWN=43` baseline; TOOLBOX 4.5 NOT-depth check (`--max-depth 32`) ruled OUT the depth hypothesis (3B set unchanged, +spf noise); the `name-prelude spec` debug trace + `furthest_position` + producer-render A/B + scoped predicate trace decomposed sub-cohort 3B into THREE mechanistically-distinct sub-blockers — **3B-ii** producer-selection (the prelude IS built but picks the alphabetically-first family producer `declared_class_alias_identifier`, a non-bootstrapping typedef-ALIAS whose own mandatory source-type slot is undeclared → the prelude declaration itself fails to parse @pos 11), **3B-i** gate-not-mandatory-first (`extern_constraint_declaration*`/`constraint_set` — gated `class_scope` buried behind leading `kw_constraint`, so `name_gate_via_mandatory_prefix` builds NO prelude), **3B-iii** target-own incompleteness (`property_qualifier` — forced `rand <type> ;` omits the variable name); pinned the self-bootstrapping-producer-selection fix as the next implement]. **Frontier: `.4b.6`** — IMPLEMENT 3B-ii (self-bootstrapping producer selection; the cleanest + most general 3B fix))
 - Family / slice-id prefix: `PGEN-STORE-AWARE-GEN-<NNNN>`
 - Roadmap lane: stimuli-generator quality / parser sign-off pillars **C** (fidelity) + **D** (coverage) —
   the generator must emit only samples that satisfy the SAME semantic predicates the parser enforces
@@ -227,6 +227,7 @@ introduced (the generator becomes a second consumer of the existing one).
 | `2026-06-22` | `.4b.2` IMPLEMENT | decisive A/B on regen-lockstep build: SV cert `UNKNOWN 56 → 46`, witness `1232 → 1242` (+10 store-gate cohort witnessed), `spf=0`, `proof_reverify_failures=0`, deterministic seeds 0/7/42; new 46 a strict SUBSET of baseline 56 (script-verified ZERO newly-UNKNOWN); in-session regression `declared_forward_class_identifier` root-caused via `DEBUG_PROBES` (`typedef\foo \foo ;typedef class\foo ;` self-emit re-declaration) + fixed (exclude self-emitting producers); 6 fully-certified grammars `fully_certified=true` (regex byte-identical seeds 0/7/42); `cargo test --lib` 729/0 (+3 locks); `ast_shape_contract_gate` 18/18; `clippy_on_rust_change` source-clean (189 `eq_op` errors all in `generated/*_parser.rs`, pre-existing) | **IMPLEMENT DONE** — generator-only (no grammar/regen/release/schema); closes the directly-reachable store-gate cohort; deeper class-scope/class-member residual → `.4b.3` |
 | `2026-06-22` | `.4b.4` IMPLEMENT | decisive A/B on the regen-lockstep build: SV cert `UNKNOWN 46 → 43`, witness `1242 → 1245` (+3 block-scoped carriers witnessed: `known_unscoped_block_type_identifier`, `known_unscoped_block_covergroup_identifier`, bonus `provisional_unscoped_block_class_type`), `spf=0`, `proof_reverify_failures=0`, deterministic seeds 0/7/42; new 43 a script-verified strict SUBSET of baseline 46 (ZERO newly-UNKNOWN); regex (other `store_aware`) byte-identical `198/198 fully_certified` seeds 0/7/42; json/vhdl/svpp/rtl_frontend `fully_certified=true`; `cargo test --lib` 731/0 (+2 locks: mandatory-leading-rule-ref descent, name-gate inheritance + direct short-circuit); `clippy_on_rust_change` source-clean (zero findings in the changed code; the 188 generated-`eq_op` errors pre-existing) | **IMPLEMENT DONE** — generator-only (no grammar/parser/regen/release/schema); closes block-scoped sub-cohort 3A; class-member/class-scope (3B) → `.4b.5`, reach-routing (3C) → `.4b.6` |
 | `2026-06-22` | `.4b.3` DESIGN | re-verified `UNKNOWN=46` baseline (regen-lockstep build, seed 0; total=1289 proof=1 witness=1242 spf=0); `DUMP_ALL`+`DEBUG_PROBES` classified all 46 (19 `no_path` + ~7 SVA infix PARSE-bug [out of scope] + the store-gate/reach residual); **`PGEN_REACH_PATH_DUMP` A/B proved the `block_type`/`data_type` asymmetry root cause** — identical bodies (`:= checked_type_identifier packed_dimension*`), gate lives on the inner `checked_type_identifier` (`@predicate has_fact(type_name,$body)`, `:5193`), NOT the carriers; `compute_name_prelude`'s gated-rule search (`stimuli_generator.rs:2972-2976`) inspects only hops+target, never the target's mandatory sub-rules, so a non-gated carrier never gets a prelude (`data_type` only witnessed opportunistically via `checked_type_identifier`'s own top-level witness; the 2-quantifier-deep block carrier was never reached); decomposed the deeper residual into 3A (block-scoped carrier), 3B (class-member/class-scope), 3C/misc (reach-routing) | **DESIGN DONE (PURE-DOCS)** — engine implement split to `.4b.4` (3A, cleanest); `.4b.5` (3B), `.4b.6` (3C/misc) scoped; SVA parse-bug + `no_path` remain out of scope |
+| `2026-06-23` | `.4b.5` DESIGN | re-verified `UNKNOWN=43` baseline (regen-lockstep build, seed 0; total=1289 proof=1 witness=1245 spf=0); **TOOLBOX 4.5 NOT-depth check** (`--max-depth 32` → `UNKNOWN=44`, spf=9, NO 3B rule leaves the set) ruled OUT the depth hypothesis; the `name-prelude spec` debug trace proved a prelude **IS** built for `known_unscoped_class_scope_class_identifier` (producer `declared_class_alias_identifier`) ⇒ not a discovery gap; `furthest_position=11` + scoped predicate trace (`checked_type_identifier` `has_fact[type_name,"\foo"]` NEGATIVE) + producer-render A/B (`typedef\foo \foo ;` REJECT vs `typedef class\foo ;` / `class\foo ;endclass` PASS) pinned the root cause = **non-bootstrapping producer chosen alphabetically**; decomposed 3B into 3B-ii (producer-selection, `.4b.6`), 3B-i (gate-not-mandatory-first, `.4b.7`), 3B-iii (target-own incompleteness, `.4b.8`); 3C → `.4b.9` | **DESIGN DONE (PURE-DOCS)** — engine implement split to `.4b.6`+ ; the self-bootstrapping-producer-selection fix (3B-ii) pinned as the cleanest next implement; SVA parse-bug + `no_path` remain out of scope |
 
 ## Commit Log
 
@@ -240,8 +241,11 @@ introduced (the generator becomes a second consumer of the existing one).
 | `.4b.2` | `PGEN-STORE-AWARE-GEN-0006` | **DONE (IMPLEMENT).** Generator-only name-coordinated declare-then-use witness prelude per the `.4b.1` design. SV cert `UNKNOWN 56 → 46` (+10 store-gate cohort witnessed), zero newly-UNKNOWN, deterministic seeds 0/7/42; 6 fully-certified grammars green; 729/0 tests (+3 locks); source clippy-clean. No grammar/regen/release/schema bump. |
 | `.4b.3` | `PGEN-STORE-AWARE-GEN-0007` | **DONE (DESIGN).** Tools-first decomposition of the `UNKNOWN=46` residual into 3 implement sub-cohorts + the A/B-proved `block_type`/`data_type` asymmetry root cause (gated-rule search ignores the target's mandatory sub-rules). PURE-DOCS. |
 | `.4b.4` | `PGEN-STORE-AWARE-GEN-0008` | **DONE (IMPLEMENT).** Generator-only mandatory-first gated-rule descent (`compute_name_prelude` now arms on a carrier's inner gated rule). SV cert `UNKNOWN 46 → 43` (+3 block-scoped carriers witnessed, incl. bonus `provisional_unscoped_block_class_type`), zero newly-UNKNOWN, deterministic seeds 0/7/42; 6 fully-certified grammars green; 731/0 tests (+2 locks); source clippy-clean. No grammar/parser/regen/release/schema bump. |
-| `.4b.5` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT sub-cohort 3B (class-member/class-scope): a class declared as a class + a `::`-scoped use render (`constraint_set`, `extern_constraint_declaration*`, `known_unscoped_class_scope_*`, the `class_scoped_*call*` family, `provisional_unscoped_block_class_type`, `property_qualifier`). |
-| `.4b.6` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT sub-cohort 3C/misc (reach-routing `parsed=true witnessed=false`): `wildcard_escape_nettype_identifier`, `declared_class_alias_identifier`, `context_member_method_call`, `named_checker_port_connection(_sv_2017)`, `repeat_range`, `with_covergroup_expression`, `union_modifier`. |
+| `.4b.5` | `PGEN-STORE-AWARE-GEN-0010` | **DONE (DESIGN).** Tools-first decomposition of sub-cohort 3B into THREE mechanistically-distinct sub-blockers (3B-ii producer-selection, 3B-i gate-not-mandatory-first, 3B-iii target-own incompleteness), each with a tool-proven WHY+WHERE; NOT-depth check ruled out the depth hypothesis; pinned the self-bootstrapping-producer-selection fix (3B-ii) as the next implement. PURE-DOCS. |
+| `.4b.6` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT 3B-ii — self-bootstrapping producer selection: `compute_name_prelude` must prefer a producer whose hosted declaration does not itself require a pre-existing fact of the gated kind in a mandatory position (avoid the typedef-ALIAS), so the class-scope rules (`known_unscoped_class_scope_class_identifier`, `known_unscoped_class_scoped_call_class_identifier`) get a parseable declare-then-use prelude. |
+| `.4b.7` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT 3B-i — gate-discovery past a leading terminal/optional: extend `name_gate_via_mandatory_prefix` so a gated rule reached through the mandatory SEQUENCE (not only the mandatory-FIRST rule reference) is discovered, arming a prelude for `extern_constraint_declaration(_sv_2017/_sv_2023)` + `constraint_set` (gated `class_scope` sits behind leading `kw_constraint`). |
+| `.4b.8` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT 3B-iii — `property_qualifier` target-own completeness: the forced sample renders an incomplete `data_declaration` (`rand <type> ;` with no variable name); the class gate is already satisfied, so this is a target-own-structure/forcing-completeness gap (adjacent to 3C), not a store-gate gap. |
+| `.4b.9` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT sub-cohort 3C/misc (reach-routing `parsed=true witnessed=false`): `wildcard_escape_nettype_identifier`, `declared_class_alias_identifier`, `context_member_method_call`, `named_checker_port_connection(_sv_2017)`, `repeat_range`, `with_covergroup_expression`, `union_modifier`. |
 
 ## `.4b.1` — DESIGN: store-aware (name-coordinated) witness generation — scope + mechanism (tools-first)
 
@@ -461,3 +465,86 @@ introduced (the generator becomes a second consumer of the existing one).
   - [x] **ADDRESSED (verified)** — SV cert `UNKNOWN 46 → 43` (decisive A/B on the regen-lockstep build); witness `1242 → 1245` (+3 block-scoped carriers witnessed, listed above); `spf=0`, `proof_reverify_failures=0`; deterministic at seeds 0/7/42 (`UNKNOWN=43` byte-identical).
   - [x] **NO REGRESSION** — ZERO newly-UNKNOWN (the new 43 is a script-verified strict SUBSET of the baseline 46); regex — the only OTHER `store_aware` grammar — byte-identical `fully_certified=true 198/198` at seeds 0/7/42; json (9/9) / vhdl (216/216) / svpp (74/74) / rtl_frontend (169) all `fully_certified=true` (rtl_const_expr `store_aware_gen=false` ⇒ path off ⇒ byte-identical; its default-depth-24 artifact is pre-existing/orthogonal, covered green by the lib suite at its proper config); `cargo test --lib --features generated_parsers` **731 passed / 0 failed** (+2 locking tests: `store_aware_gen_mandatory_leading_rule_reference_descends_carrier`, `store_aware_gen_name_gate_via_mandatory_prefix_inherits_inner_gate`); `clippy_on_rust_change` source stage error-clean with ZERO findings in the changed code (the 188 generated `eq_op` errors are pre-existing in `generated/*_parser.rs`).
   - [x] **LOCKSTEP** — CHANGES.md, DEVELOPMENT_NOTES.md, MEMORY.md, LIVE_ACHIEVEMENT_STATUS.md (SV cert 46→43), docs/TASK_TREE.md, the book Grammar-Well-formedness SV-arc beat + cert number, this leaf + the tree status, decision record [[project_store_aware_generation]] updated.
+
+## `.4b.5` — DESIGN: root-cause sub-cohort 3B + resolve the directly-gated class-rule OPEN QUESTION (tools-first)
+
+- **Status:** `DONE (DESIGN)` — `PGEN-STORE-AWARE-GEN-0010`, 2026-06-23, PURE-DOCS. Mirrors this tree's
+  `.4b.1`/`.4b.3` DESIGN → IMPLEMENT rhythm on the most-tuned generation surface — decompose + pin the
+  mechanism with decisive tool evidence before any engine change, no guessing
+  ([[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_pinpoint_real_blocker_not_menu]],
+  [[feedback_systematically_use_debug_toolbox]]). The engine implements are the new leaves
+  `.4b.6` (3B-ii, cleanest/first) / `.4b.7` (3B-i) / `.4b.8` (3B-iii); 3C/misc shifts to `.4b.9`.
+- **Verified baseline (this slice, 2026-06-23).** A regen-lockstep DEBUG `ast_pipeline` (generated SV parser
+  Jun-22 18:56 + binary Jun-22 23:32, both post the committed `-0111` grammar; no Rust source newer than the
+  binary; `.4b.4` was generator-only, no grammar change since) re-measures
+  `CERTIFICATE-COVERAGE … total=1289 proof=1 witness=1245 UNKNOWN=43 (sample_parse_failures=0,
+  proof_reverify_failures=0)` at seed 0 — matches the committed `.4b.4` after-state. This is the `.4b.6`+ "before".
+- **The OPEN QUESTION (from the resume pointer) — ANSWERED.** It asked why the `.4b.2`/`.4b.4` family-gated
+  prelude does not witness a directly-gated bare-render class rule, hypothesizing (a) producer not reachable,
+  (b) deep `class…endclass` overflowing the witness depth budget, or (c) the scoped `class_scope` render shape.
+  The toolbox shows the real cause is **none of (a)/(b)/(c)** but a 4th, more precise one — **(d) the prelude
+  selects the WRONG producer** (a non-bootstrapping typedef-alias). Evidence:
+  - **(b) ruled OUT — TOOLBOX 4.5 NOT-depth check.** Re-running cert at `--max-depth 32` gives `UNKNOWN=44`
+    with `sample_parse_failures=9`: NO 3B class-scope/constraint rule leaves the UNKNOWN set; deeper depth only
+    adds spf noise and loses two unrelated rules (`inout_declaration`, `kw_inout`). The per-target budget is
+    adequate; the cause is a forcing/store-gate bug, not depth.
+  - **(a) ruled OUT — the `name-prelude spec` debug trace.** A bounded `PGEN_TRACE_VERBOSITY=debug` cert run
+    (count 2, seed 0) grepped for `STORE-AWARE-GEN.4b name-prelude spec` shows a prelude **IS** built for the
+    directly-gated `known_unscoped_class_scope_class_identifier` (×4) and `known_unscoped_class_scoped_call_class_identifier`,
+    each `kind='type_name' family=Some("class") producer='declared_class_alias_identifier' site=('source_text','root') body='source_text_item'`.
+    So the prelude is built and a class producer IS reachable.
+  - **(d), the real cause — `furthest_position` + producer-render A/B.** The forced sample for
+    `known_unscoped_class_scope_class_identifier` is `typedef\foo \foo ;localparam\foo \foo ;` and `--parse`
+    rejects it at **`furthest_position=11`** — the typedef's SOURCE-TYPE slot. The scoped predicate trace names
+    it exactly: `checked_type_identifier` rejected by `has_fact [type_name, "\foo"]` ↪ NEGATIVE (3 facts exist,
+    none matched `\foo`). The chosen producer `declared_class_alias_identifier` (`systemverilog.ebnf:5112-5115`)
+    renders a typedef-ALIAS `typedef <existing_type> <alias> ;`, whose mandatory LHS source type is itself a
+    has_fact-gated `checked_type_identifier` — unsatisfiable in a bootstrap context, so the prelude declaration
+    `typedef \foo \foo ;` never parses → no `type_name`/`class` fact is established → the gated consumer rejects.
+    Decisive A/B over the three family=class producer renders confirms it:
+    - `typedef\foo \foo ;` (`declared_class_alias_identifier`) → **REJECT** @pos 11 (LHS undeclared) — NON-bootstrapping.
+    - `typedef class\foo ;` (`declared_forward_class_identifier`, `:5117-5119`) → **PASS** — self-bootstrapping.
+    - `class\foo ;endclass` (`declared_class_identifier`, `:965-967`) → **PASS** — self-bootstrapping.
+    `compute_name_prelude` (`stimuli_generator.rs:2991-3003`) collects family-matching producers, `producers.sort_unstable()`
+    (alphabetical), and commits to the FIRST one with a reachable hop. `declared_class_alias_identifier` sorts
+    before `declared_class_identifier`/`declared_forward_class_identifier`, so the one NON-bootstrapping candidate
+    is always chosen and the two that would witness are never tried. A real class decl + a `::`-scoped use parses:
+    `typedef class\foo ;module m;initial x=\foo ::new();endmodule` → **PASS**.
+- **Sub-cohort 3B decomposes into THREE mechanistically-distinct sub-blockers (each its own targeted implement,
+  per "fix shall always be targeted" [[feedback_tools_first_no_guessing]]):**
+  - **3B-ii — producer selection (the cleanest + most general; `.4b.6`).** `parsed=false`, prelude built but the
+    chosen producer is the non-bootstrapping typedef-alias. Affects `known_unscoped_class_scope_class_identifier`,
+    `known_unscoped_class_scoped_call_class_identifier`. This is the OPEN QUESTION's "directly-gated bare-render
+    class rule" case. **FIX (pinned):** make producer selection robust — `compute_name_prelude` must prefer a
+    producer whose hosted declaration is *self-bootstrapping* (does NOT itself require, in a mandatory position,
+    a pre-existing fact of the same gated kind). The general, parser-agnostic predicate: skip a candidate producer
+    whose host derivation has a mandatory `@predicate`-gated sub-rule on the SAME `kind` other than the producer's
+    own self-satisfying emit (the typedef-alias's LHS `checked_type_identifier` is exactly such a gate). Equivalent
+    robust framing: try candidate producers in order and keep one whose forced sample passes the parser re-check
+    (the witness judge already guards every witness; a non-bootstrapping prelude simply fails to witness). Reuses
+    the existing `gen_emit_facts`/`reach_hops`/`ReachPrelude`/`reach_prelude_replay_text` machinery — no new
+    annotation, no grammar/parser change; capability-gated on `gen_name_gate` non-empty ⇒ byte-identical for
+    predicate-free grammars. Expected `UNKNOWN 43 → ~41` (the two class-scope rules), ZERO newly-UNKNOWN.
+  - **3B-i — gate-not-mandatory-first (`.4b.7`).** `parsed=false`, NO prelude built. `extern_constraint_declaration_sv_2017
+    := (kw_static)? kw_constraint class_scope constraint_identifier constraint_block` (`:2055`) and `constraint_set`
+    (`:1445`) are gated only on the inner `class_scope` → `known_unscoped_class_scope_class_identifier`, which is
+    NOT the mandatory-FIRST element (it sits behind the leading `kw_constraint` keyword). `.4b.4`'s
+    `name_gate_via_mandatory_prefix` only follows the mandatory-first *rule reference*, so it returns `None` and
+    no prelude arms. Proven: declaring the class first parses — `typedef class\foo ;constraint\foo ::\foo {}` → **PASS**.
+    **FIX direction:** extend gate discovery to find a gated rule reached through the mandatory SEQUENCE (skip
+    leading terminals/optionals), not only the mandatory-first rule reference. Separate mechanism from 3B-ii.
+  - **3B-iii — target-own incompleteness (`.4b.8`).** `parsed=false` but the class gate is already satisfiable;
+    `property_qualifier` (`:4228`)'s forced sample `class\foo ;rand\foo ;endclass` rejects @pos 19 because
+    `rand <type> ;` is an incomplete `data_declaration` (no variable name). Proven: `class\foo ;rand\foo \bar ;endclass`
+    → **PASS**. This is a target-own-structure/forcing-completeness gap (adjacent to 3C), NOT a store-gate gap —
+    a distinct mechanism, deferred to its own leaf.
+- **Acceptance (for the `.4b.6`+ implements, not this DESIGN slice):** SV cert `UNKNOWN` drops by the addressed
+  sub-cohort, deterministic seeds 0/7/42, `spf=0`; the new UNKNOWN set a strict SUBSET of the prior (ZERO
+  newly-UNKNOWN); the 6 fully-certified grammars `fully_certified=true` (regex byte-identical at seeds 0/7/42);
+  `stimuli_cross_family_platform_gate` green; `cargo test --lib` green; `clippy_on_rust_change` source-clean.
+  Decisive A/B + GLOBAL cert before any commit.
+- **Diagnose/verify with the toolbox** (`docs/book/src/diagnosing-unknowns.md`): `DUMP_ALL` → `DEBUG_PROBES` →
+  `name-prelude spec` debug trace → `furthest_position` + scoped `--trace-rules` predicate trace +
+  the TOOLBOX 4.5 `--max-depth` NOT-depth check, per [[feedback_systematically_use_debug_toolbox]]. **This DESIGN
+  slice is PURE-DOCS — no code change — so the `check_diagnosis_evidence.sh` code-change gate does not apply; the
+  next leaf (`.4b.6`) carries the enforced acceptance checklist it will earn.**
