@@ -1,4 +1,8 @@
 # CHANGES.md
+## 2026-06-22 - PGEN-DIAG-TOOLBOX-0005 (PURE-DOCS, handoff): resume-pointer refresh + DOCTRINE_ENFORCEMENT.md is the single adoption document
+
+Fresh-session handoff. (a) `MEMORY.md` (layer-A resume pointer) overwritten to reality: the `-0001..-0004` debug-toolbox + doctrine-enforcement campaign; the PIVOT away from the prior "SVA cascade release ceremony" (the `@sample` band-aid is uncommitted WIP, not to be committed as-is per the director's "no lipstick"); the real next code work = `STORE-AWARE-GEN.4b.1` (store-aware name-coordinated witness generation, tool-pinpointed: the store-gate rejection is ~26 of the SV residual 55); the new acceptance-checklist gate every code change must pass; the cascade WIP cluster left uncommitted-but-recoverable. (b) `DOCTRINE_ENFORCEMENT.md` gets a top-of-file pointer making it the **single self-contained adoption document** (a project pointed here goes straight to §8, the replay manifest: copy 6 files, run 3 commands). Driver green; cascade WIP untouched.
+
 ## 2026-06-22 - PGEN-DIAG-TOOLBOX-0004 (PURE-DOCS/TOOLING): make doctrine-enforcement the 4th PORTABLE, HARNESS-AGNOSTIC architecture (Codex + Claude Code) + a precise replay manifest
 
 Director follow-ups (2026-06-22): everything must be **reproducible by replay** in any project (the exact .md/.sh list + procedure); and the doctrine enforcer must work for **Codex AND Claude Code** (their projects all already run task-trees + memory-architecture + knowledge-map — this is the 4th).

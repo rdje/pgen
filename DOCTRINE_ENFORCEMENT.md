@@ -5,6 +5,11 @@ A portable, **project-agnostic** standard for turning written rules ("doctrines"
 "trust me" claim. Drop the kit (§8) into any repository and a non-compliant change cannot
 land: a local git hook blocks it, and CI makes it un-mergeable.
 
+> **👉 Adopting this in your project? THIS is the only document you need to follow.** Go straight to
+> **§8 — The portable replay manifest**: copy 6 files (Group A), adapt a handful of knobs (Group B),
+> add your harness's bootstrap pointer (Group C), run the 3 setup commands. Sections 1–7 are the
+> rationale + the check-script contract; §9 is the honest limits; §10 is a worked reference instance.
+
 > One-line thesis: **a doctrine that is not mechanically checked is not enforced — it is a
 > suggestion.** The fix is to pair every doctrine with a deterministic check, run all checks
 > from one registry/driver, and gate commits + CI on it.
