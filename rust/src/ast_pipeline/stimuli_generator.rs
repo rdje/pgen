@@ -3001,43 +3001,61 @@ impl<'a> StimuliGenerator<'a> {
             .map(|(rule, _)| rule.as_str())
             .collect();
         producers.sort_unstable();
-        for (site_rule, site_path) in quantifier_sites.iter().rev() {
-            let Some(body_rule) = self.quantified_body_rule_name(site_rule, site_path) else {
-                continue;
-            };
-            for producer in &producers {
-                let Some(sub_hops) = self.reach_hops(&body_rule, producer) else {
+        // STORE-AWARE-GEN.4b.6: TWO-PASS producer selection. Both alternatives that emit `(type_name,
+        // class)` share the byte-identical body `type_identifier`, so the non-bootstrapping-ness is NOT
+        // in the producer rule — it is in the producer's HOST BRANCH: the typedef-ALIAS sits in
+        // `kw_typedef class_type declared_class_alias_identifier …` (the `class_type` sibling needs a
+        // declared class), the self-bootstrapping FORWARD in `kw_typedef kw_class
+        // declared_forward_class_identifier semi` (a clean `kw_class` literal). PASS 1
+        // (`prefer_clean = true`) skips any producer whose forced reach path renders a mandatory
+        // same-store gate the empty-store prelude cannot satisfy; PASS 2 restores the exact pre-4b.6
+        // "first reachable producer at the innermost site" behavior, so a candidate is NEVER dropped
+        // (byte-identical when no clean producer exists anywhere). For an already-witnessed target the
+        // chosen producer's path is necessarily clean, so PASS 1 selects the SAME producer — the change
+        // only promotes a clean producer where the pre-4b.6 path committed a gated one (and so never
+        // witnessed). The parser re-check stays the sole witness judge.
+        for prefer_clean in [true, false] {
+            for (site_rule, site_path) in quantifier_sites.iter().rev() {
+                let Some(body_rule) = self.quantified_body_rule_name(site_rule, site_path) else {
                     continue;
                 };
-                let mut sub_chain: Vec<ReachDirective> = Vec::new();
-                let mut sub_quantifier_sites: Vec<(String, String)> = Vec::new();
-                for (hop_rule, hop_site_path) in &sub_hops {
-                    sub_chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
-                    sub_quantifier_sites
-                        .extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
+                for producer in &producers {
+                    let Some(sub_hops) = self.reach_hops(&body_rule, producer) else {
+                        continue;
+                    };
+                    if prefer_clean && self.reach_path_renders_unsatisfiable_gate(&sub_hops) {
+                        continue;
+                    }
+                    let mut sub_chain: Vec<ReachDirective> = Vec::new();
+                    let mut sub_quantifier_sites: Vec<(String, String)> = Vec::new();
+                    for (hop_rule, hop_site_path) in &sub_hops {
+                        sub_chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
+                        sub_quantifier_sites
+                            .extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
+                    }
+                    let mut sub_plan = ActiveReachPlan::from_directives(&sub_chain, bypass_fuel);
+                    for site in sub_quantifier_sites {
+                        sub_plan.forced_quantifier_min.insert(site, 1);
+                    }
+                    self.trace(
+                        TraceLevel::Debug,
+                        format_args!(
+                            "STORE-AWARE-GEN.4b name-prelude spec: gated_rule='{}' kind='{}' family={:?} producer='{}' clean_path={} site=('{}','{}') body='{}'",
+                            gated_rule, kind, gate.family, producer, prefer_clean, site_rule, site_path, body_rule
+                        ),
+                    );
+                    return Some(ReachPrelude {
+                        site: (site_rule.clone(), site_path.clone()),
+                        gated_rule: gated_rule.clone(),
+                        sub_plan: Box::new(sub_plan),
+                        iterations: 1,
+                        captured: None,
+                        name_gate: Some(NameGateArm {
+                            kind: kind.to_string(),
+                            family: gate.family.clone(),
+                        }),
+                    });
                 }
-                let mut sub_plan = ActiveReachPlan::from_directives(&sub_chain, bypass_fuel);
-                for site in sub_quantifier_sites {
-                    sub_plan.forced_quantifier_min.insert(site, 1);
-                }
-                self.trace(
-                    TraceLevel::Debug,
-                    format_args!(
-                        "STORE-AWARE-GEN.4b name-prelude spec: gated_rule='{}' kind='{}' family={:?} producer='{}' site=('{}','{}') body='{}'",
-                        gated_rule, kind, gate.family, producer, site_rule, site_path, body_rule
-                    ),
-                );
-                return Some(ReachPrelude {
-                    site: (site_rule.clone(), site_path.clone()),
-                    gated_rule: gated_rule.clone(),
-                    sub_plan: Box::new(sub_plan),
-                    iterations: 1,
-                    captured: None,
-                    name_gate: Some(NameGateArm {
-                        kind: kind.to_string(),
-                        family: gate.family.clone(),
-                    }),
-                });
             }
         }
         None
@@ -3081,6 +3099,110 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
         true
+    }
+
+    /// STORE-AWARE-GEN.4b.6: when the declare-then-use prelude forces the reach path `hops` (from the
+    /// host quantifier's body rule DOWN to a producer), does that forced derivation RENDER a mandatory
+    /// rule store-gated on a fact-kind an EMPTY store cannot satisfy? The prelude is the FIRST
+    /// declaration, so its derivation runs against an empty store: any `has_fact`/`fact_attribute_equals`
+    /// /`fact_count_at_least` gate a MANDATORY SIBLING forces is unsatisfiable, and the prelude
+    /// declaration fails to parse (no fact emitted). The canonical hazard is the typedef-ALIAS branch
+    /// `type_declaration := kw_typedef class_type declared_class_alias_identifier …`, whose `class_type`
+    /// sibling mandatorily descends to a `has_fact(type_name,·)` gate — so `typedef \foo \foo ;` rejects
+    /// on the undeclared source type. The self-bootstrapping FORWARD branch
+    /// `kw_typedef kw_class declared_forward_class_identifier semi` crosses no such sibling. The producer
+    /// rule's OWN self-emit-then-check gate is NOT flagged here — it is the on-path rule, not an off-path
+    /// sibling. Walks each hop's reference-site `node_path` (the `collect_rule_reference_sites` encoding,
+    /// identical to `offpath_sibling_depth_along_path`) and tests every OFF-PATH Sequence sibling with
+    /// `mandatory_node_gated` against an EMPTY available set. Conservative (an empty `available` can
+    /// over-flag a sibling that would render after the producer's own emit) — which is SAFE, because the
+    /// caller only DEPRIORITIZES a flagged producer, never drops it (the parser re-check stays the sole
+    /// witness judge). Inert for predicate-free grammars (`reach_gate_kinds` empty ⇒ always `false`).
+    fn reach_path_renders_unsatisfiable_gate(&self, hops: &[(String, String)]) -> bool {
+        let available: HashSet<String> = HashSet::new();
+        for (hop_rule, hop_site_path) in hops {
+            let Some(rule_node) = self.grammar_tree.get(hop_rule.as_str()) else {
+                continue;
+            };
+            if self.offpath_siblings_gated_along_path(rule_node, hop_site_path, &available) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// STORE-AWARE-GEN.4b.6: walk one hop's reference-site `node_path` from `rule_node` and return
+    /// `true` if any MANDATORY off-path Sequence sibling the forced derivation must also render is
+    /// store-gated on a kind not in `available` (`mandatory_node_gated`). Mirrors
+    /// `offpath_sibling_depth_along_path`'s path-walk (`s{i}` Sequence element, `o{i}` Or alternative,
+    /// `q` Quantified body, `a` Atom→Node), but tests gating instead of measuring depth. Bails to
+    /// `false` on any path/grammar mismatch, so it is over-flag-safe and never panics.
+    fn offpath_siblings_gated_along_path(
+        &self,
+        rule_node: &ASTNode,
+        node_path: &str,
+        available: &HashSet<String>,
+    ) -> bool {
+        let mut current = rule_node;
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if segment == "q" {
+                let ASTNode::Quantified { element, .. } = current else {
+                    return false;
+                };
+                current = element.as_ref();
+                continue;
+            }
+            if segment == "a" {
+                let ASTNode::Atom {
+                    value: ASTValue::Node(node),
+                } = current
+                else {
+                    return false;
+                };
+                current = node.as_ref();
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('s') {
+                let Ok(index) = index_str.parse::<usize>() else {
+                    return false;
+                };
+                let ASTNode::Sequence { elements } = current else {
+                    return false;
+                };
+                for (i, element) in elements.iter().enumerate() {
+                    if i == index {
+                        continue;
+                    }
+                    let mut visited: HashSet<String> = HashSet::new();
+                    if self.mandatory_node_gated(element, available, &mut visited) {
+                        return true;
+                    }
+                }
+                let Some(next) = elements.get(index) else {
+                    return false;
+                };
+                current = next;
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('o') {
+                let Ok(index) = index_str.parse::<usize>() else {
+                    return false;
+                };
+                let ASTNode::Or { alternatives } = current else {
+                    return false;
+                };
+                let Some(next) = alternatives.get(index) else {
+                    return false;
+                };
+                current = next;
+                continue;
+            }
+            return false;
+        }
+        false
     }
 
     /// STORE-AWARE-GEN.4b.2: the live store name a name-coordinated prelude's consumer must render —
@@ -15927,6 +16049,65 @@ mod tests {
         assert!(
             generator.name_gate_via_mandatory_prefix("ungated").is_none(),
             "an ungated rule reaching no gate yields no prelude"
+        );
+    }
+
+    #[test]
+    fn store_aware_gen_prefers_self_bootstrapping_host_branch() {
+        // STORE-AWARE-GEN.4b.6: two producers can share a body yet differ in HOST BRANCH. The typedef-
+        // ALIAS branch (`kw_typedef class_type declared_class_alias_identifier`) carries a mandatory
+        // same-store-gated sibling — `class_type` descends to a `has_fact(type_name)` gate — so its
+        // forced prelude derivation cannot parse in an empty store; the FORWARD branch
+        // (`kw_typedef kw_class declared_forward_class_identifier`) is clean.
+        // `reach_path_renders_unsatisfiable_gate` flags the alias host path and not the forward one.
+        let mut g = HashMap::new();
+        g.insert(
+            "type_declaration".to_string(),
+            ASTNode::Or {
+                alternatives: vec![
+                    // branch o0 — ALIAS: kw_typedef class_type alias_producer  (class_type is gated)
+                    ASTNode::Sequence {
+                        elements: vec![
+                            token("regex", "typedef"),
+                            rule_ref("class_type"),
+                            rule_ref("alias_producer"),
+                        ],
+                    },
+                    // branch o1 — FORWARD: kw_typedef kw_class forward_producer  (clean)
+                    ASTNode::Sequence {
+                        elements: vec![
+                            token("regex", "typedef"),
+                            token("regex", "class"),
+                            rule_ref("forward_producer"),
+                        ],
+                    },
+                ],
+            },
+        );
+        g.insert("class_type".to_string(), rule_ref("checked_type_identifier"));
+        g.insert("checked_type_identifier".to_string(), token("regex", "[a-z]+"));
+        g.insert("alias_producer".to_string(), token("regex", "[a-z]+"));
+        g.insert("forward_producer".to_string(), token("regex", "[a-z]+"));
+        let order: Vec<String> = g.keys().cloned().collect();
+        let mut generator = simple_generator(&g, &order, 1);
+        // The store gate lives on `checked_type_identifier` (consults `type_name`), exactly as
+        // `compute_reach_gate_kinds` records the SV `has_fact(type_name, …)` predicate.
+        generator.reach_gate_kinds.insert(
+            "checked_type_identifier".to_string(),
+            vec!["type_name".to_string()],
+        );
+        // ALIAS host path (Or alternative 0, the producer at Sequence element 2): the off-path sibling
+        // `class_type` (element 1) descends to the `type_name` gate, unsatisfiable in an empty store.
+        let alias_hops = vec![("type_declaration".to_string(), "root/o0/s2".to_string())];
+        assert!(
+            generator.reach_path_renders_unsatisfiable_gate(&alias_hops),
+            "the alias host branch crosses the mandatory class_type → has_fact(type_name) gate"
+        );
+        // FORWARD host path (Or alternative 1): off-path siblings are only literals — clean.
+        let forward_hops = vec![("type_declaration".to_string(), "root/o1/s2".to_string())];
+        assert!(
+            !generator.reach_path_renders_unsatisfiable_gate(&forward_hops),
+            "the forward host branch is clean (kw_class literal, no gated sibling)"
         );
     }
 

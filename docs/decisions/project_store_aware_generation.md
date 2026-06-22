@@ -36,8 +36,19 @@ fix — a bounded mandatory-first gated-rule descent so a carrier inherits its i
 arms on the inner rule that actually renders) — closing sub-cohort 3A: SystemVerilog cert `UNKNOWN 46 → 43`
 (+3 block-scoped carriers `known_unscoped_block_type_identifier`, `known_unscoped_block_covergroup_identifier`,
 `provisional_unscoped_block_class_type` witnessed), generator-only, purely additive, zero newly-UNKNOWN,
-the 6 fully-certified grammars unperturbed. The class-member/class-scope residual → `.4b.5`; reach-routing
-→ `.4b.6`.
+the 6 fully-certified grammars unperturbed. `.4b.5` (`PGEN-STORE-AWARE-GEN-0010`, 2026-06-23, PURE-DOCS
+DESIGN) root-caused the class-member/class-scope sub-cohort 3B into three sub-blockers (3B-ii
+producer-selection, 3B-i gate-not-mandatory-first, 3B-iii target-own incompleteness). `.4b.6`
+(`PGEN-STORE-AWARE-GEN-0011`, 2026-06-23) landed the 3B-ii fix — and REFINED its root cause tools-first:
+the non-bootstrapping-ness is NOT in the producer rule body (both family=class producers share the
+byte-identical body `type_identifier`) but in the producer's HOST BRANCH of `type_declaration` (the
+typedef-alias's `class_type` mandatory SIBLING is `has_fact(type_name)`-gated, so its empty-store prelude
+declaration cannot parse). The fix makes producer selection reach-path-aware (a two-pass scan preferring a
+producer whose forced reach path renders no unsatisfiable same-store gate, reusing the existing
+`mandatory_node_gated` store-gate walk), closing the class-scope cohort: SystemVerilog cert `UNKNOWN 43 → 41`
+(+2 rules `known_unscoped_class_scope_class_identifier`, `known_unscoped_class_scoped_call_class_identifier`
+witnessed), generator-only, zero newly-UNKNOWN, the 6 fully-certified grammars unperturbed. The remaining
+3B → `.4b.7` (gate-not-mandatory-first) / `.4b.8` (target-own incompleteness); reach-routing 3C → `.4b.9`.
 
 **THE GAP (tool-backed, 2026-06-08).** PGEN's EBNF `@predicate` annotations are the single source of
 truth for the accepted language, and the PARSER honours them (e.g. `numeric_backreference` is gated by

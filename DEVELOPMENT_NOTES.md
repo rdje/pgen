@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0011 — STORE-AWARE-GEN.4b.6 IMPLEMENT: self-bootstrapping HOST-BRANCH producer selection (GENERATOR-ONLY)
+
+Generator-only engine change; SV cert `UNKNOWN 43 → 41`. Canonical detail lives in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.6`) — this is a continuity pointer.
+
+- **Root-cause REFINEMENT (the first cut was a no-op — a lesson in scope).** `.4b.5` pinned "prefer a producer whose own derivation is self-bootstrapping", and the first implementation checked the producer RULE's mandatory body for a same-kind gate. Decisive A/B: it did nothing (`UNKNOWN` stayed 43, forced sample byte-identical). `parseability_probe` + grammar read showed both family=class producers share the byte-identical body `type_identifier` (`:5115`/`:5119`); the non-bootstrapping-ness is in the producer's **HOST BRANCH** of `type_declaration` (the alias's `class_type` mandatory sibling is `has_fact(type_name)`-gated; `typedef\foo \foo ;` REJECT @11 / `typedef class\foo ;` PASS / `class\foo ;endclass` PASS). The discipline at work: [[feedback_no_codebase_change_without_tool_backed_facts]] caught the no-op, the toolbox localized the true cause.
+- **Fix (GENERATOR-ONLY, `stimuli_generator.rs`):** `reach_path_renders_unsatisfiable_gate` + `offpath_siblings_gated_along_path` walk the producer's reach-path hops and test each mandatory off-path Sequence sibling with the existing `mandatory_node_gated` store-gate walk (empty available set). `compute_name_prelude` is now a two-pass scan (`for prefer_clean in [true,false]`): PASS 1 prefers a producer whose forced reach path renders no unsatisfiable same-store gate; PASS 2 = the byte-identical pre-4b.6 fallback. Capability-gated on `gen_name_gate` non-empty; count path untouched ⇒ regex byte-identical.
+- **+2 class-scope rules witnessed** (`known_unscoped_class_scope_class_identifier`, `known_unscoped_class_scoped_call_class_identifier`); zero newly-UNKNOWN (strict subset). Frontier → `.4b.7` (3B-i gate-not-mandatory-first).
+
 ## 2026-06-23 - PGEN-STORE-AWARE-GEN-0010 — STORE-AWARE-GEN.4b.5 DESIGN: sub-cohort 3B root-cause (non-bootstrapping producer), PURE-DOCS
 
 Tools-first DESIGN for sub-cohort 3B; PURE-DOCS. The canonical detail lives in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.5`) — this is a continuity pointer, not a duplicate.

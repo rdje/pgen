@@ -967,6 +967,31 @@ and every fully-certified grammar byte-identical. The deeper remainder that need
 *class-member* context around the use-site (`extern_constraint_declaration`, the class-scoped call family)
 is the next increment.
 
+The next increment closed the **class-scope** carriers, and the way it was found is a small lesson in
+*where* a constraint actually lives. A use-site like `known_unscoped_class_scope_class_identifier` needs
+its name declared as a *class* specifically (`fact_attribute_equals(type_name, …, declaration_family,
+class)`), so the prelude must host a producer whose declaration emits a `class`-family fact. Two such
+producers exist — a *forward* declaration (`typedef class foo;`) and a *typedef alias*
+(`typedef <existing-type> foo;`) — and the prelude was committing the alias, whose declaration **cannot
+parse in isolation**: its source type is itself a `has_fact(type_name, …)` gate, so on an empty store
+`typedef \foo \foo ;` is rejected at the source-type position and no class fact is ever recorded. The
+instinct was that the *producer rule* was wrong, but the two producers share a byte-identical body — the
+difference is one level up, in the **host branch** each is reached through: the alias is wrapped in
+`kw_typedef class_type … ` (a gated mandatory *sibling*), the forward in `kw_typedef kw_class … ` (a clean
+keyword). So the constraint is a property of the *path that renders the declaration*, not of the producer
+rule. The fix makes producer selection **reach-path-aware**: a first pass walks each candidate producer's
+forced reach path and skips any whose mandatory off-path siblings force a store-gate the empty-store
+prelude cannot satisfy (reusing the same mandatory-descent store-gate analysis the store-free reach pass
+uses), preferring a producer reached through a *self-contained* declaration; a second pass restores the
+prior "first reachable producer" behaviour, so a candidate is never dropped and an already-witnessed
+target — whose path is necessarily clean — keeps its exact prelude. With it, the forward declaration is
+chosen, the class fact is recorded, and the class-scope use-sites witness:
+SystemVerilog `UNKNOWN 43 → 41` (witness `1245 → 1247`), deterministic at seeds 0/7/42 with zero
+newly-unknown rules and every fully-certified grammar byte-identical (the path is capability-gated on the
+name-matching predicates, so it is structurally inert for any grammar without them). The remaining
+class-context residual — the out-of-class `extern_constraint_declaration` family, whose gate sits behind a
+leading `constraint` keyword rather than in a mandatory-first position — is the next increment.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the
