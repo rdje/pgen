@@ -15,6 +15,18 @@ point. Task-tree track it, so that we do not forget." (In response to surfacing 
 `REGEX-PCRE2-FIDELITY.3.12` residual — the generator emitting `\98495`, a backreference to a
 non-existent group — cannot be fixed cleanly without this capability.)
 
+**LANDED SO FAR.** `.3` (`PGEN-STORE-AWARE-GEN-0003`) landed the `fact_count_at_least`-aware MVP
+(generation-time store + count-prune + emit hook), closing the regex `.3.12` driver. `.4b.2`
+(`PGEN-STORE-AWARE-GEN-0006`, 2026-06-22) generalised the witness-pass semantic-prelude from *count*
+gates to NAME-matching store gates (`has_fact` / `fact_attribute_equals`) as a **declare-then-use name
+coordination**: a producer declaration is hosted upstream, its emitted name resolved to the rendered
+identifier, and the gated use-site forced to render that same store name — so a use-of-a-declared-name
+rule witnesses through a synthesised declaration. SystemVerilog cert `UNKNOWN 56 → 46` (the directly
+reachable `checked_*` / `known_unscoped_*` type/covergroup/nettype/let/parameter cohort), generator-only,
+capability-gated (byte-identical for predicate-free grammars and regex), zero newly-UNKNOWN, the parser
+re-check the sole witness judge. Self-emitting producers (the forward-declaration idiom) are excluded
+from the consumer cohort. The deeper class-scope / class-member-context residual → `.4b.3`.
+
 **THE GAP (tool-backed, 2026-06-08).** PGEN's EBNF `@predicate` annotations are the single source of
 truth for the accepted language, and the PARSER honours them (e.g. `numeric_backreference` is gated by
 `@predicate: fact_count_at_least(regex_capture_group, $index)` — accepted only if that many capture

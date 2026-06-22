@@ -2,7 +2,8 @@ use super::{
     ASTNode, ASTValue, Annotations, FollowItem, SemanticAnnotation, SemanticAssociativity,
     SemanticBranchPolicy, SemanticTokenClass, SemanticValueConstraints, TokenValue, TraceLevel,
     SemanticFactSpec, SemanticPredicateContentView, SemanticPredicatePhase, SemanticPredicateSpec,
-    SemanticRuntimeDirective, SemanticRuntimeState, TraceVerbosity, UnifiedReturnAST,
+    SemanticRuntimeDirective, SemanticRuntimeState, SemanticRuntimeValue, TraceVerbosity,
+    UnifiedReturnAST,
     UnifiedSemanticAST, UnifiedSemanticValue, extract_semantic_directive,
     parse_semantic_runtime_directives,
     global_trace_verbosity, normalize_semantic_scalar, parse_canonical_transform_expression,
@@ -1141,6 +1142,43 @@ struct ReachPrelude {
     iterations: usize,
     /// Phase-1 capture: the gated rule's render + its parsed numeric `$ref` value.
     captured: Option<(String, usize)>,
+    /// STORE-AWARE-GEN.4b.2: when `Some`, this is a NAME-coordinated prelude (the
+    /// declare-then-use mechanism for a `has_fact(K,$ref)` / `fact_attribute_equals(K,$ref,
+    /// declaration_family,V)` consumer), NOT the `fact_count_at_least` count prelude. It is
+    /// SINGLE-PASS: `iterations` is `1` from the start (no phase-1 capture — `captured` stays
+    /// `None`); the one upstream producer iteration declares a `(K, family)` name into the live
+    /// generation store, and the gated consumer's whole render is forced to THAT store name
+    /// (`reach_prelude_replay_text` reads it back). `None` ⇒ the existing count prelude.
+    name_gate: Option<NameGateArm>,
+}
+
+/// STORE-AWARE-GEN.4b.2: the positive name-matching store gate a CONSUMER rule carries —
+/// `has_fact(K, $ref)` (`family = None`) or `fact_attribute_equals(K, $ref, declaration_family, V)`
+/// (`family = Some(V)`) — plus any families a co-located `lacks_fact_attribute_equals(K, $ref,
+/// declaration_family, X)` forbids. Built once from the grammar's semantic annotations
+/// (parser-agnostic; capability-gated on these predicates' presence). Empty ⇒ the entire
+/// name-prelude path is inert (byte-identical for grammars without name-matching store gates).
+#[derive(Debug, Clone)]
+struct NameGate {
+    /// The fact kind the consumer queries (e.g. `type_name`, `let_name`, `parameter_name`).
+    kind: String,
+    /// The required `declaration_family` value, when the gate is `fact_attribute_equals`
+    /// (`None` for a plain `has_fact`).
+    family: Option<String>,
+    /// `declaration_family` values a co-located `lacks_fact_attribute_equals` forbids — the
+    /// chosen producer must NOT emit one of these (e.g. `known_unscoped_block_class_type`
+    /// requires a NON-`typedef` class).
+    excluded_families: Vec<String>,
+}
+
+/// STORE-AWARE-GEN.4b.2: the armed name-coordination carried on a `ReachPrelude` — the `(kind,
+/// family)` the gated consumer's render must match against the live store. The producer that
+/// declared the name ran first (the single prelude iteration), so a fact of this `(kind,
+/// family)` is present by construction when the consumer renders.
+#[derive(Debug, Clone)]
+struct NameGateArm {
+    kind: String,
+    family: Option<String>,
 }
 
 /// GRAMMAR-WELLFORMED.C2.2: hard cap on the armed prelude size. The captured value is
@@ -1458,6 +1496,13 @@ pub struct StimuliGenerator<'a> {
     // mandatorily forced through such a gate when the consulted kind is not emitted on the reach path.
     // Empty for every grammar with no fact-query predicates ⇒ the deprioritization is inert there.
     reach_gate_kinds: HashMap<String, Vec<String>>,
+    // STORE-AWARE-GEN.4b.2: rule → its positive NAME-matching store gate (`has_fact(K,$ref)` /
+    // `fact_attribute_equals(K,$ref,declaration_family,V)`) plus the families a co-located
+    // `lacks_fact_attribute_equals` forbids. Drives the name-coordinated declare-then-use witness
+    // prelude (`compute_name_prelude`): a consumer of a declared name is witnessed by first declaring
+    // a matching name upstream and rendering it at the use-site. Empty ⇒ the name-prelude path is
+    // inert (byte-identical for grammars without name-matching store gates). Parser-agnostic.
+    gen_name_gate: HashMap<String, NameGate>,
     // SV-EXH-PROOF.2.3.2: grammar-scoped structural-sigil set `G`
     // (union of every permissive leading-negated content class's
     // printable complement across the whole grammar). Derived once
@@ -1586,7 +1631,17 @@ impl<'a> StimuliGenerator<'a> {
         // store-aware path is gated off when this is false).
         let (gen_emit_facts, gen_count_kinds) =
             Self::compute_store_aware_gen_directives(annotations);
-        let store_aware_gen = !gen_count_kinds.is_empty();
+        // STORE-AWARE-GEN.4b.2: precompute the per-rule NAME-matching store gates (the same annotation
+        // parse) that drive the declare-then-use witness prelude. Empty for grammars without
+        // `has_fact`/`fact_attribute_equals` predicates ⇒ the name-prelude path is inert there.
+        let gen_name_gate = Self::compute_name_gates(annotations);
+        // The store-aware path activates when the grammar has EITHER a generative `fact_count_at_least`
+        // count predicate (regex) OR a name-matching store gate (SV) — capability-gated on the
+        // predicates' presence, never grammar-name-gated. Off ⇒ byte-identical generation
+        // (json/ebnf/vhdl/rtl_*). For grammars with name gates but no count gate the activation only
+        // adds inert store bookkeeping (the emit hook + speculative-site checkpoints), so output stays
+        // byte-identical until a name prelude is actually armed.
+        let store_aware_gen = !gen_count_kinds.is_empty() || !gen_name_gate.is_empty();
         // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: precompute per-rule fact-query-predicate consulted kinds
         // once (the SAME annotation parse the codegen/store-aware path use), for the two-pass
         // `reach_hops` store-gated-edge deprioritization. Empty ⇒ inert (no behavior change).
@@ -1634,6 +1689,7 @@ impl<'a> StimuliGenerator<'a> {
             gen_emit_facts,
             gen_count_kinds,
             reach_gate_kinds,
+            gen_name_gate,
             grammar_content_sigils: None,
             structural_closer_forbidden: Vec::new(),
             closer_scopes_entered: 0,
@@ -2809,7 +2865,25 @@ impl<'a> StimuliGenerator<'a> {
     ///     repetitions that each emit one `K` fact before the on-path iteration.
     /// Returns `None` when any ingredient is missing — the plan then behaves exactly
     /// pre-C2. Deterministic: sorted producers, path-ordered site scan.
+    /// STORE-AWARE-GEN.4b.2: dispatch the semantic-prelude build. A reach path can cross EITHER a
+    /// `fact_count_at_least(K,$ref)` count gate (the C2.2 regex case) OR a name-matching store gate
+    /// (`has_fact`/`fact_attribute_equals`, the SV declare-then-use cohort). The count prelude is
+    /// preferred when both are present on the path (it is the proven, value-capturing mechanism);
+    /// the name prelude is the SV generalization. Either ingredient missing ⇒ `None` ⇒ the plan
+    /// behaves exactly pre-prelude. Both maps are empty for predicate-free grammars, so this is a
+    /// no-op there (byte-identical generation). Parser-agnostic; keyed only on annotations.
     fn compute_reach_prelude(
+        &self,
+        hops: &[(String, String)],
+        target_rule: &str,
+        quantifier_sites: &[(String, String)],
+        bypass_fuel: u32,
+    ) -> Option<ReachPrelude> {
+        self.compute_count_prelude(hops, target_rule, quantifier_sites, bypass_fuel)
+            .or_else(|| self.compute_name_prelude(hops, target_rule, quantifier_sites, bypass_fuel))
+    }
+
+    fn compute_count_prelude(
         &self,
         hops: &[(String, String)],
         target_rule: &str,
@@ -2864,10 +2938,161 @@ impl<'a> StimuliGenerator<'a> {
                     sub_plan: Box::new(sub_plan),
                     iterations: 0,
                     captured: None,
+                    name_gate: None,
                 });
             }
         }
         None
+    }
+
+    /// STORE-AWARE-GEN.4b.2: build the NAME-coordinated declare-then-use prelude when the reach path
+    /// crosses a rule gated by a name-matching store predicate (`has_fact(K,$ref)` /
+    /// `fact_attribute_equals(K,$ref,declaration_family,V)`). The gated consumer's USE-site is
+    /// unwitnessable in isolation because no DECLARATION emitting the queried fact precedes it, so a
+    /// minimal forced sample re-parses with `has_fact` false. The prelude hosts ONE upstream producer
+    /// iteration (a `declared_*` declaration whose `@emit_fact { name: $body }` registers a name) at an
+    /// on-path quantifier site whose body reaches that producer; the consumer then renders the SAME
+    /// store name (`reach_prelude_replay_text`), so the re-parse sees declare-then-use. SINGLE-PASS:
+    /// `iterations = 1` immediately (no value to capture). Producer selection is deterministic (sorted)
+    /// and family-aware: it must emit `(K, family)` matching the gate and avoid any family the
+    /// consumer's `lacks_fact` forbids, and its `@emit_fact` name must resolve to the producer's whole
+    /// render (an undotted `$ref`) so the registered name equals the rendered identifier. The parser
+    /// re-check stays the only witness judge — a mis-coordination simply fails to witness (bounded
+    /// attempts), never a false witness. Empty `gen_name_gate` ⇒ `None` (inert). Parser-agnostic.
+    fn compute_name_prelude(
+        &self,
+        hops: &[(String, String)],
+        target_rule: &str,
+        quantifier_sites: &[(String, String)],
+        bypass_fuel: u32,
+    ) -> Option<ReachPrelude> {
+        if self.gen_name_gate.is_empty() {
+            return None;
+        }
+        let (gated_rule, gate) = hops
+            .iter()
+            .map(|(rule, _)| rule.as_str())
+            .chain(std::iter::once(target_rule))
+            .find_map(|rule| self.gen_name_gate.get(rule).map(|gate| (rule, gate)))?;
+        let kind = gate.kind.as_str();
+        let mut producers: Vec<&str> = self
+            .gen_emit_facts
+            .iter()
+            .filter(|(_, specs)| {
+                specs.iter().any(|spec| {
+                    spec.kind == kind
+                        && Self::emit_name_is_whole_render(&spec.name)
+                        && Self::producer_family_satisfies_gate(spec, gate)
+                })
+            })
+            .map(|(rule, _)| rule.as_str())
+            .collect();
+        producers.sort_unstable();
+        for (site_rule, site_path) in quantifier_sites.iter().rev() {
+            let Some(body_rule) = self.quantified_body_rule_name(site_rule, site_path) else {
+                continue;
+            };
+            for producer in &producers {
+                let Some(sub_hops) = self.reach_hops(&body_rule, producer) else {
+                    continue;
+                };
+                let mut sub_chain: Vec<ReachDirective> = Vec::new();
+                let mut sub_quantifier_sites: Vec<(String, String)> = Vec::new();
+                for (hop_rule, hop_site_path) in &sub_hops {
+                    sub_chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
+                    sub_quantifier_sites
+                        .extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
+                }
+                let mut sub_plan = ActiveReachPlan::from_directives(&sub_chain, bypass_fuel);
+                for site in sub_quantifier_sites {
+                    sub_plan.forced_quantifier_min.insert(site, 1);
+                }
+                self.trace(
+                    TraceLevel::Debug,
+                    format_args!(
+                        "STORE-AWARE-GEN.4b name-prelude spec: gated_rule='{}' kind='{}' family={:?} producer='{}' site=('{}','{}') body='{}'",
+                        gated_rule, kind, gate.family, producer, site_rule, site_path, body_rule
+                    ),
+                );
+                return Some(ReachPrelude {
+                    site: (site_rule.clone(), site_path.clone()),
+                    gated_rule: gated_rule.to_string(),
+                    sub_plan: Box::new(sub_plan),
+                    iterations: 1,
+                    captured: None,
+                    name_gate: Some(NameGateArm {
+                        kind: kind.to_string(),
+                        family: gate.family.clone(),
+                    }),
+                });
+            }
+        }
+        None
+    }
+
+    /// STORE-AWARE-GEN.4b.2: does a producer's `@emit_fact` name resolve to the producer rule's WHOLE
+    /// render? True for an undotted `$ref` (e.g. `name: $body` on `declared_X := X_identifier ->
+    /// {body:$1.body}`, where the render IS the identifier). A dotted ref (`$x.body`) or a literal name
+    /// (regex's `name: capture`) does not, so it is left exactly as-is by the emit hook.
+    fn emit_name_is_whole_render(name: &SemanticRuntimeValue) -> bool {
+        matches!(name, SemanticRuntimeValue::RuleReference(reference) if !reference.contains('.'))
+    }
+
+    /// STORE-AWARE-GEN.4b.2: the `declaration_family` attribute value a producer `@emit_fact` carries
+    /// (literal `Identifier`/`String`), if any.
+    fn producer_declaration_family(spec: &SemanticFactSpec) -> Option<&str> {
+        spec.attributes
+            .iter()
+            .find(|property| property.key.eq_ignore_ascii_case("declaration_family"))
+            .and_then(|property| match &property.value {
+                UnifiedSemanticValue::Identifier(value) | UnifiedSemanticValue::String(value) => {
+                    Some(value.as_str())
+                }
+                _ => None,
+            })
+    }
+
+    /// STORE-AWARE-GEN.4b.2: may this producer satisfy the consumer's name gate? Its
+    /// `declaration_family` must equal the gate's required family (when `fact_attribute_equals`) and
+    /// must not be one the gate's `lacks_fact_attribute_equals` forbids.
+    fn producer_family_satisfies_gate(spec: &SemanticFactSpec, gate: &NameGate) -> bool {
+        let family = Self::producer_declaration_family(spec);
+        if let Some(required) = gate.family.as_deref() {
+            if family != Some(required) {
+                return false;
+            }
+        }
+        if let Some(family) = family {
+            if gate.excluded_families.iter().any(|excluded| excluded == family) {
+                return false;
+            }
+        }
+        true
+    }
+
+    /// STORE-AWARE-GEN.4b.2: the live store name a name-coordinated prelude's consumer must render —
+    /// the MOST-RECENTLY emitted fact of `(kind, family)` (the prelude's own declaration is the latest
+    /// matching fact by construction). Reads the generation store read-only; `None` until the producer
+    /// has emitted (the consumer then renders normally and simply does not witness this attempt).
+    fn store_name_for_gate(&self, kind: &str, family: Option<&str>) -> Option<String> {
+        self.gen_semantic_state
+            .facts()
+            .iter()
+            .rev()
+            .find(|fact| {
+                fact.kind.eq_ignore_ascii_case(kind)
+                    && family.is_none_or(|required| {
+                        fact.attributes.iter().any(|property| {
+                            property.key.eq_ignore_ascii_case("declaration_family")
+                                && match &property.value {
+                                    UnifiedSemanticValue::Identifier(value)
+                                    | UnifiedSemanticValue::String(value) => value == required,
+                                    _ => false,
+                                }
+                        })
+                    })
+            })
+            .and_then(|fact| fact.name.as_text().map(|text| text.to_string()))
     }
 
     /// GRAMMAR-WELLFORMED.C2.2: resolve the quantified node at `(rule, node_path)` to
@@ -2913,6 +3138,14 @@ impl<'a> StimuliGenerator<'a> {
         if prelude.iterations == 0 || prelude.gated_rule != rule_name {
             return None;
         }
+        // STORE-AWARE-GEN.4b.2: a NAME-coordinated prelude forces the gated consumer's whole render
+        // to the store name the upstream producer iteration just declared (declare-then-use). Read
+        // it from the live store so the rendered identifier equals the declared one by construction.
+        if let Some(arm) = &prelude.name_gate {
+            return self.store_name_for_gate(&arm.kind, arm.family.as_deref());
+        }
+        // The C2.2 count prelude replays the phase-1-captured render (so the `$ref` value equals the
+        // prelude size).
         prelude
             .captured
             .as_ref()
@@ -5915,6 +6148,114 @@ impl<'a> StimuliGenerator<'a> {
         gate_kinds
     }
 
+    /// STORE-AWARE-GEN.4b.2: precompute, per rule, its positive NAME-matching store gate — the
+    /// `has_fact(K,$ref)` / `fact_attribute_equals(K,$ref,declaration_family,V)` predicate whose
+    /// queried name the declare-then-use prelude must satisfy — plus the families a co-located
+    /// `lacks_fact_attribute_equals(K,$ref,declaration_family,X)` forbids (so the chosen producer is
+    /// not, e.g., a `typedef` when the consumer wants a non-typedef class). Uses the SAME
+    /// `parse_semantic_runtime_directives` parse the codegen / count path use, so the generator reasons
+    /// about the identical annotation vocabulary the parser enforces. The FIRST positive gate per rule
+    /// wins (the cohort consumers carry exactly one); negative-only rules get no entry (they are
+    /// trivially satisfiable by an undeclared name). Parser-agnostic; keyed only on annotations.
+    fn compute_name_gates(annotations: Option<&Annotations>) -> HashMap<String, NameGate> {
+        let mut gates: HashMap<String, NameGate> = HashMap::new();
+        let Some(annotations) = annotations else {
+            return gates;
+        };
+        let mut per_rule: HashMap<String, Vec<&SemanticAnnotation>> = HashMap::new();
+        for (rule, anns) in &annotations.semantic_annotations {
+            per_rule.entry(rule.clone()).or_default().extend(anns.iter());
+        }
+        for (rule, branches) in &annotations.branch_semantic_annotations {
+            for branch in branches {
+                per_rule
+                    .entry(rule.clone())
+                    .or_default()
+                    .extend(branch.iter());
+            }
+        }
+        // The arg string of a `declaration_family` key/value (an `Identifier`/`String` scalar).
+        let scalar = |value: &UnifiedSemanticValue| -> Option<String> {
+            match value {
+                UnifiedSemanticValue::Identifier(text) | UnifiedSemanticValue::String(text) => {
+                    Some(text.clone())
+                }
+                _ => None,
+            }
+        };
+        for (rule, anns) in per_rule {
+            let Ok(directives) = parse_semantic_runtime_directives(anns.into_iter()) else {
+                continue;
+            };
+            let mut positive: Option<(String, Option<String>)> = None;
+            let mut excluded_families: Vec<String> = Vec::new();
+            // STORE-AWARE-GEN.4b.2: kinds this rule itself emits. A rule that EMITS kind `K` and also
+            // gates on `has_fact(K, …)` is a SELF-SATISFYING producer (its own emit makes its gate pass
+            // — the `declared_forward_class_identifier` / `declared_class_alias_identifier` forward/alias
+            // declaration idiom), NOT a pure declare-then-use consumer. Forcing such a rule to re-render
+            // an already-declared name would RE-declare it and break the parse, so it must be excluded
+            // from the name-gate cohort (it witnesses via normal generation).
+            let mut emitted_kinds: Vec<String> = Vec::new();
+            for directive in &directives {
+                if let SemanticRuntimeDirective::EmitFact(spec) = directive {
+                    emitted_kinds.push(spec.kind.clone());
+                }
+            }
+            for directive in directives {
+                let SemanticRuntimeDirective::Predicate(spec) = directive else {
+                    continue;
+                };
+                let Some(kind) = spec.args.first().and_then(&scalar) else {
+                    continue;
+                };
+                match spec.name.trim() {
+                    "has_fact" if positive.is_none() => {
+                        positive = Some((kind, None));
+                    }
+                    "fact_attribute_equals" if positive.is_none() => {
+                        // args: [kind, $name, declaration_family, value]
+                        let family = match (spec.args.get(2).and_then(&scalar), spec.args.get(3)) {
+                            (Some(key), Some(value)) if key.eq_ignore_ascii_case("declaration_family") => {
+                                scalar(value)
+                            }
+                            _ => None,
+                        };
+                        // Only a `declaration_family` attribute gate is producer-matchable; a gate on a
+                        // different attribute key is left unhandled (no entry ⇒ not in the cohort).
+                        if family.is_some() {
+                            positive = Some((kind, family));
+                        }
+                    }
+                    "lacks_fact_attribute_equals" => {
+                        if let (Some(key), Some(value)) =
+                            (spec.args.get(2).and_then(&scalar), spec.args.get(3).and_then(&scalar))
+                        {
+                            if key.eq_ignore_ascii_case("declaration_family") {
+                                excluded_families.push(value);
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            if let Some((kind, family)) = positive {
+                // Skip self-satisfying producers (rule emits the same kind it gates on).
+                if emitted_kinds.iter().any(|emitted| emitted == &kind) {
+                    continue;
+                }
+                gates.insert(
+                    rule,
+                    NameGate {
+                        kind,
+                        family,
+                        excluded_families,
+                    },
+                );
+            }
+        }
+        gates
+    }
+
     /// GRAMMAR-WELLFORMED.H.12.5.6.2.2.2: does rendering `referenced_rule` from a MANDATORY position
     /// force evaluating a store-gate that consults a fact-kind NOT in `available`? See `reach_hops`.
     fn edge_is_store_gated(&self, referenced_rule: &str, available: &HashSet<String>) -> bool {
@@ -6975,16 +7316,18 @@ impl<'a> StimuliGenerator<'a> {
             // token, so a caller appending its rendering applies cross-rule cohesion. Set last (after
             // the body), so the most-recently-completed rule wins over its inner sub-rules.
             self.last_terminal_from_atomic_rule = is_atomic;
-            // STORE-AWARE-GEN.3: emit this rule's `@emit_fact` facts into the generation-time store on
-            // success (mirrors the parser's effect phase) — e.g. a generated capture group emits a
-            // `regex_capture_group` fact so a later backreference can be validated against the count.
-            if self.store_aware_gen {
-                self.gen_emit_facts_for_rule(rule_name);
-            }
-            // GRAMMAR-WELLFORMED.C2.2 (phase 1): capture the count-gated rule's render
-            // + numeric `$ref` value for the prelude arming. Plan-scoped no-op
-            // everywhere else (first guard inside is the prelude spec's existence).
             if let Ok(sample) = &result {
+                // STORE-AWARE-GEN.3: emit this rule's `@emit_fact` facts into the generation-time
+                // store on success (mirrors the parser's effect phase) — e.g. a generated capture
+                // group emits a `regex_capture_group` fact so a later backreference can be validated
+                // against the count; STORE-AWARE-GEN.4b.2 additionally resolves an undotted `$ref`
+                // name to the rendered identifier so a declaration registers its real name.
+                if self.store_aware_gen {
+                    self.gen_emit_facts_for_rule(rule_name, sample);
+                }
+                // GRAMMAR-WELLFORMED.C2.2 (phase 1): capture the count-gated rule's render
+                // + numeric `$ref` value for the prelude arming. Plan-scoped no-op
+                // everywhere else (first guard inside is the prelude spec's existence).
                 self.reach_prelude_capture(rule_name, sample);
             }
         }
@@ -9869,11 +10212,21 @@ impl<'a> StimuliGenerator<'a> {
     /// STORE-AWARE-GEN.3: emit a rule's `@emit_fact` facts into the generation-time store on rule
     /// success (mirrors the parser's effect phase). Regex's `@emit_fact { kind: regex_capture_group,
     /// name: capture }` has literal args, so the precomputed spec is emitted directly.
-    fn gen_emit_facts_for_rule(&mut self, rule_name: &str) {
-        if let Some(specs) = self.gen_emit_facts.get(rule_name) {
-            for spec in specs.clone() {
-                self.gen_semantic_state.emit_fact(spec);
+    fn gen_emit_facts_for_rule(&mut self, rule_name: &str, render: &str) {
+        let Some(specs) = self.gen_emit_facts.get(rule_name) else {
+            return;
+        };
+        for mut spec in specs.clone() {
+            // STORE-AWARE-GEN.4b.2: resolve an undotted `$ref` name (`name: $body`) to the rule's
+            // WHOLE generated render — for a `declared_X := X_identifier -> {body:$1.body}` producer
+            // the render IS the declared identifier, so the registered fact carries the real name the
+            // declare-then-use name coordination reads back at the gated use-site. A literal name
+            // (regex's `name: capture`) or a dotted ref is emitted verbatim, so regex and every
+            // non-cohort emit stay byte-identical.
+            if Self::emit_name_is_whole_render(&spec.name) {
+                spec.name = SemanticRuntimeValue::Identifier(render.to_string());
             }
+            self.gen_semantic_state.emit_fact(spec);
         }
     }
 
@@ -15320,6 +15673,106 @@ mod tests {
         );
         assert!(generator.gen_count_kinds.is_empty());
         assert!(generator.gen_emit_facts.is_empty());
+        // STORE-AWARE-GEN.4b.2: the name-gate map is likewise empty for a predicate-free grammar, so
+        // the declare-then-use name-prelude path is inert (byte-identical generation).
+        assert!(generator.gen_name_gate.is_empty());
+    }
+
+    #[test]
+    fn store_aware_gen_name_whole_render_resolution() {
+        // STORE-AWARE-GEN.4b.2: an `@emit_fact` name resolves to the producer rule's WHOLE render only
+        // for an UNDOTTED `$ref` (`name: $body` on a `declared_X := X_identifier -> {body:$1.body}`
+        // passthrough). A dotted ref (`$head.body`) and a LITERAL name (regex's `name: capture`) are
+        // left verbatim, so regex and every non-cohort emit stay byte-identical.
+        assert!(StimuliGenerator::emit_name_is_whole_render(
+            &SemanticRuntimeValue::RuleReference("body".to_string())
+        ));
+        assert!(!StimuliGenerator::emit_name_is_whole_render(
+            &SemanticRuntimeValue::RuleReference("head.body".to_string())
+        ));
+        assert!(!StimuliGenerator::emit_name_is_whole_render(
+            &SemanticRuntimeValue::Identifier("capture".to_string())
+        ));
+        assert!(!StimuliGenerator::emit_name_is_whole_render(
+            &SemanticRuntimeValue::String("literal".to_string())
+        ));
+    }
+
+    #[test]
+    fn store_aware_gen_producer_family_satisfies_gate() {
+        // STORE-AWARE-GEN.4b.2: a producer may declare for a consumer's name gate only when its
+        // `declaration_family` equals the gate's REQUIRED family (when `fact_attribute_equals`) and is
+        // not one the gate's `lacks_fact_attribute_equals` EXCLUDES.
+        let family_attr = |value: &str| crate::ast_pipeline::UnifiedSemanticProperty {
+            key: "declaration_family".to_string(),
+            value: UnifiedSemanticValue::Identifier(value.to_string()),
+        };
+        let class_producer = SemanticFactSpec {
+            kind: "type_name".to_string(),
+            name: SemanticRuntimeValue::RuleReference("body".to_string()),
+            attributes: vec![family_attr("class")],
+        };
+        // Required family matches.
+        assert!(StimuliGenerator::producer_family_satisfies_gate(
+            &class_producer,
+            &NameGate { kind: "type_name".to_string(), family: Some("class".to_string()), excluded_families: vec![] },
+        ));
+        // Required family differs.
+        assert!(!StimuliGenerator::producer_family_satisfies_gate(
+            &class_producer,
+            &NameGate { kind: "type_name".to_string(), family: Some("covergroup".to_string()), excluded_families: vec![] },
+        ));
+        // No required family but the producer's family is EXCLUDED (the lacks_fact case).
+        assert!(!StimuliGenerator::producer_family_satisfies_gate(
+            &class_producer,
+            &NameGate { kind: "type_name".to_string(), family: None, excluded_families: vec!["class".to_string()] },
+        ));
+        // No required family, not excluded → ok.
+        assert!(StimuliGenerator::producer_family_satisfies_gate(
+            &class_producer,
+            &NameGate { kind: "type_name".to_string(), family: None, excluded_families: vec!["typedef".to_string()] },
+        ));
+    }
+
+    #[test]
+    fn store_aware_gen_store_name_for_gate_matches_kind_and_family() {
+        // STORE-AWARE-GEN.4b.2: the consumer reads the live store for the name its upstream producer
+        // declared, selecting by kind and (optionally) `declaration_family`. The MOST-RECENT match wins
+        // (the prelude's own declaration). A query whose kind/family is absent returns `None`, so the
+        // consumer just renders normally and does not (mis-)witness.
+        let grammar_tree = HashMap::new();
+        let rule_order: Vec<String> = vec![];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+        let emit = |g: &mut StimuliGenerator, name: &str, family: &str| {
+            g.gen_semantic_state.emit_fact(SemanticFactSpec {
+                kind: "type_name".to_string(),
+                name: SemanticRuntimeValue::Identifier(name.to_string()),
+                attributes: vec![crate::ast_pipeline::UnifiedSemanticProperty {
+                    key: "declaration_family".to_string(),
+                    value: UnifiedSemanticValue::Identifier(family.to_string()),
+                }],
+            });
+        };
+        emit(&mut generator, "cg_a", "covergroup");
+        emit(&mut generator, "cls_a", "class");
+        emit(&mut generator, "cg_b", "covergroup");
+
+        assert_eq!(
+            generator.store_name_for_gate("type_name", Some("covergroup")).as_deref(),
+            Some("cg_b"),
+            "most-recent covergroup name wins"
+        );
+        assert_eq!(
+            generator.store_name_for_gate("type_name", Some("class")).as_deref(),
+            Some("cls_a")
+        );
+        assert_eq!(
+            generator.store_name_for_gate("type_name", None).as_deref(),
+            Some("cg_b"),
+            "no required family → most-recent fact of the kind"
+        );
+        assert_eq!(generator.store_name_for_gate("type_name", Some("nettype")), None);
+        assert_eq!(generator.store_name_for_gate("let_name", None), None);
     }
 
     #[test]

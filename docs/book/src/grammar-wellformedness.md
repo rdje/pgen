@@ -927,6 +927,31 @@ genuinely store-gated remainder (`extern_constraint_declaration` itself, the dec
 identifiers) correctly stays unknown, awaiting the semantic-store-aware generation that can synthesise
 the declarations they require.
 
+That synthesis is the next slice: **declare-then-use name coordination**. Many SystemVerilog rules are
+*use-sites of a declared name* — `checked_type_identifier` (a type reference) is accepted only when a
+`has_fact(type_name, …)` post-predicate holds, `known_unscoped_covergroup_type_identifier` only when a
+fact of kind `type_name` with `declaration_family = covergroup` was emitted earlier. A minimal witness
+generated in isolation writes a *fresh* identifier — `\foo` used as a type with no `typedef`/`class`/
+`covergroup` declaring it — so the predicate is false and the sample does not re-parse. The earlier
+"semantic prelude" already solved the analogous *counting* problem for regex backreferences (it
+synthesises N capture groups upstream so `\N` is in range); this slice generalises it from counting to
+*naming*. When the reach path crosses a name-gated rule, the witness pass now (1) hosts one extra
+iteration of an upstream declaration whose `@emit_fact` registers a name — e.g. a real
+`covergroup g; … endgroup` — choosing a producer whose `declaration_family` matches what the use-site
+demands; (2) records the *actual rendered identifier* that declaration emitted into the generation-time
+store; and (3) forces the use-site to render **that same name**, so the generated sample reads
+declare-then-use (`covergroup g; … endgroup … g …`) and re-parses cleanly. The parser re-check stays the
+only judge — a mis-coordinated name simply fails to witness, it can never manufacture a false one. A rule
+that is *itself* a declaration (it emits the very fact it checks — the forward-declaration idiom) is left
+out of this cohort, since forcing it to re-render an already-declared name would make it redeclare and
+reject. The effect: the directly-reachable store-gated cohort — the `checked_*` and `known_unscoped_*`
+type/covergroup/nettype/let/parameter identifier family — now witnesses, dropping SystemVerilog
+`UNKNOWN 56 → 46` (witness `1232 → 1242`), deterministic across seeds, with zero newly-unknown rules and
+every fully-certified grammar byte-identical (the path is capability-gated on the predicates' presence, so
+it is structurally inert for any grammar without name-matching store gates). The deeper remainder that
+needs a *class scope* or *class-member* context around the use-site (`extern_constraint_declaration`, the
+class-scoped call family) is the next increment.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

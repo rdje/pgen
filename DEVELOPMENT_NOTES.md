@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-22 - PGEN-STORE-AWARE-GEN-0006 — STORE-AWARE-GEN.4b.2 IMPLEMENT: name-coordinated declare-then-use witness prelude (GENERATOR-ONLY)
+
+Implemented the `.4b.1` design. GENERATOR-ONLY (`rust/src/ast_pipeline/stimuli_generator.rs`); the canonical detail + the earned acceptance checklist live in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.2`) — this is a continuity pointer, not a duplicate.
+
+- **Result:** SV cert `UNKNOWN 56 → 46` (witness `1232 → 1242`, +10 store-gate declare-then-use cohort witnessed), `spf=0`, deterministic seeds 0/7/42; the new 46 a strict SUBSET of the baseline 56 (script-verified ZERO newly-UNKNOWN).
+- **Mechanism (the C2.2 count prelude generalised to NAME gates):** `compute_name_gates` (per-rule positive `has_fact`/`fact_attribute_equals` gate + `lacks_fact` excluded families; SELF-EMITTING producers excluded) → `compute_reach_prelude` dispatcher (count then `compute_name_prelude`, which hosts one matching `declared_*` producer iteration upstream) → the emit hook resolves an undotted `$ref` name to the producer's rendered identifier → `reach_prelude_replay_text` forces the gated consumer's whole render to the live store name (`store_name_for_gate`). `store_aware_gen` now also activates on a name gate. Capability-gated on the predicates' presence ⇒ byte-identical for predicate-free grammars and regex; the parser re-check stays the only witness judge.
+- **In-session regression caught + fixed tools-first:** the first cut regressed `declared_forward_class_identifier` (witnessed → UNKNOWN); `PGEN_CERT_COVERAGE_DEBUG_PROBES` named the forced sample `typedef\foo \foo ;typedef class\foo ;` — the prelude declared `\foo`, then forced the SELF-EMITTING forward-class rule to RE-declare it → parse conflict. Fix: exclude self-emitting producers (a rule that emits the kind it gates on self-satisfies and witnesses via normal generation).
+- **No regression:** 6 fully-certified grammars `fully_certified=true` (regex byte-identical seeds 0/7/42; rtl_const_expr `store_aware_gen=false` ⇒ path off); `cargo test --lib` 729/0 (+3 locking tests); `ast_shape_contract_gate` 18/18; `clippy_on_rust_change` strict source stage `ok` (the 189 `eq_op` errors all pre-existing in `generated/*_parser.rs`, non-strict). NO grammar/regen/release/schema/ledger change.
+- **Frontier → `.4b.3`:** the deeper class-scope / class-member-context store-gate residual.
+
 ## 2026-06-22 - PGEN-STORE-AWARE-GEN-0005 — STORE-AWARE-GEN.4b.1 DESIGN: name-coordinated declare-then-use witness prelude (PURE-DOCS)
 
 Design slice. No code change. The canonical, file:line-grounded design + the enforced acceptance checklist live in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.1` DESIGN / `.4b.2` IMPLEMENT) — this is a continuity pointer, not a duplicate.

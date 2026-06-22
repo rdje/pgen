@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `STORE-AWARE-GEN`
-- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done [`fact_count_at_least`-aware MVP closed `REGEX-PCRE2-FIDELITY.3.12`]; `.4` SCOPING done [tools-first: the composable-predicate generalization is parser-agnostic, capability-gated, current sole user SystemVerilog]; **`.4b.1` DESIGN done** [`PGEN-STORE-AWARE-GEN-0005`, 2026-06-22 — verified baseline `UNKNOWN=56`, classified the 56, pinned the name-coordinated declare-then-use prelude mechanism]. **Frontier: `.4b.2`** — IMPLEMENT the generator-only name-coordinated witness prelude per the `.4b.1` design)
+- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done [`fact_count_at_least`-aware MVP closed `REGEX-PCRE2-FIDELITY.3.12`]; `.4` SCOPING done [tools-first: the composable-predicate generalization is parser-agnostic, capability-gated, current sole user SystemVerilog]; **`.4b.1` DESIGN done** [`PGEN-STORE-AWARE-GEN-0005`, 2026-06-22 — verified baseline `UNKNOWN=56`, classified the 56, pinned the name-coordinated declare-then-use prelude mechanism]; **`.4b.2` IMPLEMENT done** [`PGEN-STORE-AWARE-GEN-0006`, 2026-06-22 — landed the generator-only name-coordinated prelude; SV cert `UNKNOWN 56 → 46`, +10 store-gate cohort rules witnessed, zero newly-UNKNOWN, deterministic seeds 0/7/42]. **Frontier: `.4b.3`** — the deeper store-gate residual [class-scope / class-member-context variants] needing a class-scope prefix or class-member host reach)
 - Family / slice-id prefix: `PGEN-STORE-AWARE-GEN-<NNNN>`
 - Roadmap lane: stimuli-generator quality / parser sign-off pillars **C** (fidelity) + **D** (coverage) —
   the generator must emit only samples that satisfy the SAME semantic predicates the parser enforces
@@ -224,6 +224,7 @@ introduced (the generator becomes a second consumer of the existing one).
 | `2026-06-08` | `.3` | regex DEFAULT cert-coverage seed sweep (seed 0/1/7/13 + count 500/seed 0,1) all `sample_parse_failures=0` (seed 1 was 1); determinism byte-identical; backrefs still generated; json/VHDL/SV byte-identical (`stimuli_cross_family_platform_gate` ✅); `regex_pcre2_compile_oracle_gate` byte-identical; self-hosting OK; `cargo test --lib` 620/0 (+2 locks); strict source clippy clean | **IMPLEMENT DONE** — closes `REGEX-PCRE2-FIDELITY.3.12`; generator-only, surface-neutral (no regen/version bump); MVP prunes the `count(K)==0` category, tight `$index≤count` bound deferred to `.4` |
 | `2026-06-08` | `.4` SCOPING | predicate blast-radius grep (`has_fact`/`lacks_fact`/`fact_attribute_equals` = SV-only, 41 sites; `resolve_path` = none; regex `has_fact` = a comment); over-value reachability (0 of 2537 generated samples have a `\NN` N≥10; cert-cov 0 across 11 seeds × count 300) | SCOPING DONE (docs) — generalization is SV-only/high-risk (measured effort); regex tight-bound moot (unreachable); recommend Phase H first to gate `.4a`/`.4b` with evidence |
 | `2026-06-22` | `.4b.1` DESIGN | re-verified SV baseline `UNKNOWN=56` byte-identical seeds 0/7/42 (regen-lockstep build); fresh `DUMP_ALL`+`DEBUG_PROBES` classified the 56 (19 `no_path` + ~7 SVA infix-operator PARSE bug [out of scope] + ~25 store-gate declare-then-use [cohort] + misc); confirmed producer⟷consumer map + the two `$ref` shapes (`$body`/`$1.body` vs `$head.body`); pinned the name-coordinated declare-then-use prelude mechanism + no-op gate + verification matrix | DESIGN DONE (PURE-DOCS) — engine implement split to `.4b.2`; scope excludes the SVA parse-bug + no_path; expected `UNKNOWN 56 → ~31–37` earned by `.4b.2` |
+| `2026-06-22` | `.4b.2` IMPLEMENT | decisive A/B on regen-lockstep build: SV cert `UNKNOWN 56 → 46`, witness `1232 → 1242` (+10 store-gate cohort witnessed), `spf=0`, `proof_reverify_failures=0`, deterministic seeds 0/7/42; new 46 a strict SUBSET of baseline 56 (script-verified ZERO newly-UNKNOWN); in-session regression `declared_forward_class_identifier` root-caused via `DEBUG_PROBES` (`typedef\foo \foo ;typedef class\foo ;` self-emit re-declaration) + fixed (exclude self-emitting producers); 6 fully-certified grammars `fully_certified=true` (regex byte-identical seeds 0/7/42); `cargo test --lib` 729/0 (+3 locks); `ast_shape_contract_gate` 18/18; `clippy_on_rust_change` source-clean (189 `eq_op` errors all in `generated/*_parser.rs`, pre-existing) | **IMPLEMENT DONE** — generator-only (no grammar/regen/release/schema); closes the directly-reachable store-gate cohort; deeper class-scope/class-member residual → `.4b.3` |
 
 ## Commit Log
 
@@ -234,7 +235,8 @@ introduced (the generator becomes a second consumer of the existing one).
 | `.3` | `PGEN-STORE-AWARE-GEN-0003` | `fact_count_at_least`-aware generation MVP (generator-only): `gen_semantic_state` + no-op gate + emit hook + `count(K)==0` necessary-condition prune + `generate_or`/`generate_quantified` checkpoint/rollback + per-sample reset; closes `REGEX-PCRE2-FIDELITY.3.12` (cert-cov seed sweep all 0); surface-neutral, no regen/version bump |
 | `.4` SCOPING | `PGEN-STORE-AWARE-GEN-0004` | tools-first re-frame: composable-predicate generalization is SV-only (41 sites, most-tuned surface → measured effort); regex tight-bound moot (multi-digit backref unreachable, 0/2537); re-scoped to `.4a` (SV prune, measured) / `.4b` (SV value-selection); recommend Phase H first as evidence gate; docs-only |
 | `.4b.1` | `PGEN-STORE-AWARE-GEN-0005` | **DONE (DESIGN).** Tools-first scope + mechanism pinned on the verified `UNKNOWN=56` baseline; engine implement split to `.4b.2`. PURE-DOCS. |
-| `.4b.2` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN — frontier.** Owns the engine code change (name-coordinated declare-then-use witness prelude) per the `.4b.1` design. |
+| `.4b.2` | `PGEN-STORE-AWARE-GEN-0006` | **DONE (IMPLEMENT).** Generator-only name-coordinated declare-then-use witness prelude per the `.4b.1` design. SV cert `UNKNOWN 56 → 46` (+10 store-gate cohort witnessed), zero newly-UNKNOWN, deterministic seeds 0/7/42; 6 fully-certified grammars green; 729/0 tests (+3 locks); source clippy-clean. No grammar/regen/release/schema bump. |
+| `.4b.3` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN — frontier.** The deeper store-gate residual (class-scope / class-member-context variants + the composite `known_unscoped_block_type_identifier` asymmetry) needing a class-scope-prefix or class-member-host reach. |
 
 ## `.4b.1` — DESIGN: store-aware (name-coordinated) witness generation — scope + mechanism (tools-first)
 
@@ -294,18 +296,47 @@ introduced (the generator becomes a second consumer of the existing one).
 
 ## `.4b.2` — IMPLEMENT store-aware (name-coordinated) declare-then-use witness prelude
 
-- **Status:** `OPEN` (frontier). Owns the GENERATOR-ONLY engine code change per the `.4b.1` pinned mechanism.
-  This is the slice that dogfoods the acceptance-checklist gate (`TOOLBOX.md` / `scripts/check_diagnosis_evidence.sh`).
-- **Plan:** implement steps 1–4 of the `.4b.1` mechanism (capability detection / no-op gate → name-prelude
-  build → single-pass store-name selection + `$ref`-path forced render → unchanged parser-as-judge), then run
-  the `.4b.1` verification matrix with a decisive stash A/B and a GLOBAL cert at seeds 0/7/42 BEFORE any commit.
-  Change one thing at a time; keep generator-only (no grammar/regen/release/schema bump). Commit only if it is a
-  measured improvement with zero newly-UNKNOWN and the 6 fully-certified grammars byte-identical
-  ([[project_cert_coverage_tournament_loser_leak]]).
-- **Acceptance Checklist (enforced — to be EARNED in this leaf, not pre-ticked):**
-  - [ ] **REPRODUCE / ISSUE** — `UNKNOWN=56` (seeds 0/7/42) with the store-gate cohort `parsed=false` (declare-then-use gap) — `.4b.1` evidence.
-  - [ ] **ROOT CAUSE (WHY + WHERE)** — plannable-witness pass forces store-gated use-sites with an undeclared name; `has_fact`/`fact_attribute_equals` rejects (no producer on the reach path). `stimuli_generator.rs` witness pass + `compute_reach_prelude` (count-only).
-  - [ ] **FIX** — name-coordinated declare-then-use prelude (generator-only; `.4b.1` mechanism, Level-3+ general capability).
-  - [ ] **ADDRESSED (verified)** — SV cert `UNKNOWN 56 → M` (decisive A/B), the store-gate cohort witnessed, `spf=0`, deterministic seeds 0/7/42.
-  - [ ] **NO REGRESSION** — zero newly-UNKNOWN; 6 fully-certified grammars byte-identical + `fully_certified=true`; `stimuli_cross_family_platform_gate` green; SV external corpus 14/14; `cargo test --lib` green; `clippy_on_rust_change` source-clean.
-  - [ ] **LOCKSTEP** — book Grammar-Well-formedness SV-arc beat + the cert number, CHANGES, this leaf, decision record; or N/A + reason for surfaces not touched.
+- **Status:** `DONE` (`PGEN-STORE-AWARE-GEN-0006`, 2026-06-22). Landed the GENERATOR-ONLY engine code change
+  per the `.4b.1` pinned mechanism. **SV cert `UNKNOWN 56 → 46` (witness 1232 → 1242, +10 store-gate cohort
+  rules witnessed), deterministic at seeds 0/7/42, `spf=0`, ZERO newly-UNKNOWN.** This slice dogfoods the
+  acceptance-checklist gate (`TOOLBOX.md` / `scripts/check_diagnosis_evidence.sh`).
+- **What landed (generator-only, `stimuli_generator.rs`):** the C2.2 semantic-prelude was extended from
+  `fact_count_at_least` count gates to NAME-matching store gates as a single declare-then-use coordination:
+  1. `compute_name_gates` precomputes, per rule, its positive `has_fact(K,$ref)` /
+     `fact_attribute_equals(K,$ref,declaration_family,V)` gate (+ `lacks_fact_attribute_equals` excluded
+     families), via the SAME `parse_semantic_runtime_directives` parse — a SELF-EMITTING producer (emits the
+     kind it gates on, the `declared_forward_*`/`declared_*_alias` idiom) is EXCLUDED (it is not a pure
+     declare-then-use consumer). `store_aware_gen` now also activates on a name gate (capability-gated, never
+     grammar-name-gated).
+  2. `compute_reach_prelude` is a dispatcher: count prelude first (proven), then `compute_name_prelude` —
+     finds the first name-gated rule on the reach path, picks a deterministic family-matching producer whose
+     `@emit_fact` name resolves to its whole render, and hosts ONE producer iteration at an upstream
+     quantifier site reaching it (`reach_hops` + `ReachPrelude { iterations: 1, name_gate: Some(...) }`).
+  3. the emit hook (`gen_emit_facts_for_rule`) resolves an undotted `$ref` name (`name: $body`) to the
+     producer's rendered identifier so the registered fact carries the real declared name (regex's literal
+     `name: capture` and dotted refs are byte-identical/verbatim).
+  4. `reach_prelude_replay_text` forces the gated consumer's whole render to the live store name the
+     producer just declared (`store_name_for_gate`, most-recent `(kind, family)` match) — declare-then-use.
+     The parser re-check (`witness_check`) stays the only witness judge.
+- **The 10 newly-witnessed cohort rules:** `checked_type_identifier`, `checked_nettype_identifier`,
+  `known_unscoped_covergroup_type_identifier`, `known_unscoped_interface_class_type_identifier`,
+  `known_unscoped_let_identifier`, `known_unscoped_parameter_identifier`, `known_unscoped_data_type_identifier`,
+  `known_unscoped_class_scope_interface_class_identifier`, `known_unscoped_base_class_type_parameter_identifier`,
+  `known_unscoped_block_class_type`. The remaining store-gate residual (`class_scope`/class-member-context
+  variants: `known_unscoped_class_scope_class_identifier`, `constraint_set`, `extern_constraint_declaration*`,
+  `provisional_unscoped_block_class_type`, the `class_scoped_*call*` family, `known_unscoped_block_type_identifier`)
+  needs deeper reach (a class-scope prefix or class-member host) and is a follow-up leaf (`.4b.3`); the SVA
+  infix parse-bug + `no_path` remain out of scope per `.4b.1`.
+- **In-session regression caught + fixed (tools-first):** the first cut regressed `declared_forward_class_identifier`
+  (witnessed → UNKNOWN). `DEBUG_PROBES` named the forced sample `typedef\foo \foo ;typedef class\foo ;` — the
+  prelude declared `\foo`, then forced the SELF-EMITTING `declared_forward_class_identifier` to RE-declare it →
+  parse conflict. Fix: exclude self-emitting producers from the consumer gate map (a rule that emits kind `K`
+  and gates `has_fact(K,…)` self-satisfies; it witnesses via normal generation). After: `56 → 46`, strict
+  subset of the baseline 56 (zero newly-UNKNOWN).
+- **Acceptance Checklist (enforced — EARNED, oracle-cited):**
+  - [x] **REPRODUCE / ISSUE** — `UNKNOWN=56` (seeds 0/7/42; `CERTIFICATE-COVERAGE … total=1289 proof=1 witness=1232 UNKNOWN=56 (sample_parse_failures=0)`) with the store-gate cohort `parsed=false` (`DEBUG_PROBES`: forced `localparam\foo \foo ;` / `class\foo ;` use `\foo` as a type WITHOUT a declaration — declare-then-use gap).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the plannable-witness pass (`stimuli_generator.rs`) forces a store-gated use-site but never generates the fact-emitting DECLARATION its `@predicate` requires; the C2.2 `compute_reach_prelude` solved this only for `fact_count_at_least` count gates, not the NAME-matching `has_fact`/`fact_attribute_equals` gates. `DEBUG_PROBES` + scoped semantic trace (`🚫 … rejected by post predicate 'fact_attribute_equals [type_name, "\foo", declaration_family, covergroup]' ↪ NEGATIVE … none matched name "\foo"`).
+  - [x] **FIX** — name-coordinated declare-then-use prelude (generator-only; the `.4b.1` mechanism — Level-3+ general parser-agnostic capability reusing the existing runtime + annotation vocabulary; no grammar/regen/release/schema bump).
+  - [x] **ADDRESSED (verified)** — SV cert `UNKNOWN 56 → 46` (decisive A/B on the regen-lockstep build); witness `1232 → 1242` (+10 store-gate cohort rules witnessed, listed above); `spf=0`, `proof_reverify_failures=0`; deterministic at seeds 0/7/42 (`UNKNOWN=46` byte-identical).
+  - [x] **NO REGRESSION** — ZERO newly-UNKNOWN (the new 46 is a strict SUBSET of the baseline 56, script-verified); the 6 fully-certified grammars `fully_certified=true` (regex/json/vhdl/svpp/rtl_frontend re-run UNKNOWN=0; regex — the only OTHER `store_aware` grammar — byte-identical at seeds 0/7/42; rtl_const_expr `store_aware_gen=false` ⇒ path off ⇒ byte-identical, its default-depth-24 artifact pre-existing/orthogonal); `cargo test --lib --features generated_parsers` **729 passed / 0 failed** (+3 new locking tests: name whole-render resolution, producer-family gate, store-name lookup); `clippy_on_rust_change` source stage exits 0 (all 189 generated-code `eq_op` errors pre-existing in `generated/*_parser.rs`; ZERO new warnings in the changed source).
+  - [x] **LOCKSTEP** — CHANGES.md, MEMORY.md, LIVE_ACHIEVEMENT_STATUS.md (SV cert 56→46), the book Grammar-Well-formedness SV-arc beat + cert number, this leaf + the tree status, decision record [[project_store_aware_generation]] updated.
