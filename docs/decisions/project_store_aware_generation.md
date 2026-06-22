@@ -25,7 +25,14 @@ rule witnesses through a synthesised declaration. SystemVerilog cert `UNKNOWN 56
 reachable `checked_*` / `known_unscoped_*` type/covergroup/nettype/let/parameter cohort), generator-only,
 capability-gated (byte-identical for predicate-free grammars and regex), zero newly-UNKNOWN, the parser
 re-check the sole witness judge. Self-emitting producers (the forward-declaration idiom) are excluded
-from the consumer cohort. The deeper class-scope / class-member-context residual → `.4b.3`.
+from the consumer cohort. `.4b.3` (`PGEN-STORE-AWARE-GEN-0007`, 2026-06-22, PURE-DOCS DESIGN) decomposed
+the remaining `UNKNOWN=46` into 3 implement sub-cohorts (3A block-scoped non-gated carrier, 3B
+class-member/class-scope, 3C/misc reach-routing) — after subtracting 19 `no_path` non-defects and the ~7
+SVA infix-operator PARSE bug (out of scope) — and A/B-proved the `block_type`/`data_type` asymmetry root
+cause: `compute_name_prelude`'s gated-rule search inspects only the reach-path hops + the target, never
+the target's MANDATORY SUB-RULES, so a non-gated carrier of the inner-gated `checked_type_identifier`
+never receives a declare-then-use prelude. The `.4b.4` fix (frontier) descends the gated-rule search
+through the target's bounded mandatory-first prefix so a carrier inherits its inner gate.
 
 **THE GAP (tool-backed, 2026-06-08).** PGEN's EBNF `@predicate` annotations are the single source of
 truth for the accepted language, and the PARSER honours them (e.g. `numeric_backreference` is gated by

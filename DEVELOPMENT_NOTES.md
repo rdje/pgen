@@ -1,4 +1,13 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-22 - PGEN-STORE-AWARE-GEN-0007 — STORE-AWARE-GEN.4b.3 DESIGN: decompose the SV UNKNOWN=46 residual + root-cause the block_type/data_type asymmetry (PURE-DOCS)
+
+Tools-first DESIGN slice (no code change) for the deeper SV cert `UNKNOWN`-tail residual; the canonical detail lives in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.3`) — this is a continuity pointer, not a duplicate.
+
+- **Baseline re-verified:** `UNKNOWN=46` at seed 0 on the regen-lockstep build (binaries confirmed newer than all touched Rust source).
+- **All 46 classified (`DUMP_ALL`+`DEBUG_PROBES`):** 19 `no_path` (non-defects) + ~7 SVA infix PARSE bug (parser-side `H.12.5.8`, out of scope) + 3 store-gate/reach sub-cohorts: 3A block-scoped carrier → `.4b.4`; 3B class-member/class-scope → `.4b.5`; 3C/misc reach-routing → `.4b.6`.
+- **Root cause (A/B-proven, `PGEN_REACH_PATH_DUMP`):** `compute_name_prelude`'s gated-rule search (`stimuli_generator.rs:2972-2976`) inspects only the reach-path hops + the target, never the target's mandatory sub-rules; the `has_fact(type_name,$body)` gate lives on the inner `checked_type_identifier` (`systemverilog.ebnf:5193-5194`), not the byte-identical carriers `known_unscoped_block_type_identifier`/`known_unscoped_data_type_identifier` — so a non-gated carrier never gets a declare-then-use prelude. `data_type` was witnessed only opportunistically (1 quantifier deep); `block_type` sits 2 quantifiers deep and was never realized.
+- **`.4b.4` fix pinned:** descend the gated-rule search through the target's bounded mandatory-first prefix (generator-only, capability-gated; expected `UNKNOWN 46 → 44`). 3B/3C are separate mechanisms (own leaves).
+
 ## 2026-06-22 - PGEN-STORE-AWARE-GEN-0006 — STORE-AWARE-GEN.4b.2 IMPLEMENT: name-coordinated declare-then-use witness prelude (GENERATOR-ONLY)
 
 Implemented the `.4b.1` design. GENERATOR-ONLY (`rust/src/ast_pipeline/stimuli_generator.rs`); the canonical detail + the earned acceptance checklist live in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.2`) — this is a continuity pointer, not a duplicate.

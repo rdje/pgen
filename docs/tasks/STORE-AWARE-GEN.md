@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `STORE-AWARE-GEN`
-- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done [`fact_count_at_least`-aware MVP closed `REGEX-PCRE2-FIDELITY.3.12`]; `.4` SCOPING done [tools-first: the composable-predicate generalization is parser-agnostic, capability-gated, current sole user SystemVerilog]; **`.4b.1` DESIGN done** [`PGEN-STORE-AWARE-GEN-0005`, 2026-06-22 — verified baseline `UNKNOWN=56`, classified the 56, pinned the name-coordinated declare-then-use prelude mechanism]; **`.4b.2` IMPLEMENT done** [`PGEN-STORE-AWARE-GEN-0006`, 2026-06-22 — landed the generator-only name-coordinated prelude; SV cert `UNKNOWN 56 → 46`, +10 store-gate cohort rules witnessed, zero newly-UNKNOWN, deterministic seeds 0/7/42]. **Frontier: `.4b.3`** — the deeper store-gate residual [class-scope / class-member-context variants] needing a class-scope prefix or class-member host reach)
+- Status: `active` (`.1` SCOPING + `.2` DESIGN + `.3` IMPLEMENT done [`fact_count_at_least`-aware MVP closed `REGEX-PCRE2-FIDELITY.3.12`]; `.4` SCOPING done [tools-first: the composable-predicate generalization is parser-agnostic, capability-gated, current sole user SystemVerilog]; **`.4b.1` DESIGN done** [`PGEN-STORE-AWARE-GEN-0005`, 2026-06-22 — verified baseline `UNKNOWN=56`, classified the 56, pinned the name-coordinated declare-then-use prelude mechanism]; **`.4b.2` IMPLEMENT done** [`PGEN-STORE-AWARE-GEN-0006`, 2026-06-22 — landed the generator-only name-coordinated prelude; SV cert `UNKNOWN 56 → 46`, +10 store-gate cohort rules witnessed, zero newly-UNKNOWN, deterministic seeds 0/7/42]; **`.4b.3` DESIGN done** [`PGEN-STORE-AWARE-GEN-0007`, 2026-06-22 — verified the `UNKNOWN=46` baseline, classified all 46, A/B-proved the `block_type`/`data_type` asymmetry root cause (the name-prelude's gated-rule search inspects only hops+target, never the target's mandatory sub-rules, so a non-gated carrier of the inner-gated `checked_type_identifier` never gets a prelude), decomposed the deeper residual into 3 implement sub-cohorts]. **Frontier: `.4b.4`** — IMPLEMENT sub-cohort 3A [block-scoped non-gated carrier: descend the gated-rule search into the target's mandatory sub-rule prefix] — the cleanest tool-proven next extension)
 - Family / slice-id prefix: `PGEN-STORE-AWARE-GEN-<NNNN>`
 - Roadmap lane: stimuli-generator quality / parser sign-off pillars **C** (fidelity) + **D** (coverage) —
   the generator must emit only samples that satisfy the SAME semantic predicates the parser enforces
@@ -225,6 +225,7 @@ introduced (the generator becomes a second consumer of the existing one).
 | `2026-06-08` | `.4` SCOPING | predicate blast-radius grep (`has_fact`/`lacks_fact`/`fact_attribute_equals` = SV-only, 41 sites; `resolve_path` = none; regex `has_fact` = a comment); over-value reachability (0 of 2537 generated samples have a `\NN` N≥10; cert-cov 0 across 11 seeds × count 300) | SCOPING DONE (docs) — generalization is SV-only/high-risk (measured effort); regex tight-bound moot (unreachable); recommend Phase H first to gate `.4a`/`.4b` with evidence |
 | `2026-06-22` | `.4b.1` DESIGN | re-verified SV baseline `UNKNOWN=56` byte-identical seeds 0/7/42 (regen-lockstep build); fresh `DUMP_ALL`+`DEBUG_PROBES` classified the 56 (19 `no_path` + ~7 SVA infix-operator PARSE bug [out of scope] + ~25 store-gate declare-then-use [cohort] + misc); confirmed producer⟷consumer map + the two `$ref` shapes (`$body`/`$1.body` vs `$head.body`); pinned the name-coordinated declare-then-use prelude mechanism + no-op gate + verification matrix | DESIGN DONE (PURE-DOCS) — engine implement split to `.4b.2`; scope excludes the SVA parse-bug + no_path; expected `UNKNOWN 56 → ~31–37` earned by `.4b.2` |
 | `2026-06-22` | `.4b.2` IMPLEMENT | decisive A/B on regen-lockstep build: SV cert `UNKNOWN 56 → 46`, witness `1232 → 1242` (+10 store-gate cohort witnessed), `spf=0`, `proof_reverify_failures=0`, deterministic seeds 0/7/42; new 46 a strict SUBSET of baseline 56 (script-verified ZERO newly-UNKNOWN); in-session regression `declared_forward_class_identifier` root-caused via `DEBUG_PROBES` (`typedef\foo \foo ;typedef class\foo ;` self-emit re-declaration) + fixed (exclude self-emitting producers); 6 fully-certified grammars `fully_certified=true` (regex byte-identical seeds 0/7/42); `cargo test --lib` 729/0 (+3 locks); `ast_shape_contract_gate` 18/18; `clippy_on_rust_change` source-clean (189 `eq_op` errors all in `generated/*_parser.rs`, pre-existing) | **IMPLEMENT DONE** — generator-only (no grammar/regen/release/schema); closes the directly-reachable store-gate cohort; deeper class-scope/class-member residual → `.4b.3` |
+| `2026-06-22` | `.4b.3` DESIGN | re-verified `UNKNOWN=46` baseline (regen-lockstep build, seed 0; total=1289 proof=1 witness=1242 spf=0); `DUMP_ALL`+`DEBUG_PROBES` classified all 46 (19 `no_path` + ~7 SVA infix PARSE-bug [out of scope] + the store-gate/reach residual); **`PGEN_REACH_PATH_DUMP` A/B proved the `block_type`/`data_type` asymmetry root cause** — identical bodies (`:= checked_type_identifier packed_dimension*`), gate lives on the inner `checked_type_identifier` (`@predicate has_fact(type_name,$body)`, `:5193`), NOT the carriers; `compute_name_prelude`'s gated-rule search (`stimuli_generator.rs:2972-2976`) inspects only hops+target, never the target's mandatory sub-rules, so a non-gated carrier never gets a prelude (`data_type` only witnessed opportunistically via `checked_type_identifier`'s own top-level witness; the 2-quantifier-deep block carrier was never reached); decomposed the deeper residual into 3A (block-scoped carrier), 3B (class-member/class-scope), 3C/misc (reach-routing) | **DESIGN DONE (PURE-DOCS)** — engine implement split to `.4b.4` (3A, cleanest); `.4b.5` (3B), `.4b.6` (3C/misc) scoped; SVA parse-bug + `no_path` remain out of scope |
 
 ## Commit Log
 
@@ -236,7 +237,10 @@ introduced (the generator becomes a second consumer of the existing one).
 | `.4` SCOPING | `PGEN-STORE-AWARE-GEN-0004` | tools-first re-frame: composable-predicate generalization is SV-only (41 sites, most-tuned surface → measured effort); regex tight-bound moot (multi-digit backref unreachable, 0/2537); re-scoped to `.4a` (SV prune, measured) / `.4b` (SV value-selection); recommend Phase H first as evidence gate; docs-only |
 | `.4b.1` | `PGEN-STORE-AWARE-GEN-0005` | **DONE (DESIGN).** Tools-first scope + mechanism pinned on the verified `UNKNOWN=56` baseline; engine implement split to `.4b.2`. PURE-DOCS. |
 | `.4b.2` | `PGEN-STORE-AWARE-GEN-0006` | **DONE (IMPLEMENT).** Generator-only name-coordinated declare-then-use witness prelude per the `.4b.1` design. SV cert `UNKNOWN 56 → 46` (+10 store-gate cohort witnessed), zero newly-UNKNOWN, deterministic seeds 0/7/42; 6 fully-certified grammars green; 729/0 tests (+3 locks); source clippy-clean. No grammar/regen/release/schema bump. |
-| `.4b.3` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN — frontier.** The deeper store-gate residual (class-scope / class-member-context variants + the composite `known_unscoped_block_type_identifier` asymmetry) needing a class-scope-prefix or class-member-host reach. |
+| `.4b.3` | `PGEN-STORE-AWARE-GEN-0007` | **DONE (DESIGN).** Tools-first decomposition of the `UNKNOWN=46` residual into 3 implement sub-cohorts + the A/B-proved `block_type`/`data_type` asymmetry root cause (gated-rule search ignores the target's mandatory sub-rules). PURE-DOCS. |
+| `.4b.4` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN — frontier.** IMPLEMENT sub-cohort 3A (block-scoped non-gated carrier): descend the `compute_name_prelude` gated-rule search into the target's mandatory sub-rule prefix so a carrier of an inner-gated rule (`checked_type_identifier`) gets a declare-then-use prelude. Targets `known_unscoped_block_type_identifier`, `known_unscoped_block_covergroup_identifier`. |
+| `.4b.5` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT sub-cohort 3B (class-member/class-scope): a class declared as a class + a `::`-scoped use render (`constraint_set`, `extern_constraint_declaration*`, `known_unscoped_class_scope_*`, the `class_scoped_*call*` family, `provisional_unscoped_block_class_type`, `property_qualifier`). |
+| `.4b.6` | `PGEN-STORE-AWARE-GEN-<open>` | **OPEN.** IMPLEMENT sub-cohort 3C/misc (reach-routing `parsed=true witnessed=false`): `wildcard_escape_nettype_identifier`, `declared_class_alias_identifier`, `context_member_method_call`, `named_checker_port_connection(_sv_2017)`, `repeat_range`, `with_covergroup_expression`, `union_modifier`. |
 
 ## `.4b.1` — DESIGN: store-aware (name-coordinated) witness generation — scope + mechanism (tools-first)
 
@@ -340,3 +344,82 @@ introduced (the generator becomes a second consumer of the existing one).
   - [x] **ADDRESSED (verified)** — SV cert `UNKNOWN 56 → 46` (decisive A/B on the regen-lockstep build); witness `1232 → 1242` (+10 store-gate cohort rules witnessed, listed above); `spf=0`, `proof_reverify_failures=0`; deterministic at seeds 0/7/42 (`UNKNOWN=46` byte-identical).
   - [x] **NO REGRESSION** — ZERO newly-UNKNOWN (the new 46 is a strict SUBSET of the baseline 56, script-verified); the 6 fully-certified grammars `fully_certified=true` (regex/json/vhdl/svpp/rtl_frontend re-run UNKNOWN=0; regex — the only OTHER `store_aware` grammar — byte-identical at seeds 0/7/42; rtl_const_expr `store_aware_gen=false` ⇒ path off ⇒ byte-identical, its default-depth-24 artifact pre-existing/orthogonal); `cargo test --lib --features generated_parsers` **729 passed / 0 failed** (+3 new locking tests: name whole-render resolution, producer-family gate, store-name lookup); `clippy_on_rust_change` source stage exits 0 (all 189 generated-code `eq_op` errors pre-existing in `generated/*_parser.rs`; ZERO new warnings in the changed source).
   - [x] **LOCKSTEP** — CHANGES.md, MEMORY.md, LIVE_ACHIEVEMENT_STATUS.md (SV cert 56→46), the book Grammar-Well-formedness SV-arc beat + cert number, this leaf + the tree status, decision record [[project_store_aware_generation]] updated.
+
+## `.4b.3` — DESIGN: decompose the `UNKNOWN=46` residual + root-cause the `block_type`/`data_type` asymmetry (tools-first)
+
+- **Status:** `DONE (DESIGN)` — `PGEN-STORE-AWARE-GEN-0007`, 2026-06-22, PURE-DOCS. Mirrors this tree's
+  `.4b.1` DESIGN → `.4b.2` IMPLEMENT rhythm on the most-tuned generation surface — decompose + pin the
+  mechanism before any engine change, no guessing ([[feedback_no_codebase_change_without_tool_backed_facts]],
+  [[feedback_pinpoint_real_blocker_not_menu]]). The engine implements are the new leaves `.4b.4`/`.4b.5`/`.4b.6`.
+- **Verified baseline (this slice, 2026-06-22).** A regen-lockstep DEBUG `ast_pipeline` (generated SV parser
+  18:56 + binary 19:49, both post the committed `-0111` grammar; no Rust source newer than the binary)
+  re-measures `CERTIFICATE-COVERAGE … total=1289 proof=1 witness=1242 UNKNOWN=46 (sample_parse_failures=0,
+  proof_reverify_failures=0)` at seed 0 — matches the committed `.4b.2` after-state. This is the `.4b.4`+ "before".
+- **The 46-rule UNKNOWN classification (fresh `PGEN_CERT_COVERAGE_DUMP_ALL=1 PGEN_CERT_COVERAGE_DEBUG_PROBES=1`, seed 0).**
+  - **19 `no_path`** dead-rule candidates (the `WARNING … NO reach path from the entry` list — `sv_multi_entry_root`,
+    `systemverilog_parseable_file`, `parseable_source_item`, `class_constructor_super_args`,
+    `declared_interface_class_identifier`, `include_statement`, `interface_class_declaration`/`_item`/`_method`,
+    the `library_*` family, and the empty-verdict `kw_include`/`kw_incdir`/`kw_library`/`kw_file_path_spec`/`kw_n_29`/`kw_n_48`
+    shells). Adjudicated NON-defects (linter territory, `GRAMMAR-WELLFORMED.H.12.6`). **Out of scope.**
+  - **~7 SVA infix-operator PARSE bug** — `kw_within`, `kw_until`, `kw_until_with`, `kw_intersect`, `kw_s_until`,
+    `kw_s_until_with`, `kw_constant`: forced samples like `sequence\foo ;3395.0within 2.88863endsequence` are
+    `parsed=false` because **the parser rejects `a within b` at the operator** (the parked
+    `GRAMMAR-WELLFORMED.H.12.5.8` SVA precedence cascade). A generator/witness change CANNOT fix a parser bug.
+    **Out of scope** for STORE-AWARE-GEN.
+  - **The store-gate / reach residual (THE `.4b.4`+ cohort), split into 3 mechanistically-distinct sub-cohorts:**
+    - **3A — block-scoped non-gated carrier** (`parsed=false`, NO declaration hosted): `known_unscoped_block_type_identifier`
+      (`function new;\foo \foo ;endfunction`), `known_unscoped_block_covergroup_identifier` (same shape). The cleanest
+      next implement — see the root cause below.
+    - **3B — class-member / class-scope context** (needs a CLASS declared *as a class* + a `::`-scoped use render):
+      `known_unscoped_class_scope_class_identifier` (`parsed=false`), `known_unscoped_class_scope_type_parameter_identifier`
+      (`parsed=true witnessed=false`), `constraint_set` (`constraint\foo ::\foo {…}`), `extern_constraint_declaration`/`_sv_2017`
+      (`constraint\foo ::\foo {}`), `property_qualifier` (`class\foo ;rand\foo ;endclass`), `provisional_unscoped_block_class_type`
+      (got a *typedef* hosted but the gate wants family=class), the `known_unscoped_class_scoped_call_*` family, `class_scoped_tf_call`
+      (the last four `parsed=true witnessed=false` — a sibling class-scope rule consumes the bytes).
+    - **3C / misc — reach-routing** (`parsed=true witnessed=false`, the sample parses but a carrier sibling consumes it,
+      or a self-emit idiom): `wildcard_escape_nettype_identifier` (`\foo \foo ;`), `declared_class_alias_identifier`
+      (`typedef\foo \foo ;` — a SELF-EMIT alias, deliberately excluded by `.4b.2`'s self-satisfying-producer skip; it
+      should witness via normal generation — a routing/weighting gap, not a declare-then-use gap), `context_member_method_call`,
+      `named_checker_port_connection`/`_sv_2017`, `repeat_range`, `with_covergroup_expression`, `union_modifier`.
+- **ROOT CAUSE of sub-cohort 3A (WHY + WHERE, A/B-proven, decisive).**
+  `known_unscoped_block_type_identifier` and `known_unscoped_data_type_identifier` have **byte-identical bodies**
+  — both `:= checked_type_identifier packed_dimension*` (`systemverilog.ebnf:1630` / `:1637`) — yet `.4b.2`
+  witnessed `data_type` and left `block_type` UNKNOWN. The gate that matters lives on the INNER rule
+  `checked_type_identifier := type_identifier` (`:5194`), carrying `@predicate has_fact(type_name, $body)` (`:5193`);
+  the two carriers carry **no direct `@predicate`** (only a routing comment above them). `compute_name_gates`
+  (`stimuli_generator.rs:6160`) registers a `NameGate` only for a rule **directly** carrying the predicate, so only
+  `checked_type_identifier` is in `gen_name_gate` — not the carriers. `compute_name_prelude`'s gated-rule search
+  (`stimuli_generator.rs:2972-2976`) then looks for a gated rule among **`hops` + `target_rule` ONLY**, never the
+  target's own mandatory sub-rules. So when the cert target is the non-gated carrier `known_unscoped_block_type_identifier`,
+  the search finds nothing gated → `compute_name_prelude` returns `None` → no declare-then-use prelude → the forced
+  witness sample uses `\foo` as a type with no declaration → `checked_type_identifier`'s `has_fact` is false → `parsed=false`.
+  `known_unscoped_data_type_identifier` (identical structure) was NOT witnessed by its own prelude either — it was
+  witnessed **opportunistically**, as a carrier realized inside `checked_type_identifier`'s OWN single witness sample.
+  `PGEN_REACH_PATH_DUMP` A/B confirms why `block_type` was never so realized: its use-site sits **two quantifiers deep**
+  (`("source_text","root/q")` → … → `("class_constructor_declaration_sv_2017","root/s5/q")` block-item list → `block_data_type`),
+  whereas `data_type`'s use-site is **one quantifier deep**, directly under the top-level `source_text := description*`
+  quantifier — so `checked_type_identifier`'s single top-level witness realized `data_type` but never the deeper block carrier.
+- **The fix for 3A (pinned, the `.4b.4` IMPLEMENT — ONE clean, parser-agnostic extension).** Extend
+  `compute_name_prelude`'s gated-rule discovery so a target/on-path rule that is NOT itself name-gated but whose
+  **mandatory derivation prefix** reaches a name-gated rule INHERITS that inner gate (a bounded mandatory-first descent
+  through single-mandatory sub-rules — `known_unscoped_block_type_identifier`'s mandatory first sub-rule is the gated
+  `checked_type_identifier`). The carrier then gets the SAME declare-then-use prelude the directly-gated rule gets; the
+  flat fact store means the existing top-level typedef hosting (already proven for `data_type`) satisfies the block-context
+  `has_fact` too. Capability-gated on the predicate's presence (byte-identical for predicate-free grammars), reusing the
+  existing `reach_hops`/`ReachPrelude`/`reach_prelude_replay_text` machinery — no new annotation, no grammar/parser change.
+  The certifying parser re-check stays the only witness judge. Expected `UNKNOWN 46 → 44` (the two 3A carriers), ZERO
+  newly-UNKNOWN, deterministic seeds 0/7/42; earned by `.4b.4`, not pre-claimed.
+- **3B / 3C are SEPARATE mechanisms** (their own implement leaves, each tools-first-designed before coding):
+  3B needs a class declared *as a class* (family=class producer) plus a `::`-scoped use-site render (the `$ref` is a
+  scoped head, not a bare identifier) and, for the `parsed=true witnessed=false` members, reach-routing so the target
+  rule (not a sibling) consumes the scoped name. 3C is predominantly reach-routing/weighting (the samples already parse),
+  including the deliberately-excluded self-emit `declared_class_alias_identifier`. These do NOT share 3A's one-line
+  gated-rule-descent fix, so folding them into one commit would violate "fix shall always be targeted" — they are deferred.
+- **Acceptance (for the `.4b.4`+ implements, not this DESIGN slice):** SV cert `UNKNOWN` drops by the addressed
+  sub-cohort, deterministic seeds 0/7/42, `spf=0`; the new UNKNOWN set a strict SUBSET of the prior (ZERO newly-UNKNOWN);
+  the 6 fully-certified grammars `fully_certified=true` (regex byte-identical at seeds 0/7/42); `stimuli_cross_family_platform_gate`
+  green; `cargo test --lib` green; `clippy_on_rust_change` source-clean. Decisive A/B + GLOBAL cert before any commit.
+- **Diagnose/verify with the toolbox** (`docs/book/src/diagnosing-unknowns.md`): `DUMP_ALL` → `DEBUG_PROBES` →
+  `PGEN_REACH_PATH_DUMP`, per [[feedback_systematically_use_debug_toolbox]]. **This DESIGN slice is PURE-DOCS — no code
+  change — so the `check_diagnosis_evidence.sh` code-change gate does not apply; the next leaf (`.4b.4`) carries the
+  enforced acceptance checklist it will earn.**
