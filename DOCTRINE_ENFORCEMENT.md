@@ -9,8 +9,20 @@ land: a local git hook blocks it, and CI makes it un-mergeable.
 > suggestion.** The fix is to pair every doctrine with a deterministic check, run all checks
 > from one registry/driver, and gate commits + CI on it.
 
-This file is the **sibling of `MEMORY_ARCHITECTURE.md`**: that standard mechanizes the *memory*
-doctrine; this one generalizes the *same E1→E4 defense-in-depth* to **every** doctrine.
+This file is the **4th portable architecture** a project adopts, alongside the three it already has:
+
+| # | Portable architecture | Owns | Standard |
+|---|---|---|---|
+| 1 | **Task-trees** | per-unit work memory (goal/frontier/acceptance/verification) | `docs/TASK_TREE.md` |
+| 2 | **Memory-architecture** | durable harness-agnostic agent memory (4 layers) | `MEMORY_ARCHITECTURE.md` |
+| 3 | **Knowledge-map** | a retrieval layer over fact cards | `knowledge-map/` |
+| 4 | **Doctrine-enforcement** | turning every rule into a mechanically-gated check | **this file** |
+
+All four are **project- and harness-agnostic**: a project backed by Codex, Claude Code, Gemini, or a
+human adopts each by replaying its standard. This one is the sibling of `MEMORY_ARCHITECTURE.md` —
+that standard mechanizes the *memory* doctrine; this one generalizes the *same E1→E4
+defense-in-depth* to **every** doctrine. The enforcement is **git-level** (hooks + CI), so it fires
+identically no matter which harness made the commit.
 
 ---
 
@@ -183,33 +195,56 @@ from a clone.
 
 ---
 
-## 8. The agnostic adoption kit ("it just works")
+## 8. The portable replay manifest (any project, any harness — "it just works")
 
-Path-agnostic and copy-pasteable, exactly like `MEMORY_ARCHITECTURE.md` §9.1.
+Reproducible by replay: this is the **exact list of artifacts** a project copies/writes and the
+**three commands** it runs. Path-agnostic and copy-pasteable, exactly like `MEMORY_ARCHITECTURE.md`
+§9.1. Group A is verbatim; Group B is one tiny adapt; Group C is per-harness discovery; Group D is
+your own doctrines.
 
-**Copy these verbatim** (they make no project-specific assumptions):
-- `scripts/check_doctrines.sh` — the registry+driver (edit the `DOCTRINES=(…)` array for your repo).
-- one example check (`scripts/check_diagnosis_evidence.sh`) as a template for the evidence archetype.
-- `.githooks/pre-commit` (or add one line to your existing hook): run the driver.
+### A — CORE, copy VERBATIM (project- and harness-neutral)
+| Artifact | Role |
+|---|---|
+| `scripts/check_doctrines.sh` | the registry+driver — runs every check, reports, exits nonzero on any breach |
+| `scripts/check_diagnosis_evidence.sh` | reference EVIDENCE check (the task-acceptance checklist gate) |
+| `.githooks/pre-commit` | E3 local gate: regenerate derived artifacts, then run the driver |
+| `.githooks/commit-msg` | E3: require an identifier-shaped work-unit id in the subject |
+| `DOCTRINE_ENFORCEMENT.md` | this standard |
+| `TOOLBOX.md` | the debug-toolbox catalog + the **acceptance-checklist template** a code change must satisfy |
 
-**Write your checks** — one `scripts/check_<doctrine>.sh` per doctrine, each obeying the §4
-contract; register each as one line in the driver's array.
+### B — ADAPT (the only project-specific knobs)
+- `scripts/check_doctrines.sh`: edit the `DOCTRINES=(…)` array (your doctrine ids → your check scripts).
+- `scripts/check_diagnosis_evidence.sh`: the "what counts as a code change" path globs + the evidence/checklist signature regexes (your tools' output strings).
+- `TOOLBOX.md`: your project's tools + the required checklist boxes.
+- which heavy checks are CI-only vs pre-commit.
 
-**Run these three commands once:**
+### C — DISCOVERY, one bootstrap pointer per harness (all IDENTICAL content; each points at README + MEMORY_ARCHITECTURE + TOOLBOX + this file)
+`AGENTS.md` (Codex / Amp / common), `CLAUDE.md` (Claude Code), `GEMINI.md` (Gemini CLI),
+`.cursorrules` (Cursor), `.windsurfrules` (Windsurf), `.github/copilot-instructions.md` (Copilot).
+Ship whichever harnesses your team uses; keep them byte-identical.
+
+### D — OPTIONAL harness hooks (a bonus where supported — NOT required for enforcement)
+`.claude/settings.json` (Claude Code `SessionStart`/`PreToolUse` reminders). **Codex and other
+harnesses without a hook system rely on Group C discovery + the git-level enforcement (A), which is
+harness-neutral.** The reminders only *nudge*; the gate is what *enforces*.
+
+### E — PER-PROJECT, write your own
+- `scripts/check_<doctrine>.sh` per doctrine (the §4 contract) + one registry line in the driver.
+- `docs/decisions/<directive>.md` for the human "why".
+
+### The three commands (once)
 ```bash
 chmod +x scripts/check_*.sh
 git config core.hooksPath .githooks          # activate the local gate (E3)
 # add ONE line to your CI pipeline (E4):  bash scripts/check_doctrines.sh
 ```
 
-**The only knobs to adapt per project** (everything else is identical):
-- the `DOCTRINES=(…)` registry array (your doctrines → your check scripts);
-- per evidence check: the "what counts as a code change" path set and the signature regexes;
-- which heavy checks are CI-only vs pre-commit.
-
-Because the driver and the contract are project-neutral, copying the kit reproduces the *same*
-four-layer gate everywhere. A different project, in any harness, lands non-compliant work only by
-defeating all four layers — and E4 cannot be defeated from a clone.
+**Harness-agnostic guarantee.** The ENFORCEMENT (A) is git-level: `.githooks/pre-commit` + CI run
+`check_doctrines.sh` regardless of whether the commit came from Codex, Claude Code, Gemini, or a
+human. DISCOVERY (C) is per-harness via the bootstrap pointer files. Optional hooks (D) add in-context
+reminders where the harness supports them. So a project backed by **Codex or Claude Code (or both)**
+gets the **same** four-layer gate — non-compliant work lands only by defeating all four, and E4
+cannot be defeated from a clone.
 
 ---
 

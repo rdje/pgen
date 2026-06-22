@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-06-22 - PGEN-DIAG-TOOLBOX-0004 (PURE-DOCS/TOOLING): make doctrine-enforcement the 4th PORTABLE, HARNESS-AGNOSTIC architecture (Codex + Claude Code) + a precise replay manifest
+
+Director follow-ups (2026-06-22): everything must be **reproducible by replay** in any project (the exact .md/.sh list + procedure); and the doctrine enforcer must work for **Codex AND Claude Code** (their projects all already run task-trees + memory-architecture + knowledge-map — this is the 4th).
+
+- **Harness-agnostic discovery.** All six bootstrap pointer files — `AGENTS.md` (Codex), `CLAUDE.md` (Claude Code), `GEMINI.md`, `.cursorrules`, `.windsurfrules`, `.github/copilot-instructions.md` — updated in lockstep to route any harness to `TOOLBOX.md` (toolbox-first) + `DOCTRINE_ENFORCEMENT.md` + `scripts/check_doctrines.sh`, and to state the acceptance-checklist requirement. The ENFORCEMENT itself is git-level (`.githooks/pre-commit` + CI run the driver) so it fires identically for Codex, Claude Code, Gemini, or a human commit; the Claude Code `.claude/settings.json` hooks are an optional reminder bonus, not required for enforcement.
+- **`DOCTRINE_ENFORCEMENT.md` is now the explicit 4th portable architecture** (alongside task-trees, memory-architecture, knowledge-map), with a table relating the four. §8 rewritten into a precise **replay manifest**: Group A (copy verbatim: `check_doctrines.sh`, `check_diagnosis_evidence.sh`, `.githooks/pre-commit`+`commit-msg`, `DOCTRINE_ENFORCEMENT.md`, `TOOLBOX.md`), Group B (adapt: the `DOCTRINES` array + code-path globs + signature regexes), Group C (per-harness discovery pointers), Group D (optional harness hooks), Group E (your own `check_<doctrine>.sh`) + the three setup commands + the harness-agnostic guarantee.
+- Driver green (all 6 doctrines). `LIVE_ACHIEVEMENT_STATUS.md` unchanged; cascade WIP untouched/excluded.
+
 ## 2026-06-22 - PGEN-DIAG-TOOLBOX-0003 (PURE-DOCS/TOOLING): the toolbox gate now enforces a TASK-ACCEPTANCE CHECKLIST (boxes ticked + earned-not-self-ticked)
 
 Director follow-ups (2026-06-22): (a) the enforcer must TRACK a task through the procedure start→finish — "every task tree shall check some boxes [through] steps to analyse an issue, and made sure the issue it wanted to address was clearly addressed with no regression"; (b) "a box may not be tickable just because the task-tree wants to tick it and move on." Both addressed.
