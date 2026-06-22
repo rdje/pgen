@@ -423,6 +423,14 @@ Both default to `None` (no library I/O), keeping single-file behaviour byte-iden
 | `PGEN_TRACE_VERBOSITY` | Trace verbosity (overridden by CLI but consulted when CLI doesn't specify) | `none`, `low`, `medium` (or `med`), `high`, `debug` (or `trace`), `off`, `0`-`4` |
 | `PGEN_PARSE_DUMP_AST_MAX_BYTES` | Default for `--max-bytes` | Positive integer |
 
+> **For certificate-coverage `UNKNOWN` diagnosis** (why a rule is not witnessed —
+> dead rule vs reach gap vs store-gate rejection), the relevant env vars
+> (`PGEN_CERT_COVERAGE_DUMP_ALL`, `PGEN_CERT_COVERAGE_DEBUG_PROBES`,
+> `PGEN_REACH_PATH_DUMP`, the `PGEN_WITNESS_*` knobs) and the systematic 3-step
+> protocol live in the companion chapter
+> [Diagnostic & Debug Toolbox](diagnosing-unknowns.md). Use the predicate
+> self-explaining trace above as its Step 2.
+
 ---
 
 ## Cost / Performance

@@ -11,6 +11,7 @@
 - [User-Facing Surfaces](user-facing-surfaces.md)
 - [CLI and Workflows](cli-and-workflows.md)
 - [Debugging With `parseability_probe`](parseability-probe-debug.md)
+- [Diagnostic & Debug Toolbox](diagnosing-unknowns.md)
 - [Annotation System](annotation-system.md)
 - [The Semantic Store: Parser Memory](semantic-store.md)
 - [Stimuli and Quality](stimuli-and-quality.md)
