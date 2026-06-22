@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-22 - PGEN-STORE-AWARE-GEN-0008 — STORE-AWARE-GEN.4b.4 IMPLEMENT: mandatory-first gated-rule descent (block-scoped carriers, GENERATOR-ONLY)
+
+Implemented the `.4b.3` design's sub-cohort 3A. GENERATOR-ONLY (`rust/src/ast_pipeline/stimuli_generator.rs`); the canonical detail + the earned acceptance checklist live in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.4`) — this is a continuity pointer, not a duplicate.
+
+- **Result:** SV cert `UNKNOWN 46 → 43` (witness `1242 → 1245`, +3 block-scoped carriers: `known_unscoped_block_type_identifier`, `known_unscoped_block_covergroup_identifier`, bonus `provisional_unscoped_block_class_type`), `spf=0`, deterministic seeds 0/7/42; the new 43 a script-verified strict SUBSET of the baseline 46 (ZERO newly-UNKNOWN).
+- **Mechanism:** two helpers — `mandatory_leading_rule_reference` (a rule's mandatory-first leading rule reference; `None` for Or/quantifier/terminal lead) + `name_gate_via_mandatory_prefix` (rule-itself-first direct short-circuit, else bounded mandatory-prefix descent to the inner gated rule). `compute_name_prelude` now arms on the carrier's INNER gated rule (`hops direct → or_else target via mandatory prefix`), purely additive; capability-gated on `gen_name_gate` non-empty (SV-only) ⇒ byte-identical elsewhere.
+- **No regression:** regex byte-identical 198/198; json/vhdl/svpp/rtl_frontend `fully_certified=true`; `cargo test --lib` 731/0 (+2 locks); source clippy-clean. Frontier → `.4b.5` (3B class-member/class-scope).
+
 ## 2026-06-22 - PGEN-STORE-AWARE-GEN-0007 — STORE-AWARE-GEN.4b.3 DESIGN: decompose the SV UNKNOWN=46 residual + root-cause the block_type/data_type asymmetry (PURE-DOCS)
 
 Tools-first DESIGN slice (no code change) for the deeper SV cert `UNKNOWN`-tail residual; the canonical detail lives in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.3`) — this is a continuity pointer, not a duplicate.

@@ -31,8 +31,13 @@ class-member/class-scope, 3C/misc reach-routing) — after subtracting 19 `no_pa
 SVA infix-operator PARSE bug (out of scope) — and A/B-proved the `block_type`/`data_type` asymmetry root
 cause: `compute_name_prelude`'s gated-rule search inspects only the reach-path hops + the target, never
 the target's MANDATORY SUB-RULES, so a non-gated carrier of the inner-gated `checked_type_identifier`
-never receives a declare-then-use prelude. The `.4b.4` fix (frontier) descends the gated-rule search
-through the target's bounded mandatory-first prefix so a carrier inherits its inner gate.
+never receives a declare-then-use prelude. `.4b.4` (`PGEN-STORE-AWARE-GEN-0008`, 2026-06-22) landed that
+fix — a bounded mandatory-first gated-rule descent so a carrier inherits its inner gate (the prelude
+arms on the inner rule that actually renders) — closing sub-cohort 3A: SystemVerilog cert `UNKNOWN 46 → 43`
+(+3 block-scoped carriers `known_unscoped_block_type_identifier`, `known_unscoped_block_covergroup_identifier`,
+`provisional_unscoped_block_class_type` witnessed), generator-only, purely additive, zero newly-UNKNOWN,
+the 6 fully-certified grammars unperturbed. The class-member/class-scope residual → `.4b.5`; reach-routing
+→ `.4b.6`.
 
 **THE GAP (tool-backed, 2026-06-08).** PGEN's EBNF `@predicate` annotations are the single source of
 truth for the accepted language, and the PARSER honours them (e.g. `numeric_backreference` is gated by

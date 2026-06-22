@@ -948,9 +948,24 @@ reject. The effect: the directly-reachable store-gated cohort — the `checked_*
 type/covergroup/nettype/let/parameter identifier family — now witnesses, dropping SystemVerilog
 `UNKNOWN 56 → 46` (witness `1232 → 1242`), deterministic across seeds, with zero newly-unknown rules and
 every fully-certified grammar byte-identical (the path is capability-gated on the predicates' presence, so
-it is structurally inert for any grammar without name-matching store gates). The deeper remainder that
-needs a *class scope* or *class-member* context around the use-site (`extern_constraint_declaration`, the
-class-scoped call family) is the next increment.
+it is structurally inert for any grammar without name-matching store gates).
+
+A follow-up increment closed the **block-scoped carriers**. The gate that matters often lives one level
+*inside* a use-site rule: `known_unscoped_block_type_identifier := checked_type_identifier packed_dimension*`
+is not itself name-gated — its inner `checked_type_identifier` carries the `has_fact(type_name, …)` gate.
+The first cut only armed the declare-then-use prelude when the witness *target* (or a rule on its reach
+path) was *directly* gated, so these carriers got no prelude and their minimal witnesses still used an
+undeclared `\foo`. The fix lets the prelude follow a rule's **mandatory-first prefix**: when the target is
+not itself gated, it descends the leading mandatory rule reference (e.g. `→ checked_type_identifier`) and
+arms on that inner gated rule — the one that actually renders — while a directly-gated rule still
+short-circuits exactly as before (purely additive). The flat fact store means the existing top-level
+declaration hosting satisfies the inner `has_fact` even when the use-site sits deep inside a procedural
+block. This witnessed the block-scoped carriers (`known_unscoped_block_type_identifier`,
+`known_unscoped_block_covergroup_identifier`, and a block-context class-type provisional), dropping
+SystemVerilog `UNKNOWN 46 → 43` (witness `1242 → 1245`), again deterministic with zero newly-unknown rules
+and every fully-certified grammar byte-identical. The deeper remainder that needs a *class scope* or
+*class-member* context around the use-site (`extern_constraint_declaration`, the class-scoped call family)
+is the next increment.
 
 ## The decidability boundary (an honest limit)
 

@@ -2969,11 +2969,24 @@ impl<'a> StimuliGenerator<'a> {
         if self.gen_name_gate.is_empty() {
             return None;
         }
+        // STORE-AWARE-GEN.4b.4: find the name-gated rule to arm the prelude on. A directly-gated rule
+        // among the reach-path hops takes precedence (exact pre-4b.4 behavior). When NO hop is directly
+        // gated and the TARGET itself is not directly gated, descend the target's MANDATORY-first prefix:
+        // a non-gated carrier (`known_unscoped_block_type_identifier := checked_type_identifier …`) routes
+        // its use-site render through an inner gated rule (`checked_type_identifier`), so the prelude must
+        // arm on that inner rule (it is the rule `reach_prelude_replay_text` forces when it renders inside
+        // the carrier's body). Purely ADDITIVE — a case that matched a direct gate before still matches the
+        // SAME rule, so already-witnessed targets are unperturbed (the M2a no-regression invariant; the
+        // parser re-check stays the sole witness judge).
         let (gated_rule, gate) = hops
             .iter()
             .map(|(rule, _)| rule.as_str())
-            .chain(std::iter::once(target_rule))
-            .find_map(|rule| self.gen_name_gate.get(rule).map(|gate| (rule, gate)))?;
+            .find_map(|rule| {
+                self.gen_name_gate
+                    .get_key_value(rule)
+                    .map(|(key, gate)| (key.clone(), gate))
+            })
+            .or_else(|| self.name_gate_via_mandatory_prefix(target_rule))?;
         let kind = gate.kind.as_str();
         let mut producers: Vec<&str> = self
             .gen_emit_facts
@@ -3016,7 +3029,7 @@ impl<'a> StimuliGenerator<'a> {
                 );
                 return Some(ReachPrelude {
                     site: (site_rule.clone(), site_path.clone()),
-                    gated_rule: gated_rule.to_string(),
+                    gated_rule: gated_rule.clone(),
                     sub_plan: Box::new(sub_plan),
                     iterations: 1,
                     captured: None,
@@ -3119,6 +3132,57 @@ impl<'a> StimuliGenerator<'a> {
                 _ => return None,
             }
         }
+    }
+
+    /// STORE-AWARE-GEN.4b.4: the rule named by `rule`'s MANDATORY-FIRST element, when that element is a
+    /// direct rule reference (`R := S` or `R := S …`), unwrapping `Atom::Node` grouping shells and
+    /// descending into a leading nested `Sequence`. `None` when the body leads with an ordered choice
+    /// (`Or`), a quantifier, a lookahead, or a terminal — positions where the inner rule is NOT guaranteed
+    /// to render, so following them could arm a prelude on a rule the use-site may never produce. Mirrors
+    /// `quantified_body_rule_name` (returns an owned name to stay lifetime-simple). PURE structural read.
+    fn mandatory_leading_rule_reference(&self, rule: &str) -> Option<String> {
+        let mut node: &ASTNode = self.grammar_tree.get(rule)?;
+        loop {
+            match node {
+                ASTNode::Sequence { elements } => node = elements.first()?,
+                ASTNode::Atom { value } => match value {
+                    ASTValue::Node(inner) => node = inner.as_ref(),
+                    ASTValue::Token(parts) => {
+                        let (token_type, token_value) = Self::extract_token_pair(parts)?;
+                        return (token_type == "rule_reference"
+                            && self.grammar_tree.contains_key(token_value))
+                        .then(|| token_value.to_string());
+                    }
+                },
+                _ => return None,
+            }
+        }
+    }
+
+    /// STORE-AWARE-GEN.4b.4: the name gate governing `rule`'s USE-site render, following the bounded
+    /// MANDATORY-first prefix when `rule` is not itself name-gated. A non-gated CARRIER routes its render
+    /// through an inner gated rule (`known_unscoped_block_type_identifier := checked_type_identifier …`
+    /// → `checked_type_identifier`; `known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_identifier`),
+    /// so the declare-then-use prelude must arm on the INNER gated rule (the one `reach_prelude_replay_text`
+    /// forces when it renders inside the carrier). Checks the rule ITSELF first, so a directly-gated rule
+    /// short-circuits at depth 0 (identical to the pre-4b.4 direct lookup). Depth-bounded against cycles;
+    /// only mandatory leading rule references are followed (`mandatory_leading_rule_reference`). Returns the
+    /// inner gated rule's name + its gate (borrowing `gen_name_gate`). Empty `gen_name_gate` never reaches
+    /// here, so this is inert (byte-identical) for predicate-free grammars.
+    fn name_gate_via_mandatory_prefix(&self, rule: &str) -> Option<(String, &NameGate)> {
+        const NAME_GATE_MANDATORY_PREFIX_DEPTH: usize = 8;
+        let mut current = rule.to_string();
+        for _ in 0..NAME_GATE_MANDATORY_PREFIX_DEPTH {
+            if let Some(gate) = self.gen_name_gate.get(&current) {
+                return Some((current, gate));
+            }
+            let next = self.mandatory_leading_rule_reference(&current)?;
+            if next == current {
+                return None;
+            }
+            current = next;
+        }
+        None
     }
 
     /// GRAMMAR-WELLFORMED.C2.2: phase-1 scoped prune bypass — while a plannable plan
@@ -15773,6 +15837,97 @@ mod tests {
         );
         assert_eq!(generator.store_name_for_gate("type_name", Some("nettype")), None);
         assert_eq!(generator.store_name_for_gate("let_name", None), None);
+    }
+
+    #[test]
+    fn store_aware_gen_mandatory_leading_rule_reference_descends_carrier() {
+        // STORE-AWARE-GEN.4b.4: a carrier's MANDATORY-first element resolves to its leading rule
+        // reference — `R := S t` and `R := S` both descend to `S` (mirroring
+        // `known_unscoped_block_type_identifier := checked_type_identifier packed_dimension*` and
+        // `known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_identifier`).
+        // An ordered-choice-led or terminal-led body returns `None` (no single guaranteed mandatory
+        // first rule), so the prelude never arms on a rule the use-site may not render.
+        let mut g = HashMap::new();
+        g.insert(
+            "seq_carrier".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("inner"), token("regex", "x")],
+            },
+        );
+        g.insert("ref_carrier".to_string(), rule_ref("inner"));
+        g.insert(
+            "or_carrier".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("inner"), token("regex", "y")],
+            },
+        );
+        g.insert("term_carrier".to_string(), token("regex", "z"));
+        g.insert("inner".to_string(), token("regex", "[a-z]+"));
+        let order: Vec<String> = g.keys().cloned().collect();
+        let generator = simple_generator(&g, &order, 1);
+        assert_eq!(
+            generator
+                .mandatory_leading_rule_reference("seq_carrier")
+                .as_deref(),
+            Some("inner")
+        );
+        assert_eq!(
+            generator
+                .mandatory_leading_rule_reference("ref_carrier")
+                .as_deref(),
+            Some("inner")
+        );
+        assert_eq!(
+            generator.mandatory_leading_rule_reference("or_carrier"),
+            None,
+            "an Or-led body has no single guaranteed mandatory first rule"
+        );
+        assert_eq!(
+            generator.mandatory_leading_rule_reference("term_carrier"),
+            None,
+            "a terminal-led body has no leading rule reference"
+        );
+    }
+
+    #[test]
+    fn store_aware_gen_name_gate_via_mandatory_prefix_inherits_inner_gate() {
+        // STORE-AWARE-GEN.4b.4: a non-gated CARRIER inherits the name gate of the inner rule its
+        // mandatory-first prefix reaches (so the declare-then-use prelude arms on the inner rule that
+        // actually renders); a DIRECTLY-gated rule short-circuits at depth 0 (identical to the pre-4b.4
+        // direct lookup); an ungated rule reaching no gate returns `None` (no prelude).
+        let mut g = HashMap::new();
+        g.insert(
+            "carrier".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("inner_gated"), token("regex", "x")],
+            },
+        );
+        g.insert("inner_gated".to_string(), token("regex", "[a-z]+"));
+        g.insert("ungated".to_string(), token("regex", "[0-9]+"));
+        let order: Vec<String> = g.keys().cloned().collect();
+        let mut generator = simple_generator(&g, &order, 1);
+        // Arm a name gate on the INNER rule only (simulating `compute_name_gates`' SV result).
+        generator.gen_name_gate.insert(
+            "inner_gated".to_string(),
+            NameGate {
+                kind: "type_name".to_string(),
+                family: None,
+                excluded_families: vec![],
+            },
+        );
+        let via_carrier = generator
+            .name_gate_via_mandatory_prefix("carrier")
+            .expect("a non-gated carrier inherits its inner rule's name gate");
+        assert_eq!(via_carrier.0, "inner_gated", "armed on the inner gated rule");
+        assert_eq!(via_carrier.1.kind, "type_name");
+        let direct = generator
+            .name_gate_via_mandatory_prefix("inner_gated")
+            .expect("a directly-gated rule short-circuits at depth 0");
+        assert_eq!(direct.0, "inner_gated");
+        assert!(
+            generator.name_gate_via_mandatory_prefix("ungated").is_none(),
+            "an ungated rule reaching no gate yields no prelude"
+        );
     }
 
     #[test]
