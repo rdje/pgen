@@ -31,13 +31,20 @@ semantic store. The three terms:
   each memo entry and replays it on cache hits (the published-correct fix, Laurent & Mens,
   SLE 2016).
 
-**Left recursion is handled for you — automatically.** You write the *natural*
-left-recursive EBNF (e.g. `expr := expr "+" term | term`); the **AST pipeline eliminates it
-at transform time** (the `eliminate_left_recursive_patterns` pass, on by default; toggle
-`--eliminate-left-recursion`), handling direct and indirect/chained cases, plus a runtime
-cycle-breaker. You do **not** rewrite grammars into tail-rule form by hand — that would be
-impractical for real expression/operator grammars, and it would distort the AST and the
-annotations.
+**Left recursion: indirect/chained recursion is eliminated for you; direct inline recursion
+is expressed as a precedence cascade.** The **AST pipeline's `eliminate_left_recursive_patterns`
+pass** (on by default; toggle `--eliminate-left-recursion`) rewrites *indirect / chained* left
+recursion — where a rule reaches itself only through bare-reference wrapper rules — into a
+non-recursive form, backed by a runtime cycle-breaker. **Direct inline left recursion
+(`A := A op A | term`) is *not* auto-eliminated**: the detector
+(`detect_left_recursive_chain_plan`) targets the indirect wrapper-chain shape, so a flat
+inline rule like `expr := expr "+" term | term` yields zero transformations and its left branch
+is blocked at runtime. For operator grammars you therefore write the natural **precedence
+cascade** — loosest→tightest `head tail tail*` levels with named tail rules and `-> $1`
+passthroughs — which is the proven idiom across PGEN's expression grammars (e.g.
+`constant_expression`). The
+cascade keeps the AST and annotations faithful to operator precedence; you do **not** hand-rewrite
+a single flat rule into tail form (that would distort the AST and the annotations).
 
 Two consequences worth remembering:
 

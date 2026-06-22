@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-22 - PGEN-GRAMMAR-WELLFORMED-0121 — SV cert-baseline reconciliation (objective UNKNOWN=56) + SVA cascade discarded (fresh-session handoff, PURE-DOCS)
+
+Handoff slice. No code change. Records a measurement-integrity lesson and discards the parked cascade WIP.
+
+### The stale-parser pitfall (root-caused, tools-first)
+A mid-session cert run on the committed flat grammar reported `UNKNOWN=54`, deterministic at seeds 0/7/42 — but 2 below the committed `-0117` baseline of `56`. Root cause: `--report-certificate-coverage` GENERATES samples from the grammar passed on the CLI but VERIFIES each witness through the COMPILED-IN generated parser. The local `generated/systemverilog_parser.rs` (regenerated 02:27) witnessed 2 rules the truly-committed-flat parser does not, so a "deterministic" number was deterministic-against-a-stale-verifier. A clean regen (`make -C rust focus_systemverilog`) + rebuild — generator AND verifier both from the committed flat grammar — reproduced `total=1289 proof=1 witness=1232 UNKNOWN=56 spf=0`, matching `-0117` exactly. LESSON (now in the resume pointer): never trust a cert delta unless the parser was regenerated+rebuilt from the same grammar — generator/verifier lockstep is a precondition for the number to be signal.
+
+### Cascade discarded
+The uncommitted SVA precedence-cascade + `@sample "##1 "` band-aid (`56→65→55` working-tree churn) was dropped per the director's "no lipstick" pivot (a cosmetic `56→55` that masks the ~18-rule store-gate residual). Recoverable from the committed `-0120` task file. The `H12583` leaf is marked `parked`/superseded by `STORE-AWARE-GEN.4b.1`. The book LR-correction in `developer-architecture.md` is kept (it fixes a real book↔code drift — direct inline LR is not auto-eliminated), with its uncommitted SV-cascade example reference stripped.
+
 ## 2026-06-22 - GRAMMAR-WELLFORMED.H.12.5.8.3.1 — SVA SEQUENCE precedence-cascade implemented + parse-verified; coverage-regression root-caused (PGEN-GRAMMAR-WELLFORMED-0120, PURE-DOCS CHECKPOINT)
 
 Implementation checkpoint for the `.8.3` precedence-cascade (direction A, decided in `.8.2`). The §16 SEQUENCE cascade was implemented and parse-verified; a coverage regression was root-caused tools-first; the design fork was decided by the director (keep cascade + fix coverage). PURE-DOCS — the cascade lives uncommitted in the working tree; no committed code change.
