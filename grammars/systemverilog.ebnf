@@ -5060,10 +5060,15 @@ trans_item := covergroup_range_list
 trans_list := lparen trans_set rparen ( comma lparen trans_set rparen )*
            -> [$2, $4::3*]
 
-trans_range_list := trans_item                                  -> {kind: "simple",  body: $1}
-                  | trans_item ( star repeat_range )?           -> {kind: "star",    body: $1, range: $2}
-                  | trans_item ( implies repeat_range )?        -> {kind: "implies", body: $1, range: $2}
-                  | trans_item ( assign repeat_range )?         -> {kind: "assign",  body: $1, range: $2}
+// IEEE 1800-2017/2023 A.2.11: the trans-repeat forms are BRACKETED — `[* repeat_range]` (consecutive),
+// `[-> repeat_range]` (goto), `[= repeat_range]` (nonconsecutive). SV-COVERGROUP-FIDELITY.1 restored the
+// LRM brackets (was bare `( star repeat_range )?` etc., which a greedy `expression` in `trans_item`
+// shadowed: it parsed `a*b` as one multiplication, REJECTING valid `(1[*2])` and never witnessing
+// `repeat_range`). The brackets make the operator unambiguous, so `(1*2)` is a `simple` multiply item.
+trans_range_list := trans_item                                       -> {kind: "simple",  body: $1}
+                  | trans_item lbrack star repeat_range rbrack        -> {kind: "star",    body: $1, range: $4}
+                  | trans_item lbrack implies repeat_range rbrack     -> {kind: "implies", body: $1, range: $4}
+                  | trans_item lbrack assign repeat_range rbrack      -> {kind: "assign",  body: $1, range: $4}
 
 trans_set := trans_range_list ( sequence_implies trans_range_list )*
           -> [$1, $2::2*]

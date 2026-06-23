@@ -1176,6 +1176,12 @@ introduced (the generator becomes a second consumer of the existing one).
   `class_scoped_call` (DEFERRED grammar-gate, `.4b.12`) + `with_covergroup_expression` + `repeat_range`
   (9C-iii — HANDED OFF to the grammar leaf here) + `wildcard_escape_nettype_identifier` + `kw_constant_d810ca96`
   (9A, `.4b.15`) + `union_modifier` (`no_path`).
+- **FOLLOW-UP (landed 2026-06-24):** the hand-off Part 1 LANDED as **`SV-COVERGROUP-FIDELITY.1`**
+  (`PGEN-SV-COVERGROUP-FIDELITY-0001`, RELEASED `1.0.144`, ledger `SV-0006`) — restored the LRM
+  `trans_range_list` `[ ]` brackets ⇒ `repeat_range` WITNESSED + `(1[*2])` real parse defect FIXED; **SV cert
+  `UNKNOWN 32 → 31`**. The 9C-iii `with_covergroup_expression` (bins-set braces, LRM `= { covergroup_range_list }`)
+  is `SV-COVERGROUP-FIDELITY.2` (the heavier accepted-language change). So the residual is now **31** (drop
+  `repeat_range`).
 
 ### Acceptance Checklist (enforced)
 - [x] **REPRODUCE / ISSUE** — `UNKNOWN=32` (seed 0, regen-lockstep build; `CERTIFICATE-COVERAGE … total=1289 proof=1 witness=1256 UNKNOWN=32 (spf=0, proof_reverify_failures=0)`); `with_covergroup_expression` + `repeat_range` ∈ residual, `parsed=true witnessed_target=false` across `[plannable|store-free|target-own|carrier-div]-probe`.

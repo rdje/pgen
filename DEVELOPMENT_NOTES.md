@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-24 - PGEN-SV-COVERGROUP-FIDELITY-0001 — SV-COVERGROUP-FIDELITY.1: restore the LRM covergroup trans-repeat brackets (RELEASED 1.0.144, ledger SV-0006; SV cert 32 → 31)
+
+Grammar-only LRM-bracket-fidelity fix (regen-lockstep build). Acts on the `STORE-AWARE-GEN.4b.14` real-failure proof. Canonical detail in `docs/tasks/SV-COVERGROUP-FIDELITY.md` (`.1`) — this is a continuity pointer.
+
+- **Fix:** `grammars/systemverilog.ebnf` `trans_range_list` — restored the IEEE-1800 §A.2.11 `[ ]` brackets (`trans_item lbrack star repeat_range rbrack -> {kind:"star",range:$4}`, + implies/assign), the proven `lbrack … rbrack` idiom (the covergroup sibling of ledger `SV-0004`). The old bare `( star repeat_range )?` branches were DEAD (bare `*` always parsed as multiply by `trans_item`'s `expression`), so bracketing loses no acceptance + gains the LRM `[*n]` forms + un-shadows `repeat_range`.
+- **Verified:** `(1[*2])`/`(1[->2])`/`(1[=2])`/`(1=>2[*3])` REJECT→PASS; bare `(1*2)` still PASS (now `simple`); SV cert `UNKNOWN 32 → 31` (`repeat_range` witnessed; witness `1256 → 1257`), seeds 0/7/42, spf=0, strict-subset (`comm -13` empty); `ast_shape_contract_gate` 18/0; `cargo test --lib` 768/0; clippy source-clean (188 generated `eq_op` pre-existing); 6 grammars inert (regex `198/198`); SV external corpus 14/14. Release `1.0.144` / schema `4` (no bump); ledger `SV-0006`.
+- **Lockstep:** SV integration contract, released-parser bug ledger, SV parser book (changelog-index + schema-versioning), shape-contract manifest calibration_history, `STORE-AWARE-GEN.4b.14`, MEMORY/CHANGES/LIVE_ACHIEVEMENT_STATUS. `with_covergroup_expression` (bins-set braces) → `SV-COVERGROUP-FIDELITY.2`. Disciplines: [[feedback_correctness_before_speed]], [[project_ebnf_is_single_source_of_truth]], [[feedback_uvm_is_valid_sv]], [[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_regex_book_live]].
+
 ## 2026-06-24 - PGEN-STORE-AWARE-GEN-0022 — STORE-AWARE-GEN.4b.14 ROOT-CAUSE: 9C-iii design REFUTED — a GRAMMAR bare-token ambiguity / real LRM parse defect, not a generator gap (PURE-DOCS)
 
 Tools-first ROOT-CAUSE slice; no code lands (SV row unchanged `Mostly Done`, `UNKNOWN=32`, re-verified seed 0 on the regen-lockstep build). Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.14`) — this is a continuity pointer.
