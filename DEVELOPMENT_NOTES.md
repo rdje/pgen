@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0017 — STORE-AWARE-GEN.4b.11 DESIGN: decompose the residual UNKNOWN=33 reach-ROUTING cohort (PURE-DOCS)
+
+Pure-docs DESIGN slice; no code. Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.11`) — this is a continuity pointer.
+
+- **Tools-first decomposition of the 33** (`DUMP_ALL` + `DEBUG_PROBES` + `REACH_PATH_DUMP` + grammar gate inspection): 19 `no_path` + 6 SVA `kw_*` (out of scope) + 8 actionable = 6 reach-ROUTING + 2 small 9A.
+- **The 6 reach-ROUTING rules split by mechanism into THREE:** **9C-i** per-family ordered-choice routing (class-scope type_parameter/interface_class family — `class_scope_type`'s Or per-`declaration_family` gated; prelude arms+parses but the accepted parse enters a sibling alternative — a parent-commit problem); **9C-ii** `context_member_method_call` (a `variable_binding` store-gate, distinct from `type_name` — no prelude arms); **9C-iii** covergroup bins-body routing (`with_covergroup_expression`, `repeat_range` via `bins_or_options`).
+- **Pinned next:** `.4b.11` IMPLEMENT = scoped `--trace-rules class_scope_type` to pin the stealing sibling, then a parent-Or forced-branch reach pass (the `.7.x` forced-branch lineage). Higher-blast-radius (reach-plan forcing) ⇒ best in a fresh focused session. 9C-ii (`variable_binding`) + small 9A residual triaged separately. Disciplines: [[feedback_systematically_use_debug_toolbox]], [[feedback_pinpoint_real_blocker_not_menu]].
+
 ## 2026-06-23 - PGEN-STORE-AWARE-GEN-0016 — STORE-AWARE-GEN.4b.10 IMPLEMENT: off-path-sibling declare-then-use prelude-arming (GENERATOR-ONLY)
 
 Generator-only engine change; SV cert `UNKNOWN 37 → 33` (+4 witnessed). Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.10`) — this is a continuity pointer.
