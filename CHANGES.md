@@ -1,4 +1,15 @@
 # CHANGES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0015 (STORE-AWARE-GEN.4b.9, PURE-DOCS DESIGN): decompose the UNKNOWN=37 residual — a parsed=false declaration cohort + a dominant parsed=true witnessed=false reach-routing cohort
+
+Tools-first DESIGN slice (no code; SV row unchanged `Mostly Done`, `UNKNOWN=37`). Re-verified the `UNKNOWN=37` baseline (seed 0) and classified all 37 with `DUMP_ALL` + `DEBUG_PROBES` + `REACH_PATH_DUMP`:
+
+- **19 `no_path` dead-rule candidates** (library/include/interface-class entry families — no reach path from `systemverilog_file`) and **6 SVA infix-operator parse-bug `kw_*`** (`kw_within`/`kw_until`/`kw_until_with`/`kw_s_until`/`kw_s_until_with`/`kw_intersect` — parser bug `GRAMMAR-WELLFORMED.H.12.5.8`): both OUT of scope for the generator.
+- **12 actionable rules, split by `DEBUG_PROBES` verdict:**
+  - **9A — `parsed=false` declaration cohort (4):** `constraint_set` (`class_scope` gate is a mandatory reach-path SIBLING, not on its own prefix — the `.4b.7` deferral), `declared_class_alias_identifier` (undeclared source type as a target-direct witness), `wildcard_escape_nettype_identifier` (nettype-declaration shape), `kw_constant_d810ca96` (malformed SVA-property body).
+  - **9C — `parsed=true witnessed=false` reach-ROUTING cohort (8, dominant):** the class-scope type_parameter/interface_class family (`known_unscoped_class_scope_type_parameter_identifier`, `known_unscoped_class_scoped_call_type_parameter_identifier`, `known_unscoped_class_scoped_call_interface_class_identifier`), `context_member_method_call` (`REACH_PATH_DUMP` shows a valid 13-hop path under `constant_expression → … → call_primary`, but the forced gen lands on a sibling), `named_checker_port_connection*`, `repeat_range`, `with_covergroup_expression`. These all PARSE — the gap is FORCING the target branch, not a store-gate prelude.
+- **The `.4b.8` fix is corroborated** in the 9C samples (`localparam type\foo ;localparam\foo ::\foo_0 \foo_0 ;`, `bins\foo_0 =…` — distinct names, no over-firing).
+- **Pinned:** `.4b.10` IMPLEMENT (off-path-sibling prelude-arming for `constraint_set`, reusing `.4b.6`'s `offpath_siblings_gated_along_path` walk to DISCOVER the off-path gate — the cleanest next code slice) and `.4b.11` IMPLEMENT (reach-routing forcing for the 9C cohort — the `.7.x` forced-branch lineage, higher-blast-radius). No code/grammar/parser change in this slice.
+
 ## 2026-06-23 - PGEN-STORE-AWARE-GEN-0014 (STORE-AWARE-GEN.4b.8, GENERATOR-ONLY): store-aware collide-aware free-name diversity — SV cert UNKNOWN 38 → 37 (+1 witnessed: property_qualifier), zero newly-UNKNOWN
 
 Landed the `.4b.8` IMPLEMENT (the `.4b.8` DESIGN was `-0013`) in `rust/src/ast_pipeline/stimuli_generator.rs`. Generator-only; no parser/grammar/generated/release/schema change; SV row stays `Mostly Done` (closure-debt retirement). **Decisive A/B on the regen-lockstep build:** SV certificate-coverage `UNKNOWN 38 → 37`, witness `1250 → 1251`, `spf=0`, `proof_reverify_failures=0`, deterministic at seeds 0/7/42; the newly-witnessed rule is `property_qualifier` (`class\foo ;rand\foo_0 ;endclass`).

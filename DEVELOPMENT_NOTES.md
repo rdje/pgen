@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0015 — STORE-AWARE-GEN.4b.9 DESIGN: decompose the UNKNOWN=37 residual (PURE-DOCS)
+
+Pure-docs DESIGN slice; no code. Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.9`) — this is a continuity pointer.
+
+- **Tools-first classification of the 37** (`DUMP_ALL` + `DEBUG_PROBES` + `REACH_PATH_DUMP`): 19 `no_path` dead-rule candidates + 6 SVA infix-operator parse-bug `kw_*` (both out of scope) + 12 actionable.
+- **The 12 actionable rules split by verdict into two distinct mechanisms:** **9A** `parsed=false` declaration cohort (`constraint_set` off-path-sibling class-scope, `declared_class_alias_identifier` undeclared source type, `wildcard_escape_nettype_identifier`, `kw_constant`); **9C** `parsed=true witnessed=false` reach-ROUTING cohort (the dominant one — the class-scope type_parameter/interface_class family + `context_member_method_call` + `named_checker_port_connection*` + `repeat_range` + `with_covergroup_expression`; these PARSE but the forced gen lands on a sibling — a forcing gap, not a prelude).
+- **Pinned next:** `.4b.10` off-path-sibling prelude-arming for `constraint_set` (reuse `.4b.6`'s `offpath_siblings_gated_along_path` walk to DISCOVER the gate — cleanest); `.4b.11` reach-routing forcing for 9C (the `.7.x` forced-branch lineage). Disciplines: [[feedback_systematically_use_debug_toolbox]], [[feedback_pinpoint_real_blocker_not_menu]].
+
 ## 2026-06-23 - PGEN-STORE-AWARE-GEN-0014 — STORE-AWARE-GEN.4b.8 IMPLEMENT: store-aware collide-aware free-name diversity (GENERATOR-ONLY)
 
 Generator-only engine change; SV cert `UNKNOWN 38 → 37` (+1 witnessed: `property_qualifier`). Canonical detail lives in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.8`) — this is a continuity pointer.
