@@ -125,11 +125,15 @@ of the same "make generation faithful/representative" program. [[project_stimuli
 
 IMPLEMENTATION PROGRESS (overwrite this line as the arc advances — detail in `docs/tasks/STORE-AWARE-GEN.md`):
 the `.3` `fact_count_at_least` MVP closed the regex driver; the `.4b` name-coordination arc drove the
-SystemVerilog certificate-coverage residual `UNKNOWN 56 → 46 → 43 → 41 → 38 → 37` (`.4b.2` name-prelude →
+SystemVerilog certificate-coverage residual `UNKNOWN 56 → 46 → 43 → 41 → 38 → 37 → 33` (`.4b.2` name-prelude →
 `.4b.4` mandatory-first descent → `.4b.6` self-bootstrapping host-branch → `.4b.7` structural gate-discovery
 → `.4b.8` **collide-aware free-name diversity** — the generation-side dual of the parser's
 type-vs-identifier disambiguation: a free declaring identifier whose canonical name collides with a
-name-gate-consumed `type_name` fact renders a distinct name so a type-first ordered choice cannot steal it).
-Every step is generator-only and capability-gated on the grammar's own name gates (`gen_name_gate`), so it is
-byte-identical for the fully-certified roster. Frontier `.4b.9` = off-path-sibling prelude-arming
-(`constraint_set`) + the 3C reach-routing residual.
+name-gate-consumed `type_name` fact renders a distinct name so a type-first ordered choice cannot steal it →
+`.4b.10` **off-path-sibling prelude-arming** — a third declare-then-use discovery leg
+(`name_gate_via_offpath_sibling`) that arms a prelude on a name gate carried by a mandatory OFF-PATH SIBLING
+of the on-path element along a reach hop, reusing the `.4b.6` path-walk + the `.4b.7` unavoidably-store-gated
+guard; closed `constraint_set` + `declared_class_alias_identifier` + the `named_checker_port_connection*`
+pair, +4 witnessed). Every step is generator-only and capability-gated on the grammar's own name gates
+(`gen_name_gate`), so it is byte-identical for the fully-certified roster. Frontier `.4b.11` = reach-ROUTING
+forcing for the residual 9C cohort (`parsed=true witnessed=false`).

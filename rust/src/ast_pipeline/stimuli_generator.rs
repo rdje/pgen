@@ -2986,7 +2986,16 @@ impl<'a> StimuliGenerator<'a> {
                     .get_key_value(rule)
                     .map(|(key, gate)| (key.clone(), gate))
             })
-            .or_else(|| self.name_gate_via_mandatory_prefix(target_rule))?;
+            .or_else(|| self.name_gate_via_mandatory_prefix(target_rule))
+            // STORE-AWARE-GEN.4b.10: the prior two legs only inspect the TARGET's own mandatory
+            // prefix (and the directly-gated hops). A target reached THROUGH a host whose gate is a
+            // mandatory *sibling* of the on-path element (`constraint_set` via
+            // `extern_constraint_declaration_sv_2017`'s `class_scope` sibling; the
+            // `declared_class_alias_identifier` alias via its `type_declaration` `class_type`
+            // source-type sibling) gets no prelude from them, so the forced witness renders the
+            // undeclared name and rejects. Discover the gate on a mandatory off-path sibling along the
+            // reach path. Tried last, so every already-armed target is byte-identical.
+            .or_else(|| self.name_gate_via_offpath_sibling(hops))?;
         let kind = gate.kind.as_str();
         let mut producers: Vec<&str> = self
             .gen_emit_facts
@@ -3203,6 +3212,103 @@ impl<'a> StimuliGenerator<'a> {
             return false;
         }
         false
+    }
+
+    /// STORE-AWARE-GEN.4b.10: discover a name gate carried by a MANDATORY OFF-PATH SIBLING along the
+    /// reach path. The `.4b.4`/`.4b.7` legs (`name_gate_via_mandatory_prefix`) inspect only the
+    /// TARGET's own mandatory prefix, and the direct-hop scan only the hop RULES — so a target reached
+    /// THROUGH a host whose gate is a mandatory *sibling* of the on-path element gets no prelude, and
+    /// its forced witness renders an undeclared name and rejects. The canonical case is `constraint_set`
+    /// (the constraint body), reached via `extern_constraint_declaration_sv_2017 := ( kw_static )?
+    /// kw_constraint class_scope constraint_identifier constraint_block` at hop site `root/s4`
+    /// (→ `constraint_block`): the `class_scope` gate is element `s2`, a mandatory off-path sibling the
+    /// forced derivation must ALSO render, so `constraint\foo ::\foo {…}` rejects on the undeclared
+    /// class `\foo`. The `declared_class_alias_identifier` alias is the same shape one level up — its
+    /// `type_declaration_sv_2017` host renders the gated `class_type` source-type as a sibling of the
+    /// alias. This leg iterates the hops and, for each, returns the off-path-sibling name gate (first
+    /// hop, first sibling wins — deterministic). It re-borrows the gate exactly like
+    /// `name_gate_via_mandatory_prefix`. Tried only when both prior legs find nothing, so every
+    /// already-armed target is byte-identical; a mis-armed prelude can only fail the parser re-check,
+    /// never a false witness. Empty `gen_name_gate` never reaches here ⇒ inert for predicate-free
+    /// grammars.
+    fn name_gate_via_offpath_sibling(&self, hops: &[(String, String)]) -> Option<(String, &NameGate)> {
+        let gated_rule = hops.iter().find_map(|(hop_rule, hop_site_path)| {
+            let rule_node = self.grammar_tree.get(hop_rule.as_str())?;
+            self.offpath_sibling_name_gate_along_path(rule_node, hop_site_path)
+        })?;
+        self.gen_name_gate
+            .get_key_value(&gated_rule)
+            .map(|(key, gate)| (key.clone(), gate))
+    }
+
+    /// STORE-AWARE-GEN.4b.10: walk one hop's reference-site `node_path` from `rule_node` and return the
+    /// POSITIVE name-gated rule any MANDATORY off-path Sequence sibling the forced derivation must also
+    /// render routes through. Mirrors `offpath_siblings_gated_along_path`'s path-walk EXACTLY (`s{i}`
+    /// Sequence element, `o{i}` Or alternative, `q` Quantified body, `a` Atom→Node) but, instead of the
+    /// `mandatory_node_gated` bool test, finds the gate via `gate_in_mandatory_prefix_node` — the `.4b.7`
+    /// machinery that stops at the first UNAVOIDABLY store-gated rendered position and refuses any `Or`
+    /// with an empty-store-renderable escape, so it arms a prelude only where one is both NEEDED and SAFE
+    /// (the exact guard that bounded `.4b.7`'s first-cut regression). Off-path siblings only render at
+    /// `s{i}` Sequence segments (an `Or` renders one chosen alternative; a `q`/`a` has no siblings).
+    /// Bails to `None` on any path/grammar mismatch (over-arm-safe, never panics).
+    fn offpath_sibling_name_gate_along_path(
+        &self,
+        rule_node: &ASTNode,
+        node_path: &str,
+    ) -> Option<String> {
+        let mut current = rule_node;
+        for segment in node_path.split('/') {
+            if segment.is_empty() || segment == "root" {
+                continue;
+            }
+            if segment == "q" {
+                let ASTNode::Quantified { element, .. } = current else {
+                    return None;
+                };
+                current = element.as_ref();
+                continue;
+            }
+            if segment == "a" {
+                let ASTNode::Atom {
+                    value: ASTValue::Node(node),
+                } = current
+                else {
+                    return None;
+                };
+                current = node.as_ref();
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('s') {
+                let Ok(index) = index_str.parse::<usize>() else {
+                    return None;
+                };
+                let ASTNode::Sequence { elements } = current else {
+                    return None;
+                };
+                for (i, element) in elements.iter().enumerate() {
+                    if i == index {
+                        continue;
+                    }
+                    if let Some(gated) = self.gate_in_mandatory_prefix_node(element, 0) {
+                        return Some(gated);
+                    }
+                }
+                current = elements.get(index)?;
+                continue;
+            }
+            if let Some(index_str) = segment.strip_prefix('o') {
+                let Ok(index) = index_str.parse::<usize>() else {
+                    return None;
+                };
+                let ASTNode::Or { alternatives } = current else {
+                    return None;
+                };
+                current = alternatives.get(index)?;
+                continue;
+            }
+            return None;
+        }
+        None
     }
 
     /// STORE-AWARE-GEN.4b.2: the live store name a name-coordinated prelude's consumer must render —
@@ -16358,6 +16464,97 @@ mod tests {
         assert!(
             generator.name_gate_via_mandatory_prefix("escape_dim").is_none(),
             "a content rule with an empty-store-renderable escape is NOT armed (the .4b.7 guard)"
+        );
+    }
+
+    #[test]
+    fn store_aware_gen_name_gate_discovers_offpath_sibling_gate_along_path() {
+        // STORE-AWARE-GEN.4b.10: a target reached THROUGH a host whose name gate is a mandatory off-path
+        // SIBLING of the on-path element gets no prelude from the `.4b.4`/`.4b.7` mandatory-prefix legs
+        // (they inspect only the TARGET's own prefix) nor the direct-hop scan (the gate is not a hop
+        // RULE). Mirrors `constraint_set` reached via `extern_constraint_declaration_sv_2017 :=
+        // ( kw_static )? kw_constraint class_scope constraint_identifier constraint_block` at hop site
+        // `root/s4`: the `class_scope` gate is a mandatory sibling of the on-path `constraint_block`. The
+        // off-path-sibling leg walks the hop's node_path and finds the gate on the sibling (reusing
+        // `gate_in_mandatory_prefix_node`'s unavoidably-store-gated guard) — but skips the ON-PATH index
+        // and yields None when no off-path sibling is store-gated.
+        let mut g = HashMap::new();
+        // host := kw_constraint scope[gated] constraint_id body — the reach path forces s3 (`body`), and
+        // `scope` (s1) is the off-path gated sibling (the `class_scope` analogue).
+        g.insert(
+            "host".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("kw_constraint"), // s0 keyword sibling — no gate
+                    rule_ref("scope"),         // s1 GATED off-path sibling (class_scope analogue)
+                    rule_ref("constraint_id"), // s2 ungated free-name sibling
+                    rule_ref("body"),          // s3 ON-PATH element (constraint_block analogue)
+                ],
+            },
+        );
+        g.insert("kw_constraint".to_string(), token("regex", "constraint"));
+        g.insert("scope".to_string(), rule_ref("scope_type"));
+        g.insert(
+            "scope_type".to_string(),
+            // `( escape_alt | gated_alt )` — both store-gated (no ungated escape), positive gate second,
+            // exactly as the real `class_scope_type` Or.
+            ASTNode::Or {
+                alternatives: vec![rule_ref("escape_alt"), rule_ref("gated_alt")],
+            },
+        );
+        g.insert("escape_alt".to_string(), token("regex", "[a-z]+::[a-z]+"));
+        g.insert("gated_alt".to_string(), token("regex", "[a-z]+"));
+        g.insert("constraint_id".to_string(), token("regex", "[a-z]+"));
+        g.insert("body".to_string(), token("regex", "[{][}]"));
+        // A clean host whose off-path siblings are all ungated (keyword + free-name) — must yield None.
+        g.insert(
+            "clean_host".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    rule_ref("kw_constraint"),
+                    rule_ref("constraint_id"),
+                    rule_ref("body"),
+                ],
+            },
+        );
+        let order: Vec<String> = g.keys().cloned().collect();
+        let mut generator = simple_generator(&g, &order, 1);
+        generator.gen_name_gate.insert(
+            "gated_alt".to_string(),
+            NameGate {
+                kind: "type_name".to_string(),
+                family: Some("class".to_string()),
+                excluded_families: vec![],
+            },
+        );
+        generator
+            .reach_gate_kinds
+            .insert("escape_alt".to_string(), vec!["type_name".to_string()]);
+        generator
+            .reach_gate_kinds
+            .insert("gated_alt".to_string(), vec!["type_name".to_string()]);
+        // The reach path forces the on-path element s3 (`body`); s1 (`scope`) is the off-path gated sibling.
+        let hops = vec![("host".to_string(), "root/s3".to_string())];
+        let via_sibling = generator
+            .name_gate_via_offpath_sibling(&hops)
+            .expect("a gate on a mandatory off-path sibling along the reach path is discovered");
+        assert_eq!(
+            via_sibling.0, "gated_alt",
+            "armed on the off-path sibling's positive name gate"
+        );
+        assert_eq!(via_sibling.1.family.as_deref(), Some("class"));
+        // A host whose off-path siblings are all ungated yields no prelude (no over-reach).
+        let clean_hops = vec![("clean_host".to_string(), "root/s2".to_string())];
+        assert!(
+            generator.name_gate_via_offpath_sibling(&clean_hops).is_none(),
+            "no off-path sibling is store-gated ⇒ no prelude"
+        );
+        // The gated element ON the path (s1 = `scope`) is NOT an off-path sibling: forcing s1 leaves
+        // s0/s2/s3 as siblings, none gated → None (the leg must skip the on-path index).
+        let onpath_hops = vec![("host".to_string(), "root/s1".to_string())];
+        assert!(
+            generator.name_gate_via_offpath_sibling(&onpath_hops).is_none(),
+            "the gated element is ON the path (not an off-path sibling) ⇒ not armed via this leg"
         );
     }
 

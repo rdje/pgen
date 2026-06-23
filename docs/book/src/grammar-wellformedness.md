@@ -1018,9 +1018,37 @@ declaring identifier would re-render a name already in the store under a fact ki
 the generator renders a distinct name instead (`\foo` → `\foo_0`). Keyed on the grammar's own name-gate
 kinds (never a rule name) and active only inside the witness pass, it is byte-identical everywhere else:
 SystemVerilog `UNKNOWN 38 → 37` (witness `1250 → 1251`), deterministic at seeds 0/7/42 with zero
-newly-unknown rules and every fully-certified grammar still green. The `constraint_set` residual remains a
-distinct shape — its class gate is a mandatory *sibling* on the reach path rather than on its own prefix —
-and is the next increment.
+newly-unknown rules and every fully-certified grammar still green.
+
+The next increment reached the declare-then-use prelude to a gate carried by a mandatory **off-path
+sibling**. The first two prelude-discovery legs look only at the directly-gated reach *hops* and at the
+*target's own* mandatory prefix. But some targets are reached *through* a host whose store-gate is a
+mandatory sibling of the on-path element — rendered alongside the path, yet on neither place the legs
+inspect. The canonical case is the SystemVerilog constraint body `constraint_set`, reached via the
+out-of-class `extern_constraint_declaration_sv_2017 := ( kw_static )? kw_constraint class_scope
+constraint_identifier constraint_block`: the reach path forces the last element (`constraint_block`, to
+descend into the body), but the `class_scope` two elements earlier is a *mandatory* sibling the forced
+derivation must also render — and it is store-gated on naming a *declared class*. So the forced witness
+`constraint\foo ::\foo {…}` rejected on the undeclared class `\foo`, and no prelude armed because neither
+the hops nor `constraint_set`'s own prefix carries the gate. The fix adds a third discovery leg that walks
+each reach hop's reference site and, at every mandatory off-path **sequence** sibling of the on-path
+element (the only positions that render alongside the path), finds the positive name gate that sibling's
+render routes through — reusing the *same* "stop at the first unavoidably store-gated position, refuse any
+ordered choice with an ungated escape" guard that bounds the prefix-scan leg, so a prelude arms only where
+one is both needed and safe. The existing machinery then does the rest unchanged: it hosts a
+self-bootstrapping forward-class declaration (`class\foo ;endclass`) upstream and forces the off-path
+`class_scope` identifier to echo `\foo`, so the constraint parses with a declared class. The leg is tried
+only when the first two find nothing (every already-armed target is byte-identical) and runs only for
+still-unknown targets (it can only *add* witnesses), with the parser the sole judge. It closed not just
+`constraint_set` but three more targets of the same shape — `declared_class_alias_identifier` (whose
+`typedef <source-type> <alias>` host renders the gated source type as a sibling of the alias) and the
+checker-bind pair `named_checker_port_connection` / `…_sv_2017` — their witnesses showing the prelude and
+the earlier collide-aware free-name diversity composing cleanly (`class\foo ;endclass typedef\foo \foo_0 ;`,
+`checker\foo ;endchecker bind\foo_0 \foo \foo_0 (.*);;`): SystemVerilog `UNKNOWN 37 → 33`
+(witness `1251 → 1255`), deterministic at seeds 0/7/42 with zero newly-unknown rules and every
+fully-certified grammar still green (the leg is structurally inert for any grammar without name-matching
+store gates). The residual is now the reach-*routing* cohort — rules that reach their context but route
+through a sibling once there, awaiting a forced-branch reach pass — plus a small declaration remainder.
 
 ## The decidability boundary (an honest limit)
 

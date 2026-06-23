@@ -1,4 +1,13 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0016 — STORE-AWARE-GEN.4b.10 IMPLEMENT: off-path-sibling declare-then-use prelude-arming (GENERATOR-ONLY)
+
+Generator-only engine change; SV cert `UNKNOWN 37 → 33` (+4 witnessed). Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.10`) — this is a continuity pointer.
+
+- **WHY+WHERE (tools-first):** `compute_name_prelude` armed only on a directly-gated reach **hop** or the **target's own** mandatory prefix. `PGEN_REACH_PATH_DUMP` proved `constraint_set` is reached via `extern_constraint_declaration_sv_2017` at hop `root/s4` (→ `constraint_block`), with `class_scope` (element s2) a MANDATORY OFF-PATH SIBLING store-gated on `\foo` being a declared class — on neither place the prior legs inspect, so `constraint\foo ::\foo {…}` rejected (`DEBUG_PROBES` `parsed=false`).
+- **Fix (`rust/src/ast_pipeline/stimuli_generator.rs`, GENERATOR-ONLY):** a 3rd `.or_else` discovery leg in `compute_name_prelude` — `name_gate_via_offpath_sibling` + `offpath_sibling_name_gate_along_path` — walks each hop's reference-site path and finds the positive name gate on a mandatory off-path Sequence sibling via the `.4b.7` `gate_in_mandatory_prefix_node` (reusing the `.4b.6` path-walk + the unavoidably-store-gated guard). The existing prelude machinery hosts `class\foo ;endclass` and echoes `\foo`. Strictly additive (tried last; runs only for still-UNKNOWN targets; parser is the judge); capability-gated on `gen_name_gate` non-empty ⇒ inert for grammars without name gates.
+- **+4 witnessed:** `constraint_set`, `declared_class_alias_identifier`, `named_checker_port_connection`, `named_checker_port_connection_sv_2017` (the last pair the `.4b.9` DESIGN bucketed in 9C — same off-path-sibling shape, refining the split). The `.4b.8` diversification composes (`\foo_0` distinct from the declared `\foo`).
+- **VERIFIED:** SV `UNKNOWN 37→33 witness 1251→1255 spf=0` deterministic seeds 0/7/42; strict-subset (`comm -13` empty); 6 fully-certified grammars green; `cargo test --lib` 767/0 (+1 lock); source clippy-clean. Frontier → `.4b.11` (reach-ROUTING forcing for the residual 9C cohort). Disciplines: [[feedback_systematically_use_debug_toolbox]], [[feedback_pinpoint_real_blocker_not_menu]], [[feedback_no_codebase_change_without_tool_backed_facts]].
+
 ## 2026-06-23 - PGEN-STORE-AWARE-GEN-0015 — STORE-AWARE-GEN.4b.9 DESIGN: decompose the UNKNOWN=37 residual (PURE-DOCS)
 
 Pure-docs DESIGN slice; no code. Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.9`) — this is a continuity pointer.
