@@ -125,7 +125,7 @@ of the same "make generation faithful/representative" program. [[project_stimuli
 
 IMPLEMENTATION PROGRESS (overwrite this line as the arc advances — detail in `docs/tasks/STORE-AWARE-GEN.md`):
 the `.3` `fact_count_at_least` MVP closed the regex driver; the `.4b` name-coordination arc drove the
-SystemVerilog certificate-coverage residual `UNKNOWN 56 → 46 → 43 → 41 → 38 → 37 → 33` (`.4b.2` name-prelude →
+SystemVerilog certificate-coverage residual `UNKNOWN 56 → 46 → 43 → 41 → 38 → 37 → 33 → 32` (`.4b.2` name-prelude →
 `.4b.4` mandatory-first descent → `.4b.6` self-bootstrapping host-branch → `.4b.7` structural gate-discovery
 → `.4b.8` **collide-aware free-name diversity** — the generation-side dual of the parser's
 type-vs-identifier disambiguation: a free declaring identifier whose canonical name collides with a
@@ -134,6 +134,13 @@ name-gate-consumed `type_name` fact renders a distinct name so a type-first orde
 (`name_gate_via_offpath_sibling`) that arms a prelude on a name gate carried by a mandatory OFF-PATH SIBLING
 of the on-path element along a reach hop, reusing the `.4b.6` path-walk + the `.4b.7` unavoidably-store-gated
 guard; closed `constraint_set` + `declared_class_alias_identifier` + the `named_checker_port_connection*`
-pair, +4 witnessed). Every step is generator-only and capability-gated on the grammar's own name gates
-(`gen_name_gate`), so it is byte-identical for the fully-certified roster. Frontier `.4b.11` = reach-ROUTING
+pair, +4 witnessed →
+`.4b.12` **carrier-diversification reach pass** — the reach-side dual of the same principle: a residual target
+that reaches its context but routes through a parent-ordered-choice sibling is re-routed to reach a rule on its
+default path through an ALTERNATIVE parent (keeping the tail), so a different trailing context defeats the
+shadowing sibling [`known_unscoped_class_scope_type_parameter_identifier` via `class_new`'s `::new` suffix];
+the two `class_scoped_call` cousins are tool-proven NOT carrier-divisible (expression-level call-form ambiguity)
+⇒ a deferred grammar-gate item). Every step is generator-only and capability-gated on the grammar's own name gates
+(`gen_name_gate`) or runs only over a non-empty cert residual, so it is byte-identical/inert for the fully-certified
+roster. Frontier `.4b.13` = reach-ROUTING
 forcing for the residual 9C cohort (`parsed=true witnessed=false`).

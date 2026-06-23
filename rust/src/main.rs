@@ -2655,6 +2655,59 @@ fn run_certificate_coverage_report(
                     store_free_report.witnessed
                 );
             }
+
+            // PASS 3e — STORE-AWARE-GEN.4b.12 (9C-i): the carrier-diversification reach pass. Run LAST,
+            // over ONLY the rules still UNKNOWN after the diverse / plannable / target-own / store-free
+            // passes, so every prior pass keeps its exact RNG stream and witness landscape (no
+            // newly-UNKNOWN by construction) and this pass can only UNION new witnesses. It re-routes a
+            // residual target's reach plan to reach a rule on its default path through an ALTERNATIVE
+            // parent carrier, keeping the tail to the target — so a different trailing context can defeat
+            // a parent-ordered-choice sibling that shadows the target on the BFS-shortest carrier. The
+            // motivating win: the SV class-scope `type_parameter`/`interface_class` family, reached via
+            // `class_new` (`:: new` suffix) instead of a data-declaration carrier (`:: id` suffix the
+            // generic `scoped_class_scope_identifier` alternative consumes). Truly inert for an empty
+            // residual (the fully-certified roster). Like passes 2/3/3c/3d it only UNIONS witnesses from
+            // probes that re-parse, so the certification `sample_parse_failures` stays byte-identical.
+            let post_store_free =
+                certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+            if !post_store_free.unknown.is_empty() {
+                let carrier_div_witnessed = plannable_generator
+                    .generate_carrier_diversified_witnesses(
+                        entry_rule.as_str(),
+                        &post_store_free.unknown,
+                        PLANNABLE_REACH_ATTEMPT_TIMEOUT_MS,
+                        PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
+                        |rule, sample| {
+                            let Some((parsed, covered)) =
+                                pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                            else {
+                                return PlannableProbeVerdict::NotParsed;
+                            };
+                            let witnessed = parsed && covered.contains(rule);
+                            if debug_probes {
+                                println!(
+                                    "  [carrier-div-probe] rule='{}' parsed={} witnessed_target={} sample={:?}",
+                                    rule, parsed, witnessed, sample
+                                );
+                            }
+                            if parsed {
+                                witness_covered.extend(covered);
+                                if witnessed {
+                                    PlannableProbeVerdict::Witnessed
+                                } else {
+                                    PlannableProbeVerdict::ParsedNotWitnessed
+                                }
+                            } else {
+                                PlannableProbeVerdict::NotParsed
+                            }
+                        },
+                    );
+                println!(
+                    "  (carrier-diversification reach pass: {} residual UNKNOWN rules targeted; {} witnessed by re-routing through an alternative parent carrier)",
+                    post_store_free.unknown.len(),
+                    carrier_div_witnessed
+                );
+            }
         }
     }
 

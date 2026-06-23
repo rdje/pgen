@@ -1048,7 +1048,34 @@ the earlier collide-aware free-name diversity composing cleanly (`class\foo ;end
 (witness `1251 → 1255`), deterministic at seeds 0/7/42 with zero newly-unknown rules and every
 fully-certified grammar still green (the leg is structurally inert for any grammar without name-matching
 store gates). The residual is now the reach-*routing* cohort — rules that reach their context but route
-through a sibling once there, awaiting a forced-branch reach pass — plus a small declaration remainder.
+through a sibling once there — plus a small declaration remainder.
+
+The next increment attacked that reach-*routing* cohort with a **carrier-diversification reach pass**.
+The reach passes so far steer to a target through the *shortest* path, which the breadth-first reach
+walk discovers by reaching every rule through a single (shortest) parent. But sometimes whether a
+target witnesses depends not on the path *to* it but on the **trailing context the chosen parent
+supplies** *after* it. The class-scope `type_parameter`/`interface_class` family is the worked example:
+the rule `class_scope := class_scope_type scope_resolution` is reached, the prelude declares `\foo` a
+type parameter, and the sample parses — but reaching `class_scope` through a short data-declaration
+carrier renders a `:: <id>` suffix, and on re-parse the *generic* `scoped_class_scope_identifier`
+alternative (gated only to exclude a *class* head, not a type-parameter one) consumes that `<id>` and
+shadows the per-family alternative. Reaching the very same `class_scope` through `class_new` instead
+(`( class_scope )? new`) renders a `:: new` suffix — the generic alternative cannot consume the `new`
+keyword, so the per-family alternative finally witnesses. The pass formalizes exactly this move: for a
+residual target that parses-but-routes-elsewhere, it walks the default reach chain and, for each rule on
+it, re-routes the plan to reach that rule through an **alternative parent** (from a reverse
+rule-reference index), keeping the tail to the target intact, then re-checks the witness through the
+real parser. Like every reach pass it runs last over only the still-unknown rules and unions only
+re-parsing witnesses, so it is strictly additive and structurally inert for a fully-certified grammar
+(empty residual ⇒ it never runs). It witnessed `known_unscoped_class_scope_type_parameter_identifier`
+(via a carrier where `class_scope`'s trailing `::` has no class-identifier suffix), taking
+SystemVerilog `UNKNOWN 33 → 32` (witness `1255 → 1256`), deterministic at seeds 0/7/42 with zero
+newly-unknown rules. The two **call-form** cousins of that family (`…scoped_call…`) are an *honest
+documented limit* of this generative approach: a `T::method()` call is ambiguous with a package-scoped
+call at the expression level, *above* the rule whose alternative we want, so no carrier disambiguates
+it — closing them would require tightening the grammar's generic alternative to also exclude
+type-parameter and interface-class heads, a change deliberately deferred until a *real* parse failure
+(not merely an unwitnessed fragment) justifies it.
 
 ## The decidability boundary (an honest limit)
 

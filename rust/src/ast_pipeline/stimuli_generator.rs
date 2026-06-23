@@ -2829,9 +2829,26 @@ impl<'a> StimuliGenerator<'a> {
                 target_rule, hops
             );
         }
+        self.install_reach_plan_from_hops(&hops, target_rule, bypass_fuel);
+        true
+    }
+
+    /// STORE-AWARE-GEN.4b.12: build + install an `ActiveReachPlan` from an EXPLICIT hop chain
+    /// (entry→target `(referencing_rule, reference-site node_path)` pairs). Factored verbatim from
+    /// `set_reach_plan_for_rule_mode` so a BFS-computed plan and a carrier-DIVERSIFIED plan (a hop
+    /// chain re-routed through an alternative parent of a rule on the path) install identically — same
+    /// per-`o{i}` OR forcing, same per-`q` quantifier forcing, and same semantic prelude. Always
+    /// installs: the caller supplies a concrete chain, so there is no BFS reachability `None` case to
+    /// handle here (that stays in `set_reach_plan_for_rule_mode`). GENERAL/parser-agnostic.
+    fn install_reach_plan_from_hops(
+        &mut self,
+        hops: &[(String, String)],
+        target_rule: &str,
+        bypass_fuel: u32,
+    ) {
         let mut chain: Vec<ReachDirective> = Vec::new();
         let mut quantifier_sites: Vec<(String, String)> = Vec::new();
-        for (hop_rule, hop_site_path) in &hops {
+        for (hop_rule, hop_site_path) in hops {
             chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
             quantifier_sites.extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
         }
@@ -2848,9 +2865,8 @@ impl<'a> StimuliGenerator<'a> {
         // the path — every grammar without `fact_count_at_least` predicates short-
         // circuits on the empty `gen_count_kinds` map, so this is a no-op there.
         plan.prelude =
-            self.compute_reach_prelude(&hops, target_rule, &quantifier_sites, bypass_fuel);
+            self.compute_reach_prelude(hops, target_rule, &quantifier_sites, bypass_fuel);
         self.reach_plan = Some(plan);
-        true
     }
 
     /// GRAMMAR-WELLFORMED.C2.2: build the semantic-prelude spec for a plannable-rule
@@ -3753,6 +3769,204 @@ impl<'a> StimuliGenerator<'a> {
             true,
             &mut witness_check,
         )
+    }
+
+    /// STORE-AWARE-GEN.4b.12: the REVERSE rule-reference index — for every rule, the `(referencing_rule,
+    /// reference-site node_path)` pairs that reference it (the reverse of the reach BFS's forward edges).
+    /// Built ONCE per carrier-diversification pass (the grammar tree is scanned a single time), so the
+    /// pass enumerates a path rule's ALTERNATIVE parents in O(1) instead of re-scanning the whole grammar
+    /// per rule. Each rule's user list is sorted deterministically (the `grammar_tree` HashMap has no
+    /// stable iteration order). GENERAL/parser-agnostic — keyed only on `rule_reference` sites.
+    fn build_user_index(&self) -> HashMap<String, Vec<(String, String)>> {
+        let mut index: HashMap<String, Vec<(String, String)>> = HashMap::new();
+        for (name, node) in self.grammar_tree {
+            let mut sites: Vec<RuleReferenceSite> = Vec::new();
+            Self::collect_rule_reference_sites(node, "root", &mut sites);
+            for site in sites {
+                index
+                    .entry(site.referenced_rule)
+                    .or_default()
+                    .push((name.clone(), site.node_path));
+            }
+        }
+        for users in index.values_mut() {
+            users.sort();
+        }
+        index
+    }
+
+    /// STORE-AWARE-GEN.4b.12: enumerate carrier-DIVERSIFIED hop chains for `target_rule`. Starting from
+    /// the default shortest-path reach chain `entry→…→target`, for each rule `X` on the path (deepest
+    /// first — nearest the target, the likeliest shadowing bottleneck) re-route the chain to reach `X`
+    /// through an ALTERNATIVE parent than the BFS-chosen one, KEEPING the tail `X→…→target` intact, so a
+    /// different parent supplies a different TRAILING context (e.g. SV `class_scope` reached via
+    /// `class_new` yields the `::new` suffix that defeats the generic `scoped_class_scope_identifier`
+    /// shadow, instead of the `::id` suffix a short data-declaration carrier yields). `user_index` is the
+    /// prebuilt reverse index. Bounded by `max_candidates`. Deterministic (BFS reach_hops + sorted
+    /// users). GENERAL/parser-agnostic.
+    fn carrier_diversification_candidates(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        max_candidates: usize,
+        user_index: &HashMap<String, Vec<(String, String)>>,
+    ) -> Vec<Vec<(String, String)>> {
+        let mut candidates: Vec<Vec<(String, String)>> = Vec::new();
+        let Some(default_hops) = self.reach_hops(entry_rule, target_rule) else {
+            return candidates;
+        };
+        let n = default_hops.len();
+        if n < 2 {
+            // target is referenced directly from entry — no intermediate carrier to diversify.
+            return candidates;
+        }
+        // default_hops[k] = (R_k, site→R_{k+1}); R_0 = entry, R_n = target. The rule X = R_j on the
+        // path is `default_hops[j].0` (for j in 1..n-1); the hop that DISCOVERS X is `default_hops[j-1]`
+        // and the tail X→…→target is `default_hops[j..]`. Re-route through an alternative parent of X.
+        let empty: Vec<(String, String)> = Vec::new();
+        for j in (1..n).rev() {
+            if candidates.len() >= max_candidates {
+                break;
+            }
+            let x_rule = default_hops[j].0.clone();
+            let (default_parent, default_site) = &default_hops[j - 1];
+            let tail = &default_hops[j..];
+            for (user, site) in user_index.get(&x_rule).unwrap_or(&empty) {
+                if candidates.len() >= max_candidates {
+                    break;
+                }
+                // Skip the BFS-chosen discovering edge (that IS the default plan, already tried).
+                if user == default_parent && site == default_site {
+                    continue;
+                }
+                let Some(prefix) = self.reach_hops(entry_rule, user) else {
+                    continue;
+                };
+                // Avoid a chain that re-enters X before the tail — the plan cannot force two distinct
+                // directive sets for the same hop rule coherently. (Union-only safety means a degenerate
+                // candidate could at worst waste an attempt, but skipping keeps the search tight.)
+                if prefix.iter().any(|(r, _)| r == &x_rule) {
+                    continue;
+                }
+                let mut chain = prefix;
+                chain.push((user.clone(), site.clone()));
+                chain.extend(tail.iter().cloned());
+                candidates.push(chain);
+            }
+        }
+        candidates
+    }
+
+    /// STORE-AWARE-GEN.4b.12 (9C-i): the carrier-DIVERSIFICATION reach pass — the strictly-additive
+    /// FINAL residual pass. The plannable / target-own / store-free passes reach each residual target
+    /// via the shortest-path BFS, which discovers every rule on the path through ONE (shortest) parent.
+    /// A target whose witnessing depends on the TRAILING context a DIFFERENT parent supplies therefore
+    /// parses but ROUTES ELSEWHERE (`parsed=true witnessed_target=false`): the SV class-scope
+    /// `type_parameter`/`interface_class` family is reached with `class_scope` discovered via a short
+    /// data-declaration carrier (`… :: id`), and on re-parse the generic `scoped_class_scope_identifier`
+    /// alternative shadows the per-family one by consuming the `:: id` suffix. Re-routing `class_scope`
+    /// through `class_new` instead yields the `:: new` suffix (the generic alt fails on `kw_new`), and
+    /// the per-family alternative witnesses. For each residual rule this pass re-routes the reach plan
+    /// to reach a rule on the default path through an alternative parent (keeping the tail to the
+    /// target), then re-checks the witness.
+    ///
+    /// The CALLER runs this ONLY over rules still UNKNOWN after every prior pass, so a fully-certified
+    /// grammar has an EMPTY residual and the pass never runs — TRULY inert for the certified roster
+    /// (not merely cheap). STRICTLY ADDITIVE: like the other reach passes it only ever UNIONS witnesses
+    /// from probes that re-parse (the caller's `witness_check` replays each probe through the REAL
+    /// parser), so it can never remove a witness or create a newly-UNKNOWN rule — the existing witness
+    /// landscape is byte-safe by construction. Returns the number of residual rules it witnessed.
+    /// GENERAL/parser-agnostic — keyed purely on the rule-reference graph and the parser re-check.
+    pub fn generate_carrier_diversified_witnesses(
+        &mut self,
+        entry_rule: &str,
+        residual_rules: &[String],
+        per_attempt_timeout_ms: u64,
+        max_attempts_per_rule: usize,
+        mut witness_check: impl FnMut(&str, &str) -> PlannableProbeVerdict,
+    ) -> usize {
+        if residual_rules.is_empty() {
+            return 0;
+        }
+        // Bound the search: a residual target's default path is short, but a heavily-reused rule on it
+        // can have many parents. Cap the alternative carriers tried per rule so the pass stays fast on
+        // the genuinely-unwitnessable tail (it runs LAST, over only the hard residual).
+        const MAX_CARRIER_CANDIDATES_PER_RULE: usize = 16;
+        // A carrier candidate disambiguates by STRUCTURE (which parent supplies the trailing context),
+        // not by terminal re-rolls, so a small per-candidate attempt budget covers it; the breadth is in
+        // the candidate set, not the retries. Keeps the pass bounded on the unwitnessable tail.
+        let attempts_per_candidate = max_attempts_per_rule.min(2).max(1);
+        let original_max_depth = self.config.max_depth;
+        let original_max_rule_visits = self.config.max_rule_visits;
+        self.config.max_rule_visits = original_max_rule_visits.saturating_mul(2);
+        let min_derivation_depths = self.compute_min_full_derivation_depths();
+        let reach_prefix_budget = original_max_depth.saturating_mul(2);
+        let previous_witness_mode = self.witness_mode;
+        self.witness_mode = true;
+        let previous_table = self.witness_min_terminal_lengths.take();
+        self.witness_min_terminal_lengths = Some(self.compute_min_terminal_lengths());
+        let timeout =
+            Self::timeout_budget_from_ms(per_attempt_timeout_ms, TARGET_TIMEOUT_ERROR_PREFIX);
+        let user_index = self.build_user_index();
+
+        let mut witnessed_total = 0usize;
+        for rule in residual_rules {
+            let target_subtree_depth = min_derivation_depths.get(rule).copied().unwrap_or(0);
+            let budget = reach_prefix_budget.saturating_add(target_subtree_depth);
+            let candidates = self.carrier_diversification_candidates(
+                entry_rule,
+                rule,
+                MAX_CARRIER_CANDIDATES_PER_RULE,
+                &user_index,
+            );
+            let mut rule_witnessed = false;
+            'candidates: for cand_hops in candidates {
+                self.config.max_depth = budget;
+                let bypass_fuel = budget.saturating_add(1) as u32;
+                self.install_reach_plan_from_hops(&cand_hops, rule, bypass_fuel);
+                for _ in 0..attempts_per_candidate {
+                    self.construct_mode = true;
+                    let result = self.generate_from_entry_with_optional_timeout(entry_rule, timeout);
+                    self.construct_mode = false;
+                    if let Ok(sample) = result {
+                        if let PlannableProbeVerdict::Witnessed = witness_check(rule, &sample) {
+                            rule_witnessed = true;
+                        }
+                    } else if let Err(e) = result {
+                        // A per-attempt timeout reproduces under the identical budget — stop retrying.
+                        if Self::is_target_timeout_error(&e) {
+                            break;
+                        }
+                    }
+                    // GRAMMAR-WELLFORMED.C2.2: arm a count-prelude after its phase-1 capture (a no-op
+                    // for the name-prelude cohort, which declares a fixed canonical name directly, so
+                    // its declaration is present from the first attempt).
+                    if let Some(prelude) =
+                        self.reach_plan.as_mut().and_then(|plan| plan.prelude.as_mut())
+                    {
+                        if prelude.iterations == 0 {
+                            if let Some((_, value)) = &prelude.captured {
+                                prelude.iterations = *value;
+                            }
+                        }
+                    }
+                    if rule_witnessed {
+                        break;
+                    }
+                }
+                self.clear_reach_plan();
+                if rule_witnessed {
+                    witnessed_total += 1;
+                    break 'candidates;
+                }
+            }
+        }
+
+        self.witness_min_terminal_lengths = previous_table;
+        self.witness_mode = previous_witness_mode;
+        self.config.max_depth = original_max_depth;
+        self.config.max_rule_visits = original_max_rule_visits;
+        witnessed_total
     }
 
     fn run_plannable_witness_pass(
@@ -22338,6 +22552,74 @@ mod tests {
             "reach hook must fire under deep stagnation (deeper-fallback .7.2.7); activations={} attempts={}",
             generator.reach_plan_activations(),
             summary.attempts
+        );
+    }
+
+    // ---- STORE-AWARE-GEN.4b.12: carrier-diversification candidate enumeration ----
+
+    #[test]
+    fn carrier_diversification_reroutes_through_alternative_parent() {
+        // A target reachable through a rule (`mid`) that has TWO parents: the BFS picks the shortest
+        // (`a`, source order), but an alternative parent (`b`) supplies a different surrounding context.
+        // The pass must enumerate a hop chain that re-routes `mid` through `b` while keeping the tail
+        // `mid → target` intact — the structural primitive behind the SV class-scope `::new` carrier win.
+        //   entry  := a | b
+        //   a      := mid "x"      (mid at root/s0)
+        //   b      := "y" mid      (mid at root/s1)
+        //   mid    := "g" | target (target = alt 1, root/o1)
+        //   target := "t"
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "entry".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("a"), rule_ref("b")],
+            },
+        );
+        grammar_tree.insert(
+            "a".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("mid"), token("string", "x")],
+            },
+        );
+        grammar_tree.insert(
+            "b".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "y"), rule_ref("mid")],
+            },
+        );
+        grammar_tree.insert(
+            "mid".to_string(),
+            ASTNode::Or {
+                alternatives: vec![token("string", "g"), rule_ref("target")],
+            },
+        );
+        grammar_tree.insert("target".to_string(), token("string", "t"));
+        let rule_order: Vec<String> = grammar_tree.keys().cloned().collect();
+        let generator = simple_generator(&grammar_tree, &rule_order, 0);
+
+        // build_user_index: `mid`'s parents are exactly a@root/s0 and b@root/s1, sorted deterministically.
+        let index = generator.build_user_index();
+        assert_eq!(
+            index.get("mid"),
+            Some(&vec![
+                ("a".to_string(), "root/s0".to_string()),
+                ("b".to_string(), "root/s1".to_string()),
+            ]),
+            "the reverse index must list every parent of `mid`, sorted"
+        );
+
+        // The default BFS reaches `target` via `a` (shortest, source order). The diversification must
+        // offer a candidate that re-routes through the ALTERNATIVE parent `b`, keeping the tail to target.
+        let candidates =
+            generator.carrier_diversification_candidates("entry", "target", 16, &index);
+        assert!(
+            candidates.iter().any(|chain| {
+                chain.contains(&("b".to_string(), "root/s1".to_string()))
+                    && chain.last() == Some(&("mid".to_string(), "root/o1".to_string()))
+            }),
+            "a carrier-diversified candidate must re-route `mid` through parent `b` and keep the \
+             tail (mid → target alt 1); candidates={:?}",
+            candidates
         );
     }
 

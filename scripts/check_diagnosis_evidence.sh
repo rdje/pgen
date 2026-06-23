@@ -62,12 +62,19 @@ MSG
   exit 1
 fi
 
-# Concatenate the staged leaves once for scanning.
-leaf_text="$(cat "${staged_tasks[@]}" 2>/dev/null || true)"
+# Scan the staged leaves DIRECTLY (grep reads the files itself). Do NOT do
+# `printf '%s\n' "$leaf_text" | grep -q` — under `set -o pipefail`, `grep -q` exits on the first
+# match and closes the pipe, the upstream `printf` then takes SIGPIPE (rc 141), and pipefail
+# propagates that as the pipeline's status, so a genuinely-present box is reported as MISSING once
+# the concatenated leaf text exceeds the pipe buffer (~64 KB) and the match is early. Grepping the
+# files directly has no upstream writer to kill, so the match is deterministic at any file size.
+# `grep -q` over multiple files returns 0 iff ANY line in ANY file matches — identical to scanning
+# the concatenation. (STORE-AWARE-GEN.4b.12: this race began false-failing once the owning task
+# leaf grew past ~64 KB.)
 
 # A checked / unchecked checklist box mentioning a category keyword.
-checked()   { printf '%s\n' "$leaf_text" | grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*($1)"; }
-unchecked() { printf '%s\n' "$leaf_text" | grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]].*($1)"; }
+checked()   { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[xX]\][[:space:]].*($1)" "${staged_tasks[@]}"; }
+unchecked() { grep -Eiq "^[[:space:]]*[-*][[:space:]]*\[[[:space:]]\][[:space:]].*($1)" "${staged_tasks[@]}"; }
 
 # Evidence signatures that must BACK the ticked boxes.
 DIAGNOSIS_SIG='CERTIFICATE-COVERAGE:|\[plannable-probe\]|rejected by post predicate|furthest_position=|witnessed_target=(true|false)|PGEN_CERT_COVERAGE_(DUMP_ALL|DEBUG_PROBES)|PGEN_REACH_PATH_DUMP|--report-certificate-coverage|--trace-rules|--dump-rule-call-counts|--lint-grammar|--parse-dump-ast'
@@ -78,7 +85,7 @@ fails=()
 # Required box 1 — ROOT CAUSE (WHY + WHERE) ticked + a diagnosis tool signature present.
 if   unchecked 'root cause|why ?\+ ?where|\bwhy\b'; then fails+=("ROOT CAUSE box is present but UNTICKED ([ ]) — the cause is not yet established.")
 elif ! checked 'root cause|why ?\+ ?where|\bwhy\b'; then fails+=("ROOT CAUSE (WHY+WHERE) box is MISSING/unticked from the acceptance checklist.")
-elif ! printf '%s\n' "$leaf_text" | grep -Eq "$DIAGNOSIS_SIG"; then
+elif ! grep -Eq "$DIAGNOSIS_SIG" "${staged_tasks[@]}"; then
   fails+=("ROOT CAUSE box is ticked but NOT backed by a debug-tool signature (cert/probe/trace/furthest_position).")
 fi
 
@@ -90,7 +97,7 @@ fi
 # Required box 3 — NO REGRESSION ticked + a global-gate signature present.
 if   unchecked 'no.?regress|regression'; then fails+=("NO REGRESSION box is present but UNTICKED — regressions are not yet cleared.")
 elif ! checked 'no.?regress|regression'; then fails+=("NO REGRESSION box is MISSING/unticked from the acceptance checklist.")
-elif ! printf '%s\n' "$leaf_text" | grep -Eiq "$NOREGRESS_SIG"; then
+elif ! grep -Eiq "$NOREGRESS_SIG" "${staged_tasks[@]}"; then
   fails+=("NO REGRESSION box is ticked but NOT backed by a global-gate signature (seeds 0/7/42, byte-identical, external corpus, shape-contract, spf=0).")
 fi
 
