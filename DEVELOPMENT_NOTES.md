@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0020 — STORE-AWARE-GEN.4b.13 DESIGN-REFINEMENT: the pinned 9C-ii design is incomplete (PURE-DOCS)
+
+Pure-docs root-cause/design-refinement slice; no code. SV row unchanged (`Mostly Done`, `UNKNOWN=32`, re-verified seed 0). Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.13`) — this is a continuity pointer.
+
+- **Finding:** the `.4b.11.1` 2-part pin for 9C-ii (`context_member_method_call`) misses a THIRD obstacle. The name-coordinated prelude's consumer coupling (`reach_prelude_replay_text` → `store_name_for_gate` → generation hook `:7960-7972`) replaces the gated rule's WHOLE render with the store name. That witnesses a whole-render consumer (the `type_name` cohort) but CANNOT witness `context_member_method_call`, a CHAIN gated on the SUB-FIELD `$head` — forcing the whole render to `\foo` destroys the mandatory chain. Plus the two pinned obstacles: the gate is ON the target (no `compute_name_prelude` leg inspects it) and the sole producer's emit name is dotted (`$name.body`) so it is filtered AND emitted verbatim (the text-based generator can recover the sub-field only via the producer's minimal `variable_identifier` derivation).
+- **Decisive witness A/B (tools-first):** `int foo; case (foo.bar.baz)` → AST `"kind":"context_member_method"` count=1; undeclared → 0; statement-pos call → 0 (subroutine_call_statement). Declare-then-use in an expression context witnesses; the gate passes iff the head is a declared `variable_binding`.
+- **Re-decomposition:** `.4b.13.1` (producer-side, additive: target-self gate leg + admit `variable_decl_assignment` via minimal render) → run GLOBAL cert → if witnessed, done; else `.4b.13.2` (consumer-side head echo / collision suppression). DEFER if neither is cleanly additive vs the `type_name` cohort. Disciplines: [[feedback_systematically_use_debug_toolbox]], [[feedback_why_and_where_before_solution]], [[feedback_no_codebase_change_without_tool_backed_facts]].
+
 ## 2026-06-23 - PGEN-STORE-AWARE-GEN-0019 — STORE-AWARE-GEN.4b.12 IMPLEMENT: carrier-diversification reach pass (GENERATOR-ONLY)
 
 Generator-only engine change; SV cert `UNKNOWN 33 → 32` (+1 witnessed). Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.12`) — this is a continuity pointer.
