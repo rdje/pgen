@@ -988,9 +988,25 @@ target — whose path is necessarily clean — keeps its exact prelude. With it,
 chosen, the class fact is recorded, and the class-scope use-sites witness:
 SystemVerilog `UNKNOWN 43 → 41` (witness `1245 → 1247`), deterministic at seeds 0/7/42 with zero
 newly-unknown rules and every fully-certified grammar byte-identical (the path is capability-gated on the
-name-matching predicates, so it is structurally inert for any grammar without them). The remaining
-class-context residual — the out-of-class `extern_constraint_declaration` family, whose gate sits behind a
-leading `constraint` keyword rather than in a mandatory-first position — is the next increment.
+name-matching predicates, so it is structurally inert for any grammar without them).
+
+A further increment widened *where* the declare-then-use prelude looks for its gate. The first version
+only found a gate on a rule's mandatory-**first** element — but the out-of-class
+`extern_constraint_declaration` family hides its gate behind a leading `constraint` keyword and *inside an
+ordered choice* (`class_scope → class_scope_type := ( … | known_unscoped_class_scope_class_identifier |
+… )`), so no prelude armed and the forced witness `constraint \foo :: \foo {}` was rejected (the class
+`\foo` was never declared). The discovery now also scans past a leading run of optional/keyword elements
+and descends an ordered choice — but only as far as the **first rendered position that is unavoidably
+store-gated**, and only into a choice that has *no ungated escape*. That boundary matters: a first attempt
+that scanned every element and every choice regressed six rules, because it reached a deep, dodgeable
+`type_name` gate sitting *behind* a self-satisfying producer (a parameter declaration) and armed a
+structurally-invalid prelude — a regression the deterministic strict-subset gate caught immediately. The
+refined discovery, reusing the same mandatory-descent store-gate analysis, stops at the first genuinely
+unavoidable gate and so arms a prelude only where one is both needed and safe:
+SystemVerilog `UNKNOWN 41 → 38` (witness `1247 → 1250`), again deterministic at seeds 0/7/42 with zero
+newly-unknown rules and every fully-certified grammar byte-identical. The `constraint_set` residual is a
+distinct shape — its class gate is a mandatory *sibling* on the reach path rather than on its own prefix —
+and is the next increment.
 
 ## The decidability boundary (an honest limit)
 

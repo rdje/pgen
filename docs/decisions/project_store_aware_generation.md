@@ -47,8 +47,19 @@ declaration cannot parse). The fix makes producer selection reach-path-aware (a 
 producer whose forced reach path renders no unsatisfiable same-store gate, reusing the existing
 `mandatory_node_gated` store-gate walk), closing the class-scope cohort: SystemVerilog cert `UNKNOWN 43 → 41`
 (+2 rules `known_unscoped_class_scope_class_identifier`, `known_unscoped_class_scoped_call_class_identifier`
-witnessed), generator-only, zero newly-UNKNOWN, the 6 fully-certified grammars unperturbed. The remaining
-3B → `.4b.7` (gate-not-mandatory-first) / `.4b.8` (target-own incompleteness); reach-routing 3C → `.4b.9`.
+witnessed), generator-only, zero newly-UNKNOWN, the 6 fully-certified grammars unperturbed. `.4b.7`
+(`PGEN-STORE-AWARE-GEN-0012`, 2026-06-23) landed the 3B-i fix by widening *where* the discovery
+(`name_gate_via_mandatory_prefix`) looks for the gate: a second leg scans past a leading run of
+optional/keyword elements and descends an ordered choice, but only as far as the FIRST rendered position
+that is unavoidably store-gated (`node_render_store_gated` = the same `mandatory_node_gated` walk) and only
+into a choice with no ungated escape, guarded by `mandatory_reach_gate`. (A first cut that scanned every
+element + every choice regressed 6 rules — reaching a dodgeable `type_name` gate behind a self-satisfying
+producer + an ungated `data_type` escape — caught by the deterministic strict-subset gate and refined.)
+This arms a prelude for the `extern_constraint_declaration*` family (gate behind a leading `constraint`
+keyword + inside `class_scope_type`'s `Or`): SystemVerilog cert `UNKNOWN 41 → 38` (+3:
+`extern_constraint_declaration_sv_2017`, `extern_constraint_declaration`, bonus `class_scoped_tf_call`),
+generator-only, zero newly-UNKNOWN, the 6 fully-certified grammars unperturbed. `constraint_set` is a
+DISTINCT off-path-mandatory-sibling discovery → folded into `.4b.9`; target-own incompleteness → `.4b.8`.
 
 **THE GAP (tool-backed, 2026-06-08).** PGEN's EBNF `@predicate` annotations are the single source of
 truth for the accepted language, and the PARSER honours them (e.g. `numeric_backreference` is gated by

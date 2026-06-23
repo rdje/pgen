@@ -3281,22 +3281,67 @@ impl<'a> StimuliGenerator<'a> {
         }
     }
 
-    /// STORE-AWARE-GEN.4b.4: the name gate governing `rule`'s USE-site render, following the bounded
-    /// MANDATORY-first prefix when `rule` is not itself name-gated. A non-gated CARRIER routes its render
-    /// through an inner gated rule (`known_unscoped_block_type_identifier := checked_type_identifier …`
-    /// → `checked_type_identifier`; `known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_identifier`),
-    /// so the declare-then-use prelude must arm on the INNER gated rule (the one `reach_prelude_replay_text`
-    /// forces when it renders inside the carrier). Checks the rule ITSELF first, so a directly-gated rule
-    /// short-circuits at depth 0 (identical to the pre-4b.4 direct lookup). Depth-bounded against cycles;
-    /// only mandatory leading rule references are followed (`mandatory_leading_rule_reference`). Returns the
-    /// inner gated rule's name + its gate (borrowing `gen_name_gate`). Empty `gen_name_gate` never reaches
-    /// here, so this is inert (byte-identical) for predicate-free grammars.
+    /// STORE-AWARE-GEN.4b.4 + .4b.7: the name gate governing `rule`'s USE-site render, reached through its
+    /// MANDATORY prefix when `rule` is not itself name-gated. Two legs, tried in order:
+    ///
+    /// 1. `.4b.4` — follow the bounded MANDATORY-FIRST rule-reference chain
+    ///    (`name_gate_via_mandatory_first_chain`): a non-gated CARRIER routes its render through an inner
+    ///    gated rule (`known_unscoped_block_type_identifier := checked_type_identifier …` →
+    ///    `checked_type_identifier`), so the prelude arms on the INNER gated rule (the one
+    ///    `reach_prelude_replay_text` forces). Checks the rule ITSELF first, so a directly-gated rule
+    ///    short-circuits at depth 0 (identical to the pre-4b.4 direct lookup). Preserved byte-identical.
+    /// 2. `.4b.7` — only when the first leg finds nothing, BROADEN the search structurally
+    ///    (`gate_in_mandatory_prefix_rule`): scan ALL mandatory sequence elements in render order (skipping
+    ///    leading optional / lookahead elements that may not render, and stepping past a leading
+    ///    keyword/terminal rule that renders no gate) and descend Or alternatives. This reaches a gate
+    ///    buried behind a leading `(kw_static)? kw_constraint` prefix AND inside an ordered choice — the
+    ///    `extern_constraint_declaration(_sv_2017/_sv_2023)` cohort, whose gate routes
+    ///    `class_scope` → `class_scope_type` → `( … | known_unscoped_class_scope_class_identifier | … )`
+    ///    and is neither the mandatory-FIRST element nor a hop.
+    ///
+    /// Both legs are PURE structural reads that only follow MANDATORY, guaranteed-to-render positions, so
+    /// the prelude arms on a rule the use-site renders; a mismatched arm simply fails the parser re-check
+    /// (never a false witness — the re-check stays the sole witness judge). The `.or_else` ordering keeps
+    /// every `.4b.4`/`.4b.6`-discoverable rule byte-identical (the broadened leg fires only where the first
+    /// returns `None`). Empty `gen_name_gate` never reaches here ⇒ inert for predicate-free grammars.
     fn name_gate_via_mandatory_prefix(&self, rule: &str) -> Option<(String, &NameGate)> {
+        let gated_rule = self
+            .name_gate_via_mandatory_first_chain(rule)
+            .or_else(|| {
+                // STORE-AWARE-GEN.4b.7: the broadened structural leg can reach a gate buried inside a
+                // rule that ALSO has an empty-store-renderable ESCAPE (e.g. `associative_dimension :=
+                // lbrack data_type rbrack`, where `data_type` renders a builtin like `int` with no
+                // declaration; `parameter_port_declaration := kw_parameter list_of_param_assignments`).
+                // Arming a declare-then-use prelude there BREAKS an otherwise-fine witness (the
+                // generator takes the escape, but the prelude forces the gated path). So gate the
+                // broadened leg on the render being UNAVOIDABLY store-gated: only when EVERY way to
+                // render `rule` must cross a store-gate (`mandatory_reach_gate` against an EMPTY store —
+                // the same `.4b.6` machinery; an `Or` is gated iff EVERY alternative is gated) is a
+                // prelude both NEEDED and SAFE. This keeps the genuine `class_scope` cohort
+                // (`class_scope_type`'s Or has no ungated escape — even the `scoped_…` alternative
+                // carries a `lacks_fact` type_name gate) and drops the `data_type` /
+                // `list_of_param_assignments` / `if_generate_construct` false arms.
+                let empty: HashSet<String> = HashSet::new();
+                let mut visited: HashSet<String> = HashSet::new();
+                if !self.mandatory_reach_gate(rule, &empty, &mut visited) {
+                    return None;
+                }
+                self.gate_in_mandatory_prefix_rule(rule, 0)
+            })?;
+        self.gen_name_gate
+            .get_key_value(&gated_rule)
+            .map(|(key, gate)| (key.clone(), gate))
+    }
+
+    /// STORE-AWARE-GEN.4b.4: the `.4b.4` leg — the gated rule reached by following `rule`'s MANDATORY-FIRST
+    /// rule reference (`mandatory_leading_rule_reference`) up to a bounded depth, checking the rule itself
+    /// first. Returns the gated rule NAME (the caller re-borrows the gate). Depth-bounded against cycles.
+    fn name_gate_via_mandatory_first_chain(&self, rule: &str) -> Option<String> {
         const NAME_GATE_MANDATORY_PREFIX_DEPTH: usize = 8;
         let mut current = rule.to_string();
         for _ in 0..NAME_GATE_MANDATORY_PREFIX_DEPTH {
-            if let Some(gate) = self.gen_name_gate.get(&current) {
-                return Some((current, gate));
+            if self.gen_name_gate.contains_key(&current) {
+                return Some(current);
             }
             let next = self.mandatory_leading_rule_reference(&current)?;
             if next == current {
@@ -3305,6 +3350,85 @@ impl<'a> StimuliGenerator<'a> {
             current = next;
         }
         None
+    }
+
+    /// STORE-AWARE-GEN.4b.7: the `.4b.7` leg — find a name-gated rule in `rule`'s mandatory prefix by a
+    /// structural scan (see `name_gate_via_mandatory_prefix`). Checks the rule itself first, then scans its
+    /// body node. Depth-bounded on rule-reference hops (a single rule's node tree is finite/acyclic, so only
+    /// rule-ref hops can recurse unboundedly). Returns the gated rule NAME.
+    fn gate_in_mandatory_prefix_rule(&self, rule: &str, depth: usize) -> Option<String> {
+        const MANDATORY_PREFIX_GATE_DEPTH: usize = 8;
+        if depth >= MANDATORY_PREFIX_GATE_DEPTH {
+            return None;
+        }
+        if self.gen_name_gate.contains_key(rule) {
+            return Some(rule.to_string());
+        }
+        let node = self.grammar_tree.get(rule)?;
+        self.gate_in_mandatory_prefix_node(node, depth)
+    }
+
+    /// STORE-AWARE-GEN.4b.7: scan one grammar node for the POSITIVE name-gate its MANDATORY render routes
+    /// through, stopping at the FIRST gate-bearing rendered position.
+    ///
+    /// A `Sequence` is scanned in render order: an element that renders with NO store-gate (a keyword /
+    /// terminal, an optional, a lookahead, or ungated content) is stepped past; the scan STOPS at the FIRST
+    /// element whose render is UNAVOIDABLY store-gated (`node_render_store_gated`) and descends ONLY that
+    /// one. Stopping there is what keeps the gate on the first gate-bearing position (the `class_scope`
+    /// cohort) and refuses to reach a DEEP optional-ish gate sitting BEHIND an already-store-gated producer
+    /// — e.g. `param_assignment_sv_2017 := declared_parameter_identifier … assign constant_param_expression`,
+    /// where the first store-gated element is the self-satisfying producer `declared_parameter_identifier`
+    /// (no positive name gate ⇒ this returns `None`), NOT the `type_name` gate buried in
+    /// `constant_param_expression`. An `Or` is descended ONLY when it has no empty-store-renderable escape
+    /// (every alternative store-gated — the generator cannot dodge the gate), then arms on the first
+    /// alternative resolving to a positive name gate (the `scoped_…` lacks-only alternative resolves to
+    /// `None` and is skipped). A rule reference recurses through `gate_in_mandatory_prefix_rule` (one depth
+    /// hop). A bare quantifier body / lookahead is not descended (conservative — never over-reaches).
+    fn gate_in_mandatory_prefix_node(&self, node: &ASTNode, depth: usize) -> Option<String> {
+        match node {
+            ASTNode::Sequence { elements } => {
+                for element in elements {
+                    if self.node_render_store_gated(element) {
+                        return self.gate_in_mandatory_prefix_node(element, depth);
+                    }
+                    // A non-store-gated element renders cleanly (no gate) — step past it.
+                }
+                None
+            }
+            ASTNode::Or { alternatives } => {
+                if alternatives
+                    .iter()
+                    .any(|alternative| !self.node_render_store_gated(alternative))
+                {
+                    return None; // an ungated escape ⇒ the generator can dodge the gate ⇒ no prelude.
+                }
+                alternatives
+                    .iter()
+                    .find_map(|alternative| self.gate_in_mandatory_prefix_node(alternative, depth))
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => self.gate_in_mandatory_prefix_node(inner, depth),
+                ASTValue::Token(parts) => {
+                    let (token_type, token_value) = Self::extract_token_pair(parts)?;
+                    if token_type == "rule_reference" && self.grammar_tree.contains_key(token_value) {
+                        self.gate_in_mandatory_prefix_rule(token_value, depth + 1)
+                    } else {
+                        None
+                    }
+                }
+            },
+            ASTNode::Quantified { .. } | ASTNode::Lookahead { .. } => None,
+        }
+    }
+
+    /// STORE-AWARE-GEN.4b.7: does this node's render UNAVOIDABLY cross a store-gate against an EMPTY store?
+    /// Reuses the `.4b.6` `mandatory_node_gated` walk (`Or` gated iff EVERY alternative is gated; `Sequence`
+    /// iff ANY element is; `?`/`*` non-propagating; lookahead-skipping). Used both to STOP the sequence scan
+    /// at the first gate-bearing element and to refuse descending an `Or` that has an ungated escape.
+    fn node_render_store_gated(&self, node: &ASTNode) -> bool {
+        let available: HashSet<String> = HashSet::new();
+        let mut visited: HashSet<String> = HashSet::new();
+        self.mandatory_node_gated(node, &available, &mut visited)
     }
 
     /// GRAMMAR-WELLFORMED.C2.2: phase-1 scoped prune bypass — while a plannable plan
@@ -16049,6 +16173,113 @@ mod tests {
         assert!(
             generator.name_gate_via_mandatory_prefix("ungated").is_none(),
             "an ungated rule reaching no gate yields no prelude"
+        );
+    }
+
+    #[test]
+    fn store_aware_gen_name_gate_discovers_gate_behind_leading_prefix_and_or() {
+        // STORE-AWARE-GEN.4b.7: the `.4b.4` mandatory-FIRST chain dies on a leading optional/keyword
+        // prefix; the broadened structural leg scans ALL mandatory sequence elements (skipping a leading
+        // optional `(kw_static)?` and stepping past a leading keyword rule that renders no gate) and
+        // descends Or alternatives, so a gate buried behind that prefix and inside an ordered choice is
+        // discovered — BUT only when the render is UNAVOIDABLY store-gated (`mandatory_reach_gate` against
+        // an empty store), so a rule with an empty-store-renderable escape is NOT armed. Mirrors
+        // `extern_constraint_declaration_sv_2017 := (kw_static)? kw_constraint class_scope …` →
+        // `class_scope_type := ( scoped_… | known_unscoped_class_scope_class_identifier | … ) …`, whose
+        // `scoped_…` alternative carries a `lacks_fact` type_name gate (so the Or has NO ungated escape),
+        // versus `associative_dimension := lbrack data_type rbrack`, where `data_type` renders a builtin
+        // with no gate (an escape).
+        let mut g = HashMap::new();
+        g.insert(
+            "extern_like".to_string(),
+            ASTNode::Sequence {
+                elements: vec![
+                    // `( kw_static )?` — a leading OPTIONAL the `.4b.4` chain cannot step over.
+                    ASTNode::Quantified {
+                        element: Box::new(rule_ref("kw_static")),
+                        quantifier: "?".to_string(),
+                    },
+                    // `kw_constraint` — a leading mandatory KEYWORD rule that renders no gate.
+                    rule_ref("kw_constraint"),
+                    // the gated content rule reached only after the prefix.
+                    rule_ref("scope"),
+                ],
+            },
+        );
+        g.insert("kw_static".to_string(), token("regex", "static"));
+        g.insert("kw_constraint".to_string(), token("regex", "constraint"));
+        g.insert("scope".to_string(), rule_ref("scope_type"));
+        g.insert(
+            "scope_type".to_string(),
+            // `( escape_alt | gated_alt )` — the positive gate is the SECOND alternative (as in the real
+            // grammar, where `scoped_class_scope_identifier` precedes the class gate). BOTH alternatives
+            // are store-gated, so the Or has NO ungated escape (the prelude is unavoidable + safe).
+            ASTNode::Or {
+                alternatives: vec![rule_ref("escape_alt"), rule_ref("gated_alt")],
+            },
+        );
+        // `escape_alt` carries a (negative-style) store gate but NO positive name gate — mirrors
+        // `scoped_class_scope_identifier`'s `lacks_fact` type_name gate: gated for reachability, yet not a
+        // declare-then-use producer-matchable name gate.
+        g.insert("escape_alt".to_string(), token("regex", "[a-z]+::[a-z]+"));
+        g.insert("gated_alt".to_string(), token("regex", "[a-z]+"));
+        // A control rule whose mandatory prefix reaches NO gate (a plain terminal tail) — must yield `None`.
+        g.insert(
+            "no_gate".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("kw_constraint"), token("regex", "[0-9]+")],
+            },
+        );
+        // A rule whose content rule (`dim_type`) has an empty-store-renderable ESCAPE (`builtin`, no gate)
+        // — mirrors `associative_dimension := lbrack data_type rbrack`; the guard must drop it.
+        g.insert(
+            "escape_dim".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule_ref("kw_constraint"), rule_ref("dim_type")],
+            },
+        );
+        g.insert(
+            "dim_type".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("builtin"), rule_ref("gated_alt")],
+            },
+        );
+        g.insert("builtin".to_string(), token("regex", "int"));
+        let order: Vec<String> = g.keys().cloned().collect();
+        let mut generator = simple_generator(&g, &order, 1);
+        // The positive (producer-matchable) name gate on `gated_alt`.
+        generator.gen_name_gate.insert(
+            "gated_alt".to_string(),
+            NameGate {
+                kind: "type_name".to_string(),
+                family: Some("class".to_string()),
+                excluded_families: vec![],
+            },
+        );
+        // Reachability store-gates (any of the 5 fact-query primitives): both `escape_alt` and `gated_alt`
+        // are store-gated on `type_name`, so `scope_type`'s Or has no ungated escape; `builtin` is NOT
+        // gated, so `dim_type`'s Or DOES.
+        generator
+            .reach_gate_kinds
+            .insert("escape_alt".to_string(), vec!["type_name".to_string()]);
+        generator
+            .reach_gate_kinds
+            .insert("gated_alt".to_string(), vec!["type_name".to_string()]);
+        let via_prefix = generator
+            .name_gate_via_mandatory_prefix("extern_like")
+            .expect("a gate behind a leading optional/keyword prefix and inside an Or is discovered");
+        assert_eq!(
+            via_prefix.0, "gated_alt",
+            "armed on the positive-gated Or alternative the render routes through, not the escape one"
+        );
+        assert_eq!(via_prefix.1.family.as_deref(), Some("class"));
+        assert!(
+            generator.name_gate_via_mandatory_prefix("no_gate").is_none(),
+            "a mandatory prefix reaching no gate still yields no prelude (no over-reach)"
+        );
+        assert!(
+            generator.name_gate_via_mandatory_prefix("escape_dim").is_none(),
+            "a content rule with an empty-store-renderable escape is NOT armed (the .4b.7 guard)"
         );
     }
 
