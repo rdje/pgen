@@ -3230,6 +3230,79 @@ impl<'a> StimuliGenerator<'a> {
             .and_then(|fact| fact.name.as_text().map(|text| text.to_string()))
     }
 
+    /// STORE-AWARE-GEN.4b.8: the set-membership test behind collide-aware free-name
+    /// diversity. Returns `true` when `token` (a free declaring identifier the witness
+    /// generator is about to render) already exists in the generation store under a fact
+    /// kind that some positive name-gate consumes. When it does, a known-name-gated
+    /// alternative of a "known-first" ordered choice (the canonical SystemVerilog case is
+    /// `data_type_or_implicit := data_type | implicit_data_type`, whose `data_type`
+    /// `has_fact(type_name, …)` branch is tried FIRST) greedily parses the free name as
+    /// that gated category, stealing it from the declaration it was meant to introduce.
+    /// Keyed on the grammar's OWN name-gate kinds (parser-agnostic), never a rule name;
+    /// empty `gen_name_gate` ⇒ `false` (inert). Read-only.
+    fn free_name_collides_gate_kind(&self, token: &str) -> bool {
+        if self.gen_name_gate.is_empty() {
+            return false;
+        }
+        let token = token.trim();
+        if token.is_empty() {
+            return false;
+        }
+        self.gen_semantic_state.facts().iter().any(|fact| {
+            self.gen_name_gate
+                .values()
+                .any(|gate| gate.kind.eq_ignore_ascii_case(&fact.kind))
+                && fact.name.as_text().is_some_and(|name| name.trim() == token)
+        })
+    }
+
+    /// STORE-AWARE-GEN.4b.8: the generation-side dual of the parser's type-vs-identifier
+    /// disambiguation. When the witness generator renders a FREE single-token declaring
+    /// identifier whose canonical name collides with a name-gate-consumed fact already in
+    /// the store (`free_name_collides_gate_kind`), reuse lets a known-first ordered choice
+    /// misparse it — the `property_qualifier` 3B-iii defect: the reach-context class `\foo`
+    /// emits a `type_name` fact, the free variable re-renders `\foo`, and
+    /// `data_type_or_implicit` consumes `\foo` as the TYPE, dropping the mandatory variable
+    /// list (`class\foo ;rand\foo ;endclass` REJECTs @19; `…rand\foo \bar ;…` PASSES).
+    /// Repair DETERMINISTICALLY and RNG-NEUTRALLY: append `_<n>` (the smallest `n` clearing
+    /// both the gate-kind collision and the active keyword exclusions) to the token,
+    /// preserving any leading/trailing layout so the escaped-identifier `\…` token keeps its
+    /// whitespace `\b` terminator. `_` and digits are id-continue chars valid for BOTH the
+    /// simple (`[A-Za-z0-9_$]`) and escaped (`[!-~]`) identifier alphabets, so the repaired
+    /// name still matches the leaf pattern. INERT (byte-identical) unless an armed reach plan
+    /// is active AND the token actually collides, so normal generation, the regex
+    /// store-aware count path, and the fully-certified roster are untouched. The
+    /// most-recent-fact read-back (`store_name_for_gate`) is unaffected because a producer's
+    /// own declaration renders BEFORE its fact is emitted (no prior collision), so this never
+    /// diversifies the very declaration a name-coordinated consumer must echo.
+    fn diversify_free_name_avoiding_gate_collision(&self, hint: String) -> String {
+        if self.reach_plan.is_none() || self.gen_name_gate.is_empty() {
+            return hint;
+        }
+        let trimmed = hint.trim();
+        // Only a single bare identifier token can be a free declaring name; a multi-token
+        // literal hint (e.g. `case (a) … endcase`) is never a declaring identifier.
+        if trimmed.is_empty() || trimmed.split_whitespace().count() != 1 {
+            return hint;
+        }
+        if !self.free_name_collides_gate_kind(trimmed) {
+            return hint;
+        }
+        // Preserve leading/trailing layout (the escaped-identifier sample carries a trailing
+        // space that terminates the `\…` token before the next lexeme).
+        let leading = &hint[..hint.len() - hint.trim_start().len()];
+        let trailing = &hint[hint.trim_end().len()..];
+        for n in 0..1024 {
+            let candidate = format!("{}_{}", trimmed, n);
+            if !self.free_name_collides_gate_kind(&candidate)
+                && !self.sample_collides_excluded_keyword(&candidate)
+            {
+                return format!("{}{}{}", leading, candidate, trailing);
+            }
+        }
+        hint
+    }
+
     /// GRAMMAR-WELLFORMED.C2.2: resolve the quantified node at `(rule, node_path)` to
     /// the rule name of its DIRECT rule-reference body (unwrapping `Atom::Node`
     /// grouping shells). `None` for inline-group bodies — the MVP only hosts preludes
@@ -7543,6 +7616,11 @@ impl<'a> StimuliGenerator<'a> {
                 // The override emits the whole rule as one literal token; mark it atomic for the
                 // caller's cross-rule cohesion (LEXICAL-ANNOTATIONS.6).
                 self.last_terminal_from_atomic_rule = is_atomic;
+                // STORE-AWARE-GEN.4b.8: collide-aware free-name diversity — when this canonical
+                // identifier hint reuses a name already in the store under a gate-consumed fact
+                // kind, a known-first ordered choice would misparse it; render a distinct name.
+                // Inert (byte-identical) outside the witness pass or when no collision exists.
+                let sample_hint = self.diversify_free_name_avoiding_gate_collision(sample_hint);
                 let rendered = self.apply_lexical_follow_restriction(rule_name, sample_hint);
                 // GRAMMAR-WELLFORMED.H.8 (Defect A): a literal hint bypasses the terminal-render
                 // paths that maintain `last_terminal_word_shaped`; record the rendered hint's tail
@@ -16280,6 +16358,85 @@ mod tests {
         assert!(
             generator.name_gate_via_mandatory_prefix("escape_dim").is_none(),
             "a content rule with an empty-store-renderable escape is NOT armed (the .4b.7 guard)"
+        );
+    }
+
+    #[test]
+    fn store_aware_gen_diversifies_free_name_colliding_with_type_name_fact() {
+        // STORE-AWARE-GEN.4b.8: collide-aware free-name diversity (sub-cohort 3B-iii,
+        // `property_qualifier`). The reach-context class `\foo` emits a `type_name` fact; a FREE
+        // declaring identifier that re-renders the SAME canonical `\foo` is misparsed by a type-first
+        // ordered choice (`data_type_or_implicit := data_type | implicit_data_type`), so the witness
+        // generator must render a DISTINCT name. Keyed on the grammar's OWN name-gate kinds
+        // (parser-agnostic), never a rule name; inert outside the witness pass and when no collision
+        // exists (byte-identical); a producer's own first declaration (empty store) is never
+        // diversified, so the most-recent-fact read-back (`store_name_for_gate`) stays consistent.
+        let mut g = HashMap::new();
+        g.insert("id".to_string(), token("regex", "[a-zA-Z_][a-zA-Z0-9_]*"));
+        let order: Vec<String> = g.keys().cloned().collect();
+        let mut generator = simple_generator(&g, &order, 1);
+        // A positive name gate consuming `type_name` makes the grammar store-aware (capability gate).
+        generator.gen_name_gate.insert(
+            "consumer".to_string(),
+            NameGate {
+                kind: "type_name".to_string(),
+                family: Some("class".to_string()),
+                excluded_families: vec![],
+            },
+        );
+        // Witness-pass scope: an armed (minimal) reach plan.
+        generator.reach_plan = Some(ActiveReachPlan::from_directives(&[], 0));
+
+        // Empty store ⇒ no collision ⇒ a producer's own first declaration renders UNCHANGED.
+        assert!(!generator.free_name_collides_gate_kind("\\foo"));
+        assert_eq!(
+            generator.diversify_free_name_avoiding_gate_collision("\\foo ".to_string()),
+            "\\foo "
+        );
+
+        // The reach-context class declares the `type_name` fact `\foo`.
+        generator.gen_semantic_state.emit_fact(SemanticFactSpec {
+            kind: "type_name".to_string(),
+            name: SemanticRuntimeValue::Identifier("\\foo".to_string()),
+            attributes: vec![],
+        });
+
+        // Now a FREE identifier re-rendering `\foo` collides and is diversified to a DISTINCT name,
+        // preserving the trailing escaped-identifier whitespace terminator; the new name is clear.
+        assert!(generator.free_name_collides_gate_kind("\\foo"));
+        let diversified =
+            generator.diversify_free_name_avoiding_gate_collision("\\foo ".to_string());
+        assert_ne!(diversified, "\\foo ", "the colliding free name must be diversified");
+        assert!(
+            diversified.starts_with("\\foo_") && diversified.ends_with(' '),
+            "distinct id-continue suffix + preserved terminator: {:?}",
+            diversified
+        );
+        assert!(
+            !generator.free_name_collides_gate_kind(diversified.trim()),
+            "the diversified name no longer collides with the type_name fact"
+        );
+
+        // Precision: a fact under a kind NO name-gate consumes is NOT a collision.
+        generator.gen_semantic_state.emit_fact(SemanticFactSpec {
+            kind: "package_name".to_string(),
+            name: SemanticRuntimeValue::Identifier("\\pkg".to_string()),
+            attributes: vec![],
+        });
+        assert!(!generator.free_name_collides_gate_kind("\\pkg"));
+
+        // A multi-token literal hint is never a free declaring identifier ⇒ untouched.
+        assert_eq!(
+            generator
+                .diversify_free_name_avoiding_gate_collision("case (a) default: ; endcase".to_string()),
+            "case (a) default: ; endcase"
+        );
+
+        // Inert OUTSIDE the witness pass (no reach plan) ⇒ byte-identical even with a live collision.
+        generator.reach_plan = None;
+        assert_eq!(
+            generator.diversify_free_name_avoiding_gate_collision("\\foo ".to_string()),
+            "\\foo "
         );
     }
 

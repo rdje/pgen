@@ -1004,7 +1004,21 @@ structurally-invalid prelude — a regression the deterministic strict-subset ga
 refined discovery, reusing the same mandatory-descent store-gate analysis, stops at the first genuinely
 unavoidable gate and so arms a prelude only where one is both needed and safe:
 SystemVerilog `UNKNOWN 41 → 38` (witness `1247 → 1250`), again deterministic at seeds 0/7/42 with zero
-newly-unknown rules and every fully-certified grammar byte-identical. The `constraint_set` residual is a
+newly-unknown rules and every fully-certified grammar byte-identical.
+
+The next increment was a subtler kind of generator⟷parser disagreement — not a missing declaration but a
+*name collision*. A witness for `property_qualifier` (`rand`/`static`/… on a class property) wraps the
+target in a class, and the witness generator names both the class and the property's variable with the same
+canonical identifier `\foo`. Naming the class emits a `type_name` fact, so the parser then sees the
+variable's `\foo` as a *known type* and — because a declaration's type slot
+(`data_type_or_implicit := data_type | implicit_data_type`) tries the type branch first — greedily consumes
+it as the type, leaving no variable name and rejecting the sample. The fix is the generation-side dual of
+the parser's own type-vs-identifier disambiguation: **collide-aware free-name diversity** — when a free
+declaring identifier would re-render a name already in the store under a fact kind some name-gate consumes,
+the generator renders a distinct name instead (`\foo` → `\foo_0`). Keyed on the grammar's own name-gate
+kinds (never a rule name) and active only inside the witness pass, it is byte-identical everywhere else:
+SystemVerilog `UNKNOWN 38 → 37` (witness `1250 → 1251`), deterministic at seeds 0/7/42 with zero
+newly-unknown rules and every fully-certified grammar still green. The `constraint_set` residual remains a
 distinct shape — its class gate is a mandatory *sibling* on the reach path rather than on its own prefix —
 and is the next increment.
 

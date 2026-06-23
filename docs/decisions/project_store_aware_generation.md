@@ -122,3 +122,14 @@ semantic-store fact — the successor-aware `\n` deferral (H.5.1.3.1) was implem
 INSUFFICIENT (over-fires on comment-led successors) + reverted; that residual routes to Phase C. "Context
 == store" is the dominant and deepest facet; the density knob + lexical-context are the other two facets
 of the same "make generation faithful/representative" program. [[project_stimuli_generator_signoff_vision]].
+
+IMPLEMENTATION PROGRESS (overwrite this line as the arc advances — detail in `docs/tasks/STORE-AWARE-GEN.md`):
+the `.3` `fact_count_at_least` MVP closed the regex driver; the `.4b` name-coordination arc drove the
+SystemVerilog certificate-coverage residual `UNKNOWN 56 → 46 → 43 → 41 → 38 → 37` (`.4b.2` name-prelude →
+`.4b.4` mandatory-first descent → `.4b.6` self-bootstrapping host-branch → `.4b.7` structural gate-discovery
+→ `.4b.8` **collide-aware free-name diversity** — the generation-side dual of the parser's
+type-vs-identifier disambiguation: a free declaring identifier whose canonical name collides with a
+name-gate-consumed `type_name` fact renders a distinct name so a type-first ordered choice cannot steal it).
+Every step is generator-only and capability-gated on the grammar's own name gates (`gen_name_gate`), so it is
+byte-identical for the fully-certified roster. Frontier `.4b.9` = off-path-sibling prelude-arming
+(`constraint_set`) + the 3C reach-routing residual.
