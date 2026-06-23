@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-23 - PGEN-STORE-AWARE-GEN-0021 — STORE-AWARE-GEN.4b.13.1 ROOT-CAUSE: context_member_method_call deferred (4th/5th obstacle proven) (PURE-DOCS)
+
+Tools-first ROOT-CAUSE slice; no code lands (SV row unchanged `Mostly Done`, `UNKNOWN=32`, re-verified seed 0 after revert). Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.13.1`) — this is a continuity pointer.
+
+- **Approach (per [[feedback_pinpoint_real_blocker_not_menu]]):** implemented the pinned `.4b.13` producer-admission + consumer-echo and MEASURED, rather than guessing. Verified strictly-additive (`UNKNOWN 32→32`, strict subset, clippy-clean) but INERT ⇒ reverted per "commit only improvements".
+- **Tool-proven 4th/5th obstacles (beyond the 3-obstacle design):** (4) `REACH_PATH_DUMP` — BFS-shortest carrier is a bare top-level `attribute_instance` with NO declaration-hosting sibling quantifier site (`description/o5/s0/q → attribute_instance → attr_spec → …`, never `variable_decl_assignment`); (5) decisive `--parse` A/B — `int \foo ;…\foo .\bar .\baz ()` → `context_member_method` count=1, but the generator's untyped `\foo ;` (head `\foo`) → count=0 (bare `\foo ;` emits no `variable_binding`). Also corrected the design: leg 2 (`:3538`) + `compute_name_gates` (`:6911`) ALREADY discover the target-self gate.
+- **Decision:** DEFER `context_member_method_call` — needs a declaration-hosting-carrier + typed-declaration-forcing reach capability, not a safe additive slice (per the `.4b.13`/`.4b.12` DEFER precedent + [[feedback_no_codebase_change_without_tool_backed_facts]]). Frontier → `.4b.14`. Disciplines: [[feedback_systematically_use_debug_toolbox]], [[feedback_why_and_where_before_solution]], [[project_cert_coverage_tournament_loser_leak]].
+
 ## 2026-06-23 - PGEN-STORE-AWARE-GEN-0020 — STORE-AWARE-GEN.4b.13 DESIGN-REFINEMENT: the pinned 9C-ii design is incomplete (PURE-DOCS)
 
 Pure-docs root-cause/design-refinement slice; no code. SV row unchanged (`Mostly Done`, `UNKNOWN=32`, re-verified seed 0). Canonical detail in `docs/tasks/STORE-AWARE-GEN.md` (`.4b.13`) — this is a continuity pointer.
