@@ -4080,24 +4080,24 @@ property_expr_sv_2017 := sequence_expr
                               -> {kind: "imp_assign",          lhs: $1, rhs: $5}
                        | kw_nexttime_b0f658f8 property_expr
                               -> {kind: "nexttime",            body: $2}
-                       | kw_nexttime_b0f658f8 ( kw_constant_d810ca96 expression )? property_expr
-                              -> {kind: "nexttime_const",      const_expr: $2, body: $3}
+                       | kw_nexttime_b0f658f8 lbrack constant_expression rbrack property_expr
+                              -> {kind: "nexttime_const",      const_expr: $3, body: $5}
                        | kw_s_nexttime_373d0bd1 property_expr
                               -> {kind: "s_nexttime",          body: $2}
-                       | kw_s_nexttime_373d0bd1 ( constant_expression )? property_expr
-                              -> {kind: "s_nexttime_const",    const_expr: $2, body: $3}
+                       | kw_s_nexttime_373d0bd1 lbrack constant_expression rbrack property_expr
+                              -> {kind: "s_nexttime_const",    const_expr: $3, body: $5}
                        | kw_always_6656018a property_expr
                               -> {kind: "always",              body: $2}
-                       | kw_always_6656018a ( cycle_delay_const_range_expression )? property_expr
-                              -> {kind: "always_range",        range: $2, body: $3}
-                       | kw_s_always_0f9aa900 ( constant_range )? property_expr
-                              -> {kind: "s_always",            range: $2, body: $3}
+                       | kw_always_6656018a lbrack cycle_delay_const_range_expression rbrack property_expr
+                              -> {kind: "always_range",        range: $3, body: $5}
+                       | kw_s_always_0f9aa900 lbrack constant_range rbrack property_expr
+                              -> {kind: "s_always",            range: $3, body: $5}
                        | kw_s_eventually_86207140 property_expr
                               -> {kind: "s_eventually",        body: $2}
-                       | kw_eventually_5865020f ( constant_range )? property_expr
-                              -> {kind: "eventually",          range: $2, body: $3}
-                       | kw_s_eventually_86207140 ( cycle_delay_const_range_expression )? property_expr
-                              -> {kind: "s_eventually_range",  range: $2, body: $3}
+                       | kw_eventually_5865020f lbrack constant_range rbrack property_expr
+                              -> {kind: "eventually",          range: $3, body: $5}
+                       | kw_s_eventually_86207140 lbrack cycle_delay_const_range_expression rbrack property_expr
+                              -> {kind: "s_eventually_range",  range: $3, body: $5}
                        | property_expr kw_until_b310f4d4 property_expr
                               -> {kind: "until",               lhs: $1, rhs: $3}
                        | property_expr kw_s_until_073539cf property_expr
@@ -4152,24 +4152,24 @@ property_expr_sv_2023 := sequence_expr
                               -> {kind: "imp_assign",          lhs: $1, rhs: $5}
                        | kw_nexttime_b0f658f8 property_expr
                               -> {kind: "nexttime",            body: $2}
-                       | kw_nexttime_b0f658f8 ( constant_expression )? property_expr
-                              -> {kind: "nexttime_const",      const_expr: $2, body: $3}
+                       | kw_nexttime_b0f658f8 lbrack constant_expression rbrack property_expr
+                              -> {kind: "nexttime_const",      const_expr: $3, body: $5}
                        | kw_s_nexttime_373d0bd1 property_expr
                               -> {kind: "s_nexttime",          body: $2}
-                       | kw_s_nexttime_373d0bd1 ( constant_expression )? property_expr
-                              -> {kind: "s_nexttime_const",    const_expr: $2, body: $3}
+                       | kw_s_nexttime_373d0bd1 lbrack constant_expression rbrack property_expr
+                              -> {kind: "s_nexttime_const",    const_expr: $3, body: $5}
                        | kw_always_6656018a property_expr
                               -> {kind: "always",              body: $2}
-                       | kw_always_6656018a ( cycle_delay_const_range_expression )? property_expr
-                              -> {kind: "always_range",        range: $2, body: $3}
-                       | kw_s_always_0f9aa900 ( constant_range )? property_expr
-                              -> {kind: "s_always",            range: $2, body: $3}
+                       | kw_always_6656018a lbrack cycle_delay_const_range_expression rbrack property_expr
+                              -> {kind: "always_range",        range: $3, body: $5}
+                       | kw_s_always_0f9aa900 lbrack constant_range rbrack property_expr
+                              -> {kind: "s_always",            range: $3, body: $5}
                        | kw_s_eventually_86207140 property_expr
                               -> {kind: "s_eventually",        body: $2}
-                       | kw_eventually_5865020f ( constant_range )? property_expr
-                              -> {kind: "eventually",          range: $2, body: $3}
-                       | kw_s_eventually_86207140 ( cycle_delay_const_range_expression )? property_expr
-                              -> {kind: "s_eventually_range",  range: $2, body: $3}
+                       | kw_eventually_5865020f lbrack constant_range rbrack property_expr
+                              -> {kind: "eventually",          range: $3, body: $5}
+                       | kw_s_eventually_86207140 lbrack cycle_delay_const_range_expression rbrack property_expr
+                              -> {kind: "s_eventually_range",  range: $3, body: $5}
                        | property_expr kw_until_b310f4d4 property_expr
                               -> {kind: "until",               lhs: $1, rhs: $3}
                        | property_expr kw_s_until_073539cf property_expr
@@ -5594,8 +5594,6 @@ kw_cmos_aabe63a7 := trivia /cmos\b/
 kw_config_dfba7aad := trivia /config\b/
 
 kw_const_b42f3f6f := trivia /const\b/
-
-kw_constant_d810ca96 := trivia /constant\b/
 
 kw_constraint_9f454fd4 := trivia /constraint\b/
 
