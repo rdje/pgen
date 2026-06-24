@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-25 - PGEN-GRAMMAR-WELLFORMED-0128 — GRAMMAR-WELLFORMED.H.14.1: port the `::N*` extraction-spread to grammars/ebnf.ebnf (EBNF self-hosting 8/12 → 11/12)
+
+EBNF meta-grammar self-hosting lane (`H.14`, the honest follow-up to `H.13`'s gate-only criterion). Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.14`/`H.14.1` rows + 2026-06-25 Decisions entry + acceptance checklist).
+
+- **Lane:** PNT loop (fresh session 2026-06-25; full startup read complete). Picked the batch-shaped `H.14` EBNF self-hosting lane over the pinned-but-fresh-budget SV cascade/engine ceremony.
+- **WHY+WHERE (tool-backed):** `ebnf_dual_run_diff` minimal probes — `[$1::2*]` FAIL@9, controls `[$1,$3]`/`[$2**]` PASS — pinpoint the missing construct as the `$N::target spread?` extraction-spread; absent from `grammars/ebnf.ebnf`'s `scalar_return` (`:317`) / `array_element_return` (`:356`), where `quantified_marker` (`:374`) models only `* + ?`. Whole-grammar gaps: vhdl @1666 (`library_clause` `:31`), rtl_frontend @5018, svpp @6900. Authoritative model: `grammars/return_annotation.ebnf:43` `extraction_expression`.
+- **Fix (tier = grammar):** added `extraction_reference := positional_reference "::" extraction_target spread_marker?` + helpers `extraction_target := ( extraction_index | "first" | "last" )`, `extraction_index := /([1-9][0-9]*)/`, `spread_marker := "*"`; placed `extraction_reference` FIRST in `scalar_return`'s ordered choice. Additive + inert for bare `$N` (falls through to `positional_reference`).
+- **Regen:** `ast_pipeline grammars/ebnf.ebnf --emit-raw-ast-json generated/ebnf.json` → `ast_pipeline --generate-parser --debug --eliminate-left-recursion generated/ebnf.json -o generated/ebnf.rs` (untracked); rebuilt `ebnf_dual_run_diff`.
+- **Verified:** 5 extraction probes FAIL→PASS, 4 controls PASS; vhdl/rtl_frontend/svpp self-parse 100% (all had `::N*` as their first gap); systemverilog `32189→72476` (next `H.14.2` gap); full scan **11/12**. NO-REGRESSION: `ebnf_frontend_dual_run_gate` STRICT exit 0 (ebnf 131/131, json 99.90%, regex 100%); `generated/systemverilog_parser.rs` byte-identical ⇒ SV `UNKNOWN=28`. Meta-grammar-only: no production regen, no release/schema/ledger.
+
 ## 2026-06-24 - PGEN-GRAMMAR-WELLFORMED-0127 — GRAMMAR-WELLFORMED.H.12.5.8.3.1: SVA sequence precedence-cascade RE-MEASURE (pure-docs checkpoint) — net `28→27`, residual collapsed to one rule, engine fix pinned
 
 SV `UNKNOWN`→0 headline lane. Tools-first re-applied the `-0119`-validated §16 cascade onto today's witness machinery; the stale `-0120` `56→65` regression does NOT reproduce. Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED-H12583-sva-precedence-cascade-implement.md` (2026-06-24 RE-MEASURE section).

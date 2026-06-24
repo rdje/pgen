@@ -1133,6 +1133,22 @@ place, the static proof (linter) and the constructive proof (generator) can fina
 equal, reproducible footing. The design rationale and ordered build plan live in the
 `GRAMMAR-WELLFORMED` task tree.
 
+### EBNF self-hosting: the meta-grammar models itself
+
+The EBNF *meta-grammar* (`grammars/ebnf.ebnf`) is held to the same gen↔parse duality as every
+parser family: the parser generated *from* it (`generated/ebnf.rs`) must be able to parse the very
+grammar files PGEN ships. Every EBNF-format construct a shipped grammar uses — per-branch return
+annotations, the `**` flatten-spread, dotted `$ref` property access, the `::N*` extraction-spread,
+`null` literals, and so on — must therefore be modelled *in* `ebnf.ebnf`, or the generated EBNF
+parser cannot self-parse that grammar. This is the EBNF meta-grammar lockstep rule: a new EBNF
+feature is not "done" until it is also expressed in the meta-grammar.
+
+Self-hosting is measured by the `ebnf_dual_run_diff` tool (the generated EBNF parser run over each
+grammar file) and gated, for the three tracked grammars `ebnf`/`json`/`regex`, by `make -C rust
+ebnf_frontend_dual_run_gate`. The remaining shipped grammars are being drained gap-by-gap so the
+generated EBNF parser self-parses *all* of them; the live count and the per-gap history are tracked
+in `LIVE_ACHIEVEMENT_STATUS.md` and the `GRAMMAR-WELLFORMED` task tree (`H.13`/`H.14`).
+
 ## Extending: adding a new annotation tag-kind
 
 Profile tags (`@profiles`) are the first *tag-kind* whose values **compose across rule references**

@@ -313,8 +313,14 @@ return_expression := (
     string_return
 ) -> $1
 
-# Scalar returns: $1, $2, $name, and dotted property access $1.min / $name.field
+# Scalar returns: $1, $2, $name, dotted property access $1.min / $name.field,
+# and extraction-spread $2::2* / $2::first / $3::last (the return_annotation.ebnf
+# extraction_expression family). extraction_reference is listed FIRST so a "$N::"
+# extraction binds before a bare positional_reference would commit to "$N" and
+# strand the "::target"; a "$N" with no "::" falls through to positional_reference,
+# so existing scalar/array returns are byte-unchanged.
 scalar_return := (
+    extraction_reference |
     reference_property_access |
     positional_reference |
     named_reference |
@@ -376,6 +382,23 @@ quantified_marker := ("*" | "+" | "?")
 
 spread_reference := "..." scalar_return
     -> {type: "spread_reference", reference: $2}
+
+# Extraction-spread reference: $2::2*, $2::3*, $2::2, $2::first, $3::last.
+# Extracts element N (or first/last) from a quantified group `$N`, with an
+# optional trailing "*" spread. Mirrors grammars/return_annotation.ebnf's
+# extraction_expression / extraction_target / spread_suffix (the authoritative
+# return-annotation language). The base is a positional_reference because no
+# shipped grammar uses a named-reference extraction ($name::...).
+extraction_reference := positional_reference "::" extraction_target spread_marker?
+    -> {type: "extraction", base: $1, target: $3, spread: $4}
+
+extraction_target := ( extraction_index | "first" | "last" )
+    -> $1
+
+extraction_index := /([1-9][0-9]*)/
+
+spread_marker := "*"
+    -> $1
 
 # Object returns: {key: $1, value: $2}
 object_return := "{" (object_property_return ("," object_property_return)*)? "}"
