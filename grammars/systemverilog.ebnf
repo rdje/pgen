@@ -640,8 +640,8 @@ bins_or_empty := lbrace ( attribute_instance* ( bins_or_options semi )* ) rbrace
 
 bins_or_options := coverage_option
                           -> {kind: "coverage_option", body: $1}
-                 | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign covergroup_range_list* ( kw_with_8fcd25a3 lparen with_covergroup_expression rparen )? ( kw_iff_ee1c009e lparen expression rparen )?
-                          -> {kind: "range_list",      wildcard: $1, keyword: $2, name: $3, index: $4, ranges: $6, with_expr: $7, iff: $8}
+                 | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign lbrace covergroup_range_list rbrace ( kw_with_8fcd25a3 lparen with_covergroup_expression rparen )? ( kw_iff_ee1c009e lparen expression rparen )?
+                          -> {kind: "range_list",      wildcard: $1, keyword: $2, name: $3, index: $4, ranges: $7, with_expr: $9, iff: $10}
                  | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign cover_point_identifier kw_with_8fcd25a3 lparen with_covergroup_expression rparen ( kw_iff_ee1c009e lparen expression rparen )?
                           -> {kind: "cover_point_with", wildcard: $1, keyword: $2, name: $3, index: $4, cover_point: $6, with_expr: $9, iff: $11}
                  | ( kw_wildcard_08654ea6 )? bins_keyword bin_identifier ( lbrack ( covergroup_expression )? rbrack )? assign set_covergroup_expression ( kw_iff_ee1c009e lparen expression rparen )?
