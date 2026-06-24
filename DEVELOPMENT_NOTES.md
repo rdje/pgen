@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-25 - PGEN-GRAMMAR-WELLFORMED-0129 — GRAMMAR-WELLFORMED.H.14.2: root-cause the last systemverilog self-host gap (duplicate-`->` defect; 12/12 achievable) — fix deferred to fresh-budget SV; SV codegen byte-non-determinism discovered
+
+EBNF self-hosting lane. PURE-DOCS INVESTIGATION (SV grammar edit made, measured, reverted). Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.14.2`/`H.14.3` + 2026-06-25 Decisions entry).
+
+- **Lane:** PNT loop (2026-06-25). After `H.14.1` (11/12), drove the last self-host grammar (`systemverilog`).
+- **WHY+WHERE:** `ebnf_dual_run_diff` ⇒ SV `parse_full.ok=false @72476` = `grammars/systemverilog.ebnf:1168`, a duplicate identical `-> {inputs: $1, output: $3}` on `combinational_entry`; 2nd site `:4639` on `sequential_entry`. A rule has one return annotation; the generated ebnf parser strands on the 2nd `->`. NOT a missing `ebnf.ebnf` construct ([[project_grammar_wellformedness_contract]]: do not model a duplicate `->`).
+- **Measured then reverted:** deleting the 2 lines → SV self-parse 369412/369413 (100%) ⇒ self-host **12/12**. SV parser md5 cbe76f0e (no-change regen) → 8cf1515b (fix); control regen of the reverted grammar → 11ebfda1 ⇒ **SV codegen byte-non-deterministic** (HashMap order likely; cert stays seed-deterministic as a semantic property). My earlier "determinism check" was a make no-op (skipped regen).
+- **Deferred (H.14.3, fresh-budget):** byte-identity unavailable ⇒ the fix needs the semantic released-SV ceremony (cert/corpus/shape-contract + UDP-AST-shape adjudication ⇒ possible schema/release). Not rushed at the tail of a long turn ([[feedback_always_signoff_decisions]], [[feedback_correctness_before_speed]]). Recovery turnkey: delete `:1168` + `:4639`.
+- **Sub-finding:** SV codegen byte-non-determinism — reproducible-build concern; candidate investigation leaf. Working tree reverted; `generated/` untracked.
+
 ## 2026-06-25 - PGEN-GRAMMAR-WELLFORMED-0128 — GRAMMAR-WELLFORMED.H.14.1: port the `::N*` extraction-spread to grammars/ebnf.ebnf (EBNF self-hosting 8/12 → 11/12)
 
 EBNF meta-grammar self-hosting lane (`H.14`, the honest follow-up to `H.13`'s gate-only criterion). Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.14`/`H.14.1` rows + 2026-06-25 Decisions entry + acceptance checklist).
