@@ -98,8 +98,14 @@ rule_operator := (
 rule_expression := alternation
     -> $1
 
-# Alternation: expr1 | expr2 | expr3
-alternation := sequence ("|" sequence)*
+# Alternation: expr1 -> ann1 | expr2 -> ann2 | expr3
+# Each non-last branch's sequence may carry its own inline return annotation
+# (a per-branch `->` appearing BEFORE a `|`), mirroring rust/src/ebnf_frontend.rs's
+# inline-at-`->` placement and grammars/return_annotation.ebnf. The trailing
+# annotation after the LAST branch is left for rule_definition's rule-level
+# return_annotation, so single-branch and last-branch trailing annotations are
+# unchanged. Additive: when no `->` precedes a `|`, the optional matches empty.
+alternation := sequence (return_annotation? "|" sequence)*
     -> {type: "alternation", alternatives: [$1, $2*]}
 
 # Sequence: expr1 expr2 expr3
