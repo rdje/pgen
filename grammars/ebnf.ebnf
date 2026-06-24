@@ -313,8 +313,9 @@ return_expression := (
     string_return
 ) -> $1
 
-# Scalar returns: $1, $2, $name
+# Scalar returns: $1, $2, $name, and dotted property access $1.min / $name.field
 scalar_return := (
+    reference_property_access |
     positional_reference |
     named_reference |
     literal_return
@@ -328,6 +329,25 @@ named_reference := "$" rule_name
 
 literal_return := (quoted_string | numeric_literal | boolean_literal)
     -> {type: "literal_return", value: $1}
+
+# Dotted property access on a reference: $1.min, $1.max, $1.value, $name.field.
+# Mirrors grammars/return_annotation.ebnf's property_access_expression / accessor_base
+# (the authoritative return-annotation language), re-expressed in non-left-recursive
+# base + ".field"+ PEG form. Listed FIRST in scalar_return so a postfix ".field" chain
+# binds tighter than a bare positional_reference — otherwise PEG ordered choice commits
+# to the bare "$1" and strands the dangling ".min". The required-first-then-starred shape
+# (the proven array_return/alternation "[$first, $rest*]" idiom) means a bare "$1" with no
+# ".field" falls through to positional_reference, so existing scalar returns are unchanged.
+# (Indexed access $N[i] — the original -0068 gap #6 — is a separate future leaf; no
+# dual-run grammar uses it today, matching the H.13.3 "targeted to the proven gap" rule.)
+reference_property_access := reference_base property_access_suffix property_access_suffix*
+    -> {type: "property_access", base: $1, accessors: [$2, $3*]}
+
+reference_base := (positional_reference | named_reference)
+    -> $1
+
+property_access_suffix := "." identifier_literal
+    -> {type: "property_access_suffix", property: $2}
 
 # Array returns: [$1, $2], [$1*], [expr, ...]
 array_return := "[" (array_element_return ("," array_element_return)*)? "]"
