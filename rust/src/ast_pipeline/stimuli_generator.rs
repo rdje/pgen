@@ -1489,6 +1489,15 @@ pub struct StimuliGenerator<'a> {
     // The generation-time necessary condition `count(K) >= 1` is checked before the rule generates; on
     // failure the rule is unsatisfiable (no positive `$ref` can match an empty fact set) → backtrack.
     gen_count_kinds: HashMap<String, Vec<String>>,
+    // STORE-AWARE-GEN.4b.17: rule → the LITERAL threshold N of its `fact_count_at_least(K, N)`
+    // post-predicate (a fixed integer, NOT a generated `$ref` — the SV `fact_count_at_least(
+    // wildcard_import_open, 1)` shape on `wildcard_escape_nettype_identifier`). Distinguishes a
+    // literal-threshold count gate (arm the prelude immediately with `iterations = N`, no phase-1
+    // capture) from the regex `$ref` count gate (phase-1 capture → `iterations = captured value`), and
+    // makes `gen_count_predicate_satisfiable` threshold-exact. A rule absent here defaults to N = 1, so
+    // every `$ref`-gated (regex) rule is byte-identical. Empty for grammars without a literal-threshold
+    // `fact_count_at_least` ⇒ inert.
+    gen_count_literal_thresholds: HashMap<String, usize>,
     // GRAMMAR-WELLFORMED.H.12.5.6.2.2.2 (M2a reach-honesty): rule → the fact-KINDS it consults via a
     // kind-first fact-query `@predicate` (`has_fact`/`lacks_fact`/`fact_attribute_equals`/
     // `lacks_fact_attribute_equals`/`fact_count_at_least`). A rule with entries is "store-gated" on
@@ -1622,14 +1631,15 @@ impl<'a> StimuliGenerator<'a> {
             }
         }
 
-        // STORE-AWARE-GEN.3: precompute the generation-side semantic directives once. `gen_emit_facts`
-        // maps a rule to its `@emit_fact` specs (emitted into the generation-time store on rule
-        // success); `gen_count_kinds` maps a rule to the fact-kinds K for which it carries a
-        // `fact_count_at_least(K, $ref)` post-predicate whose threshold is a generated value (a
-        // `RuleReference`). `store_aware_gen` is true iff any such count-predicate exists — today ONLY
-        // `regex` uses `fact_count_at_least`, so SV/VHDL/json generation is byte-unaffected (the whole
-        // store-aware path is gated off when this is false).
-        let (gen_emit_facts, gen_count_kinds) =
+        // STORE-AWARE-GEN.3 / .4b.17: precompute the generation-side semantic directives once.
+        // `gen_emit_facts` maps a rule to its `@emit_fact` specs (emitted into the generation-time store
+        // on rule success); `gen_count_kinds` maps a rule to the fact-kinds K for which it carries a
+        // `fact_count_at_least(K, threshold)` post-predicate (threshold = a generated `RuleReference`
+        // for regex's `$index`, OR a literal `Number` N for SV's `wildcard_import_open, 1`);
+        // `gen_count_literal_thresholds` records N for the literal-threshold case. `store_aware_gen` is
+        // true iff any such count-predicate OR name gate exists; predicate-free grammars (json/ebnf/
+        // vhdl) gate the whole store-aware path off ⇒ byte-unaffected.
+        let (gen_emit_facts, gen_count_kinds, gen_count_literal_thresholds) =
             Self::compute_store_aware_gen_directives(annotations);
         // STORE-AWARE-GEN.4b.2: precompute the per-rule NAME-matching store gates (the same annotation
         // parse) that drive the declare-then-use witness prelude. Empty for grammars without
@@ -1688,6 +1698,7 @@ impl<'a> StimuliGenerator<'a> {
             store_aware_gen,
             gen_emit_facts,
             gen_count_kinds,
+            gen_count_literal_thresholds,
             reach_gate_kinds,
             gen_name_gate,
             grammar_content_sigils: None,
@@ -2941,24 +2952,77 @@ impl<'a> StimuliGenerator<'a> {
                 for site in sub_quantifier_sites {
                     sub_plan.forced_quantifier_min.insert(site, 1);
                 }
+                // STORE-AWARE-GEN.4b.17: when the producer emits the gated kind from a BRANCH-LOCAL
+                // `@emit_fact` (the SV `package_import_item` wildcard `::*` branch emits
+                // `wildcard_import_open`; the sibling explicit `::name` branch does NOT), reaching the
+                // producer RULE alone renders its shortest (non-emitting) branch, so no fact is emitted
+                // on the parser re-check and the gated consumer never witnesses. Force the producer's
+                // root-`Or` to the emitting alternative. Inert for a rule-level emit / single-branch
+                // producer (the regex `capture_open := "("` case) ⇒ byte-identical there.
+                if let Some((or_path, branch_index)) = self.producer_emitting_branch(producer, kind) {
+                    sub_plan
+                        .directives
+                        .insert(((*producer).to_string(), or_path), branch_index);
+                }
+                // STORE-AWARE-GEN.4b.17: a LITERAL-threshold count gate (`fact_count_at_least(K, N)`,
+                // the SV `wildcard_import_open, 1` shape) arms `iterations = N` IMMEDIATELY — there is no
+                // generated `$ref` value to capture, so the prelude hosts N producer iterations from the
+                // first attempt (mirrors the name-prelude's `iterations = 1` from the start). A `$ref`
+                // count gate (regex) is absent from `gen_count_literal_thresholds`, so it keeps
+                // `iterations = 0` and runs the two-phase capture → arm flow — byte-identical.
+                let iterations = self
+                    .gen_count_literal_thresholds
+                    .get(gated_rule)
+                    .copied()
+                    .unwrap_or(0);
                 self.trace(
                     TraceLevel::Debug,
                     format_args!(
-                        "C2 semantic-prelude spec: gated_rule='{}' kind='{}' producer='{}' site=('{}','{}') body='{}'",
-                        gated_rule, kind, producer, site_rule, site_path, body_rule
+                        "C2 semantic-prelude spec: gated_rule='{}' kind='{}' producer='{}' site=('{}','{}') body='{}' iterations={}",
+                        gated_rule, kind, producer, site_rule, site_path, body_rule, iterations
                     ),
                 );
                 return Some(ReachPrelude {
                     site: (site_rule.clone(), site_path.clone()),
                     gated_rule: gated_rule.to_string(),
                     sub_plan: Box::new(sub_plan),
-                    iterations: 0,
+                    iterations,
                     captured: None,
                     name_gate: None,
                 });
             }
         }
         None
+    }
+
+    /// STORE-AWARE-GEN.4b.17: a count-prelude producer whose `@emit_fact` for the gated `kind` is
+    /// BRANCH-LOCAL renders its shortest, non-emitting branch when the prelude reaches only the
+    /// producer RULE — so no fact is registered on the parser re-check and the gated consumer never
+    /// witnesses. Returns the producer's root-`Or` `(node_path, branch_index)` for the alternative that
+    /// carries that emit, so the prelude can force it. Only a TOP-LEVEL ordered choice is considered —
+    /// that aligns the `branch_semantic_annotations` index with the `forced_branch_for` key, and is
+    /// exactly where the SV `package_import_item` wildcard `::*` alternative sits. `None` for a
+    /// rule-level emit, a producer with no top-level `Or`, or no annotations (the regex
+    /// `capture_open := "("` case — a single fixed-literal producer with a rule-level emit ⇒ no force ⇒
+    /// byte-identical). Pure analysis; parser-agnostic.
+    fn producer_emitting_branch(&self, producer: &str, kind: &str) -> Option<(String, usize)> {
+        let annotations = self.annotations?;
+        let branches = annotations.branch_semantic_annotations.get(producer)?;
+        let branch_index = branches.iter().position(|branch| {
+            parse_semantic_runtime_directives(branch.iter())
+                .map(|directives| {
+                    directives.iter().any(|directive| {
+                        matches!(
+                            directive,
+                            SemanticRuntimeDirective::EmitFact(spec) if spec.kind == kind
+                        )
+                    })
+                })
+                .unwrap_or(false)
+        })?;
+        let (root_or, _) = self.target_own_reach_sites(producer);
+        let (node_path, alt_count) = root_or?;
+        (branch_index < alt_count).then_some((node_path, branch_index))
     }
 
     /// STORE-AWARE-GEN.4b.2: build the NAME-coordinated declare-then-use prelude when the reach path
@@ -3684,7 +3748,15 @@ impl<'a> StimuliGenerator<'a> {
         else {
             return;
         };
-        if prelude.gated_rule != rule_name || prelude.captured.is_some() {
+        // STORE-AWARE-GEN.4b.17: phase-1 capture runs ONLY for a disarmed `$ref` count prelude
+        // (`iterations == 0`). An immediately-armed prelude — a literal-threshold count prelude or a
+        // name-coordinated prelude — has `iterations > 0` from the start and has no `$ref` value to
+        // extract, so it must not capture (a stray digit run in the gated render would otherwise pin a
+        // bogus replay text). The regex `$ref` capture path (iterations == 0) is unchanged.
+        if prelude.gated_rule != rule_name
+            || prelude.captured.is_some()
+            || prelude.iterations != 0
+        {
             return;
         }
         let digits: String = sample
@@ -10843,11 +10915,14 @@ impl<'a> StimuliGenerator<'a> {
     ) -> (
         HashMap<String, Vec<SemanticFactSpec>>,
         HashMap<String, Vec<String>>,
+        HashMap<String, usize>,
     ) {
         let mut emit_facts: HashMap<String, Vec<SemanticFactSpec>> = HashMap::new();
         let mut count_kinds: HashMap<String, Vec<String>> = HashMap::new();
+        // STORE-AWARE-GEN.4b.17: rule → the literal threshold N of a `fact_count_at_least(K, N)` gate.
+        let mut count_literal_thresholds: HashMap<String, usize> = HashMap::new();
         let Some(annotations) = annotations else {
-            return (emit_facts, count_kinds);
+            return (emit_facts, count_kinds, count_literal_thresholds);
         };
         // A directive may bind at the rule level OR a branch level — flatten both per rule.
         let mut per_rule: HashMap<String, Vec<&SemanticAnnotation>> = HashMap::new();
@@ -10872,24 +10947,44 @@ impl<'a> StimuliGenerator<'a> {
                         emit_facts.entry(rule.clone()).or_default().push(spec);
                     }
                     SemanticRuntimeDirective::Predicate(spec)
-                        if spec.name.trim() == "fact_count_at_least"
-                            && matches!(
-                                spec.args.get(1),
-                                Some(UnifiedSemanticValue::RuleReference(_))
-                            ) =>
+                        if spec.name.trim() == "fact_count_at_least" =>
                     {
+                        // arg[0] = the fact KIND; arg[1] = the threshold — EITHER a generated `$ref`
+                        // (the regex `fact_count_at_least(regex_capture_group, $index)` shape, captured
+                        // then replayed) OR a literal `Number` N (the SV `fact_count_at_least(
+                        // wildcard_import_open, 1)` shape, a fixed count). Both register the kind into
+                        // `count_kinds` (so the `.3` count==0 prune fires); only the literal records N.
                         if let Some(UnifiedSemanticValue::Identifier(kind)) = spec.args.first() {
-                            count_kinds
-                                .entry(rule.clone())
-                                .or_default()
-                                .push(kind.clone());
+                            match spec.args.get(1) {
+                                Some(UnifiedSemanticValue::RuleReference(_)) => {
+                                    count_kinds
+                                        .entry(rule.clone())
+                                        .or_default()
+                                        .push(kind.clone());
+                                }
+                                // STORE-AWARE-GEN.4b.17: literal-threshold count gate — record N so the
+                                // prelude arms `iterations = N` immediately and the prune is N-exact.
+                                Some(UnifiedSemanticValue::Number(n)) => {
+                                    if let Ok(threshold) = n.trim().parse::<usize>() {
+                                        if threshold >= 1 {
+                                            count_kinds
+                                                .entry(rule.clone())
+                                                .or_default()
+                                                .push(kind.clone());
+                                            count_literal_thresholds
+                                                .insert(rule.clone(), threshold);
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
                         }
                     }
                     _ => {}
                 }
             }
         }
-        (emit_facts, count_kinds)
+        (emit_facts, count_kinds, count_literal_thresholds)
     }
 
     /// STORE-AWARE-GEN.3: the generation-time necessary condition for a rule gated by a
@@ -10902,17 +10997,25 @@ impl<'a> StimuliGenerator<'a> {
         let Some(kinds) = self.gen_count_kinds.get(rule_name) else {
             return true;
         };
+        // STORE-AWARE-GEN.4b.17: use the rule's LITERAL threshold N when it carries one (SV's
+        // `fact_count_at_least(wildcard_import_open, 1)`); a `$ref`-gated (regex) rule is absent from
+        // the map and defaults to `1` — exactly the prior hard-coded threshold ⇒ byte-identical there.
+        let threshold = self
+            .gen_count_literal_thresholds
+            .get(rule_name)
+            .copied()
+            .unwrap_or(1);
         kinds.iter().all(|kind| {
             let spec = SemanticPredicateSpec {
                 name: "fact_count_at_least".to_string(),
                 args: vec![
                     UnifiedSemanticValue::Identifier(kind.clone()),
-                    UnifiedSemanticValue::Number("1".to_string()),
+                    UnifiedSemanticValue::Number(threshold.to_string()),
                 ],
                 phase: SemanticPredicatePhase::Post,
                 view: SemanticPredicateContentView::Raw,
             };
-            // `Some(false)` = count < 1 (unsatisfiable). `Some(true)`/`None` = allow.
+            // `Some(false)` = count < N (unsatisfiable). `Some(true)`/`None` = allow.
             self.gen_semantic_state.evaluate_predicate(&spec) != Some(false)
         })
     }
@@ -17209,6 +17312,146 @@ mod tests {
         assert_eq!(
             producers, value,
             "phase 2 must inject exactly `value` producer iterations before the gated render: {witnessing:?}"
+        );
+    }
+
+    #[test]
+    fn literal_threshold_count_prelude_arms_immediately() {
+        // STORE-AWARE-GEN.4b.17: a LITERAL-threshold count gate (`fact_count_at_least(K, N)`, the SV
+        // `wildcard_import_open, 1` shape on `wildcard_escape_nettype_identifier`) arms its prelude
+        // IMMEDIATELY (`iterations = N`) — there is no generated `$ref` value to capture, so the gated
+        // rule's render is a fixed marker, not a digit run. The prelude hosts N producer iterations from
+        // the first attempt and the gated rule witnesses with no phase-1 capture probe. Synthetic shape:
+        // `gated := "#"` needs ≥ 1 `producer` fact before it (a bare marker, like the wildcard's bare
+        // escaped-id net-decl), `producer := "()"` emits the fact.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Quantified {
+                element: Box::new(rule_ref("item")),
+                quantifier: "+".to_string(),
+            },
+        );
+        grammar_tree.insert(
+            "item".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule_ref("producer"), rule_ref("gated")],
+            },
+        );
+        grammar_tree.insert(
+            "producer".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "("), token("string", ")")],
+            },
+        );
+        grammar_tree.insert("gated".to_string(), token("string", "#"));
+        let rule_order: Vec<String> = ["start", "item", "producer", "gated"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 7);
+        generator.store_aware_gen = true;
+        generator
+            .gen_count_kinds
+            .insert("gated".to_string(), vec!["grp".to_string()]);
+        // The literal threshold N = 1 — arm the prelude immediately (no `$ref` capture).
+        generator
+            .gen_count_literal_thresholds
+            .insert("gated".to_string(), 1);
+        generator.gen_emit_facts.insert(
+            "producer".to_string(),
+            vec![SemanticFactSpec {
+                kind: "grp".to_string(),
+                name: crate::ast_pipeline::SemanticRuntimeValue::Identifier("g".to_string()),
+                attributes: vec![],
+            }],
+        );
+
+        let mut samples: Vec<String> = Vec::new();
+        let report = generator.generate_plannable_rule_witnesses(
+            "start",
+            &["gated".to_string()],
+            0,
+            4,
+            |_rule, sample| {
+                samples.push(sample.to_string());
+                // The stand-in "parser": `gated` (`#`) is witnessed iff ≥ 1 `()` producer precedes it
+                // (the `fact_count_at_least(K, 1)` satisfaction shape).
+                let Some(hash) = sample.find('#') else {
+                    return PlannableProbeVerdict::NotParsed;
+                };
+                if sample[..hash].matches("()").count() >= 1 {
+                    PlannableProbeVerdict::Witnessed
+                } else {
+                    PlannableProbeVerdict::NotParsed
+                }
+            },
+        );
+
+        assert_eq!(
+            report.witnessed, 1,
+            "a literal-threshold count gate must be witnessed via the immediately-armed prelude; samples={samples:?}"
+        );
+        let witnessing = samples
+            .iter()
+            .find(|s| s.find('#').is_some_and(|h| s[..h].matches("()").count() >= 1))
+            .expect("a witnessing sample with a producer before the gated marker");
+        let hash = witnessing.find('#').expect("gated marker present");
+        assert!(
+            witnessing[..hash].matches("()").count() >= 1,
+            "the immediately-armed prelude must inject ≥ 1 producer before the gated render: {witnessing:?}"
+        );
+    }
+
+    #[test]
+    fn gen_count_predicate_satisfiable_honors_literal_threshold() {
+        // STORE-AWARE-GEN.4b.17: the `.3` count==0 prune is N-EXACT for a literal-threshold gate. A rule
+        // gated `fact_count_at_least(K, 2)` is unsatisfiable until ≥ 2 `K` facts exist; a `$ref`-gated
+        // rule (absent from `gen_count_literal_thresholds`) defaults to threshold 1 — byte-identical to
+        // the prior hard-coded value.
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert("start".to_string(), token("quoted_string", "x"));
+        let rule_order = vec!["start".to_string()];
+        let mut generator = simple_generator(&grammar_tree, &rule_order, 1);
+        generator.store_aware_gen = true;
+        generator
+            .gen_count_kinds
+            .insert("two_imports".to_string(), vec!["imp".to_string()]);
+        generator
+            .gen_count_literal_thresholds
+            .insert("two_imports".to_string(), 2);
+        // `$ref`-style rule: no literal threshold ⇒ defaults to 1.
+        generator
+            .gen_count_kinds
+            .insert("backref".to_string(), vec!["grp".to_string()]);
+
+        let emit = |generator: &mut StimuliGenerator, kind: &str| {
+            generator.gen_semantic_state.emit_fact(SemanticFactSpec {
+                kind: kind.to_string(),
+                name: crate::ast_pipeline::SemanticRuntimeValue::Identifier("n".to_string()),
+                attributes: vec![],
+            });
+        };
+
+        assert!(
+            !generator.gen_count_predicate_satisfiable("two_imports"),
+            "zero `imp` facts < threshold 2 ⇒ unsatisfiable"
+        );
+        emit(&mut generator, "imp");
+        assert!(
+            !generator.gen_count_predicate_satisfiable("two_imports"),
+            "one `imp` fact < threshold 2 ⇒ still unsatisfiable (N-exact)"
+        );
+        emit(&mut generator, "imp");
+        assert!(
+            generator.gen_count_predicate_satisfiable("two_imports"),
+            "two `imp` facts >= threshold 2 ⇒ satisfiable"
+        );
+        // The `$ref` default-1 path is unchanged: one `grp` fact suffices.
+        emit(&mut generator, "grp");
+        assert!(
+            generator.gen_count_predicate_satisfiable("backref"),
+            "a `$ref`-gated rule defaults to threshold 1 ⇒ one fact suffices (byte-identical)"
         );
     }
 
