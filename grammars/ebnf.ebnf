@@ -328,10 +328,18 @@ array_return := "[" (array_element_return ("," array_element_return)*)? "]"
     -> {type: "array_return", elements: [$2, $3*]}
 
 array_element_return := (
+    flatten_reference |
     quantified_reference |
     scalar_return |
     spread_reference
 ) -> $1
+
+# Flatten-spread reference: [$1**] (recursive-spread). Listed BEFORE
+# quantified_reference because PEG alternation is ordered — "**" must match
+# before quantified_marker's "*" would consume only the first star and strand
+# the second. Mirrors grammars/return_annotation.ebnf's flat_spread_expression.
+flatten_reference := positional_reference "**"
+    -> {type: "flatten_reference", reference: $1}
 
 quantified_reference := positional_reference quantified_marker
     -> {type: "quantified_reference", reference: $1, quantifier: $2}
