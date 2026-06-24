@@ -336,6 +336,7 @@ array_return := "[" (array_element_return ("," array_element_return)*)? "]"
 array_element_return := (
     flatten_reference |
     quantified_reference |
+    object_return |
     scalar_return |
     spread_reference
 ) -> $1

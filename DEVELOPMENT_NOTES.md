@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-24 - PGEN-GRAMMAR-WELLFORMED-0124 — GRAMMAR-WELLFORMED.H.13.3: allow an object literal as an array element in `grammars/ebnf.ebnf`'s `array_element_return` (EBNF meta-grammar lockstep; meta-grammar only)
+
+EBNF meta-grammar lockstep slice — a gap **beyond** the original `-0068` six-enumeration, surfaced by advancing `regex.ebnf` past the per-branch gap (`.2`). Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.13`/`H.13.3` + the 2026-06-24 Decisions entry + acceptance checklist).
+
+- **Lane:** PNT loop (director-selected). EBNF meta-grammar lockstep; `regex.ebnf` is only the dual-run test input.
+- **WHY+WHERE (tools-first isolation):** `ebnf_dual_run_diff` probe matrix proved the missing element type precisely — `-> {…}` (top-level object) PASS, `-> [$2**]` PASS, but `-> [{…}]` / `-> [$2, {…}]` / `-> [$2**, {…}]` all FAIL@9 (the `{`). So it is NOT a "mixed-spread" issue ([[feedback_annotation_no_mixed_spread]] is about the annotation *engine*, a different layer) — it is that `grammars/ebnf.ebnf:336` `array_element_return` lacked an `object_return` alternative (object is a valid top-level `return_expression` but not an array element). Reference: `return_annotation.ebnf`'s `array_literal` admits a full `expression`.
+- **FIX (grammar-only, additive):** add `object_return` to `array_element_return`'s ordered choice. Regenerated `generated/ebnf.rs`; rebuilt tools.
+- **VERIFIED:** object-element probes FAIL@9→PASS (+ controls PASS); regex dual-run `parse_end` 2413→3959 (deeper gap); `ebnf` PASS (parity 123/123) + `json` PASS (99.90%); `--lint-grammar` clean (123 rules); production parser untouched (SV cert `UNKNOWN=28`; 6 fully-certified grammars byte-identical); no tracked Rust source amended.
+- **PROCESS LESSON:** the `-0068` whole-file probes were first-failure-masked → the lockstep is genuinely gap-by-gap and the gap *count* is not fixed; the done-criterion is the `ebnf_frontend_dual_run_gate` going GREEN. After each construct slice: ID the next blocker by running `ebnf_dual_run_diff --input grammars/regex.ebnf` and inspecting the `parse_end` byte — never guess the next gap. Disciplines: [[feedback_ebnf_meta_grammar_lockstep]], [[feedback_systematically_use_debug_toolbox]], [[feedback_tools_first_no_guessing]], [[project_ebnf_is_single_source_of_truth]].
+
 ## 2026-06-24 - PGEN-GRAMMAR-WELLFORMED-0123 — GRAMMAR-WELLFORMED.H.13.2: port per-branch return annotations to `grammars/ebnf.ebnf` (EBNF meta-grammar lockstep; meta-grammar only, NO production-parser/release/schema change)
 
 EBNF meta-grammar lockstep slice (the second + **dominant** of the six `-0068` audit gaps) — continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.13`/`H.13.2` + the 2026-06-24 Decisions entry + acceptance checklist).
