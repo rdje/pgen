@@ -327,7 +327,7 @@ positional_reference := "$" /(\d+)/
 named_reference := "$" rule_name
     -> {type: "named_reference", name: $2}
 
-literal_return := (quoted_string | numeric_literal | boolean_literal)
+literal_return := (quoted_string | numeric_literal | boolean_literal | null_literal)
     -> {type: "literal_return", value: $1}
 
 # Dotted property access on a reference: $1.min, $1.max, $1.value, $name.field.
@@ -465,6 +465,13 @@ octal_literal := /(0[oO][0-7]+)/
 # Boolean literals
 boolean_literal := ("true" | "false")
     -> {type: "boolean", value: $1}
+
+# Null literal — JSON's sixth value type (e.g. `{min: 0, max: null}` for unbounded
+# `*`/`+` quantifiers in regex.ebnf). Mirrors grammars/return_annotation.ebnf's
+# `null_literal := 'null'`; `null` shares no prefix with the other literal_return
+# alternatives (quote / digit / "true"|"false"), so ordering is non-shadowing.
+null_literal := "null"
+    -> {type: "null"}
 
 # Identifier literal
 identifier_literal := /([a-zA-Z_][a-zA-Z0-9_]*)/

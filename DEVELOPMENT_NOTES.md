@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-24 - PGEN-GRAMMAR-WELLFORMED-0126 — GRAMMAR-WELLFORMED.H.13.5: port the `null` object-value literal to `grammars/ebnf.ebnf` (EBNF meta-grammar lockstep; flips the dual-run gate strict-GREEN)
+
+EBNF meta-grammar lockstep slice — closes the `null` gap; `regex.ebnf` now self-parses 100% → strict dual-run gate GREEN (the `H.13` gate-criterion). Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.13`/`H.13.5`/`H.14` + the 2026-06-24 Decisions entry + acceptance checklist).
+
+- **Lane:** PNT loop. EBNF meta-grammar lockstep; `regex.ebnf` is the feature-richest dual-run test input.
+- **WHY+WHERE (tools-first):** `ebnf_dual_run_diff` — `{m: true}`/`{m: "x"}` PASS but `{m: null}`/`null` FAIL; `regex.ebnf` `error_position=4533` at `quant_base … {min:0, max:null}` (`regex.ebnf:84`). `grammars/ebnf.ebnf:330` `literal_return` lacked a `null` alternative. Reference: `return_annotation.ebnf:150` `null_literal := 'null'`.
+- **FIX (grammar-only, additive):** `null_literal := "null" -> {type:"null"}` appended to `literal_return`. Regenerated `generated/ebnf.rs`; rebuilt tools.
+- **MILESTONE:** `regex.ebnf` `parse_end` 4533→78429 (100%); `make -C rust ebnf_frontend_dual_run_gate` STRICT exit 0 — the gate-defined done-criterion of `H.13` is MET (gate tracks ebnf/json/regex).
+- **HONEST SCOPE (no over-claim):** all-grammars `ebnf_dual_run_diff` scan = generated ebnf parser self-parses **8/12**; `systemverilog`/`vhdl`/`systemverilog_preprocessor`/`rtl_frontend` still FAIL → FULL self-hosting tracked under new leaf `H.14` (drain gap-by-gap; consider widening the gate's tracked set). NO regression (lint 127 rules clean; SV cert `UNKNOWN=28`; 6 fully-certified grammars byte-identical; no tracked Rust source amended). Disciplines: [[feedback_ebnf_meta_grammar_lockstep]], [[feedback_systematically_use_debug_toolbox]], [[feedback_always_signoff_decisions]], [[feedback_be_alert_root_cause_fishy_immediately]], [[project_ebnf_is_single_source_of_truth]].
+
 ## 2026-06-24 - PGEN-GRAMMAR-WELLFORMED-0125 — GRAMMAR-WELLFORMED.H.13.4: port dotted property access on a reference (`$1.min`) to `grammars/ebnf.ebnf` (EBNF meta-grammar lockstep; meta-grammar only, NO production-parser/release/schema change)
 
 EBNF meta-grammar lockstep slice — the original `-0068` gap #5 (dotted `$refs`). Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.13`/`H.13.4` + the 2026-06-24 Decisions entry + acceptance checklist).
