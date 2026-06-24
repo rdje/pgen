@@ -187,3 +187,78 @@ Net regression ⇒ NOT committable per "commit only improvements".
   gate run. SV committed-baseline stays `UNKNOWN=56`; `systemverilog` LIVE row unchanged (`Mostly Done`).
 - All cert/parse numbers above are tool-produced this session (seed 0; `--max-depth` 24/32/40 sweep;
   `DEBUG_PROBES` forcing dump).
+
+---
+
+## 2026-06-24 RE-MEASURE on TODAY's witness machinery (`PGEN-GRAMMAR-WELLFORMED-0127`, pure-docs) — the stale `56→65` is SUPERSEDED; the residual collapsed to ONE rule
+
+**Context.** This leaf's `56→65` regression was measured `2026-06-22` (the `-0120` checkpoint), BEFORE
+~10 commits of new witness-pass machinery landed (STORE-AWARE-GEN carrier-diversification `.4b.12`,
+off-path-sibling `.4b.10`, target-own-structure passes, etc.). Per [[feedback_no_codebase_change_without_tool_backed_facts]]
+I re-applied the EXACT validated cascade (the recovery copy above) onto the CURRENT committed baseline
+(`UNKNOWN=28`, not the `-0120`-era `56`), regenerated, and re-measured. **The regression does NOT
+reproduce.**
+
+**TOOL-BACKED FINDINGS (seed 0, count 40, `--grammar-profile sv_2017 --entry-rule systemverilog_file`):**
+- Committed flat baseline: `total=1288 proof=1 witness=1259 UNKNOWN=28 spf=0`.
+- Cascade re-applied: `total=1299 proof=1 witness=1271 UNKNOWN=27 spf=0` — a **NET IMPROVEMENT (28→27)**,
+  NOT a regression. Set diff vs baseline: **newly WITNESSED** = `kw_intersect_6c96caaf`, `kw_within_f42ef621`
+  (the 2 SVA sequence-layer infix operators — the cascade's whole point ✅); **newly DE-WITNESSED** =
+  `kw_first_match_2ddb8d09` ONLY (1 rule). The 9 rules the `-0120` analysis worried about
+  (`boolean_abbrev`/`consecutive_repetition`/`sequence_abbrev`/… reachable via `seq_unary`) are now
+  handled by the newer passes (the cert reports `carrier-diversification reach pass: … 10 witnessed`,
+  `target-own-structure reach pass: … 2 witnessed`).
+- Lint clean on the cascade grammar (`unreachable_rules=0 non_terminating=0 ordered_choice_shadowing=0
+  profile_orphans=0 unbound_fact_kinds=0`; `always_matches_shadowing=8` unchanged A2 backlog).
+
+**ROOT CAUSE of the sole residual `kw_first_match` (tools-first, decisive):**
+- `--generate-stimuli --entry-rule seq_unary --count 60` → **200** `first_match` renders (the branch
+  weighting is fine); `--generate-stimuli --entry-rule sequence_expr --count 60` → **0** `first_match`.
+  So it is purely a **cascade-depth reach** gap, not branch weighting.
+- `PGEN_REACH_PATH_DUMP=1`: the plan for `kw_first_match` descends the cascade via the OPERATOR branches
+  (`seq_or_expr root/o0/s0` … `seq_within_expr root/o0/s0`) and reaches `seq_unary` via `seq_delay_expr`'s
+  `delay_head` branch (`root/o0/s1` = the `seq_unary` AFTER `cycle_delay_range`), so the forced render is
+  the `##…within##…intersect##…and##…or` operator cascade and the first_match branch (`seq_unary root/o3`)
+  never renders cleanly. `DEBUG_PROBES` sample: `…;##4096_.10e394within##\foo_0 intersect##\foo_0 and##\foo_0 or##\foo_0…` (`parsed=false`).
+- WHERE: `reach_hops_pass` (`rust/src/ast_pipeline/stimuli_generator.rs:6771`) is a plain BFS where the
+  FIRST-enumerated reference site wins (`collect_rule_reference_sites` emits `o0` before `o1`/`o2`), so the
+  operator branch (`o0`) is chosen over the sole-element passthrough (`seq_*_expr := … -> $1`, `o1`; and
+  `seq_delay_expr := … | seq_unary -> $1`, `o2`).
+- Direction-3 (declarative `@probe_sample` on the first_match branch) was TRIED and is **inert**: the
+  branch is never selected in diverse generation (0/60), and the plannable pass FORCES the branch (so the
+  branch-level hint stands down per the `H.12.3` `reach_forces_this_branch` guard at `:8677`) yet the
+  forced upstream path still renders the operator cascade.
+
+**THE FIX (pinned → new sub-leaf `H.12.5.8.3.1.1`, ENGINE, generator-only):** direction-1 — a
+minimal-pollution reach-site preference in `reach_hops_pass`, mirroring `prefer_non_self_recursive_reference_sites`
+(`:7165`): when several reference sites in a rule reach the same target, prefer the **sole-element
+passthrough** site (the `-> $1` alternative whose containing alternative renders no mandatory siblings)
+over an operator-form site (reference + mandatory tail). This routes the cascade descent through the clean
+passthroughs so `seq_unary`'s primary branches (incl. first_match) render un-polluted. Expected: SV cert
+`28→26` (intersect+within witnessed, kw_first_match re-witnessed, zero newly-UNKNOWN). It is generator-only
+(no parser-accepted-language change) and is LIKELY INERT for the 6 fully-certified grammars (none has a
+deep precedence cascade with passthrough-vs-operator site ambiguity) — verify byte-identical, seeds 0/7/42.
+It **also closes the deeper `.8.3.2` property-layer** until-family (`kw_until`/`kw_s_until`/`kw_until_with`/`kw_s_until_with`),
+which has the same cascade shape.
+
+**SEQUENCING (why this is a checkpoint, not a land).** The cascade is a *consumer-visible released-SV-parser*
+change (widens accepted language: `a and b`/`a or b`/`a intersect b`/`a within b` now parse), so it must
+land with the full same-commit ceremony (release bump, schema decision, ledger row, contract + SV book +
+top-level book, 6-grammar byte-identical, external corpus 14/14, `ast_shape_contract`, cross-family,
+clippy) AND the direction-1 engine change (cross-grammar verified). That is a dedicated, fresh-budget
+effort. Per [[feedback_always_signoff_decisions]] (checkpoint rather than start a released-parser commit I
+might not complete cleanly), this slice REVERTS the working tree to the clean `UNKNOWN=28` baseline and
+captures the now-turnkey plan. The validated cascade text is the recovery copy above; the engine fix is
+designed above.
+
+**RESUME STATE (supersedes the `-0120` "RESUME STATE" block above):** committed baseline is the FLAT
+`sequence_expr`, SV cert `UNKNOWN=28`, `systemverilog` row `Mostly Done` — UNCHANGED by this slice
+(pure-docs; working tree reverted + SV parser regenerated back to baseline). Next leaf `H.12.5.8.3.1.1` =
+implement the direction-1 reach-site preference, re-apply the cascade, verify `28→26` + zero newly-UNKNOWN
++ 6-grammar byte-identical, then the release ceremony; then `.8.3.2` (property layer).
+
+### Acceptance Checklist (this pure-docs checkpoint — no code lands)
+- [x] **ROOT CAUSE (WHY + WHERE)** — `reach_hops_pass` BFS first-site-wins picks the operator branch over the passthrough → cascade-depth reach pollutes `kw_first_match`'s sample (`REACH_PATH_DUMP` + `DEBUG_PROBES` + the `seq_unary` 200/60 vs `sequence_expr` 0/60 generation A/B, all pasted above).
+- [x] **ADDRESSED (verified)** — N/A (no code lands; the cascade was re-applied + measured `28→27` then REVERTED per "checkpoint, don't half-land a released change"). Baseline restored: working tree reverted (`git checkout grammars/systemverilog.ebnf`) + SV parser regenerated; cert re-confirms `UNKNOWN=28`.
+- [x] **NO REGRESSION** — pure-docs; committed baseline byte-identical (`UNKNOWN=28`, the 6 fully-certified grammars untouched). No tracked Rust/grammar/generated change.
+- [x] **LOCKSTEP** — this leaf, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`. No book/contract/ledger/release change (no user-facing behavior change this slice).

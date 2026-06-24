@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-24 - PGEN-GRAMMAR-WELLFORMED-0127 — GRAMMAR-WELLFORMED.H.12.5.8.3.1: SVA sequence precedence-cascade RE-MEASURE (pure-docs checkpoint) — net `28→27`, residual collapsed to one rule, engine fix pinned
+
+SV `UNKNOWN`→0 headline lane. Tools-first re-applied the `-0119`-validated §16 cascade onto today's witness machinery; the stale `-0120` `56→65` regression does NOT reproduce. Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED-H12583-sva-precedence-cascade-implement.md` (2026-06-24 RE-MEASURE section).
+
+- **Lane:** PNT loop. SVA infix precedence cascade (`H.12.5.8`), sequence layer.
+- **Measured:** cascade re-applied → `UNKNOWN 28→27` (net improvement). Newly witnessed `kw_intersect`/`kw_within`; sole de-witness `kw_first_match` (cascade-depth reach gap, NOT a parse defect — `first_match(a)` parses; `spf=0`).
+- **Root cause (tool-backed):** `reach_hops_pass` (`stimuli_generator.rs:6771`) BFS first-site-wins descends the cascade via operator branches, polluting `kw_first_match`'s witness sample (`REACH_PATH_DUMP` + `seq_unary` 200/60 vs `sequence_expr` 0/60 generation A/B). Declarative `@probe_sample` inert.
+- **Pinned fix (`H.12.5.8.3.1.1`, engine, generator-only):** minimal-pollution reach-site preference (prefer the sole-element passthrough site), mirroring `prefer_non_self_recursive_reference_sites`; also closes `.8.3.2` property until-family.
+- **Decision:** checkpoint, not land — the cascade is a consumer-visible released-SV change needing the full same-commit ceremony + the cross-grammar-verified engine fix (fresh-budget effort). Working tree reverted; baseline re-confirmed `UNKNOWN=28`.
+
 ## 2026-06-24 - PGEN-GRAMMAR-WELLFORMED-0126 — GRAMMAR-WELLFORMED.H.13.5: port the `null` object-value literal to `grammars/ebnf.ebnf` (EBNF meta-grammar lockstep; flips the dual-run gate strict-GREEN)
 
 EBNF meta-grammar lockstep slice — closes the `null` gap; `regex.ebnf` now self-parses 100% → strict dual-run gate GREEN (the `H.13` gate-criterion). Continuity pointer; canonical detail in `docs/tasks/GRAMMAR-WELLFORMED.md` (`H.13`/`H.13.5`/`H.14` + the 2026-06-24 Decisions entry + acceptance checklist).
