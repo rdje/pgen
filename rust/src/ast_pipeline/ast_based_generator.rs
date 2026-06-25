@@ -6458,7 +6458,17 @@ impl AstBasedGenerator {
             });
         }
 
-        let rule_entries = compiled.iter().map(|(rule_name, directives)| {
+        // CODEGEN-DETERMINISM.1: emit the semantic-directive / fact-kind inserts in a
+        // deterministic key-sorted order. The backing collections (`directives_by_rule`,
+        // `branch_directives_by_rule`, `fact_kinds`) are `HashMap`s with process-random
+        // iteration order, so an unsorted emission makes the generated parser SOURCE
+        // byte-non-reproducible (same input → different bytes across regens). The
+        // generated parser re-inserts these into its own order-insensitive runtime map,
+        // so sorting the emission is behavior-preserving — it only canonicalizes the
+        // emitted source order.
+        let mut rule_pairs: Vec<_> = compiled.iter().collect();
+        rule_pairs.sort_by(|a, b| a.0.cmp(b.0));
+        let rule_entries = rule_pairs.into_iter().map(|(rule_name, directives)| {
             let directive_tokens = directives
                 .iter()
                 .map(Self::generate_semantic_runtime_directive_tokens);
@@ -6466,8 +6476,10 @@ impl AstBasedGenerator {
                 directives_by_rule.insert(#rule_name.to_string(), vec![#(#directive_tokens),*]);
             }
         });
-        let branch_rule_entries = compiled
-            .branch_iter()
+        let mut branch_pairs: Vec<_> = compiled.branch_iter().collect();
+        branch_pairs.sort_by(|a, b| a.0.cmp(b.0));
+        let branch_rule_entries = branch_pairs
+            .into_iter()
             .map(|(rule_name, branch_directives)| {
                 let branch_directive_tokens = branch_directives.iter().map(|directives| {
                     let directive_tokens = directives
@@ -6490,7 +6502,9 @@ impl AstBasedGenerator {
         // entries + the `set_fact_kinds` call the generated parser's
         // `fact_kinds` is always empty (the registry was only ever populated on
         // the compile-time `compile()` path before `.b.6.1`).
-        let fact_kind_entries = compiled.fact_kinds().map(|(name, decl)| {
+        let mut fact_kind_pairs: Vec<_> = compiled.fact_kinds().collect();
+        fact_kind_pairs.sort_by(|a, b| a.0.cmp(b.0));
+        let fact_kind_entries = fact_kind_pairs.into_iter().map(|(name, decl)| {
             let decl_tokens = Self::generate_fact_kind_decl_tokens(decl);
             quote! {
                 fact_kinds.insert(#name.to_string(), #decl_tokens);

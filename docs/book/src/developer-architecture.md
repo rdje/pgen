@@ -64,6 +64,19 @@ This is where grammar AST transformation, parser generation, stimuli generation,
 
 Generated artifacts are tracked on purpose. That makes clean-checkout validation and reproducible contract work possible.
 
+For that reproducibility to hold, **code generation is deterministic**: regenerating a parser
+from the same grammar source (to the same output path) produces byte-identical output, so the
+"regenerate twice, compare SHAs" check (see [Parser Hooks](parser-hooks.md)) is meaningful. This
+requires the generator to emit every *derived* collection in a **canonical order** rather than in
+`HashMap` iteration order, which is randomized per process. The per-rule semantic-directive
+registries the generated parser builds (`directives_by_rule`, `branch_directives_by_rule`,
+`fact_kinds`) are therefore emitted **key-sorted**. Without that, a grammar carrying many semantic
+annotations — SystemVerilog (dozens of store-gated rules) or regex — would regenerate to different
+bytes on every run *even though the parser's behaviour is identical*, defeating byte-identity as a
+no-regression signal. The order is purely a source-reproducibility property: the runtime is
+order-insensitive (the generated parser re-inserts these into its own map), so the canonical emission
+changes nothing about how the parser parses.
+
 ### Bootstrap and architecture evolution
 
 PGEN still carries history from earlier bootstrap phases, but the active direction is explicit: Rust-first, EBNF-backed, proof-first generation.
