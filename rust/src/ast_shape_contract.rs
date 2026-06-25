@@ -533,7 +533,13 @@ pub fn load_manifest<P: AsRef<Path>>(path: P) -> std::io::Result<AstShapeContrac
 }
 
 /// Run a manifest through a caller-supplied parser callback. The callback
-/// returns the top-level `ParseNode` for a sample input. The runner
+/// receives a sample's input AND its `rule_under_test`, and returns the
+/// top-level `ParseNode` for that sample. Passing the rule lets a grammar's
+/// callback parse the input as a *non-root* entry rule (e.g. a nested rule
+/// whose own return annotation is the carrier under test), not only the
+/// whole-file root — this is how the SystemVerilog UDP truth-table entries
+/// (`combinational_entry` / `sequential_entry`) are shape-locked. Callbacks
+/// that only ever parse the root may ignore the rule argument. The runner
 /// classifies the resulting content, asserts against the manifest, and
 /// produces a structured report. The runner does NOT panic; callers decide
 /// whether a non-passing report is a hard error.
@@ -550,7 +556,7 @@ pub fn run_manifest<F>(
     mut parse_sample: F,
 ) -> ContractReport
 where
-    F: for<'input> FnMut(&'input str) -> Result<ParseNode<'input>, String>,
+    F: for<'input> FnMut(&'input str, &str) -> Result<ParseNode<'input>, String>,
 {
     let mut report = ContractReport::default();
 
@@ -606,7 +612,7 @@ where
     }
 
     for sample in &manifest.samples {
-        let parsed = match parse_sample(&sample.input) {
+        let parsed = match parse_sample(&sample.input, &sample.rule_under_test) {
             Ok(node) => node,
             Err(err) => {
                 let detail = format!(
@@ -859,7 +865,7 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, _rule| {
             let mut parser = RegexParser::new(input, runtime_logger_box("ast_shape_contract.regex"));
             parser.parse_full_regex().map_err(|err| err.to_string())
         });
@@ -876,7 +882,7 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, _rule| {
             let mut parser = ReturnAnnotationParser::new(
                 input,
                 runtime_logger_box("ast_shape_contract.return_annotation"),
@@ -898,7 +904,7 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, _rule| {
             let mut parser = SemanticAnnotationParser::new(
                 input,
                 runtime_logger_box("ast_shape_contract.semantic_annotation"),
@@ -920,7 +926,7 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, _rule| {
             let mut parser = RtlConstExprParser::new(
                 input,
                 runtime_logger_box("ast_shape_contract.rtl_const_expr"),
@@ -942,7 +948,7 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, _rule| {
             let mut parser = RtlFrontendParser::new(
                 input,
                 runtime_logger_box("ast_shape_contract.rtl_frontend"),
@@ -971,14 +977,31 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, rule| {
             let mut parser = SystemverilogParser::new(
                 input,
                 runtime_logger_box("ast_shape_contract.systemverilog"),
             );
-            parser
-                .parse_full_systemverilog_file()
-                .map_err(|err| err.to_string())
+            // Non-root `rule_under_test` support (GRAMMAR-WELLFORMED.H.14.3.1):
+            // a sample may lock the shape of a *nested* rule by naming it as
+            // `rule_under_test`, in which case we parse the input AS that entry
+            // rule. The carrier comes from that rule's own return annotation, so
+            // a standalone parse exhibits the same typed↔raw shape it has in
+            // context. This shape-locks the UDP truth-table entries whose typed
+            // `{inputs,…}` carriers silently regressed to raw `Sequence` from
+            // SV-Slice-66 until H.14.3 (ledger SV-0009) — so the class cannot
+            // recur unnoticed. Unrecognized rules fall back to the whole-file root.
+            match rule {
+                "combinational_entry" => parser
+                    .parse_combinational_entry()
+                    .map_err(|err| err.to_string()),
+                "sequential_entry" => parser
+                    .parse_sequential_entry()
+                    .map_err(|err| err.to_string()),
+                _ => parser
+                    .parse_full_systemverilog_file()
+                    .map_err(|err| err.to_string()),
+            }
         });
         assert_report("systemverilog", &report);
     }
@@ -1205,7 +1228,7 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, _rule| {
             let mut parser = SystemverilogPreprocessorParser::new(
                 input,
                 runtime_logger_box("ast_shape_contract.systemverilog_preprocessor"),
@@ -1227,7 +1250,7 @@ mod tests {
         let manifest = load_manifest(&path)
             .unwrap_or_else(|err| panic!("failed to load {}: {}", path.display(), err));
 
-        let report = run_manifest(&manifest, |input| {
+        let report = run_manifest(&manifest, |input, _rule| {
             let mut parser = VhdlParser::new(input, runtime_logger_box("ast_shape_contract.vhdl"));
             parser.parse_full_vhdl_file().map_err(|err| err.to_string())
         });

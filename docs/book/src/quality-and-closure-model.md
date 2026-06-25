@@ -29,6 +29,8 @@ The exact proof surface varies by family and maturity, but the general doctrine 
 
 This is why the repository talks so much about gates, contracts, and tracked evidence. They are not auxiliary paperwork; they are part of the product.
 
+One concrete instance is the **AST-shape contract** per parser family (`rust/test_data/ast_shape_contract/<grammar>_v1.json`): a tracked set of sample inputs, each pinned to the exact runtime carrier the generated parser must produce (its `content_kind` plus, for typed objects, the required keys). The gate re-parses each sample with the *running generated parser* and fails if the observed shape drifts from the locked one — so a return annotation that silently stops producing its typed `{…}` object (and falls back to a raw token sequence) is caught immediately. A sample may lock the shape of the whole-file root rule **or of a nested rule**: by naming a non-root `rule_under_test`, the harness parses the input *as* that rule's own entry, so even deeply-nested typed carriers are regression-protected. (The SystemVerilog UDP truth-table entries — `combinational_entry` / `sequential_entry` — are locked this way, after a duplicated return annotation once degraded their typed carriers to raw sequences unnoticed.)
+
 ## ⚠️ THE EBNF IS THE SINGLE SOURCE OF TRUTH FOR THE ACCEPTED LANGUAGE
 
 This is one of the load-bearing invariants of the whole closure model — state it loud:

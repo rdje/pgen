@@ -183,6 +183,37 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-POST-SV-AUDIT-0006 / POST-SV-AUDIT.2.4b: 11 structured-per-iteration Cat-A rules -> factored named record rules + extraction-spread (clean flat record lists; field names preserved). +9 annotated record rules (2290->2299/999->1008). AST-dump schema 2->3."
+  },
+  {
+   "name": "udp_combinational_entry",
+   "input": "0 1 : 1 ;",
+   "rule_under_test": "combinational_entry",
+   "declared_annotation": "{inputs: $1, output: $3}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "inputs",
+    "output"
+   ],
+   "expected_json_object_string_values": {},
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-GRAMMAR-WELLFORMED-0131 / GRAMMAR-WELLFORMED.H.14.3.1: UDP combinational truth-table entry shape-lock. The harness parses this input AS the non-root rule combinational_entry (via the SV test's rule_under_test dispatch); the rule's own `-> {inputs: $1, output: $3}` return annotation must realize a typed json_object carrying keys inputs+output. Guards the raw<->typed regression class (ledger SV-0009, leaf H.14.3): a duplicate `->` had made the annotation fail to parse, silently degrading the carrier to a raw Sequence from SV-Slice-66 (1.0.66) until the H.14.3 fix (1.0.147). Any future drift back to raw flips observed content_kind from json_object to sequence and trips the runner's hard regression-lock (proven by the H.14.3.1 negative control)."
+  },
+  {
+   "name": "udp_sequential_entry",
+   "input": "0 : 1 : 0 ;",
+   "rule_under_test": "sequential_entry",
+   "declared_annotation": "{inputs: $1, current_state: $3, next_state: $5}",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "inputs",
+    "current_state",
+    "next_state"
+   ],
+   "expected_json_object_string_values": {},
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-GRAMMAR-WELLFORMED-0131 / GRAMMAR-WELLFORMED.H.14.3.1: UDP sequential truth-table entry shape-lock. The harness parses this input AS the non-root rule sequential_entry; the rule's own `-> {inputs: $1, current_state: $3, next_state: $5}` return annotation must realize a typed json_object carrying keys inputs+current_state+next_state. Same raw<->typed regression class as udp_combinational_entry (ledger SV-0009, leaf H.14.3): the second duplicate `->` site (systemverilog.ebnf:4639) had degraded this carrier to a raw Sequence until the 1.0.147 fix. A future drift flips observed content_kind to sequence and trips the hard regression-lock."
   }
  ]
 }
