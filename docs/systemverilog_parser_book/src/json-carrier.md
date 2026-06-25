@@ -64,8 +64,8 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `combinational_body` | `-> {entries: {first, rest}}` | Drops kw_table/kw_endtable. Entries are the truth-table rows. |
 | `sequential_body` | `-> {initial, entries: {first, rest}}` | Preserves optional initial statement. |
 | `list_of_udp_port_identifiers` | `-> [$1, $2::2*]` | Flat array of port_identifier strings (slice 58 audit). |
-| `combinational_entry` | `-> {inputs, output}` | Single truth-table row for combinational UDP. |
-| `sequential_entry` | `-> {inputs, current_state, next_state}` | Single state-transition row for sequential UDP. |
+| `combinational_entry` | `-> {inputs, output}` | Single truth-table row for combinational UDP. **Realized as of release `1.0.147` / schema `6` (ledger `SV-0009`); releases `1.0.66`–`1.0.146` emitted the raw `Sequence` envelope here due to a duplicate-`->` return-annotation regression.** |
+| `sequential_entry` | `-> {inputs, current_state, next_state}` | Single state-transition row for sequential UDP. **Realized as of release `1.0.147` / schema `6` (ledger `SV-0009`); raw `Sequence` at `1.0.66`–`1.0.146` (same duplicate-`->` regression).** |
 | `udp_initial_statement` | `-> {name, init_val}` | Initial value assignment for sequential UDP. |
 | `module_item` (2 branches) | per-branch `{kind, body}` | Kind labels: `"port_declaration"` / `"non_port_item"`. |
 | `module_or_generate_item` (5 branches) | per-branch `{kind, attributes, body}` | Kind labels: `"parameter_override"` / `"gate_instantiation"` / `"udp_instantiation"` / `"module_instantiation"` / `"module_common_item"`. Each carries leading `attribute_instance*` as `attributes`. |

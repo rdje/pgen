@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d5d5fe4a.js";
+            window.path_to_searchindex_js = "searchindex-a0828655.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -248,8 +248,8 @@
 <tr><td><code>combinational_body</code></td><td><code>-&gt; {entries: {first, rest}}</code></td><td>Drops kw_table/kw_endtable. Entries are the truth-table rows.</td></tr>
 <tr><td><code>sequential_body</code></td><td><code>-&gt; {initial, entries: {first, rest}}</code></td><td>Preserves optional initial statement.</td></tr>
 <tr><td><code>list_of_udp_port_identifiers</code></td><td><code>-&gt; [$1, $2::2*]</code></td><td>Flat array of port_identifier strings (slice 58 audit).</td></tr>
-<tr><td><code>combinational_entry</code></td><td><code>-&gt; {inputs, output}</code></td><td>Single truth-table row for combinational UDP.</td></tr>
-<tr><td><code>sequential_entry</code></td><td><code>-&gt; {inputs, current_state, next_state}</code></td><td>Single state-transition row for sequential UDP.</td></tr>
+<tr><td><code>combinational_entry</code></td><td><code>-&gt; {inputs, output}</code></td><td>Single truth-table row for combinational UDP. <strong>Realized as of release <code>1.0.147</code> / schema <code>6</code> (ledger <code>SV-0009</code>); releases <code>1.0.66</code>–<code>1.0.146</code> emitted the raw <code>Sequence</code> envelope here due to a duplicate-<code>-&gt;</code> return-annotation regression.</strong></td></tr>
+<tr><td><code>sequential_entry</code></td><td><code>-&gt; {inputs, current_state, next_state}</code></td><td>Single state-transition row for sequential UDP. <strong>Realized as of release <code>1.0.147</code> / schema <code>6</code> (ledger <code>SV-0009</code>); raw <code>Sequence</code> at <code>1.0.66</code>–<code>1.0.146</code> (same duplicate-<code>-&gt;</code> regression).</strong></td></tr>
 <tr><td><code>udp_initial_statement</code></td><td><code>-&gt; {name, init_val}</code></td><td>Initial value assignment for sequential UDP.</td></tr>
 <tr><td><code>module_item</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"port_declaration"</code> / <code>"non_port_item"</code>.</td></tr>
 <tr><td><code>module_or_generate_item</code> (5 branches)</td><td>per-branch <code>{kind, attributes, body}</code></td><td>Kind labels: <code>"parameter_override"</code> / <code>"gate_instantiation"</code> / <code>"udp_instantiation"</code> / <code>"module_instantiation"</code> / <code>"module_common_item"</code>. Each carries leading <code>attribute_instance*</code> as <code>attributes</code>.</td></tr>
