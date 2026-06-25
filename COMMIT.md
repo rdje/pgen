@@ -60,10 +60,9 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
 - `questions_keep_untracked.txt` (must remain untracked)
   - User backlog/questions for future UG work.
 - `generated/` artifacts
-  - Repository policy: the full `generated/` tree is version controlled.
-  - Treat generated changes like any other tracked artifact:
-    - stage only the files intended for the task,
-    - do not revert unrelated generated changes you did not make,
+  - Repository policy: the `generated/` tree is **not tracked in git** (it is `.gitignore`d) — it is regenerated locally from the grammars + codegen with the per-grammar `make` targets (e.g. `make -C rust focus_<grammar>`). This matches `README.md` (Key Project Paths).
+  - Because `generated/` is untracked, do **not** stage or commit generated artifacts:
+    - never `git add generated/…` — regenerate locally to verify a codegen/grammar change, but the regenerated `generated/*` files are not part of the commit,
     - keep scratch logs and test-only temporary outputs out of `generated/`.
 - Markdown path policy
   - Repo-internal paths mentioned in tracked `.md` files must be relative paths, never checkout-specific absolute paths.
