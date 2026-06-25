@@ -262,3 +262,45 @@ implement the direction-1 reach-site preference, re-apply the cascade, verify `2
 - [x] **ADDRESSED (verified)** — N/A (no code lands; the cascade was re-applied + measured `28→27` then REVERTED per "checkpoint, don't half-land a released change"). Baseline restored: working tree reverted (`git checkout grammars/systemverilog.ebnf`) + SV parser regenerated; cert re-confirms `UNKNOWN=28`.
 - [x] **NO REGRESSION** — pure-docs; committed baseline byte-identical (`UNKNOWN=28`, the 6 fully-certified grammars untouched). No tracked Rust/grammar/generated change.
 - [x] **LOCKSTEP** — this leaf, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`. No book/contract/ledger/release change (no user-facing behavior change this slice).
+
+---
+
+## `H.12.5.8.3.1.1` — IMPLEMENT: reach-site passthrough preference + LAND the sequence cascade (released-SV ceremony) — `PGEN-GRAMMAR-WELLFORMED-0132`, 2026-06-25
+
+**Status: `done` — LANDED.** The turnkey plan from the `-0127` re-measure executed: the direction-1
+engine change (reach-site passthrough preference) + the validated sequence cascade landed together as
+one released-SV slice. SV cert `UNKNOWN 28 → 26` (the 2 SVA sequence-layer infix operators
+`kw_intersect`/`kw_within` now witnessed), deterministic seeds 0/7/42, zero newly-UNKNOWN; the 6
+fully-certified grammars byte-identical (the engine change is inert for them). Release `1.0.147 →
+1.0.148`, schema STAYS `6` (strictly-more-permissive — only previously-REJECTED infix forms gain new
+shapes; every previously-accepted form keeps its carrier via the cascade's `-> $1` passthroughs),
+ledger `SV-0010`.
+
+**THE ENGINE CHANGE (generator-only, parser-agnostic — `rust/src/ast_pipeline/stimuli_generator.rs`).**
+New `prefer_sole_reference_passthrough_sites` + `count_mandatory_yield_atoms`, called inside
+`reach_hops_pass` immediately BEFORE the existing `prefer_non_self_recursive_reference_sites`. When
+several reference sites in a rule reach the same target, it stably sorts a SOLE-MANDATORY-REFERENCE
+passthrough alternative (the `-> $1` form, mandatory-yield count `== 1`) ahead of an operator-form
+alternative (`inner op_tail op_tail*`, count `> 1`). Applied before the self-recursive preference so —
+by stable-sort composition — self-recursion stays the PRIMARY key (a self-recursive passthrough never
+beats a non-self-recursive operator branch, e.g. `R := R | a b`) and passthrough is the tie-breaker.
+`count_mandatory_yield_atoms` counts the minimum guaranteed terminal/reference yield (optional `?`/`*`
+quantifiers and lookaheads contribute 0; a nested `Or` contributes the min across its branches).
+
+**THE GRAMMAR CHANGE (`grammars/systemverilog.ebnf`).** Replaced the flat 12-branch directly-left-
+recursive `sequence_expr` with the IEEE 1800-2017 §16 (Table 16-3) precedence cascade
+(loosest→tightest `or > and > intersect > within > throughout > ## > unary`): `sequence_expr := seq_or_expr -> $1`
+over 11 new rules (`seq_or_expr`/`seq_or_tail`/`seq_and_expr`/`seq_and_tail`/`seq_intersect_expr`/
+`seq_intersect_tail`/`seq_within_expr`/`seq_within_tail`/`seq_throughout_expr`/`seq_delay_expr`/
+`seq_unary`), each operator layer a `head tail tail*` chain with a named tail rule, `-> $1` passthrough
+on bare operands. The validated recovery copy from the `-0127` checkpoint (above).
+
+### Acceptance Checklist (enforced) — H.12.5.8.3.1.1
+- [x] **REPRODUCE / ISSUE** — baseline `PGEN_CERT_COVERAGE_DUMP_ALL=1 … --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0` ⇒ `CERTIFICATE-COVERAGE: … total=1288 witness=1259 UNKNOWN=28 spf=0`; the UNKNOWN list contains `kw_intersect_6c96caaf`, `kw_within_f42ef621` (the LR sequence-layer infix operators never reached). `parseability_probe --parse systemverilog --profile sv_2017`: `a and b`/`a or b`/`a intersect b`/`a within b` REJECT at the operator (pre-fix).
+- [x] **ROOT CAUSE (WHY + WHERE)** — two mechanisms: (1) PARSE — `sequence_expr`/`property_expr` are directly-left-recursive (`A := A op A`), which PGEN's eliminator (indirect wrapper-chain only) does not eliminate, so the runtime cycle-breaker blocks every infix branch (`-0118`). (2) WITNESS-REACH — even with the cascade, `reach_hops_pass` (`stimuli_generator.rs:6771`) BFS first-site-wins discovers the inner cascade layer via the OPERATOR branch (`o0`), so the forced descent renders a `## … within … intersect …` operator soup that pollutes the deep operand; `PGEN_REACH_PATH_DUMP=1` + `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` (`witnessed_target=false`, `parsed=false` forced samples) pinned it (`-0127`).
+- [x] **FIX** — tier: grammar (precedence cascade, direction A — director-decided `-0119`) + generator engine (reach-site passthrough preference). Both parser-agnostic; the engine half is a general reach-honesty preference mirroring `prefer_non_self_recursive_reference_sites`.
+- [x] **ADDRESSED (verified)** — SV cert `UNKNOWN 28 → 26` (`CERTIFICATE-COVERAGE: … total=1299 proof=1 witness=1272 UNKNOWN=26 spf=0`), **deterministic seeds 0/7/42** (all = 26); set-diff vs baseline = newly WITNESSED `{kw_intersect_6c96caaf, kw_within_f42ef621}`, newly-UNKNOWN = ∅. `parseability_probe`: `a and b`/`a or b`/`a intersect b`/`a within b`/`a ##1 b`/`a ##1 b ##2 c`/`a or b and c`/`a intersect b within c` REJECT→PASS; previously-working `first_match(a)`/`a [*2]`/`x throughout a` still PASS.
+- [x] **NO REGRESSION** — cert seeds **0/7/42** `spf=0` (`sample_parse_failures=0`); the **6 fully-certified grammars BYTE-IDENTICAL** (decisive A/B, new binary vs baseline: json `9/9`, regex `198/198`, vhdl `216/216`, svpp `74/74`, rtl_frontend `169` proof1/witness168, rtl_const_expr `48/48` — all `fully_certified=true`, the engine change inert); **SV external corpus 14/14** (`sv_external_corpus_triage_gate`, `parse_fail_total=0`); `ast_shape_contract` GREEN (18/18; no SV sample exercises `sequence_expr`); `--lint-grammar` clean (`non_terminating=0`, `unreachable_rules=0`, `ordered_choice_shadowing=0`, pre-existing `always_matches=8` A2 backlog unchanged; `1415` rules, +11 cascade rules); clippy source-clean.
+- [x] **LOCKSTEP** — release `1.0.147 → 1.0.148`, schema stays `6`, ledger `SV-0010`; contract `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`; SV book `changelog-index.md` + `json-carrier.md` (new sequence cascade shapes); `PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SV-0010`); shape-contract manifest calibration; `CHANGES.md` / `DEVELOPMENT_NOTES.md` / `MEMORY.md` / `LIVE_ACHIEVEMENT_STATUS.md`. The `developer-architecture.md` direct-LR claim is already correct (no edit). `[[feedback_ebnf_meta_grammar_lockstep]]`: the cascade adds no new EBNF *construct* (only new rules using existing forms), so `ebnf.ebnf` needs no change.
+
+**NEXT (frontier):** `.8.3.2` — the PROPERTY-layer cascade (`property_expr_sv_2017`/`property_expr_sv_2023`), which has the SAME cascade shape and will reuse this engine fix to witness the `until`-family (`kw_until`/`kw_s_until`/`kw_until_with`/`kw_s_until_with`, currently 4 of the residual 26 UNKNOWN).

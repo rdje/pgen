@@ -6825,6 +6825,20 @@ impl<'a> StimuliGenerator<'a> {
             }
             let mut sites: Vec<RuleReferenceSite> = Vec::new();
             Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            // GRAMMAR-WELLFORMED.H.12.5.8.3.1.1 (PGEN-GRAMMAR-WELLFORMED-0132): when
+            // several reference sites in this rule reach the same target, prefer one in a
+            // SOLE-MANDATORY-REFERENCE passthrough top-level alternative (the `-> $1`
+            // form, which renders no mandatory tail) over an operator-form alternative
+            // (`inner op_tail op_tail*`). For an IEEE-1800 §16 SVA precedence cascade,
+            // first-site-wins otherwise routes the forced descent through the OPERATOR
+            // branch, rendering a `## … within … intersect …` operator soup that pollutes
+            // the deep operand so it never witnesses. This is applied BEFORE the
+            // self-recursive preference (below) so — via stable-sort composition —
+            // self-recursion stays the PRIMARY key (a self-recursive passthrough never
+            // beats a non-self-recursive operator branch, e.g. `R := R | a b`) and the
+            // passthrough preference is the tie-breaker. See
+            // `prefer_sole_reference_passthrough_sites`.
+            Self::prefer_sole_reference_passthrough_sites(rule_node, &mut sites);
             // RTL-FE-CLOSURE.5.3 (PGEN-RTL-FE-CLOSURE-0015): when several reference
             // sites in this rule reach the same target, prefer one in a
             // NON-self-recursive top-level alternative so a self-recursive rule's
@@ -7206,6 +7220,96 @@ impl<'a> StimuliGenerator<'a> {
     fn top_level_alternative_index(node_path: &str) -> Option<usize> {
         let first = node_path.strip_prefix("root/")?.split('/').next()?;
         first.strip_prefix('o')?.parse::<usize>().ok()
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.8.3.1.1 (PGEN-GRAMMAR-WELLFORMED-0132): reach-path
+    /// SITE preference for precedence-cascade rules, mirroring
+    /// `prefer_non_self_recursive_reference_sites`. When several reference sites in a
+    /// rule reach the same target, prefer the one whose enclosing TOP-LEVEL alternative
+    /// is a SOLE-MANDATORY-REFERENCE passthrough — it renders exactly one mandatory
+    /// element, the reference itself (the `-> $1` form) — over an operator-form
+    /// alternative that renders the reference PLUS a mandatory tail (e.g.
+    /// `inner op_tail op_tail*`). The canonical case is the IEEE 1800-2017 §16 (Table
+    /// 16-3) SVA sequence/property precedence cascade
+    /// (`seq_or_expr := seq_and_expr seq_or_tail seq_or_tail* | seq_and_expr`):
+    /// `reach_hops`' first-site-wins BFS otherwise discovers the inner layer through the
+    /// OPERATOR branch (`o0`), so the forced cascade descent renders a
+    /// `## … within … intersect …` operator soup that pollutes the deepest operand
+    /// (`seq_unary`'s `first_match` / repetition branches never render cleanly → no
+    /// witness). Preferring the passthrough site routes the descent through the clean
+    /// `-> $1` branches so the deep operands render un-polluted.
+    ///
+    /// Mechanism: a STABLE sort of the sites by a 0/1 key — `0` for a site whose
+    /// enclosing top-level alternative renders exactly one mandatory element
+    /// (passthrough), `1` otherwise. Applied BEFORE
+    /// `prefer_non_self_recursive_reference_sites`, so — through stable-sort
+    /// composition — the self-recursive preference stays the PRIMARY key (a
+    /// self-recursive passthrough never beats a non-self-recursive operator branch,
+    /// e.g. `R := R | a b`) and this passthrough preference is the tie-breaker among
+    /// equally-(non)recursive alternatives. Stability preserves tree order within each
+    /// class, so the result is BYTE-IDENTICAL for every rule with no top-level ordered
+    /// choice mixing a passthrough and an operator alternative reaching the same target
+    /// (the overwhelming majority). GENERAL / parser-agnostic — keyed purely on the
+    /// rule's own top-level ordered-choice structure and a mandatory-yield count.
+    fn prefer_sole_reference_passthrough_sites(
+        rule_node: &ASTNode,
+        sites: &mut [RuleReferenceSite],
+    ) {
+        let ASTNode::Or { alternatives } = rule_node else {
+            return; // no top-level ordered choice -> no branch to prefer
+        };
+        // Per top-level alternative: is it a sole-mandatory-reference passthrough
+        // (renders exactly one mandatory element)? Computed once; indexed by branch.
+        let branch_is_sole_reference: Vec<bool> = alternatives
+            .iter()
+            .map(|alt| Self::count_mandatory_yield_atoms(alt) == 1)
+            .collect();
+        sites.sort_by_key(|site| match Self::top_level_alternative_index(&site.node_path) {
+            Some(idx) => u8::from(!*branch_is_sole_reference.get(idx).unwrap_or(&false)),
+            None => 0, // no top-level alternative on this path -> neutral (preferred)
+        });
+    }
+
+    /// GRAMMAR-WELLFORMED.H.12.5.8.3.1.1: the count of MANDATORY terminal/reference
+    /// atoms a node is forced to render — its minimum guaranteed non-trivial yield. An
+    /// atom is mandatory unless it sits under an optional quantifier (`?` / `*` /
+    /// `{0,..}`, i.e. `min == 0`) or inside a lookahead (which materialises nothing).
+    /// A nested ordered choice contributes the MINIMUM across its branches (the yield it
+    /// is guaranteed to render). Used to classify a top-level alternative as a
+    /// sole-mandatory-reference passthrough (`== 1`) vs an operator-form alternative
+    /// (`> 1`). Parser-agnostic — pure AST-shape arithmetic.
+    fn count_mandatory_yield_atoms(node: &ASTNode) -> usize {
+        match node {
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => Self::count_mandatory_yield_atoms(inner),
+                ASTValue::Token(_) => 1,
+            },
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .map(Self::count_mandatory_yield_atoms)
+                .sum(),
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                // Optional (`min == 0`) -> contributes nothing it is forced to render.
+                // Unknown quantifier strings are treated as mandatory (conservative).
+                let mandatory = super::parse_quantifier_bounds(quantifier)
+                    .map(|(min, _)| min >= 1)
+                    .unwrap_or(true);
+                if mandatory {
+                    Self::count_mandatory_yield_atoms(element)
+                } else {
+                    0
+                }
+            }
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .map(Self::count_mandatory_yield_atoms)
+                .min()
+                .unwrap_or(0),
+            ASTNode::Lookahead { .. } => 0,
+        }
     }
 
     fn compute_reach_path(

@@ -4569,30 +4569,48 @@ sequence_declaration := kw_sequence_92504616 declared_sequence_identifier ( lpar
                      -> {name: $2, ports: $3, declarations: $5, body: $6, end_label: $9}
 
 @probe_sample: "1"
-sequence_expr := cycle_delay_range sequence_expr ( cycle_delay_range sequence_expr )*
-                       -> {kind: "delay_head",     delay: $1, body: $2, tail: $3}
-              | sequence_expr cycle_delay_range sequence_expr ( cycle_delay_range sequence_expr )*
-                       -> {kind: "delay_binary",   lhs: $1, delay: $2, rhs: $3, tail: $4}
-              | expression_or_dist ( boolean_abbrev )?
-                       -> {kind: "expression",     body: $1, abbrev: $2}
-              | sequence_instance ( sequence_abbrev )?
-                       -> {kind: "instance",       body: $1, abbrev: $2}
-              | lparen sequence_expr ( comma sequence_match_item )* rparen ( sequence_abbrev )?
-                       -> {kind: "paren",          body: $2, match_items: $3, abbrev: $5}
-              | sequence_expr kw_and_cffa50a3 sequence_expr
-                       -> {kind: "and",            lhs: $1, rhs: $3}
-              | sequence_expr kw_intersect_6c96caaf sequence_expr
-                       -> {kind: "intersect",      lhs: $1, rhs: $3}
-              | sequence_expr kw_or_1758356d sequence_expr
-                       -> {kind: "or",             lhs: $1, rhs: $3}
-              | kw_first_match_2ddb8d09 lparen sequence_expr ( comma sequence_match_item )* rparen
-                       -> {kind: "first_match",    body: $3, match_items: $4}
-              | expression_or_dist kw_throughout_330dbf47 sequence_expr
-                       -> {kind: "throughout",     condition: $1, body: $3}
-              | sequence_expr kw_within_f42ef621 sequence_expr
-                       -> {kind: "within",         inner: $1, outer: $3}
-              | @probe_sample: "@clk 1" clocking_event sequence_expr
-                       -> {kind: "clocking",       event: $1, body: $2}
+sequence_expr := seq_or_expr -> $1
+
+seq_or_tail := kw_or_1758356d seq_and_expr -> $2
+seq_or_expr := seq_and_expr seq_or_tail seq_or_tail*
+                       -> {kind: "or",         lhs: $1, rest: [$2, $3*]}
+            | seq_and_expr -> $1
+
+seq_and_tail := kw_and_cffa50a3 seq_intersect_expr -> $2
+seq_and_expr := seq_intersect_expr seq_and_tail seq_and_tail*
+                       -> {kind: "and",        lhs: $1, rest: [$2, $3*]}
+             | seq_intersect_expr -> $1
+
+seq_intersect_tail := kw_intersect_6c96caaf seq_within_expr -> $2
+seq_intersect_expr := seq_within_expr seq_intersect_tail seq_intersect_tail*
+                       -> {kind: "intersect",  lhs: $1, rest: [$2, $3*]}
+                   | seq_within_expr -> $1
+
+seq_within_tail := kw_within_f42ef621 seq_throughout_expr -> $2
+seq_within_expr := seq_throughout_expr seq_within_tail seq_within_tail*
+                       -> {kind: "within",     lhs: $1, rest: [$2, $3*]}
+                | seq_throughout_expr -> $1
+
+seq_throughout_expr := expression_or_dist kw_throughout_330dbf47 seq_throughout_expr
+                       -> {kind: "throughout", condition: $1, body: $3}
+                    | seq_delay_expr -> $1
+
+seq_delay_expr := cycle_delay_range seq_unary ( cycle_delay_range seq_unary )*
+                       -> {kind: "delay_head",   delay: $1, body: $2, tail: $3}
+                | seq_unary cycle_delay_range seq_unary ( cycle_delay_range seq_unary )*
+                       -> {kind: "delay_binary", lhs: $1, delay: $2, rhs: $3, tail: $4}
+                | seq_unary -> $1
+
+seq_unary := expression_or_dist ( boolean_abbrev )?
+                       -> {kind: "expression",  body: $1, abbrev: $2}
+          | sequence_instance ( sequence_abbrev )?
+                       -> {kind: "instance",    body: $1, abbrev: $2}
+          | lparen sequence_expr ( comma sequence_match_item )* rparen ( sequence_abbrev )?
+                       -> {kind: "paren",       body: $2, match_items: $3, abbrev: $5}
+          | kw_first_match_2ddb8d09 lparen sequence_expr ( comma sequence_match_item )* rparen
+                       -> {kind: "first_match", body: $3, match_items: $4}
+          | @probe_sample: "@clk 1" clocking_event sequence_expr
+                       -> {kind: "clocking",    event: $1, body: $2}
 
 sequence_formal_type := kw_sequence_92504616  -> {kind: "sequence"}
                       | kw_untyped_d53be1e8   -> {kind: "untyped"}
