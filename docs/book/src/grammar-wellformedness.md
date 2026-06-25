@@ -1077,6 +1077,44 @@ it — closing them would require tightening the grammar's generic alternative t
 type-parameter and interface-class heads, a change deliberately deferred until a *real* parse failure
 (not merely an unwitnessed fragment) justifies it.
 
+### Closing the SVA operator layer, and what the residual is now
+
+Past the reach passes, the last stretch of the SystemVerilog drive (`UNKNOWN 32 → 22`) was not
+reach engineering at all — it was **grammar fidelity**: restoring IEEE-1800 syntax the extracted
+grammar had dropped, and eliminating left-recursion the runtime cycle-breaker could not handle. Six
+released slices closed it. Three restored missing brackets/braces the LRM mandates — the covergroup
+trans-repeat forms `(1[*2])` / `(1[->2])` / `(1[=2])` (`UNKNOWN 32 → 31`, witnessing `repeat_range`),
+the bins-set form `bins b = { … }` (`31 → 30`, witnessing `with_covergroup_expression`), and the
+bounded-property operators `nexttime [3] a` / `s_always [1:2] a` (`30 → 29`); each was a *real* parse
+defect (the bracketed forms had been rejected) as well as a cert witness. One restored a store-gated
+identifier via a literal-count declaration prelude (`29 → 28`). The last two were the **SVA infix
+left-recursion cascade**: the assertion `sequence_expr` and `property_expr` rules were flat,
+directly-left-recursive ordered choices (`A := A op A`), which PGEN's indirect-only LR eliminator
+cannot rewrite, so the runtime cycle-breaker blocked every infix operator and they *rejected* at the
+operator. Restructured into an IEEE-1800 §16 Table 16-3 precedence cascade — sequence operators
+`a intersect b` / `a within b` / `a ##1 b` (`28 → 26`) then property operators `a until b` /
+`a s_until b` / `a iff b` (`26 → 22`) — the operators now parse with correct precedence, every
+previously-parsing form keeps its exact AST carrier (the cascade is schema-preserving), and the four
+property-only `until`-family keywords witness. (One honest limit is documented in place: the tight
+prefix operators `not` / `nexttime` keep pre-fix dispatch precedence, so `not a until b` parses as
+`not (a until b)` — unchanged behaviour, deferred until a consumer needs strict prefix precedence.)
+
+At `UNKNOWN=22` the residual is now its irreducible core, and it is adjudicated in full. **Nineteen
+are `no_path` non-defects**, proven by re-running cert-coverage from a different root: eleven are
+rooted under the `library_text` start symbol (re-running from the `sv_multi_entry_root` umbrella
+collapses `no_path` from 19 to 8, witnessing the library/include/parseable-fragment subtree), six are
+genuine 1800-2023 features (re-running under the `sv_2023` profile drops all six from the residual),
+and two are LRM clause-number decomposition leaves (synthetic, referenced, blessed — never deleted
+without LRM-proven absence). **Three are the genuine canonical-entry residual**, each a deliberately
+deferred honest limit: `context_member_method_call` is a store-gated witness-reach gap (the
+`head.member[idx].method()` form *parses* with a declared head — the generator just cannot yet
+synthesise the name-coupled declaration prelude its gate needs), and the two `…scoped_call…` cousins
+are the `T::method()` expression-level ambiguity described just above. So the headline number is
+honest in both directions: every one of the 22 is named, and none is silently reclassified as
+"doesn't count". Reaching a literal `UNKNOWN=0` for SystemVerilog therefore turns on an *endgame
+accounting* decision — certifying the 17 entry/profile-relative rules through the multi-entry and
+`sv_2023` runs that already witness them — after which only the three deferred reach-gaps remain.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the
