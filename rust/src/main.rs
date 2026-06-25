@@ -2314,6 +2314,29 @@ fn run_k_path_coverage_report(
     Ok(())
 }
 
+/// CERT-GEN-BUDGET.2: the default per-sample DETERMINISTIC step-budget (B1, expressed in the
+/// `target_generation_timeout_ms` unit × `generation_steps_per_ms`) armed on the cert-coverage
+/// PASS-1 diverse pass. The diverse config previously left `target_generation_timeout_ms = 0`, so
+/// the B1 step-budget was never armed and the pass was TIME-UNBOUNDED — super-linear / effectively
+/// non-terminating on a deeply-recursive grammar (e.g. `rtl_const_expr` at certain depths), which
+/// presents as a cert hang. This default is far above any well-behaved grammar's per-sample cost
+/// (verified byte-identical for the 6 fully-certified grammars + SystemVerilog at their canonical
+/// depths) so it is INERT for them; only a pathological super-linear grammar reaches it, and then
+/// fails fast with a deterministic `TargetTimeout` instead of hanging. Env-tunable via
+/// `PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS` (set `0` for the legacy unbounded pass deliberately).
+///
+/// CALIBRATION (CERT-GEN-BUDGET.2, seed 0, current binary): the heaviest LEGITIMATE per-sample
+/// cost is `rtl_const_expr` at its canonical `--max-depth 32` — cumulative 8 487 959 steps over
+/// 40 samples (~212k avg), and NO sample is cut at a 2 000 000-step (2000 ms) budget (the cert is
+/// byte-identical), so the per-sample max there is < 2 000 000. SystemVerilog count-40 depth-24 is
+/// ~93k total (~2.3k/sample). This default (4 000 000 steps) is ~2× that proven per-sample ceiling
+/// and ~19× the average — ample margin so it never bites a well-behaved grammar — while it still
+/// deterministically cuts the deep-recursion runaway (`rtl_const_expr`/`conditional_expr` at
+/// `--max-depth` 40/48 spin unboundedly without it; the canonical entry at depth 40 crosses
+/// 2 000 000 steps in ~7.3s, so 4 000 000 caps it well under ~15s instead of >200s / non-terminating).
+#[cfg(feature = "generated_parsers")]
+const CERT_DIVERSE_GENERATION_TIMEOUT_MS_DEFAULT: u64 = 4_000;
+
 /// GRAMMAR-WELLFORMED.G.4: the certificate-coverage report (the linter⟷generator duality capstone),
 /// PARSER-AGNOSTIC. For every rule the grammar must carry either a verified unreachability PROOF (the
 /// linter proves it dead) or a verified reachability WITNESS (a clean diverse `--count` sample that
@@ -2380,7 +2403,26 @@ fn run_certificate_coverage_report(
         grammar.annotations.as_ref(),
         config,
     );
-    let diverse = generator.generate_many(samples, Some(entry_rule.as_str()))?;
+    // CERT-GEN-BUDGET.2: bound the diverse pass with a GENEROUS per-sample deterministic
+    // step-budget (B1) so a deeply-recursive grammar (e.g. rtl_const_expr at pathological depths)
+    // fails fast instead of hanging the cert. The default is far above any well-behaved grammar's
+    // per-sample cost — INERT (byte-identical cert) for the 6 fully-certified grammars + SV at the
+    // canonical depths — so only a pathological super-linear grammar reaches it. Env-tunable for
+    // calibration / a deliberate unbounded run (set 0).
+    let diverse_budget_ms = std::env::var("PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS")
+        .ok()
+        .and_then(|raw| raw.trim().parse::<u64>().ok())
+        .unwrap_or(CERT_DIVERSE_GENERATION_TIMEOUT_MS_DEFAULT);
+    let diverse =
+        generator.generate_many_bounded(samples, Some(entry_rule.as_str()), diverse_budget_ms)?;
+    pgen::pgen_trace_low!(
+        "CERT-GEN-BUDGET.2 diverse pass complete: grammar='{}' samples={} max_depth={} budget_ms={} cumulative_generation_steps={}",
+        grammar.grammar_name,
+        samples,
+        max_depth,
+        diverse_budget_ms,
+        generator.generation_step_count()
+    );
     let mut sample_parse_failures = 0usize;
     // G.4.7: LABEL parse failures (error + sample), never silently count them — a parse failure is a
     // generator-produced sample the real parser rejects, and seeing WHY is how we tell a generator

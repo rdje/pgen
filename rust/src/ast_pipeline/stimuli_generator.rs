@@ -1792,6 +1792,15 @@ impl<'a> StimuliGenerator<'a> {
         &self.coverage
     }
 
+    /// CERT-GEN-BUDGET.2: the cumulative DETERMINISTIC generation step counter (B1) — one step
+    /// per generation chokepoint (`enforce_generation_deadline`). It advances on every node
+    /// REGARDLESS of whether a deadline is armed, so it is a machine-independent measure of
+    /// total generation work — used to calibrate the diverse-pass budget and to surface
+    /// generation cost in low-verbosity traces.
+    pub fn generation_step_count(&self) -> u64 {
+        self.generation_step_counter.get()
+    }
+
     fn timeout_budget_from_ms(
         timeout_ms: u64,
         error_prefix: &'static str,
@@ -7545,6 +7554,47 @@ impl<'a> StimuliGenerator<'a> {
                 resolved_entry
             ),
         );
+        Ok(outputs)
+    }
+
+    /// CERT-GEN-BUDGET.2: `generate_many` with a per-sample DETERMINISTIC step-budget (B1).
+    /// `timeout_ms == 0` is exactly `generate_many` (unbounded — prior behaviour). Otherwise each
+    /// sample is armed independently via `generate_from_entry_with_optional_timeout`, mirroring the
+    /// witness pass; the budget is the same `timeout_ms × steps-per-ms` mapping, so the cutoff is
+    /// machine-INDEPENDENT (a seeded run yields the same residual every time). Because
+    /// `generation_deadline_exceeded` advances the step counter on every node WHETHER OR NOT a
+    /// deadline is armed, a budget that no sample reaches yields BYTE-IDENTICAL output to
+    /// `generate_many` — that is what keeps the canonical certs of the well-behaved grammars
+    /// unchanged while a pathological grammar (deeply-recursive, super-linear at some depths) fails
+    /// fast with a deterministic `TargetTimeout` instead of an unbounded hang.
+    pub fn generate_many_bounded(
+        &mut self,
+        count: usize,
+        entry_rule: Option<&str>,
+        timeout_ms: u64,
+    ) -> Result<Vec<String>> {
+        let resolved_entry = self.resolve_entry_rule(entry_rule)?;
+        let budget = Self::timeout_budget_from_ms(timeout_ms, TARGET_TIMEOUT_ERROR_PREFIX);
+        self.trace(
+            TraceLevel::Low,
+            format_args!(
+                "Starting bounded batch generation: count={} entry_rule='{}' budget_ms={} max_depth={} max_repeat={} max_rule_visits={}",
+                count,
+                resolved_entry,
+                timeout_ms,
+                self.config.max_depth,
+                self.config.max_repeat,
+                self.config.max_rule_visits
+            ),
+        );
+        let mut outputs = Vec::with_capacity(count);
+        for idx in 0..count {
+            self.trace(
+                TraceLevel::Medium,
+                format_args!("Generating bounded sample {}/{}", idx + 1, count),
+            );
+            outputs.push(self.generate_from_entry_with_optional_timeout(&resolved_entry, budget)?);
+        }
         Ok(outputs)
     }
 

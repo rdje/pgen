@@ -6,7 +6,7 @@
 - Status: `active`
 - Roadmap lane: `Stimuli-generator / proof-tooling robustness (certificate-coverage)`
 - Created: `2026-06-14`
-- Last updated: `2026-06-14`
+- Last updated: `2026-06-25`
 - Owner: repo-local workflow
 
 ## Goal
@@ -62,18 +62,31 @@ bounded-budget fix is `.2`.
   Commit: `PGEN-CERT-GEN-BUDGET-0001`
 
 - ID: `CERT-GEN-BUDGET.2`
-  Status: `pending`
-  Goal: `FIX (code leaf): arm a deterministic, generous DEFAULT generation step-budget for the cert-coverage PASS-1 diverse pass (rust/src/main.rs:2370) so per-sample generation cannot run unboundedly — a budget large enough that every grammar whose diverse pass already terminates fast stays BYTE-IDENTICAL (the budget never bites them), but that deterministically cuts off the rtl_const_expr depth-28/40 pathology (it becomes a bounded DepthExceeded/step-budget discard instead of a >200s spin). Parser-agnostic; generator/CLI-side only. Options to weigh in the fix: (a) a default target_generation_timeout_ms for the diverse config translated to a deterministic step deadline via the existing B1 machinery (must verify the step budget is large enough to leave json/regex/SV/vhdl/svpp/rtl_frontend byte-identical AND rtl_const_expr still fully_certified at depth 32 in <~20s/sample); (b) a per-sample step ceiling independent of wall clock. MUST prove byte-identical cert headlines for the 6 well-behaved grammars (decisive git-stash A/B) and rtl_const_expr still fully_certified at depth 32.`
+  Status: `done`
+  Goal: `FIX (code leaf): arm a deterministic, generous DEFAULT generation step-budget for the cert-coverage PASS-1 diverse pass so per-sample generation cannot run unboundedly — a budget large enough that every grammar whose diverse pass already terminates fast stays BYTE-IDENTICAL (the budget never bites them), but that deterministically cuts off the rtl_const_expr depth-40 pathology. Parser-agnostic; generator/CLI-side only. Implemented option (a): a default target_generation_timeout_ms for the diverse config translated to a deterministic step deadline via the existing B1 machinery.`
   Acceptance: `rtl_const_expr cert at depth 28 AND depth 40 terminates deterministically within the budget (no >200s spin); rtl_const_expr stays fully_certified at depth 32 (seeds 0/7/42); json/regex/systemverilog/vhdl/systemverilog_preprocessor/rtl_frontend cert headlines byte-identical (decisive A/B); deterministic across reruns; clippy strict-source clean; mdbook/cross-family gates green; book updated if the cert-coverage budget behavior is user-documented.`
-  Verification: `pending`
-  Commit: `pending`
+  Verification: `2026-06-25 — DONE (PGEN-CERT-GEN-BUDGET-0002). Implementation (parser-agnostic, generator-only): new pub fn StimuliGenerator::generate_many_bounded(count, entry, timeout_ms) arms a per-sample B1 step-budget via generate_from_entry_with_optional_timeout (timeout_ms=0 ≡ generate_many byte-for-byte); the cert PASS-1 (main.rs run_certificate_coverage_report) calls it with env-tunable CERT_DIVERSE_GENERATION_TIMEOUT_MS_DEFAULT=4000 ms (4,000,000 steps), overridable via PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS. Byte-identity is STRUCTURAL: generation_deadline_exceeded() advances the step counter whether or not a deadline is armed (stimuli_generator.rs:1815), so a never-reached budget yields identical output. Also added pub fn generation_step_count() + a low-verbosity diverse-pass step-count trace.
+  CALIBRATION (seed 0, current binary, via the step-count trace): SV count-40 depth-24 = 93,176 steps total (~2.3k/sample); rtl_const_expr count-40 depth-32 = 8,487,959 steps (~212k avg), and at a 2,000,000-step (2000 ms) budget the run is BYTE-IDENTICAL (same 8,487,959 cumulative, fully_certified) ⇒ per-sample max < 2,000,000. Default 4,000,000 = ~2× that proven ceiling, ~19× the avg.
+  ADDRESSED (current-binary pathology, UNBOUNDED `=0`): `conditional_expr --max-depth 40/48` and `rtl_const_expr --max-depth 40` HANG (>40s, rc=124). With the default budget: rtl_const_expr depth-40 cut deterministically in 14.96s, conditional_expr depth-48 in 16.59s (both `TargetTimeout … budget=4000ms`). (The 2026-06-14 `.1` depth-28 case was mitigated by intervening generator work and now completes fast; depth 40/48 remained the live hang.)
+  NO REGRESSION — decisive A/B (PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS=0 legacy vs default 4000, SAME binary, seed 0, count 40), BYTE-IDENTICAL cert headlines: json total=9/witness=9/UNKNOWN=0; regex 198/198/0; vhdl 216/216/0; systemverilog_preprocessor 74/74/0; rtl_frontend total=169 proof=1 witness=168 UNKNOWN=0; systemverilog total=1288 proof=1 witness=1259 UNKNOWN=28 spf=0 (also =28 at seeds 7/42). rtl_const_expr depth-32 fully_certified (total=48 UNKNOWN=0) at seeds 0/7/42. clippy_source_all_targets → ok (0 errors; the no-features source gate caught a cfg-attachment slip mid-implementation — the const had to carry its OWN #[cfg(feature="generated_parsers")] so it did not steal the gate off run_certificate_coverage_report — fixed + re-verified). No grammar/generated/parser/release/schema/ledger change (generated/*.rs untouched ⇒ external-corpus / parse gates unaffected by construction).`
+  Commit: `PGEN-CERT-GEN-BUDGET-0002`
+
+## Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — `ast_pipeline --report-certificate-coverage` PASS-1 diverse pass is time-unbounded: unbounded (`PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS=0`) `rtl_const_expr --max-depth 40` and `conditional_expr --max-depth 40/48` HANG (>40s wall, rc=124) on the current binary.
+- [x] **ROOT CAUSE (WHY + WHERE)** — diverse config leaves `target_generation_timeout_ms=0` (`stimuli_generator.rs:217`) → `timeout_budget_from_ms(0)=None` (`:1795/1799`) → `generation_deadline_exceeded()` false when unarmed (`:1810`); `generate_many` calls `generate_from_entry` directly, so the B1 step-budget (`enforce_generation_deadline`, woven through the core generation recursion `:8141/8175/9602/9149/…`) is NEVER ARMED for the diverse pass.
+- [x] **FIX** — generator-only, parser-agnostic; fix-hierarchy = engine/proof-tool budget (no grammar/declarative surface applies). `generate_many_bounded` arms a per-sample B1 budget; cert PASS-1 default `CERT_DIVERSE_GENERATION_TIMEOUT_MS_DEFAULT=4_000` ms; both new items `#[cfg(feature="generated_parsers")]`-gated.
+- [x] **ADDRESSED (verified)** — depth-40 `>40s/hang → 14.96s` deterministic cut; depth-48 → 16.59s; rtl_const_expr `fully_certified` (48/0) at depth 32 seeds 0/7/42.
+- [x] **NO REGRESSION** — decisive A/B byte-identical cert for the 6 well-behaved grammars + SV (UNKNOWN=28 seeds 0/7/42, spf=0); rtl_const_expr fully_certified seeds 0/7/42; `clippy_source_all_targets → ok`; `ast_shape_contract` lib tests 9 passed/0 failed (generated parsers untouched ⇒ unaffected by construction); generated/*.rs byte-identical (no codegen change).
+- [x] **LOCKSTEP** — `TOOLBOX.md` §4.5 + book `diagnosing-unknowns.md` (new env knob `PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS`); this leaf + `CERT-GEN-BUDGET.md`; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS. No contract/ledger/schema/release (not a parser change).
 
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `CERT-GEN-BUDGET.2` | `pending` | The bounded-budget fix. Root cause pinned in `.1`; the fix must preserve byte-identical cert for the 6 well-behaved grammars. |
+| — | `CERT-GEN-BUDGET.2` | `done` (`PGEN-CERT-GEN-BUDGET-0002`) | The bounded-budget fix LANDED: diverse pass now arms a default 4M-step B1 budget; byte-identical cert for the 6 well-behaved grammars + SV; rtl_const_expr fully_certified at depth 32 (seeds 0/7/42); depth-40/48 runaway cut deterministically (~15s). |
 | — | `CERT-GEN-BUDGET.1` | `done` (`PGEN-CERT-GEN-BUDGET-0001`) | Root cause: the diverse-pass config never arms the B1 step-budget (`target_generation_timeout_ms=0`) → unbounded generation, pathological/non-terminating on deeply-recursive rtl_const_expr; non-monotonic in `--max-depth`. |
+
+**Tree status: all leaves `done` → `CERT-GEN-BUDGET` is COMPLETE.** (Tree-level: the cert-coverage diverse pass is now deterministically bounded without changing the well-behaved grammars' cert results — Goal + all Acceptance Criteria met.)
 
 ## Decisions
 
@@ -92,13 +105,16 @@ bounded-budget fix is `.2`.
 | Date | Leaf | Checks | Result |
 | --- | --- | --- | --- |
 | `2026-06-14` | `CERT-GEN-BUDGET.1` | `rtl_const_expr.json cert depth sweep (count 5: depths 4/8/12/16 instant DepthExceeded; count 1: depth 24 instant error, depth 28 >200s timeout rc=124, depth 32 18.15s fully_certified, depth 40 >40s); ps (depth-28 child 100% CPU → reaped at 200s, RSS 21 MB, RAM 85% free); code read (main.rs:2370 diverse config ..Default::default(); stimuli_generator.rs:208 default target_generation_timeout_ms=0; :1682 timeout_budget_from_ms(0)=None; :1697 deadline-check None⇒false)` | `Root cause = unbounded diverse pass (B1 step-budget never armed); non-monotonic in depth; not a deadlock; severity moderate (tooling robustness). Fix → .2. No code changed.` |
+| `2026-06-25` | `CERT-GEN-BUDGET.2` | `Calibration via low-verbosity step-count trace (SV d24 = 93,176 steps; rce d32 = 8,487,959 steps, byte-identical at 2M budget ⇒ per-sample max < 2M). Current-binary pathology sweep (UNBOUNDED =0, timeout 40s): conditional_expr d40/d48 + rtl_const_expr d40 HANG (rc=124); d28 now fast (intervening-work mitigated). Decisive A/B (=0 vs default 4000): json/regex/vhdl/svpp/rtl_frontend/SV byte-identical (SV UNKNOWN=28 spf=0, also =28 @ seeds 7/42); rce d32 fully_certified @ seeds 0/7/42. Pathology cut @ default: rce d40 = 14.96s, conditional_expr d48 = 16.59s (TargetTimeout budget=4000ms). clippy_source_all_targets → ok (0 errors); full clippy gate ✅; ast_shape_contract 18/18.` | `Fix LANDED: generate_many_bounded + default 4M-step diverse-pass budget. Byte-identical for 6 well-behaved + SV; rce fully_certified; depth-40/48 runaway bounded ~15s. Generator-only; no parser/grammar/generated/release change.` |
 
 ## Commit Log
 
 | Leaf | Commit subject or reference | Notes |
 | --- | --- | --- |
 | `CERT-GEN-BUDGET.1` | `PGEN-CERT-GEN-BUDGET-0001` | Pure-docs investigation; root cause + severity + fix ticket. |
+| `CERT-GEN-BUDGET.2` | `PGEN-CERT-GEN-BUDGET-0002` | The bounded-budget FIX (code): `generate_many_bounded` + default 4M-step diverse-pass budget; byte-identical cert for 6 well-behaved grammars + SV; rtl_const_expr fully_certified at depth 32 (seeds 0/7/42); depth-40/48 runaway cut deterministically. |
 
 ## Changelog
 
 - `2026-06-14`: Created (`.1` done, `PGEN-CERT-GEN-BUDGET-0001`) — root-caused the "stuck 6.5-min" `ast_pipeline` cert-coverage run to the time-unbounded PASS-1 diverse pass (no B1 step-budget armed; `main.rs:2370`); pathological/non-terminating on deeply-recursive rtl_const_expr; non-monotonic in `--max-depth`. Fix ticketed as `.2` (arm a generous deterministic step-budget, preserving byte-identical cert for the 6 well-behaved grammars). Frontier → `.2`.
+- `2026-06-25`: `.2` DONE (`PGEN-CERT-GEN-BUDGET-0002`) — armed a deterministic 4,000,000-step (4000 ms) per-sample default budget on the cert PASS-1 diverse pass via the new `generate_many_bounded` (env-tunable `PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS`). Byte-identical cert for the 6 well-behaved grammars + SV (decisive A/B), rtl_const_expr fully_certified at depth 32 (seeds 0/7/42), and the current depth-40/48 runaway cut deterministically (~15s vs unbounded hang). Generator-only / parser-agnostic; no grammar/generated/release/schema/ledger change. **Tree COMPLETE (all leaves done).**

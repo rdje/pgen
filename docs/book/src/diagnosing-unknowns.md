@@ -166,6 +166,14 @@ runs are byte-identical without them. Use for A/B isolation.
 | `PGEN_WITNESS_NO_PURDOM=1` | Disable Purdom shortest-derivation ordering | A/B: is the ordering the cause? |
 | `PGEN_WITNESS_TIMEOUT_FLOOR_MS` | Per-target witness budget floor (default 200 ms) | Give a deep target more budget |
 | `PGEN_GENERATION_STEPS_PER_MS` | Steps→time calibration for the step-budget | Bound a pathological deep generation |
+| `PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS` | Per-sample step-budget for the **diverse** (PASS-1) generation (default 4000 ms = 4 000 000 steps) | Keep the cert from hanging on a deeply-recursive grammar; set `0` for the legacy unbounded pass |
+
+The diverse-pass budget (`PGEN_CERT_DIVERSE_GENERATION_TIMEOUT_MS`) is a
+deterministic safety bound, not a tuning knob: its default is far above any
+well-behaved grammar's per-sample cost, so the cert headlines stay
+byte-identical, but it deterministically cuts a deep-recursion runaway (e.g.
+`rtl_const_expr` / `conditional_expr` at `--max-depth` 40/48, which spin
+unboundedly without it) in ~15 s instead of hanging.
 
 To confirm a witness-reach regression is **not** depth, re-run the cert at
 `--max-depth 24`, `32`, `40` — if the `UNKNOWN` set is unchanged, the per-target
