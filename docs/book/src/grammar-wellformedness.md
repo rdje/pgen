@@ -1129,21 +1129,35 @@ That *endgame accounting* step is now a shipped, opt-in tool: `ast_pipeline
 that unions the verified covered (`proof ∪ witness`) rule sets across the supported configs and prints
 an extra `CERTIFICATE-COVERAGE-UNION:` line. The union is **sound by construction** — it credits a
 rule only when some config *positively* covers it (a proof or a witness), never merely because a
-profile leaves the rule out of its universe — so a rule that no config covers stays `UNKNOWN`. For
-SystemVerilog,
+profile leaves the rule out of its universe — so a rule that no config covers stays `UNKNOWN`.
+
+A witness is only sound if the sample is **verified from the same start symbol it was generated
+under**. Certificate witness verification is therefore **entry-aware**: every generated parser exposes
+`parse_full_from(entry)` (and `parse_from(entry)`) — a full-input parse that begins at any rule, not
+only the canonical entry — and each `--cert-union-config <entry>[:<profile>]` config verifies its
+witnesses from *that* entry. This is what lets an *entry-relative* rule — one rooted under an alternate
+LRM start symbol such as `library_text`, unreachable from `systemverilog_file` by design — be confirmed
+at all: the same `library_text`-rooted sample the generator targets it with is now parsed back from
+`library_text`, so the real parser can testify that the rule was exercised. (`parse_full_from`'s default
+arm is the canonical entry, so a single-entry grammar is byte-identical to before this capability
+existed.) For SystemVerilog,
 
 ```bash
 ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage \
   --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0 \
   --cert-union-config systemverilog_file:sv_2023 \
-  --cert-union-config sv_multi_entry_root:sv_2017
+  --cert-union-config sv_multi_entry_root:sv_2017 \
+  --cert-union-config library_text:sv_2017 \
+  --cert-union-config systemverilog_parseable_file:sv_2017
 ```
 
-prints the byte-identical canonical line (`UNKNOWN=22`) plus `CERTIFICATE-COVERAGE-UNION: … UNKNOWN=14`
-(deterministic at seeds 0/7/42): the union certifies the 6 profile-relative rules **and** the 2
-extraction leaves — all eight witness under `sv_2023` — so `22 → 14`. Reaching a literal `UNKNOWN=0`
-for SystemVerilog then needs only real generation/grammar work to witness the 11 entry-relative rules
-and close the 3 canonical reach-gaps.
+prints the byte-identical canonical line (`UNKNOWN=22`) plus `CERTIFICATE-COVERAGE-UNION: … UNKNOWN=3`
+(deterministic at seeds 0/7/42). The `sv_2023` config certifies the 6 profile-relative rules **and**
+the 2 extraction leaves (all eight witness there); the `library_text` / `systemverilog_parseable_file`
+configs, now that verification honors the entry, certify all **11 entry-relative** library/include/
+parseable-fragment rules. The union residual is therefore exactly the **3 genuine canonical-entry
+reach-gaps** (`context_member_method_call` and the two `…scoped_call…` cousins). Reaching a literal
+`UNKNOWN=0` for SystemVerilog then needs only that last reach-gap work.
 
 ## The decidability boundary (an honest limit)
 

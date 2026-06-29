@@ -9,6 +9,38 @@ metadata:
   decided_by: director
 ---
 
+## ✅ `.8.4.3` LANDED — entry-aware cert verification drives the union `14 → 3` (2026-06-29, `GRAMMAR-WELLFORMED.H.12.8.4.3`, `PGEN-GRAMMAR-WELLFORMED-0141`, **CODE**)
+
+The `-0140` REAL fix is implemented and the SV multi-config cert union now reaches **`UNKNOWN=3`**. Cert
+witness VERIFICATION honors the configured entry: the codegen (`ast_based_generator.rs`) emits a
+`parse_from(entry)` / `parse_full_from(entry)` per-rule dispatch (default arm = canonical ⇒ single-entry
+grammars byte-identical), `parser_registry.rs` (`ParseAndCoverFn` + 7 closures + generic `parse_and_cover`)
+takes `entry: Option<&str>` and verifies via `parse_full_from`, and `main.rs` threads the per-config entry
+into the 6 cert verification sites.
+
+- **Measured:** union with `--cert-union-config systemverilog_file:sv_2023 + sv_multi_entry_root:sv_2017 +
+  library_text:sv_2017 + systemverilog_parseable_file:sv_2017` ⇒ `CERTIFICATE-COVERAGE-UNION: … witness=1300
+  UNKNOWN=3` (canonical `UNKNOWN=22` byte-identical), **deterministic at seeds 0/7/42**. All **11
+  entry-relative rules witness**; `PGEN_CERT_COVERAGE_DUMP_ALL` confirms the union residual is EXACTLY the
+  **3 canonical reach-gaps** (`context_member_method_call`, `known_unscoped_class_scoped_call_interface_class_identifier`,
+  `known_unscoped_class_scoped_call_type_parameter_identifier`) — owned by `.8.3`.
+- **Why `14 → 3`, not `≤6` (the `.8.4.2`/`.8.4.1` prediction):** `kw_file_path_spec := /file_path_spec\b/`
+  is a literal keyword, so the generator emits `include file_path_spec;` AND the parser accepts that literal —
+  the sample is self-consistent. The ONLY thing that ever blocked the cohort was the verification *entry*
+  (`systemverilog_file` cannot parse `include …;`). Once verification runs from `library_text`, all 11
+  witness. So **`.8.4.4` (`file_path_spec` → LRM path char-class) is reframed from witnessing-blocker to an
+  optional LRM-fidelity cleanup**; it is NOT needed to reach `UNKNOWN=0`.
+- **Residual to literal `UNKNOWN=0`:** ONLY the **3 reach-gaps** (`.8.3`). `.8.2` (`kw_n_*`) was subsumed by
+  the `-0138` union; the 11 entry-relative are now witnessed. So the SV `UNKNOWN→0` lane is, via the sound
+  multi-config union, down to the single `.8.3` cohort.
+- **No regression:** SV canonical byte-identical `22` (seeds 0/7/42); the 6 fully-certified grammars
+  byte-identical `fully_certified=true`; `cargo test --lib` 771/0; clippy source-clean; SV external corpus
+  14/14. Parser-agnostic, inert for the certified roster by construction (their default entry = canonical).
+- **Carve-out:** `parseability_probe --entry-rule` → `.8.4.3.1` (same `parse_full_from` dispatch via the
+  detail-parse path; a tool-build slice, kept out of this commit for reviewability).
+
+---
+
 ## ✅ `.8.1.1` IMPLEMENTED — the shipped union delivers `22 → 14`, NOT `16` (2026-06-29, `GRAMMAR-WELLFORMED.H.12.8.1.1`, `PGEN-GRAMMAR-WELLFORMED-0138`, **CODE**)
 
 The opt-in `--cert-union-config <entry>[:<profile>]` flag is implemented and verified. The measured SV

@@ -98,7 +98,14 @@ type ParseSampleFn = fn(&str) -> bool;
 /// generated parser and return `(parsed_ok, rules_exercised)` (the rule names PRESENT in the
 /// successful AST). Registered per-grammar in the table below; the pipeline dispatches generically
 /// via `parse_and_cover(grammar_name, …)` and never names a grammar.
-type ParseAndCoverFn = fn(&str, Option<&str>) -> (bool, std::collections::HashSet<String>);
+///
+/// GRAMMAR-WELLFORMED.H.12.8.4.3: the third argument is the optional ENTRY rule — the start symbol the
+/// sample should be parsed from. `None` ⇒ the grammar's canonical entry (byte-identical to before this
+/// param existed). `Some(entry)` ⇒ verify from `parser.parse_full_from(entry)`, so an entry-relative
+/// rule (rooted under an alternate LRM start symbol such as `library_text`) is verified from the SAME
+/// entry the cert's `--entry-rule` / `--cert-union-config` generated it under. Parser-agnostic.
+type ParseAndCoverFn =
+    fn(&str, Option<&str>, Option<&str>) -> (bool, std::collections::HashSet<String>);
 /// GRAMMAR-WELLFORMED.G.4.7: the per-grammar "parse and return WHY it failed" hook — a rich error
 /// string (the generated SV parser augments it with `furthest_position`, the deepest byte any branch
 /// reached). Lets the certificate-coverage gate LABEL its sample-parse failures instead of silently
@@ -295,10 +302,16 @@ fn parse_with_json_ast_json(sample: &str) -> Result<JsonValue, String> {
 pub fn parse_and_cover_json(
     sample: &str,
     _grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
     let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
     parser.enable_coverage();
-    match parser.parse_full_json() {
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_json(),
+    };
+    match outcome {
         Ok(_) => (true, parser.exercised_rule_names()),
         Err(_) => (false, std::collections::HashSet::new()),
     }
@@ -364,13 +377,20 @@ fn parse_with_regex_ast_json(sample: &str, grammar_profile: Option<&str>) -> Res
 pub fn parse_and_cover_regex(
     sample: &str,
     grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
     let profile = normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: own the entry into the 'static worker closure; `None` ⇒ canonical.
+    let entry_owned = entry.map(|e| e.to_string());
     run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
         let mut parser = RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
         parser.set_grammar_profile(profile.as_deref());
         parser.enable_coverage();
-        Ok(match parser.parse_full_regex() {
+        let outcome = match entry_owned.as_deref() {
+            Some(e) => parser.parse_full_from(e),
+            None => parser.parse_full_regex(),
+        };
+        Ok(match outcome {
             Ok(_) => (true, parser.exercised_rule_names()),
             Err(_) => (false, std::collections::HashSet::new()),
         })
@@ -414,11 +434,17 @@ fn parse_with_rtl_const_expr_ast_json(sample: &str) -> Result<JsonValue, String>
 pub fn parse_and_cover_rtl_const_expr(
     sample: &str,
     _grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
     let mut parser =
         RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
     parser.enable_coverage();
-    match parser.parse_full_rtl_const_expr() {
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_rtl_const_expr(),
+    };
+    match outcome {
         Ok(_) => (true, parser.exercised_rule_names()),
         Err(_) => (false, std::collections::HashSet::new()),
     }
@@ -458,10 +484,16 @@ fn parse_with_rtl_frontend_ast_json(sample: &str) -> Result<JsonValue, String> {
 pub fn parse_and_cover_rtl_frontend(
     sample: &str,
     _grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
     let mut parser = RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
     parser.enable_coverage();
-    match parser.parse_full_rtl_frontend_file() {
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_rtl_frontend_file(),
+    };
+    match outcome {
         Ok(_) => (true, parser.exercised_rule_names()),
         Err(_) => (false, std::collections::HashSet::new()),
     }
@@ -518,9 +550,10 @@ pub fn parse_and_cover(
     grammar_name: &str,
     sample: &str,
     grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> Option<(bool, std::collections::HashSet<String>)> {
     let cover = find_entry(grammar_name)?.parse_and_cover?;
-    Some(cover(sample, grammar_profile))
+    Some(cover(sample, grammar_profile, entry))
 }
 
 /// Whether a generated parser with `parse_and_cover` support is registered for `grammar_name`.
@@ -559,6 +592,7 @@ pub fn parse_error(
 pub fn parse_and_cover_systemverilog(
     sample: &str,
     grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
@@ -568,7 +602,15 @@ pub fn parse_and_cover_systemverilog(
         return (false, std::collections::HashSet::new());
     }
     parser.enable_coverage();
-    match parser.parse_full_systemverilog_file() {
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the configured entry so an entry-relative rule
+    // (rooted under the LRM `library_text` / parseable-fragment start symbols) is parsed back from
+    // the SAME start symbol it was generated under. `None` / the canonical entry ⇒ byte-identical to
+    // the hardwired `parse_full_systemverilog_file` path (the default arm of `parse_full_from`).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_systemverilog_file(),
+    };
+    match outcome {
         Ok(_) => (true, parser.exercised_rule_names()),
         Err(_) => (false, std::collections::HashSet::new()),
     }
@@ -781,13 +823,19 @@ fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonVa
 pub fn parse_and_cover_systemverilog_preprocessor(
     sample: &str,
     _grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
     let mut parser = SystemverilogPreprocessorParser::new(
         sample,
         runtime_logger_box("generated.systemverilog_preprocessor"),
     );
     parser.enable_coverage();
-    match parser.parse_full_systemverilog_preprocessor_file() {
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_systemverilog_preprocessor_file(),
+    };
+    match outcome {
         Ok(_) => (true, parser.exercised_rule_names()),
         Err(_) => (false, std::collections::HashSet::new()),
     }
@@ -827,10 +875,16 @@ fn parse_with_vhdl_ast_json(sample: &str) -> Result<JsonValue, String> {
 pub fn parse_and_cover_vhdl(
     sample: &str,
     _grammar_profile: Option<&str>,
+    entry: Option<&str>,
 ) -> (bool, std::collections::HashSet<String>) {
     let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
     parser.enable_coverage();
-    match parser.parse_full_vhdl_file() {
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_vhdl_file(),
+    };
+    match outcome {
         Ok(_) => (true, parser.exercised_rule_names()),
         Err(_) => (false, std::collections::HashSet::new()),
     }
@@ -1587,7 +1641,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
     #[cfg(has_generated_regex_parser)]
     #[test]
     fn regex_parse_and_cover_replays_coverage_on_memo_hits() {
-        let (parsed, covered) = super::parse_and_cover_regex("\\Q\\A\\E*", None);
+        let (parsed, covered) = super::parse_and_cover_regex("\\Q\\A\\E*", None, None);
         assert!(parsed, "\\Q\\A\\E* must parse");
         for rule in [
             "quoted_literal_char",
@@ -1606,7 +1660,7 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
         // parses `quoted_class_range_atom → quoted_class_literal_char` at the
         // `\A` position, fails on the missing `-`, and rolls back; the
         // `quoted_class_literal` alternative then memo-hits at that position.
-        let (parsed, covered) = super::parse_and_cover_regex("[]\\Q\\A\\E]", None);
+        let (parsed, covered) = super::parse_and_cover_regex("[]\\Q\\A\\E]", None, None);
         assert!(parsed, "[]\\Q\\A\\E] must parse");
         assert!(
             covered.contains("quoted_class_literal_escaped_char"),

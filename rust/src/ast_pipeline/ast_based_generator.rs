@@ -663,7 +663,7 @@ impl AstBasedGenerator {
 
         // Generate constructor and main parse method
         let constructor = self.generate_constructor()?;
-        let parse_method = self.generate_parse_method(entry_rule);
+        let parse_method = self.generate_parse_method(entry_rule, grammar_tree, rule_order);
 
         // Generate rule methods
         eprintln!("\n{}", "-".repeat(60));
@@ -1133,10 +1133,43 @@ impl AstBasedGenerator {
         }
     }
 
-    fn generate_parse_method(&self, entry_rule: &str) -> TokenStream {
+    fn generate_parse_method(
+        &self,
+        entry_rule: &str,
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_order: &[String],
+    ) -> TokenStream {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
         let allow_trailing_layout = !self.grammar_name.eq_ignore_ascii_case("regex");
+
+        // GRAMMAR-WELLFORMED.H.12.8.4.3: entry-aware full parse. Compute one dispatch
+        // arm per rule so `parse_from` / `parse_full_from` can begin a full-input parse
+        // from ANY rule, not only the canonical entry. This is the enabler for
+        // certificate witness verification of entry-relative rules (rules rooted under
+        // an alternate LRM start symbol such as `library_text`): the cert's
+        // `--entry-rule` / `--cert-union-config` entry now drives BOTH generation and
+        // verification, and `parseability_probe --entry-rule` can reproduce them. The
+        // arm set is exactly the rules that get a `parse_<rule>` method emitted in
+        // `generate_parser_tokens` (present in `grammar_tree`); the canonical entry is
+        // the default arm; the set is deduped so a duplicate `rule_order` entry cannot
+        // produce an unreachable-pattern arm. Parser-agnostic and inert for single-entry
+        // grammars (the default arm reproduces today's `parse()` exactly).
+        let mut seen_entry_arms: std::collections::HashSet<&str> =
+            std::collections::HashSet::new();
+        let mut entry_arm_names: Vec<&str> = Vec::new();
+        for rule_name in rule_order {
+            if rule_name == entry_rule || !grammar_tree.contains_key(rule_name) {
+                continue;
+            }
+            if seen_entry_arms.insert(rule_name.as_str()) {
+                entry_arm_names.push(rule_name.as_str());
+            }
+        }
+        let entry_arm_methods: Vec<Ident> = entry_arm_names
+            .iter()
+            .map(|rule_name| format_ident!("parse_{}", rule_name))
+            .collect();
 
         // INLINE-ACTIONS.2: emit the branch-start effect-application helper only
         // when some rule actually uses a branch-start inline action directive, so
@@ -1239,7 +1272,11 @@ impl AstBasedGenerator {
         };
 
         quote! {
-            pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
+            /// GRAMMAR-WELLFORMED.H.12.8.4.3: the shared per-parse reset ceremony, run
+            /// before any entry rule. Extracted from `parse()` so `parse_from` reuses it
+            /// verbatim (entry-aware verification must reset identically). `parse()` is
+            /// behavior-identical to before this extraction.
+            fn prepare_parse_state(&mut self) {
                 self.recovery_events.clear();
                 self.recovery_counts.clear();
                 self.recovery_parse_count = 0;
@@ -1251,7 +1288,7 @@ impl AstBasedGenerator {
                 self.deterministic_partition_events.clear();
                 self.deterministic_partition_rule_hits.clear();
                 // `SV-EXH-PROOF.3.3.4.b.6.2.37.2`: preserve any facts that
-                // were pushed onto the parser BEFORE `parse()` is called —
+                // were pushed onto the parser BEFORE the parse is called —
                 // those are intentional preloads (e.g. the SV stdlib's
                 // `process`/`semaphore`/`mailbox` `type_name` facts loaded
                 // by `preload_systemverilog_stdlib` in parser_registry).
@@ -1271,8 +1308,29 @@ impl AstBasedGenerator {
                 // starts with an empty registry).
                 self.semantic_runtime_state
                     .set_predicate_defs(self.semantic_runtime_annotations.clone_predicate_defs());
+            }
+
+            pub fn parse(&mut self) -> ParseResult<ParseNode<'input>> {
+                self.prepare_parse_state();
                 let parse_outcome = self.#parse_method();
                 // PARSE-TERMINATION.6 (WHY+WHERE): opt-in memo footprint report.
+                if std::env::var("PGEN_REPORT_MEMO_STATS").is_ok() {
+                    self.report_memo_stats();
+                }
+                parse_outcome
+            }
+
+            /// GRAMMAR-WELLFORMED.H.12.8.4.3: entry-aware `parse`. Same reset ceremony as
+            /// `parse()`, but the root rule is selected by `entry` so a parse can start
+            /// from an alternate LRM start symbol (e.g. `library_text`). An
+            /// unknown/unsupported `entry` falls back to the canonical entry, so this is
+            /// behavior-identical to `parse()` for single-entry grammars.
+            pub fn parse_from(&mut self, entry: &str) -> ParseResult<ParseNode<'input>> {
+                self.prepare_parse_state();
+                let parse_outcome = match entry {
+                    #( #entry_arm_names => self.#entry_arm_methods(), )*
+                    _ => self.#parse_method(),
+                };
                 if std::env::var("PGEN_REPORT_MEMO_STATS").is_ok() {
                     self.report_memo_stats();
                 }
@@ -1297,6 +1355,26 @@ impl AstBasedGenerator {
 
             pub fn #parse_full_method(&mut self) -> ParseResult<ParseNode<'input>> {
                 self.parse_full()
+            }
+
+            /// GRAMMAR-WELLFORMED.H.12.8.4.3: entry-aware `parse_full` — full-input parse
+            /// from an arbitrary start symbol. Drives certificate witness verification
+            /// (and `parseability_probe --entry-rule`) from the configured entry. The
+            /// trailing-layout / full-consumption check is byte-identical to `parse_full`.
+            pub fn parse_full_from(&mut self, entry: &str) -> ParseResult<ParseNode<'input>> {
+                let parsed = self.parse_from(entry)?;
+                if #allow_trailing_layout {
+                    // Allow trailing layout/comments so the parse reports structural completeness.
+                    self.consume_layout_for_terminal("<EOF>");
+                }
+                if self.position == self.input.len() {
+                    Ok(parsed)
+                } else {
+                    Err(ParseError::InvalidSyntax {
+                        message: "Parser did not consume full input",
+                        position: self.position,
+                    })
+                }
             }
 
             pub fn set_grammar_profile(&mut self, profile: Option<&str>) {
@@ -9417,7 +9495,7 @@ mod semantic_usage_tests {
             uses_match_regex: std::cell::Cell::new(false),
         };
 
-        let rendered = generator.generate_parse_method("start").to_string();
+        let rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
         assert!(
             rendered.contains("pub fn recovery_events"),
             "parse method generation should expose recovery_events accessor, got: {}",
@@ -9762,7 +9840,7 @@ mod semantic_usage_tests {
             types_rendered
         );
 
-        let parse_rendered = generator.generate_parse_method("start").to_string();
+        let parse_rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
         assert!(
             parse_rendered.contains("pub fn coverage_target_events"),
             "parse method generation should expose coverage_target_events accessor, got: {}",
@@ -9944,7 +10022,7 @@ mod semantic_usage_tests {
             types_rendered
         );
 
-        let parse_rendered = generator.generate_parse_method("start").to_string();
+        let parse_rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
         assert!(
             parse_rendered.contains("pub fn negative_case_events"),
             "parse method generation should expose negative_case_events accessor, got: {}",
@@ -10117,7 +10195,7 @@ mod semantic_usage_tests {
             types_rendered
         );
 
-        let parse_rendered = generator.generate_parse_method("start").to_string();
+        let parse_rendered = generator.generate_parse_method("start", &std::collections::HashMap::new(), &[]).to_string();
         assert!(
             parse_rendered.contains("pub fn deterministic_partition_events"),
             "parse method generation should expose deterministic_partition_events accessor, got: {}",

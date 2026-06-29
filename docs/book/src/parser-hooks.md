@@ -171,7 +171,7 @@ impl ParserHooks for FoolangParserHooks {
 Constraints on what your hook emits:
 
 - **Preserve semantic side-effects.** Any typed parse entry-point you emit must invoke the parser methods that fire `with_semantic_runtime_rule_transaction`, `memoized_call`, recursion-guard checks, predicate evaluation, fact emission, and any other runtime-state interactions. The simplest safe pattern is to delegate to the existing `parse_<rule>` method and post-process its result.
-- **Don't collide with the pipeline's emit.** The pipeline already emits `parse_<rule>`, `parse_full_<entry>`, helper methods, and (when `--emit-typed-entry-skeleton` is set) the M1 skeleton's `parse_full_<entry>_typed`. Pick names that don't conflict.
+- **Don't collide with the pipeline's emit.** The pipeline already emits `parse_<rule>`, `parse_full_<entry>`, the entry-aware `parse_from(entry)` / `parse_full_from(entry)` dispatch pair (a full parse that begins at any rule — its default arm is the canonical entry, so single-entry grammars behave identically), helper methods, and (when `--emit-typed-entry-skeleton` is set) the M1 skeleton's `parse_full_<entry>_typed`. Pick names that don't conflict.
 - **Be deterministic.** Iterate over `ctx.rule_order` (a slice with deterministic order) rather than `ctx.grammar_tree.keys()` (HashMap iteration order is non-deterministic). Determinism makes the generated parser file reproducible across builds.
 
 ### Step 3 — register at the binary boundary

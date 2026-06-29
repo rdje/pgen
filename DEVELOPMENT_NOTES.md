@@ -1,4 +1,17 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-29 - PGEN-GRAMMAR-WELLFORMED-0141 — GRAMMAR-WELLFORMED.H.12.8.4.3 entry-aware certificate witness verification (CODE)
+
+PNT loop (fresh session 2026-06-29). Implemented the `-0140` REAL fix: make cert witness verification honor the configured entry, so the 11 entry-relative SV rules become witness-able.
+
+**The change (parser-AGNOSTIC, in the GENERATOR — not a grammar edit, not a hand-edit of any artifact, per [[feedback_never_edit_generated_artifacts]] + [[feedback_ast_pipeline_parser_agnostic]]).**
+- Codegen (`ast_pipeline/ast_based_generator.rs`, `generate_parse_method`): extracted the per-parse reset ceremony into `prepare_parse_state()`; added `parse_from(entry)` (reset, then `match entry { <rule> => self.parse_<rule>(), … _ => <canonical> }`) and `parse_full_from(entry)` (the trailing-layout / full-consume wrap). The dispatch arm set is exactly the rules that get a `parse_<rule>` method (present in `grammar_tree`), deduped, with the canonical entry as the default arm — so single-entry grammars are byte-identical.
+- Registry (`parser_registry.rs`): `ParseAndCoverFn` + the 7 `parse_and_cover_*` closures + the generic `parse_and_cover` take `entry: Option<&str>`; each verifies via `parse_full_from(entry)` (`None` ⇒ the existing `parse_full_<canonical>` call, literally unchanged). regex owns the entry into its 'static worker closure.
+- main.rs: the 6 cert `parse_and_cover` call sites (all inside the `-0138` `gather_cert_covered_sets`) thread the per-config `entry_rule`.
+
+**Why the result beat the `≤6` prediction (`14 → 3`).** The `-0139`/`-0140` analysis expected the `file_path_spec` literal to keep blocking `include_statement`/`kw_*` until `.8.4.4`. But `kw_file_path_spec := /file_path_spec\b/` is a literal keyword, so the generator emits `include file_path_spec;` AND the parser accepts that literal — the sample is self-consistent. The ONLY thing that ever blocked it was the verification *entry*: `systemverilog_file` cannot parse `include …;` at all. Once verification runs from `library_text`, all 11 entry-relative rules witness. So `file_path_spec` (`.8.4.4`) is reframed from "witnessing blocker" to "LRM-fidelity cleanup".
+
+**Tools-first discipline.** Reproduced baseline (canonical 22 / union 14, seeds 0/7/42) on a freshly-regenerated baseline SV parser BEFORE editing. Measured the A/B: union `14 → 3`, deterministic at seeds 0/7/42, `PGEN_CERT_COVERAGE_DUMP_ALL` confirms the residual is EXACTLY the 3 known reach-gaps (not a random subset) — so the 11 new witnesses are the designed ones, not false-witness inflation ([[feedback_be_alert_root_cause_fishy_immediately]]). `parseability_probe --entry-rule` split to `.8.4.3.1`.
+
 ## 2026-06-29 - PGEN-GRAMMAR-WELLFORMED-0140 — GRAMMAR-WELLFORMED.H.12.8.4.2 `file_path_spec` implement REFUTED + TRUE root cause (PURE-DOCS)
 
 PNT loop (fresh session 2026-06-29). The `.8.4.1` IMPLEMENT, executed and **measured against the global metric** ([[feedback_no_codebase_change_without_tool_backed_facts]]) — which is exactly why the wrong hypothesis was caught.

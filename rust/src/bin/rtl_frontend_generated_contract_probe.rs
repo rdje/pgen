@@ -40,7 +40,7 @@ struct RtlFrontendGeneratedSample {
 #[cfg(has_generated_rtl_frontend_parser)]
 fn cover_sample(sample: &str) -> Option<(bool, HashSet<String>)> {
     Some(pgen::parser_registry::parse_and_cover_rtl_frontend(
-        sample, None,
+        sample, None, None,
     ))
 }
 

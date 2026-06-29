@@ -2473,7 +2473,7 @@ fn gather_cert_covered_sets(
     let mut failures: Vec<(String, String)> = Vec::new();
     for sample in &diverse {
         if let Some((parsed, covered)) =
-            pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile)
+            pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile, Some(entry_rule.as_str()))
         {
             if parsed {
                 witness_covered.extend(covered);
@@ -2533,7 +2533,7 @@ fn gather_cert_covered_sets(
             {
                 for sample in &reach_samples {
                     if let Some((parsed, covered)) =
-                        pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile)
+                        pgen::parser_registry::parse_and_cover(&grammar.grammar_name, sample, profile, Some(entry_rule.as_str()))
                     {
                         if parsed {
                             witness_covered.extend(covered);
@@ -2614,7 +2614,7 @@ fn gather_cert_covered_sets(
                 PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
                 |rule, sample| {
                     let Some((parsed, covered)) =
-                        pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                        pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile, Some(entry_rule.as_str()))
                     else {
                         return PlannableProbeVerdict::NotParsed;
                     };
@@ -2664,7 +2664,7 @@ fn gather_cert_covered_sets(
                         PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
                         |rule, sample| {
                             let Some((parsed, covered)) =
-                                pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                                pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile, Some(entry_rule.as_str()))
                             else {
                                 return PlannableProbeVerdict::NotParsed;
                             };
@@ -2711,7 +2711,7 @@ fn gather_cert_covered_sets(
                     PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
                     |rule, sample| {
                         let Some((parsed, covered)) =
-                            pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                            pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile, Some(entry_rule.as_str()))
                         else {
                             return PlannableProbeVerdict::NotParsed;
                         };
@@ -2766,7 +2766,7 @@ fn gather_cert_covered_sets(
                         PLANNABLE_REACH_MAX_ATTEMPTS_PER_RULE,
                         |rule, sample| {
                             let Some((parsed, covered)) =
-                                pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile)
+                                pgen::parser_registry::parse_and_cover(&grammar_name, sample, profile, Some(entry_rule.as_str()))
                             else {
                                 return PlannableProbeVerdict::NotParsed;
                             };
