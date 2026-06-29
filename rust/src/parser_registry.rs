@@ -621,6 +621,22 @@ fn parse_with_systemverilog_detail_profile(
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Result<(), String> {
+    // The registered `ParseDetailFn` (default entry). GRAMMAR-WELLFORMED.H.12.8.4.3.1 added the
+    // `_entry` variant below; `None` here is byte-identical to the legacy single-entry path.
+    parse_with_systemverilog_detail_profile_entry(sample, grammar_profile, None)
+}
+
+/// GRAMMAR-WELLFORMED.H.12.8.4.3.1: SV detail parse from an OPTIONAL alternate entry. `entry=None`
+/// parses from `parse_full_systemverilog_file` (byte-identical to the legacy registered path);
+/// `Some(rule)` parses from `parse_full_from(rule)` so `parseability_probe --entry-rule` can
+/// reproduce / trace an entry-relative rule (rooted under an alternate LRM start symbol such as
+/// `library_text`) in isolation. The `furthest_position` augmentation is preserved either way.
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_detail_profile_entry(
+    sample: &str,
+    grammar_profile: Option<&str>,
+    entry: Option<&str>,
+) -> Result<(), String> {
     let mut parser =
         SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
         parser.set_trace_rules(current_trace_rules());
@@ -631,7 +647,10 @@ fn parse_with_systemverilog_detail_profile(
     parser.set_grammar_profile(normalized_profile);
     preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
     let _dashboard = maybe_spawn_call_count_dashboard(&parser);
-    let result = parser.parse_full_systemverilog_file().map(|_| ());
+    let result = match entry {
+        Some(e) => parser.parse_full_from(e).map(|_| ()),
+        None => parser.parse_full_systemverilog_file().map(|_| ()),
+    };
     // SV-EXH-PROOF.3.3.4.b.6.2.25 — on failure, augment the error with the
     // furthest byte the parser reached on any branch (even backtracked
     // branches). The surface `position` in the error message is the
@@ -1088,6 +1107,86 @@ pub fn parse_sample_detail_with_profile(
         "systemverilog_preprocessor" => Some(parse_with_systemverilog_preprocessor_detail(sample)),
         #[cfg(has_generated_vhdl_parser)]
         "vhdl" => Some(parse_with_vhdl_detail(sample)),
+        _ => None,
+    }
+}
+
+/// GRAMMAR-WELLFORMED.H.12.8.4.3.1: entry-aware detail parse for `parseability_probe --entry-rule` —
+/// parse `sample` from an ALTERNATE start symbol via the generated parser's `parse_full_from(entry)`
+/// (landed in -0141), returning the rich error (SV augments `furthest_position`). Parser-agnostic
+/// dispatch (the per-grammar knowledge lives here, like the other registry detail fns). Returns `None`
+/// for grammars whose generated parser predates `parse_full_from` (the annotation / `ebnf`
+/// meta-grammars) — the probe then reports "no detail-capable parser registered".
+pub fn parse_sample_detail_from_entry(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+    entry: &str,
+) -> Option<Result<(), String>> {
+    #[cfg(not(any(
+        has_generated_systemverilog_parser,
+        has_generated_json_parser,
+        has_generated_regex_parser,
+        has_generated_rtl_const_expr_parser,
+        has_generated_rtl_frontend_parser,
+        has_generated_systemverilog_preprocessor_parser,
+        has_generated_vhdl_parser
+    )))]
+    let _ = (sample, grammar_profile, entry);
+
+    match grammar_name {
+        #[cfg(has_generated_systemverilog_parser)]
+        "systemverilog" => Some(parse_with_systemverilog_detail_profile_entry(
+            sample,
+            grammar_profile,
+            Some(entry),
+        )),
+        #[cfg(has_generated_json_parser)]
+        "json" => {
+            let mut parser = JsonParser::new(sample, runtime_logger_box("generated.json"));
+            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
+        }
+        #[cfg(has_generated_regex_parser)]
+        "regex" => {
+            // Runs on the dedicated worker stack (regex can deeply recurse — RGX-0085).
+            let profile =
+                normalize_generated_grammar_profile("regex", grammar_profile).map(|p| p.to_string());
+            let entry_owned = entry.to_string();
+            Some(run_generated_regex_on_dedicated_stack(sample, move |owned_sample| {
+                let mut parser =
+                    RegexParser::new(&owned_sample, runtime_logger_box("generated.regex"));
+                parser.set_grammar_profile(profile.as_deref());
+                parser
+                    .parse_full_from(&entry_owned)
+                    .map(|_| ())
+                    .map_err(|err| err.to_string())
+            }))
+        }
+        #[cfg(has_generated_rtl_const_expr_parser)]
+        "rtl_const_expr" => {
+            let mut parser =
+                RtlConstExprParser::new(sample, runtime_logger_box("generated.rtl_const_expr"));
+            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
+        }
+        #[cfg(has_generated_rtl_frontend_parser)]
+        "rtl_frontend" => {
+            let mut parser =
+                RtlFrontendParser::new(sample, runtime_logger_box("generated.rtl_frontend"));
+            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
+        }
+        #[cfg(has_generated_systemverilog_preprocessor_parser)]
+        "systemverilog_preprocessor" => {
+            let mut parser = SystemverilogPreprocessorParser::new(
+                sample,
+                runtime_logger_box("generated.systemverilog_preprocessor"),
+            );
+            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
+        }
+        #[cfg(has_generated_vhdl_parser)]
+        "vhdl" => {
+            let mut parser = VhdlParser::new(sample, runtime_logger_box("generated.vhdl"));
+            Some(parser.parse_full_from(entry).map(|_| ()).map_err(|err| err.to_string()))
+        }
         _ => None,
     }
 }

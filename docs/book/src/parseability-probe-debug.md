@@ -33,6 +33,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--parse-dump-ast <grammar> <file>` | Parse + dump AST as JSON | [Basic](#basic-usage) |
 | `--parse-dump-ast-pretty <grammar> <file>` | Parse + dump AST as pretty JSON | [Basic](#basic-usage) |
 | `--profile <name>` | Select a grammar profile (e.g. SV `2017` vs `2023`) | [Basic](#basic-usage) |
+| `--entry-rule <rule>` | Parse from an alternate start symbol (e.g. SV `library_text`) | [Basic](#basic-usage) |
 | `--trace` | Enable parser trace at maximum verbosity (DBG) | [Trace](#trace-verbosity-levels) |
 | `--trace-rules R1,R2,...` | Scope the trace to specific rules' call-trees | [Rule-scoped trace](#rule-scoped-trace---trace-rules) |
 | `--trace-log-file [FILE]` | Write trace to a file (defaults to `trace.log`) | [Trace](#trace-output-format) |
@@ -86,6 +87,22 @@ parseability_probe --parse systemverilog file.sv --profile 2023
 ```
 
 For SystemVerilog, the recognized profile names are `2017`, `ieee1800-2017`, `ieee_1800_2017`, `2023`, `ieee1800-2023`, `ieee_1800_2023`. Other grammars may define their own profile names.
+
+### Parse from an alternate entry rule (`--entry-rule`)
+
+By default `--parse` begins at the grammar's canonical entry (for SystemVerilog, `systemverilog_file`). Some grammars have **more than one start symbol** — for example the IEEE 1800 `library_text` / parseable-fragment start symbols (§33 / Annex A.1.1), which describe library-map files (`include …;`, `library …;`, `config … endconfig`) that are *not* legal at the top of a design file. A construct rooted under such an alternate start symbol cannot be parsed — or traced — from the canonical entry. `--entry-rule <rule>` begins the full-input parse from that rule instead (via the generated parser's `parse_full_from`):
+
+```bash
+# A library-map include statement is rejected from the canonical entry...
+parseability_probe --parse systemverilog lib.map --profile 2017
+#   -> Parser did not consume full input at position 0 [furthest_position=7, ...]
+
+# ...but parses from the library_text start symbol:
+parseability_probe --parse systemverilog lib.map --profile 2017 --entry-rule library_text
+#   -> parse_full passed for grammar 'systemverilog' on 'lib.map'
+```
+
+This is the tool for reproducing and tracing an *entry-relative* rule in isolation (Step 3 of the [`UNKNOWN` protocol](diagnosing-unknowns.md) for a rule that only witnesses under a non-canonical cert entry). Omitting `--entry-rule` is byte-identical to the default-entry behavior; an unknown rule name falls back to the canonical entry. It composes with `--trace` / `--trace-rules` so the alternate-entry parse can be traced like any other.
 
 ---
 

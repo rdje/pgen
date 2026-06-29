@@ -76,6 +76,7 @@ For any work involving a parser's behavior — investigating a parse failure, id
 
 - the five trace verbosity levels (`none`/`low`/`medium`/`high`/`debug`) and their additivity guarantees,
 - rule-scoped tracing via `--trace-rules <list>` (100-1000× volume reduction vs full `--trace`),
+- parsing from an alternate start symbol via `--entry-rule <rule>` (e.g. SV `library_text`), so an entry-relative construct can be reproduced/traced in isolation,
 - the live per-rule call-count dashboard (`--dump-rule-call-counts [N]`) with rule-exclusion filtering,
 - the always-on `furthest_position` error diagnostic that points to the actual defect locus (not the surface failure position),
 - the self-explaining predicate trace (`🛡️ predicate 'X' PASSED/REJECTED/INAPPLICABLE branch K/N`),

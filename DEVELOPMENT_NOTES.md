@@ -1,4 +1,14 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-29 - PGEN-GRAMMAR-WELLFORMED-0142 — GRAMMAR-WELLFORMED.H.12.8.4.3.1 `parseability_probe --entry-rule` (CODE)
+
+PNT loop (continuation, fresh session 2026-06-29). The `.8.4.3` carve-out: give the probe's `--parse` detail path an `--entry-rule` so an entry-relative rule (rooted under an alternate LRM start symbol) is reproducible/traceable in isolation — the Step-3 tool the `-0140`/`-0141` work wanted and didn't have.
+
+**The change (parser-AGNOSTIC; reuses the `-0141` `parse_full_from`).**
+- Registry (`parser_registry.rs`): extracted `parse_with_systemverilog_detail_profile_entry(sample, profile, entry)` — the registered 2-arg `ParseDetailFn` (`parse_with_systemverilog_detail_profile`) now delegates with `entry=None`, so it stays byte-identical (same `parse_full_systemverilog_file` call, same `furthest_position` augmentation). Added parser-agnostic `parse_sample_detail_from_entry(grammar_name, sample, grammar_profile, entry)` — dispatches each grammar via its parser's `parse_full_from(entry)` (SV keeps the furthest-position detail, regex uses its worker stack), `_ => None` for meta-grammars with no generated parser (guarded for the no-parser source build).
+- Probe (`rust/src/bin/parseability_probe.rs`): `--entry-rule RULE` into `GlobalOptions` (mirrors `--profile`); `command_parse` gains an `entry_rule: Option<&str>` param and, when `Some`, routes through `parse_sample_detail_from_entry`; usage string + a description bullet updated. `--parse` only (the `furthest_position` detail path — the Step-3 value); the AST-dump entry path is a trivial deferred follow-on.
+
+**Tools-first / no-regression.** A/B with the freshly-built release probe was DECISIVE: `include file_path_spec;` rejects from the default entry (`furthest_position=7`) and `parse_full passed` from `--entry-rule library_text`; control `module m; endmodule` passes from the default entry. The `None` path is the unchanged canonical call; cert/codegen/grammars untouched ⇒ cert byte-identical to `-0141`; `cargo test --lib` 771/0/21; clippy source-clean.
+
 ## 2026-06-29 - PGEN-GRAMMAR-WELLFORMED-0141 — GRAMMAR-WELLFORMED.H.12.8.4.3 entry-aware certificate witness verification (CODE)
 
 PNT loop (fresh session 2026-06-29). Implemented the `-0140` REAL fix: make cert witness verification honor the configured entry, so the 11 entry-relative SV rules become witness-able.

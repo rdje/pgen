@@ -8,7 +8,7 @@ use pgen::ast_pipeline::{
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots."
+    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`) parse `--parse` input from an ALTERNATE start symbol (e.g. `library_text`) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative rule (rooted under an alternate LRM start symbol, unreachable from the default entry) be reproduced/traced in isolation. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots."
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -49,6 +49,11 @@ struct AstDumpWriteResult {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct GlobalOptions {
     profile: Option<String>,
+    /// GRAMMAR-WELLFORMED.H.12.8.4.3.1 — optional ALTERNATE start symbol for `--parse`.
+    /// `None` (default) parses from the grammar's canonical entry (byte-identical to before).
+    /// `Some(rule)` parses from `parse_full_from(rule)` so an entry-relative rule (rooted under an
+    /// alternate LRM start symbol such as `library_text`) can be reproduced/traced in isolation.
+    entry_rule: Option<String>,
     trace: bool,
     trace_log_file: Option<String>,
     /// `SV-EXH-PROOF.3.3.4.a` MVP-0: source directory for
@@ -150,6 +155,18 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
                 .get(idx + 1)
                 .ok_or_else(|| anyhow::anyhow!("--profile requires a value"))?;
             options.profile = Some(value.clone());
+            idx += 2;
+            continue;
+        }
+        if args[idx] == "--entry-rule" {
+            // GRAMMAR-WELLFORMED.H.12.8.4.3.1: parse from an alternate start symbol.
+            if options.entry_rule.is_some() {
+                bail!("--entry-rule cannot be specified multiple times");
+            }
+            let value = args
+                .get(idx + 1)
+                .ok_or_else(|| anyhow::anyhow!("--entry-rule requires a value"))?;
+            options.entry_rule = Some(value.clone());
             idx += 2;
             continue;
         }
@@ -417,6 +434,7 @@ fn command_parse(
     grammar_name: &str,
     input_file: &str,
     profile: Option<&str>,
+    entry_rule: Option<&str>,
     library_in_dir: Option<&str>,
     library_out_dir: Option<&str>,
 ) -> Result<()> {
@@ -426,12 +444,20 @@ fn command_parse(
         in_dir: library_in_dir.map(std::path::PathBuf::from),
         out_dir: library_out_dir.map(std::path::PathBuf::from),
     };
-    let result = parser_registry::parse_sample_detail_with_options(
-        grammar_name,
-        &sample,
-        profile,
-        &library_options,
-    );
+    // GRAMMAR-WELLFORMED.H.12.8.4.3.1: an explicit `--entry-rule` parses from that alternate start
+    // symbol via the entry-aware detail path; `None` keeps the byte-identical default-entry path
+    // (which also honors `--lib-in`/`--lib-out` for `@import_from_library`/`@export_to_library`).
+    let result = match entry_rule {
+        Some(entry) => {
+            parser_registry::parse_sample_detail_from_entry(grammar_name, &sample, profile, entry)
+        }
+        None => parser_registry::parse_sample_detail_with_options(
+            grammar_name,
+            &sample,
+            profile,
+            &library_options,
+        ),
+    };
     match result {
         Some(Ok(())) => {
             println!(
@@ -546,6 +572,7 @@ fn command_parse(
     grammar_name: &str,
     input_file: &str,
     profile: Option<&str>,
+    entry_rule: Option<&str>,
     library_in_dir: Option<&str>,
     library_out_dir: Option<&str>,
 ) -> Result<()> {
@@ -553,6 +580,7 @@ fn command_parse(
         grammar_name,
         input_file,
         profile,
+        entry_rule,
         library_in_dir,
         library_out_dir,
     );
@@ -586,6 +614,7 @@ fn main() -> Result<()> {
                 &remaining[0],
                 &remaining[1],
                 options.profile.as_deref(),
+                options.entry_rule.as_deref(),
                 options.library_in_dir.as_deref(),
                 options.library_out_dir.as_deref(),
             )
