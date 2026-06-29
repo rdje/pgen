@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-29 - PGEN-GRAMMAR-WELLFORMED-0139 — GRAMMAR-WELLFORMED.H.12.8.4.1 WHY+WHERE + fix DESIGN (PURE-DOCS)
+
+PNT loop (fresh session 2026-06-29, cold environment — `generated/` + binaries regenerated from scratch this session before any toolbox run). Diagnosis+design half of the SV `.8.4` leaf (drive the union `UNKNOWN=14 → 0`).
+
+**The toolbox path (Protocol A, reproduced this session).** (1) Full residual + honest number: `PGEN_CERT_COVERAGE_DUMP_ALL=1 ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0 --cert-union-config systemverilog_file:sv_2023 --cert-union-config sv_multi_entry_root:sv_2017` ⇒ canonical `UNKNOWN=22`, union `UNKNOWN=14` (14-rule list = 11 entry-relative + `context_member_method_call` + the 2 `…scoped_call…` reach-gaps). (2) WHY each: `PGEN_CERT_COVERAGE_DEBUG_PROBES=1 … --entry-rule sv_multi_entry_root` — the `[plannable-probe]` verdict per rule.
+
+**The split (tool-proven).** Mechanism A (6 rules `parsed=false`): forced samples carry the literal text `file_path_spec` (e.g. `kw_incdir_e08adf20` → `"library\foo file_path_spec-incdir file_path_spec;"`). Mechanism B (3 rules `parsed=true witnessed_target=false`): trivial/empty alt (`sv_multi_entry_root`→`""`, `parseable_source_item`→`";"`). `library_text`/`library_description` are mechanism-B-shaped but downstream-blocked by A (their only content path is `library_declaration`).
+
+**WHERE.** `grep -nE "file_path_spec" grammars/systemverilog.ebnf` ⇒ referenced at `:2313` (`include_statement`) and `:2591` (`library_declaration`); defined at `:5736` as `kw_file_path_spec_c26c9dc9 := trivia /file_path_spec\b/` — a token rule matching the **literal word** `file_path_spec`. This is the LRM-extraction artifact class (`kw_n_29`/`kw_n_48`): the LRM nonterminal got flattened into a literal-keyword terminal.
+
+**LRM grounding** (`docs/systemverilog/2017/txt/section-33-configuring-the-contents-of-a-design.txt:117-140`): `file_path_spec` "uses file-system-specific notation to specify an absolute or relative path" with wildcards `?`/`*`/`...`/`..`/`.`/`/`; Annex A gives no formal lexical production. ⇒ LRM-faithful encoding = a path-lexeme token.
+
+**Fix design (`.8.4.2`).** Replace only the `:5736` regex with `/[A-Za-z0-9_.\/?*~$+-]+/` (EBNF char-class conventions verified against `escaped_identifier := /\\[!-~]+/`, `compiler_directive := /\`[^\r\n]*/`; `\/` for slash, trailing `-` literal, drop `\b`). Rule name + arity unchanged ⇒ the positional `$N` refs in the 2 referencing productions are untouched ⇒ AST-shape-neutral (schema stays 6); not a deletion/rename ([[feedback_no_rule_deletion_without_lrm_proof]]). Expected: 6 mechanism-A rules witness under the `sv_multi_entry_root` union config; `library_text`/`library_description` then witness; union `UNKNOWN 14 → ≤ 6`. Canonical `22` expected unchanged (library cohort is `no_path` from `systemverilog_file` by LRM design). `.8.4.2` carries the full released-SV ceremony (it is an accept change for the analysis-only `library_text` entry; the `systemverilog_file` embedding entry + external corpus are unaffected since the library rules are unreachable from it).
+
 ## 2026-06-29 - PGEN-GRAMMAR-WELLFORMED-0138 — GRAMMAR-WELLFORMED.H.12.8.1.1 IMPLEMENT: the opt-in `--cert-union-config` multi-config cert union (CODE)
 
 PNT loop (fresh session 2026-06-29), the IMPLEMENT slice of the `-0137` design. Landed the opt-in multi-config certificate-coverage union and verified it tools-first. Notable: the IMPLEMENT measured **SV `22 → 14`, not the design's `16`** — and the +2 was root-caused, not rubber-stamped.
