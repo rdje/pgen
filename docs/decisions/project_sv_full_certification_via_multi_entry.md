@@ -135,3 +135,57 @@ The cert-accounting code is already shaped for a clean union:
   grammars before any edit. There is currently NO stored "blessed decomposition / unreachability
   certificate" — proof is recomputed each run, which is where `.8.2`'s `kw_n_*` proof-of-unreachability (if
   that route is chosen) would plug in.
+
+---
+
+## ✅ `.8.1` IMPLEMENTATION DESIGN (2026-06-29, `GRAMMAR-WELLFORMED.H.12.8.1` DESIGN, `PGEN-GRAMMAR-WELLFORMED-0137`, PURE-DOCS)
+
+A tools-first code survey of `run_certificate_coverage_report` (`rust/src/main.rs:2349-2850`) + a
+fresh this-session re-derivation of the union facts on the Jun-25 binary turn the "head start" design
+facts above into a concrete, reviewable implementation plan for the **opt-in multi-config cert union**.
+The IMPLEMENT slice (`.8.1.1`) is to be coded against THIS design.
+
+### Tool-verified union facts (this session, seeds re-confirmable)
+- **Canonical** `(systemverilog_file, sv_2017)` count 40 seed 0 → `total=1304 proof=1 witness=1281 UNKNOWN=22 spf=0` (reproduces the `-0136`/`H.12.7` baseline exactly).
+- **`sv_2023`** `(systemverilog_file, sv_2023)` count 40 seed 0 → `total=1324 proof=1 witness=1306 UNKNOWN=17 spf=0`. The **6 profile-relative** rules (`class_constructor_super_args`, `declared_interface_class_identifier`, `interface_class_declaration`/`_item`/`_method`, `union_modifier`) are GENUINELY WITNESSED here (present in `sv_2023`'s `rule_order`, absent from its UNKNOWN + `no_path` lists).
+- **⚠️ kw_n_29/kw_n_48 SUBTLETY (root-caused, not assumed).** A naïve set-diff `canonical_UNKNOWN − sv_2023_UNKNOWN` returns **8** rules (the 6 + `kw_n_29`/`kw_n_48`), which would over-claim `22 → 14`. Tools prove the 2 artifacts are **ABSENT from `sv_2023`'s output entirely** — they are profile-filtered OUT of `sv_2023`'s `rule_order` (their sv_2017 host productions — covergroup-extends `systemverilog.ebnf:1492`, the `local::48` sites `:2869`/`:3926`, and the `sv_2017` `ps_type_identifier` form — are profile-variant; `sv_2023` instead surfaces its OWN artifacts `kw_n_43`/`kw_function_declaraton`/`dot_star` as `no_path`). A profile-filtered-out rule is **neither covered NOR UNKNOWN** in that config, so it must contribute NOTHING to the union.
+
+### THE SOUND UNION SEMANTICS (the load-bearing correctness rule)
+> Classify the **canonical (base) config's fragment set** (`rule_order` — the headline denominator, 1304) against `⋃_configs (proof_covered ∪ witness_covered)`. A rule is **CERTIFIED iff POSITIVELY covered (proof OR witness) in SOME config; UNKNOWN iff covered in NONE.**
+>
+> The union is over the **POSITIVELY-covered sets, NEVER over "not-UNKNOWN-in-some-config."** Subtracting per-config UNKNOWN sets would falsely certify a rule merely because a profile filtered it out (the `kw_n_29`/`kw_n_48` trap). This is the exact reason `certificate_coverage(all_fragments, proof_covered, witness_covered)` (`grammar_wellformedness.rs:1685`) takes the COVERED sets as inputs — it is already the right primitive; the union only feeds it bigger covered sets and the same canonical `all_fragments`.
+
+With the two configs `[(systemverilog_file, sv_2023), (sv_multi_entry_root, sv_2017)]`: the `sv_2023` run adds the 6 profile rules to `witness_covered`; the `sv_multi_entry_root` run adds **0** today (the 11 entry-relative rules gain reach but don't witness — that's `.8.4`'s job, and the framework is ready to credit them once it lands). → **union `UNKNOWN 22 → 16`**, residual = 11 entry-relative + 2 artifacts (`kw_n_29`/`kw_n_48`) + 3 reach-gaps (NOT the 6 profile rules).
+
+### DECIDED design question (director "make the technical decisions"): EXPLICIT OPT-IN CLI, not auto-union
+A new repeatable flag **`--cert-union-config <entry>[:<profile>]`**. Each value names an additional `(entry, profile)` config whose verified covered sets union into the canonical accounting. **Empty (default) ⇒ exactly today's single-config behavior, byte-identical for EVERY grammar.** Rejected the auto-union default because it (a) ~3×'s the canonical-report runtime (the cert is ~24 s/config for SV), and (b) would require baking a per-grammar config set into the binary (un-parser-agnostic). Opt-in keeps the supported-config set a property the CALLER declares (a gate invocation / the cert command), and makes inertness for the 6 fully-certified roster provable by construction (they never pass the flag). SV's invocation:
+```
+ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage \
+  --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0 \
+  --cert-union-config systemverilog_file:sv_2023 \
+  --cert-union-config sv_multi_entry_root:sv_2017
+```
+
+### The refactor (helper extraction — the bulk of the IMPLEMENT work)
+Extract the per-config covered-set computation (`run_certificate_coverage_report` body `~2385–2754`: the diverse PASS-1 + proof gathering + constructive-reach + plannable + target-own + store-free + carrier-div passes — NO early returns, accumulates `witness_covered`/`proof_covered`) into:
+```
+fn gather_cert_covered_sets(
+    grammar: &LoadedGrammar, entry_rule: &str, samples: usize, seed: u64,
+    profile: Option<&str>, max_depth: usize, emit_diagnostics: bool,
+) -> Result<CertCoveredSets>
+```
+returning a new `struct CertCoveredSets { proof_covered: HashSet<String>, witness_covered: HashSet<String>, sample_parse_failures, reach_pass_parse_failures, plannable_* tallies, no_path: Vec<String> }`.
+- **Canonical** call: `emit_diagnostics=true` ⇒ prints the per-pass diagnostic lines (`store-free reach pass: …`, `carrier-diversification reach pass: …`, plannable summary, `WARNING … NO reach path …`) + honors `PGEN_CERT_COVERAGE_DEBUG_PROBES` EXACTLY as today ⇒ **byte-identical canonical output**.
+- **Union-config** calls: `emit_diagnostics=false` ⇒ quiet (no per-pass spam; DEBUG_PROBES still allowed for union-config diagnosis if useful).
+
+`run_certificate_coverage_report` then: gather canonical (verbose) → if `--cert-union-config` present, for each: `apply_grammar_profile_filter(bundle.clone(), cfg.profile)` then `gather_cert_covered_sets(quiet)` → union into `proof_union`/`witness_union` (seeded from canonical) → `certificate_coverage(&canonical.rule_order, &proof_union, &witness_union)` → print the canonical `CERTIFICATE-COVERAGE:` line (byte-identical single-config numbers + `sample_parse_failures` from the canonical run) AND, when union configs are present, an additional **`CERTIFICATE-COVERAGE-UNION:`** line (union proof/witness/UNKNOWN/`fully_certified`) + the union DUMP_ALL residual.
+
+### Plumbing
+`apply_grammar_profile_filter` CONSUMES `LoadedGrammar` by value and `LoadedGrammar` is not `Clone`. To re-filter per union config, **derive `Clone` on `LoadedGrammar`** (`String` + `HashMap<String,ASTNode>` + `Vec<String>` + `Option<Annotations>` — all `Clone`; confirm `Annotations: Clone` at IMPLEMENT) and thread the UNFILTERED bundle (or a clone) into `run_certificate_coverage_report`. The caller at `main.rs:962` already has the unfiltered `load_grammar_bundle(...)` result before it is consumed by `apply_grammar_profile_filter`.
+
+### Inert-by-default proof + verification matrix (the IMPLEMENT acceptance checklist)
+- **NO REGRESSION (canonical byte-identity):** with NO `--cert-union-config`, the function takes the canonical-only path ⇒ `gather_cert_covered_sets(emit_diagnostics=true)` reproduces the exact pre-refactor computation + output. PROVE empirically: SV `total=1304 … UNKNOWN=22 spf=0` byte-identical at **seeds 0/7/42**; the **6 fully-certified grammars byte-identical** `fully_certified=true` (json/regex/vhdl/svpp/rtl_frontend/rtl_const_expr) at their canonical entries; SV external corpus 14/14; `ast_shape_contract` GREEN; `cargo test --lib` green; `clippy_on_rust_change` source-clean.
+- **ADDRESSED (union):** SV union (the 2 configs) ⇒ `UNKNOWN 22 → 16`, deterministic seeds 0/7/42, residual a strict subset = 11 entry-relative + `kw_n_29`/`kw_n_48` + 3 reach-gaps (the 6 profile rules certified, NOT in residual). Add a `cargo test` lock asserting (a) the union certifies the 6 profile rules and (b) `kw_n_29`/`kw_n_48` do NOT leak in via profile-filtering (the soundness guard).
+- **Parser-agnostic:** no grammar names in code; the union is driven entirely by the CLI configs.
+
+This design supersedes the "open Q = explicit union mode vs auto-union" note in the `H.12.8` row (decided: explicit opt-in CLI) and the "8 certified" naïve-set-diff reading (corrected: 6, via the sound covered-set union). The `22 → 16` figure stands.
