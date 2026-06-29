@@ -5733,7 +5733,7 @@ kw_extern_bf1ee311 := trivia /extern\b/
 
 kw_f_4a0a1921 := trivia /f\b/
 
-kw_file_path_spec_c26c9dc9 := trivia /file_path_spec\b/
+kw_file_path_spec_c26c9dc9 := trivia /[A-Za-z0-9_.\/?*~$+]+/
 
 kw_final_d594c2cc := trivia /final\b/
 

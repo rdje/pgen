@@ -1110,8 +1110,9 @@ so the library/include/parseable-fragment subtree *gains reach* — but a tools-
 (2026-06-29) shows it does **not** yet *witness* there (`UNKNOWN` stays 22 under that entry at seeds
 0/7/42): `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` shows the witness pass produces trivial
 `""`/`";"` samples that route through a sibling alternative, or malformed forced samples where the
-`file_path_spec` rule emits its own literal name instead of a path token. So these eleven are genuine
-**reach/generation gaps**, not free accounting. Two more are LRM clause-number decomposition leaves
+`file_path_spec` rule emits its own literal name instead of a path token (an LRM-extraction artifact
+since corrected to an LRM-faithful path lexeme — see *Library-cohort LRM fidelity* below). So these
+eleven are genuine **reach/generation gaps**, not free accounting. Two more are LRM clause-number decomposition leaves
 (`kw_n_29`/`kw_n_48`, synthetic, referenced, blessed — never deleted without LRM-proven absence); a
 tools-first re-derivation (2026-06-29) found these two are **present in the `sv_2023` profile's rule
 set and genuinely *witness* there** — the generation-IR dump (`--dump-gen-ast --grammar-profile
@@ -1158,6 +1159,24 @@ configs, now that verification honors the entry, certify all **11 entry-relative
 parseable-fragment rules. The union residual is therefore exactly the **3 genuine canonical-entry
 reach-gaps** (`context_member_method_call` and the two `…scoped_call…` cousins). Reaching a literal
 `UNKNOWN=0` for SystemVerilog then needs only that last reach-gap work.
+
+### Library-cohort LRM fidelity
+
+Once entry-aware verification made the library cohort *witnessable*, one of those witnesses was still
+honest only by accident: the `file_path_spec` lexeme was a **literal-keyword extraction artifact**
+(`kw_file_path_spec_c26c9dc9 := trivia /file_path_spec\b/`) that matched only the literal word
+`file_path_spec`, so the `include`/`library` productions accepted that one token and **rejected every
+real file path**. IEEE 1800-2017 §33.3.1 / Annex A.1.1 define `file_path_spec` as a file-system *path*
+token (absolute or relative, wildcards `?`/`*`/`...`, `/` separators) — not a keyword. The rule is
+therefore corrected (release `1.0.150`, ledger `SV-0012`) to an LRM-faithful path lexeme
+`/[A-Za-z0-9_.\/?*~$+]+/`, keeping the rule's name and arity (so the typed carrier and the AST-dump
+schema are byte-identical). The `include`/`library` cohort now accepts real §33 paths — `include
+../rtl/cpu.v;`, `library mylib /path/to/*.sv;`, `library rtl ./src/*.sv, ./pkg/*.sv -incdir ./inc;` —
+and the cohort's cert witnesses now exercise a genuine path token rather than the literal name. (`-` is
+deliberately excluded from the class so the `-incdir` flag stays separable; a hyphenated filename is the
+one documented limitation.) The change is confined to the `library_text` analysis entry — the
+`systemverilog_file` embedding entry never reaches the library cohort — so the canonical cert
+(`UNKNOWN=22`) and the 4-config union (`UNKNOWN=3`) are byte-identical across seeds 0/7/42.
 
 ## The decidability boundary (an honest limit)
 
