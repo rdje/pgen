@@ -106,6 +106,18 @@ struct Args {
     #[arg(long)]
     report_certificate_coverage: bool,
 
+    /// GRAMMAR-WELLFORMED.H.12.8.1.1: opt-in MULTI-CONFIG certificate-coverage union. Repeatable;
+    /// each value names an additional `<entry>[:<profile>]` config (e.g. `systemverilog_file:sv_2023`,
+    /// `sv_multi_entry_root:sv_2017`) whose VERIFIED covered rule sets (proof ∪ witness) union into the
+    /// canonical `--report-certificate-coverage` accounting. A rule is CERTIFIED iff positively covered
+    /// (proof OR witness) in SOME config, UNKNOWN iff covered in NONE — the union is over
+    /// positively-covered sets, never over "not-UNKNOWN-in-some-config". With this flag present an
+    /// extra `CERTIFICATE-COVERAGE-UNION:` line is printed; the canonical `CERTIFICATE-COVERAGE:` line
+    /// is unchanged. Empty (the default) ⇒ byte-identical single-config behavior for every grammar.
+    /// Requires `--report-certificate-coverage` (+ `--features generated_parsers`).
+    #[arg(long = "cert-union-config", requires = "report_certificate_coverage")]
+    cert_union_config: Vec<String>,
+
     /// Generate high-performance Rust parser instead of JSON output
     #[arg(long)]
     generate_parser: bool,
@@ -391,6 +403,13 @@ struct Args {
     #[arg(long, requires = "preprocess_systemverilog")]
     sv_strict_warning_codes: Option<String>,
 }
+// `Clone` (GRAMMAR-WELLFORMED.H.12.8.1.1): the multi-config certificate-coverage union
+// (`--cert-union-config`) re-filters the SAME loaded grammar bundle once per `(entry, profile)`
+// config. `apply_grammar_profile_filter` consumes the bundle by value, so the caller clones the
+// unfiltered bundle per union config. All fields are `Clone` (`String` / `HashMap<String, ASTNode>`
+// / `Vec<String>` / `Option<Annotations>`), so the derive is structural and cheap relative to the
+// per-config certification cost.
+#[derive(Clone)]
 struct LoadedGrammar {
     grammar_name: String,
     grammar_tree: HashMap<String, ASTNode>,
@@ -960,26 +979,32 @@ fn main() -> Result<()> {
     }
 
     if args.report_certificate_coverage {
-        let grammar = apply_grammar_profile_filter(
-            load_grammar_bundle(
-                &args.input_path,
-                &mut pipeline,
-                args.emit_raw_ast_json.as_deref(),
-            )?,
-            args.grammar_profile.as_deref(),
+        let unfiltered_grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
         )?;
+        // GRAMMAR-WELLFORMED.H.12.8.1.1: keep the UNFILTERED bundle so the opt-in multi-config union
+        // (`--cert-union-config`) can re-filter it per requested `(entry, profile)` config.
+        // `apply_grammar_profile_filter` consumes its argument, so the canonical profile filter runs on
+        // a clone of the bundle. The clone yields the SAME filtered grammar (output-identical) — only a
+        // per-run allocation — so the canonical `CERTIFICATE-COVERAGE:` output stays byte-identical.
+        let grammar =
+            apply_grammar_profile_filter(unfiltered_grammar.clone(), args.grammar_profile.as_deref())?;
         #[cfg(feature = "generated_parsers")]
         return run_certificate_coverage_report(
             &grammar,
+            &unfiltered_grammar,
             args.entry_rule.as_deref(),
             args.count,
             args.seed.unwrap_or(0),
             args.grammar_profile.as_deref(),
             args.max_depth,
+            &args.cert_union_config,
         );
         #[cfg(not(feature = "generated_parsers"))]
         {
-            let _ = &grammar;
+            let _ = (&grammar, &unfiltered_grammar);
             anyhow::bail!(
                 "--report-certificate-coverage requires building with --features generated_parsers \
                  (the witness side parses generated samples through the grammar's real parser)"
@@ -2337,37 +2362,55 @@ fn run_k_path_coverage_report(
 #[cfg(feature = "generated_parsers")]
 const CERT_DIVERSE_GENERATION_TIMEOUT_MS_DEFAULT: u64 = 4_000;
 
-/// GRAMMAR-WELLFORMED.G.4: the certificate-coverage report (the linter⟷generator duality capstone),
-/// PARSER-AGNOSTIC. For every rule the grammar must carry either a verified unreachability PROOF (the
-/// linter proves it dead) or a verified reachability WITNESS (a clean diverse `--count` sample that
-/// parses through the grammar's REAL parser and exercises it). Witnesses are the DIVERSE full-file
-/// samples (the closed loop guarantees they parse) — NOT the reach-plan-forced ones. `UNKNOWN`=0 with
-/// no re-verify/parse failures is the objective "trustworthy on this grammar" number. Rule-level
-/// (branch-level is a deliberate follow-up). Dispatch is by `grammar.grammar_name` through the
-/// registry — this function names no grammar.
+/// GRAMMAR-WELLFORMED.H.12.8.1.1: the result of ONE `(entry, profile)` certificate-coverage pass —
+/// the VERIFIED covered rule sets (the union inputs) plus the per-pass diagnostic tallies the
+/// canonical report prints. `gather_cert_covered_sets` returns this so the single-config path and the
+/// opt-in multi-config union (`--cert-union-config`) share one body: the union loops configs and
+/// unions `proof_covered`/`witness_covered`; the canonical run additionally prints the tallies.
 #[cfg(feature = "generated_parsers")]
-fn run_certificate_coverage_report(
+struct CertCoveredSets {
+    proof_covered: std::collections::HashSet<String>,
+    witness_covered: std::collections::HashSet<String>,
+    proof_fails: Vec<String>,
+    sample_parse_failures: usize,
+    failures: Vec<(String, String)>,
+    reach_pass_parse_failures: usize,
+    plannable_no_path: Vec<String>,
+    plannable_pass_parse_failures: usize,
+    plannable_generation_failures: usize,
+    plannable_left_unattempted: usize,
+    plannable_attempted: usize,
+    plannable_witnessed: usize,
+    plannable_parsed_not_witnessed: usize,
+    target_own_attempted: usize,
+    target_own_witnessed: usize,
+}
+
+/// GRAMMAR-WELLFORMED.G.4 / H.12.8.1.1: gather the VERIFIED proof + witness covered sets for ONE
+/// `(entry, profile)` config (the linter⟷generator duality capstone), PARSER-AGNOSTIC. For every rule
+/// the grammar must carry either a verified unreachability PROOF (the linter proves it dead) or a
+/// verified reachability WITNESS (a clean diverse `--count` sample that parses through the grammar's
+/// REAL parser and exercises it). Witnesses are the DIVERSE full-file samples (the closed loop
+/// guarantees they parse) — NOT the reach-plan-forced ones; the auxiliary reach passes only UNION
+/// extra witnesses from probes that re-parse, so the diverse pass's `sample_parse_failures` stays
+/// byte-identical per grammar. Dispatch is by `grammar.grammar_name` through the registry — this
+/// function names no grammar. `emit_diagnostics` (true for the canonical run, false for union-config
+/// runs) gates ONLY the two in-pass human-readable summary prints; the witness/proof computation is
+/// identical either way.
+#[cfg(feature = "generated_parsers")]
+fn gather_cert_covered_sets(
     grammar: &LoadedGrammar,
-    entry: Option<&str>,
+    entry: &str,
     samples: usize,
     seed: u64,
     profile: Option<&str>,
     max_depth: usize,
-) -> Result<()> {
+    emit_diagnostics: bool,
+) -> Result<CertCoveredSets> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         certificate_coverage, gather_verified_proof_covered_rules,
     };
-    if !pgen::parser_registry::supports_parse_and_cover(&grammar.grammar_name) {
-        anyhow::bail!(
-            "certificate-coverage: no generated parser is registered for grammar '{}' — cannot \
-             verify reachability witnesses through a real parser (Phase H wires more grammars)",
-            grammar.grammar_name
-        );
-    }
-    let entry_rule = entry
-        .map(|s| s.to_string())
-        .or_else(|| grammar.rule_order.first().cloned())
-        .ok_or_else(|| anyhow::anyhow!("grammar '{}' has no rules", grammar.grammar_name))?;
+    let entry_rule = entry.to_string();
 
     // WITNESS side: generate CLEAN diverse full-file samples, parse each through the REAL parser, and
     // union the rules they exercise. Each such rule is verified-reachable (a concrete input parses +
@@ -2691,11 +2734,13 @@ fn run_certificate_coverage_report(
                         }
                     },
                 );
-                println!(
-                    "  (store-free reach pass: {} residual UNKNOWN rules targeted; {} witnessed by re-routing through a non-gated carrier)",
-                    post_target_own.unknown.len(),
-                    store_free_report.witnessed
-                );
+                if emit_diagnostics {
+                    println!(
+                        "  (store-free reach pass: {} residual UNKNOWN rules targeted; {} witnessed by re-routing through a non-gated carrier)",
+                        post_target_own.unknown.len(),
+                        store_free_report.witnessed
+                    );
+                }
             }
 
             // PASS 3e — STORE-AWARE-GEN.4b.12 (9C-i): the carrier-diversification reach pass. Run LAST,
@@ -2744,16 +2789,82 @@ fn run_certificate_coverage_report(
                             }
                         },
                     );
-                println!(
-                    "  (carrier-diversification reach pass: {} residual UNKNOWN rules targeted; {} witnessed by re-routing through an alternative parent carrier)",
-                    post_store_free.unknown.len(),
-                    carrier_div_witnessed
-                );
+                if emit_diagnostics {
+                    println!(
+                        "  (carrier-diversification reach pass: {} residual UNKNOWN rules targeted; {} witnessed by re-routing through an alternative parent carrier)",
+                        post_store_free.unknown.len(),
+                        carrier_div_witnessed
+                    );
+                }
             }
         }
     }
 
-    let report = certificate_coverage(&grammar.rule_order, &proof_covered, &witness_covered);
+    Ok(CertCoveredSets {
+        proof_covered,
+        witness_covered,
+        proof_fails,
+        sample_parse_failures,
+        failures,
+        reach_pass_parse_failures,
+        plannable_no_path,
+        plannable_pass_parse_failures,
+        plannable_generation_failures,
+        plannable_left_unattempted,
+        plannable_attempted,
+        plannable_witnessed,
+        plannable_parsed_not_witnessed,
+        target_own_attempted,
+        target_own_witnessed,
+    })
+}
+
+/// GRAMMAR-WELLFORMED.G.4 / H.12.8.1.1: the certificate-coverage REPORT. Runs the canonical
+/// `(entry, profile)` config (verbose — byte-identical to the historical single-config report) and,
+/// when `--cert-union-config` configs are supplied, an opt-in MULTI-CONFIG union: each extra config's
+/// VERIFIED covered sets (`proof ∪ witness`) union into the canonical accounting, then the canonical
+/// `rule_order` is re-classified against the bigger covered sets and a `CERTIFICATE-COVERAGE-UNION:`
+/// line is printed. SOUNDNESS (load-bearing): the union is over POSITIVELY-covered sets, NEVER over
+/// "not-UNKNOWN-in-some-config" — a rule a profile filters OUT of its `rule_order` is neither covered
+/// nor UNKNOWN there, so it contributes nothing (that is why we union `proof_covered`/`witness_covered`
+/// and classify the canonical fragment set, not subtract per-config UNKNOWN sets). With no union
+/// configs the canonical path is byte-identical for every grammar. PARSER-AGNOSTIC — names no grammar;
+/// the supported config set is declared entirely by the caller via the CLI.
+#[cfg(feature = "generated_parsers")]
+fn run_certificate_coverage_report(
+    grammar: &LoadedGrammar,
+    unfiltered_grammar: &LoadedGrammar,
+    entry: Option<&str>,
+    samples: usize,
+    seed: u64,
+    profile: Option<&str>,
+    max_depth: usize,
+    union_configs: &[String],
+) -> Result<()> {
+    use pgen::ast_pipeline::grammar_wellformedness::certificate_coverage;
+    if !pgen::parser_registry::supports_parse_and_cover(&grammar.grammar_name) {
+        anyhow::bail!(
+            "certificate-coverage: no generated parser is registered for grammar '{}' — cannot \
+             verify reachability witnesses through a real parser (Phase H wires more grammars)",
+            grammar.grammar_name
+        );
+    }
+    let entry_rule = entry
+        .map(|s| s.to_string())
+        .or_else(|| grammar.rule_order.first().cloned())
+        .ok_or_else(|| anyhow::anyhow!("grammar '{}' has no rules", grammar.grammar_name))?;
+    let samples = samples.max(1);
+
+    // CANONICAL pass — verbose (`emit_diagnostics=true`), so its per-pass diagnostic lines +
+    // PGEN_CERT_COVERAGE_DEBUG_PROBES output are byte-identical to the historical single-config report.
+    let canonical =
+        gather_cert_covered_sets(grammar, &entry_rule, samples, seed, profile, max_depth, true)?;
+
+    let report = certificate_coverage(
+        &grammar.rule_order,
+        &canonical.proof_covered,
+        &canonical.witness_covered,
+    );
     println!(
         "CERTIFICATE-COVERAGE: grammar='{}' entry='{}' samples={} total={} proof={} witness={} UNKNOWN={} fully_certified={} (sample_parse_failures={}, proof_reverify_failures={})",
         grammar.grammar_name,
@@ -2764,37 +2875,37 @@ fn run_certificate_coverage_report(
         report.covered_by_witness.len(),
         report.unknown.len(),
         report.is_fully_certified(),
-        sample_parse_failures,
-        proof_fails.len(),
+        canonical.sample_parse_failures,
+        canonical.proof_fails.len(),
     );
-    if reach_pass_parse_failures > 0 {
+    if canonical.reach_pass_parse_failures > 0 {
         // GRAMMAR-WELLFORMED.H.4.2: transparency — the auxiliary constructive-reach pass probes the
         // hardest-to-reach branches, so some of its samples are expected not to re-parse. They are
         // reported here, NOT folded into the certification `sample_parse_failures` (the diverse pass).
         println!(
             "  (constructive-reach witness pass: {} auxiliary probe samples did not re-parse — not counted as certification failures)",
-            reach_pass_parse_failures
+            canonical.reach_pass_parse_failures
         );
     }
-    if plannable_attempted > 0 {
+    if canonical.plannable_attempted > 0 {
         // GRAMMAR-WELLFORMED.H.7.2: transparency for the plannable-rule reach pass — same contract
         // as pass 2 (probe non-parses reported separately, never folded into certification).
         println!(
             "  (plannable-rule reach pass: {} UNKNOWN rules targeted; {} witnessed, {} parsed-but-routed-elsewhere, {} probe samples did not re-parse, {} generation failures — probe failures are not certification failures)",
-            plannable_attempted,
-            plannable_witnessed,
-            plannable_parsed_not_witnessed,
-            plannable_pass_parse_failures,
-            plannable_generation_failures
+            canonical.plannable_attempted,
+            canonical.plannable_witnessed,
+            canonical.plannable_parsed_not_witnessed,
+            canonical.plannable_pass_parse_failures,
+            canonical.plannable_generation_failures
         );
     }
-    if target_own_attempted > 0 {
+    if canonical.target_own_attempted > 0 {
         // GRAMMAR-WELLFORMED.H.12.5.5.3.2: transparency for the target-own-structure (M1b) reach pass.
         // Only runs over the residual still UNKNOWN after pass 3, so a fully-certified grammar reports
         // nothing here (zero residual ⇒ pass not run).
         println!(
             "  (target-own-structure reach pass: {} residual UNKNOWN rules targeted; {} witnessed by forcing the target rule's own root-Or branch + inner optionals)",
-            target_own_attempted, target_own_witnessed
+            canonical.target_own_attempted, canonical.target_own_witnessed
         );
     }
     // GRAMMAR-WELLFORMED.H.12.4: env-gated full-dump observability. When PGEN_CERT_COVERAGE_DUMP_ALL
@@ -2803,21 +2914,25 @@ fn run_certificate_coverage_report(
     // deterministically. Unset (the default) is byte-identical to the prior capped output. The lists
     // are emitted in the report's existing deterministic (rule-order) sequence, so the dump is stable.
     let dump_all = std::env::var_os("PGEN_CERT_COVERAGE_DUMP_ALL").is_some();
-    if !plannable_no_path.is_empty() {
+    if !canonical.plannable_no_path.is_empty() {
         // GRAMMAR-WELLFORMED.H.7.2: by the attribution rule, an UNKNOWN rule with NO path in the
         // rule-reference graph is grammar/linter territory (a dead rule candidate) — flag it loudly.
-        let shown = if dump_all { plannable_no_path.len() } else { plannable_no_path.len().min(10) };
+        let shown = if dump_all {
+            canonical.plannable_no_path.len()
+        } else {
+            canonical.plannable_no_path.len().min(10)
+        };
         println!(
             "  WARNING plannable-rule reach pass: {} UNKNOWN rules have NO reach path from the entry (dead-rule candidates — adjudicate via the linter): {:?}",
-            plannable_no_path.len(),
-            &plannable_no_path[..shown]
+            canonical.plannable_no_path.len(),
+            &canonical.plannable_no_path[..shown]
         );
     }
-    if plannable_left_unattempted > 0 {
+    if canonical.plannable_left_unattempted > 0 {
         // GRAMMAR-WELLFORMED.H.7.2 Q3: the global cap is reported, never silent.
         println!(
             "  WARNING plannable-rule reach pass: {} UNKNOWN rules were LEFT UNATTEMPTED by the global attempt cap — rerun or raise the cap to cover them",
-            plannable_left_unattempted
+            canonical.plannable_left_unattempted
         );
     }
     if !report.unknown.is_empty() {
@@ -2829,24 +2944,104 @@ fn run_certificate_coverage_report(
             &report.unknown[..shown]
         );
     }
-    if !proof_fails.is_empty() {
-        println!("  WARNING proof re-verify FAILURES (linter bugs to fix): {:?}", proof_fails);
+    if !canonical.proof_fails.is_empty() {
+        println!(
+            "  WARNING proof re-verify FAILURES (linter bugs to fix): {:?}",
+            canonical.proof_fails
+        );
     }
-    if !failures.is_empty() {
-        let shown = failures.len().min(5);
+    if !canonical.failures.is_empty() {
+        let shown = canonical.failures.len().min(5);
         println!(
             "  SAMPLE-PARSE FAILURES ({} of {} shown — these cap the witness count; each is a \
              generated sample the real parser rejects):",
             shown,
-            failures.len()
+            canonical.failures.len()
         );
-        for (i, (err, sample)) in failures.iter().take(shown).enumerate() {
+        for (i, (err, sample)) in canonical.failures.iter().take(shown).enumerate() {
             let preview: String = sample.chars().take(2000).collect();
             let truncated = if sample.len() > preview.len() { " …[truncated]" } else { "" };
             println!("    [{i}] error: {err}");
             println!("    [{i}] sample ({} bytes): {preview}{truncated}", sample.len());
         }
     }
+
+    // GRAMMAR-WELLFORMED.H.12.8.1.1: the opt-in MULTI-CONFIG union. For each `--cert-union-config`
+    // value, re-filter the UNFILTERED bundle by that profile, gather its verified covered sets QUIETLY
+    // (`emit_diagnostics=false` — no per-pass spam; DEBUG_PROBES still honored if set), and UNION them
+    // into the canonical covered sets. Then re-classify the canonical `rule_order` against the bigger
+    // sets. Empty `union_configs` ⇒ this block is skipped entirely ⇒ byte-identical canonical-only
+    // output (the inertness proof for the fully-certified roster, which never passes the flag).
+    if !union_configs.is_empty() {
+        let mut proof_union = canonical.proof_covered.clone();
+        let mut witness_union = canonical.witness_covered.clone();
+        let mut applied_configs: Vec<String> = Vec::new();
+        for raw in union_configs {
+            let (cfg_entry, cfg_profile) = match raw.split_once(':') {
+                Some((e, p)) => (e.trim(), Some(p.trim())),
+                None => (raw.trim(), None),
+            };
+            let cfg_profile = cfg_profile.filter(|p| !p.is_empty());
+            if cfg_entry.is_empty() {
+                anyhow::bail!(
+                    "--cert-union-config '{raw}' has an empty entry rule (expected <entry>[:<profile>])"
+                );
+            }
+            // Re-filter the UNFILTERED bundle by this config's profile (re-uses the canonical filter,
+            // so the regex pcre2-by-default rule and profile-orphan filtering apply identically).
+            let cfg_grammar = apply_grammar_profile_filter(unfiltered_grammar.clone(), cfg_profile)?;
+            if !cfg_grammar.rule_order.iter().any(|r| r == cfg_entry) {
+                anyhow::bail!(
+                    "--cert-union-config '{raw}': entry rule '{cfg_entry}' is not present in grammar \
+                     '{}'{} — check the entry/profile spelling",
+                    grammar.grammar_name,
+                    cfg_profile
+                        .map(|p| format!(" under profile '{p}'"))
+                        .unwrap_or_default()
+                );
+            }
+            let sets = gather_cert_covered_sets(
+                &cfg_grammar,
+                cfg_entry,
+                samples,
+                seed,
+                cfg_profile,
+                max_depth,
+                false,
+            )?;
+            proof_union.extend(sets.proof_covered);
+            witness_union.extend(sets.witness_covered);
+            applied_configs.push(format!("{}:{}", cfg_entry, cfg_profile.unwrap_or("<none>")));
+        }
+        let union_report =
+            certificate_coverage(&grammar.rule_order, &proof_union, &witness_union);
+        println!(
+            "CERTIFICATE-COVERAGE-UNION: grammar='{}' base_entry='{}' base_profile='{}' union_configs=[{}] total={} proof={} witness={} UNKNOWN={} fully_certified={}",
+            grammar.grammar_name,
+            entry_rule,
+            profile.unwrap_or("<none>"),
+            applied_configs.join(", "),
+            union_report.total,
+            union_report.covered_by_proof.len(),
+            union_report.covered_by_witness.len(),
+            union_report.unknown.len(),
+            union_report.is_fully_certified(),
+        );
+        if !union_report.unknown.is_empty() {
+            let shown = if dump_all {
+                union_report.unknown.len()
+            } else {
+                union_report.unknown.len().min(25)
+            };
+            println!(
+                "  UNION UNKNOWN rules ({} of {} shown): {:?}",
+                shown,
+                union_report.unknown.len(),
+                &union_report.unknown[..shown]
+            );
+        }
+    }
+
     Ok(())
 }
 

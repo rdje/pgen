@@ -1112,16 +1112,38 @@ so the library/include/parseable-fragment subtree *gains reach* — but a tools-
 `""`/`";"` samples that route through a sibling alternative, or malformed forced samples where the
 `file_path_spec` rule emits its own literal name instead of a path token. So these eleven are genuine
 **reach/generation gaps**, not free accounting. Two more are LRM clause-number decomposition leaves
-(synthetic, referenced, blessed — never deleted without LRM-proven absence). **Three are the genuine
-canonical-entry reach-gaps**: `context_member_method_call` is a store-gated witness-reach gap (the
-`head.member[idx].method()` form *parses* with a declared head — the generator just cannot yet
-synthesise the name-coupled declaration prelude its gate needs), and the two `…scoped_call…` cousins
-are the `T::method()` expression-level ambiguity described just above. So the headline number is
-honest in both directions: every one of the 22 is named, and none is silently reclassified as
-"doesn't count". Reaching a literal `UNKNOWN=0` for SystemVerilog therefore combines an *endgame
-accounting* step — a multi-profile union certifies the 6 profile-relative rules that already witness
-under `sv_2023` (`22 → 16`) — with real generation/grammar work to witness the 11 entry-relative
-rules and close the 3 canonical reach-gaps + 2 extraction leaves.
+(`kw_n_29`/`kw_n_48`, synthetic, referenced, blessed — never deleted without LRM-proven absence); a
+tools-first re-derivation (2026-06-29) found these two are **present in the `sv_2023` profile's rule
+set and genuinely *witness* there** — the generation-IR dump (`--dump-gen-ast --grammar-profile
+sv_2023`) shows both, and `sv_2023` cert-coverage leaves neither in its `UNKNOWN` set — correcting an
+earlier note that they were profile-filtered out of `sv_2023`. So the multi-profile union certifies
+these two as well. **Three are the genuine canonical-entry reach-gaps**: `context_member_method_call`
+is a store-gated witness-reach gap (the `head.member[idx].method()` form *parses* with a declared
+head — the generator just cannot yet synthesise the name-coupled declaration prelude its gate needs),
+and the two `…scoped_call…` cousins are the `T::method()` expression-level ambiguity described just
+above. So the headline number is honest in both directions: every one of the 22 is named, and none is
+silently reclassified as "doesn't count".
+
+That *endgame accounting* step is now a shipped, opt-in tool: `ast_pipeline
+--report-certificate-coverage` accepts a repeatable `--cert-union-config <entry>[:<profile>]` flag
+that unions the verified covered (`proof ∪ witness`) rule sets across the supported configs and prints
+an extra `CERTIFICATE-COVERAGE-UNION:` line. The union is **sound by construction** — it credits a
+rule only when some config *positively* covers it (a proof or a witness), never merely because a
+profile leaves the rule out of its universe — so a rule that no config covers stays `UNKNOWN`. For
+SystemVerilog,
+
+```bash
+ast_pipeline grammars/systemverilog.ebnf --report-certificate-coverage \
+  --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0 \
+  --cert-union-config systemverilog_file:sv_2023 \
+  --cert-union-config sv_multi_entry_root:sv_2017
+```
+
+prints the byte-identical canonical line (`UNKNOWN=22`) plus `CERTIFICATE-COVERAGE-UNION: … UNKNOWN=14`
+(deterministic at seeds 0/7/42): the union certifies the 6 profile-relative rules **and** the 2
+extraction leaves — all eight witness under `sv_2023` — so `22 → 14`. Reaching a literal `UNKNOWN=0`
+for SystemVerilog then needs only real generation/grammar work to witness the 11 entry-relative rules
+and close the 3 canonical reach-gaps.
 
 ## The decidability boundary (an honest limit)
 

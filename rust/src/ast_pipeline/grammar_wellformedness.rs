@@ -2315,6 +2315,74 @@ mod tests {
     }
 
     #[test]
+    fn certificate_coverage_union_is_over_positively_covered_sets() {
+        // GRAMMAR-WELLFORMED.H.12.8.1.1 — the load-bearing SOUNDNESS rule for the opt-in multi-config
+        // cert-coverage union (`--cert-union-config`): a rule is CERTIFIED iff it is POSITIVELY
+        // covered (proof OR witness) in SOME config; UNKNOWN iff covered in NONE. The union must be
+        // over the COVERED sets, NEVER over "not-UNKNOWN-in-some-config" — otherwise a rule that is
+        // covered by NO config (e.g. a profile FILTERS it out of its `rule_order`, so it is neither
+        // covered nor UNKNOWN there) would be falsely certified. `profile_rule` models an
+        // IEEE-1800-2023 rule that witnesses under `sv_2023` (sound to certify); `entry_only_rule`
+        // models a library/parseable-fragment rule that NO supported config covers (it must stay
+        // UNKNOWN — the union does not invent a certificate for it).
+        let canonical_fragments: Vec<String> = ["base_rule", "profile_rule", "entry_only_rule"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        // Canonical (sv_2017-like) config: only `base_rule` witnesses.
+        let canonical_witness: HashSet<String> = ["base_rule".to_string()].into_iter().collect();
+        let canonical_proof: HashSet<String> = HashSet::new();
+        let canonical =
+            certificate_coverage(&canonical_fragments, &canonical_proof, &canonical_witness);
+        assert_eq!(
+            canonical.unknown,
+            vec!["profile_rule".to_string(), "entry_only_rule".to_string()],
+            "canonically, both the profile rule and the uncovered entry-only rule are UNKNOWN"
+        );
+
+        // Alt config (sv_2023-like): witnesses {base_rule, profile_rule}; it does NOT cover
+        // `entry_only_rule` (whether the profile filters it out of its universe or simply never
+        // witnesses it, the effect is the same — it is absent from this config's covered set).
+        let alt_witness: HashSet<String> =
+            ["base_rule", "profile_rule"].iter().map(|s| s.to_string()).collect();
+
+        // The SOUND union: union the POSITIVELY-covered sets, classify the CANONICAL fragment set.
+        let mut witness_union = canonical_witness.clone();
+        witness_union.extend(alt_witness.iter().cloned());
+        let proof_union = canonical_proof.clone();
+        let union = certificate_coverage(&canonical_fragments, &proof_union, &witness_union);
+        assert_eq!(
+            union.covered_by_witness,
+            vec!["base_rule".to_string(), "profile_rule".to_string()],
+            "the union credits the profile rule that witnesses under the alt config"
+        );
+        assert_eq!(
+            union.unknown,
+            vec!["entry_only_rule".to_string()],
+            "a rule covered by NO config is NOT leaked into the certified set"
+        );
+        assert!(!union.is_fully_certified());
+
+        // Guard the TRAP this rule exists to prevent: a naïve "not-UNKNOWN-in-some-config" union would
+        // wrongly certify `entry_only_rule`. The alt config's UNKNOWN set is EMPTY (everything in its
+        // own universe witnesses), so `canonical.unknown − alt.unknown` would still contain
+        // `entry_only_rule` and a "subtract per-config UNKNOWN" scheme would falsely drop it. The
+        // covered-set union never adds it, which is exactly the soundness invariant.
+        let alt_fragments: Vec<String> =
+            ["base_rule", "profile_rule"].iter().map(|s| s.to_string()).collect();
+        let alt = certificate_coverage(&alt_fragments, &HashSet::new(), &alt_witness);
+        assert!(
+            alt.unknown.is_empty(),
+            "the alt config has no UNKNOWN in its own universe — the trap source"
+        );
+        assert!(
+            !witness_union.contains("entry_only_rule") && !proof_union.contains("entry_only_rule"),
+            "soundness invariant: a rule covered by no config never enters the covered union"
+        );
+    }
+
+    #[test]
     fn parse_node_covered_rules_walks_the_ast() {
         // GRAMMAR-WELLFORMED.G.3.3: the covered set = rule names PRESENT in the parse tree.
         use crate::ast_pipeline::{ParseContent, ParseNode};

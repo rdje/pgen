@@ -16,6 +16,7 @@ The central CLI can drive:
 - generated stimuli-module export,
 - parseability-aware generation,
 - target-driven replay and coverage reporting,
+- certificate-coverage reporting, including the opt-in multi-config union (`--cert-union-config <entry>[:<profile>]`) that certifies a rule witnessed-or-proven in any supported `(entry, profile)` config,
 - newer stimuli controls such as:
   - grammar-aware mutation,
   - constrained-random steering,

@@ -26,6 +26,7 @@ the generation-input / memo observability.
 | Which rules dominate a slow/stuck parse? | `--dump-rule-call-counts` | `parseability_probe --parse <g> f --dump-rule-call-counts 20` |
 | Why did a `@predicate` reject a branch? | semantic trace | `PGEN_TRACE_VERBOSITY=debug parseability_probe --parse <g> f --trace-rules <rule>` |
 | **What is the cert-coverage proof/witness/`UNKNOWN` split?** | `--report-certificate-coverage` | `ast_pipeline g.ebnf --report-certificate-coverage --grammar-profile P --entry-rule R --count 40 --seed 0` |
+| **Union cert-coverage across entries/profiles (certify a rule witnessed-or-proven in ANY supported config)?** | `--cert-union-config` | append `--cert-union-config <entry>[:<profile>]` (repeatable) to the cert command → extra `CERTIFICATE-COVERAGE-UNION:` line |
 | **The FULL list of `UNKNOWN` rules (not the truncated 25)?** | `PGEN_CERT_COVERAGE_DUMP_ALL=1` | prefix the cert command |
 | **WHY each `UNKNOWN` rule failed to witness (the forced sample + verdict)?** | `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` | prefix the cert command → `[plannable-probe]` lines |
 | The reach path (BFS hop chain) the planner installs for a target? | `PGEN_REACH_PATH_DUMP=1` | prefix any generation/cert command |

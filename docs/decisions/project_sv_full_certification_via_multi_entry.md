@@ -9,6 +9,43 @@ metadata:
   decided_by: director
 ---
 
+## ✅ `.8.1.1` IMPLEMENTED — the shipped union delivers `22 → 14`, NOT `16` (2026-06-29, `GRAMMAR-WELLFORMED.H.12.8.1.1`, `PGEN-GRAMMAR-WELLFORMED-0138`, **CODE**)
+
+The opt-in `--cert-union-config <entry>[:<profile>]` flag is implemented and verified. The measured SV
+union is **`UNKNOWN 22 → 14`** (deterministic seeds 0/7/42), one BETTER than the `-0137` design's
+predicted `16` — and the difference was root-caused tools-first, not accepted:
+
+- The flag prints the byte-identical canonical `CERTIFICATE-COVERAGE:` line (`UNKNOWN=22`) plus
+  `CERTIFICATE-COVERAGE-UNION: … witness=1289 UNKNOWN=14`. Isolation: **sv_2023-only union ⇒ 14**;
+  **`sv_multi_entry_root:sv_2017`-only union ⇒ 22** (adds 0, as `-0136` predicted). So `sv_2023` is the
+  sole contributor and it certifies **8**, not 6.
+- **The `-0137`/`-0136` premise that `kw_n_29`/`kw_n_48` are profile-filtered OUT of `sv_2023` was
+  TOOL-DISPROVEN** (`--dump-gen-ast --grammar-profile sv_2023` shows `kw_n_29`×3, `kw_n_48`×5 PRESENT
+  in the sv_2023 rule set; `sv_2023` cert reports `UNKNOWN=17` with neither in it ⇒ both are genuinely
+  WITNESSED under `sv_2023`, `sv_2023` proof=1 so it is witness not proof). The prior session almost
+  certainly read the `sv_2023` cert UNKNOWN list (where they are absent *because covered*) and
+  mis-concluded "absent from the rule_order". The SOUNDNESS rule still holds — the union credits them
+  because a config POSITIVELY covers them (a witness), exactly as designed; nothing is certified via
+  "not-UNKNOWN-in-some-config" (the lock test `certificate_coverage_union_is_over_positively_covered_sets`
+  guards that). This is therefore a sound improvement, and **`.8.2` (the `kw_n_29`/`kw_n_48` artifacts)
+  is SUBSUMED by the union** — they are cert-covered. (The grammar-fidelity question — should those
+  spurious clause-number tokens exist at all — is orthogonal and may still be tidied later, but it no
+  longer blocks `UNKNOWN=0`.)
+- **Corrected residual to `0`:** `14` = **11 entry-relative** (`.8.4`: `sv_multi_entry_root`,
+  `systemverilog_parseable_file`, `parseable_source_item`, `include_statement`,
+  `library_declaration`/`_description`/`_text`, `kw_file_path_spec`/`kw_incdir`/`kw_include`/`kw_library`)
+  **+ 3 canonical reach-gaps** (`.8.3`: `context_member_method_call` + the two `…scoped_call…` cousins).
+- **No regression:** SV canonical byte-identical seeds 0/7/42; the 6 fully-certified grammars
+  byte-identical `fully_certified=true`; `cargo test --lib` 669 passed; `clippy_on_rust_change` source
+  clean. Parser-agnostic, inert for the certified roster by construction (they never pass the flag).
+
+Implementation shape (as designed below, with the helper extraction): `gather_cert_covered_sets(...
+emit_diagnostics) -> CertCoveredSets` (canonical verbose/byte-identical; union quiet), `Clone` on
+`LoadedGrammar`, classify canonical `rule_order` against `⋃(proof ∪ witness)`. The `22 → 16` figure in
+the sections below is the DESIGN-TIME prediction; the IMPLEMENTED, tool-verified figure is **`22 → 14`**.
+
+---
+
 ## ⚠️ TOOL-BACKED CORRECTION TO THE UNION PREMISE (2026-06-29, `GRAMMAR-WELLFORMED.H.12.8.0`, `PGEN-GRAMMAR-WELLFORMED-0136`)
 
 **The director's GOAL stands (SV → `fully_certified` `UNKNOWN=0`); the union PREMISE below is
