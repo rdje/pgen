@@ -1,5 +1,13 @@
 # GRAMMAR-WELLFORMED.H.12.8.4 — entry-relative cohort WHY+WHERE + LRM-grounded fix design (`file_path_spec` artifact is the dominant root cause)
 
+> ⚠️ **PREDICTION SUPERSEDED by `.8.4.2` (`-0140`).** The `file_path_spec` artifact IS a real
+> LRM-extraction defect, but the IMPLEMENT measured it **cert-NEUTRAL** (union `14` unchanged) — it is
+> NOT the dominant blocker. The TRUE root cause is the **hardwired cert witness-verification entry**
+> (`parse_and_cover_systemverilog` always parses from `parse_full_systemverilog_file`), which makes ALL
+> 11 entry-relative rules un-witnessable regardless of `--entry-rule`/`--cert-union-config`. See
+> [GRAMMAR-WELLFORMED-H1284-entry-relative-cert-verification-entry-rootcause.md](GRAMMAR-WELLFORMED-H1284-entry-relative-cert-verification-entry-rootcause.md).
+> The mechanism map below (mechanism A vs B, the LRM grounding) remains valid as *surface* analysis.
+
 Tools-first root-cause map of the **11 entry-relative** SV certificate-coverage residual
 rules (the `library_text` / parseable-fragment cohort), reproduced this session on the
 current cert binary, with the LRM-grounded fix design for the dominant blocker. This is the
