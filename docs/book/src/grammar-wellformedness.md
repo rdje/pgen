@@ -1100,20 +1100,28 @@ prefix operators `not` / `nexttime` keep pre-fix dispatch precedence, so `not a 
 `not (a until b)` — unchanged behaviour, deferred until a consumer needs strict prefix precedence.)
 
 At `UNKNOWN=22` the residual is now its irreducible core, and it is adjudicated in full. **Nineteen
-are `no_path` non-defects**, proven by re-running cert-coverage from a different root: eleven are
-rooted under the `library_text` start symbol (re-running from the `sv_multi_entry_root` umbrella
-collapses `no_path` from 19 to 8, witnessing the library/include/parseable-fragment subtree), six are
-genuine 1800-2023 features (re-running under the `sv_2023` profile drops all six from the residual),
-and two are LRM clause-number decomposition leaves (synthetic, referenced, blessed — never deleted
-without LRM-proven absence). **Three are the genuine canonical-entry residual**, each a deliberately
-deferred honest limit: `context_member_method_call` is a store-gated witness-reach gap (the
+are `no_path` non-defects** under the canonical `(systemverilog_file, sv_2017)` entry, re-derived by
+re-running cert-coverage from other roots/profiles. **Six are genuine 1800-2023 features**
+(`class_constructor_super_args`, the interface-class family, `union_modifier`): re-running under the
+`sv_2023` profile drops all six from the residual — they genuinely *witness* there, so a
+multi-profile union certifies them. **Eleven are rooted under the `library_text` / parseable-fragment
+start symbols**: re-running from the `sv_multi_entry_root` umbrella collapses `no_path` from 19 to 8,
+so the library/include/parseable-fragment subtree *gains reach* — but a tools-first re-derivation
+(2026-06-29) shows it does **not** yet *witness* there (`UNKNOWN` stays 22 under that entry at seeds
+0/7/42): `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` shows the witness pass produces trivial
+`""`/`";"` samples that route through a sibling alternative, or malformed forced samples where the
+`file_path_spec` rule emits its own literal name instead of a path token. So these eleven are genuine
+**reach/generation gaps**, not free accounting. Two more are LRM clause-number decomposition leaves
+(synthetic, referenced, blessed — never deleted without LRM-proven absence). **Three are the genuine
+canonical-entry reach-gaps**: `context_member_method_call` is a store-gated witness-reach gap (the
 `head.member[idx].method()` form *parses* with a declared head — the generator just cannot yet
 synthesise the name-coupled declaration prelude its gate needs), and the two `…scoped_call…` cousins
 are the `T::method()` expression-level ambiguity described just above. So the headline number is
 honest in both directions: every one of the 22 is named, and none is silently reclassified as
-"doesn't count". Reaching a literal `UNKNOWN=0` for SystemVerilog therefore turns on an *endgame
-accounting* decision — certifying the 17 entry/profile-relative rules through the multi-entry and
-`sv_2023` runs that already witness them — after which only the three deferred reach-gaps remain.
+"doesn't count". Reaching a literal `UNKNOWN=0` for SystemVerilog therefore combines an *endgame
+accounting* step — a multi-profile union certifies the 6 profile-relative rules that already witness
+under `sv_2023` (`22 → 16`) — with real generation/grammar work to witness the 11 entry-relative
+rules and close the 3 canonical reach-gaps + 2 extraction leaves.
 
 ## The decidability boundary (an honest limit)
 

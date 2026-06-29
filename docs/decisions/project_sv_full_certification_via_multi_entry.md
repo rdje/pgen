@@ -1,12 +1,56 @@
 ---
 name: project-sv-full-certification-via-multi-entry
-description: DIRECTOR DECISION (2026-06-25) — SystemVerilog WILL be driven to fully_certified UNKNOWN=0, and the chosen vehicle is a MULTI-ENTRY/MULTI-PROFILE certification accounting (a rule is certified if witnessed-or-proven in ANY officially-supported (entry, profile) config; UNKNOWN only if UNKNOWN in ALL). The post-cascade residual UNKNOWN=22 is fully adjudicated (H.12.7): 11 entry-relative + 6 profile-relative certify under the union; 2 (kw_n_29/kw_n_48) are LRM-extraction artifacts to correct; the 3 reach-gaps' deferral is LIFTED and must be closed. Owned by the SV UNKNOWN->0 lane (GRAMMAR-WELLFORMED.H.12.8).
+description: DIRECTOR DECISION (2026-06-25) — SystemVerilog WILL be driven to fully_certified UNKNOWN=0; the chosen vehicle is a MULTI-ENTRY/MULTI-PROFILE certification accounting (certify a rule if witnessed-or-proven in ANY supported (entry, profile) config; UNKNOWN only if UNKNOWN in ALL). TOOL-BACKED CORRECTION (2026-06-29, H.12.8.0): the union delivers 22->16 NOT 22->5 — only the 6 profile-relative rules witness (via sv_2023); the 11 entry-relative rules GAIN REACH under sv_multi_entry_root but do NOT witness (genuine generation gaps: trivial-alternative routing + file_path_spec literal-name) and become new sub-leaf .8.4. Residual to 0 = 11 entry-relative (.8.4) + 2 extraction artifacts kw_n_29/kw_n_48 (.8.2) + 3 canonical reach-gaps (.8.3). Owned by the SV UNKNOWN->0 lane (GRAMMAR-WELLFORMED.H.12.8).
 metadata:
   node_type: memory
   type: project
   created: 2026-06-25
   owning_tree: GRAMMAR-WELLFORMED
   decided_by: director
+---
+
+## ⚠️ TOOL-BACKED CORRECTION TO THE UNION PREMISE (2026-06-29, `GRAMMAR-WELLFORMED.H.12.8.0`, `PGEN-GRAMMAR-WELLFORMED-0136`)
+
+**The director's GOAL stands (SV → `fully_certified` `UNKNOWN=0`); the union PREMISE below is
+corrected by the toolbox.** A tools-first re-derivation of the design facts before any code
+(canonical + alt-config `--report-certificate-coverage` runs at seeds 0/7/42 + `PGEN_CERT_COVERAGE_DEBUG_PROBES=1`)
+shows the multi-entry/multi-profile union delivers SV **`22 → 16`**, NOT the `22 → 5` this record
+originally implied:
+
+- **`sv_2023` profile run** (`(systemverilog_file, sv_2023)` → `UNKNOWN=17`, seeds 0/42): the **6
+  profile-relative** rules (`class_constructor_super_args`, `declared_interface_class_identifier`,
+  `interface_class_declaration`, `interface_class_item`, `interface_class_method`, `union_modifier`)
+  DO witness here — set-diff vs the canonical residual = exactly those 6. ✅ The union certifies these 6.
+- **`sv_multi_entry_root` entry run** (`(sv_multi_entry_root, sv_2017)` → `UNKNOWN=22` UNCHANGED,
+  seeds 0/7/42): changing the entry collapses `no_path` 19→8 (the 11 entry-relative rules GAIN REACH)
+  but **witnesses NONE of them** — `UNKNOWN` stays 22. `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` shows WHY:
+  the 11 split into **routing gaps** (`library_text` / `library_description` / `parseable_source_item`
+  / `systemverilog_parseable_file` — the entry `Or` picks a trivial `""`/`";"` alternative, never
+  forcing the target: `parsed=true witnessed_target=false`) and **malformed-forced-sample gaps**
+  (`library_declaration` / `include_statement` / `kw_include` / `kw_incdir` / `kw_library` /
+  `kw_file_path_spec` — the forced sample emits the LITERAL text `file_path_spec` instead of expanding
+  it to a path token, so it does not parse: `parsed=false`). ❌ The union does NOT certify these 11.
+
+**Root cause of the original over-claim:** the `H.12.7` adjudication (`-0134`) correctly said the 11
+entry-relative rules *gain reach* under `sv_multi_entry_root` (`no_path 19→8`); the `-0135` decision
+record then conflated *gained reach* with *witnessed*. The tools prove reach ≠ witness for this family.
+
+**Corrected lane shape (`UNKNOWN=0` is still achievable, but the union is a MINOR contributor — 6 of 22):**
+- `.8.1` (union accounting) — sound + the director's chosen vehicle, but its true yield is **`22 → 16`**
+  (certifies the 6 profile-relative via `sv_2023`; the `sv_multi_entry_root` run adds 0 to the canonical
+  denominator). Open design Q for the implementation slice: an explicit union *mode* vs. an auto-union
+  default (auto-union ≈ triples the canonical-report runtime); either way it must stay inert +
+  byte-identical for the 6 fully-certified grammars (their alternate-config set is empty).
+- `.8.4` (NEW) — the **11 entry-relative library/parseable-fragment generation gaps**: genuine
+  reach/generation work (fix the trivial-alternative routing + the `file_path_spec` literal-name
+  expansion), NOT free accounting. Tool-proven they do not witness even from the multi-entry root.
+- `.8.2` (2 extraction artifacts `kw_n_29`/`kw_n_48`) + `.8.3` (3 canonical reach-gaps) — unchanged.
+
+The lane's center of gravity therefore shifts from *accounting* (the union, 6 rules) to
+*generation/grammar fixes* (the 11 entry-relative + 3 reach-gaps = 14 rules, + 2 artifacts). All
+subsequent `.8.x` implementation is designed on THESE corrected facts. The original director decision
+(below) is retained verbatim — only the union's reach was over-stated, not the goal.
+
 ---
 
 **The decision (director, 2026-06-25).** SystemVerilog — the one shipped grammar still
