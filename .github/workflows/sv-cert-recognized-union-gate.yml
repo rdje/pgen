@@ -1,0 +1,29 @@
+name: sv-cert-recognized-union-gate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sv-cert-recognized-union-gate:
+    name: sv-cert-recognized-union-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run SV recognized certificate-coverage union gate
+        run: make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate
+
+      - name: Upload SV recognized cert-union gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: sv-cert-recognized-union-gate-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/sv_cert_recognized_union_gate
+          if-no-files-found: warn
+          retention-days: 14

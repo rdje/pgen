@@ -1207,6 +1207,26 @@ declaration-hosting carrier). Because the affected calls now emit `class_scoped_
 schema unchanged) — released as `1.0.151`, ledger `SV-0013`. SystemVerilog is now a single rule from a
 fully-certified multi-config union.
 
+### The recognized SV certificate-coverage accounting basis
+
+Because that union is sound and deterministic, it is SystemVerilog's **recognized
+`fully_certified`-accounting basis** — the honest internal trust figure for "how close is SV to fully
+certified." A number is only as trustworthy as the oracle that re-derives it, so the recognized basis
+is not left as prose: it is locked by a re-runnable, deterministic gate,
+`make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate`. The gate runs the
+`--report-certificate-coverage` + 4-config `--cert-union-config` invocation *for each* of seeds
+0/7/42 and asserts, against a tracked contract
+(`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`), the canonical
+accounting (`total=1304 proof=1 witness=1283 UNKNOWN=20`), the union accounting
+(`witness=1302 UNKNOWN=1`), the exact union residual rule set (`["context_member_method_call"]`,
+compared order-insensitively), `sample_parse_failures=0`, and that all three seeds agree
+byte-for-byte. So the recognized figure cannot silently drift, and the final union `1 → 0` flip —
+when the last reach-gap `context_member_method_call` closes — is itself gated (the contract is
+re-baselined to `expected_union_unknown=0` in that same slice). SystemVerilog remains **Mostly Done**
+until then: the union `UNKNOWN` is `1`, not `0`, and the gate says so plainly. (The gate adds a proof
+surface only — it changes no grammar, parser, generator, or generated artifact; the cert numbers are
+read-only measurements.)
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

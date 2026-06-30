@@ -1,4 +1,31 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-30 - PGEN-GRAMMAR-WELLFORMED-0147 — GRAMMAR-WELLFORMED.H.12.8.5.2 IMPLEMENT `sv_cert_recognized_union_gate` + recognition lockstep (CODE / proof surface only)
+
+Fresh session 2026-06-30 (PNT, session #3). Full startup read completed (README + full mdBook — all 14 Part I/II chapters + grammar-wellformedness read in full — + TOOLBOX + MEMORY_ARCHITECTURE + DOCTRINE_ENFORCEMENT + COMMIT + roadmap + LIVE_ACHIEVEMENT_STATUS + RUST_CODEBASE_ANALYSIS + active GRAMMAR-WELLFORMED tree + frontier). Git hooks active. PNT picked the next UNBLOCKED, task-tree-owned leaf: `.8.5.2` (the `.8.3.2` literal-0 reach-gap stays blocked on `STORE-AWARE-GEN.4b`).
+
+**Goal.** Turn the recognized SV multi-config certificate-coverage UNION accounting basis (the honest internal "how close to fully certified" figure) from live-tracker prose into a re-runnable, deterministic, regression-locked oracle, per the `.8.5.1` (`-0144`) design.
+
+**TOOLBOX-first verification (the tool-backed facts the contract pins).** Built/used the DEBUG `ast_pipeline` (`--features "generated_parsers ebnf_dual_run"`) and ran the recognized 4-config union cert at seeds 0/7/42 (the design's `.8.5.1` contract values were STALE — `.8.3.1`/`-0146` closed 2 of the 3 cousins AFTER `-0144`). Current, byte-identical across seeds 0/7/42:
+- canonical `(systemverilog_file, sv_2017)` count 40: `total=1304 proof=1 witness=1283 UNKNOWN=20 spf=0`.
+- recognized 4-config union (`systemverilog_file:sv_2023` + `sv_multi_entry_root:sv_2017` + `library_text:sv_2017` + `systemverilog_parseable_file:sv_2017`): `total=1304 proof=1 witness=1302 UNKNOWN=1`, residual = `["context_member_method_call"]`.
+So the contract pins canonical `UNKNOWN=20`, union `witness=1302 UNKNOWN=1`, residual `["context_member_method_call"]` — derived from the live oracle, re-run independently (not a self-authored mirror; [[feedback_corpus_expected_from_spec_not_fix]]).
+
+**WHY+WHERE (the recognition gap).** `grep -rl report-certificate-coverage rust/scripts/` was EMPTY — no cert-coverage regression gate existed; the SV `Done` verdict uses 7 closure criteria, none cert-coverage. So the recognized basis was an un-checked number that could silently drift, and the eventual union `1 → 0` flip would be ungated. Per `DOCTRINE_ENFORCEMENT.md`, the oracle re-run is the un-fakeable leg.
+
+**Implementation (proof surface only — no grammar/parser/codegen/generated/engine change).**
+- `rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json` (`version 1`): base entry/profile, samples, seeds `[0,7,42]`, the 4 union configs, `expected_total=1304`, `expected_proof=1`, `expected_canonical_witness=1283`, `expected_canonical_unknown=20`, `expected_union_witness=1302`, `expected_union_unknown=1`, `expected_union_residual_rules=["context_member_method_call"]`, `done_rule`.
+- `rust/scripts/sv_cert_recognized_union_gate.sh` (modeled on `sv_formal_exhaustive_closure_gate.sh`): `jq` contract schema validation → `make focus_systemverilog` (ensure the generated SV parser; `build.rs` sets `has_generated_systemverilog_parser`) → `cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline` → per-seed cert-union run → parse the `CERTIFICATE-COVERAGE:` / `CERTIFICATE-COVERAGE-UNION:` + `UNION UNKNOWN rules` lines → assert every field == contract (residual order-insensitive via `jq sort`), all seeds agree (determinism), `spf=0` → emit `summary.txt` + `summary.json` → exit nonzero on drift. Parser-agnostic: the union is driven entirely by the contract's CLI config list.
+- `rust/Makefile`: `.PHONY sv_cert_recognized_union_gate` target + a `make help` line.
+- `.github/workflows/sv-cert-recognized-union-gate.yml`: `workflow_dispatch` (manual-only, per the hosted-Actions pause), runs `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate`, uploads the state dir.
+
+**Dev note (one bug caught + fixed before commit).** First gate run failed at the `summary.json` emission with `jq: object ... only strings can be parsed`: the per-seed array elements are already compact JSON objects, so the copied `jq -R . | jq -s 'map(... | fromjson)'` idiom (correct for the raw-string `unmet` array) wrongly applied `fromjson` to objects. Fixed to slurp the objects directly (`printf '%s\n' "${per_seed_json[@]}" | jq -sc 'map(select(type == "object"))')`; validated the whole emission block in isolation against the real values before the (heavy, ~8 min) re-run. All three seeds matched the contract on the first cert pass — the only failure was the emit bug.
+
+**VERIFIED (ADDRESSED).** `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate` exits 0 ("✅ …passed"); `summary.json` records `recognized_basis_green=true`, canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `["context_member_method_call"]`, per-seed determinism 0/7/42.
+
+**NO REGRESSION.** Additive proof surface only — no engine/grammar/generated change ⇒ the 6 fully-certified grammars are untouched by construction; the cert numbers are read-only measurements; the gate is deterministic at seeds 0/7/42. (`generated/systemverilog_parser.rs` was (re)generated locally by the gate's `focus_systemverilog` step; `generated/` is gitignored.)
+
+**LOCKSTEP.** book `docs/book/src/grammar-wellformedness.md`; SV integration contract; `CHANGES.md` / `LIVE_ACHIEVEMENT_STATUS.md` / `MEMORY.md`; leaf `docs/tasks/GRAMMAR-WELLFORMED-H12852-recognized-cert-union-gate-implement.md`; `docs/tasks/GRAMMAR-WELLFORMED.md` + `docs/TASK_TREE.md` frontier. SV stays `Mostly Done`.
+
 ## 2026-06-30 - PGEN-GRAMMAR-WELLFORMED-0146 — GRAMMAR-WELLFORMED.H.12.8.3.1 close 2 of the 3 SV `.8.3` reach-gaps (branch-1 longest-match grammar-gate); SV canonical cert `UNKNOWN 22 → 20`, union `3 → 1` (CODE / released-SV grammar)
 
 Fresh session 2026-06-30, PNT. The director, on resume, **reaffirmed the goal is literal `UNKNOWN=0`** and pushed back on parking toward the `.8.5` cert-accounting lane — so this slice drives the actual `.8.3` reach-gaps. Tools-first throughout (no eyeballing/guessing).
