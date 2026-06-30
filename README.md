@@ -241,6 +241,7 @@ PGEN is a production-focused parser and stimuli generator platform.
   - json (built-in, simplified) — `docs/json_parser_book/` — `make -C rust SHELL=/bin/bash json_parser_book_gate`
   - return_annotation — `docs/return_annotation_parser_book/` — `make -C rust SHELL=/bin/bash return_annotation_parser_book_gate`
   - semantic_annotation — `docs/semantic_annotation_parser_book/` — `make -C rust SHELL=/bin/bash semantic_annotation_parser_book_gate`
+  - ebnf (meta-grammar) — `docs/ebnf_parser_book/` — `make -C rust SHELL=/bin/bash ebnf_parser_book_gate`
 - Each shipped-family per-parser book is paired with the matching downstream
   contract under `docs/contracts/` (the deep authoritative integration
   surface) and the family's AST shape-contract manifest under
@@ -249,8 +250,10 @@ PGEN is a production-focused parser and stimuli generator platform.
   `return_annotation` and `semantic_annotation` books are paired with
   `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` and
   `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`.)
-- Still to come (per the every-parser-book directive): a per-parser book for
-  the `ebnf` meta-grammar (tracked by the `EBNF-BOOK` task tree).
+- The every-parser-book directive is now **complete**: every PGEN grammar —
+  the shipped/annotation families above plus the `ebnf` meta-grammar — has its
+  own live, gated mdBook. The `ebnf` book is the grammar-author's reference for
+  the EBNF *input* language (tracked by the `EBNF-BOOK` task tree).
 
 ## Documentation Status
 - Current authoritative docs for the active Rust-first platform:

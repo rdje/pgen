@@ -1,0 +1,121 @@
+# Terminals
+
+A **terminal** matches literal input text. PGEN's EBNF supports string and character literals, regex
+literals, and the native `any_char` built-ins. This chapter is the authoritative list of what the codegen
+actually matches — and one important footgun about character classes.
+
+## String literals
+
+Double-quoted and single-quoted string literals match their contents exactly
+(`rust/src/ebnf_frontend.rs`):
+
+```ebnf
+kw_module  := "module"
+semicolon  := ";"
+quote_char := '"'        # a single-quoted literal can hold a double-quote
+apostrophe := "'"        # …and vice-versa
+```
+
+Both quote styles are first-class and used throughout the shipped grammars. Choose whichever avoids
+escaping the delimiter (e.g. `'"'` for a double-quote, `"'"` for an apostrophe — both appear in
+`grammars/regex.ebnf`).
+
+### Raw strings
+
+A raw string `r"…"` matches its contents with **no escape processing** — backslashes are literal:
+
+```ebnf
+literal_backslash_d := r"\d"     # matches the two characters backslash, d
+```
+
+### Escapes in ordinary strings
+
+Inside ordinary (non-raw) string literals, standard escapes are decoded by the frontend
+(`rust/src/ebnf_frontend.rs`): `\n`, `\t`, `\r`, `\\`, `\"`, `\'`, and the Unicode escapes `\uXXXX`
+(4 hex digits) and `\UXXXXXXXX` (8 hex digits).
+
+```ebnf
+newline := "\n"
+tab     := "\t"
+```
+
+## Regex literals
+
+A regex literal `/pattern/` matches against a regular expression, with optional trailing flags
+(`/pattern/flags`):
+
+```ebnf
+identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
+number     := /\d+(\.\d+)?/
+ws         := /\s+/
+```
+
+Regex literals are where **character classes** (`[abc]`, `[^abc]`), **ranges** (`[a-z]`), and the regex
+shorthands (`\d`, `\w`, `\s`, …) live in a PGEN grammar. They are the most concise way to express a
+lexical token.
+
+> **Self-hosting guidance.** The regex grammar (`grammars/regex.ebnf`) deliberately avoids `/…/` literals
+> so the generated regex parser does not call Rust's own regex engine (the `REGEX-SELF-HOSTING` campaign).
+> For a *general* grammar that is not trying to be regex-engine-independent, `/…/` literals are perfectly
+> idiomatic and widely used (e.g. `grammars/systemverilog.ebnf`). If you specifically need to avoid the
+> embedded regex engine, prefer string literals and the `any_char` built-ins below.
+
+## The `any_char` built-ins
+
+PGEN provides two native single-character matchers that need no regex engine
+(`rust/src/ast_based_generator.rs`). You reference them by name like a rule, but they are built in — you do
+**not** define them:
+
+| Built-in | Matches |
+| --- | --- |
+| `any_char` / `builtin_any_char` | any single UTF-8 character |
+| `ascii_char` / `builtin_ascii_char` | any single ASCII character |
+
+The canonical idiom — used all over `grammars/regex.ebnf` — is "match a run of characters until a
+delimiter", combined with a [negative lookahead](lookaheads.md) and the `$text`
+[whole-match capture](return-annotations.md):
+
+```ebnf
+# match every char up to (but not including) a closing ')'
+comment_text := ( !")" builtin_any_char )* -> $text
+
+# a single shorthand escape: backslash already consumed, take the next char
+control_escape := "c" any_char -> {type: "escape", kind: "control", char: $2}
+```
+
+This pair plus lookaheads is how a self-hosting grammar expresses "any character except …" without a
+character class.
+
+## The character-class footgun: `[ … ]` is OPTIONAL, not a class
+
+This is the single most important terminal rule to internalize:
+
+> At the **grammar-element level**, `[ … ]` means **optional** — it is exactly equivalent to `( … )?`.
+> It is **not** a character class.
+
+The EBNF frontend lowers a `[` to a group-open `(` and a `]` to a group-close `)` followed by the `?`
+quantifier (`rust/src/ebnf_frontend.rs`). So:
+
+```ebnf
+# WRONG if you meant "one lowercase letter": this matches an OPTIONAL run of the
+# rule references a, -, and z — almost never what you want.
+maybe := [ a-z ]
+
+# RIGHT — a character class belongs inside a regex literal:
+lower := /[a-z]/
+
+# RIGHT — [ expr ] as optional:
+signed := [ "-" ] digits        # same as ( "-" )? digits
+```
+
+Keep the two `[ … ]` meanings straight:
+
+| Where it appears | Meaning |
+| --- | --- |
+| grammar-element level (`rule := [ X ] Y`) | **optional** — `( X )?` |
+| inside a regex literal (`/[a-z]/`) | a **character class** |
+| inside a `-> …` return annotation (`-> [ $1, $2 ]`) | an **array** literal (see [Return Annotations](return-annotations.md)) |
+
+When you see `[]` in `grammars/regex.ebnf`'s return annotations (e.g. `quantifier: []`), that is the
+return-annotation **empty array**, not a character class and not an optional — context disambiguates all
+three.

@@ -1,0 +1,1381 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>PGEN EBNF — Grammar-Author&#x27;s Reference</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-9c102f01.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-1719cc59.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">PGEN EBNF — Grammar-Author&#x27;s Reference</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/richarddje/pgen" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="welcome--pgen-ebnf-grammar-authors-reference"><a class="header" href="#welcome--pgen-ebnf-grammar-authors-reference">Welcome — PGEN EBNF Grammar-Author’s Reference</a></h1>
+<p>This is the per-grammar reference book for PGEN’s <strong><code>ebnf</code></strong> meta-grammar — the language you use to
+<em>write a PGEN grammar</em>. Where the other per-parser books (regex, SystemVerilog, VHDL, <code>rtl_frontend</code>,
+<code>rtl_const_expr</code>, json, <a href="../../return_annotation_parser_book/src/welcome.html">return_annotation</a>, and
+<a href="../../semantic_annotation_parser_book/src/welcome.html">semantic_annotation</a>) document the <em>output</em> of a
+generated parser, this book documents the <em>input</em>: the EBNF surface a grammar author types into a
+<code>grammars/foolang.ebnf</code> file. It is linked from the platform book’s
+<a href="../../book/src/parser-families.html">Parser Families</a> chapter.</p>
+<p>The authoritative source for the language is the self-hosting meta-grammar <code>grammars/ebnf.ebnf</code>
+(version <code>2.0</code>) together with the Rust EBNF frontend (<code>rust/src/ebnf_frontend.rs</code>) and the parser/stimuli
+code generators (<code>rust/src/ast_based_generator.rs</code>, <code>rust/src/ast_return_transform.rs</code>) that actually
+<em>consume</em> it. <strong>This book documents the surface the codegen really supports — not the aspirational
+constructs the meta-grammar self-describes but the generators ignore.</strong> Where a construct is parsed but
+not yet acted on, this book says so out loud (see <a href="#rules-and-expressions">Rules and Expressions</a> and
+the <a href="#glossary">Glossary</a>).</p>
+<h2 id="who-this-book-is-for"><a class="header" href="#who-this-book-is-for">Who this book is for</a></h2>
+<p>You are writing or extending a <code>.ebnf</code> grammar that PGEN will compile into a parser (and a stimuli
+generator). You want to know:</p>
+<ul>
+<li>what terminals and rule constructs are available, and exactly how they behave;</li>
+<li>how a rule’s <strong>returned AST</strong> is shaped — both the <em>implicit/passthrough</em> default and the explicit
+<code>-&gt; …</code> return-annotation language;</li>
+<li>how to <em>steer</em> parser-generation behaviour with <code>@…</code> semantic annotations;</li>
+<li>how to split a grammar across files with <code>@include</code>;</li>
+<li>what the codegen does under the hood, so a surprising parse or shape is debuggable.</li>
+</ul>
+<h2 id="the-canonical-flow"><a class="header" href="#the-canonical-flow">The canonical flow</a></h2>
+<p>A PGEN grammar travels a fixed path from text to a working parser:</p>
+<pre><code class="language-text">grammars/foolang.ebnf
+        │  EBNF frontend (rust/src/ebnf_frontend.rs)
+        ▼
+generated/foolang.json          (the raw AST / grammar IR)
+        │  code generators (rust/src/ast_based_generator.rs, …)
+        ▼
+generated/foolang_parser.rs     (the generated recursive-descent PEG parser)
+        │
+        ├─▶ in-memory stimuli generator  (--generate-stimuli)
+        └─▶ generated/foolang_stimuli.rs (optional, --generate-stimuli-module)
+</code></pre>
+<p>Everything you write in the <code>.ebnf</code> is interpreted along this path. The <a href="#build-recipe">Build Recipe</a>
+shows the exact commands; the <a href="#codegen-mental-model">Codegen Mental Model</a> explains what each construct
+becomes.</p>
+<h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
+<ul>
+<li><a href="#build-recipe">Build Recipe</a> — generate, parse, lint, and prove a grammar; build this book.</li>
+<li><a href="#grammar-file-structure">Grammar File Structure</a> — the file: rules, operators, comments, whitespace.</li>
+<li><a href="#terminals">Terminals</a> — string/char literals, regex literals, the <code>any_char</code> built-ins, escapes.</li>
+<li><a href="#rules-and-expressions">Rules and Expressions</a> — ordered choice, sequences, grouping, optional,
+and the constructs the codegen does <strong>not</strong> implement.</li>
+<li><a href="#quantifiers">Quantifiers</a> — <code>?</code> <code>*</code> <code>+</code> <code>{n}</code> <code>{n,m}</code> <code>{n,}</code> <code>{,m}</code> and the Layer-0 unified engine.</li>
+<li><a href="#lookaheads">Lookaheads</a> — positive <code>&amp;</code> / negative <code>!</code>, and the <code>[&gt; … ]</code> / <code>[&gt;! … ]</code> lexical
+follow-restriction.</li>
+<li><a href="#the-implicit--passthrough-return-policy">The Implicit / Passthrough Return Policy</a> — what a rule returns with <strong>no</strong> <code>-&gt; …</code>.</li>
+<li><a href="#return-annotations">Return Annotations</a> — the explicit <code>-&gt; …</code> AST-shaping language (overview +
+cross-links to the return_annotation book).</li>
+<li><a href="#semantic-annotations">Semantic Annotations</a> — the <code>@…</code> steering language (overview + cross-links to
+the semantic_annotation book).</li>
+<li><a href="#the-include-system">The Include System</a> — <code>@include</code> / <code>include_file</code> / <code>include_dir</code> modular composition.</li>
+<li><a href="#the-bootstrap-path">The Bootstrap Path</a> — how the annotation grammars break their own chicken-and-egg.</li>
+<li><a href="#codegen-mental-model">Codegen Mental Model</a> — terminals → matchers, profiles → guards, well-formedness.</li>
+<li><a href="#public-api-and-tooling">Public API and Tooling</a> — the EBNF frontend CLI, the registry, and the embedding API.</li>
+<li><a href="#glossary">Glossary</a>.</li>
+</ul>
+<h2 id="authoritative-sources-behind-this-book"><a class="header" href="#authoritative-sources-behind-this-book">Authoritative sources behind this book</a></h2>
+<ul>
+<li><code>grammars/ebnf.ebnf</code> — the self-hosting EBNF meta-grammar (version <code>2.0</code>).</li>
+<li><code>rust/src/ebnf_frontend.rs</code> — the Rust EBNF frontend that parses a <code>.ebnf</code> to raw AST JSON.</li>
+<li><code>rust/src/ast_based_generator.rs</code>, <code>rust/src/ast_return_transform.rs</code> — the parser/return-shape codegen.</li>
+<li><code>docs/RETURN_ANNOTATIONS_REFERENCE.md</code> and the
+<a href="../../return_annotation_parser_book/src/welcome.html">return_annotation book</a> — the deep <code>-&gt; …</code> detail.</li>
+<li><code>docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md</code> and the
+<a href="../../semantic_annotation_parser_book/src/welcome.html">semantic_annotation book</a> — the deep <code>@…</code> detail.</li>
+<li><code>docs/EBNF_INCLUDE_SYSTEM.md</code> — the include resolver.</li>
+<li><code>docs/BOOTSTRAP_MODE_SPECIFICATION.md</code> — the bootstrap path.</li>
+<li>The platform book chapters <a href="../../book/src/annotation-system.html">Annotation System</a>,
+<a href="../../book/src/lexical-annotations.html">Lexical Annotations</a>, and
+<a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a>.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="build-recipe"><a class="header" href="#build-recipe">Build Recipe</a></h1>
+<p>This chapter is the end-to-end loop for a grammar author: write a <code>.ebnf</code>, generate its parser, parse a
+sample, and prove the grammar with PGEN’s gates. The two binaries you will use are introduced in
+<code>TOOLBOX.md</code>; everything here uses the canonical flow from <a href="#welcome--pgen-ebnf-grammar-authors-reference">Welcome</a>.</p>
+<h2 id="the-two-binaries"><a class="header" href="#the-two-binaries">The two binaries</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Binary</th><th>Build (from <code>rust/</code>)</th><th>Used for</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ast_pipeline</code></td><td><code>cargo build --features "generated_parsers ebnf_dual_run"</code></td><td>EBNF frontend, <code>--generate-parser</code>, lint, certificate-coverage, <code>--dump-gen-ast</code>, stimuli</td></tr>
+<tr><td><code>parseability_probe</code></td><td><code>cargo build --release --features generated_parsers</code></td><td>parse a file, dump the typed AST, trace</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>ast_pipeline</code> needs <code>--features ebnf_dual_run</code> to read a <code>.ebnf</code> <strong>directly</strong>, and
+<code>--features generated_parsers</code> for certificate-coverage (it verifies witnesses through the real generated
+parser).</p>
+<h2 id="generate-a-parser-from-a-grammar"><a class="header" href="#generate-a-parser-from-a-grammar">Generate a parser from a grammar</a></h2>
+<p>The fastest path for a tracked grammar is its per-grammar <code>make</code> target, which runs the whole pipeline:</p>
+<pre><code class="language-bash"># regenerate generated/&lt;grammar&gt;_parser.rs (+ generated/&lt;grammar&gt;.json) for a tracked grammar
+make -C rust focus_regex
+make -C rust focus_json
+make -C rust focus_systemverilog
+</code></pre>
+<blockquote>
+<p><code>generated/</code> is <strong>not</strong> tracked in git — it is regenerated locally. The <code>make focus_&lt;grammar&gt;</code> targets
+reproduce <code>generated/&lt;grammar&gt;_parser.rs</code> deterministically.</p>
+</blockquote>
+<p>The two underlying steps the target wires together are the canonical flow:</p>
+<pre><code class="language-bash"># 1) EBNF text → raw AST JSON (the grammar IR)
+./rust/target/debug/ast_pipeline grammars/foolang.ebnf --emit-raw-ast-json generated/foolang.json
+
+# 2) raw AST JSON → generated recursive-descent parser
+./rust/target/debug/ast_pipeline --generate-parser generated/foolang.json -o generated/foolang_parser.rs
+</code></pre>
+<p>The annotation grammars (<code>return_annotation</code>, <code>semantic_annotation</code>) are generated on the <strong>bootstrap</strong>
+path instead; see <a href="#the-bootstrap-path">The Bootstrap Path</a>.</p>
+<h2 id="parse-a-sample-with-the-generated-parser"><a class="header" href="#parse-a-sample-with-the-generated-parser">Parse a sample with the generated parser</a></h2>
+<p>Once the grammar is registered and built into <code>parseability_probe</code>, parse a file and inspect the AST:</p>
+<pre><code class="language-bash"># does it parse? (exit 0 = fully consumed)
+./rust/target/release/parseability_probe --supports foolang
+./rust/target/release/parseability_probe --parse foolang sample.foo
+
+# what shape did it produce?
+./rust/target/release/parseability_probe --parse-dump-ast-pretty foolang sample.foo out.json
+</code></pre>
+<p>On a rejection, the error line carries <code>furthest_position</code> — the deepest byte any branch reached — which
+is where the real defect lives (see <code>TOOLBOX.md</code> §3.2).</p>
+<h2 id="prove-the-grammar"><a class="header" href="#prove-the-grammar">Prove the grammar</a></h2>
+<p>Two read-only proofs are the grammar author’s first stop after any edit:</p>
+<pre><code class="language-bash"># static well-formedness: left-recursion info, non-terminating ERRORS, ordered-choice shadowing WARNINGS
+./rust/target/debug/ast_pipeline grammars/foolang.ebnf --lint-grammar
+
+# trustworthiness: every rule covered by an unreachability PROOF or a reachability WITNESS?
+./rust/target/debug/ast_pipeline grammars/foolang.ebnf --report-certificate-coverage \
+    --entry-rule foolang_file --count 40 --seed 0
+</code></pre>
+<p><code>UNKNOWN=0</code> with no failures, deterministic across seeds <code>0/7/42</code>, is the objective “trustworthy on this
+grammar” number. See <a href="#codegen-mental-model">Codegen Mental Model</a> and the platform book’s
+<a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter.</p>
+<h2 id="see-what-the-generator-actually-consumes"><a class="header" href="#see-what-the-generator-actually-consumes">See what the generator actually consumes</a></h2>
+<p>When a parse or shape surprises you, dump the <strong>normalized generation-input AST</strong> — the IR the generators
+consume after left-recursion elimination and other normalization:</p>
+<pre><code class="language-bash">./rust/target/debug/ast_pipeline grammars/foolang.ebnf --generate-parser \
+    --dump-gen-ast gen_ast.json --dump-gen-ast-pretty --eliminate-left-recursion --output /tmp/p.rs
+</code></pre>
+<h2 id="book-gate"><a class="header" href="#book-gate">Book gate</a></h2>
+<p>This book is gated like every other per-parser book — it must build cleanly and ship its tracked HTML:</p>
+<pre><code class="language-bash">make -C rust SHELL=/bin/bash ebnf_parser_book_gate
+</code></pre>
+<p>The gate requires <code>mdbook</code> on <code>PATH</code>, checks the chapter set is present, runs
+<code>mdbook build docs/ebnf_parser_book</code>, and verifies the rendered HTML landing pages exist under
+<code>docs/ebnf_parser_book-html/</code> (the rendered HTML is tracked in git so the book is browsable directly on
+GitHub).</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="grammar-file-structure"><a class="header" href="#grammar-file-structure">Grammar File Structure</a></h1>
+<p>A PGEN grammar is a plain-text <code>.ebnf</code> file. At the top level it is a sequence of <strong>rules</strong>, optionally
+interleaved with <strong>include directives</strong>, <strong>semantic annotations</strong>, <strong>comments</strong>, and <strong>whitespace</strong>
+(<code>grammars/ebnf.ebnf</code>, rule <code>grammar_file</code>). The order of rules does not matter for resolution — every
+rule name in the file is in scope for every other rule — but the <strong>first reachable rule from the entry
+rule</strong> anchors the grammar (you choose the entry with <code>--entry-rule</code>).</p>
+<h2 id="a-rule"><a class="header" href="#a-rule">A rule</a></h2>
+<p>The core unit is a rule definition (<code>grammars/ebnf.ebnf</code>, rule <code>rule_definition</code>):</p>
+<pre><code class="language-ebnf">rule_name  :=  expression  -&gt; return_annotation
+</code></pre>
+<ul>
+<li><code>rule_name</code> is an identifier matching <code>[a-zA-Z_][a-zA-Z0-9_]*</code>.</li>
+<li><code>:=</code> is the rule operator (see below).</li>
+<li><code>expression</code> is the rule body — terminals, rule references, ordered choice, sequences, quantifiers,
+grouping (see <a href="#rules-and-expressions">Rules and Expressions</a>).</li>
+<li><code>-&gt; return_annotation</code> is <strong>optional</strong>; when omitted, the rule returns its body under the
+<a href="#the-implicit--passthrough-return-policy">implicit / passthrough policy</a>.</li>
+</ul>
+<p>A rule may be preceded by one or more <code>@…</code> <a href="#semantic-annotations">semantic annotations</a> that steer how
+it is generated:</p>
+<pre><code class="language-ebnf">@emit_fact: type_name
+type_declaration := "typedef" data_type identifier ";"
+</code></pre>
+<h2 id="rule-operators"><a class="header" href="#rule-operators">Rule operators</a></h2>
+<p>PGEN’s EBNF frontend accepts <strong>four</strong> rule operators, and treats them as <strong>interchangeable</strong> at parse time
+(<code>rust/src/ebnf_frontend.rs</code>). The semantic distinctions some EBNF dialects attach to them are <em>not</em>
+modelled — pick one and be consistent within a grammar.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operator</th><th>Name</th><th>Used by shipped grammars</th></tr>
+</thead>
+<tbody>
+<tr><td><code>:=</code></td><td>standard EBNF assignment</td><td>dominant — e.g. ~1480 rules in <code>grammars/systemverilog.ebnf</code></td></tr>
+<tr><td><code>::=</code></td><td>alternative assignment</td><td>yes — 8 rules in <code>grammars/systemverilog.ebnf</code></td></tr>
+<tr><td><code>=</code></td><td>simple assignment</td><td>yes — <code>grammars/regex.ebnf</code> (e.g. <code>control_escape = "c" any_char -&gt; …</code>)</td></tr>
+<tr><td><code>:-</code></td><td>Prolog-style assignment</td><td>accepted; not used by a shipped grammar</td></tr>
+</tbody>
+</table>
+</div>
+<p>The convention across most of the tracked grammars is <code>:=</code>; <code>grammars/regex.ebnf</code> consistently uses <code>=</code>.
+Both are equally valid.</p>
+<h2 id="comments"><a class="header" href="#comments">Comments</a></h2>
+<p>Comments are ordinary top-level content and may appear between rules or at the end of a line:</p>
+<pre><code class="language-ebnf"># line comment (hash form)
+// line comment (slash form)
+
+/* block comment */
+</code></pre>
+<p>The hash form (<code>#</code>) is by far the most common in the tracked grammars; the shipped grammars use it for the
+header banners and per-rule rationale you see throughout <code>grammars/*.ebnf</code>. Documentation-comment forms
+(<code>/** … */</code>, <code>///</code>) are recognized by the meta-grammar; the shipped grammars do not rely on them.</p>
+<h2 id="whitespace"><a class="header" href="#whitespace">Whitespace</a></h2>
+<p>Whitespace (spaces, tabs, newlines) separates tokens and is otherwise insignificant at the grammar-author
+level — a rule may span multiple lines, and alternatives are commonly laid out one per line for
+readability:</p>
+<pre><code class="language-ebnf">rule_operator := (
+    ":=" |
+    "::=" |
+    "=" |
+    ":-"
+)
+</code></pre>
+<blockquote>
+<p>Whitespace <em>inside the language you are describing</em> is a different matter — your grammar must match the
+input’s own whitespace explicitly (typically via a <code>trivia</code>/<code>whitespace</code> rule you call between tokens).
+PGEN does not insert implicit token-skipping for you. See how the shipped grammars thread a <code>trivia</code>
+rule through their sequences.</p>
+</blockquote>
+<h2 id="includes-and-annotations-at-the-top"><a class="header" href="#includes-and-annotations-at-the-top">Includes and annotations at the top</a></h2>
+<p>Include directives and grammar-level semantic annotations conventionally sit near the top of the file:</p>
+<pre><code class="language-ebnf"># pull in shared rule files
+include("tokens", "expressions")
+
+# a grammar-level pragma
+@stop_at_rule_boundary: true
+sequence := sequence_element+
+</code></pre>
+<p>See <a href="#the-include-system">The Include System</a> for composition and <a href="#semantic-annotations">Semantic Annotations</a>
+for the steering directives. The <code>@stop_at_rule_boundary</code> pragma is a genuine, codegen-consumed grammar
+annotation (it bounds how far a sequence will consume); it appears in <code>grammars/ebnf.ebnf</code> itself.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="terminals"><a class="header" href="#terminals">Terminals</a></h1>
+<p>A <strong>terminal</strong> matches literal input text. PGEN’s EBNF supports string and character literals, regex
+literals, and the native <code>any_char</code> built-ins. This chapter is the authoritative list of what the codegen
+actually matches — and one important footgun about character classes.</p>
+<h2 id="string-literals"><a class="header" href="#string-literals">String literals</a></h2>
+<p>Double-quoted and single-quoted string literals match their contents exactly
+(<code>rust/src/ebnf_frontend.rs</code>):</p>
+<pre><code class="language-ebnf">kw_module  := "module"
+semicolon  := ";"
+quote_char := '"'        # a single-quoted literal can hold a double-quote
+apostrophe := "'"        # …and vice-versa
+</code></pre>
+<p>Both quote styles are first-class and used throughout the shipped grammars. Choose whichever avoids
+escaping the delimiter (e.g. <code>'"'</code> for a double-quote, <code>"'"</code> for an apostrophe — both appear in
+<code>grammars/regex.ebnf</code>).</p>
+<h3 id="raw-strings"><a class="header" href="#raw-strings">Raw strings</a></h3>
+<p>A raw string <code>r"…"</code> matches its contents with <strong>no escape processing</strong> — backslashes are literal:</p>
+<pre><code class="language-ebnf">literal_backslash_d := r"\d"     # matches the two characters backslash, d
+</code></pre>
+<h3 id="escapes-in-ordinary-strings"><a class="header" href="#escapes-in-ordinary-strings">Escapes in ordinary strings</a></h3>
+<p>Inside ordinary (non-raw) string literals, standard escapes are decoded by the frontend
+(<code>rust/src/ebnf_frontend.rs</code>): <code>\n</code>, <code>\t</code>, <code>\r</code>, <code>\\</code>, <code>\"</code>, <code>\'</code>, and the Unicode escapes <code>\uXXXX</code>
+(4 hex digits) and <code>\UXXXXXXXX</code> (8 hex digits).</p>
+<pre><code class="language-ebnf">newline := "\n"
+tab     := "\t"
+</code></pre>
+<h2 id="regex-literals"><a class="header" href="#regex-literals">Regex literals</a></h2>
+<p>A regex literal <code>/pattern/</code> matches against a regular expression, with optional trailing flags
+(<code>/pattern/flags</code>):</p>
+<pre><code class="language-ebnf">identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
+number     := /\d+(\.\d+)?/
+ws         := /\s+/
+</code></pre>
+<p>Regex literals are where <strong>character classes</strong> (<code>[abc]</code>, <code>[^abc]</code>), <strong>ranges</strong> (<code>[a-z]</code>), and the regex
+shorthands (<code>\d</code>, <code>\w</code>, <code>\s</code>, …) live in a PGEN grammar. They are the most concise way to express a
+lexical token.</p>
+<blockquote>
+<p><strong>Self-hosting guidance.</strong> The regex grammar (<code>grammars/regex.ebnf</code>) deliberately avoids <code>/…/</code> literals
+so the generated regex parser does not call Rust’s own regex engine (the <code>REGEX-SELF-HOSTING</code> campaign).
+For a <em>general</em> grammar that is not trying to be regex-engine-independent, <code>/…/</code> literals are perfectly
+idiomatic and widely used (e.g. <code>grammars/systemverilog.ebnf</code>). If you specifically need to avoid the
+embedded regex engine, prefer string literals and the <code>any_char</code> built-ins below.</p>
+</blockquote>
+<h2 id="the-any_char-built-ins"><a class="header" href="#the-any_char-built-ins">The <code>any_char</code> built-ins</a></h2>
+<p>PGEN provides two native single-character matchers that need no regex engine
+(<code>rust/src/ast_based_generator.rs</code>). You reference them by name like a rule, but they are built in — you do
+<strong>not</strong> define them:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Built-in</th><th>Matches</th></tr>
+</thead>
+<tbody>
+<tr><td><code>any_char</code> / <code>builtin_any_char</code></td><td>any single UTF-8 character</td></tr>
+<tr><td><code>ascii_char</code> / <code>builtin_ascii_char</code></td><td>any single ASCII character</td></tr>
+</tbody>
+</table>
+</div>
+<p>The canonical idiom — used all over <code>grammars/regex.ebnf</code> — is “match a run of characters until a
+delimiter”, combined with a <a href="#lookaheads">negative lookahead</a> and the <code>$text</code>
+<a href="#return-annotations">whole-match capture</a>:</p>
+<pre><code class="language-ebnf"># match every char up to (but not including) a closing ')'
+comment_text := ( !")" builtin_any_char )* -&gt; $text
+
+# a single shorthand escape: backslash already consumed, take the next char
+control_escape := "c" any_char -&gt; {type: "escape", kind: "control", char: $2}
+</code></pre>
+<p>This pair plus lookaheads is how a self-hosting grammar expresses “any character except …” without a
+character class.</p>
+<h2 id="the-character-class-footgun----is-optional-not-a-class"><a class="header" href="#the-character-class-footgun----is-optional-not-a-class">The character-class footgun: <code>[ … ]</code> is OPTIONAL, not a class</a></h2>
+<p>This is the single most important terminal rule to internalize:</p>
+<blockquote>
+<p>At the <strong>grammar-element level</strong>, <code>[ … ]</code> means <strong>optional</strong> — it is exactly equivalent to <code>( … )?</code>.
+It is <strong>not</strong> a character class.</p>
+</blockquote>
+<p>The EBNF frontend lowers a <code>[</code> to a group-open <code>(</code> and a <code>]</code> to a group-close <code>)</code> followed by the <code>?</code>
+quantifier (<code>rust/src/ebnf_frontend.rs</code>). So:</p>
+<pre><code class="language-ebnf"># WRONG if you meant "one lowercase letter": this matches an OPTIONAL run of the
+# rule references a, -, and z — almost never what you want.
+maybe := [ a-z ]
+
+# RIGHT — a character class belongs inside a regex literal:
+lower := /[a-z]/
+
+# RIGHT — [ expr ] as optional:
+signed := [ "-" ] digits        # same as ( "-" )? digits
+</code></pre>
+<p>Keep the two <code>[ … ]</code> meanings straight:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Where it appears</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>grammar-element level (<code>rule := [ X ] Y</code>)</td><td><strong>optional</strong> — <code>( X )?</code></td></tr>
+<tr><td>inside a regex literal (<code>/[a-z]/</code>)</td><td>a <strong>character class</strong></td></tr>
+<tr><td>inside a <code>-&gt; …</code> return annotation (<code>-&gt; [ $1, $2 ]</code>)</td><td>an <strong>array</strong> literal (see <a href="#return-annotations">Return Annotations</a>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>When you see <code>[]</code> in <code>grammars/regex.ebnf</code>’s return annotations (e.g. <code>quantifier: []</code>), that is the
+return-annotation <strong>empty array</strong>, not a character class and not an optional — context disambiguates all
+three.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="rules-and-expressions"><a class="header" href="#rules-and-expressions">Rules and Expressions</a></h1>
+<p>A rule body is an <strong>expression</strong>: terminals and rule references combined with ordered choice, sequencing,
+grouping, and optionals. PGEN compiles a grammar to a <strong>recursive-descent PEG parser</strong> — so the semantics
+here are PEG semantics, and ordering matters.</p>
+<h2 id="rule-references-non-terminals"><a class="header" href="#rule-references-non-terminals">Rule references (non-terminals)</a></h2>
+<p>Naming another rule in a body calls that rule:</p>
+<pre><code class="language-ebnf">statement      := assignment | if_statement | loop_statement
+assignment     := lvalue "=" expression ";"
+</code></pre>
+<p>A reference to an <em>undefined</em> name resolves to a built-in matcher when the name is one of the
+<code>any_char</code> family (<a href="#terminals">Terminals</a>); otherwise an undefined reference is a grammar defect that
+<code>--lint-grammar</code> reports.</p>
+<h2 id="ordered-choice-"><a class="header" href="#ordered-choice-">Ordered choice (<code>|</code>)</a></h2>
+<p><code>|</code> is <strong>ordered choice</strong>, not symmetric alternation. The parser tries each alternative left-to-right and
+commits to the <strong>first</strong> that matches:</p>
+<pre><code class="language-ebnf">keyword := "module" | "macromodule" | "module_extern"
+</code></pre>
+<p>Because choice is ordered, <strong>put the longer / more specific alternative first</strong> when alternatives share a
+prefix — otherwise the shorter one wins and strands the rest. This “ordered-choice shadowing” is exactly
+what <code>--lint-grammar</code> warns about (see <a href="#codegen-mental-model">Codegen Mental Model</a> and the platform book’s
+<a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter). Each non-last branch may also
+carry its <strong>own</strong> inline <code>-&gt; …</code> return annotation before the <code>|</code>:</p>
+<pre><code class="language-ebnf">sign := "+" -&gt; {kind: "plus"}
+      | "-" -&gt; {kind: "minus"}
+</code></pre>
+<h2 id="sequences"><a class="header" href="#sequences">Sequences</a></h2>
+<p>Writing elements one after another matches them in order:</p>
+<pre><code class="language-ebnf">port := direction data_type identifier ";"
+</code></pre>
+<p>Each element’s result is captured positionally (<code>$1</code>, <code>$2</code>, …) for the return annotation. By default a
+sequence with two or more elements does <strong>not</strong> get an implicit <code>-&gt; $1</code> — see
+<a href="#the-implicit--passthrough-return-policy">The Implicit / Passthrough Return Policy</a>.</p>
+<h2 id="grouping---"><a class="header" href="#grouping---">Grouping <code>( … )</code></a></h2>
+<p>Parentheses group a sub-expression so a quantifier or choice applies to the whole group:</p>
+<pre><code class="language-ebnf">arg_list := expression ( "," expression )*
+term     := ( "+" | "-" ) factor
+</code></pre>
+<h2 id="optional---"><a class="header" href="#optional---">Optional <code>[ … ]</code></a></h2>
+<p><code>[ expr ]</code> is <strong>optional</strong> — equivalent to <code>( expr )?</code>. (This is the element-level <code>[ … ]</code>; see the
+<a href="#terminals">Terminals</a> footgun — it is <em>not</em> a character class.)</p>
+<pre><code class="language-ebnf">declaration := data_type identifier [ "=" expression ] ";"
+# identical to:
+declaration := data_type identifier ( "=" expression )? ";"
+</code></pre>
+<h2 id="quantifiers-and-lookaheads"><a class="header" href="#quantifiers-and-lookaheads">Quantifiers and lookaheads</a></h2>
+<p>Repetition (<code>?</code> <code>*</code> <code>+</code> <code>{n,m}</code>) and assertions (<code>&amp;</code> <code>!</code>) are covered in their own chapters:
+<a href="#quantifiers">Quantifiers</a> and <a href="#lookaheads">Lookaheads</a>.</p>
+<h2 id="precedence-and-how-to-override-it"><a class="header" href="#precedence-and-how-to-override-it">Precedence and how to override it</a></h2>
+<p>From loosest to tightest binding:</p>
+<ol>
+<li>ordered choice <code>|</code></li>
+<li>sequence (juxtaposition)</li>
+<li>quantifier postfix (<code>?</code> <code>*</code> <code>+</code> <code>{…}</code>) and lookahead prefix (<code>&amp;</code> <code>!</code>) on a single element</li>
+<li>primary element (terminal, rule reference, group, optional)</li>
+</ol>
+<p>Use <code>( … )</code> to override — e.g. <code>( a | b )+</code> repeats the <em>choice</em>, whereas <code>a | b+</code> is “<code>a</code>, or one-or-more
+<code>b</code>”.</p>
+<h2 id="constructs-the-codegen-does-not-implement"><a class="header" href="#constructs-the-codegen-does-not-implement">Constructs the codegen does NOT implement</a></h2>
+<p>The self-hosting meta-grammar <code>grammars/ebnf.ebnf</code> <em>describes</em> a number of extension constructs so that it
+can parse grammars that use them, but the PGEN code generators <strong>do not act on them</strong>. Do <strong>not</strong> rely on
+these — they are silently inert (or a defect) in a real grammar:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Construct</th><th>Surface in <code>ebnf.ebnf</code></th><th>Status</th></tr>
+</thead>
+<tbody>
+<tr><td>Exception rules</td><td><code>expr except (…)</code></td><td>not implemented</td></tr>
+<tr><td>Case control</td><td><code>~"X"</code>, <code>~i"X"</code></td><td>not implemented</td></tr>
+<tr><td>Named captures (as syntax)</td><td><code>name:pattern</code></td><td>not implemented as an element</td></tr>
+<tr><td>Parametric rules</td><td><code>rule[param, …]</code></td><td>not implemented</td></tr>
+<tr><td>Template instantiation</td><td><code>rule&lt;Type, …&gt;</code></td><td>not implemented</td></tr>
+<tr><td>Lexer modes</td><td><code>mode name { … }</code></td><td>not implemented</td></tr>
+<tr><td>Grammar inheritance</td><td><code>grammar X extends Y</code></td><td>not implemented — use <a href="#the-include-system">includes</a></td></tr>
+<tr><td>Import statements</td><td><code>import "…" as ns</code></td><td>not implemented — use <a href="#the-include-system">includes</a></td></tr>
+<tr><td>Error productions</td><td><code>error : sync/skip/panic</code></td><td>not implemented</td></tr>
+<tr><td>Semantic predicates</td><td><code>{? … ?}</code></td><td>not implemented — use a <code>@predicate</code> annotation instead</td></tr>
+<tr><td>Action blocks</td><td><code>{ … }</code></td><td>not implemented — use <code>-&gt; …</code> / <code>@…</code> instead</td></tr>
+<tr><td>Epsilon as a construct</td><td><code>ε</code> / <code>epsilon</code> / <code>empty</code></td><td>recognized, but not a codegen primitive — express “optional” with <code>?</code>/<code>[ … ]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Two near-misses worth calling out so you reach for the supported mechanism:</p>
+<ul>
+<li>to gate a rule on context, do <strong>not</strong> write a <code>{? … ?}</code> semantic predicate — write a <code>@predicate</code>
+<a href="#semantic-annotations">semantic annotation</a>, which the codegen genuinely consumes;</li>
+<li>to compose grammars, do <strong>not</strong> use <code>extends</code> / <code>import</code> — use the <a href="#the-include-system">include system</a>.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quantifiers"><a class="header" href="#quantifiers">Quantifiers</a></h1>
+<p>A quantifier repeats the element immediately to its left. PGEN implements a <strong>single, unified quantifier
+engine</strong> (the “Layer-0” engine, <code>rust/src/ast_pipeline/mod.rs::parse_quantifier_bounds</code> +
+<code>rust/src/ast_based_generator.rs</code>), so every quantifier form has the same per-iteration semantics.</p>
+<h2 id="the-forms"><a class="header" href="#the-forms">The forms</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Form</th><th>Meaning</th><th><code>(min, max)</code></th></tr>
+</thead>
+<tbody>
+<tr><td><code>?</code></td><td>zero or one (optional)</td><td><code>(0, 1)</code></td></tr>
+<tr><td><code>*</code></td><td>zero or more</td><td><code>(0, ∞)</code></td></tr>
+<tr><td><code>+</code></td><td>one or more</td><td><code>(1, ∞)</code></td></tr>
+<tr><td><code>{n}</code></td><td>exactly <code>n</code></td><td><code>(n, n)</code></td></tr>
+<tr><td><code>{n,m}</code></td><td>between <code>n</code> and <code>m</code></td><td><code>(n, m)</code></td></tr>
+<tr><td><code>{n,}</code></td><td>at least <code>n</code></td><td><code>(n, ∞)</code></td></tr>
+<tr><td><code>{,m}</code></td><td>at most <code>m</code></td><td><code>(0, m)</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>All seven are first-class and consumed by the codegen. The bounded forms (<code>{n}</code>, <code>{n,m}</code>, <code>{n,}</code>, <code>{,m}</code>)
+are used throughout <code>grammars/regex.ebnf</code>.</p>
+<pre><code class="language-ebnf">optional_sign  := ( "+" | "-" )?
+zero_or_more   := digit*
+one_or_more    := digit+
+exactly_four   := hex_digit{4}
+two_to_eight   := hex_digit{2,8}
+at_least_two   := item{2,}
+up_to_ten      := item{,10}
+</code></pre>
+<h2 id="per-iteration-atomicity-layer-0"><a class="header" href="#per-iteration-atomicity-layer-0">Per-iteration atomicity (Layer-0)</a></h2>
+<p>The unified engine wraps <strong>every</strong> iteration of a quantifier in an atomic try: if an iteration fails
+partway, the parser cleanly backtracks to the position just before that iteration. For the minimum-count
+forms (<code>+</code>, <code>{n}</code>, <code>{n,…}</code>), the whole quantifier rolls back to before the quantifier on a min-count
+failure. This makes the repetition forms behave uniformly — there is no asymmetry between the first and
+subsequent iterations.</p>
+<p>A zero-length guard prevents an inner rule that matches the empty string from looping forever, and a large
+safety limit backstops pathological repetition.</p>
+<h2 id="quantifying-a-group"><a class="header" href="#quantifying-a-group">Quantifying a group</a></h2>
+<p>A quantifier binds to the single element on its left — use a group to repeat more than one element:</p>
+<pre><code class="language-ebnf"># repeat the (',' expression) pair — the classic comma-separated-list idiom
+arg_list := expression ( "," expression )*
+
+# WRONG: '+' binds only to 'b'
+ab := a | b+        # == a, OR one-or-more b
+# RIGHT:
+ab := ( a | b )+    # == one-or-more of (a or b)
+</code></pre>
+<h2 id="returning-a-quantified-group"><a class="header" href="#returning-a-quantified-group">Returning a quantified group</a></h2>
+<p>A quantified element produces a <strong>list</strong> of its iterations. The return-annotation language has dedicated
+operators to collect, spread, and flatten those lists — <code>$N*</code>, <code>$N**</code>, and the extraction-spread <code>$N::n*</code>
+— described in <a href="#return-annotations">Return Annotations</a>. The common pattern:</p>
+<pre><code class="language-ebnf">items := item ( "," item )* -&gt; [ $1, $2* ]      # [first, ...rest]
+</code></pre>
+<h2 id="not-implemented-the-probability-quantifier-n"><a class="header" href="#not-implemented-the-probability-quantifier-n">Not implemented: the probability quantifier <code>@N%</code></a></h2>
+<p>The meta-grammar <code>grammars/ebnf.ebnf</code> describes a probability quantifier (<code>@75%</code>). It is <strong>parsed but not
+consumed by the codegen</strong> — it has no effect on a generated parser or stimuli generator. Do not use it;
+steer stimuli weighting through the <a href="#semantic-annotations">semantic-annotation</a> <code>@…</code> directives
+instead.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="lookaheads"><a class="header" href="#lookaheads">Lookaheads</a></h1>
+<p>A lookahead <strong>asserts</strong> what comes next without consuming any input. PGEN supports both PEG lookahead
+operators, and a separate <strong>lexical follow-restriction</strong> annotation for token-boundary rules.</p>
+<h2 id="positive--and-negative-"><a class="header" href="#positive--and-negative-">Positive <code>&amp;</code> and negative <code>!</code></a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operator</th><th>Name</th><th>Asserts</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&amp;X</code></td><td>positive lookahead</td><td>the next input <strong>does</strong> match <code>X</code> (then backtracks, consuming nothing)</td></tr>
+<tr><td><code>!X</code></td><td>negative lookahead</td><td>the next input does <strong>not</strong> match <code>X</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Both bind as a prefix to the single primary element on their right (a terminal, a rule reference, or a
+group). They are heavily used in <code>grammars/regex.ebnf</code> — 12 positive and 39 negative lookaheads — to
+disambiguate ordered-choice branches.</p>
+<pre><code class="language-ebnf"># consume characters until (but not including) a closing ')'
+comment_text := ( !")" builtin_any_char )* -&gt; $text
+
+# only take the 'else' branch when an 'else' keyword actually follows
+if_tail := &amp;"else" else_clause
+</code></pre>
+<h3 id="the-any-char-except--idiom"><a class="header" href="#the-any-char-except--idiom">The “any char except …” idiom</a></h3>
+<p>Negative lookahead plus an <a href="#terminals"><code>any_char</code> built-in</a> is how a self-hosting grammar expresses a
+negated character set without a regex class:</p>
+<pre><code class="language-ebnf"># a shorthand escape that is NOT one of the reserved letters/digits
+simple_escape := !"o{" !"x{" !"p{" !"P{" any_char -&gt; {type: "escape", char: $5}
+</code></pre>
+<p>Each leading <code>!"…"</code> is a zero-width assertion, so the matched character is captured by the <em>first
+consuming</em> element — note the positional reference <code>$5</code> skips the four non-consuming lookaheads. Count the
+lookaheads when you write the <code>$N</code>.</p>
+<h2 id="lexical-follow-restriction----and---"><a class="header" href="#lexical-follow-restriction----and---">Lexical follow-restriction: <code>[&gt; … ]</code> and <code>[&gt;! … ]</code></a></h2>
+<p>PGEN has a dedicated <strong>lexical annotation</strong> for the common “this token must (not) be followed by a word
+character” requirement — the kind of thing keyword/identifier boundaries need. Written as a standalone
+annotation line that binds to the <strong>following</strong> rule (like the <code>@…</code> directives):</p>
+<pre><code class="language-ebnf"># the macro name must NOT be immediately followed by another word char,
+# so `define_CV` does not split into the keyword `define` + `_CV`
+[&gt;! /\w/]
+define_directive := "`define" macro_name macro_body
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Form</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[&gt; X ]</code></td><td>the rule’s match <strong>must</strong> be followed by <code>X</code></td></tr>
+<tr><td><code>[&gt;! X ]</code></td><td>the rule’s match must <strong>not</strong> be followed by <code>X</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>This is the “4th pillar” lexical-faithfulness construct (built for the stimuli generator) and is used in
+<code>grammars/systemverilog_preprocessor.ebnf</code> for word-boundary (<code>\b</code>) enforcement on directive keywords. It
+is genuinely codegen-consumed. The deep reference is the platform book’s
+<a href="../../book/src/lexical-annotations.html">Lexical Annotations</a> chapter.</p>
+<blockquote>
+<p>Distinguish the three <code>[ … ]</code> shapes again: <code>[ X ]</code> (element-level <strong>optional</strong>), <code>[&gt; X ]</code> / <code>[&gt;! X ]</code>
+(lexical <strong>follow-restriction</strong> — note the <code>&gt;</code>), and a regex class <code>/[X]/</code> (inside a <code>/…/</code> literal). The
+follow-restriction is the only one whose bracket opens with <code>&gt;</code>.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-implicit--passthrough-return-policy"><a class="header" href="#the-implicit--passthrough-return-policy">The Implicit / Passthrough Return Policy</a></h1>
+<p>Every generated parser returns an AST. When a rule carries an explicit <code>-&gt; …</code>
+<a href="#return-annotations">return annotation</a>, that annotation shapes the result. But <strong>what does a rule
+return when it has no <code>-&gt; …</code> at all?</strong> That is the <em>implicit / passthrough</em> policy, and it is one of the
+most useful things for a grammar author to understand — getting it wrong is the usual cause of “my AST
+dropped a field” surprises.</p>
+<p>This policy is tool-verified against the codegen
+(<code>rust/src/ast_based_generator.rs</code>, <code>rust/src/ast_return_transform.rs</code>).</p>
+<h2 id="the-single-element-synthetic---1"><a class="header" href="#the-single-element-synthetic---1">The single-element synthetic <code>-&gt; $1</code></a></h2>
+<p>A rule or branch with <strong>no</strong> explicit <code>-&gt; …</code> gets a <strong>codegen-only synthetic <code>-&gt; $1</code></strong> (“implicit
+passthrough”) <strong>if and only if its body is a single element</strong> — that is, a <code>Sequence</code> whose
+<code>elements.len() &lt;= 1</code>, OR a lone terminal, rule reference, lookahead, or <code>Or</code> (ordered choice).</p>
+<pre><code class="language-ebnf"># single rule reference → implicit -&gt; $1: this rule returns whatever `expression` returns
+parenthesized := expression          # behaves as: -&gt; $1
+
+# ordered choice of single elements → implicit -&gt; $1: returns the chosen branch's value
+literal := number | string | boolean
+</code></pre>
+<p>The synthetic <code>-&gt; $1</code> is <strong>codegen-only</strong>: it never appears in the return-annotation inventory artifact
+(which surfaces only annotations you actually wrote).</p>
+<h2 id="where-the-synthetic---1-is-deliberately-not-added"><a class="header" href="#where-the-synthetic---1-is-deliberately-not-added">Where the synthetic <code>-&gt; $1</code> is deliberately NOT added</a></h2>
+<p>The codegen intentionally withholds the implicit <code>-&gt; $1</code> in two cases, because a blind <code>$1</code> would lie
+about the result:</p>
+<h3 id="multi-element-sequences--2-elements"><a class="header" href="#multi-element-sequences--2-elements">Multi-element sequences (≥ 2 elements)</a></h3>
+<pre><code class="language-ebnf"># NO implicit annotation — a bare $1 would be '(' and silently drop `expr`
+grouped := "(" expression ")"
+</code></pre>
+<p>If <code>grouped</code> had an implicit <code>-&gt; $1</code>, it would return the literal <code>(</code> and throw away the payload. Because
+the codegen refuses to guess, a multi-element sequence with no <code>-&gt; …</code> passes its <strong>raw</strong> capture through
+(see below) — but the moment you care about the shape, <strong>write the annotation explicitly</strong>:</p>
+<pre><code class="language-ebnf">grouped := "(" expression ")" -&gt; $2          # return the inner expression
+</code></pre>
+<h3 id="quantified-bodies-----"><a class="header" href="#quantified-bodies-----">Quantified bodies (<code>?</code> / <code>*</code> / <code>+</code>)</a></h3>
+<p>A rule whose body is a single <strong>quantified</strong> element is left as <strong>raw passthrough</strong>. The “natural reading”
+of <code>$1</code> on a quantified body is “the whole capture group”, and raw passthrough already yields that — but
+raw passthrough of a quantified body yields the <strong>structure</strong> (the list of iterations), <em>not</em> the matched
+text.</p>
+<pre><code class="language-ebnf"># raw passthrough: returns the list/structure of digit matches, not the joined text
+digits := digit+
+</code></pre>
+<p>If you want the <strong>matched text</strong> of a quantified run rather than its structure, capture it explicitly with
+<code>$text</code> / <code>$0</code> (see <a href="#return-annotations">Return Annotations</a> and <a href="#terminals">Terminals</a>):</p>
+<pre><code class="language-ebnf">digits := digit+ -&gt; $text        # the matched substring, e.g. "1234"
+</code></pre>
+<h2 id="the-passthrough-rule-precisely"><a class="header" href="#the-passthrough-rule-precisely">The passthrough rule, precisely</a></h2>
+<p>When a rule has no transform, <code>generate_passthrough</code> (the no-transform default) folds the captured
+elements like this:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Captures</th><th>Passthrough returns</th></tr>
+</thead>
+<tbody>
+<tr><td>0 captures</td><td>an empty terminal <code>""</code></td></tr>
+<tr><td>1 capture</td><td>that capture (the implicit <code>$1</code>)</td></tr>
+<tr><td>N captures</td><td>the <strong>last</strong> capture</td></tr>
+</tbody>
+</table>
+</div>
+<p>That “N captures → last” fallback is exactly why you should not lean on passthrough for a multi-element
+sequence — the result is the <em>last</em> element, which is rarely the field you want. Annotate it.</p>
+<h2 id="rule-of-thumb"><a class="header" href="#rule-of-thumb">Rule of thumb</a></h2>
+<ul>
+<li><strong>One element, you want it verbatim?</strong> Omit <code>-&gt; …</code> — the implicit <code>$1</code> does the right thing.</li>
+<li><strong>Two or more elements?</strong> Always write <code>-&gt; …</code> naming the field(s) you mean.</li>
+<li><strong>A quantified run, and you want its text?</strong> Write <code>-&gt; $text</code> (or <code>-&gt; $0</code>).</li>
+<li><strong>Anything structured (object/array/list)?</strong> Write the explicit annotation; see
+<a href="#return-annotations">Return Annotations</a>.</li>
+</ul>
+<blockquote>
+<p>Future direction (tracked, not yet landed): extend the policy so a terminal-only quantified body with no
+<code>-&gt; …</code> defaults to <code>$text</code> (matched text) instead of raw structure, making the implicit model
+{single-element → <code>$1</code>, terminal-quantified → <code>$text</code>} fully principled. Until that lands, be explicit
+with <code>$text</code> for quantified text payloads.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="return-annotations"><a class="header" href="#return-annotations">Return Annotations</a></h1>
+<p>A <strong>return annotation</strong> (<code>-&gt; …</code>) shapes the AST a rule produces. It is the normative mechanism for
+building a typed tree out of positional captures. This chapter is the grammar-author overview; the deep,
+exhaustive reference — including the parsed annotation envelope, every operator, and the
+Bootstrap-vs-Generated backends — is the dedicated
+<a href="../../return_annotation_parser_book/src/welcome.html">return_annotation parser book</a> and
+<code>docs/RETURN_ANNOTATIONS_REFERENCE.md</code>.</p>
+<h2 id="captures"><a class="header" href="#captures">Captures</a></h2>
+<p>Inside a sequence, each element is captured positionally, <code>$1</code>, <code>$2</code>, <code>$3</code>, … left to right. <strong>Non-consuming
+elements still occupy a position</strong> — count <a href="#lookaheads">lookaheads</a> when you number your captures.</p>
+<pre><code class="language-ebnf">port := direction data_type identifier ";" -&gt; {dir: $1, type: $2, name: $3}
+</code></pre>
+<h2 id="references"><a class="header" href="#references">References</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Form</th><th>Returns</th></tr>
+</thead>
+<tbody>
+<tr><td><code>$N</code></td><td>the value captured at position <code>N</code> (<code>$1</code>, <code>$2</code>, …)</td></tr>
+<tr><td><code>$text</code></td><td>the <strong>whole matched substring</strong> of the rule</td></tr>
+<tr><td><code>$0</code></td><td>alias for <code>$text</code> (the Perl5 whole-match convention)</td></tr>
+<tr><td><code>$1.field</code></td><td>property access into a captured object, chainable: <code>$1.a.b</code></td></tr>
+<tr><td><code>$1[0]</code></td><td>non-negative integer index into a captured list, chainable and mixable: <code>$1[0].name</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-ebnf">keyword_run := keyword+ -&gt; $text        # the matched text, not the list
+min_bound   := bound -&gt; $1.min          # reach into a produced object
+</code></pre>
+<h2 id="literals-and-structures"><a class="header" href="#literals-and-structures">Literals and structures</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Form</th><th>Builds</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"…"</code>, numbers, <code>true</code>/<code>false</code>, <code>null</code></td><td>a literal value</td></tr>
+<tr><td><code>[ … ]</code></td><td>an <strong>array</strong> (e.g. <code>[ $1, $2 ]</code>)</td></tr>
+<tr><td><code>{ key: …, … }</code></td><td>an <strong>object</strong> (keys are identifiers or strings)</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-ebnf">pair := key ":" value -&gt; { key: $1, value: $3 }
+empty_quantifier := slot? -&gt; { quantifier: [] }        # [] is the empty array
+</code></pre>
+<blockquote>
+<p>Reminder from <a href="#terminals">Terminals</a>: <code>[ … ]</code> means three different things by context — a return
+<strong>array</strong> here, an element-level <strong>optional</strong> in a rule body, and a <strong>character class</strong> only inside a
+<code>/…/</code> regex literal.</p>
+</blockquote>
+<h2 id="list-operators-for-quantified-captures"><a class="header" href="#list-operators-for-quantified-captures">List operators (for quantified captures)</a></h2>
+<p>A quantified element (<code>X*</code>, <code>X+</code>, <code>( … )*</code>) captures a <strong>list</strong> of iterations. These operators collect and
+flatten it:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operator</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code>$N*</code> (also <code>$N+</code>, <code>$N?</code>)</td><td>spread the quantified capture’s elements into the surrounding array</td></tr>
+<tr><td><code>$N**</code></td><td><strong>flatten-spread</strong> — spread one level deeper (recursive-spread)</td></tr>
+<tr><td><code>$N::n*</code></td><td><strong>extraction-spread</strong> — take element <code>n</code> (or <code>first</code> / <code>last</code>) from each iteration, then spread</td></tr>
+</tbody>
+</table>
+</div>
+<p>The canonical “first, then the rest” list idiom — used across the shipped grammars — is:</p>
+<pre><code class="language-ebnf">items := item ( "," item )* -&gt; [ $1, $2* ]          # [first, ...rest]
+</code></pre>
+<p><code>$N**</code> and <code>$N::n*</code> exist for the <code>X (sep X)*</code> binop/op-chain shapes where the separator and operand need
+to be lifted out of the per-iteration grouping; see the return_annotation book’s operators chapter for the
+worked patterns and the exact rules on which form to use where.</p>
+<h2 id="per-branch-annotations"><a class="header" href="#per-branch-annotations">Per-branch annotations</a></h2>
+<p>Each non-last branch of an ordered choice may carry its own <code>-&gt; …</code> (placed before the <code>|</code>); the last
+branch’s trailing <code>-&gt; …</code> is the rule-level annotation:</p>
+<pre><code class="language-ebnf">unary := "-" operand -&gt; {op: "neg", value: $2}
+       | "!" operand -&gt; {op: "not", value: $2}
+       |     operand -&gt; $1
+</code></pre>
+<h2 id="where-to-go-deep"><a class="header" href="#where-to-go-deep">Where to go deep</a></h2>
+<ul>
+<li><a href="../../return_annotation_parser_book/src/welcome.html">return_annotation parser book</a> — the full language,
+the parsed envelope, the operators chapter, and the backend split.</li>
+<li><code>docs/RETURN_ANNOTATIONS_REFERENCE.md</code> — the reference, including the bootstrap-mode flat-structure
+limits (see <a href="#the-bootstrap-path">The Bootstrap Path</a>).</li>
+<li><a href="#the-implicit--passthrough-return-policy">The Implicit / Passthrough Return Policy</a> — what happens with <strong>no</strong> <code>-&gt; …</code>.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="semantic-annotations"><a class="header" href="#semantic-annotations">Semantic Annotations</a></h1>
+<p>Where a <a href="#return-annotations">return annotation</a> (<code>-&gt; …</code>) shapes the <em>value a rule returns</em>, a
+<strong>semantic annotation</strong> (<code>@name: value</code>) shapes the <em>parser-generation behaviour</em> — gating a rule on facts
+already seen, emitting facts into a semantic store, restricting a rule to a profile, transforming a
+matched value, or steering stimuli generation. They are the normative mechanism for making a generated
+parser <strong>context-aware</strong>.</p>
+<p>This chapter is the grammar-author overview. The deep reference — the full <code>@name: value</code> value language,
+the complete directive catalog, and the semantic-store lifecycle — is the dedicated
+<a href="../../semantic_annotation_parser_book/src/welcome.html">semantic_annotation parser book</a>,
+<code>docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md</code>, and
+<code>docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md</code>.</p>
+<h2 id="placement"><a class="header" href="#placement">Placement</a></h2>
+<p>A standalone <code>@…</code> directive binds to the rule that <strong>follows</strong> it (authoritative: <code>grammars/ebnf.ebnf</code>,
+<code>grammar_rule := annotation_list? rule_definition</code>). Place the directive directly above its rule; more than
+one may stack:</p>
+<pre><code class="language-ebnf">@emit_fact: type_name
+type_declaration := "typedef" data_type identifier ";"
+</code></pre>
+<pre><code class="language-ebnf">@predicate: has_fact(type_name, $head)
+known_type_identifier := identifier
+</code></pre>
+<p>The text after <code>@</code> is <em>semantic-annotation source</em> — its own small value language (literals, structured
+<code>{…}</code> values, function calls, and <code>$ref</code> references). Its <em>meaning</em> per directive is the steering
+contract.</p>
+<h2 id="the-directive-catalog-overview"><a class="header" href="#the-directive-catalog-overview">The directive catalog (overview)</a></h2>
+<p>The directives the AST pipeline interprets, grouped by what they do:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Group</th><th>Directives</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td>Store: declare</td><td><code>@fact_kind</code></td><td>declare a fact kind and its attributes (exportable, …)</td></tr>
+<tr><td>Store: emit</td><td><code>@emit_fact</code>, <code>@open_scope</code></td><td>record a fact / open a lexical scope as the parser matches</td></tr>
+<tr><td>Store: query (gate)</td><td><code>@predicate</code> (+ <code>has_fact</code> / <code>lacks_fact</code> / <code>fact_attribute_equals</code> / <code>len_bounds</code> / <code>numeric_bounds</code> / <code>fact_count_at_least</code> / …)</td><td>accept or reject a rule based on the store</td></tr>
+<tr><td>Store: compose</td><td><code>@predicate_def</code></td><td>name a reusable composed predicate</td></tr>
+<tr><td>Cross-file</td><td><code>@export_to_library</code>, <code>@import_from_library</code></td><td>publish / consume facts across compilation artifacts</td></tr>
+<tr><td>Profiles</td><td><code>@profiles</code></td><td>restrict a rule to a grammar profile (e.g. <code>sv_2017</code> vs <code>sv_2023</code>)</td></tr>
+<tr><td>Value</td><td><code>@transform</code>, <code>@semantic_value</code></td><td>post-process a matched value</td></tr>
+<tr><td>Stimuli</td><td><code>@generate</code>, <code>@sample</code>, <code>@dispatch_table</code>, …</td><td>steer stimuli generation</td></tr>
+<tr><td>Pragmas</td><td><code>@stop_at_rule_boundary</code></td><td>bound how far a sequence consumes</td></tr>
+</tbody>
+</table>
+</div>
+<p>The store-backed gating directives are the heart of context-aware parsing — for example, “only treat this
+bare identifier as a type name if a <code>typedef</code> already emitted a <code>type_name</code> fact for it”. A grammar rule
+that categorizes a bare identifier into a tracked category (type / class / package / …) <strong>should</strong> consult
+the store via a <code>@predicate</code> rather than matching the identifier unconditionally.</p>
+<h2 id="a-worked-shape"><a class="header" href="#a-worked-shape">A worked shape</a></h2>
+<pre><code class="language-ebnf"># declare the fact kind
+@fact_kind: { name: type_name, exportable: true }
+
+# a typedef EMITS a type_name fact for the new name
+@emit_fact: type_name
+type_declaration := "typedef" data_type identifier ";" -&gt; {kind: "typedef", name: $3}
+
+# a use-site is a known type ONLY if that fact exists
+@predicate: has_fact(type_name, $1)
+known_type := identifier -&gt; {kind: "type_ref", name: $1}
+</code></pre>
+<h2 id="lexical-annotations"><a class="header" href="#lexical-annotations">Lexical annotations</a></h2>
+<p>The <code>[&gt; … ]</code> / <code>[&gt;! … ]</code> follow-restriction is a <em>lexical</em> annotation in the same family; it is documented
+in <a href="#lookaheads">Lookaheads</a> and the platform book’s
+<a href="../../book/src/lexical-annotations.html">Lexical Annotations</a> chapter.</p>
+<h2 id="where-to-go-deep-1"><a class="header" href="#where-to-go-deep-1">Where to go deep</a></h2>
+<ul>
+<li><a href="../../semantic_annotation_parser_book/src/welcome.html">semantic_annotation parser book</a> — the value
+language, the full directive catalog, and the seven-stage semantic-store lifecycle.</li>
+<li><code>docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md</code> — the normative directive semantics.</li>
+<li><code>docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md</code> — which knob steers which behaviour.</li>
+<li>The platform book’s <a href="../../book/src/annotation-system.html">Annotation System</a> chapter — the
+two-annotation-family overview.</li>
+</ul>
+<blockquote>
+<p>Reminder: PGEN has no <code>{? … ?}</code> semantic-predicate <em>syntax</em> (see
+<a href="#rules-and-expressions">Rules and Expressions</a>). Context gating is done with a <code>@predicate</code>
+annotation, which the codegen genuinely consumes.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-include-system"><a class="header" href="#the-include-system">The Include System</a></h1>
+<p>The include system lets you split a large grammar across multiple <code>.ebnf</code> files and share common rule
+libraries. The directives are recognized by the EBNF frontend (<code>rust/src/ebnf_frontend.rs</code>) and resolved
+into a single combined grammar before code generation. The authoritative, exhaustive reference — search
+paths, environment variables, recursive resolution, and cycle handling — is <code>docs/EBNF_INCLUDE_SYSTEM.md</code>;
+this chapter is the author-facing summary.</p>
+<h2 id="file-includes"><a class="header" href="#file-includes">File includes</a></h2>
+<pre><code class="language-ebnf"># short form (most common)
+include("tokens", "expressions", "statements")
+
+# full form
+include_file("tokens.ebnf", "operators")
+
+# alias
+file("common")
+</code></pre>
+<ul>
+<li>Includes the named files, in the order listed.</li>
+<li>The <code>.ebnf</code> extension is added automatically when you omit it — <code>include("common")</code> and
+<code>include("common.ebnf")</code> are equivalent.</li>
+<li>Multiple files may be named in one directive.</li>
+</ul>
+<h2 id="directory-includes"><a class="header" href="#directory-includes">Directory includes</a></h2>
+<pre><code class="language-ebnf"># include ALL .ebnf files from these directories
+include_dir("tokens", "expressions")
+
+# alias
+dir("../shared", "./components")
+</code></pre>
+<ul>
+<li>Pulls in every <code>*.ebnf</code> file in each named directory.</li>
+<li>Files are processed in <strong>alphabetical</strong> order.</li>
+</ul>
+<h2 id="how-resolution-works-summary"><a class="header" href="#how-resolution-works-summary">How resolution works (summary)</a></h2>
+<ol>
+<li>The main grammar is scanned for include directives and rules.</li>
+<li>Each directive is resolved to concrete file paths against the search path (the grammar’s base
+directory, explicit <code>include_dir</code> directories, the <code>EBNF_INCLUDES</code> / <code>EBNFLIB</code> environment variables,
+then the current directory — see <code>docs/EBNF_INCLUDE_SYSTEM.md</code>).</li>
+<li>Each included file is parsed and <strong>recursively</strong> processed for its own includes.</li>
+<li><strong>Circular includes are handled gracefully</strong> — each file is processed once; a cycle does not loop
+forever.</li>
+<li>All rules from all files are combined into a single grammar; every rule name is in scope everywhere.</li>
+</ol>
+<p>Because all included rules share one flat namespace, <strong>avoid rule-name collisions</strong> across files — two
+files defining the same rule name is a well-formedness concern (<code>--lint-grammar</code>).</p>
+<h2 id="a-real-example-the-meta-grammar-includes-itselfs-annotation-support"><a class="header" href="#a-real-example-the-meta-grammar-includes-itselfs-annotation-support">A real example: the meta-grammar includes itself’s annotation support</a></h2>
+<p><code>grammars/ebnf.ebnf</code> opens with:</p>
+<pre><code class="language-ebnf">include(semantic_annotations)
+</code></pre>
+<p>That is how the EBNF meta-grammar composes in the semantic-annotation rules rather than restating them —
+the same mechanism you use to factor your own grammar into <code>tokens</code>, <code>expressions</code>, and <code>statements</code>
+files.</p>
+<h2 id="organizing-a-multi-file-grammar"><a class="header" href="#organizing-a-multi-file-grammar">Organizing a multi-file grammar</a></h2>
+<p>A common functional split:</p>
+<pre><code class="language-text">grammars/foolang/
+├── foolang.ebnf          # entry: include("tokens", "expressions", "statements")
+├── tokens.ebnf           # keywords, identifiers, literals, trivia
+├── expressions.ebnf      # operator precedence chain
+└── statements.ebnf       # declarations, control flow, blocks
+</code></pre>
+<blockquote>
+<p>Composition is done with <strong>includes</strong>, not the <code>import "…"</code> / <code>grammar … extends …</code> constructs the
+meta-grammar self-describes — those are not implemented (see
+<a href="#rules-and-expressions">Rules and Expressions</a>). The include system is the supported mechanism.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-bootstrap-path"><a class="header" href="#the-bootstrap-path">The Bootstrap Path</a></h1>
+<p>PGEN’s two <strong>annotation grammars</strong> present a chicken-and-egg problem: <code>grammars/return_annotation.ebnf</code> and
+<code>grammars/semantic_annotation.ebnf</code> define the very <code>-&gt; …</code> and <code>@…</code> languages that a normal grammar uses
+in its own annotations. You cannot parse the annotations of the annotation grammar with a parser that does
+not exist yet. <strong>Bootstrap mode</strong> breaks that cycle. Most grammar authors never invoke it directly, but
+understanding it explains a few rules you will hit. The authoritative reference is
+<code>docs/BOOTSTRAP_MODE_SPECIFICATION.md</code>.</p>
+<h2 id="what-bootstrap-mode-is"><a class="header" href="#what-bootstrap-mode-is">What bootstrap mode is</a></h2>
+<p>Bootstrap mode provides built-in, hand-rolled annotation parsing inside the AST pipeline, used when the
+generated annotation parsers are unavailable (a clean build from scratch) or when explicitly forced:</p>
+<ul>
+<li>the AST pipeline first tries the external generated annotation parsers;</li>
+<li>if they are unavailable or fail, it <strong>falls back to bootstrap mode automatically</strong> — no flags needed;</li>
+<li><code>--bootstrap-mode</code> forces the bootstrap path for regeneration workflows and proof gates.</li>
+</ul>
+<p>The annotation parsers themselves are generated in bootstrap mode <strong>only</strong>, so an annotation parser is
+never asked to parse the annotations that define itself. The bootstrap-safe grammar contracts used for
+that path are <code>grammars/builtin_return_annotation.ebnf</code> and <code>grammars/builtin_semantic_annotation.ebnf</code>.</p>
+<h2 id="why-an-author-cares-the-flat-structure-limit"><a class="header" href="#why-an-author-cares-the-flat-structure-limit">Why an author cares: the flat-structure limit</a></h2>
+<p>The bootstrap annotation parser is deliberately simple. It supports <strong>unlimited flat</strong> structures but
+<strong>zero nesting</strong>. This matters whenever your annotation is parsed on the bootstrap path:</p>
+<p><strong>Return annotations — supported (flat only):</strong></p>
+<ul>
+<li>scalars: <code>$1</code>, <code>$2</code>, …</li>
+<li>arrays: <code>[ $1, $2, … ]</code>, quantified <code>[ $1* ]</code>, mixed <code>[ $1, $2* ]</code></li>
+<li>objects: <code>{ k1: $1, k2: $2, … }</code> with identifier keys and scalar / simple-quantified values</li>
+</ul>
+<p><strong>Return annotations — NOT supported on the bootstrap path (fall back to raw):</strong></p>
+<ul>
+<li>nested objects/arrays: <code>{ outer: { inner: $1 } }</code>, <code>[ { name: $1 } ]</code>, <code>{ items: [ $1, $2 ] }</code></li>
+<li>dotted values inside a structure: <code>[ $1.name ]</code></li>
+<li>dynamic keys / function-call values: <code>{ $1: $2 }</code>, <code>{ r: func($1) }</code></li>
+</ul>
+<p><strong>Semantic annotations — supported:</strong> simple <code>name: value</code>, identifiers, function calls up to 4 arguments,
+and <code>$ref</code> references including unbounded-depth dotted (<code>$a.b.c…</code>) and integer-indexed (<code>$items[0][1]</code>)
+chains. <strong>Not supported:</strong> functions with &gt; 4 arguments, nested function calls, and JSONPath features
+beyond the dotted/indexed subset.</p>
+<p>When a pattern exceeds bootstrap capabilities, it is stored as a raw string (with a warning) rather than
+failing the build — bootstrap mode never blocks the build.</p>
+<h2 id="the-two-semantic-annotation-surfaces"><a class="header" href="#the-two-semantic-annotation-surfaces">The two semantic-annotation surfaces</a></h2>
+<p>There are two parser surfaces for semantic-annotation source, kept in lockstep:</p>
+<ol>
+<li><strong>the EBNF-language surface</strong> — <code>grammars/semantic_annotation.ebnf</code> →
+<code>generated/semantic_annotation_parser.rs</code>, the formal language definition;</li>
+<li><strong>the grammar directive-payload runtime</strong> —
+<code>rust/src/ast_pipeline/unified_semantic_ast.rs::StructuredSemanticValueParser</code> (hand-rolled), the
+surface a real grammar author actually hits when the AST pipeline reads a grammar’s <code>@directive: { … }</code>
+while generating a parser.</li>
+</ol>
+<p>When the two diverge, the runtime is what actually parses your grammar’s directive payloads. A change to
+“what <code>$&lt;ref&gt;</code> accepts” must touch <strong>both</strong> surfaces — a fact discovered the hard way (the
+<code>SV-EXH-PROOF.3.3.4.a.1</code> slice). See <code>docs/BOOTSTRAP_MODE_SPECIFICATION.md</code> for the full account.</p>
+<h2 id="practical-takeaway"><a class="header" href="#practical-takeaway">Practical takeaway</a></h2>
+<p>For an ordinary grammar (not an annotation grammar), you rarely think about bootstrap. The one rule that
+reaches you: if a richly <strong>nested</strong> return annotation silently comes back as a raw string, you are on the
+bootstrap path — flatten the annotation, or ensure the generated annotation parsers are built. See
+<a href="#build-recipe">The Build Recipe</a> for regenerating the annotation parsers
+(<code>make -C rust return_semantic_parsers</code>).</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="codegen-mental-model"><a class="header" href="#codegen-mental-model">Codegen Mental Model</a></h1>
+<p>A correct mental model of what the generators do with your grammar makes surprising parses and shapes
+debuggable. This chapter sketches the path from EBNF construct to generated Rust, without requiring you to
+read the codegen source. The generators are <code>rust/src/ast_based_generator.rs</code> (parser) and
+<code>rust/src/ast_return_transform.rs</code> (return shaping).</p>
+<h2 id="the-generated-parser-is-a-recursive-descent-peg"><a class="header" href="#the-generated-parser-is-a-recursive-descent-peg">The generated parser is a recursive-descent PEG</a></h2>
+<p>Each rule becomes a function that tries to match at the current input position and either succeeds
+(advancing the position and returning a value) or backtracks. The semantics are <strong>PEG</strong> semantics:</p>
+<ul>
+<li><strong>ordered choice</strong> <code>|</code> tries alternatives left-to-right and commits to the first match — no global
+ambiguity, no longest-match across alternatives (see <a href="#rules-and-expressions">Rules and Expressions</a>);</li>
+<li><strong>sequences</strong> match elements in order, backtracking the whole sequence if any element fails;</li>
+<li><strong>lookaheads</strong> <code>&amp;</code> / <code>!</code> test without consuming (see <a href="#lookaheads">Lookaheads</a>);</li>
+<li>a <strong>packrat memo</strong> caches per-rule, per-position results so repeated work is avoided; the memo also
+replays semantic-store side effects on a cache hit, so context-aware gating stays correct under
+backtracking.</li>
+</ul>
+<p>This is why alternative ordering and prefix-sharing matter so much: the parser does what you <em>wrote</em>, in
+the order you wrote it.</p>
+<h2 id="terminals--matchers"><a class="header" href="#terminals--matchers">Terminals → matchers</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>EBNF construct</th><th>Generated matcher (conceptually)</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"lit"</code> / <code>'lit'</code></td><td><code>match_string("lit")</code></td></tr>
+<tr><td><code>r"lit"</code></td><td><code>match_string</code> with no escape decoding</td></tr>
+<tr><td><code>/regex/</code></td><td><code>match_regex(/regex/)</code> (the embedded Rust regex engine)</td></tr>
+<tr><td><code>any_char</code> / <code>builtin_any_char</code></td><td><code>match_any_char()</code> — a native UTF-8 char matcher, no regex engine</td></tr>
+<tr><td><code>ascii_char</code> / <code>builtin_ascii_char</code></td><td>a native ASCII char matcher</td></tr>
+<tr><td>rule reference</td><td>a call to that rule’s function</td></tr>
+</tbody>
+</table>
+</div>
+<p>The <code>any_char</code> built-ins are what let a grammar be regex-engine-independent (the <code>REGEX-SELF-HOSTING</code>
+property of <code>grammars/regex.ebnf</code>).</p>
+<h2 id="quantifiers--the-unified-loop"><a class="header" href="#quantifiers--the-unified-loop">Quantifiers → the unified loop</a></h2>
+<p>Every quantifier (<code>?</code> <code>*</code> <code>+</code> <code>{n}</code> <code>{n,m}</code> <code>{n,}</code> <code>{,m}</code>) compiles to <strong>one</strong> loop shape with
+per-iteration atomicity (the Layer-0 engine, <a href="#quantifiers">Quantifiers</a>). A quantified element yields a
+list of iteration results, which the return annotation then collects/flattens.</p>
+<h2 id="optionals-and-grouping--normalization"><a class="header" href="#optionals-and-grouping--normalization">Optionals and grouping → normalization</a></h2>
+<p><code>[ expr ]</code> is normalized to <code>( expr )?</code> by the frontend before codegen (see <a href="#terminals">Terminals</a>).
+Left-recursion is eliminated as a normalization pass when requested. To <strong>see</strong> the post-normalization IR
+the generators consume, dump it:</p>
+<pre><code class="language-bash">./rust/target/debug/ast_pipeline grammars/foolang.ebnf --generate-parser \
+    --dump-gen-ast gen_ast.json --dump-gen-ast-pretty --eliminate-left-recursion --output /tmp/p.rs
+</code></pre>
+<h2 id="return-annotations--tree-construction"><a class="header" href="#return-annotations--tree-construction">Return annotations → tree construction</a></h2>
+<p>After a rule’s body matches, the captured positionals (<code>$1</code>, <code>$2</code>, …) feed the return transform, which
+builds the literal / object / array / reference result. With no <code>-&gt; …</code>, the
+<a href="#the-implicit--passthrough-return-policy">implicit / passthrough policy</a> applies.</p>
+<h2 id="semantic-annotations--runtime-guards-and-store-ops"><a class="header" href="#semantic-annotations--runtime-guards-and-store-ops">Semantic annotations → runtime guards and store ops</a></h2>
+<p><code>@…</code> directives compile into runtime hooks around the rule: a <code>@predicate</code> becomes an accept/reject guard
+evaluated against the semantic store; <code>@emit_fact</code> / <code>@open_scope</code> become store writes; <code>@profiles</code>
+becomes a profile guard so a rule only participates under the selected grammar profile (e.g. <code>sv_2017</code> vs
+<code>sv_2023</code>). See <a href="#semantic-annotations">Semantic Annotations</a>.</p>
+<h2 id="well-formedness-and-trustworthiness"><a class="header" href="#well-formedness-and-trustworthiness">Well-formedness and trustworthiness</a></h2>
+<p>Two proofs back the codegen and are the grammar author’s safety net:</p>
+<ul>
+<li><strong><code>--lint-grammar</code></strong> — static well-formedness: left-recursion info, non-terminating <strong>ERRORS</strong>, and
+ordered-choice <strong>shadowing WARNINGS</strong> (a later alternative that an earlier one already subsumes). Run it
+after every grammar edit.</li>
+<li><strong><code>--report-certificate-coverage</code></strong> — for every rule, is it covered by a verified unreachability
+<strong>PROOF</strong> or a verified reachability <strong>WITNESS</strong>? <code>UNKNOWN=0</code> with no failures, deterministic at seeds
+<code>0/7/42</code>, is the objective “trustworthy on this grammar” number.</li>
+</ul>
+<p>Both are detailed in <code>TOOLBOX.md</code> and the platform book’s
+<a href="../../book/src/grammar-wellformedness.html">Grammar Well-Formedness</a> chapter. The doctrine: an unreachable
+or non-terminating rule is a grammar <strong>defect</strong> to fix, not a residual to accept.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="public-api-and-tooling"><a class="header" href="#public-api-and-tooling">Public API and Tooling</a></h1>
+<p>This chapter collects the entry points a grammar author uses to turn a <code>.ebnf</code> into a working parser and to
+embed it. It complements <a href="#build-recipe">The Build Recipe</a>, which has the copy-paste commands.</p>
+<h2 id="the-ebnf-frontend-cli-ast_pipeline"><a class="header" href="#the-ebnf-frontend-cli-ast_pipeline">The EBNF frontend CLI (<code>ast_pipeline</code>)</a></h2>
+<p><code>ast_pipeline</code> is the EBNF frontend and code generator. Reading a <code>.ebnf</code> directly requires the
+<code>ebnf_dual_run</code> feature; certificate-coverage additionally needs <code>generated_parsers</code>. The flags a grammar
+author reaches for:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Flag</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--emit-raw-ast-json RAW.json</code></td><td>EBNF text → raw AST JSON (the grammar IR)</td></tr>
+<tr><td><code>--generate-parser</code></td><td>raw AST JSON → generated recursive-descent parser</td></tr>
+<tr><td><code>--output PATH</code> / <code>-o PATH</code></td><td>where to write the generated parser</td></tr>
+<tr><td><code>--entry-rule NAME</code></td><td>the grammar’s entry/start rule (for cert-coverage and stimuli)</td></tr>
+<tr><td><code>--grammar-profile NAME</code></td><td>select a profile (e.g. <code>sv_2017</code>, <code>sv_2023</code>, <code>relaxed</code>)</td></tr>
+<tr><td><code>--lint-grammar</code></td><td>static well-formedness report, then exit</td></tr>
+<tr><td><code>--report-certificate-coverage</code></td><td>per-rule proof/witness/UNKNOWN trustworthiness report</td></tr>
+<tr><td><code>--dump-gen-ast FILE</code> (+ <code>--dump-gen-ast-pretty</code>)</td><td>the normalized generation-input IR</td></tr>
+<tr><td><code>--eliminate-left-recursion</code></td><td>run the left-recursion normalization pass</td></tr>
+<tr><td><code>--generate-stimuli</code></td><td>in-memory stimuli generation</td></tr>
+<tr><td><code>--generate-stimuli-module</code></td><td>emit a generated stimuli module (<code>generated/&lt;g&gt;_stimuli.rs</code>)</td></tr>
+<tr><td><code>--bootstrap-mode</code></td><td>force the <a href="#the-bootstrap-path">bootstrap</a> annotation path</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-bash"># the canonical two-step generation
+./rust/target/debug/ast_pipeline grammars/foolang.ebnf --emit-raw-ast-json generated/foolang.json
+./rust/target/debug/ast_pipeline --generate-parser generated/foolang.json -o generated/foolang_parser.rs
+</code></pre>
+<p>For a tracked grammar, the per-grammar <code>make -C rust focus_&lt;grammar&gt;</code> target wires both steps for you.</p>
+<h2 id="the-parser-registry"><a class="header" href="#the-parser-registry">The parser registry</a></h2>
+<p>A generated parser is registered under its grammar name so the tooling and the embedding API can find it.
+<code>parseability_probe --supports &lt;grammar&gt;</code> checks a grammar is registered; <code>--parse &lt;grammar&gt; file</code> parses
+with it. Registration is what makes <code>parseability_probe --parse foolang …</code> resolve to your generated
+parser.</p>
+<h2 id="the-embedding-api"><a class="header" href="#the-embedding-api">The embedding API</a></h2>
+<p>To call a generated parser from Rust, use the stable embedding API (<code>rust/src/embedding_api.rs</code>; contract
+in <code>rust/docs/EMBEDDING_API_CONTRACT.md</code>). It exposes parse entry points, the typed-AST result, and
+diagnostics, and — for the annotation grammars — a family selector routing to the Bootstrap or Generated
+backend. The annotation-family entry points (<code>parse_annotation</code> / <code>parse_annotation_result</code> /
+<code>parse_annotation_named</code>) are documented in the
+<a href="../../return_annotation_parser_book/src/public-api.html">return_annotation</a> and
+<a href="../../semantic_annotation_parser_book/src/public-api.html">semantic_annotation</a> books.</p>
+<h2 id="debugging-tooling"><a class="header" href="#debugging-tooling">Debugging tooling</a></h2>
+<p>When a grammar misbehaves, <code>TOOLBOX.md</code> is the authoritative catalog. The grammar author’s most-used
+surfaces:</p>
+<ul>
+<li><code>parseability_probe --parse … 2&gt;&amp;1 | tail -1</code> — the <code>furthest_position</code> of a rejection;</li>
+<li><code>parseability_probe --parse-dump-ast-pretty …</code> — confirm the produced shape;</li>
+<li><code>PGEN_TRACE_VERBOSITY=high … --trace-rules &lt;rule&gt;</code> — watch a specific rule, including <code>@predicate</code>
+verdicts;</li>
+<li><code>--lint-grammar</code> and <code>--report-certificate-coverage</code> — the two proofs (see
+<a href="#codegen-mental-model">Codegen Mental Model</a>).</li>
+</ul>
+<h2 id="where-to-go-next"><a class="header" href="#where-to-go-next">Where to go next</a></h2>
+<ul>
+<li><a href="#build-recipe">The Build Recipe</a> — the full author loop and the gates.</li>
+<li>The platform book’s <a href="../../book/src/parser-families.html">Parser Families</a> chapter — every shipped
+grammar and its per-parser book.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<p>Terms used throughout this book. The deep references are the
+<a href="../../return_annotation_parser_book/src/welcome.html">return_annotation</a> and
+<a href="../../semantic_annotation_parser_book/src/welcome.html">semantic_annotation</a> books, <code>TOOLBOX.md</code>, and the
+docs cross-linked from <a href="#welcome--pgen-ebnf-grammar-authors-reference">Welcome</a>.</p>
+<ul>
+<li>
+<p><strong>EBNF (PGEN dialect)</strong> — the grammar language documented by this book, defined by the self-hosting
+meta-grammar <code>grammars/ebnf.ebnf</code> (version <code>2.0</code>) and the Rust frontend <code>rust/src/ebnf_frontend.rs</code>.</p>
+</li>
+<li>
+<p><strong>Rule</strong> — <code>name := expression -&gt; return_annotation</code>. The unit of a grammar; compiles to one parser
+function. See <a href="#grammar-file-structure">Grammar File Structure</a>.</p>
+</li>
+<li>
+<p><strong>Rule operator</strong> — <code>:=</code> / <code>::=</code> / <code>=</code> / <code>:-</code>, interchangeable at parse time.</p>
+</li>
+<li>
+<p><strong>Terminal</strong> — a literal matcher: string/char literal, regex literal <code>/…/</code>, or an <code>any_char</code> built-in.
+See <a href="#terminals">Terminals</a>.</p>
+</li>
+<li>
+<p><strong><code>any_char</code> / <code>ascii_char</code></strong> — native single-character matchers (also <code>builtin_any_char</code> /
+<code>builtin_ascii_char</code>) that need no regex engine. The basis of regex-engine-independent grammars.</p>
+</li>
+<li>
+<p><strong>Ordered choice (<code>|</code>)</strong> — PEG alternation: tries branches left-to-right, commits to the first match.
+Ordering matters. See <a href="#rules-and-expressions">Rules and Expressions</a>.</p>
+</li>
+<li>
+<p><strong>Quantifier</strong> — repetition postfix <code>?</code> <code>*</code> <code>+</code> <code>{n}</code> <code>{n,m}</code> <code>{n,}</code> <code>{,m}</code>, all handled by the Layer-0
+unified engine. See <a href="#quantifiers">Quantifiers</a>.</p>
+</li>
+<li>
+<p><strong>Optional <code>[ … ]</code></strong> — element-level <code>( … )?</code>. <strong>Not</strong> a character class (those live inside <code>/…/</code>) and
+<strong>not</strong> a return-annotation array (those live inside <code>-&gt; …</code>). See <a href="#terminals">Terminals</a>.</p>
+</li>
+<li>
+<p><strong>Lookahead</strong> — zero-width assertion: <code>&amp;X</code> (must match) / <code>!X</code> (must not). See <a href="#lookaheads">Lookaheads</a>.</p>
+</li>
+<li>
+<p><strong>Lexical follow-restriction</strong> — <code>[&gt; X ]</code> / <code>[&gt;! X ]</code>: the rule’s match must / must-not be followed by
+<code>X</code>. A lexical annotation; see <a href="#lookaheads">Lookaheads</a> and the platform book’s
+<a href="../../book/src/lexical-annotations.html">Lexical Annotations</a>.</p>
+</li>
+<li>
+<p><strong>Return annotation (<code>-&gt; …</code>)</strong> — the AST-shaping language: references (<code>$N</code>, <code>$text</code>/<code>$0</code>, <code>.field</code>,
+<code>[i]</code>), literals, arrays, objects, and the list operators (<code>$N*</code>, <code>$N**</code>, <code>$N::n*</code>). See
+<a href="#return-annotations">Return Annotations</a>.</p>
+</li>
+<li>
+<p><strong>Implicit / passthrough return</strong> — what a rule returns with <strong>no</strong> <code>-&gt; …</code>: a synthetic <code>$1</code> for a
+single-element body, raw passthrough otherwise. See
+<a href="#the-implicit--passthrough-return-policy">The Implicit / Passthrough Return Policy</a>.</p>
+</li>
+<li>
+<p><strong><code>$text</code> / <code>$0</code></strong> — the whole matched substring of a rule (<code>$0</code> is the Perl5 alias).</p>
+</li>
+<li>
+<p><strong>Semantic annotation (<code>@name: value</code>)</strong> — the steering language: <code>@predicate</code>, <code>@emit_fact</code>,
+<code>@profiles</code>, <code>@transform</code>, … Binds to the following rule. See <a href="#semantic-annotations">Semantic Annotations</a>.</p>
+</li>
+<li>
+<p><strong>Semantic store</strong> — the fact/scope state semantic annotations read and write to make a parser
+context-aware.</p>
+</li>
+<li>
+<p><strong>Profile</strong> — a named grammar variant (e.g. <code>sv_2017</code>, <code>sv_2023</code>, <code>relaxed</code>) selected with
+<code>--grammar-profile</code>; rules can be restricted to profiles with <code>@profiles</code>.</p>
+</li>
+<li>
+<p><strong>Include</strong> — <code>include(…)</code> / <code>include_file(…)</code> / <code>include_dir(…)</code> modular composition. See
+<a href="#the-include-system">The Include System</a>.</p>
+</li>
+<li>
+<p><strong>Bootstrap mode</strong> — the built-in flat-only annotation parser that breaks the annotation grammars’
+chicken-and-egg. See <a href="#the-bootstrap-path">The Bootstrap Path</a>.</p>
+</li>
+<li>
+<p><strong><code>--lint-grammar</code></strong> — static well-formedness report (left-recursion, non-termination, shadowing).</p>
+</li>
+<li>
+<p><strong>Certificate coverage</strong> — the per-rule proof/witness/UNKNOWN trustworthiness report; <code>UNKNOWN=0</code> at
+seeds <code>0/7/42</code> is the objective trust number. See <a href="#codegen-mental-model">Codegen Mental Model</a>.</p>
+</li>
+<li>
+<p><strong>Aspirational construct</strong> — a construct the meta-grammar self-describes but the codegen does <strong>not</strong>
+implement (parametric rules, templates, lexer modes, inheritance, import, error productions, <code>{? ?}</code>,
+action blocks, <code>~</code> case control, <code>@N%</code>). Do not use them. See <a href="#rules-and-expressions">Rules and Expressions</a>.</p>
+</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

@@ -22,9 +22,12 @@ explicit that json is a *simplified built-in* grammar, not a conforming JSON par
 | json (built-in, simplified) | [PGEN JSON Parser — Integration Reference](../../json_parser_book/src/welcome.md) | [`docs/json_parser_book-html/`](../../json_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash json_parser_book_gate` |
 | return_annotation | [PGEN Return-Annotation Parser — Integration Reference](../../return_annotation_parser_book/src/welcome.md) | [`docs/return_annotation_parser_book-html/`](../../return_annotation_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash return_annotation_parser_book_gate` |
 | semantic_annotation | [PGEN Semantic-Annotation Parser — Integration Reference](../../semantic_annotation_parser_book/src/welcome.md) | [`docs/semantic_annotation_parser_book-html/`](../../semantic_annotation_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash semantic_annotation_parser_book_gate` |
+| ebnf (meta-grammar) | [PGEN EBNF — Grammar-Author's Reference](../../ebnf_parser_book/src/welcome.md) | [`docs/ebnf_parser_book-html/`](../../ebnf_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash ebnf_parser_book_gate` |
 
-The remaining still-to-come per-parser book is for the `ebnf` meta-grammar (tracked by the `EBNF-BOOK`
-task tree).
+The every-parser-book directive is now **complete**: every PGEN grammar — the nine parser/annotation
+families above plus the `ebnf` meta-grammar — has its own live, gated mdBook. The `ebnf` book is the
+grammar-author's reference (the EBNF *input* language), where the others document each parser's AST
+*output*.
 
 Each per-parser book is paired with the matching downstream **integration contract** under
 `docs/contracts/` (the deep authoritative surface) and the family's AST shape-contract manifest under

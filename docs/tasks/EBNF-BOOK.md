@@ -3,8 +3,8 @@
 ## Metadata
 
 - Tree ID: `EBNF-BOOK`
-- Status: `proposed` (owning skeleton — created 2026-06-07 per director; BUILD LATER, not PNT-eligible until
-  activated)
+- Status: `active` (activated 2026-07-01 in the PNT per-parser-book lane — the LAST remaining book in the
+  every-parser-book directive; the blocker has cleared, see Blockers)
 - Family / slice-id prefix: `PGEN-EBNF-BOOK-<NNNN>`
 - Roadmap lane: documentation — a first-class mdBook for the PGEN EBNF *language itself* (how to author a
   `.ebnf` grammar), parallel to the platform book and the per-parser books
@@ -25,9 +25,15 @@ A grammar author has no single curated surface. Per the books-are-the-user's-win
 
 ## Goal
 
-A curated, example-rich mdBook (e.g. `docs/ebnf_book/` + tracked `docs/ebnf_book-html/` +
-`make -C rust ebnf_book_gate`) that is the authoritative reference for writing a PGEN `.ebnf`, covering at
+A curated, example-rich mdBook that is the authoritative reference for writing a PGEN `.ebnf`, covering at
 least:
+
+> NAMING RECONCILIATION (2026-07-01): the skeleton's `e.g.` proposal was `docs/ebnf_book/` /
+> `ebnf_book_gate`, but the nine existing per-parser books all follow the `<family>_parser_book` /
+> `<family>_parser_book_gate` convention (see README's "Per-Parser Integration Reference Books" list).
+> For consistency the EBNF book ships as **`docs/ebnf_parser_book/`** + tracked
+> **`docs/ebnf_parser_book-html/`** + **`make -C rust ebnf_parser_book_gate`**, matching the precedent
+> set by `RETURN-ANNOT-BOOK` / `SEMANTIC-ANNOT-BOOK`.
 
 - **Terminals**: literal strings `"..."`, char literals `'x'`, character classes `[...]` / negated
   `[^...]` / ranges `[a-z]`, regex literals `/.../` (and the REGEX-SELF-HOSTING guidance to prefer literals
@@ -74,22 +80,55 @@ Tool-backed (2026-06-07, `ast_based_generator.rs:3701-3750` + `ast_return_transf
 
 ## Task Tree
 
-- ID: `EBNF-BOOK`  Status: `proposed`
-- ID: `.1`  Status: `pending`  Goal: SCOPING — confirm the book skeleton (`book.toml` + `SUMMARY.md` +
-  chapter list), the gate (`ebnf_book_gate`), and the curation split vs the existing reference docs
-  (`RETURN_ANNOTATIONS_REFERENCE`, `PGEN_ANNOTATION_NORMATIVE_SPEC`, `EBNF_INCLUDE_SYSTEM`,
-  `BOOTSTRAP_MODE_SPECIFICATION`) — the book curates + cross-links, the reference docs stay the deep detail.
-- ID: `.2`+  Status: `pending`  Goal: author the chapters (terminals, structure/quantifiers/lookaheads,
-  the passthrough/implicit-return policy [above], `$0`/`$text`, `any_char`, return-/semantic-annotation
-  languages, includes, bootstrap, codegen mental model), with worked examples; wire the gate; track HTML.
+- ID: `EBNF-BOOK`  Status: `done` (2026-07-01, `PGEN-EBNF-BOOK-0002`) — book authored, gated, registered;
+  the every-parser-book directive is now CLOSED.
+- ID: `.1`  Status: `done` (2026-07-01) — SCOPING delivered: book skeleton (`book.toml` + `SUMMARY.md` +
+  15-file chapter set), the gate (`ebnf_parser_book_gate`; naming reconciled to the `<family>_parser_book`
+  convention — see Goal), and the curation split confirmed: the book curates + cross-links; the reference
+  docs (`RETURN_ANNOTATIONS_REFERENCE`, `PGEN_ANNOTATION_NORMATIVE_SPEC`, `EBNF_INCLUDE_SYSTEM`,
+  `BOOTSTRAP_MODE_SPECIFICATION`) + the return_annotation / semantic_annotation per-parser books stay the
+  deep detail.
+- ID: `.2`  Status: `done` (2026-07-01) — chapters authored with worked examples: terminals (incl. the
+  `[…]`=optional vs character-class footgun, `any_char`/`builtin_any_char`), grammar file structure
+  (operators), rules & expressions (incl. the NOT-IMPLEMENTED meta-grammar constructs), quantifiers
+  (Layer-0 unified engine), lookaheads (`&`/`!` + the `[>…]`/`[>!…]` lexical follow-restriction), the
+  implicit/passthrough return policy [tool-backed, above], `$0`/`$text`, return-/semantic-annotation
+  language overviews (cross-linked to the two annotation books), the include system, the bootstrap path,
+  the codegen mental model, the public API/tooling, and a glossary. Gate wired; HTML tracked. Delivered as
+  a single slice with `.1`, mirroring the `RETURN-ANNOT-BOOK.1` / `SEMANTIC-ANNOT-BOOK.1` whole-book
+  precedent and the roadmap's Phase V completion bar.
+
+## Verification (PURE-DOCS — no code/grammar/generated/release/schema/ledger change)
+
+- Content accuracy is tool-grounded (NO DRIFT): the SUPPORTED / NOT-IMPLEMENTED / PARTIAL surface was
+  verified against `rust/src/ebnf_frontend.rs`, `rust/src/ast_based_generator.rs`,
+  `rust/src/ast_return_transform.rs`, and the shipped `grammars/*.ebnf` before authoring. Confirmed:
+  `[…]` element-level lowers to `(…)?` (ebnf_frontend.rs); character classes live inside `/…/`;
+  `any_char`/`builtin_any_char` native matchers + the `( "XX" | !"X" builtin_any_char )* -> $text` run
+  idiom (regex.ebnf); `[>!/\w/]` follow-restriction (systemverilog_preprocessor.ebnf); `::=` used 8× and
+  `=` used by regex.ebnf; the implicit `-> $1` single-element-only passthrough (ast_based_generator.rs).
+  Aspirational constructs (parametric rules, templates, lexer modes, inheritance, import, error
+  productions, `{? ?}`, action blocks, `~` case control, `@N%`) documented as NOT implemented.
+- `make -C rust SHELL=/bin/bash ebnf_parser_book_gate` → PASS (file presence + mdbook build + tracked HTML
+  landing pages `index.html`/`welcome.html`/`return-policy.html`).
+- `mdbook build docs/book` (top-level platform book, after the `parser-families.md` registration) → PASS.
+- `mdbook build docs/ebnf_parser_book` → PASS (19 HTML files).
 
 ## Blockers
 
-- None — backlog. Activate when prioritized (the director said "own it later"). The REGEX-SELF-HOSTING
-  `$text`/`$0`/`any_char` features should land first so the book documents the final surface.
+- CLEARED. The blocker was "REGEX-SELF-HOSTING `$text`/`$0`/`any_char` should land first so the book
+  documents the final surface" — that tree is `done` (the features landed), so the book documents the
+  final surface. No remaining blockers.
 
 ## Changelog
 
+- `2026-07-01`: tree ACTIVATED + COMPLETED in one slice (`PGEN-EBNF-BOOK-0002`, leaves `.1`+`.2`) in the
+  PNT per-parser-book lane — the LAST book in the every-parser-book directive. Authored
+  `docs/ebnf_parser_book/` (15 source files), the `ebnf_parser_book_gate` (Makefile target +
+  `rust/scripts/ebnf_parser_book_gate.sh`), tracked `docs/ebnf_parser_book-html/`, and registered the book
+  in `docs/book/src/parser-families.md` + `README.md` (both "still to come" notes updated to "directive
+  complete"). PURE-DOCS. Content tool-grounded against the EBNF frontend + codegen + shipped grammars (see
+  Verification). Naming reconciled `ebnf_book` → `ebnf_parser_book` for convention consistency.
 - `2026-06-07`: tree created as an owning skeleton (`PGEN-EBNF-BOOK-0001`) per the director — build the EBNF
   book later; captured the passthrough/implicit-return policy + the planned chapter coverage now so the
   knowledge is durable.
