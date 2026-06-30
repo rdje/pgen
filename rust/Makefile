@@ -950,6 +950,12 @@ return_annotation_parser_book_gate:
 	cd $(RUST_DIR) && ./scripts/return_annotation_parser_book_gate.sh
 	@echo "✅ return_annotation parser book gate passed."
 
+.PHONY: semantic_annotation_parser_book_gate
+semantic_annotation_parser_book_gate:
+	@echo "📖 Running semantic_annotation parser book gate..."
+	cd $(RUST_DIR) && ./scripts/semantic_annotation_parser_book_gate.sh
+	@echo "✅ semantic_annotation parser book gate passed."
+
 .PHONY: clippy_on_rust_change
 clippy_on_rust_change:
 	@echo "🧹 Running clippy flow on Rust/generated Rust changes..."

@@ -240,16 +240,17 @@ PGEN is a production-focused parser and stimuli generator platform.
   - rtl_const_expr — `docs/rtl_const_expr_parser_book/` — `make -C rust SHELL=/bin/bash rtl_const_expr_parser_book_gate`
   - json (built-in, simplified) — `docs/json_parser_book/` — `make -C rust SHELL=/bin/bash json_parser_book_gate`
   - return_annotation — `docs/return_annotation_parser_book/` — `make -C rust SHELL=/bin/bash return_annotation_parser_book_gate`
+  - semantic_annotation — `docs/semantic_annotation_parser_book/` — `make -C rust SHELL=/bin/bash semantic_annotation_parser_book_gate`
 - Each shipped-family per-parser book is paired with the matching downstream
   contract under `docs/contracts/` (the deep authoritative integration
   surface) and the family's AST shape-contract manifest under
   `rust/test_data/ast_shape_contract/`. (The `json` book documents a built-in
   simplified grammar and is paired instead with `json_corpus_bundle/`. The
-  `return_annotation` book is paired with
-  `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`.)
-- Still to come (per the every-parser-book directive): per-parser books for
-  the `ebnf` meta-grammar (tracked by the `EBNF-BOOK` task tree) and the
-  `semantic_annotation` grammar.
+  `return_annotation` and `semantic_annotation` books are paired with
+  `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md` and
+  `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`.)
+- Still to come (per the every-parser-book directive): a per-parser book for
+  the `ebnf` meta-grammar (tracked by the `EBNF-BOOK` task tree).
 
 ## Documentation Status
 - Current authoritative docs for the active Rust-first platform:
