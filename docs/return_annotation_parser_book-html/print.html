@@ -1,0 +1,1024 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>PGEN Return-Annotation Parser — Integration Reference</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-6cb2898f.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-7ec62bf4.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">PGEN Return-Annotation Parser — Integration Reference</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/richarddje/pgen" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="welcome--pgen-return-annotation-parser-integration-reference"><a class="header" href="#welcome--pgen-return-annotation-parser-integration-reference">Welcome — PGEN Return-Annotation Parser Integration Reference</a></h1>
+<p>This is the per-parser integration reference book for PGEN’s <strong><code>return_annotation</code></strong> parser, the
+parser for the small language that shapes what a generated parser <em>returns</em>. It is the canonical
+AST-integration surface for anyone consuming the return-annotation parser’s output, and it sits
+alongside the platform mastery book (<code>docs/book/</code>) and the other per-parser books (regex,
+SystemVerilog, SystemVerilog preprocessor, VHDL, rtl_frontend, rtl_const_expr, json), all linked from
+the platform book’s <a href="../../book/src/parser-families.html">Parser Families</a> chapter.</p>
+<h2 id="what-a-return-annotation-is"><a class="header" href="#what-a-return-annotation-is">What a return annotation is</a></h2>
+<p>In a PGEN grammar, a rule may carry a <strong>return annotation</strong> — the <code>-&gt; …</code> payload that says how that
+rule’s match should be lowered into the returned AST. For example, in <code>grammars/json.ebnf</code>:</p>
+<pre><code class="language-ebnf">object_property := property_key ':' expression
+-&gt; {key: $1, value: $3}
+</code></pre>
+<p>The text after <code>-&gt;</code> (<code>{key: $1, value: $3}</code>) is <strong>return-annotation source</strong>. The <code>return_annotation</code>
+parser is the parser for <em>that</em> mini-language. It turns the annotation text into a structured
+<strong>annotation AST</strong> that the PGEN code generator consumes to emit the rule’s lowering code. So:</p>
+<ul>
+<li>the <strong>grammar</strong> describes the <em>tree</em> the parser builds;</li>
+<li>the <strong>return annotation</strong> describes how to <em>reshape and label</em> that tree into the value the rule
+returns;</li>
+<li>the <strong><code>return_annotation</code> parser</strong> is what reads the annotation language itself.</li>
+</ul>
+<p>This is the first of PGEN’s annotation grammars; its sibling is the <code>semantic_annotation</code> parser (the
+<code>@…</code> steering language). Both are core platform grammars, not side utilities.</p>
+<h2 id="why-this-matters-to-a-consumer"><a class="header" href="#why-this-matters-to-a-consumer">Why this matters to a consumer</a></h2>
+<p>You interact with the return-annotation parser in two ways:</p>
+<ol>
+<li><strong>As a grammar author</strong> — you write <code>-&gt; …</code> payloads. This book’s
+<a href="#grammar-and-scope">Grammar and Scope</a>, <a href="#references-and-literals">References and Literals</a>,
+<a href="#objects-and-arrays">Objects and Arrays</a>, and
+<a href="#extraction-spread-and-access-operators">Operators</a> chapters are the precise, example-rich reference for what you may write.</li>
+<li><strong>As a tooling integrator</strong> — you call the embedding API to parse annotation strings and walk the
+resulting annotation AST. The <a href="#ast-envelope-structure">AST Envelope</a>, <a href="#backends-bootstrap-vs-generated">Backends</a>, and
+<a href="#public-api">Public API</a> chapters are for you.</li>
+</ol>
+<h2 id="status-and-proof"><a class="header" href="#status-and-proof">Status and proof</a></h2>
+<p><code>return_annotation</code> is a <strong><code>Done</code></strong> family in the live tracker. Its claim is backed by the
+return-annotation support gate (<code>return_annotation_support_gate</code>, which now includes the
+auto-derived <code>return_annotation_exhaustiveness_gate</code>: grammar-driven coverage closure, stimuli-module
+parity, and a generated-parse-tree → typed-AST audit), the annotation contract gate, and the
+return-runtime-semantics gate. See <a href="#schema-and-versioning">Schema and Versioning</a> for the gates and
+the notable shape changes.</p>
+<h2 id="what-this-book-covers"><a class="header" href="#what-this-book-covers">What this book covers</a></h2>
+<ul>
+<li><a href="#build-recipe">Build Recipe</a> — how to generate, build, and exercise the parser.</li>
+<li><a href="#grammar-and-scope">Grammar and Scope</a> — exactly what the language accepts (and what it does not).</li>
+<li><a href="#references-and-literals">References and Literals</a> — <code>$N</code>, <code>$text</code>/<code>$0</code>, strings, numbers,
+booleans, <code>null</code>, identifiers.</li>
+<li><a href="#objects-and-arrays">Objects and Arrays</a> — object/array literals and the cons-list shape.</li>
+<li><a href="#extraction-spread-and-access-operators">Operators</a> — extraction (<code>::</code>), spread (<code>*</code>), flatten-spread (<code>**</code>), property
+access (<code>.</code>), index access (<code>[…]</code>).</li>
+<li><a href="#ast-envelope-structure">AST Envelope Structure</a> — the parsed annotation node shapes.</li>
+<li><a href="#backends-bootstrap-vs-generated">Backends: Bootstrap vs Generated</a> — the two parser backends and when each is used.</li>
+<li><a href="#public-api">Public API</a> — the stable embedding entry points, selectors, and diagnostics.</li>
+<li><a href="#schema-and-versioning">Schema and Versioning</a> — grammar version, gates, and notable shape changes.</li>
+<li><a href="#glossary">Glossary</a>.</li>
+</ul>
+<h2 id="authoritative-sources-behind-this-book"><a class="header" href="#authoritative-sources-behind-this-book">Authoritative sources behind this book</a></h2>
+<ul>
+<li><code>grammars/return_annotation.ebnf</code> — the language (currently version <code>2.0.0</code>).</li>
+<li><code>grammars/builtin_return_annotation.ebnf</code> — the bootstrap-safe variant (implementation-accurate to
+<code>rust/src/ast_pipeline/unified_return_ast.rs</code>).</li>
+<li><code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code> — the downstream contract.</li>
+<li><code>docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md</code> and <code>docs/RETURN_ANNOTATIONS_REFERENCE.md</code> — the
+deep normative detail this book curates and cross-links.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="build-recipe"><a class="header" href="#build-recipe">Build Recipe</a></h1>
+<p>The <code>return_annotation</code> parser is generated from <code>grammars/return_annotation.ebnf</code> through PGEN’s
+EBNF → raw-AST-JSON → generated-parser pipeline, but on the <strong>bootstrap</strong> path (see
+<a href="#backends-bootstrap-vs-generated">Backends</a> for why annotation parsers are special).</p>
+<h2 id="generate-the-parser"><a class="header" href="#generate-the-parser">Generate the parser</a></h2>
+<pre><code class="language-bash"># regenerate generated/return_annotation_parser.rs (+ generated/return_annotation.json)
+make -C rust SHELL=/bin/bash return_annotation_parser
+</code></pre>
+<p>This runs the two canonical steps:</p>
+<ol>
+<li><code>grammars/return_annotation.ebnf → generated/return_annotation.json</code> — the EBNF frontend
+(<code>--emit-raw-ast-json</code>).</li>
+<li><code>generated/return_annotation.json → generated/return_annotation_parser.rs</code> — the <strong>bootstrap</strong>
+generator (<code>ast_pipeline_bootstrap</code>). Annotation parsers are generated in bootstrap mode only, so
+the annotation parser is never asked to parse the annotations that define itself.</li>
+</ol>
+<p><code>return_parser</code> is an alias for this target, and <code>return_semantic_parsers</code> regenerates both annotation
+parsers (semantic + return) together.</p>
+<blockquote>
+<p><code>generated/</code> is regenerated locally and is <strong>not</strong> committed in this clone;
+<code>make -C rust return_annotation_parser</code> reproduces <code>generated/return_annotation_parser.rs</code>
+deterministically.</p>
+</blockquote>
+<h2 id="parse-annotation-source"><a class="header" href="#parse-annotation-source">Parse annotation source</a></h2>
+<p>Grammar authors do not normally invoke this parser directly — the AST pipeline calls it while
+generating a parser from a <code>.ebnf</code>. To parse return-annotation source programmatically, use the stable
+embedding API (<code>parse_annotation</code> / <code>parse_annotation_result</code> / <code>parse_annotation_named</code> with
+<code>AnnotationFamily::Return</code>); see <a href="#public-api">Public API</a>. The host can route a parse to either the
+<strong>Bootstrap</strong> or the <strong>Generated</strong> backend (see <a href="#backends-bootstrap-vs-generated">Backends</a>).</p>
+<h2 id="validation--release-gates"><a class="header" href="#validation--release-gates">Validation / release gates</a></h2>
+<p>The return-annotation family’s proof surface is exercised by these maintained gates:</p>
+<pre><code class="language-bash"># the focused aggregate Done-gate for the return-annotation claim
+# (now includes the auto-derived return_annotation_exhaustiveness_gate:
+#  grammar-driven coverage closure + stimuli-module parity + parse-tree→typed-AST audit)
+make -C rust SHELL=/bin/bash return_annotation_support_gate
+
+# the runtime/round-trip semantics gate
+make -C rust SHELL=/bin/bash return_runtime_semantics_gate
+
+# the aggregate annotation contract spine (validator coverage + built-in/shared suites + …)
+make -C rust SHELL=/bin/bash annotation_contract_gate
+
+# the closed-loop stimuli-quality proof (includes the return-annotation generator/parser loop)
+make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate
+</code></pre>
+<h2 id="book-gate"><a class="header" href="#book-gate">Book gate</a></h2>
+<p>This book itself is gated like every other per-parser book — it must build cleanly and ship its
+tracked HTML:</p>
+<pre><code class="language-bash">make -C rust SHELL=/bin/bash return_annotation_parser_book_gate
+</code></pre>
+<p>The gate requires <code>mdbook</code> on <code>PATH</code>, checks the chapter set is present, runs
+<code>mdbook build docs/return_annotation_parser_book</code>, and verifies the rendered HTML landing pages exist
+under <code>docs/return_annotation_parser_book-html/</code> (the rendered HTML is tracked in git so the book is
+browsable directly on GitHub).</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="grammar-and-scope"><a class="header" href="#grammar-and-scope">Grammar and Scope</a></h1>
+<p>This chapter is the precise statement of what the return-annotation language accepts, derived directly
+from <code>grammars/return_annotation.ebnf</code> (version <code>2.0.0</code>).</p>
+<h2 id="entry-and-normalization"><a class="header" href="#entry-and-normalization">Entry and normalization</a></h2>
+<p>An annotation is, in full form, an optional arrow followed by an expression:</p>
+<pre><code class="language-ebnf">return_annotation := arrow expression
+                   | arrow
+                   | expression
+-&gt; $2
+
+arrow := '-&gt;'
+</code></pre>
+<p>Before parsing, the host normalizes the input (this is the behavior captured in
+<code>grammars/builtin_return_annotation.ebnf</code> for the bootstrap backend):</p>
+<ol>
+<li>trim leading whitespace;</li>
+<li>if the input starts with <code>-&gt; </code> or <code>-&gt;</code>, strip that prefix;</li>
+<li>trim leading/trailing whitespace;</li>
+<li>if the result is empty, return <strong>passthrough</strong>.</li>
+</ol>
+<p>So all three of these are equivalent and mean <em>“return the rule’s value unchanged”</em> (i.e. <code>$1</code>):</p>
+<pre><code class="language-text">-&gt;            # bare arrow
+              # empty (no annotation body)
+-&gt; $1         # explicit passthrough
+</code></pre>
+<blockquote>
+<p><strong>Passthrough</strong> is the implicit default a rule gets when it has <strong>no</strong> explicit <code>-&gt; …</code> and its body
+is a single element. The platform book’s grammar-author guidance covers the full implicit-return
+policy (single-element body → synthetic <code>$1</code>; multi-element sequences and quantified bodies are
+<em>not</em> given an implicit <code>$1</code>). This book documents the language you write <em>inside</em> <code>-&gt; …</code>.</p>
+</blockquote>
+<h2 id="the-expression-hierarchy"><a class="header" href="#the-expression-hierarchy">The expression hierarchy</a></h2>
+<p>Everything after the arrow is one <strong>expression</strong>. Expressions are an ordered choice (PEG-style — the
+first matching alternative wins), from most specific to most general:</p>
+<pre><code class="language-ebnf">expression := flat_spread_expression      # $x**
+            | spread_expression           # $x*
+            | extraction_expression       # $x::N , $x::first , $x::last (with optional *)
+            | property_access_expression  # $x.field
+            | array_access_expression     # $x[i]
+            | primary_expression
+
+primary_expression := object_literal          # { … }
+                    | array_literal           # [ … ]
+                    | matched_text_reference  # $text
+                    | positional_reference    # $1, $2, $42, $0
+                    | string_literal          # "…"  or  '…'
+                    | number_literal          # 42, -2.5
+                    | boolean_literal         # true, false
+                    | null_literal            # null
+                    | identifier              # bare name (used as a target/key)
+                    | '(' expression ')'      # grouping
+</code></pre>
+<p>Each family has its own chapter:</p>
+<ul>
+<li>references and literals → <a href="#references-and-literals">References and Literals</a>;</li>
+<li>objects and arrays → <a href="#objects-and-arrays">Objects and Arrays</a>;</li>
+<li>the <code>::</code> / <code>*</code> / <code>**</code> / <code>.</code> / <code>[…]</code> operators → <a href="#extraction-spread-and-access-operators">Operators</a>.</li>
+</ul>
+<h2 id="ordering-matters"><a class="header" href="#ordering-matters">Ordering matters</a></h2>
+<p>Because alternation is ordered, the grammar lists <code>flat_spread_expression</code> (<code>**</code>) <strong>before</strong>
+<code>spread_expression</code> (<code>*</code>): <code>$2**</code> must be tried before <code>$2*</code> would otherwise consume only the first
+star and strand the second. Likewise the extraction/access forms are listed before bare
+<code>positional_reference</code>, so <code>$2::1</code> and <code>$1.value</code> bind as a whole rather than degrading to a plain
+<code>$2</code> / <code>$1</code>.</p>
+<h2 id="what-the-language-is--and-is-not"><a class="header" href="#what-the-language-is--and-is-not">What the language is — and is not</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Accepted</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>Passthrough</td><td><code>-&gt;</code>, <em>(empty)</em>, <code>-&gt; $1</code></td></tr>
+<tr><td>Positional reference</td><td><code>$1</code>, <code>$2</code>, <code>$42</code></td></tr>
+<tr><td>Whole-match text</td><td><code>$text</code>, <code>$0</code></td></tr>
+<tr><td>String / number / boolean / null literal</td><td><code>"node"</code>, <code>42</code>, <code>-2.5</code>, <code>true</code>, <code>null</code></td></tr>
+<tr><td>Object / array literal</td><td><code>{type: "node"}</code>, <code>[$1, $2*]</code>, <code>{}</code>, <code>[]</code></td></tr>
+<tr><td>Extraction</td><td><code>$2::2</code>, <code>$2::first</code>, <code>$2::last</code>, <code>$2::2*</code></td></tr>
+<tr><td>Spread / flatten-spread</td><td><code>$2*</code>, <code>$2**</code></td></tr>
+<tr><td>Property / index access</td><td><code>$1.value</code>, <code>$1[0]</code>, <code>$1.a[0].b</code></td></tr>
+<tr><td>Grouping</td><td><code>($2)</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Not</strong> part of this language (common misconceptions):</p>
+<ul>
+<li><strong>No arithmetic or binary operators.</strong> Parentheses are <em>grouping around a single expression</em> only.
+The <code>( $1 + $2 )</code> form that appears in an illustrative comment in the grammar source is <strong>not</strong>
+implemented — <code>+</code> is not a token, and <code>($1 + $2)</code> does <strong>not</strong> parse. Use grouping only to make
+precedence explicit (e.g. <code>($2)*</code>).</li>
+<li><strong>No function calls, no conditionals, no string concatenation.</strong> Reshaping is structural
+(objects/arrays/references/extraction/spread), not computational. Per-element value transforms live
+in the <em>grammar</em> via <code>@transform</code>, not in the return annotation.</li>
+<li><strong>No escape decoding in string literals.</strong> A string literal keeps its surrounding quotes and its
+raw contents (see <a href="#references-and-literals">References and Literals</a>).</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="references-and-literals"><a class="header" href="#references-and-literals">References and Literals</a></h1>
+<p>These are the atoms of the return-annotation language: the things you reference from the match, and
+the constant values you write inline.</p>
+<h2 id="positional-references--n"><a class="header" href="#positional-references--n">Positional references — <code>$N</code></a></h2>
+<p>A <code>$</code> followed by an integer refers to the <strong>Nth captured element</strong> of the rule body (1-based):</p>
+<pre><code class="language-ebnf">positional_reference := '$' integer
+-&gt; {type: "positional", index: $2}
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You write</th><th>Means</th><th>Parsed node</th></tr>
+</thead>
+<tbody>
+<tr><td><code>$1</code></td><td>the first captured element</td><td><code>{type: "positional", index: 1}</code></td></tr>
+<tr><td><code>$3</code></td><td>the third captured element</td><td><code>{type: "positional", index: 3}</code></td></tr>
+<tr><td><code>$42</code></td><td>the 42nd captured element</td><td><code>{type: "positional", index: 42}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The index is a true number (the <code>integer</code> rule carries a <code>@transform</code> that parses the digits to an
+<code>i64</code>), not a string. Indices count the <strong>top-level elements of the rule body</strong> — a sequence
+<code>a b c</code> exposes <code>$1 $2 $3</code>; what a group or quantifier exposes is covered in
+<a href="#extraction-spread-and-access-operators">Operators</a>.</p>
+<h2 id="whole-match-text--text-and-0"><a class="header" href="#whole-match-text--text-and-0">Whole-match text — <code>$text</code> (and <code>$0</code>)</a></h2>
+<p><code>$text</code> references the rule’s <strong>entire matched source text</strong> as a single string — the native
+equivalent of writing a <code>/…/</code> capture just to recover the raw span:</p>
+<pre><code class="language-ebnf">matched_text_reference := '$' 'text'
+-&gt; {type: "matched_text"}
+</code></pre>
+<p><code>$0</code> is an accepted <strong>alias</strong> for <code>$text</code>: it parses as <code>positional_reference</code> with index <code>0</code>, and the
+host maps index <code>0</code> to the same whole-match-text node. Both lower to <code>UnifiedReturnAST::MatchedText</code> in
+<code>rust/src/ast_pipeline/unified_return_ast.rs</code>.</p>
+<pre><code class="language-text">-&gt; $text      # the whole matched text as one string
+-&gt; $0         # identical
+</code></pre>
+<p>This is the idiomatic way to return the matched text of a quantified or multi-element body without
+keeping the structural tree (introduced by REGEX-SELF-HOSTING so a grammar need not depend on Rust’s
+regex engine just to recover a span).</p>
+<h2 id="string-literals---and-"><a class="header" href="#string-literals---and-">String literals — <code>"…"</code> and <code>'…'</code></a></h2>
+<p>Either quote style is accepted; the parsed value is the <strong>inner content</strong>, with the surrounding quotes
+removed:</p>
+<pre><code class="language-ebnf">string_literal := ('"' string_content_double '"' | "'" string_content_single "'")
+-&gt; {type: "string", value: $2}
+
+string_content_double := /[^"]*/
+string_content_single := /[^']*/
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You write</th><th>Parsed value</th></tr>
+</thead>
+<tbody>
+<tr><td><code>"node"</code></td><td><code>{type: "string", value: "node"}</code></td></tr>
+<tr><td><code>'x'</code></td><td><code>{type: "string", value: "x"}</code></td></tr>
+<tr><td><code>""</code></td><td><code>{type: "string", value: ""}</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Two important constraints:</p>
+<ul>
+<li><strong>No escape decoding.</strong> The content is matched by <code>[^"]*</code> / <code>[^']*</code> — every character except the
+closing quote is taken literally. A backslash is a literal backslash; there is <strong>no</strong> <code>\n</code>, <code>\t</code>, or
+<code>\"</code> decoding.</li>
+<li><strong>No embedded matching quote, and <code>\"</code> is not an escape.</strong> Because the content stops at the first
+closing quote, you cannot place a <code>"</code> inside a <code>"…"</code> string. The annotation language does <strong>not</strong>
+support a <code>\"</code> escape (the bootstrap parser silently fails on it). If you need a sentinel that would
+contain a quote, use a plain identifier/text label form instead of an embedded-quote string.</li>
+</ul>
+<p>Both quote forms produce the <em>same</em> typed <code>{type: "string", value: …}</code> node. (This was not always
+true — see the <code>string_literal</code> broadcast fix in <a href="#schema-and-versioning">Schema and Versioning</a>;
+single-quoted strings briefly produced a raw sequence shape. Consumers should expect the typed shape.)</p>
+<h2 id="number-literals--42--25"><a class="header" href="#number-literals--42--25">Number literals — <code>42</code>, <code>-2.5</code></a></h2>
+<pre><code class="language-ebnf">number_literal := float | integer
+
+@transform: str::parse::&lt;f64&gt;().unwrap_or(0.0)
+float := /[-+]?[0-9]+\.[0-9]+(?:[eE][-+]?[0-9]+)?/
+
+@transform: str::parse::&lt;i64&gt;().unwrap_or(0)
+integer := /[-+]?[0-9]+/
+</code></pre>
+<ul>
+<li>An <strong>integer</strong> (<code>42</code>, <code>-7</code>, <code>+3</code>) parses to an <code>i64</code>.</li>
+<li>A <strong>float</strong> (<code>-2.5</code>, <code>1.0e9</code>) parses to an <code>f64</code>. A float requires a fractional part — <code>2.</code> and <code>.5</code>
+are not floats; <code>2</code> is an integer. The optional exponent (<code>e</code>/<code>E</code> with optional sign) is supported.</li>
+</ul>
+<p>Number literals lower to native JSON numbers in the annotation AST (see
+<a href="#ast-envelope-structure">AST Envelope</a>). Use them for constant fields, e.g. <code>{min: 0, max: 7}</code>.</p>
+<h2 id="boolean-and-null-literals"><a class="header" href="#boolean-and-null-literals">Boolean and null literals</a></h2>
+<pre><code class="language-ebnf">boolean_literal := 'true' | 'false'
+null_literal    := 'null'
+-&gt; {type: "null"}
+</code></pre>
+<ul>
+<li><code>true</code> / <code>false</code> are boolean literals and lower to native JSON booleans.</li>
+<li><code>null</code> is the language’s sixth value type and lowers to a <code>{type: "null"}</code> node (JSON <code>null</code>). It is
+used by typed-AST shape annotations to mark an absent/unbounded field explicitly — e.g.
+<code>{min: $1, max: null}</code> for an open-ended <code>{n,}</code> quantifier in <code>regex.ebnf</code>.</li>
+</ul>
+<h2 id="identifiers"><a class="header" href="#identifiers">Identifiers</a></h2>
+<pre><code class="language-ebnf">identifier := /[a-zA-Z_][a-zA-Z0-9_]*/
+</code></pre>
+<p>A bare identifier is an alphanumeric/underscore name beginning with a letter or underscore.
+Identifiers appear in two roles you will actually use:</p>
+<ul>
+<li>as <strong>object property keys</strong> — <code>{key: $1}</code> (the <code>key</code> is an identifier); see
+<a href="#objects-and-arrays">Objects and Arrays</a>;</li>
+<li>as the <strong>property name</strong> in property access — <code>$1.value</code> (the <code>value</code> is an identifier); see
+<a href="#extraction-spread-and-access-operators">Operators</a>.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="objects-and-arrays"><a class="header" href="#objects-and-arrays">Objects and Arrays</a></h1>
+<p>Objects and arrays are how a return annotation builds a <em>labeled, structured</em> value out of the
+captured elements. They are the most common shapes in real grammars.</p>
+<h2 id="object-literals"><a class="header" href="#object-literals">Object literals</a></h2>
+<pre><code class="language-ebnf">object_literal := '{' object_properties? '}'
+-&gt; {type: "object", properties: $2}
+
+object_properties := object_property (',' object_property)*
+-&gt; [$1, $2::2*]
+
+object_property := property_key ':' expression
+-&gt; {key: $1, value: $3}
+
+property_key := identifier | string_literal
+</code></pre>
+<p>An object is brace-delimited, comma-separated <code>key: value</code> pairs. A key is an <strong>identifier</strong> or a
+<strong>string literal</strong>; a value is any expression.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You write</th><th>Builds</th></tr>
+</thead>
+<tbody>
+<tr><td><code>{}</code></td><td>empty object (<code>properties</code> is absent/empty)</td></tr>
+<tr><td><code>{type: "node"}</code></td><td>one pair: key <code>type</code>, value the string <code>node</code></td></tr>
+<tr><td><code>{key: $1, value: $3}</code></td><td>two pairs referencing captures <code>$1</code> and <code>$3</code></td></tr>
+<tr><td><code>{"a-b": $2}</code></td><td>a string key (use a string literal when the key isn’t a bare identifier)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Each pair parses to <code>{key: …, value: …}</code>, and <code>properties</code> is the <strong>flat, source-order list</strong> of those
+pair nodes (see <em>List shape</em> below). A worked end-to-end example (<code>object_property</code> from
+<code>grammars/json.ebnf</code>):</p>
+<pre><code class="language-ebnf">object_property := property_key ':' expression
+-&gt; {key: $1, value: $3}
+</code></pre>
+<p>parses to the annotation node:</p>
+<pre><code class="language-json">{ "type": "object", "properties": [ { "key": &lt;key-node&gt;, "value": &lt;value-node&gt; } ] }
+</code></pre>
+<h2 id="array-literals"><a class="header" href="#array-literals">Array literals</a></h2>
+<pre><code class="language-ebnf">array_literal := '[' array_elements? ']'
+-&gt; {type: "array", elements: $2}
+
+array_elements := array_element (',' array_element)*
+-&gt; [$1, $2::2*]
+
+array_element := expression
+</code></pre>
+<p>An array is bracket-delimited, comma-separated expressions. Any element may itself be a spread or
+extraction (see <a href="#extraction-spread-and-access-operators">Operators</a>), which is how <code>[$1, $2*]</code> and <code>[$1, $3::2*]</code> are built.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You write</th><th>Builds</th></tr>
+</thead>
+<tbody>
+<tr><td><code>[]</code></td><td>empty array</td></tr>
+<tr><td><code>[$1]</code></td><td>one element</td></tr>
+<tr><td><code>[$1, $2]</code></td><td>two elements</td></tr>
+<tr><td><code>[$1, $2*]</code></td><td>head <code>$1</code> then the spread of <code>$2</code></td></tr>
+<tr><td><code>[$1, $3::2*]</code></td><td>head <code>$1</code> then the extraction-spread of <code>$3</code> (the canonical list idiom)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="list-shape-flat-vs-cons"><a class="header" href="#list-shape-flat-vs-cons">List shape: flat vs. cons</a></h2>
+<p>How <code>properties</code> / <code>elements</code> are laid out depends on which spread idiom built the list — this is the
+single most important thing to know when walking the AST:</p>
+<ul>
+<li><strong><code>[$1, $2::2*]</code> — extraction-spread → a FLAT list.</strong> This is what <code>object_properties</code> and
+<code>array_elements</code> use, and it is the recommended idiom for a <code>X (sep X)*</code> pattern: <code>$2</code> is the list of
+<code>(sep, X)</code> tuples, <code>::2</code> pulls the <code>X</code> out of each tuple (index 2, 1-based: 1 = separator, 2 = item),
+and <code>*</code> spreads them. The result is a flat <code>[item1, item2, item3, …]</code> in source order. Walk it as an
+ordinary array.</li>
+<li><strong><code>[$1, $3*]</code> — plain spread → a CONS list.</strong> Some grammars (e.g. <code>json.ebnf</code>’s <code>members</code>/<code>elements</code>)
+use a plain <code>*</code> spread, which produces the nested <code>[head, [next, [next, …]]]</code> cons-shape. There the
+first element is the head and the second is the <em>tail list</em> of the rest; walk it recursively.</li>
+</ul>
+<p>The return-annotation grammar itself uses the <strong>flat</strong> <code>::2*</code> idiom for its own <code>properties</code>/<code>elements</code>,
+so when you parse an annotation and read those fields you get flat, source-order lists. Choose <code>::2*</code>
+in your own grammars when you want a flat list and <code>*</code> when a cons-shape is acceptable; see
+<a href="#extraction-spread-and-access-operators">Operators</a> for the precise mechanics, and the
+<a href="#known-limitations-of-spread-forms">Operators</a> limitations on mixed spread forms.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extraction-spread-and-access-operators"><a class="header" href="#extraction-spread-and-access-operators">Extraction, Spread, and Access Operators</a></h1>
+<p>These operators reach <em>into</em> a capture and reshape it. They are listed here in the order the grammar
+tries them.</p>
+<h2 id="extraction--ntarget"><a class="header" href="#extraction--ntarget">Extraction — <code>$N::target</code></a></h2>
+<p>Extraction pulls one element out of a <strong>quantified/group capture</strong>:</p>
+<pre><code class="language-ebnf">extraction_expression := positional_reference '::' extraction_target spread_suffix?
+-&gt; {type: "extraction", base: $1, target: $3, spread: $4}
+
+extraction_target := positive_integer   # 1-based index
+                   | 'first'
+                   | 'last'
+
+@transform: str::parse::&lt;usize&gt;().unwrap_or(1)
+positive_integer := /[1-9][0-9]*/
+
+spread_suffix := '*'
+-&gt; "true"
+</code></pre>
+<ul>
+<li>The <strong>base</strong> must be a positional reference (<code>$N</code>) — not an arbitrary expression.</li>
+<li>The <strong>target</strong> is a 1-based index (<code>positive_integer</code>, i.e. <code>1</code>, <code>2</code>, … — never <code>0</code>), or the keyword
+<code>first</code> or <code>last</code>.</li>
+<li>An optional trailing <code>*</code> marks the extraction as <strong>spread</strong> (<code>spread</code> becomes <code>"true"</code>).</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You write</th><th>Parsed node</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>$2::2</code></td><td><code>{type: "extraction", base: $2, target: 2}</code></td><td>element 2 of <code>$2</code></td></tr>
+<tr><td><code>$2::first</code></td><td><code>{type: "extraction", base: $2, target: "first"}</code></td><td>first element of <code>$2</code></td></tr>
+<tr><td><code>$2::last</code></td><td><code>{type: "extraction", base: $2, target: "last"}</code></td><td>last element of <code>$2</code></td></tr>
+<tr><td><code>$2::2*</code></td><td><code>{…, target: 2, spread: "true"}</code></td><td>element 2 of <em>each</em> tuple, then spread</td></tr>
+</tbody>
+</table>
+</div>
+<p>The canonical use is the <strong><code>X (sep X)*</code> flat-list idiom</strong>: <code>[$1, $2::2*]</code> builds a flat list of the
+<code>X</code>s (see <a href="#objects-and-arrays">Objects and Arrays</a>). Here <code>$2</code> is the list of <code>(sep, X)</code> tuples and
+<code>::2</code> selects the <code>X</code> (index 1 = the separator, index 2 = the item).</p>
+<h2 id="spread--n"><a class="header" href="#spread--n">Spread — <code>$N*</code></a></h2>
+<pre><code class="language-ebnf">spread_expression := spreadable_expression '*'
+-&gt; {type: "spread", base: $1}
+</code></pre>
+<p>A trailing <code>*</code> <strong>spreads</strong> a capture’s children into the surrounding accumulator (array or object
+member list). <code>[$1, $2*]</code> produces a head <code>$1</code> followed by the children of <code>$2</code>. A plain spread builds
+a <strong>cons-shape</strong> list (<code>[head, [next, …]]</code>) when applied to a repetition — contrast the flat
+extraction-spread above.</p>
+<pre><code class="language-text">-&gt; [$1, $2*]        # head then spread of $2 (cons-shape tail)
+</code></pre>
+<h2 id="flatten-spread--n"><a class="header" href="#flatten-spread--n">Flatten-spread — <code>$N**</code></a></h2>
+<pre><code class="language-ebnf">flat_spread_expression := spreadable_expression '**'
+-&gt; {type: "flat_spread", base: $1}
+</code></pre>
+<p><code>**</code> is like <code>*</code>, but it <strong>additionally unwraps</strong> any pushed child whose own <code>content</code> is a
+<code>Sequence</code>/<code>Quantified</code>, pushing that wrapper’s children inline. Use it when a child rule may return
+<em>either</em> a single value <em>or</em> an array of values that must appear flat under the parent’s accumulator.</p>
+<p>The motivating case is <code>regex.ebnf</code>’s <code>piece</code> rule: the <code>\Q…\E quantifier?</code> branch returns a
+<code>Sequence</code> of pieces that must flatten into <code>concatenation = piece+</code>’s output. A plain <code>*</code> would leave
+the inner sequence nested; <code>**</code> flattens it.</p>
+<blockquote>
+<p>Ordering: the grammar lists <code>**</code> <strong>before</strong> <code>*</code>, so <code>$2**</code> is recognized as one flatten-spread rather
+than a spread of <code>$2*</code>.</p>
+</blockquote>
+<h2 id="property-access--nfield"><a class="header" href="#property-access--nfield">Property access — <code>$N.field</code></a></h2>
+<pre><code class="language-ebnf">property_access_expression := accessor_base '.' identifier
+-&gt; {type: "property_access", base: $1, property: $3}
+</code></pre>
+<p>Access a named property of a captured (shaped) value: <code>$1.value</code> →
+<code>{type: "property_access", base: $1, property: "value"}</code>.</p>
+<h2 id="index-access--ni"><a class="header" href="#index-access--ni">Index access — <code>$N[i]</code></a></h2>
+<pre><code class="language-ebnf">array_access_expression := accessor_base '[' expression ']'
+-&gt; {type: "array_access", base: $1, index: $3}
+</code></pre>
+<p>Access an element by index: <code>$1[0]</code> → <code>{type: "array_access", base: $1, index: 0}</code>. The index is an
+expression (usually a non-negative integer literal).</p>
+<h2 id="chaining-access"><a class="header" href="#chaining-access">Chaining access</a></h2>
+<pre><code class="language-ebnf">accessor_base := positional_reference
+               | property_access_expression
+               | array_access_expression
+               | '(' expression ')'
+</code></pre>
+<p>Because the accessor base may itself be a property/index access, the two access forms <strong>chain</strong>, and
+they chain at <strong>unbounded depth</strong>:</p>
+<pre><code class="language-text">-&gt; $1.value             # one hop
+-&gt; $matrix[0][1]        # two index hops
+-&gt; $a.b[0].c[1].d.e[2]  # mixed property + index, deep
+</code></pre>
+<p>This dotted-property + non-negative-integer indexing is a deliberate <strong>subset</strong> — it is <em>not</em> full
+JSONPath (no wildcards, slices, filters, or descendant selectors).</p>
+<h2 id="known-limitations-of-spread-forms"><a class="header" href="#known-limitations-of-spread-forms">Known limitations of spread forms</a></h2>
+<p>A few real, tool-confirmed constraints to design around:</p>
+<ul>
+<li><strong>No mixed flatten-spread in an array.</strong> <code>[$1**]</code> works, but the <strong>mixed</strong> forms <code>[a, $X**]</code> and
+<code>[$X**, a]</code> do <strong>not</strong> work. Workaround: avoid mixing a <code>**</code> element with sibling elements — keep the
+list either all-spread or restructure the grammar.</li>
+<li><strong>Binary-operator / op-chain lists need a named op-rule.</strong> For a <code>next (OP next)*</code> op-chain, using an
+<strong>inline alternation</strong> as the iteration lead corrupts the positional model and yields
+<code>&lt;invalid_sequence_access&gt;</code>. The fix is to lift the operator to a <em>named</em> rule
+(e.g. <code>additive_op := plus | minus</code>, the <code>systemverilog.ebnf</code> <code>binary_operator</code> idiom) and capture a
+bare <code>rest: $2</code> — not <code>$2*</code> / <code>$2**</code> / <code>$2::2*</code>.</li>
+<li><strong>Pure lists use <code>::N*</code>.</strong> For a plain <code>X (sep X)*</code> list, the flat idiom <code>[$1, $2::2*]</code> is the
+correct, supported form (Category A); see <a href="#objects-and-arrays">Objects and Arrays</a>.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
+<p>When you parse return-annotation source through the embedding API, you get back a structured
+<strong>annotation AST</strong> — the parser’s representation of the <code>-&gt; …</code> payload. This chapter is the canonical
+table of node shapes and a worked example. Every shape here is exactly what the corresponding rule’s
+<code>-&gt; {…}</code> annotation in <code>grammars/return_annotation.ebnf</code> produces.</p>
+<h2 id="node-shapes"><a class="header" href="#node-shapes">Node shapes</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>You write</th><th>Parsed annotation node</th></tr>
+</thead>
+<tbody>
+<tr><td><code>$N</code></td><td><code>{ "type": "positional", "index": &lt;N&gt; }</code></td></tr>
+<tr><td><code>$text</code> / <code>$0</code></td><td><code>{ "type": "matched_text" }</code></td></tr>
+<tr><td><code>"…"</code> / <code>'…'</code></td><td><code>{ "type": "string", "value": "&lt;inner text&gt;" }</code></td></tr>
+<tr><td><code>42</code> / <code>-2.5</code></td><td>a native JSON number (<code>i64</code> for integers, <code>f64</code> for floats)</td></tr>
+<tr><td><code>true</code> / <code>false</code></td><td>a native JSON boolean</td></tr>
+<tr><td><code>null</code></td><td><code>{ "type": "null" }</code></td></tr>
+<tr><td><code>{ k: v, … }</code></td><td><code>{ "type": "object", "properties": [ { "key": &lt;k&gt;, "value": &lt;v&gt; }, … ] }</code></td></tr>
+<tr><td><code>[ e, … ]</code></td><td><code>{ "type": "array", "elements": [ &lt;e&gt;, … ] }</code></td></tr>
+<tr><td><code>$N::T</code> (<code>*</code>)</td><td><code>{ "type": "extraction", "base": &lt;ref&gt;, "target": &lt;T&gt;, "spread": "true"? }</code></td></tr>
+<tr><td><code>$N*</code></td><td><code>{ "type": "spread", "base": &lt;expr&gt; }</code></td></tr>
+<tr><td><code>$N**</code></td><td><code>{ "type": "flat_spread", "base": &lt;expr&gt; }</code></td></tr>
+<tr><td><code>$N.field</code></td><td><code>{ "type": "property_access", "base": &lt;expr&gt;, "property": "field" }</code></td></tr>
+<tr><td><code>$N[i]</code></td><td><code>{ "type": "array_access", "base": &lt;expr&gt;, "index": &lt;expr&gt; }</code></td></tr>
+<tr><td><code>-&gt;</code> / <em>(empty)</em></td><td>passthrough (equivalent to <code>$1</code>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Notes:</p>
+<ul>
+<li><code>index</code> (of <code>positional</code>) and number literals are real numbers, not strings.</li>
+<li><code>target</code> (of <code>extraction</code>) is a number for an index target, or the string <code>"first"</code> / <code>"last"</code>.</li>
+<li><code>spread</code> is present (and equal to the string <code>"true"</code>) only when the extraction carried a trailing
+<code>*</code>; otherwise the key is absent.</li>
+<li><code>properties</code> and <code>elements</code> are <strong>flat, source-order lists</strong> because the grammar builds them with the
+<code>[$1, $2::2*]</code> extraction-spread idiom (see <a href="#objects-and-arrays">Objects and Arrays</a>).</li>
+<li>nested nodes (<code>base</code>, <code>value</code>, <code>index</code>, …) are themselves nodes of these same shapes — the AST is
+recursive.</li>
+</ul>
+<h2 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h2>
+<p>The annotation</p>
+<pre><code class="language-text">-&gt; {
+     type: "function",
+     name: $1,
+     params: [$3, $4::2*],
+     body: $6
+   }
+</code></pre>
+<p>parses to (abridged):</p>
+<pre><code class="language-json">{
+  "type": "object",
+  "properties": [
+    { "key": "type",   "value": { "type": "string", "value": "function" } },
+    { "key": "name",   "value": { "type": "positional", "index": 1 } },
+    { "key": "params", "value": {
+        "type": "array",
+        "elements": [
+          { "type": "positional", "index": 3 },
+          { "type": "extraction", "base": { "type": "positional", "index": 4 },
+            "target": 2, "spread": "true" }
+        ] } },
+    { "key": "body",   "value": { "type": "positional", "index": 6 } }
+  ]
+}
+</code></pre>
+<h2 id="from-annotation-ast-to-runtime-lowering"><a class="header" href="#from-annotation-ast-to-runtime-lowering">From annotation AST to runtime lowering</a></h2>
+<p>The annotation AST above is what the PGEN code generator consumes to emit the rule’s lowering code. At
+runtime the host (<code>rust/src/ast_pipeline/unified_return_ast.rs</code>) lowers these nodes into the
+<code>UnifiedReturnAST</code> model — e.g. a <code>{type: "matched_text"}</code> node becomes <code>UnifiedReturnAST::MatchedText</code>
+(the whole matched span as a string), positional references resolve to the captured child at that
+index, and <code>object</code>/<code>array</code> nodes build the corresponding JSON object/array. This book documents the
+parsed-annotation shapes; the <code>UnifiedReturnAST</code> lowering and the typed-AST conversion are internal to
+the AST pipeline and are not part of the downstream parser contract (see
+<a href="#public-api">Public API</a> and the integration contract).</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="backends-bootstrap-vs-generated"><a class="header" href="#backends-bootstrap-vs-generated">Backends: Bootstrap vs Generated</a></h1>
+<p>The return-annotation parser is special among PGEN parsers: it has <strong>two backends</strong>, exposed as
+<code>ParserBackend::Bootstrap</code> and <code>ParserBackend::Generated</code>. Understanding why explains how the family is
+built and which backend you get.</p>
+<h2 id="the-chicken-and-egg-problem"><a class="header" href="#the-chicken-and-egg-problem">The chicken-and-egg problem</a></h2>
+<p>PGEN generates a parser <em>from</em> a <code>.ebnf</code> — but generating that parser code requires reading the
+grammar’s <strong>return annotations</strong> to know how each rule lowers its match. So to generate the parser
+<em>for the return-annotation language itself</em>, PGEN would already need a return-annotation parser. That
+is circular.</p>
+<p>PGEN breaks the cycle with a <strong>bootstrap path</strong>:</p>
+<ul>
+<li><code>grammars/builtin_return_annotation.ebnf</code> is a <strong>bootstrap-safe</strong> grammar contract. It is an
+<em>implementation-accurate</em> (deliberately not idealized) description of a small, hand-written parser —
+it documents the accepted syntax and the known parser constraints, with its source of truth being the
+Rust implementation in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>.</li>
+<li>Because the bootstrap parser is hand-written, it does <strong>not</strong> depend on a generated
+return-annotation parser, so PGEN can use it to generate everything else.</li>
+</ul>
+<p>This is why the README states that the annotation parsers are <em>“generated with bootstrap mode only”</em>.</p>
+<h2 id="the-two-backends"><a class="header" href="#the-two-backends">The two backends</a></h2>
+<h3 id="bootstrap-backend-parserbackendbootstrap"><a class="header" href="#bootstrap-backend-parserbackendbootstrap">Bootstrap backend (<code>ParserBackend::Bootstrap</code>)</a></h3>
+<ul>
+<li>The hand-written parser in <code>rust/src/ast_pipeline/unified_return_ast.rs</code>.</li>
+<li>Documented by <code>grammars/builtin_return_annotation.ebnf</code>.</li>
+<li><strong>Always part of the published contract</strong> — it has no build-feature prerequisite.</li>
+<li>It applies the input normalization described in <a href="#grammar-and-scope">Grammar and Scope</a> (trim,
+strip a leading <code>-&gt;</code>, empty → passthrough).</li>
+</ul>
+<h3 id="generated-backend-parserbackendgenerated"><a class="header" href="#generated-backend-parserbackendgenerated">Generated backend (<code>ParserBackend::Generated</code>)</a></h3>
+<ul>
+<li>The generated parser at <code>generated/return_annotation_parser.rs</code>, produced from the full language
+grammar <code>grammars/return_annotation.ebnf</code> via the bootstrap generator (see
+<a href="#build-recipe">Build Recipe</a>).</li>
+<li>Part of the published contract <strong>when <code>generated_parsers</code> support is present</strong> in the build.</li>
+<li>Implements the full <code>2.0.0</code> language surface this book describes.</li>
+</ul>
+<h2 id="which-backend-should-i-use"><a class="header" href="#which-backend-should-i-use">Which backend should I use?</a></h2>
+<p>You normally should <strong>not</strong> choose a backend by linking a parser module directly. Use the stable
+embedding API (<code>parse_annotation</code> / <code>parse_annotation_result</code> / <code>parse_annotation_named</code>) with
+<code>AnnotationFamily::Return</code>, and let the host route to a backend; pass an explicit <code>ParserBackend</code> only
+when you specifically need to pin one (for example, to compare bootstrap vs. generated behavior in a
+test). The two backends are kept in agreement by the annotation contract gates — both are expected to
+accept the same language and produce the same shapes for the published surface.</p>
+<p>See <a href="#public-api">Public API</a> for the entry points and selectors, and
+<a href="#schema-and-versioning">Schema and Versioning</a> for the backend contract and notable shape changes.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="public-api"><a class="header" href="#public-api">Public API</a></h1>
+<p>Downstream consumers reach the return-annotation parser through PGEN’s stable <strong>embedding API</strong> in
+<code>rust/src/embedding_api.rs</code>, <em>not</em> by linking the generated parser module directly. This chapter lists
+the stable surface; the integration contract
+(<code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>) is the authoritative,
+versioned statement, and <code>rust/src/embedding_api.rs</code> is the exact signature source.</p>
+<h2 id="entry-points"><a class="header" href="#entry-points">Entry points</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Entry point</th><th>Role</th></tr>
+</thead>
+<tbody>
+<tr><td><code>parse_annotation(...)</code></td><td>parse return-annotation source into an annotation AST</td></tr>
+<tr><td><code>parse_annotation_result(...)</code></td><td>parse and return the richer result/diagnostic form</td></tr>
+<tr><td><code>parse_annotation_named(...)</code></td><td>parse with an explicit name/context selector</td></tr>
+</tbody>
+</table>
+</div>
+<p>All three take the annotation family and (optionally) a backend selector; see below.</p>
+<h2 id="selectors"><a class="header" href="#selectors">Selectors</a></h2>
+<ul>
+<li><strong>Annotation family</strong> — <code>AnnotationFamily::Return</code> selects the return-annotation language (its
+sibling is the semantic-annotation family).</li>
+<li><strong>Backend</strong> — <code>ParserBackend::Bootstrap</code> or <code>ParserBackend::Generated</code> pins which backend handles the
+parse. Omit/let the host choose unless you specifically need to pin one (see <a href="#backends-bootstrap-vs-generated">Backends</a>).</li>
+</ul>
+<h2 id="diagnostics"><a class="header" href="#diagnostics">Diagnostics</a></h2>
+<p>The stable diagnostic codes returned on failure are:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>E_BACKEND_UNAVAILABLE</code></td><td>the requested backend is not available in this build (e.g. the generated backend without <code>generated_parsers</code> support)</td></tr>
+<tr><td><code>E_PARSE_FAILURE</code></td><td>the input is not valid return-annotation source</td></tr>
+<tr><td><code>E_INPUT_TOO_LARGE</code></td><td>the input exceeds the configured input-size limit</td></tr>
+<tr><td><code>E_INVALID_LIMITS</code></td><td>the supplied parse limits are invalid</td></tr>
+<tr><td><code>E_INVALID_ARGUMENT</code></td><td>an argument to the API is invalid</td></tr>
+</tbody>
+</table>
+</div>
+<p>Match on the <strong>code</strong>, not on the human-readable message text — message wording can change between
+releases while codes are stable.</p>
+<h2 id="build--availability"><a class="header" href="#build--availability">Build / availability</a></h2>
+<ul>
+<li>The <strong>Bootstrap</strong> backend is always part of the published contract (no build-feature prerequisite).</li>
+<li>The <strong>Generated</strong> backend is part of the published contract <strong>when <code>generated_parsers</code> support is
+present</strong> in the build.</li>
+<li>Prefer the embedding API over linking <code>generated/return_annotation_parser.rs</code> directly — the
+embedding surface is the supported, version-stable seam.</li>
+</ul>
+<h2 id="scope--non-goals"><a class="header" href="#scope--non-goals">Scope / non-goals</a></h2>
+<p>The downstream contract is <strong>parser acceptance, diagnostics, and the family/backend selection
+surface</strong>. The internal typed-AST conversion logic in the Rust AST pipeline (how the annotation AST is
+turned into the typed parser output) is <em>not</em> itself the generic downstream parser contract; it is an
+implementation detail behind the embedding API.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="schema-and-versioning"><a class="header" href="#schema-and-versioning">Schema and Versioning</a></h1>
+<h2 id="grammar-version"><a class="header" href="#grammar-version">Grammar version</a></h2>
+<p>The return-annotation language is versioned in its grammar header:
+<code>grammars/return_annotation.ebnf</code> declares <strong>version <code>2.0.0</code></strong> (the version that introduced the
+extraction operators, spreading, objects, arrays, property/index access, <code>$text</code>, and <code>null</code>). This
+book documents that surface.</p>
+<h2 id="what-is-contract-stable"><a class="header" href="#what-is-contract-stable">What is contract-stable</a></h2>
+<p>Per <code>docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md</code>, the stable surface is:</p>
+<ul>
+<li>the annotation family selector <code>AnnotationFamily::Return</code>;</li>
+<li>the entry points <code>parse_annotation</code> / <code>parse_annotation_result</code> / <code>parse_annotation_named</code>;</li>
+<li>the backend selectors <code>ParserBackend::Bootstrap</code> / <code>ParserBackend::Generated</code>;</li>
+<li>the diagnostic codes <code>E_BACKEND_UNAVAILABLE</code>, <code>E_PARSE_FAILURE</code>, <code>E_INPUT_TOO_LARGE</code>,
+<code>E_INVALID_LIMITS</code>, <code>E_INVALID_ARGUMENT</code>;</li>
+<li>the parsed-annotation node shapes documented in <a href="#ast-envelope-structure">AST Envelope</a>.</li>
+</ul>
+<p><code>return_annotation</code> is a <strong><code>Done</code></strong> family for the tracked claim — but that claim is defined by the
+repository’s current grammar and proof stack, not by informal future expectations.</p>
+<h2 id="proof-gates"><a class="header" href="#proof-gates">Proof gates</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Gate</th><th>Proves</th></tr>
+</thead>
+<tbody>
+<tr><td><code>make -C rust SHELL=/bin/bash return_annotation_support_gate</code></td><td>the focused aggregate <code>Done</code>-gate (now includes the auto-derived <code>return_annotation_exhaustiveness_gate</code>: grammar-driven coverage closure, stimuli-module parity, and a generated-parse-tree → typed-AST audit)</td></tr>
+<tr><td><code>make -C rust SHELL=/bin/bash return_runtime_semantics_gate</code></td><td>return-annotation runtime/round-trip semantics</td></tr>
+<tr><td><code>make -C rust SHELL=/bin/bash annotation_contract_gate</code></td><td>the aggregate annotation contract spine (validator coverage + built-in/shared suites + SC slices + robustness/stimuli)</td></tr>
+<tr><td><code>make -C rust SHELL=/bin/bash annotation_stimuli_quality_gate</code></td><td>the closed-loop stimuli-quality proof, including the return-annotation generator/parser loop</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="notable-shape-changes"><a class="header" href="#notable-shape-changes">Notable shape changes</a></h2>
+<p>These are the consumer-relevant shape changes recorded in the integration contract. They concern the
+<strong><code>string_literal</code></strong> shape, which is built from a parens-grouped <code>Or</code> and therefore depends on the
+engine correctly <em>broadcasting</em> a single trailing annotation to every alternative.</p>
+<h3 id="2026-05-01--string_literal-shape-correction-task-38"><a class="header" href="#2026-05-01--string_literal-shape-correction-task-38">2026-05-01 — <code>string_literal</code> shape correction (task #38)</a></h3>
+<p>The <code>string_literal := ('"' … '"' | "'" … "'") -&gt; {type:"string", value:$2}</code> rule had a long-standing
+bug: the trailing annotation broadcast only to branch 0 of the grouped <code>Or</code>, so double-quoted strings
+produced the typed <code>{type:"string", value:…}</code> node while <strong>single-quoted</strong> strings produced a raw
+<code>Sequence</code>. The fix made both quote forms produce the typed <code>{type:"string", value:…}</code> node. Consumers
+that previously special-cased the single-quoted raw <code>Sequence</code> shape should drop that workaround. This
+also fixed the general <code>(A | B | C) -&gt; ann</code> broadcast for every grammar.</p>
+<h3 id="2026-06-10--single-quoted-shape-restored-ledger-retann-0001"><a class="header" href="#2026-06-10--single-quoted-shape-restored-ledger-retann-0001">2026-06-10 — single-quoted shape RESTORED (ledger <code>RETANN-0001</code>)</a></h3>
+<p>A 2026-05-14 engine refinement (an inner→outer branch-index remap for groups inside
+sequences/quantifiers) accidentally re-broke the whole-body-parens broadcast: between 2026-05-14 and
+2026-06-10, regenerated parsers again produced a raw <code>Sequence</code> for single-quoted strings. <code>BRANCH- BROADCAST-FIX.2</code> restored it — the engine now keeps group-local branch indices when the rule body is
+exactly one top-level parens group, so both quote forms again produce
+<code>Json({"type":"string","value":…})</code>. A companion fix (<code>BRANCH-BROADCAST-FIX.3</code>) corrected a
+branch-level <code>$text</code> returning the empty string inside a multi-branch rule (engine hardening; no
+shipped return-annotation shape relied on branch-level <code>$text</code>).</p>
+<p><strong>Takeaway for consumers:</strong> expect the typed <code>{type:"string", value:…}</code> shape for <em>both</em> quote styles.
+If you adopted a parser regenerated inside the 2026-05-14 → 2026-06-10 regression window and special-
+cased the single-quoted <code>Sequence</code>, drop that workaround.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<ul>
+<li><strong>Return annotation</strong> — the <code>-&gt; …</code> payload on a grammar rule that says how the rule’s match is
+lowered into the value it returns. The return-annotation parser is the parser for this mini-language.</li>
+<li><strong>AST shaping</strong> — reshaping and labeling the parse tree into the returned value, using
+objects/arrays/references/extraction/spread. Structural, not computational (no arithmetic or function
+calls).</li>
+<li><strong>Passthrough</strong> — the default “return the value unchanged” behavior, equivalent to <code>$1</code>. A bare <code>-&gt;</code>
+or an empty annotation means passthrough; a single-element rule body with no <code>-&gt; …</code> is given a
+synthetic <code>$1</code> by the code generator.</li>
+<li><strong>Positional reference (<code>$N</code>)</strong> — a reference to the Nth captured element of the rule body (1-based).</li>
+<li><strong><code>$text</code> / <code>$0</code></strong> — the rule’s whole matched source text as a single string; lowers to
+<code>UnifiedReturnAST::MatchedText</code>. <code>$0</code> is an alias for <code>$text</code>.</li>
+<li><strong>Extraction (<code>$N::T</code>)</strong> — pull one element (by 1-based index, or <code>first</code>/<code>last</code>) out of a quantified
+capture; an optional trailing <code>*</code> spreads it.</li>
+<li><strong>Spread (<code>*</code>)</strong> — splice a capture’s children into the surrounding array/object list. Builds a
+cons-shape list when applied to a repetition.</li>
+<li><strong>Flatten-spread (<code>**</code>)</strong> — like spread, but additionally unwraps a pushed child whose content is
+itself a <code>Sequence</code>/<code>Quantified</code>, pushing its children inline.</li>
+<li><strong>Property access (<code>$N.field</code>)</strong> / <strong>index access (<code>$N[i]</code>)</strong> — reach into a shaped value by name or
+by index; both chain at unbounded depth (a dotted-property + non-negative-integer subset, <em>not</em> full
+JSONPath).</li>
+<li><strong>Cons-list shape</strong> — <code>[head, [next, [next, …]]]</code>: the nested list a plain <code>*</code> spread produces for a
+repetition. Walk it recursively.</li>
+<li><strong>Flat-list idiom (<code>[$1, $2::2*]</code>)</strong> — the recommended <code>X (sep X)*</code> form that produces a flat,
+source-order list (Category A). The return-annotation grammar uses it for its own
+<code>properties</code>/<code>elements</code>.</li>
+<li><strong>Annotation AST</strong> — the structured <code>{type: …}</code> representation the return-annotation parser produces
+from annotation source (see <a href="#ast-envelope-structure">AST Envelope</a>).</li>
+<li><strong>Bootstrap backend</strong> — the hand-written parser (<code>rust/src/ast_pipeline/unified_return_ast.rs</code>,
+documented by <code>grammars/builtin_return_annotation.ebnf</code>) that breaks the chicken-and-egg cycle;
+always part of the contract.</li>
+<li><strong>Generated backend</strong> — the generated parser (<code>generated/return_annotation_parser.rs</code>, from
+<code>grammars/return_annotation.ebnf</code>); part of the contract when <code>generated_parsers</code> support is present.</li>
+<li><strong>Annotation family (<code>AnnotationFamily::Return</code>)</strong> — the embedding-API selector for the
+return-annotation language; its sibling is the semantic-annotation family.</li>
+<li><strong><code>UnifiedReturnAST</code></strong> — the internal runtime model the annotation AST lowers into; an implementation
+detail behind the embedding API, not part of the downstream contract.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

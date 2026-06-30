@@ -20,6 +20,10 @@ explicit that json is a *simplified built-in* grammar, not a conforming JSON par
 | rtl_frontend | [PGEN rtl_frontend Parser — Integration Reference](../../rtl_frontend_parser_book/src/welcome.md) | [`docs/rtl_frontend_parser_book-html/`](../../rtl_frontend_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash rtl_frontend_parser_book_gate` |
 | rtl_const_expr | [PGEN rtl_const_expr Parser — Integration Reference](../../rtl_const_expr_parser_book/src/welcome.md) | [`docs/rtl_const_expr_parser_book-html/`](../../rtl_const_expr_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash rtl_const_expr_parser_book_gate` |
 | json (built-in, simplified) | [PGEN JSON Parser — Integration Reference](../../json_parser_book/src/welcome.md) | [`docs/json_parser_book-html/`](../../json_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash json_parser_book_gate` |
+| return_annotation | [PGEN Return-Annotation Parser — Integration Reference](../../return_annotation_parser_book/src/welcome.md) | [`docs/return_annotation_parser_book-html/`](../../return_annotation_parser_book-html/welcome.html) | `make -C rust SHELL=/bin/bash return_annotation_parser_book_gate` |
+
+The remaining still-to-come per-parser books are for the `ebnf` meta-grammar and the
+`semantic_annotation` grammar.
 
 Each per-parser book is paired with the matching downstream **integration contract** under
 `docs/contracts/` (the deep authoritative surface) and the family's AST shape-contract manifest under
@@ -87,11 +91,15 @@ Primary sources:
 
 These are core platform grammars, not side utilities:
 
-- return annotation parser
-- semantic annotation parser
+- return annotation parser — now has its own per-parser book:
+  [PGEN Return-Annotation Parser — Integration Reference](../../return_annotation_parser_book/src/welcome.md)
+  (the AST-shaping `-> …` language: references, literals, objects/arrays, the extraction/spread/access
+  operators, the parsed annotation envelope, and the Bootstrap-vs-Generated backend split)
+- semantic annotation parser (per-parser book still to come)
 
 Primary sources:
 
+- **Per-parser book (return_annotation):** [PGEN Return-Annotation Parser — Integration Reference](../../return_annotation_parser_book/src/welcome.md)
 - `docs/contracts/PGEN_RETURN_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`
 - `docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md`
