@@ -74,6 +74,14 @@ Add a fact card whenever a durable fact is established, or whenever archaeology 
 Optionally fold high-traffic `docs/decisions/` records in by adding `answers:` front-matter
 in place. **No big-bang migration** (see FAQ).
 
+Seeded (demand-driven, this lane stays OPEN):
+- `2026-07-01` (`PGEN-KNOWLEDGE-MAP-0004`): [[ebnf-supported-vs-aspirational-constructs]] — captures the
+  EBNF SUPPORTED / NOT-IMPLEMENTED / PARTIAL surface re-derived this session while authoring the `ebnf`
+  grammar-author book (`EBNF-BOOK.1+.2`): which constructs the codegen consumes vs which the self-hosting
+  meta-grammar only self-describes, plus the element-level `[ … ]`=optional-vs-character-class footgun. A
+  genuine "archaeology caught" trigger — the supported surface had no retrieval card, only the codegen +
+  shipped grammars. Map regenerated → 32 facts / 217 question keys; `check_knowledge_map.sh` PASS.
+
 ---
 
 ## Frontier
