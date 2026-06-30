@@ -98,7 +98,7 @@ then close those gaps as GENERAL, parser-agnostic grammar-structure capabilities
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `STIMULI-SIGNOFF.1` | `done` (`-0001`) | Audit landed; 6 gaps → leaves `.2`–`.7` (KM [[stimuli-generator-capability-gaps]]). |
-| 2 | `STIMULI-SIGNOFF.2` | `pending` | k-path metric DEFINES the signoff bar (rule+branch under-defines "done"). |
+| — | `STIMULI-SIGNOFF.2` | `done` (`-0002`/`-0003`/`-0004`; gap #1 k-path coverage CLOSED — universe + numerator + `--report-k-path-coverage` report) | k-path metric DEFINES the signoff bar; SV measured (sv_2017, k=2): universe 4105, covered 679 (16.5%). Optional follow-up `.2.4` (wire the recorder into the full closed-loop gate). (Row was stale `pending`; corrected 2026-06-30.) |
 | 3 | `STIMULI-SIGNOFF.4` | `pending` | directed/FDLOOP = the literal-0 reach (co-owned by `SV-EXH-PROOF.7.4.6`). |
 | 4 | `STIMULI-SIGNOFF.3` | `pending` | code-coverage feedback pairs with `.2` (input→code coverage). |
 | — | `.5` / `.6` / `.7` | `pending` | secondary (uniform/Boltzmann · grammar-tree shrinking · mutation-maturity metric). |

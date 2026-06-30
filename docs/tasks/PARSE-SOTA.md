@@ -195,6 +195,41 @@
   Acceptance: `_meta emitted per node; additive (existing shapes + schema unchanged);
   ast_shape_contract green; lib green; book updated.`
 
+- ID: `PARSE-SOTA.11.1` (A5 — `_meta` OPT-IN codegen flag)
+  Status: `pending` — IMPLEMENTATION-SURFACE RE-SCOPED `2026-06-30` (tools-first; NOT a safe autonomous-loop slice)
+  Re-scope (`2026-06-30`, tools-first WHY+WHERE; PURE-DOCS, no code): re-grounded the `.11`
+  design's stale `ast_based_generator.rs:6774` reference against HEAD. The full-codegen
+  typed-object construction funnels through ONE site —
+  `ast_pipeline/ast_return_transform.rs::generate_object_transform` (builds
+  `ParseContent::Json(serde_json::Value::Object(__pgen_obj))`), reached from the single
+  codegen entry `ast_based_generator.rs:4165` (`generate_return_transform` →
+  `AstReturnTransformer::generate_transform(ast, captured_vars, rule_name)`; the real
+  `rule_name` is passed only at the top level — the internal recursive calls pass `""`).
+  BUT the opt-in flag is NOT "one slice / zero blast radius" as the 2026-06-02 design
+  estimated: (a) the `emit_meta` flag's natural source is the `AstBasedGenerator` struct,
+  which has **51 explicit `AstBasedGenerator { … }` construction sites** (no
+  `..Default::default()`), so adding a field touches all 51; (b) a COHERENT
+  `_meta`-on-every-typed-object needs THREE object-construction surfaces in lockstep — the
+  full-codegen funnel above, the bootstrap codegen `return_annotation_handler.rs` (limited;
+  emits `ParseContent::Terminal` strings), and the runtime interpreter
+  `unified_return_ast.rs:661–753` (~6 `serde_json::Map::new()` object builds) — else the
+  bootstrap / runtime / generated parsers disagree (the multi-surface hazard the `.11`
+  design itself flagged). The "ZERO blast radius" claim holds only for the default-OFF
+  OUTPUT, not for the CODE change. CONCLUSION: `.11.1` is the leading edge of the disruptive
+  A5 coordination the approval ([[feedback_meta_carrier_design]]) DEFERRED to a dedicated
+  session — it is NOT a safe autonomous-PNT slice; schedule it deliberately with the full
+  regen + byte-identity + shape-contract battery. Governing discipline:
+  [[feedback_no_codebase_change_without_tool_backed_facts]].
+  Goal: `Thread an emit_meta codegen flag (default false); when ON, generate_object_transform
+  inserts an additive _meta sibling (rule/branch_index; span deferred to .11.2); when OFF,
+  generated parsers byte-identical. Additive, schema unchanged.`
+  Acceptance: `emit_meta default-OFF byte-identical (regen + diff on the fully-certified
+  grammars); flag-ON rendered tokens carry _meta (unit test); lib+clippy green; shape-contract
+  GREEN; book/dev-architecture note.`
+  Verification: `pending — surface re-scoped 2026-06-30 (above); implementation deferred to a
+  dedicated coordinated session per the .11 design + the [[feedback_meta_carrier_design]] approval.`
+  Commit: `pending`
+
 ---
 
 ## Current Frontier
@@ -203,13 +238,13 @@
 | --- | --- | --- | --- |
 | — | `PARSE-SOTA.1`–`.6` | `done` (`-0002`, 2026-06-02) | 5 parallel literature sweeps + synthesis landed in docs/tasks/PARSE-SOTA-research-synthesis.md. KEY: the existing flow is a recognized published architecture (store-gates-rules = SPEG/Nez/data-dependent grammars; memo delta-replay = Laurent & Mens SLE 2016; RETURN = synthesized attributes; codegen = staged combinators) — VALIDATED, not idiosyncratic. Prioritized adoption backlog §1: Tier A (A1 well-formedness check, A2 ordered-choice shadowing lint ⭐, A3 labeled failures, A4 round-trip/golden-file testing, A5 ship `_meta`) all engine-untouched; Tier B (B1 memo-soundness audit ⭐, B2 cut operator, B3 parametric rules); Tier C (C1 scope graphs, C2 error recovery, C3 grammar modules); + an explicit do-NOT-adopt list (GLL/GLR/Earley engine swap, red-green trees, incremental parsing, runtime left-recursion). |
 | — | director review | `done` (2026-06-02) | Director greenlit Tier A (A1/A2/A4/A5) → now owned leaves `.8`–`.11`. |
-| 1 | `PARSE-SOTA.8` (A1 well-formedness) | `pending` (frontier) | Static left-recursion + non-terminating-rule detection, rejected via pgen_error!; reuses .7.4.2 min-length + DIAG-SEVERITY channel. Lowest-risk Tier-A win. Starts once SV-EXH-PROOF.7.4.3 commits (frees stimuli_generator.rs). |
+| — | `PARSE-SOTA.8` (A1 well-formedness) | `done` (analysis `-0005`/`-0007` + wiring `.8.1` `-0008`/`-0009`) | Static non-terminating-rule REJECT + left-recursion-info + shadowing landed and wired (`--lint-grammar` + grammar-load reject); the `SV-EXH-PROOF.7.4.3` gate it waited on is long committed. (Row was stale `pending (frontier)`; corrected 2026-06-30.) |
 | — | `PARSE-SOTA.9` (A2 ⭐ shadowing lint) | `analysis DONE` (`-0006`) | Sound shadowing detection (duplicate + fixed-terminal-prefix) landed, 581/581; wiring = `.9.1` (after `.7.4.3`). |
 | — | `PARSE-SOTA.8.1` (A1 wiring) | `done` (`-0008`) | Non-terminating REJECT wired into grammar load (pgen_error!); verified zero false-fires across all shipped grammars. |
 | — | `PARSE-SOTA.9.1` (A2 wiring) | `done` (`-0009`) | `--lint-grammar` opt-in mode (left-recursion info + non-terminating error + shadowing warning report). Shadowing counts: regex=1, semantic_annotation=3, rest=0 (low; opt-in, no per-load noise). |
 | — | `PARSE-SOTA.10` (A4) | `done` (`-0010`) | Parse-determinism test added (the genuine gap); round-trip/shape/gen-determinism already covered by existing infra. |
 | — | `PARSE-SOTA.11` (A5 `_meta`) | `design DONE` (`-0011`) | Grounded phased plan; implementation = `.11.1` opt-in (safe) → `.11.2` spans → `.11.3` default-on+contract migration (coordinated) → `.11.4` A4 oracle. |
-| 1 | `PARSE-SOTA.11.1` (A5 opt-in) | `pending` (frontier) | `_meta` emission behind a default-OFF codegen flag (additive, zero blast radius). Then the heavy `.11.3` as a dedicated coordinated effort. |
+| — | `PARSE-SOTA.11.1` (A5 opt-in) | `pending` — RE-SCOPED 2026-06-30 | Tools-first re-grounding: funnel = `ast_return_transform.rs::generate_object_transform` (entry `ast_based_generator.rs:4165`), but the `emit_meta` flag hits **51** `AstBasedGenerator{}` sites + needs 3 object surfaces in lockstep ⇒ NOT the "one slice / zero blast radius" the 2026-06-02 design assumed; it is the disruptive A5 coordination the approval DEFERRED to a dedicated session. NOT a safe autonomous slice. See the `.11.1` leaf above. |
 | 3 | `PARSE-SOTA.10` / `.11` (A4 round-trip / A5 `_meta`) | `pending` | Robustness + fidelity. |
 
 ## Decisions
@@ -218,3 +253,12 @@
   parser-generator path with literature, in parallel with the stimuli-path grounding
   (`SV-EXH-PROOF.7.3`). Research-only tree; adoptions spin out as owned leaves and are
   measured. Parser-agnostic + no-workarounds fix-hierarchy govern any adoption.
+- `2026-06-30` (`.11.1` implementation-surface re-scope, PURE-DOCS, tools-first): re-grounded
+  the A5 `_meta` opt-in against HEAD — single full-codegen funnel
+  `ast_return_transform.rs::generate_object_transform` (entry `ast_based_generator.rs:4165`),
+  BUT the `emit_meta` flag touches **51** `AstBasedGenerator{}` construction sites and a
+  coherent carrier needs 3 object-construction surfaces (full-codegen + bootstrap
+  `return_annotation_handler.rs` + runtime `unified_return_ast.rs`) in lockstep. So `.11.1` is
+  the leading edge of the deferred disruptive A5 coordination, not a safe autonomous-loop
+  slice — schedule deliberately. No code changed. Also corrected two stale Current-Frontier
+  rows (`.8` and `.11.1`) that still read `pending (frontier)` though `.8`/`.8.1` had landed.

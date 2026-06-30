@@ -1,4 +1,18 @@
 # DEVELOPMENT_NOTES.md
+## 2026-06-30 - PGEN-PARSE-SOTA-0014 — PARSE-SOTA.11.1 (A5 `_meta` opt-in) implementation-surface RE-SCOPE + frontier-table lockstep (PURE-DOCS)
+
+Fresh session 2026-06-30 (PNT, session #7). Full mandated startup read completed (README + full mdBook digest via agent [in lockstep] + SOTA roadmap digest + RUST_CODEBASE_ANALYSIS digest + TOOLBOX + DOCTRINE_ENFORCEMENT + MEMORY_ARCHITECTURE + COMMIT + SESSION_BOOTSTRAP + TASK_TREE). Roadmap↔codebase↔mdBook confirmed aligned (the roadmap's older per-slice `In Progress` notes are explicitly dated-historical; `-DOC-ROADMAP-LOCKSTEP-0001` already fixed the one preface drift). Git hooks active; `scripts/check_doctrines.sh` ALL 6 PASS; all 10 generated parsers present; 48 unpushed → 49.
+
+**PNT selection (tools-first).** Director chose "PNT loop now". First pick `STIMULI-SIGNOFF.2` (k-path coverage) was found already `done` (`.2.1`/`.2.2`/`.2.3` via `-0002`/`-0003`/`-0004`; only optional `.2.4` open) — the tree's Current-Frontier table was stale. The next labelled active frontier was `PARSE-SOTA.11.1` (A5 `_meta` opt-in, director-greenlit, design-DONE). Per [[feedback_no_codebase_change_without_tool_backed_facts]] I mapped the real implementation surface BEFORE editing any code.
+
+**Tools-first surface finding (WHY+WHERE).**
+- Full-codegen typed-object funnel = `ast_pipeline/ast_return_transform.rs::generate_object_transform` (`{ let mut __pgen_obj = serde_json::Map::new(); …; ParseContent::Json(serde_json::Value::Object(__pgen_obj)) }`), single codegen entry `ast_based_generator.rs:4165` (`generate_return_transform`). The real `rule_name` is supplied only at that top-level entry; the file-internal recursive `generate_transform` calls pass `""`.
+- `return_annotation_handler.rs` = BOOTSTRAP-mode handler (emits `ParseContent::Terminal` strings, not the typed `{kind,…}` carrier) — a distinct surface; `unified_return_ast.rs:661–753` = the runtime interpreter (~6 `serde_json::Map::new()` object builds) — the third surface.
+- The `emit_meta` flag's natural source `AstBasedGenerator` has **51** explicit `AstBasedGenerator { … }` construction sites (no `..Default::default()`), so a field add touches all 51; a coherent carrier needs all 3 surfaces in lockstep.
+- ⇒ `.11.1` is NOT a "one slice / zero blast radius" change (that is true of the default-OFF OUTPUT only). It is the leading edge of the disruptive A5 coordination the [[feedback_meta_carrier_design]] approval DEFERRED to a dedicated session. NOT a safe autonomous-loop slice.
+
+**Action (PURE-DOCS).** Captured the finding in the new `PARSE-SOTA.11.1` leaf + the A5 design doc's "2026-06-30 re-grounding" section (so the dedicated session inherits the exact map), and corrected the stale Current-Frontier rows in `PARSE-SOTA.md` (`.8`) and `STIMULI-SIGNOFF.md` (`.2`). No code/grammar/generated change; no release/schema/ledger change. Did NOT push code for `.11.1` (no facts justified a safe autonomous slice).
+
 ## 2026-06-30 - PGEN-STORE-AWARE-GEN-0028 — STORE-AWARE-GEN.4b.19 ROOT-CAUSE / IMPLEMENT-attempt then revert: the `.4b.18` 3-part capability ARMS but is insufficient ⇒ DEFER `context_member_method_call` (PURE-DOCS)
 
 Fresh session 2026-06-30 (PNT, session #5). Full startup read completed (README + full mdBook digest via agent — confirmed in lockstep, SV canonical `UNKNOWN=20` / union `1` / residual `context_member_method_call`, no drift — + TOOLBOX + MEMORY_ARCHITECTURE + DOCTRINE_ENFORCEMENT + COMMIT + SESSION_BOOTSTRAP + the STORE-AWARE-GEN tree, the `.4b.18` design, and the `.4b.13.1` revert precedent). Git hooks active; binaries warm (DEBUG `ast_pipeline` + release `parseability_probe`, all 10 generated parsers present).

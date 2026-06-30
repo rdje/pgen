@@ -72,3 +72,29 @@ Implement `.11.1` (opt-in, safe, additive) as the next focused slice; schedule `
 full `make focus_*` + shape-contract + round-trip verification battery — NOT bundled at the
 tail of an unrelated session. Until then the carrier is available opt-in for consumers, and
 the default output (and every shape contract) stays exactly as today.
+
+## 2026-06-30 re-grounding (tools-first; line refs above were stale, and `.11.1` is heavier than "one slice")
+A fresh tools-first pass against HEAD updates the surface map (the `:6774` and
+`return_annotation_handler.rs:355` line refs above are from 2026-06-02 and have drifted):
+
+- **The full-codegen typed-object FUNNEL is a single site:**
+  `ast_pipeline/ast_return_transform.rs::generate_object_transform` (≈`:364`), which builds
+  `{ let mut __pgen_obj = serde_json::Map::new(); …; ParseContent::Json(serde_json::Value::Object(__pgen_obj)) }`.
+  It is reached from ONE codegen entry — `ast_based_generator.rs:4165`
+  (`generate_return_transform` → `AstReturnTransformer::generate_transform(ast, captured_vars, rule_name)`).
+  The real `rule_name` is supplied only at that top-level entry; the file-internal recursive
+  `generate_transform` calls (≈`:219/:265/:336/:484/:495/:520/:544`) pass `""`, so nested
+  object literals would carry an empty `_meta.rule` unless the name is threaded down.
+- **`return_annotation_handler.rs` is the BOOTSTRAP-mode handler** (limited subset; emits
+  `ParseContent::Terminal(r#"…"#)` strings, NOT the typed `{kind,…}` carrier) — a distinct
+  surface from the full codegen.
+- **The runtime interpreter `unified_return_ast.rs` builds objects at ≈`:661–753`** (~6
+  `serde_json::Map::new()` → `Value::Object` sites) — the third surface.
+- **Why `.11.1` is NOT a clean "one slice / zero blast radius" change:** the `emit_meta`
+  flag's natural source is the `AstBasedGenerator` struct, which has **51 explicit
+  `AstBasedGenerator { … }` construction sites** (no `..Default::default()`), so a field add
+  touches all 51; and a coherent `_meta`-on-every-typed-object must move all THREE surfaces
+  in lockstep. The "zero blast radius" is true of the default-OFF OUTPUT only, not the CODE
+  change. ⇒ `.11.1` is the leading edge of the disruptive A5 coordination this design (and
+  the [[feedback_meta_carrier_design]] approval) deferred to a dedicated session — it is not
+  a safe autonomous-loop slice. Schedule it deliberately. ([[feedback_no_codebase_change_without_tool_backed_facts]].)
