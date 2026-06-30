@@ -1178,6 +1178,35 @@ one documented limitation.) The change is confined to the `library_text` analysi
 `systemverilog_file` embedding entry never reaches the library cohort — so the canonical cert
 (`UNKNOWN=22`) and the 4-config union (`UNKNOWN=3`) are byte-identical across seeds 0/7/42.
 
+### Closing two of the three reach-gaps: the class-scoped-call cousins
+
+The first two of those three canonical reach-gaps then closed with a single grammar-gate. Both
+`known_unscoped_class_scoped_call_interface_class_identifier` and
+`known_unscoped_class_scoped_call_type_parameter_identifier` are head branches of
+`class_scoped_call_prefix` — the prefix of a class-scoped subroutine call like `IF::method()`. The
+certificate probe reported them `parsed=true witnessed_target=false` (the sample parses, but the cousin
+branch is never the one that fires), and a scoped `--trace-rules class_scoped_call_prefix` pinned why:
+the *first* head alternative, `scoped_class_scoped_call_prefix_identifier` (the `<pkg>::<class>` form),
+was gated only by `lacks_class`. A head declared `interface_class` or `type_parameter` is not a class,
+so that gate passed — and because `package_identifier` accepts any identifier, the branch
+**longest-matched** `IF::method` as `<pkg>::<class>` (14 bytes) over the correct cousin's `IF` (5
+bytes). It then failed the mandatory trailing `::`, and the call fell through to the ungated
+`package_scope` call route, emitting a `package_scope`/`tf` shape for what is semantically a
+class-scoped call. The `class` head never had this problem, because `lacks_class` correctly rejects the
+`<pkg>::<class>` branch for it — which is exactly why only the *other two* families were `UNKNOWN`.
+
+The fix is the same store-consultation tightening used elsewhere: two AND-stacked
+`lacks_fact_attribute_equals` predicates (`interface_class`, `type_parameter`) now join `lacks_class` on
+that branch, so the `<pkg>::<class>` form fires only for a genuine package scope and an
+interface-class/type-parameter head falls through to its dedicated cousin — routing the call through
+`class_scoped_tf_call` (the LRM-correct shape). Both cousins witness, the canonical residual drops
+`UNKNOWN 22 → 20` and the 4-config union `3 → 1` (deterministic at seeds 0/7/42, `spf=0`, every other
+grammar byte-identical), and the only remaining reach-gap is `context_member_method_call` (a store-gated
+declaration-hosting carrier). Because the affected calls now emit `class_scoped_tf` instead of
+`package_scope`/`tf`, this is an AST-shape *correction* (the strings still parse; no new node kinds;
+schema unchanged) — released as `1.0.151`, ledger `SV-0013`. SystemVerilog is now a single rule from a
+fully-certified multi-config union.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

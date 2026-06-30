@@ -6257,7 +6257,24 @@ known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier
 # class-can-scope prefix in `scoped_class_scope_identifier`,
 # `scoped_class_type_identifier`, etc. Parser-AGNOSTIC at level 1/2 of the
 # no-workarounds hierarchy (existing primitives only).
+# GRAMMAR-WELLFORMED.H.12.8.3.1 — branch-1 longest-match shadowing fix. The
+# `<pkg>::<class>` branch must fire ONLY for a genuine PACKAGE scope. The
+# original `lacks_class` gate excludes a CLASS head (so `C::m()` correctly
+# routes to `known_unscoped_class_scoped_call_class_identifier`, which IS
+# witnessed), but NOT an interface_class or type_parameter head. For those,
+# branch 1 longest-matched `IF::m` / `T::m` (consuming `head::m` as
+# `<pkg>::<class>`), shadowing the dedicated cousin branches
+# `known_unscoped_class_scoped_call_interface_class_identifier` (:6237) and
+# `…type_parameter_identifier` (:6240); the call then fell through to the
+# ungated `package_scope` tf_call, so the cousins were never witnessed
+# (canonical cert reach-gaps, `parsed=true witnessed_target=false`). These two
+# AND-stacked predicates (template: `known_unscoped_block_class_type` :1642-1644)
+# extend the same exclusion to the other two non-package type families, so an
+# interface_class/type_parameter head now falls through to its dedicated cousin.
+# Surgical: this rule is used ONLY in `class_scoped_call_prefix`. Parser-AGNOSTIC.
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, class], phase: post, view: shaped }
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, interface_class], phase: post, view: shaped }
+@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, type_parameter], phase: post, view: shaped }
 scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
 class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
