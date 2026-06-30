@@ -676,7 +676,22 @@ phantom facts behind.
 
 This needs **no new annotation** — the generator becomes a second consumer of the existing
 `@emit_fact` / `@predicate` vocabulary, so the *same* grammar steers both parsing and generation. It is
-**on only for grammars that declare such a predicate** (today, regex): every other grammar generates
-byte-identically. The capability is tracked by the `STORE-AWARE-GEN` task tree; the first cut honours
-`fact_count_at_least`, with the other composable predicates (`has_fact`, `lacks_fact`,
-`fact_attribute_equals`, `resolve_path`) to follow.
+**on only for grammars that declare such a predicate**, so every grammar without one generates
+byte-identically (the capability is gated on the grammar's own facts/predicates, never on a grammar
+name). The capability is tracked by the `STORE-AWARE-GEN` task tree, which has grown the first
+`fact_count_at_least` cut (regex) into the full composable set exercised by **SystemVerilog** — the
+name-coordinated *declare-then-use prelude* family (`has_fact` / `fact_attribute_equals` over
+`type_name` / `variable_binding` / class-scope facts: the generator emits the prior declaration a gated
+use needs, diversifies a free name that would otherwise collide with a consumed fact, and arms preludes
+even for gates carried by a mandatory *off-path sibling* along the reach path) plus a literal-threshold
+*count-prelude* (`fact_count_at_least` with a constant bound — e.g. a required wildcard import).
+
+The result is verified per grammar with certificate-coverage, where `sample_parse_failures` is the
+**semantic round-trip metric**: zero means every generated sample re-parses through the real parser's
+predicates. At the current baseline (deterministic at seeds 0/7/42) the six fully-certified grammars
+report `UNKNOWN=0`, `fully_certified=true`, `sample_parse_failures=0` (json, regex, vhdl,
+systemverilog_preprocessor, rtl_frontend, rtl_const_expr), and SystemVerilog — the predicate-heaviest
+grammar — reports `sample_parse_failures=0` with a canonical residual of `UNKNOWN=20` that the sound
+multi-config recognized union collapses to `UNKNOWN=1` (the single `context_member_method_call`
+reach-gap, deferred to a future structured-witness synthesizer). No grammar emits a sample its own
+parser semantically rejects.

@@ -144,3 +144,28 @@ the two `class_scoped_call` cousins are tool-proven NOT carrier-divisible (expre
 (`gen_name_gate`) or runs only over a non-empty cert residual, so it is byte-identical/inert for the fully-certified
 roster. Frontier `.4b.13` = reach-ROUTING
 forcing for the residual 9C cohort (`parsed=true witnessed=false`).
+
+**Closure (2026-06-30, `.5` VERIFY — `PGEN-STORE-AWARE-GEN-0029`).** The arc continued tools-first:
+`.4b.13.1` proved `context_member_method_call` needs a declaration-hosting carrier + typed-declaration
+forcing and DEFERRED it; `.4b.14` REFUTED the 9C-iii covergroup design as a real grammar bare-token
+bracket defect (→ tree `SV-COVERGROUP-FIDELITY`, SV cert `32 → 30`); `.4b.15` split the 9A residual,
+handing the `nexttime [ … ]` mis-synthesis to `SV-SVA-PROPERTY-FIDELITY` (`30 → 29`); `.4b.16`/`.4b.17`
+landed a literal-threshold `fact_count_at_least` count-prelude (+ producer emitting-branch forcing) that
+witnessed `wildcard_escape_nettype_identifier` (`29 → 28`). In parallel the `GRAMMAR-WELLFORMED.H.12.8.x`
+grammar-fidelity + multi-config cert-union work reduced the SV canonical residual further and made the
+recognized 4-config union the honest SV cert basis; `.4b.18`/`.4b.19` then DESIGNED and tool-tested
+(IMPLEMENT-attempt → revert, twice-proven) a 3-part declaration-hosting witness capability for the LAST
+union residual `context_member_method_call` — it ARMS the prelude but a deeper coupled-forcing cascade
+(reach-forcing into `call_primary` alt-0, method-call vs member-select parenthesisation, an in-scope
+prior typed decl) keeps it not cleanly closeable, so it stays DEFERRED to a future dedicated
+structured-witness synthesizer. `.5` then RE-VERIFIED per-grammar certificate-coverage closure
+(deterministic seeds 0/7/42): the six fully-certified grammars `UNKNOWN=0 fully_certified=true spf=0`
+(json 9/9, regex 198/198, vhdl 216/216, systemverilog_preprocessor 74/74, rtl_frontend 169[proof 1],
+rtl_const_expr 48/48 @ depth 32), and SystemVerilog `spf=0` with canonical `UNKNOWN=20` / sound
+recognized union `UNKNOWN=1` (residual exactly `context_member_method_call`) — plus `cargo test --lib`
+771/0, `sv_cert_recognized_union_gate` ✅, and `stimuli_cross_family_platform_gate` ✅. **No grammar
+emits a sample its own parser semantically rejects.** The `STORE-AWARE-GEN` tree's Acceptance Criteria
+are MET — the CORE ARC is COMPLETE (parser-agnostic generation-time store + predicate evaluator; regex
+DEFAULT cert `spf=0`; no regression; no fixed-bound guesses; lockstep docs). The SV literal-`UNKNOWN=0`
+goal is the one remaining stretch and is NOT a tree acceptance criterion: it is deferred and separately
+tracked (the future structured-witness synthesizer that closes `context_member_method_call`).

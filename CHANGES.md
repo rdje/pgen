@@ -1,4 +1,17 @@
 # CHANGES.md
+## 2026-06-30 - PGEN-STORE-AWARE-GEN-0029 (STORE-AWARE-GEN.5 — VERIFY: per-grammar certificate-coverage closure + no-regression re-verified; tree CORE ARC COMPLETE, PURE-DOCS): store-aware generation emits no sample its own parser semantically rejects
+
+The `STORE-AWARE-GEN` tree's final VERIFY leaf. Re-ran certificate-coverage per grammar plus the no-regression suite to prove the generation-time semantic store honours every `@predicate` (no semantic round-trip failures), then refreshed the book + decision-record lockstep. **No code/grammar/generated/release/schema/ledger change** — verification + docs only.
+
+- **REPRODUCE / VERIFY (warm regen-lockstep build, deterministic seeds 0/7/42):**
+  - 6 fully-certified grammars `UNKNOWN=0 fully_certified=true sample_parse_failures=0 proof_reverify_failures=0`: json `9/9`, regex `198/198`, vhdl `216/216`, systemverilog_preprocessor `74/74`, rtl_frontend `total=169 proof=1 witness=168`, rtl_const_expr `48/48` @ `--max-depth 32`.
+  - systemverilog: canonical `UNKNOWN=20` / sound recognized 4-config union `witness=1302 UNKNOWN=1` residual exactly `["context_member_method_call"]` `spf=0` (`make -C rust sv_cert_recognized_union_gate` ✅, `recognized_basis_green=true`).
+  - `sample_parse_failures=0` across every grammar = generated samples honour every `@predicate` (no semantic round-trip failures anywhere).
+- **ROUND-TRIP / GOLDEN:** `cargo test --lib --features "generated_parsers ebnf_dual_run"` **771 passed / 0 failed** / 21 ignored (store-aware-gen lock tests incl.).
+- **NO REGRESSION:** `make -C rust stimuli_cross_family_platform_gate` ✅ (regex + vhdl + SV bounded closed-loop all `pass`); `scripts/check_doctrines.sh` ALL 6 PASS; PURE-DOCS so the 6 fully-certified grammars are untouched by construction.
+- **OUTCOME:** the tree's Acceptance Criteria are MET (parser-agnostic generation-time store + predicate evaluator; regex DEFAULT cert `spf=0`; no regression; no fixed-bound guesses; lockstep docs) ⇒ tree **CORE ARC COMPLETE** / status `done`. The SV literal-`UNKNOWN=0` goal (closing `context_member_method_call`) is the one remaining stretch and is NOT a tree acceptance criterion — DEFERRED to a future dedicated structured-witness synthesizer (twice tool-proven needed by `.4b.13.1`/`.4b.19`); sound recognized union `UNKNOWN=1` is the honest SV cert number.
+- **LOCKSTEP:** `docs/tasks/STORE-AWARE-GEN.md` (Status → `done`, `.5` Verification Log + Commit Log rows, frontier note); `docs/book/src/stimuli-and-quality.md` ("Context-Valid Generation" section refreshed — store-aware generation now documents the SystemVerilog declare-then-use/count-prelude consumer + the per-grammar verified numbers, replacing the stale "today, regex / to follow" framing); `docs/decisions/project_store_aware_generation.md` (closure paragraph through `.4b.13.1`–`.4b.19` + `.5`); `MEMORY.md`; `LIVE_ACHIEVEMENT_STATUS.md` (tracker note). No live-status family row change — SystemVerilog stays `Mostly Done`; the 6 fully-certified stay `Done`.
+
 ## 2026-06-30 - PGEN-DOC-ROADMAP-LOCKSTEP-0001 (roadmap↔codebase↔mdBook lockstep: correct the stale present-tense `rtl_frontend` status in the SOTA roadmap preface, PURE-DOCS): the roadmap now matches README + live status + mdBook (rtl_frontend = `Done`)
 
 Fresh-session (#6, 2026-06-30) full startup-read drift audit found a single roadmap↔codebase↔mdBook divergence and corrected it. **No code/grammar/generated/release/schema/ledger change** — reference-doc lockstep only.
