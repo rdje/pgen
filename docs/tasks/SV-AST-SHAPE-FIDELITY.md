@@ -3,7 +3,7 @@
 ## Metadata
 
 - Tree ID: `SV-AST-SHAPE-FIDELITY`
-- Status: `active`
+- Status: `done` (2026-07-01 session #12 — all leaves closed: `.1`, `.2` + `.2.1`–`.2.7`, `.3`)
 - Roadmap lane: SystemVerilog main-parser AST-shape correctness (return-annotation fidelity) — post-audit residuals
 - Created: `2026-07-01`
 - Owner: repo-local workflow
@@ -119,7 +119,7 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
     DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS updated.
 
 - ID: `SV-AST-SHAPE-FIDELITY.2`
-  Status: `in_progress` (2026-07-01)
+  Status: `done` (2026-07-01, session #12)
   Goal: Sweep `grammars/systemverilog.ebnf` for OTHER reachable inline-alternation-`$N`
   corruptions (a bare positional `$N` referencing an inline `( A | B )` / `( A | B )?`
   group **outside** an iteration lead, the class `POST-SV-AUDIT` did not cover). Enumerate
@@ -180,6 +180,54 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   the sentinel → named-lift fix → re-verify → lockstep. Start with the reachability-obvious,
   consumer-common ones (`type_declaration` forward-typedef #19/#20; the `method_call_receiver`
   #10-13; the `scoped_*_type_identifier` #5/#6).
+
+  ### Completion (`.2`, 2026-07-01 session #12): LATENT-candidate calibration note — closes the umbrella + the tree
+  The `.2` inline-alt-`$N` sweep is COMPLETE. Of the 21 enumerated candidates: **9 REACHABLE-CORRUPT**
+  fixed via the named-lift idiom (`.1`/`.2.1`/`.2.2`/`.2.3` = #2/#19/#20/#1/#5/#6; `.2.5`/`.2.6`/`.2.7`
+  = #8/#14/#21; ledger `SV-0014`..`SV-0020`), **7 LATENT** (#3/#4/#10-13/#15 — PEG-shadowed, corrupt
+  only in `--entry-rule` isolation, unreachable from the canonical entry), **4 BENIGN** (#9/#16/#17/#18
+  — 0 sentinels even in isolation), **1 STALE** (#7 — pattern absent). The tool-proven (`.2.4`) LATENT/
+  BENIGN/STALE classification is now recorded in the shape-contract manifest `calibration_history` so the
+  class cannot silently re-drift. No fix / no grammar / no parser / no release / no schema / no ledger
+  bump for the LATENT set (no consumer-visible corruption on reachable input). This closes `.2` AND the
+  whole `SV-AST-SHAPE-FIDELITY` tree.
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — the 12 non-fixed `.2` candidates needed a durable, drift-proof record of
+    their tool-proven classification (7 LATENT / 4 BENIGN / 1 STALE from the `.2.4` verdict table) inside
+    the shape-contract surface itself, so a future audit does not re-flag them as un-classified. Symptom:
+    the manifest carried records only for the 9 FIXED candidates; the LATENT/BENIGN/STALE verdict lived
+    only in the task file.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — the 7 LATENT candidates (#3/#4/#10/#11/#12/#13/#15) carry the
+    inline-alt-`$N` pattern and DO emit `<invalid_sequence_access>` under `--entry-rule` isolation, but the
+    general SV expression/receiver/constraint/lvalue grammar PEG-shadows them so they are UNREACHABLE from
+    the canonical `systemverilog_file` entry (tool-proven in `.2.4`: e.g. `constraint cc { this.x < 5; }`
+    → 0; `pkg::obj.foo()` → 0 via #9 `split_hierarchical_callable_receiver`; `this.x = 1;` → 0). Runtime
+    key (`ast_return_transform.rs:193`): the sentinel needs a positional `$N` N≥2 over a too-short
+    `Sequence`; `$1` has an `other => other.clone()` fallback. No consumer-visible corruption on reachable
+    input → no defect to fix (distinct from the 9 REACHABLE-CORRUPT candidates that were fixed).
+  - [x] **FIX** — metadata-only: added a `calibration_history` note to
+    `rust/test_data/ast_shape_contract/systemverilog_v1.json` recording the full 7-LATENT / 4-BENIGN /
+    1-STALE classification (per-candidate isolation-vs-canonical evidence + the runtime key). Fix-hierarchy
+    tier = documentation/manifest note (NOT a grammar/codegen/parser change), per the tree design
+    ("latent-but-unreachable candidates get a manifest calibration note, not a bump").
+  - [x] **ADDRESSED (verified)** — manifest re-validates as JSON (`calibration_history` 134 → 135 entries,
+    `python3 json.load` VALID; the note is entry #0); the LATENT/BENIGN/STALE classification is now
+    durably recorded in the shape-contract manifest itself, closing the `.2` umbrella and the tree.
+  - [x] **NO REGRESSION** — metadata-only note: git diff = the manifest `calibration_history` (+1 string)
+    + task-tree / continuity docs ONLY — NO grammar / codegen / generated-parser / shape-contract-sample
+    change. Therefore SV cert-coverage (`UNKNOWN=20`, seeds 0/7/42), SV external corpus 14/14, the 6
+    fully-certified grammars, and every shape-contract sample are byte-identical-by-construction to `.2.7`.
+    Oracle (run this slice): `cargo test --lib --features generated_parsers systemverilog_ast_shape_contract`
+    with `PGEN_SYSTEMVERILOG_PARSER_PATH=generated/systemverilog_parser.rs` →
+    `ast_shape_contract::tests::systemverilog_ast_shape_contract_holds_against_running_generated_parser
+    ... ok` (**1 passed; 0 failed**; 759 filtered out) — the shape-contract re-validated every sample
+    against the running generated parser AFTER the manifest edit, proving the added `calibration_history`
+    string did not perturb any sample. No Rust source touched → no clippy delta.
+  - [x] **LOCKSTEP** — shape-contract manifest `calibration_history` note added; task file `.2` → done +
+    tree Status → done + `.3` Commit Log hash reconciled; `docs/TASK_TREE.md` row → done; SV defect
+    taxonomy LATENT note; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS updated. NO SV
+    book / integration-contract / bug-ledger change (no behavior/shape/release/schema change).
 
 - ID: `SV-AST-SHAPE-FIDELITY.2.1`
   Status: `done` (2026-07-01)
@@ -746,6 +794,14 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   (`version 7`, "mature"), and added the schema-`7` + bridging schema-`6` rows; the full
   per-release backfill of `1.0.148`–`1.0.151` is scoped to `.3` to keep `.1` focused on the
   port fix.
+- 2026-07-01 (`.2` closure): the 7 LATENT candidates (#3/#4/#10-13/#15) get a manifest calibration note,
+  NOT a fix and NOT a release/schema/ledger bump. Rationale: they are tool-proven (`.2.4`) corrupt only
+  under `--entry-rule` isolation and UNREACHABLE from the canonical `systemverilog_file` entry
+  (PEG-shadowed by the general expression/receiver/constraint/lvalue grammar), so there is no
+  consumer-visible defect on reachable input — unlike the 9 REACHABLE-CORRUPT candidates that earned
+  bug-ledger rows + bumps (`SV-0014`..`SV-0020`). Recording the classification in the shape-contract
+  `calibration_history` makes the audit durable and drift-proof without asserting a runnable sample for
+  an unreachable construct.
 
 ## Open Questions
 
@@ -886,6 +942,16 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   unreachable=0 profile_orphans=0` 1432→1433 rules (`always_matches=8` unchanged);
   `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html); clippy source-clean.
 
+- 2026-07-01 (`.2`, session #12) CLOSURE: metadata-only LATENT-candidate manifest calibration note added to
+  `rust/test_data/ast_shape_contract/systemverilog_v1.json` `calibration_history` (134 → 135 entries,
+  `python3 json.load` VALID). NO grammar / codegen / generated-parser / shape-contract-sample change →
+  SV cert-coverage (`UNKNOWN=20`, seeds 0/7/42), SV external corpus 14/14, and the 6 fully-certified
+  grammars are byte-identical-by-construction to `.2.7`. Oracle re-run in-slice: `cargo test --lib
+  --features generated_parsers systemverilog_ast_shape_contract` with
+  `PGEN_SYSTEMVERILOG_PARSER_PATH=generated/systemverilog_parser.rs` →
+  `systemverilog_ast_shape_contract_holds_against_running_generated_parser ... ok` (1 passed / 0 failed).
+  No Rust source touched → no clippy delta. Closes `.2` + the `SV-AST-SHAPE-FIDELITY` tree.
+
 ## Commit Log
 
 - 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — committed `e0a672f4`.
@@ -896,7 +962,8 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
 - 2026-07-01 (`.2.5`): `PGEN-SV-AST-SHAPE-FIDELITY-0006 (SV-AST-SHAPE-FIDELITY.2.5)` — committed `1c7e5b83`.
 - 2026-07-01 (`.2.6`): `PGEN-SV-AST-SHAPE-FIDELITY-0007 (SV-AST-SHAPE-FIDELITY.2.6)` — committed `5fd85d60`.
 - 2026-07-01 (`.2.7`): `PGEN-SV-AST-SHAPE-FIDELITY-0008 (SV-AST-SHAPE-FIDELITY.2.7)` — committed `f7456293`.
-- 2026-07-01 (`.3`, PURE-DOCS): `PGEN-SV-AST-SHAPE-FIDELITY-0009 (SV-AST-SHAPE-FIDELITY.3)` — pending commit.
+- 2026-07-01 (`.3`, PURE-DOCS): `PGEN-SV-AST-SHAPE-FIDELITY-0009 (SV-AST-SHAPE-FIDELITY.3)` — committed `f5a2f875`.
+- 2026-07-01 (`.2`, closure): `PGEN-SV-AST-SHAPE-FIDELITY-0010 (SV-AST-SHAPE-FIDELITY.2)` — LATENT-candidate manifest calibration note; closes `.2` + the whole tree — [pending commit].
 
 ## Changelog
 
@@ -1013,3 +1080,11 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   `.1` + all `.2.4`-classified reachable-corrupt fixes (`.2.1`/`.2.2`/`.2.3`/`.2.5`/`.2.6`/`.2.7`) + the
   `.2.4` tool-build + `.3` book backfill are DONE; `.2` remains `in_progress` only for the optional
   LATENT-candidate manifest calibration note (no behavior/shape change).
+- 2026-07-01: `.2` CLOSED (LATENT-candidate calibration note; `PGEN-SV-AST-SHAPE-FIDELITY-0010`) — the
+  inline-alt-`$N` sweep is COMPLETE. Recorded the tool-proven (`.2.4`) 7-LATENT / 4-BENIGN / 1-STALE
+  classification of the non-fixed candidates in the shape-contract manifest `calibration_history` so the
+  class cannot silently re-drift. Metadata-only (no grammar/codegen/parser/sample change; no release/
+  schema/ledger bump); manifest re-validates + `systemverilog_ast_shape_contract` re-run green (1 passed
+  / 0 failed) against the generated parser. 9 of 21 candidates fixed (#2/#19/#20/#1/#5/#6/#8/#14/#21);
+  the remaining 12 are the LATENT/BENIGN/STALE set. **This CLOSES `.2` AND the entire
+  `SV-AST-SHAPE-FIDELITY` tree** — all leaves (`.1`, `.2` + `.2.1`–`.2.7`, `.3`) are now `done`.

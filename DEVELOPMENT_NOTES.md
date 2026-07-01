@@ -1,4 +1,20 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-01 - PGEN-SV-AST-SHAPE-FIDELITY-0010 — LATENT-candidate shape-contract calibration note; closes `.2` + the `SV-AST-SHAPE-FIDELITY` tree (metadata-only)
+
+Fresh session 2026-07-01 (PNT, session #12), director focus `sv`. Leaf `.2` closure — the umbrella + the whole tree. METADATA-ONLY (shape-contract manifest `calibration_history`; no grammar/codegen/parser/sample change; no release/schema/ledger bump).
+
+**Context.** The `.2` sweep enumerated 21 inline-alt-`$N` candidates (a bare positional `$N` in a `->` return annotation over an inline `( A | B | … )` group → `ast_return_transform.rs:193`/`:438` `<invalid_sequence_access>` positional-model corruption). `.2.4` built a general entry-aware AST dump (`parseability_probe --parse-dump-ast[-pretty] --entry-rule RULE`, registry-only via `parse_full_from`) and classified all candidates by isolation-corruption × canonical-entry reachability. 9 were REACHABLE-CORRUPT and fixed via the named-lift idiom (`.1`/`.2.1`/`.2.2`/`.2.3`/`.2.5`/`.2.6`/`.2.7`, `SV-0014`..`SV-0020`).
+
+**This slice.** Records the remaining classification in the manifest `calibration_history` so it cannot silently re-drift:
+- **7 LATENT** (#3 `constraint_primary_sv_2017`, #4 `constraint_primary_sv_2023`, #10-13 `method_call_receiver_{sv_2017,sv_2023}` br1/br13, #15 `nonrange_variable_lvalue`): carry the pattern and DO emit the sentinel under `--entry-rule` isolation on `this.`/`pkg::` repros, but are UNREACHABLE from the canonical `systemverilog_file` entry (general expression/receiver/constraint/lvalue grammar PEG-shadows them; e.g. `constraint cc { this.x < 5; }` → 0, `pkg::obj.foo()` → 0 via #9 `split_hierarchical_callable_receiver`, `this.x = 1;` → 0) → no consumer-visible corruption → no fix/bump.
+- **4 BENIGN** (#9/#16/#17/#18): 0 sentinels even in isolation.
+- **1 STALE** (#7 `hierarchical_btf_identifier`): the enumerated pattern is gone (static enumeration drifted).
+Runtime key: `ast_return_transform.rs:193` — only a positional `$N` with N≥2 (element_index≥1) over a base that is not a `Sequence` long enough reaches the fallthrough `Terminal(<invalid_sequence_access>)`; `$1` (element_index 0) has the `other => other.clone()` fallback (so e.g. `nonrange_variable_lvalue` corrupts on `this.x` but not `pkg::x`).
+
+**Verified.** Manifest re-validates (`calibration_history` 134→135, `python3 json.load` VALID). Oracle: `cargo test --lib --features generated_parsers systemverilog_ast_shape_contract` with `PGEN_SYSTEMVERILOG_PARSER_PATH=generated/systemverilog_parser.rs` → `systemverilog_ast_shape_contract_holds_against_running_generated_parser ... ok` (1 passed / 0 failed) — samples re-validated against the running generated parser after the manifest edit. No code touched → cert (`UNKNOWN=20`, seeds 0/7/42), SV external corpus 14/14, and the 6 fully-certified grammars byte-identical-by-construction to `.2.7`; no clippy delta.
+
+**Lockstep.** Manifest note; task tree `.2`/tree → `done` + `.3` commit-log hash reconciled; `docs/TASK_TREE.md` row `done`; SV defect taxonomy `D3` (records the inline-alt-`$N` class + its entry-aware-dump audit pattern); LIVE_ACHIEVEMENT_STATUS / CHANGES / MEMORY. NO SV book / integration contract / bug ledger change. Closes the whole `SV-AST-SHAPE-FIDELITY` tree; SV family status UNCHANGED (`Mostly Done`).
+
 ## 2026-07-01 - PGEN-SV-AST-SHAPE-FIDELITY-0008 — `class_scoped_call_prefix` head inline-alternation-`$1` AST-shape corruption fix (candidate #21, the SV-0013 rule; SV `1.0.158`, schema `13`, ledger `SV-0020`)
 
 Fresh session 2026-07-01 (PNT, session #12), director focus `sv`. Leaf `.2.7` of `SV-AST-SHAPE-FIDELITY.2` — the LAST of the three `.2.4`-classified REACHABLE-CORRUPT candidates. GRAMMAR-only slice (regenerates the SV parser).
