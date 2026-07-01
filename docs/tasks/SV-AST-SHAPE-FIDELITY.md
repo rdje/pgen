@@ -701,7 +701,20 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
     TASK_TREE updated.
 
 - ID: `SV-AST-SHAPE-FIDELITY.3`
-  Status: `open` (2026-07-01)
+  Status: `done` (2026-07-01, session #12)
+  Completion (`.3`, PURE-DOCS): SV parser book timeline backfilled — `schema-versioning.md`
+  gained four `6 (unchanged)` per-release rows for `1.0.148`/`1.0.149`/`1.0.150`/`1.0.151`
+  (ledger `SV-0010`/`SV-0011`/`SV-0012`/`SV-0013`, all schema-neutral: SVA sequence & property
+  precedence-cascade grammar fixes, the library-cohort `file_path_spec` LRM path fix, and the
+  class-scoped-call reach-gap closure), and its schema-6 row's book-timeline note was updated
+  from "pending backfill" to "now backfilled above". `changelog-index.md` gained the missing
+  `### 1.0.152` (SV-AST-SHAPE-FIDELITY.1 / `SV-0014` / schema 6→7 ANSI-port fix) and `### 1.0.151`
+  (`SV-0013` reach-gap) entries, and the three stale "`1.0.151`–`1.0.152` not yet indexed" notes
+  (on the `1.0.153`/`1.0.154`/`1.0.155` entries) were removed. Historical details sourced from the
+  released-parser bug ledger + integration contract (tools-verified mapping: `1.0.148`→`SV-0010`,
+  `1.0.149`→`SV-0011`, `1.0.150`→`SV-0012`, `1.0.151`→`SV-0013`, `1.0.152`→`SV-0014`). No code /
+  grammar / manifest change — book source only; `systemverilog_parser_book_gate` GREEN (mdbook_build
+  + tracked_html rebuilt). Closes the pre-existing SV-book timeline drift discovered during `.1`.
   Goal: Backfill the SV parser book `schema-versioning.md` per-release timeline rows for
   releases `1.0.148`–`1.0.151` (the schema-`6` era: ledger `SV-0010`/`SV-0011`/`SV-0012`/
   `SV-0013`), which were never added to the book timeline (pre-existing lockstep drift
@@ -882,7 +895,8 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
 - 2026-07-01 (`.2.4`): `PGEN-SV-AST-SHAPE-FIDELITY-0005 (SV-AST-SHAPE-FIDELITY.2.4)` — committed `6e916260`.
 - 2026-07-01 (`.2.5`): `PGEN-SV-AST-SHAPE-FIDELITY-0006 (SV-AST-SHAPE-FIDELITY.2.5)` — committed `1c7e5b83`.
 - 2026-07-01 (`.2.6`): `PGEN-SV-AST-SHAPE-FIDELITY-0007 (SV-AST-SHAPE-FIDELITY.2.6)` — committed `5fd85d60`.
-- 2026-07-01 (`.2.7`): `PGEN-SV-AST-SHAPE-FIDELITY-0008 (SV-AST-SHAPE-FIDELITY.2.7)` — pending commit.
+- 2026-07-01 (`.2.7`): `PGEN-SV-AST-SHAPE-FIDELITY-0008 (SV-AST-SHAPE-FIDELITY.2.7)` — committed `f7456293`.
+- 2026-07-01 (`.3`, PURE-DOCS): `PGEN-SV-AST-SHAPE-FIDELITY-0009 (SV-AST-SHAPE-FIDELITY.3)` — pending commit.
 
 ## Changelog
 
@@ -988,3 +1002,14 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   COMPLETE**; 9 of 21 candidates fixed (#2, #19, #20, #1, #5, #6, #8, #14, #21); the remaining 12 are the
   tool-proven LATENT (7, PEG-shadowed) / BENIGN (4) / STALE (1) set from the `.2.4` verdict table. `.2`
   frontier → a latent-calibration manifest note (no bump) + `.3` book-timeline backfill.
+- 2026-07-01: `.3` DONE (PURE-DOCS) — SV parser book timeline backfilled, closing the pre-existing drift
+  discovered during `.1`. `schema-versioning.md` gained four `6 (unchanged)` per-release rows
+  (`1.0.148`–`1.0.151`, ledger `SV-0010`..`SV-0013` — all schema-neutral) + the schema-6 row's
+  "pending backfill" note updated to "now backfilled"; `changelog-index.md` gained the missing
+  `### 1.0.152` (`SV-0014`, schema 6→7) and `### 1.0.151` (`SV-0013`) entries + the three stale
+  "`1.0.151`–`1.0.152` not yet indexed" notes removed. Historical mapping tools-verified from the
+  ledger + contract. Book source only (no code/grammar/manifest); `systemverilog_parser_book_gate`
+  GREEN (mdbook_build + tracked_html). **The `SV-AST-SHAPE-FIDELITY` tree is now materially complete:**
+  `.1` + all `.2.4`-classified reachable-corrupt fixes (`.2.1`/`.2.2`/`.2.3`/`.2.5`/`.2.6`/`.2.7`) + the
+  `.2.4` tool-build + `.3` book backfill are DONE; `.2` remains `in_progress` only for the optional
+  LATENT-candidate manifest calibration note (no behavior/shape change).

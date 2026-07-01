@@ -1,4 +1,12 @@
 # CHANGES.md
+## 2026-07-01 - PGEN-SV-AST-SHAPE-FIDELITY-0009 (SV-AST-SHAPE-FIDELITY.3): SV parser book timeline backfill (PURE-DOCS) — `schema-versioning.md` `1.0.148`–`1.0.151` rows + `changelog-index.md` `1.0.151`/`1.0.152` entries
+
+Fresh session (#12, 2026-07-01) PNT, director focus `sv`. **PURE-DOCS** (SV parser book source + rebuilt HTML only; NO code/grammar/manifest). Closes the pre-existing SV-book timeline drift discovered during `.1`.
+
+- **schema-versioning.md:** added four `6 (unchanged)` per-release rows for `1.0.148` (`SV-0010`, SVA sequence precedence-cascade), `1.0.149` (`SV-0011`, SVA property precedence-cascade), `1.0.150` (`SV-0012`, library-cohort `file_path_spec` LRM path fix), `1.0.151` (`SV-0013`, class-scoped-call reach-gap) — all schema-neutral; the schema-6 row's book-timeline note updated from "pending backfill" to "now backfilled above".
+- **changelog-index.md:** added the missing `### 1.0.152` (SV-AST-SHAPE-FIDELITY.1 / `SV-0014` / schema 6→7 ANSI-port fix) and `### 1.0.151` (`SV-0013` reach-gap) entries; removed the three stale "`1.0.151`–`1.0.152` not yet indexed" notes (on the `1.0.153`/`1.0.154`/`1.0.155` entries).
+- Historical mapping tools-verified from the released-parser bug ledger + integration contract (`1.0.148`→`SV-0010`, `1.0.149`→`SV-0011`, `1.0.150`→`SV-0012`, `1.0.151`→`SV-0013`, `1.0.152`→`SV-0014`). `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html). SV family status UNCHANGED (`Mostly Done`). With `.3` the `SV-AST-SHAPE-FIDELITY` tree is materially complete (`.2` remains `in_progress` only for the optional LATENT-candidate manifest calibration note).
+
 ## 2026-07-01 - PGEN-SV-AST-SHAPE-FIDELITY-0008 (SV-AST-SHAPE-FIDELITY.2.7): `class_scoped_call_prefix` head inline-alternation-`$1` AST-shape corruption fix (candidate #21, the SV-0013 rule) — SV `1.0.157→1.0.158`, schema `12→13`, ledger `SV-0020`
 
 Fresh session (#12, 2026-07-01) PNT, director focus `sv`. **CODE — grammar-only** (`grammars/systemverilog.ebnf`; SV parser regenerated). Seventh reachable, consumer-visible member of the systemic inline-alternation-`$N` AST-shape corruption class (after `SV-0014`..`SV-0019`; ledgered alongside `SVPP-0001`/`RTL-FE-0002`/`RTL-CE-0001`/`VHDL-0001`), the `SV-AST-SHAPE-FIDELITY.2` sweep's candidate #21 and the **LAST of the three `.2.4`-classified REACHABLE-CORRUPT candidates** (#8/#14/#21) — the reachable-corrupt sweep is now complete.
