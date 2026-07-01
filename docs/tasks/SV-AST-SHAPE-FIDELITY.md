@@ -119,7 +119,7 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
     DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS updated.
 
 - ID: `SV-AST-SHAPE-FIDELITY.2`
-  Status: `open` (2026-07-01)
+  Status: `in_progress` (2026-07-01)
   Goal: Sweep `grammars/systemverilog.ebnf` for OTHER reachable inline-alternation-`$N`
   corruptions (a bare positional `$N` referencing an inline `( A | B )` / `( A | B )?`
   group **outside** an iteration lead, the class `POST-SV-AUDIT` did not cover). Enumerate
@@ -127,6 +127,59 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   tools-first (`--parse-dump-ast-pretty`), one rule per sub-leaf. Fix each via the named-lift
   idiom. `ansi_port_declaration` (`.1`) was the first found; confirm whether it was the only
   common one.
+
+  ### Enumeration result (2026-07-01, delegated static sweep — HIGH confidence)
+  A tools-first static audit of `grammars/systemverilog.ebnf` found **21 candidate
+  rule-branches** with a **bare `$N`** whose body-position N is an inline alternation group
+  `( A | B | … )` (top-level `|`), the exact `.1` class. (6 further inline-alt branches are SAFE
+  — they carry no per-branch return annotation, so the `<invalid_sequence_access>` arm cannot
+  fire: `trivia` L471, `function_body_declaration` br2/3 L2132, `net_type_declaration_sv_2017`
+  br1 L3295, `task_body_declaration` br2/3 L4981.) `ansi_port_declaration` (fixed in `.1`) is
+  correctly absent. **These are STATIC candidates — each MUST be verified tools-first
+  (`--parse-dump-ast-pretty` on a minimal reachable repro: is it reachable? does it actually
+  emit the sentinel?) BEFORE any fix** ([[feedback_no_codebase_change_without_tool_backed_facts]]).
+  NOTE candidate #21 `class_scoped_call_prefix` is the `SV-0013` rule — `SV-0013` gated a branch
+  INSIDE the alt (predicates) but did NOT change the inline-alt structure, so its `head: $1` may
+  still corrupt; verify.
+
+  | # | rule (branch) | line | `$N` | inline-alt group (summary) |
+  |---|---|---|---|---|
+  | 1 | `class_scope_type` br0 | 1067 | $1 | scoped/known-unscoped class-scope identifiers (4-way) |
+  | 2 | `base_class_type` br0 | 1094 | $1 | scoped/known-unscoped base-class identifiers (3-way) |
+  | 3 | `constraint_primary_sv_2017` br0 | 1422 | $1 | `( implicit_class_handle dot \| class_scope )?` |
+  | 4 | `constraint_primary_sv_2023` br0 | 1426 | $1 | `( implicit_class_handle dot \| class_scope )?` |
+  | 5 | `scoped_block_type_identifier` br0 | 1634 | $1 | `( class_scope \| non_typedef_package_scope )` |
+  | 6 | `scoped_data_type_identifier` br0 | 1641 | $1 | `( class_scope \| non_typedef_package_scope )` |
+  | 7 | `hierarchical_btf_identifier` br2 | 2253 | $1 | `( hierarchical_identifier dot \| class_scope )?` |
+  | 8 | `interface_class_type` br0 | 2451 | $1 | scoped/known-unscoped interface-class ids (2-way) |
+  | 9 | `split_hierarchical_callable_receiver` br0 | 2827 | $1 | `( kw_class_qualifier… \| non_typedef_package_scope )?` |
+  | 10 | `method_call_receiver_sv_2017` br1 | 2839 | $1 | `( kw_class_qualifier… \| non_typedef_package_scope )?` |
+  | 11 | `method_call_receiver_sv_2017` br13 | 2839 | $6 | `( implicit_class_handle dot \| class_scope )?` |
+  | 12 | `method_call_receiver_sv_2023` br1 | 2858 | $1 | `( kw_class_qualifier… \| non_typedef_package_scope )?` |
+  | 13 | `method_call_receiver_sv_2023` br13 | 2858 | $6 | `( implicit_class_handle dot \| class_scope )?` |
+  | 14 | `nettype_declaration_sv_2023` br1 | 3344 | $2 | `( non_typedef_package_scope \| class_scope )?` |
+  | 15 | `nonrange_variable_lvalue` br0 | 3433 | $1 | `( implicit_class_handle dot \| package_scope \| class_scope )?` |
+  | 16 | `ps_or_hierarchical_array_identifier` br0 | 4281 | $1 | `( implicit_class_handle dot \| class_scope \| non_typedef_package_scope )?` |
+  | 17 | `ps_type_identifier_sv_2017` br0 | 4326 | $1 | `( kw_local… scope_resolution kw_n… \| non_typedef_package_scope \| class_scope )?` |
+  | 18 | `ps_type_identifier_sv_2023` br0 | 4330 | $1 | `( kw_local… scope_resolution kw_n… \| non_typedef_package_scope \| class_scope )?` |
+  | 19 | `type_declaration_sv_2017` br5 | 5199 | $2 | `( kw_enum \| kw_struct \| kw_union )?` |
+  | 20 | `type_declaration_sv_2023` br5 | 5215 | $2 | `( kw_enum \| kw_struct \| kw_union )?` |
+  | 21 | `class_scoped_call_prefix` br0 | 6282 | $1 | scoped/known-unscoped class-scoped-call ids (4-way); **= SV-0013 rule** |
+
+  **Fix strategy (from `.1` precedent):** lift each inline-alt into a NAMED rule; several
+  candidates share the SAME scope-prefix alternation (`implicit_class_handle dot | class_scope
+  | …`), so a handful of shared named rules (e.g. `class_or_package_scope_prefix`) cover most.
+  Sequence as small verified clusters (one leaf per rule or per shared-named-rule cluster),
+  accept/reject + `<invalid_sequence_access>` before→after proven tools-first per leaf, full
+  NO-REGRESSION (corpus 14/14 + cert unchanged + fully-certified byte-identical) + lockstep
+  each. Schema/release bump only where a fix changes a REACHABLE consumer-visible shape (like
+  `.1`); latent-but-unreachable candidates get a manifest calibration note, not a bump.
+
+  **RESUME (fresh session):** for each of the 21, construct a minimal reachable repro →
+  `parseability_probe --parse-dump-ast-pretty systemverilog <file> --profile sv_2017` → confirm
+  the sentinel → named-lift fix → re-verify → lockstep. Start with the reachability-obvious,
+  consumer-common ones (`type_declaration` forward-typedef #19/#20; the `method_call_receiver`
+  #10-13; the `scoped_*_type_identifier` #5/#6).
 
 - ID: `SV-AST-SHAPE-FIDELITY.3`
   Status: `open` (2026-07-01)
@@ -191,6 +244,10 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
 
 - 2026-07-01: Tree created; `.1` root-cause established tools-first (`ansi_port_declaration`
   inline-alt-`$1` corruption on typed ANSI ports).
+- 2026-07-01: `.2` enumeration DONE (delegated static sweep) — **21 HIGH-confidence candidate
+  rule-branches** recorded in the `.2` leaf (bare `$N` over an inline-alt group), + 6 safe
+  no-annotation branches. Per-candidate tools-first verify + named-lift fix PENDING (fresh
+  session); `.2` stays `in_progress`.
 - 2026-07-01: `.1` FIXED + fully verified + lockstepped (named-lift `ansi_port_header`;
   release/schema `1.0.152`/schema `7`; ledger `SV-0014`). During `.1` lockstep discovered
   pre-existing SV-book `schema-versioning.md` drift (intro said "now 3"; timeline missing the
