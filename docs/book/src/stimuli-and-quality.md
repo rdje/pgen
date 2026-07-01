@@ -42,6 +42,62 @@ That rule keeps stimuli work platform-grade instead of grammar-specific.
 - parseability reports and target-driven replay
 - bounded contract files and summary artifacts
 
+## Promotion Gates: Ratcheting a No-Regression Floor
+
+Once a parser family is closed, PGEN protects its demonstrated quality with a
+*promotion gate* — a deterministic, multi-trial acceptance checkpoint that
+re-earns a "this family is ready to run in a stricter mode" recommendation on
+every run. The reference instance is the VHDL strict-promotion gate:
+
+```bash
+make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate
+```
+
+It runs a fixed number of deterministic trials (default `3`) at fixed seeds.
+Each trial generates a small closed-loop stimuli batch and measures two things:
+
+- **parse-full ratio** — of the `N` generated samples, how many parse *fully*
+  with the real generated parser (not just the bootstrap path),
+- **realistic-corpus parity** — the curated realistic corpus produces exactly
+  the expected pass/fail split.
+
+When every trial passes, the gate emits
+`recommendation: enable_required_strict_mode` with `primary_blocker: none`. The
+report and `summary.txt` record the per-trial telemetry (`observed_ratio_min` /
+`_max` / `_avg`) so a later session can see the sustained quality, not just a
+single lucky run.
+
+The parse-full ratio is checked against a floor, `TARGET_MIN_RATIO`. A trial
+fails if its ratio drops below the floor. This is where the *ratchet* lives:
+
+- a floor of `0` is a **no-op** — any ratio is accepted, so the gate proves the
+  trials complete but never guards the ratio itself;
+- raising the floor to a value the family *sustains* turns the gate into a real
+  no-regression net — a future change that degrades closed-loop parse-full
+  quality below the demonstrated level now trips the gate instead of passing
+  silently.
+
+VHDL's floor is ratcheted to `75`. The evidence: an eight-seed sweep plus the
+canonical three-seed run — **eleven distinct seeds, all at `100%` parse-full
+(8/8 samples each)**. `75` sits two sample-steps (`25%`) below that demonstrated
+minimum: a strong floor (far above the no-op `0`, and far above the family's
+own `2026-03-17` historical low of `12%` when the VHDL generator was weaker),
+while still tolerating a benign RNG-stream perturbation of one or two samples on
+the fixed gate seeds without a false failure. The floor stays overridable for
+deliberate experiments:
+
+```bash
+# restore the legacy no-op posture for a one-off investigation
+PGEN_VHDL_STRICT_PROMOTION_TARGET_MIN_RATIO=0 \
+  make -C rust SHELL=/bin/bash vhdl_strict_promotion_gate
+```
+
+The same floor default is mirrored in the aggregate `sota_exit_gate` policy, so
+every path that runs the promotion gate enforces the identical ratchet. The
+doctrine generalizes: when a family is a closed no-regression baseline, prefer
+ratcheting its promotion floor up to the *measured, sustained* minimum (with a
+small margin) over leaving a permissive `0` that proves nothing about the ratio.
+
 ## Probe-Only Steering
 
 When a family is down to a stubborn replay frontier, PGEN now distinguishes between two kinds of literal steering:
