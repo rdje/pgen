@@ -26,7 +26,7 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// Compatibility policy:
 /// - major version changes signal breaking API/behavioral contract changes
 /// - minor/patch changes are backward compatible for existing callers
-pub const EMBEDDING_API_VERSION: &str = "1.2.0";
+pub const EMBEDDING_API_VERSION: &str = "1.3.0";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
@@ -188,6 +188,8 @@ pub enum GrammarProfile {
     Sv2017,
     #[serde(rename = "sv_2023")]
     Sv2023,
+    #[serde(rename = "verilog_2005")]
+    Verilog2005,
     #[serde(rename = "vhdl_1076_2019")]
     Vhdl1076_2019,
     #[serde(rename = "regex_default")]
@@ -227,6 +229,7 @@ impl GrammarProfile {
         match self {
             GrammarProfile::Sv2017 => "sv_2017",
             GrammarProfile::Sv2023 => "sv_2023",
+            GrammarProfile::Verilog2005 => "verilog_2005",
             GrammarProfile::Vhdl1076_2019 => "vhdl_1076_2019",
             GrammarProfile::RegexDefault => "regex_default",
         }
@@ -286,6 +289,9 @@ impl FromStr for GrammarProfile {
         match input.trim().to_ascii_lowercase().as_str() {
             "sv_2017" | "2017" | "ieee1800-2017" | "ieee_1800_2017" => Ok(Self::Sv2017),
             "sv_2023" | "2023" | "ieee1800-2023" | "ieee_1800_2023" => Ok(Self::Sv2023),
+            "verilog_2005" | "1364-2005" | "ieee1364-2005" | "ieee_1364_2005" => {
+                Ok(Self::Verilog2005)
+            }
             "vhdl_1076_2019" | "1076-2019" | "ieee1076-2019" | "ieee_1076_2019" => {
                 Ok(Self::Vhdl1076_2019)
             }
@@ -402,7 +408,11 @@ pub fn embedding_api_contract() -> EmbeddingApiContract {
 /// This contract covers profile-aware parser entry points used by host applications
 /// (for example Nexsim) and intentionally keeps diagnostics deterministic.
 pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
-    let systemverilog_profiles = vec![GrammarProfile::Sv2017, GrammarProfile::Sv2023];
+    let systemverilog_profiles = vec![
+        GrammarProfile::Sv2017,
+        GrammarProfile::Sv2023,
+        GrammarProfile::Verilog2005,
+    ];
     let vhdl_profiles = vec![GrammarProfile::Vhdl1076_2019];
     let regex_profiles = vec![GrammarProfile::RegexDefault];
     ParserEmbeddingApiContract {
@@ -433,6 +443,7 @@ pub fn parser_embedding_api_contract() -> ParserEmbeddingApiContract {
         supported_profiles: vec![
             systemverilog_profiles[0],
             systemverilog_profiles[1],
+            systemverilog_profiles[2],
             vhdl_profiles[0],
             regex_profiles[0],
         ],
@@ -1307,7 +1318,10 @@ fn validate_profile_match(
 ) -> Result<(), ParseDiagnostic> {
     let valid = match grammar {
         GrammarFamily::SystemVerilog => {
-            matches!(profile, GrammarProfile::Sv2017 | GrammarProfile::Sv2023)
+            matches!(
+                profile,
+                GrammarProfile::Sv2017 | GrammarProfile::Sv2023 | GrammarProfile::Verilog2005
+            )
         }
         GrammarFamily::Vhdl => matches!(profile, GrammarProfile::Vhdl1076_2019),
         GrammarFamily::Regex => matches!(profile, GrammarProfile::RegexDefault),

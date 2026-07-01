@@ -54,7 +54,7 @@ For embedders that select grammar / profile by string name (e.g. plugin systems,
 ```rust
 pub fn parse_grammar_profile_named(
     grammar: &str,        // "systemverilog"
-    profile: &str,        // "sv_2017" | "sv_2023"
+    profile: &str,        // "sv_2017" | "sv_2023" | "verilog_2005"
     input: &str,
 ) -> NamedGrammarParseOutcome;
 

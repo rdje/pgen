@@ -136,6 +136,9 @@ fn normalize_generated_grammar_profile<'a>(
         "systemverilog" => match profile.to_ascii_lowercase().as_str() {
             "2017" | "ieee1800-2017" | "ieee_1800_2017" => Some("sv_2017"),
             "2023" | "ieee1800-2023" | "ieee_1800_2023" => Some("sv_2023"),
+            "verilog_2005" | "1364-2005" | "ieee1364-2005" | "ieee_1364_2005" => {
+                Some("verilog_2005")
+            }
             _ => grammar_profile,
         },
         _ => grammar_profile,

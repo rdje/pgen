@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f9e7a078.js";
+            window.path_to_searchindex_js = "searchindex-68b6fe24.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -193,7 +193,8 @@
 <h2 id="parseability_probe"><a class="header" href="#parseability_probe">parseability_probe</a></h2>
 <p>The CLI wrapper around <code>pgen::embedding_api</code> used for terminal-side verification, AST inspection, and bug-report reproducers. 4 sub-commands: <code>--supports</code>, <code>--parse</code>, <code>--parse-dump-ast</code>, <code>--parse-dump-ast-pretty</code>. See the <a href="../../reference/PARSEABILITY_PROBE.html"><code>parseability_probe</code> CLI Reference</a> for the full flag set, exit codes, output formats, and registered grammars.</p>
 <h2 id="profile"><a class="header" href="#profile">Profile</a></h2>
-<p>A named configuration of the grammar that selects which top-level entry rule to start parsing from. SV profiles: <code>sv_2017</code>, <code>sv_2023</code>.</p>
+<p>A named configuration of the grammar that selects which top-level entry rule to start parsing from, and which profile-gated rules are active. SV profiles: <code>sv_2017</code>, <code>sv_2023</code>, and <code>verilog_2005</code>.</p>
+<p><code>verilog_2005</code> (aliases <code>1364-2005</code> / <code>ieee1364-2005</code> / <code>ieee_1364_2005</code>; introduced parser-side by <code>VERILOG-2005-PROFILE.2</code>, embedding API <code>1.3.0</code>) is a strict IEEE 1364-2005 (Verilog) parsing profile on the SystemVerilog grammar: shared core constructs ride the <code>sv_2017</code> baseline, and SystemVerilog-only constructs are rejected. It is realized purely by <code>@profiles: [...]</code> gating on the one grammar — no separate parser — so <code>module m; endmodule</code> parses under <code>--profile verilog_2005</code> while <code>class C; endclass</code> is rejected (still accepted under <code>sv_2017</code>/<code>sv_2023</code>). The strict subset enforcement is being completed incrementally (tracked by the <code>VERILOG-2005-PROFILE</code> task tree); today it gates <code>class_declaration</code>.</p>
 <h2 id="recursive-envelope"><a class="header" href="#recursive-envelope">Recursive envelope</a></h2>
 <p>The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences and iterations), strings (for terminals), and matched-branch passthroughs (for alternations). See <a href="ast-envelope.html">AST Envelope Structure</a>.</p>
 <h2 id="return-annotation"><a class="header" href="#return-annotation">Return annotation</a></h2>

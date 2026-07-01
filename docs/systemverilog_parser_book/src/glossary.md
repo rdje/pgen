@@ -18,7 +18,9 @@ The internal AST-pipeline representation used by PGEN's parser hooks and codegen
 The CLI wrapper around `pgen::embedding_api` used for terminal-side verification, AST inspection, and bug-report reproducers. 4 sub-commands: `--supports`, `--parse`, `--parse-dump-ast`, `--parse-dump-ast-pretty`. See the [`parseability_probe` CLI Reference](../../reference/PARSEABILITY_PROBE.md) for the full flag set, exit codes, output formats, and registered grammars.
 
 ## Profile
-A named configuration of the grammar that selects which top-level entry rule to start parsing from. SV profiles: `sv_2017`, `sv_2023`.
+A named configuration of the grammar that selects which top-level entry rule to start parsing from, and which profile-gated rules are active. SV profiles: `sv_2017`, `sv_2023`, and `verilog_2005`.
+
+`verilog_2005` (aliases `1364-2005` / `ieee1364-2005` / `ieee_1364_2005`; introduced parser-side by `VERILOG-2005-PROFILE.2`, embedding API `1.3.0`) is a strict IEEE 1364-2005 (Verilog) parsing profile on the SystemVerilog grammar: shared core constructs ride the `sv_2017` baseline, and SystemVerilog-only constructs are rejected. It is realized purely by `@profiles: [...]` gating on the one grammar — no separate parser — so `module m; endmodule` parses under `--profile verilog_2005` while `class C; endclass` is rejected (still accepted under `sv_2017`/`sv_2023`). The strict subset enforcement is being completed incrementally (tracked by the `VERILOG-2005-PROFILE` task tree); today it gates `class_declaration`.
 
 ## Recursive envelope
 The default JSON shape produced by un-annotated rules — a recursive composition of arrays (for sequences and iterations), strings (for terminals), and matched-branch passthroughs (for alternations). See [AST Envelope Structure](ast-envelope.md).

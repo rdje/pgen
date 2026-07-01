@@ -53,7 +53,12 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.2.0"`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.3.0"`
+  - `1.3.0` (2026-07-02, `VERILOG-2005-PROFILE.2`): backward-compatible addition of the
+    `verilog_2005` SystemVerilog profile to `GrammarProfile` / `supported_profiles` / `profile_matrix`
+    (schema version unchanged at `2`; struct shape unchanged). The profile is registered and
+    selectable; its strict IEEE-1364-2005 subset enforcement on the SV grammar is being hardened
+    incrementally (tracked by the `VERILOG-2005-PROFILE` task tree).
 - Schema version constant: `EMBEDDING_API_SCHEMA_VERSION = 2`
 - Compatibility rules:
   - Major version bump: breaking API or behavioral contract change.
@@ -72,7 +77,11 @@ Annotation API:
 
 Grammar parser API:
 - `GrammarFamily`: `systemverilog | vhdl | regex`
-- `GrammarProfile`: `sv_2017 | sv_2023 | vhdl_1076_2019 | regex_default`
+- `GrammarProfile`: `sv_2017 | sv_2023 | verilog_2005 | vhdl_1076_2019 | regex_default`
+  - `verilog_2005` (aliases `1364-2005` / `ieee1364-2005` / `ieee_1364_2005`) is a strict IEEE
+    1364-2005 (Verilog) parsing profile on the SystemVerilog grammar: it rides the `sv_2017` baseline
+    of shared core constructs and rejects SV-only constructs. Subset enforcement is being completed
+    incrementally (see the `VERILOG-2005-PROFILE` task tree); today it gates `class_declaration`.
 - `InputOwnershipModel`: `borrowed_str`
 - `ParseSessionModel`: `stateless_per_call`
 - `GrammarParseOutcome`: includes API version, grammar, profile, status, optional diagnostic.

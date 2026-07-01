@@ -102,21 +102,32 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   Output: the Decisions + a concrete `.2`.. implementation-leaf plan appended to this tree.
 
 - ID: `VERILOG-2005-PROFILE.2`
-  Status: `open` (next frontier) — CODE leaf: **register the `verilog_2005` profile end-to-end +
-  gate the first unambiguous whole-rule SV-only family (`class_declaration`)**, accept/reject
-  proven both ways. Scope (minimal, provable):
-  - Register the profile: `GrammarProfile::Verilog2005` variant + `as_str`
-    (`rust/src/embedding_api.rs:186/225`), `FromStr` aliases
-    `verilog_2005`/`1364-2005`/`ieee1364-2005`/`ieee_1364_2005` (`:282`), the
-    `systemverilog` `profile_matrix` binding (`:439`), and the runtime alias normalizer arm in
-    `normalize_generated_grammar_profile` (`rust/src/parser_registry.rs:117`).
-  - Gate ONE whole-rule family: add `@profiles: ["sv_2017", "sv_2023"]` above
-    `class_declaration` (`grammars/systemverilog.ebnf:962`) → regen SV parser.
+  Status: `done` (2026-07-02, `PGEN-VERILOG-2005-PROFILE-0003`) — CODE leaf: **registered the
+  `verilog_2005` profile end-to-end + gated the first whole-rule SV-only family
+  (`class_declaration`) + admitted `verilog_2005` to the `sv_2017` baseline of the shared core
+  `module_declaration_sv_2017`**, accept/reject proven both ways. See "`.2` Findings" for the
+  tools-first design correction (the `.1` Option-B "core rules are un-annotated" premise had a hole:
+  shared core constructs are profile-SPLIT into `_sv_2017`/`_sv_2023` variants, so a brand-new
+  profile that matches neither parses the EMPTY language until it is admitted to the `sv_2017`
+  baseline variant). Scope (minimal, provable — as executed):
+  - Register the profile: `GrammarProfile::Verilog2005` variant + `as_str`,
+    `FromStr` aliases `verilog_2005`/`1364-2005`/`ieee1364-2005`/`ieee_1364_2005`,
+    `validate_profile_match` SystemVerilog arm, the `systemverilog` `profile_matrix` /
+    `supported_profiles` binding, and `EMBEDDING_API_VERSION` `1.2.0`→`1.3.0` (backward-compatible
+    supported-profile addition; schema stays `2`) in `rust/src/embedding_api.rs`; the runtime alias
+    normalizer arm in `normalize_generated_grammar_profile` (`rust/src/parser_registry.rs`).
+  - Gate ONE whole-rule SV-only family: add `@profiles: ["sv_2017", "sv_2023"]` above the
+    `class_declaration` umbrella (`grammars/systemverilog.ebnf`) — excludes `verilog_2005` → reject.
+  - **CORRECTED MECHANISM (`.2` finding):** admit `verilog_2005` to the `sv_2017` BASELINE variant of
+    the shared core `module_declaration_sv_2017` (`@profiles: ["sv_2017"]`→`["sv_2017","verilog_2005"]`)
+    — WITHOUT this, `module m; endmodule` rejects at position 0 under `verilog_2005` because the core
+    `module_declaration` umbrella dispatches only to `_sv_2017`/`_sv_2023` gated variants (empty
+    language). This is the load-bearing correction to the `.1` Option-B design. → regen SV parser.
   - PROVE both ways (tools-first): `class C; endclass` **REJECTS** under `--profile verilog_2005`
-    and still **PARSES** under `--profile sv_2017`; a minimal Verilog-2005 module
-    (`module m; endmodule`) **PARSES** under `verilog_2005`. Acceptance checklist enforced
-    (code leaf): ROOT CAUSE / ADDRESSED / NO REGRESSION (SV corpus 14/14; 6 fully-certified
-    byte-identical; `ast_shape_contract` GREEN; clippy clean).
+    (rc=1) and still **PARSES** under `sv_2017`/`sv_2023` (rc=0); a minimal Verilog-2005 module
+    (`module m; endmodule`) **PARSES** under `verilog_2005`/`sv_2017`/`sv_2023` (rc=0); aliases
+    `ieee1364-2005`/`1364-2005` normalize correctly. Acceptance checklist enforced (code leaf):
+    ROOT CAUSE / ADDRESSED / NO REGRESSION — see the "Acceptance Checklist (`.2`)" section.
 - ID: `VERILOG-2005-PROFILE.3` … (subsequent implementation leaves, one family/cluster per leaf,
   in the order fixed by "`.1` Findings → Implementation order"). Whole-rule gates first (cascade
   automatically, low-risk), then the bare-keyword **branch-lift** gates (shape-preserving, each
@@ -242,6 +253,89 @@ need no individual gating: they are only reachable via the construct roots gated
   (Deliverable 2 split) → curated corpus + `verilog_2005` cert/corpus gate → LIVE + SV integration
   contract (new profile) + SV parser book (`verilog_2005` chapter) lockstep.
 
+## `.2` Findings (tools-first, 2026-07-02)
+
+### The load-bearing correction to the `.1` Option-B design (tool-proven)
+
+The `.1` design's Deliverable 3 concluded "an un-annotated rule is active in ALL profiles, so annotate
+only the SV-only rules (Option B) and the shared/core rules stay active under `verilog_2005`." A
+tools-first BEFORE-state probe of the un-registered `verilog_2005` profile disproved the load-bearing
+half of that premise:
+
+```
+$ parseability_probe --parse systemverilog module_min.sv --profile verilog_2005
+Parser did not consume full input at position 0 [furthest_position=0, +0 bytes deeper]   # rc=1
+```
+
+`module m; endmodule` — pure Verilog-2005 — REJECTED at position 0 under `verilog_2005`. A scoped
+`PGEN_TRACE_VERBOSITY=high … --trace-rules systemverilog_file` showed `module_declaration` taking
+`Backtrack { position: 0 }`. WHY+WHERE: the shared core constructs are **profile-SPLIT** —
+`module_declaration_sv_2017` (`@profiles:["sv_2017"]`) and `module_declaration_sv_2023`
+(`@profiles:["sv_2023"]`), dispatched by an un-gated `module_declaration` umbrella. There are **101
+`["sv_2017"]` + 126 `["sv_2023"]`** such gates and **zero** `["sv_2017","sv_2023"]` core gates. A
+brand-new profile string that matches NEITHER list disables every profile-split core rule ⇒
+`verilog_2005` parses the **empty language**, not "core active + SV-only gated." Gating
+`class_declaration` alone (the `.1` first-slice plan) would therefore have shipped a profile that
+accepts nothing.
+
+### Corrected mechanism (declarative, no new engine primitive)
+
+Because **Verilog-2005 ⊂ SV-2017 ⊂ (2017 ∪ 2023)**, `verilog_2005` rides the **`sv_2017` baseline
+variant** of each shared core rule: `@profiles:["sv_2017"]` → `["sv_2017","verilog_2005"]`. Genuinely
+SV-only roots stay gated `["sv_2017","sv_2023"]` (excluding `verilog_2005`). This uses ONLY the
+existing `@profiles` allow-list + ordered choice — no engine change. `.2` applies this to the single
+core rule on the minimal `module m; endmodule` path (`module_declaration_sv_2017`; its children
+`module_ansi_header`/`module_keyword`/`module_identifier`/`non_port_module_item` are un-annotated ⇒
+already active). `.3`.. extends the baseline admission to the remaining shared core rules per-family,
+tools-verified, alongside the SV-only gates (the Deliverable-1 table) and keyword re-admission
+(Deliverable 2).
+
+### Pre-existing finding (NOT this slice; flagged for a follow-up leaf)
+
+Running the authoritative `make -C rust sv_cert_recognized_union_gate` shows it is **RED on COUNTS
+only**: `canonical UNKNOWN=20`, `union UNKNOWN=1`, `union residual=["context_member_method_call"]` all
+MATCH the contract, but `total=1312`/`witness` are `+8` over the pinned `expected_total=1304`. Root
+cause (git-traced): the contract `systemverilog_recognized_cert_union_contract.json` was pinned at
+`5d8801d6` on release `1.0.151`; the subsequent `SV-AST-SHAPE-FIDELITY` campaign (`SV-0014`→`SV-0020`,
+`1.0.152`→`1.0.158`) landed *"shared named-lift"* fixes (each adds named rules) **without
+re-baselining this contract**. This drift is **pre-existing** and **union-neutral to this slice** (my
+diff is directive-only; `verilog_2005` is not a union config; the `+8` is identical with/without it —
+proven: rule-def count `1433=1433` HEAD↔working, and the semantic union invariants are unchanged).
+Recommend a separate task-tree leaf to re-baseline the union contract counts (its own ownership +
+verification), not folded here (one concern per commit; a cert-oracle re-baseline deserves its own
+proof).
+
+## Acceptance Checklist (`.2`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — `parseability_probe --parse systemverilog {class_min,module_min}.sv
+  --profile verilog_2005`: BEFORE, `class` rejected at pos 0 AND `module m; endmodule` rejected at
+  `furthest_position=0` (verilog_2005 = empty language, un-registered profile).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `PGEN_TRACE_VERBOSITY=high … --trace-rules systemverilog_file`
+  shows `module_declaration` `Backtrack { position: 0 }`; WHERE = the profile-split shared core rules
+  (`module_declaration_sv_2017`@`["sv_2017"]` / `_sv_2023`@`["sv_2023"]`; 101+126 such gates, 0
+  three-profile) exclude any new profile; `--report-certificate-coverage --grammar-profile sv_2017`
+  used for the coverage baseline. `furthest_position=0` cited.
+- [x] **FIX** — declarative (fix-hierarchy tier: grammar + profile registration, no engine primitive):
+  admit `verilog_2005` to `module_declaration_sv_2017`'s `sv_2017` baseline; gate `class_declaration`
+  `["sv_2017","sv_2023"]`; register `GrammarProfile::Verilog2005` end-to-end + registry normalize +
+  `EMBEDDING_API_VERSION` `1.3.0`.
+- [x] **ADDRESSED (verified)** — before→after, `--parse … --profile`: `class C; endclass`
+  verilog_2005 REJECT (rc=1) / sv_2017 ACCEPT (rc=0) / sv_2023 ACCEPT (rc=0); `module m; endmodule`
+  verilog_2005 **ACCEPT (rc=0, was reject@0)** / sv_2017 (rc=0) / sv_2023 (rc=0); aliases
+  `ieee1364-2005` (module ACCEPT) / `1364-2005` (class REJECT) normalize correctly.
+- [x] **NO REGRESSION** — SV cert seeds 0/7/42 (sv_2017): canonical `UNKNOWN=20`, union `UNKNOWN=1`,
+  residual `["context_member_method_call"]`, `sample_parse_failures=0`, deterministic (semantic
+  invariants preserved; the `total`/`witness` `+8` is the pre-existing `SV-AST-SHAPE-FIDELITY`
+  count-drift above, union-neutral to this slice). `ast_shape_contract_gate` GREEN (18/18);
+  embedding_api lib tests 51 passed/0 failed; clippy SOURCE clean (generated debt pre-existing,
+  non-strict); realistic corpus 239/239 non-preprocessor `.sv` parse under sv_2017 (0 real fails; 126
+  fails are preprocessor-directive files, by-design not raw-SV-parseable); the 6 fully-certified
+  grammars byte-identical (only SV regenerated).
+- [x] **LOCKSTEP** — `rust/docs/EMBEDDING_API_CONTRACT.md` (version + `GrammarProfile` list), the SV
+  parser book (`verilog_2005` profile note), CHANGES / DEVELOPMENT_NOTES / MEMORY /
+  LIVE_ACHIEVEMENT_STATUS updated; downstream SV integration contract full `verilog_2005` write-up
+  deferred to the closure leaf (profile still incrementally hardening) per the tree's closure plan.
+
 ## Decisions
 
 - 2026-07-01: **A profile is the correct mechanism** (not a bespoke validator, not a fork). This
@@ -278,12 +372,30 @@ need no individual gating: they are only reachable via the construct roots gated
 - 2026-07-01 (`.1`): **Profile is a runtime selection, no parser fork.** Codegen emits the full
   grammar with runtime guards (`parser_registry.rs:1028`); `verilog_2005` needs only the EBNF
   annotations + `GrammarProfile`/alias registration + a regen.
+- 2026-07-02 (`.2`, tool-proven correction): **`verilog_2005` RIDES the `sv_2017` baseline variant of
+  each shared, profile-SPLIT core rule** (`["sv_2017"]`→`["sv_2017","verilog_2005"]`), while genuinely
+  SV-only roots stay gated `["sv_2017","sv_2023"]` (excluding `verilog_2005`). This SUPERSEDES the
+  `.1` Option-B premise that "core rules are un-annotated → active in all profiles" — false for the
+  101 `["sv_2017"]` + 126 `["sv_2023"]` version-split core rules; a new profile matching neither
+  parses the empty language (proven: `module m; endmodule` rejected at pos 0). Declarative, no new
+  engine primitive. Because Verilog-2005 ⊂ SV-2017, the `sv_2017` variant is the correct baseline.
+- 2026-07-02 (`.2`): **Introduce the profile in the embedding contract now (version `1.3.0`), not at
+  closure.** Adding a supported profile is a backward-compatible contract addition (schema stays `2`);
+  the profile is registered + selectable immediately and its subset enforcement hardens across `.3`..
+  The downstream SV integration-contract full write-up stays deferred to the closure leaf (honest: the
+  strict subset is still being completed) — but the code-owned `rust/docs/EMBEDDING_API_CONTRACT.md`
+  is updated in lockstep because the code const changed.
 
 ## Open Questions
 
 - ~~Exact default-profile-membership semantics of an UN-annotated rule~~ — **RESOLVED (`.1`)**:
   un-annotated ⇒ active in ALL profiles (`rule_profile_is_enabled` returns `true` on an empty
-  allow-list). Gating is therefore additive (Option B).
+  allow-list). Gating is therefore additive (Option B). **AMENDED (`.2`, tool-proven):** the premise
+  is only half the story — shared CORE constructs are profile-SPLIT into `_sv_2017`/`_sv_2023` gated
+  variants (101+126 of them), so they are NOT un-annotated and a new profile matching neither is
+  excluded from them ⇒ empty language. `verilog_2005` must be positively ADMITTED to the `sv_2017`
+  baseline of each shared core rule (see `.2` Findings + Decisions). Option B (gate SV-only roots) is
+  correct for the subtractive axis; the additive baseline-admission axis is the `.2` correction.
 - Divergences (`.1` oracle diff): the SV-vs-Verilog differences found are **structural, not true
   "legal-in-Verilog-illegal-in-SV" divergences** — SV ADDS `unique`/`priority` qualifiers +
   `case…matches` pattern arms to `case_statement`/`conditional_statement` (branch-lift), and a
@@ -324,9 +436,28 @@ need no individual gating: they are only reachable via the construct roots gated
   Annex B (123 kw, `section-Annex_B-…md`) vs `reserved_non_keyword_identifier`@360 →
   ~48 SV-only reserved words to un-reserve. Closure bar + first slice (D4) fixed → `.2`. No
   grammar / code / generated / release change (design-only).
+- 2026-07-02 (`.2`, CODE — full verification): see "Acceptance Checklist (`.2`)" for the earned
+  boxes. Headlines: accept/reject proven both ways for `class`/`module` × `{verilog_2005, sv_2017,
+  sv_2023}` + aliases; SV cert seeds 0/7/42 semantic invariants preserved (`UNKNOWN=20`, union `1`,
+  residual `context_member_method_call`, `spf=0`); `ast_shape_contract` 18/18; embedding_api 51/0;
+  clippy source clean; realistic corpus 239/239 non-preprocessor under sv_2017. Regenerated SV only
+  (other 6 grammars byte-identical). Pre-existing `sv_cert_recognized_union_gate` count-drift
+  discovered + git-traced (not this slice; follow-up leaf recommended).
 
 ## Commit Log
 
+- 2026-07-02 (`.2`, tools-first CODE): confirmed BEFORE-state via `parseability_probe --parse`:
+  `class C; endclass` and `module m; endmodule` BOTH rejected at pos 0 under `--profile verilog_2005`
+  (empty language). Root cause pinned by `--trace-rules systemverilog_file` (`module_declaration`
+  `Backtrack{position:0}`) → shared core rules profile-split, no 3-profile gate. Grammar: rule-def
+  count `1433=1433` (directive-only diff). AFTER regen (`focus_systemverilog`, 47s) + release-probe
+  rebuild: class REJECT@verilog_2005 / ACCEPT@sv_2017,sv_2023; module ACCEPT@all-three; aliases
+  normalize. Cert seeds 0/7/42: canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual
+  `["context_member_method_call"]`, `spf=0`, deterministic. `ast_shape_contract_gate` 18/18;
+  embedding_api tests 51/0; clippy source clean; realistic corpus 239/239 non-preprocessor `.sv`
+  under sv_2017. Discovered + git-traced the pre-existing `sv_cert_recognized_union_gate` count-drift
+  (`total 1304→1312` from `SV-0014`→`SV-0020` named-lifts; contract pinned at `5d8801d6`/`1.0.151`) —
+  flagged for a follow-up re-baseline leaf, union-neutral to this slice.
 - 2026-07-01: tree created + `.1` scoping opened (`PGEN-VERILOG-2005-PROFILE-0001`, PURE-DOCS —
   scoping only, no code/grammar/generated change).
 - 2026-07-01: `.1` DESIGN closed (`PGEN-VERILOG-2005-PROFILE-0002`, PURE-DOCS) — all four
@@ -347,3 +478,13 @@ need no individual gating: they are only reachable via the construct roots gated
   split of the reserved lookahead; (D4) closure bar (accept/reject conformance corpus + profiled
   cert) + first slice `.2` (register profile + gate `class_declaration`) + `.3`.. ordering.
   Frontier → `.2` (first CODE leaf).
+- 2026-07-02: `.2` DONE (`PGEN-VERILOG-2005-PROFILE-0003`, CODE) — registered the `verilog_2005`
+  profile end-to-end (`GrammarProfile::Verilog2005` + aliases + `validate_profile_match` +
+  `profile_matrix` + `EMBEDDING_API_VERSION 1.3.0`; registry normalize) and gated the first SV-only
+  family (`class_declaration` → `["sv_2017","sv_2023"]`). Tools-first surfaced + corrected the `.1`
+  Option-B hole: shared core constructs are profile-SPLIT, so `verilog_2005` was admitted to the
+  `sv_2017` baseline of `module_declaration_sv_2017` (else the profile parses the empty language).
+  Accept/reject proven both ways; no-regression green (cert semantic invariants, shape-contract,
+  embedding tests, clippy, realistic corpus). Discovered the pre-existing `sv_cert_recognized_union_gate`
+  count-drift (SV-AST-SHAPE-FIDELITY lockstep debt) — flagged for a follow-up leaf. Frontier → `.3`
+  (extend baseline admission + SV-only gates per-family).

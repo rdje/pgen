@@ -2,6 +2,18 @@
 
 Last updated: 2026-06-02 (**ACTIVE: `MEMORY-ARCH` tree CLOSED — durable harness-agnostic agent-memory architecture adopted with full E1–E4 enforcement (`PGEN-MEMORY-ARCH-0001..0006`); all 54 durable `~/.claude` records migrated into tracked `docs/decisions/`, root `MEMORY.md` demoted to a bounded 23-line resume pointer, gates proven to bite. SV-EXH-PROOF `.6` was CONFIRMED green earlier this session (`-0113`, cached-mode `sv_parser_family_status_gate` exit 0 / both families pass) — the May-31 "open re-verify" item is RESOLVED.**) **SV status (updated 2026-06-04):** `systemverilog main parser` honestly `Mostly Done` — the ONE short Done-criterion is `focused_replay_target_debt_zero`; the closed-loop residual is now a best-known **97** (canonical gate `PGEN-SV-EXH-PROOF-0149`, exit 0), down the full arc ~2660 → 888 (.7.2 steering plateau) → 753 (.7.4.4 Purdom) → 273 (.7.4.5 budget) → **97 (.7.4.6.3 derivation-directed CONSTRUCTION)**. The "literal-0 needs a non-steering mechanism" call (old `.7.2.21`) was RIGHT and is now ANSWERED: construction (not steering) is that mechanism; the −791 from 888 confirms it. Residual measured **105** (`PGEN-SV-EXH-PROOF-0153`, 2026-06-05) — within the ±~25 run-to-run noise band (runs: 97/89/105/120). **`.7.4.6.7` LANDED:** the shadowing lint proved 25 ordered-choice branches DEAD (exact duplicates); all 25 removed from `systemverilog.ebnf` → `ordered_choice_shadowing 25→0`, grammar fully lint-clean, parse-neutral (SV external corpus 14/14, lib 652/0, realistic 730/730). This is a NECESSARY literal-0 prerequisite (a permanently-uncoverable dead branch can never be driven to 0) + a grammar-correctness cleanup. The de-dup did NOT move the noisy measured residual — which pinned the DEEPER blocker: the residual METRIC was NON-DETERMINISTIC (±~25, from the generator's WALL-CLOCK timeout). **RESOLVED `GRAMMAR-WELLFORMED.B1` (`PGEN-GRAMMAR-WELLFORMED-0005`, 2026-06-05): replaced the wall-clock generation deadline (`Instant::now`) with a DETERMINISTIC step-counter budget → the canonical gate now reports closed_loop_replay_targets_total = 84 IDENTICAL across two independent runs (the ±25 wobble of 97/89/105/120 is GONE; proven by construction + empirically). The literal-0 metric is now SIGNAL, not noise — the constructive half of the well-formedness duality can be driven + measured deterministically.** Earlier hypotheses (generation-difficulty; pre/post-LR phantom) both DISPROVEN by source-trace (`.7.4.6.6`). SV external corpus 14/14; realistic corpus 730/730; release 1.0.136 (schema 3).
 
+**Dialect profiles (updated 2026-07-02, `VERILOG-2005-PROFILE.2`, `In Progress`):** a strict
+`verilog_2005` (IEEE 1364-2005) parsing profile is now registered end-to-end on the SystemVerilog
+grammar (embedding API `1.3.0`; `GrammarProfile::Verilog2005` + aliases `1364-2005`/`ieee1364-2005`).
+Mechanism (tools-proven): `verilog_2005` rides the `sv_2017` baseline of shared core constructs and
+SV-only roots are `@profiles`-gated out — so `module m; endmodule` parses under `--profile
+verilog_2005` while `class C; endclass` is rejected (still accepted under `sv_2017`/`sv_2023`). This
+is the first CODE slice (gates `class_declaration`; admits `module_declaration_sv_2017`); the full
+IEEE-1364-2005 subset enforcement is being hardened incrementally (tree `VERILOG-2005-PROFILE`,
+frontier `.3`). SV family closure status is UNCHANGED (`Mostly Done`); no SV release bump (additive
+profile). Note: the SV figures in the paragraph above are from the 1.0.136 era; the current SV parser
+release is `1.0.158` / schema `13` (see per-parser book + `MEMORY.md`).
+
 ## Purpose
 Provide a precise, always-current progress surface for the project using exactly four status levels:
 - `Done`
