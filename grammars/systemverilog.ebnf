@@ -1091,7 +1091,15 @@ known_unscoped_base_class_type_parameter_identifier := class_identifier
 
 scoped_base_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
-base_class_type := ( scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier | known_unscoped_base_class_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
+# SV-AST-SHAPE-FIDELITY.2.2 — named-lift of the base_class_type head alternation so
+# the bare `head: $1` in `base_class_type` binds a clean named rule instead of an
+# inline alternation (which corrupted the positional model → `params`/`scope_chain`
+# `<invalid_sequence_access>` when the self-annotated scoped branch won). Mirrors the
+# already-correct sibling `class_type_head` (:1102) + the `.1` `ansi_port_header` /
+# `.2.1` `forward_type_keyword` named-lift precedent.
+base_class_type_head := scoped_base_class_type_identifier | known_unscoped_base_class_type_identifier | known_unscoped_base_class_type_parameter_identifier
+
+base_class_type := base_class_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? )*
                 -> {head: $1, params: $2, scope_chain: $3}
 
 scoped_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}

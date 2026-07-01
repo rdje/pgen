@@ -1023,6 +1023,20 @@ mod tests {
                 "type_declaration_sv_2017" => parser
                     .parse_type_declaration_sv_2017()
                     .map_err(|err| err.to_string()),
+                // SV-AST-SHAPE-FIDELITY.2.2: lock the base-class-type shape at its
+                // own entry rules so the `base_class_type` inline-alternation-`$1`
+                // corruption (`class D extends pkg::B;` emitted
+                // `<invalid_sequence_access>` for the `params`/`scope_chain`
+                // sub-shapes) cannot recur unnoticed. `base_class_type_head` is the
+                // corruption-site + compile-time revert guard — removing it (reverting
+                // to the inline alternation) fails `parse_base_class_type_head()` to
+                // compile. Mirrors the already-correct sibling `class_type_head`.
+                "base_class_type_head" => parser
+                    .parse_base_class_type_head()
+                    .map_err(|err| err.to_string()),
+                "base_class_type" => parser
+                    .parse_base_class_type()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

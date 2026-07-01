@@ -240,6 +240,86 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
     `systemverilog_parser_book_gate`; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS
     updated.
 
+- ID: `SV-AST-SHAPE-FIDELITY.2.2`
+  Status: `done` (2026-07-01)
+  Goal: Fix the `.2` enumeration candidate **#2** — the `base_class_type` head
+  inline-alternation-`$1` corruption. A derived class whose base is a
+  package-scoped class (`class D extends pkg::B;` — a ubiquitous SV/UVM idiom,
+  e.g. `class my_driver extends uvm_pkg::uvm_driver;`) currently yields
+  `<invalid_sequence_access>` for the `base_class_type` `params` + `scope_chain`
+  sub-shapes. ONE un-annotated named rule (`base_class_type_head`) fixes both
+  profiles (both `class_declaration_sv_2017:955` and `class_declaration_sv_2023:959`
+  reference the single shared `base_class_type` rule via `extends`), mirroring the
+  already-correct sibling `class_type_head` idiom (`systemverilog.ebnf:1099-1104`)
+  and the `.1` `ansi_port_header` / `.2.1` `forward_type_keyword` precedent.
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — `class D extends pkg::B; endclass` →
+    `./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog … --profile sv_2017`
+    (also `sv_2023`) yields the `extends[1].head` (`base_class_type`) node
+    `{head:{name:{body:"B"}, scope:{…pkg…}}, params:"<invalid_sequence_access>",
+    scope_chain:"<invalid_sequence_access>"}` — **2 `<invalid_sequence_access>` per
+    scoped-base extends**, both profiles. The declared-bare form
+    `class B; endclass class D extends B;` is already clean (`{head:{body:"B"},
+    params:[], scope_chain:[]}`) — the bare branch carries no per-branch annotation,
+    so only the annotated `scoped_base_class_type_identifier` branch triggers the
+    positional-model corruption.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:1094`
+    (`base_class_type`): `head: $1` binds a bare positional `$1` to the inline 3-way
+    alternation `( scoped_base_class_type_identifier |
+    known_unscoped_base_class_type_identifier |
+    known_unscoped_base_class_type_parameter_identifier )`. The inline-alt-`$N`
+    corrupts the positional model in
+    `rust/src/ast_pipeline/ast_return_transform.rs` (sentinel `:193`/`:438`): when the
+    self-annotated `scoped_base_class_type_identifier` branch (`-> {scope:$1,name:$2}`)
+    wins, the rule's own annotation `{head:$1, params:$2, scope_chain:$3}` is
+    mis-recursed so `params` (`$2` = `( parameter_value_assignment )?`) and
+    `scope_chain` (`$3` = `( scope_resolution class_identifier … )*`) resolve to
+    out-of-range positions → `<invalid_sequence_access>`. IDENTICAL mechanism to `.1`
+    (`ansi_port_declaration`), `.2.1` (`type_declaration` br6), `SVPP-0001`,
+    `RTL-FE-0002`, `RTL-CE-0001`, `VHDL-0001`. The sibling `class_type` (`:1099`) is
+    already correct precisely because it lifts its head into the named `class_type_head`
+    (`:1102`) — `base_class_type` is the un-lifted twin.
+  - [x] **FIX** — lifted the inline alternation into the new un-annotated named rule
+    `base_class_type_head := scoped_base_class_type_identifier |
+    known_unscoped_base_class_type_identifier |
+    known_unscoped_base_class_type_parameter_identifier`
+    (`grammars/systemverilog.ebnf`, placed just before `base_class_type`); rewrote
+    `base_class_type := base_class_type_head ( parameter_value_assignment )? (
+    scope_resolution class_identifier ( parameter_value_assignment )? )* -> {head:$1,
+    params:$2, scope_chain:$3}` (annotation text + positions unchanged). Fix-hierarchy
+    tier = Level-1 declarative grammar edit; the `.1`/`.2.1` named-lift precedent + the
+    in-file `class_type_head` idiom. SV parser regenerated (`make -C rust
+    focus_systemverilog`), release `parseability_probe` + debug `ast_pipeline` rebuilt.
+  - [x] **ADDRESSED (verified)** — before→after on both profiles
+    (`--parse-dump-ast-pretty` on `class D extends pkg::B; endclass`):
+    `<invalid_sequence_access>` **2 → 0** (both `sv_2017` AND `sv_2023`); the
+    `base_class_type` node's `params`/`scope_chain` go from the corrupted sentinels to
+    the clean empty arrays `[]`, `head` stays the correct `scoped_base_class_type_identifier`
+    `{name, scope}`. The declared-bare `class B; class D extends B;` stays clean
+    (`{head:{body:"B"}, params:[], scope_chain:[]}`) — no regression on the bare branch.
+    `parse_full` still passes.
+  - [x] **NO REGRESSION** — SV external corpus **14/14** (`sv_external_corpus_triage_gate`,
+    `parse_pass_total=14 parse_fail_total=0`); SV canonical cert `total 1306→1307 /
+    witness 1285→1286 / UNKNOWN=20` unchanged seeds 0/7/42 (`spf=0`; identical 20-rule
+    residual — 19 `no_path` + `context_member_method_call`; `base_class_type_head`
+    witnessed, ZERO newly-unknown); 6 fully-certified grammars byte-identical
+    `fully_certified=true` (SV-only regen; codegen untouched — json/regex spot-checked
+    `fully_certified=true`; git diff = grammar + docs only); `cargo test --lib --features
+    generated_parsers` **739/0**; `systemverilog_ast_shape_contract` **11/11** aligned
+    (2 new samples validated against the running regenerated parser); `--lint-grammar`
+    `ordered_choice_shadowing=0 non_terminating=0 unreachable=0 profile_orphans=0`
+    (1427→1428 rules, `always_matches=8` unchanged); clippy source-clean.
+  - [x] **LOCKSTEP** — shape-contract manifest `systemverilog_v1.json` (+2 samples
+    `base_class_type_head_scoped`/`base_class_type_scoped`, +1 calibration_history entry)
+    + `ast_shape_contract.rs` dispatch arms (`base_class_type_head`, `base_class_type`);
+    released-parser bug-ledger row `SV-0016`; SV integration contract `1.0.153 → 1.0.154`
+    + schema `8 → 9` + § "AST-Shape Corrections — 1.0.154"; SV parser book
+    (`schema-versioning.md` schema-9 row + intro `now 9`, `welcome.md` version `9`,
+    `json-carrier.md` +2 rows, `changelog-index.md` `1.0.154` entry) rebuilt GREEN via
+    `systemverilog_parser_book_gate`; CHANGES / DEVELOPMENT_NOTES / MEMORY /
+    LIVE_ACHIEVEMENT_STATUS updated.
+
 - ID: `SV-AST-SHAPE-FIDELITY.3`
   Status: `open` (2026-07-01)
   Goal: Backfill the SV parser book `schema-versioning.md` per-release timeline rows for
@@ -313,11 +393,28 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   `ordered_choice_shadowing=0 non_terminating=0 unreachable=0 profile_orphans=0` 1426→1427 rules
   (`always_matches=8` unchanged); `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html);
   clippy source-clean.
+- 2026-07-01 (`.2.2`): tools-first before→after on `class D extends pkg::B; endclass`,
+  `--parse-dump-ast-pretty` on `sv_2017` AND `sv_2023`: `base_class_type` node
+  `<invalid_sequence_access>` **2 → 0** both profiles; corrupted `{head:{name,scope},
+  params/scope_chain:"<invalid_sequence_access>"}` → clean `{head:{name,scope}, params:[],
+  scope_chain:[]}`; declared-bare `class B; class D extends B;` still clean
+  (`{head:{body:"B"}, params:[], scope_chain:[]}`); `parse_full` passes.
+- 2026-07-01 (`.2.2`) NO-REGRESSION: SV external corpus triage gate `parse_pass_total=14
+  parse_fail_total=0` (**14/14**); SV canonical cert `total 1306→1307 witness 1285→1286 UNKNOWN=20
+  spf=0` seeds 0/7/42 byte-identical (identical 20-rule residual — 19 `no_path` +
+  `context_member_method_call`; `comm -13` empty; `base_class_type_head` witnessed, absent from the
+  UNKNOWN set); 6 fully-certified grammars byte-identical (json/regex spot-checked `fully_certified=true`;
+  codegen untouched, SV-only regen; git diff = grammar + docs only); `cargo test --lib --features
+  generated_parsers` 739/0; `systemverilog_ast_shape_contract` 11/11 aligned (2 new base_class_type
+  samples validated against the regenerated parser); `--lint-grammar` `ordered_choice_shadowing=0
+  non_terminating=0 unreachable=0 profile_orphans=0` 1427→1428 rules (`always_matches=8` unchanged);
+  `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html); clippy source-clean.
 
 ## Commit Log
 
 - 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — committed `e0a672f4`.
-- 2026-07-01 (`.2.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0002 (SV-AST-SHAPE-FIDELITY.2.1)` — pending commit.
+- 2026-07-01 (`.2.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0002 (SV-AST-SHAPE-FIDELITY.2.1)` — committed `88ffe2b3`.
+- 2026-07-01 (`.2.2`): `PGEN-SV-AST-SHAPE-FIDELITY-0003 (SV-AST-SHAPE-FIDELITY.2.2)` — pending commit.
 
 ## Changelog
 
@@ -341,3 +438,15 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   18/0 (2 new samples); book gate GREEN. `.2` stays `in_progress` — 19 of 21 candidates remain; the
   SV-book `changelog-index.md` `1.0.151`/`1.0.152` gap discovered during `.2.1` lockstep was folded
   into `.3`'s scope.
+- 2026-07-01: `.2.2` FIXED + fully verified + lockstepped (candidate #2 — the `base_class_type` head
+  inline-alternation-`$1` corruption on a package-scoped base class, `class D extends pkg::B;`). Shared
+  named-lift `base_class_type_head` fixes both profiles (both `class_declaration` rules reference the one
+  `base_class_type` via `extends`), mirroring the already-correct in-file sibling `class_type_head`;
+  release/schema `1.0.154`/schema `9`; ledger `SV-0016`. `<invalid_sequence_access>` 2→0 both profiles
+  (`params`/`scope_chain` → `[]`); declared-bare `extends B;` stays clean; corpus 14/14; cert
+  `UNKNOWN=20` unchanged (`base_class_type_head` witnessed); `ast_shape_contract` 11/11 (2 new samples);
+  book gate GREEN. `.2` stays `in_progress` — **18 of 21 candidates remain** (tools-first probing this
+  session also found #5/#6 `scoped_block/data_type_identifier` REACHABLE + corrupt via `C::D::E v;` — a
+  shared-named-lift cluster queued next; #1 `class_scope_type` did NOT reproduce a sentinel with common
+  repros this session — its head-alt is clean when the winning branch is an un-annotated bare identifier,
+  as in `C::D::E`; remains a candidate pending a reachable annotated-branch repro).
