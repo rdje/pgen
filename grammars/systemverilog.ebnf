@@ -5206,7 +5206,7 @@ type_declaration_sv_2017 := kw_typedef_6dc2082b class_type declared_class_alias_
                                     -> {kind: "forward_class",  name: $3}
                           | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi
                                     -> {kind: "forward_interface_class", name: $4}
-                          | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
+                          | kw_typedef_6dc2082b forward_type_keyword? declared_type_identifier semi
                                     -> {kind: "forward",        keyword: $2, name: $3}
 
 # SV-EXH-PROOF.3.3.4.b.6.2.14 — same as sv_2017 above (parallel structure).
@@ -5222,8 +5222,16 @@ type_declaration_sv_2023 := kw_typedef_6dc2082b class_type declared_class_alias_
                                     -> {kind: "forward_class",  name: $3}
                           | kw_typedef_6dc2082b kw_interface_5ea2d81a kw_class_8d767bf5 declared_forward_interface_class_identifier semi
                                     -> {kind: "forward_interface_class", name: $4}
-                          | kw_typedef_6dc2082b ( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )? declared_type_identifier semi
+                          | kw_typedef_6dc2082b forward_type_keyword? declared_type_identifier semi
                                     -> {kind: "forward",        keyword: $2, name: $3}
+
+# SV-AST-SHAPE-FIDELITY.2.1 — shared named-lift of the forward-typedef keyword
+# group so the bare `keyword: $2` in both profile `type_declaration` br6 rules
+# binds a clean named rule instead of an inline alternation (which corrupted the
+# positional model → `<invalid_sequence_access>`). Un-annotated (each branch is a
+# single keyword atom → implicit `-> $1`); all-profiles by default. The `.1`
+# `ansi_port_header` named-lift precedent.
+forward_type_keyword := kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07
 
 # SV-EXH-PROOF.3.3.4.b.6.2.14 — priority_first on the sv_2017|sv_2023
 # outer alternation (mirrors the inner-branch fix). Each profile-specific

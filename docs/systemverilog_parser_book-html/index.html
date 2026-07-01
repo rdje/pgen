@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e07a2907.js";
+            window.path_to_searchindex_js = "searchindex-1d98df1a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -188,7 +188,7 @@
 <li><strong>What the AST envelope looks like.</strong> See <a href="ast-envelope.html">AST Envelope Structure</a>, <a href="parse-content-variants.html">ParseContent Variants</a>, and <a href="walking-the-ast.html">Walking the AST</a>.</li>
 <li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="rules-top-level.html">Per-Rule Shape Reference</a>. As the return-annotation campaign progresses, this section grows to cover every rule that has a stable typed shape.</li>
 <li><strong>Worked examples by SystemVerilog feature</strong> — what does the AST look like for a minimal module? An interface? A class? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.</li>
-<li><strong>Schema versioning policy.</strong> See <a href="schema-versioning.html">Schema Versioning</a>. The schema is currently at version <code>7</code> (bumped at parser release <code>1.0.152</code>, the ANSI-port AST-shape corruption fix, ledger <code>SV-0014</code>).</li>
+<li><strong>Schema versioning policy.</strong> See <a href="schema-versioning.html">Schema Versioning</a>. The schema is currently at version <code>8</code> (bumped at parser release <code>1.0.153</code>, the forward-typedef keyword AST-shape corruption fix, ledger <code>SV-0015</code>).</li>
 <li><strong>A release-by-release index of what changed and why.</strong> See <a href="changelog-index.html">Changelog Index</a>.</li>
 </ul>
 <h2 id="what-this-book-is-not"><a class="header" href="#what-this-book-is-not">What this book is NOT</a></h2>
@@ -206,7 +206,7 @@
 </ol>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>The PGEN SystemVerilog parser is <strong>closure-grade for the current Nexsim-facing scope</strong> when consumed through the stable <code>pgen::embedding_api</code> host surface. See <code>LIVE_ACHIEVEMENT_STATUS.md</code> for the live closure status and <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
-<p>The systemverilog return-annotation campaign is <strong>mature</strong>: roughly a thousand grammar rules across both <code>sv_2017</code>/<code>sv_2023</code> profiles now carry stable typed shapes (return + semantic annotations), and the AST-dump schema is at version <code>7</code>. The parser is closure-grade for the Nexsim-facing scope and is validated each release by the certificate-coverage, external-corpus (14/14), and AST-shape-contract gates. Remaining work is targeted: closing the last certificate-coverage <code>UNKNOWN</code> residuals and correcting any residual AST-shape defects (e.g. the <code>SV-AST-SHAPE-FIDELITY</code> inline-alternation-<code>$N</code> corruption sweep). Each shape-affecting change gets its own <a href="schema-versioning.html">Schema Versioning</a> row, a released-parser bug-ledger entry where it is a genuine bug, and an entry in the changelog here.</p>
+<p>The systemverilog return-annotation campaign is <strong>mature</strong>: roughly a thousand grammar rules across both <code>sv_2017</code>/<code>sv_2023</code> profiles now carry stable typed shapes (return + semantic annotations), and the AST-dump schema is at version <code>8</code>. The parser is closure-grade for the Nexsim-facing scope and is validated each release by the certificate-coverage, external-corpus (14/14), and AST-shape-contract gates. Remaining work is targeted: closing the last certificate-coverage <code>UNKNOWN</code> residuals and correcting any residual AST-shape defects (e.g. the <code>SV-AST-SHAPE-FIDELITY</code> inline-alternation-<code>$N</code> corruption sweep). Each shape-affecting change gets its own <a href="schema-versioning.html">Schema Versioning</a> row, a released-parser bug-ledger entry where it is a genuine bug, and an entry in the changelog here.</p>
 
                     </main>
 

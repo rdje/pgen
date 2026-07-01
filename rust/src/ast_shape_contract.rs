@@ -1010,6 +1010,19 @@ mod tests {
                 "ansi_port_header" => parser
                     .parse_ansi_port_header()
                     .map_err(|err| err.to_string()),
+                // SV-AST-SHAPE-FIDELITY.2.1: lock the forward-typedef keyword shape
+                // at its own entry rules so the `type_declaration_{sv_2017,sv_2023}`
+                // br6 inline-alternation-`$2` corruption (`typedef enum e_t;` emitted
+                // `<invalid_sequence_access>` in the `keyword` sub-shape) cannot recur
+                // unnoticed. `forward_type_keyword` is the corruption-site + compile-time
+                // revert guard — its existence is the named-lift; removing it (reverting
+                // to the inline alternation) fails `parse_forward_type_keyword()` to compile.
+                "forward_type_keyword" => parser
+                    .parse_forward_type_keyword()
+                    .map_err(|err| err.to_string()),
+                "type_declaration_sv_2017" => parser
+                    .parse_type_declaration_sv_2017()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

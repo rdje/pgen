@@ -181,6 +181,65 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   consumer-common ones (`type_declaration` forward-typedef #19/#20; the `method_call_receiver`
   #10-13; the `scoped_*_type_identifier` #5/#6).
 
+- ID: `SV-AST-SHAPE-FIDELITY.2.1`
+  Status: `done` (2026-07-01)
+  Goal: Fix the `.2` enumeration candidates **#19 + #20** — the `type_declaration`
+  forward-typedef `keyword` inline-alternation-`$2` corruption. A forward typedef with a
+  keyword (`typedef enum e_t;` / `typedef struct s_t;` / `typedef union u_t;`) — a common SV
+  idiom used to break declaration cycles — currently yields `<invalid_sequence_access>` in the
+  `keyword` sub-shape. Both profile rules (`type_declaration_sv_2017` br6 `:5209`,
+  `type_declaration_sv_2023` br6 `:5225`) carry the IDENTICAL inline-alt
+  `( kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07 )?` referenced by a bare `$2`, so
+  ONE shared un-annotated named rule (`forward_type_keyword`) fixes both — the `.1`
+  `ansi_port_header` named-lift precedent.
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — `module m; typedef enum e_t; endmodule` →
+    `./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog … --profile sv_2017`
+    yields the `forward` node `keyword:{kind:"class_alias", class_type:"<invalid_sequence_access>",
+    dims:"<invalid_sequence_access>", name:"<invalid_sequence_access>"}` — **3 `<invalid_sequence_access>`**
+    (`enum`/`struct` = 3, `union` = 4). The keyword-less `typedef e_t;` is clean (0) — the optional
+    group is simply absent, so the corruption only fires when a branch matches.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:5209` / `:5225`
+    (`type_declaration_sv_2017`/`_sv_2023` br6): `keyword: $2` binds a bare positional `$2` to the
+    inline alternation-inside-optional-group `( kw_enum_e338e8e3 | kw_struct_d118e5a3 |
+    kw_union_67ad5a07 )?`. The inline-alt-`$N` corrupts the positional model in
+    `rust/src/ast_pipeline/ast_return_transform.rs` (sentinel `:193`/`:438`): the rule's own
+    branch-1 return annotation (`{kind:"class_alias", class_type, name, dims}`) is mis-recursed onto
+    the `keyword` slot with out-of-range positions → `<invalid_sequence_access>`. IDENTICAL mechanism
+    to `.1` (`ansi_port_declaration`), `SVPP-0001`, `RTL-FE-0002`, `RTL-CE-0001`, `VHDL-0001`. `name: $3`
+    resolves correctly (`{body:"e_t"}`) — only the `$2` inline-alt slot corrupts.
+  - [x] **FIX** — lifted the shared inline alternation into the new un-annotated named rule
+    `forward_type_keyword := kw_enum_e338e8e3 | kw_struct_d118e5a3 | kw_union_67ad5a07`
+    (`grammars/systemverilog.ebnf`, placed just before the outer `type_declaration`); both br6 now read
+    `kw_typedef_6dc2082b forward_type_keyword? declared_type_identifier semi -> {kind:"forward",
+    keyword:$2, name:$3}` (annotation text + positions unchanged; the two br6 lines were byte-identical
+    ⇒ one `replace_all` edit + one shared rule fix BOTH profiles). Fix-hierarchy tier = Level-1
+    declarative grammar edit; `.1` `ansi_port_header` precedent. SV parser regenerated (`make -C rust
+    focus_systemverilog`), release `parseability_probe` + debug `ast_pipeline` rebuilt.
+  - [x] **ADDRESSED (verified)** — before→after on the keyword repros
+    (`--parse-dump-ast-pretty` on `sv_2017` AND `sv_2023`): `typedef enum/struct/union e_t;`
+    `<invalid_sequence_access>` **3/4 → 0** (both profiles); `keyword` now the clean fused-token
+    `[[], "enum"]` (`[trivia, text]`, the grammar's direct-keyword convention); `typedef e_t;` (no keyword)
+    still clean (`keyword: []`). `name` stays `{body:"e_t"}`. `parse_full` still passes.
+  - [x] **NO REGRESSION** — SV external corpus **14/14** (`parse_pass_total=14 parse_fail_total=0`,
+    `sv_external_corpus_triage_gate`); SV canonical cert `total 1305→1306 / witness 1284→1285 /
+    UNKNOWN=20` unchanged seeds 0/7/42 (`spf=0`; `forward_type_keyword` witnessed; identical 20-rule
+    residual — 19 `no_path` + `context_member_method_call`; ZERO newly-unknown, `forward_type_keyword`
+    absent from the UNKNOWN set); 6 fully-certified grammars byte-identical `fully_certified=true`
+    (SV-only regen; codegen untouched); `cargo test --lib --features generated_parsers` **739/0**;
+    `systemverilog_ast_shape_contract` **18/0** (the 2 new samples validated against the regenerated
+    parser); `--lint-grammar` `ordered_choice_shadowing=0 non_terminating=0 unreachable=0
+    profile_orphans=0` (1426→1427 rules, `always_matches=8` unchanged); clippy source-clean.
+  - [x] **LOCKSTEP** — shape-contract manifest `systemverilog_v1.json` (+2 samples
+    `forward_typedef_keyword`/`forward_typedef_enum`, +1 calibration note) + `ast_shape_contract.rs`
+    dispatch arms (`forward_type_keyword`, `type_declaration_sv_2017`); released-parser bug-ledger row
+    `SV-0015`; SV integration contract `1.0.152 → 1.0.153` + schema `7 → 8` + § "AST-Shape Corrections
+    — 1.0.153"; SV parser book (`schema-versioning.md` schema-8 row + intro `now 8`, `welcome.md`
+    version `8`, `json-carrier.md` 2 rows, `changelog-index.md` `1.0.153` entry) rebuilt GREEN via
+    `systemverilog_parser_book_gate`; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS
+    updated.
+
 - ID: `SV-AST-SHAPE-FIDELITY.3`
   Status: `open` (2026-07-01)
   Goal: Backfill the SV parser book `schema-versioning.md` per-release timeline rows for
@@ -190,7 +249,11 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   `1.0.147` 5→6 bump, `SV-0009`), and corrected the stale intro (`now 3` → `now 7`) +
   `welcome.md` (`version 4` → `7`, "early phase" → "mature"); this leaf completes the
   per-release backfill so the book timeline is row-complete against the contract Contract
-  Identity schema note.
+  Identity schema note. **Scope extended (`.2.1`, 2026-07-01):** the SV book
+  `changelog-index.md` was also found to be missing per-release entries for `1.0.151`–`1.0.152`
+  (its newest entry was `1.0.150`; `.2.1` added its own `1.0.153` entry above the gap) — backfill
+  the `1.0.151`/`1.0.152` `changelog-index.md` entries here too, alongside the
+  `schema-versioning.md` `1.0.148`–`1.0.151` rows, so both SV-book timelines are row-complete.
 
 ## Decisions
 
@@ -235,10 +298,26 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   `systemverilog_ast_shape_contract` 1/0 (ran; 2 new samples validated); `--lint-grammar`
   `ordered_choice_shadowing=0` 1426 rules (`always_matches 7→8` pre-existing shadow, documented);
   clippy source-clean.
+- 2026-07-01 (`.2.1`): tools-first before→after on `module m; typedef enum e_t; endmodule` (also
+  `struct`/`union`), `--parse-dump-ast-pretty` on `sv_2017` AND `sv_2023`: forward node `keyword`
+  `<invalid_sequence_access>` **3/4 → 0** both profiles; corrupted `{kind:"class_alias",
+  class_type/dims/name:"<invalid_sequence_access>"}` → clean fused-token `[[], "enum"]`; keyword-less
+  `typedef e_t;` still clean (`keyword: []`); `name` stays `{body:"e_t"}`; `parse_full` passes.
+- 2026-07-01 (`.2.1`) NO-REGRESSION: SV external corpus triage gate `parse_pass_total=14
+  parse_fail_total=0` (**14/14**, regenerated parser, no timeouts); SV canonical cert `total 1305→1306
+  witness 1284→1285 UNKNOWN=20 spf=0` seeds 0/7/42 byte-identical (identical 20-rule residual — 19
+  `no_path` + `context_member_method_call`; `comm -13` empty; `forward_type_keyword` witnessed, absent
+  from the UNKNOWN set); 6 fully-certified grammars byte-identical (codegen untouched, SV-only regen);
+  `cargo test --lib --features generated_parsers` 739/0; `systemverilog_ast_shape_contract` 18/0 (2 new
+  forward-typedef samples validated against the regenerated parser); `--lint-grammar`
+  `ordered_choice_shadowing=0 non_terminating=0 unreachable=0 profile_orphans=0` 1426→1427 rules
+  (`always_matches=8` unchanged); `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html);
+  clippy source-clean.
 
 ## Commit Log
 
-- 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — pending commit.
+- 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — committed `e0a672f4`.
+- 2026-07-01 (`.2.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0002 (SV-AST-SHAPE-FIDELITY.2.1)` — pending commit.
 
 ## Changelog
 
@@ -255,3 +334,10 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   "early phase" claim) — corrected the intro/version/status + added the schema-`7` & bridging
   schema-`6` rows; opened `.3` to complete the `1.0.148`–`1.0.151` per-release backfill and
   `.2` for the grammar-wide inline-alt-`$N` sweep.
+- 2026-07-01: `.2.1` FIXED + fully verified + lockstepped (candidates #19+#20 — the
+  `type_declaration_{sv_2017,sv_2023}` br6 forward-typedef `keyword` corruption). Shared named-lift
+  `forward_type_keyword` fixes both profiles; release/schema `1.0.153`/schema `8`; ledger `SV-0015`.
+  `<invalid_sequence_access>` 3/4→0; corpus 14/14; cert `UNKNOWN=20` unchanged; `ast_shape_contract`
+  18/0 (2 new samples); book gate GREEN. `.2` stays `in_progress` — 19 of 21 candidates remain; the
+  SV-book `changelog-index.md` `1.0.151`/`1.0.152` gap discovered during `.2.1` lockstep was folded
+  into `.3`'s scope.
