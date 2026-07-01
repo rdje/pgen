@@ -787,6 +787,31 @@ fn parse_with_systemverilog_ast_json_profile(
     parse_node_to_json(&parsed)
 }
 
+/// SV-AST-SHAPE-FIDELITY.2.4: entry-aware AST-JSON dump for SystemVerilog. Identical to
+/// `parse_with_systemverilog_ast_json_profile` except it parses from an ALTERNATE start symbol via
+/// `parse_full_from(entry)` instead of the canonical `parse_full_systemverilog_file()`. Lets a rule
+/// that is PEG-shadowed / unreachable from `systemverilog_file` (e.g. an expression-position receiver
+/// or an entry-relative LRM start symbol) have its typed AST shape dumped in isolation, so the
+/// `<invalid_sequence_access>` return-annotation corruption class can be checked per-rule.
+#[cfg(has_generated_systemverilog_parser)]
+fn parse_with_systemverilog_ast_json_from_entry(
+    sample: &str,
+    grammar_profile: Option<&str>,
+    entry: &str,
+) -> Result<JsonValue, String> {
+    let mut parser =
+        SystemverilogParser::new(sample, runtime_logger_box("generated.systemverilog"));
+    parser.set_trace_rules(current_trace_rules());
+    let normalized_profile = normalize_generated_grammar_profile("systemverilog", grammar_profile);
+    parser.set_grammar_profile(normalized_profile);
+    preload_systemverilog_stdlib(&mut parser, normalized_profile)?;
+    let _dashboard = maybe_spawn_call_count_dashboard(&parser);
+    let parsed = parser
+        .parse_full_from(entry)
+        .map_err(|err| err.to_string())?;
+    parse_node_to_json(&parsed)
+}
+
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
 fn parse_with_systemverilog_preprocessor(sample: &str) -> bool {
     let mut parser = SystemverilogPreprocessorParser::new(
@@ -1235,6 +1260,33 @@ pub fn parse_sample_ast_json_with_profile(
         #[cfg(has_generated_vhdl_parser)]
         "vhdl" => Some(parse_with_vhdl_ast_json(sample)),
         _ => None,
+    }
+}
+
+/// SV-AST-SHAPE-FIDELITY.2.4: entry-aware AST-JSON dump. Parse `sample` from an ALTERNATE start
+/// symbol via the generated parser's `parse_full_from(entry)` and serialize the typed AST, so an
+/// entry-relative rule that is PEG-shadowed / unreachable from the canonical entry can have its AST
+/// shape dumped in isolation (the `parseability_probe --parse-dump-ast[-pretty] --entry-rule RULE`
+/// surface). `None` for a grammar whose entry-aware AST-JSON variant is not (yet) wired — currently
+/// `systemverilog` only; other families can be added on demand by mirroring their
+/// `parse_with_<g>_ast_json` function with `parse_full_from(entry)`.
+pub fn parse_sample_ast_json_from_entry(
+    grammar_name: &str,
+    sample: &str,
+    grammar_profile: Option<&str>,
+    entry: &str,
+) -> Option<Result<JsonValue, String>> {
+    match grammar_name {
+        #[cfg(has_generated_systemverilog_parser)]
+        "systemverilog" => Some(parse_with_systemverilog_ast_json_from_entry(
+            sample,
+            grammar_profile,
+            entry,
+        )),
+        _ => {
+            let _ = (sample, grammar_profile, entry);
+            None
+        }
     }
 }
 

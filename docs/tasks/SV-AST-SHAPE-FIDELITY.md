@@ -402,6 +402,139 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
     `1.0.155` entry) rebuilt GREEN via `systemverilog_parser_book_gate` (mdbook_build + tracked_html
     both pass); CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS / TASK_TREE updated.
 
+- ID: `SV-AST-SHAPE-FIDELITY.2.4`
+  Status: `done` (2026-07-01, session #12)
+  Goal: TOOL-BUILD (general, parser-agnostic debug capability) + candidate
+  reclassification. Session #12's tools-first probing of the resume-pointer's
+  "next" cluster (`method_call_receiver` #10–13) established that the REMAINING
+  `.2` candidates are NOT the same easy class as the first six fixed candidates
+  (#1/#2/#5/#6/#19/#20). The first six all sit on **declaration surfaces**
+  (module ports, forward typedefs, base-class-of, scoped data-type on a var decl)
+  that are NOT shadowed. The remaining candidates sit in **expression / receiver /
+  constraint / lvalue** positions that the general SV expression grammar
+  **PEG-shadows**, so a natural minimal repro parsed from the canonical entry does
+  not reach them — and the `<invalid_sequence_access>` sentinel is a **runtime**
+  condition (`ast_return_transform.rs:193`: fires for `$N` N≥2 only when the matched
+  body is not a `Sequence` long enough; `$1` has an `other => other.clone()` fallback
+  and never hits it), so the candidates **cannot be classified statically**. To
+  classify each remaining candidate rigorously (reachable-corrupt / latent-corrupt /
+  benign) I must dump the AST of a scoped instance **parsed from that candidate rule
+  as the entry** — but the AST-dump path does not honor `--entry-rule` (a tool gap).
+  This leaf (a) builds that capability, then (b) uses it to produce a verdict table
+  for the 15 remaining candidates. Any candidate proven reachable-AND-corrupt gets its
+  own follow-on fix sub-leaf (the `.2.1`/`.2.2`/`.2.3` named-lift idiom); latent-corrupt
+  gets a manifest calibration note; benign is dropped from the candidate list.
+
+  ### Tools-first diagnosis already established (session #12, read-only — the REPRODUCE/ROOT-CAUSE evidence)
+  - `pkg::obj.foo()` / `x = pkg::obj.foo();` (canonical entry) → `parse_full` PASS,
+    **0 sentinels, 0 `method_call_receiver` nodes**; the AST footprint shows it routed
+    via `split_direct_callable` → `split_hierarchical_callable_receiver` (**candidate
+    #9**), because `method_call_initial`'s FIRST branch
+    `split_direct_callable_method_call := split_hierarchical_callable_receiver dot …`
+    PEG-wins over `direct_method_call` (which is the only path to
+    `method_call_receiver` #10). So **#10 is shadowed by #9**.
+  - **#9 itself fires but is CLEAN** on `pkg::obj.foo()` (0 sentinels) despite carrying
+    the SAME `scope: $1`-over-`( kw_class_qualifier | non_typedef_package_scope )?`
+    inline-alt pattern — proof the inline-alt-`$N` pattern is NOT universally corrupting;
+    corruption depends on the winning branch's runtime `Sequence` packaging.
+  - `constraint_primary` (#3/#4) via `this.x` / `B::x` in a constraint, and
+    `nonrange_variable_lvalue` (#15) via `this.x = …`, both parse clean and DO NOT reach
+    their specialized rules (general expression path shadows them): 0 sentinels, 0 rule
+    nodes.
+  - Sentinel mechanism pinned: `rust/src/ast_pipeline/ast_return_transform.rs:193`
+    (`_ => ParseContent::Terminal("<invalid_sequence_access>")`), reached for a positional
+    `$N` with element_index ≥ 1 (i.e. `$2`+) when the base is not a `Sequence` with
+    `len > element_index`. `$1` (element_index 0, L159–181) has an `other => other.clone()`
+    fallback and cannot emit the sentinel.
+  - Tool gap pinned: `parseability_probe --parse` honors `--entry-rule`
+    (`parser_registry::parse_sample_detail_from_entry` → `parser.parse_full_from(entry)`),
+    but `--parse-dump-ast[-pretty]` does NOT — `command_parse_dump_ast`
+    (`rust/src/bin/parseability_probe.rs:484`) calls
+    `parser_registry::parse_sample_ast_json_with_profile(…)` which parses from the CANONICAL
+    entry (`parse_with_<g>_ast_json[_profile]` → `parser.parse_full_<entry>()`), and the
+    `--parse-dump-ast[-pretty]` dispatch arms (`:641`/`:669`) never pass `options.entry_rule`.
+    Demonstrated: `--parse pkg::obj --entry-rule method_call_receiver_sv_2017` → PASS, but
+    `--parse-dump-ast-pretty pkg::obj --entry-rule method_call_receiver_sv_2017` → rejected at
+    position 0 (fell back to canonical `systemverilog_file`).
+
+  ### Fix scope (registry-only, no codegen — confirmed by reading `parse_with_systemverilog_ast_json_profile`)
+  Add an entry-aware AST-JSON path that mirrors the existing canonical one but calls
+  `parser.parse_full_from(entry)` in place of `parser.parse_full_<canonical>()` and feeds
+  the same `parse_node_to_json(&parsed)`:
+  - `parser_registry`: `parse_sample_ast_json_from_entry(grammar, sample, profile, entry)`
+    + per-grammar `parse_with_<g>_ast_json_from_entry(sample, profile, entry)` variants
+    (at minimum `systemverilog`; general dispatcher returns `None` for grammars lacking a
+    variant, byte-identical for every other path).
+  - `parseability_probe`: thread `entry_rule: Option<&str>` into `command_parse_dump_ast`
+    and pass `options.entry_rule.as_deref()` from both `--parse-dump-ast` / `--parse-dump-ast-pretty`
+    dispatch arms; `None` keeps the byte-identical canonical path. Update the usage block.
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — the tool gap (dump path ignores `--entry-rule`), demonstrated by the PASS-vs-reject asymmetry on `pkg::obj` @ `method_call_receiver_sv_2017`: `--parse … --entry-rule` PASS but `--parse-dump-ast-pretty … --entry-rule` → "rejected at position 0" (fell back to canonical `systemverilog_file`).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `command_parse_dump_ast` (`rust/src/bin/parseability_probe.rs:484`) → `parser_registry::parse_sample_ast_json_with_profile` (canonical entry only; `parse_with_<g>_ast_json[_profile]` → `parse_full_<canonical>()`); the `--parse-dump-ast[-pretty]` dispatch arms (`:641`/`:669`) never forwarded `options.entry_rule`.
+  - [x] **FIX** — registry-only, no codegen: added `parser_registry::parse_sample_ast_json_from_entry` (dispatcher) + `parse_with_systemverilog_ast_json_from_entry` (`parse_full_from(entry)` + `parse_node_to_json`); threaded `entry_rule: Option<&str>` through both `command_parse_dump_ast` variants + both dump dispatch arms; usage string + `--entry-rule` help updated. Fix-hierarchy tier = tool/observability code.
+  - [x] **ADDRESSED (verified)** — release `parseability_probe` rebuilt; `--parse-dump-ast-pretty pkg::obj --entry-rule method_call_receiver_sv_2017` now dumps the AST (was reject) and reveals **1 sentinel**. Full isolation + canonical-reachability classification of all 15 remaining candidates produced (verdict table below). The tool surfaced **3 REACHABLE+CORRUPT bugs (#8, #14, #21)** that natural canonical-entry repros entirely missed.
+  - [x] **NO REGRESSION** — omitting `--entry-rule` is byte-identical (canonical dump on `module m (input logic a); endmodule` → 0 sentinels, unchanged); `cargo test --lib --features generated_parsers` **739 passed / 0 failed / 21 ignored**; the 6 fully-certified grammars unaffected (registry/probe-only — no grammar/codegen touch, no parser regen); clippy — [pending background `clippy_on_rust_change`].
+  - [x] **LOCKSTEP** — `TOOLBOX.md` (1.2 entry) + book debug chapter (`docs/book/src/parseability-probe-debug.md`) note the new `--entry-rule` on the dump; probe usage string + `--entry-rule` help updated; CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS / TASK_TREE updated.
+
+  ### Verdict table — 15 remaining `.2` candidates (tool-proven, session #12)
+  Reachability = canonical `systemverilog_file` entry; isolation = `--entry-rule <rule>` (empty store, so only non-store-gated `this.` / `pkg::` scoped branches fire).
+
+  | # | rule | isolation repro → sentinels | canonical-entry reachable? | VERDICT |
+  |---|---|---|---|---|
+  | 8 | `interface_class_type` | `pkg::IC` → 1 | **YES** — `class C implements pkg::IC;` → 1 | **REACHABLE-CORRUPT → fix (`.2.5`)** |
+  | 14 | `nettype_declaration_sv_2023` (br1 `with`) | `nettype logic n with pkg::f;` → 3 | **YES** — `module m; nettype logic n with pkg::f; endmodule` → 3 (also pkg/unit scope) | **REACHABLE-CORRUPT → fix (`.2.6`)** |
+  | 21 | `class_scoped_call_prefix` | `pkg::C::` → 2 | **YES** — `pkg::C::foo()` (stmt + asn-RHS) → 2 | **REACHABLE-CORRUPT → fix (`.2.7`)** |
+  | 3 | `constraint_primary_sv_2017` | `this.x` → 1 | NO — `constraint cc { this.x < 5; }` → 0 (general-expr shadow) | LATENT (calibration note) |
+  | 4 | `constraint_primary_sv_2023` | `this.x` → 2 | NO (same shadow) | LATENT |
+  | 10 | `method_call_receiver_sv_2017` (br1) | `pkg::obj` → 1 | NO — `pkg::obj.foo()` → 0 (shadowed by #9 `split_hierarchical_callable_receiver` via `split_direct_callable_method_call`, the first `method_call_initial` branch) | LATENT |
+  | 11 | `method_call_receiver_sv_2017` (br13 null_class) | (obscure; not constructed) | NO — same rule shadowed by #9 | LATENT |
+  | 12 | `method_call_receiver_sv_2023` (br1) | `pkg::obj` → 1 | NO (shadowed by #9) | LATENT |
+  | 13 | `method_call_receiver_sv_2023` (br13) | (obscure) | NO (shadowed) | LATENT |
+  | 15 | `nonrange_variable_lvalue` | `this.x` → 1 (`pkg::x` → 0) | NO — `this.x = 1;` → 0 (general-expr shadow) | LATENT |
+  | 9 | `split_hierarchical_callable_receiver` | `pkg::x` → 0 | reached (`pkg::obj.foo()`) but 0 | **BENIGN** (0 in isolation + reachable-clean) |
+  | 16 | `ps_or_hierarchical_array_identifier` | `pkg::arr` → 0, `this.arr` → 0 | — | **BENIGN** |
+  | 17 | `ps_type_identifier_sv_2017` | `pkg::T` → 0 | — | **BENIGN** |
+  | 18 | `ps_type_identifier_sv_2023` | `pkg::T` → 0 | — | **BENIGN** |
+  | 7 | `hierarchical_btf_identifier` | pattern ABSENT (now `tf|block`, `body:$1` only) | — | **STALE** (static enumeration drifted) |
+
+  Key runtime insight (from `ast_return_transform.rs:193`): the sentinel is branch-sensitive — a self-annotated *single-rule* alt branch (`non_typedef_package_scope`) and a *sequence* alt branch (`implicit_class_handle dot`) package differently at runtime, so e.g. `nonrange_variable_lvalue` corrupts on `this.x` but not `pkg::x`. Only `$N` N≥2 can hit the sentinel; `$1` has the `other => other.clone()` fallback.
+
+- ID: `SV-AST-SHAPE-FIDELITY.2.5`
+  Status: `open` (2026-07-01, session #12)
+  Goal: Fix candidate **#8 `interface_class_type`** — `class C implements pkg::IC; endclass`
+  (a class implementing a package-scoped interface class — a real, reachable SV/UVM idiom)
+  emits **1 `<invalid_sequence_access>`** (proven reachable in `.2.4`). Rule
+  `grammars/systemverilog.ebnf:2478` `interface_class_type := ( scoped_interface_class_type_identifier
+  | known_unscoped_interface_class_type_identifier ) ( parameter_value_assignment )? -> {name:$1, params:$2}`
+  — IDENTICAL `{name/head:$1, params:$2}` shape to `base_class_type` (`.2.2`). Fix: named-lift
+  `interface_class_type_head := scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier`,
+  then `interface_class_type := interface_class_type_head ( parameter_value_assignment )? -> {name:$1, params:$2}`.
+  Full acceptance checklist + release/schema bump + lockstep per the `.2.1`/`.2.2`/`.2.3` precedent.
+
+- ID: `SV-AST-SHAPE-FIDELITY.2.6`
+  Status: `open` (2026-07-01, session #12)
+  Goal: Fix candidate **#14 `nettype_declaration_sv_2023`** br1 `with`-clause — `nettype logic n
+  with pkg::f;` (a nettype with a package-scoped resolution function — reachable at module/package/
+  compilation-unit scope, proven in `.2.4`) emits **3 `<invalid_sequence_access>`**. The inline alt
+  `( non_typedef_package_scope | class_scope )?` sits inside `( kw_with ( … )? tf_identifier )?` bound
+  by `with_clause:$4`. Fix: named-lift the scope alt (shared `nettype_with_scope_prefix` or reuse
+  `scoped_type_scope_prefix` if the alt is byte-identical — grep-verify first) so the `$4` positional
+  model is restored. Full checklist + lockstep. (`sv_2023`-gated — verify the `sv_2017` nettype rule
+  for a twin.)
+
+- ID: `SV-AST-SHAPE-FIDELITY.2.7`
+  Status: `open` (2026-07-01, session #12)
+  Goal: Fix candidate **#21 `class_scoped_call_prefix`** (the `SV-0013` rule) — `pkg::C::foo()`
+  (a package-class-scoped static method call — reachable in statement + assignment-RHS context,
+  proven in `.2.4`) emits **2 `<invalid_sequence_access>`**. Rule `grammars/systemverilog.ebnf:6317`
+  `class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier
+  | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier )
+  ( parameter_value_assignment )? scope_resolution ( … )* -> {head:$1, params:$2, scope_chain:$4}` —
+  IDENTICAL 4-way `{head:$1, params:$2, scope_chain:$N}` shape to `class_scope_type` (`.2.3`). Fix:
+  named-lift `class_scoped_call_prefix_head := <4 alts>`. NOTE: `SV-0013` gated branches INSIDE the alt
+  but did not lift it — this completes that rule. Full checklist + release/schema bump + lockstep.
+
 - ID: `SV-AST-SHAPE-FIDELITY.3`
   Status: `open` (2026-07-01)
   Goal: Backfill the SV parser book `schema-versioning.md` per-release timeline rows for
@@ -510,12 +643,24 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   non_terminating=0 unreachable=0 profile_orphans=0` 1428→1430 rules (`always_matches=8` unchanged);
   `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html); clippy source stage `ok`.
 
+- 2026-07-01 (`.2.4`, session #12): TOOL-BUILD verified — release `parseability_probe` rebuilt;
+  `--parse-dump-ast-pretty pkg::obj --entry-rule method_call_receiver_sv_2017` now dumps the AST (was
+  "reject at position 0") revealing 1 sentinel; canonical dump (no `--entry-rule`) byte-identical
+  (0 sentinels on `module m (input logic a); endmodule`); `cargo test --lib --features
+  generated_parsers` **739/0/21ignored**; `clippy_on_rust_change` exit 0 (source-clean);
+  registry/probe-only (no grammar/codegen regen). Classification of all 15 remaining candidates
+  (isolation `--entry-rule` + canonical-entry reachability): **3 REACHABLE-CORRUPT** (#8
+  `interface_class_type` `implements pkg::IC` → 1; #14 `nettype…with pkg::f` → 3; #21
+  `class_scoped_call_prefix` `pkg::C::foo()` → 2), **7 LATENT** (#3/#4/#10-13/#15 — PEG-shadowed),
+  **4 BENIGN** (#9/#16/#17/#18), **1 STALE** (#7). Fix leaves `.2.5`/`.2.6`/`.2.7` opened.
+
 ## Commit Log
 
 - 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — committed `e0a672f4`.
 - 2026-07-01 (`.2.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0002 (SV-AST-SHAPE-FIDELITY.2.1)` — committed `88ffe2b3`.
 - 2026-07-01 (`.2.2`): `PGEN-SV-AST-SHAPE-FIDELITY-0003 (SV-AST-SHAPE-FIDELITY.2.2)` — committed `5854cbad`.
-- 2026-07-01 (`.2.3`): `PGEN-SV-AST-SHAPE-FIDELITY-0004 (SV-AST-SHAPE-FIDELITY.2.3)` — pending commit.
+- 2026-07-01 (`.2.3`): `PGEN-SV-AST-SHAPE-FIDELITY-0004 (SV-AST-SHAPE-FIDELITY.2.3)` — committed `12e8905c`.
+- 2026-07-01 (`.2.4`): `PGEN-SV-AST-SHAPE-FIDELITY-0005 (SV-AST-SHAPE-FIDELITY.2.4)` — pending commit.
 
 ## Changelog
 
@@ -567,3 +712,19 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   unchanged (both new rules witnessed; zero newly-unknown); `ast_shape_contract` PASS (4 new samples);
   book gate GREEN; `cargo test --lib` 739/0; clippy source-clean. `.2` stays `in_progress` — **15 of 21
   candidates remain** (fixed: #2, #19, #20, #1, #5, #6); next = `method_call_receiver` #10-13.
+- 2026-07-01: `.2.4` (session #12) TOOL-BUILD + classification DONE. Tools-first probing of the
+  resume-pointer's "next" cluster (`method_call_receiver` #10-13) revealed the remaining candidates are
+  NOT the easy declaration-surface class — they sit in expression/receiver/constraint/lvalue positions
+  the general SV grammar PEG-shadows, and the `<invalid_sequence_access>` sentinel is a RUNTIME
+  condition (`ast_return_transform.rs:193`, `$N` N≥2 vs a too-short Sequence), so candidates cannot be
+  classified statically. Built a GENERAL entry-aware AST-dump capability
+  (`parseability_probe --parse-dump-ast[-pretty] --entry-rule RULE`, registry-only via
+  `parse_full_from` — no grammar/codegen change) to isolate each rule, then classified all 15 by
+  isolation-corruption × canonical-entry reachability. RESULT: **3 REACHABLE-CORRUPT bugs** the natural
+  repros entirely missed — **#8 `interface_class_type`** (`class C implements pkg::IC;` → 1), **#14
+  `nettype_declaration_sv_2023` `with`-clause** (`nettype logic n with pkg::f;` → 3), **#21
+  `class_scoped_call_prefix`** (`pkg::C::foo()` → 2), all the `base_class_type`/`class_scope_type`
+  `.2.2`/`.2.3` shape → named-lift fixes queued as `.2.5`/`.2.6`/`.2.7`; **7 LATENT** (calibration
+  note); **4 BENIGN**; **1 STALE** (#7, pattern removed). `cargo test --lib` 739/0; clippy exit 0;
+  canonical dump byte-identical. `.2` stays `in_progress` — the remaining sweep is now proof-driven:
+  3 real fixes + latent calibration, not 15 unknowns.

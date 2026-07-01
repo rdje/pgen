@@ -33,7 +33,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--parse-dump-ast <grammar> <file>` | Parse + dump AST as JSON | [Basic](#basic-usage) |
 | `--parse-dump-ast-pretty <grammar> <file>` | Parse + dump AST as pretty JSON | [Basic](#basic-usage) |
 | `--profile <name>` | Select a grammar profile (e.g. SV `2017` vs `2023`) | [Basic](#basic-usage) |
-| `--entry-rule <rule>` | Parse from an alternate start symbol (e.g. SV `library_text`) | [Basic](#basic-usage) |
+| `--entry-rule <rule>` | Parse **or dump the AST** from an alternate/PEG-shadowed start symbol (e.g. SV `library_text`, `interface_class_type`) | [Basic](#basic-usage) |
 | `--trace` | Enable parser trace at maximum verbosity (DBG) | [Trace](#trace-verbosity-levels) |
 | `--trace-rules R1,R2,...` | Scope the trace to specific rules' call-trees | [Rule-scoped trace](#rule-scoped-trace---trace-rules) |
 | `--trace-log-file [FILE]` | Write trace to a file (defaults to `trace.log`) | [Trace](#trace-output-format) |
@@ -103,6 +103,17 @@ parseability_probe --parse systemverilog lib.map --profile 2017 --entry-rule lib
 ```
 
 This is the tool for reproducing and tracing an *entry-relative* rule in isolation (Step 3 of the [`UNKNOWN` protocol](diagnosing-unknowns.md) for a rule that only witnesses under a non-canonical cert entry). Omitting `--entry-rule` is byte-identical to the default-entry behavior; an unknown rule name falls back to the canonical entry. It composes with `--trace` / `--trace-rules` so the alternate-entry parse can be traced like any other.
+
+`--entry-rule` also composes with **`--parse-dump-ast` / `--parse-dump-ast-pretty`** (SystemVerilog), so you can dump the *typed AST shape* of a rule that is **PEG-shadowed** from the canonical entry — i.e. a rule whose language a broader rule always matches first, so a whole-file parse never routes through it. This is the decisive tool for the `<invalid_sequence_access>` return-annotation corruption class: a construct like a package-scoped `interface_class_type` or `class_scoped_call_prefix` can be dumped directly from its own rule and its sub-shapes inspected, even when the general expression grammar shadows it in a full design file.
+
+```bash
+# Dump the AST of a package-scoped interface-class type from its own rule,
+# bypassing the general expression path that would otherwise shadow it:
+parseability_probe --parse-dump-ast-pretty systemverilog scoped.sv out.json --profile sv_2017 \
+  --entry-rule interface_class_type
+```
+
+Because an alternate-entry parse starts with an **empty semantic store**, only the store-independent scoped branches (`this.` implicit-class-handle, `pkg::` package scope) fire in isolation; store-gated `C::…` class-scope branches need a real declaration context. Omitting `--entry-rule` keeps the byte-identical canonical-entry dump.
 
 ---
 

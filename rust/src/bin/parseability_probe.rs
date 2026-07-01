@@ -8,7 +8,7 @@ use pgen::ast_pipeline::{
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`) parse `--parse` input from an ALTERNATE start symbol (e.g. `library_text`) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative rule (rooted under an alternate LRM start symbol, unreachable from the default entry) be reproduced/traced in isolation. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots."
+    "Usage:\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots."
 }
 
 fn default_ast_dump_file(grammar_name: &str) -> String {
@@ -486,20 +486,36 @@ fn command_parse_dump_ast(
     input_file: &str,
     output_file: Option<&str>,
     profile: Option<&str>,
+    entry_rule: Option<&str>,
     pretty: bool,
     max_bytes: Option<usize>,
 ) -> Result<()> {
     let sample = std::fs::read_to_string(input_file)
         .with_context(|| format!("failed to read input file '{}'", input_file))?;
-    let parse_result =
-        parser_registry::parse_sample_ast_json_with_profile(grammar_name, &sample, profile)
-            .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "parseability adapter unavailable for grammar '{}'. Supported grammars: {}",
-                    grammar_name,
-                    supported_grammars_csv()
-                )
-            })?;
+    // SV-AST-SHAPE-FIDELITY.2.4: an explicit `--entry-rule` dumps the AST parsed from that ALTERNATE
+    // start symbol via the generated parser's `parse_full_from`, so a PEG-shadowed / entry-relative
+    // rule can be inspected in isolation. `None` keeps the byte-identical canonical-entry dump path.
+    let parse_result = match entry_rule {
+        Some(entry) => {
+            parser_registry::parse_sample_ast_json_from_entry(grammar_name, &sample, profile, entry)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "entry-aware AST dump (`--entry-rule`) is not wired for grammar '{}' (currently `systemverilog` only); omit --entry-rule to dump from the canonical entry",
+                        grammar_name
+                    )
+                })?
+        }
+        None => {
+            parser_registry::parse_sample_ast_json_with_profile(grammar_name, &sample, profile)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "parseability adapter unavailable for grammar '{}'. Supported grammars: {}",
+                        grammar_name,
+                        supported_grammars_csv()
+                    )
+                })?
+        }
+    };
     let ast_json = parse_result.map_err(|err| {
         anyhow::anyhow!(
             "parse_full rejected sample for grammar '{}' on '{}': {}",
@@ -553,6 +569,7 @@ fn command_parse_dump_ast(
     input_file: &str,
     output_file: Option<&str>,
     profile: Option<&str>,
+    entry_rule: Option<&str>,
     pretty: bool,
     max_bytes: Option<usize>,
 ) -> Result<()> {
@@ -561,6 +578,7 @@ fn command_parse_dump_ast(
         input_file,
         output_file,
         profile,
+        entry_rule,
         pretty,
         max_bytes,
     );
@@ -643,6 +661,7 @@ fn main() -> Result<()> {
                 &remaining[1],
                 output_file.as_deref(),
                 options.profile.as_deref(),
+                options.entry_rule.as_deref(),
                 false,
                 max_bytes,
             )
@@ -671,6 +690,7 @@ fn main() -> Result<()> {
                 &remaining[1],
                 output_file.as_deref(),
                 options.profile.as_deref(),
+                options.entry_rule.as_deref(),
                 true,
                 max_bytes,
             )
