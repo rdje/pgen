@@ -1060,6 +1060,23 @@ mod tests {
                 "scoped_data_type_identifier" => parser
                     .parse_scoped_data_type_identifier()
                     .map_err(|err| err.to_string()),
+                // SV-AST-SHAPE-FIDELITY.2.5: lock the interface_class_type head
+                // (candidate #8). `class C implements pkg::IC;` emitted 1
+                // `<invalid_sequence_access>` — `interface_class_type` bound
+                // `name:$1` over the inline 2-way alternation, so when the
+                // self-annotated `scoped_interface_class_type_identifier` branch
+                // (`-> {scope:$1,name:$2}`) won, the rule's own `{name:$1, params:$2}`
+                // mis-recursed onto the branch result, gluing a corrupt `params`
+                // slot onto the inner `name`. `interface_class_type_head` is the
+                // corruption-site + compile-time revert guard (removing the
+                // named-lift fails `parse_interface_class_type_head()` to compile).
+                // Same `{name/head:$1, params:$2}` shape + idiom as `base_class_type_head`.
+                "interface_class_type_head" => parser
+                    .parse_interface_class_type_head()
+                    .map_err(|err| err.to_string()),
+                "interface_class_type" => parser
+                    .parse_interface_class_type()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

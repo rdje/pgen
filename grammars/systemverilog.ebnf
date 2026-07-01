@@ -2475,7 +2475,16 @@ known_unscoped_interface_class_type_identifier := class_identifier
 
 scoped_interface_class_type_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
-interface_class_type := ( scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier ) ( parameter_value_assignment )?
+# SV-AST-SHAPE-FIDELITY.2.5 — named-lift of the interface_class_type head alternation so
+# the bare `name: $1` in `interface_class_type` binds a clean named rule instead of an
+# inline alternation (which corrupted the positional model → `params` `<invalid_sequence_access>`
+# when the self-annotated `scoped_interface_class_type_identifier` branch won, e.g.
+# `class C implements pkg::IC;`). Same `{name/head:$1, params:$2}` shape as the already-fixed
+# `base_class_type` (`.2.2` `base_class_type_head`); the `.1` `ansi_port_header` /
+# `.2.1` `forward_type_keyword` / `.2.2` `base_class_type_head` named-lift precedent.
+interface_class_type_head := scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier
+
+interface_class_type := interface_class_type_head ( parameter_value_assignment )?
                      -> {name: $1, params: $2}
 
 @profiles: ["sv_2017"]

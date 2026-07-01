@@ -501,7 +501,7 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   Key runtime insight (from `ast_return_transform.rs:193`): the sentinel is branch-sensitive — a self-annotated *single-rule* alt branch (`non_typedef_package_scope`) and a *sequence* alt branch (`implicit_class_handle dot`) package differently at runtime, so e.g. `nonrange_variable_lvalue` corrupts on `this.x` but not `pkg::x`. Only `$N` N≥2 can hit the sentinel; `$1` has the `other => other.clone()` fallback.
 
 - ID: `SV-AST-SHAPE-FIDELITY.2.5`
-  Status: `open` (2026-07-01, session #12)
+  Status: `done` (2026-07-01, session #12)
   Goal: Fix candidate **#8 `interface_class_type`** — `class C implements pkg::IC; endclass`
   (a class implementing a package-scoped interface class — a real, reachable SV/UVM idiom)
   emits **1 `<invalid_sequence_access>`** (proven reachable in `.2.4`). Rule
@@ -511,6 +511,56 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   `interface_class_type_head := scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier`,
   then `interface_class_type := interface_class_type_head ( parameter_value_assignment )? -> {name:$1, params:$2}`.
   Full acceptance checklist + release/schema bump + lockstep per the `.2.1`/`.2.2`/`.2.3` precedent.
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — `class C implements pkg::IC; endclass` →
+    `./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog … --profile sv_2017`
+    (also `sv_2023`) yields the class's `implements` interface-class-type node
+    `{name:{name:{body:"IC"}, scope:{…pkg…}, params:"<invalid_sequence_access>"}, params:[]}` — **1
+    `<invalid_sequence_access>`** per scoped-`implements`, both profiles; also reproduced in isolation
+    (`--entry-rule interface_class_type` on `pkg::IC` → 1, per the `.2.4` classification).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:2478` (`interface_class_type`):
+    `name: $1` binds a bare positional `$1` to the inline 2-way alternation
+    `( scoped_interface_class_type_identifier | known_unscoped_interface_class_type_identifier )`. The
+    inline-alt-`$N` corrupts the positional model in `rust/src/ast_pipeline/ast_return_transform.rs`
+    (sentinel `:193`/`:438`): when the self-annotated `scoped_interface_class_type_identifier` branch
+    (`-> {scope:$1,name:$2}`) wins, the rule's own `{name:$1, params:$2}` annotation mis-recurses onto
+    the branch result, gluing a corrupt `params` slot onto the inner `name`. IDENTICAL mechanism to `.1`,
+    `.2.1`, `.2.2` (the `{name/head:$1, params:$2}` twin of `base_class_type`), `.2.3`, `SVPP-0001`,
+    `RTL-FE-0002`, `RTL-CE-0001`, `VHDL-0001`.
+  - [x] **FIX** — lifted the inline alternation into the new un-annotated named rule
+    `interface_class_type_head := scoped_interface_class_type_identifier |
+    known_unscoped_interface_class_type_identifier` (`grammars/systemverilog.ebnf`, placed just before
+    `interface_class_type`); `interface_class_type` now reads `interface_class_type_head (
+    parameter_value_assignment )? -> {name:$1, params:$2}` (annotation text + positions unchanged).
+    Fix-hierarchy tier = Level-1 declarative grammar edit; the `.2.2` `base_class_type_head` precedent.
+    SV parser regenerated (`make -C rust focus_systemverilog`), release `parseability_probe` + debug
+    `ast_pipeline` rebuilt.
+  - [x] **ADDRESSED (verified)** — before→after on `class C implements pkg::IC; endclass`
+    (`--parse-dump-ast-pretty` on `sv_2017` AND `sv_2023`): `<invalid_sequence_access>` **1 → 0** both
+    profiles; the interface-class-type node's inner `name` loses the corrupt `params` sibling → clean
+    `{name:{body:"IC"}, scope:{…pkg…}}`, outer `{name, params:[]}`; `parse_full` still passes. Isolation
+    (`--entry-rule interface_class_type` on `pkg::IC`) also **1 → 0**.
+  - [x] **NO REGRESSION** — SV external corpus **14/14** (`sv_external_corpus_triage_gate`
+    `parse_pass_total=14 parse_fail_total=0`); SV canonical cert `total 1309→1310 / witness 1288→1289 /
+    UNKNOWN=20` unchanged, seeds 0/7/42 byte-identical (`spf=0`, `proof_reverify_failures=0`; IDENTICAL
+    20-rule residual — 19 `no_path` + `context_member_method_call`; `interface_class_type_head` witnessed,
+    ZERO newly-unknown, `DUMP_ALL` diff empty); 6 fully-certified grammars byte-identical
+    `fully_certified=true` (SV-only regen — only `generated/systemverilog_parser.rs` regenerated; json cert
+    `fully_certified=true` spot-checked; tracked diff = grammar + manifest + test + docs only, NO codegen);
+    `cargo test --lib --features generated_parsers` **739/0/21ignored** (`systemverilog_ast_shape_contract`
+    PASS — the 2 new samples validated against the regenerated parser via `PGEN_SYSTEMVERILOG_PARSER_PATH`);
+    `--lint-grammar` `ordered_choice_shadowing=0 non_terminating=0 unreachable=0 profile_orphans=0`
+    (1430→1431 rules, `always_matches=8` unchanged); clippy source-clean (`clippy_on_rust_change` exit 0;
+    generated non-strict = established debt).
+  - [x] **LOCKSTEP** — shape-contract manifest `systemverilog_v1.json` (+2 samples
+    `interface_class_type_head_scoped`/`interface_class_type_scoped`, +1 calibration_history entry) +
+    `ast_shape_contract.rs` dispatch arms (`interface_class_type_head`, `interface_class_type`);
+    released-parser bug-ledger row `SV-0018`; SV integration contract `1.0.155 → 1.0.156` + schema
+    `10 → 11` + § "AST-Shape Corrections — 1.0.156"; SV parser book (`schema-versioning.md` schema-11 row
+    + intro, `welcome.md` version `11`, `json-carrier.md` +2 rows, `changelog-index.md` `1.0.156` entry)
+    rebuilt GREEN via `systemverilog_parser_book_gate` (mdbook_build + tracked_html); CHANGES /
+    DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS / TASK_TREE updated.
 
 - ID: `SV-AST-SHAPE-FIDELITY.2.6`
   Status: `open` (2026-07-01, session #12)
@@ -654,13 +704,32 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   `class_scoped_call_prefix` `pkg::C::foo()` → 2), **7 LATENT** (#3/#4/#10-13/#15 — PEG-shadowed),
   **4 BENIGN** (#9/#16/#17/#18), **1 STALE** (#7). Fix leaves `.2.5`/`.2.6`/`.2.7` opened.
 
+- 2026-07-01 (`.2.5`, session #12): tools-first before→after on `class C implements pkg::IC; endclass`,
+  `--parse-dump-ast-pretty` on `sv_2017` AND `sv_2023`: the interface-class-type node
+  `<invalid_sequence_access>` **1 → 0** both profiles — the inner `name` loses its corrupt `params`
+  sibling → clean `{name:{body:"IC"}, scope:{…pkg…}}`, outer `{name, params:[]}`; isolation
+  (`--entry-rule interface_class_type` on `pkg::IC`) also 1 → 0; `parse_full` still passes.
+- 2026-07-01 (`.2.5`) NO-REGRESSION: SV external corpus triage gate `parse_pass_total=14
+  parse_fail_total=0` (**14/14**); SV canonical cert `total 1309→1310 witness 1288→1289 UNKNOWN=20 spf=0
+  proof_reverify_failures=0` seeds 0/7/42 byte-identical (IDENTICAL 20-rule residual — 19 `no_path` +
+  `context_member_method_call`; `DUMP_ALL` diff empty; `interface_class_type_head` witnessed, absent from
+  the UNKNOWN set); 6 fully-certified grammars byte-identical (SV-only regen — only
+  `generated/systemverilog_parser.rs` regenerated; json `fully_certified=true` spot-checked; tracked diff
+  = grammar + manifest + test + docs, NO codegen); `cargo test --lib --features generated_parsers`
+  739/0/21ignored; `systemverilog_ast_shape_contract` PASS (2 new interface-class-type samples validated
+  against the regenerated parser via `PGEN_SYSTEMVERILOG_PARSER_PATH`); `--lint-grammar`
+  `ordered_choice_shadowing=0 non_terminating=0 unreachable=0 profile_orphans=0` 1430→1431 rules
+  (`always_matches=8` unchanged); `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html);
+  clippy source-clean.
+
 ## Commit Log
 
 - 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — committed `e0a672f4`.
 - 2026-07-01 (`.2.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0002 (SV-AST-SHAPE-FIDELITY.2.1)` — committed `88ffe2b3`.
 - 2026-07-01 (`.2.2`): `PGEN-SV-AST-SHAPE-FIDELITY-0003 (SV-AST-SHAPE-FIDELITY.2.2)` — committed `5854cbad`.
 - 2026-07-01 (`.2.3`): `PGEN-SV-AST-SHAPE-FIDELITY-0004 (SV-AST-SHAPE-FIDELITY.2.3)` — committed `12e8905c`.
-- 2026-07-01 (`.2.4`): `PGEN-SV-AST-SHAPE-FIDELITY-0005 (SV-AST-SHAPE-FIDELITY.2.4)` — pending commit.
+- 2026-07-01 (`.2.4`): `PGEN-SV-AST-SHAPE-FIDELITY-0005 (SV-AST-SHAPE-FIDELITY.2.4)` — committed `6e916260`.
+- 2026-07-01 (`.2.5`): `PGEN-SV-AST-SHAPE-FIDELITY-0006 (SV-AST-SHAPE-FIDELITY.2.5)` — pending commit.
 
 ## Changelog
 
@@ -728,3 +797,13 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   note); **4 BENIGN**; **1 STALE** (#7, pattern removed). `cargo test --lib` 739/0; clippy exit 0;
   canonical dump byte-identical. `.2` stays `in_progress` — the remaining sweep is now proof-driven:
   3 real fixes + latent calibration, not 15 unknowns.
+- 2026-07-01: `.2.5` FIXED + fully verified + lockstepped (candidate #8 — the `interface_class_type`
+  head inline-alternation-`$1` corruption on a class implementing a package-scoped interface class,
+  `class C implements pkg::IC;`, common in UVM). ONE new un-annotated named rule `interface_class_type_head`
+  (the same `{name/head:$1, params:$2}` shape as `base_class_type`/`.2.2`); release/schema `1.0.156`/schema
+  `11`; ledger `SV-0018`. `<invalid_sequence_access>` **1 → 0** both profiles (`params` corrupted → clean
+  `[]`); corpus 14/14; cert `total 1309→1310 witness 1288→1289 UNKNOWN=20` unchanged
+  (`interface_class_type_head` witnessed, ZERO newly-unknown); `ast_shape_contract` PASS (2 new samples);
+  book gate GREEN; `cargo test --lib` 739/0; clippy source-clean. `.2` stays `in_progress` — **2 of 3
+  REACHABLE-CORRUPT fixes remain** (`.2.6` #14 `nettype_declaration_sv_2023` `with`; `.2.7` #21
+  `class_scoped_call_prefix`); 6 candidates now fixed (#2, #19, #20, #1, #5, #6, #8).
