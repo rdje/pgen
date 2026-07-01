@@ -516,7 +516,9 @@ anonymous_program_item_sv_2023 := task_declaration              -> {kind: "task"
 anonymous_program_item := anonymous_program_item_sv_2017 -> {kind: "sv_2017", body: $1}
                         | anonymous_program_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
-ansi_port_declaration := ( net_port_header | interface_port_header )? port_identifier unpacked_dimension* ( assign constant_expression )?
+ansi_port_header := net_port_header | interface_port_header
+
+ansi_port_declaration := ansi_port_header? port_identifier unpacked_dimension* ( assign constant_expression )?
                                                                                                                        -> {kind: "net_or_interface", header: $1, name: $2, dims: $3, default: $4}
                        | ( variable_port_header )? port_identifier variable_dimension* ( assign constant_expression )?
                                                                                                                        -> {kind: "variable", header: $1, name: $2, dims: $3, default: $4}

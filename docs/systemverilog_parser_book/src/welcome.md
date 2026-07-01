@@ -8,7 +8,7 @@ This book is the **canonical AST reference** for downstream consumers of PGEN's 
 - **What the AST envelope looks like.** See [AST Envelope Structure](ast-envelope.md), [ParseContent Variants](parse-content-variants.md), and [Walking the AST](walking-the-ast.md).
 - **The shape every grammar rule produces in the AST dump.** See [Per-Rule Shape Reference](rules-top-level.md). As the return-annotation campaign progresses, this section grows to cover every rule that has a stable typed shape.
 - **Worked examples by SystemVerilog feature** — what does the AST look like for a minimal module? An interface? A class? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.
-- **Schema versioning policy.** See [Schema Versioning](schema-versioning.md). The schema is currently at version `4` (bumped at parser release `1.0.140`).
+- **Schema versioning policy.** See [Schema Versioning](schema-versioning.md). The schema is currently at version `7` (bumped at parser release `1.0.152`, the ANSI-port AST-shape corruption fix, ledger `SV-0014`).
 - **A release-by-release index of what changed and why.** See [Changelog Index](changelog-index.md).
 
 ## What this book is NOT
@@ -28,4 +28,4 @@ This book is the **canonical AST reference** for downstream consumers of PGEN's 
 
 The PGEN SystemVerilog parser is **closure-grade for the current Nexsim-facing scope** when consumed through the stable `pgen::embedding_api` host surface. See `LIVE_ACHIEVEMENT_STATUS.md` for the live closure status and `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` for the formal trust statement.
 
-The systemverilog return-annotation campaign is **in early phase**. Most rules currently fall through to the recursive default envelope shape; subsequent slices will type rules one-by-one, mirroring the regex-parser campaign that produced typed shapes for 42+ rules. Each slice gets its own changelog entry here.
+The systemverilog return-annotation campaign is **mature**: roughly a thousand grammar rules across both `sv_2017`/`sv_2023` profiles now carry stable typed shapes (return + semantic annotations), and the AST-dump schema is at version `7`. The parser is closure-grade for the Nexsim-facing scope and is validated each release by the certificate-coverage, external-corpus (14/14), and AST-shape-contract gates. Remaining work is targeted: closing the last certificate-coverage `UNKNOWN` residuals and correcting any residual AST-shape defects (e.g. the `SV-AST-SHAPE-FIDELITY` inline-alternation-`$N` corruption sweep). Each shape-affecting change gets its own [Schema Versioning](schema-versioning.md) row, a released-parser bug-ledger entry where it is a genuine bug, and an entry in the changelog here.

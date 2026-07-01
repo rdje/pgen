@@ -998,6 +998,18 @@ mod tests {
                 "sequential_entry" => parser
                     .parse_sequential_entry()
                     .map_err(|err| err.to_string()),
+                // SV-AST-SHAPE-FIDELITY.1: lock the ANSI-port shape at its own
+                // entry rules so the `ansi_port_declaration` inline-alternation-`$1`
+                // corruption (typed ports emitted `<invalid_sequence_access>` for
+                // the `header` sub-shape) cannot recur unnoticed. `ansi_port_header`
+                // is the corruption-site lock — its clean `{direction, port_type}`
+                // root keys differ from the corrupted `{kind,header,default,dims,name}`.
+                "ansi_port_declaration" => parser
+                    .parse_ansi_port_declaration()
+                    .map_err(|err| err.to_string()),
+                "ansi_port_header" => parser
+                    .parse_ansi_port_header()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),
