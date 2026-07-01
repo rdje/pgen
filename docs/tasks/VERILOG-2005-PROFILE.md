@@ -74,7 +74,9 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
 ## Task Tree
 
 - ID: `VERILOG-2005-PROFILE.1`
-  Status: `in_progress` (2026-07-01) — SCOPING / DESIGN leaf, **tools-first, NO code**.
+  Status: `done` (2026-07-01, `PGEN-VERILOG-2005-PROFILE-0002`) — SCOPING / DESIGN leaf,
+  **tools-first, NO code**. All four deliverables produced; results in the new
+  "`.1` Findings" section below; concrete `.2`.. plan replaces the old `.2` placeholder.
   Goal: produce the design that the implementation leaves execute. Deliverables:
   1. **Subset-boundary derivation (the oracle map).** Systematically diff/map
      `grammars/verilog_2005_lrm_extracted.ebnf` (476 productions) against the active
@@ -99,11 +101,146 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
      family, e.g. `class_declaration`, and prove accept/reject both ways).
   Output: the Decisions + a concrete `.2`.. implementation-leaf plan appended to this tree.
 
-- ID: `VERILOG-2005-PROFILE.2` … (implementation leaves)
-  Status: `open` — defined by `.1`'s output. Expected shape: register the profile
-  (`GrammarProfile` + aliases) → gate SV-only families in dependency order → keyword re-admission
-  → curated conformance corpus + cert/corpus gate → LIVE + contract + book lockstep. One family
-  (or small cluster) per leaf, accept/reject proven tools-first per leaf.
+- ID: `VERILOG-2005-PROFILE.2`
+  Status: `open` (next frontier) — CODE leaf: **register the `verilog_2005` profile end-to-end +
+  gate the first unambiguous whole-rule SV-only family (`class_declaration`)**, accept/reject
+  proven both ways. Scope (minimal, provable):
+  - Register the profile: `GrammarProfile::Verilog2005` variant + `as_str`
+    (`rust/src/embedding_api.rs:186/225`), `FromStr` aliases
+    `verilog_2005`/`1364-2005`/`ieee1364-2005`/`ieee_1364_2005` (`:282`), the
+    `systemverilog` `profile_matrix` binding (`:439`), and the runtime alias normalizer arm in
+    `normalize_generated_grammar_profile` (`rust/src/parser_registry.rs:117`).
+  - Gate ONE whole-rule family: add `@profiles: ["sv_2017", "sv_2023"]` above
+    `class_declaration` (`grammars/systemverilog.ebnf:962`) → regen SV parser.
+  - PROVE both ways (tools-first): `class C; endclass` **REJECTS** under `--profile verilog_2005`
+    and still **PARSES** under `--profile sv_2017`; a minimal Verilog-2005 module
+    (`module m; endmodule`) **PARSES** under `verilog_2005`. Acceptance checklist enforced
+    (code leaf): ROOT CAUSE / ADDRESSED / NO REGRESSION (SV corpus 14/14; 6 fully-certified
+    byte-identical; `ast_shape_contract` GREEN; clippy clean).
+- ID: `VERILOG-2005-PROFILE.3` … (subsequent implementation leaves, one family/cluster per leaf,
+  in the order fixed by "`.1` Findings → Implementation order"). Whole-rule gates first (cascade
+  automatically, low-risk), then the bare-keyword **branch-lift** gates (shape-preserving, each
+  AST-shape-verified), then keyword re-admission, then the closure corpus/gate + LIVE + contract +
+  book lockstep. Accept/reject proven tools-first per leaf.
+
+## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
+
+### Deliverable 3 — gating mechanism (RESOLVED; this is the load-bearing finding)
+
+Read the profile-gating codegen directly (`rust/src/ast_pipeline/ast_based_generator.rs`):
+`rule_profiles(rule_name)` (`:7108`) reads a rule's `@profiles: [...]` directive into a
+`Vec<String>`; `profile_guard` (`:2692`) emits a guard at rule ENTRY **only when that vec is
+non-empty**; `rule_profile_is_enabled` (`:4903`) returns `true` for an empty allow-list, else the
+active profile string must match one entry (case-insensitive), and `None` active profile ⇒ `true`.
+
+Consequences that fix the design:
+- **An UN-annotated rule is active in ALL profiles** (empty allow-list ⇒ no guard ⇒ always
+  enabled). So the low-blast-radius model is **Option B**: annotate only the SV-only rules with
+  the 2-profile allow-list `["sv_2017", "sv_2023"]`; the thousands of shared/core rules stay
+  un-annotated and remain active under `verilog_2005`. (Option A — a 3-profile allow-list on every
+  core rule — is rejected: huge blast radius.)
+- **The profile is a RUNTIME selection, not a codegen fork.** `parser_registry.rs:1028` comment +
+  `set_grammar_profile`: codegen emits the FULL grammar with runtime guards; the profile is chosen
+  at parse time. So a new profile needs NO separate parser — just the annotations + the profile
+  registration + a regen.
+- **Guard granularity is the RULE, not the branch.** The guard is emitted once at method entry
+  (`:2760`). A gated rule immediately returns `Err(Backtrack)`, so an ordered-choice parent simply
+  falls through to its next alternative. This gives a **cascade** property (below).
+
+### Deliverable 1 — the subset oracle map (SV-only families to gate)
+
+Tools-first diff of `grammars/verilog_2005_lrm_extracted.ebnf` (509 productions) vs
+`grammars/systemverilog.ebnf` (1433 rules). Two gating granularities fall out of the rule-guard
+mechanism:
+
+**(1) Whole-rule gates — add `@profiles: ["sv_2017", "sv_2023"]` above the rule (low-risk, no
+shape change).** These are SV-only construct entry rules; each verified present at the cited line:
+
+| Family | SV entry rule | line |
+| --- | --- | --- |
+| Classes | `class_declaration` | 962 |
+| Packages | `package_declaration` | 3560 |
+| Interfaces / modports | `interface_declaration` / `modport_declaration` | 2514 / 3026 |
+| Programs | `program_declaration` | 4059 |
+| Interface classes | `interface_class_declaration` | 2461 |
+| Assertions (concurrent) | `assert_property_statement` / `assume_property_statement` / `cover_property_statement` / `expect_property_statement` | 547 / 590 / 1486 / 2055 |
+| Properties / sequences | `property_declaration` / `sequence_declaration` | 4098 / 4646 |
+| Covergroups | `covergroup_declaration` | 1515 |
+| Constraints | `constraint_block` | 1405 |
+| Bind | `bind_directive` | 614 |
+| Nettype | `nettype_declaration` | 3396 (already `@profiles:["sv_2023"]`) |
+| Jump | `jump_statement` (return/break/continue) | 2557 |
+| Inc/dec | `inc_or_dec_expression` | 2334 |
+| Final | `final_construct` | 2098 |
+| SV-only integer atoms | `integer_atom_type` (byte/shortint/int/longint — ALL 4 SV-only) | 2433 |
+
+- **CASCADE simplification (verified):** `statement_item_sv_2017` (`:4836`) reaches the SV-only
+  statement types via CHILD RULES (`inc_or_dec_expression`@4841, `jump_statement`@4846,
+  `procedural_assertion_statement`@4851, `clocking_drive`@4852, `randsequence_statement`@4853,
+  `randcase_statement`@4854, `expect_property_statement`@4855). Whole-rule-gating those children
+  makes each dispatcher branch backtrack automatically — **no surgery on the dispatcher itself.**
+  Same for module/generate/block-item dispatchers that reference the gated entry rules.
+
+**(2) Branch-lift gates — needed ONLY where the SV-only alternative is a BARE KEYWORD TOKEN with no
+child rule to gate** (a branch guard does not exist, so the SV-only branch must first be LIFTED into
+a named sub-rule that carries the return annotation + the `@profiles` gate — a shape-preserving
+refactor, each verified with `--parse-dump-ast` + `ast_shape_contract`, schema unchanged):
+
+| Rule | line | Keep (Verilog-2005) | Lift + gate (SV-only) |
+| --- | --- | --- | --- |
+| `always_keyword` | 491 | `always` | `always_comb` / `always_latch` / `always_ff` (492–494) |
+| `loop_statement` | 2801 | forever/repeat/while/for | `do…while` (2809) / `foreach` (2811) |
+| `integer_vector_type` | 2454 | `reg` (2456) | `bit` (2454) / `logic` (2455) |
+| `non_integer_type` | 3416 | `real` / `realtime` | `shortreal` (3416) |
+| `case_statement` / `conditional_statement` | — | plain forms | `unique`/`priority` qualifier + `case…matches` pattern arm (SV-only) |
+
+Note the double duty of `bit`/`logic`/`byte`/…: gated OUT as **data types** here (axis 1), AND
+un-reserved as **identifiers** in Deliverable 2 (axis 2). Both are required.
+
+### Deliverable 2 — keyword-reservation delta (the non-subtractive axis)
+
+Authoritative sets extracted tools-first: IEEE 1364-2005 Annex B keyword list
+(`docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md`, 123 keywords) vs the SV
+`reserved_non_keyword_identifier` negative-lookahead regex (`grammars/systemverilog.ebnf:360`,
+`non_keyword_identifier := !reserved_non_keyword_identifier identifier` @334).
+
+~48 words the SV grammar reserves are **NOT** Verilog-2005 keywords, so they must parse as
+IDENTIFIERS under `verilog_2005`: `assert assume bit break byte chandle checker class clocking
+context continue do endchecker endclass endinterface endpackage endprogram endproperty endsequence
+enum expect export foreach import int interface join_any join_none logic longint modport package
+program property pure randcase randsequence return sequence shortint shortreal string struct type
+typedef union void wait_order`. The ~33 that ARE Verilog-2005 keywords stay reserved (`begin case
+casex casez disable else end endcase endfunction endmodule endtask event for forever fork function
+generate if integer join localparam module parameter real realtime reg repeat signed task time
+unsigned wait while`).
+
+**Design (uses only existing primitives — profile guard + ordered choice):** split the reserved-word
+lookahead into two profile-gated variants and select by profile —
+`reserved_non_keyword_identifier_sv` (full SV set, `@profiles:["sv_2017","sv_2023"]`) and
+`reserved_non_keyword_identifier_v2005` (reduced set, `@profiles:["verilog_2005"]`), with
+`reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv |
+reserved_non_keyword_identifier_v2005`. Traced through the negative lookahead: under `verilog_2005`
+the SV variant backtracks (gated) and the v2005 variant (which omits `logic`, `bit`, …) fails to
+match `logic` ⇒ `!reserved…` SUCCEEDS ⇒ `logic` is an identifier; for `module` the v2005 variant
+matches ⇒ correctly reserved. Under `sv_2017` the SV variant matches the full set; the v2005 variant
+is gated/never reached. No new engine primitive. (The SV-only `kw_*` fused tokens — 289 of them —
+need no individual gating: they are only reachable via the construct roots gated in Deliverable 1.)
+
+### Deliverable 4 — closure bar + first slice
+
+- **Closure surface:** (a) a curated `verilog_2005` **conformance corpus** — an ACCEPT set (real
+  1364-2005 designs) + a REJECT set (SV-only snippets that MUST fail under `verilog_2005` while
+  still parsing under `sv_2017`), run through `parseability_probe --parse systemverilog f.v
+  --profile verilog_2005` (the primary accept/reject-both-ways proof, mirroring the existing SV
+  external-corpus triage); plus (b) `ast_pipeline … --report-certificate-coverage --grammar-profile
+  verilog_2005 --entry-rule systemverilog_file` as the trustworthiness number for the profiled
+  grammar (SV-only rules become unreachable/proof under the profile — expected and acceptable).
+- **First slice = `.2`** (register the profile + gate `class_declaration`, accept/reject both ways)
+  — the minimal end-to-end proof that the mechanism works before scaling to every family.
+- **Implementation order (`.3`..):** whole-rule gates in dependency order (cascade, low-risk) →
+  bare-keyword branch-lift gates (shape-preserving, AST-verified) → keyword re-admission
+  (Deliverable 2 split) → curated corpus + `verilog_2005` cert/corpus gate → LIVE + SV integration
+  contract (new profile) + SV parser book (`verilog_2005` chapter) lockstep.
 
 ## Decisions
 
@@ -124,17 +261,40 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   (additive `@profiles:` gating — the easy axis); (b) UN-reserve the SV-only keywords that are
   legal Verilog-2005 identifiers (the non-subtractive axis — the 1364-2005 keyword annex is the
   authority). Both are required for a faithful profile.
+- 2026-07-01 (`.1`): **Gate with Option B (2-profile allow-list on SV-only rules), not Option A.**
+  Tool-proven: an un-annotated rule is active in all profiles (`rule_profile_is_enabled` empty ⇒
+  true), so annotating only the SV-only rules with `["sv_2017", "sv_2023"]` is additive and
+  minimal-blast-radius; annotating every core rule with a 3-profile list is rejected.
+- 2026-07-01 (`.1`): **Two gating granularities, and prefer whole-rule (cascade) over branch.** The
+  profile guard fires at RULE entry, so gating an SV-only entry rule makes every ordered-choice
+  parent that references it fall through automatically (verified for the `statement_item_sv_2017`
+  dispatcher). Branch-lift (lift an inline `|` alternative into a named gated sub-rule) is used
+  ONLY where the SV-only alternative is a bare keyword token with no child rule to gate
+  (`always_comb/latch/ff`, `do…while`/`foreach`, `bit`/`logic`, `shortreal`), and MUST be
+  shape-preserving (AST verified) per the SV-AST-SHAPE-FIDELITY inline-alt-`$N` cautions.
+- 2026-07-01 (`.1`): **Keyword re-admission via a profile-gated ordered-choice split of the reserved
+  lookahead** (`reserved_non_keyword_identifier_sv | reserved_non_keyword_identifier_v2005`) — no
+  new engine primitive; traced correct through the `!reserved…` negative lookahead both ways.
+- 2026-07-01 (`.1`): **Profile is a runtime selection, no parser fork.** Codegen emits the full
+  grammar with runtime guards (`parser_registry.rs:1028`); `verilog_2005` needs only the EBNF
+  annotations + `GrammarProfile`/alias registration + a regen.
 
 ## Open Questions
 
-- Exact default-profile-membership semantics of an UN-annotated rule (all-profiles vs none) —
-  resolved in `.1` step 3 by reading the profile-gating codegen, not assumed.
-- Whether any 1364-2005 construct is NOT a clean subset of IEEE 1800 (rare true divergences,
-  e.g. a construct legal in Verilog but removed/reinterpreted in SV) — surface via the `.1`
-  oracle diff and classify as `divergent`.
-- Corpus sourcing: which real Verilog-2005 designs (and SV-only negative cases) form the
-  conformance corpus (the repo already vendors SV corpora under `stimuli/sv/`; a Verilog-2005
-  accept corpus + an SV-only reject corpus need curating).
+- ~~Exact default-profile-membership semantics of an UN-annotated rule~~ — **RESOLVED (`.1`)**:
+  un-annotated ⇒ active in ALL profiles (`rule_profile_is_enabled` returns `true` on an empty
+  allow-list). Gating is therefore additive (Option B).
+- Divergences (`.1` oracle diff): the SV-vs-Verilog differences found are **structural, not true
+  "legal-in-Verilog-illegal-in-SV" divergences** — SV ADDS `unique`/`priority` qualifiers +
+  `case…matches` pattern arms to `case_statement`/`conditional_statement` (branch-lift), and a
+  spelling difference (`procedural_continuous_assignment` singular in SV vs
+  `procedural_continuous_assignments` plural in the 1364-2005 skeleton — same construct). No
+  construct was found that is legal Verilog-2005 yet removed/reinterpreted in IEEE 1800; if one
+  surfaces during implementation it is classified `divergent` in its leaf.
+- Corpus sourcing (OPEN, for `.2`+): which real Verilog-2005 designs (accept set) and SV-only
+  snippets (reject set) form the `verilog_2005` conformance corpus. The reject set is cheap to
+  author from the Deliverable-1 SV-only family table; the accept set needs a small curated set of
+  pure-1364-2005 modules (plus targeted keyword-as-identifier cases like `reg logic; wire bit;`).
 
 ## Blockers
 
@@ -150,11 +310,28 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   `GrammarProfile::{Sv2017,Sv2023,Vhdl1076_2019,RegexDefault}` in `embedding_api.rs`; the
   `systemverilog_profiles` vec at `:405`). `verilog_2005` is referenced only in planning docs
   (`PNR-AUX-READERS`, `VERILOG-AMS`) — no active profile yet.
+- 2026-07-01 (`.1`, DESIGN closure — tools-first, NO code): completed all four deliverables.
+  Mechanism (D3) proven by direct code read: `rule_profiles` (`ast_based_generator.rs:7108`),
+  `profile_guard` (`:2692/2760`), `rule_profile_is_enabled` (`:4903`) — empty allow-list ⇒ active
+  everywhere; explicit list ⇒ off-profile Backtrack at rule entry; profile is a runtime selection
+  (`parser_registry.rs:1028`). Oracle map (D1) from `verilog_2005_lrm_extracted.ebnf` (509 prod) vs
+  `systemverilog.ebnf` (1433 rules); every cited SV-only entry rule spot-verified present at its
+  line (`class_declaration`@962, `package_declaration`@3560, `interface_declaration`@2514,
+  `program_declaration`@4059, `bind_directive`@614, `jump_statement`@2557, `inc_or_dec_expression`
+  @2334, `final_construct`@2098, …); branch shapes verified for `always_keyword`@491,
+  `loop_statement`@2801, `integer_atom_type`@2433, `integer_vector_type`@2454, `non_integer_type`
+  @3416, `statement_item_sv_2017`@4836 (cascade confirmed). Keyword delta (D2) from IEEE 1364-2005
+  Annex B (123 kw, `section-Annex_B-…md`) vs `reserved_non_keyword_identifier`@360 →
+  ~48 SV-only reserved words to un-reserve. Closure bar + first slice (D4) fixed → `.2`. No
+  grammar / code / generated / release change (design-only).
 
 ## Commit Log
 
 - 2026-07-01: tree created + `.1` scoping opened (`PGEN-VERILOG-2005-PROFILE-0001`, PURE-DOCS —
   scoping only, no code/grammar/generated change).
+- 2026-07-01: `.1` DESIGN closed (`PGEN-VERILOG-2005-PROFILE-0002`, PURE-DOCS) — all four
+  deliverables landed (mechanism / oracle map / keyword delta / closure bar), Decisions +
+  concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
 
@@ -162,3 +339,11 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   the SV grammar; `.1` design leaf opened with the source-material inventory + the
   profile-on-SV-grammar-with-oracle decision; implementation leaves (`.2`..) deferred to `.1`'s
   boundary-derivation output.
+- 2026-07-01: `.1` DONE (`PGEN-VERILOG-2005-PROFILE-0002`, PURE-DOCS scoping) — produced the
+  design tools-first: (D3) gating mechanism = Option B 2-profile allow-list on SV-only rules,
+  rule-granularity guard with cascade-through-dispatchers, profile is a runtime selection (no
+  fork); (D1) oracle map of SV-only families split into whole-rule gates vs bare-keyword
+  branch-lifts; (D2) ~48 SV-only reserved words to un-reserve via a profile-gated ordered-choice
+  split of the reserved lookahead; (D4) closure bar (accept/reject conformance corpus + profiled
+  cert) + first slice `.2` (register profile + gate `class_declaration`) + `.3`.. ordering.
+  Frontier → `.2` (first CODE leaf).
