@@ -6333,7 +6333,18 @@ known_unscoped_class_scoped_call_type_parameter_identifier := type_identifier
 @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.body.name.body, declaration_family, type_parameter], phase: post, view: shaped }
 scoped_class_scoped_call_prefix_identifier := non_typedef_package_scope class_identifier -> {scope: $1, name: $2}
 
-class_scoped_call_prefix := ( scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier ) ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
+# SV-AST-SHAPE-FIDELITY.2.7 (candidate #21, = the SV-0013 rule) — named-lift the
+# inline 4-way head alternation so the outer rule's bare `$1` binds the clean
+# named rule (the `.2.3` `class_scope_type_head` / `.2.2` `base_class_type_head`
+# idiom). Previously the self-annotated `scoped_class_scoped_call_prefix_identifier`
+# branch (`-> {scope, name}`) mis-recursed the outer `{head:$1, params:$2,
+# scope_chain:$4}` annotation onto its result, corrupting `params`/`scope_chain`
+# into `<invalid_sequence_access>` for a reachable `pkg::C::foo()` static method
+# call (ast_return_transform.rs:193/438). SV-0013 gated the branches inside the
+# alt but did not lift it; this completes that rule. Positions $1..$4 unchanged.
+class_scoped_call_prefix_head := scoped_class_scoped_call_prefix_identifier | known_unscoped_class_scoped_call_class_identifier | known_unscoped_class_scoped_call_interface_class_identifier | known_unscoped_class_scoped_call_type_parameter_identifier
+
+class_scoped_call_prefix := class_scoped_call_prefix_head ( parameter_value_assignment )? scope_resolution ( class_identifier ( parameter_value_assignment )? scope_resolution )*
                         -> {head: $1, params: $2, scope_chain: $4}
 class_scoped_tf_call_with_args := class_scoped_call_prefix tf_identifier attribute_instance* lparen list_of_arguments rparen
                                -> {prefix: $1, name: $2, attributes: $3, args: $5}

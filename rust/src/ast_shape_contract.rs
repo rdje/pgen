@@ -1092,6 +1092,26 @@ mod tests {
                 "net_type_declaration_sv_2017" => parser
                     .parse_net_type_declaration_sv_2017()
                     .map_err(|err| err.to_string()),
+                // SV-AST-SHAPE-FIDELITY.2.7: lock the class-scoped-call prefix head
+                // (candidate #21, = the SV-0013 rule). `pkg::C::foo()` (a package-
+                // class-scoped static method call, reachable in statement +
+                // assignment-RHS context) emitted 2 `<invalid_sequence_access>` —
+                // `class_scoped_call_prefix` bound `head:$1` over the inline 4-way
+                // alternation, so when the self-annotated
+                // `scoped_class_scoped_call_prefix_identifier` branch (`-> {scope:$1,
+                // name:$2}`) won, the rule's own `{head:$1, params:$2, scope_chain:$4}`
+                // mis-recursed onto the branch result, corrupting `params`/`scope_chain`.
+                // `class_scoped_call_prefix_head` is the corruption-site + compile-time
+                // revert guard (removing the named-lift fails
+                // `parse_class_scoped_call_prefix_head()` to compile). Same
+                // `{head:$1, params:$2, scope_chain:$4}` 4-way shape + idiom as
+                // `class_scope_type_head` (.2.3); `class_scoped_call_prefix` is the root lock.
+                "class_scoped_call_prefix_head" => parser
+                    .parse_class_scoped_call_prefix_head()
+                    .map_err(|err| err.to_string()),
+                "class_scoped_call_prefix" => parser
+                    .parse_class_scoped_call_prefix()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),
