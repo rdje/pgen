@@ -320,6 +320,88 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
     `systemverilog_parser_book_gate`; CHANGES / DEVELOPMENT_NOTES / MEMORY /
     LIVE_ACHIEVEMENT_STATUS updated.
 
+- ID: `SV-AST-SHAPE-FIDELITY.2.3`
+  Status: `done` (2026-07-01)
+  Goal: Fix the `.2` enumeration **scoped-type-reference cluster** — candidates **#1
+  `class_scope_type`**, **#5 `scoped_block_type_identifier`**, **#6
+  `scoped_data_type_identifier`** — which co-occur in the single ubiquitous repro
+  `module m; C::D::E v; endmodule` (a package/class-scoped type reference on a variable
+  declaration — extremely common in real SV/UVM). That one repro emits **4
+  `<invalid_sequence_access>` sentinels** from TWO distinct inline-alt-`$N` corruptions,
+  so the cluster is fixed and verified together (two shared named-lifts) to drive the
+  repro to 0. `class_scope_type` (#1) is the EXACT pre-`.2.2` `base_class_type` pattern;
+  `scoped_block_type_identifier`/`scoped_data_type_identifier` (#5/#6) are byte-identical
+  and share ONE inline alt, so one shared prefix rule fixes both — the `.2.1`
+  two-identical-lines / `.2.2` shared-`base_class_type` precedent.
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — `module m; C::D::E v; endmodule` →
+    `./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog … --profile sv_2017`
+    yields the `data_type` `{kind:"scoped_data_type", body:{…}}` node with **4
+    `<invalid_sequence_access>`**: the OUTER `scoped_data_type_identifier` `scope` value is a
+    corrupted `{scope:<real class_scope>, type:"<invalid_sequence_access>",
+    dims:"<invalid_sequence_access>"}` (self-annotation mis-recursed onto the `class_scope`
+    branch result); the NESTED `class_scope_type` head is
+    `{head:{name:{body:"D"},scope:{…C…}}, params:"<invalid_sequence_access>",
+    scope_chain:"<invalid_sequence_access>"}`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — two rules, IDENTICAL mechanism to `.1`/`.2.1`/`.2.2`
+    (`SVPP-0001`, `RTL-FE-0002`, `RTL-CE-0001`, `VHDL-0001`), the inline-alt-`$N`
+    positional-model corruption in `rust/src/ast_pipeline/ast_return_transform.rs` (sentinel
+    `:193`/`:438`):
+    - **#6 `scoped_data_type_identifier`** (`grammars/systemverilog.ebnf:1649-1650`) and its
+      byte-identical block twin **#5 `scoped_block_type_identifier`** (`:1642-1643`):
+      `scope: $1` binds a bare positional `$1` to the inline alt
+      `( class_scope | non_typedef_package_scope )`; the `class_scope` branch is self-annotated
+      (`class_scope -> {body:$1}`, `:1071`), so when it wins the rule's own annotation
+      `{scope:$1, type:$2, dims:$3}` is mis-recursed onto the branch result → `type`/`dims`
+      resolve to out-of-range positions → `<invalid_sequence_access>`.
+    - **#1 `class_scope_type`** (`grammars/systemverilog.ebnf:1067-1068`): `head: $1` binds a
+      bare positional `$1` to the inline 4-way alt
+      `( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier |
+      known_unscoped_class_scope_interface_class_identifier |
+      known_unscoped_class_scope_type_parameter_identifier )`; the self-annotated
+      `scoped_class_scope_identifier` branch (`-> {scope:$1, name:$2}`, `:1049`) wins →
+      `params: $2` and `scope_chain: $3` corrupt → `<invalid_sequence_access>`. This is the
+      un-lifted twin of the already-correct `base_class_type` (fixed in `.2.2`) and
+      `class_type` (in-file precedent) — same `{head, params, scope_chain}` shape.
+    The inline alt `( class_scope | non_typedef_package_scope )` occurs ONLY at #5/#6 (grep-proven),
+    so one shared prefix rule fixes both with no other reference affected.
+  - [x] **FIX** — two Level-1 declarative named-lifts (the `.1`/`.2.1`/`.2.2` precedent):
+    (a) `class_scope_type_head := scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier`;
+    `class_scope_type := class_scope_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? &scope_resolution )* -> {head:$1, params:$2, scope_chain:$3}`
+    (annotation text + `&scope_resolution` tail-lookahead unchanged; `grammars/systemverilog.ebnf:1100`);
+    (b) `scoped_type_scope_prefix := class_scope | non_typedef_package_scope` (`:1651`); both
+    `scoped_block_type_identifier` (`:1653`)/`scoped_data_type_identifier` (`:1659`) become
+    `scoped_type_scope_prefix type_identifier packed_dimension* -> {scope:$1, type:$2, dims:$3}`.
+    +2 new named rules only. SV parser regenerated (`make -C rust focus_systemverilog`); release
+    `parseability_probe` + debug `ast_pipeline` rebuilt.
+  - [x] **ADDRESSED (verified)** — before→after on `module m; C::D::E v; endmodule`
+    (`sv_2017` AND `sv_2023`): `<invalid_sequence_access>` **4 → 0** BOTH profiles;
+    `class_scope_type` head `params`/`scope_chain` → `[]`, `scoped_data_type_identifier` `scope`
+    → clean class_scope, `type`→`{body:"E"}`, `dims`→`[]`; `parse_full` still passes. The
+    `var C::D::E` block forms also parse clean (0 sentinels).
+  - [x] **NO REGRESSION** — SV external corpus **14/14** (`sv_external_corpus_triage_gate`
+    `GATE_EXIT=0`, `parse_pass_total=14 parse_fail_total=0`, 18 parse_full logs incl. bootstrap
+    variants all PASS); SV canonical cert `total 1307→1309 / witness 1286→1288 / UNKNOWN=20`
+    unchanged, seeds 0/7/42 byte-identical (`spf=0`, `proof_reverify_failures=0`; IDENTICAL 20-rule
+    residual — 19 `no_path` + `context_member_method_call`, `PGEN_CERT_COVERAGE_DUMP_ALL` diff empty;
+    the 2 new named rules + the 3 rewritten rules ALL witnessed, absent from UNKNOWN); 6
+    fully-certified grammars byte-identical `fully_certified=true` (SV-only regen — only
+    `generated/systemverilog_parser.rs` mtime changed; json `UNKNOWN=0`/regex `UNKNOWN=0`
+    spot-checked `fully_certified=true`); `cargo test --lib --features generated_parsers`
+    **739/0/21ignored**; `systemverilog_ast_shape_contract` **PASS** (4 new samples validated
+    against the regenerated parser); `--lint-grammar` `ordered_choice_shadowing=0 non_terminating=0
+    unreachable=0 profile_orphans=0` (1428→1430 rules, `always_matches=8` unchanged); clippy
+    source stage `ok` (generated non-strict = established debt).
+  - [x] **LOCKSTEP** — shape-contract manifest `systemverilog_v1.json` (+4 scoped-type samples
+    `class_scope_type_head_scoped`/`class_scope_type_scoped`/`scoped_type_scope_prefix_class`/`scoped_data_type_identifier_scoped`
+    + calibration_history entry) + `ast_shape_contract.rs` dispatch arms (4); released-parser
+    bug-ledger row `SV-0017`; SV integration contract `1.0.154 → 1.0.155` + schema `9 → 10` +
+    § "AST-Shape Corrections — 1.0.155"; SV parser book (`schema-versioning.md` schema-10 row +
+    intro `now 10`, `welcome.md` version `10`, `json-carrier.md` +4 rows, `changelog-index.md`
+    `1.0.155` entry) rebuilt GREEN via `systemverilog_parser_book_gate` (mdbook_build + tracked_html
+    both pass); CHANGES / DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS / TASK_TREE updated.
+
 - ID: `SV-AST-SHAPE-FIDELITY.3`
   Status: `open` (2026-07-01)
   Goal: Backfill the SV parser book `schema-versioning.md` per-release timeline rows for
@@ -409,12 +491,31 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   samples validated against the regenerated parser); `--lint-grammar` `ordered_choice_shadowing=0
   non_terminating=0 unreachable=0 profile_orphans=0` 1427→1428 rules (`always_matches=8` unchanged);
   `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html); clippy source-clean.
+- 2026-07-01 (`.2.3`): tools-first before→after on `module m; C::D::E v; endmodule`,
+  `--parse-dump-ast-pretty` on `sv_2017` AND `sv_2023`: the `scoped_data_type` node
+  `<invalid_sequence_access>` **4 → 0** both profiles — the outer `scoped_data_type_identifier`
+  `scope` is now the clean `class_scope`, `type`→`{body:"E"}`, `dims`→`[]`, and the nested
+  `class_scope_type` head `params`/`scope_chain`→`[]`; `parse_full` passes. The `var C::D::E`
+  block forms also parse clean (0 sentinels).
+- 2026-07-01 (`.2.3`) NO-REGRESSION: SV external corpus triage gate `GATE_EXIT=0`
+  `parse_pass_total=14 parse_fail_total=0` (**14/14**, 18 parse_full logs incl. bootstrap variants);
+  SV canonical cert `total 1307→1309 witness 1286→1288 UNKNOWN=20 spf=0 proof_reverify_failures=0`
+  seeds 0/7/42 byte-identical (IDENTICAL 20-rule residual — 19 `no_path` + `context_member_method_call`;
+  `PGEN_CERT_COVERAGE_DUMP_ALL` diff empty; `class_scope_type_head` + `scoped_type_scope_prefix`
+  witnessed, absent from the UNKNOWN set); 6 fully-certified grammars byte-identical (json/regex
+  spot-checked `fully_certified=true`; codegen untouched, SV-only regen — only
+  `generated/systemverilog_parser.rs` mtime changed); `cargo test --lib --features generated_parsers`
+  739/0/21ignored; `systemverilog_ast_shape_contract` PASS (4 new scoped-type samples validated
+  against the running regenerated parser); `--lint-grammar` `ordered_choice_shadowing=0
+  non_terminating=0 unreachable=0 profile_orphans=0` 1428→1430 rules (`always_matches=8` unchanged);
+  `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html); clippy source stage `ok`.
 
 ## Commit Log
 
 - 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — committed `e0a672f4`.
 - 2026-07-01 (`.2.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0002 (SV-AST-SHAPE-FIDELITY.2.1)` — committed `88ffe2b3`.
-- 2026-07-01 (`.2.2`): `PGEN-SV-AST-SHAPE-FIDELITY-0003 (SV-AST-SHAPE-FIDELITY.2.2)` — pending commit.
+- 2026-07-01 (`.2.2`): `PGEN-SV-AST-SHAPE-FIDELITY-0003 (SV-AST-SHAPE-FIDELITY.2.2)` — committed `5854cbad`.
+- 2026-07-01 (`.2.3`): `PGEN-SV-AST-SHAPE-FIDELITY-0004 (SV-AST-SHAPE-FIDELITY.2.3)` — pending commit.
 
 ## Changelog
 
@@ -450,3 +551,19 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   shared-named-lift cluster queued next; #1 `class_scope_type` did NOT reproduce a sentinel with common
   repros this session — its head-alt is clean when the winning branch is an un-annotated bare identifier,
   as in `C::D::E`; remains a candidate pending a reachable annotated-branch repro).
+- 2026-07-01: `.2.3` FIXED + fully verified + lockstepped (scoped-type-reference **cluster** —
+  candidates **#1 `class_scope_type`**, **#5 `scoped_block_type_identifier`**, **#6
+  `scoped_data_type_identifier`**). Session #11 tools-first `--parse-dump-ast-pretty` on the single
+  ubiquitous repro `module m; C::D::E v; endmodule` surfaced **4** `<invalid_sequence_access>` sentinels
+  from TWO nested inline-alt-`$N` corruptions — CORRECTING the `.2.2`-era tentative note above: candidate
+  **#1 `class_scope_type` DOES reproduce** (its `head:$1` over a 4-way alt corrupts `params`/`scope_chain`
+  when the self-annotated `scoped_class_scope_identifier` branch wins, nested inside the `class_scope` of
+  `C::D::E`), alongside #6 `scoped_data_type_identifier` (`scope:$1` over the shared alt
+  `( class_scope | non_typedef_package_scope )` corrupts `type`/`dims`). Fixed together via TWO shared
+  named-lifts — `class_scope_type_head` (#1) + `scoped_type_scope_prefix` (#5/#6, the shared alt
+  grep-proven to occur ONLY at those two byte-identical rules) — the `.1`/`.2.1`/`.2.2` idiom mirroring
+  the in-file `class_type_head`. `<invalid_sequence_access>` **4 → 0** both profiles; release/schema
+  `1.0.155`/schema `10`; ledger `SV-0017`. Corpus 14/14; cert `total 1307→1309 witness 1286→1288 UNKNOWN=20`
+  unchanged (both new rules witnessed; zero newly-unknown); `ast_shape_contract` PASS (4 new samples);
+  book gate GREEN; `cargo test --lib` 739/0; clippy source-clean. `.2` stays `in_progress` — **15 of 21
+  candidates remain** (fixed: #2, #19, #20, #1, #5, #6); next = `method_call_receiver` #10-13.

@@ -1037,6 +1037,29 @@ mod tests {
                 "base_class_type" => parser
                     .parse_base_class_type()
                     .map_err(|err| err.to_string()),
+                // SV-AST-SHAPE-FIDELITY.2.3: lock the scoped-type-reference cluster
+                // (candidates #1/#5/#6). `module m; C::D::E v; endmodule` emitted 4
+                // `<invalid_sequence_access>` sentinels from TWO inline-alternation-`$N`
+                // corruptions: `class_scope_type` (head:$1 over a 4-way alt →
+                // `params`/`scope_chain` corrupt) and `scoped_data_type_identifier` /
+                // `scoped_block_type_identifier` (scope:$1 over the shared alt
+                // ( class_scope | non_typedef_package_scope ) → `type`/`dims` corrupt).
+                // `class_scope_type_head` + `scoped_type_scope_prefix` are the
+                // corruption-site + compile-time revert guards — removing either
+                // named-lift (reverting to the inline alternation) fails its
+                // `parse_*()` to compile. Mirrors the `base_class_type_head` idiom.
+                "class_scope_type_head" => parser
+                    .parse_class_scope_type_head()
+                    .map_err(|err| err.to_string()),
+                "class_scope_type" => parser
+                    .parse_class_scope_type()
+                    .map_err(|err| err.to_string()),
+                "scoped_type_scope_prefix" => parser
+                    .parse_scoped_type_scope_prefix()
+                    .map_err(|err| err.to_string()),
+                "scoped_data_type_identifier" => parser
+                    .parse_scoped_data_type_identifier()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

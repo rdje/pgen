@@ -1064,7 +1064,17 @@ scoped_class_scope_identifier := non_typedef_package_scope class_identifier -> {
 # chain form like `pkg::C::D::method`), leaving the FINAL `::method`
 # correctly to the outer rule's trailing scope_resolution + the caller's
 # function_identifier. Parser-AGNOSTIC level-0 grammar fix.
-class_scope_type := ( scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier ) ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? &scope_resolution )*
+# SV-AST-SHAPE-FIDELITY.2.3 — named-lift of the class_scope_type head alternation so the
+# bare `head: $1` in `class_scope_type` binds a clean named rule instead of an inline
+# alternation (which corrupted the positional model → `params`/`scope_chain`
+# `<invalid_sequence_access>` when the self-annotated `scoped_class_scope_identifier` branch
+# won, e.g. `C::D::E`). The un-lifted twin of the already-correct `base_class_type` (`.2.2`
+# `base_class_type_head`) / `class_type` (`class_type_head`) — same `{head, params,
+# scope_chain}` shape; the `.1` `ansi_port_header` / `.2.1` `forward_type_keyword` precedent.
+# The iteration tail (with its `&scope_resolution` lookahead) is unchanged.
+class_scope_type_head := scoped_class_scope_identifier | known_unscoped_class_scope_class_identifier | known_unscoped_class_scope_interface_class_identifier | known_unscoped_class_scope_type_parameter_identifier
+
+class_scope_type := class_scope_type_head ( parameter_value_assignment )? ( scope_resolution class_identifier ( parameter_value_assignment )? &scope_resolution )*
                  -> {head: $1, params: $2, scope_chain: $3}
 
 class_scope := @probe_sample: "C::" class_scope_type scope_resolution
@@ -1639,14 +1649,23 @@ data_source_expression := expression
 known_unscoped_block_type_identifier := checked_type_identifier packed_dimension*
                                      -> {type: $1, dims: $2}
 
-scoped_block_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
+# SV-AST-SHAPE-FIDELITY.2.3 — named-lift of the shared scoped-type-identifier scope prefix
+# so the bare `scope: $1` in `scoped_block_type_identifier` / `scoped_data_type_identifier`
+# binds a clean named rule instead of an inline alternation (which corrupted the positional
+# model → `type`/`dims` `<invalid_sequence_access>` when the self-annotated `class_scope`
+# branch won, e.g. `C::D::E v;`). The alt occurs ONLY at these two byte-identical rules, so
+# ONE shared rule fixes both — the `.1` `ansi_port_header` / `.2.1` `forward_type_keyword`
+# named-lift precedent.
+scoped_type_scope_prefix := class_scope | non_typedef_package_scope
+
+scoped_block_type_identifier := scoped_type_scope_prefix type_identifier packed_dimension*
                              -> {scope: $1, type: $2, dims: $3}
 
 # SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier.
 known_unscoped_data_type_identifier := checked_type_identifier packed_dimension*
                                     -> {type: $1, dims: $2}
 
-scoped_data_type_identifier := ( class_scope | non_typedef_package_scope ) type_identifier packed_dimension*
+scoped_data_type_identifier := scoped_type_scope_prefix type_identifier packed_dimension*
                             -> {scope: $1, type: $2, dims: $3}
 
 @predicate: { name: has_fact, args: [type_name, $head.body], phase: post, view: shaped }
