@@ -563,7 +563,7 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
     DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS / TASK_TREE updated.
 
 - ID: `SV-AST-SHAPE-FIDELITY.2.6`
-  Status: `open` (2026-07-01, session #12)
+  Status: `done` (2026-07-01, session #12)
   Goal: Fix candidate **#14 `nettype_declaration_sv_2023`** br1 `with`-clause — `nettype logic n
   with pkg::f;` (a nettype with a package-scoped resolution function — reachable at module/package/
   compilation-unit scope, proven in `.2.4`) emits **3 `<invalid_sequence_access>`**. The inline alt
@@ -572,6 +572,55 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   `scoped_type_scope_prefix` if the alt is byte-identical — grep-verify first) so the `$4` positional
   model is restored. Full checklist + lockstep. (`sv_2023`-gated — verify the `sv_2017` nettype rule
   for a twin.)
+
+  ### Acceptance Checklist (enforced)
+  - [x] **REPRODUCE / ISSUE** — `module m; nettype logic n with pkg::f; endmodule` →
+    `./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog … --profile sv_2023`
+    (AND `sv_2017`) yields the nettype's `with_clause` inner scope element as
+    `{data_type:"<invalid_sequence_access>", kind:"data_type", name:"<invalid_sequence_access>",
+    with_clause:"<invalid_sequence_access>"}` glued in place of the scope — **3
+    `<invalid_sequence_access>`** per scoped-`with`, BOTH profiles. The scoped-base br1 form
+    (`nettype pkg::base_t my_nt;`) was already clean (0). Also isolated via the `.2.4` entry-aware dump.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — TWO rules (a proven sv_2017 twin): both
+    `net_type_declaration_sv_2017` (`grammars/systemverilog.ebnf:3341`, `-> {data_type:$2, name:$3,
+    with_clause:$4}`) and its sv_2023 twin `nettype_declaration_sv_2023` (`:3390`, `-> {kind:"data_type",
+    data_type:$2, name:$3, with_clause:$4}`) br0 bound a **double-nested** inline alt
+    `( non_typedef_package_scope | class_scope )?` inside the `with`-clause group `( kw_with ( … )?
+    tf_identifier )?`. When the self-annotated `non_typedef_package_scope` branch won, the rule's own
+    annotation mis-recursed onto the scope element (`rust/src/ast_pipeline/ast_return_transform.rs:193`/
+    `:438`). IDENTICAL class to `.1`–`.2.3`, `.2.5`, `SVPP-0001`, `RTL-FE-0002`, `RTL-CE-0001`,
+    `VHDL-0001`. The br1 forms (scope alt a DIRECT element, single-nested) → already clean.
+  - [x] **FIX** — lifted the shared inline alternation into ONE new un-annotated named rule
+    `nettype_scope_prefix := non_typedef_package_scope | class_scope` (`grammars/systemverilog.ebnf`,
+    placed just before `net_type_declaration_sv_2017`), referenced at all 4 nettype occurrences (both
+    profiles, both branches) via `nettype_scope_prefix?` (annotation text + positions unchanged). Order
+    `non_typedef_package_scope | class_scope` PRESERVED — distinct from the reversed
+    `scoped_type_scope_prefix` (`.2.3`), so NOT reused. Fix-hierarchy tier = Level-1 declarative grammar
+    edit; the `.2.3` `scoped_type_scope_prefix` shared-named-lift precedent. SV parser regenerated;
+    release `parseability_probe` + debug `ast_pipeline` rebuilt.
+  - [x] **ADDRESSED (verified)** — before→after on `nettype logic n with pkg::f;`
+    (`--parse-dump-ast-pretty` sv_2017 AND sv_2023): `<invalid_sequence_access>` **3 → 0** both profiles;
+    the `with_clause` inner scope → clean `{body:{kind:"package", name:{body:"pkg"}}}`; the scoped-base
+    br1 form (`nettype pkg::base_t my_nt;`) stays **0**; `parse_full` still passes.
+  - [x] **NO REGRESSION** — SV external corpus **14/14** (`sv_external_corpus_triage_gate`
+    `parse_pass_total=14 parse_fail_total=0`); SV canonical cert `total 1310→1311 / witness 1289→1290 /
+    UNKNOWN=20` unchanged, seeds 0/7/42 byte-identical (`spf=0`, `proof_reverify_failures=0`; IDENTICAL
+    20-rule residual — 19 `no_path` + `context_member_method_call`; `nettype_scope_prefix` witnessed,
+    ZERO newly-unknown); 6 fully-certified grammars byte-identical `fully_certified=true` (SV-only regen
+    — only `generated/systemverilog_parser.rs` regenerated; json `fully_certified=true` spot-checked;
+    tracked diff = grammar + manifest + test + docs, NO codegen); `cargo test --lib --features
+    generated_parsers` **739/0/21ignored** (`systemverilog_ast_shape_contract` PASS — the 2 new samples
+    validated against the regenerated parser via `PGEN_SYSTEMVERILOG_PARSER_PATH`); `--lint-grammar`
+    `ordered_choice_shadowing=0 non_terminating=0 unreachable=0 profile_orphans=0` (1431→1432 rules,
+    `always_matches=8` unchanged); clippy source-clean (`clippy_on_rust_change` exit 0).
+  - [x] **LOCKSTEP** — shape-contract manifest `systemverilog_v1.json` (+2 samples
+    `nettype_scope_prefix_pkg`/`net_type_declaration_with_clause`, +1 calibration_history entry) +
+    `ast_shape_contract.rs` dispatch arms (`nettype_scope_prefix`, `net_type_declaration_sv_2017`);
+    released-parser bug-ledger row `SV-0019`; SV integration contract `1.0.156 → 1.0.157` + schema
+    `11 → 12` + § "AST-Shape Corrections — 1.0.157"; SV parser book (`schema-versioning.md` schema-12 row
+    + intro, `welcome.md` version `12`, `json-carrier.md` +2 rows, `changelog-index.md` `1.0.157` entry)
+    rebuilt GREEN via `systemverilog_parser_book_gate` (mdbook_build + tracked_html); CHANGES /
+    DEVELOPMENT_NOTES / MEMORY / LIVE_ACHIEVEMENT_STATUS / TASK_TREE updated.
 
 - ID: `SV-AST-SHAPE-FIDELITY.2.7`
   Status: `open` (2026-07-01, session #12)
@@ -722,6 +771,23 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   (`always_matches=8` unchanged); `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html);
   clippy source-clean.
 
+- 2026-07-01 (`.2.6`, session #12): tools-first before→after on `nettype logic n with pkg::f;`
+  (`--parse-dump-ast-pretty` sv_2017 AND sv_2023): the nettype `with_clause` inner scope
+  `<invalid_sequence_access>` **3 → 0** both profiles — the corrupted `{data_type/name/with_clause:
+  <invalid_sequence_access>}` scope element → clean `{body:{kind:"package", name:{body:"pkg"}}}`; the
+  scoped-base br1 form (`nettype pkg::base_t my_nt;`) stays 0; `parse_full` passes.
+- 2026-07-01 (`.2.6`) NO-REGRESSION: SV external corpus triage gate `parse_pass_total=14
+  parse_fail_total=0` (**14/14**); SV canonical cert `total 1310→1311 witness 1289→1290 UNKNOWN=20 spf=0
+  proof_reverify_failures=0` seeds 0/7/42 byte-identical (IDENTICAL 20-rule residual — 19 `no_path` +
+  `context_member_method_call`; `nettype_scope_prefix` witnessed, absent from the UNKNOWN set); 6
+  fully-certified grammars byte-identical (SV-only regen — only `generated/systemverilog_parser.rs`
+  regenerated; json `fully_certified=true` spot-checked; tracked diff = grammar + manifest + test +
+  docs, NO codegen); `cargo test --lib --features generated_parsers` 739/0/21ignored;
+  `systemverilog_ast_shape_contract` PASS (2 new nettype samples validated against the regenerated
+  parser via `PGEN_SYSTEMVERILOG_PARSER_PATH`); `--lint-grammar` `ordered_choice_shadowing=0
+  non_terminating=0 unreachable=0 profile_orphans=0` 1431→1432 rules (`always_matches=8` unchanged);
+  `systemverilog_parser_book_gate` GREEN (mdbook_build + tracked_html); clippy source-clean.
+
 ## Commit Log
 
 - 2026-07-01 (`.1`): `PGEN-SV-AST-SHAPE-FIDELITY-0001 (SV-AST-SHAPE-FIDELITY.1)` — committed `e0a672f4`.
@@ -729,7 +795,8 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
 - 2026-07-01 (`.2.2`): `PGEN-SV-AST-SHAPE-FIDELITY-0003 (SV-AST-SHAPE-FIDELITY.2.2)` — committed `5854cbad`.
 - 2026-07-01 (`.2.3`): `PGEN-SV-AST-SHAPE-FIDELITY-0004 (SV-AST-SHAPE-FIDELITY.2.3)` — committed `12e8905c`.
 - 2026-07-01 (`.2.4`): `PGEN-SV-AST-SHAPE-FIDELITY-0005 (SV-AST-SHAPE-FIDELITY.2.4)` — committed `6e916260`.
-- 2026-07-01 (`.2.5`): `PGEN-SV-AST-SHAPE-FIDELITY-0006 (SV-AST-SHAPE-FIDELITY.2.5)` — pending commit.
+- 2026-07-01 (`.2.5`): `PGEN-SV-AST-SHAPE-FIDELITY-0006 (SV-AST-SHAPE-FIDELITY.2.5)` — committed `1c7e5b83`.
+- 2026-07-01 (`.2.6`): `PGEN-SV-AST-SHAPE-FIDELITY-0007 (SV-AST-SHAPE-FIDELITY.2.6)` — pending commit.
 
 ## Changelog
 
@@ -807,3 +874,16 @@ idiom**: lift the inline alternation into a NAMED rule so the bare `$N` binds cl
   book gate GREEN; `cargo test --lib` 739/0; clippy source-clean. `.2` stays `in_progress` — **2 of 3
   REACHABLE-CORRUPT fixes remain** (`.2.6` #14 `nettype_declaration_sv_2023` `with`; `.2.7` #21
   `class_scoped_call_prefix`); 6 candidates now fixed (#2, #19, #20, #1, #5, #6, #8).
+- 2026-07-01: `.2.6` FIXED + fully verified + lockstepped (candidate #14 — the nettype `with`-clause
+  double-nested inline-alternation-`$N` corruption on `nettype logic n with pkg::f;`, a nettype with a
+  package-scoped resolution function). Tools-first found a proven **sv_2017 twin**: BOTH
+  `net_type_declaration_sv_2017` (`:3341`) and `nettype_declaration_sv_2023` (`:3390`) br0 corrupt the
+  `with_clause` inner scope element (3 `<invalid_sequence_access>` each, both profiles); the br1
+  scoped-base forms were already clean. ONE shared un-annotated named rule `nettype_scope_prefix`
+  (order `non_typedef_package_scope | class_scope` preserved, distinct from the reversed
+  `scoped_type_scope_prefix`) fixes all 4 occurrences; release/schema `1.0.157`/schema `12`; ledger
+  `SV-0019`. `<invalid_sequence_access>` **3 → 0** both profiles (br1 stays 0); corpus 14/14; cert
+  `total 1310→1311 witness 1289→1290 UNKNOWN=20` unchanged (`nettype_scope_prefix` witnessed, ZERO
+  newly-unknown); `ast_shape_contract` PASS (2 new samples); book gate GREEN; `cargo test --lib` 739/0;
+  clippy source-clean. `.2` stays `in_progress` — **1 of 3 REACHABLE-CORRUPT fix remains** (`.2.7` #21
+  `class_scoped_call_prefix`); 8 candidates now fixed (#2, #19, #20, #1, #5, #6, #8, #14).

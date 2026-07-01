@@ -3326,11 +3326,21 @@ net_type := kw_supply_076df715 -> {kind: "supply"}
          | kw_wand_4be59aff   -> {kind: "wand"}
          | kw_wor_ff9e40da    -> {kind: "wor"}
 
+# SV-AST-SHAPE-FIDELITY.2.6 — named-lift of the nettype scope-prefix alternation so the
+# (double-nested) `with`-clause scope group in both nettype rules' br0 binds a clean named
+# rule (`nettype_scope_prefix?`) instead of an inline alternation (which corrupted the
+# positional model → the `with_clause` inner scope emitted `data_type`/`name`/`with_clause`
+# `<invalid_sequence_access>` when the self-annotated `non_typedef_package_scope` branch won,
+# e.g. `nettype logic n with pkg::f;`). Order preserved (`non_typedef_package_scope | class_scope`,
+# NOT the reversed `scoped_type_scope_prefix`); shared by all 4 nettype occurrences (both profiles,
+# both branches). The `.2.3` `scoped_type_scope_prefix` named-lift precedent.
+nettype_scope_prefix := non_typedef_package_scope | class_scope
+
 @profiles: ["sv_2017"]
 @sample: "nettype int nt;"
-net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
+net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
                              -> {data_type: $2, name: $3, with_clause: $4}
-                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? net_type_identifier declared_nettype_identifier semi
+                              | kw_nettype_27d30cf3 nettype_scope_prefix? net_type_identifier declared_nettype_identifier semi
 
 @profiles: ["sv_2017"]
 net_type_declaration := net_type_declaration_sv_2017
@@ -3377,9 +3387,9 @@ declared_nettype_identifier := declaration_identifier -> { body: $1.body }
 wildcard_escape_nettype_identifier := declaration_identifier -> { body: $1.body }
 
 @profiles: ["sv_2023"]
-nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 ( non_typedef_package_scope | class_scope )? tf_identifier )? semi
+nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
                                       -> {kind: "data_type",  data_type: $2, name: $3, with_clause: $4}
-                              | kw_nettype_27d30cf3 ( non_typedef_package_scope | class_scope )? nettype_identifier declared_nettype_identifier semi
+                              | kw_nettype_27d30cf3 nettype_scope_prefix? nettype_identifier declared_nettype_identifier semi
                                       -> {kind: "nettype",    scope: $2, base: $3, name: $4}
 
 @profiles: ["sv_2023"]

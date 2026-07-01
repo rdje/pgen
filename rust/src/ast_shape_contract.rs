@@ -1077,6 +1077,21 @@ mod tests {
                 "interface_class_type" => parser
                     .parse_interface_class_type()
                     .map_err(|err| err.to_string()),
+                // SV-AST-SHAPE-FIDELITY.2.6: lock the nettype scope-prefix
+                // (candidate #14). `nettype logic n with pkg::f;` emitted 3
+                // `<invalid_sequence_access>` — the DOUBLE-NESTED `with`-clause
+                // `( non_typedef_package_scope | class_scope )?` inside `( kw_with
+                // … )?` re-recursed br0's own annotation onto the scope element.
+                // `nettype_scope_prefix` is the corruption-site + compile-time
+                // revert guard (shared by both nettype rules, both branches; order
+                // preserved vs the reversed `scoped_type_scope_prefix`);
+                // `net_type_declaration_sv_2017` is the with-clause root lock.
+                "nettype_scope_prefix" => parser
+                    .parse_nettype_scope_prefix()
+                    .map_err(|err| err.to_string()),
+                "net_type_declaration_sv_2017" => parser
+                    .parse_net_type_declaration_sv_2017()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),
