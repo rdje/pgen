@@ -460,12 +460,38 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
     Release/schema unchanged (`1.0.158`/13 — SV-profile behavior + AST byte-invariant, 12/12
     dumps). See Acceptance Checklist (`.6.2`).
 
-  - ID: `VERILOG-2005-PROFILE.6.3` — **frontier** (pending): CODE leaf — fix `SV-0026`: gate `description`'s
-    SV `$unit` compilation-unit alternative(s) out of `verilog_2005` (branch-lift or whole-rule
-    gate per the `.1` D4 preference), keeping module/UDP/config; add top-level-declaration reject
-    rows to the corpus. EXPECT cert-baseline movement (many `.6.1` probe scaffolds parse through
-    this leaked surface) — re-baseline `verilog_2005_conformance_contract_v0.json` cert pins in
-    the same commit. Same acceptance template as `.6.2`.
+  - ID: `VERILOG-2005-PROFILE.6.3` — Status: `blocked` (2026-07-02, checkpoint
+    `PGEN-VERILOG-2005-PROFILE-0013`; blocker = `.6.3.1`): CODE leaf — fix `SV-0026`. The fix was
+    BUILT and PARSE-VERIFIED this session, then **REVERTED** because it cannot earn NO-REGRESSION
+    yet (see `.6.3` Findings): (a) a SECOND carrier was found tools-first — `source_text_item`
+    carries direct top-level `local_parameter_declaration semi` / `parameter_declaration semi`
+    alternatives that bypass `description` (top-level `localparam p = 1;` / `parameter p = 1;`
+    ACCEPT under `verilog_2005`); (b) the two shape-preserving gated lifts
+    (`description_unit_item_sv_only` := `attribute_instance* package_item`;
+    `source_text_item_unit_sv_only` := the two parameter alternatives; both
+    `["sv_2017","sv_2023"]`, order-preserving) flipped all 4 top-level probes to REJECT under
+    `verilog_2005` with `sv_2017`/`sv_2023` ASTs 12/12 byte-identical, lint 0 orphans (census
+    1448→1450), 162/162 matrix, and `verilog_2005` cert `1138/2/809/327` deterministic; BUT
+    (c) canonical `sv_2017` cert went `UNKNOWN` 20→**21** deterministically (seeds 0/7/42) —
+    `known_unscoped_property_identifier` lost its witness in BOTH SV entry profiles → the pinned
+    recognized-union invariant (canonical 20 / union 1) would break. Landing was therefore
+    STOPPED per signoff discipline; grammar/corpus/contract reverted to the `.6.2` state
+    (restoration verified). The lift diffs are recorded verbatim in the Findings for replay once
+    `.6.3.1` restores the witness.
+
+  - ID: `VERILOG-2005-PROFILE.6.3.1` — **frontier** (pending): INVESTIGATION leaf
+    (engine-side WHY+WHERE, parser-agnostic surface — `stimuli_generator.rs` store-aware
+    name-prelude): why does the armed prelude for `has_fact(property_name, $body)` render a
+    SEQUENCE scaffold (`package \foo; sequence \foo; … endsequence endpackage …`) instead of the
+    SOLE `property_name` producer `declared_property_identifier` (grammar `:4401` — the only
+    `@emit_fact { kind: property_name }` site), 48/48 forced samples, once the top-level branch
+    structure shifts? Same anomaly visible pre-existing: the probe targeting
+    `declared_property_identifier` ITSELF renders a sequence scaffold at HEAD. Suspect surface:
+    `compute_name_prelude` / `reach_hops(body_rule, producer)` / the PASS-1
+    `reach_path_renders_unsatisfiable_gate` skip (`stimuli_generator.rs:3051..`), or the forced
+    sub-plan directives being overridden during render. Deliverable: tool-named WHY+WHERE (trace
+    the prelude arming + sub-plan directives for this target), then the fix under the owning
+    engine surface (own leaf; general, parser-agnostic per doctrine). `.6.3` replays after it.
 
   - ID: `VERILOG-2005-PROFILE.6.4` — pending: RATCHET leaf — witness the 6 class-D in-profile
     rules (`simple_identifier_no_scope`, `scope_free_identifier`, `ps_identifier` via the
@@ -549,6 +575,47 @@ All evidence from the 3-step protocol on HEAD binaries (release `1.0.158`, schem
 - **The 277:** spot-checked consistent with profile-unreachable-by-design (SV-only roots and
   their `kw_*` tokens whose every referencing rule is gated; e.g. `kw_typedef`, `kw_struct`,
   `kw_class` all correctly NO-reach). Per-profile `proof` accounting → `.6.5`.
+
+## `.6.3` Findings (tools-first, 2026-07-02 — the checkpoint record)
+
+- **Second `SV-0026` carrier (tools-first):** the `.6.1` reach chains showed `kw_packed` routed
+  `source_text_item → local_parameter_declaration` DIRECTLY (not via `description`); the rule
+  read + probes confirmed `source_text_item` carries its own top-level
+  `local_parameter_declaration semi` / `parameter_declaration semi` alternatives (both `$unit`-only
+  per IEEE 1364-2005) and ALSO a bare `semi` alternative with **no LRM counterpart in EITHER
+  standard** — the latter accepts a stray top-level `;` under every profile and is ledgered
+  **`SV-0028`** (open, all-profile, own fix leaf; deliberately not bundled here).
+- **The reverted fix (record for replay):** in `grammars/systemverilog.ebnf`, (1) above
+  `description`: `@profiles: ["sv_2017", "sv_2023"]` +
+  `description_unit_item_sv_only := attribute_instance* package_item -> {kind: "package_item", attributes: $1, body: $2}`,
+  with `description`'s branch 6 replaced by the bare reference `description_unit_item_sv_only`;
+  (2) above `source_text_item`: `@profiles: ["sv_2017", "sv_2023"]` +
+  `source_text_item_unit_sv_only := local_parameter_declaration semi -> {kind: "local_parameter_declaration", body: $1} | parameter_declaration semi -> {kind: "parameter_declaration", body: $1}`,
+  with the two inline branches replaced by the bare reference. Verified before revert: 4/4
+  top-level probes (`wire w;`, `reg r;`, `localparam p = 1;`, `parameter p = 1;`) ACCEPT→REJECT
+  under `verilog_2005` and ACCEPT unchanged under both SV profiles; `.6.2` locks + 5 controls
+  unchanged; 12/12 before→after AST dumps byte-identical (both SV profiles); lint rc=0,
+  `profile_orphans=0`, census 1448→1450; corpus matrix 162/162 with the 4 new reject rows;
+  `verilog_2005` cert `total=1138 proof=2 witness=809 UNKNOWN=327 spf=0` byte-identical at seeds
+  0/7/42.
+- **The blocking collateral (deterministic, tool-named):** canonical `sv_2017` cert moved
+  `1326/2/1304/UNKNOWN=20` → `1328/2/1305/UNKNOWN=21` at ALL of seeds 0/7/42; the residual diff
+  names exactly one addition: `known_unscoped_property_identifier`. The sv_2023-entry config also
+  lost it (present in its UNKNOWN list) ⇒ the sound multi-config union would go `UNKNOWN 1→2`,
+  breaking the pinned recognized-union invariant ("SV is one rule from fully-certified").
+  `PGEN_CERT_COVERAGE_DEBUG_PROBES`: 48/48 forced samples for the target are
+  `parsed=true witnessed_target=false` with scaffolds declaring a **sequence**
+  (`package \foo ; sequence \foo ; … endsequence endpackage bind …`) — the wrong fact kind for
+  the `has_fact(property_name, $body)` gate. `PGEN_REACH_PATH_DUMP` names the use-site route
+  (top-level `bind` → `checker_instantiation` → `property_actual_arg` → … →
+  `property_instance`). Grammar census: `declared_property_identifier` (`:4401`) is the SOLE
+  `property_name` producer, so a directed producer selection cannot legitimately pick a sequence
+  — and the probe targeting `declared_property_identifier` ITSELF renders a sequence scaffold,
+  meaning the anomaly is in the engine's prelude/forcing render, not the grammar edit (the edit
+  merely re-rolled the routing). Engine WHY+WHERE = the new blocking leaf `.6.3.1`.
+- **Restoration verified after revert:** grammar/contract/corpus back to the `.6.2` state;
+  regen + both binaries rebuilt; canonical cert back to `1326/2/1304/20` and `verilog_2005` cert
+  back to `1138/2/817/319` (seed 0), 150/150 matrix — see the Verification Log.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -1242,7 +1309,29 @@ proof).
   regen log pruned manually again; the `prune_log` port to that script remains the
   `GRAMMAR-WELLFORMED.H.12.8.5.2` follow-up).
 
+- 2026-07-02 (`.6.3`, CHECKPOINT — build/verify/revert record): the fix built and parse-verified
+  (4/4 top-level ACCEPT→REJECT under `verilog_2005`; `sv_2017`/`sv_2023` ACCEPT unchanged; 12/12
+  AST byte-compares; lint `profile_orphans=0` census 1448→1450; matrix 162/162; `verilog_2005`
+  cert `1138/2/809/327` seeds 0/7/42); BLOCKED on the deterministic canonical collateral
+  (`UNKNOWN` 20→21 all seeds; residual diff = `known_unscoped_property_identifier`; also absent
+  from the sv_2023-entry config ⇒ union 1→2; DEBUG_PROBES 48/48 sequence-scaffold mis-render;
+  REACH_PATH names the bind→checker→property_actual_arg use route; grammar census: sole
+  `property_name` producer = `declared_property_identifier`). REVERTED and restoration verified
+  fresh: canonical `1326/2/1304/20` (seed 0), `verilog_2005` `1138/2/817/319` (seed 0), matrix
+  150/150, `.6.2` locks REJECT, SV-0026 top-level probes back to known-open ACCEPT, reverted
+  rules absent from the regenerated parser (grep 0).
+
 ## Commit Log
+
+- 2026-07-02 (`.6.3` CHECKPOINT, `PGEN-VERILOG-2005-PROFILE-0013`): SV-0026 second carrier found
+  (`source_text_item` direct top-level `localparam`/`parameter` branches) + `SV-0028` ledgered
+  (bare top-level `;` accepts under EVERY profile — no LRM counterpart in either standard); the
+  two-lift fix built, parse-verified, then REVERTED — landing it deterministically breaks the
+  recognized-union invariant (canonical `UNKNOWN` 20→21; `known_unscoped_property_identifier`
+  witness lost to an engine-side name-prelude mis-render, 48/48 sequence scaffolds for a
+  property_name gate with a SOLE property producer). Blocking leaf `.6.3.1` spawned (engine
+  WHY+WHERE); lift diffs recorded verbatim for replay. ZERO code change in the commit
+  (ledger + tree + continuity docs only). Frontier → `.6.3.1`.
 
 - 2026-07-02 (`.6.2`, CODE, `PGEN-VERILOG-2005-PROFILE-0012`): SV-only literal/delay leak
   surface CLOSED under `verilog_2005` — `SV-0025` + `SV-0027` fixed via two shape-preserving
@@ -1318,6 +1407,20 @@ proof).
   concrete `.2` first slice + `.3`.. ordering appended; `.1` → `done`, frontier → `.2`.
 
 ## Changelog
+
+- 2026-07-02: `.6.3` BLOCKED-CHECKPOINT (`PGEN-VERILOG-2005-PROFILE-0013`, docs-only commit) —
+  the `SV-0026` fix was built and parse-verified but deliberately NOT landed: it deterministically
+  loses the `known_unscoped_property_identifier` witness in both SV entry profiles (canonical
+  cert `UNKNOWN` 20→21 at seeds 0/7/42 → the pinned recognized-union invariant would break).
+  Signoff decision = STOP + checkpoint: grammar/corpus/contract reverted to the `.6.2` state
+  (restoration measured fresh), the lift diffs + full evidence recorded in `.6.3` Findings for
+  verbatim replay, blocking leaf `.6.3.1` spawned (engine-side WHY+WHERE: the store-aware
+  name-prelude renders a SEQUENCE scaffold for a `property_name` gate whose sole producer is
+  `declared_property_identifier` — 48/48; also reproduces when targeting the producer itself at
+  HEAD, so it is a pre-existing engine anomaly the reshape merely re-rolled). Second `SV-0026`
+  carrier documented (`source_text_item` direct top-level `localparam`/`parameter` branches) +
+  NEW open all-profile row `SV-0028` (bare top-level `;` accepted; no LRM counterpart in either
+  standard). Frontier → `.6.3.1`. SV family status UNCHANGED (`Mostly Done`).
 
 - 2026-07-02: `.6.2` DONE (`PGEN-VERILOG-2005-PROFILE-0012`, CODE — grammar-only) — the SV-only
   literal/delay leak surface under `verilog_2005` is CLOSED: `SV-0025` (`wire #1step w;` /

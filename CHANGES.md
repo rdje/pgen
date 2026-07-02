@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0013 (VERILOG-2005-PROFILE.6.3): SV-0026 fix built + parse-verified, then REVERTED (signoff checkpoint) — blocked on an engine witness-routing anomaly (`.6.3.1`); SV-0026 second carrier + new `SV-0028` ledgered
+
+Same session (#19), PNT continuation. **Docs-only commit** (ledger + tree + continuity; the attempted grammar change was reverted, zero code delta).
+
+- **Second `SV-0026` carrier (tools-first):** `source_text_item` carries direct top-level `local_parameter_declaration semi` / `parameter_declaration semi` alternatives bypassing `description` (top-level `localparam p = 1;` / `parameter p = 1;` ACCEPT under `verilog_2005`); gating `description` alone is insufficient. Also found + ledgered **`SV-0028`** (open, all-profile): a bare top-level `;` accepts under every profile via `source_text_item`'s LRM-less `semi` alternative.
+- **The attempted fix (recorded verbatim in the tree for replay):** two shape-preserving gated lifts (`description_unit_item_sv_only`, `source_text_item_unit_sv_only`). Parse-verified fully: 4/4 top-level probes ACCEPT→REJECT under `verilog_2005`; SV profiles unchanged (12/12 AST byte-compares); lint 0 orphans; 162/162 matrix; `verilog_2005` cert `1138/2/809/327` deterministic.
+- **Why NOT landed:** canonical `sv_2017` cert deterministically moves `UNKNOWN` 20→21 (seeds 0/7/42) — `known_unscoped_property_identifier` loses its witness in BOTH SV entry profiles → the pinned recognized-union invariant (canonical 20 / union 1) would break. `DEBUG_PROBES`: 48/48 forced samples scaffold a **sequence** for the `has_fact(property_name)` gate although `declared_property_identifier` is the sole `property_name` producer; the mis-render reproduces at HEAD against the producer itself — a pre-existing engine name-prelude anomaly (`stimuli_generator.rs` `compute_name_prelude`/forcing render) that the branch reshape re-rolled. Blocking leaf **`.6.3.1`** (engine WHY+WHERE, parser-agnostic) spawned; `.6.3` replays after it.
+- **Restoration measured fresh after the revert:** canonical `1326/2/1304/20`; `verilog_2005` `1138/2/817/319`; matrix 150/150; `.6.2` reject-locks hold; reverted rules absent from the regenerated parser.
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0012 (VERILOG-2005-PROFILE.6.2): SV-only literal/delay leak surface CLOSED under `verilog_2005` — `SV-0025` + `SV-0027` fixed (`Released`) via two shape-preserving gated lifts; 4 corpus reject-locks; cert + union pins re-baselined
 
 Same session (#19), PNT continuation from `.6.1`. **Grammar-only CODE leaf** (2 lifts; zero Rust-source change; release/schema unchanged `1.0.158`/13).
