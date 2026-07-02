@@ -115,14 +115,23 @@ canonicalization (`tools/extract_systemverilog_lrm_profiles.py:315`, `$name` →
   intact). Token-naming decision: literals change, names stay (set-comparability of pinned
   residual lists; the sha1-of-literal hash suffix mismatch is accepted cosmetic debt).
 
-- ID: `SV-DOLLAR-LRM-FIDELITY.2` — **frontier** pending: CODE leaf, wave 1 (`SV-0029` timing
-  checks): correct the 12 timing-check token literals `sv_dollar_X` → `$X`
-  (`/sv_dollar_setup\b/` → `/\$setup\b/`, etc.). In-profile for BOTH dialects — no new gates;
-  collision-free (specify-only surface, `specify_item:4934` has no competing system-TF route).
-  Accept-set change on all profiles ⇒ SV release bump; typed kinds pre-exist (no carrier
-  reshape expected — adjudicate schema on the diff); add conformance-corpus LRM-spelling accept
-  locks + mangled-spelling reject locks; cert/union/v2005 re-pins with set-diff-proven deltas
-  (mangled-spelling witnesses re-route to the LRM spellings).
+- ID: `SV-DOLLAR-LRM-FIDELITY.2` — Status: `done` (2026-07-02, session #21,
+  `PGEN-SV-DOLLAR-LRM-FIDELITY-0002`, CODE — grammar-only, SV release `1.0.158`→`1.0.159`,
+  schema `13` unchanged): wave 1 LANDED — the 12 specify timing-check token literals corrected
+  `sv_dollar_X` → `$X` (`grammars/systemverilog.ebnf:6254-6284`, names kept per the `.1`
+  decision; provenance comment added at the token block). VERIFIED (see "Acceptance Checklist
+  (`.2`)"): 12/12 LRM spellings REJECT→**ACCEPT** and 12/12 mangled spellings
+  ACCEPT→**REJECT** under BOTH `sv_2017` and `verilog_2005`; 3 procedural collision controls
+  unchanged; all 8 wave-3 token probes byte-unchanged (wave isolation). NO-REGRESSION earned
+  fresh with pins EXACT (no re-pin needed anywhere): canonical cert `1328/2/1306/UNKNOWN=20
+  spf=0` seeds 0/7/42 with the 20-rule residual SET-IDENTICAL to the pre-fix union-gate log;
+  union gate GREEN (canonical 20 / union 1 / residual `context_member_method_call`);
+  `verilog_2005` conformance gate GREEN — 168 checks/0 mismatches (56 cases incl. the 2 new
+  wave-1 locks `accept/specify_timing_checks.v` + `reject/specify_timing_check_mangled.v`),
+  lint 0 orphans, cert `1138/2/809/327` deterministic (count-neutral witness re-route, as
+  designed); shape 18/18; external corpus green; clippy source strict-clean; the 6
+  fully-certified grammars byte-identical by construction (SV-only regen). Ledger `SV-0029` →
+  `Fix In Progress` (12 of 19 tokens fixed; wave 3 = `$root`/`$unit`/severity/bare-`$`).
 
 - ID: `SV-DOLLAR-LRM-FIDELITY.3` — proposed: CODE leaf, wave 2 (`SV-0030`, both sites):
   restore the LRM digits — `scalar_constant` (`:4713`) to the ten 1364-2005/1800 alternatives
@@ -147,9 +156,54 @@ canonicalization (`tools/extract_systemverilog_lrm_profiles.py:315`, `$name` →
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `SV-DOLLAR-LRM-FIDELITY.2` | `pending` | wave 1 (12 timing-check literals) is the audited collision-free slice: pure literal swap, no gates, no shape change — the lowest-risk, highest-value fix (LRM specify surface restored on BOTH dialects) |
-| 2 | `SV-DOLLAR-LRM-FIDELITY.3` | `pending` | wave 2 (`SV-0030` digits + reorder) is shape-affecting (schema bump) — lands after the literal wave so each re-pin has one cause |
-| 3 | `SV-DOLLAR-LRM-FIDELITY.4` | `pending` | wave 3 (SV-only group) needs per-site PEG-order proofs + `verilog_2005` gates — the most delicate slice, last |
+| 1 | `SV-DOLLAR-LRM-FIDELITY.3` | `pending` | wave 2 (`SV-0030` digits + reorder) is shape-affecting (schema bump) — lands after the `.2` literal wave so each re-pin has one cause |
+| 2 | `SV-DOLLAR-LRM-FIDELITY.4` | `pending` | wave 3 (SV-only group) needs per-site PEG-order proofs + `verilog_2005` gates — the most delicate slice, last |
+
+## Acceptance Checklist (`.2`, enforced)
+
+- [x] **REPRODUCE / ISSUE** — the `.1` probe matrix on pre-fix HEAD: all 12 LRM timing-check
+  spellings REJECT (e.g. `$setup(d, posedge clk, 1);` in specify →
+  `Parser did not consume full input at position 0 [furthest_position=26, +26 bytes deeper]`
+  under `sv_2017`, REJECT under `verilog_2005`) while all 12 mangled `sv_dollar_*` spellings
+  ACCEPT (`parse_full passed`) — 26 probe files under the session scratchpad `sv0029_matrix/`,
+  verdict table in "`.1` Findings" (a). Ledger `SV-0029`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the 12 keyword tokens matched the mangled RULE-NAME text
+  instead of the LRM `$` spelling: `kw_sv_dollar_setup_b58bdaae := trivia /sv_dollar_setup\b/`
+  (`grammars/systemverilog.ebnf:6272`, likewise `:6254-6284` for the other 11). Provenance
+  tool-named in `VERILOG-2005-PROFILE` "`.6.4` Findings": the profiled-synthesis rule-name
+  canonicalization (`tools/extract_systemverilog_lrm_profiles.py:315`) leaked into token
+  LITERALS; both extracted LRM snapshots are `$`-faithful (`grep -c sv_dollar` = 0); no
+  pre-parse rewrite exists (`grep -rn "sv_dollar" rust/src/` = 0 hits).
+- [x] **FIX** — GRAMMAR tier (fix-hierarchy: declarative/grammar, no engine change): the 12
+  literals swapped to `/\$setup\b/`, `/\$hold\b/`, `/\$setuphold\b/`, `/\$recovery\b/`,
+  `/\$recrem\b/`, `/\$removal\b/`, `/\$skew\b/`, `/\$timeskew\b/`, `/\$fullskew\b/`,
+  `/\$period\b/`, `/\$width\b/`, `/\$nochange\b/`; token NAMES kept (`.1` decision); generated
+  parser regenerated (`\\$setup\\b` present at `generated/systemverilog_parser.rs:924005`,
+  rule names unchanged); both binaries rebuilt.
+- [x] **ADDRESSED (verified)** — 12/12 LRM spellings REJECT→ACCEPT under `sv_2017` AND
+  `verilog_2005`; 12/12 mangled spellings ACCEPT→REJECT under both; `$width` threshold-less
+  control stays REJECT in both spellings (1800-faithful); procedural controls
+  (`$display("x");`, `$setup(1);`, `$setup2(1);` in `initial`) ACC unchanged — zero collision;
+  the 8 wave-3 probes (`$unit`/severity/`$root`/bare-`$` LRM+mangled) byte-unchanged — wave
+  isolation proven. Full before→after table in the `.2` Verification Log entry.
+- [x] **NO REGRESSION** — canonical cert
+  `CERTIFICATE-COVERAGE: … total=1328 proof=2 witness=1306 UNKNOWN=20 fully_certified=false
+  (sample_parse_failures=0, proof_reverify_failures=0)` at seeds 0/7/42 with the 20-rule
+  residual SET-IDENTICAL to the pre-fix union-gate `cert_seed_0.log` (python set-compare:
+  `pre==post: True`); `sv_cert_recognized_union_gate` GREEN (`unmet_criteria_json: []`,
+  canonical `UNKNOWN=20`, union `UNKNOWN=1`, residual `context_member_method_call`, seeds
+  0/7/42); `verilog_2005_conformance_gate` GREEN (`gate_green: true`, 168 checks/0 mismatches,
+  lint orphans=0, cert `1138/2/809/327` deterministic — pins EXACT, count-neutral);
+  `ast_shape_contract_gate` 18/18; `sv_external_corpus_triage_gate` green
+  (`primary_parse_failure_profile: <none>`); `clippy_on_rust_change` rc 0 (source
+  strict-clean; generated-stage debt pre-existing); the 6 fully-certified grammars
+  byte-identical by construction (only `generated/systemverilog_parser.rs` regenerated —
+  mtime audit).
+- [x] **LOCKSTEP** — ledger `SV-0029` → `Fix In Progress` + wave-1 fix record; SV integration
+  contract (release `1.0.159` highlights + honest-boundary + version stream); SV parser book
+  (`changelog-index` + `schema-versioning` row `13 unchanged @ 1.0.159`) + book gate; top-level
+  book `parser-families.md` SV-0029 narrative; conformance contract +2 case rows (same
+  commit); tree + `docs/TASK_TREE.md`; LIVE/CHANGES/DEVELOPMENT_NOTES/MEMORY.
 
 ## `.1` Findings (tools-first, 2026-07-02 — the per-token audit)
 
@@ -249,6 +303,7 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
 | --- | --- | --- | --- |
 | `2026-07-02` | (origin) | the `VERILOG-2005-PROFILE.6.4` probe matrix (LRM-vs-mangled × profiles) | recorded in that tree's `.6.4` Findings + Verification Log |
 | `2026-07-02` | `.1` | 12 timing checks × {LRM, mangled} × {sv_2017, verilog_2005} = 26 probes (incl. the two `width_min` controls); `$unit`/severity×4/bare-`$`/`$root`×2 × {LRM, mangled} × 3 profiles; UDP `init_val` × 5 digit forms × 2 profiles; `specify_item` alternatives read; severity-host profile-admission cross-checked against the `man_sev_fatal` v2005=ACC probe; `$width` BNF verified in `section-31-timing-checks.txt`; sha1 naming convention verified on 3 samples | all recorded in "`.1` Findings"; zero code |
+| `2026-07-02` | `.2` | lint (1450 rules, 0 error classes, `profile_orphans=0`, `always_matches=8` unchanged, rc 0); regen + both binaries rebuilt fresh-mtime; generated-parser literal audit (`\$setup\b` present, rule names unchanged); AFTER matrix: 12/12 LRM ACC + 12/12 mangled REJ (both dialects) + width_min REJ + 3 procedural controls ACC + 8 wave-3 probes unchanged; canonical cert 3 seeds `1328/2/1306/20 spf=0` + residual set-compare vs pre-fix union log `pre==post: True`; union gate GREEN; conformance gate GREEN 168/0 + cert pins EXACT `1138/2/809/327`; shape 18/18; external corpus green; clippy rc 0; other 9 generated parsers mtime-untouched | all green — pins exact, zero re-pins |
 
 ## Commit Log
 
@@ -256,9 +311,12 @@ scratchpad (`sv0029_matrix/`). "LRM" = the IEEE `$` spelling; "MAN" = the mangle
 | --- | --- | --- |
 | (origin) | `PGEN-VERILOG-2005-PROFILE-0017` (`VERILOG-2005-PROFILE.6.4`) | discovery + ledger rows `SV-0029`/`SV-0030`; zero code |
 | `.1` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0001` (`SV-DOLLAR-LRM-FIDELITY.1`) | design/audit closed; wave plan re-sliced `.2` literals / `.3` SV-0030 / `.4` SV-only; `SV-0030` extended with the `init_val` site; zero code |
+| `.2` | `PGEN-SV-DOLLAR-LRM-FIDELITY-0002` (`SV-DOLLAR-LRM-FIDELITY.2`) | wave 1 LANDED — 12 timing-check literals `sv_dollar_X`→`$X`; release `1.0.159` (schema 13 unchanged); all gates green, pins exact; ledger `SV-0029` → `Fix In Progress` |
 
 ## Changelog
 
 - `2026-07-02`: Created task tree from the `VERILOG-2005-PROFILE.6.4` adjudication findings.
 - `2026-07-02`: `.1` design/audit leaf closed (`PGEN-SV-DOLLAR-LRM-FIDELITY-0001`); frontier →
   `.2` (wave 1, the 12 timing-check literals).
+- `2026-07-02`: `.2` wave 1 landed (`PGEN-SV-DOLLAR-LRM-FIDELITY-0002`, release `1.0.159`);
+  frontier → `.3` (wave 2, `SV-0030` digits + reorder).

@@ -1,4 +1,13 @@
 # CHANGES.md
+## 2026-07-02 - PGEN-SV-DOLLAR-LRM-FIDELITY-0002 (SV-DOLLAR-LRM-FIDELITY.2): `SV-0029` wave 1 FIXED — the 12 specify timing-check tokens carry their IEEE `$` spellings; SV release `1.0.158`→`1.0.159` (schema 13 unchanged); pins exact everywhere, zero re-pins
+
+Same session (#21), PNT continuation from `.1`. **CODE leaf — grammar-only** (12 token literals in `grammars/systemverilog.ebnf:6254-6284` + a provenance comment; SV parser regenerated; no Rust-source change).
+
+- **The fix:** `kw_sv_dollar_{setup,hold,setuphold,recovery,recrem,removal,skew,timeskew,fullskew,period,width,nochange}_*` literals corrected `/sv_dollar_X\b/` → `/\$X\b/`; token NAMES kept per the `.1` decision (pinned-list set-comparability; sha1-suffix mismatch documented at the token block).
+- **ADDRESSED (before→after):** 12/12 LRM spellings REJECT→ACCEPT and 12/12 mangled spellings ACCEPT→REJECT under BOTH `sv_2017` and `verilog_2005`; `$width` threshold-less control stays REJECT (1800-faithful); procedural controls (`$display`, `$setup(1);`, `$setup2(1);`) ACC unchanged; all 8 wave-3 token probes byte-unchanged (wave isolation).
+- **NO REGRESSION (pins exact, zero re-pins):** canonical cert `1328/2/1306/UNKNOWN=20 spf=0` at seeds 0/7/42 with the residual SET-IDENTICAL to the pre-fix union-gate log (python set-compare `pre==post: True`); union gate GREEN (canonical 20 / union 1 / `context_member_method_call`); conformance gate GREEN 168/0 incl. the 2 new locks, lint 0 orphans, `verilog_2005` cert `1138/2/809/327` deterministic (count-neutral witness re-route); shape 18/18; external corpus green; clippy source strict-clean (generated-stage debt pre-existing); only `generated/systemverilog_parser.rs` regenerated (mtime audit) — fully-certified-6 byte-identical by construction.
+- **Lockstep:** ledger `SV-0029` → `Fix In Progress` + wave-1 fix proof; SV integration contract → `1.0.159` (identity + highlights + honest-boundary + version stream); SV parser book (changelog-index `### 1.0.159` + schema-versioning `13 (unchanged)` row) + book gate; top book `parser-families.md`; conformance contract +2 cases (168-check matrix); tree `.2` done + acceptance checklist + frontier `.3`; TASK_TREE; LIVE; MEMORY.
+
 ## 2026-07-02 - PGEN-SV-DOLLAR-LRM-FIDELITY-0001 (SV-DOLLAR-LRM-FIDELITY.1): the `SV-0029`/`SV-0030` fix fully designed tools-first — complete per-token probe matrix, wave-1 collision-freedom proven, `SV-0030` second site (`init_val`) found, waves re-sliced by risk class
 
 Same session (#21), PNT continuation from the `.6.4` discovery. **DESIGN/AUDIT leaf — ZERO code change** (tree + ledger/contract/book extensions + continuity docs).

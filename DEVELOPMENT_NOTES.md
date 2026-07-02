@@ -1,4 +1,13 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-SV-DOLLAR-LRM-FIDELITY-0002 — a literal-swap wave that lands with zero re-pins: what made it boring (in the good way)
+
+Session #21. The wave-1 landing was the rare SV grammar change where EVERY pinned number held. Why, mechanically:
+
+- **Count-neutral witness re-route.** The 12 timing-check rules were witnessed BEFORE the fix through their mangled spellings (the generator emits what the grammar says, the parser accepted it — the gen⟷parse duality held around the defect) and are witnessed AFTER through the LRM spellings. Accept-set changes only moved WHICH strings witness, not WHETHER — so canonical `1328/2/1306/20`, union `1325/1`, and v2005 `1138/2/809/327` all reproduced byte-for-byte, and the decisive residual set-compare (`pre==post: True` against the union gate's own `cert_seed_0.log`) needed no new baseline capture.
+- **The `.1` collision audit is what pre-paid the risk.** Two structural proofs (no system-TF route in `specify_item`; no referencing site outside the timing rules) meant the swap could not re-route anything else — verified anyway with the three procedural controls and the 8 wave-3 isolation probes, all byte-unchanged.
+- **Keep the pre-fix gate logs around during a fix.** The pre-fix union-gate `cert_seed_0.log` (still on disk from the gate's last green run) was the no-new-work baseline for the residual set-compare. Pruning policy note: prune SIZE offenders (the ~5 GB regen log), keep the small cert logs — they are free evidence for exactly this kind of set-diff.
+- **Schema-neutral ≠ release-neutral.** The accepted LANGUAGE changed on all three profiles (new accepts + new rejects), so the release bumps (`1.0.159`) even though no typed shape moved (schema stays 13). The precedent line for consumers: adopt `1.0.159` if you parse netlists with timing checks; no AST migration needed.
+
 ## 2026-07-02 - PGEN-SV-DOLLAR-LRM-FIDELITY-0001 — designing a token-literal fix: probe the matrix, prove the non-collision, slice by risk class
 
 Session #21. Design-leaf notes worth keeping:

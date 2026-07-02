@@ -6251,37 +6251,43 @@ kw_sv_dollar_error_d304cf0a := trivia /sv_dollar_error\b/
 
 kw_sv_dollar_fatal_ecc3c9fd := trivia /sv_dollar_fatal\b/
 
-kw_sv_dollar_fullskew_1e1514b3 := trivia /sv_dollar_fullskew\b/
+# The 12 specify timing-check keyword tokens below carry their IEEE `$`-spelling literals
+# (SV-0029 wave-1 fix, SV-DOLLAR-LRM-FIDELITY.2): the `sv_dollar_*` RULE NAMES are the
+# canonicalized forms of those `$` spellings and are KEPT even though the `_<hash>` suffix
+# was derived (sha1[:8]) from the old mangled literal — renaming would churn the pinned
+# cert residual/NO-reach name lists. The remaining `sv_dollar_*`-literal tokens ($root,
+# $unit, severity, bare $) are the SV-0029 wave-3 scope (tree SV-DOLLAR-LRM-FIDELITY.4).
+kw_sv_dollar_fullskew_1e1514b3 := trivia /\$fullskew\b/
 
-kw_sv_dollar_hold_0cf8df90 := trivia /sv_dollar_hold\b/
+kw_sv_dollar_hold_0cf8df90 := trivia /\$hold\b/
 
 kw_sv_dollar_info_d116cb1c := trivia /sv_dollar_info\b/
 
-kw_sv_dollar_nochange_872771bf := trivia /sv_dollar_nochange\b/
+kw_sv_dollar_nochange_872771bf := trivia /\$nochange\b/
 
-kw_sv_dollar_period_87a9c33e := trivia /sv_dollar_period\b/
+kw_sv_dollar_period_87a9c33e := trivia /\$period\b/
 
-kw_sv_dollar_recovery_585fc30a := trivia /sv_dollar_recovery\b/
+kw_sv_dollar_recovery_585fc30a := trivia /\$recovery\b/
 
-kw_sv_dollar_recrem_fc40cd26 := trivia /sv_dollar_recrem\b/
+kw_sv_dollar_recrem_fc40cd26 := trivia /\$recrem\b/
 
-kw_sv_dollar_removal_7a979d46 := trivia /sv_dollar_removal\b/
+kw_sv_dollar_removal_7a979d46 := trivia /\$removal\b/
 
 kw_sv_dollar_root_f65f0e67 := trivia /sv_dollar_root\b/
 
-kw_sv_dollar_setup_b58bdaae := trivia /sv_dollar_setup\b/
+kw_sv_dollar_setup_b58bdaae := trivia /\$setup\b/
 
-kw_sv_dollar_setuphold_25a075ac := trivia /sv_dollar_setuphold\b/
+kw_sv_dollar_setuphold_25a075ac := trivia /\$setuphold\b/
 
-kw_sv_dollar_skew_1ae5c1e4 := trivia /sv_dollar_skew\b/
+kw_sv_dollar_skew_1ae5c1e4 := trivia /\$skew\b/
 
-kw_sv_dollar_timeskew_6d763f0a := trivia /sv_dollar_timeskew\b/
+kw_sv_dollar_timeskew_6d763f0a := trivia /\$timeskew\b/
 
 kw_sv_dollar_unit_1d99223f := trivia /sv_dollar_unit\b/
 
 kw_sv_dollar_warning_22a41474 := trivia /sv_dollar_warning\b/
 
-kw_sv_dollar_width_72b04d27 := trivia /sv_dollar_width\b/
+kw_sv_dollar_width_72b04d27 := trivia /\$width\b/
 
 kw_sync_accept_on_b65eda53 := trivia /sync_accept_on\b/
 
