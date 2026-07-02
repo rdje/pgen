@@ -1,4 +1,14 @@
 # CHANGES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0006 (VERILOG-2005-PROFILE.4 handoff): record director go-ahead + build-to-coherence execution recipe + candidate classification — PURE-DOCS continuity
+
+Fresh session (#15, 2026-07-02) bounded PNT. **PURE-DOCS continuity** (task-tree + tracker docs only; NO code change). After the `.3` investigation surfaced the `verilog_2005` profile-orphan wellformedness debt, the director CONFIRMED (prioritization decision) to proceed with the build-to-coherence campaign. This slice records that decision + the exact `.4` execution recipe + the tools-first candidate admit/gate classification durably, and defers the delicate surgery to a fresh session.
+
+- **Director decision (recorded):** proceed with `.4` — build `verilog_2005` to wellformedness coherence (drive `--lint-grammar` orphans 170→0, closing the `.2` regression).
+- **Why deferred to a fresh session:** `.4` is a ~40+-profile-directive delicate grammar surgery with leak risk (mis-classifying a rule as core vs SV-only either leaks SV-only surface into `verilog_2005` or over-restricts it). Per the fresh-session discipline, that is not a tail-of-session task; fresh focus protects signoff quality. The repo is left fully handoff-ready (all committed, grammar at HEAD).
+- **Recorded recipe (in the `.4` leaf):** `--lint-grammar` runs on the `.ebnf` directly (no regen), so iterate EDIT → lint → adjudicate orphans → repeat to 0 orphans, THEN one `focus_systemverilog` regen + one full no-regression suite + a reject-corpus (leaks are invisible to the orphan detector). Candidate admit set (oracle-confirmed Verilog-2005-core + core refactorings) and gate set (SV-only reachable rules) are listed for re-verification (not blind trust).
+- **Verified:** no oracle re-run (no code/grammar/generated change; 6 fully-certified grammars + SV inert). Doctrine enforcer PASS.
+- **Lockstep:** `docs/tasks/VERILOG-2005-PROFILE.md` (`.4` recipe + candidate classification + director-confirmed Decision), `docs/TASK_TREE.md` row, `LIVE_ACHIEVEMENT_STATUS.md`, DEVELOPMENT_NOTES / MEMORY. **No parser status row changed** (SystemVerilog `Mostly Done`; 6 fully-certified `Done`).
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0005 (VERILOG-2005-PROFILE.3): tools-first `--lint-grammar` investigation — `verilog_2005` profile-orphan wellformedness debt; implementation reclassified to build-to-coherence — INVESTIGATION / PURE-DOCS
 
 Fresh session (#15, 2026-07-02) bounded PNT, continuing the loop into the code frontier. **INVESTIGATION / PURE-DOCS** — the grammar gate edits trialed during this leaf were REVERTED, so NO `grammars|rust/src|generated|ast_shape_contract` change lands (task-tree-owned first as leaf `.3`). Closes `.3` as an investigation leaf; SV family status unchanged (`Mostly Done`).

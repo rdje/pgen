@@ -190,6 +190,35 @@ grammar does not mark which productions/keywords are inherited from 1364-2005 vs
   REJECTS under `verilog_2005` while ACCEPTing under sv_2017/sv_2023 + cert/corpus/shape-contract
   no-regression. Then LIVE + contract + book lockstep + a `verilog_2005` cert/corpus closure gate. The
   `sv_cert_recognized_union_gate` count-drift re-baseline (its own ownership) also lives in this band.
+  - **DIRECTOR CONFIRMED (2026-07-02): proceed with the build-to-coherence campaign.** Execution
+    deferred to a FRESH SESSION for full focus — a ~40+-directive delicate grammar surgery with leak
+    risk, not a tail-of-session task (fresh-session discipline).
+  - **EFFICIENCY RECIPE (no wasted regens):** `--lint-grammar` runs on the `.ebnf` directly (no parser
+    regen), so iterate EDIT → `ast_pipeline grammars/systemverilog.ebnf --lint-grammar` → adjudicate
+    remaining orphans → repeat until **0 `verilog_2005` orphans**, THEN do ONE `make -C rust
+    focus_systemverilog` + ONE full no-regression suite. Do NOT regen per edit.
+  - **CANDIDATE CLASSIFICATION (tools-first; the fresh session MUST re-verify via the orphan detector +
+    a reject-corpus — leaks are INVISIBLE to the orphan detector, so a reject-corpus is mandatory):**
+    - ADMIT (`["sv_2017"]`→`["sv_2017","verilog_2005"]`) — oracle-CONFIRMED core (present in
+      `verilog_2005_lrm_extracted.ebnf`): `blocking_assignment` `constant_primary` `event_control`
+      `event_trigger` `full_edge_sensitive_path_description` `function_declaration` `gate_instantiation`
+      `list_of_parameter_assignments`(+base) `local_parameter_declaration` `named_port_connection`
+      `net_declaration` `parallel_edge_sensitive_path_description` `param_assignment`
+      `parameter_declaration` `parameter_value_assignment` `primary` `task_declaration` `udp_declaration`
+      (all `_sv_2017`).
+    - ADMIT — core refactorings (oracle name-absent because SV renamed the 1364-2005 BNF, but the
+      construct IS Verilog-2005 and its SV-only children are gated — VERIFY no leak each):
+      `block_data_declaration` `data_declaration` `delay` `net_port_type` `statement_item`
+      `module_common_item` `tf_port_direction` `parameter_port_declaration` (all `_sv_2017`).
+    - GATE (`["sv_2017","sv_2023"]`) — SV-only reachable from admitted dispatchers, NOT in Verilog-2005:
+      the 16 whole-rule umbrellas from the `.3` trial PLUS `type_declaration` (typedef) `struct_union`
+      `integer_atom_type` `case_inside_item` `open_range_list` `open_value_range` `pattern`
+      `tagged_union_expression` `class_*` `covergroup_*` `constraint_*` `cross_*` `prop_*`/`property_expr`
+      `production`/`rs_*` `checker_*` `clocking_*` `dist_item` `boolean_abbrev`
+      `non_consecutive_repetition` `uniqueness_constraint` `sequence_actual_arg` `method_call_receiver`
+      `type_reference` `net_type_*` `weight_specification`.
+    - The orphan detector's "DERIVED minimal fix" always suggests GATING — correct for SV-only, WRONG for
+      core (a core orphan is fixed by ADMITTING its children). Judge by the oracle, not the hint.
 
 ## `.1` Findings (the oracle map + mechanism — tools-first, 2026-07-01)
 
@@ -453,6 +482,11 @@ proof).
   NON-INCREASING `verilog_2005` orphan count (the profile-orphan lint is part of acceptance now).
   Deferred to the director: confirm the build-to-coherence scope (a larger coordinated campaign than
   a single 16-rule gate slice) before the `.4` code work begins.
+- 2026-07-02 (director decision): **CONFIRMED — proceed with the `verilog_2005` build-to-coherence
+  campaign** (drive `--lint-grammar` orphans 170→0, closing the `.2` regression). Because `.4` is a
+  ~40+-directive delicate grammar surgery with leak risk, execution is deferred to a FRESH SESSION for
+  full focus (fresh-session discipline) — NOT abandoned; the candidate classification + lint-iterate
+  recipe are recorded in the `.4` leaf so the fresh session verifies rather than re-derives them.
 
 ## Open Questions
 

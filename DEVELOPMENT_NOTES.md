@@ -1,4 +1,12 @@
 # DEVELOPMENT_NOTES.md
+## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0006 — record director go-ahead + `.4` build-to-coherence recipe + candidate classification (VERILOG-2005-PROFILE.4 handoff; PURE-DOCS)
+
+Fresh session #15 (2026-07-02), bounded PNT. PURE-DOCS continuity — records the director's confirmation to proceed with the `verilog_2005` build-to-coherence campaign and captures the execution recipe + candidate classification durably so a fresh session can execute the delicate surgery without re-deriving groundwork.
+
+**Candidate classification (tools-first, from the `--lint-grammar` + oracle work in `-0005`):** the 96 `["sv_2017"]` rules split into (a) ADMIT to `verilog_2005` — 19 oracle-confirmed Verilog-2005-core (`blocking_assignment`/`net_declaration`/`primary`/`parameter_declaration`/`function_declaration`/`task_declaration`/`udp_declaration`/`gate_instantiation`/`event_control`/… `_sv_2017`) + 8 core refactorings SV renamed (`data_declaration`/`block_data_declaration`/`delay`/`net_port_type`/`statement_item`/`module_common_item`/`tf_port_direction`/`parameter_port_declaration`); (b) GATE `["sv_2017","sv_2023"]` — the 16 whole-rule SV-only umbrellas from the `.3` trial + `type_declaration`/`struct_union`/`integer_atom_type`/`case_inside_item`/`open_range_list`/`open_value_range`/`pattern`/`tagged_union`/`class_*`/`covergroup_*`/`constraint_*`/`prop_*`/`production`/`rs_*`/`checker_*`/`clocking_*`/… (SV-only reachable from admitted dispatchers). Leaks are INVISIBLE to the orphan detector → a reject-corpus is mandatory at closure.
+
+**Why deferred:** `.4` is a ~40+-directive delicate grammar surgery; mis-classification leaks or over-restricts. Fresh focus protects signoff quality (fresh-session discipline). Repo left handoff-ready (all committed; grammar at HEAD; `.4` recipe + candidate lists in the task tree). No code/grammar/generated change this slice.
+
 ## 2026-07-02 - PGEN-VERILOG-2005-PROFILE-0005 — `--lint-grammar` investigation: `verilog_2005` profile-orphan wellformedness debt; build-to-coherence reclassification (VERILOG-2005-PROFILE.3; INVESTIGATION / PURE-DOCS)
 
 Fresh session #15 (2026-07-02), bounded PNT, continuing into the `.3` code frontier. Leaf `VERILOG-2005-PROFILE.3` (investigation leaf; task-tree-owned first). INVESTIGATION / PURE-DOCS — the trialed grammar gate edits were REVERTED, so NOT a code change per the mechanical classifier.
